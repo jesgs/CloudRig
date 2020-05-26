@@ -121,7 +121,9 @@ class CloudBoneRig(BaseRig):
 			arm_con = mod_bone.constraints.new('ARMATURE')
 			arm_con.name = "Armature@" + parent_name # Let relink_constraints() take care of setting up the constraint from here.
 			arm_con.targets.new()
-			cloud_utils.move_constraint(self.obj, arm_con, bone=mod_bone, target_index=0)
+
+			# Move constraint to top of the stack.
+			mod_bone.constraints.move(len(mod_bone.constraints)-1, 0)
 
 	@stage.finalize
 	def modify_pose_bone(self):	
