@@ -355,7 +355,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			data_path = f'constraints["{con_name}"].influence'
 
-			main_str_helper.drivers[data_path] = stretchy_drv
+			# main_str_helper.drivers[data_path] = stretchy_drv
 
 	def prepare_ik_chain(self):
 		# Create IK Master control

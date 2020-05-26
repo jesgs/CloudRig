@@ -1,5 +1,4 @@
 import bpy
-from .. import utils
 
 class ID:
 	def __init__(self):
@@ -10,7 +9,7 @@ class ID:
 		return self.name
 
 	def make_real(self, target, skip=[], recursive=False):
-		utils.copy_attributes(self, target, skip, recursive)
+		""" Turn this fake thing into a real thing"""
 		return target
 
 class IDCollection(dict):

@@ -7,16 +7,6 @@ import copy
 from ..rigs import cloud_utils
 from rigify.utils.mechanism import make_constraint
 
-# Attributes that reference an actual bone ID. These should get special treatment, because we don't want to store said bone ID. 
-# Ideally we would store a BoneInfo, but a string is allowed too.
-
-def setattr_safe(thing, key, value):
-	try:
-		setattr(thing, key, value)
-	except:
-		print(f"ERROR: Wrong type assignment: key:{key}, type:{type(key)}, expected:{type(getattr(thing, key))}")
-		print(thing)
-
 class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
 	def __init__(self, cloudrig):

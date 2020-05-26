@@ -1,6 +1,5 @@
 import bpy
 from .id import *
-from .. import utils
 import copy
 
 class Driver(ID):
@@ -19,15 +18,21 @@ class Driver(ID):
 				# Allow passing FCurves?
 				source = source.driver
 			if type(source) == bpy.types.Driver:
-				# If a Blender driver object is passed, read its data into this instance.	# TODO: How could we just do this with a recursive copy_attributes, without fucking up the list types?
-				utils.copy_attributes(source, self, skip=["variables"])
-				for i_v in range(len(source.variables)):
-					bpy_v = source.variables[i_v]
-					v = DriverVariable()
-					self.variables.append(v)
-					utils.copy_attributes(bpy_v, v, skip=["targets"])
-					for i_t in range(len(bpy_v.targets)):
-						utils.copy_attributes(bpy_v.targets[i_t], v.targets[i_t])
+				# If a Blender driver object is passed, read its data into this instance.
+				self.expression = source.expression
+				self.use_self = source.use_self
+				self.type = source.type
+				for var in source.variables:
+					my_var = self.make_var(var.name)
+					my_var.type = var.type
+					for i, target in enumerate(var.targets):
+						my_var.targets[i].id_type = target.id_type
+						my_var.targets[i].id = target.id
+						my_var.targets[i].bone_target = target.bone_target
+						my_var.targets[i].data_path = target.data_path
+						my_var.targets[i].transform_type = target.transform_type
+						my_var.targets[i].transform_space = target.transform_space
+						my_var.targets[i].rotation_mode = target.rotation_mode
 		
 		# Apply property values from arbitrary keyword arguments if any were passed.
 		for key, value in kwargs.items():
@@ -99,7 +104,8 @@ class DriverVariable(ID):
 	def make_real(self, BPY_driver):
 		"""Add this variable to a driver."""
 		BPY_d_var = BPY_driver.variables.new()
-		super().make_real(BPY_d_var)
+		BPY_d_var.name = self.name
+		BPY_d_var.type = self.type
 		self.targets[0].make_real(BPY_d_var, 0)
 		if self.type in ['ROTATION_DIFF', 'LOC_DIFF']:
 			self.targets[1].make_real(BPY_d_var, 1)
@@ -125,16 +131,7 @@ class DriverVariableTarget(ID):
 		BPY_target.data_path = self.data_path
 		BPY_target.transform_type = self.transform_type
 		BPY_target.transform_space = self.transform_space
-		#BPY_target.rotation_mode = self.rotaion_mode
-		return
-
-		skip = []
-		if BPY_variable.type != 'SINGLE_PROP':
-			skip = ['id_type']
-		if len(BPY_variable.targets) > index:
-			super().make_real(BPY_variable.targets[index], skip)
-		else:
-			pass
+		# BPY_target.rotation_mode = self.rotaion_mode
 
 	def __deepcopy__(self, memo):
 		# We want to halt deepcopies here, since we don't store any compound objects beside a reference to an ID, which we cannot deepcopy.
