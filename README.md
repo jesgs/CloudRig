@@ -7,7 +7,7 @@ Put another way, CloudRig is a collection of customizable rig building blocks Th
 Download this repository as a .zip via the "Clone or download" button.
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.  
-![](featureset_load.gif)  
+![](docs/featureset_load.gif)  
 
 # Using CloudRig
 The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Human (Metarig)**.
@@ -26,10 +26,10 @@ In order to customize a rig element, try selecting the "UpperArm.L" bone in pose
 This shows the type of rig element applied to this bone, in this case "cloud_limbs". Below that, all of the parameters you can use to customize that rig element. After changing the parameters, simply press Generate again to update the rig.
 
 For more information, see the wiki:
-- [CloudRig Types](/-/wikis/CloudRig-Types)
-- [Generator Parameters](/-/wikis/Generator-Parameters)
-- [Custom Properties](/-/wikis/Custom-Properties)
-- [Organizing Bones](/-/wikis/Organizing-Bones)
+- [CloudRig Types](/../../../-/wikis/CloudRig-Types)
+- [Generator Parameters](/../../../-/wikis/Generator-Parameters)
+- [Custom Properties](/../../../-/wikis/Custom-Properties)
+- [Organizing Bones](/../../../-/wikis/Organizing-Bones)
 
 # Rig UI
 Once generated, select your generated rig, and press the N key to bring up the Sidebar. You should see a CloudRig tab, which contains the rig UI. This is where the animators will be able to find rig settings and a layer selector.  
