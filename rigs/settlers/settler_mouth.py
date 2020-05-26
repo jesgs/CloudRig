@@ -31,7 +31,7 @@ class SettlerMouthRig(CloudCurveRig):
 					shrinkwrap_type = 'TARGET_PROJECT'
 				)
 				# Not sure if this will work, but we need to ensure shrinkwrap is the first constraint.
-				hook.constraints = hook.constraints[-1:] + hook.constraints[:-1]
+				hook.constraint_infos = hook.constraint_infos[-1:] + hook.constraint_infos[:-1]
 				# TODO some driver on Influence or so.
 
 	def prepare_bones(self):

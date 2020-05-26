@@ -469,7 +469,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
 			arm_con_bone = self.pole_ctrl.parent
-			arm_con = arm_con_bone.constraints[0][1]
+			arm_con = arm_con_bone.constraint_infos[0][1]
 			arm_con['targets'].append({
 				"subtarget" : self.ik_mstr.name
 			})

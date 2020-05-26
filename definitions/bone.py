@@ -213,7 +213,7 @@ class BoneInfo(ID):
 		# List of (Type, attribs{}) tuples where attribs{} is a dictionary with the attributes of the constraint.
 		# "drivers" is a valid attribute which expects the same content as self.drivers, and it holds the constraints for constraint properties.
 		# TODO: Implement a proper container for constraints.
-		self.constraints = []
+		self.constraint_infos = []
 
 		### Edit Bone properties
 		self.parent = None	# Blender expects bpy.types.EditBone, but we store definitions.bone.BoneInfo. str is also supported for now, but should be avoided.
@@ -433,13 +433,13 @@ class BoneInfo(ID):
 		props = new_props
 
 		if index:
-			self.constraints.insert(index, (contype, props))
+			self.constraint_infos.insert(index, (contype, props))
 		else:
-			self.constraints.append((contype, props))
+			self.constraint_infos.append((contype, props))
 		return props
 
 	def clear_constraints(self):
-		self.constraints = []
+		self.constraint_infos = []
 
 	def write_edit_data(self, armature, edit_bone):
 		"""Write relevant data into an EditBone."""
@@ -531,7 +531,7 @@ class BoneInfo(ID):
 		
 		# Constraints.
 		from rigify.utils.mechanism import make_constraint
-		for cd in self.constraints:
+		for cd in self.constraint_infos:
 			con_type = cd[0]
 			con_info = cd[1]
 

@@ -113,10 +113,7 @@ class Rig(CloudIKChainRig):
 		# Disable first Copy Rotation constraint on the upperarm
 		for b in self.main_str_bones[0].sub_bones:
 			str_h_bone = b.parent
-			if len(str_h_bone.constraints) < 3:
-				# print(str_h_bone.name)
-				continue
-			str_h_bone.constraints[2][1]['mute'] = True	# TODO IMPORTANT: We have no proper way to access already existing constraints (by name, or even type) which is pretty sad. Instead of storing constraints as a (type, attribs) tuple, just store them as a dict, and initialize them a 'name' and 'type' attrib in add_constraint().
+			str_h_bone.constraint_infos[2][1]['mute'] = True	# TODO IMPORTANT: We have no proper way to access already existing constraints (by name, or even type) which is pretty sad. Instead of storing constraints as a (type, attribs) tuple, just store them as a dict, and initialize them a 'name' and 'type' attrib in add_constraint().
 
 	def prepare_ik_limb(self):
 		# NOTE: This runs after super().prepare_ik_chain()
@@ -199,7 +196,7 @@ class Rig(CloudIKChainRig):
 			,bone_group	 = self.bone_groups["IK Mechanism"]
 			,layers		 = self.bone_layers["IK Mechanism"]
 		)
-		roll_master.constraints.append(self.ik_tgt_bone.constraints[0])
+		roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
 		self.ik_tgt_bone.clear_constraints()
 
 		roll_name = self.make_name(["ROLL"], sliced_name[1], sliced_name[2])
@@ -327,7 +324,7 @@ class Rig(CloudIKChainRig):
 			
 		# Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
 		for main_str_bone in self.main_str_bones:
-			for c in main_str_bone.parent.constraints:
+			for c in main_str_bone.parent.constraint_infos:
 				if c[1]['name'] == 'CopyLoc_IK_Stretch':
 					c[1]['subtarget'] = rolly_stretchy.name
 
@@ -374,7 +371,7 @@ class Rig(CloudIKChainRig):
 		# Delete IK constraint and driver from toe bone. It should always use FK.
 		if self.limb_type == 'LEG':
 			org_toe = self.org_chain[-1]
-			org_toe.constraints.pop()
+			org_toe.constraint_infos.pop()
 			org_toe.drivers = {}
 
 	##############################
