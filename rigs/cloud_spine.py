@@ -278,7 +278,6 @@ class CloudSpineRig(CloudChainRig):
 			con_name = "Copy Transforms IK"
 			fk_bone.add_constraint(self.obj, 'COPY_TRANSFORMS', true_defaults=True,
 				name = con_name,
-				target = self.obj,
 				subtarget = ik_bone.name
 			)
 			drv = Driver()

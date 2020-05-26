@@ -9,11 +9,13 @@ from ..rigs import cloud_utils
 # Attributes that reference an actual bone ID. These should get special treatment, because we don't want to store said bone ID. 
 # Ideally we would store a BoneInfo, but a string is allowed too.
 
-def get_defaults(contype, armature):
+def get_constraint_defaults(contype, armature):
 	"""Return my preferred defaults for each constraint type."""
+	
 	ret = {
 		"target" : armature,
-	 }
+		"name" : contype.replace("_", " ").title()
+	}
 
 	# Constraints that support local space should default to local space.
 	local_space = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',
@@ -35,11 +37,8 @@ def get_defaults(contype, armature):
 	elif contype in ['COPY_TRANSFORMS', 'ACTION']:
 		ret["mix_mode"] = 'BEFORE'
 	elif contype == 'LIMIT_SCALE':
-		ret["min_x"] = 1
 		ret["max_x"] = 1
-		ret["min_y"] = 1
 		ret["max_y"] = 1
-		ret["min_z"] = 1
 		ret["max_z"] = 1
 		ret["use_transform_limit"] = True
 	elif contype in ['LIMIT_LOCATION', 'LIMIT_ROTATION']:
@@ -48,9 +47,8 @@ def get_defaults(contype, armature):
 		ret["chain_count"] = 2
 		ret["pole_target"] = armature
 	elif contype == 'ARMATURE':
-		# Create two targets in armature constraints.
-		ret["targets"] = [{"target" : armature}, {"target" : armature}]
-	
+		ret["targets"] = [{"target" : armature}]
+
 	return ret
 
 def setattr_safe(thing, key, value):
@@ -64,6 +62,7 @@ class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
 	def __init__(self, cloudrig):
 		self.bones = []
+		self.cloudrig = cloudrig
 		self.armature = cloudrig.obj
 		self.defaults = cloudrig.defaults	# For overriding arbitrary properties' default values when creating bones in this container.
 		self.scale = cloudrig.scale
@@ -90,6 +89,7 @@ class BoneInfoContainer(ID):
 	
 	def from_edit_bone(self, armature, edit_bone):
 		"""Create a BoneInfo instance based on an existing Blender bone, and add it to this container."""
+		# NOTE: This is currently not used.
 		eb = edit_bone
 		pose_bone = armature.pose.bones.get(eb.name)
 		assert pose_bone, f"Error: Failed to create BoneInfo from EditBone {eb.name} because corresponding PoseBone does not exist. Make sure to leave Edit Mode after creating a bone to make sure it's fully initialized."
@@ -422,7 +422,7 @@ class BoneInfo(ID):
 		props = kwargs
 		# Override defaults with better ones.
 		if not true_defaults:
-			new_props = get_defaults(contype, armature)
+			new_props = get_constraint_defaults(contype, armature)
 			for key, value in kwargs.items():
 				new_props[key] = value
 			props = new_props
@@ -525,31 +525,29 @@ class BoneInfo(ID):
 		b.tail_radius = self.tail_radius
 		
 		# Constraints.
+		from rigify.utils.mechanism import make_constraint
 		for cd in self.constraints:
 			con_type = cd[0]
-			cinfo = cd[1]
-			c = pose_bone.constraints.new(con_type)
-			if 'name' in cinfo:
-				c.name = cinfo['name']
-			for key, value in cinfo.items():
-				if con_type == 'ARMATURE' and key=='targets':
-					# Armature constraint targets need special treatment. D'oh!
-					# We assume the value of "targets" is a list of dictionaries describing a target.
-					for tinfo in value:	# For each of those dictionaries
-						target = c.targets.new()	# Create a target
-						# Set armature as the target by default so we don't have to always specify it.
-						target.target = armature
-						# Copy just these three values.
-						copy = ['weight', 'target', 'subtarget']
-						for prop in copy:
-							if prop in tinfo:
-								setattr_safe(target, prop, tinfo[prop])
-				elif(hasattr(c, key)):
-					setattr_safe(c, key, value)
+			con_info = cd[1]
 
-				# Fix stretch constraints
-				if c.type == 'STRETCH_TO':
-					c.rest_length = 0
+			targets = None
+			if con_type == 'ARMATURE' and 'targets' in con_info:
+				targets = con_info['targets']
+				del con_info['targets']
+
+			con = make_constraint(pb, cd[0], **cd[1])
+			
+			if con_type == 'ARMATURE' and targets:
+				for target_info in targets:
+					target = con.targets.new()
+					target.target = armature
+					for prop in ['weight', 'target', 'subtarget']:
+						if prop in target_info:
+							setattr(target, prop, target_info[prop])
+			
+			# Fix stretch constraints
+			if con_type == 'STRETCH_TO':
+				con.rest_length = 0
 		
 		# Custom Properties.
 		for key, prop in self.custom_props.items():

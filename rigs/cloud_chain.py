@@ -127,11 +127,11 @@ class CloudChainRig(CloudBaseRig):
 						self.create_shape_key_helpers(def_bone, self.def_bones[0])
 
 	def rig_str_helper(self, str_h_bone, first_str, last_str, influence):
-		str_h_bone.add_constraint(self.obj, 'COPY_LOCATION', true_defaults=True, target=self.obj, subtarget=first_str)
-		str_h_bone.add_constraint(self.obj, 'COPY_LOCATION', true_defaults=True, target=self.obj, subtarget=last_str, influence=influence)
+		str_h_bone.add_constraint(self.obj, 'COPY_LOCATION', space='WORLD', subtarget=first_str)
+		str_h_bone.add_constraint(self.obj, 'COPY_LOCATION', space='WORLD', subtarget=last_str, influence=influence)
 
-		str_h_bone.add_constraint(self.obj, 'COPY_ROTATION', true_defaults=True, target=self.obj, subtarget=first_str)
-		str_h_bone.add_constraint(self.obj, 'COPY_ROTATION', true_defaults=True, target=self.obj, subtarget=last_str, influence=influence)
+		str_h_bone.add_constraint(self.obj, 'COPY_ROTATION', space='WORLD', subtarget=first_str)
+		str_h_bone.add_constraint(self.obj, 'COPY_ROTATION', space='WORLD', subtarget=last_str, influence=influence)
 		str_h_bone.add_constraint(self.obj, 'DAMPED_TRACK', subtarget=last_str)
 
 	def make_str_helpers(self, str_sections):
