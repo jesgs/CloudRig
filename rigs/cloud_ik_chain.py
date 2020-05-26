@@ -258,23 +258,28 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		length_factor = chain_length / stretch_bone.length
 		stretch_bone.add_constraint(self.obj, 'STRETCH_TO', subtarget=self.stretch_target_bone.name)
-		stretch_bone.add_constraint(self.obj, 'LIMIT_SCALE', 
+		limit_scale = stretch_bone.add_constraint(self.obj, 'LIMIT_SCALE', 
 			use_max_y = True,
 			max_y = length_factor,
 			influence = 0
 		)
 
-		str_drv = Driver()
-		str_drv.expression = "1-stretch"
-		var = str_drv.make_var("stretch")
-		var.type = 'SINGLE_PROP'
-		var.targets[0].id_type = 'OBJECT'
-		var.targets[0].id = self.obj
-		var.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ik_stretch_name}"]'
-
-		data_path = 'constraints["Limit Scale"].influence'
-
-		stretch_bone.drivers[data_path] = str_drv
+		limit_scale.drivers.append({
+			'prop' : 'influence',
+			'expression' : "1-stretch",
+			'variables' : {
+				'stretch' : {
+					'type' : 'SINGLE_PROP',
+					'targets' : [
+						{
+							'id' : self.obj,
+							'id_type' : 'OBJECT',
+							'data_path' : f'pose.bones["{self.prop_bone.name}"]["{self.ik_stretch_name}"]'
+						}
+					]
+				}
+			}
+		})
 
 		# Store info for UI
 		info = {

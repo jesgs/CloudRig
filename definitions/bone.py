@@ -5,7 +5,7 @@ from .id import ID
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
-from rigify.utils.mechanism import make_constraint
+from rigify.utils.mechanism import make_constraint, make_driver
 
 class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
@@ -158,6 +158,7 @@ class BoneInfo(ID):
 		# EditBone custom properties.
 		self.custom_props_edit = {}
 		# data_path:Driver dictionary, where data_path is from the bone. Only for drivers that are directly on a bone property! Not a sub-ID like constraints.
+		self.new_style_drivers = []	# Rigify make_driver() compliant driver storage.
 		self.drivers = {}
 		self.bone_drivers = {}
 
@@ -473,7 +474,10 @@ class BoneInfo(ID):
 		
 		# Constraints.
 		for ci in self.constraint_infos:
-			ci.make_real(pb)
+			con = ci.make_real(pb)
+			for driver_info in ci.drivers:
+				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"].{driver_info["prop"]}'
+				self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
 		
 		# Custom Properties.
 		for key, prop in self.custom_props.items():
@@ -483,6 +487,11 @@ class BoneInfo(ID):
 		for path, d in self.drivers.items():
 			data_path = f'pose.bones["{pose_bone.name}"].{path}'
 			d.make_real(pose_bone.id_data, data_path)
+		
+		# New style drivers.
+		for driver_info in self.new_style_drivers:
+			driver_info['prop'] = f'pose.bones["{pb.name}"].{driver_info["prop"]}'
+			self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
 	
 		# Data Bone Property Drivers.
 		for path, d in self.bone_drivers.items():
@@ -499,44 +508,20 @@ class BoneInfo(ID):
 			return armature.pose.bones.get(self.name)
 
 class ConstraintInfo:
+	"""Helper class to store and manage constraint info before it's passed to Rigify's make_constraint."""
+
 	def __init__(self, bone_info, con_type, target=None, preferred_defaults=True, **kwargs):
 		self.type = con_type
 		self.bone_info = bone_info	# BoneInfo to which this constraint is being added.
 		self.target = target
 		self.name = self.type.replace("_", " ").title()
+		self.drivers = []
 		
 		for key, value in kwargs.items():
 			self.__dict__[key] = value
 
 		if preferred_defaults:
 			self.set_preferred_defaults()
-
-	def make_real(self, pose_bone):
-		con_type = self.type
-		con_info = self.__dict__
-		del con_info['type']
-		del con_info['bone_info']
-
-		targets = None
-		if con_type == 'ARMATURE' and 'targets' in con_info:
-			print(con_info)
-			targets = con_info['targets']
-			del con_info['targets']
-			del con_info['target']
-
-		con = make_constraint(pose_bone, con_type, **con_info)
-		
-		if con_type == 'ARMATURE' and targets:
-			for target_info in targets:
-				target = con.targets.new()
-				target.target = pose_bone.id_data
-				for prop in ['weight', 'target', 'subtarget']:
-					if prop in target_info:
-						setattr(target, prop, target_info[prop])
-			
-		# Fix stretch constraints
-		if con_type == 'STRETCH_TO':
-			con.rest_length = 0
 
 	def set_preferred_defaults(self):
 		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
@@ -571,3 +556,32 @@ class ConstraintInfo:
 		elif self.type == 'IK':
 			self.chain_count = 2
 			self.pole_target = self.target
+	
+	def make_real(self, pose_bone):
+		con_type = self.type
+		con_info = self.__dict__.copy()
+		for key in ['type', 'bone_info', 'drivers']:
+			del con_info[key]
+
+		targets = None
+		if con_type == 'ARMATURE' and 'targets' in con_info:
+			print(con_info)
+			targets = con_info['targets']
+			del con_info['targets']
+			del con_info['target']
+
+		con = make_constraint(pose_bone, con_type, **con_info)
+		
+		if con_type == 'ARMATURE' and targets:
+			for target_info in targets:
+				target = con.targets.new()
+				target.target = pose_bone.id_data
+				for prop in ['weight', 'target', 'subtarget']:
+					if prop in target_info:
+						setattr(target, prop, target_info[prop])
+			
+		# Fix stretch constraints
+		if con_type == 'STRETCH_TO':
+			con.rest_length = 0
+		
+		return con
