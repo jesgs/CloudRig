@@ -58,7 +58,11 @@ class CloudFKChainRig(CloudChainRig):
 		for i, org_bone in enumerate(self.org_chain):
 			fk_bone = self.bone_infos.find(org_bone.name.replace("ORG", "FK"))
 
-			org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS', true_defaults=True, target=self.obj, subtarget=fk_bone.name, name="Copy Transforms FK")
+			org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+				,space			= 'WORLD'
+				,subtarget		= fk_bone.name
+				,name			= "Copy Transforms FK"
+			)
 
 	def prepare_bones(self):
 		super().prepare_bones()

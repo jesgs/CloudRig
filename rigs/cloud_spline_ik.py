@@ -129,11 +129,10 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def configure_bones(self):
 		# Add constraint to deform chain
-		self.def_bones[-1].add_constraint(self.obj, 'SPLINE_IK', 
-			use_curve_radius = True,
-			chain_count		 = len(self.def_bones),
-			target			 = bpy.data.objects.get(self.curve_ob_name),
-			true_defaults	 = True
+		self.def_bones[-1].add_constraint(self.obj, 'SPLINE_IK'
+			,use_curve_radius = True
+			,chain_count	  = len(self.def_bones)
+			,target			  = bpy.data.objects.get(self.curve_ob_name)
 		)
 
 		super().configure_bones()

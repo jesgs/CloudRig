@@ -22,9 +22,7 @@ def get_constraint_defaults(contype, armature):
 						'LIMIT_LOCATION', 'LIMIT_SCALE', 'LIMIT_ROTATION',
 						'ACTION', 'TRANSFORM', ]
 	if contype in local_space:
-		ret["owner_space"] = 'LOCAL'
-		if contype not in ['LIMIT_SCALE']:
-			ret["target_space"] = 'LOCAL'
+		ret["space"] = 'LOCAL'
 
 	if contype == 'STRETCH_TO':
 		ret["use_bulge_min"] = True
@@ -413,20 +411,27 @@ class BoneInfo(ID):
 			if b.parent==self or b.parent==self.name:
 				b.parent = new_parent
 
-	def add_constraint(self, armature, contype, true_defaults=False, prepend=False, **kwargs):
-		"""Add a constraint to this bone.
+	def add_constraint(self, armature, contype, prepend=False, **kwargs):
+		"""Store constraint information about a constraint in this BoneInfo.
 		contype: Type of constraint, eg. 'STRETCH_TO'.
-		props: Dictionary of properties and values.
+		kwargs: Dictionary of properties and values.
 		true_defaults: When False, we use a set of arbitrary default values that I consider better than Blender's defaults.
 		"""
 		props = kwargs
 		# Override defaults with better ones.
-		if not true_defaults:
-			new_props = get_constraint_defaults(contype, armature)
-			for key, value in kwargs.items():
-				new_props[key] = value
-			props = new_props
-		
+		new_props = get_constraint_defaults(contype, armature)
+
+		if 'space' in kwargs and kwargs['space']=='WORLD':
+			# Some defaults should be ignored when space is set to world.
+			if 'use_offset' in new_props:
+				del new_props['use_offset']
+			if 'mix_mode' in new_props:
+				del new_props['mix_mode']
+
+		for key, value in kwargs.items():
+			new_props[key] = value
+		props = new_props
+
 		if prepend:
 			self.constraints.insert(0, (contype, props))
 		else:

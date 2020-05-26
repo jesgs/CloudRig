@@ -47,7 +47,12 @@ class CloudChainRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 		)
 		skp_bone.scale_length(0.3)
-		skp_bone.add_constraint(self.obj, 'COPY_TRANSFORMS', true_defaults=True, target=self.obj, subtarget=def_bone_1.name, use_bbone_shape=True, head_tail=1)
+		skp_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			,space			 = 'WORLD'
+			,subtarget		 = def_bone_1.name
+			,use_bbone_shape = True
+			,head_tail		 = 1
+		)
 
 		skh_bone = self.bone_infos.bone(
 			name		 = def_bone_2.name.replace("DEF", "SKH")
@@ -60,7 +65,12 @@ class CloudChainRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 		)
 		skh_bone.scale_length(0.4)
-		skh_bone.add_constraint(self.obj, 'COPY_TRANSFORMS', true_defaults=True, target=self.obj, subtarget=def_bone_2.name, use_bbone_shape=True, head_tail=0)
+		skh_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			,space			 = 'WORLD'
+			,subtarget		 = def_bone_2.name
+			,use_bbone_shape = True
+			,head_tail		 = 0
+		)
 
 	def make_str_bone(self, def_bone, org_bone, name=None):
 		if not name:

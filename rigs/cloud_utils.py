@@ -103,10 +103,10 @@ class CloudUtilities:
 		hng_bone.drivers[data_path2] = drv2
 
 		# Hinge Copy Location constraint
-		hng_bone.add_constraint(self.obj, 'COPY_LOCATION', true_defaults=True,
-			target = self.obj,
-			subtarget = str(parent_bone),
-			head_tail = head_tail
+		hng_bone.add_constraint(self.obj, 'COPY_LOCATION'
+			,space = 'WORLD'
+			,subtarget	   = str(parent_bone)
+			,head_tail	   = head_tail
 		)
 
 		# Parenting

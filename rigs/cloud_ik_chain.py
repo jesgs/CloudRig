@@ -286,8 +286,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Last IK bone should copy location of the tail of the stretchy bone.
 		self.ik_tgt_bone = self.ik_chain[self.params.CR_ik_length-1]
 		self.ik_tgt_bone.add_constraint(self.obj, 'COPY_LOCATION'
-			,true_defaults = True
-			,target		   = self.obj
+			,space		   = 'WORLD'
 			,subtarget	   = stretch_bone.name
 			,head_tail	   = 1
 		)
@@ -317,8 +316,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			con_name = 'CopyLoc_IK_Stretch'
 			main_str_helper.add_constraint(self.obj, 'COPY_LOCATION'
-				,true_defaults	= True
-				,target			= self.obj
+				,space			= 'WORLD'
 				,subtarget		= stretch_bone.name
 				,name			= con_name
 				,head_tail		= cum_length/chain_length	# How far this bone is along the total chain length
@@ -401,11 +399,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		for org_bone in self.org_chain:
 			ik_bone = self.bone_infos.find(org_bone.name.replace("ORG", "IK"))
 			ik_ct_name = "Copy Transforms IK"
-			org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS', 
-				true_defaults = True,
-				target		  = self.obj,
-				subtarget	  = ik_bone.name,
-				name		  = ik_ct_name
+			org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+				,space		  = 'WORLD'
+				,subtarget	  = ik_bone.name
+				,name		  = ik_ct_name
 			)
 
 			drv = Driver()

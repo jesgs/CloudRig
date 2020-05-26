@@ -235,11 +235,11 @@ class CloudSpineRig(CloudChainRig):
 				influence = influence_unit * i
 				# IK Stretch Copy Location
 				con_name = "Copy Location (Stretchy Spine)"
-				ik_bone.add_constraint(self.obj, 'COPY_LOCATION', true_defaults=True,
-					name = con_name,
-					target = self.obj,
-					subtarget = org_bone.ik_r_bone.name,
-					head_tail = 1,
+				ik_bone.add_constraint(self.obj, 'COPY_LOCATION'
+					,space	   = 'WORLD'
+					,name	   = con_name
+					,subtarget = org_bone.ik_r_bone.name
+					,head_tail = 1
 				)
 				drv = Driver()
 				drv.expression = f"var * {influence}"
@@ -252,9 +252,9 @@ class CloudSpineRig(CloudChainRig):
 				data_path = f'constraints["{con_name}"].influence'
 				ik_bone.drivers[data_path] = drv
 
-				ik_bone.add_constraint(self.obj, 'COPY_ROTATION', true_defaults=True,
-					target = self.obj,
-					subtarget = self.ik_ctr_chain[i-1].name
+				ik_bone.add_constraint(self.obj, 'COPY_ROTATION'
+					,space	   = 'WORLD'
+					,subtarget = self.ik_ctr_chain[i-1].name
 				)
 				self.ik_ctr_chain[i-1].custom_shape_transform = ik_bone
 			
@@ -276,9 +276,10 @@ class CloudSpineRig(CloudChainRig):
 		for i, ik_bone in enumerate(self.ik_chain[1:]):
 			fk_bone = self.fk_chain[i]
 			con_name = "Copy Transforms IK"
-			fk_bone.add_constraint(self.obj, 'COPY_TRANSFORMS', true_defaults=True,
-				name = con_name,
-				subtarget = ik_bone.name
+			fk_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+				,space	   = 'WORLD'
+				,name	   = con_name
+				,subtarget = ik_bone.name
 			)
 			drv = Driver()
 			drv.expression = "var"

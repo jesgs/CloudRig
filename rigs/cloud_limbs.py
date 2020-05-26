@@ -294,7 +294,7 @@ class Rig(CloudIKChainRig):
 			
 			if i == 0:
 				rik_bone.add_constraint(self.obj, 'COPY_LOCATION'
-					,true_defaults	= True
+					,space			= 'WORLD'
 					,target			= self.obj
 					,subtarget		= rik_chain[-2].name
 					,head_tail		= 1
