@@ -113,7 +113,7 @@ class Rig(CloudIKChainRig):
 		# Disable first Copy Rotation constraint on the upperarm
 		for b in self.main_str_bones[0].sub_bones:
 			str_h_bone = b.parent
-			str_h_bone.constraint_infos[2][1]['mute'] = True	# TODO IMPORTANT: We have no proper way to access already existing constraints (by name, or even type) which is pretty sad. Instead of storing constraints as a (type, attribs) tuple, just store them as a dict, and initialize them a 'name' and 'type' attrib in add_constraint().
+			str_h_bone.constraint_infos[2].mute = True
 
 	def prepare_ik_limb(self):
 		# NOTE: This runs after super().prepare_ik_chain()
@@ -324,9 +324,9 @@ class Rig(CloudIKChainRig):
 			
 		# Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
 		for main_str_bone in self.main_str_bones:
-			for c in main_str_bone.parent.constraint_infos:
-				if c[1]['name'] == 'CopyLoc_IK_Stretch':
-					c[1]['subtarget'] = rolly_stretchy.name
+			ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')
+			if ci:
+				ci.subtarget = rolly_stretchy.name
 
 	def prepare_ik_toe(self):
 		# FK Toe bone should be parented between FK Foot and IK Toe.
@@ -338,7 +338,7 @@ class Rig(CloudIKChainRig):
 					"subtarget" : self.fk_chain[-2].name	# FK Foot
 				},
 				{
-					"subtarget" : self.ik_chain[-1].name		# IK Toe
+					"subtarget" : self.ik_chain[-1].name	# IK Toe
 				}
 			],
 		)

@@ -5,49 +5,10 @@ from .id import ID
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
+from rigify.utils.mechanism import make_constraint
 
 # Attributes that reference an actual bone ID. These should get special treatment, because we don't want to store said bone ID. 
 # Ideally we would store a BoneInfo, but a string is allowed too.
-
-def get_constraint_defaults(contype, armature):
-	"""Return my preferred defaults for each constraint type."""
-	
-	ret = {
-		"target" : armature,
-		"name" : contype.replace("_", " ").title()
-	}
-
-	# Constraints that support local space should default to local space.
-	local_space = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',
-						'LIMIT_LOCATION', 'LIMIT_SCALE', 'LIMIT_ROTATION',
-						'ACTION', 'TRANSFORM', ]
-	if contype in local_space:
-		ret["space"] = 'LOCAL'
-
-	if contype == 'STRETCH_TO':
-		ret["use_bulge_min"] = True
-		ret["use_bulge_max"] = True
-	elif contype in ['COPY_LOCATION', 'COPY_SCALE']:
-		ret["use_offset"] = True
-	elif contype == 'COPY_ROTATION':
-		ret["use_offset"] = True
-		ret["mix_mode"] = 'BEFORE'
-	elif contype in ['COPY_TRANSFORMS', 'ACTION']:
-		ret["mix_mode"] = 'BEFORE'
-	elif contype == 'LIMIT_SCALE':
-		ret["max_x"] = 1
-		ret["max_y"] = 1
-		ret["max_z"] = 1
-		ret["use_transform_limit"] = True
-	elif contype in ['LIMIT_LOCATION', 'LIMIT_ROTATION']:
-		ret["use_transform_limit"] = True
-	elif contype == 'IK':
-		ret["chain_count"] = 2
-		ret["pole_target"] = armature
-	elif contype == 'ARMATURE':
-		ret["targets"] = [{"target" : armature}]
-
-	return ret
 
 def setattr_safe(thing, key, value):
 	try:
@@ -210,9 +171,7 @@ class BoneInfo(ID):
 		self.drivers = {}
 		self.bone_drivers = {}
 
-		# List of (Type, attribs{}) tuples where attribs{} is a dictionary with the attributes of the constraint.
-		# "drivers" is a valid attribute which expects the same content as self.drivers, and it holds the constraints for constraint properties.
-		# TODO: Implement a proper container for constraints.
+		# List of ConstraintInfo objects.
 		self.constraint_infos = []
 
 		### Edit Bone properties
@@ -411,32 +370,25 @@ class BoneInfo(ID):
 			if b.parent==self or b.parent==self.name:
 				b.parent = new_parent
 
+	def get_constraint(self, name):
+		for ci in self.constraint_infos:
+			if ci.name == name:
+				return ci
+
 	def add_constraint(self, armature, contype, index=None, **kwargs):
 		"""Store constraint information about a constraint in this BoneInfo.
 		contype: Type of constraint, eg. 'STRETCH_TO'.
 		kwargs: Dictionary of properties and values.
 		true_defaults: When False, we use a set of arbitrary default values that I consider better than Blender's defaults.
 		"""
-		props = kwargs
-		# Override defaults with better ones.
-		new_props = get_constraint_defaults(contype, armature)
 
-		if 'space' in kwargs and kwargs['space']=='WORLD':
-			# Some defaults should be ignored when space is set to world.
-			if 'use_offset' in new_props:
-				del new_props['use_offset']
-			if 'mix_mode' in new_props:
-				del new_props['mix_mode']
-
-		for key, value in kwargs.items():
-			new_props[key] = value
-		props = new_props
-
+		con_info = ConstraintInfo(self, contype, **kwargs)
 		if index:
-			self.constraint_infos.insert(index, (contype, props))
+			self.constraint_infos.insert(index, con_info)
 		else:
-			self.constraint_infos.append((contype, props))
-		return props
+			self.constraint_infos.append(con_info)
+
+		return con_info
 
 	def clear_constraints(self):
 		self.constraint_infos = []
@@ -530,29 +482,8 @@ class BoneInfo(ID):
 		b.tail_radius = self.tail_radius
 		
 		# Constraints.
-		from rigify.utils.mechanism import make_constraint
-		for cd in self.constraint_infos:
-			con_type = cd[0]
-			con_info = cd[1]
-
-			targets = None
-			if con_type == 'ARMATURE' and 'targets' in con_info:
-				targets = con_info['targets']
-				del con_info['targets']
-
-			con = make_constraint(pb, cd[0], **cd[1])
-			
-			if con_type == 'ARMATURE' and targets:
-				for target_info in targets:
-					target = con.targets.new()
-					target.target = armature
-					for prop in ['weight', 'target', 'subtarget']:
-						if prop in target_info:
-							setattr(target, prop, target_info[prop])
-			
-			# Fix stretch constraints
-			if con_type == 'STRETCH_TO':
-				con.rest_length = 0
+		for ci in self.constraint_infos:
+			ci.make_real(pb)
 		
 		# Custom Properties.
 		for key, prop in self.custom_props.items():
@@ -576,3 +507,77 @@ class BoneInfo(ID):
 			return armature.data.edit_bones.get(self.name)
 		else:
 			return armature.pose.bones.get(self.name)
+
+class ConstraintInfo:
+	def __init__(self, bone_info, con_type, target=None, preferred_defaults=True, **kwargs):
+		self.type = con_type
+		self.bone_info = bone_info	# BoneInfo to which this constraint is being added.
+		self.target = target
+		self.name = self.type.replace("_", " ").title()
+		
+		for key, value in kwargs.items():
+			self.__dict__[key] = value
+
+		if preferred_defaults:
+			self.set_preferred_defaults()
+
+	def make_real(self, pose_bone):
+		con_type = self.type
+		con_info = self.__dict__
+		del con_info['type']
+		del con_info['bone_info']
+
+		targets = None
+		if con_type == 'ARMATURE' and 'targets' in con_info:
+			print(con_info)
+			targets = con_info['targets']
+			del con_info['targets']
+			del con_info['target']
+
+		con = make_constraint(pose_bone, con_type, **con_info)
+		
+		if con_type == 'ARMATURE' and targets:
+			for target_info in targets:
+				target = con.targets.new()
+				target.target = pose_bone.id_data
+				for prop in ['weight', 'target', 'subtarget']:
+					if prop in target_info:
+						setattr(target, prop, target_info[prop])
+			
+		# Fix stretch constraints
+		if con_type == 'STRETCH_TO':
+			con.rest_length = 0
+
+	def set_preferred_defaults(self):
+		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
+
+		self.target = self.bone_info.container.armature
+
+		# Constraints that support local space should default to local space.
+		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',
+						'LIMIT_LOCATION', 'LIMIT_SCALE', 'LIMIT_ROTATION',
+						'ACTION', 'TRANSFORM']
+		if not hasattr(self, 'space') and self.type in support_local:
+			self.space = 'LOCAL'
+		if self.type == 'STRETCH_TO':
+			self.use_bulge_min = True
+			self.use_bulge_max = True
+		elif self.type in ['COPY_LOCATION', 'COPY_SCALE']:
+			self.use_offset = self.space != 'WORLD'
+		elif self.type == 'COPY_ROTATION':
+			if self.space != 'WORLD':
+				self.mix_mode = 'BEFORE'
+				self.use_offset = True
+		elif self.type in ['COPY_TRANSFORMS', 'ACTION']:
+			if self.space != 'WORLD':
+				self.mix_mode = 'BEFORE'
+		elif self.type == 'LIMIT_SCALE':
+			self.max_x = 1
+			self.max_y = 1
+			self.max_z = 1
+			self.use_transform_limit = True
+		elif self.type in ['LIMIT_LOCATION', 'LIMIT_ROTATION']:
+			self.use_transform_limit = True
+		elif self.type == 'IK':
+			self.chain_count = 2
+			self.pole_target = self.target

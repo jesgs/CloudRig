@@ -469,14 +469,14 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
 			arm_con_bone = self.pole_ctrl.parent
-			arm_con = arm_con_bone.constraint_infos[0][1]
-			arm_con['targets'].append({
+			arm_con = arm_con_bone.constraint_infos[0]
+			arm_con.targets.append({
 				"subtarget" : self.ik_mstr.name
 			})
 
 			# Tweak each driver on the IK pole's parent, as well as add a driver to the new target.
 			drv = Driver()
-			target_idx = len(arm_con['targets'])-1
+			target_idx = len(arm_con.targets)-1
 			data_path = f'constraints["Armature"].targets[{target_idx}].weight'
 			arm_con_bone.drivers[data_path] = drv
 			for i, dp in enumerate(arm_con_bone.drivers):
