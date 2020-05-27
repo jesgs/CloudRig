@@ -2,6 +2,7 @@ import bpy
 import os
 from ..definitions.driver import Driver
 from ..definitions.custom_props import CustomProp
+from copy import deepcopy
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
@@ -73,7 +74,7 @@ class CloudUtilities:
 		)
 
 		# Hinge Armature constraint
-		hng_bone.add_constraint(self.obj, 'ARMATURE', 
+		hng_con = hng_bone.add_constraint(self.obj, 'ARMATURE', 
 			targets = [
 				{
 					"subtarget" : 'root'
@@ -84,23 +85,20 @@ class CloudUtilities:
 			],
 		)
 
-		# Hinge Armature constraint driver
-		drv1 = Driver()
-		drv1.expression = "var"
-		var1 = drv1.make_var("var")
-		var1.type = 'SINGLE_PROP'
-		var1.targets[0].id_type='OBJECT'
-		var1.targets[0].id = self.obj
-		var1.targets[0].data_path = f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
+		hng_con.drivers.append({
+			'prop' : 'targets[0].weight',
+			'variables' : [
+				(prop_bone.name, prop_name)
+			]
+		})
 
-		drv2 = drv1.clone()
-		drv2.expression = "1-var"
-
-		data_path1 = 'constraints["Armature"].targets[0].weight'
-		data_path2 = 'constraints["Armature"].targets[1].weight'
-		
-		hng_bone.drivers[data_path1] = drv1
-		hng_bone.drivers[data_path2] = drv2
+		hng_con.drivers.append({
+			'prop' : 'targets[1].weight',
+			'expression' : '1-var',
+			'variables' : [
+				(prop_bone.name, prop_name)
+			]
+		})
 
 		# Hinge Copy Location constraint
 		hng_bone.add_constraint(self.obj, 'COPY_LOCATION'
@@ -169,22 +167,25 @@ class CloudUtilities:
 				"subtarget" : pb.name
 			})
 
-			drv = Driver()
-			drv.expression = f"parent=={len(targets)-1}"
-			var = drv.make_var("parent")
-			var.type = 'SINGLE_PROP'
-			var.targets[0].id_type = 'OBJECT'
-			var.targets[0].id = self.obj
-			var.targets[0].data_path = f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
-
-			data_path = f'constraints["Armature"].targets[{len(targets)-1}].weight'
-			
-			arm_con_bone.drivers[data_path] = drv
-
 		# Add armature constraint
-		arm_con_bone.add_constraint(self.obj, 'ARMATURE', 
+		arm_con = arm_con_bone.add_constraint(self.obj, 'ARMATURE', 
 			targets = targets
 		)
+
+		# Add weight drivers
+		for i, t in enumerate(arm_con.targets):
+			arm_con.drivers.append({
+				'prop' : f'targets[{i}].weight',
+				'expression' : f'parent=={i}',
+				'variables' : {
+					'parent' : {
+						'type' : 'SINGLE_PROP',
+						'targets' : [{
+							'data_path' : f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
+						}]
+					}
+				}
+			})
 
 		return found_parents
 
@@ -238,69 +239,89 @@ class CloudUtilities:
 		bi = boneinfo
 		armature = self.obj
 
-		my_d = Driver()
-		my_d.expression = "var/scale"
-		my_var = my_d.make_var("var")
-		my_var.type = 'TRANSFORMS'
-		
-		var_tgt = my_var.targets[0]
-		var_tgt.id = armature
-		var_tgt.transform_space = 'WORLD_SPACE'
-		
-		scale_var = my_d.make_var("scale")
-		scale_var.type = 'TRANSFORMS'
-		scale_tgt = scale_var.targets[0]
-		scale_tgt.id = armature
-		scale_tgt.transform_space = 'WORLD_SPACE'
-		scale_tgt.transform_type = 'SCALE_Y'
-		
+		scaleinx_var = {
+			'type' : 'TRANSFORMS',
+			'targets' : [{
+				'bone_target' : bi.bbone_custom_handle_start,
+				'transform_type' : 'SCALE_X',
+				'transform_space' : 'WORLD_SPACE'
+			}]
+		}
+
+		scaleinx_driver = {
+			'expression' : "var/scale",
+			'prop' : "bbone_scaleinx",
+			'variables' : {
+				'var' : scaleinx_var,
+				'scale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'transform_space' : 'WORLD_SPACE',
+						'transform_type' : 'SCALE_Y',
+					}]
+				}
+			}
+		}
+
 		# Scale In X/Y
-		if (bi.bbone_handle_type_start == 'TANGENT' and bi.bbone_custom_handle_start):
-			var_tgt.bone_target = bi.bbone_custom_handle_start
+		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_start!=""):
+			bi.new_style_drivers.append(scaleinx_driver)
 
-			var_tgt.transform_type = 'SCALE_X'
-			bi.drivers["bbone_scaleinx"] = my_d.clone()
+			scaleiny_driver = deepcopy(scaleinx_driver)
+			scaleiny_driver['prop'] = "bbone_scaleiny"
+			scaleiny_var = deepcopy(scaleinx_var)
+			scaleiny_var['targets'][0]['transform_type'] = 'SCALE_Z'
+			scaleiny_driver['variables']['var'] = scaleiny_var
+			bi.new_style_drivers.append(scaleiny_driver)
 
-			var_tgt.transform_type = 'SCALE_Z'
-			bi.drivers["bbone_scaleiny"] = my_d.clone()
-		
 		# Scale Out X/Y
-		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
-			var_tgt.bone_target = bi.bbone_custom_handle_end
-			
-			var_tgt.transform_type = 'SCALE_Z'
-			bi.drivers["bbone_scaleouty"] = my_d.clone()
+		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end!=""):
+			scaleoutx_driver = deepcopy(scaleinx_driver)
+			scaleoutx_driver['prop'] = "bbone_scaleoutx"
+			scaleoutx_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
+			bi.new_style_drivers.append(scaleoutx_driver)
 
-			var_tgt.transform_type = 'SCALE_X'
-			bi.drivers["bbone_scaleoutx"] = my_d.clone()
+			scaleouty_driver = deepcopy(scaleoutx_driver)
+			scaleouty_driver['prop'] = "bbone_scaleouty"
+			scaleouty_driver['variables']['var']['targets'][0]['transform_type'] = 'SCALE_Z'
+			bi.new_style_drivers.append(scaleouty_driver)
 
 		### Ease In/Out
-		my_d = Driver()
-		my_d.expression = "scale-Y"
-
-		scale_var = my_d.make_var("scale")
-		scale_var.type = 'TRANSFORMS'
-		scale_tgt = scale_var.targets[0]
-		scale_tgt.id = armature
-		scale_tgt.transform_type = 'SCALE_Y'
-		scale_tgt.transform_space = 'LOCAL_SPACE'
-
-		Y_var = my_d.make_var("Y")
-		Y_var.type = 'TRANSFORMS'
-		Y_tgt = Y_var.targets[0]
-		Y_tgt.id = armature
-		Y_tgt.transform_type = 'SCALE_AVG'
-		Y_tgt.transform_space = 'LOCAL_SPACE'
+		easein_var = {
+			'type' : 'TRANSFORMS',
+			'targets' : [{
+				'bone_target' : bi.bbone_custom_handle_start,
+				'transform_type' : 'SCALE_Y',
+				'transform_space' : 'LOCAL_SPACE',
+			}]
+		}
+		easein_driver = {
+			'expression' : "var-scale",
+			'prop' : "bbone_easein",
+			'variables' : {
+				'var' : easein_var,
+				'scale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : bi.bbone_custom_handle_start,
+						'transform_space' : 'LOCAL_SPACE',
+						'transform_type' : 'SCALE_AVG',
+					}]
+				}
+			}
+		}
 
 		# Ease In
 		if (bi.bbone_handle_type_start == 'TANGENT' and bi.bbone_custom_handle_start):
-			Y_tgt.bone_target = scale_tgt.bone_target = bi.bbone_custom_handle_start
-			bi.drivers["bbone_easein"] = my_d.clone()
+			bi.new_style_drivers.append(easein_driver)
 
 		# Ease Out
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
-			Y_tgt.bone_target = scale_tgt.bone_target = bi.bbone_custom_handle_end
-			bi.drivers["bbone_easeout"] = my_d.clone()
+			easeout_driver = deepcopy(easein_driver)
+			easeout_driver['prop'] = "bbone_easeout"
+			easeout_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
+			easeout_driver['variables']['scale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
+			bi.new_style_drivers.append(easeout_driver)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)

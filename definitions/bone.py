@@ -490,8 +490,15 @@ class BoneInfo(ID):
 		
 		# New style drivers.
 		for driver_info in self.new_style_drivers:
-			driver_info['prop'] = f'pose.bones["{pb.name}"].{driver_info["prop"]}'
-			self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
+			data_path = driver_info['prop']
+			
+			try:
+				driver_info['prop'] = f'pose.bones["{pb.name}"].{data_path}'
+				self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
+			except TypeError:
+				# If we couldn't add the driver to the pose bone, try the data bone.
+				driver_info['prop'] = f'bones["{pb.name}"].{data_path}'
+				self.container.cloudrig.make_driver(self.container.cloudrig.obj.data, **driver_info)
 	
 		# Data Bone Property Drivers.
 		for path, d in self.bone_drivers.items():

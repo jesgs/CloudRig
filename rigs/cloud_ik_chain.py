@@ -138,15 +138,17 @@ class CloudIKChainRig(CloudFKChainRig):
 			,head_tail = 1
 		)
 		# Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
-		drv = Driver()
-		var = drv.make_var("var")
-		var.type = 'SINGLE_PROP'
-		var.targets[0].id_type = 'ARMATURE'
-		var.targets[0].id = self.obj.data
-		var.targets[0].data_path = f'bones["{pole_ctrl.name}"].hide'
+		pole_line.new_style_drivers.append({
+			'prop' : 'hide',
+			'variables' : [{
+				'type' : 'SINGLE_PROP',
+				'targets' : [{
+					'id' : self.obj,
+					'data_path' : f'data.bones["{pole_ctrl.name}"].hide'
+				}]
+			}]
+		})
 
-		pole_line.bone_drivers['hide'] = drv
-		
 		self.create_dsp_bone(pole_ctrl)
 		return pole_ctrl
 
@@ -328,39 +330,43 @@ class CloudIKChainRig(CloudFKChainRig):
 			)
 			cum_length += self.org_chain[i].length
 
-			stretchy_drv = Driver()		# Influence driver
-			stretchy_drv.expression = f"ik * stretch * (distance > {chain_length} * scale)"
-			var_stretch = stretchy_drv.make_var("stretch")
-			var_stretch.type = 'SINGLE_PROP'
-			var_stretch.targets[0].id_type = 'OBJECT'
-			var_stretch.targets[0].id = self.obj
-			var_stretch.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ik_stretch_name}"]'
-
-			var_ik = stretchy_drv.make_var("ik")
-			var_ik.type = 'SINGLE_PROP'
-			var_ik.targets[0].id_type = 'OBJECT'
-			var_ik.targets[0].id = self.obj
-			var_ik.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ikfk_name}"]'
-
-			var_dist = stretchy_drv.make_var("distance")
-			var_dist.type = 'LOC_DIFF'
-			var_dist.targets[0].id = self.obj
-			var_dist.targets[0].bone_target = self.ik_tgt_bone.name
-			var_dist.targets[0].transform_space = 'WORLD_SPACE'
-			var_dist.targets[1].id = self.obj
-			var_dist.targets[1].bone_target = self.ik_chain[0].name
-			var_dist.targets[1].transform_space = 'WORLD_SPACE'
-
-			var_scale = stretchy_drv.make_var("scale")
-			var_scale.type = 'TRANSFORMS'
-			var_scale.targets[0].id = self.obj
-			var_scale.targets[0].transform_type = 'SCALE_Y'
-			var_scale.targets[0].transform_space = 'WORLD_SPACE'
-			var_scale.targets[0].bone_target = self.ik_chain[0].name
-
-			data_path = f'constraints["{con_name}"].influence'
-
-			# main_str_helper.drivers[data_path] = stretchy_drv
+			main_str_helper.new_style_drivers.append({
+				'prop' : f'constraints["{con_name}"].influence',
+				'expression' : f"ik * stretch * (distance > {chain_length} * scale)",
+				'variables' : {
+					'stretch' : {
+						'type' : 'SINGLE_PROP',
+						'targets' : [{
+							'data_path' : f'pose.bones["{self.prop_bone.name}"]["{self.ik_stretch_name}"]'
+						}]
+					},
+					'ik' : {
+						'type' : 'SINGLE_PROP',
+						'targets' : [{
+							'data_path' : f'pose.bones["{self.prop_bone.name}"]["{self.ikfk_name}"]'
+						}]
+					},
+					'distance' : {
+						'type' : 'LOC_DIFF',
+						'targets' : [{
+							'bone_target' : self.ik_tgt_bone.name,
+							'transform_space' : 'WORLD_SPACE'
+						},
+						{
+							'bone_target' : self.ik_chain[0].name,
+							'transform_space' : 'WORLD_SPACE'
+						}]
+					},
+					'scale' : {
+						'type' : 'TRANSFORMS',
+						'targets' : [{
+							'bone_target' : self.ik_chain[0].name,
+							'transform_type' : 'SCALE_Y',
+							'transform_space' : 'WORLD_SPACE'
+						}]
+					}
+				}
+			})
 
 	def prepare_ik_chain(self):
 		# Create IK Master control
@@ -403,20 +409,21 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		for org_bone in self.org_chain:
 			ik_bone = self.bone_infos.find(org_bone.name.replace("ORG", "IK"))
-			ik_ct_name = "Copy Transforms IK"
-			org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			copy_trans = org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
 				,space		  = 'WORLD'
 				,subtarget	  = ik_bone.name
-				,name		  = ik_ct_name
+				,name		  = "Copy Transforms IK"
 			)
 
-			drv = Driver()
-			var = drv.make_var()
-			var.targets[0].id = self.obj
-			var.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ikfk_name}"]'
-
-			data_path = f'constraints["{ik_ct_name}"].influence'
-			org_bone.drivers[data_path] = drv
+			copy_trans.drivers.append({
+				'prop' : 'influence',
+				'variables' : [{
+					'type' : 'SINGLE_PROP',
+					'targets' : [{
+						'data_path' : f'pose.bones["{self.prop_bone.name}"]["{self.ikfk_name}"]'
+					}]
+				}]
+			})
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -479,22 +486,28 @@ class CloudIKChainRig(CloudFKChainRig):
 				"subtarget" : self.ik_mstr.name
 			})
 
-			# Tweak each driver on the IK pole's parent, as well as add a driver to the new target.
-			drv = Driver()
+			# Add driver to the new constraint target
 			target_idx = len(arm_con.targets)-1
-			data_path = f'constraints["Armature"].targets[{target_idx}].weight'
-			arm_con_bone.drivers[data_path] = drv
-			for i, dp in enumerate(arm_con_bone.drivers):
-				d = arm_con_bone.drivers[dp]
-				d.expression = f"({d.expression}) - follow"
-				if i == len(arm_con_bone.drivers)-1:
-					d.expression = "follow"
-				follow_var = d.make_var("follow")
-				follow_var
-				follow_var.type = 'SINGLE_PROP'
-				follow_var.targets[0].id_type = 'OBJECT'
-				follow_var.targets[0].id = self.obj
-				follow_var.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{ik_pole_follow_name}"]'
+			arm_con.drivers.append({
+				'prop' : f'targets[{target_idx}].weight',
+				'expression' : 'follow',
+				'variables' : {}	# Variable is created in the for loop below.
+			})
+			
+			# Tweak each driver on the IK pole parent
+			# NOTE: These were originally created by calling self.rig_child(self.pole_ctrl...
+			for i, d in enumerate(arm_con.drivers):
+				print(d)
+				if i != len(arm_con.drivers)-1:
+					d['expression'] = f"({d['expression']}) - follow"
+				
+				# Add "follow" variable.
+				d['variables']['follow'] = {
+					'type' : 'SINGLE_PROP',
+					'targets' : [{
+						'data_path' : f'pose.bones["{self.prop_bone.name}"]["{ik_pole_follow_name}"]'
+					}]
+				}
 
 	##############################
 	# Parameters
