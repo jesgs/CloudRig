@@ -137,7 +137,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,head_tail = 1
 		)
 		# Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
-		pole_line.new_style_drivers.append({
+		pole_line.drivers.append({
 			'prop' : 'hide',
 			'variables' : [{
 				'type' : 'SINGLE_PROP',
@@ -329,7 +329,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			)
 			cum_length += self.org_chain[i].length
 
-			main_str_helper.new_style_drivers.append({
+			main_str_helper.drivers.append({
 				'prop' : f'constraints["{con_name}"].influence',
 				'expression' : f"ik * stretch * (distance > {chain_length} * scale)",
 				'variables' : {

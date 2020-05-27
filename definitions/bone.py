@@ -152,18 +152,10 @@ class BoneInfo(ID):
 
 		self.container = container
 
-		### The following dictionaries store pure information, never references to the real thing. ###
-		# PoseBone custom properties.
-		self.custom_props = {}
-		# EditBone custom properties.
+		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
 		self.custom_props_edit = {}
-		# data_path:Driver dictionary, where data_path is from the bone. Only for drivers that are directly on a bone property! Not a sub-ID like constraints.
-		self.new_style_drivers = []	# Rigify make_driver() compliant driver storage.
-		self.drivers = {}
-		self.bone_drivers = {}
-
-		# List of ConstraintInfo objects.
-		self.constraint_infos = []
+		self.drivers = []	# List of dictionaries that will be passed to Rigify's make_driver().
+		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		### Edit Bone properties
 		self.parent = None	# Blender expects bpy.types.EditBone, but we store definitions.bone.BoneInfo. str is also supported for now, but should be avoided.
@@ -485,13 +477,8 @@ class BoneInfo(ID):
 				prop['default'] = 1.0
 			make_property(pb, prop_name, **prop)
 
-		# Pose Bone Property Drivers.
-		for path, d in self.drivers.items():
-			data_path = f'pose.bones["{pose_bone.name}"].{path}'
-			d.make_real(pose_bone.id_data, data_path)
-		
-		# New style drivers.
-		for driver_info in self.new_style_drivers:
+		# Drivers.
+		for driver_info in self.drivers:
 			data_path = driver_info['prop']
 			
 			try:
