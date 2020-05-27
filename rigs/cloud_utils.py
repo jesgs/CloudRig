@@ -1,8 +1,9 @@
 import bpy
 import os
-from ..definitions.driver import Driver
 from ..definitions.custom_props import CustomProp
+
 from copy import deepcopy
+from rigify.utils.misc import copy_attributes
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
@@ -326,6 +327,24 @@ class CloudUtilities:
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)
 
+	def copy_and_relink_driver(self, fcurve, obj, data_path, index=None):
+		"""Copy a driver to some other data path, while accounting for any constraint relinking."""
+
+		data_path = fcurve.data_path
+		if 'constraints' in data_path:
+			org_con_name = data_path.split('constraints["')[-1].split('"]')[0]
+			new_con_name = org_con_name.split("@")[0]
+			data_path = data_path.replace(org_con_name, new_con_name)
+
+		new_fc = copy_driver(fcurve, self.obj, data_path, index)
+		new_fc.data_path = data_path
+
+		# Switch targets from metarig or None to generated rig.
+		for var in new_fc.driver.variables:
+			for t in var.targets:
+				if t.id in [None, self.generator.metarig]:
+					t.id = self.obj
+
 	@staticmethod
 	def datablock_from_str(collprop, string):
 		return datablock_from_str(collprop, string)
@@ -361,6 +380,39 @@ class CloudUtilities:
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)
+
+def copy_driver(from_fcurve, obj, data_path=None, index=None):
+	if not data_path:
+		data_path = from_fcurve.data_path
+	
+	new_fc = None
+	if index:
+		new_fc = obj.driver_add(data_path, index)
+	else:
+		new_fc = obj.driver_add(data_path)
+
+	copy_attributes(from_fcurve, new_fc)
+	copy_attributes(from_fcurve.driver, new_fc.driver)
+
+	# Remove default modifiers, variables, etc.
+	for m in new_fc.modifiers:
+		new_fc.modifiers.remove(m)
+	for v in new_fc.driver.variables:
+		new_fc.driver.variables.remove(v)
+
+	# Copy modifiers
+	for m1 in from_fcurve.modifiers:
+		m2 = new_fc.modifiers.new(type=m1.type)
+		copy_attributes(m1, m2)
+
+	# Copy variables
+	for v1 in from_fcurve.driver.variables:
+		v2 = new_fc.driver.variables.new()
+		copy_attributes(v1, v2)
+		for i in range(len(v1.targets)):
+			copy_attributes(v1.targets[i], v2.targets[i])
+	
+	return new_fc
 
 def datablock_from_str(collprop, string):
 	""" Workaround to T59106. Using PointerProperty causes error spam in console. """

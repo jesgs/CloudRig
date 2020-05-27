@@ -1,17 +1,15 @@
 import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+
 from rigify.base_rig import BaseRig, stage
 from rigify.utils.bones import BoneDict
+
 from ..definitions.bone import BoneInfoContainer, BoneInfo
-from ..definitions.driver import Driver
 from ..definitions import custom_props
 from . import cloud_utils
 from ..rigs.cloud_base import DefaultLayers
 
-# TODO: This is currently a complete clusterfuck... rewrite it - probably as two separate rigs for creating and for tweaking... call them cloud_control and cloud_tweak. And make them use BoneInfo!!! (find corresponding BoneInfo by traversing parent rigs or storing that shit in the generator... former is kindof safer. Even if we store BoneInfos in the generator, if this rig isn't a child of the rig it's modifying, it will fail.)
-# TODO: When Transforms param is unchecked, move the metabone to the generated bone's transforms during generation?
-
-class CloudBoneRig(BaseRig):
+class CloudBoneRig(BaseRig, cloud_utils.CloudUtilities):
 	""" A rig type to add or modify a single bone in the generated rig. 
 	For modifying other generated bones, you want to make sure this rig gets executed last. This may require that you don't parent this bone to anything.
 	"""
@@ -203,7 +201,7 @@ class CloudBoneRig(BaseRig):
 			custom_props.copy_custom_properties(meta_bone, keys, mod_bone)
 
 		# Copy and retarget drivers
-		self.copy_and_retarget_drivers(mod_bone)
+		self.copy_and_relink_drivers(mod_bone)
 
 	###############################
 	# Utilities
@@ -261,21 +259,7 @@ class CloudBoneRig(BaseRig):
 			# This is allowed to happen with targetless constraints like Limit Location.
 			pass
 
-	def copy_and_relink_driver(self, BPY_driver, obj, data_path, index=-1):
-		"""Copy a driver to some other data path, while accounting for any constraint relinking."""
-		driver = Driver(BPY_driver)
-		data_path = BPY_driver.data_path
-		if 'constraints' in data_path:
-			org_con_name = data_path.split('constraints["')[-1].split('"]')[0]
-			new_con_name = org_con_name.split("@")[0]
-			data_path = data_path.replace(org_con_name, new_con_name)
-		for var in driver.variables:
-			for t in var.targets:
-				if t.id == self.generator.metarig:
-					t.id = self.obj
-		driver.make_real(obj, data_path, index)
-
-	def copy_and_retarget_drivers(self, bone):
+	def copy_and_relink_drivers(self, bone):
 		"""Copy and retarget drivers from both the metarig Object and the metarig Data."""
 		metarig = self.generator.metarig
 		rig = self.obj
@@ -284,7 +268,7 @@ class CloudBoneRig(BaseRig):
 		for d in metarig.animation_data.drivers:
 			if bone.name in d.data_path:
 				self.copy_and_relink_driver(d, rig, d.data_path, d.array_index)
-		
+
 		if not metarig.data.animation_data: return
 		for d in metarig.data.animation_data.drivers:
 			if bone.name in d.data_path:
