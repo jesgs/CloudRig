@@ -1,4 +1,5 @@
 import bpy
+from rna_prop_ui import rna_idprop_ui_create
 import os
 
 from copy import deepcopy
@@ -378,6 +379,39 @@ class CloudUtilities:
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)
+
+def make_custom_property(owner, name, default=0.0, min=0.0, max=1.0, soft_min=0.0, soft_max=1.0, description="", overridable=True, subtype=True):
+	return rna_idprop_ui_create(
+		owner, 
+		name, 
+
+		default = default,
+		min = min, 
+		max = max, 
+		soft_min = soft_min, 
+		soft_max = soft_max,
+
+		description = description,
+		overridable = overridable,
+		subtype = subtype
+	)
+
+def copy_custom_property(from_owner, to_owner, prop_name):
+	rna_ui = from_owner['_RNA_UI'].to_dict()
+	
+	if prop_name not in rna_ui:
+		print(f"Warning: Custom property {prop_name} not found on {from_owner}, failed to copy.")
+		return
+	
+	data = rna_ui[prop_name]
+	data['overridable'] = from_owner.is_property_library_overridable(f'["{prop_name}]"')
+
+	if not 'description' in data:
+		data['description'] = ""
+	if not 'subtype' in data:
+		data['subtype'] = True
+	
+	make_custom_property(to_owner, prop_name, **data)
 
 def copy_driver(from_fcurve, obj, data_path=None, index=None):
 	if not data_path:

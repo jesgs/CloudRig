@@ -5,7 +5,6 @@ from rigify.base_rig import BaseRig, stage
 from rigify.utils.bones import BoneDict
 
 from ..definitions.bone import BoneInfoContainer, BoneInfo
-from ..definitions import custom_props
 from . import cloud_utils
 from ..rigs.cloud_base import DefaultLayers
 
@@ -198,7 +197,7 @@ class CloudBoneRig(BaseRig, cloud_utils.CloudUtilities):
 		# Copy custom properties
 		if self.params.CR_custom_props and '_RNA_UI' in meta_bone.keys():
 			keys = [k for k in meta_bone.keys() if k not in ['_RNA_UI', 'rigify_parameters', 'rigify_type']]
-			custom_props.copy_custom_properties(meta_bone, keys, mod_bone)
+			cloud_utils.copy_custom_properties(meta_bone, keys, mod_bone)
 
 		# Copy and retarget drivers
 		self.copy_and_relink_drivers(mod_bone)

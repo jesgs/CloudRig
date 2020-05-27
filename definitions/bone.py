@@ -5,7 +5,7 @@ from .id import ID
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
-from rigify.utils.mechanism import make_constraint, make_driver, make_property
+from rigify.utils.mechanism import make_constraint, make_driver
 
 class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
@@ -152,7 +152,7 @@ class BoneInfo(ID):
 
 		self.container = container
 
-		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
+		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to cloud_utils.make_custom_property().
 		self.custom_props_edit = {}
 		self.drivers = []	# List of dictionaries that will be passed to Rigify's make_driver().
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
@@ -473,9 +473,7 @@ class BoneInfo(ID):
 		
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
-			if 'default' not in prop:
-				prop['default'] = 1.0
-			make_property(pb, prop_name, **prop)
+			cloud_utils.make_custom_property(pb, prop_name, **prop)
 
 		# Drivers.
 		for driver_info in self.drivers:
