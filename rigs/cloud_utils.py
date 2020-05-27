@@ -114,7 +114,7 @@ class CloudUtilities:
 
 	def register_parent(self, bone, name):
 		if name in self.parent_candidates:
-			print(f"WARNING: OVERWRITING REGISTERED PARENT: {bone.name}, {name}")
+			print(f"Warning: Overwriting registered parent: {bone.name}, {name}")
 		self.parent_candidates[name] = bone
 
 	def get_parent_candidates(self, candidates={}):
@@ -148,7 +148,7 @@ class CloudUtilities:
 			if pn in list(parent_candidates.keys()):
 				found_parents.append(pn)
 		if len(found_parents) == 0: 
-			print(f"No parents to be rigged for {child_bone.name}.")
+			print(f"Warning: No parents to be rigged for {child_bone.name}.")
 			return found_parents
 
 		# Create parent bone for the bone that stores the Armature constraint.

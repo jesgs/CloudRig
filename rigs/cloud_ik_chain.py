@@ -429,8 +429,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.prepare_root_bone()
 		self.prepare_ik_chain()
 		self.prepare_org_limb()
+		self.prepare_parent_switch()
 
-	@stage.prepare_bones
 	def prepare_parent_switch(self, ik_ctrl=None):
 		if not ik_ctrl:
 			ik_ctrl = self.ik_mstr

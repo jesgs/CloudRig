@@ -6,7 +6,6 @@ from rigify.base_rig import stage
 from rigify.utils.bones import BoneDict
 from rigify.utils.rig import connected_children_names
 
-from ..definitions.custom_props import CustomProp
 from .cloud_fk_chain import CloudChainRig
 
 #TODO: Allow multiple spine rigs in the same rig.

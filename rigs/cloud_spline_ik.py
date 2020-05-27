@@ -27,7 +27,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		if curve_ob:
 			len_curve_points = len(curve_ob.data.splines[0].bezier_points)
 			if len_curve_points != self.num_controls:
-				print(f"WARNING: CURVE CONTROL POINTS ({len_curve_points}) DON'T MATCH NUMBER OF DESIRED HOOK CONTROLS ({self.num_controls}) ON RIG: {self.base_bone}")
+				print(f"Warning: CURVE CONTROL POINTS ({len_curve_points}) DON'T MATCH NUMBER OF DESIRED HOOK CONTROLS ({self.num_controls}) ON RIG: {self.base_bone}")
 			self.curve_ob_name = curve_ob.name
 			return curve_ob
 			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.

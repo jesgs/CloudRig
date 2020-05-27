@@ -30,7 +30,7 @@ class MirrorRigifyParameters(bpy.types.Operator):
 				# Bone name could not be flipped or bone with flipped name doesn't exist, skip.
 				continue
 			if flip_bone.bone.select:
-				print(f"Bone {pb.name} selected on both sides, mirroring would be ambiguous, skipping. (Only select the left or right side, not both!)")
+				print(f"Warning: Bone {pb.name} selected on both sides, mirroring would be ambiguous, skipping. Only select the left or right side, not both!")
 				continue
 			
 			copy_rigify_params(pb, flip_bone)

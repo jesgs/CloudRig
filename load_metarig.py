@@ -27,7 +27,7 @@ def load_metarig(metarig_name):
     
     new_metarig = bpy.data.objects.get(available_name)
     if not new_metarig:
-        print("WARNING: Failed to load metarig: " + available_name)
+        print("Warning: Failed to load metarig: " + available_name)
         return
     
     bpy.context.scene.collection.objects.link(new_metarig)

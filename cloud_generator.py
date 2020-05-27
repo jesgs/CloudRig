@@ -155,7 +155,6 @@ class CloudGenerator(Generator):
 		# Check if the generated rig already exists, so we can
 		# regenerate in the same object.  If not, create a new
 		# object to generate the rig in.
-		print("Find or create rig object.")
 
 		metaname = self.metarig.name
 		rig_name = "RIG" + self.prefix_separator + metaname
@@ -337,7 +336,6 @@ class CloudGenerator(Generator):
 		obj.data.use_mirror_x = False
 
 		# Get rid of anim data in case the rig already existed
-		print("Clear rig animation data.")
 
 		obj.animation_data_clear()
 		obj.data.animation_data_clear()

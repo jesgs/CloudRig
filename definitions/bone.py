@@ -391,7 +391,7 @@ class BoneInfo(ID):
 		# Check for 0-length bones.
 		if (self.head - self.tail).length == 0:
 			# Warn and force length.
-			print("WARNING: Had to force 0-length bone to have some length: " + self.name)
+			print("Warning: Had to force 0-length bone to have some length: " + self.name)
 			self.tail = self.head+Vector((0, 0.1, 0))
 
 		### Edit Bone properties
@@ -572,7 +572,6 @@ class ConstraintInfo:
 
 		targets = None
 		if con_type == 'ARMATURE' and 'targets' in con_info:
-			print(con_info)
 			targets = con_info['targets']
 			del con_info['targets']
 			del con_info['target']

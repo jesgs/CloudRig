@@ -6,7 +6,6 @@ from copy import deepcopy
 
 from rigify.base_rig import stage
 
-from ..definitions.custom_props import CustomProp
 from .cloud_ik_chain import CloudIKChainRig
 
 class Rig(CloudIKChainRig):

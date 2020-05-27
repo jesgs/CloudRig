@@ -216,7 +216,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			try:
 				pose_bone = self.get_bone(bd.name)
 			except:
-				print(f"WARNING: BoneInfo wasn't created for some reason: {bd.name}")
+				print(f"Warning: BoneInfo wasn't created for some reason: {bd.name}")
 				continue
 
 			# Scale bone shape based on BBone scale
