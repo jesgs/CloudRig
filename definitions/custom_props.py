@@ -1,5 +1,4 @@
 from rna_prop_ui import rna_idprop_ui_create
-from .driver import DriverVariable
 import bpy
 
 class CustomProp:

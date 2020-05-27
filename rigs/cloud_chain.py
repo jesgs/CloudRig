@@ -4,7 +4,6 @@ from mathutils import Vector
 
 from rigify.base_rig import stage
 
-from ..definitions.driver import Driver
 from .cloud_utils import make_name, slice_name
 from .cloud_base import CloudBaseRig
 

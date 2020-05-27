@@ -6,7 +6,6 @@ from rigify.base_rig import stage
 from rigify.utils.bones import BoneDict
 from rigify.utils.rig import connected_children_names
 
-from ..definitions.driver import Driver
 from ..definitions.custom_props import CustomProp
 from .cloud_fk_chain import CloudChainRig
 
@@ -231,26 +230,27 @@ class CloudSpineRig(CloudChainRig):
 			if i > 0:
 				if i != len(self.org_spines)-1:
 					damped_track_target = self.org_spines[i+1].ik_r_bone.name
-				influence_unit = 1 / (len(self.org_spines)-1)	# Minus three because there are no IK bones for the head and neck, and no stretchy constraint on the first IK spine bone. TODO: Allow arbitrary spine length.
-				influence = influence_unit * i
+				
 				# IK Stretch Copy Location
 				con_name = "Copy Location (Stretchy Spine)"
-				ik_bone.add_constraint(self.obj, 'COPY_LOCATION'
+				str_con = ik_bone.add_constraint(self.obj, 'COPY_LOCATION'
 					,space	   = 'WORLD'
 					,name	   = con_name
 					,subtarget = org_bone.ik_r_bone.name
 					,head_tail = 1
 				)
-				drv = Driver()
-				drv.expression = f"var * {influence}"
-				var = drv.make_var("var")
-				var.type = 'SINGLE_PROP'
-				var.targets[0].id_type='OBJECT'
-				var.targets[0].id = self.obj
-				var.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ik_stretch_name}"]'
+				
+				# Influence driver
+				influence_unit = 1 / (len(self.org_spines)-1)
+				influence = influence_unit * i
 
-				data_path = f'constraints["{con_name}"].influence'
-				ik_bone.drivers[data_path] = drv
+				str_con.drivers.append({
+					'prop' : 'influence',
+					'expression' : f"var * {influence}",
+					'variables' : [
+						(self.prop_bone.name, self.ik_stretch_name)
+					]
+				})
 
 				ik_bone.add_constraint(self.obj, 'COPY_ROTATION'
 					,space	   = 'WORLD'
@@ -276,21 +276,16 @@ class CloudSpineRig(CloudChainRig):
 		for i, ik_bone in enumerate(self.ik_chain[1:]):
 			fk_bone = self.fk_chain[i]
 			con_name = "Copy Transforms IK"
-			fk_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			ct_con = fk_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
 				,space	   = 'WORLD'
 				,name	   = con_name
 				,subtarget = ik_bone.name
 			)
-			drv = Driver()
-			drv.expression = "var"
-			var = drv.make_var("var")
-			var.type = 'SINGLE_PROP'
-			var.targets[0].id_type='OBJECT'
-			var.targets[0].id = self.obj
-			var.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ik_prop_name}"]'
 
-			data_path = f'constraints["{con_name}"].influence'
-			fk_bone.drivers[data_path] = drv
+			ct_con.drivers.append({
+				'prop' : 'influence',
+				'variables' : [(self.prop_bone.name, self.ik_prop_name)]
+			})
 		
 		# Store info for UI
 		info = {

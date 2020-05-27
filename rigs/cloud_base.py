@@ -5,7 +5,6 @@ from collections import OrderedDict
 
 from rigify.base_rig import BaseRig, stage
 
-from ..definitions.driver import Driver
 from ..definitions.bone import BoneInfoContainer
 from .cloud_utils import CloudUtilities
 from .. import cloud_generator

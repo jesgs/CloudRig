@@ -4,7 +4,6 @@ from mathutils import *
 
 from rigify.base_rig import stage
 
-from ..definitions.driver import *
 from .cloud_fk_chain import CloudFKChainRig
 
 class CloudShoulderRig(CloudFKChainRig):

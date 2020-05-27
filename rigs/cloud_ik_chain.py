@@ -5,7 +5,6 @@ from math import radians as rad
 
 from rigify.base_rig import stage
 
-from ..definitions.driver import Driver
 from .cloud_fk_chain import CloudFKChainRig
 
 BODY_MECH = 8
@@ -497,7 +496,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			# Tweak each driver on the IK pole parent
 			# NOTE: These were originally created by calling self.rig_child(self.pole_ctrl...
 			for i, d in enumerate(arm_con.drivers):
-				print(d)
 				if i != len(arm_con.drivers)-1:
 					d['expression'] = f"({d['expression']}) - follow"
 				

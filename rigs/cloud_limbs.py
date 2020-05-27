@@ -2,10 +2,10 @@ import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 from mathutils import Vector
 from math import radians as rad
+from copy import deepcopy
 
 from rigify.base_rig import stage
 
-from ..definitions.driver import Driver
 from ..definitions.custom_props import CustomProp
 from .cloud_ik_chain import CloudIKChainRig
 
@@ -332,7 +332,7 @@ class Rig(CloudIKChainRig):
 		# FK Toe bone should be parented between FK Foot and IK Toe.
 		fk_toe = self.fk_toe
 		fk_toe.parent = None
-		fk_toe.add_constraint(self.obj, 'ARMATURE',
+		toe_con = fk_toe.add_constraint(self.obj, 'ARMATURE',
 			targets = [
 				{
 					"subtarget" : self.fk_chain[-2].name	# FK Foot
@@ -343,22 +343,18 @@ class Rig(CloudIKChainRig):
 			],
 		)
 
-		drv1 = Driver()
-		drv1.expression = "1-ik"
-		var1 = drv1.make_var("ik")
-		var1.type = 'SINGLE_PROP'
-		var1.targets[0].id_type='OBJECT'
-		var1.targets[0].id = self.obj
-		var1.targets[0].data_path = f'pose.bones["{self.prop_bone.name}"]["{self.ikfk_name}"]'
+		ik_driver = {
+			'prop' : 'targets[0].weight',
+			'variables' : [
+				(self.prop_bone.name, self.ikfk_name)
+			]
+		}
+		toe_con.drivers.append(ik_driver)
 
-		drv2 = drv1.clone()
-		drv2.expression = "ik"
-
-		data_path1 = 'constraints["Armature"].targets[0].weight'
-		data_path2 = 'constraints["Armature"].targets[1].weight'
-		
-		fk_toe.drivers[data_path1] = drv1
-		fk_toe.drivers[data_path2] = drv2
+		fk_driver = deepcopy(ik_driver)
+		fk_driver['expression'] = "1-var"
+		fk_driver['prop'] = 'targets[1].weight'
+		toe_con.drivers.append(fk_driver)
 
 	def prepare_parent_switch(self):
 		ik_ctrl = self.ik_mstr
