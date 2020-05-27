@@ -1,6 +1,5 @@
 import bpy
 import os
-from ..definitions.custom_props import CustomProp
 
 from copy import deepcopy
 from rigify.utils.misc import copy_attributes
@@ -30,12 +29,11 @@ class CloudUtilities:
 		# Create custom property.
 		prop_bone = self.bone_infos.find(info['prop_bone'])
 		prop_id = info['prop_id']
-		prop_bone.custom_props[prop_id] = CustomProp(
-			prop_id, 
-			default=default, 
-			_min=_min,
-			_max=_max
-		)
+		prop_bone.custom_props[prop_id] = {
+			"default" : default, 
+			"min" : _min,
+			"max" : _max
+		}
 
 	# TODO: Move this to cloud_fk_chain.py?
 	def hinge_setup(self, bone, category, *, 

@@ -5,7 +5,7 @@ from .id import ID
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
-from rigify.utils.mechanism import make_constraint, make_driver
+from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
 class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
@@ -480,9 +480,11 @@ class BoneInfo(ID):
 				self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
 		
 		# Custom Properties.
-		for key, prop in self.custom_props.items():
-			prop.make_real(pose_bone)
-		
+		for prop_name, prop in self.custom_props.items():
+			if 'default' not in prop:
+				prop['default'] = 1.0
+			make_property(pb, prop_name, **prop)
+
 		# Pose Bone Property Drivers.
 		for path, d in self.drivers.items():
 			data_path = f'pose.bones["{pose_bone.name}"].{path}'
@@ -499,13 +501,6 @@ class BoneInfo(ID):
 				# If we couldn't add the driver to the pose bone, try the data bone.
 				driver_info['prop'] = f'bones["{pb.name}"].{data_path}'
 				self.container.cloudrig.make_driver(self.container.cloudrig.obj.data, **driver_info)
-	
-		# Data Bone Property Drivers.
-		for path, d in self.bone_drivers.items():
-			#HACK: If we want to add drivers to bone properties that are shared between pose and edit mode, they aren't stored under armature.pose.bones[0].property but instead armature.bones[0].property... The entire way we handle drivers should be scrapped tbh. :P
-			# But scrapping that requires scrapping the way we handle bones, so... just keep making it work.
-			data_path = f'bones["{pose_bone.name}"].{path}'
-			d.make_real(pose_bone.id_data.data, data_path)
 	
 	def get_real(self, armature):
 		"""If a bone with the name in this BoneInfo exists in the passed armature, return it."""
