@@ -137,39 +137,6 @@ class CloudGenerator(Generator):
 
 		self.scale = max(metarig.dimensions)/10
 
-		# Root bone groups
-		self.root_set = BoneSet(
-			self,
-			ui_name = 'Root',
-			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
-			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
-			preset = 2
-		)
-
-		self.root_bone = None
-		if self.params.cloudrig_parameters.create_root:
-			self.root_bone = self.root_set.new(
-				name				= "root"
-				,head				= Vector((0, 0, 0))
-				,tail				= Vector((0, self.scale*5, 0))
-				,bbone_width		= 1/3
-				,custom_shape		= self.load_widget("Root")
-				,custom_shape_scale = 1.5
-			)
-
-
-		if self.params.cloudrig_parameters.double_root:
-			self.root_parent_set = BoneSet(
-				self,
-				ui_name = 'Root',
-				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
-				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
-				preset = 8
-			)
-			self.root_parent = cloud_utils.create_parent_bone(self.root_bone)
-			self.root_parent.bone_group = self.root_parent_set.bone_group
-			self.root_parent.layers = self.root_parent_set.layers[:]
-
 		self.prefix_separator = self.params.cloudrig_parameters.prefix_separator
 		self.suffix_separator = self.params.cloudrig_parameters.suffix_separator
 		assert self.prefix_separator != self.suffix_separator, "CloudGenerator Error: Prefix and Suffix separators cannot be the same."
@@ -211,6 +178,40 @@ class CloudGenerator(Generator):
 		self.obj = obj
 		return obj
 
+	def define_root_bone(self):
+		# Root bone groups
+		self.root_set = BoneSet(
+			self,
+			ui_name = 'Root',
+			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
+			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
+			preset = 2
+		)
+
+		self.root_bone = None
+		if self.params.cloudrig_parameters.create_root:
+			self.root_bone = self.root_set.new(
+				name				= "root"
+				,head				= Vector((0, 0, 0))
+				,tail				= Vector((0, self.scale*5, 0))
+				,bbone_width		= 1/3
+				,custom_shape		= self.load_widget("Root")
+				,custom_shape_scale = 1.5
+			)
+
+
+		if self.params.cloudrig_parameters.double_root:
+			self.root_parent_set = BoneSet(
+				self,
+				ui_name = 'Root',
+				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
+				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
+				preset = 8
+			)
+			self.root_parent = cloud_utils.create_parent_bone(self.root_bone)
+			self.root_parent.bone_group = self.root_parent_set.bone_group
+			self.root_parent.layers = self.root_parent_set.layers[:]
+
 	def load_ui_script(self):
 		"""Load cloudrig.py (CloudRig UI script) into a text datablock, enable register checkbox and execute it."""
 		
@@ -251,6 +252,11 @@ class CloudGenerator(Generator):
 		return text
 
 	def ensure_bone_groups(self):
+		# Wipe any existing bone groups from the target rig. (TODO: parameter??)
+		if self.obj.pose:
+			for bone_group in self.obj.pose.bone_groups:
+				self.obj.pose.bone_groups.remove(bone_group)
+
 		for rig in self.rig_list:
 			if not hasattr(rig, 'bone_sets'): continue
 			for bone_set in rig.bone_sets:
@@ -357,11 +363,8 @@ class CloudGenerator(Generator):
 
 		# Keep track of created widgets, so we can add them to Rigify-created Widgets collection at the end.
 		self.wgt_collection = self.ensure_widget_collection()
-		
-		# Wipe any existing bone groups from the target rig. (TODO: parameter??)
-		if obj.pose:
-			for bone_group in obj.pose.bone_groups:
-				obj.pose.bone_groups.remove(bone_group)
+
+		self.define_root_bone()
 		
 		# Rename metarig data (TODO: parameter)
 		self.metarig.data.name = "Data_" + self.metarig.name

@@ -16,7 +16,15 @@ class CloudCurveRig(CloudBaseRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 		self.initialize_curve_rig()
-	
+
+	def ensure_bone_sets(self, bone_set_defs):
+		bone_sets = super().ensure_bone_sets(bone_set_defs)
+		self.curve_hooks = self.ensure_bone_set(bone_set_defs["Curve Hooks"])
+		self.curve_handles = self.ensure_bone_set(bone_set_defs["Curve Handles"])
+		bone_sets.append(self.curve_hooks)
+		bone_sets.append(self.curve_handles)
+		return bone_sets
+
 	def initialize_curve_rig(self):
 		curve_ob = self.get_curve()
 		assert curve_ob, f"Error: Curve object {self.params.CR_target_curve_name} not found for curve rig: {self.base_bone}"
@@ -24,11 +32,9 @@ class CloudCurveRig(CloudBaseRig):
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
 
 	def create_root(self):
-		self.root_control = self.bone_infos.bone(
+		self.root_control = self.curve_hooks.new(
 			name						= self.base_bone.replace("ORG", "ROOT")
 			,source						= self.org_chain[0]
-			# ,bone_group					= self.bone_groups["Curve Hooks"]
-			,layers						= self.bone_layers["Curve Hooks"]
 			,custom_shape				= self.load_widget("Cube")
 			,use_custom_shape_bone_size = True
 		)
@@ -46,13 +52,11 @@ class CloudCurveRig(CloudBaseRig):
 		if suffix!="":
 			suffix = self.generator.suffix_separator + suffix
 		
-		hook_ctr = self.bone_infos.bone(
+		hook_ctr = self.curve_hooks.new(
 			name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"
 			,head						= loc
 			,tail						= loc_left
 			,parent						= parent
-			# ,bone_group					= self.bone_groups["Curve Hooks"]
-			,layers						= self.bone_layers["Curve Hooks"]
 			,use_custom_shape_bone_size	= True
 		)
 
@@ -64,12 +68,10 @@ class CloudCurveRig(CloudBaseRig):
 			hook_ctr.custom_shape = self.load_widget("Circle")
 
 			if self.params.CR_separate_radius:
-				radius_control = self.bone_infos.bone(
+				radius_control = self.curve_handles.new(
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
 					,parent						= hook_ctr
-					# ,bone_group	 				= self.bone_groups["Curve Handles"]
-					,layers		 				= self.bone_layers["Curve Handles"]
 					,custom_shape				= self.load_widget("Circle")
 					,use_custom_shape_bone_size	= True
 				)
@@ -79,12 +81,10 @@ class CloudCurveRig(CloudBaseRig):
 				hook_ctr.radius_control = radius_control
 
 			if (i != 0) or cyclic:				# Skip for first hook unless cyclic.
-				handle_left_ctr = self.bone_infos.bone(
+				handle_left_ctr = self.curve_handles.new(
 					name		  = f"Hook_L_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail		  = loc_left
-					# ,bone_group	  = self.bone_groups["Curve Handles"]
-					,layers		  = self.bone_layers["Curve Handles"]
 					,parent		  = hook_ctr
 					,custom_shape = self.load_widget("CurveHandle")
 				)
@@ -92,12 +92,10 @@ class CloudCurveRig(CloudBaseRig):
 				handles.append(handle_left_ctr)
 
 			if (i != self.num_controls-1) or cyclic:	# Skip for last hook unless cyclic.
-				handle_right_ctr = self.bone_infos.bone(
+				handle_right_ctr = self.curve_handles.new(
 					name 		  = f"Hook_R_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail 		  = loc_right
-					# ,bone_group	  = self.bone_groups["Curve Handles"]
-					,layers		  = self.bone_layers["Curve Handles"]
 					,parent 	  = hook_ctr
 					,custom_shape = self.load_widget("CurveHandle")
 				)
