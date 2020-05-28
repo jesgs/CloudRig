@@ -53,7 +53,7 @@ class CloudSpineRig(CloudChainRig):
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.load_widget("Torso_Master")
-			,bone_group	  = self.bone_groups["Spine Main Controls"]
+			# ,bone_group	  = self.bone_groups["Spine Main Controls"]
 			,layers		  = self.bone_layers["Spine Main Controls"]
 		)
 
@@ -65,7 +65,7 @@ class CloudSpineRig(CloudChainRig):
 				,custom_shape 		= self.load_widget("Hips")
 				,custom_shape_scale	= 0.7
 				,parent				= self.mstr_torso
-				,bone_group 		= self.bone_groups["Spine Main Controls"]
+				# ,bone_group 		= self.bone_groups["Spine Main Controls"]
 				,layers 			= self.bone_layers["Spine Main Controls"]
 		)
 		self.register_parent(self.mstr_torso, "Torso")
@@ -94,7 +94,7 @@ class CloudSpineRig(CloudChainRig):
 				,custom_shape 		= self.load_widget("FK_Limb")
 				,custom_shape_scale = 0.9 * org_bone.custom_shape_scale
 				,parent				= next_parent
-				,bone_group 		= self.bone_groups["Spine FK Controls"]
+				# ,bone_group 		= self.bone_groups["Spine FK Controls"]
 				,layers 			= self.bone_layers["Spine FK Controls"]
 			)
 			next_parent = fk_bone
@@ -153,7 +153,7 @@ class CloudSpineRig(CloudChainRig):
 				,custom_shape 		= self.load_widget("Chest_Master")
 				,custom_shape_scale = 0.7
 				,parent				= self.mstr_torso
-				,bone_group 		= self.bone_groups["Spine Main Controls"]
+				# ,bone_group 		= self.bone_groups["Spine Main Controls"]
 				,layers 			= self.bone_layers["Spine Main Controls"]
 			)
 
@@ -173,7 +173,7 @@ class CloudSpineRig(CloudChainRig):
 				name				= ik_ctr_name
 				,source				= fk_bone
 				,custom_shape 		= self.load_widget("Oval")
-				,bone_group 		= self.bone_groups["Spine IK Secondary"]
+				# ,bone_group 		= self.bone_groups["Spine IK Secondary"]
 				,layers 			= self.bone_layers["Spine IK Secondary"]
 			)
 			if i >= len(self.org_spines)-2:	
@@ -196,7 +196,7 @@ class CloudSpineRig(CloudChainRig):
 				,source 	 = fk_bone
 				,tail 		 = self.fk_chain[index].head.copy()
 				,parent		 = next_parent
-				,bone_group  = self.bone_groups["Spine Mechanism"]
+				# ,bone_group  = self.bone_groups["Spine Mechanism"]
 				,layers 	 = self.bone_layers["Spine Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
@@ -218,7 +218,7 @@ class CloudSpineRig(CloudChainRig):
 				,head		 = self.fk_chain[i-1].head.copy() if i>0 else self.def_bones[0].head.copy()
 				,tail		 = fk_bone.head
 				,parent		 = next_parent
-				,bone_group  = self.bone_groups["Spine Mechanism"]
+				# ,bone_group  = self.bone_groups["Spine Mechanism"]
 				,layers 	 = self.bone_layers["Spine Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
@@ -283,7 +283,7 @@ class CloudSpineRig(CloudChainRig):
 
 			ct_con.drivers.append({
 				'prop' : 'influence',
-				'variables' : [(self.prop_bone.name, self.ik_prop_name)]
+				# 'variables' : [(self.prop_bone.name, self.ik_prop_name)]
 			})
 		
 		# Store info for UI

@@ -179,7 +179,7 @@ class Rig(CloudIKChainRig):
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
-			,bone_group	 = self.bone_groups["IK Mechanism"]
+			# ,bone_group	 = self.bone_groups["IK Mechanism"]
 			,layers		 = self.bone_layers["IK Mechanism"]
 			,hide_select = self.mch_disable_select
 		)
@@ -192,7 +192,7 @@ class Rig(CloudIKChainRig):
 			name		 = master_name
 			,source		 = self.ik_mstr
 			,parent		 = self.ik_mstr
-			,bone_group	 = self.bone_groups["IK Mechanism"]
+			# ,bone_group	 = self.bone_groups["IK Mechanism"]
 			,layers		 = self.bone_layers["IK Mechanism"]
 		)
 		roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
@@ -205,7 +205,7 @@ class Rig(CloudIKChainRig):
 			,head		  = ik_foot.head + Vector((0, self.scale, self.scale/4))
 			,tail		  = ik_foot.head + Vector((0, self.scale/2, self.scale/4))
 			,roll		  = rad(180)
-			,bone_group	  = self.bone_groups["IK Controls"]
+			# ,bone_group	  = self.bone_groups["IK Controls"]
 			,layers		  = self.bone_layers["IK Controls"]
 			,parent		  = roll_master
 			,custom_shape = self.load_widget('FootRoll')
@@ -242,7 +242,7 @@ class Rig(CloudIKChainRig):
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
 			,roll		  = 0
-			,bone_group	  = self.bone_groups["IK Mechanism"]
+			# ,bone_group	  = self.bone_groups["IK Mechanism"]
 			,layers		  = self.bone_layers["IK Mechanism"]
 			,parent		  = roll_master
 			,hide_select  = self.mch_disable_select
@@ -266,7 +266,7 @@ class Rig(CloudIKChainRig):
 				,tail		 = b.head.copy()
 				,roll		 = 0
 				,parent		 = heel_pivot
-				,bone_group	 = self.bone_groups["IK Mechanism"]
+				# ,bone_group	 = self.bone_groups["IK Mechanism"]
 				,layers		 = self.bone_layers["IK Mechanism"]
 				,hide_select = self.mch_disable_select
 			)

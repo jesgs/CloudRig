@@ -27,7 +27,7 @@ class CloudFKChainRig(CloudChainRig):
 				,custom_shape 		= self.load_widget("FK_Limb")
 				,custom_shape_scale = org_bone.custom_shape_scale
 				,parent				= self.bones.parent
-				,bone_group			= self.bone_groups["FK Controls"]
+				# ,bone_group			= self.bone_groups["FK Controls"]
 				,layers				= self.bone_layers["FK Controls"]
 			)
 			if i > 0:

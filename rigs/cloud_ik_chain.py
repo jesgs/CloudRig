@@ -55,7 +55,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,parent 				= self.bones.parent
 			,custom_shape 			= self.load_widget("Cube")
 			,custom_shape_scale 	= 0.5
-			,bone_group				= self.bone_groups["IK Mechanism"]
+			# ,bone_group				= self.bone_groups["IK Mechanism"]
 			,layers					= self.bone_layers["IK Mechanism"]
 		)
 		self.register_parent(self.limb_root_bone, self.limb_ui_name)
@@ -114,7 +114,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,head				= self.pole_location
 			,tail				= self.pole_location + self.flat_vector(self.pole_vector) * 0.2
 			,roll				= 0
-			,bone_group			= self.bone_groups["IK Controls"]
+			# ,bone_group			= self.bone_groups["IK Controls"]
 			,layers				= self.bone_layers["IK Controls"]
 			,custom_shape		= self.load_widget('ArrowHead')
 			,custom_shape_scale	= 0.5
@@ -126,7 +126,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,source		  = pole_ctrl
 			,tail		  = self.org_chain[0].tail.copy()
 			,parent		  = pole_ctrl
-			,bone_group	  = self.bone_groups["IK Controls"]
+			# ,bone_group	  = self.bone_groups["IK Controls"]
 			,layers		  = self.bone_layers["IK Controls"]
 			,hide_select  = True
 			,custom_shape = self.load_widget('Pole_Line')
@@ -177,7 +177,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			ik_bone = self.bone_infos.bone(
 				name		 = org_bone.name.replace("ORG", "IK")
 				,source		 = org_bone
-				,bone_group	 = self.bone_groups["IK Mechanism"]
+				# ,bone_group	 = self.bone_groups["IK Mechanism"]
 				,layers		 = self.bone_layers["IK Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
@@ -217,7 +217,7 @@ class CloudIKChainRig(CloudFKChainRig):
 						name		= fk_name
 						,source		= fk_bone
 						,parent		= fk_bone
-						,bone_group	= self.bone_groups["FK Helpers"]
+						# ,bone_group	= self.bone_groups["FK Helpers"]
 						,layers		= self.bone_layers["FK Helpers"]
 					)
 
@@ -237,7 +237,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
-			,bone_group	 = self.bone_groups["IK Mechanism"]
+			# ,bone_group	 = self.bone_groups["IK Mechanism"]
 			,layers		 = self.bone_layers["IK Mechanism"]
 			,hide_select = self.mch_disable_select
 		)
@@ -248,7 +248,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			name		 = ik_org_bone.name.replace("ORG", "IK-STR-TGT")
 			,source		 = ik_org_bone
 			,parent		 = self.ik_mstr
-			,bone_group	 = self.bone_groups["IK Mechanism"]
+			# ,bone_group	 = self.bone_groups["IK Mechanism"]
 			,layers		 = self.bone_layers["IK Mechanism"]
 			,hide_select = self.mch_disable_select
 		)
@@ -313,7 +313,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				name		 = main_str_bone.name.replace("STR-", "STR-S-")
 				,source		 = main_str_bone
 				,bbone_width = 1/10
-				,bone_group	 = self.bone_groups["IK Mechanism"]
+				# ,bone_group	 = self.bone_groups["IK Mechanism"]
 				,layers		 = self.bone_layers["IK Mechanism"]
 				,parent		 = main_str_bone.parent
 				,hide_select = self.mch_disable_select
@@ -376,7 +376,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,source		  = self.org_chain[self.params.CR_ik_length-1]
 			,custom_shape = self.load_widget("Sphere")
 			,parent		  = None
-			,bone_group	  = self.bone_groups["IK Controls"]
+			# ,bone_group	  = self.bone_groups["IK Controls"]
 			,layers		  = self.bone_layers["IK Controls"]
 		)
 

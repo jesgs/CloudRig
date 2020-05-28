@@ -101,7 +101,7 @@ class CloudSplineIKRig(CloudCurveRig):
 					,tail		 = org_bone.head + (unit * (i+1))
 					,roll		 = org_bone.roll
 					,bbone_width = 0.03
-					,bone_group	 = self.bone_groups["Curve Deform Bones"]
+					# ,bone_group	 = self.bone_groups["Curve Deform Bones"]
 					,layers		 = self.bone_layers["Curve Deform Bones"]
 					,hide_select = self.mch_disable_select
 					,use_deform	 = True

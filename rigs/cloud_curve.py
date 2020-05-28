@@ -27,7 +27,7 @@ class CloudCurveRig(CloudBaseRig):
 		self.root_control = self.bone_infos.bone(
 			name						= self.base_bone.replace("ORG", "ROOT")
 			,source						= self.org_chain[0]
-			,bone_group					= self.bone_groups["Curve Hooks"]
+			# ,bone_group					= self.bone_groups["Curve Hooks"]
 			,layers						= self.bone_layers["Curve Hooks"]
 			,custom_shape				= self.load_widget("Cube")
 			,use_custom_shape_bone_size = True
@@ -51,7 +51,7 @@ class CloudCurveRig(CloudBaseRig):
 			,head						= loc
 			,tail						= loc_left
 			,parent						= parent
-			,bone_group					= self.bone_groups["Curve Hooks"]
+			# ,bone_group					= self.bone_groups["Curve Hooks"]
 			,layers						= self.bone_layers["Curve Hooks"]
 			,use_custom_shape_bone_size	= True
 		)
@@ -68,7 +68,7 @@ class CloudCurveRig(CloudBaseRig):
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
 					,parent						= hook_ctr
-					,bone_group	 				= self.bone_groups["Curve Handles"]
+					# ,bone_group	 				= self.bone_groups["Curve Handles"]
 					,layers		 				= self.bone_layers["Curve Handles"]
 					,custom_shape				= self.load_widget("Circle")
 					,use_custom_shape_bone_size	= True
@@ -83,7 +83,7 @@ class CloudCurveRig(CloudBaseRig):
 					name		  = f"Hook_L_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail		  = loc_left
-					,bone_group	  = self.bone_groups["Curve Handles"]
+					# ,bone_group	  = self.bone_groups["Curve Handles"]
 					,layers		  = self.bone_layers["Curve Handles"]
 					,parent		  = hook_ctr
 					,custom_shape = self.load_widget("CurveHandle")
@@ -96,7 +96,7 @@ class CloudCurveRig(CloudBaseRig):
 					name 		  = f"Hook_R_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail 		  = loc_right
-					,bone_group	  = self.bone_groups["Curve Handles"]
+					# ,bone_group	  = self.bone_groups["Curve Handles"]
 					,layers		  = self.bone_layers["Curve Handles"]
 					,parent 	  = hook_ctr
 					,custom_shape = self.load_widget("CurveHandle")
