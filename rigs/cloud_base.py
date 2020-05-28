@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from rigify.base_rig import BaseRig, stage
 
-from ..definitions.bone import BoneInfoContainer, BoneSet
+from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
 from .. import cloud_generator
 from enum import Enum
@@ -70,7 +70,6 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		# Determine rig scale by armature height.
 		self.scale = self.generator.scale
 
-		self.ensure_bone_groups()
 		self.bone_sets = self.ensure_bone_sets(type(self).bone_set_defs)
 
 		self.side_suffix = ""
@@ -88,8 +87,6 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			"rotation_mode" : "XYZ",
 			#"use_custom_shape_bone_size" : False#True
 		}
-		# Bone Info container used for storing bones created by this rig element.
-		self.bone_infos = BoneInfoContainer(self)
 
 		parent = self.get_bone(self.base_bone).parent
 		self.bones.parent = parent.name if parent else ""
@@ -118,35 +115,6 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			,use_custom_shape_bone_size = True
 		)
 		return prop_bone
-
-	def ensure_bone_groups(self):
-		""" Ensure bone groups that this rig needs. """
-		
-		self.bone_groups = {}
-		self.bone_layers = {}
-
-		class_sets = type(self).bone_set_defs
-		for ui_name in class_sets.keys():
-			set_info = class_sets[ui_name]
-
-			group_name = getattr(self.params, set_info['param'])
-			group_layers = getattr(self.params, set_info['layer_param'])
-			self.bone_groups[ui_name] = self.generator.bone_groups.ensure(
-				name = group_name,
-				preset = set_info['preset']
-			)
-			self.bone_layers[ui_name] = group_layers[:]
-
-			# Handle layer overrides for DEF/MCH/ORG from generator parameters.
-			cloudrig = self.generator_params.cloudrig_parameters
-			if set_info['override'] == 'DEF' and cloudrig.override_def_layers:
-				self.bone_layers[ui_name] = cloudrig.def_layers[:]
-
-			if set_info['override'] == 'MCH' and cloudrig.override_mch_layers:
-				self.bone_layers[ui_name] = cloudrig.mch_layers[:]
-
-			if set_info['override'] == 'ORG' and cloudrig.override_org_layers:
-				self.bone_layers[ui_name] = cloudrig.org_layers[:]
 
 	def ensure_bone_set(self, bone_set_def):
 		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
@@ -216,25 +184,12 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 					continue
 				self.copy_bone('root', bi.name)
 
-		for bd in self.bone_infos.bones:
-			if (
-				bd.name not in self.obj.data.edit_bones and
-				bd.name not in self.bones.flatten() and
-				bd.name != 'root'
-			):
-				self.copy_bone('root', bd.name)
-
 	def parent_bones(self):
 		# TODO: Move this to generator code, before stage is called.
 		for bone_set in self.bone_sets:
 			for bi in bone_set:
 				edit_bone = self.get_bone(bi.name)
 				bi.write_edit_data(self.obj, edit_bone)
-
-		for bd in self.bone_infos.bones:
-			edit_bone = self.get_bone(bd.name)
-
-			bd.write_edit_data(self.obj, edit_bone)
 
 	def configure_bones(self):
 		pass

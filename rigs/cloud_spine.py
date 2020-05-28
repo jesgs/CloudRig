@@ -81,9 +81,7 @@ class CloudSpineRig(CloudChainRig):
 		self.register_parent(self.mstr_torso, "Torso")
 		self.mstr_torso.flatten()
 		if self.params.CR_double_controls:
-			double_mstr_pelvis = self.create_parent_bone(self.mstr_torso)
-			double_mstr_pelvis.bone_group = self.bone_groups["Spine Parent Controls"]
-			double_mstr_pelvis.layers = self.bone_layers["Spine Parent Controls"]
+			double_mstr_pelvis = self.create_parent_bone(self.mstr_torso, self.spine_parent_ctrls)
 
 		self.org_spines = self.org_chain[:self.params.CR_spine_length]
 		self.org_necks = []
@@ -164,9 +162,7 @@ class CloudSpineRig(CloudChainRig):
 			)
 
 		if self.params.CR_double_controls:
-			double_mstr_chest = self.create_parent_bone(self.mstr_chest)
-			double_mstr_chest.bone_group = self.bone_groups["Spine Parent Controls"]
-			double_mstr_chest.layers = self.bone_layers["Spine Parent Controls"]
+			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.spine_parent_ctrls)
 		
 		self.mstr_hips.flatten()
 		self.register_parent(self.mstr_hips, "Hips")

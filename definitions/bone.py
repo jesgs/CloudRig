@@ -1,7 +1,6 @@
 # Data Container and utilities for de-coupling bone creation and setup from BPY.
 # Lets us easily create bones without having to worry about edit/pose mode.
 import bpy
-from .id import ID
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
@@ -119,135 +118,7 @@ class BoneSet(list):
 
 		return bone_group
 
-class BoneInfoContainer(ID):
-	# TODO: implement __iter__ and such.
-	def __init__(self, cloudrig):
-		self.bones = []
-		self.generator = cloudrig.generator
-		self.cloudrig = cloudrig
-		self.armature = cloudrig.obj
-		self.defaults = cloudrig.defaults	# For overriding arbitrary properties' default values when creating bones in this container.
-		self.scale = cloudrig.scale
-
-	def find(self, name):
-		"""Find a BoneInfo instance by name, return it if found."""
-		for bd in self.bones:
-			if(bd.name == name):
-				return bd
-		return None
-
-	def bone(self, name="Bone", source=None, overwrite=True, **kwargs):
-		"""Define a bone and add it to the list of bones. If it already exists, return or re-define it depending on overwrite param."""
-
-		bi = self.find(name)
-		if bi and not overwrite: 
-			return bi
-		elif bi:
-			self.bones.remove(bi)
-
-		bi = BoneInfo(self, name, source, **kwargs)
-		self.bones.append(bi)
-		return bi
-	
-	def from_edit_bone(self, armature, edit_bone):
-		"""Create a BoneInfo instance based on an existing Blender bone, and add it to this container."""
-		# NOTE: This is currently not used.
-		eb = edit_bone
-		pose_bone = armature.pose.bones.get(eb.name)
-		assert pose_bone, f"Error: Failed to create BoneInfo from EditBone {eb.name} because corresponding PoseBone does not exist. Make sure to leave Edit Mode after creating a bone to make sure it's fully initialized."
-		
-		bi = self.bone(eb.name)
-
-		### Edit Bone properties
-		bi.parent = eb.parent.name if eb.parent else ""
-		bi.head = eb.head.copy()
-		bi.tail = eb.tail.copy()
-		bi.roll = eb.roll
-
-		bi.bbone_curveinx = eb.bbone_curveinx
-		bi.bbone_curveiny = eb.bbone_curveiny
-		bi.bbone_curveoutx = eb.bbone_curveoutx
-		bi.bbone_curveouty = eb.bbone_curveouty
-		bi.bbone_easein = eb.bbone_easein
-		bi.bbone_easeout = eb.bbone_easeout
-		bi.bbone_scaleinx = eb.bbone_scaleinx
-		bi.bbone_scaleiny = eb.bbone_scaleiny
-		bi.bbone_scaleoutx = eb.bbone_scaleoutx
-		bi.bbone_scaleouty = eb.bbone_scaleouty
-
-		### Pose Bone Properties
-		pb = pose_bone
-		bi.bone_group = eb.bone_group.name
-		if pb.custom_shape:
-			bi.custom_shape = pb.custom_shape
-		if pb.custom_shape_transform:
-			bi.custom_shape_transform = self.find(pb.custom_shape_transform.name)
-		bi.custom_shape_scale = pb.custom_shape_scale
-		bi.use_custom_shape_bone_size = pb.use_custom_shape_bone_size
-
-		bi.lock_location = pb.lock_location
-		bi.lock_rotation = pb.lock_rotation
-		bi.lock_rotation_w = pb.lock_rotation_w
-		bi.lock_scale = pb.lock_scale
-
-		### Bone properties
-		b = pb.bone
-		bi.name = b.name
-		bi.layers = b.layers[:]
-		bi.rotation_mode = b.rotation_mode
-		bi.hide_select = b.hide_select
-		bi.hide = b.hide
-
-		bi.use_connect = b.use_connect
-		bi.use_deform = b.use_deform
-		bi.show_wire = b.show_wire
-		bi.use_endroll_as_inroll = b.use_endroll_as_inroll
-
-		bi._bbone_x = b.bbone_x
-		bi._bbone_z = b.bbone_z
-		bi.bbone_segments = b.bbone_segments
-		bi.bbone_handle_type_start = b.bbone_handle_type_start
-		bi.bbone_handle_type_end = b.bbone_handle_type_end
-
-		if b.bbone_custom_handle_start:
-			bi.bbone_custom_handle_start = b.bbone_custom_handle_start.name
-		if b.bbone_custom_handle_end:
-			bi.bbone_custom_handle_end = b.bbone_custom_handle_end.name
-
-		bi.envelope_distance = b.envelope_distance
-		bi.envelope_weight = b.envelope_weight
-		bi.use_envelope_multiply = b.use_envelope_multiply
-		bi.head_radius = b.head_radius
-		bi.tail_radius = b.tail_radius
-
-		bi.use_inherit_rotation = b.use_inherit_rotation
-		bi.inherit_scale = b.inherit_scale
-		bi.use_local_location = b.use_local_location
-		bi.use_relative_parent = b.use_relative_parent
-
-		# Read Constraint data
-		skip = ['name', 'constraints', 'bl_rna', 'type', 'rna_type', 'error_location', 'error_rotation', 'is_proxy_local', 'is_valid', 'children']
-		for c in pose_bone.constraints:
-			constraint_data = (c.type, {})
-			for attr in dir(c):
-				if "__" in attr: continue
-				if attr in skip: continue
-				constraint_data[1][attr] = getattr(c, attr)
-
-			bi.constraints.append(constraint_data)
-		
-		return bi
-
-	def clone_bone_info(self, bone_info, new_name=None):
-		"""Create a clone of a bone_info, add it to our list and return it."""
-		my_clone = bone_info.clone(new_name=new_name)
-		self.bones.append(my_clone)
-		return my_clone
-
-	def clear(self):
-		self.bones = []
-
-class BoneInfo(ID):
+class BoneInfo():
 	""" 
 	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone and bpy.types.EditBone
 	into a single concept.
@@ -256,9 +127,9 @@ class BoneInfo(ID):
 	Eg, it does not store pose bone transformations such as loc/rot/scale. 
 	"""
 
-	def __init__(self, container, name="Bone", source=None, **kwargs): #TODO: remove bone_group param.
+	def __init__(self, container, name="Bone", source=None, **kwargs):
 		""" 
-		container: Need a reference to what BoneInfoContainer this BoneInfo belongs to.
+		container: Need a reference to what BoneSet this BoneInfo belongs to. #TODO: might be nice to make this not required?
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
 		"""

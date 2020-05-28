@@ -2,7 +2,6 @@ import bpy, os
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty
 from rigify.generate import *
-from .definitions.bone_group import BoneGroupContainer
 from .definitions.bone import BoneSet
 from .rigs import cloud_utils
 
@@ -132,9 +131,6 @@ class CloudGenerator(Generator):
 		super().__init__(context, metarig)
 		self.params = metarig.data	# Generator parameters are stored in rig data.
 
-		# Initialize BoneGroupContainer.
-		self.bone_groups = BoneGroupContainer()
-
 		self.scale = max(metarig.dimensions)/10
 
 		self.prefix_separator = self.params.cloudrig_parameters.prefix_separator
@@ -208,9 +204,7 @@ class CloudGenerator(Generator):
 				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
 				preset = 8
 			)
-			self.root_parent = cloud_utils.create_parent_bone(self.root_bone)
-			self.root_parent.bone_group = self.root_parent_set.bone_group
-			self.root_parent.layers = self.root_parent_set.layers[:]
+			self.root_parent = cloud_utils.create_parent_bone(self.root_bone, self.root_parent_set)
 
 	def load_ui_script(self):
 		"""Load cloudrig.py (CloudRig UI script) into a text datablock, enable register checkbox and execute it."""

@@ -2,9 +2,7 @@ import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 
 from rigify.base_rig import BaseRig, stage
-from rigify.utils.bones import BoneDict
 
-from ..definitions.bone import BoneInfoContainer, BoneInfo
 from . import cloud_utils
 from ..rigs.cloud_base import DefaultLayers
 

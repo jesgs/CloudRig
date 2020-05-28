@@ -103,8 +103,8 @@ class Rig(CloudIKChainRig):
 			prop_name = self.fk_hinge_name,
 			limb_name = self.limb_ui_name
 		)
-		hng_bone.bone_group = self.bone_groups['FK Helpers']
-		hng_bone.layers = self.bone_layers['FK Helpers']
+		hng_bone.bone_group = self.fk_mch.bone_group
+		hng_bone.layers = self.fk_mch.layers[:]
 
 	def prepare_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
@@ -140,9 +140,7 @@ class Rig(CloudIKChainRig):
 		foot_dsp(self.ik_mstr)
 		# Parent control
 		if self.params.CR_double_ik_control:
-			double_control = self.create_parent_bone(self.ik_mstr)
-			double_control.bone_group = self.bone_groups["IK Parent Controls"]
-			double_control.layers = self.bone_layers["IK Parent Controls"]
+			double_control = self.create_parent_bone(self.ik_mstr, self.ik_parent_ctrls)
 			foot_dsp(double_control)
 
 		# IK Foot setup, including Foot Roll

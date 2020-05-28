@@ -155,9 +155,7 @@ class CloudUtilities:
 
 		# Create parent bone for the bone that stores the Armature constraint.
 		# NOTE: Bones with Armature constraints should never be exposed to the animator directly because it breaks snapping functionality!
-		arm_con_bone = self.create_parent_bone(child_bone)
-		arm_con_bone.bone_group = self.bone_groups["Parent Switch Helpers"]
-		arm_con_bone.layers = self.bone_layers["Parent Switch Helpers"]
+		arm_con_bone = self.create_parent_bone(child_bone, self.parent_switch_bones)
 		arm_con_bone.name = "Parents_" + child_bone.name
 		arm_con_bone.custom_shape = None
 
@@ -192,8 +190,8 @@ class CloudUtilities:
 
 		return found_parents
 
-	def create_parent_bone(self, child):
-		return create_parent_bone(child)
+	def create_parent_bone(self, child, bone_set=None):
+		return create_parent_bone(child, bone_set)
 
 	def create_dsp_bone(self, parent, center=False):
 		"""Create a bone to be used as another control's custom_shape_transform."""
@@ -365,12 +363,14 @@ class CloudUtilities:
 	def flat_vector(vec):
 		return flat(vec)
 
-def create_parent_bone(child):
+def create_parent_bone(child, bone_set=None):
 	"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
 	sliced = slice_name(child.name)
 	sliced[0].append("P")
 	parent_name = make_name(*sliced)
-	parent_bone = child.container.new(
+	if not bone_set:
+		bone_set = child.container
+	parent_bone = bone_set.new(
 		name				= parent_name 
 		,source				= child
 		,custom_shape		= child.custom_shape
