@@ -9,6 +9,12 @@ class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
 	# If a class inherits this class, it's also expected to inherit CloudBaseRig - These are only split up for organizational purposes.
 
+	def get_bone_info(self, name):
+		for bone_set in self.bone_sets:
+			for bi in bone_set:
+				if bi.name==name:
+					return bi
+
 	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
 		""" Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI. 
 		ui_area: One of a list of pre-defined strings that the UI script recognizes, that describes a panel or area in the UI. Eg, "fk_hinges", "ik_switches".

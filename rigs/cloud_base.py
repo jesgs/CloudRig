@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from rigify.base_rig import BaseRig, stage
 
-from ..definitions.bone import BoneInfoContainer
+from ..definitions.bone import BoneInfoContainer, BoneSet
 from .cloud_utils import CloudUtilities
 from .. import cloud_generator
 from enum import Enum
@@ -25,7 +25,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 	description = "CloudRig Element (no description)"
 
-	bone_set_defs = OrderedDict()
+	bone_set_defs = OrderedDict()	# TODO: We could simply store a list of BoneSet instances at the class level, which would then be copied over at the instance level?
 	
 	default_layers = lambda name: DefaultLayers[name].value
 
@@ -50,12 +50,12 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
 		self.parent_candidates = {}
-		self.ensure_bone_groups()
-		
-		self.bone_sets = self.ensure_bone_sets()
 
 		# Determine rig scale by armature height.
 		self.scale = max(self.generator.metarig.dimensions)/10
+
+		self.ensure_bone_groups()
+		self.bone_sets = self.ensure_bone_sets(type(self).bone_set_defs)
 
 		self.side_suffix = ""
 		self.side_prefix = ""
@@ -148,15 +148,37 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			if set_info['override'] == 'ORG' and cloudrig.override_org_layers:
 				self.bone_layers[ui_name] = cloudrig.org_layers[:]
 
-	def ensure_bone_sets(self):
-		pass
+	def ensure_bone_set(self, bone_set_def):
+		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
+		cloudrig = self.generator_params.cloudrig_parameters
+		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
+			bone_set_def['layers'] = cloudrig.def_layers[:]
+
+		if bone_set_def['override'] == 'MCH' and cloudrig.override_mch_layers:
+			bone_set_def['layers'] = cloudrig.mch_layers[:]
+
+		if bone_set_def['override'] == 'ORG' and cloudrig.override_org_layers:
+			bone_set_def['layers'] = cloudrig.org_layers[:]
+		
+		new_set = BoneSet(
+			self,
+			ui_name = bone_set_def['name'],
+			bone_group = getattr(self.params, bone_set_def['param']),
+			layers = getattr(self.params, bone_set_def['layer_param']),
+			preset = bone_set_def['preset']
+		)
+		return new_set
+
+	def ensure_bone_sets(self, bone_set_defs):
+		self.org_chain = self.ensure_bone_set(bone_set_defs["Original Bones"])
+		return [self.org_chain]
 
 	def prepare_bones(self):
 		self.load_org_bones()
 
 	def load_org_bones(self):
 		# Load ORG bones into BoneInfo instances.
-		self.org_chain = []
+		# self.org_chain = []
 
 		for bn in self.bones.org.main:
 			eb = self.get_bone(bn)
@@ -165,19 +187,27 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			meta_org_name = eb.name[4:]
 			meta_org = self.generator.metarig.pose.bones.get(meta_org_name)
 
-			org_bi = self.bone_infos.bone(
+			org_bi = self.org_chain.new(
 				name		 = bn
 				,source		 = eb
 				,hide_select = self.mch_disable_select
-				,bone_group	 = self.bone_groups["Original Bones"]
-				,layers		 = self.bone_layers["Original Bones"]
 			)
 
 			org_bi.meta_bone = meta_org
 
-			self.org_chain.append(org_bi)
-
 	def generate_bones(self):
+		# TODO: Move this to generator code, before stage is called.
+		for bone_set in self.bone_sets:
+			for bi in bone_set:
+				if ( 
+					bi.name in self.obj.data.edit_bones or
+					bd.name in self.bones.flatten() or
+					bd.name == 'root'
+				):
+					print(f"Warning: Bone {bi.name} already exists, skipping!")
+					continue
+				self.copy_bone('root', bi.name)
+
 		for bd in self.bone_infos.bones:
 			if (
 				bd.name not in self.obj.data.edit_bones and
@@ -187,13 +217,21 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 				self.new_bone(bd.name)
 
 	def parent_bones(self):
+		# TODO: Move this to generator code, before stage is called.
+		for bone_set in self.bone_sets:
+			for bi in bone_set:
+				edit_bone = self.get_bone(bi.name)
+				bi.write_edit_data(self.obj, edit_bone)
+
 		for bd in self.bone_infos.bones:
 			edit_bone = self.get_bone(bd.name)
 
 			bd.write_edit_data(self.obj, edit_bone)
 
 	def create_real_bone_groups(self):
-		# TODO: Move this whole function into the generator.
+		# TODO: Move this whole function into the generator, before configure_bones stage.
+		# Also rename to ensure_bone_groups()
+		
 		bgs = self.generator.bone_groups
 		# If the metarig has a group with the same name as what we're about to create, modify bone group's colors accordingly.
 		for meta_bg in self.generator.metarig.pose.bone_groups:
@@ -215,6 +253,19 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 	def configure_bones(self):
 		self.create_real_bone_groups()
+
+		# TODO: Move to generator, before configure_bones() and after create_real_bone_groups()
+		for bone_set in self.bone_sets:
+			for bi in bone_set:
+				pose_bone = self.obj.pose.bones.get(bi.name)
+				if not pose_bone:
+					print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
+					continue
+
+				# Scale bone shape based on BBone scale
+				if not bi.use_custom_shape_bone_size:
+					bi.custom_shape_scale *= self.scale * bi.bbone_width * 10
+				bi.write_pose_data(pose_bone)
 
 		for bd in self.bone_infos.bones:
 			pose_bone = None
