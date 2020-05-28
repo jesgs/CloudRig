@@ -1,5 +1,5 @@
 import bpy, os
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty
 from rigify.generate import *
 from .definitions.bone_group import BoneGroupContainer
@@ -138,10 +138,6 @@ class CloudGenerator(Generator):
 		self.scale = max(metarig.dimensions)/10
 
 		# Root bone groups
-		self.root_group = self.bone_groups.ensure(
-			name = self.params.cloudrig_parameters.root_bone_group,
-			preset = 2
-		)
 		self.root_set = BoneSet(
 			self,
 			ui_name = 'Root',
@@ -150,11 +146,19 @@ class CloudGenerator(Generator):
 			preset = 2
 		)
 
-		if self.params.cloudrig_parameters.double_root:
-			self.root_parent_group = self.bone_groups.ensure(
-				name = self.params.cloudrig_parameters.root_parent_group,
-				preset = 8
+		self.root_bone = None
+		if self.params.cloudrig_parameters.create_root:
+			self.root_bone = self.root_set.new(
+				name				= "root"
+				,head				= Vector((0, 0, 0))
+				,tail				= Vector((0, self.scale*5, 0))
+				,bbone_width		= 1/3
+				,custom_shape		= self.load_widget("Root")
+				,custom_shape_scale = 1.5
 			)
+
+
+		if self.params.cloudrig_parameters.double_root:
 			self.root_parent_set = BoneSet(
 				self,
 				ui_name = 'Root',
@@ -162,6 +166,9 @@ class CloudGenerator(Generator):
 				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
 				preset = 8
 			)
+			self.root_parent = cloud_utils.create_parent_bone(self.root_bone)
+			self.root_parent.bone_group = self.root_parent_set.bone_group
+			self.root_parent.layers = self.root_parent_set.layers[:]
 
 		self.prefix_separator = self.params.cloudrig_parameters.prefix_separator
 		self.suffix_separator = self.params.cloudrig_parameters.suffix_separator
@@ -242,6 +249,18 @@ class CloudGenerator(Generator):
 		exec(text.as_string(), {})
 
 		return text
+
+	def ensure_bone_groups(self):
+		for rig in self.rig_list:
+			if not hasattr(rig, 'bone_sets'): continue
+			for bone_set in rig.bone_sets:
+				meta_bg = bone_set.ensure_bone_group(self.metarig, overwrite=False)
+				if meta_bg:
+					bone_set.normal = meta_bg.colors.normal[:]
+					bone_set.select = meta_bg.colors.select[:]
+					bone_set.active = meta_bg.colors.active[:]
+
+				bone_set.ensure_bone_group(self.obj, overwrite=True)
 
 	def ensure_widget_collection(self):
 		wgt_collection = None
@@ -451,6 +470,22 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
+
+		self.ensure_bone_groups()
+
+		for rig in self.rig_list:
+			if not hasattr(rig, 'bone_sets'): continue
+			for bone_set in rig.bone_sets:
+				for bi in bone_set:
+					pose_bone = obj.pose.bones.get(bi.name)
+					if not pose_bone:
+						print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
+						continue
+
+					# Scale bone shape based on BBone scale
+					if not bi.use_custom_shape_bone_size:
+						bi.custom_shape_scale *= self.scale * bi.bbone_width * 10
+					bi.write_pose_data(pose_bone)
 
 		self.invoke_configure_bones()
 

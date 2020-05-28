@@ -192,8 +192,8 @@ class CloudIKChainRig(CloudFKChainRig):
 				ik_bone.parent = self.limb_root_bone.name
 				ik_bone.custom_shape = self.load_widget("IK_Base")
 				ik_bone.use_custom_shape_bone_size = True
-				ik_bone.bone_group	  = self.bone_groups["IK Controls"]
-				ik_bone.layers		  = self.bone_layers["IK Controls"]
+				ik_bone.bone_group	  = self.ik_ctrls.bone_group
+				ik_bone.layers		  = self.ik_ctrls.layers[:]
 
 			else:
 				ik_bone.parent = ik_chain[-2]

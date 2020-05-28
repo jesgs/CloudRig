@@ -34,6 +34,20 @@ class CloudSpineRig(CloudChainRig):
 		self.ik_prop_name = "ik_spine"
 		self.ik_stretch_name = "ik_stretch_spine"
 
+	def ensure_bone_sets(self, bone_set_defs):
+		bone_sets = super().ensure_bone_sets(bone_set_defs)
+		self.spine_fk = self.ensure_bone_set(bone_set_defs["Spine FK Controls"])
+		self.spine_main = self.ensure_bone_set(bone_set_defs["Spine Main Controls"])
+		self.spine_parent_ctrls = self.ensure_bone_set(bone_set_defs["Spine Parent Controls"])
+		self.spine_ik_secondary = self.ensure_bone_set(bone_set_defs["Spine IK Secondary"])
+		self.spine_mch = self.ensure_bone_set(bone_set_defs["Spine Mechanism"])
+		bone_sets.append(self.spine_fk)
+		bone_sets.append(self.spine_main)
+		bone_sets.append(self.spine_parent_ctrls)
+		bone_sets.append(self.spine_ik_secondary)
+		bone_sets.append(self.spine_mch)
+		return bone_sets
+
 	def get_segments(self, org_i, chain):
 		"""Determine how many deform segments should be in a section of the chain."""
 		segments = self.params.CR_deform_segments
@@ -48,25 +62,21 @@ class CloudSpineRig(CloudChainRig):
 	@stage.prepare_bones
 	def prepare_fk_spine(self):
 		# Create Troso Master control
-		self.mstr_torso = self.bone_infos.bone(
+		self.mstr_torso = self.spine_main.new(
 			name 		  = "MSTR-Torso"
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.load_widget("Torso_Master")
-			# ,bone_group	  = self.bone_groups["Spine Main Controls"]
-			,layers		  = self.bone_layers["Spine Main Controls"]
 		)
 
 		# Create master (reverse) hip control
-		self.mstr_hips = self.bone_infos.bone(
+		self.mstr_hips = self.spine_main.new(
 				name				= "MSTR-Hips"
 				,source				= self.org_chain[0]
 				,head				= self.org_chain[0].center
 				,custom_shape 		= self.load_widget("Hips")
 				,custom_shape_scale	= 0.7
 				,parent				= self.mstr_torso
-				# ,bone_group 		= self.bone_groups["Spine Main Controls"]
-				,layers 			= self.bone_layers["Spine Main Controls"]
 		)
 		self.register_parent(self.mstr_torso, "Torso")
 		self.mstr_torso.flatten()
@@ -88,14 +98,12 @@ class CloudSpineRig(CloudChainRig):
 		next_parent = self.mstr_torso
 		for i, org_bone in enumerate(self.org_chain):
 			fk_name = org_bone.name.replace("ORG", "FK")
-			org_bone.fk_bone = fk_bone = self.bone_infos.bone(
+			org_bone.fk_bone = fk_bone = self.spine_fk.new(
 				name				= fk_name
 				,source				= org_bone
 				,custom_shape 		= self.load_widget("FK_Limb")
 				,custom_shape_scale = 0.9 * org_bone.custom_shape_scale
 				,parent				= next_parent
-				# ,bone_group 		= self.bone_groups["Spine FK Controls"]
-				,layers 			= self.bone_layers["Spine FK Controls"]
 			)
 			next_parent = fk_bone
 
@@ -145,7 +153,7 @@ class CloudSpineRig(CloudChainRig):
 		if not self.params.CR_create_ik_spine: return
 
 		# Create master chest control
-		self.mstr_chest = self.bone_infos.bone(
+		self.mstr_chest = self.spine_main.new(
 				name				= "MSTR-Chest"
 				,source 			= self.org_spines[-2]
 				,head				= self.org_spines[-2].center
@@ -153,8 +161,6 @@ class CloudSpineRig(CloudChainRig):
 				,custom_shape 		= self.load_widget("Chest_Master")
 				,custom_shape_scale = 0.7
 				,parent				= self.mstr_torso
-				# ,bone_group 		= self.bone_groups["Spine Main Controls"]
-				,layers 			= self.bone_layers["Spine Main Controls"]
 			)
 
 		if self.params.CR_double_controls:
@@ -169,12 +175,10 @@ class CloudSpineRig(CloudChainRig):
 		for i, org_spine in enumerate(self.org_spines):
 			fk_bone = org_spine.fk_bone
 			ik_ctr_name = fk_bone.name.replace("FK", "IK-CTR")	# Equivalent of IK-CTR bones in Rain (Technically animator-facing, but rarely used)
-			ik_ctr_bone = self.bone_infos.bone(
+			ik_ctr_bone = self.spine_ik_secondary.new(
 				name				= ik_ctr_name
 				,source				= fk_bone
 				,custom_shape 		= self.load_widget("Oval")
-				# ,bone_group 		= self.bone_groups["Spine IK Secondary"]
-				,layers 			= self.bone_layers["Spine IK Secondary"]
 			)
 			if i >= len(self.org_spines)-2:	
 				# Last two spine controls should be parented to the chest control.
@@ -191,13 +195,11 @@ class CloudSpineRig(CloudChainRig):
 			fk_bone = org_bone.fk_bone
 			index = len(self.org_spines)-i-2
 			ik_r_name = fk_bone.name.replace("FK", "IK-R")
-			org_bone.ik_r_bone = ik_r_bone = self.bone_infos.bone(
+			org_bone.ik_r_bone = ik_r_bone = self.spine_mch.new(
 				name		 = ik_r_name
 				,source 	 = fk_bone
 				,tail 		 = self.fk_chain[index].head.copy()
 				,parent		 = next_parent
-				# ,bone_group  = self.bone_groups["Spine Mechanism"]
-				,layers 	 = self.bone_layers["Spine Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
 			next_parent = ik_r_bone
@@ -212,14 +214,12 @@ class CloudSpineRig(CloudChainRig):
 		for i, org_bone in enumerate(self.org_spines):
 			fk_bone = org_bone.fk_bone
 			ik_name = fk_bone.name.replace("FK", "IK")
-			org_bone.ik_bone = ik_bone = self.bone_infos.bone(
+			org_bone.ik_bone = ik_bone = self.spine_mch.new(
 				name		 = ik_name
 				,source		 = fk_bone
 				,head		 = self.fk_chain[i-1].head.copy() if i>0 else self.def_bones[0].head.copy()
 				,tail		 = fk_bone.head
 				,parent		 = next_parent
-				# ,bone_group  = self.bone_groups["Spine Mechanism"]
-				,layers 	 = self.bone_layers["Spine Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
 			self.ik_chain.append(ik_bone)

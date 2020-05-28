@@ -98,20 +98,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		# TODO: Move this to generator. Generator should be able to create bones without relying on a BaseRig type. Fix everything that prevents it from doing so.
 		self.root_bone = None
 		if self.generator_params.cloudrig_parameters.create_root:
-			self.root_bone = self.generator.root_set.new(
-				name				= "root"
-				,head				= Vector((0, 0, 0))
-				,tail				= Vector((0, self.scale*5, 0))
-				,bbone_width		= 1/3
-				,custom_shape		= self.load_widget("Root")
-				,custom_shape_scale = 1.5
-			)
+			self.root_bone = self.generator.root_bone
 			self.register_parent(self.root_bone, "Root")
-		
-			if self.generator_params.cloudrig_parameters.double_root:
-				self.root_parent = self.create_parent_bone(self.root_bone)
-				self.root_parent.bone_group = self.generator.root_parent_group
-				self.root_parent.layers = self.generator_params.cloudrig_parameters.root_parent_layers[:]
 
 		for k in self.obj.data.keys():
 			if k in ['_RNA_UI', 'rig_id']: continue
@@ -184,6 +172,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def ensure_bone_sets(self, bone_set_defs):
 		# TODO: Instead of passing bone_set_defs to this function, ensure_bone_set() should grab it for itself. Then we can just pass the string and we're good.
 		self.org_chain = self.ensure_bone_set(bone_set_defs["Original Bones"])
+		self.dsp_bones = self.ensure_bone_set(bone_set_defs["Display Transform Helpers"])
+		self.parent_switch_bones = self.ensure_bone_set(bone_set_defs["Parent Switch Helpers"])
 		return [self.org_chain]
 
 	def prepare_bones(self):
@@ -246,66 +236,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 			bd.write_edit_data(self.obj, edit_bone)
 
-	def create_real_bone_groups(self):
-		# TODO: Move this whole function into the generator, before configure_bones stage.
-		# Also rename to ensure_bone_groups()
-		for bone_set in self.bone_sets:
-			meta_bg = bone_set.ensure_bone_group(self.generator.metarig, overwrite=False)
-			if meta_bg:
-				bone_set.normal = meta_bg.colors.normal[:]
-				bone_set.select = meta_bg.colors.select[:]
-				bone_set.active = meta_bg.colors.active[:]
-
-			bone_set.ensure_bone_group(self.obj, overwrite=True)
-		return
-
-		bgs = self.generator.bone_groups
-		# If the metarig has a group with the same name as what we're about to create, modify bone group's colors accordingly.
-		for meta_bg in self.generator.metarig.pose.bone_groups:
-			if meta_bg.name in bgs:
-				bgs[meta_bg.name].normal = meta_bg.colors.normal[:]
-				bgs[meta_bg.name].select = meta_bg.colors.select[:]
-				bgs[meta_bg.name].active = meta_bg.colors.active[:]
-
-		# Create bone groups on the metarig
-		self.generator.bone_groups.make_real(self.generator.metarig)
-
-		# Check for Unified Selected/Active color settings
-		if self.generator.metarig.data.rigify_colors_lock:
-			for bg in bgs.values():
-				bg.select = self.generator.metarig.data.rigify_selection_colors.select[:]
-				bg.active = self.generator.metarig.data.rigify_selection_colors.active[:]
-		
-		self.generator.bone_groups.make_real(self.obj)
-
 	def configure_bones(self):
-		self.create_real_bone_groups()
-
-		# TODO: Move to generator, before configure_bones() and after create_real_bone_groups()
-		for bone_set in self.bone_sets:
-			for bi in bone_set:
-				pose_bone = self.obj.pose.bones.get(bi.name)
-				if not pose_bone:
-					print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
-					continue
-
-				# Scale bone shape based on BBone scale
-				if not bi.use_custom_shape_bone_size:
-					bi.custom_shape_scale *= self.scale * bi.bbone_width * 10
-				bi.write_pose_data(pose_bone)
-
-		for bd in self.bone_infos.bones:
-			pose_bone = None
-			try:
-				pose_bone = self.get_bone(bd.name)
-			except:
-				print(f"Warning: BoneInfo wasn't created for some reason: {bd.name}")
-				continue
-
-			# Scale bone shape based on BBone scale
-			if not bd.use_custom_shape_bone_size:
-				bd.custom_shape_scale *= self.scale * bd.bbone_width * 10
-			bd.write_pose_data(pose_bone)
+		pass
 
 	##############################
 	# Parameters

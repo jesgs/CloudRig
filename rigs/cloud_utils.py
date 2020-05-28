@@ -70,11 +70,9 @@ class CloudUtilities:
 
 		# Create Hinge helper bone
 		BODY_MECH = 8
-		hng_bone = self.bone_infos.bone(
+		hng_bone = bone.container.new(
 			name			= hng_name
 			,source			= bone
-			# ,bone_group 	= bone.bone_group
-			,layers			= bone.layers
 			,hide_select	= self.mch_disable_select
 		)
 
@@ -195,36 +193,18 @@ class CloudUtilities:
 		return found_parents
 
 	def create_parent_bone(self, child):
-		"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
-		sliced = slice_name(child.name)
-		sliced[0].append("P")
-		parent_name = make_name(*sliced)
-		parent_bone = self.bone_infos.bone(
-			name				= parent_name 
-			,source				= child
-			,custom_shape		= child.custom_shape
-			,custom_shape_scale = child.custom_shape_scale * 1.1
-			# ,bone_group			= child.bone_group
-			,layers				= child.layers
-			,parent 			= child.parent
-			,hide_select		= self.mch_disable_select
-		)
-
-		child.parent = parent_bone
-		return parent_bone
+		return create_parent_bone(child)
 
 	def create_dsp_bone(self, parent, center=False):
 		"""Create a bone to be used as another control's custom_shape_transform."""
 		dsp_name = "DSP-" + parent.name
-		dsp_bone = self.bone_infos.bone(
+		dsp_bone = self.dsp_bones.new(
 			name			= dsp_name
 			,source			= parent
 			,bbone_width	= parent.bbone_width*0.5
 			,only_transform = True
 			,custom_shape	= None
 			,parent			= parent
-			# ,bone_group		= self.bone_groups["Display Transform Helpers"]
-			,layers			= self.bone_layers["Display Transform Helpers"]
 			,hide_select	= self.mch_disable_select
 		)
 		parent.dsp_bone = dsp_bone
@@ -384,6 +364,23 @@ class CloudUtilities:
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)
+
+def create_parent_bone(child):
+	"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
+	sliced = slice_name(child.name)
+	sliced[0].append("P")
+	parent_name = make_name(*sliced)
+	parent_bone = child.container.new(
+		name				= parent_name 
+		,source				= child
+		,custom_shape		= child.custom_shape
+		,custom_shape_scale = child.custom_shape_scale * 1.1
+		,parent 			= child.parent
+		# ,hide_select		= self.mch_disable_select
+	)
+
+	child.parent = parent_bone
+	return parent_bone
 
 def make_custom_property(owner, name, default=0.0, min=0.0, max=1.0, soft_min=0.0, soft_max=1.0, description="", overridable=True, subtype=True):
 	return rna_idprop_ui_create(

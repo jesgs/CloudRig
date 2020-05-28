@@ -8,7 +8,8 @@ from .cloud_fk_chain import CloudFKChainRig
 
 class CloudShoulderRig(CloudFKChainRig):
 	"""Cloud shoulder rig. (Currently very simple)"""
-
+    # TODO: Deprecate this by adding a parameter to cloud_bone to register the tweaked bone as a parent?
+    
 	description = "A single bone control that connects the arm to the spine."
 
 	def find_org_bones(self, bone):
@@ -26,8 +27,6 @@ class CloudShoulderRig(CloudFKChainRig):
 	@stage.prepare_bones
 	def prepare_fk_shoulder(self):
 		self.fk_chain[0].custom_shape = self.load_widget("Clavicle")
-		self.fk_chain[0].bone_group = self.bone_groups["FK Controls"]
-		self.fk_chain[0].layers = self.bone_layers["FK Controls"]
 		self.register_parent(self.fk_chain[0], self.side_prefix.capitalize() + " Shoulder")
 
 		parent = self.get_bone(self.base_bone).parent

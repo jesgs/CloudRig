@@ -129,7 +129,7 @@ class Rig(CloudIKChainRig):
 				dsp_bone.tail = projected_center + Vector((0, -self.scale/10, 0))
 				dsp_bone.roll = rad(90) * direction
 
-		self.bone_infos.bones.remove(self.fk_chain[self.params.CR_ik_length-1].custom_shape_transform)
+		self.dsp_bones.remove(self.fk_chain[self.params.CR_ik_length-1].custom_shape_transform)
 		self.fk_chain[-1].custom_shape_transform = None
 
 		# Configure IK Master
@@ -174,13 +174,11 @@ class Rig(CloudIKChainRig):
 		ik_foot = ik_chain[0]
 
 		# Create ROLL control behind the foot (Limit Rotation, lock other transforms)
-		rolly_stretchy = self.bone_infos.bone(
+		rolly_stretchy = self.ik_mch.new(
 			name		 = self.org_chain[0].name.replace("ORG", "IK-STR-ROLL")
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
-			# ,bone_group	 = self.bone_groups["IK Mechanism"]
-			,layers		 = self.bone_layers["IK Mechanism"]
 			,hide_select = self.mch_disable_select
 		)
 		rolly_stretchy.scale_width(0.4)
@@ -188,25 +186,21 @@ class Rig(CloudIKChainRig):
 
 		sliced_name = self.slice_name(ik_foot.name)
 		master_name = self.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
-		roll_master = self.bone_infos.bone(
+		roll_master = self.ik_mch.new(
 			name		 = master_name
 			,source		 = self.ik_mstr
 			,parent		 = self.ik_mstr
-			# ,bone_group	 = self.bone_groups["IK Mechanism"]
-			,layers		 = self.bone_layers["IK Mechanism"]
 		)
 		roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
 		self.ik_tgt_bone.clear_constraints()
 
 		roll_name = self.make_name(["ROLL"], sliced_name[1], sliced_name[2])
-		roll_ctrl = self.bone_infos.bone(
+		roll_ctrl = self.ik_ctrls.new(
 			name		  = roll_name
 			,bbone_width  = 1/18
 			,head		  = ik_foot.head + Vector((0, self.scale, self.scale/4))
 			,tail		  = ik_foot.head + Vector((0, self.scale/2, self.scale/4))
 			,roll		  = rad(180)
-			# ,bone_group	  = self.bone_groups["IK Controls"]
-			,layers		  = self.bone_layers["IK Controls"]
 			,parent		  = roll_master
 			,custom_shape = self.load_widget('FootRoll')
 			,use_custom_shape_bone_size = True
@@ -236,14 +230,12 @@ class Rig(CloudIKChainRig):
 			self.ik_mstr.parent._bbone_x = heel_pivot_bone.bbone_x
 			self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
 
-		heel_pivot = self.bone_infos.bone(
+		heel_pivot = self.ik_mch.new(
 			name		  = "IK-RollBack" + self.generator.suffix_separator + self.side_suffix
 			,bbone_width  = self.org_chain[-1].bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
 			,roll		  = 0
-			# ,bone_group	  = self.bone_groups["IK Mechanism"]
-			,layers		  = self.bone_layers["IK Mechanism"]
 			,parent		  = roll_master
 			,hide_select  = self.mch_disable_select
 		)
@@ -259,15 +251,13 @@ class Rig(CloudIKChainRig):
 		# Create reverse bones
 		rik_chain = []
 		for i, b in reversed(list(enumerate(org_chain))):
-			rik_bone = self.bone_infos.bone(
+			rik_bone = self.ik_mch.new(
 				name		 = b.name.replace("ORG", "RIK")
 				,source		 = b
 				,head		 = b.tail.copy()
 				,tail		 = b.head.copy()
 				,roll		 = 0
 				,parent		 = heel_pivot
-				# ,bone_group	 = self.bone_groups["IK Mechanism"]
-				,layers		 = self.bone_layers["IK Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
 			rik_chain.append(rik_bone)

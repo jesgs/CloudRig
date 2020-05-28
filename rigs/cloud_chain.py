@@ -19,11 +19,11 @@ class CloudChainRig(CloudBaseRig):
 	def ensure_bone_sets(self, bone_set_defs):
 		bone_sets = super().ensure_bone_sets(bone_set_defs)
 		self.str_bones = self.ensure_bone_set(bone_set_defs["Stretch Controls"])
-		self.skp_bones = self.ensure_bone_set(bone_set_defs["Stretch Helpers"])
+		self.str_mch = self.ensure_bone_set(bone_set_defs["Stretch Helpers"])
 		self.skh_bones = self.ensure_bone_set(bone_set_defs["Shape Key Helpers"])
 		self.def_bones = self.ensure_bone_set(bone_set_defs["Deform Bones"])
 		bone_sets.append(self.str_bones)
-		bone_sets.append(self.skp_bones)
+		bone_sets.append(self.str_mch)
 		bone_sets.append(self.skh_bones)
 		bone_sets.append(self.def_bones)
 		return bone_sets
@@ -47,7 +47,7 @@ class CloudChainRig(CloudBaseRig):
 		The goal is that when we read the local rotation of the SKH bone, we get an accurate representation of how much rotation is happening in this joint - Even when using the toon controls to deform the character in crazy ways.
 		"""
 
-		skp_bone = self.skp_bones.new(
+		skp_bone = self.skh_bones.new(
 			name		 = def_bone_2.name.replace("DEF", "SKP")
 			,head		 = def_bone_1.tail.copy()
 			,tail		 = def_bone_1.tail + def_bone_1.vec
@@ -162,12 +162,10 @@ class CloudChainRig(CloudBaseRig):
 					continue
 				main_str_bone.sub_bones.append(str_bone)
 
-				str_h_bone = self.bone_infos.bone(
+				str_h_bone = self.str_mch.new(
 					name 		 = self.add_prefix_to_name(str_bone.name, "H")
 					,source 	 = str_bone
 					,bbone_width = 1/10
-					# ,bone_group  = self.bone_groups["Stretch Helpers"]
-					,layers		 = self.bone_layers["Stretch Helpers"]
 					,parent		 = str_bone.parent
 					,hide_select = self.mch_disable_select
 				)
