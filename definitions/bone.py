@@ -567,17 +567,11 @@ class BoneInfo(ID):
 		if type(self.bone_group)==str and self.bone_group!="":
 			pb.bone_group = armature.pose.bone_groups.get(self.bone_group)
 
-			print("Writing pose data for bone")
-			print(pb.name)
-			print(self.bone_group)
-			print("")
-
 		# Constraints.
 		for ci in self.constraint_infos:
 			con = ci.make_real(pb)
 			for driver_info in ci.drivers:
 				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"].{driver_info["prop"]}'
-				print(driver_info)
 				make_driver(armature, target_id=armature, **driver_info)
 		
 		# Custom Properties.

@@ -45,18 +45,28 @@ class CloudIKChainRig(CloudFKChainRig):
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
 		self.ik_parents = ['Root', 'Torso', 'Hips', 'Chest', self.limb_ui_name]
 
+	def ensure_bone_sets(self, bone_set_defs):
+		bone_sets = super().ensure_bone_sets(bone_set_defs)
+		self.ik_ctrls = self.ensure_bone_set(bone_set_defs["IK Controls"])
+		self.ik_parent_ctrls = self.ensure_bone_set(bone_set_defs["IK Parent Controls"])
+		self.ik_mch = self.ensure_bone_set(bone_set_defs["IK Mechanism"])
+		self.fk_mch = self.ensure_bone_set(bone_set_defs["FK Helpers"])
+		bone_sets.append(self.ik_ctrls)
+		bone_sets.append(self.ik_parent_ctrls)
+		bone_sets.append(self.ik_mch)
+		bone_sets.append(self.fk_mch)
+		return bone_sets
+
 	def prepare_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
 		base_bone = self.get_bone(self.base_bone)
-		self.limb_root_bone = self.bone_infos.bone(
+		self.limb_root_bone = self.ik_mch.new(
 			name 					= root_name
 			,source 				= base_bone
 			,parent 				= self.bones.parent
 			,custom_shape 			= self.load_widget("Cube")
 			,custom_shape_scale 	= 0.5
-			# ,bone_group				= self.bone_groups["IK Mechanism"]
-			,layers					= self.bone_layers["IK Mechanism"]
 		)
 		self.register_parent(self.limb_root_bone, self.limb_ui_name)
 
@@ -108,26 +118,22 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_pole_control(self):
 		# Create IK Pole Control
-		pole_ctrl = self.pole_ctrl = self.bone_infos.bone(
+		pole_ctrl = self.pole_ctrl = self.ik_ctrls.new(
 			name				= self.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
 			,bbone_width		= 0.1
 			,head				= self.pole_location
 			,tail				= self.pole_location + self.flat_vector(self.pole_vector) * 0.2
 			,roll				= 0
-			# ,bone_group			= self.bone_groups["IK Controls"]
-			,layers				= self.bone_layers["IK Controls"]
 			,custom_shape		= self.load_widget('ArrowHead')
 			,custom_shape_scale	= 0.5
 			,use_custom_shape_bone_size = True
 		)
 
-		pole_line = self.bone_infos.bone(
+		pole_line = self.ik_ctrls.new(
 			name		  = self.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
 			,source		  = pole_ctrl
 			,tail		  = self.org_chain[0].tail.copy()
 			,parent		  = pole_ctrl
-			# ,bone_group	  = self.bone_groups["IK Controls"]
-			,layers		  = self.bone_layers["IK Controls"]
 			,hide_select  = True
 			,custom_shape = self.load_widget('Pole_Line')
 			,use_custom_shape_bone_size	= True
@@ -174,11 +180,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		""" Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
 		ik_chain = []
 		for i, org_bone in enumerate(org_chain):
-			ik_bone = self.bone_infos.bone(
+			ik_bone = self.ik_mch.new(
 				name		 = org_bone.name.replace("ORG", "IK")
 				,source		 = org_bone
-				# ,bone_group	 = self.bone_groups["IK Mechanism"]
-				,layers		 = self.bone_layers["IK Mechanism"]
 				,hide_select = self.mch_disable_select
 			)
 			ik_chain.append(ik_bone)
@@ -213,12 +217,10 @@ class CloudIKChainRig(CloudFKChainRig):
 					fk_bone.name = fk_bone.name.replace("FK-", "FK-W-")	# W for World.
 					# Make child control for the world-aligned control, that will have the original transforms and name.
 					# This is currently just the target of a Copy Transforms constraint on the ORG bone.
-					fk_child_bone = self.bone_infos.bone(
+					fk_child_bone = self.fk_mch.new(
 						name		= fk_name
 						,source		= fk_bone
 						,parent		= fk_bone
-						# ,bone_group	= self.bone_groups["FK Helpers"]
-						,layers		= self.bone_layers["FK Helpers"]
 					)
 
 					fk_bone.flatten()
@@ -232,24 +234,20 @@ class CloudIKChainRig(CloudFKChainRig):
 	def setup_ik_stretch(self):
 		ik_org_bone = self.org_chain[self.params.CR_ik_length-1]
 		str_name = self.org_chain[0].name.replace("ORG", "IK-STR")
-		stretch_bone = self.bone_infos.bone(
+		stretch_bone = self.ik_mch.new(
 			name		 = str_name
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
-			# ,bone_group	 = self.bone_groups["IK Mechanism"]
-			,layers		 = self.bone_layers["IK Mechanism"]
 			,hide_select = self.mch_disable_select
 		)
 		stretch_bone.scale_width(0.4)
 
 		# Bone responsible for giving stretch_bone the target position to stretch to.
-		self.stretch_target_bone = self.bone_infos.bone(
+		self.stretch_target_bone = self.ik_mch.new(
 			name		 = ik_org_bone.name.replace("ORG", "IK-STR-TGT")
 			,source		 = ik_org_bone
 			,parent		 = self.ik_mstr
-			# ,bone_group	 = self.bone_groups["IK Mechanism"]
-			,layers		 = self.bone_layers["IK Mechanism"]
 			,hide_select = self.mch_disable_select
 		)
 
@@ -309,12 +307,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		for i, main_str_bone in enumerate(self.main_str_bones):
 			if i == 0: continue
 			if i == len(self.main_str_bones)-1: continue
-			main_str_helper = self.bone_infos.bone(
+			main_str_helper = self.ik_mch.new(
 				name		 = main_str_bone.name.replace("STR-", "STR-S-")
 				,source		 = main_str_bone
 				,bbone_width = 1/10
-				# ,bone_group	 = self.bone_groups["IK Mechanism"]
-				,layers		 = self.bone_layers["IK Mechanism"]
 				,parent		 = main_str_bone.parent
 				,hide_select = self.mch_disable_select
 			)
@@ -371,13 +367,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Create IK Master control
 		ik_org_bone = self.org_chain[self.params.CR_ik_length-1]
 		mstr_name = ik_org_bone.name.replace("ORG", "IK-MSTR")
-		self.ik_mstr = self.bone_infos.bone(
+		self.ik_mstr = self.ik_ctrls.new(
 			name		  = mstr_name
 			,source		  = self.org_chain[self.params.CR_ik_length-1]
 			,custom_shape = self.load_widget("Sphere")
 			,parent		  = None
-			# ,bone_group	  = self.bone_groups["IK Controls"]
-			,layers		  = self.bone_layers["IK Controls"]
 		)
 
 		self.calculate_ik_info()
@@ -407,7 +401,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Put driver on the influence to be able to disable IK.
 
 		for org_bone in self.org_chain:
-			ik_bone = self.bone_infos.find(org_bone.name.replace("ORG", "IK"))
+			ik_bone = self.get_bone_info(org_bone.name.replace("ORG", "IK"))
 			copy_trans = org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
 				,space		  = 'WORLD'
 				,subtarget	  = ik_bone.name
