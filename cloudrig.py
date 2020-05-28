@@ -68,7 +68,7 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 		row_entries = main_dict[row_name]
 		for entry_name in row_entries.keys():
 			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-			assert 'prop_bone' in info and 'prop_id' in info, f"ERROR: Limb definition lacks properties bone or ID: {row_name}, {info}"
+			assert 'prop_bone' in info and 'prop_id' in info, f"ERROR: Limb definition lacks properties bone or prop ID: {row_name}, {info}"
 			prop_bone = rig.pose.bones.get(info['prop_bone'])
 			prop_id = info['prop_id']
 			assert prop_bone and prop_id in prop_bone, f"ERROR: Properties bone or property does not exist: {info}"

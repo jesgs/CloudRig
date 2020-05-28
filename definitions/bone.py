@@ -7,6 +7,76 @@ import copy
 from ..rigs import cloud_utils
 from rigify.utils.mechanism import make_constraint, make_driver
 
+class BoneSet(list):
+	""" Class to manage lists of BoneInfo instances. 
+	Also manages a bone group and layer assignment for these bones. """
+
+	def __init__(self, riglet, ui_name="Bone Set",
+			bone_group="Group", normal=None, select=None, active=None,
+			default_layers = [l==0 for l in range(32)]
+	):
+		# Rigify BaseRig instance where this BoneSet is used, and should be stored.
+		self.riglet = riglet
+
+		# Name that will be displayed in the Bone Sets UI.
+		self.ui_name = ui_name
+		
+		# Bone Group that will be searched for in the metarig, and if found, use that group's colors instead of self's.
+		self.bone_group = bone_group
+
+		self.color_set = 'CUSTOM'
+		self.normal = [0, 0, 0]
+		self.select = [0, 0, 0]
+		self.active = [0, 0, 0]
+
+		presets = type(self).presets
+
+		if len(presets) > preset > -1:
+			self.normal = presets[preset][0]
+			self.select = presets[preset][1]
+			self.active = presets[preset][2]
+		else:
+			if not normal and not select and not active:
+				self.color_set = 'DEFAULT'
+
+		if normal: self.normal = normal
+		if select: self.select = select
+		if active: self.active = active
+	
+		# Layers to assign to newly defined BoneInfos.
+		self.default_layers = default_layers
+	
+	def find(self, name):
+		"""Find a BoneInfo instance by name, return it if found."""
+		for bi in self:
+			if(bi.name == name):
+				return bi
+		return None
+
+	def new(self, name="Bone", source=None, overwrite=True, bone_group=None, **kwargs):
+		"""Define a bone and add it to the list of bones."""
+
+		bi = self.riglet.get_bone_info(name)
+		if bi:
+			print(f"Warning: BoneInfo {name} already exists in BoneSet: {bi.bone_set}.")
+			name += ".001"
+			while(self.riglet.get_bone_info(name)):
+				num = int(name[-1])
+				name = name[:-4] + str(num+1).zfill(3)
+			print(f"Added as {name} to {self.ui_name}")
+
+		if 'bone_group' not in kwargs:
+			kwargs['bone_group'] = self.bone_group
+		if 'layers' not in kwargs:
+			kwargs['layers'] = self.layers
+		for key in self.defaults.keys():
+			if key not in kwargs:
+				kwargs[key] = self.defaults[key]
+
+		bi = BoneInfo(self, name, source, **kwargs)
+		self.bones.append(bi)
+		return bi
+
 class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
 	def __init__(self, cloudrig):
@@ -349,6 +419,7 @@ class BoneInfo(ID):
 
 	def disown(self, new_parent):
 		""" Parent all children of this bone to a new parent. """
+		# TODO: make self.parent a @property so bones are aware of their children!
 		for b in self.container.bones:
 			if b.parent==self or b.parent==self.name:
 				b.parent = new_parent

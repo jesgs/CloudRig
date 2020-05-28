@@ -140,10 +140,10 @@ class CloudSplineIKRig(CloudCurveRig):
 	# Parameters
 
 	@classmethod
-	def add_bone_sets(cls, params):
-		super().add_bone_sets(params)
+	def define_bone_sets(cls, params):
+		super().define_bone_sets(params)
 		""" Create parameters for this rig's bone sets. """
-		cls.add_bone_set(params, "Curve Deform Bones", default_layers=[cls.default_layers('DEF')], override='DEF')
+		cls.define_bone_set(params, "Curve Deform Bones", default_layers=[cls.default_layers('DEF')], override='DEF')
 
 	@classmethod
 	def add_parameters(cls, params):

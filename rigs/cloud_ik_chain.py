@@ -511,13 +511,13 @@ class CloudIKChainRig(CloudFKChainRig):
 	# Parameters
 
 	@classmethod
-	def add_bone_sets(cls, params):
-		super().add_bone_sets(params)
+	def define_bone_sets(cls, params):
+		super().define_bone_sets(params)
 		""" Create parameters for this rig's bone sets. """
-		cls.add_bone_set(params, "IK Controls", preset=2, default_layers=[cls.default_layers('IK_MAIN')])
-		cls.add_bone_set(params, "IK Parent Controls", preset=8, default_layers=[cls.default_layers('IK_MAIN')])
-		cls.add_bone_set(params, "IK Mechanism", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.add_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "IK Controls", preset=2, default_layers=[cls.default_layers('IK_MAIN')])
+		cls.define_bone_set(params, "IK Parent Controls", preset=8, default_layers=[cls.default_layers('IK_MAIN')])
+		cls.define_bone_set(params, "IK Mechanism", default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod
 	def add_parameters(cls, params):

@@ -295,11 +295,11 @@ class CloudCurveRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def add_bone_sets(cls, params):
+	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
-		super().add_bone_sets(params)
-		cls.add_bone_set(params, "Curve Hooks", preset=0)
-		cls.add_bone_set(params, "Curve Handles", preset=8)
+		super().define_bone_sets(params)
+		cls.define_bone_set(params, "Curve Hooks", preset=0)
+		cls.define_bone_set(params, "Curve Handles", preset=8)
 
 	@classmethod
 	def add_parameters(cls, params):

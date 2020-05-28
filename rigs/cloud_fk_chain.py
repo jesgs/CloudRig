@@ -72,10 +72,10 @@ class CloudFKChainRig(CloudChainRig):
 	# Parameters
 
 	@classmethod
-	def add_bone_sets(cls, params):
+	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
-		super().add_bone_sets(params)
-		cls.add_bone_set(params, "FK Controls", preset=1, default_layers=[cls.default_layers('FK_MAIN')])
+		super().define_bone_sets(params)
+		cls.define_bone_set(params, "FK Controls", preset=1, default_layers=[cls.default_layers('FK_MAIN')])
 
 	@classmethod
 	def add_parameters(cls, params):

@@ -25,7 +25,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 	description = "CloudRig Element (no description)"
 
-	bone_sets = OrderedDict()
+	bone_set_defs = OrderedDict()
 	
 	default_layers = lambda name: DefaultLayers[name].value
 
@@ -51,6 +51,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
 		self.parent_candidates = {}
 		self.ensure_bone_groups()
+		
+		self.bone_sets = self.ensure_bone_sets()
 
 		# Determine rig scale by armature height.
 		self.scale = max(self.generator.metarig.dimensions)/10
@@ -123,7 +125,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		self.bone_groups = {}
 		self.bone_layers = {}
 
-		class_sets = type(self).bone_sets
+		class_sets = type(self).bone_set_defs
 		for ui_name in class_sets.keys():
 			set_info = class_sets[ui_name]
 
@@ -145,6 +147,9 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 			if set_info['override'] == 'ORG' and cloudrig.override_org_layers:
 				self.bone_layers[ui_name] = cloudrig.org_layers[:]
+
+	def ensure_bone_sets(self):
+		pass
 
 	def prepare_bones(self):
 		self.load_org_bones()
@@ -228,7 +233,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	# Parameters
 
 	@classmethod
-	def add_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
+	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
 		""" 
 		A bone set is just a set of rig parameters for choosing a bone group and list of bone layers.
 		This function is responsible for creating those rig parameters, as well as storing them, 
@@ -269,7 +274,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 		assert override in ['', 'DEF', 'MCH', 'ORG'], "Error: Unsupported bone set override"
 		
-		cls.bone_sets[ui_name] = {
+		cls.bone_set_defs[ui_name] = {
 			'name' 		   : ui_name
 			,'preset' 	   : preset				# Bone Group color preset to use in case the bone group doesn't already exist.
 			,'param' 	   : param_name			# Name of the bone group name parameter
@@ -279,21 +284,21 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		return ui_name
 
 	@classmethod
-	def add_bone_sets(cls, params):
+	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
-		cls.bone_sets = OrderedDict()
+		cls.bone_set_defs = OrderedDict()
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
 
-		cls.add_bone_set(params, "Original Bones", default_layers=[cls.default_layers('ORG')], override='ORG')
-		cls.add_bone_set(params, "Display Transform Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.add_bone_set(params, "Parent Switch Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Original Bones", default_layers=[cls.default_layers('ORG')], override='ORG')
+		cls.define_bone_set(params, "Display Transform Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Parent Switch Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod
 	def add_parameters(cls, params):
 		""" Add the parameters of this rig type to the
 			RigifyParameters PropertyGroup
 		"""
-		cls.add_bone_sets(params)
+		cls.define_bone_sets(params)
 
 	
 	@classmethod
@@ -314,8 +319,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		layout.prop(params, "CR_show_bone_sets", toggle=True, icon=icon)
 		if not params.CR_show_bone_sets: return
 
-		for ui_name in cls.bone_sets.keys():
-			set_info = cls.bone_sets[ui_name]
+		for ui_name in cls.bone_set_defs.keys():
+			set_info = cls.bone_set_defs[ui_name]
 			cls.bone_set_ui(params, layout, set_info, ui_rows)
 		
 		return ui_rows
