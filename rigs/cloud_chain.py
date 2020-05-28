@@ -16,6 +16,18 @@ class CloudChainRig(CloudBaseRig):
 		super().initialize()
 		"""Gather and validate data about the rig."""
 
+	def ensure_bone_sets(self, bone_set_defs):
+		bone_sets = super().ensure_bone_sets(bone_set_defs)
+		self.str_bones = self.ensure_bone_set(bone_set_defs["Stretch Controls"])
+		self.skp_bones = self.ensure_bone_set(bone_set_defs["Stretch Helpers"])
+		self.skh_bones = self.ensure_bone_set(bone_set_defs["Shape Key Helpers"])
+		self.def_bones = self.ensure_bone_set(bone_set_defs["Deform Bones"])
+		bone_sets.append(self.str_bones)
+		bone_sets.append(self.skp_bones)
+		bone_sets.append(self.skh_bones)
+		bone_sets.append(self.def_bones)
+		return bone_sets
+
 	def get_segments(self, org_i, chain):
 		"""Determine how many deform and bbone segments should be in a section of the chain."""
 		segments = self.params.CR_deform_segments
@@ -35,12 +47,10 @@ class CloudChainRig(CloudBaseRig):
 		The goal is that when we read the local rotation of the SKH bone, we get an accurate representation of how much rotation is happening in this joint - Even when using the toon controls to deform the character in crazy ways.
 		"""
 
-		skp_bone = self.bone_infos.bone(
+		skp_bone = self.skp_bones.new(
 			name		 = def_bone_2.name.replace("DEF", "SKP")
 			,head		 = def_bone_1.tail.copy()
 			,tail		 = def_bone_1.tail + def_bone_1.vec
-			,bone_group  = self.bone_groups["Shape Key Helpers"]
-			,layers		 = self.bone_layers["Shape Key Helpers"]
 			,parent		 = def_bone_1
 			,bbone_width = 0.05
 			,hide_select = self.mch_disable_select
@@ -53,12 +63,10 @@ class CloudChainRig(CloudBaseRig):
 			,head_tail		 = 1
 		)
 
-		skh_bone = self.bone_infos.bone(
+		skh_bone = self.skh_bones.new(
 			name		 = def_bone_2.name.replace("DEF", "SKH")
 			,head		 = def_bone_2.head.copy()
 			,tail		 = def_bone_2.tail.copy()
-			,bone_group  = self.bone_groups["Shape Key Helpers"]
-			,layers		 = self.bone_layers["Shape Key Helpers"]
 			,parent		 = skp_bone
 			,bbone_width = 0.03
 			,hide_select = self.mch_disable_select
@@ -74,11 +82,9 @@ class CloudChainRig(CloudBaseRig):
 	def make_str_bone(self, def_bone, org_bone, name=None):
 		if not name:
 			name = def_bone.name.replace("DEF", "STR")
-		str_bone = self.bone_infos.bone(
+		str_bone = self.str_bones.new(
 			name				= name
 			,source				= def_bone
-			,bone_group 		= self.bone_groups["Stretch Controls"]
-			,layers				= self.bone_layers["Stretch Controls"]
 			,head				= def_bone.head
 			,tail				= def_bone.tail
 			,roll				= def_bone.roll
@@ -87,7 +93,6 @@ class CloudChainRig(CloudBaseRig):
 			,parent				= org_bone
 		)
 		str_bone.scale_length(0.3)
-		self.str_bones.append(str_bone)
 		return str_bone
 
 	def make_str_chain(self, def_sections):
@@ -185,8 +190,6 @@ class CloudChainRig(CloudBaseRig):
 		### Create deform bones.
 		# Each STR section's first and last bones act as a control for the bones inbetween them. These are the main_str_bones.
 		self.main_str_bones = []
-		self.str_bones = []
-		self.def_bones = []
 
 		def_sections = []
 		for org_i, org_bone in enumerate(self.org_chain):
@@ -206,14 +209,12 @@ class CloudChainRig(CloudBaseRig):
 
 				unit = org_bone.vec / segments
 
-				def_bone = self.bone_infos.bone(
+				def_bone = self.def_bones.new(
 					name					 = def_name
 					,source					 = org_bone
 					,head					 = org_bone.head + (unit * i)
 					,tail					 = org_bone.head + (unit * (i+1))
 					,roll					 = org_bone.roll
-					,bone_group				 = self.bone_groups["Deform Bones"]
-					,layers					 = self.bone_layers["Deform Bones"]
 					,bbone_handle_type_start = 'TANGENT'
 					,bbone_handle_type_end	 = 'TANGENT'
 					,bbone_segments			 = bbone_segments
@@ -223,7 +224,6 @@ class CloudChainRig(CloudBaseRig):
 				if bbone_segments > 1:
 					def_bone.inherit_scale = 'NONE'
 				org_bone.def_bones.append(def_bone)
-				self.def_bones.append(def_bone)
 			
 				if self.params.CR_sharp_sections:
 					# First bone of the segment, but not the first bone of the chain.

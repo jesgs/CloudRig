@@ -29,6 +29,14 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	
 	default_layers = lambda name: DefaultLayers[name].value
 
+	@property
+	def all_bones(self):
+		all_bones = []
+		for bone_set in self.bone_sets:
+			for bi in bone_set:
+				all_bones.append(bi)
+		return all_bones
+
 	def find_org_bones(self, bone):
 		"""Populate self.bones.org."""
 		from rigify.utils.bones import BoneDict
@@ -170,6 +178,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		return new_set
 
 	def ensure_bone_sets(self, bone_set_defs):
+		# TODO: Instead of passing bone_set_defs to this function, ensure_bone_set() should grab it for itself. Then we can just pass the string and we're good.
 		self.org_chain = self.ensure_bone_set(bone_set_defs["Original Bones"])
 		return [self.org_chain]
 
@@ -201,8 +210,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			for bi in bone_set:
 				if ( 
 					bi.name in self.obj.data.edit_bones or
-					bd.name in self.bones.flatten() or
-					bd.name == 'root'
+					bi.name in self.bones.flatten() or
+					bi.name == 'root'
 				):
 					print(f"Warning: Bone {bi.name} already exists, skipping!")
 					continue

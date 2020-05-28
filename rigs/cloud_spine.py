@@ -342,7 +342,7 @@ class CloudSpineRig(CloudChainRig):
 		if len(self.org_necks) > 0:
 			new_parent = self.org_necks[0]
 		if new_parent:
-			for b in self.bone_infos.bones:
+			for b in self.all_bones:
 				if b.parent==self.org_spines[-1] and b.name.startswith("ORG-"):
 					b.parent = new_parent
 
@@ -355,7 +355,7 @@ class CloudSpineRig(CloudChainRig):
 		""" Create parameters for this rig's bone sets. """
 		cls.define_bone_set(params, "Spine FK Controls",	  preset=1,  default_layers=[cls.default_layers('IK_MAIN')]		)
 		cls.define_bone_set(params, "Spine Main Controls",	  preset=2,  default_layers=[cls.default_layers('IK_MAIN')]		)
-		cls.define_bone_set(params, "Spine Parent Controls", preset=8,  default_layers=[cls.default_layers('IK_MAIN')]		)
+		cls.define_bone_set(params, "Spine Parent Controls",  preset=8,  default_layers=[cls.default_layers('IK_MAIN')]		)
 		cls.define_bone_set(params, "Spine IK Secondary",	  preset=10, default_layers=[cls.default_layers('IK_SECOND')]	)
 		cls.define_bone_set(params, "Spine Mechanism",					 default_layers=[cls.default_layers('MCH')], 	  override='MCH')
 
