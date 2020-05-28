@@ -32,7 +32,15 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	@property
 	def all_bones(self):
 		all_bones = []
-		for bone_set in self.bone_sets:
+		# TODO fix this.
+		sets = self.bone_sets[:]
+		sets.append(self.generator.root_set)
+		try:
+			sets.append(self.generator.root_parent_set)
+		except:
+			pass
+
+		for bone_set in sets:
 			for bi in bone_set:
 				all_bones.append(bi)
 		return all_bones
@@ -60,7 +68,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		self.parent_candidates = {}
 
 		# Determine rig scale by armature height.
-		self.scale = max(self.generator.metarig.dimensions)/10
+		self.scale = self.generator.scale
 
 		self.ensure_bone_groups()
 		self.bone_sets = self.ensure_bone_sets(type(self).bone_set_defs)
@@ -87,12 +95,11 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		self.bones.parent = parent.name if parent else ""
 
 		# Root bone
+		# TODO: Move this to generator. Generator should be able to create bones without relying on a BaseRig type. Fix everything that prevents it from doing so.
 		self.root_bone = None
 		if self.generator_params.cloudrig_parameters.create_root:
-			self.root_bone = self.bone_infos.bone(
+			self.root_bone = self.generator.root_set.new(
 				name				= "root"
-				,bone_group			= self.generator.root_group
-				,layers				= self.generator_params.cloudrig_parameters.root_layers[:]
 				,head				= Vector((0, 0, 0))
 				,tail				= Vector((0, self.scale*5, 0))
 				,bbone_width		= 1/3
@@ -114,14 +121,11 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def prop_bone(self):
 		""" Ensure that a Properties bone exists, and return it. """
 		# This is a @property so that if it's never called(like in the case of very simple rigs), the properties bone is not created.
-		prop_bone = self.bone_infos.bone(
+		prop_bone = self.generator.root_set.new(
 			name		  = "Properties_IKFK"
-			,overwrite	  = False
 			,head		  = Vector((0, self.scale*2, 0))
 			,tail		  = Vector((0, self.scale*4, 0))
 			,bbone_width  = 1/8
-			,bone_group	  = self.generator.root_group
-			,layers		  = self.generator_params.cloudrig_parameters.root_layers[:]
 			,custom_shape = self.load_widget("Cogwheel")
 			,use_custom_shape_bone_size = True
 		)
@@ -167,9 +171,9 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 		if bone_set_def['override'] == 'ORG' and cloudrig.override_org_layers:
 			bone_set_def['layers'] = cloudrig.org_layers[:]
-		
+
 		new_set = BoneSet(
-			self,
+			self.generator,
 			ui_name = bone_set_def['name'],
 			bone_group = getattr(self.params, bone_set_def['param']),
 			layers = getattr(self.params, bone_set_def['layer_param']),
@@ -205,6 +209,11 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			org_bi.meta_bone = meta_org
 
 	def generate_bones(self):
+		self.bone_sets.append(self.generator.root_set)
+		try:
+			self.bone_sets.append(self.generator.root_parent_set)
+		except:
+			pass
 		# TODO: Move this to generator code, before stage is called.
 		for bone_set in self.bone_sets:
 			for bi in bone_set:
@@ -223,7 +232,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 				bd.name not in self.bones.flatten() and
 				bd.name != 'root'
 			):
-				self.new_bone(bd.name)
+				self.copy_bone('root', bd.name)
 
 	def parent_bones(self):
 		# TODO: Move this to generator code, before stage is called.
@@ -240,7 +249,16 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def create_real_bone_groups(self):
 		# TODO: Move this whole function into the generator, before configure_bones stage.
 		# Also rename to ensure_bone_groups()
-		
+		for bone_set in self.bone_sets:
+			meta_bg = bone_set.ensure_bone_group(self.generator.metarig, overwrite=False)
+			if meta_bg:
+				bone_set.normal = meta_bg.colors.normal[:]
+				bone_set.select = meta_bg.colors.select[:]
+				bone_set.active = meta_bg.colors.active[:]
+
+			bone_set.ensure_bone_group(self.obj, overwrite=True)
+		return
+
 		bgs = self.generator.bone_groups
 		# If the metarig has a group with the same name as what we're about to create, modify bone group's colors accordingly.
 		for meta_bg in self.generator.metarig.pose.bone_groups:
@@ -248,7 +266,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 				bgs[meta_bg.name].normal = meta_bg.colors.normal[:]
 				bgs[meta_bg.name].select = meta_bg.colors.select[:]
 				bgs[meta_bg.name].active = meta_bg.colors.active[:]
-	
+
 		# Create bone groups on the metarig
 		self.generator.bone_groups.make_real(self.generator.metarig)
 

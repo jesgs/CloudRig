@@ -3,6 +3,7 @@ from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty
 from rigify.generate import *
 from .definitions.bone_group import BoneGroupContainer
+from .definitions.bone import BoneSet
 from .rigs import cloud_utils
 
 separators = [
@@ -134,14 +135,31 @@ class CloudGenerator(Generator):
 		# Initialize BoneGroupContainer.
 		self.bone_groups = BoneGroupContainer()
 
+		self.scale = max(metarig.dimensions)/10
+
 		# Root bone groups
 		self.root_group = self.bone_groups.ensure(
 			name = self.params.cloudrig_parameters.root_bone_group,
 			preset = 2
 		)
+		self.root_set = BoneSet(
+			self,
+			ui_name = 'Root',
+			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
+			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
+			preset = 2
+		)
+
 		if self.params.cloudrig_parameters.double_root:
 			self.root_parent_group = self.bone_groups.ensure(
 				name = self.params.cloudrig_parameters.root_parent_group,
+				preset = 8
+			)
+			self.root_parent_set = BoneSet(
+				self,
+				ui_name = 'Root',
+				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
+				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
 				preset = 8
 			)
 

@@ -29,16 +29,14 @@ class BoneSet(list):
 		[(0.0313725508749485, 0.19215688109397888, 0.05490196496248245), (0.1098039299249649, 0.26274511218070984, 0.04313725605607033), (0.2039215862751007, 0.38431376218795776, 0.16862745583057404)],
 	]
 
-	def __init__(self, riglet, ui_name="Bone Set",
+	def __init__(self, generator, ui_name="Bone Set",
 			bone_group="Group", normal=None, select=None, active=None, preset=-1,
 			layers = [l==0 for l in range(32)],
 			defaults = {}
 	):
 		# Rigify BaseRig instance where this BoneSet is used, and should be stored.
-		self.riglet = riglet
-		self.cloudrig = riglet	# TODO: clean this up after BoneSet implementation is complete.
-		self.armature = riglet.obj
-		self.scale = riglet.scale
+		self.generator = generator
+		self.scale = generator.scale
 
 		# kwargs that should always be passed to bones created in this bone set.
 		self.defaults = defaults
@@ -46,8 +44,11 @@ class BoneSet(list):
 		# Name that will be displayed in the Bone Sets UI.
 		self.ui_name = ui_name
 		
-		# Bone Group that will be searched for in the metarig, and if found, use that group's colors instead of self's.
+		# Bone Group name to assign to newly defined BoneInfos.
 		self.bone_group = bone_group
+
+		# Layers to assign to newly defined BoneInfos.
+		self.layers = layers
 
 		self.color_set = 'CUSTOM'
 		self.normal = [0, 0, 0]
@@ -67,10 +68,7 @@ class BoneSet(list):
 		if normal: self.normal = normal
 		if select: self.select = select
 		if active: self.active = active
-	
-		# Layers to assign to newly defined BoneInfos.
-		self.layers = layers
-	
+
 	def find(self, name):
 		"""Find a BoneInfo instance by name, return it if found."""
 		for bi in self:
@@ -81,14 +79,15 @@ class BoneSet(list):
 	def new(self, name="Bone", source=None, **kwargs):
 		"""Define a bone and add it to the list of bones."""
 
-		bi = self.riglet.get_bone_info(name)
-		if bi:
-			print(f"Warning: BoneInfo {name} already exists in BoneSet: {bi.bone_set}.")
-			name += ".001"
-			while(self.riglet.get_bone_info(name)):
-				num = int(name[-1])
-				name = name[:-4] + str(num+1).zfill(3)
-			print(f"Added as {name} to {self.ui_name}")
+		# TODO: cloud_utils.new_bone(bone_set, bone_name, kwargs) should do this checking?
+		# bi = self.riglet.get_bone_info(name)
+		# if bi:
+		# 	print(f"Warning: BoneInfo {name} already exists in BoneSet: {bi.bone_set}.")
+		# 	name += ".001"
+		# 	while(self.riglet.get_bone_info(name)):
+		# 		num = int(name[-1])
+		# 		name = name[:-4] + str(num+1).zfill(3)
+		# 	print(f"Added as {name} to {self.ui_name}")
 
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group
@@ -100,12 +99,31 @@ class BoneSet(list):
 
 		bi = BoneInfo(self, name, source, **kwargs)
 		self.append(bi)
+
 		return bi
+
+	def ensure_bone_group(self, rig, overwrite=False):
+		""" Create the bone group defined by this bone set on rig. """
+
+		bone_group = rig.pose.bone_groups.get(self.bone_group)
+		if bone_group and not overwrite:
+			return bone_group
+		
+		if not bone_group:
+			bone_group = rig.pose.bone_groups.new(name=self.bone_group)
+
+		bone_group.color_set = self.color_set
+		bone_group.colors.normal = self.normal[:]
+		bone_group.colors.select = self.select[:]
+		bone_group.colors.active = self.active[:]
+
+		return bone_group
 
 class BoneInfoContainer(ID):
 	# TODO: implement __iter__ and such.
 	def __init__(self, cloudrig):
 		self.bones = []
+		self.generator = cloudrig.generator
 		self.cloudrig = cloudrig
 		self.armature = cloudrig.obj
 		self.defaults = cloudrig.defaults	# For overriding arbitrary properties' default values when creating bones in this container.
@@ -118,7 +136,7 @@ class BoneInfoContainer(ID):
 				return bd
 		return None
 
-	def bone(self, name="Bone", source=None, overwrite=True, bone_group=None, **kwargs):
+	def bone(self, name="Bone", source=None, overwrite=True, **kwargs):
 		"""Define a bone and add it to the list of bones. If it already exists, return or re-define it depending on overwrite param."""
 
 		bi = self.find(name)
@@ -127,7 +145,7 @@ class BoneInfoContainer(ID):
 		elif bi:
 			self.bones.remove(bi)
 
-		bi = BoneInfo(self, name, source, bone_group, **kwargs)
+		bi = BoneInfo(self, name, source, **kwargs)
 		self.bones.append(bi)
 		return bi
 	
@@ -238,7 +256,7 @@ class BoneInfo(ID):
 	Eg, it does not store pose bone transformations such as loc/rot/scale. 
 	"""
 
-	def __init__(self, container, name="Bone", source=None, bone_group=None, **kwargs): #TODO: remove bone_group param.
+	def __init__(self, container, name="Bone", source=None, **kwargs): #TODO: remove bone_group param.
 		""" 
 		container: Need a reference to what BoneInfoContainer this BoneInfo belongs to.
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
@@ -301,7 +319,7 @@ class BoneInfo(ID):
 		self.use_relative_parent = False
 
 		### Pose Mode Only
-		self.bone_group = None		# Blender expects bpy.types.BoneGroup, we store str.
+		self.bone_group = ""		# Blender expects bpy.types.BoneGroup, we store str.
 		self.custom_shape = None	# Blender expects bpy.types.Object, we store bpy.types.Object.
 		self.custom_shape_transform = None	# Blender expects bpy.types.PoseBone, we store definitions.bone.BoneInfo.
 		self.custom_shape_scale = 1.0
@@ -439,6 +457,7 @@ class BoneInfo(ID):
 				return ci
 
 	def add_constraint(self, armature, contype, index=None, **kwargs):
+		# TODO: remove useless armature parameter.
 		"""Store constraint information about a constraint in this BoneInfo.
 		contype: Type of constraint, eg. 'STRETCH_TO'.
 		kwargs: Dictionary of properties and values.
@@ -500,7 +519,7 @@ class BoneInfo(ID):
 		armature = pose_bone.id_data
 
 		assert armature.mode != 'EDIT', "Armature cannot be in Edit Mode when writing pose data"
-		
+
 		# Pose bone data
 		pb = pose_bone
 		pb.custom_shape = self.custom_shape
@@ -544,12 +563,22 @@ class BoneInfo(ID):
 		b.head_radius = self.head_radius
 		b.tail_radius = self.tail_radius
 		
+		# Bone Group
+		if type(self.bone_group)==str and self.bone_group!="":
+			pb.bone_group = armature.pose.bone_groups.get(self.bone_group)
+
+			print("Writing pose data for bone")
+			print(pb.name)
+			print(self.bone_group)
+			print("")
+
 		# Constraints.
 		for ci in self.constraint_infos:
 			con = ci.make_real(pb)
 			for driver_info in ci.drivers:
 				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"].{driver_info["prop"]}'
-				self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
+				print(driver_info)
+				make_driver(armature, target_id=armature, **driver_info)
 		
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
@@ -561,11 +590,11 @@ class BoneInfo(ID):
 			
 			try:
 				driver_info['prop'] = f'pose.bones["{pb.name}"].{data_path}'
-				self.container.cloudrig.make_driver(self.container.cloudrig.obj, **driver_info)
+				make_driver(armature, target_id=armature, **driver_info)
 			except TypeError:
 				# If we couldn't add the driver to the pose bone, try the data bone.
 				driver_info['prop'] = f'bones["{pb.name}"].{data_path}'
-				self.container.cloudrig.make_driver(self.container.cloudrig.obj.data, **driver_info)
+				make_driver(armature.data, target_id=armature, **driver_info)
 	
 	def get_real(self, armature):
 		"""If a bone with the name in this BoneInfo exists in the passed armature, return it."""
@@ -593,7 +622,7 @@ class ConstraintInfo:
 	def set_preferred_defaults(self):
 		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
 
-		self.target = self.bone_info.container.armature
+		self.target = self.bone_info.container.generator.obj
 
 		# Constraints that support local space should default to local space.
 		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',

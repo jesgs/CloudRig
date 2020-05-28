@@ -10,10 +10,9 @@ class CloudUtilities:
 	# If a class inherits this class, it's also expected to inherit CloudBaseRig - These are only split up for organizational purposes.
 
 	def get_bone_info(self, name):
-		for bone_set in self.bone_sets:
-			for bi in bone_set:
-				if bi.name==name:
-					return bi
+		for bi in self.all_bones:
+			if bi.name==name:
+				return bi
 
 	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
 		""" Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI. 
@@ -34,7 +33,7 @@ class CloudUtilities:
 		self.obj.data[ui_area][row_name][col_name] = info
 		
 		# Create custom property.
-		prop_bone = self.bone_infos.find(info['prop_bone'])
+		prop_bone = self.get_bone_info(info['prop_bone'])
 		prop_id = info['prop_id']
 		prop_bone.custom_props[prop_id] = {
 			"default" : default, 
@@ -74,7 +73,7 @@ class CloudUtilities:
 		hng_bone = self.bone_infos.bone(
 			name			= hng_name
 			,source			= bone
-			,bone_group 	= bone.bone_group
+			# ,bone_group 	= bone.bone_group
 			,layers			= bone.layers
 			,hide_select	= self.mch_disable_select
 		)
@@ -205,7 +204,7 @@ class CloudUtilities:
 			,source				= child
 			,custom_shape		= child.custom_shape
 			,custom_shape_scale = child.custom_shape_scale * 1.1
-			,bone_group			= child.bone_group
+			# ,bone_group			= child.bone_group
 			,layers				= child.layers
 			,parent 			= child.parent
 			,hide_select		= self.mch_disable_select
@@ -224,7 +223,7 @@ class CloudUtilities:
 			,only_transform = True
 			,custom_shape	= None
 			,parent			= parent
-			,bone_group		= self.bone_groups["Display Transform Helpers"]
+			# ,bone_group		= self.bone_groups["Display Transform Helpers"]
 			,layers			= self.bone_layers["Display Transform Helpers"]
 			,hide_select	= self.mch_disable_select
 		)
