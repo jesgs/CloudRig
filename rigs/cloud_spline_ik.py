@@ -117,14 +117,14 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.create_root()
+		self.define_curve_root_ctrl()
 		self.create_curve()
-		self.create_curve_point_hooks()
+		self.define_ctrls_for_curve_points()
 		self.create_def_chain()
 	
-	def curve_prepare_bones(self):
+	def define_curve_controls(self):
 		# TODO: This is a bit wonky. This rig's create_curve() relies on CloudBaseRig.prepare_bones() having already run.
-		# But if we simply call super().prepare_bones(), it will run create_curve_point_hooks(), which, for this class, relies on create_curve() running beforehand.
+		# But if we simply call super().prepare_bones(), it will run define_ctrls_for_curve_points(), which, for this class, relies on create_curve() running beforehand.
 		pass
 
 	def configure_bones(self):
@@ -153,9 +153,6 @@ class CloudSplineIKRig(CloudCurveRig):
 		"""
 		super().add_parameters(params)
 		
-		# TODO: Implement cyclic parameter. Just need to pass it to the curve creation and the create_hooks() call, and it should work.
-		# TODO: Alternatively or on top of that, implement "Create Curve Object" parameter. When disabled, we try using an existing curve. This would be useful when we want to arbitrarily modify the curve after generation. But moving the curve points around in edit mode would not be supported!
-
 		params.CR_show_spline_ik_settings = BoolProperty(name="Spline IK Rig")
 		params.CR_match_hooks_to_bones = BoolProperty(
 			 name		 = "Match Controls to Bones"
@@ -181,6 +178,18 @@ class CloudSplineIKRig(CloudCurveRig):
 			,min=1
 			,max=99
 		)
+
+	@classmethod
+	def curve_selector_ui(cls, layout, params):
+		icon = 'TRIA_DOWN' if params.CR_show_curve_rig_settings else 'TRIA_RIGHT'
+		row = layout.row()
+		row.prop(params, "CR_show_curve_rig_settings", toggle=True, icon=icon)
+		if not params.CR_show_curve_rig_settings: return
+
+		target_curve_row = layout.row()
+		icon = 'OUTLINER_OB_CURVE'
+		target_curve_row.prop_search(params, "CR_target_curve_name", bpy.data, 'objects', icon=icon)
+		target_curve_row.enabled = False
 
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
