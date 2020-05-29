@@ -107,21 +107,7 @@ class CloudSpineRig(CloudChainRig):
 				fk_bone.put(org_bone.center)
 				if i < len(self.org_spines)-1:
 					fk_bone.tail = self.org_chain[i+1].center
-				#fk_bone.flatten()
 
-				# Create a child corrective - Everything that would normally be parented to this FK bone should actually be parented to this child bone.
-				# fk_child_bone = self.bone_infos.bone(
-				# 	name = fk_bone.name.replace("FK", "FK-C"),
-				# 	source = fk_bone,
-				# 	custom_shape = fk_bone.custom_shape,
-				# 	custom_shape_scale = fk_bone.custom_shape_scale * 0.9,
-				# 	bone_group = 'Body: FK Helper Bones',
-				# 	parent = fk_bone
-				# )
-				# # TODO: Add FK-C constraints (4 Transformation Constraints). # - Commented this part out until this is implemented.
-				# next_parent = fk_child_bone
-				# fk_bone.fk_child = fk_child_bone
-		
 		# Register final spine FK as an available parent.
 		self.register_parent(self.fk_chain[self.params.CR_spine_length-1], "Chest")
 
@@ -137,8 +123,8 @@ class CloudSpineRig(CloudChainRig):
 				limb_name = "Head",
 				head_tail = 1
 			)
-			hng_bone.bone_group = self.bone_groups['Spine Mechanism']
-			hng_bone.layers = self.bone_layers['Spine Mechanism']
+			hng_bone.bone_group = 'Spine Mechanism'	# TODO: pass BoneSet to hinge_setup().
+			hng_bone.layers = self.spine_mch.layers[:]
 
 	@stage.prepare_bones
 	def prepare_ik_spine(self):

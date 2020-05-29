@@ -137,6 +137,10 @@ class CloudGenerator(Generator):
 		self.suffix_separator = self.params.cloudrig_parameters.suffix_separator
 		assert self.prefix_separator != self.suffix_separator, "CloudGenerator Error: Prefix and Suffix separators cannot be the same."
 
+		self.defaults = {
+			'rotation_mode' : 'XYZ'
+		}
+
 	def create_rig_object(self):
 		scene = self.scene
 
@@ -182,7 +186,7 @@ class CloudGenerator(Generator):
 			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
 			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
 			preset = 2,
-			defaults = {'rotation_mode' : 'XYZ'}
+			defaults = self.defaults
 		)
 
 		self.root_bone = None
@@ -195,8 +199,6 @@ class CloudGenerator(Generator):
 				,custom_shape		= self.load_widget("Root")
 				,custom_shape_scale = 1.5
 			)
-			self.root_bone.custom_shape_scape = 1
-
 
 		if self.params.cloudrig_parameters.double_root:
 			self.root_parent_set = BoneSet(
@@ -205,9 +207,10 @@ class CloudGenerator(Generator):
 				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
 				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
 				preset = 8,
-				defaults = {'rotation_mode' : 'XYZ'}
+				defaults = self.defaults
 			)
 			self.root_parent = cloud_utils.create_parent_bone(self.root_bone, self.root_parent_set)
+			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
 
 	def load_ui_script(self):
 		"""Load cloudrig.py (CloudRig UI script) into a text datablock, enable register checkbox and execute it."""

@@ -31,18 +31,18 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 	@property
 	def all_bones(self):
+		""" Get a list of all bones in this rig, including bones in the generator. """
 		all_bones = []
-		# TODO fix this.
+
 		sets = self.bone_sets[:]
 		sets.append(self.generator.root_set)
-		try:
+		if self.generator_params.cloudrig_parameters.double_root:
 			sets.append(self.generator.root_parent_set)
-		except:
-			pass
 
 		for bone_set in sets:
 			for bi in bone_set:
 				all_bones.append(bi)
+
 		return all_bones
 
 	def find_org_bones(self, bone):
@@ -67,16 +67,14 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
 		self.parent_candidates = {}
 
-		# Determine rig scale by armature height.
 		self.scale = self.generator.scale
 
+		# Prepare Bone Sets
 		self.bone_sets = []
-		self.defaults = {
-			# "bbone_width" : 0.1,
-			"rotation_mode" : "XYZ",
-		}
+		self.defaults = dict(self.generator.defaults)
 		self.ensure_bone_sets()
 
+		# Determine Suffix/Prefix
 		self.side_suffix = ""
 		self.side_prefix = ""
 		base_bone_name = self.slice_name(self.base_bone)
@@ -90,12 +88,13 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		parent = self.get_bone(self.base_bone).parent
 		self.bones.parent = parent.name if parent else ""
 
-		# Root bone
+		# Get a reference to the Root bone from the generator, and register it as a parent candidate.
 		self.root_bone = None
 		if self.generator_params.cloudrig_parameters.create_root:
 			self.root_bone = self.generator.root_bone
 			self.register_parent(self.root_bone, "Root")
 
+		# Clear rig object custom properties.
 		for k in self.obj.data.keys():
 			if k in ['_RNA_UI', 'rig_id']: continue
 			del self.obj.data[k]
@@ -104,14 +103,17 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def prop_bone(self):
 		""" Ensure that a Properties bone exists, and return it. """
 		# This is a @property so that if it's never called(like in the case of very simple rigs), the properties bone is not created.
-		prop_bone = self.generator.root_set.new(
-			name		  = "Properties_IKFK"
-			,head		  = Vector((0, self.scale*2, 0))
-			,tail		  = Vector((0, self.scale*4, 0))
-			,bbone_width  = 1/8
-			,custom_shape = self.load_widget("Cogwheel")
-			,use_custom_shape_bone_size = True
-		)
+		bone_name = "Properties_IKFK"
+		prop_bone = self.get_bone_info(bone_name)
+		if not prop_bone:
+			prop_bone = self.generator.root_set.new(
+				name		  = "Properties_IKFK"
+				,head		  = Vector((0, self.scale*2, 0))
+				,tail		  = Vector((0, self.scale*4, 0))
+				,bbone_width  = 1/8
+				,custom_shape = self.load_widget("Cogwheel")
+				,use_custom_shape_bone_size = True
+			)
 		return prop_bone
 
 	def ensure_bone_set(self, bone_set_name):
@@ -188,7 +190,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 					bi.name in self.bones.flatten() or
 					bi.name == 'root'
 				):
-					print(f"Warning: Bone {bi.name} already exists, skipping!")
+					# print(f"Warning: Bone {bi.name} already exists, skipping!")
 					continue
 				self.copy_bone('root', bi.name)
 
