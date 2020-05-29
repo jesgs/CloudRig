@@ -347,7 +347,7 @@ class BoneInfo():
 		self.constraint_infos = []
 
 	def write_edit_data(self, armature, edit_bone):
-		"""Write relevant data into an EditBone."""
+		"""Write relevant data of this BoneInfo into an EditBone."""
 		assert armature.mode == 'EDIT', "Error: Armature must be in Edit Mode when writing edit bone data."
 
 		# Check for 0-length bones.
@@ -382,11 +382,11 @@ class BoneInfo():
 		eb.bbone_scaleouty = self.bbone_scaleouty
 
 		# Custom Properties.
-		for key, prop in self.custom_props_edit.items():
-			prop.make_real(edit_bone)
+		for prop_name, prop in self.custom_props_edit.items():
+			cloud_utils.make_custom_property(eb, prop_name, **prop)
 
 	def write_pose_data(self, pose_bone):
-		"""Write relevant data into a PoseBone."""
+		"""Write relevant data of this BoneInfo into a PoseBone."""
 		armature = pose_bone.id_data
 
 		assert armature.mode != 'EDIT', "Armature cannot be in Edit Mode when writing pose data"
@@ -419,7 +419,7 @@ class BoneInfo():
 		b.bbone_custom_handle_end = armature.data.bones.get(self.bbone_custom_handle_end or "")
 		b.show_wire = self.show_wire
 		b.use_endroll_as_inroll = self.use_endroll_as_inroll
-		
+
 		b.hide_select = self.hide_select
 		b.hide = self.hide
 
@@ -433,7 +433,7 @@ class BoneInfo():
 		b.use_envelope_multiply = self.use_envelope_multiply
 		b.head_radius = self.head_radius
 		b.tail_radius = self.tail_radius
-		
+
 		# Bone Group
 		if type(self.bone_group)==str and self.bone_group!="":
 			pb.bone_group = armature.pose.bone_groups.get(self.bone_group)
@@ -444,7 +444,7 @@ class BoneInfo():
 			for driver_info in ci.drivers:
 				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"].{driver_info["prop"]}'
 				make_driver(armature, target_id=armature, **driver_info)
-		
+
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
 			cloud_utils.make_custom_property(pb, prop_name, **prop)
@@ -462,7 +462,7 @@ class BoneInfo():
 				make_driver(armature.data, target_id=armature, **driver_info)
 	
 	def get_real(self, armature):
-		"""If a bone with the name in this BoneInfo exists in the passed armature, return it."""
+		"""If a bone with the name of this BoneInfo exists in the passed armature, return it."""
 		if armature.mode == 'EDIT':
 			return armature.data.edit_bones.get(self.name)
 		else:
@@ -471,7 +471,7 @@ class BoneInfo():
 class ConstraintInfo:
 	"""Helper class to store and manage constraint info before it's passed to Rigify's make_constraint."""
 
-	def __init__(self, bone_info, con_type, target=None, preferred_defaults=True, **kwargs):
+	def __init__(self, bone_info, con_type, target=None, use_preferred_defaults=True, **kwargs):
 		self.type = con_type
 		self.bone_info = bone_info	# BoneInfo to which this constraint is being added.
 		self.target = target
@@ -481,7 +481,7 @@ class ConstraintInfo:
 		for key, value in kwargs.items():
 			self.__dict__[key] = value
 
-		if preferred_defaults:
+		if use_preferred_defaults:
 			self.set_preferred_defaults()
 
 	def set_preferred_defaults(self):
@@ -519,6 +519,7 @@ class ConstraintInfo:
 			self.pole_target = self.target
 	
 	def make_real(self, pose_bone):
+		""" Create a constraint based on this ConstraintInfo on a given pose bone. """
 		con_type = self.type
 		con_info = self.__dict__.copy()
 		for key in ['type', 'bone_info', 'drivers']:
