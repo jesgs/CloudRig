@@ -141,6 +141,7 @@ class Rig(CloudIKChainRig):
 		# Parent control
 		if self.params.CR_double_ik_control:
 			double_control = self.create_parent_bone(self.ik_mstr, self.ik_parent_ctrls)
+			double_control.bone_group = "IK Parent Controls"
 			foot_dsp(double_control)
 
 		# IK Foot setup, including Foot Roll
@@ -331,7 +332,7 @@ class Rig(CloudIKChainRig):
 		)
 
 		ik_driver = {
-			'prop' : 'targets[0].weight',
+			'prop' : 'targets[1].weight',
 			'variables' : [
 				(self.prop_bone.name, self.ikfk_name)
 			]
@@ -340,7 +341,7 @@ class Rig(CloudIKChainRig):
 
 		fk_driver = deepcopy(ik_driver)
 		fk_driver['expression'] = "1-var"
-		fk_driver['prop'] = 'targets[1].weight'
+		fk_driver['prop'] = 'targets[0].weight'
 		toe_con.drivers.append(fk_driver)
 
 	def prepare_parent_switch(self):
