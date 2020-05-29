@@ -181,7 +181,8 @@ class CloudGenerator(Generator):
 			ui_name = 'Root',
 			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
 			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
-			preset = 2
+			preset = 2,
+			defaults = {'rotation_mode' : 'XYZ'}
 		)
 
 		self.root_bone = None
@@ -194,6 +195,7 @@ class CloudGenerator(Generator):
 				,custom_shape		= self.load_widget("Root")
 				,custom_shape_scale = 1.5
 			)
+			self.root_bone.custom_shape_scape = 1
 
 
 		if self.params.cloudrig_parameters.double_root:
@@ -202,7 +204,8 @@ class CloudGenerator(Generator):
 				ui_name = 'Root',
 				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
 				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
-				preset = 8
+				preset = 8,
+				defaults = {'rotation_mode' : 'XYZ'}
 			)
 			self.root_parent = cloud_utils.create_parent_bone(self.root_bone, self.root_parent_set)
 

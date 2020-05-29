@@ -45,17 +45,12 @@ class CloudIKChainRig(CloudFKChainRig):
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
 		self.ik_parents = ['Root', 'Torso', 'Hips', 'Chest', self.limb_ui_name]
 
-	def ensure_bone_sets(self, bone_set_defs):
-		bone_sets = super().ensure_bone_sets(bone_set_defs)
-		self.ik_ctrls = self.ensure_bone_set(bone_set_defs["IK Controls"])
-		self.ik_parent_ctrls = self.ensure_bone_set(bone_set_defs["IK Parent Controls"])
-		self.ik_mch = self.ensure_bone_set(bone_set_defs["IK Mechanism"])
-		self.fk_mch = self.ensure_bone_set(bone_set_defs["FK Helpers"])
-		bone_sets.append(self.ik_ctrls)
-		bone_sets.append(self.ik_parent_ctrls)
-		bone_sets.append(self.ik_mch)
-		bone_sets.append(self.fk_mch)
-		return bone_sets
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.ik_ctrls = self.ensure_bone_set("IK Controls")
+		self.ik_parent_ctrls = self.ensure_bone_set("IK Parent Controls")
+		self.ik_mch = self.ensure_bone_set("IK Mechanism")
+		self.fk_mch = self.ensure_bone_set("FK Helpers")
 
 	def prepare_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.

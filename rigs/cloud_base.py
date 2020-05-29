@@ -70,7 +70,12 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		# Determine rig scale by armature height.
 		self.scale = self.generator.scale
 
-		self.bone_sets = self.ensure_bone_sets(type(self).bone_set_defs)
+		self.bone_sets = []
+		self.defaults = {
+			# "bbone_width" : 0.1,
+			"rotation_mode" : "XYZ",
+		}
+		self.ensure_bone_sets()
 
 		self.side_suffix = ""
 		self.side_prefix = ""
@@ -82,17 +87,10 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			self.side_suffix = "R"
 			self.side_prefix = "Right"
 
-		self.defaults = {
-			"bbone_width" : 0.1,
-			"rotation_mode" : "XYZ",
-			#"use_custom_shape_bone_size" : False#True
-		}
-
 		parent = self.get_bone(self.base_bone).parent
 		self.bones.parent = parent.name if parent else ""
 
 		# Root bone
-		# TODO: Move this to generator. Generator should be able to create bones without relying on a BaseRig type. Fix everything that prevents it from doing so.
 		self.root_bone = None
 		if self.generator_params.cloudrig_parameters.create_root:
 			self.root_bone = self.generator.root_bone
@@ -116,7 +114,15 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		)
 		return prop_bone
 
-	def ensure_bone_set(self, bone_set_def):
+	def ensure_bone_set(self, bone_set_name):
+		bone_set_defs = type(self).bone_set_defs
+
+		if bone_set_name not in bone_set_defs:
+			print(f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set.")
+			return
+		
+		bone_set_def = bone_set_defs[bone_set_name]
+		
 		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
 		cloudrig = self.generator_params.cloudrig_parameters
 		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
@@ -133,16 +139,18 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			ui_name = bone_set_def['name'],
 			bone_group = getattr(self.params, bone_set_def['param']),
 			layers = getattr(self.params, bone_set_def['layer_param']),
-			preset = bone_set_def['preset']
+			preset = bone_set_def['preset'],
+			defaults = self.defaults
 		)
+
+		self.bone_sets.append(new_set)
+
 		return new_set
 
-	def ensure_bone_sets(self, bone_set_defs):
-		# TODO: Instead of passing bone_set_defs to this function, ensure_bone_set() should grab it for itself. Then we can just pass the string and we're good.
-		self.org_chain = self.ensure_bone_set(bone_set_defs["Original Bones"])
-		self.dsp_bones = self.ensure_bone_set(bone_set_defs["Display Transform Helpers"])
-		self.parent_switch_bones = self.ensure_bone_set(bone_set_defs["Parent Switch Helpers"])
-		return [self.org_chain]
+	def ensure_bone_sets(self):
+		self.org_chain = self.ensure_bone_set("Original Bones")
+		self.dsp_bones = self.ensure_bone_set("Display Transform Helpers")
+		self.parent_switch_bones = self.ensure_bone_set("Parent Switch Helpers")
 
 	def prepare_bones(self):
 		self.load_org_bones()

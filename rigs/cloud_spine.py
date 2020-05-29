@@ -34,19 +34,13 @@ class CloudSpineRig(CloudChainRig):
 		self.ik_prop_name = "ik_spine"
 		self.ik_stretch_name = "ik_stretch_spine"
 
-	def ensure_bone_sets(self, bone_set_defs):
-		bone_sets = super().ensure_bone_sets(bone_set_defs)
-		self.spine_fk = self.ensure_bone_set(bone_set_defs["Spine FK Controls"])
-		self.spine_main = self.ensure_bone_set(bone_set_defs["Spine Main Controls"])
-		self.spine_parent_ctrls = self.ensure_bone_set(bone_set_defs["Spine Parent Controls"])
-		self.spine_ik_secondary = self.ensure_bone_set(bone_set_defs["Spine IK Secondary"])
-		self.spine_mch = self.ensure_bone_set(bone_set_defs["Spine Mechanism"])
-		bone_sets.append(self.spine_fk)
-		bone_sets.append(self.spine_main)
-		bone_sets.append(self.spine_parent_ctrls)
-		bone_sets.append(self.spine_ik_secondary)
-		bone_sets.append(self.spine_mch)
-		return bone_sets
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.spine_fk = self.ensure_bone_set("Spine FK Controls")
+		self.spine_main = self.ensure_bone_set("Spine Main Controls")
+		self.spine_parent_ctrls = self.ensure_bone_set("Spine Parent Controls")
+		self.spine_ik_secondary = self.ensure_bone_set("Spine IK Secondary")
+		self.spine_mch = self.ensure_bone_set("Spine Mechanism")
 
 	def get_segments(self, org_i, chain):
 		"""Determine how many deform segments should be in a section of the chain."""

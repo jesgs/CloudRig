@@ -17,13 +17,10 @@ class CloudCurveRig(CloudBaseRig):
 		super().initialize()
 		self.initialize_curve_rig()
 
-	def ensure_bone_sets(self, bone_set_defs):
-		bone_sets = super().ensure_bone_sets(bone_set_defs)
-		self.curve_hooks = self.ensure_bone_set(bone_set_defs["Curve Hooks"])
-		self.curve_handles = self.ensure_bone_set(bone_set_defs["Curve Handles"])
-		bone_sets.append(self.curve_hooks)
-		bone_sets.append(self.curve_handles)
-		return bone_sets
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.curve_hooks = self.ensure_bone_set("Curve Hooks")
+		self.curve_handles = self.ensure_bone_set("Curve Handles")
 
 	def initialize_curve_rig(self):
 		curve_ob = self.get_curve()

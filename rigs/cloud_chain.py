@@ -16,17 +16,12 @@ class CloudChainRig(CloudBaseRig):
 		super().initialize()
 		"""Gather and validate data about the rig."""
 
-	def ensure_bone_sets(self, bone_set_defs):
-		bone_sets = super().ensure_bone_sets(bone_set_defs)
-		self.str_bones = self.ensure_bone_set(bone_set_defs["Stretch Controls"])
-		self.str_mch = self.ensure_bone_set(bone_set_defs["Stretch Helpers"])
-		self.skh_bones = self.ensure_bone_set(bone_set_defs["Shape Key Helpers"])
-		self.def_bones = self.ensure_bone_set(bone_set_defs["Deform Bones"])
-		bone_sets.append(self.str_bones)
-		bone_sets.append(self.str_mch)
-		bone_sets.append(self.skh_bones)
-		bone_sets.append(self.def_bones)
-		return bone_sets
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.str_bones = self.ensure_bone_set("Stretch Controls")
+		self.str_mch = self.ensure_bone_set("Stretch Helpers")
+		self.skh_bones = self.ensure_bone_set("Shape Key Helpers")
+		self.def_bones = self.ensure_bone_set("Deform Bones")
 
 	def get_segments(self, org_i, chain):
 		"""Determine how many deform and bbone segments should be in a section of the chain."""

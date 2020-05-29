@@ -15,11 +15,9 @@ class CloudFKChainRig(CloudChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-	def ensure_bone_sets(self, bone_set_defs):
-		bone_sets = super().ensure_bone_sets(bone_set_defs)
-		self.fk_chain = self.ensure_bone_set(bone_set_defs["FK Controls"])
-		bone_sets.append(self.fk_chain)
-		return bone_sets
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.fk_chain = self.ensure_bone_set("FK Controls")
 
 	def prepare_fk_chain(self):
 		fk_name = ""

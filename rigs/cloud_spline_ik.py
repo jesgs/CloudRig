@@ -20,11 +20,9 @@ class CloudSplineIKRig(CloudCurveRig):
 
 		self.num_controls = len(self.bones.org.main)+1 if self.params.CR_match_hooks_to_bones else self.params.CR_num_hooks
 
-	def ensure_bone_sets(self, bone_set_defs):
-		bone_sets = super().ensure_bone_sets(bone_set_defs)
-		self.def_bones = self.ensure_bone_set(bone_set_defs["Curve Deform Bones"])
-		bone_sets.append(self.curve_hooks)
-		return bone_sets
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.def_bones = self.ensure_bone_set("Curve Deform Bones")
 
 	def create_curve(self):
 		""" Find or create the Bezier Curve that will be used by the rig. """
