@@ -51,7 +51,7 @@ class CloudChainRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 		)
 		skp_bone.scale_length(0.3)
-		skp_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+		skp_bone.add_constraint('COPY_TRANSFORMS'
 			,space			 = 'WORLD'
 			,subtarget		 = def_bone_1.name
 			,use_bbone_shape = True
@@ -67,7 +67,7 @@ class CloudChainRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 		)
 		skh_bone.scale_length(0.4)
-		skh_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+		skh_bone.add_constraint('COPY_TRANSFORMS'
 			,space			 = 'WORLD'
 			,subtarget		 = def_bone_2.name
 			,use_bbone_shape = True
@@ -130,18 +130,18 @@ class CloudChainRig(CloudBaseRig):
 					def_bone = parent_rig.def_bones[-1]
 					str_bone = self.str_bones[0]
 					def_bone.bbone_custom_handle_end = str_bone.name
-					def_bone.add_constraint(self.obj, 'STRETCH_TO', subtarget = str_bone.name)
+					def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.name)
 					self.make_bbone_scale_drivers(def_bone)
 					if self.params.CR_shape_key_helpers:
 						self.create_shape_key_helpers(def_bone, self.def_bones[0])
 
 	def rig_str_helper(self, str_h_bone, first_str, last_str, influence):
-		str_h_bone.add_constraint(self.obj, 'COPY_LOCATION', space='WORLD', subtarget=first_str)
-		str_h_bone.add_constraint(self.obj, 'COPY_LOCATION', space='WORLD', subtarget=last_str, influence=influence)
+		str_h_bone.add_constraint('COPY_LOCATION', space='WORLD', subtarget=first_str)
+		str_h_bone.add_constraint('COPY_LOCATION', space='WORLD', subtarget=last_str, influence=influence)
 
-		str_h_bone.add_constraint(self.obj, 'COPY_ROTATION', space='WORLD', subtarget=first_str)
-		str_h_bone.add_constraint(self.obj, 'COPY_ROTATION', space='WORLD', subtarget=last_str, influence=influence)
-		str_h_bone.add_constraint(self.obj, 'DAMPED_TRACK', subtarget=last_str)
+		str_h_bone.add_constraint('COPY_ROTATION', space='WORLD', subtarget=first_str)
+		str_h_bone.add_constraint('COPY_ROTATION', space='WORLD', subtarget=last_str, influence=influence)
+		str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
 	def make_str_helpers(self, str_sections):
 		main_str_bone = None
@@ -262,7 +262,7 @@ class CloudChainRig(CloudBaseRig):
 					def_bone.bbone_custom_handle_end = next_str
 				
 				# Stretch To constraint
-				def_bone.add_constraint(self.obj, 'STRETCH_TO', subtarget=next_str)
+				def_bone.add_constraint('STRETCH_TO', subtarget=next_str)
 
 				# BBone scale drivers
 				if def_bone.bbone_segments > 1:

@@ -38,7 +38,7 @@ class CloudFKChainRig(CloudChainRig):
 				self.create_dsp_bone(fk_bone, center=True)
 			if self.params.CR_counter_rotate_str:
 				str_bone = self.main_str_bones[i]
-				str_bone.add_constraint(self.obj, 'TRANSFORM'
+				str_bone.add_constraint('TRANSFORM'
 					,subtarget				= fk_bone.name
 					,map_from				= 'ROTATION'
 					,map_to					= 'ROTATION'
@@ -57,7 +57,7 @@ class CloudFKChainRig(CloudChainRig):
 		for i, org_bone in enumerate(self.org_chain):
 			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))
 
-			org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			org_bone.add_constraint('COPY_TRANSFORMS'
 				,space			= 'WORLD'
 				,subtarget		= fk_bone.name
 				,name			= "Copy Transforms FK"

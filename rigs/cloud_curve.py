@@ -108,8 +108,8 @@ class CloudCurveRig(CloudBaseRig):
 
 					self.lock_transforms(handle, loc=False, rot=False, scale=[True, False, True])
 
-					dsp_bone.add_constraint(self.obj, 'DAMPED_TRACK', subtarget=hook_ctr.name)
-					dsp_bone.add_constraint(self.obj, 'STRETCH_TO', subtarget=hook_ctr.name)
+					dsp_bone.add_constraint('DAMPED_TRACK', subtarget=hook_ctr.name)
+					dsp_bone.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
 				else:
 					head = handle.head.copy()
 					handle.head = handle.tail.copy()
@@ -117,8 +117,8 @@ class CloudCurveRig(CloudBaseRig):
 
 					self.lock_transforms(handle, loc=False)
 
-					handle.add_constraint(self.obj, 'DAMPED_TRACK', subtarget=hook_ctr.name)
-					handle.add_constraint(self.obj, 'STRETCH_TO', subtarget=hook_ctr.name)
+					handle.add_constraint('DAMPED_TRACK', subtarget=hook_ctr.name)
+					handle.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
 
 		else:
 			hook_ctr.custom_shape = self.load_widget("CurvePoint")

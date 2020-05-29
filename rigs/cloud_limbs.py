@@ -157,7 +157,7 @@ class Rig(CloudIKChainRig):
 			self.first_str_counterrotate_setup(self.str_bones[i], self.org_chain[0], factor)
 
 	def first_str_counterrotate_setup(self, str_bone, org_bone, factor):
-		str_bone.add_constraint(self.obj, 'TRANSFORM',
+		str_bone.add_constraint('TRANSFORM',
 			name = "Transformation (Counter-Rotate)",
 			subtarget = org_bone.name,
 			map_from = 'ROTATION', map_to = 'ROTATION',
@@ -181,7 +181,7 @@ class Rig(CloudIKChainRig):
 			,hide_select = self.mch_disable_select
 		)
 		rolly_stretchy.scale_width(0.4)
-		rolly_stretchy.add_constraint(self.obj, 'STRETCH_TO', subtarget=self.ik_chain[-2].name)
+		rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
 
 		sliced_name = self.slice_name(ik_foot.name)
 		master_name = self.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
@@ -205,7 +205,7 @@ class Rig(CloudIKChainRig):
 			,use_custom_shape_bone_size = True
 		)
 
-		roll_ctrl.add_constraint(self.obj, 'LIMIT_ROTATION'
+		roll_ctrl.add_constraint('LIMIT_ROTATION'
 			,use_limit_x=True
 			,min_x = rad(-90)
 			,max_x = rad(130)
@@ -239,7 +239,7 @@ class Rig(CloudIKChainRig):
 			,hide_select  = self.mch_disable_select
 		)
 
-		heel_pivot.add_constraint(self.obj, 'TRANSFORM',
+		heel_pivot.add_constraint('TRANSFORM',
 			subtarget = roll_ctrl.name,
 			map_from = 'ROTATION',
 			map_to = 'ROTATION',
@@ -263,7 +263,7 @@ class Rig(CloudIKChainRig):
 			ik_chain[i].parent = rik_bone
 
 			if i == 1:
-				rik_bone.add_constraint(self.obj, 'TRANSFORM'
+				rik_bone.add_constraint('TRANSFORM'
 					,subtarget		= roll_ctrl.name
 					,map_from		= 'ROTATION'
 					,map_to			= 'ROTATION'
@@ -278,14 +278,14 @@ class Rig(CloudIKChainRig):
 				)
 			
 			if i == 0:
-				rik_bone.add_constraint(self.obj, 'COPY_LOCATION'
+				rik_bone.add_constraint('COPY_LOCATION'
 					,space			= 'WORLD'
 					,target			= self.obj
 					,subtarget		= rik_chain[-2].name
 					,head_tail		= 1
 				)
 
-				rik_bone.add_constraint(self.obj, 'TRANSFORM'
+				rik_bone.add_constraint('TRANSFORM'
 					,name = "Transformation Roll"
 					,subtarget = roll_ctrl.name
 					,map_from = 'ROTATION'
@@ -299,7 +299,7 @@ class Rig(CloudIKChainRig):
 					,to_min_z_rot   = rad(25)
 					,to_max_z_rot   = rad(-25)
 				)
-				rik_bone.add_constraint(self.obj, 'TRANSFORM'
+				rik_bone.add_constraint('TRANSFORM'
 					,name = "Transformation CounterRoll"
 					,subtarget = roll_ctrl.name
 					,map_from = 'ROTATION'
@@ -320,7 +320,7 @@ class Rig(CloudIKChainRig):
 		# FK Toe bone should be parented between FK Foot and IK Toe.
 		fk_toe = self.fk_toe
 		fk_toe.parent = None
-		toe_con = fk_toe.add_constraint(self.obj, 'ARMATURE',
+		toe_con = fk_toe.add_constraint('ARMATURE',
 			targets = [
 				{
 					"subtarget" : self.fk_chain[-2].name	# FK Foot

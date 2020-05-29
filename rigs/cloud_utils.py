@@ -77,7 +77,7 @@ class CloudUtilities:
 		)
 
 		# Hinge Armature constraint
-		hng_con = hng_bone.add_constraint(self.obj, 'ARMATURE', 
+		hng_con = hng_bone.add_constraint('ARMATURE', 
 			targets = [
 				{
 					"subtarget" : 'root'
@@ -104,7 +104,7 @@ class CloudUtilities:
 		})
 
 		# Hinge Copy Location constraint
-		hng_bone.add_constraint(self.obj, 'COPY_LOCATION'
+		hng_bone.add_constraint('COPY_LOCATION'
 			,space = 'WORLD'
 			,subtarget	   = str(parent_bone)
 			,head_tail	   = head_tail
@@ -169,7 +169,7 @@ class CloudUtilities:
 			})
 
 		# Add armature constraint
-		arm_con = arm_con_bone.add_constraint(self.obj, 'ARMATURE', 
+		arm_con = arm_con_bone.add_constraint('ARMATURE', 
 			targets = targets
 		)
 

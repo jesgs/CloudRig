@@ -180,7 +180,7 @@ class CloudSpineRig(CloudChainRig):
 			)
 			next_parent = ik_r_bone
 			self.ik_r_chain.append(ik_r_bone)
-			ik_r_bone.add_constraint(self.obj, 'DAMPED_TRACK',
+			ik_r_bone.add_constraint('DAMPED_TRACK',
 				subtarget = self.ik_ctr_chain[index].name
 			)
 		
@@ -208,7 +208,7 @@ class CloudSpineRig(CloudChainRig):
 				
 				# IK Stretch Copy Location
 				con_name = "Copy Location (Stretchy Spine)"
-				str_con = ik_bone.add_constraint(self.obj, 'COPY_LOCATION'
+				str_con = ik_bone.add_constraint('COPY_LOCATION'
 					,space	   = 'WORLD'
 					,name	   = con_name
 					,subtarget = org_bone.ik_r_bone.name
@@ -227,7 +227,7 @@ class CloudSpineRig(CloudChainRig):
 					]
 				})
 
-				ik_bone.add_constraint(self.obj, 'COPY_ROTATION'
+				ik_bone.add_constraint('COPY_ROTATION'
 					,space	   = 'WORLD'
 					,subtarget = self.ik_ctr_chain[i-1].name
 				)
@@ -242,7 +242,7 @@ class CloudSpineRig(CloudChainRig):
 				if self.params.CR_double_controls:
 					self.mstr_chest.parent.custom_shape_transform = ik_bone
 
-			ik_bone.add_constraint(self.obj, 'DAMPED_TRACK',
+			ik_bone.add_constraint('DAMPED_TRACK',
 				subtarget = damped_track_target,
 				head_tail = head_tail
 			)
@@ -251,7 +251,7 @@ class CloudSpineRig(CloudChainRig):
 		for i, ik_bone in enumerate(self.ik_chain[1:]):
 			fk_bone = self.fk_chain[i]
 			con_name = "Copy Transforms IK"
-			ct_con = fk_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			ct_con = fk_bone.add_constraint('COPY_TRANSFORMS'
 				,space	   = 'WORLD'
 				,name	   = con_name
 				,subtarget = ik_bone.name

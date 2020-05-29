@@ -327,8 +327,7 @@ class BoneInfo():
 			if ci.name == name:
 				return ci
 
-	def add_constraint(self, armature, contype, index=None, **kwargs):
-		# TODO: remove useless armature parameter.
+	def add_constraint(self, contype, index=None, **kwargs):
 		"""Store constraint information about a constraint in this BoneInfo.
 		contype: Type of constraint, eg. 'STRETCH_TO'.
 		kwargs: Dictionary of properties and values.

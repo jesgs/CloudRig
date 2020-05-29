@@ -133,7 +133,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,custom_shape = self.load_widget('Pole_Line')
 			,use_custom_shape_bone_size	= True
 		)
-		pole_line.add_constraint(self.obj, 'STRETCH_TO'
+		pole_line.add_constraint('STRETCH_TO'
 			,subtarget = self.org_chain[0].name
 			,head_tail = 1
 		)
@@ -196,7 +196,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			if i == self.params.CR_ik_length-1:
 				# Add the IK constraint to the previous bone, targetting this one.
 				pole_target_name = pole_target.name if pole_target else ""
-				ik_chain[self.params.CR_ik_length-2].add_constraint(self.obj, 'IK', 
+				ik_chain[self.params.CR_ik_length-2].add_constraint('IK', 
 					pole_target		= self.obj if pole_target_name!="" else None,
 					pole_subtarget	= pole_target_name,
 					pole_angle		= self.pole_angle,
@@ -251,8 +251,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			chain_length += ikb.length
 
 		length_factor = chain_length / stretch_bone.length
-		stretch_bone.add_constraint(self.obj, 'STRETCH_TO', subtarget=self.stretch_target_bone.name)
-		limit_scale = stretch_bone.add_constraint(self.obj, 'LIMIT_SCALE', 
+		stretch_bone.add_constraint('STRETCH_TO', subtarget=self.stretch_target_bone.name)
+		limit_scale = stretch_bone.add_constraint('LIMIT_SCALE', 
 			use_max_y = True,
 			max_y = length_factor,
 			influence = 0
@@ -284,7 +284,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		# Last IK bone should copy location of the tail of the stretchy bone.
 		self.ik_tgt_bone = self.ik_chain[self.params.CR_ik_length-1]
-		self.ik_tgt_bone.add_constraint(self.obj, 'COPY_LOCATION'
+		self.ik_tgt_bone.add_constraint('COPY_LOCATION'
 			,space		   = 'WORLD'
 			,subtarget	   = stretch_bone.name
 			,head_tail	   = 1
@@ -312,7 +312,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			main_str_bone.parent = main_str_helper
 
 			con_name = 'CopyLoc_IK_Stretch'
-			main_str_helper.add_constraint(self.obj, 'COPY_LOCATION'
+			main_str_helper.add_constraint('COPY_LOCATION'
 				,space			= 'WORLD'
 				,subtarget		= stretch_bone.name
 				,name			= con_name
@@ -383,7 +383,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		if self.pole_ctrl:
 			# Add aim constraint to pole display bone
-			self.pole_ctrl.dsp_bone.add_constraint(self.obj, 'DAMPED_TRACK', 
+			self.pole_ctrl.dsp_bone.add_constraint('DAMPED_TRACK', 
 				subtarget  = stretch_bone.name,
 				head_tail  = 0.5,
 				track_axis = 'TRACK_NEGATIVE_Y'
@@ -397,7 +397,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		for org_bone in self.org_chain:
 			ik_bone = self.get_bone_info(org_bone.name.replace("ORG", "IK"))
-			copy_trans = org_bone.add_constraint(self.obj, 'COPY_TRANSFORMS'
+			copy_trans = org_bone.add_constraint('COPY_TRANSFORMS'
 				,space		  = 'WORLD'
 				,subtarget	  = ik_bone.name
 				,name		  = "Copy Transforms IK"
