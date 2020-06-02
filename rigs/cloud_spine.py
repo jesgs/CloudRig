@@ -110,10 +110,9 @@ class CloudSpineRig(CloudChainRig):
 				prop_bone = self.prop_bone,
 				prop_name = "fk_hinge_head",
 				limb_name = "Head",
-				head_tail = 1
+				head_tail = 1,
+				bone_set = self.spine_mch
 			)
-			hng_bone.bone_group = 'Spine Mechanism'	# TODO: pass BoneSet to hinge_setup().
-			hng_bone.layers = self.spine_mch.layers[:]
 
 	@stage.prepare_bones
 	def prepare_ik_spine(self):

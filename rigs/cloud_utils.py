@@ -42,12 +42,16 @@ class CloudUtilities:
 		}
 
 	# TODO: Move this to cloud_fk_chain.py?
+	# This would require splitting off the neck and head from the spine rig.
 	def hinge_setup(self, bone, category, *, 
 		prop_bone, prop_name, default_value=0.0, 
 		parent_bone=None, head_tail=0, 
-		hng_name=None, limb_name=None
+		hng_name=None, limb_name=None, bone_set=None
 	):
-		# Initialize some defaults
+		""" Create a hinge toggle for a bone. Bone is usually the first bone in an FK chain.
+		When hinge is turned on, the bone doesn't inherit rotation from its parents, but still inherits rotation from the rig's root bone."""
+
+		# Defaults for optional parameters
 		if not hng_name:
 			sliced = slice_name(bone.name)
 			sliced[0].insert(0, "HNG")
@@ -56,7 +60,9 @@ class CloudUtilities:
 			parent_bone = bone.parent
 		if not limb_name:
 			limb_name = "Hinge: " + self.side_suffix + " " + slice_name(bone.name)[1]
-		
+		if bone_set==None:
+			bone_set = bone.container
+
 		info = {
 			"prop_bone"			: prop_bone.name,
 			"prop_id" 			: prop_name,
@@ -70,7 +76,7 @@ class CloudUtilities:
 
 		# Create Hinge helper bone
 		BODY_MECH = 8
-		hng_bone = bone.container.new(
+		hng_bone = bone_set.new(
 			name			= hng_name
 			,source			= bone
 			,hide_select	= self.mch_disable_select
@@ -133,15 +139,17 @@ class CloudUtilities:
 	def load_widget(self, name):
 		return self.generator.load_widget(name)
 
-	def rig_child(self, child_bone, parent_names, prop_bone, prop_name):
+	def rig_child(self, child_bone, parent_names, prop_bone, prop_name, bone_set=None):
 		""" Rig a child with multiple switchable parents, using Armature constraint and drivers.
-		This requires:
-			child_bone: The child bone.
-			parent_names: Parent identifiers(NOT BONE NAMES!) to search for among registered parent identifiers (These are hard-coded identifiers such as 'Hips', 'Torso', etc.)
-			prop_bone: Bone which stores the property that controls the parent switching.
-			prop_name: Name of said property on the prop_bone.
+		child_bone: The child bone.
+		parent_names: Parent identifiers(NOT BONE NAMES!) to search for among registered parent identifiers (These are hard-coded identifiers such as 'Hips', 'Torso', etc.)
+		prop_bone: Bone which stores the property that controls the parent switching.
+		prop_name: Name of said property on the prop_bone.
+		bone_set: BoneSet to create this bone in. If not provided, use "Parent Switch Helpers" from cloud_base.
 		Return list of parent names for which a registered parent candidate was found and rigged.
 		"""
+		if bone_set==None:
+			bone_set = self.parent_switch_bones
 
 		# Test that at least one of the parents exists.
 		parent_candidates = self.get_parent_candidates()
@@ -155,7 +163,8 @@ class CloudUtilities:
 
 		# Create parent bone for the bone that stores the Armature constraint.
 		# NOTE: Bones with Armature constraints should never be exposed to the animator directly because it breaks snapping functionality!
-		arm_con_bone = self.create_parent_bone(child_bone, self.parent_switch_bones)
+		arm_con_bone = self.create_parent_bone(child_bone, bone_set)
+		arm_con_bone.hide_select = self.mch_disable_select
 		arm_con_bone.name = "Parents_" + child_bone.name
 		arm_con_bone.custom_shape = None
 
@@ -368,7 +377,7 @@ def create_parent_bone(child, bone_set=None):
 	sliced = slice_name(child.name)
 	sliced[0].append("P")
 	parent_name = make_name(*sliced)
-	if not bone_set:
+	if bone_set==None:
 		bone_set = child.container
 	parent_bone = bone_set.new(
 		name				= parent_name 
@@ -376,7 +385,6 @@ def create_parent_bone(child, bone_set=None):
 		,custom_shape		= child.custom_shape
 		,custom_shape_scale = child.custom_shape_scale * 1.1
 		,parent 			= child.parent
-		# ,hide_select		= self.mch_disable_select
 	)
 
 	child.parent = parent_bone

@@ -102,10 +102,9 @@ class Rig(CloudIKChainRig):
 			hng_name = self.base_bone.replace("ORG", "FK-HNG"),
 			prop_bone = self.prop_bone,
 			prop_name = self.fk_hinge_name,
-			limb_name = self.limb_ui_name
+			limb_name = self.limb_ui_name,
+			bone_set = self.fk_mch
 		)
-		hng_bone.bone_group = self.fk_mch.bone_group
-		hng_bone.layers = self.fk_mch.layers[:]
 
 	def prepare_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
