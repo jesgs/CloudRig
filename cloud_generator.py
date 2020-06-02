@@ -141,6 +141,13 @@ class CloudGenerator(Generator):
 			'rotation_mode' : 'XYZ'
 		}
 
+		# Flag for whether there are any non-CloudRig rig types in the metarig.
+		self.rigify_compatible = False
+		for b in metarig.pose.bones:
+			if 'cloud' not in b.rigify_type:
+				self.rigify_compatible = True
+				break
+
 	def create_rig_object(self):
 		scene = self.scene
 
@@ -413,8 +420,9 @@ class CloudGenerator(Generator):
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
 		obj.data["rig_id"] = self.rig_id
 
-		# self.script = rig_ui_template.ScriptGenerator(self)
 		self.script = None
+		if self.rigify_compatible:
+			self.script = rig_ui_template.ScriptGenerator(self)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -526,7 +534,8 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
 
-		# self.invoke_generate_widgets()
+		if self.rigify_compatible:
+			self.invoke_generate_widgets()
 
 		# t.tick("Generate widgets: ")
 
@@ -536,6 +545,9 @@ class CloudGenerator(Generator):
 		obj.data.layers = self.metarig.data.layers[:]
 		obj.data.layers_protected = self.metarig.data.layers_protected[:]
 		self._Generator__restore_driver_vars()
+
+		if self.rigify_compatible:
+			self._Generator__assign_layers()
 
 		t.tick("Assign layers: ")
 
