@@ -24,20 +24,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		assert self.params.CR_ik_length <= len(self.bones.org.main), f"IK Length parameter ({self.params.CR_ik_length}) higher than number of bones in the connected chain ({len(self.bones.org.main)}) on rig: {self.meta_base_bone.name}"
 
 		# UI Strings and Custom Property names
-		self.category = self.slice_name(self.base_bone)[1]
-		if self.params.CR_use_custom_category_name:
-			self.category = self.params.CR_custom_category_name
-
-		self.limb_name = self.category						# Name used for naming bones. Should not contain a side identifier like .L/.R.
-		if self.params.CR_use_custom_limb_name:
-			self.limb_name = self.params.CR_custom_limb_name
-		
-		self.limb_ui_name = self.side_prefix + " " + self.limb_name	# Name used for UI related things. Should contain the side identifier.
-
-		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
 		self.ikfk_name = "ik_" + self.limb_name_props
 		self.ik_stretch_name = "ik_stretch_" + self.limb_name_props
-		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
 		self.pole_side = 1
 		self.ik_pole_offset = 3		# Scalar on distance from the body.
@@ -50,20 +38,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.ik_ctrls = self.ensure_bone_set("IK Controls")
 		self.ik_parent_ctrls = self.ensure_bone_set("IK Parent Controls")
 		self.ik_mch = self.ensure_bone_set("IK Mechanism")
-		self.fk_mch = self.ensure_bone_set("FK Helpers")
-
-	def prepare_root_bone(self):
-		# Socket/Root bone to parent IK and FK to.
-		root_name = self.base_bone.replace("ORG", "ROOT")
-		base_bone = self.get_bone(self.base_bone)
-		self.limb_root_bone = self.ik_mch.new(
-			name 					= root_name
-			,source 				= base_bone
-			,parent 				= self.bones.parent
-			,custom_shape 			= self.load_widget("Cube")
-			,custom_shape_scale 	= 0.5
-		)
-		self.register_parent(self.limb_root_bone, self.limb_ui_name)
 
 	def calculate_ik_info(self):
 		""" Calculate pole angle, pole control direction and distance. """
@@ -411,7 +385,6 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.prepare_root_bone()
 		self.prepare_ik_chain()
 		self.prepare_org_limb()
 		self.prepare_parent_switch()
@@ -502,7 +475,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		cls.define_bone_set(params, "IK Controls", preset=2, default_layers=[cls.default_layers('IK_MAIN')])
 		cls.define_bone_set(params, "IK Parent Controls", preset=8, default_layers=[cls.default_layers('IK_MAIN')])
 		cls.define_bone_set(params, "IK Mechanism", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -512,26 +484,6 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		params.CR_show_ik_settings = BoolProperty(name="IK Rig")
 		# TODO: Parameter to let the IK control be at the tip of the last bone instead of at the last bone itself. Would be useful for fingers.
-		params.CR_use_custom_limb_name = BoolProperty(
-			 name		 = "Custom Limb Name"
-			,description = "Specify a name for this limb. Settings for limbs with the same name will be displayed on the same row in the rig UI. If not enabled, use the name of the base bone, without pre and suffixes"
-			,default 	 = False
-		)
-		params.CR_custom_limb_name = StringProperty(
-			name		 = "Custom Limb"
-			,default	 = "Arm"
-			,description = """This name should NOT include a side indicator such as ".L" or ".R", as that will be determined by the bone's name. There can be exactly two limbs with the same name(a left and a right one)."""
-		)
-		params.CR_use_custom_category_name = BoolProperty(
-			 name		 = "Custom Category Name"
-			,description = "Specify a category for this limb. If not enabled, use the name of the base bone, without pre and suffixes"
-			,default	 = False,
-		)
-		params.CR_custom_category_name = StringProperty(
-			name		 = "Custom Category"
-			,default	 = "arms"
-			,description = "Limbs in the same category will have their settings displayed in the same column"
-			)
 		params.CR_ik_length = IntProperty(
 			name	 	 = "IK Length"
 			,description = "Length of the IK chain. Cannot be higher than the number of bones in the chain"
@@ -553,11 +505,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def bone_set_ui(cls, params, layout, set_info, ui_rows):
-		if set_info['name'] != "FK Helpers" or params.CR_world_aligned_controls:
-			super().bone_set_ui(params, layout, set_info, ui_rows)
-
-	@classmethod
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
@@ -566,16 +513,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		icon = 'TRIA_DOWN' if params.CR_show_ik_settings else 'TRIA_RIGHT'
 		layout.prop(params, "CR_show_ik_settings", toggle=True, icon=icon)
 		if not params.CR_show_ik_settings: return ui_rows
-
-		name_row = layout.row()
-		limb_column = name_row.column()
-		limb_column.prop(params, "CR_use_custom_limb_name")
-		if params.CR_use_custom_limb_name:
-			limb_column.prop(params, "CR_custom_limb_name", text="")
-		category_column = name_row.column()
-		category_column.prop(params, "CR_use_custom_category_name")
-		if params.CR_use_custom_category_name:
-			category_column.prop(params, "CR_custom_category_name", text="")
 
 		pole_row = layout.row()
 		pole_row.prop(params, "CR_use_pole_target")

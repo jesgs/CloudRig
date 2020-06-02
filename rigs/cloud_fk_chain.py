@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 
 from rigify.base_rig import stage
@@ -15,13 +15,40 @@ class CloudFKChainRig(CloudChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
+		self.category = self.slice_name(self.base_bone)[1]
+		if self.params.CR_use_custom_category_name:
+			self.category = self.params.CR_custom_category_name
+		
+		self.limb_name = self.category
+		if self.params.CR_use_custom_limb_name:
+			self.limb_name = self.params.CR_custom_limb_name								# Name used for naming bones. Should not contain a side identifier like .L/.R.
+		self.limb_ui_name = self.side_prefix + " " + self.limb_name	# Name used for UI related things. Should contain the side identifier.
+
+		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
+		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
+
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.fk_chain = self.ensure_bone_set("FK Controls")
+		self.fk_mch = self.ensure_bone_set("FK Helpers")
+
+	def prepare_root_bone(self):
+		# Socket/Root bone to parent IK and FK to.
+		root_name = self.base_bone.replace("ORG", "ROOT")
+		base_bone = self.get_bone(self.base_bone)
+		self.limb_root_bone = self.fk_mch.new(
+			name 					= root_name
+			,source 				= base_bone
+			,parent 				= self.bones.parent
+			,custom_shape 			= self.load_widget("Cube")
+			,custom_shape_scale 	= 0.5
+		)
+		self.register_parent(self.limb_root_bone, self.limb_ui_name)
 
 	def prepare_fk_chain(self):
 		fk_name = ""
 
+		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
 		for i, org_bone in enumerate(self.org_chain):
 			fk_name = org_bone.name.replace("ORG", "FK")
 			fk_bone = self.fk_chain.new(
@@ -32,6 +59,15 @@ class CloudFKChainRig(CloudChainRig):
 				,parent				= self.bones.parent
 			)
 			org_bone.fk_bone = fk_bone
+			if i == 0:
+				hng_child = fk_bone
+				if self.params.CR_double_first_control:
+					# Make a parent for the first control.
+					fk_parent_bone = self.create_parent_bone(fk_bone)
+					fk_parent_bone.custom_shape = self.load_widget("FK_Limb")
+					if self.params.CR_center_all_fk:
+						self.create_dsp_bone(fk_parent_bone, center=True)
+					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
 				fk_bone.parent = self.fk_chain[-2]
@@ -52,6 +88,18 @@ class CloudFKChainRig(CloudChainRig):
 					,to_max_z_rot			= -0.5
 				)
 
+		# Create Hinge helper
+		hng_bone = self.hinge_setup(
+			bone = hng_child, 
+			category = self.category,
+			parent_bone = self.limb_root_bone,
+			hng_name = self.base_bone.replace("ORG", "FK-HNG"),
+			prop_bone = self.prop_bone,
+			prop_name = self.fk_hinge_name,
+			limb_name = self.limb_ui_name,
+			bone_set = self.fk_mch
+		)
+
 	def prepare_org_chain(self):
 		# Find existing ORG bones
 		# Add Copy Transforms constraints targetting FK.
@@ -66,6 +114,7 @@ class CloudFKChainRig(CloudChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
+		self.prepare_root_bone()
 		self.prepare_fk_chain()
 		self.prepare_org_chain()
 
@@ -77,6 +126,7 @@ class CloudFKChainRig(CloudChainRig):
 		""" Create parameters for this rig's bone sets. """
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "FK Controls", preset=1, default_layers=[cls.default_layers('FK_MAIN')])
+		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -95,6 +145,32 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
 			,default	 = False
 		)
+		params.CR_double_first_control = BoolProperty(
+			 name		 = "Double First FK"
+			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
+			,default	 = True
+		)
+		
+		params.CR_use_custom_limb_name = BoolProperty(
+			 name		 = "Custom Limb Name"
+			,description = "Specify a name for this limb. Settings for limbs with the same name will be displayed on the same row in the rig UI. If not enabled, use the name of the base bone, without pre and suffixes"
+			,default 	 = False
+		)
+		params.CR_custom_limb_name = StringProperty(
+			name		 = "Custom Limb"
+			,default	 = "Arm"
+			,description = """This name should NOT include a side indicator such as ".L" or ".R", as that will be determined by the bone's name. There can be exactly two limbs with the same name(a left and a right one)"""
+		)
+		params.CR_use_custom_category_name = BoolProperty(
+			 name		 = "Custom Category Name"
+			,description = "Specify a category for this limb. If not enabled, use the name of the base bone, without pre and suffixes"
+			,default	 = False,
+		)
+		params.CR_custom_category_name = StringProperty(
+			name		 = "Custom Category"
+			,default	 = "arms"
+			,description = "Limbs in the same category will have their settings displayed in the same column"
+		)
 
 		super().add_parameters(params)
 
@@ -109,8 +185,19 @@ class CloudFKChainRig(CloudChainRig):
 		layout.prop(params, "CR_show_fk_settings", toggle=True, icon=icon)
 		if not params.CR_show_fk_settings: return ui_rows
 
+		name_row = layout.row()
+		limb_column = name_row.column()
+		limb_column.prop(params, "CR_use_custom_limb_name")
+		if params.CR_use_custom_limb_name:
+			limb_column.prop(params, "CR_custom_limb_name", text="")
+		category_column = name_row.column()
+		category_column.prop(params, "CR_use_custom_category_name")
+		if params.CR_use_custom_category_name:
+			category_column.prop(params, "CR_custom_category_name", text="")
+
 		layout.prop(params, "CR_counter_rotate_str")
 		layout.prop(params, "CR_center_all_fk")
+		layout.prop(params, "CR_double_first_control")
 
 		return ui_rows
 

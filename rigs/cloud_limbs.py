@@ -69,42 +69,20 @@ class Rig(CloudIKChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.prepare_fk_limb()
 		self.prepare_str_limb()
 		self.prepare_ik_limb()
 		self.foot_org_tweak()
 
-	def prepare_fk_limb(self):
-		# NOTE: This runs after super().prepare_fk_chain().
+	def prepare_fk_chain(self):
+		super().prepare_fk_chain()
 
-		hng_child = self.fk_chain[0]	# For keeping track of which bone will need to be parented to the Hinge helper bone.
 		for i, fk_bone in enumerate(self.fk_chain):
-			if i == 0 and self.params.CR_double_first_control:
-				# Make a parent for the first control.
-				fk_parent_bone = self.create_parent_bone(fk_bone)
-				fk_parent_bone.custom_shape = self.load_widget("FK_Limb")
-				if self.params.CR_center_all_fk:
-					self.create_dsp_bone(fk_parent_bone, center=True)
-				hng_child = fk_parent_bone
-			
 			if i == 1:
 				fk_bone.lock_rotation[1] = self.params.CR_limb_lock_yz
 				fk_bone.lock_rotation[2] = self.params.CR_limb_lock_yz
-			
+
 			if i == 3 and self.limb_type=='LEG':
 				self.fk_toe = fk_bone
-		
-		# Create Hinge helper
-		hng_bone = self.hinge_setup(
-			bone = hng_child, 
-			category = self.category,
-			parent_bone = self.limb_root_bone,
-			hng_name = self.base_bone.replace("ORG", "FK-HNG"),
-			prop_bone = self.prop_bone,
-			prop_name = self.fk_hinge_name,
-			limb_name = self.limb_ui_name,
-			bone_set = self.fk_mch
-		)
 
 	def prepare_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
@@ -378,11 +356,6 @@ class Rig(CloudIKChainRig):
 			)
 			,default	 = 'ARM'
 		)
-		params.CR_double_first_control = BoolProperty(
-			 name		 = "Double First FK"
-			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
-			,default	 = True
-		)
 		params.CR_double_ik_control = BoolProperty(
 			 name		 = "Double IK Master"
 			,description = "The IK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
@@ -423,9 +396,7 @@ class Rig(CloudIKChainRig):
 			if params.CR_use_foot_roll:
 				footroll_row.prop_search(params, "CR_heel_pivot_bone", bpy.context.object.data, "bones", text="Heel Pivot")
 
-		double_row = layout.row()
-		double_row.prop(params, "CR_double_ik_control")
-		double_row.prop(params, "CR_double_first_control")
+		layout.prop(params, "CR_double_ik_control")
 
 		word = "Elbow" if params.CR_limb_type == 'ARM' else "Shin"
 		layout.prop(params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")
