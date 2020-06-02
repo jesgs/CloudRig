@@ -42,17 +42,6 @@ class CloudSpineRig(CloudChainRig):
 		self.spine_ik_secondary = self.ensure_bone_set("Spine IK Secondary")
 		self.spine_mch = self.ensure_bone_set("Spine Mechanism")
 
-	def get_segments(self, org_i, chain):
-		"""Determine how many deform segments should be in a section of the chain."""
-		segments = self.params.CR_deform_segments
-		bbone_segments = self.params.CR_bbone_segments
-		
-		if (org_i == len(chain)-1) and len(self.bones.org) > self.params.CR_spine_length:
-			# If there are more bones in the chain than the length of the spine(ie. when there is a head bone) the last bone(ie the head bone) should not be a bendy bone.
-			return (1, 1)
-		
-		return (segments, bbone_segments)
-
 	@stage.prepare_bones
 	def prepare_fk_spine(self):
 		# Create Troso Master control
@@ -285,10 +274,6 @@ class CloudSpineRig(CloudChainRig):
 		if len(self.org_necks) > 0:
 			# If there are any neck bones, set the last one's last def bone's easeout to 0.
 			self.org_necks[-1].def_bones[-1].bbone_easeout = 0
-
-		last_def = self.def_bones[-1]
-		if last_def.bbone_segments == 1:
-			last_def.inherit_scale = 'FULL'	# TODO: This shouldn't be needed. When cloud_chain calls get_segments() for this class, it should return 1, 1 for the head, not create bbone drivers, and not set inherit scale to None in the first place. Don't get why that isn't the case already.
 
 	@stage.prepare_bones
 	def prepare_org_spine(self):

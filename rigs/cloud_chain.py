@@ -23,7 +23,7 @@ class CloudChainRig(CloudBaseRig):
 		self.skh_bones = self.ensure_bone_set("Shape Key Helpers")
 		self.def_bones = self.ensure_bone_set("Deform Bones")
 
-	def get_segments(self, org_i, chain):
+	def determine_segments(self, org_i, chain):
 		"""Determine how many deform and bbone segments should be in a section of the chain."""
 		segments = self.params.CR_deform_segments
 		bbone_segments = self.params.CR_bbone_segments
@@ -191,7 +191,7 @@ class CloudChainRig(CloudBaseRig):
 			def_section = []
 
 			# Last bone shouldn't get segmented.
-			segments, bbone_segments = self.get_segments(org_i, self.org_chain)
+			segments, bbone_segments = self.determine_segments(org_i, self.org_chain)
 			
 			for i in range(0, segments):
 				## Create Deform bones

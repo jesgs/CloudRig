@@ -52,18 +52,19 @@ class Rig(CloudIKChainRig):
 			self.ik_parents.append('Chest')
 		self.ik_parents.append(self.limb_ui_name)
 
-	# Overrides CloudChainRig.get_segments()
-	def get_segments(self, org_i, chain):
+	def determine_segments(self, org_i, chain):
 		segments = self.params.CR_deform_segments
 		bbone_segments = self.params.CR_bbone_segments
-		
+
 		if self.limb_type=='LEG' and org_i > len(chain)-3:
 			# Force strictly 1 segment on the foot and the toe.
 			return (1, self.params.CR_bbone_segments)
 		elif self.limb_type=='ARM' and org_i == len(chain)-1:
 			# Force strictly 1 segment on the wrist.
 			return (1, self.params.CR_bbone_segments)
-		
+		elif org_i == len(chain)-1 and not self.params.CR_cap_control:
+			return (1, 1)
+
 		return(segments, bbone_segments)
 
 	def prepare_bones(self):
@@ -323,7 +324,7 @@ class Rig(CloudIKChainRig):
 		toe_con = fk_toe.add_constraint('ARMATURE',
 			targets = [
 				{
-					"subtarget" : self.fk_chain[-2].name	# FK Foot
+					"subtarget" : self.org_chain[-2].fk_bone.name	# FK Foot
 				},
 				{
 					"subtarget" : self.ik_chain[-1].name	# IK Toe

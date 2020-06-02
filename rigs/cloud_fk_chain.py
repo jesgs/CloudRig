@@ -31,6 +31,7 @@ class CloudFKChainRig(CloudChainRig):
 				,custom_shape_scale = org_bone.custom_shape_scale
 				,parent				= self.bones.parent
 			)
+			org_bone.fk_bone = fk_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
 				fk_bone.parent = self.fk_chain[-2]
