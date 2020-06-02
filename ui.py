@@ -15,7 +15,7 @@ def draw_cloud_generator_options(self, context):
 	layout = self.layout
 	obj = context.object
 
-	if not is_cloud_metarig(context.object):
+	if not is_cloud_metarig(context.object) or obj.mode=='EDIT':
 		self.draw_old(context)
 		return
 	
@@ -242,8 +242,7 @@ def register():
 	from bpy.utils import register_class
 	register_class(CloudGenerate)
 	register_class(CloudRigLayerInit)
-	
-	
+
 	# Hijack Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_buttons.draw_old = bpy.types.DATA_PT_rigify_buttons.draw
 	bpy.types.DATA_PT_rigify_buttons.draw = draw_cloud_generator_options
