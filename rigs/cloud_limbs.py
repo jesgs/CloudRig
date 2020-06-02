@@ -67,6 +67,13 @@ class Rig(CloudIKChainRig):
 
 		return(segments, bbone_segments)
 
+	def world_align_last_fk(self):
+		# Make last FK bone world-aligned.
+		if self.params.CR_limb_type=='LEG':
+			self.world_align_fk(self.org_chain[-2].fk_bone)
+		else:
+			super().world_align_last_fk()
+
 	def prepare_bones(self):
 		super().prepare_bones()
 		self.prepare_str_limb()
@@ -82,7 +89,7 @@ class Rig(CloudIKChainRig):
 				fk_bone.lock_rotation[2] = self.params.CR_limb_lock_yz
 
 			if i == 3 and self.limb_type=='LEG':
-				self.fk_toe = fk_bone
+				self.fk_toe = self.org_chain[i].fk_bone
 
 	def prepare_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
@@ -106,9 +113,6 @@ class Rig(CloudIKChainRig):
 				dsp_bone.head = projected_center
 				dsp_bone.tail = projected_center + Vector((0, -self.scale/10, 0))
 				dsp_bone.roll = rad(90) * direction
-
-		self.dsp_bones.remove(self.fk_chain[self.params.CR_ik_length-1].custom_shape_transform)
-		self.fk_chain[-1].custom_shape_transform = None
 
 		# Configure IK Master
 		wgt_name = 'Hand_IK' if self.limb_type=='ARM' else 'Foot_IK'

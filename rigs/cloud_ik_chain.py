@@ -178,26 +178,30 @@ class CloudIKChainRig(CloudFKChainRig):
 				)
 				# Parent this one to the IK master.
 				ik_bone.parent = ik_mstr
-
 				if self.params.CR_world_aligned_controls:
-					fk_bone = self.fk_chain[i]
-					fk_name = fk_bone.name
-					fk_bone.name = fk_bone.name.replace("FK-", "FK-W-")	# W for World.
-					# Make child control for the world-aligned control, that will have the original transforms and name.
-					# This is currently just the target of a Copy Transforms constraint on the ORG bone.
-					fk_child_bone = self.fk_mch.new(
-						name		= fk_name
-						,source		= fk_bone
-						,parent		= fk_bone
-					)
-
-					fk_bone.flatten()
-
 					ik_mstr.flatten()
 
 		# Add IK/FK Snapping to the UI.
 		self.add_ui_data_ik_fk(self.fk_chain, ik_chain, pole_target)
 		return ik_chain
+
+	def world_align_last_fk(self):
+		# Make last FK bone world-aligned.
+		self.world_align_fk(self.org_chain[-1].fk_bone)
+
+	def world_align_fk(self, fk_bone):
+		# Make an FK bone world-aligned.
+		fk_name = fk_bone.name
+		fk_bone.name = fk_bone.name.replace("FK-", "FK-W-")	# W for World.
+		# Make child control for the world-aligned control, that will have the original transforms and name.
+		# This is currently just the target of a Copy Transforms constraint on the ORG bone.
+		fk_child_bone = self.fk_mch.new(
+			name		= fk_name
+			,source		= fk_bone
+			,parent		= fk_bone
+		)
+
+		fk_bone.flatten()
 
 	def setup_ik_stretch(self):
 		ik_org_bone = self.org_chain[self.params.CR_ik_length-1]
@@ -385,6 +389,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
+		if self.params.CR_world_aligned_controls:
+			self.world_align_last_fk()
 		self.prepare_ik_chain()
 		self.prepare_org_limb()
 		self.prepare_parent_switch()
