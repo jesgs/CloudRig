@@ -248,7 +248,7 @@ class CloudSpineRig(CloudChainRig):
 
 			ct_con.drivers.append({
 				'prop' : 'influence',
-				# 'variables' : [(self.prop_bone.name, self.ik_prop_name)]
+				'variables' : [(self.prop_bone.name, self.ik_prop_name)]
 			})
 		
 		# Store info for UI

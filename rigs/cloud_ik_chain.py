@@ -143,7 +143,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			'variables' : [{
 				'type' : 'SINGLE_PROP',
 				'targets' : [{
-					'id' : self.obj,
 					'data_path' : f'data.bones["{pole_ctrl.name}"].hide'
 				}]
 			}]
@@ -192,7 +191,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			else:
 				ik_bone.parent = ik_chain[-2]
-			
+
 			if i == self.params.CR_ik_length-1:
 				# Add the IK constraint to the previous bone, targetting this one.
 				pole_target_name = pole_target.name if pole_target else ""
@@ -221,7 +220,7 @@ class CloudIKChainRig(CloudFKChainRig):
 					fk_bone.flatten()
 
 					ik_mstr.flatten()
-		
+
 		# Add IK/FK Snapping to the UI.
 		self.add_ui_data_ik_fk(self.fk_chain, ik_chain, pole_target)
 		return ik_chain
@@ -405,12 +404,9 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			copy_trans.drivers.append({
 				'prop' : 'influence',
-				'variables' : [{
-					'type' : 'SINGLE_PROP',
-					'targets' : [{
-						'data_path' : f'pose.bones["{self.prop_bone.name}"]["{self.ikfk_name}"]'
-					}]
-				}]
+				'variables' : [
+					(self.prop_bone.name, self.ikfk_name)
+				]
 			})
 
 	def prepare_bones(self):
