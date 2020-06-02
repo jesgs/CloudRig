@@ -89,16 +89,17 @@ class CloudFKChainRig(CloudChainRig):
 				)
 
 		# Create Hinge helper
-		hng_bone = self.hinge_setup(
-			bone = hng_child, 
-			category = self.category,
-			parent_bone = self.limb_root_bone,
-			hng_name = self.base_bone.replace("ORG", "FK-HNG"),
-			prop_bone = self.prop_bone,
-			prop_name = self.fk_hinge_name,
-			limb_name = self.limb_ui_name,
-			bone_set = self.fk_mch
-		)
+		if self.params.CR_use_fk_hinge:
+			hng_bone = self.hinge_setup(
+				bone = hng_child, 
+				category = self.category,
+				parent_bone = self.limb_root_bone,
+				hng_name = self.base_bone.replace("ORG", "FK-HNG"),
+				prop_bone = self.prop_bone,
+				prop_name = self.fk_hinge_name,
+				limb_name = self.limb_ui_name,
+				bone_set = self.fk_mch
+			)
 
 	def prepare_org_chain(self):
 		# Find existing ORG bones
@@ -150,6 +151,12 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
 			,default	 = True
 		)
+
+		params.CR_use_fk_hinge = BoolProperty(
+			name		 = "Hinge Toggle"
+			,description = "Set up a hinge toggle"
+			,default	 = True
+		)
 		
 		params.CR_use_custom_limb_name = BoolProperty(
 			 name		 = "Custom Limb Name"
@@ -198,6 +205,7 @@ class CloudFKChainRig(CloudChainRig):
 		layout.prop(params, "CR_counter_rotate_str")
 		layout.prop(params, "CR_center_all_fk")
 		layout.prop(params, "CR_double_first_control")
+		layout.prop(params, "CR_use_fk_hinge")
 
 		return ui_rows
 
