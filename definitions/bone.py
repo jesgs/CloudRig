@@ -486,7 +486,9 @@ class ConstraintInfo:
 	def set_preferred_defaults(self):
 		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
 
-		self.target = self.bone_info.container.generator.obj
+		# Set target as the rig object, except for some constraint types.
+		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE', 'LIMIT_ROTATION', 'SHRINKWRAP']:
+			self.target = self.bone_info.container.generator.obj
 
 		# Constraints that support local space should default to local space.
 		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',

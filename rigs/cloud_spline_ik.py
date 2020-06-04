@@ -104,14 +104,12 @@ class CloudSplineIKRig(CloudCurveRig):
 					,tail		 = org_bone.head + (unit * (i+1))
 					,roll		 = org_bone.roll
 					,bbone_width = 0.03
-					# ,bone_group	 = self.bone_groups["Curve Deform Bones"]
-					,layers		 = self.bone_layers["Curve Deform Bones"]
 					,hide_select = self.mch_disable_select
 					,use_deform	 = True
 				)
 
-				if len(self.def_bones) > 0:
-					def_bone.parent = self.def_bones[-1]
+				if len(self.def_bones) > 1:
+					def_bone.parent = self.def_bones[-2]
 				else:
 					def_bone.parent = self.org_chain[0]
 
@@ -121,21 +119,22 @@ class CloudSplineIKRig(CloudCurveRig):
 		self.create_curve()
 		self.define_ctrls_for_curve_points()
 		self.create_def_chain()
+		self.add_spline_ik()
 	
 	def define_curve_controls(self):
 		# TODO: This is a bit wonky. This rig's create_curve() relies on CloudBaseRig.prepare_bones() having already run.
 		# But if we simply call super().prepare_bones(), it will run define_ctrls_for_curve_points(), which, for this class, relies on create_curve() running beforehand.
 		pass
 
-	def configure_bones(self):
+	def add_spline_ik(self):
+		print("HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
 		# Add constraint to deform chain
+		print(self.def_bones[-1].name)
 		self.def_bones[-1].add_constraint('SPLINE_IK'
+			,target			  = bpy.data.objects.get(self.curve_ob_name)
 			,use_curve_radius = True
 			,chain_count	  = len(self.def_bones)
-			,target			  = bpy.data.objects.get(self.curve_ob_name)
 		)
-
-		super().configure_bones()
 
 	##############################
 	# Parameters

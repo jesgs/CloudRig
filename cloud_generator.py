@@ -41,11 +41,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "Whether helper bones can be selected or not"
 		,default	 = True
 	)
-	properties_bone: BoolProperty(
-		name		 = "Properties Bone"
-		,description = "Specify a bone to store Properties on. This bone doesn't have to exist in the metarig"
-		,default	 = True
-	)
 
 	prefix_separator: EnumProperty(
 		name		 = "Prefix Separator"
