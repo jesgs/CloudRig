@@ -144,8 +144,9 @@ class CloudGenerator(Generator):
 		# Flag for whether there are any non-CloudRig rig types in the metarig.
 		self.rigify_compatible = False
 		for b in metarig.pose.bones:
-			if 'cloud' not in b.rigify_type:
+			if b.rigify_type!='' and 'cloud' not in b.rigify_type:
 				self.rigify_compatible = True
+				print("Rigify compatible generation enabled.")
 				break
 
 	def create_rig_object(self):
