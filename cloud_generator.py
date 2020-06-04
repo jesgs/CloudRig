@@ -149,6 +149,34 @@ class CloudGenerator(Generator):
 				print("Rigify compatible generation enabled.")
 				break
 
+	def rigify_assign_layers(self):
+		""" Rigify compatibility function: Assign ORG/MCH/DEF layers, only to non-CloudRig types. """
+		bone_names = []
+		for r in self.rig_list:
+			if "cloud" not in str(type(r)):
+				bone_names.extend(r.bones.flatten())
+
+		bones = [b for b in self.obj.data.bones if b.name in bone_names]
+
+		# Every bone that has a name starting with "DEF-" make deforming.  All the
+		# others make non-deforming.
+		for bone in bones:
+			name = bone.name
+
+			bone.use_deform = name.startswith(DEF_PREFIX)
+
+			# Move all the original bones to their layer.
+			if name.startswith(ORG_PREFIX):
+				bone.layers = self.params.cloudrig_parameters.org_layers
+			# Move all the bones with names starting with "MCH-" to their layer.
+			elif name.startswith(MCH_PREFIX):
+				bone.layers = self.params.cloudrig_parameters.mch_layers
+			# Move all the bones with names starting with "DEF-" to their layer.
+			elif name.startswith(DEF_PREFIX):
+				bone.layers = self.params.cloudrig_parameters.def_layers
+
+			bone.bbone_x = bone.bbone_z = bone.length * 0.05
+
 	def create_rig_object(self):
 		scene = self.scene
 
@@ -260,13 +288,14 @@ class CloudGenerator(Generator):
 		return text
 
 	def ensure_bone_groups(self):
-		# Wipe any existing bone groups from the target rig. (TODO: parameter??)
+		# Wipe any existing bone groups from the target rig.
 		if self.obj.pose:
 			for bone_group in self.obj.pose.bone_groups:
 				self.obj.pose.bone_groups.remove(bone_group)
 
+		# Create Bone Groups based on CloudRig Bone Sets.
 		for rig in self.rig_list:
-			if not hasattr(rig, 'bone_sets'): continue
+			if not hasattr(rig, 'bone_sets'): continue	# TODO: Rigify compatibility.
 			for bone_set in rig.bone_sets:
 				meta_bg = bone_set.ensure_bone_group(self.metarig, overwrite=False)
 				if meta_bg:
@@ -277,6 +306,7 @@ class CloudGenerator(Generator):
 				bone_set.ensure_bone_group(self.obj, overwrite=True)
 
 	def ensure_widget_collection(self):
+		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
 		wgt_collection = None
 		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").lower()
 
@@ -301,7 +331,7 @@ class CloudGenerator(Generator):
 		return wgt_collection
 
 	def load_widget(self, name):
-		""" Load custom shapes by appending them from a blend file, unless they already exist in this file. """
+		""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
 		
 		# If it's already loaded, return it.
 		wgt_name = "WGT-"+name
@@ -347,8 +377,6 @@ class CloudGenerator(Generator):
 		return wgt_ob
 
 	def generate(self):
-		# NOTE: It should be possible to configure the generator options such that this function does nothing beside calling the generation stages of the rig elements.
-		# That is to say, everything in here should be behind an if(generator_parameter) statement.
 		print("CloudRig Generation begin")
 
 		context = self.context
@@ -537,8 +565,7 @@ class CloudGenerator(Generator):
 
 		if self.rigify_compatible:
 			self.invoke_generate_widgets()
-
-		# t.tick("Generate widgets: ")
+			t.tick("Generate widgets: ")
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -548,9 +575,8 @@ class CloudGenerator(Generator):
 		self._Generator__restore_driver_vars()
 
 		if self.rigify_compatible:
-			self._Generator__assign_layers()
-
-		t.tick("Assign layers: ")
+			self.rigify_assign_layers()
+			t.tick("Assign layers: ")
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
