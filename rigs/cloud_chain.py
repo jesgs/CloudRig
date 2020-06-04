@@ -434,10 +434,6 @@ def create_sample(obj):
     except AttributeError:
         pass
     try:
-        pbone.rigify_parameters.CR_curve_handle_ratio = 2.5
-    except AttributeError:
-        pass
-    try:
         pbone.rigify_parameters.CR_rotatable_handles = False
     except AttributeError:
         pass

@@ -29,24 +29,18 @@ class CloudSplineIKRig(CloudCurveRig):
 		
 		curve_ob = self.datablock_from_str(bpy.data.objects, self.params.CR_target_curve_name)
 		if curve_ob:
-			len_curve_points = len(curve_ob.data.splines[0].bezier_points)
-			if len_curve_points != self.num_controls:
-				print(f"Warning: CURVE CONTROL POINTS ({len_curve_points}) DON'T MATCH NUMBER OF DESIRED HOOK CONTROLS ({self.num_controls}) ON RIG: {self.base_bone}")
-			self.curve_ob_name = curve_ob.name
-			return curve_ob
 			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.
 			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken.
 
 		
 		sum_bone_length = sum([b.length for b in self.org_chain])
 		length_unit = sum_bone_length / (self.num_controls-1)
-		handle_length = length_unit / self.params.CR_curve_handle_ratio
-		
+		handle_length = length_unit * self.params.CR_curve_handle_length
+
 		curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
 		curve_name += "_" + (self.params.CR_hook_name if self.params.CR_hook_name!="" else self.base_bone.replace("ORG-", ""))
 		
 		# Create and name curve object.
-		org_mode = bpy.context.object.mode
 		bpy.ops.curve.primitive_bezier_curve_add(radius=0.2, location=(0, 0, 0))
 
 		curve_ob = bpy.context.view_layer.objects.active
@@ -81,7 +75,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		# Reset selection so Rigify can continue execution.
 		bpy.context.view_layer.objects.active = self.obj
 		self.obj.select_set(True)
-		bpy.ops.object.mode_set(mode=org_mode)
+		bpy.ops.object.mode_set(mode='EDIT')
 
 		return curve_ob
 
@@ -127,7 +121,6 @@ class CloudSplineIKRig(CloudCurveRig):
 		pass
 
 	def add_spline_ik(self):
-		print("HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
 		# Add constraint to deform chain
 		print(self.def_bones[-1].name)
 		self.def_bones[-1].add_constraint('SPLINE_IK'
@@ -158,10 +151,12 @@ class CloudSplineIKRig(CloudCurveRig):
 			,description = "Hook controls will be created at each bone, instead of being equally distributed across the length of the chain"
 			,default	 = True
 		)
-		params.CR_curve_handle_ratio = FloatProperty(
-			 name		 = "Curve Handle Length Ratio"
-			,description = "Increasing this will result in shorter curve handles, resulting in a sharper curve"
-			,default	 = 2.5
+		params.CR_curve_handle_length = FloatProperty(
+			 name		 = "Curve Handle Length"
+			,description = "Increasing this will result in longer curve handles, resulting in a sharper curve. A value of 1 means the curve handle reaches the neighbouring curve point"
+			,default	 = 0.4
+			,min		 = 0.01
+			,max		 = 2.0
 		)
 		params.CR_num_hooks = IntProperty(
 			 name		 = "Number of Hooks"
@@ -171,7 +166,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			,max		 = 99
 		)
 		params.CR_subdivide_deform = IntProperty(
-			 name="Subdivide bones"
+			 name="Subdivide Bones"
 			,description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain"
 			,default=3
 			,min=1
@@ -201,7 +196,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		if not params.CR_show_spline_ik_settings: return
 
 		layout.prop(params, "CR_subdivide_deform")
-		layout.prop(params, "CR_curve_handle_ratio")
+		layout.prop(params, "CR_curve_handle_length")
 
 		layout.prop(params, "CR_match_hooks_to_bones")	# TODO: When this is false, the directions of the curve points and bones don't match, and both of them are unsatisfactory. It would be nice if we would interpolate between the direction of the two bones, using length_remaining/bone.length as a factor, or something similar to that.
 		if not params.CR_match_hooks_to_bones:
@@ -304,7 +299,7 @@ def create_sample(obj):
     except AttributeError:
         pass
     try:
-        pbone.rigify_parameters.CR_curve_handle_ratio = 2.5
+        pbone.rigify_parameters.CR_curve_handle_length = 2.5
     except AttributeError:
         pass
     try:
