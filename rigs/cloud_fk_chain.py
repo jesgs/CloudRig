@@ -95,7 +95,7 @@ class CloudFKChainRig(CloudChainRig):
 				category = self.category,
 				parent_bone = self.limb_root_bone,
 				hng_name = self.base_bone.replace("ORG", "FK-HNG"),
-				prop_bone = self.prop_bone,
+				prop_bone = self.ikfk_properties_bone,
 				prop_name = self.fk_hinge_name,
 				limb_name = self.limb_ui_name,
 				bone_set = self.fk_mch

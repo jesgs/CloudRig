@@ -316,7 +316,7 @@ class Rig(CloudIKChainRig):
 		ik_driver = {
 			'prop' : 'targets[1].weight',
 			'variables' : [
-				(self.prop_bone.name, self.ikfk_name)
+				(self.ikfk_properties_bone.name, self.ikfk_name)
 			]
 		}
 		toe_con.drivers.append(ik_driver)

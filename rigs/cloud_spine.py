@@ -107,7 +107,7 @@ class CloudSpineRig(CloudChainRig):
 				category = "Head",
 				parent_bone = self.fk_chain[-2],
 				hng_name = self.fk_chain[-1].name.replace("FK", "FK-HNG"),
-				prop_bone = self.prop_bone,
+				prop_bone = self.ikfk_properties_bone,
 				prop_name = "fk_hinge_head",
 				limb_name = "Head",
 				head_tail = 1,
@@ -211,7 +211,7 @@ class CloudSpineRig(CloudChainRig):
 					'prop' : 'influence',
 					'expression' : f"var * {influence}",
 					'variables' : [
-						(self.prop_bone.name, self.ik_stretch_name)
+						(self.ikfk_properties_bone.name, self.ik_stretch_name)
 					]
 				})
 
@@ -247,18 +247,18 @@ class CloudSpineRig(CloudChainRig):
 
 			ct_con.drivers.append({
 				'prop' : 'influence',
-				'variables' : [(self.prop_bone.name, self.ik_prop_name)]
+				'variables' : [(self.ikfk_properties_bone.name, self.ik_prop_name)]
 			})
 		
 		# Store info for UI
 		info = {
-			"prop_bone"		: self.prop_bone.name,
+			"prop_bone"		: self.ikfk_properties_bone.name,
 			"prop_id" 		: self.ik_stretch_name,
 		}
 		self.add_ui_data("ik_stretches", "spine", "Spine", info, default=1.0)
 
 		info = {
-			"prop_bone"		: self.prop_bone.name,
+			"prop_bone"		: self.ikfk_properties_bone.name,
 			"prop_id"		: self.ik_prop_name,
 		}
 		self.add_ui_data("ik_switches", "spine", "Spine", info, default=0.0)

@@ -100,13 +100,13 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			del self.obj.data[k]
 
 	@property
-	def prop_bone(self):
+	def ikfk_properties_bone(self):
 		""" Ensure that a Properties bone exists, and return it. """
 		# This is a @property so that if it's never called(like in the case of very simple rigs), the properties bone is not created.
 		bone_name = "Properties_IKFK"
-		prop_bone = self.get_bone_info(bone_name)
-		if not prop_bone:
-			prop_bone = self.generator.root_set.new(
+		ikfk_properties_bone = self.get_bone_info(bone_name)
+		if not ikfk_properties_bone:
+			ikfk_properties_bone = self.generator.root_set.new(
 				name		  = "Properties_IKFK"
 				,head		  = Vector((0, self.scale*2, 0))
 				,tail		  = Vector((0, self.scale*4, 0))
@@ -114,7 +114,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 				,custom_shape = self.load_widget("Cogwheel")
 				,use_custom_shape_bone_size = True
 			)
-		return prop_bone
+		return ikfk_properties_bone
 
 	def ensure_bone_set(self, bone_set_name):
 		bone_set_defs = type(self).bone_set_defs
