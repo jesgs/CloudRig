@@ -18,7 +18,7 @@ class CloudBoneRig(BaseRig, cloud_utils.CloudUtilities):
 
 	def initialize(self):
 		super().initialize()
-		self.bone_name = self.base_bone	# Dynamic value, should always be the name of the bone that we are operating on... And because of how messy this solution is, this changes quite a lot.
+		self.bone_name = self.base_bone	# Name of the bone that is being created/modified.
 		self.orgless_name = self.base_bone.replace("ORG-", "")
 		self.copy_type = self.params.CR_copy_type
 

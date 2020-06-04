@@ -125,6 +125,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		
 		bone_set_def = bone_set_defs[bone_set_name]
 		
+		bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
+
 		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
 		cloudrig = self.generator_params.cloudrig_parameters
 		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
@@ -140,7 +142,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			self.generator,
 			ui_name = bone_set_def['name'],
 			bone_group = getattr(self.params, bone_set_def['param']),
-			layers = getattr(self.params, bone_set_def['layer_param']),
+			layers = bone_set_def['layers'],
 			preset = bone_set_def['preset'],
 			defaults = self.defaults
 		)
