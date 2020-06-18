@@ -70,7 +70,7 @@ class CloudFKChainRig(CloudChainRig):
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
-				fk_bone.parent = self.fk_chain[-2]
+				fk_bone.parent = self.org_chain[i-1].fk_bone
 			if self.params.CR_center_all_fk:
 				self.create_dsp_bone(fk_bone, center=True)
 			if self.params.CR_counter_rotate_str:

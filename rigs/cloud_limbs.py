@@ -83,13 +83,11 @@ class Rig(CloudIKChainRig):
 	def prepare_fk_chain(self):
 		super().prepare_fk_chain()
 
-		for i, fk_bone in enumerate(self.fk_chain):
-			if i == 1:
-				fk_bone.lock_rotation[1] = self.params.CR_limb_lock_yz
-				fk_bone.lock_rotation[2] = self.params.CR_limb_lock_yz
+		if self.limb_type=='LEG':
+			self.fk_toe = self.org_chain[3].fk_bone
 
-			if i == 3 and self.limb_type=='LEG':
-				self.fk_toe = self.org_chain[i].fk_bone
+		elbow_knee = self.org_chain[1].fk_bone
+		elbow_knee.lock_rotation[1] = elbow_knee.lock_rotation[2] = self.params.CR_limb_lock_yz
 
 	def prepare_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
