@@ -1,10 +1,12 @@
-# This file is executed and loaded into a self-registering text datablock when a CloudRig is generated.
-# It's currently responsible for drawing rig UI
+"""
+This file is executed and loaded into a self-registering text datablock when a CloudRig is generated.
+It's responsible for drawing rig UI
 
-# The only change made by the generator is replacing SCRIPT_ID with the name of the blend file.
-# This is used to allow multiple characters generated with different versions of CloudRig
-# to co-exist in the same scene.
-# So each rig uses the script that belongs to it, and not another, potentially newer or older version.
+The only change made during rig generation is replacing SCRIPT_ID with the name of the blend file.
+This is used to allow multiple characters generated with different versions of CloudRig
+to co-exist in the same scene.
+So each rig uses the script that belongs to it, and not another, potentially newer or older version.
+"""
 
 import bpy, traceback, json
 from bpy.props import StringProperty, BoolProperty, BoolVectorProperty, EnumProperty, FloatVectorProperty, PointerProperty, CollectionProperty
@@ -1015,21 +1017,14 @@ class CLOUDRIG_PT_face(CLOUDRIG_PT_main):
 		layout = self.layout
 		rig = active_cloudrig()
 		if not rig: return
+
+		draw_rig_settings(layout, rig, "face_settings", label='')
+
+	def draw_old(self, context):
+		layout = self.layout
+		rig = active_cloudrig()
+		if not rig: return
 		face_props = rig.pose.bones.get('Properties_Face')
-
-		if 'face_settings' in rig.data:
-			# Eyelid settings
-			layout.prop(face_props, '["sticky_eyelids"]',	text='Sticky Eyelids',  slider=True)
-			layout.prop(face_props, '["sticky_eyesockets"]', text='Sticky Eyerings', slider=True)
-
-			layout.separator()
-			# Mouth settings
-			layout.prop(face_props, '["teeth_follow_mouth"]', text='Teeth Follow Mouth', slider=True)
-
-			layout.label(text="Eye Target Parent")
-			row = layout.row()
-			eye_parents = ['Root', 'Torso', 'Torso_Loc', 'Head']
-			row.prop(face_props, '["eye_target_parents"]',  text=eye_parents[face_props["eye_target_parents"]], slider=True)
 
 class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_misc_" + script_id
@@ -1100,7 +1095,6 @@ def register():
 
 	# We store everything in Object rather than Armature because Armature data cannot be accessed on proxy armatures.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
-	# TODO: move this inside cloud_rig.colors?
 	bpy.types.Object.cloud_colors = CollectionProperty(type=CloudRig_ColorProperties)
 
 def unregister():
