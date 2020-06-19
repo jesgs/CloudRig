@@ -217,14 +217,6 @@ class CloudChainRig(CloudBaseRig):
 				if bbone_segments > 1:
 					def_bone.inherit_scale = 'NONE'
 				org_bone.def_bones.append(def_bone)
-			
-				if self.params.CR_sharp_sections:
-					# First bone of the segment, but not the first bone of the chain.
-					if i==0 and org_i != 0:
-						def_bone.bbone_easein = 0
-					# Last bone of the segment, but not the last bone of the chain.
-					if i==segments-1 and org_i != len(self.org_chain)-1:
-						def_bone.bbone_easeout = 0
 
 				def_section.append(def_bone)
 			def_sections.append(def_section)
@@ -245,15 +237,15 @@ class CloudChainRig(CloudBaseRig):
 						# If this is also the last bone of the last section(eg. Wrist bone), don't do anything else, unless the Final Control option is enabled.
 						break
 				else:
-					# Otherwise parent to previous deform bone.
+					# Parent to previous deform bone.
 					def_bone.parent = section[i-1]
 				
-				# Set BBone start handle to the same index STR bone.
+				# Set BBone start handle to the STR bone of the same index.
 				def_bone.bbone_custom_handle_start = str_sections[sec_i][i].name
 				
 				next_str = ""
 				if i < len(section)-1:
-					# Set BBone end handle to the next index STR bone.
+					# Set BBone end handle to the next STR bone.
 					next_str = str_sections[sec_i][i+1].name
 					def_bone.bbone_custom_handle_end = next_str
 				else:
@@ -267,6 +259,21 @@ class CloudChainRig(CloudBaseRig):
 				# BBone scale drivers
 				if def_bone.bbone_segments > 1:
 					self.make_bbone_scale_drivers(def_bone)
+					if self.params.CR_sharp_sections:
+						# First bone of the segment, but not the first bone of the chain.
+						if i==0 and sec_i != 0:
+							# Modify the bbone_easein driver so the joint is not rubber hose-y.
+							for d in def_bone.drivers_data:
+								if d['prop'] == 'bbone_easein':
+									d['expression'] = "var-scale"
+
+						segments, bbone_segments = self.determine_segments(sec_i, self.org_chain)
+						# Last bone of the segment, but not the last bone of the chain.
+						if i==segments-1 and sec_i != len(self.org_chain)-1:
+							# Modify the bbone_easeout driver so the joint is not rubber hose-y.
+							for d in def_bone.drivers_data:
+								if d['prop'] == 'bbone_easeout':
+									d['expression'] = "var-scale"
 
 		self.connect_parent_chain_rig()
 

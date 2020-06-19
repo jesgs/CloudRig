@@ -112,7 +112,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,head_tail = 1
 		)
 		# Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
-		pole_line.drivers.append({
+		pole_line.drivers_data.append({
 			'prop' : 'hide',
 			'variables' : [{
 				'type' : 'SINGLE_PROP',

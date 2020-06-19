@@ -138,7 +138,9 @@ class BoneInfo():
 
 		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to cloud_utils.make_custom_property().
 		self.custom_props_edit = {}
-		self.drivers = []	# List of dictionaries that will be passed to Rigify's make_driver().
+		self.drivers = []		# List of dictionaries that will be passed to Rigify's make_driver().
+		self.drivers_data = []	# Same but for data bone properties.
+
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		### Edit Bone properties
@@ -448,17 +450,15 @@ class BoneInfo():
 		for prop_name, prop in self.custom_props.items():
 			cloud_utils.make_custom_property(pb, prop_name, **prop)
 
-		# Drivers.
+		# Pose Bone Drivers.
 		for driver_info in self.drivers:
-			data_path = driver_info['prop']
-			
-			try:
-				driver_info['prop'] = f'pose.bones["{pb.name}"].{data_path}'
-				make_driver(armature, target_id=armature, **driver_info)
-			except TypeError:
-				# If we couldn't add the driver to the pose bone, try the data bone.
-				driver_info['prop'] = f'bones["{pb.name}"].{data_path}'
-				make_driver(armature.data, target_id=armature, **driver_info)
+			driver_info['prop'] = f'pose.bones["{pb.name}"].{driver_info["prop"]}'
+			make_driver(armature, target_id=armature, **driver_info)
+		
+		# Data Bone Drivers.
+		for driver_info in self.drivers_data:
+			driver_info['prop'] = f'bones["{pb.name}"].{driver_info["prop"]}'
+			make_driver(armature.data, target_id=armature, **driver_info)
 	
 	def get_real(self, armature):
 		"""If a bone with the name of this BoneInfo exists in the passed armature, return it."""
