@@ -20,6 +20,10 @@ class DefaultLayers(Enum):
 	MCH = 30
 	ORG = 31
 
+	FACE_MAIN = 3
+	FACE_SECOND = 19
+	FACE_TWEAK = 20
+
 class CloudBaseRig(BaseRig, CloudUtilities):
 	"""Base for all CloudRig rigs."""
 
@@ -160,8 +164,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		self.load_org_bones()
 
 	def load_org_bones(self):
-		# Load ORG bones into BoneInfo instances.
-		# self.org_chain = []
+		# Load ORG bones into BoneInfo instances in self.org_chain.
 
 		for bn in self.bones.org.main:
 			eb = self.get_bone(bn)
