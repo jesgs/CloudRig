@@ -15,6 +15,7 @@ from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path
 
 script_id = "SCRIPT_ID"
+# TODO: Shouldn't this be added to operator bl_idnames?
 
 def get_rigs():
 	""" Find all cloudrig armatures in the file. """
@@ -481,8 +482,8 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 	ik_control: StringProperty()
 	ik_pole:	StringProperty()
 
-	double_first_control: BoolProperty(default=False)
-	double_ik_control:	  BoolProperty(default=False)
+	double_first_control: BoolProperty(default=False)	# Flag for handling when the first FK bone is "doubled" (ie. has an extra parent bone).
+	double_ik_control:	  BoolProperty(default=False)	# Flag for handling when the IK control(eg. IK_Wrist.L) is "doubled".
 
 	@classmethod
 	def poll(cls, context):
@@ -499,10 +500,12 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 		ik_control = armature.pose.bones.get(self.ik_control)
 		assert ik_control, "ERROR: Could not find IK Control: " + self.ik_control
 
-		map_on = []
-		map_off = []
-		hide_on = [b.name for b in fk_chain]
-		hide_off = [self.ik_control, self.ik_pole]
+		# List of bone tuples to snap from->to.
+		map_on = []									# Which bone will be snapped to which when the custom property prop_id is set to 1.
+		map_off = [] 								# Which bone will be snapped to which when the custom property prop_id is set to 0.
+		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
+		hide_off = [self.ik_control, self.ik_pole]	# Which bones will be hidden when the custom property is set to 0.
+
 		if self.double_ik_control:
 			hide_off.append(ik_control.parent.name)
 			map_on.append( (ik_control.parent.name, fk_chain[-1].name) )
@@ -517,20 +520,6 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 
 		prop_bone = armature.pose.bones.get(self.prop_bone)
 		value = prop_bone[self.prop_id]
-		if value==0:
-			# Snap the last IK control to the last FK control.
-			first_ik_bone = ik_chain[0]
-			last_ik_bone = ik_chain[-1]
-			first_fk_bone = fk_chain[-2].parent
-			if ik_pole:
-				self.match_pole_target(first_ik_bone, last_ik_bone, ik_pole, first_fk_bone, 0.5)
-			else:
-				if first_ik_bone.rotation_mode == first_fk_bone.rotation_mode:
-					first_ik_bone.location = first_fk_bone.location.copy()
-					first_ik_bone.rotation_euler = first_fk_bone.rotation_euler.copy()
-				else:
-					first_ik_bone.matrix = first_fk_bone.matrix.copy()
-			context.evaluated_depsgraph_get().update()
 
 		bpy.ops.pose.snap_mapped(
 			prop_bone = self.prop_bone,
@@ -544,9 +533,21 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 			select_bones = True,
 		)
 
-		if value==0 and ik_pole:
-			# Select pole
-			ik_pole.bone.select=True
+		if value==0:
+			# Snap the last IK control to the last FK control.
+			first_ik_bone = ik_chain[0]
+			last_ik_bone = ik_chain[-1]
+			if ik_pole:
+				self.match_pole_target_new(ik_pole, fk_chain[0], fk_chain[1])
+				ik_pole.bone.select=True
+				# self.match_pole_target(first_ik_bone, last_ik_bone, ik_pole, first_fk_bone, 0.5)
+			else:
+				if first_ik_bone.rotation_mode == fk_chain[0].rotation_mode:
+					first_ik_bone.location = fk_chain[0].location.copy()
+					first_ik_bone.rotation_euler = fk_chain[0].rotation_euler.copy()
+				else:
+					first_ik_bone.wdmatrix = fk_chain[0].matrix.copy()
+			context.evaluated_depsgraph_get().update() #TODO: This might be useless?
 
 		return {'FINISHED'}
 
@@ -622,6 +623,21 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 		if angle > radians(90):
 			angle = -angle + radians(180)
 		return angle
+
+	def match_pole_target_new(self, ik_pole, fk_first, fk_last):
+		""" Place an IK pole control based on 2 FK bones in a way where the IK chain would match the FK chain. """
+		""" This may only work if the bone chain lies perfectly on a plane and the IK Pole Angle is divisible by 90. This should be the case for a correct IK chain! """
+
+		chain_length = fk_first.vector.length + fk_last.vector.length
+		pole_distance = chain_length/2
+
+		pole_direction = (fk_first.vector - fk_last.vector).normalized()
+
+		pole_loc = fk_first.tail + pole_direction * pole_distance
+
+		ik_pole.matrix.translation = pole_loc
+
+		bpy.context.scene.cursor.location = pole_loc
 
 	def match_pole_target(self, ik_first, ik_last, pole, match_bone, length):
 		""" Places an IK chain's pole target to match ik_first's

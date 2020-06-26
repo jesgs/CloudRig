@@ -490,7 +490,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		params.CR_show_ik_settings = BoolProperty(name="IK Rig")
 		# TODO: Parameter to let the IK control be at the tip of the last bone instead of at the last bone itself. Would be useful for fingers.
-		params.CR_ik_length = IntProperty(
+		params.CR_ik_length = IntProperty(	# TODO: DEPRECATE THIS!!! IT'S DUMB!! The end of the chain is simply indicated by a disconnected bone! If we want it to continue in FK, put a separate FK rig!
 			name	 	 = "IK Length"
 			,description = "Length of the IK chain. Cannot be higher than the number of bones in the chain"
 			,default	 = 3
