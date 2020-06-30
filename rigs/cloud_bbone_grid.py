@@ -7,9 +7,7 @@ from rigify.base_rig import stage
 from .cloud_base import CloudBaseRig
 
 class CloudBBoneGridRig(CloudBaseRig):
-	"""CloudRig BBone grid."""
-
-	description = "Set up a grid of Bendy Bones and their controls. They must already exist as the children of this bone."
+	"""Set up a grid of Bendy Bones and their controls. They must already exist as the children of this bone."""
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()

@@ -8,9 +8,7 @@ from .cloud_base import CloudBaseRig
 from .cloud_utils import make_name, slice_name
 
 class CloudCurveRig(CloudBaseRig):
-	"""CloudRig Curve Control Rig."""
-
-	description = "Create hook controls for an existing bezier curve."
+	"""Create hook controls for an existing bezier curve."""
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""

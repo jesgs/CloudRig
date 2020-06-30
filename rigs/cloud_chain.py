@@ -8,9 +8,7 @@ from .cloud_utils import make_name, slice_name
 from .cloud_base import CloudBaseRig
 
 class CloudChainRig(CloudBaseRig):
-	"""CloudRig stretchy BBone chain."""
-
-	description = "Stretchy chain for pure squash and stretch."
+	"""Chain with cartoony squash and stretch controls."""
 
 	def initialize(self):
 		super().initialize()

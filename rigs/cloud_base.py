@@ -25,9 +25,7 @@ class DefaultLayers(Enum):
 	FACE_TWEAK = 20
 
 class CloudBaseRig(BaseRig, CloudUtilities):
-	"""Base for all CloudRig rigs."""
-
-	description = "CloudRig Element (no description)"
+	"""Base for all CloudRig rigs. Does nothing on its own."""
 
 	bone_set_defs = OrderedDict()	# TODO: We could simply store a list of BoneSet instances at the class level, which would then be copied over at the instance level?
 	
@@ -309,7 +307,9 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def cloud_params_ui(cls, layout, params):
 		ui_rows = {}
 		from ..ui import ui_label_with_linebreak
-		ui_label_with_linebreak(layout, cls.description)
+		doc = cls.__doc__ or cls.__bases__[0].__doc__
+		if doc:
+			ui_label_with_linebreak(layout, doc)
 		return ui_rows
 
 	@classmethod

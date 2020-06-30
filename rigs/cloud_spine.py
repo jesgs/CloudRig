@@ -14,9 +14,7 @@ from .cloud_fk_chain import CloudChainRig
 #     When registering bones as a parent, the parent identifiers are also non-unique.
 
 class CloudSpineRig(CloudChainRig):
-	"""CloudRig Spine"""
-
-	description = "Spine setup with FK and IK-like controls. Stretchy IK settings can be found in the rig UI."
+	"""Spine setup with FK, IK-like and stretchy IK controls. Currently only one of these per rig is supported."""
 
 	def find_org_bones(self, bone):
 		"""Populate self.bones.org."""

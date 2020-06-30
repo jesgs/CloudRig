@@ -13,9 +13,7 @@ IK_MAIN = 0
 IK_SECOND = 16
 #TODO: There's some code in limb that makes the last def- bone has bbone_easeout=0. That should be in here, under a parameter, that's greyed out when ik_tail or whatever it will be called, would be enabled. Maybe.
 class CloudIKChainRig(CloudFKChainRig):
-	"""CloudRig IK chain."""
-
-	description = "IK chain with stretchy IK and IK/FK snapping. Pole control optional."
+	"""IK chain with stretchy IK and IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""
@@ -528,4 +526,5 @@ class CloudIKChainRig(CloudFKChainRig):
 		return ui_rows
 
 class Rig(CloudIKChainRig):
+	
 	pass

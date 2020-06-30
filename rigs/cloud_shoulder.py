@@ -7,10 +7,8 @@ from rigify.base_rig import stage
 from .cloud_fk_chain import CloudFKChainRig
 
 class CloudShoulderRig(CloudFKChainRig):
-	"""Cloud shoulder rig. (Currently very simple)"""
-    # TODO: Deprecate this by adding a parameter to cloud_bone to register the tweaked bone as a parent?
-    
-	description = "A single bone control that connects the arm to the spine."
+	"""A single bone control to connect an arm to a spine."""
+    # TODO: Deprecate this by adding a parameter to cloud_bone to register its bone as a parent?
 
 	def find_org_bones(self, bone):
 		"""Populate self.bones.org."""

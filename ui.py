@@ -212,31 +212,35 @@ class CloudGenerate(bpy.types.Operator):
 		return {'FINISHED'}
 
 def ui_label_with_linebreak(layout, text):
-	words = text.split(" ")
-	word_index = 0
+	"""Attempt to simulate a proper textbox by only displaying as many characters in a single label as fits in the UI."""
 
-	lines = [""]
-	line_index = 0
+	paragraphs = text.split("\n")
+	for p in paragraphs:
+		words = p.split(" ")
+		word_index = 0
 
-	cur_line_length = 0
-	# Try to determine maximum allowed characters in this line, based on pixel width of the area. 
-	# Not a great solution, but better than nothing.
-	max_line_length = bpy.context.area.width/8
+		lines = [""]
+		line_index = 0
 
-	while word_index < len(words):
-		word = words[word_index]
+		cur_line_length = 0
+		# Try to determine maximum allowed characters in this line, based on pixel width of the area. 
+		# Not a great metric, but I couldn't find anything better.
+		max_line_length = bpy.context.area.width/8
 
-		if cur_line_length + len(word)+1 < max_line_length:
-			word_index += 1
-			cur_line_length += len(word)+1
-			lines[line_index] += word + " "
-		else:
-			cur_line_length = 0
-			line_index += 1
-			lines.append("")
-	
-	for line in lines:
-		layout.label(text=line)
+		while word_index < len(words):
+			word = words[word_index]
+
+			if cur_line_length + len(word)+1 < max_line_length:
+				word_index += 1
+				cur_line_length += len(word)+1
+				lines[line_index] += word + " "
+			else:
+				cur_line_length = 0
+				line_index += 1
+				lines.append("")
+		
+		for line in lines:
+			layout.label(text=line)
 
 def register():
 	from bpy.utils import register_class

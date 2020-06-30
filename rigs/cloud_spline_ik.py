@@ -8,9 +8,7 @@ from .cloud_curve import CloudCurveRig
 from .cloud_utils import make_name, slice_name
 
 class CloudSplineIKRig(CloudCurveRig):
-	"""CloudRig Spline IK chain."""
-
-	description = "Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."
+	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
 	def initialize_curve_rig(self):
 		length = len(self.bones.org.main)
