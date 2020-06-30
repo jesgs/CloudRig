@@ -4,6 +4,7 @@ import os
 
 from copy import deepcopy
 from rigify.utils.misc import copy_attributes
+from rigify.utils.mechanism import make_property
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
@@ -390,22 +391,6 @@ def create_parent_bone(child, bone_set=None):
 	child.parent = parent_bone
 	return parent_bone
 
-def make_custom_property(owner, name, default=0.0, min=0.0, max=1.0, soft_min=0.0, soft_max=1.0, description="", overridable=True, subtype=True):
-	return rna_idprop_ui_create(
-		owner, 
-		name, 
-
-		default = default,
-		min = min, 
-		max = max, 
-		soft_min = soft_min, 
-		soft_max = soft_max,
-
-		description = description,
-		overridable = overridable,
-		subtype = subtype
-	)
-
 def copy_custom_property(from_owner, to_owner, prop_name):
 	rna_ui = from_owner['_RNA_UI'].to_dict()
 	
@@ -416,12 +401,12 @@ def copy_custom_property(from_owner, to_owner, prop_name):
 	data = rna_ui[prop_name]
 	data['overridable'] = from_owner.is_property_library_overridable(f'["{prop_name}]"')
 
+	if not 'default' in data:
+		data['default'] = 1.0
 	if not 'description' in data:
 		data['description'] = ""
-	if not 'subtype' in data:
-		data['subtype'] = True
 	
-	make_custom_property(to_owner, prop_name, **data)
+	make_property(to_owner, prop_name, **data)
 
 def copy_driver(from_fcurve, obj, data_path=None, index=None):
 	if not data_path:

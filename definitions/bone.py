@@ -4,7 +4,7 @@ import bpy
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
-from rigify.utils.mechanism import make_constraint, make_driver
+from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
 class BoneSet(list):
 	""" Class to manage lists of BoneInfo instances. 
@@ -136,7 +136,7 @@ class BoneInfo():
 
 		self.container = container
 
-		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to cloud_utils.make_custom_property().
+		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
 		self.custom_props_edit = {}
 		self.drivers = []		# List of dictionaries that will be passed to Rigify's make_driver().
 		self.drivers_data = []	# Same but for data bone properties.
@@ -384,7 +384,7 @@ class BoneInfo():
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props_edit.items():
-			cloud_utils.make_custom_property(eb, prop_name, **prop)
+			make_property(eb, prop_name, **prop)
 
 	def write_pose_data(self, pose_bone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
@@ -448,7 +448,7 @@ class BoneInfo():
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
-			cloud_utils.make_custom_property(pb, prop_name, **prop)
+			make_property(pb, prop_name, **prop)
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:
