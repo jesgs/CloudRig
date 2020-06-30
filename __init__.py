@@ -10,6 +10,7 @@ from . import ui
 
 import bpy, os
 from bpy.props import StringProperty
+from . import versioning
 
 
 # This allows you to right click on a button and link to documentation
@@ -31,9 +32,9 @@ def register():
 	ui.register()
 
 	register_manual_map(cloudrig_manual_map)
+	versioning.do_blender_versioning()
 
 def unregister():
-	"""Hopefully one day Rigify will call unregister() for feature sets that are removed. Until then, this is useless."""
 	from bpy.utils import unregister_class, unregister_manual_map
 	unregister_manual_map(cloudrig_manual_map)
 
@@ -44,4 +45,6 @@ def unregister():
 	cloud_generator.unregister()
 	ui.unregister()
 
-register()
+if versioning.is_before_register_commit():
+	print(f"Blender Version older than {register_commit_date}, self-registering CloudRig.")
+	register()

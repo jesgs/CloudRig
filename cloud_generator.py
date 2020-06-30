@@ -1,6 +1,6 @@
 import bpy, os
 from mathutils import Matrix, Vector
-from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty
 from rigify.generate import *
 from .definitions.bone import BoneSet
 from .rigs import cloud_utils
@@ -12,6 +12,11 @@ separators = [
 ]
 
 class CloudRigProperties(bpy.types.PropertyGroup):
+	version: FloatProperty(
+		name		 = "CloudRig Version"
+		,description = "For internal use only"
+		,default	 = 0.0
+	)
 	options: BoolProperty(
 		name		 = "CloudRig Settings"
 		,description = "Show CloudRig Settings"
@@ -154,7 +159,7 @@ class CloudGenerator(Generator):
 						bone_names.append(bi.name)
 				elif "cloud_bone" in str(type(r)):	# TODO: cloud_bone should store bones more consistently with cloud_base.
 					bone_names.append(r.bone_name)
-					if "def_bone_name" in str(type(r)):
+					if hasattr(r, "def_bone_name"):
 						bone_names.append(r.def_bone_name)
 
 		bones = [b for b in self.obj.data.bones if b.name not in bone_names]
