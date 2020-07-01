@@ -258,26 +258,26 @@ class CloudUtilities:
 
 		# Scale In X/Y
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_start!=""):
-			bi.drivers_data.append(scaleinx_driver)
+			bi.drivers.append(scaleinx_driver)
 
 			scaleiny_driver = deepcopy(scaleinx_driver)
 			scaleiny_driver['prop'] = "bbone_scaleiny"
 			scaleiny_var = deepcopy(scaleinx_var)
 			scaleiny_var['targets'][0]['transform_type'] = 'SCALE_Z'
 			scaleiny_driver['variables']['var'] = scaleiny_var
-			bi.drivers_data.append(scaleiny_driver)
+			bi.drivers.append(scaleiny_driver)
 
 		# Scale Out X/Y
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end!=""):
 			scaleoutx_driver = deepcopy(scaleinx_driver)
 			scaleoutx_driver['prop'] = "bbone_scaleoutx"
 			scaleoutx_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
-			bi.drivers_data.append(scaleoutx_driver)
+			bi.drivers.append(scaleoutx_driver)
 
 			scaleouty_driver = deepcopy(scaleoutx_driver)
 			scaleouty_driver['prop'] = "bbone_scaleouty"
 			scaleouty_driver['variables']['var']['targets'][0]['transform_type'] = 'SCALE_Z'
-			bi.drivers_data.append(scaleouty_driver)
+			bi.drivers.append(scaleouty_driver)
 
 		### Ease In/Out
 		easein_var = {
@@ -306,7 +306,7 @@ class CloudUtilities:
 
 		# Ease In
 		if (bi.bbone_handle_type_start == 'TANGENT' and bi.bbone_custom_handle_start):
-			bi.drivers_data.append(easein_driver)
+			bi.drivers.append(easein_driver)
 
 		# Ease Out
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
@@ -314,7 +314,7 @@ class CloudUtilities:
 			easeout_driver['prop'] = "bbone_easeout"
 			easeout_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
 			easeout_driver['variables']['scale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
-			bi.drivers_data.append(easeout_driver)
+			bi.drivers.append(easeout_driver)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)
