@@ -634,7 +634,7 @@ class CloudGenerator(Generator):
 				child.matrix_world = mat
 		
 		# Refresh drivers
-		bpy.ops.object.refresh_drivers(selected_only=False)
+		bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
 
 def generate_rig(context, metarig):
 	""" Generates a rig from a metarig.	"""

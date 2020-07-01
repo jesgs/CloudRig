@@ -1,14 +1,12 @@
-import bpy, os
-from bpy.props import BoolProperty, FloatProperty, StringProperty, BoolVectorProperty
+from bpy.props import BoolProperty, StringProperty, BoolVectorProperty
 from mathutils import Vector
 from collections import OrderedDict
-
-from rigify.base_rig import BaseRig, stage
+from enum import Enum
 
 from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
-from .. import cloud_generator
-from enum import Enum
+
+from rigify.base_rig import BaseRig
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0
@@ -59,7 +57,8 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def initialize(self):
 		super().initialize()
 		"""Gather and validate data about the rig."""
-		
+
+		from .. import cloud_generator
 		assert type(self.generator) == cloud_generator.CloudGenerator, "Error: CloudRig has wrong Generator type. CloudRig requires its own Generator class - Perhaps you're using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate?"
 
 		self.generator_params = self.generator.metarig.data
@@ -234,7 +233,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			param_name,
 			StringProperty(
 				default = default_group,
-				description = "Select what group this set of bones should be assigned to"
+				description = f"Select what group {ui_name} should be assigned to"
 			)
 		)
 		
@@ -245,7 +244,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			BoolVectorProperty(
 				size = 32, 
 				subtype = 'LAYER', 
-				description = "Select what layers this set of bones should be assigned to",
+				description = f"Select what layers {ui_name} should be assigned to",
 				default = default_layers_bools
 			)
 		)
@@ -267,9 +266,9 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		cls.bone_set_defs = OrderedDict()
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
 
-		cls.define_bone_set(params, "Original Bones", default_layers=[cls.default_layers('ORG')], override='ORG')
+		cls.define_bone_set(params, "Original Bones",			 default_layers=[cls.default_layers('ORG')], override='ORG')
 		cls.define_bone_set(params, "Display Transform Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Parent Switch Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Parent Switch Helpers",	 default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -277,17 +276,18 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 			RigifyParameters PropertyGroup
 		"""
 		cls.define_bone_sets(params)
-
 	
 	@classmethod
 	def bone_set_ui(cls, params, layout, set_info, ui_rows):
-		cloudrig = bpy.context.object.data.cloudrig_parameters
+		import bpy
+		obj = bpy.context.object
+		cloudrig = obj.data.cloudrig_parameters
 		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return
 		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return
 		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return
 
 		ui_rows[set_info['param']] = col = layout.column()
-		col.prop_search(params, set_info['param'], bpy.context.object.pose, "bone_groups", text=set_info['name'])
+		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
 		col.prop(params, set_info['layer_param'], text="")
 		layout.separator()
 

@@ -296,7 +296,10 @@ class CloudCurveRig(CloudBaseRig):
 			RigifyParameters PropertyGroup
 		"""
 		
-		params.CR_show_curve_rig_settings = BoolProperty(name="Curve Rig")
+		params.CR_show_curve_rig_settings = BoolProperty(		
+			name		 = "Curve Settings"
+			,description = "Reveal settings for the cloud_curve rig type"
+		)
 		params.CR_hook_name = StringProperty(
 			 name		 = "Custom Name"
 			,description = "Used in the naming of created bones and objects. If empty, use the base bone's name"

@@ -8,10 +8,10 @@ def refresh_drivers(datablock):
 	for d in datablock.animation_data.drivers:
 		d.driver.type = d.driver.type
 
-class RefreshDrivers(bpy.types.Operator):
+class CLOUDRIG_OT_RefreshDrivers(bpy.types.Operator):
 	"""Refresh drivers, ensuring no valid drivers are marked as invalid"""
 
-	bl_idname = "object.refresh_drivers"
+	bl_idname = "object.cloudrig_refresh_drivers"
 	bl_label = "Refresh Drivers"
 	bl_options = {'REGISTER', 'UNDO'}
 
@@ -36,8 +36,8 @@ class RefreshDrivers(bpy.types.Operator):
 
 def register():
 	from bpy.utils import register_class
-	register_class(RefreshDrivers)
+	register_class(CLOUDRIG_OT_RefreshDrivers)
 
 def unregister():
 	from bpy.utils import unregister_class
-	unregister_class(RefreshDrivers)
+	unregister_class(CLOUDRIG_OT_RefreshDrivers)

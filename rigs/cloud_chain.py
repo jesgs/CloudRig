@@ -286,10 +286,10 @@ class CloudChainRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Stretch Controls", preset=8, default_layers=[cls.default_layers('STRETCH')])
-		cls.define_bone_set(params, "Stretch Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Shape Key Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Deform Bones", default_layers=[cls.default_layers('DEF')], override='DEF')
+		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
+		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Deform Bones",					default_layers=[cls.default_layers('DEF')], override='DEF')
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -298,7 +298,10 @@ class CloudChainRig(CloudBaseRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_chain_settings = BoolProperty(name="Chain Rig")
+		params.CR_show_chain_settings = BoolProperty(
+			name		 = "Chain Settings"
+			,description = "Reveal settings for the cloud_chain rig type"
+		)
 		params.CR_deform_segments = IntProperty(
 			 name		 = "Deform Segments"
 			,description = "Number of deform bones per section"

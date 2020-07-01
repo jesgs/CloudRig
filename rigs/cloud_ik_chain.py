@@ -1,16 +1,9 @@
-import bpy
-from bpy.props import BoolProperty, StringProperty, FloatProperty, IntProperty
+from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians as rad
 
-
 from .cloud_fk_chain import CloudFKChainRig
 
-BODY_MECH = 8
-
-IK_MAIN = 0
-IK_SECOND = 16
-#TODO: There's some code in limb that makes the last def- bone has bbone_easeout=0. That should be in here, under a parameter, that's greyed out when ik_tail or whatever it will be called, would be enabled. Maybe.
 class CloudIKChainRig(CloudFKChainRig):
 	"""IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
@@ -488,14 +481,14 @@ class CloudIKChainRig(CloudFKChainRig):
 			RigifyParameters PropertyGroup
 		"""
 
-		params.CR_show_ik_settings = BoolProperty(name="IK Rig")
-		# TODO: Parameter to let the IK control be at the tip of the last bone instead of at the last bone itself. Would be useful for fingers.
-		params.CR_ik_length = IntProperty(	# TODO: DEPRECATE THIS!!! IT'S DUMB!! The end of the chain is simply indicated by a disconnected bone! If we want it to continue in FK, put a separate FK rig!
-			name	 	 = "IK Length"
-			,description = "Length of the IK chain. Cannot be higher than the number of bones in the chain"
-			,default	 = 3
-			,min		 = 1
-			,max		 = 255
+		params.CR_show_ik_settings = BoolProperty(
+			name		 = "IK Settings"
+			,description = "Reveal settings for the cloud_ik_chain rig type"
+		)
+		params.CR_ik_at_tail = BoolProperty(	# TODO: implement this.
+			name		 = "At Tail"
+			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
+			,default	 = False
 		)
 		params.CR_world_aligned_controls = BoolProperty(
 			 name		 = "World Aligned Control"
@@ -522,7 +515,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		pole_row = layout.row()
 		pole_row.prop(params, "CR_use_pole_target")
-		layout.prop(params, "CR_ik_length")
+		pole_row.prop(params, "CR_ik_at_tail")
 		layout.prop(params, "CR_world_aligned_controls")
 
 		return ui_rows

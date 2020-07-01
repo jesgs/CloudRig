@@ -1,11 +1,7 @@
 import bpy
-from bpy.props import BoolProperty, IntProperty, FloatProperty, StringProperty
-from mathutils import Vector
-
-from rigify.base_rig import stage
+from bpy.props import BoolProperty, IntProperty, FloatProperty
 
 from .cloud_curve import CloudCurveRig
-from .cloud_utils import make_name, slice_name
 
 class CloudSplineIKRig(CloudCurveRig):
 	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
@@ -120,7 +116,6 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def add_spline_ik(self):
 		# Add constraint to deform chain
-		print(self.def_bones[-1].name)
 		self.def_bones[-1].add_constraint('SPLINE_IK'
 			,target			  = bpy.data.objects.get(self.curve_ob_name)
 			,use_curve_radius = True

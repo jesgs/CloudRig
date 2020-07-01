@@ -15,7 +15,7 @@ def safe_generate(context, metarig, target_rig):
 		bpy.ops.pose.cloudrig_generate()
 	else:
 		bpy.ops.pose.rigify_generate()
-		bpy.ops.object.refresh_drivers(selected_only=False)
+		bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
 
 	meta_visible.restore()
 	rig_visible.restore()

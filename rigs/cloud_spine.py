@@ -10,8 +10,9 @@ from .cloud_fk_chain import CloudChainRig
 
 #TODO: Allow multiple spine rigs in the same rig.
 # Currently there can be only one spine in the rig, or at least only one that will be displayed in the UI, since the spine rig's IK property is always simply "ik_spine".
-#     head hinge also has some hardcoded name strings.
-#     When registering bones as a parent, the parent identifiers are also non-unique.
+#	head hinge also has some hardcoded name strings.
+#	When registering bones as a parent, the parent identifiers are also non-unique.
+#	Main control names like MSTR-Torso are also non-unique.
 
 class CloudSpineRig(CloudChainRig):
 	"""Spine setup with FK, IK-like and stretchy IK controls. Currently only one of these per rig is supported."""
@@ -34,11 +35,11 @@ class CloudSpineRig(CloudChainRig):
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		self.spine_fk = self.ensure_bone_set("Spine FK Controls")
-		self.spine_main = self.ensure_bone_set("Spine Main Controls")
-		self.spine_parent_ctrls = self.ensure_bone_set("Spine Parent Controls")
-		self.spine_ik_secondary = self.ensure_bone_set("Spine IK Secondary")
-		self.spine_mch = self.ensure_bone_set("Spine Mechanism")
+		self.spine_fk			= self.ensure_bone_set("Spine FK Controls")
+		self.spine_main			= self.ensure_bone_set("Spine Main Controls")
+		self.spine_parent_ctrls	= self.ensure_bone_set("Spine Parent Controls")
+		self.spine_ik_secondary	= self.ensure_bone_set("Spine IK Secondary")
+		self.spine_mch			= self.ensure_bone_set("Spine Mechanism")
 
 	@stage.prepare_bones
 	def prepare_fk_spine(self):
@@ -324,7 +325,10 @@ class CloudSpineRig(CloudChainRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_spine_settings = BoolProperty(name="Spine Rig")
+		params.CR_show_spine_settings = BoolProperty(
+			name="Spine Settings"
+			,description = "Reveal settings for the cloud_spine rig type"
+			)
 		params.CR_spine_length = IntProperty(
 			name		 = "Spine Length"
 			,description = "Number of bones on the chain until the spine ends and the neck begins. The spine and neck can both be made up of an arbitrary number of bones. The final bone of the chain is always treated as the head."
