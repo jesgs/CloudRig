@@ -27,7 +27,7 @@ class DefaultLayers(Enum):
 class CloudBaseRig(BaseRig, CloudUtilities):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
-	bone_set_defs = OrderedDict()	# TODO: We could simply store a list of BoneSet instances at the class level, which would then be copied over at the instance level?
+	bone_set_defs = OrderedDict()
 	
 	default_layers = lambda name: DefaultLayers[name].value
 
@@ -253,11 +253,11 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		assert override in ['', 'DEF', 'MCH', 'ORG'], "Error: Unsupported bone set override"
 		
 		cls.bone_set_defs[ui_name] = {
-			'name' 		   : ui_name
-			,'preset' 	   : preset				# Bone Group color preset to use in case the bone group doesn't already exist.
-			,'param' 	   : param_name			# Name of the bone group name parameter
-			,'layer_param' : layer_param_name	# Name of the bone layers parameter
-			,'override'	   : override
+			'name'			: ui_name
+			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
+			,'param' 	 	: param_name		# Name of the bone group name parameter
+			,'layer_param'	: layer_param_name	# Name of the bone layers parameter
+			,'override'		: override
 		}
 		return ui_name
 
