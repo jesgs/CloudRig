@@ -517,7 +517,6 @@ class ConstraintInfo:
 			self.use_transform_limit = True
 		elif self.type == 'IK':
 			self.chain_count = 2
-			self.pole_target = self.target
 	
 	def make_real(self, pose_bone):
 		""" Create a constraint based on this ConstraintInfo on a given pose bone. """

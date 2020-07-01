@@ -12,6 +12,7 @@ class CloudChainRig(CloudBaseRig):
 
 	def initialize(self):
 		super().initialize()
+		self.chain_length = len(self.bones.org.main)
 		"""Gather and validate data about the rig."""
 
 	def ensure_bone_sets(self):

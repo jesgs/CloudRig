@@ -3,7 +3,6 @@ from bpy.props import BoolProperty, StringProperty, FloatProperty, IntProperty
 from mathutils import Vector
 from math import radians as rad
 
-from rigify.base_rig import stage
 
 from .cloud_fk_chain import CloudFKChainRig
 
@@ -13,13 +12,11 @@ IK_MAIN = 0
 IK_SECOND = 16
 #TODO: There's some code in limb that makes the last def- bone has bbone_easeout=0. That should be in here, under a parameter, that's greyed out when ik_tail or whatever it will be called, would be enabled. Maybe.
 class CloudIKChainRig(CloudFKChainRig):
-	"""IK chain with stretchy IK and IK/FK snapping, squash and stretch controls, and optional IK pole control."""
+	"""IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""
 		super().initialize()
-
-		assert self.params.CR_ik_length <= len(self.bones.org.main), f"IK Length parameter ({self.params.CR_ik_length}) higher than number of bones in the connected chain ({len(self.bones.org.main)}) on rig: {self.meta_base_bone.name}"
 
 		# UI Strings and Custom Property names
 		self.ikfk_name = "ik_" + self.limb_name_props
@@ -123,10 +120,15 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.create_dsp_bone(pole_ctrl)
 		return pole_ctrl
 
-	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole):
+	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole=None):
 		""" Prepare the data needed to be stored on the armature object for IK/FK snapping. """
-		fk_chain = fk_chain[:self.params.CR_ik_length]
-		ik_chain = ik_chain[:self.params.CR_ik_length]
+
+		print("fk_chain:")
+		print([b.name for b in fk_chain])
+		print("ik_chain:")
+		print([b.name for b in ik_chain])
+		print("str chain:")
+		print([b.name for b in self.main_str_bones])
 
 		info = {	# These parameter names must be kept in sync with Snap_IK2FK in cloudrig.py
 			"operator"				: "armature.ikfk_toggle",
@@ -137,12 +139,12 @@ class CloudIKChainRig(CloudFKChainRig):
 			"str_chain"				: [b.name for b in self.main_str_bones],
 			"double_first_control"	: self.params.CR_double_first_control,
 			"double_ik_control"		: self.params.CR_double_ik_control,
-			"ik_pole"				: self.pole_ctrl.name if self.pole_ctrl else "",
+			"ik_pole"				: ik_pole.name if ik_pole else "",
 			"ik_control"			: self.ik_mstr.name
 		}
 		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, info, default=1.0)
 
-	def make_ik_chain(self, org_chain, ik_mstr, pole_target, ik_pole_direction=0):
+	def make_ik_chain(self, org_chain, ik_mstr, pole_target=None, ik_pole_direction=0):
 		""" Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
 		ik_chain = []
 		for i, org_bone in enumerate(org_chain):
@@ -164,15 +166,15 @@ class CloudIKChainRig(CloudFKChainRig):
 			else:
 				ik_bone.parent = ik_chain[-2]
 
-			if i == self.params.CR_ik_length-1:
+			if i == self.chain_length-1:
 				# Add the IK constraint to the previous bone, targetting this one.
 				pole_target_name = pole_target.name if pole_target else ""
-				ik_chain[self.params.CR_ik_length-2].add_constraint('IK', 
-					pole_target		= self.obj if pole_target_name!="" else None,
-					pole_subtarget	= pole_target_name,
+				ik_chain[self.chain_length-2].add_constraint('IK', 
+					pole_target		= self.obj if pole_target else None,
+					pole_subtarget	= pole_target.name if pole_target else "",
 					pole_angle		= self.pole_angle,
 					subtarget		= ik_bone.name,
-					chain_count		= self.params.CR_ik_length-1
+					chain_count		= self.chain_length-1
 				)
 				# Parent this one to the IK master.
 				ik_bone.parent = ik_mstr
@@ -202,7 +204,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		fk_bone.flatten()
 
 	def setup_ik_stretch(self):
-		ik_org_bone = self.org_chain[self.params.CR_ik_length-1]
+		ik_org_bone = self.org_chain[self.chain_length-1]
 		str_name = self.org_chain[0].name.replace("ORG", "IK-STR")
 		stretch_bone = self.ik_mch.new(
 			name		 = str_name
@@ -222,7 +224,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		)
 
 		chain_length = 0
-		for ikb in self.ik_chain[:self.params.CR_ik_length-1]:	# TODO: Support IK at tail of chain.
+		for ikb in self.ik_chain[:self.chain_length-1]:	# TODO: Support IK at tail of chain.
 			chain_length += ikb.length
 
 		length_factor = chain_length / stretch_bone.length
@@ -258,7 +260,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.add_ui_data("ik_stretches", self.category, self.limb_ui_name, info, default=1.0)
 
 		# Last IK bone should copy location of the tail of the stretchy bone.
-		self.ik_tgt_bone = self.ik_chain[self.params.CR_ik_length-1]
+		self.ik_tgt_bone = self.ik_chain[self.chain_length-1]
 		self.ik_tgt_bone.add_constraint('COPY_LOCATION'
 			,space		   = 'WORLD'
 			,subtarget	   = stretch_bone.name
@@ -335,11 +337,11 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def prepare_ik_chain(self):
 		# Create IK Master control
-		ik_org_bone = self.org_chain[self.params.CR_ik_length-1]
+		ik_org_bone = self.org_chain[self.chain_length-1]
 		mstr_name = ik_org_bone.name.replace("ORG", "IK-MSTR")
 		self.ik_mstr = self.ik_ctrls.new(
 			name		  = mstr_name
-			,source		  = self.org_chain[self.params.CR_ik_length-1]
+			,source		  = self.org_chain[self.chain_length-1]
 			,custom_shape = self.load_widget("Sphere")
 			,parent		  = None
 		)
@@ -351,7 +353,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			self.pole_ctrl = self.create_pole_control()
 
 		# Create IK Chain
-		self.ik_chain = self.make_ik_chain(self.org_chain, self.ik_mstr, self.pole_ctrl, self.ik_pole_direction)
+		self.ik_chain = self.make_ik_chain(self.org_chain, self.ik_mstr, self.pole_ctrl)
 
 		# Set up IK Stretch
 		stretch_bone = self.setup_ik_stretch()
