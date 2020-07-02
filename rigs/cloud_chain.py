@@ -101,7 +101,7 @@ class CloudChainRig(CloudBaseRig):
 					self.main_str_bones.append(str_bone)
 				str_section.append(str_bone)
 			str_sections.append(str_section)
-		
+
 		if self.params.CR_cap_control:
 			# Add final STR control.
 			last_def = def_sections[-1][-1]
@@ -240,7 +240,7 @@ class CloudChainRig(CloudBaseRig):
 				
 				# Set BBone start handle to the STR bone of the same index.
 				def_bone.bbone_custom_handle_start = str_sections[sec_i][i].name
-				
+
 				next_str = ""
 				if i < len(section)-1:
 					# Set BBone end handle to the next STR bone.
@@ -250,7 +250,7 @@ class CloudChainRig(CloudBaseRig):
 					# If this is the last bone in the section, use the first STR of the next section instead.
 					next_str = str_sections[sec_i+1][0].name
 					def_bone.bbone_custom_handle_end = next_str
-				
+
 				# Stretch To constraint
 				def_bone.add_constraint('STRETCH_TO', subtarget=next_str)
 
@@ -261,17 +261,19 @@ class CloudChainRig(CloudBaseRig):
 						# First bone of the segment, but not the first bone of the chain.
 						if i==0 and sec_i != 0:
 							# Modify the bbone_easein driver so the joint is not rubber hose-y.
-							for d in def_bone.drivers_data:
+							for d in def_bone.drivers:
 								if d['prop'] == 'bbone_easein':
-									d['expression'] = "var-scale"
+									def_bone.bbone_easein = 0
+									d['expression'] = "(var-scale)"
 
 						segments, bbone_segments = self.determine_segments(sec_i, self.org_chain)
 						# Last bone of the segment, but not the last bone of the chain.
 						if i==segments-1 and sec_i != len(self.org_chain)-1:
 							# Modify the bbone_easeout driver so the joint is not rubber hose-y.
-							for d in def_bone.drivers_data:
+							for d in def_bone.drivers:
 								if d['prop'] == 'bbone_easeout':
-									d['expression'] = "var-scale"
+									def_bone.bbone_easeout = 0
+									d['expression'] = "(var-scale)"
 
 		self.connect_parent_chain_rig()
 

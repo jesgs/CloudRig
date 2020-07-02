@@ -118,6 +118,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		return ikfk_properties_bone
 
 	def ensure_bone_set(self, bone_set_name):
+		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
 		bone_set_defs = type(self).bone_set_defs
 
 		if bone_set_name not in bone_set_defs:

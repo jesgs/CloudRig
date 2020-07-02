@@ -41,6 +41,7 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.limb_type=='LEG':
 			self.ik_pole_offset = 5
 			self.pole_side = -1
+			self.chain_count -= 1
 		
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
 		self.ik_parents = ['Root', 'Torso']
