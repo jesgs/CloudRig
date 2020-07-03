@@ -109,7 +109,7 @@ class CloudEyeRig(CloudBaseRig):
 		# Collect all cloud_eye rigs in this group.
 		eye_bones = []
 		for b in self.generator.metarig.pose.bones:
-			if b.rigify_type == 'cloud_eye':
+			if b.rigify_type == 'cloud_eye' and b.rigify_parameters.CR_eye_group == self.params.CR_eye_group:
 				eye_bones.append(b)
 		
 		# Center of all eyes
