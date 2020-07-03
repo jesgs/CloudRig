@@ -263,12 +263,12 @@ class BoneInfo():
 		self.tail_radius = value * self.container.scale
 
 	@property
-	def vec(self):
+	def vector(self):
 		"""Vector pointing from head to tail."""
 		return self.tail-self.head
 
-	@vec.setter
-	def vec(self, value):
+	@vector.setter
+	def vector(self, value):
 		self.tail = self.head + value
 
 	def scale_width(self, value):
@@ -277,7 +277,7 @@ class BoneInfo():
 
 	def scale_length(self, value):
 		"""Set bone length relative to its current length."""
-		self.tail = self.head + self.vec * value
+		self.tail = self.head + self.vector * value
 
 	@property
 	def length(self):
@@ -286,11 +286,11 @@ class BoneInfo():
 	@length.setter
 	def length(self, value):
 		assert value > 0, "Length cannot be 0!"
-		self.tail = self.head + self.vec.normalized() * value
+		self.tail = self.head + self.vector.normalized() * value
 
 	@property
 	def center(self):
-		return self.head + self.vec/2
+		return self.head + self.vector/2
 
 	def set_layers(self, layerlist, additive=False):
 		cloud_utils.set_layers(self, layerlist, additive)
@@ -310,7 +310,7 @@ class BoneInfo():
 			self.scale_width(scale_width)
 
 	def flatten(self):
-		self.vec = cloud_utils.flat(self.vec)
+		self.vector = cloud_utils.flat(self.vector)
 		from math import pi
 		deg = self.roll*180/pi
 		# Round to nearest 90 degrees.

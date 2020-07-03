@@ -84,7 +84,7 @@ class CloudSplineIKRig(CloudCurveRig):
 				def_name = "DEF-" + def_name + "_" + str(count_def_bone).zfill(3)
 				count_def_bone += 1
 
-				unit = org_bone.vec / segments
+				unit = org_bone.vector / segments
 				def_bone = self.def_bones.new(
 					name		 = def_name
 					,source		 = org_bone

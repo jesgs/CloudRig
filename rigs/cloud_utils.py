@@ -496,14 +496,14 @@ def vector_along_bone_chain(chain, length=0, index=-1):
 		# If the index is too high, return the tail of the bone.
 		if index >= len(chain):
 			b = chain[-1]
-			return (b.tail.copy(), b.vec.normalized())
+			return (b.tail.copy(), b.vector.normalized())
 		
 		b = chain[index]
-		direction = b.vec.normalized()
+		direction = b.vector.normalized()
 
 		if index > 0:
 			prev_bone = chain[index-1]
-			direction = (b.vec + prev_bone.vec).normalized()
+			direction = (b.vector + prev_bone.vector).normalized()
 		return (b.head.copy(), direction)
 
 	
@@ -511,14 +511,14 @@ def vector_along_bone_chain(chain, length=0, index=-1):
 	for b in chain:
 		if length_cumultative + b.length > length:
 			length_remaining = length - length_cumultative
-			direction = b.vec.normalized()
+			direction = b.vector.normalized()
 			loc = b.head + direction * length_remaining
 			return (loc, direction)
 		else:
 			length_cumultative += b.length
 	
 	length_remaining = length - length_cumultative
-	direction = chain[-1].vec.normalized()
+	direction = chain[-1].vector.normalized()
 	loc = chain[-1].tail + direction * length_remaining
 	return (loc, direction)
 

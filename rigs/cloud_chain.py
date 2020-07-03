@@ -43,7 +43,7 @@ class CloudChainRig(CloudBaseRig):
 		skp_bone = self.skh_bones.new(
 			name		 = def_bone_2.name.replace("DEF", "SKP")
 			,head		 = def_bone_1.tail.copy()
-			,tail		 = def_bone_1.tail + def_bone_1.vec
+			,tail		 = def_bone_1.tail + def_bone_1.vector
 			,parent		 = def_bone_1
 			,bbone_width = 0.05
 			,hide_select = self.mch_disable_select
@@ -110,7 +110,7 @@ class CloudChainRig(CloudBaseRig):
 
 			str_bone = self.make_str_bone(last_def, self.org_chain[-1], str_name)
 			str_bone.head = last_def.tail
-			str_bone.tail = last_def.tail + last_def.vec
+			str_bone.tail = last_def.tail + last_def.vector
 			str_bone.custom_shape_scale *= 1.3
 			str_section = []
 			str_section.append(str_bone)
@@ -198,7 +198,7 @@ class CloudChainRig(CloudBaseRig):
 				number = str(i+1) if segments > 1 else ""
 				def_name = make_name(sliced[0], sliced[1] + number, sliced[2])
 
-				unit = org_bone.vec / segments
+				unit = org_bone.vector / segments
 
 				def_bone = self.def_bones.new(
 					name					 = def_name

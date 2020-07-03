@@ -382,6 +382,14 @@ class CloudGenerator(Generator):
 		
 		return wgt_ob
 
+	def find_bone_info(self, name):
+		for rig in self.rig_list:
+			if hasattr(rig, "bone_sets"):
+				for bs in rig.bone_sets:
+					exists = bs.find(name)
+					if exists: 
+						return exists
+
 	def generate(self):
 		print("CloudRig Generation begin")
 
