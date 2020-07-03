@@ -26,6 +26,7 @@ from mathutils import Vector
 
 from .cloud_utils import make_name, slice_name
 from .cloud_base import CloudBaseRig
+from ..import widgets as cloud_widgets
 
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
@@ -57,14 +58,17 @@ class CloudEyeRig(CloudBaseRig):
 
 		eye_org = self.org_chain[0]
 
+		self.group_master = self.ensure_group_master()
 		self.target_bone = self.make_target_control(eye_org)
 		self.make_aim_helper(eye_org, self.target_bone)
 	
-	def make_target_control(self, eye_bone):
+	def find_target_pos(self, eye_bone):
+		return eye_bone.tail + eye_bone.vector.normalized() * self.params.CR_eye_target_distance * self.scale
 
+	def make_target_control(self, eye_bone):
 		# Determine head and tail by projecting the eye bone along its +Y axis.
-		head = eye_bone.tail + eye_bone.vec.normalized() * self.params.CR_eye_target_distance * self.scale
-		tail = head + eye_bone.vec.normalized() * self.scale/5
+		head = self.find_target_pos(eye_bone)
+		tail = head + eye_bone.vector.normalized() * self.scale/5
 
 		target_bone = self.target_ctrl.new(
 			name	= self.org_chain[0].name.replace("ORG", "TGT")
@@ -72,6 +76,7 @@ class CloudEyeRig(CloudBaseRig):
 			,head	= head
 			,tail	= tail
 			,custom_shape = self.load_widget("Oval")
+			,parent = self.group_master
 			# TODO: bone shape, DSP bone, parent
 		)
 		return target_bone
@@ -87,6 +92,60 @@ class CloudEyeRig(CloudBaseRig):
 		aim_bone.add_constraint('DAMPED_TRACK'
 			,subtarget = target_bone.name
 		)
+
+	def ensure_group_master(self):
+		# At the moment, this function will be called by each eye bone, but obviously we want to make sure it only runs once.
+		# So check if a bone with the right name already exists and if it does, don't create it again.
+		
+		group_name = self.params.CR_eye_group
+		group_master_name = "MSTR-TGT-"+group_name
+		# We don't actually have a good way to access whether a bone already exists...
+		exists = self.generator.find_bone_info(group_master_name)
+		if exists: 
+			# TODO: Parent the target control to the group master. Could be done outside this function though.
+			return exists
+
+		# Collect all cloud_eye rigs in this group.
+		eye_bones = []
+		for b in self.generator.metarig.pose.bones:
+			if b.rigify_type == 'cloud_eye':
+				eye_bones.append(b)
+		
+		# Their average position TODO: this should be bounding box center, not average pos.
+		avg_pos = Vector()
+		for b in eye_bones:
+			avg_pos += b.head
+		avg_pos /= len(eye_bones)
+
+
+		target_positions = [self.find_target_pos(b) for b in eye_bones]
+		# Average position of targets
+		avg_target_pos = Vector()
+		for tp in target_positions:
+			avg_target_pos += tp
+		avg_target_pos /= len(target_positions)
+
+		# Create a helper bone in the center.
+		group_vec = avg_target_pos - avg_pos
+		group_center = self.eye_mch.new(
+			name = "CEN-"+group_name
+			,head = avg_pos
+			,tail = avg_pos + group_vec.normalized() * self.scale/10
+			,bbone_width = 0.1
+		)
+
+		# Create the master bone.
+		group_master = self.group_mstr_set.new(
+			name = group_master_name
+			,head = avg_target_pos
+			,tail = avg_target_pos - group_vec.normalized()*self.scale/10
+			,bbone_width = 0.1
+		)
+
+		# group_widget = cloud_widgets.bezier_widget(self, target_positions, Vector(), group_master.vector)
+		# group_master.custom_shape = group_widget
+
+		return group_master
 
 	##############################
 	# Parameters
