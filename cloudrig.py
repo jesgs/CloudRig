@@ -400,7 +400,7 @@ class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_simple):
 
 class CLOUDRIG_OT_switch_parent(CLOUDRIG_OT_snap_simple):
 	bl_description = "Switch parent, preserving the bone position and orientation"
-	bl_idname = "pose.rigify_switch_parent"
+	bl_idname = "pose.cloudrig_switch_parent"
 	bl_label = "Switch Parent (Keep Transform)"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -993,7 +993,7 @@ class CLOUDRIG_PT_ik(CLOUDRIG_PT_main):
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "ik_stretches", label="IK Stretch")
-		draw_rig_settings(layout, rig, "parents", label="IK Parents")
+		draw_rig_settings(layout, rig, "ik_parents", label="IK Parents")
 		draw_rig_settings(layout, rig, "ik_hinges", label="IK Hinge")
 		draw_rig_settings(layout, rig, "ik_pole_follows", label="IK Pole Follow")
 

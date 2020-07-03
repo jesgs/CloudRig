@@ -409,12 +409,12 @@ class CloudIKChainRig(CloudFKChainRig):
 				"prop_id" : ik_parents_prop_name,
 				"texts" : parent_names,
 				
-				"operator" : "pose.rigify_switch_parent",
+				"operator" : "pose.cloudrig_switch_parent",
 				"icon" : "COLLAPSEMENU",
 				"parent_names" : parent_names,	# TODO: I think this is unused now.
 				"bones" : bones,
 				}
-			self.add_ui_data("parents", self.category, self.limb_ui_name, info, default=0, _max=len(parent_names)-1)
+			self.add_ui_data("ik_parents", self.category, self.limb_ui_name, info, default=0, _max=len(parent_names)-1)
 
 		### IK Pole Follow
 		if self.params.CR_use_pole_target:

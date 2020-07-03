@@ -95,23 +95,22 @@ class CloudEyeRig(CloudBaseRig):
 		)
 
 	def ensure_group_master(self):
-		# At the moment, this function will be called by each eye bone, but obviously we want to make sure it only runs once.
-		# So check if a bone with the right name already exists and if it does, don't create it again.
-		
+		# At the moment, this function will be called by each eye bone, but we want to make sure it only runs once per group.
+		# So check if a bone with the right name already exists and if it does, just return it.
+
 		group_name = self.params.CR_eye_group
 		group_master_name = "MSTR-TGT-"+group_name
-		# We don't actually have a good way to access whether a bone already exists...
-		exists = self.generator.find_bone_info(group_master_name)
-		if exists: 
-			# TODO: Parent the target control to the group master. Could be done outside this function though.
-			return exists
+
+		existing = self.generator.find_bone_info(group_master_name)
+		if existing: 
+			return existing
 
 		# Collect all cloud_eye rigs in this group.
 		eye_bones = []
 		for b in self.generator.metarig.pose.bones:
 			if b.rigify_type == 'cloud_eye' and b.rigify_parameters.CR_eye_group == self.params.CR_eye_group:
 				eye_bones.append(b)
-		
+
 		# Center of all eyes
 		eyes_center = bounding_box_center([b.head for b in eye_bones])
 
@@ -135,10 +134,30 @@ class CloudEyeRig(CloudBaseRig):
 			,tail = target_center - group_vec.normalized()*self.scale/10
 			,bbone_width = 0.1
 		)
+		group_master.add_constraint('DAMPED_TRACK'
+			,subtarget = group_center.name
+		)
 
 		group_widget = cloud_widgets.bezier_widget(self, target_positions, group_master)
 		group_master.custom_shape = group_widget
 		group_master.custom_shape_scale = 1/self.scale
+
+		# Parent switching
+		eye_group_parents_prop_name = "eye_group_parents_" + group_name.lower()
+		search_parents = ["Root", "Torso", "Chest", "Neck", "Head"]
+		parent_names = self.rig_child(group_master, search_parents, self.ikfk_properties_bone, eye_group_parents_prop_name)
+		if len(parent_names) > 0:
+			info = {
+				"prop_bone" : self.ikfk_properties_bone.name,
+				"prop_id" : eye_group_parents_prop_name,
+				"texts" : parent_names,
+
+				"operator" : "pose.cloudrig_switch_parent",
+				"icon" : "COLLAPSEMENU",
+				"parent_names" : parent_names,
+				"bones" : [group_master.name],
+				}
+			self.add_ui_data("face_settings", self.params.CR_eye_group, self.params.CR_eye_group, info, default=0, _max=len(parent_names)-1)
 
 		return group_master
 
