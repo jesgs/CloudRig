@@ -26,7 +26,8 @@ from mathutils import Vector
 
 from .cloud_utils import make_name, slice_name
 from .cloud_base import CloudBaseRig
-from ..import widgets as cloud_widgets
+from .. import widgets as cloud_widgets
+from ..utils import bounding_box_center
 
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
@@ -111,34 +112,27 @@ class CloudEyeRig(CloudBaseRig):
 			if b.rigify_type == 'cloud_eye':
 				eye_bones.append(b)
 		
-		# Their average position TODO: this should be bounding box center, not average pos.
-		avg_pos = Vector()
-		for b in eye_bones:
-			avg_pos += b.head
-		avg_pos /= len(eye_bones)
+		# Center of all eyes
+		eyes_center = bounding_box_center([b.head for b in eye_bones])
 
-
+		# Center of targets
 		target_positions = [self.find_target_pos(b) for b in eye_bones]
-		# Average position of targets
-		avg_target_pos = Vector()
-		for tp in target_positions:
-			avg_target_pos += tp
-		avg_target_pos /= len(target_positions)
+		target_center = bounding_box_center(target_positions)
 
 		# Create a helper bone in the center.
-		group_vec = avg_target_pos - avg_pos
+		group_vec = target_center - eyes_center
 		group_center = self.eye_mch.new(
 			name = "CEN-"+group_name
-			,head = avg_pos
-			,tail = avg_pos + group_vec.normalized() * self.scale/10
+			,head = eyes_center
+			,tail = eyes_center + group_vec.normalized() * self.scale/10
 			,bbone_width = 0.1
 		)
 
 		# Create the master bone.
 		group_master = self.group_mstr_set.new(
 			name = group_master_name
-			,head = avg_target_pos
-			,tail = avg_target_pos - group_vec.normalized()*self.scale/10
+			,head = target_center
+			,tail = target_center - group_vec.normalized()*self.scale/10
 			,bbone_width = 0.1
 		)
 
