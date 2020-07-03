@@ -1,6 +1,6 @@
 import bpy
 from mathutils import Vector
-from math import acos
+from math import atan2
 
 def bounding_box(points):
 	"""Return two vectors representing the lowest and highest coordinates of a the bounding box of the passed points."""
@@ -40,7 +40,10 @@ def project_points_on_plane (points, projection_axis):
 		center_relative = point - points_center
 		projected_point = Vector((center_relative.dot(plane_x), center_relative.dot(plane_y), 0))
 		
-		angle_from_axis = acos(projected_point.dot(plane_x) / (projected_point.length * plane_x.length))
+		angle_from_axis = atan2(
+            projected_point.x - plane_y.x,
+            projected_point.y - plane_y.y
+        )
 
 		projected_points.append((projected_point, angle_from_axis))
 
