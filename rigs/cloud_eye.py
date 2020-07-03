@@ -142,8 +142,9 @@ class CloudEyeRig(CloudBaseRig):
 			,bbone_width = 0.1
 		)
 
-		# group_widget = cloud_widgets.bezier_widget(self, target_positions, Vector(), group_master.vector)
-		# group_master.custom_shape = group_widget
+		group_widget = cloud_widgets.bezier_widget(self, target_positions, group_master)
+		group_master.custom_shape = group_widget
+		group_master.custom_shape_scale = 1/self.scale
 
 		return group_master
 
