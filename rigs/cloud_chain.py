@@ -260,20 +260,12 @@ class CloudChainRig(CloudBaseRig):
 					if self.params.CR_sharp_sections:
 						# First bone of the segment, but not the first bone of the chain.
 						if i==0 and sec_i != 0:
-							# Modify the bbone_easein driver so the joint is not rubber hose-y.
-							for d in def_bone.drivers:
-								if d['prop'] == 'bbone_easein':
-									def_bone.bbone_easein = 0
-									d['expression'] = "(var-scale)"
+							def_bone.bbone_easein = 0
 
-						segments, bbone_segments = self.determine_segments(sec_i, self.org_chain)
 						# Last bone of the segment, but not the last bone of the chain.
+						segments, bbone_segments = self.determine_segments(sec_i, self.org_chain)
 						if i==segments-1 and sec_i != len(self.org_chain)-1:
-							# Modify the bbone_easeout driver so the joint is not rubber hose-y.
-							for d in def_bone.drivers:
-								if d['prop'] == 'bbone_easeout':
-									def_bone.bbone_easeout = 0
-									d['expression'] = "(var-scale)"
+							def_bone.bbone_easeout = 0
 
 		self.connect_parent_chain_rig()
 

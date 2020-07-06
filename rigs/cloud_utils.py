@@ -299,7 +299,7 @@ class CloudUtilities:
 			}]
 		}
 		easein_driver = {
-			'expression' : "1+(var-scale)",
+			'expression' : "(var-scale)",
 			'prop' : "bbone_easein",
 			'variables' : {
 				'var' : easein_var,

@@ -92,6 +92,7 @@ class CloudLimbRig(CloudIKChainRig):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
 		
 		# Disable first Copy Rotation constraint on the upperarm
+		# TODO: Why did we do this?
 		for b in self.main_str_bones[0].sub_bones:
 			str_h_bone = b.parent
 			str_h_bone.constraint_infos[2].mute = True
