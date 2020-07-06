@@ -3,6 +3,13 @@ from mathutils import Vector
 from .utils import project_points_on_plane, scale_points_from_center
 import os
 
+def assign_to_collection(obj, collection):
+	if not collection:
+		collection = bpy.context.scene.collection
+
+	if obj.name not in collection.objects:
+		collection.objects.link(obj)
+
 def load_widget(name, overwrite=True, collection=None):
 	""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
 
@@ -44,29 +51,28 @@ def load_widget(name, overwrite=True, collection=None):
 	else:
 		wgt_ob = new_wgt_ob
 
-	if not collection:
-		collection = bpy.context.scene.collection
-
-	if wgt_ob.name not in collection.objects:
-		collection.objects.link(wgt_ob)
+	assign_to_collection(wgt_ob, collection)
 
 	return wgt_ob
 
-def bezier_widget(rig, coords, bone):
-	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
-
-	ob_name = "WGT-" + bone.name
-	data_name = "WGT-" + bone.name
-
-	bpy.ops.object.mode_set(mode='OBJECT')
+def initiate_widget_generation(name):
+	ob_name = "WGT-" + name
 
 	# If the object exists, delete it.
 	obj = bpy.data.objects.get(ob_name)
 	if obj:
 		obdata = obj.data
 		bpy.data.objects.remove(obj)
+	
+	return ob_name
 
-	curve = bpy.data.curves.new(data_name, 'CURVE')
+def bezier_widget(rig, coords, bone):
+	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
+
+	bpy.ops.object.mode_set(mode='OBJECT')
+	ob_name = initiate_widget_generation(bone.name)
+
+	curve = bpy.data.curves.new(ob_name, 'CURVE')
 	curve.dimensions = '3D'
 	obj = bpy.data.objects.new(ob_name, curve)
 
@@ -100,7 +106,7 @@ def bezier_widget(rig, coords, bone):
 		p.co[2] = -co[1]
 		p.handle_left_type = 'AUTO'
 		p.handle_right_type = 'AUTO'
-	
+
 	# Convert to mesh.
 	bpy.ops.object.select_all(action='DESELECT')
 	bpy.context.view_layer.objects.active = obj
@@ -108,12 +114,11 @@ def bezier_widget(rig, coords, bone):
 	bpy.ops.object.convert(target='MESH')
 
 	# Assign to widget collection.
-	obj = bpy.context.object
 	obj.data.name = obj.name
-	rig.generator.wgt_collection.objects.link(obj)
 	bpy.context.scene.collection.objects.unlink(obj)
+	assign_to_collection(obj, rig.generator.wgt_collection)
 
-	# Restore selection and modes.
+	# Restore selection and mode.
 	bpy.context.view_layer.objects.active = rig.obj
 	rig.obj.select_set(True)
 	bpy.ops.object.mode_set(mode='EDIT')
