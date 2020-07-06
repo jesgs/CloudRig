@@ -72,20 +72,28 @@ class CloudChainRig(CloudBaseRig):
 			,head_tail		 = 0
 		)
 
-	def make_str_bone(self, def_bone, org_bone, name=None):
+	def make_str_bone(self, def_bone, parent=None, name=None):
+		if not parent:
+			parent = def_bone.parent
 		if not name:
 			name = def_bone.name.replace("DEF", "STR")
+		tail = def_bone.tail
+		if def_bone.prev:
+			prev_bone = def_bone.prev
+			tail = def_bone.head + (def_bone.tail - prev_bone.head)
+
 		str_bone = self.str_bones.new(
 			name				= name
 			,source				= def_bone
 			,head				= def_bone.head
-			,tail				= def_bone.tail
+			,tail				= tail
 			,roll				= def_bone.roll
 			,custom_shape		= self.load_widget("Sphere")
 			,custom_shape_scale = 0.3
-			,parent				= org_bone
+			,parent				= parent
 		)
-		str_bone.scale_length(0.3)
+		str_bone.length = self.scale * 0.02
+		str_bone.bbone_width *= 1.2
 		return str_bone
 
 	def make_str_chain(self, def_sections):
@@ -95,6 +103,7 @@ class CloudChainRig(CloudBaseRig):
 			str_section = []
 			for i, def_bone in enumerate(section):
 				str_bone = self.make_str_bone(def_bone, self.org_chain[sec_i])
+
 				if i==0:
 					# Make first control bigger, to indicate that it behaves differently than the others.
 					str_bone.custom_shape_scale *= 1.3
@@ -105,15 +114,14 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_cap_control:
 			# Add final STR control.
 			last_def = def_sections[-1][-1]
-			sliced = slice_name(last_def.name)
-			str_name = make_name(["STR", "TIP"], sliced[1], sliced[2])
-
-			str_bone = self.make_str_bone(last_def, self.org_chain[-1], str_name)
-			str_bone.head = last_def.tail
-			str_bone.tail = last_def.tail + last_def.vector
-			str_bone.custom_shape_scale *= 1.3
+			tip_name = make_name( ["STR", "TIP"], *slice_name(last_def.name)[1:] )
+			tip_bone = self.make_str_bone(last_def, self.org_chain[-1], tip_name)
+			tip_bone.head = last_def.tail
+			tip_bone.tail = last_def.tail + last_def.vector
+			tip_bone.length = self.scale * 0.02
+			tip_bone.custom_shape_scale *= 1.3
 			str_section = []
-			str_section.append(str_bone)
+			str_section.append(tip_bone)
 			str_sections.append(str_section)
 
 		return str_sections
