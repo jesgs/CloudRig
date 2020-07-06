@@ -6,7 +6,24 @@ import copy
 from ..rigs import cloud_utils
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
-class BoneSet(list):
+class LinkedList(list):
+	"""Some very basic doubly linked list functionality to help manage chains of bones."""
+	def __init__(self):
+		super().__init__()
+		self.ll_head = self.ll_tail = None
+
+	def remove(self, value):
+		super().remove(value)
+		value.prev.next = value.next
+		value.next.prev = value.prev
+
+	def append(self, value):
+		if len(self)>0:
+			self[-1].next = value
+			value.prev = self[-1]
+		super().append(value)
+
+class BoneSet(LinkedList):
 	""" Class to manage lists of BoneInfo instances. 
 	Also manages a bone group and layer assignment for these bones. """
 
@@ -33,6 +50,8 @@ class BoneSet(list):
 			layers = [l==0 for l in range(32)],
 			defaults = {}
 	):
+		super().__init__()
+		
 		# Rigify BaseRig instance where this BoneSet is used, and should be stored.
 		self.generator = generator
 		self.scale = generator.scale
@@ -135,6 +154,8 @@ class BoneInfo():
 		"""
 
 		self.container = container
+
+		self.next = self.prev = None	# for LinkedList behaviour.
 
 		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
 		self.custom_props_edit = {}
