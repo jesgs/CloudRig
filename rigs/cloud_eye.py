@@ -1,25 +1,3 @@
-"""
-Eye Track
-    A rig that sets up an eye target thingie.
-        The bone that holds the rig is the eye bone itself. The target is created some distance in front of it (along local Y axis)
-        params:
-            - Target group - all Eye rigs with the same Target Group will have a shared parent control, whose name will be based on this parameter, and location and bone shape based on the average location of the look targets in the group.
-            - Target distance - how far in front the eye target should be created. (The units will be quite arbitrary since I do want to apply rig scale on this, so just mention that in the tooltip.)
-    
-    Bones:
-    AIM-Eye: Damped Track constraint, a mechanism bone.
-        CTR-Eye: No constraints, an exposed control.
-            ORG-Eye: No constraints, an org bone.
-            DEF-Eye: No constraints, a deform bone. (Might be worth adding a checkbox for creating this, as some people might want to object-parent their eyes)
-    
-    TGT-EyeGroup: No constraints, an exposed control that the eyes look at. Has a parent switcher with Armature constraint, for all parents registered for all eye rigs that belong to this EyeGroup.
-        DSP-EyeGroup: Damped track to the parent of the eye? No, to the average position of all eyes in the group. May be tricky to keep track of that data...
-        TGT-Eye: No constraints, an exposed control that ONE eye looks at.
-            DSP-Eye: Damped track to the ORG bone.
-    
-    In many cases we will probably want bones going from the center of the eye to the eyelids, but those should probably simply be separate cloud_bone rigs because the constraints on these bones would need to be tweaked individually anyways.
-"""
-
 import bpy
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
@@ -53,23 +31,33 @@ class CloudEyeRig(CloudBaseRig):
 		self.group_mstr_set = self.ensure_bone_set("Eye Group Target Controls")
 		self.target_ctrl = self.ensure_bone_set("Eye Target Controls")
 		self.eye_mch = self.ensure_bone_set("Eye Target Mechanism")
+		self.eye_def = self.ensure_bone_set("Eye Deform")
 
 	def prepare_bones(self):
 		super().prepare_bones()
 
 		eye_org = self.org_chain[0]
 
-		self.group_master = self.ensure_group_master()
-		self.target_bone = self.make_target_control(eye_org)
-		self.make_aim_helper(eye_org, self.target_bone)
-	
-	def find_target_pos(self, eye_bone):
-		return eye_bone.tail + eye_bone.vector.normalized() * self.params.CR_eye_target_distance * self.scale
+		if self.params.CR_eye_root:
+			self.make_eye_root(eye_org)
+		group_master = self.ensure_group_master()
+		target_bone = self.make_target_control(eye_org, group_master)
+		aim_bone = self.make_aim_helper(eye_org, target_bone)
+		self.make_eye_control(eye_org)
+		if self.params.CR_eye_deform:
+			self.make_def_bone(eye_org, self.eye_def)
 
-	def make_target_control(self, eye_bone):
-		# Determine head and tail by projecting the eye bone along its +Y axis.
-		head = self.find_target_pos(eye_bone)
-		tail = head + eye_bone.vector.normalized() * self.scale/5
+	def find_target_pos(self, bone):
+		"""Find location of where the target bone should be for an eye bone."""
+		return bone.tail + bone.vector.normalized() * self.params.CR_eye_target_distance * self.scale
+
+	def make_target_control(self, bone, parent=None):
+		"""Set up target control for a bone"""
+		if not parent:
+			parent = bone.parent
+
+		head = self.find_target_pos(bone)
+		tail = head + bone.vector.normalized() * self.scale/5
 
 		target_bone = self.target_ctrl.new(
 			name	= self.org_chain[0].name.replace("ORG", "TGT")
@@ -77,22 +65,49 @@ class CloudEyeRig(CloudBaseRig):
 			,head	= head
 			,tail	= tail
 			,custom_shape = self.load_widget("Oval")
-			,parent = self.group_master
-			# TODO: bone shape, DSP bone, parent
+			,parent = parent
 		)
+		dsp_bone = self.create_dsp_bone(target_bone)
+		dsp_bone.add_constraint('DAMPED_TRACK', subtarget=bone.name, track_axis='TRACK_NEGATIVE_Y')
+
 		return target_bone
 
-	def make_aim_helper(self, org_bone, target_bone):
+	def make_aim_helper(self, bone, target_bone):
+		"""Create an aim bone for bone targetting target_bone, while leaving bone free to rotate."""
 		aim_bone = self.eye_mch.new(
-			name		 = org_bone.name.replace("ORG", "AIM")
-			,source		 = org_bone
+			name		 = bone.name.replace("ORG", "AIM")
+			,source		 = bone
 			,hide_select = self.mch_disable_select
-			,parent		 = org_bone.parent
+			,parent		 = bone.parent
 		)
-		org_bone.parent = aim_bone
+		bone.parent = aim_bone
 		aim_bone.add_constraint('DAMPED_TRACK'
 			,subtarget = target_bone.name
 		)
+		return aim_bone
+
+	def make_eye_control(self, bone):
+		"""Create direct control for an eye, with a display bone that is eye radius away towards the bone's +Y axis."""
+		ctr_bone = self.target_ctrl.new(
+			name = make_name(["CTR"], *slice_name(bone.name)[1:])
+			,source = bone
+			,parent = bone.parent
+			,custom_shape = self.load_widget("Oval")
+		)
+		bone.parent = ctr_bone
+		dsp_bone = self.create_dsp_bone(ctr_bone)
+		dsp_bone.put(ctr_bone.tail)
+		return ctr_bone
+
+	def make_eye_root(self, bone):
+		base_bone = self.org_chain[0]
+		root_bone = self.target_ctrl.new(
+			name = base_bone.name.replace("ORG", "ROOT")
+			,source = base_bone
+			,parent = base_bone.parent
+			,custom_shape = self.load_widget('Square')
+		)
+		bone.parent = root_bone
 
 	def ensure_group_master(self):
 		# At the moment, this function will be called by each eye bone, but we want to make sure it only runs once per group.
@@ -107,9 +122,12 @@ class CloudEyeRig(CloudBaseRig):
 
 		# Collect all cloud_eye rigs in this group.
 		eye_bones = []
-		for b in self.generator.metarig.pose.bones:
+		for b in self.obj.pose.bones:
 			if b.rigify_type == 'cloud_eye' and b.rigify_parameters.CR_eye_group == self.params.CR_eye_group:
 				eye_bones.append(b)
+
+		if len(eye_bones) < 2:
+			return
 
 		# Center of all eyes
 		eyes_center = bounding_box_center([b.head for b in eye_bones])
@@ -120,12 +138,18 @@ class CloudEyeRig(CloudBaseRig):
 
 		# Create a helper bone in the center.
 		group_vec = target_center - eyes_center
-		group_center = self.eye_mch.new(
+		center_bone = self.eye_mch.new(
 			name = "CEN-"+group_name
 			,head = eyes_center
 			,tail = eyes_center + group_vec.normalized() * self.scale/10
 			,bbone_width = 0.1
+			,parent = eye_bones[0].parent
 		)
+
+		# TODO: Not sure how to address the case where eye rigs in the same Eye Group might be parented to different bones.
+		for eb in eye_bones:
+			if eb.parent != eye_bones[0].parent:
+				print(f"Warning: Eye bones in the same group having different parents is not fully supported. {group_master_name} will be parented arbitrarily to {eye_bones[0].parent}!")
 
 		# Create the master bone.
 		group_master = self.group_mstr_set.new(
@@ -135,7 +159,7 @@ class CloudEyeRig(CloudBaseRig):
 			,bbone_width = 0.1
 		)
 		group_master.add_constraint('DAMPED_TRACK'
-			,subtarget = group_center.name
+			,subtarget = center_bone.name
 		)
 
 		group_widget = cloud_widgets.bezier_widget(self, target_positions, group_master)
@@ -171,6 +195,8 @@ class CloudEyeRig(CloudBaseRig):
 		cls.define_bone_set(params, "Eye Group Target Controls", preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Eye Target Controls", 		 preset=2,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Eye Target Mechanism",					default_layers=[cls.default_layers('MCH')], override='MCH')
+		if params.CR_eye_deform:
+			cls.define_bone_set(params, "Eye Deform",						default_layers=[cls.default_layers('DEF')], override='DEF')
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -182,21 +208,25 @@ class CloudEyeRig(CloudBaseRig):
 
 		params.CR_eye_group = StringProperty(
 			name		 = "Eye Group"
-			,default	 = "Eye"
+			,default	 = "Eyes"
 			,description = "Eye rigs belonging to the same Eye Group will have a shared master control generated for them"
 		)
 
 		params.CR_eye_target_distance = FloatProperty(
 			name		 = "Target Distance"
-			,default	 = 1.0
+			,default	 = 5.0
 			,description = "Distance of the target from the eye. This value is not in blender units, but is a value relative to the scale of the rig"
             ,min         = 0
 		)
-		params.CR_eye_radius = FloatProperty(
-			name		 = "Eye radius"
-			,default	 = 0.01
-			,description = "Radius of the eye. Only used for placing widgets correctly, has no mechanical effect. This value is not in blender units, but is a value relative to the scale of the rig"
-            ,min         = 0
+		params.CR_eye_deform = BoolProperty(
+			name		 = "Create Deform"
+			,default	 = False
+			,description = "Create a deform bone for this rig. Not always needed, as you can simply object-parent your eye object to the ORG bone"
+		)
+		params.CR_eye_root = BoolProperty(
+			name		 = "Create Root"
+			,default	 = False
+			,description = "Create a root bone for this rig."
 		)
 
 		super().add_parameters(params)
@@ -213,6 +243,8 @@ class CloudEyeRig(CloudBaseRig):
 
 		layout.prop(params, "CR_eye_group")
 		layout.prop(params, "CR_eye_target_distance")
+		layout.prop(params, "CR_eye_deform")
+		layout.prop(params, "CR_eye_root")
 
 		return ui_rows
 

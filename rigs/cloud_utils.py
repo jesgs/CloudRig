@@ -221,6 +221,16 @@ class CloudUtilities:
 		parent.custom_shape_transform = dsp_bone
 		return dsp_bone
 
+	def make_def_bone(self, bone, bone_set):
+		"""Make a DEF- bone parented to bone."""
+		def_bone = bone_set.new(
+			name = make_name(["DEF"], *slice_name(bone.name)[1:])
+			,source = bone
+			,use_deform = True
+			,parent = bone
+		)
+		return
+
 	def meta_bone(self, bone_name, pose=False):
 		""" Find and return a bone in the metarig. """
 		if self.obj.mode=='EDIT' and not pose:

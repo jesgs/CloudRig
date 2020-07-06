@@ -26,7 +26,6 @@ def version_cloud_metarig(metarig):
 	pass
 
 def version_all_cloud_metarigs():
-	armatures = [o for o in bpy.data.objects if o.type=='ARMATURE']
-	cloud_metarigs = [o for o in armatures if is_cloud_metarig(o)]
+	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
 	for metarig in cloud_metarigs:
 		version_cloud_metarig(metarig)

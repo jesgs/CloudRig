@@ -1,6 +1,7 @@
 import bpy
 from mathutils import Vector
-from .utils import project_points_on_plane
+from .utils import project_points_on_plane, scale_points_from_center
+import os
 
 def load_widget(name, overwrite=True, collection=None):
 	""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
@@ -74,9 +75,21 @@ def bezier_widget(rig, coords, bone):
 
 	bpy.context.scene.collection.objects.link(obj)
 
+	if len(coords)<3:
+		# If there are less than 3 coordinates, make some more.
+		new_coords = []
+		shift = Vector((0, 0, 0.1))
+		for co in coords:
+			co.xyz = co-shift
+			new_coords.append(co+shift)
+		coords.extend(new_coords)
+
 	# Flatten the points.
 	coords = project_points_on_plane(coords, bone.vector)
-	
+
+	# Expand the points
+	coords = scale_points_from_center(coords, 1.3)
+
 	# Create and place the spline points.
 	spline.bezier_points.add(len(coords)-1)
 	for i, p in enumerate(spline.bezier_points):

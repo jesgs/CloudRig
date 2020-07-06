@@ -637,8 +637,6 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 
 		ik_pole.matrix.translation = pole_loc
 
-		bpy.context.scene.cursor.location = pole_loc
-
 	def match_pole_target(self, ik_first, ik_last, pole, match_bone, length):
 		""" Places an IK chain's pole target to match ik_first's
 			transforms to match_bone.  All bones should be given as pose bones.

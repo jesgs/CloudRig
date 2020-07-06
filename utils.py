@@ -21,6 +21,16 @@ def bounding_box_center(points):
     bbox_low, bbox_high = bounding_box(points)
     return bbox_low + (bbox_high-bbox_low)/2
 
+def scale_points_from_center(points, scale):
+	"""Scale some points from their bounding box center."""
+	center = bounding_box_center(points)
+	new_points = []
+	for p in points:
+		new_points.append(
+			center + (center-p) * (scale)
+		)
+	return new_points
+
 def project_points_on_plane (points, projection_axis):
 	# Find two vectors(ie. a plane) that are perpendicular to the projection axis.
 	projection_direction = projection_axis.normalized()
