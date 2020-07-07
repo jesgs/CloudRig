@@ -469,7 +469,7 @@ def create_sample(obj):
     except AttributeError:
         pass
     try:
-        pbone.rigify_parameters.CR_bbone_segments = 6
+        pbone.rigify_parameters.CR_bbone_density = 6
     except AttributeError:
         pass
     pbone = obj.pose.bones[bones['RibCage']]

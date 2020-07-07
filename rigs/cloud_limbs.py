@@ -52,15 +52,14 @@ class CloudLimbRig(CloudIKChainRig):
 		self.ik_parents.append(self.limb_ui_name)
 
 	def determine_segments(self, org_i, chain):
-		segments = self.params.CR_deform_segments
-		bbone_segments = self.params.CR_bbone_segments
+		segments, bbone_segments = super().determine_segments(org_i, chain)
 
 		if self.limb_type=='LEG' and org_i > len(chain)-3:
 			# Force strictly 1 segment on the foot and the toe.
-			return (1, self.params.CR_bbone_segments)
+			return (1, bbone_segments)
 		elif self.limb_type=='ARM' and org_i == len(chain)-1:
 			# Force strictly 1 segment on the wrist.
-			return (1, self.params.CR_bbone_segments)
+			return (1, bbone_segments)
 		elif org_i == len(chain)-1 and not self.params.CR_cap_control:
 			return (1, 1)
 
@@ -397,7 +396,6 @@ class CloudLimbRig(CloudIKChainRig):
 			layout.prop(params, "CR_use_foot_roll")
 			if params.CR_use_foot_roll:
 				layout.prop_search(params, "CR_heel_pivot_bone", bpy.context.object.data, "bones", text="Heel Pivot")
-				footroll_row.prop_search(params, "CR_heel_pivot_bone", bpy.context.object.data, "bones", text="Heel Pivot")
 
 		layout.prop(params, "CR_double_ik_control")
 

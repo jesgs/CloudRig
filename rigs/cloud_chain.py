@@ -7,6 +7,20 @@ from rigify.base_rig import stage
 from .cloud_utils import make_name, slice_name
 from .cloud_base import CloudBaseRig
 
+"""TODO:
+- More of a general CloudRig TODO, but customizing bone shapes would be pretty neat.
+	I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
+	I'm thinking a Bone Shapes parameter section underneath Bone Sets.
+	What are the use cases for this currently? Feel like it's not that many. Pretty much FK and STR. Might be better not to overthink this one and just add an enum to cloud_chain between sphere or cube.
+- Merge overlapping controls across several rigs, by shrinking them down and parenting them to a new control to replace both old ones, and also move the old ones to a different layer, perhaps MCH?
+	Maybe this should be done by the glue rig, but the issue with that is that it would be nice if I didn't have to put glue bones everywhere explicitly. But I have no idea how to avoid that.
+
+Ideas:
+Spline IK like controls(the other two types) for bendy bones' handles.
+Recursive generation of STR layers as per Pablo's request, so we don't just have main and sub STR controls, but any number of nested layers(although we would probably never use more than 3, but then again, I thought we would never use more than 2, so)
+	
+"""
+
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 
@@ -25,9 +39,18 @@ class CloudChainRig(CloudBaseRig):
 
 	def determine_segments(self, org_i, chain):
 		"""Determine how many deform and bbone segments should be in a section of the chain."""
+		org_bone = chain[org_i]
 		segments = self.params.CR_deform_segments
-		bbone_segments = self.params.CR_bbone_segments
-		
+
+		bbone_segments = round(org_bone.length*self.params.CR_bbone_density/self.scale)
+		if bbone_segments > 32:
+			print(f"Warning: BBone density for {org_bone.name} results in {bbone_segments} bbone segments, which exceeds the maximum of 32.")
+
+		# Force BBone segments to be a minimum of 2, unless bbone_density is 0.
+		if bbone_segments < 2 and self.params.CR_bbone_density > 0:
+			bbone_segments = 2
+
+		# No segments for last bone of the chain if there is no control for its tail.
 		if (org_i == len(chain)-1) and not self.params.CR_cap_control:
 			return (1, 1)
 		
@@ -311,11 +334,11 @@ class CloudChainRig(CloudBaseRig):
 			,min		 = 1
 			,max		 = 9
 		)
-		params.CR_bbone_segments = IntProperty(
-			 name="BBone Segments"
-			,description="Number of BBone segments on deform bones"
+		params.CR_bbone_density = IntProperty(
+			 name="BBone Density"
+			,description="Number of BBone segments per 1 unit of bone length, defined by the rig's size"
 			,default=6
-			,min=1
+			,min=0
 			,max=32
 		)
 		params.CR_shape_key_helpers = BoolProperty(
@@ -342,7 +365,7 @@ class CloudChainRig(CloudBaseRig):
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_chain_settings"): return layout
 
 		layout.prop(params, "CR_deform_segments")
-		layout.prop(params, "CR_bbone_segments")
+		layout.prop(params, "CR_bbone_density")
 
 		layout.prop(params, "CR_shape_key_helpers")
 		sharp_sections = layout.row()
@@ -459,7 +482,7 @@ def create_sample(obj):
     except AttributeError:
         pass
     try:
-        pbone.rigify_parameters.CR_bbone_segments = 6
+        pbone.rigify_parameters.CR_bbone_density = 6
     except AttributeError:
         pass
     pbone = obj.pose.bones[bones['Chain_2']]
