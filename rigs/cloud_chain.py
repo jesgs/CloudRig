@@ -100,22 +100,20 @@ class CloudChainRig(CloudBaseRig):
 			parent = def_bone.parent
 		if not name:
 			name = def_bone.name.replace("DEF", "STR")
-		tail = def_bone.tail
+		vec = def_bone.vector
 		if def_bone.prev:
-			prev_bone = def_bone.prev
-			tail = def_bone.head + (def_bone.tail - prev_bone.head)
+			vec = def_bone.tail - def_bone.prev.head
 
 		str_bone = self.str_bones.new(
 			name				= name
 			,source				= def_bone
-			,head				= def_bone.head
-			,tail				= tail
+			,vector				= vec
 			,roll				= def_bone.roll
 			,custom_shape		= self.load_widget("Sphere")
 			,custom_shape_scale = 0.3
 			,parent				= parent
 		)
-		str_bone.length = self.scale * 0.02
+		str_bone.length = def_bone.length/5
 		str_bone.bbone_width *= 1.2
 		return str_bone
 
