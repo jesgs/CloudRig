@@ -26,9 +26,7 @@ def draw_cloud_generator_options(self, context):
 
 	cloudrig = obj.data.cloudrig_parameters
 
-	icon = 'TRIA_DOWN' if cloudrig.options else 'TRIA_RIGHT'
-	layout.prop(cloudrig, "options", toggle=True, icon=icon)
-	if not cloudrig.options: return
+	if not dropdown_ui(layout, cloudrig, "options"): return
 	
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop_search(cloudrig, "custom_script", bpy.data, "texts")
@@ -70,9 +68,8 @@ def draw_cloud_bone_group_options(self, context):
 	cloudrig = obj.data.cloudrig_parameters
 	layout.separator()
 
-	icon = 'TRIA_DOWN' if cloudrig.override_options else 'TRIA_RIGHT'
-	layout.prop(cloudrig, "override_options", toggle=True, icon=icon)
-	if cloudrig.override_options:
+	dropdown = dropdown_ui(layout, cloudrig, "override_options")
+	if dropdown:
 	
 		layout.prop_search(cloudrig, "root_bone_group", bpy.context.object.pose, "bone_groups")
 		layout.prop(cloudrig, "root_layers", text="")
@@ -241,6 +238,17 @@ def ui_label_with_linebreak(layout, text):
 		
 		for line in lines:
 			layout.label(text=line)
+
+def dropdown_ui(layout, params, dropdown_param_name):
+	is_dropdown_open = getattr(params, dropdown_param_name)
+
+	icon = 'TRIA_DOWN' if is_dropdown_open else 'TRIA_RIGHT'
+	row = layout.row()
+	row.use_property_split=False
+	row.prop(params, dropdown_param_name, toggle=True, icon=icon)
+	if is_dropdown_open:
+		layout.separator()
+	return is_dropdown_open
 
 def register():
 	from bpy.utils import register_class

@@ -337,21 +337,20 @@ class CloudChainRig(CloudBaseRig):
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
-		icon = 'TRIA_DOWN' if params.CR_show_chain_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_chain_settings", toggle=True, icon=icon)
-		if not params.CR_show_chain_settings: return ui_rows
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_chain_settings"): return layout
 
 		layout.prop(params, "CR_deform_segments")
 		layout.prop(params, "CR_bbone_segments")
+
 		layout.prop(params, "CR_shape_key_helpers")
 		sharp_sections = layout.row()
 		sharp_sections.prop(params, "CR_sharp_sections")
-		ui_rows['sharp_sections'] = sharp_sections
+		cls.ui_rows['CR_sharp_sections'] = sharp_sections
 		layout.prop(params, "CR_cap_control")
 
-		return ui_rows
+		return layout
 
 class Rig(CloudChainRig):
 	pass

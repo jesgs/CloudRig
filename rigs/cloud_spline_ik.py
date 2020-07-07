@@ -168,10 +168,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
-		icon = 'TRIA_DOWN' if params.CR_show_curve_rig_settings else 'TRIA_RIGHT'
-		row = layout.row()
-		row.prop(params, "CR_show_curve_rig_settings", toggle=True, icon=icon)
-		if not params.CR_show_curve_rig_settings: return
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_curve_rig_settings"): return layout
 
 		target_curve_row = layout.row()
 		icon = 'OUTLINER_OB_CURVE'
@@ -182,11 +179,9 @@ class CloudSplineIKRig(CloudCurveRig):
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
-		icon = 'TRIA_DOWN' if params.CR_show_spline_ik_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_spline_ik_settings", toggle=True, icon=icon)
-		if not params.CR_show_spline_ik_settings: return
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_spline_ik_settings"): return layout
 
 		layout.prop(params, "CR_subdivide_deform")
 		layout.prop(params, "CR_curve_handle_length")
@@ -194,8 +189,8 @@ class CloudSplineIKRig(CloudCurveRig):
 		layout.prop(params, "CR_match_hooks_to_bones")	# TODO: When this is false, the directions of the curve points and bones don't match, and both of them are unsatisfactory. It would be nice if we would interpolate between the direction of the two bones, using length_remaining/bone.length as a factor, or something similar to that.
 		if not params.CR_match_hooks_to_bones:
 			layout.prop(params, "CR_num_hooks")
-		
-		return ui_rows
+
+		return layout
 
 class Rig(CloudSplineIKRig):
 	pass

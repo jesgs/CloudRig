@@ -379,26 +379,24 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 		params.CR_heel_pivot_bone = StringProperty(
 			 name		 = "Heel Pivot Bone"
-			,description = "Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone."
+			,description = "Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone"
 			,default	 = ""
 		)
 
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
-		ui_rows = super().cloud_params_ui(layout, params)
-		if 'sharp_sections' in ui_rows:
-			ui_rows['sharp_sections'].enabled = False
+		layout = super().cloud_params_ui(layout, params)
+		if 'CR_sharp_sections' in cls.ui_rows:
+			cls.ui_rows['CR_sharp_sections'].enabled = False
 
-		icon = 'TRIA_DOWN' if params.CR_show_limb_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_limb_settings", toggle=True, icon=icon)
-		if not params.CR_show_limb_settings: return ui_rows
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_limb_settings"): return layout
 
 		layout.prop(params, "CR_limb_type")
 		if params.CR_limb_type=='LEG':
-			footroll_row = layout.row()
-			footroll_row.prop(params, "CR_use_foot_roll")
+			layout.prop(params, "CR_use_foot_roll")
 			if params.CR_use_foot_roll:
+				layout.prop_search(params, "CR_heel_pivot_bone", bpy.context.object.data, "bones", text="Heel Pivot")
 				footroll_row.prop_search(params, "CR_heel_pivot_bone", bpy.context.object.data, "bones", text="Heel Pivot")
 
 		layout.prop(params, "CR_double_ik_control")
@@ -406,7 +404,7 @@ class CloudLimbRig(CloudIKChainRig):
 		word = "Elbow" if params.CR_limb_type == 'ARM' else "Shin"
 		layout.prop(params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")
 
-		return ui_rows
+		return layout
 
 class Rig(CloudLimbRig):
 	pass

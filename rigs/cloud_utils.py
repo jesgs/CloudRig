@@ -536,7 +536,7 @@ def set_layers(obj, layerlist, additive=False):
 	"""Layer setting function that can take either a list of booleans or a list of ints.
 	In case of booleans, it must be a 32 length list, and we set the bone's layer list to the passed list.
 	In case of ints, enable the layers with the indicies in the passed list.
-	
+
 	obj can either be a bone or an armature.
 	"""
 	layers = obj.layers[:]

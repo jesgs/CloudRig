@@ -74,15 +74,11 @@ class CloudBBoneGridRig(CloudBaseRig):
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
-		icon = 'TRIA_DOWN' if params.CR_show_bbgrid_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_bbgrid_settings", toggle=True, icon=icon)
-		if not params.CR_show_bbgrid_settings: return ui_rows
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_bbgrid_settings"): return
 
 		layout.prop(params, "CR_auto_tangent")
-
-		return ui_rows
 
 
 class Rig(CloudBBoneGridRig):

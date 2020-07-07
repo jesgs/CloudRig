@@ -183,28 +183,28 @@ class CloudFKChainRig(CloudChainRig):
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
-		icon = 'TRIA_DOWN' if params.CR_show_fk_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_fk_settings", toggle=True, icon=icon)
-		if not params.CR_show_fk_settings: return ui_rows
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_fk_settings"): return layout
 
-		name_row = layout.row()
-		limb_column = name_row.column()
-		limb_column.prop(params, "CR_use_custom_limb_name")
-		if params.CR_use_custom_limb_name:
-			limb_column.prop(params, "CR_custom_limb_name", text="")
-		category_column = name_row.column()
-		category_column.prop(params, "CR_use_custom_category_name")
-		if params.CR_use_custom_category_name:
-			category_column.prop(params, "CR_custom_category_name", text="")
+		limb_row = layout.row(align=True, heading="Custom Limb Name")
+		limb_row.prop(params, "CR_use_custom_limb_name", text="")
+		col = limb_row.column()
+		col.prop(params, "CR_custom_limb_name", text="")
+		col.enabled = params.CR_use_custom_limb_name
+
+		category_row = layout.row(align=True, heading="Custom Category Name")
+		category_row.prop(params, "CR_use_custom_category_name", text="")
+		col = category_row.column()
+		col.prop(params, "CR_custom_category_name", text="")
+		col.enabled = params.CR_use_custom_category_name
 
 		layout.prop(params, "CR_counter_rotate_str")
 		layout.prop(params, "CR_center_all_fk")
 		layout.prop(params, "CR_double_first_control")
 		layout.prop(params, "CR_use_fk_hinge")
 
-		return ui_rows
+		return layout
 
 class Rig(CloudFKChainRig):
 	pass

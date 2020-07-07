@@ -5,6 +5,7 @@ from enum import Enum
 
 from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
+from ..ui import ui_label_with_linebreak, dropdown_ui
 
 from rigify.base_rig import BaseRig
 
@@ -24,6 +25,8 @@ class DefaultLayers(Enum):
 
 class CloudBaseRig(BaseRig, CloudUtilities):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
+
+	ui_rows = {}	# Keep track of certain UI rows so they can be modified later.
 
 	bone_set_defs = OrderedDict()
 	
@@ -279,7 +282,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		cls.define_bone_sets(params)
 	
 	@classmethod
-	def bone_set_ui(cls, params, layout, set_info, ui_rows):
+	def bone_set_ui(cls, params, layout, set_info):
 		import bpy
 		obj = bpy.context.object
 		cloudrig = obj.data.cloudrig_parameters
@@ -287,39 +290,42 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return
 		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return
 
-		ui_rows[set_info['param']] = col = layout.column()
+		cls.ui_rows[set_info['param']] = col = layout.column()
 		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
-		col.prop(params, set_info['layer_param'], text="")
+		row = col.row()
+		row.use_property_split=False
+		row.prop(params, set_info['layer_param'], text="")
 		layout.separator()
 
 	@classmethod
-	def bone_sets_ui(cls, layout, params, ui_rows):
-		icon = 'TRIA_DOWN' if params.CR_show_bone_sets else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_bone_sets", toggle=True, icon=icon)
-		if not params.CR_show_bone_sets: return
+	def bone_sets_ui(cls, layout, params):
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_bone_sets"): return
 
 		for ui_name in cls.bone_set_defs.keys():
 			set_info = cls.bone_set_defs[ui_name]
-			cls.bone_set_ui(params, layout, set_info, ui_rows)
-		
-		return ui_rows
-	
+			cls.bone_set_ui(params, layout, set_info)
+
+	@classmethod
+	def cloud_dropdown_ui(cls, layout, params, dropdown_param_name):
+		layout.separator()
+		return dropdown_ui(layout, params, dropdown_param_name)
+
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
-		ui_rows = {}
-		from ..ui import ui_label_with_linebreak
 		doc = cls.__doc__ or cls.__bases__[0].__doc__
 		if doc:
-			ui_label_with_linebreak(layout, doc)
-		return ui_rows
+			ui_label_with_linebreak(layout.column(align=True), doc)
+		
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		col = layout.column()
+		return col
 
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = cls.cloud_params_ui(layout, params)
-		layout.separator()
-		cls.bone_sets_ui(layout, params, ui_rows)
-
-		# We can return a dictionary of key:UILayout elements, in case we want to affect the UI layout of inherited rig elements.
-		return ui_rows
+		cls.ui_rows = {}
+		
+		cls.cloud_params_ui(layout, params)
+		cls.bone_sets_ui(layout, params)

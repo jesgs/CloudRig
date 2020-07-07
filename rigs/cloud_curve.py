@@ -326,42 +326,43 @@ class CloudCurveRig(CloudBaseRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def bone_set_ui(cls, params, layout, set_info, ui_rows):
+	def bone_set_ui(cls, params, layout, set_info):
 		# We only want to draw Curve Handles bone set UI if the option for it is enabled.
 		if set_info['name'] != "Curve Handles" or params.CR_controls_for_handles:
-			super().bone_set_ui(params, layout, set_info, ui_rows)
+			super().bone_set_ui(params, layout, set_info)
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
 		curve_ob = cls.datablock_from_str(bpy.data.objects, params.CR_target_curve_name)
-		no_curve = params.CR_target_curve_name=="" or curve_ob==None or curve_ob.type!='CURVE'
+		bad_curve = params.CR_target_curve_name=="" or curve_ob==None or curve_ob.type!='CURVE'
 
 		icon = 'TRIA_DOWN' if params.CR_show_curve_rig_settings else 'TRIA_RIGHT'
 		row = layout.row()
-		row.alert = no_curve
+		row.use_property_split=False
+		row.alert = bad_curve
 		row.prop(params, "CR_show_curve_rig_settings", toggle=True, icon=icon)
 		if not params.CR_show_curve_rig_settings: return
 
 		target_curve_row = layout.row()
-		icon = 'ERROR' if no_curve else 'OUTLINER_OB_CURVE'
+		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
 		target_curve_row.prop_search(params, "CR_target_curve_name", bpy.data, 'objects', icon=icon)
 
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
 		cls.curve_selector_ui(layout, params)
 
-		if not params.CR_show_curve_rig_settings: return ui_rows
+		if not params.CR_show_curve_rig_settings: return layout
 		layout.prop(params, "CR_hook_name")
 		layout.prop(params, "CR_controls_for_handles")
 		if params.CR_controls_for_handles:
 			layout.prop(params, "CR_rotatable_handles")
 			layout.prop(params, "CR_separate_radius")
-		
-		return ui_rows
+
+		return layout
 
 class Rig(CloudCurveRig):
 	pass

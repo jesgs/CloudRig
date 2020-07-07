@@ -100,6 +100,7 @@ class CloudEyeRig(CloudBaseRig):
 		return ctr_bone
 
 	def make_eye_root(self, bone):
+		# TODO: Root bone should be bigger and have a DSP- bone in the same place as the CTR bone.
 		base_bone = self.org_chain[0]
 		root_bone = self.target_ctrl.new(
 			name = base_bone.name.replace("ORG", "ROOT")
@@ -235,18 +236,16 @@ class CloudEyeRig(CloudBaseRig):
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
-		icon = 'TRIA_DOWN' if params.CR_eye_show_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_eye_show_settings", toggle=True, icon=icon)
-		if not params.CR_eye_show_settings: return ui_rows
+		if not cls.cloud_dropdown_ui(layout, params, "CR_eye_show_settings"): return layout
 
 		layout.prop(params, "CR_eye_group")
 		layout.prop(params, "CR_eye_target_distance")
 		layout.prop(params, "CR_eye_deform")
 		layout.prop(params, "CR_eye_root")
 
-		return ui_rows
+		return layout
 
 class Rig(CloudEyeRig):
 	pass

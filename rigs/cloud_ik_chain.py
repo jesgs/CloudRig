@@ -506,18 +506,15 @@ class CloudIKChainRig(CloudFKChainRig):
 	def cloud_params_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		ui_rows = super().cloud_params_ui(layout, params)
+		layout = super().cloud_params_ui(layout, params)
 
-		icon = 'TRIA_DOWN' if params.CR_show_ik_settings else 'TRIA_RIGHT'
-		layout.prop(params, "CR_show_ik_settings", toggle=True, icon=icon)
-		if not params.CR_show_ik_settings: return ui_rows
+		if not cls.cloud_dropdown_ui(layout, params, "CR_show_ik_settings"): return layout
 
-		pole_row = layout.row()
-		pole_row.prop(params, "CR_use_pole_target")
-		pole_row.prop(params, "CR_ik_at_tail")
+		layout.prop(params, "CR_use_pole_target")
+		layout.prop(params, "CR_ik_at_tail")
 		layout.prop(params, "CR_world_aligned_controls")
 
-		return ui_rows
+		return layout
 
 class Rig(CloudIKChainRig):
 	
