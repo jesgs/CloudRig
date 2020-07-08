@@ -6,11 +6,16 @@ class CloudTemplateRig(CloudBaseRig):
 
 	def initialize(self):
 		super().initialize()
-	
+
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.template_set = self.ensure_bone_set("Template Bones")
-	
+
+	def prepare_bones(self):
+		super().prepare_bones()
+		if self.params.CR_create_ctr:
+			self.make_ctr_bone(self.org_chain[0])
+
 	def make_ctr_bone(self, bone):
 		ctr_bone = self.template_set.new(
 			name = bone.name.replace("ORG", "CTR")
@@ -21,14 +26,8 @@ class CloudTemplateRig(CloudBaseRig):
 		copy_trans = bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)
 		return ctr_bone
 
-	def prepare_bones(self):
-		super().prepare_bones()
-		if self.params.CR_create_ctr:
-			self.make_ctr_bone(self.org_chain[0])
-	
 	##############################
 	# Parameters
-
 	@classmethod
 	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
