@@ -4,6 +4,8 @@ from .cloud_utils import make_name, slice_name
 from .cloud_base import CloudBaseRig
 
 """
+TODO: Allow for circular chains, if the first bone's head is the same location as the last bone's tail, and final control is enabled. Doesn't have to be a parameter.
+
 Ideas:
 Spline IK like controls(the other two types) for bendy bones' handles.
 Recursive generation of STR layers as per Pablo's request, so we don't just have main and sub STR controls, but any number of nested layers(although we would probably never use more than 3, but then again, I thought we would never use more than 2, so)
@@ -158,6 +160,7 @@ class CloudChainRig(CloudBaseRig):
 			str_section = []
 			str_section.append(tip_bone)
 			str_sections.append(str_section)
+			self.main_str_bones.append(tip_bone)
 
 		return str_sections
 
