@@ -327,5 +327,6 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 		"""
 		cls.ui_rows = {}
 		
-		cls.cloud_params_ui(layout, params)
+		layout = cls.cloud_params_ui(layout, params)
+		layout.separator()
 		cls.bone_sets_ui(layout, params)
