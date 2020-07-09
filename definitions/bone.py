@@ -94,6 +94,9 @@ class BoneSet(LinkedList):
 				return bi
 		return None
 
+	def __repr__(self):
+		return self.ui_name
+
 	def new(self, name="Bone", source=None, **kwargs):
 		"""Define a bone and add it to the list of bones."""
 
@@ -105,7 +108,7 @@ class BoneSet(LinkedList):
 		# 	while(self.riglet.get_bone_info(name)):
 		# 		num = int(name[-1])
 		# 		name = name[:-4] + str(num+1).zfill(3)
-		# 	print(f"Added as {name} to {self.ui_name}")
+		# 	print(f"Adding as {name} to {self}")
 
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group
@@ -137,7 +140,7 @@ class BoneSet(LinkedList):
 
 		return bone_group
 
-class BoneInfo():
+class BoneInfo:
 	""" 
 	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone and bpy.types.EditBone
 	into a single concept.
@@ -193,7 +196,7 @@ class BoneInfo():
 		self.show_wire = False
 		self.use_endroll_as_inroll = False
 
-		self._bbone_x = 0.1		# NOTE: These two are wrapped by bbone_width @property.
+		self._bbone_x = 0.1		# NOTE: These two are wrapped by bbone_width @property. TODO: These no longer need the underscore.
 		self._bbone_z = 0.1
 		self.bbone_segments = 1
 		self.bbone_handle_type_start = "AUTO"
@@ -244,10 +247,10 @@ class BoneInfo():
 				self._bbone_x = source.bbone_x
 				self._bbone_z = source.bbone_z
 			if source.parent:
-				if type(source)==bpy.types.EditBone:
-					self.parent = source.parent.name
+				if type(source)==BoneInfo:
+					self.parent = source.parent
 				else:
-					self.parent = source.parent 
+					self.parent = source.parent.name
 
 		# Apply property values from arbitrary keyword arguments if any were passed.
 		for key, value in kwargs.items():
@@ -367,6 +370,29 @@ class BoneInfo():
 			self.constraint_infos.append(con_info)
 
 		return con_info
+	
+	def add_constraint_from_real(self, BPY_constraint):
+		kwargs = {}
+		skip = ['active', 'bl_rna', 'error_location', 'error_rotation', 'is_proxy_local', 'is_valid', 'rna_type', 'type']
+		for key in dir(BPY_constraint):
+			if "__" in key: continue
+			if key in skip: continue
+
+			if key=='targets' and BPY_constraint.type=='ARMATURE':
+				kwargs['targets'] = []
+				for t in BPY_constraint.targets:
+					kwargs['targets'].append({
+						'target' : self.container.generator.obj,
+						'subtarget' : t.subtarget,
+						'weight' : t.weight
+					})
+				continue
+			
+			kwargs[key] = getattr(BPY_constraint, key)
+		
+		new_con = ConstraintInfo(self, BPY_constraint.type, **kwargs)
+		self.constraint_infos.append(new_con)
+		return new_con
 
 	def clear_constraints(self):
 		self.constraint_infos = []
@@ -491,10 +517,14 @@ class BoneInfo():
 		else:
 			return armature.pose.bones.get(self.name)
 
-class ConstraintInfo:
+class ConstraintInfo(dict):
 	"""Helper class to store and manage constraint info before it's passed to Rigify's make_constraint."""
 
 	def __init__(self, bone_info, con_type, target=None, use_preferred_defaults=True, **kwargs):
+		# Blame this guy https://stackoverflow.com/a/14620633/1527672
+		super(ConstraintInfo, self).__init__(**kwargs)
+		self.__dict__ = self
+
 		self.type = con_type
 		self.bone_info = bone_info	# BoneInfo to which this constraint is being added.
 		self.target = target
@@ -541,7 +571,21 @@ class ConstraintInfo:
 			self.use_transform_limit = True
 		elif self.type == 'IK':
 			self.chain_count = 2
-	
+
+	def relink(self):
+		"""Allow the Rigify relink naming convention of an @ symbol separating the constraint name from a list of subtargets separated by commas."""
+		split_name = self.name.split("@")
+		subtargets = split_name[1:]
+		self.name = split_name[0]
+
+		if self.type=='ARMATURE':
+			for i, t in enumerate(self.targets):
+				t['subtarget'] = subtargets[i]
+			return
+		
+		if len(subtargets) > 0:
+			self.subtarget = subtargets[0]
+
 	def make_real(self, pose_bone):
 		""" Create a constraint based on this ConstraintInfo on a given pose bone. """
 		con_type = self.type

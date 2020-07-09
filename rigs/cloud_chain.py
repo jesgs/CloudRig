@@ -145,6 +145,7 @@ class CloudChainRig(CloudBaseRig):
 					# Make first control bigger, to indicate that it behaves differently than the others.
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
+					self.org_chain[sec_i].str_control = str_bone
 				str_section.append(str_bone)
 			str_sections.append(str_section)
 
@@ -161,6 +162,7 @@ class CloudChainRig(CloudBaseRig):
 			str_section.append(tip_bone)
 			str_sections.append(str_section)
 			self.main_str_bones.append(tip_bone)
+			self.org_chain[sec_i].tail_str_control = str_bone
 
 		return str_sections
 

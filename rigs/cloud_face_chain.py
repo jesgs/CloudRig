@@ -2,10 +2,7 @@ from bpy.props import BoolProperty, IntProperty
 
 from .cloud_utils import make_name, slice_name
 from .cloud_chain import CloudChainRig
-"""TODO:
-Come up with a smart way to allow nearby STR chains to affect each other.
-Use a separate cloud_face_glue rig type if needed, but maybe it can be done from here.
-"""
+
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
 
@@ -83,9 +80,24 @@ class CloudFaceChainRig(CloudChainRig):
 			)
 		for b in bones:
 			b.parent = parent
+			b.merged_control = parent
 
 	def relink_constraints_to_controls(self):
-		pass
+		# For each ORG bone
+		#	Relink from that ORG bone to the corresponding main str control, which should exist.
+		# If final control param is enabled
+		#	For every constraint on the last ORG bone that starts with "TAIL"
+		# 		Relink from the last ORG bone to the last main STR control
+		from copy import deepcopy
+		for org in self.org_chain:
+			# Move constraints from ORG bone to their corresponding main STR control, then relink the constraint on the main STR control.
+			for c in org.constraint_infos:
+				move_constraint_to_bone = org.str_control
+				if hasattr(org.str_control, "merged_control"):
+					move_constraint_to_bone = org.str_control.merged_control
+				move_constraint_to_bone.constraint_infos.append(c)
+				org.constraint_infos.remove(c)
+				c.relink()
 
 	##############################
 	# Parameters
@@ -107,16 +119,16 @@ class CloudFaceChainRig(CloudChainRig):
 			name		 = "Face Chain Settings"
 			,description = "Reveal settings for the cloud_face_chain rig type"
 		)
+		# TODO: make sure this works in weird cases (up to 5 chains intersecting, including chains that are self-intersecting).
 		params.CR_face_chain_merge = BoolProperty(
 			name		 = "Merge Controls"
 			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
 			,default	 = True
 		)
-		# TODO: Implement this.
-		# When controls get merged, their constraints should get merged also.
+		# TODO: implement TAIL- prefix check
 		params.CR_face_chain_relink = BoolProperty(
 			name		 = "Relink Constraints"
-			,description = "Constraints on the bones of this chain rig will be relinked to the corresponding controls that are created for them. For the final bone of the chain, constraints intended for the final control should be prefixed with \"TAIL-\""
+			,description = "Constraints on this chain will be relinked to the corresponding STR controls that are created for them. For the final bone of the chain, constraints intended for the final control should be prefixed with \"TAIL-\""
 			,default	 = True
 		)
 

@@ -179,6 +179,11 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 				,source		 = eb
 				,hide_select = self.mch_disable_select
 			)
+			# Remove constraints from the ORG bone and load them into the BoneInfo so they can be read and modified.
+			pb = self.obj.pose.bones.get(eb.name)
+			for c in pb.constraints:
+				ci = org_bi.add_constraint_from_real(c)
+				pb.constraints.remove(c)
 
 			org_bi.meta_bone = meta_org
 
