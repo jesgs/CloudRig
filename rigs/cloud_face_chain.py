@@ -32,6 +32,32 @@ class CloudFaceChainRig(CloudChainRig):
 		super().prepare_bones()
 		if self.params.CR_face_chain_merge:
 			self.merge_controls()
+		if self.params.CR_face_chain_relink:
+			self.relink_constraints_to_controls()
+
+	def merge_controls(self):
+		# For each main STR control in this rig
+		#   For each main STR control in every other rig
+		#	   If the two are in the same position
+		#		   Ensure a parent control
+		#		   Move both to the layers of the Sub Controls bone set.
+
+		merge_threshold = 0.1
+		sets_to_merge = []
+		for my_main in self.main_str_bones:
+			set_to_merge = [my_main]
+			for other_rig in self.chain_rigs:
+				if not hasattr(other_rig, "main_str_bones"): continue
+				for other_main in other_rig.main_str_bones:
+					if (my_main.head-other_main.head).length < merge_threshold:
+						set_to_merge.append(other_main)
+			if len(set_to_merge)>1:
+				sets_to_merge.append(set_to_merge)
+		
+		for bones in sets_to_merge:
+			self.ensure_parent_control(bones)
+			for b in bones:
+				b.layers = self.sub_controls.layers[:]
 
 	def ensure_parent_control(self, bones):
 		"""Ensure that all bones share the same parent control. If this is not the case, create it and parent them."""
@@ -58,30 +84,8 @@ class CloudFaceChainRig(CloudChainRig):
 		for b in bones:
 			b.parent = parent
 
-	def merge_controls(self):
-		# For each main STR control in this rig
-		#   For each main STR control in every other rig
-		#	   If the two are in the same position
-		#		   Ensure a parent control(not sure about the name)
-		#		   Move both to the layers of the Merged Controls bone set.
-
-		merge_threshold = 0.1
-		sets_to_merge = []
-		for my_main in self.main_str_bones:
-			set_to_merge = [my_main]
-			for other_rig in self.chain_rigs:
-				if not hasattr(other_rig, "main_str_bones"): continue
-				for other_main in other_rig.main_str_bones:
-					if (my_main.head-other_main.head).length < merge_threshold:
-						set_to_merge.append(other_main)
-			if len(set_to_merge)>1:
-				sets_to_merge.append(set_to_merge)
-		
-		for bones in sets_to_merge:
-			self.ensure_parent_control(bones)
-			for b in bones:
-				b.layers = self.sub_controls.layers[:]
-				# b.custom_shape = self.load_widget('Cube')
+	def relink_constraints_to_controls(self):
+		pass
 
 	##############################
 	# Parameters
@@ -106,6 +110,13 @@ class CloudFaceChainRig(CloudChainRig):
 		params.CR_face_chain_merge = BoolProperty(
 			name		 = "Merge Controls"
 			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
+			,default	 = True
+		)
+		# TODO: Implement this.
+		# When controls get merged, their constraints should get merged also.
+		params.CR_face_chain_relink = BoolProperty(
+			name		 = "Relink Constraints"
+			,description = "Constraints on the bones of this chain rig will be relinked to the corresponding controls that are created for them. For the final bone of the chain, constraints intended for the final control should be prefixed with \"TAIL-\""
 			,default	 = True
 		)
 
