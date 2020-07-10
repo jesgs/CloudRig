@@ -162,7 +162,7 @@ class CloudChainRig(CloudBaseRig):
 			str_section.append(tip_bone)
 			str_sections.append(str_section)
 			self.main_str_bones.append(tip_bone)
-			self.org_chain[sec_i].tail_str_control = str_bone
+			self.org_chain[-1].tail_str_control = tip_bone
 
 		return str_sections
 
@@ -326,6 +326,7 @@ class CloudChainRig(CloudBaseRig):
 			,min		 = 1
 			,max		 = 9
 		)
+		# TODO: make this... less. Currently, even a density of 1 is pretty dense. I guess use different maths where this is used.
 		params.CR_bbone_density = IntProperty(
 			 name="BBone Density"
 			,description="Number of BBone segments per 1 unit of bone length, defined by the rig's size"

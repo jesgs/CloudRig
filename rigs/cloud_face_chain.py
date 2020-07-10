@@ -94,7 +94,9 @@ class CloudFaceChainRig(CloudChainRig):
 			# Move constraints from ORG bone to their corresponding main STR control, then relink the constraint on the main STR control.
 			for c in org.constraint_infos:
 				move_constraint_to_bone = org.str_control
-				if hasattr(org.str_control, "merged_control"):
+				if hasattr(org, "tail_str_control") and c.name.startswith("TAIL"):
+					move_constraint_to_bone = org.tail_str_control
+				elif hasattr(org.str_control, "merged_control"):
 					move_constraint_to_bone = org.str_control.merged_control
 				move_constraint_to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
@@ -120,13 +122,11 @@ class CloudFaceChainRig(CloudChainRig):
 			name		 = "Face Chain Settings"
 			,description = "Reveal settings for the cloud_face_chain rig type"
 		)
-		# TODO: make sure this works in weird cases (up to 5 chains intersecting, including chains that are self-intersecting).
 		params.CR_face_chain_merge = BoolProperty(
 			name		 = "Merge Controls"
 			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
 			,default	 = True
 		)
-		# TODO: implement TAIL- prefix check
 		params.CR_face_chain_relink = BoolProperty(
 			name		 = "Relink Constraints"
 			,description = "Constraints on this chain will be relinked to the corresponding STR controls that are created for them. For the final bone of the chain, constraints intended for the final control should be prefixed with \"TAIL-\""
@@ -142,6 +142,7 @@ class CloudFaceChainRig(CloudChainRig):
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_face_chain_parameters"): return layout
 
 		layout.prop(params, "CR_face_chain_merge")
+		layout.prop(params, "CR_face_chain_relink")
 
 		return layout
 

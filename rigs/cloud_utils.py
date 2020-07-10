@@ -467,9 +467,11 @@ def make_name(prefixes=[], base="", suffixes=[], prefix_separator="-", suffix_se
 	# Trailing zeroes should be avoided though, but that's not done by this function(for now?)
 	name = ""
 	for pre in prefixes:
+		if pre=="": continue
 		name += pre + prefix_separator
 	name += base
 	for suf in suffixes:
+		if suf=="": continue
 		name += suffix_separator + suf
 	return name
 
