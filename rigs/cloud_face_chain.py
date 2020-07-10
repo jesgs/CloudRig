@@ -15,9 +15,6 @@ class CloudFaceChainRig(CloudChainRig):
 			if isinstance(rig, type(self)):
 				self.chain_rigs.append(rig)
 
-		for rig in self.chain_rigs:
-			print(rig.base_bone)
-
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		# This bone set is special in that its .new() function should never be called, and therefore it never creates any bones.

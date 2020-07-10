@@ -52,18 +52,18 @@ class CloudLimbRig(CloudIKChainRig):
 		self.ik_parents.append(self.limb_ui_name)
 
 	def determine_segments(self, org_i, chain):
-		segments, bbone_segments = super().determine_segments(org_i, chain)
+		segments, bbone_density = super().determine_segments(org_i, chain)
 
 		if self.limb_type=='LEG' and org_i > len(chain)-3:
 			# Force strictly 1 segment on the foot and the toe.
-			return (1, bbone_segments)
+			return 1, bbone_density
 		elif self.limb_type=='ARM' and org_i == len(chain)-1:
 			# Force strictly 1 segment on the wrist.
-			return (1, bbone_segments)
+			return 1, bbone_density
 		elif org_i == len(chain)-1 and not self.params.CR_cap_control:
-			return (1, 1)
+			return 1, 1
 
-		return(segments, bbone_segments)
+		return segments, bbone_density
 
 	def world_align_last_fk(self):
 		# Make last FK bone world-aligned.

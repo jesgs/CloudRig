@@ -18,7 +18,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		self.chain_length = len(self.bones.org.main)
+		self.chain_length = 0
 
 	def ensure_bone_sets(self):
 		# TODO: We should introduce a convention that bone sets ending in _chain are ones where the order is expected to be meaningful. If our STR bones could be ordered, our code could be a bit cleaner. And they are ordered, it's just not clear.
@@ -30,6 +30,11 @@ class CloudChainRig(CloudBaseRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
+
+		for org in self.org_chain:
+			self.chain_length += org.length
+		self.average_org_length = self.chain_length / len(self.org_chain)
+
 		self.prepare_def_str_chains()
 		self.connect_parent_chain_rig()
 
@@ -90,7 +95,7 @@ class CloudChainRig(CloudBaseRig):
 							def_bone.bbone_easein = 0
 
 						# Last bone of the segment, but not the last bone of the chain.
-						segments, bbone_segments = self.determine_segments(sec_i, self.org_chain)
+						segments = self.determine_segments(sec_i, self.org_chain)[0]
 						if i==segments-1 and sec_i != len(self.org_chain)-1:
 							def_bone.bbone_easeout = 0
 
@@ -101,7 +106,7 @@ class CloudChainRig(CloudBaseRig):
 			org_bone.def_bones = []
 			def_section = []
 
-			segments, bbone_segments = self.determine_segments(org_i, self.org_chain)
+			segments, bbone_density = self.determine_segments(org_i, self.org_chain)
 			
 			for i in range(0, segments):
 				## Create Deform bones
@@ -120,11 +125,14 @@ class CloudChainRig(CloudBaseRig):
 					,roll					 = org_bone.roll
 					,bbone_handle_type_start = 'TANGENT'
 					,bbone_handle_type_end	 = 'TANGENT'
-					,bbone_segments			 = bbone_segments
 					,hide_select			 = self.mch_disable_select
 					,use_deform				 = True
 				)
-				if bbone_segments > 1:
+				def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
+				# Force BBone segments to be a minimum of 2, unless bbone_density is 0.
+				if def_bone.bbone_segments < 2 and self.params.CR_bbone_density > 0:
+					def_bone.bbone_segments = 2
+				if def_bone.bbone_segments > 1:
 					def_bone.inherit_scale = 'NONE'
 				org_bone.def_bones.append(def_bone)
 
@@ -227,19 +235,13 @@ class CloudChainRig(CloudBaseRig):
 		org_bone = chain[org_i]
 		segments = self.params.CR_deform_segments
 
-		bbone_segments = round(org_bone.length*self.params.CR_bbone_density/self.scale)
-		if bbone_segments > 32:
-			print(f"Warning: BBone density for {org_bone.name} results in {bbone_segments} bbone segments, which exceeds the maximum of 32.")
-
-		# Force BBone segments to be a minimum of 2, unless bbone_density is 0.
-		if bbone_segments < 2 and self.params.CR_bbone_density > 0:
-			bbone_segments = 2
+		bbone_density = round(org_bone.length/self.average_org_length * self.params.CR_bbone_density * self.params.CR_deform_segments)
 
 		# No segments for last bone of the chain if there is no control for its tail.
 		if (org_i == len(chain)-1) and not self.params.CR_cap_control:
-			return (1, 1)
+			return 1, 1
 		
-		return (segments, bbone_segments)
+		return segments, bbone_density
 
 	def make_shape_key_helper(self, def_bone_1, def_bone_2):
 		"""The goal is to accurately read the rotational difference between def_bone_1 and def_bone_2, each of which can be a bendy bone.
@@ -326,11 +328,10 @@ class CloudChainRig(CloudBaseRig):
 			,min		 = 1
 			,max		 = 9
 		)
-		# TODO: make this... less. Currently, even a density of 1 is pretty dense. I guess use different maths where this is used.
 		params.CR_bbone_density = IntProperty(
 			 name="BBone Density"
-			,description="Number of BBone segments per 1 unit of bone length, defined by the rig's size"
-			,default=6
+			,description="Average number of BBone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 BBone Segments unless this parameter is 0"
+			,default=10
 			,min=0
 			,max=32
 		)
