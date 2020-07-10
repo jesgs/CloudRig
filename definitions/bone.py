@@ -282,7 +282,7 @@ class BoneInfo:
 
 	@bbone_width.setter
 	def bbone_width(self, value):
-		"""Set BBone width relative to the rig's scale."""
+		"""Set B-Bone width relative to the rig's scale."""
 		self._bbone_x = value * self.container.scale
 		self._bbone_z = value * self.container.scale
 		self.envelope_distance = value * self.container.scale
@@ -299,7 +299,7 @@ class BoneInfo:
 		self.tail = self.head + value
 
 	def scale_width(self, value):
-		"""Set bbone width relative to current."""
+		"""Set b-bone width relative to current."""
 		self.bbone_width *= value
 
 	def scale_length(self, value):

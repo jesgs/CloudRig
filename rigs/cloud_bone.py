@@ -340,8 +340,8 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			,default=False
 		)
 		params.CR_tweak_bbone_props = BoolProperty(
-			name="BBone Settings"
-			,description="Copy BBone settings from this bone to the generated bone"
+			name="B-Bone Settings"
+			,description="Copy B-Bone settings from this bone to the generated bone"
 			,default=False
 		)
 
@@ -349,7 +349,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		# Parameters for copying the bone
 		params.CR_create_deform_bone = BoolProperty(
 			 name="Create Deform Bone"
-			,description="Create a copy of the ORG bone with use_deform enabled, and with the bbone settings of this bone"
+			,description="Create a copy of the ORG bone with use_deform enabled, and with the b-bone settings of this bone"
 			,default=True
 		)
 

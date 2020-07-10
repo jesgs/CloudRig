@@ -44,7 +44,7 @@ class CloudChainRig(CloudBaseRig):
 		# And that section contains the bones. (eg. DEF-Forearm1)
 		# The deform_segments parameter defines how many bones there are in each section.
 
-		# Each DEF bbone is surrounded by an STR control on each end.
+		# Each DEF b-bone is surrounded by an STR control on each end.
 		
 		### Create deform bones.
 		# Each STR section's first and last bones act as a control for the bones inbetween them. These are the main_str_bones.
@@ -54,7 +54,7 @@ class CloudChainRig(CloudBaseRig):
 		str_sections = self.make_str_chain(def_sections)
 		self.make_str_helpers(str_sections)
 
-		### Configure Deform (parent to STR or previous DEF, set BBone handle)
+		### Configure Deform (parent to STR or previous DEF, set B-Bone handle)
 		for sec_i, section in enumerate(def_sections):
 			for i, def_bone in enumerate(section):
 				if i==0:
@@ -70,12 +70,12 @@ class CloudChainRig(CloudBaseRig):
 					# Parent to previous deform bone.
 					def_bone.parent = section[i-1]
 				
-				# Set BBone start handle to the STR bone of the same index.
+				# Set B-Bone start handle to the STR bone of the same index.
 				def_bone.bbone_custom_handle_start = str_sections[sec_i][i].name
 
 				next_str = ""
 				if i < len(section)-1:
-					# Set BBone end handle to the next STR bone.
+					# Set B-Bone end handle to the next STR bone.
 					next_str = str_sections[sec_i][i+1].name
 					def_bone.bbone_custom_handle_end = next_str
 				else:
@@ -86,7 +86,7 @@ class CloudChainRig(CloudBaseRig):
 				# Stretch To constraint
 				def_bone.add_constraint('STRETCH_TO', subtarget=next_str)
 
-				# BBone scale drivers
+				# B-Bone scale drivers
 				if def_bone.bbone_segments > 1:
 					self.make_bbone_scale_drivers(def_bone)
 					if self.params.CR_sharp_sections:
@@ -129,7 +129,7 @@ class CloudChainRig(CloudBaseRig):
 					,use_deform				 = True
 				)
 				def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
-				# Force BBone segments to be a minimum of 2, unless bbone_density is 0.
+				# Force B-Bone segments to be a minimum of 2, unless bbone_density is 0.
 				if def_bone.bbone_segments < 2 and self.params.CR_bbone_density > 0:
 					def_bone.bbone_segments = 2
 				if def_bone.bbone_segments > 1:
@@ -231,7 +231,7 @@ class CloudChainRig(CloudBaseRig):
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
 	def determine_segments(self, org_i, chain):
-		"""Determine how many deform and bbone segments should be in a section of the chain."""
+		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		org_bone = chain[org_i]
 		segments = self.params.CR_deform_segments
 
@@ -245,8 +245,8 @@ class CloudChainRig(CloudBaseRig):
 
 	def make_shape_key_helper(self, def_bone_1, def_bone_2):
 		"""The goal is to accurately read the rotational difference between def_bone_1 and def_bone_2, each of which can be a bendy bone.
-		SKP (Shape Key Helper Parent): Copy Transforms of the bbone tail of of def_bone_1.
-		SKH (Shape Key Helper): This is parented to SKP and Copy Transforms of the bbone head of def_bone_2.
+		SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail of of def_bone_1.
+		SKH (Shape Key Helper): This is parented to SKP and Copy Transforms of the b-bone head of def_bone_2.
 		Reading the local rotation of SKH should now give us the rotation which we can use to activate corrective shape keys.
 		"""
 
@@ -329,8 +329,8 @@ class CloudChainRig(CloudBaseRig):
 			,max		 = 9
 		)
 		params.CR_bbone_density = IntProperty(
-			 name="BBone Density"
-			,description="Average number of BBone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 BBone Segments unless this parameter is 0"
+			 name="B-Bone Density"
+			,description="Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
 			,default=10
 			,min=0
 			,max=32
@@ -341,7 +341,7 @@ class CloudChainRig(CloudBaseRig):
 		)
 		params.CR_sharp_sections = BoolProperty(
 			 name="Sharp Sections"
-			,description="BBone EaseIn/Out is set to 0 for bones connectiong two sections"
+			,description="B-Bone EaseIn/Out is set to 0 for bones connectiong two sections"
 			,default=False
 		)
 		params.CR_cap_control = BoolProperty(

@@ -11,7 +11,7 @@ class CloudBBoneGridRig(CloudBaseRig):
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		self.ctr_bones = self.ensure_bone_set("BBone Controls")
+		self.ctr_bones = self.ensure_bone_set("B-Bone Controls")
 		self.bendy_bones = self.ensure_bone_set("Deform BBones")
 		self.tangent_bones = self.ensure_bone_set("Tangent Handle Helpers")
 
@@ -34,7 +34,7 @@ class CloudBBoneGridRig(CloudBaseRig):
 
 	def load_org_bones(self):
 		super().load_org_bones()
-		# Load BBone Controls and Deform BBones into BoneInfo instances.
+		# Load B-Bone Controls and Deform BBones into BoneInfo instances.
 		base_eb = self.get_bone(self.base_bone)
 		self.load_bone_hierarchy(base_eb)
 
@@ -50,7 +50,7 @@ class CloudBBoneGridRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "BBone Controls", preset=4, default_layers=[cls.default_layers('FACE_TWEAK')])
+		cls.define_bone_set(params, "B-Bone Controls", preset=4, default_layers=[cls.default_layers('FACE_TWEAK')])
 		cls.define_bone_set(params, "Deform BBones", default_layers=[cls.default_layers('DEF')], override='DEF')
 		cls.define_bone_set(params, "Tangent Handle Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
@@ -61,9 +61,9 @@ class CloudBBoneGridRig(CloudBaseRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_bbgrid_settings = BoolProperty(name="BBone Grid Rig")
+		params.CR_show_bbgrid_settings = BoolProperty(name="B-Bone Grid Rig")
 		
-		# Meh, this probably needs to exist on each BBone individually. Sometimes we want Automatic, sometimes Tangent, sometimes Auto+Tangent. Sometimes even different things for the head and the tail of the same bone.
+		# Meh, this probably needs to exist on each B-Bone individually. Sometimes we want Automatic, sometimes Tangent, sometimes Auto+Tangent. Sometimes even different things for the head and the tail of the same bone.
 		params.CR_auto_tangent = BoolProperty(
 			 name="Auto+Tangent"
 			,description="BBones in the grid whose handle type is set to Tangent will behave more as if their handle type was set to Automatic, while still being controllable via rotation."

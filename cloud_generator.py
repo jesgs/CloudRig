@@ -494,7 +494,7 @@ class CloudGenerator(Generator):
 						print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
 						continue
 
-					# Scale bone shape based on BBone scale
+					# Scale bone shape based on B-Bone scale
 					bi.write_pose_data(pose_bone)
 					if not pose_bone.use_custom_shape_bone_size:
 						pose_bone.custom_shape_scale *= self.scale * bi.bbone_width * 10

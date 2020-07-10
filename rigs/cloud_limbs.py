@@ -201,7 +201,7 @@ class CloudLimbRig(CloudIKChainRig):
 		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
 		assert heel_pivot_bone, f"ERROR: Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
 
-		# Take the bone shape size of the foot controls from the heel pivot bone bbone scale.
+		# Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
 		self.ik_mstr._bbone_x = heel_pivot_bone.bbone_x
 		self.ik_mstr._bbone_z = heel_pivot_bone.bbone_z
 		if self.params.CR_double_ik_control:
