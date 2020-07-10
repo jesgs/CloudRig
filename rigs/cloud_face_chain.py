@@ -12,7 +12,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# Gather all cloud_face_chain rigs from the generator, excluding self.
 		self.chain_rigs = []
 		for rig in self.generator.rig_list:
-			if isinstance(rig, type(self)) and rig!=self:
+			if isinstance(rig, type(self)):
 				self.chain_rigs.append(rig)
 
 		for rig in self.chain_rigs:
@@ -39,18 +39,19 @@ class CloudFaceChainRig(CloudChainRig):
 		#		   Ensure a parent control
 		#		   Move both to the layers of the Sub Controls bone set.
 
-		merge_threshold = 0.1
+		merge_threshold = 0.000001
 		sets_to_merge = []
 		for my_main in self.main_str_bones:
 			set_to_merge = [my_main]
 			for other_rig in self.chain_rigs:
 				if not hasattr(other_rig, "main_str_bones"): continue
 				for other_main in other_rig.main_str_bones:
+					if other_main == my_main: continue
 					if (my_main.head-other_main.head).length < merge_threshold:
 						set_to_merge.append(other_main)
 			if len(set_to_merge)>1:
 				sets_to_merge.append(set_to_merge)
-		
+
 		for bones in sets_to_merge:
 			self.ensure_parent_control(bones)
 			for b in bones:
@@ -67,7 +68,7 @@ class CloudFaceChainRig(CloudChainRig):
 				break
 
 		if not parent:
-			# Naming this control will be non-trivial.		
+			# Naming this control will be non-trivial.
 			bases_nonunique = [slice_name(b.name)[1] for b in bones]
 			bases = set(bases_nonunique)
 			suffixes = set([self.generator.suffix_separator.join(slice_name(b.name)[2]) for b in bones])
