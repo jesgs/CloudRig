@@ -348,10 +348,6 @@ class CloudUtilities:
 					t.id = self.obj
 
 	@staticmethod
-	def datablock_from_str(collprop, string):
-		return datablock_from_str(collprop, string)
-
-	@staticmethod
 	def set_layers(obj, layerlist, additive=False):
 		return set_layers(obj, layerlist, additive)
 
@@ -450,17 +446,6 @@ def copy_driver(from_fcurve, obj, data_path=None, index=None):
 			copy_attributes(v1.targets[i], v2.targets[i])
 	
 	return new_fc
-
-def datablock_from_str(collprop, string):
-	""" Workaround to T59106. Using PointerProperty causes error spam in console. """
-	found = collprop.get(string)
-	if found: return found
-
-	while string.startswith(" "):
-		string = string[1:]
-	
-	found = collprop.get(string)
-	if found: return found
 
 def make_name(prefixes=[], base="", suffixes=[], prefix_separator="-", suffix_separator="."):
 	# In our naming convention, prefixes are separated by dashes and suffixes by periods, eg: DSP-FK-UpperArm_Parent.L.001

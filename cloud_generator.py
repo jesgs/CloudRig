@@ -33,8 +33,9 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "Create two root controls"
 		,default	 = False
 	)
-	custom_script: StringProperty(
+	custom_script: PointerProperty(
 		name		 = "Custom Script"
+		,type		 = bpy.types.Text
 		,description = "Execute a python script after the rig is generated"
 	)
 	mechanism_movable: BoolProperty(
@@ -554,7 +555,7 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 		
 		# Execute custom script
-		script = cloud_utils.datablock_from_str(bpy.data.texts, self.params.cloudrig_parameters.custom_script)
+		script = self.params.cloudrig_parameters.custom_script
 		if script:
 			exec(script.as_string(), {})
 

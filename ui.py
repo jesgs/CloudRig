@@ -29,7 +29,7 @@ def draw_cloud_generator_options(self, context):
 	if not dropdown_ui(layout, cloudrig, "options"): return
 	
 	layout.prop(obj.data, "rigify_target_rig")
-	layout.prop_search(cloudrig, "custom_script", bpy.data, "texts")
+	layout.prop(cloudrig, "custom_script")
 
 	root_row = layout.row()
 	root_row.prop(cloudrig, "create_root")
