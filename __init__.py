@@ -5,6 +5,7 @@ rigify_info = {
 from .operators import regenerate_rigify_rigs
 from .operators import refresh_drivers
 from .operators import mirror_rigify
+from . import actions
 from . import cloud_generator
 from . import ui
 
@@ -13,7 +14,6 @@ from bpy.props import StringProperty
 from . import versioning
 
 # This allows you to right click on a button and link to documentation
-
 def cloudrig_manual_map():
 	url_manual_prefix = "https://gitlab.com/blender/CloudRig/-/wikis/"
 	params_pref = "bpy.types.rigifyparameters.cr_"
@@ -86,28 +86,29 @@ def cloudrig_manual_map():
 	)
 	return url_manual_prefix, url_manual_mapping
 
+modules = [
+	regenerate_rigify_rigs,
+	refresh_drivers,
+	mirror_rigify,
+	actions,
+	cloud_generator,
+	ui,
+]
+
 def register():
 	from bpy.utils import register_class, register_manual_map
-	regenerate_rigify_rigs.register()
-	refresh_drivers.register()
-	mirror_rigify.register()
-
-	cloud_generator.register()
-	ui.register()
+	for m in modules:
+		m.register()
 
 	register_manual_map(cloudrig_manual_map)
 	versioning.do_blender_versioning()
 
 def unregister():
 	from bpy.utils import unregister_class, unregister_manual_map
+	for m in reversed(modules):
+		unregister_class(m)
+
 	unregister_manual_map(cloudrig_manual_map)
-
-	regenerate_rigify_rigs.unregister()
-	refresh_drivers.unregister()
-	mirror_rigify.unregister()
-
-	cloud_generator.unregister()
-	ui.unregister()
 
 if versioning.is_before_register_commit():
 	print(f"Blender Version older than {register_commit_date}, self-registering CloudRig.")

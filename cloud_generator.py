@@ -1,10 +1,11 @@
 import bpy, os
 from mathutils import Matrix, Vector
-from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
 from rigify.generate import *
 from .definitions.bone import BoneSet
 from .rigs import cloud_utils
 from . import widgets as cloud_widgets
+from .actions import CloudRigAction
 
 separators = [
 	(".", ".", "."),
@@ -127,6 +128,10 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		description = "Select what layers this set of bones should be assigned to",
 		default = [l==31 for l in range(32)]
 	)
+
+	show_actions: BoolProperty(name="Actions")
+	actions: CollectionProperty(type=CloudRigAction)
+	active_action_index: IntProperty(min=0)
 
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):

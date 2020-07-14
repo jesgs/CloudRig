@@ -1,5 +1,5 @@
 import bpy
-from . import cloud_generator
+from . import cloud_generator, actions
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 import traceback
@@ -18,7 +18,7 @@ def draw_cloud_generator_options(self, context):
 	if not is_cloud_metarig(context.object) or obj.mode=='EDIT':
 		self.draw_old(context)
 		return
-	
+
 	if obj.mode not in {'POSE', 'OBJECT'}:
 		return
 
@@ -27,7 +27,7 @@ def draw_cloud_generator_options(self, context):
 	cloudrig = obj.data.cloudrig_parameters
 
 	if not dropdown_ui(layout, cloudrig, "options"): return
-	
+
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(cloudrig, "custom_script")
 
@@ -48,6 +48,10 @@ def draw_cloud_generator_options(self, context):
 	naming_row.column().prop(cloudrig, "prefix_separator", text="")
 	naming_row.column().label(text="Suffix Separator")
 	naming_row.column().prop(cloudrig, "suffix_separator", text="")
+
+	if not dropdown_ui(layout, cloudrig, "show_actions"): return
+
+	actions.draw_cloudrig_actions(layout, obj)
 	
 def draw_cloud_bone_group_options(self, context):
 	""" Hijack Rigify's Bone Group panel and replace it with our own. """
@@ -254,6 +258,7 @@ def register():
 	from bpy.utils import register_class
 	register_class(CloudGenerate)
 	register_class(CloudRigLayerInit)
+	
 
 	# Hijack Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_buttons.draw_old = bpy.types.DATA_PT_rigify_buttons.draw
