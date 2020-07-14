@@ -1,11 +1,11 @@
 import bpy
-from bpy.props import BoolProperty, IntProperty, FloatProperty, StringProperty
+from bpy.props import BoolProperty, StringProperty, PointerProperty
 from mathutils import Vector, Matrix
 
-from rigify.base_rig import stage
-
 from .cloud_base import CloudBaseRig
-from .cloud_utils import make_name, slice_name
+
+def is_curve(self, obj):
+	return obj.type=='CURVE'
 
 class CloudCurveRig(CloudBaseRig):
 	"""Create hook controls for an existing bezier curve."""
@@ -21,9 +21,9 @@ class CloudCurveRig(CloudBaseRig):
 		self.curve_handles = self.ensure_bone_set("Curve Handles")
 
 	def initialize_curve_rig(self):
-		curve_ob = self.get_curve()
-		assert curve_ob, f"Error: Curve object {self.params.CR_target_curve_name} not found for curve rig: {self.base_bone}"
-		assert curve_ob.type=='CURVE', f"Error: Curve target {self.params.CR_target_curve_name} is not a curve for rig: {self.base_bone}"
+		curve_ob = self.params.CR_target_curve
+		assert curve_ob, f"Error: Curve object not found for curve rig: {self.base_bone}"
+		assert curve_ob.type=='CURVE', f"Error: Curve target is not a curve for rig: {self.base_bone}"
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
 
 	def define_curve_root_ctrl(self):
@@ -120,7 +120,7 @@ class CloudCurveRig(CloudBaseRig):
 		return hook_ctr
 
 	def define_ctrls_for_curve_points(self):
-		curve_ob = self.get_curve()
+		curve_ob = self.params.CR_target_curve
 
 		# Function to convert a location vector in the curve's local space into world space.
 		# For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
@@ -151,17 +151,20 @@ class CloudCurveRig(CloudBaseRig):
 	def create_hook_modifier(self, cp_i, boneinfo, main_handle=False, left_handle=False, right_handle=False):				
 		""" Create a Hook modifier on the curve(active object, in edit mode), hooking the control point at a given index to a given bone. The bone must exist. """
 		if not boneinfo: return
-		bpy.ops.curve.select_all(action='DESELECT')
 
 		# Workaround of T74888, can be removed once D7190 is in master. (Preferably wait until it's in a release build)
-		curve_ob = self.get_curve()
+		curve_ob = self.params.CR_target_curve
 		spline = curve_ob.data.splines[0]
 		points = spline.bezier_points
 		cp = points[cp_i]
-		
-		cp.select_control_point = main_handle
-		cp.select_left_handle = left_handle
-		cp.select_right_handle = right_handle
+
+		indices = []
+		if main_handle:
+			indices.append(cp_i*3 + 1)
+		if left_handle:
+			indices.append(cp_i*3)
+		if right_handle:
+			indices.append(cp_i*3 + 2)
 
 		# Set active bone
 		bone = self.obj.data.bones.get(boneinfo.name)
@@ -174,43 +177,28 @@ class CloudCurveRig(CloudBaseRig):
 
 		# Add hook modifier
 		old_modifiers = [m.name for m in curve_ob.modifiers]
-		bpy.ops.object.hook_add_selob(use_bone=True)
+		hook_m = curve_ob.modifiers.new(name=boneinfo.name, type='HOOK')
+		hook_m.vertex_indices_set(indices)
+		hook_m.show_expanded = False
 
-		# Find and rename the newly added modifier.
-		for m in curve_ob.modifiers:
-			if m.name not in old_modifiers:
-				m.name = boneinfo.name
-				m.show_expanded = False
-				
-				# Move modifier to top of the stack...
-				# (Curve object must be active)
-				for i in range(len(curve_ob.modifiers)):
-					bpy.ops.object.modifier_move_up(modifier=m.name)
+		hook_m.object = self.obj
+		hook_m.subtarget = boneinfo.name
 
-				break
-
-	def get_curve(self):
-		return self.datablock_from_str(bpy.data.objects, self.params.CR_target_curve_name)
+		for i in range(len(curve_ob.modifiers)):
+			bpy.ops.object.modifier_move_up(modifier=hook_m.name)
 
 	def setup_curve(self, hooks):
-		""" Configure the Hook Modifiers for the curve. This requires switching object modes. 
+		""" Configure the Hook Modifiers for the curve.
 		hooks: List of BoneInfo objects that were created with define_ctrls_for_curve_point().
 		curve_ob: The curve object.
 		Only single-spline curve is supported. That one spline must have the same number of control points as the number of hooks."""
 
-		curve_ob = self.get_curve()
-		assert curve_ob, f"Error: Curve object {self.params.CR_target_curve_name} doesn't exist for rig: {self.base_bone}"
+		curve_ob = self.params.CR_target_curve
+		assert curve_ob, f"Error: Curve object doesn't exist for rig: {self.base_bone}"
 		curve_visible = self.ensure_visible(curve_ob)
-		bpy.ops.object.select_all(action='DESELECT')
-		self.obj.select_set(True)
-		bpy.context.view_layer.objects.active = self.obj
-		curve_ob.select_set(True)
-		bpy.context.view_layer.objects.active = curve_ob
 
 		assert curve_ob.visible_get(), "Error: Curve object could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?"
 
-		bpy.ops.object.mode_set(mode='EDIT')
-		bpy.ops.curve.select_all(action='DESELECT')
 		spline = curve_ob.data.splines[0]
 		points = spline.bezier_points
 		num_points = len(points)
@@ -270,11 +258,9 @@ class CloudCurveRig(CloudBaseRig):
 		for c in curve_ob.constraints:
 			c.mute = constraint_vis_backup[c.name]
 
-		# Reset selection so Rigify can continue execution.
-		bpy.ops.object.mode_set(mode='OBJECT')
 		curve_visible.restore()
-		bpy.context.view_layer.objects.active = self.obj
-		self.obj.select_set(True)
+
+		self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", "")).rigify_parameters.CR_target_curve = curve_ob
 
 	def configure_bones(self):
 		self.setup_curve(self.hooks)
@@ -321,7 +307,7 @@ class CloudCurveRig(CloudBaseRig):
 			,default	 = False
 		)
 
-		params.CR_target_curve_name = StringProperty(name="Curve")
+		params.CR_target_curve = PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
 
 		super().add_parameters(params)
 
@@ -333,8 +319,8 @@ class CloudCurveRig(CloudBaseRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
-		curve_ob = cls.datablock_from_str(bpy.data.objects, params.CR_target_curve_name)
-		bad_curve = params.CR_target_curve_name=="" or curve_ob==None or curve_ob.type!='CURVE'
+		curve_ob = params.CR_target_curve
+		bad_curve = curve_ob==None or curve_ob.type!='CURVE'
 
 		icon = 'TRIA_DOWN' if params.CR_show_curve_rig_settings else 'TRIA_RIGHT'
 		row = layout.row()
@@ -345,7 +331,7 @@ class CloudCurveRig(CloudBaseRig):
 
 		target_curve_row = layout.row()
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
-		target_curve_row.prop_search(params, "CR_target_curve_name", bpy.data, 'objects', icon=icon)
+		target_curve_row.prop(params, "CR_target_curve", icon=icon)
 
 	@classmethod
 	def cloud_params_ui(cls, layout, params):

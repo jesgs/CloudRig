@@ -21,7 +21,7 @@ class CloudSplineIKRig(CloudCurveRig):
 	def create_curve(self):
 		""" Find or create the Bezier Curve that will be used by the rig. """
 		
-		curve_ob = self.datablock_from_str(bpy.data.objects, self.params.CR_target_curve_name)
+		curve_ob = self.params.CR_target_curve
 		if curve_ob:
 			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.
 			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken.
@@ -39,7 +39,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 		curve_ob = bpy.context.view_layer.objects.active
 		curve_ob.name = curve_name
-		self.meta_base_bone.rigify_parameters.CR_target_curve_name = self.params.CR_target_curve_name = self.curve_ob_name = curve_name
+		self.meta_base_bone.rigify_parameters.CR_target_curve = self.params.CR_target_curve = curve_ob
 
 		self.lock_transforms(curve_ob)
 
@@ -110,14 +110,14 @@ class CloudSplineIKRig(CloudCurveRig):
 		self.add_spline_ik()
 	
 	def define_curve_controls(self):
-		# TODO: This is a bit wonky. This rig's create_curve() relies on CloudBaseRig.prepare_bones() having already run.
+		# This rig's create_curve() relies on CloudBaseRig.prepare_bones() having already run.
 		# But if we simply call super().prepare_bones(), it will run define_ctrls_for_curve_points(), which, for this class, relies on create_curve() running beforehand.
 		pass
 
 	def add_spline_ik(self):
 		# Add constraint to deform chain
 		self.def_bones[-1].add_constraint('SPLINE_IK'
-			,target			  = bpy.data.objects.get(self.curve_ob_name)
+			,target			  = self.params.CR_target_curve
 			,use_curve_radius = True
 			,chain_count	  = len(self.def_bones)
 		)
@@ -171,8 +171,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_curve_rig_settings"): return layout
 
 		target_curve_row = layout.row()
-		icon = 'OUTLINER_OB_CURVE'
-		target_curve_row.prop_search(params, "CR_target_curve_name", bpy.data, 'objects', icon=icon)
+		target_curve_row.prop(params, "CR_target_curve", icon='OUTLINER_OB_CURVE')
 		target_curve_row.enabled = False
 
 	@classmethod
