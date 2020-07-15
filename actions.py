@@ -52,7 +52,7 @@ class CLOUDRIG_OT_Action_Add(bpy.types.Operator):
 		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Action_Move(bpy.types.Operator):
-	"""Add an action setup"""
+	"""Move an action setup"""
 
 	bl_idname = "pose.cloudrig_action_move"
 	bl_label = "Move CloudRig Action Setup"
@@ -104,8 +104,11 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 					subtarget_exists = act.subtarget in target_rig.data.bones
 					if not subtarget_exists:
 						row.label(text='Control Bone missing!', icon='ERROR')
+					else:
+						row.label(text=act.subtarget, icon='BONE_DATA')
 
-				icon = 'HIDE_OFF' if act.enabled else 'HIDE_ON'
+				# icon = 'HIDE_OFF' if act.enabled else 'HIDE_ON'
+				icon = 'CHECKBOX_HLT' if act.enabled else 'CHECKBOX_DEHLT'
 				row.enabled = act.enabled
 				layout.prop(act, 'enabled', text="", icon=icon, emboss=False)
 			else:

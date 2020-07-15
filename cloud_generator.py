@@ -419,6 +419,7 @@ class CloudGenerator(Generator):
 					c.max = act_def.trans_max
 					c.frame_start = act_def.frame_start
 					c.frame_end = act_def.frame_end
+					c.mix_mode = 'BEFORE'
 
 	def generate(self):
 		print("CloudRig Generation begin")
