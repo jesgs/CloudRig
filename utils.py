@@ -1,6 +1,7 @@
 import bpy
 from mathutils import Vector
 from math import atan2
+from .rigs.cloud_utils import slice_name, make_name
 
 def bounding_box(points):
 	"""Return two vectors representing the lowest and highest coordinates of a the bounding box of the passed points."""
@@ -116,6 +117,68 @@ def flip_name(from_name, ignore_base=True, must_change=False):
 		assert new_name != from_name, "Failed to flip string: " + from_name
 	
 	return new_name
+
+def combine_bone_names(rig, names):
+	"""Combine multiple bone names into one."""
+	# This is the most terrible code I have ever written.
+
+	side_suf = rig.generator.suffix_separator + rig.side_suffix
+	side_pref = rig.side_prefix + rig.generator.prefix_separator
+
+	### Combine bases
+	bases_nonunique = [slice_name(n)[1] for n in names]
+	bases = set(bases_nonunique)
+	bases_cropped = list(bases)
+
+	shortest_base = sorted(bases, key=lambda b: len(b))[0]	# Sort by length and pick the first one.
+
+	base_start = ""
+	# Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
+	for i, char in enumerate(shortest_base):
+		matching=True
+		for base in bases:
+			if char!=base[i]:
+				matching=False
+				break
+		if matching:
+			base_start += char
+			bases_cropped = [base[1:] for base in bases_cropped]
+			i-=1
+		else:
+			break
+	final_base = base_start
+	for i, base in enumerate(bases_cropped):
+		if base!="":
+			if i!=0:
+				final_base += "+"
+			final_base += base
+
+	### Combine suffixes
+	suffixes_nonunique = [slice_name(n)[2] for n in names]
+	suffixes = []
+	for suf_list in suffixes_nonunique:
+		for suf in suf_list:
+			if suf not in suffixes:
+				suffixes.append(suf)
+
+	opp_suf = flip_name(side_suf)
+	if side_suf[1:] in suffixes and opp_suf[1:] in suffixes:
+		suffixes = [suf for suf in suffixes if suf not in (side_suf[1:], opp_suf[1:])]
+
+	### Combine prefixes
+	prefixes_nonunique = [slice_name(n)[0] for n in names]
+	prefixes = []
+	for pre_list in prefixes_nonunique:
+		for pre in pre_list:
+			if pre not in prefixes:
+				prefixes.append(pre)
+	# If the prefixes contain both side prefixes, remove both!
+	opp_pre = flip_name(side_pref)
+	if side_pref[:-1] in prefixes and opp_pre[:-1] in prefixes:
+		prefixes = [pre for pre in prefixes if pre not in (side_pref[:-1], opp_pre[:-1])]
+
+	### Combine and return the result
+	return make_name(prefixes, final_base, suffixes)
 
 def name_side_is_left(name):
 	"""Identify whether a name belongs to the left or right side or neither."""
