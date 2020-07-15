@@ -62,59 +62,102 @@ def project_points_on_plane (points, projection_axis):
 
 	return [p[0] for p in projected_points]
 
-def flip_name(from_name, only=True, must_change=False):
+left = 				['left',  'Left',  'LEFT', 	'.l', 	  '.L', 		'_l', 				'_L',				'-l',	   '-L', 	'l.', 	   'L.',	'l_', 			 'L_', 			  'l-', 	'L-']
+right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*dotl*', '*dotL*', 	'*underscorel*', 	'*underscoreL*', 	'*dashl*', '*dashL', '*ldot*', '*Ldot', '*lunderscore*', '*Lunderscore*', '*ldash*','*Ldash*']
+right = 			['right', 'Right', 'RIGHT', '.r', 	  '.R', 		'_r', 				'_R',				'-r',	   '-R', 	'r.', 	   'R.',	'r_', 			 'R_', 			  'r-', 	'R-']
+
+def strip_trailing_numbers(name):
+	if "." in name:
+		# Check if there are only digits after the last period
+		slices = name.split(".")
+		after_last_period = slices[-1]
+		before_last_period = ".".join(slices[:-1])
+
+		# If there are only digits after the last period, discard them
+		if all([c in "0123456789" for c in after_last_period]):
+			return before_last_period, "."+after_last_period
+
+	return name, ""
+
+def flip_name(from_name, ignore_base=True, must_change=False):
 	# based on BLI_string_flip_side_name in https://developer.blender.org/diffusion/B/browse/master/source/blender/blenlib/intern/string_utils.c
-	# If only==True, only replace the first occurrence of a side identifier in the string, eg. "Left_Eyelid.L" would become "Right_Eyelid.L". With only==False, it would instead return "Right_Eyelid.R"
+	# If ignore_base==True, ignore occurrences of side hints unless they're in the beginning or end of the name string.
 	# if must_change==True, raise an error if the string couldn't be flipped.
 
-	l = len(from_name)	# Number of characters from left to right, that we still care about. At first we care about all of them.
-	
 	# Handling .### cases
-	if("." in from_name):
-		# Make sure there are only digits after the last period
-		after_last_period = from_name.split(".")[-1]
-		before_last_period = from_name.replace("."+after_last_period, "")
-		all_digits = True
-		for c in after_last_period:
-			if( c not in "0123456789" ):
-				all_digits = False
-				break
-		# If that is so, then we don't care about the characters after this last period.
-		if(all_digits):
-			l = len(before_last_period)
-	
-	new_name = from_name[:l]
-	
-	left = 				['left',  'Left',  'LEFT', 	'.l', 	  '.L', 		'_l', 				'_L',				'-l',	   '-L', 	'l.', 	   'L.',	'l_', 			 'L_', 			  'l-', 	'L-']
-	right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*dotl*', '*dotL*', 	'*underscorel*', 	'*underscoreL*', 	'*dashl*', '*dashL', '*ldot*', '*Ldot', '*lunderscore*', '*Lunderscore*', '*ldash*','*Ldash*']
-	right = 			['right', 'Right', 'RIGHT', '.r', 	  '.R', 		'_r', 				'_R',				'-r',	   '-R', 	'r.', 	   'R.',	'r_', 			 'R_', 			  'r-', 	'R-']
-	
-	def flip_sides(list_from, list_to, new_name):
+	stripped_name, number_suffix = strip_trailing_numbers(from_name)
+
+	def flip_sides(list_from, list_to, name):
 		for side_idx, side in enumerate(list_from):
 			opp_side = list_to[side_idx]
-			if(only):
+			if(ignore_base):
 				# Only look at prefix/suffix.
-				if(new_name.startswith(side)):
-					new_name = new_name[len(side):]+opp_side
+				if(name.startswith(side)):
+					name = name[len(side):]+opp_side
 					break
-				elif(new_name.endswith(side)):
-					new_name = new_name[:-len(side)]+opp_side
+				elif(name.endswith(side)):
+					name = name[:-len(side)]+opp_side
 					break
 			else:
-				if("-" not in side and "_" not in side):	# When it comes to searching the middle of a string, sides must Strictly a full word or separated with . otherwise we would catch stuff like "_leg" and turn it into "_reg".
+				if not any([char not in side for char in "-_."]):	# When it comes to searching the middle of a string, sides must Strictly a full word or separated with . otherwise we would catch stuff like "_leg" and turn it into "_reg".
 					# Replace all occurences and continue checking for keywords.
-					new_name = new_name.replace(side, opp_side)
+					name = name.replace(side, opp_side)
 					continue
-		return new_name
+		return name
 	
-	new_name = flip_sides(left, right_placehold, new_name)
-	new_name = flip_sides(right, left, new_name)
-	new_name = flip_sides(right_placehold, right, new_name)
+	flipped_name = flip_sides(left, right_placehold, stripped_name)
+	flipped_name = flip_sides(right, left, flipped_name)
+	flipped_name = flip_sides(right_placehold, right, flipped_name)
 	
 	# Re-add trailing digits (.###)
-	new_name = new_name + from_name[l:]
+	new_name = flipped_name + number_suffix
 
 	if(must_change):
 		assert new_name != from_name, "Failed to flip string: " + from_name
 	
 	return new_name
+
+def name_side_is_left(name):
+	"""Identify whether a name belongs to the left or right side or neither."""
+
+	flipped_name = flip_name(name)
+	if flipped_name==name: return	# Return None to indicate neither side.
+
+	stripped_name, number_suffix = strip_trailing_numbers(name)
+
+	def check_start_side(side_list, name):
+		for side in side_list:
+			if name.startswith(side):
+				return True
+		return False
+
+	def check_end_side(side_list, name):
+		for side in side_list:
+			if name.endswith(side):
+				return True
+		return False
+
+	is_left_prefix = check_start_side(left, stripped_name)
+	is_left_suffix = check_end_side(left, stripped_name)
+
+	is_right_prefix = check_start_side(right, stripped_name)
+	is_right_suffix = check_end_side(right, stripped_name)
+
+	# Prioritize suffix for determining the name's side.
+	if is_left_suffix or is_right_suffix:
+		return is_left_suffix
+
+	# If no relevant suffix found, try prefix.
+	if is_left_prefix or is_right_prefix:
+		return is_left_prefix
+
+	# If no relevant suffix or prefix found, try anywhere.
+	any_left = any([side in name for side in left])
+	any_right = any([side in name for side in left])
+	if any_left and not any_right:
+		return True
+	if any_right and not any_left:
+		return False
+
+	# If left and right were both found somewhere, I give up.
+	return None

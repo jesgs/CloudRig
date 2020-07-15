@@ -6,6 +6,7 @@ from .definitions.bone import BoneSet
 from .rigs import cloud_utils
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
+from .utils import flip_name, name_side_is_left
 
 separators = [
 	(".", ".", "."),
@@ -354,6 +355,71 @@ class CloudGenerator(Generator):
 					if exists: 
 						return exists
 
+	def create_action_constraints(self):
+		bones = self.obj.pose.bones
+		action_defs = self.params.cloudrig_parameters.actions
+
+		rig = self.obj
+		for act_def in action_defs:
+			if not act_def.enabled: continue
+			if not act_def.action: continue
+			if not act_def.subtarget: continue
+
+			action = act_def.action
+			subtarget = act_def.subtarget
+
+			# Getting a list of pose bones on the rig corresponding to the selected action's keyframes
+			bones = []
+			for fc in action.fcurves:
+				# Extracting bone name from fcurve data path
+				if("pose.bones" in fc.data_path):
+					bone_name = fc.data_path.split('["')[1].split('"]')[0]
+
+					bone = rig.pose.bones.get(bone_name)
+					if(bone and bone not in bones):
+						bones.append(bone)
+
+			constraint_name = "Action_" + action.name
+			do_symmetry = flip_name(subtarget)!=subtarget and act_def.symmetrical==True
+			control_is_left_side = name_side_is_left(subtarget)
+
+			# Adding action constraints to the bones
+			for b in bones:
+				constraints = []
+				
+				# If bone name is unflippable, but target bone name is flippable, split constraint in two.
+				if flip_name(b.name) == b.name and do_symmetry:
+					bone_is_left_side = name_side_is_left(b.name)
+
+					# If bone name indicates a side, force subtarget to that side, if subtarget is flippable.
+					if bone_is_left_side != control_is_left_side:
+						subtarget = flip_name(subtarget)
+
+					c_l = b.constraints.new(type='ACTION')
+					c_l.name = constraint_name + ".L"
+					c_l.influence = 0.5
+					constraints.append(c_l)
+					c_r = b.constraints.new(type='ACTION')
+					c_r.influence = 0.5
+					c_r.name = constraint_name + ".R"
+					constraints.append(c_r)
+				else:
+					c = b.constraints.new(type='ACTION')
+					c.name = constraint_name
+					constraints.append(c)
+
+				# Configure Action constraints
+				for c in constraints:
+					c.target_space = act_def.target_space
+					c.transform_channel = act_def.transform_channel
+					c.target = rig
+					c.subtarget = subtarget
+					c.action = action
+					c.min = act_def.trans_min
+					c.max = act_def.trans_max
+					c.frame_start = act_def.frame_start
+					c.frame_end = act_def.frame_end
+
 	def generate(self):
 		print("CloudRig Generation begin")
 
@@ -506,6 +572,8 @@ class CloudGenerator(Generator):
 						pose_bone.custom_shape_scale *= self.scale * bi.bbone_width * 10
 
 		self.invoke_configure_bones()
+
+		self.create_action_constraints()
 
 		t.tick("Configure bones: ")
 
