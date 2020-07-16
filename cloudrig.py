@@ -1036,12 +1036,6 @@ class CLOUDRIG_PT_face(CLOUDRIG_PT_main):
 
 		draw_rig_settings(layout, rig, "face_settings", label='')
 
-	def draw_old(self, context):
-		layout = self.layout
-		rig = active_cloudrig()
-		if not rig: return
-		face_props = rig.pose.bones.get('Properties_Face')
-
 class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_misc_" + script_id
 	bl_label = "Misc"
@@ -1056,14 +1050,8 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 		layout = self.layout
 		rig = active_cloudrig()
 		if not rig: return
-		ikfk_props = rig.pose.bones.get('Properties_IKFK')
 
-		if 'misc_settings' in rig:
-			layout.label(text="Grab Parents")
-			row = layout.row()
-			grab_parents = ['Root', 'Hand']
-			row.prop(ikfk_props, '["grab_parent_left"]',  text="Left Hand [" + grab_parents[ikfk_props["grab_parent_left"]] + "]", slider=True)
-			row.prop(ikfk_props, '["grab_parent_right"]',  text="Right Hand [" + grab_parents[ikfk_props["grab_parent_right"]] + "]", slider=True)
+		draw_rig_settings(layout, rig, "misc_settings", label='')
 
 class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_viewport_" + script_id
