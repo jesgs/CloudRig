@@ -35,14 +35,14 @@ class CloudChainRig(CloudBaseRig):
 			self.chain_length += org.length
 		self.average_org_length = self.chain_length / len(self.org_chain)
 
-		str_sections = self.make_str_chain_new(self.org_chain)
+		str_sections = self.make_str_chain(self.org_chain)
 		self.make_str_helpers(str_sections)
 		if self.params.CR_smooth_spline:
 			self.make_dt_helpers(self.str_bones)
 
 		self.make_def_chain(self.str_bones)
 
-		self.connect_parent_chain_rig() #TODO: Haven't tested this since the rewrite!
+		self.connect_parent_chain_rig()
 
 	def determine_segments(self, org_bone):
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
@@ -56,30 +56,33 @@ class CloudChainRig(CloudBaseRig):
 		
 		return segments, bbone_density
 
-	def make_str_chain_new(self, org_chain):
+	def make_str_chain(self, org_chain):
+		self.main_str_bones = []
 		str_sections = []
 		for org_i, org_bone in enumerate(org_chain):
 			segments, bbone_density = self.determine_segments(org_bone)
 
 			str_section = []
 			for i in range(segments):
-				str_bone = self.make_str_bone_new(org_bone, i, segments)
+				str_bone = self.make_str_bone(org_bone, i, segments)
 				str_section.append(str_bone)
 				if i==0:
 					str_bone.custom_shape_scale *= 1.3
+					self.main_str_bones.append(str_bone)
 			str_sections.append(str_section)
 
 			# Tip control at the end of the chain.
 			if org_i==len(org_chain)-1 and self.params.CR_cap_control:
-				str_bone = self.make_str_bone_new(org_bone, i, 1)
+				str_bone = self.make_str_bone(org_bone, i, 1)
 				str_bone.put(org_bone.tail)
 				str_bone.length = str_bone.prev.length
 				str_bone.name = str_bone.name.replace("STR", "STR-TIP")
 				str_bone.custom_shape_scale *= 1.3
 				str_sections.append([str_bone])
+				self.main_str_bones.append(str_bone)
 		return str_sections
 
-	def make_str_bone_new(self, org_bone, seg_i, segments):
+	def make_str_bone(self, org_bone, seg_i, segments):
 		direction = org_bone.vector
 		if seg_i==0 and org_bone.prev:
 			direction = org_bone.tail - org_bone.prev.head
@@ -153,6 +156,8 @@ class CloudChainRig(CloudBaseRig):
 				if str_bone.next:
 					neg_con.influence = 0.5
 			dt_bone.add_constraint('COPY_ROTATION', subtarget = str_bone.name, mix_mode='BEFORE')
+			dt_bone.inherit_scale = 'NONE'
+			dt_bone.add_constraint('COPY_SCALE', subtarget=str_bone.name)
 
 	def make_def_chain(self, str_chain):
 		"""Create a deform chain stretching from one STR bone to the next"""
@@ -166,45 +171,54 @@ class CloudChainRig(CloudBaseRig):
 			def_section = []
 
 			segments, bbone_density = self.determine_segments(org_bone)
-			
-			for i in range(segments):
-				def_name = str_bone.name.replace("STR", "DEF")
-				unit = org_bone.vector / segments
+			tail = org_bone.tail
 
-				def_bone = self.def_bones.new(
-					name					 = def_name
-					,source					 = org_bone
-					,parent					 = str_bone
-					,head					 = str_bone.head
-					,tail					 = str_bone.next.head
-					,bbone_handle_type_start = 'TANGENT'
-					,bbone_handle_type_end	 = 'TANGENT'
-					,bbone_custom_handle_start = str_bone
-					,hide_select			 = self.mch_disable_select
-					,use_deform				 = True
-				)
+			def_name = str_bone.name.replace("STR", "DEF")
+			def_bone = self.def_bones.new(
+				name					 = def_name
+				,source					 = org_bone
+				,parent					 = str_bone
+				,head					 = str_bone.head
+				,tail					 = tail
+				,bbone_handle_type_start = 'TANGENT'
+				,bbone_handle_type_end	 = 'TANGENT'
+				,bbone_custom_handle_start = str_bone
+				,hide_select			 = self.mch_disable_select
+				,use_deform				 = True
+			)
 
-				### Configure BBone setup
-				if hasattr(def_bone.bbone_custom_handle_start, 'dt_bone'):
-					def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.dt_bone
+			### Configure BBone setup
+			# First bone of the segment, but not the first bone of the chain.
+			if str_bone in self.main_str_bones and str_i!=0:
+				def_bone.bbone_easein = not self.params.CR_sharp_sections
 
-				if str_bone.next:
-					def_bone.bbone_custom_handle_end = str_bone.next
-					if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
-						def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
-					def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.next.name)
+			if hasattr(def_bone.bbone_custom_handle_start, 'dt_bone'):
+				def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.dt_bone
 
-				def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
-				# Force B-Bone segments to be a minimum of 2, unless bbone_density is 0.
-				if def_bone.bbone_segments < 2 and self.params.CR_bbone_density > 0:
-					def_bone.bbone_segments = 2
-				if def_bone.bbone_segments > 1:
-					def_bone.inherit_scale = 'NONE'
+			if str_bone.next:
+				def_bone.tail = str_bone.next.head
+				def_bone.bbone_custom_handle_end = str_bone.next
+				# Last bone of the segment, but not the last bone of the chain.
+				if str_bone.next in self.main_str_bones and str_bone.next != str_chain[-1]:
+					def_bone.bbone_easeout = not self.params.CR_sharp_sections
+				if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
+					def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
+				def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.next.name)
 
-				if def_bone.prev:
-					self.make_shape_key_helper(def_bone.prev, def_bone)
+			def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
+			# Force B-Bone segments to be a minimum of 2, unless bbone_density is 0.
+			if def_bone.bbone_segments < 2 and self.params.CR_bbone_density > 0:
+				def_bone.bbone_segments = 2
 
-				org_bone.def_bones.append(def_bone)
+			# B-Bone scale drivers
+			if def_bone.bbone_segments > 1:
+				def_bone.inherit_scale = 'NONE'
+				self.make_bbone_scale_drivers(def_bone)
+
+			if def_bone.prev:
+				self.make_shape_key_helper(def_bone.prev, def_bone)
+
+			org_bone.def_bones.append(def_bone)
 
 		return self.def_bones
 

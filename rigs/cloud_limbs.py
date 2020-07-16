@@ -60,7 +60,7 @@ class CloudLimbRig(CloudIKChainRig):
 		elif self.limb_type=='ARM' and org_bone == self.org_chain[-1]:
 			# Force strictly 1 segment on the wrist.
 			return 1, bbone_density
-		elif org_i == len(chain)-1 and not self.params.CR_cap_control:
+		elif org_bone == self.org_chain[-1] and not self.params.CR_cap_control:
 			return 1, 1
 
 		return segments, bbone_density
