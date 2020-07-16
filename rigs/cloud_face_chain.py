@@ -1,4 +1,5 @@
 from bpy.props import BoolProperty, IntProperty
+from mathutils import Vector
 
 from .cloud_utils import make_name, slice_name
 from .cloud_chain import CloudChainRig
@@ -75,6 +76,11 @@ class CloudFaceChainRig(CloudChainRig):
 				,custom_shape = self.load_widget('Cube')
 				,custom_shape_scale = bones[0].custom_shape_scale
 			)
+		if abs(parent.head.x) < 0.001:
+			parent.vector = Vector((0, 0, parent.length))
+			parent.roll = 0
+			for b in bones:
+				b.vector = self.flat_vector(b.vector)
 		for b in bones:
 			b.parent = parent
 			b.merged_control = parent
