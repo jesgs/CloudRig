@@ -379,37 +379,45 @@ class CloudGenerator(Generator):
 					if(bone and bone not in bones):
 						bones.append(bone)
 
-			constraint_name = "Action_" + action.name
 			do_symmetry = flip_name(subtarget)!=subtarget and act_def.symmetrical==True
-			control_is_left_side = name_side_is_left(subtarget)
 
 			# Adding action constraints to the bones
 			for b in bones:
+				con_name = "Action_" + action.name
 				constraints = []
-				
-				# If bone name is unflippable, but target bone name is flippable, split constraint in two.
-				if flip_name(b.name) == b.name and do_symmetry:
-					bone_is_left_side = name_side_is_left(b.name)
 
-					# If bone name indicates a side, force subtarget to that side, if subtarget is flippable.
-					if bone_is_left_side != control_is_left_side:
-						subtarget = flip_name(subtarget)
+				bone_is_left_side = name_side_is_left(b.name)
 
-					c_l = b.constraints.new(type='ACTION')
-					c_l.name = constraint_name + ".L"
-					c_l.influence = 0.5
-					constraints.append(c_l)
-					c_r = b.constraints.new(type='ACTION')
-					c_r.influence = 0.5
-					c_r.name = constraint_name + ".R"
-					constraints.append(c_r)
+				# If bone name is unflippable...
+				if bone_is_left_side==None:
+					#...but target bone name is flippable, split constraint in two.
+					if do_symmetry:
+						c_l = b.constraints.new(type='ACTION')
+						c_l.name = con_name + ".L"
+						c_l.influence = 0.5
+						constraints.append(c_l)
+						c_r = b.constraints.new(type='ACTION')
+						c_r.influence = 0.5
+						c_r.name = con_name + ".R"
+						constraints.append(c_r)
+					else:
+						# if target bone name is not flippable, add the constraint normally.
+						c = b.constraints.new(type='ACTION')
+						c.name = con_name
+						constraints.append(c)
 				else:
+					# Constraint name should indicate side
 					c = b.constraints.new(type='ACTION')
-					c.name = constraint_name
+					c.name = con_name + (".L" if bone_is_left_side else ".R")
 					constraints.append(c)
 
 				# Configure Action constraints
 				for c in constraints:
+					# If constraint is not the same side as the control, flip it.
+					constraint_is_left_side = name_side_is_left(c.name)
+					control_is_left_side = name_side_is_left(subtarget)
+					if constraint_is_left_side != control_is_left_side:
+						subtarget = flip_name(subtarget)
 					c.target_space = act_def.target_space
 					c.transform_channel = act_def.transform_channel
 					c.target = rig
@@ -420,6 +428,12 @@ class CloudGenerator(Generator):
 					c.frame_start = act_def.frame_start
 					c.frame_end = act_def.frame_end
 					c.mix_mode = 'BEFORE'
+					if c.subtarget!=act_def.subtarget:
+						# Flip min/max in some cases.
+						if(c.transform_channel in ['ROTATION_Z', 'LOCATION_X']):
+							max_tmp = c.max
+							c.max = c.min
+							c.min = max_tmp
 
 	def generate(self):
 		print("CloudRig Generation begin")
