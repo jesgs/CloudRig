@@ -31,12 +31,80 @@ class CloudChainRig(CloudBaseRig):
 	def prepare_bones(self):
 		super().prepare_bones()
 
+		# TODO: This whole rig should probably be re-written. STR bones should be created first, then DEF.
+		# Not even sure if we need to keep track of what bones belong in what sections (probably not a bad idea though)
+
 		for org in self.org_chain:
 			self.chain_length += org.length
 		self.average_org_length = self.chain_length / len(self.org_chain)
 
-		self.prepare_def_str_chains()
-		self.connect_parent_chain_rig()
+		self.make_str_chain_new(self.org_chain)
+		if self.params.CR_smooth_spline:
+			self.make_dt_helpers(self.str_bones)
+		# self.make_def_chain(self.str_bones)
+
+		# self.prepare_def_str_chains()
+		# self.connect_parent_chain_rig()
+
+
+	def make_str_bone_new(self, org_bone, seg_i, segments):
+		direction = org_bone.vector
+		if seg_i==0 and org_bone.prev:
+			direction = org_bone.tail - org_bone.prev.head
+		unit = org_bone.vector / segments
+		str_bone = self.str_bones.new(
+			name = org_bone.name.replace("ORG", "STR")
+			,source = org_bone
+			,head = org_bone.head + (unit * seg_i)
+			,vector = direction
+			,length = org_bone.length / segments / 2
+			,roll = org_bone.roll
+			,custom_shape = self.load_widget("Sphere")
+			,custom_shape_scale = 0.3
+			,parent = org_bone
+		)
+		if segments>1 and seg_i>0:
+			sliced = self.slice_name(str_bone.name)
+			str_bone.name = make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
+		str_bone.bbone_width *= 1.2
+		return str_bone
+
+	def make_str_chain_new(self, org_chain):
+		for org_i, org_bone in enumerate(org_chain):
+			segments, bbone_density = self.determine_segments(org_i, org_chain)
+
+			for i in range(segments):
+				str_bone = self.make_str_bone_new(org_bone, i, segments)
+				if i==0:
+					str_bone.custom_shape_scale *= 1.3
+			
+			# Tip control at the end of the chain.
+			if org_i==len(org_chain)-1 and self.params.CR_cap_control:
+				str_bone = self.make_str_bone_new(org_bone, i, 1)
+				str_bone.length = str_bone.prev.length
+				str_bone.name = str_bone.name.replace("STR", "STR-TIP")
+				str_bone.custom_shape_scale *= 1.3
+
+	def make_dt_helpers(self, str_chain):
+		for str_bone in str_chain:
+			self.make_dt_helper(str_bone)
+
+	def make_dt_helper(self, str_bone):
+		""" Create a child bone for an STR bone with Damped Track constraints to aim at the previous and next STR bones. """
+		dt_bone = self.str_mch.new(
+			name = str_bone.name.replace("STR", "DT-STR")
+			,source = str_bone
+			,parent = str_bone
+		)
+		str_bone.dt_bone = dt_bone
+		if str_bone.next:
+			pos_con = dt_bone.add_constraint('DAMPED_TRACK', subtarget = str_bone.next.name, track_axis='TRACK_Y')
+		if str_bone.prev:
+			neg_con = dt_bone.add_constraint('DAMPED_TRACK', subtarget = str_bone.prev.name, track_axis='TRACK_NEGATIVE_Y')
+			if str_bone.next:
+				neg_con.influence = 0.5
+		dt_bone.add_constraint('COPY_ROTATION', subtarget = str_bone.name, mix_mode='BEFORE')
+		return dt_bone
 
 	def prepare_def_str_chains(self):
 		# We refer to a full limb as a limb. (eg. Arm)
@@ -147,7 +215,8 @@ class CloudChainRig(CloudBaseRig):
 		for sec_i, section in enumerate(def_sections):
 			str_section = []
 			for i, def_bone in enumerate(section):
-				str_bone = self.make_str_bone(def_bone, self.org_chain[sec_i])
+				str_bone = self.make_str_bone(def_bone)
+				str_bone.parent = self.org_chain[sec_i] # TODO: Is this redundant? Isn't the DEF bone's parent also the ORG bone?
 
 				if i==0:
 					# Make first control bigger, to indicate that it behaves differently than the others.
@@ -161,7 +230,8 @@ class CloudChainRig(CloudBaseRig):
 			# Add final STR control.
 			last_def = def_sections[-1][-1]
 			tip_name = make_name( ["STR", "TIP"], *slice_name(last_def.name)[1:] )
-			tip_bone = self.make_str_bone(last_def, self.org_chain[-1], tip_name)
+			tip_bone = self.make_str_bone(last_def)
+			tip_bone.parent = self.org_chain[-1] # TODO: Is this redundant? Isn't the DEF bone's parent also the ORG bone?
 			tip_bone.head = last_def.tail
 			tip_bone.tail = last_def.tail + last_def.vector
 			tip_bone.length = self.scale * 0.02
@@ -174,9 +244,8 @@ class CloudChainRig(CloudBaseRig):
 
 		return str_sections
 
-	def make_str_bone(self, def_bone, parent=None, name=None):
-		if not parent:
-			parent = def_bone.parent
+
+	def make_str_bone(self, def_bone, tip=False, name=None):
 		if not name:
 			name = def_bone.name.replace("DEF", "STR")
 		vec = def_bone.vector
@@ -190,10 +259,14 @@ class CloudChainRig(CloudBaseRig):
 			,roll				= def_bone.roll
 			,custom_shape		= self.load_widget("Sphere")
 			,custom_shape_scale = 0.3
-			,parent				= parent
+			,parent				= def_bone.parent
 		)
 		str_bone.length = def_bone.length/5
 		str_bone.bbone_width *= 1.2
+
+		if self.params.CR_smooth_spline:
+			self.make_dt_bone(str_bone)
+
 		return str_bone
 
 	def make_str_helpers(self, str_sections):
@@ -283,7 +356,7 @@ class CloudChainRig(CloudBaseRig):
 		)
 
 	def connect_parent_chain_rig(self):
-		# If the parent rig is a chain rig with cap_control=False, make the last DEF bone of that rig stretch to this rig's first STR.
+		# If the parent rig is a connected chain rig with cap_control=False, make the last DEF bone of that rig stretch to this rig's first STR.
 		parent_rig = self.rigify_parent
 		if isinstance(parent_rig, CloudChainRig):
 			if not parent_rig.params.CR_cap_control:
@@ -296,7 +369,6 @@ class CloudChainRig(CloudBaseRig):
 					self.make_bbone_scale_drivers(def_bone)
 					if self.params.CR_shape_key_helpers:
 						self.make_shape_key_helper(def_bone, self.def_bones[0])
-
 
 	##############################
 	# Parameters
@@ -344,6 +416,13 @@ class CloudChainRig(CloudBaseRig):
 			,description="B-Bone EaseIn/Out is set to 0 for bones connectiong two sections"
 			,default=False
 		)
+
+		params.CR_smooth_spline = BoolProperty(
+			 name="Smooth Spline"
+			,description="BBone Splines affect their neighbours to make smoother curves easier"
+			,default=False
+		)
+
 		params.CR_cap_control = BoolProperty(
 			 name		 = "Final Control"
 			,description = "Add the final control at the end of the chain (Turn off if you connect another chain to this one)"
@@ -364,6 +443,7 @@ class CloudChainRig(CloudBaseRig):
 		layout.prop(params, "CR_shape_key_helpers")
 		sharp_sections = layout.row()
 		sharp_sections.prop(params, "CR_sharp_sections")
+		layout.prop(params, "CR_smooth_spline")
 		cls.ui_rows['CR_sharp_sections'] = sharp_sections
 		layout.prop(params, "CR_cap_control")
 
