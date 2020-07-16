@@ -869,7 +869,9 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 
 			# Drawing properties with hierarchy
 			if 'prop_hierarchy' in prop_owner:
-				prop_hierarchy = eval(prop_owner['prop_hierarchy'])
+				prop_hierarchy = prop_owner['prop_hierarchy']
+				if type(prop_hierarchy)==str:
+					prop_hierarchy = eval(prop_hierarchy)
 
 				for parent_prop_name in prop_hierarchy.keys():
 					parent_prop_name_without_values = parent_prop_name
