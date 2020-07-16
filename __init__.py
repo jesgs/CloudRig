@@ -111,5 +111,4 @@ def unregister():
 	unregister_manual_map(cloudrig_manual_map)
 
 if versioning.is_before_register_commit():
-	print(f"Blender Version older than {register_commit_date}, self-registering CloudRig.")
 	register()
