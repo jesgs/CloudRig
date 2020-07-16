@@ -51,13 +51,13 @@ class CloudLimbRig(CloudIKChainRig):
 			self.ik_parents.append('Chest')
 		self.ik_parents.append(self.limb_ui_name)
 
-	def determine_segments(self, org_i, chain):
-		segments, bbone_density = super().determine_segments(org_i, chain)
+	def determine_segments(self, org_bone):
+		segments, bbone_density = super().determine_segments(org_bone)
 
-		if self.limb_type=='LEG' and org_i > len(chain)-3:
+		if self.limb_type=='LEG' and org_bone in self.org_chain[-3:-1]:
 			# Force strictly 1 segment on the foot and the toe.
 			return 1, bbone_density
-		elif self.limb_type=='ARM' and org_i == len(chain)-1:
+		elif self.limb_type=='ARM' and org_bone == self.org_chain[-1]:
 			# Force strictly 1 segment on the wrist.
 			return 1, bbone_density
 		elif org_i == len(chain)-1 and not self.params.CR_cap_control:

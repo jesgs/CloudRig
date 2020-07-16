@@ -245,7 +245,7 @@ class CloudUtilities:
 		scaleinx_var = {
 			'type' : 'TRANSFORMS',
 			'targets' : [{
-				'bone_target' : bi.bbone_custom_handle_start,
+				'bone_target' : bi.bbone_custom_handle_start.name,
 				'transform_type' : 'SCALE_X',
 				'transform_space' : 'WORLD_SPACE'
 			}]
@@ -267,7 +267,7 @@ class CloudUtilities:
 		}
 
 		# Scale In X/Y
-		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_start!=""):
+		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_start):
 			bi.drivers.append(scaleinx_driver)
 
 			scaleiny_driver = deepcopy(scaleinx_driver)
@@ -278,10 +278,10 @@ class CloudUtilities:
 			bi.drivers.append(scaleiny_driver)
 
 		# Scale Out X/Y
-		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end!=""):
+		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
 			scaleoutx_driver = deepcopy(scaleinx_driver)
 			scaleoutx_driver['prop'] = "bbone_scaleoutx"
-			scaleoutx_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
+			scaleoutx_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
 			bi.drivers.append(scaleoutx_driver)
 
 			scaleouty_driver = deepcopy(scaleoutx_driver)
@@ -293,7 +293,7 @@ class CloudUtilities:
 		easein_var = {
 			'type' : 'TRANSFORMS',
 			'targets' : [{
-				'bone_target' : bi.bbone_custom_handle_start,
+				'bone_target' : bi.bbone_custom_handle_start.name,
 				'transform_type' : 'SCALE_Y',
 				'transform_space' : 'LOCAL_SPACE',
 			}]
@@ -306,7 +306,7 @@ class CloudUtilities:
 				'scale' : {
 					'type' : 'TRANSFORMS',
 					'targets' : [{
-						'bone_target' : bi.bbone_custom_handle_start,
+						'bone_target' : bi.bbone_custom_handle_start.name,
 						'transform_space' : 'LOCAL_SPACE',
 						'transform_type' : 'SCALE_AVG',
 					}]
@@ -322,8 +322,8 @@ class CloudUtilities:
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
 			easeout_driver = deepcopy(easein_driver)
 			easeout_driver['prop'] = "bbone_easeout"
-			easeout_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
-			easeout_driver['variables']['scale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end
+			easeout_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
+			easeout_driver['variables']['scale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
 			bi.drivers.append(easeout_driver)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):

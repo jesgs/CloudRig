@@ -201,8 +201,8 @@ class BoneInfo:
 		self.bbone_segments = 1
 		self.bbone_handle_type_start = "AUTO"
 		self.bbone_handle_type_end = "AUTO"
-		self.bbone_custom_handle_start = ""	# Blender expects bpy.types.Bone, but we store str.	TODO: We should store BoneInfo here as well!!
-		self.bbone_custom_handle_end = ""	# Blender expects bpy.types.Bone, but we store str.
+		self.bbone_custom_handle_start = None # Blender expects bpy.types.Bone, but we store BoneInfo.
+		self.bbone_custom_handle_end = None
 
 		self.envelope_distance = 0.25
 		self.envelope_weight = 1.0
@@ -466,8 +466,10 @@ class BoneInfo:
 		b.bbone_segments = self.bbone_segments
 		b.bbone_handle_type_start = self.bbone_handle_type_start
 		b.bbone_handle_type_end = self.bbone_handle_type_end
-		b.bbone_custom_handle_start = armature.data.bones.get(self.bbone_custom_handle_start or "")
-		b.bbone_custom_handle_end = armature.data.bones.get(self.bbone_custom_handle_end or "")
+		if self.bbone_custom_handle_start:
+			b.bbone_custom_handle_start = armature.data.bones.get(self.bbone_custom_handle_start.name)
+		if self.bbone_custom_handle_end:
+			b.bbone_custom_handle_end = armature.data.bones.get(self.bbone_custom_handle_end.name)
 		b.show_wire = self.show_wire
 		b.use_endroll_as_inroll = self.use_endroll_as_inroll
 
