@@ -202,9 +202,8 @@ def draw_cloud_layer_names(self, context):
 		return
 
 	# Layer Preview UI
-	if dropdown_ui(layout, cloudrig, 'show_layers_preview'):
-		draw_layers_ui(layout, obj)
-		pass
+	layout.prop(cloudrig, 'show_layers_preview_hidden', text='Show Hidden')
+	draw_layers_ui(layout, obj, show_hidden=cloudrig.show_layers_preview_hidden)
 
 	# Layer Setup UI
 	main_row = layout.row(align=True).split(factor=0.05)

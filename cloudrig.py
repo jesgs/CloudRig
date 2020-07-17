@@ -922,9 +922,11 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
-def draw_layers_ui(layout, rig):
+def draw_layers_ui(layout, rig, show_hidden=False, owner=None, layers_prop='layers'):
 	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
 	data = rig.data
+	if not owner:
+		owner = data
 	# This should work even if the Rigify addon is not enabled.
 	layer_data = data['rigify_layers']
 	rigify_layers = [dict(l) for l in layer_data]
@@ -940,12 +942,12 @@ def draw_layers_ui(layout, rig):
 	current_row_index = 0
 	for rigify_layer in sorted_layers:
 		if rigify_layer['name'] in ["", " "]: continue
-		if rigify_layer['name'].startswith("$"): continue
+		if rigify_layer['name'].startswith("$") and not show_hidden: continue
 
 		if rigify_layer['row'] > current_row_index:
 			current_row_index = rigify_layer['row']
 			row = layout.row()
-		row.prop(data, 'layers', index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
+		row.prop(owner, layers_prop, index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
 
 class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_layers_" + script_id

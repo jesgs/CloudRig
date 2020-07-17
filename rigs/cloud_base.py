@@ -6,6 +6,7 @@ from enum import Enum
 from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
 from ..ui import ui_label_with_linebreak, dropdown_ui
+from ..cloudrig import draw_layers_ui
 
 from rigify.base_rig import BaseRig
 
@@ -297,14 +298,26 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 
 		cls.ui_rows[set_info['param']] = col = layout.column()
 		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
-		row = col.row()
-		row.use_property_split=False
-		row.prop(params, set_info['layer_param'], text="")
+		
+		if True:
+			layout.use_property_split=False
+			draw_layers_ui(layout, obj, show_hidden=cloudrig.show_layers_preview_hidden, owner=params, layers_prop = set_info['layer_param'])
+			# TODO: This results in a pretty massive piece of UI. Might be nicer as a UIList, but not sure if possible?
+		else:
+			row = col.row()
+			row.use_property_split=False
+			row.prop(params, set_info['layer_param'], text="")
 		layout.separator()
 
 	@classmethod
 	def bone_sets_ui(cls, layout, params):
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_bone_sets"): return
+		if not cls.cloud_dropdown_ui(layout, params, 'CR_show_bone_sets'): return
+
+		import bpy
+		obj = bpy.context.object
+
+		cloudrig = obj.data.cloudrig_parameters
+		layout.prop(cloudrig, 'show_layers_preview_hidden')
 
 		for ui_name in cls.bone_set_defs.keys():
 			set_info = cls.bone_set_defs[ui_name]

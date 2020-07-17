@@ -130,11 +130,10 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		default = [l==31 for l in range(32)]
 	)
 
-
-	show_layers_preview: BoolProperty(
-		name		="Show Layers Preview"
-		,description="Display a preview of the rig layer UI based on the settings below"
-		,default	=True
+	show_layers_preview_hidden: BoolProperty(
+		name		 = "Show Hidden Layers"
+		,description = "Include hidden layers"
+		,default	 = True
 	)
 
 	show_actions: BoolProperty(name="Actions")

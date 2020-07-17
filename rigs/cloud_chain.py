@@ -274,6 +274,7 @@ class CloudChainRig(CloudBaseRig):
 				if meta_org_bone.use_connect:
 					def_bone = parent_rig.def_bones[-1]
 					str_bone = self.str_bones[0]
+					str_bone.custom_shape = self.load_widget('Sphere')
 					def_bone.bbone_custom_handle_end = str_bone
 					def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.name)
 					self.make_bbone_scale_drivers(def_bone)
