@@ -42,7 +42,6 @@ class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
-	# bl_parent_id = 'DATA_PT_rigify_buttons'
 	bl_label = "Rigify Actions"
 
 	@classmethod
@@ -68,7 +67,50 @@ def draw_cloudrig_rigify_buttons(self, context):
 	layout.operator("pose.cloudrig_generate", text="Generate CloudRig")
 
 	draw_cloudrig_generator_settings(self, context)
-	
+
+class CLOUDRIG_PT_overrides(bpy.types.Panel):
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = 'data'
+	bl_parent_id = 'DATA_PT_rigify_bone_groups'
+	bl_label = "Override Bone Layers"
+
+	@classmethod
+	def poll(cls, context):
+		obj = context.object
+		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
+
+	def draw(self, context):
+		layout = self.layout
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		layout = layout.column(align=True)
+
+		obj = context.object
+		cloudrig = obj.data.cloudrig_parameters
+		layout.prop_search(cloudrig, "root_bone_group", bpy.context.object.pose, "bone_groups")
+		row = layout.row()
+		row.use_property_split=False
+		row.prop(cloudrig, "root_layers", text="")
+
+		if cloudrig.double_root:
+			layout.prop_search(cloudrig, "root_parent_group", bpy.context.object.pose, "bone_groups")
+			layout.prop(cloudrig, "root_parent_layers", text="")
+
+		layout.separator()
+		
+		def draw_override_params(layout, param_name):
+			override_param_name = "override_"+param_name
+			layout.prop(cloudrig, override_param_name)
+			if getattr(cloudrig, override_param_name):
+				layout.prop(cloudrig, param_name, text="")
+			layout.separator()
+
+		layout.use_property_split=False
+		draw_override_params(layout, 'def_layers')
+		draw_override_params(layout, 'mch_layers')
+		draw_override_params(layout, 'org_layers')
+
 def draw_cloud_bone_group_options(self, context):
 	""" Hijack Rigify's Bone Group panel and replace it with our own. """
 	obj = context.object
@@ -87,33 +129,6 @@ def draw_cloud_bone_group_options(self, context):
 	if obj.data.rigify_colors_lock:
 		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
 		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
-
-	cloudrig = obj.data.cloudrig_parameters
-	layout.separator()
-
-	dropdown = dropdown_ui(layout, cloudrig, "override_options")
-	if dropdown:
-	
-		layout.prop_search(cloudrig, "root_bone_group", bpy.context.object.pose, "bone_groups")
-		layout.prop(cloudrig, "root_layers", text="")
-
-		if cloudrig.double_root:
-			layout.prop_search(cloudrig, "root_parent_group", bpy.context.object.pose, "bone_groups")
-			layout.prop(cloudrig, "root_parent_layers", text="")
-
-		layout.separator()
-		
-		layout.prop(cloudrig, "override_def_layers")
-		if cloudrig.override_def_layers:
-			layout.prop(cloudrig, "def_layers", text="")
-
-		layout.prop(cloudrig, "override_mch_layers")
-		if cloudrig.override_mch_layers:
-			layout.prop(cloudrig, "mch_layers", text="")
-
-		layout.prop(cloudrig, "override_org_layers")
-		if cloudrig.override_org_layers:
-			layout.prop(cloudrig, "org_layers", text="")
 
 class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
@@ -279,18 +294,15 @@ def dropdown_ui(layout, params, dropdown_param_name):
 	row.prop(params, dropdown_param_name, toggle=True, emboss=False, icon=icon)
 	row.scale_y = 0.8
 	if is_dropdown_open:
-		# layout.separator()
-		# box = layout.box()
-		# box.scale_x = 2
-		# box.alignment='EXPAND'
-		return layout.column()
+		return layout
 	return None
 
 classes = [
 	CLOUDRIG_OT_generate,
 	CLOUDRIG_OT_layer_init,
 
-	CLOUDRIG_PT_actions
+	CLOUDRIG_PT_actions,
+	CLOUDRIG_PT_overrides
 ]
 
 def register():
