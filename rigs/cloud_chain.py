@@ -69,6 +69,8 @@ class CloudChainRig(CloudBaseRig):
 				if i==0:
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
+					if org_i==0:
+						str_bone.custom_shape = self.load_widget("Hemisphere_Flip")
 			str_sections.append(str_section)
 
 			# Tip control at the end of the chain.
@@ -79,7 +81,9 @@ class CloudChainRig(CloudBaseRig):
 				str_bone.name = str_bone.name.replace("STR", "STR-TIP")
 				str_bone.custom_shape_scale *= 1.3
 				str_sections.append([str_bone])
+				str_bone.custom_shape = self.load_widget("Hemisphere")
 				self.main_str_bones.append(str_bone)
+		
 		return str_sections
 
 	def make_str_bone(self, org_bone, seg_i, segments):
