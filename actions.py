@@ -230,18 +230,20 @@ def draw_cloudrig_actions(layout, rig):
 	layout.prop(act, 'trans_max')
 	layout.separator()
 
+classes = [
+	CloudRigAction,
+	CLOUDRIG_UL_action_slots,
+	CLOUDRIG_OT_Action_Add,
+	CLOUDRIG_OT_Action_Remove,
+	CLOUDRIG_OT_Action_Move
+]
+
 def register():
 	from bpy.utils import register_class
-	register_class(CloudRigAction)
-	register_class(CLOUDRIG_UL_action_slots)
-	register_class(CLOUDRIG_OT_Action_Add)
-	register_class(CLOUDRIG_OT_Action_Remove)
-	register_class(CLOUDRIG_OT_Action_Move)
+	for c in classes:
+		register_class(c)
 
 def unregister():
 	from bpy.utils import unregister_class
-	unregister_class(CloudRigAction)
-	register_class(CLOUDRIG_UL_action_slots)
-	unregister_class(CLOUDRIG_OT_Action_Add)
-	unregister_class(CLOUDRIG_OT_Action_Remove)
-	unregister_class(CLOUDRIG_OT_Action_Move)
+	for c in reversed(classes):
+		unregister_class(c)

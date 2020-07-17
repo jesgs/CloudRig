@@ -106,7 +106,7 @@ def register():
 def unregister():
 	from bpy.utils import unregister_class, unregister_manual_map
 	for m in reversed(modules):
-		unregister_class(m)
+		m.unregister()
 
 	unregister_manual_map(cloudrig_manual_map)
 
