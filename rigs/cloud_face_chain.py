@@ -76,13 +76,23 @@ class CloudFaceChainRig(CloudChainRig):
 				,custom_shape = self.load_widget('Cube')
 				,custom_shape_scale = bones[0].custom_shape_scale
 			)
+
+		# If bones are in the center, flatten them to make sure they produce a clean curvature.
 		if abs(parent.head.x) < 0.001:
-			parent.vector = Vector((0, 0, parent.length))
+			parent.vector = Vector((0, 0, parent.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
 			parent.roll = 0
 			for b in bones:
 				b.vector = self.flat_vector(b.vector)
+
 		for b in bones:
-			b.parent = parent
+			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for convenience here.
+			b.add_constraint('ARMATURE', index=0, 
+				targets = [
+					{
+						"subtarget" : parent.name
+					},
+				]
+			)
 			b.merged_control = parent
 
 	def relink_constraints_to_controls(self):
@@ -110,7 +120,7 @@ class CloudFaceChainRig(CloudChainRig):
 	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Sub Controls", preset=1,	default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Sub Controls", preset=1,	default_layers=[cls.default_layers('MCH')])
 		cls.define_bone_set(params, "Merged Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
 
 	@classmethod
