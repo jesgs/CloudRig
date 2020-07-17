@@ -12,6 +12,48 @@ def is_cloud_metarig(rig):
 				return True
 	return False
 
+
+def draw_cloudrig_generator_settings(self, context):
+	layout = self.layout
+	layout.use_property_split=True
+	layout.use_property_decorate=False
+	layout = layout.column()
+
+	obj = context.object
+	cloudrig = obj.data.cloudrig_parameters
+
+	layout.prop(obj.data, "rigify_target_rig")
+	layout.prop(cloudrig, "custom_script")
+
+	layout.prop(cloudrig, "create_root")
+	if cloudrig.create_root:
+		layout.prop(cloudrig, "double_root")
+
+	layout.prop(cloudrig, "mechanism_selectable")
+	if cloudrig.mechanism_selectable:
+		layout.prop(cloudrig, "mechanism_movable")
+
+	layout.prop(obj.data, "rigify_force_widget_update")
+
+	layout.row().prop(cloudrig, "prefix_separator", expand=True)
+	layout.row().prop(cloudrig, "suffix_separator", expand=True)
+
+class CLOUDRIG_PT_actions(bpy.types.Panel):
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = 'data'
+	# bl_parent_id = 'DATA_PT_rigify_buttons'
+	bl_label = "Rigify Actions"
+
+	@classmethod
+	def poll(cls, context):
+		obj = context.object
+		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
+
+	def draw(self, context):
+		obj = context.object
+		actions.draw_cloudrig_actions(self.layout, obj)
+
 def draw_cloudrig_rigify_buttons(self, context):
 	layout = self.layout
 	obj = context.object
@@ -25,39 +67,7 @@ def draw_cloudrig_rigify_buttons(self, context):
 
 	layout.operator("pose.cloudrig_generate", text="Generate CloudRig")
 
-	cloudrig = obj.data.cloudrig_parameters
-
-	gen_box = dropdown_ui(layout, cloudrig, "options")
-	if gen_box:
-		draw_cloud_generator_options(gen_box, obj)
-	
-	action_box = dropdown_ui(layout, cloudrig, "show_actions")
-	if action_box:
-		actions.draw_cloudrig_actions(action_box, obj)
-
-def draw_cloud_generator_options(layout, obj):
-	cloudrig = obj.data.cloudrig_parameters
-
-	layout.prop(obj.data, "rigify_target_rig")
-	layout.prop(cloudrig, "custom_script")
-
-	root_row = layout.row()
-	root_row.prop(cloudrig, "create_root")
-	if cloudrig.create_root:
-		root_row.prop(cloudrig, "double_root")
-
-	mech_row = layout.row()
-	mech_row.prop(cloudrig, "mechanism_selectable")
-	if cloudrig.mechanism_selectable:
-		mech_row.prop(cloudrig, "mechanism_movable")
-
-	layout.prop(obj.data, "rigify_force_widget_update")
-
-	naming_row = layout.row()
-	naming_row.column().label(text="Prefix Separator")
-	naming_row.column().prop(cloudrig, "prefix_separator", text="")
-	naming_row.column().label(text="Suffix Separator")
-	naming_row.column().prop(cloudrig, "suffix_separator", text="")
+	draw_cloudrig_generator_settings(self, context)
 	
 def draw_cloud_bone_group_options(self, context):
 	""" Hijack Rigify's Bone Group panel and replace it with our own. """
@@ -69,11 +79,14 @@ def draw_cloud_bone_group_options(self, context):
 	
 	# Otherwise we draw our own.
 	layout = self.layout
-	color_row = layout.row(align=True)
-	color_row.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
+	layout.use_property_split=True
+	layout.use_property_decorate=False
+	layout = layout.column()
+
+	layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
 	if obj.data.rigify_colors_lock:
-		color_row.prop(obj.data.rigify_selection_colors, "select", text="")
-		color_row.prop(obj.data.rigify_selection_colors, "active", text="")
+		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
+		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
 
 	cloudrig = obj.data.cloudrig_parameters
 	layout.separator()
@@ -102,7 +115,7 @@ def draw_cloud_bone_group_options(self, context):
 		if cloudrig.override_org_layers:
 			layout.prop(cloudrig, "org_layers", text="")
 
-class CloudRigLayerInit(bpy.types.Operator):
+class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
 
 	bl_idname = "pose.cloudrig_layer_init"
@@ -200,7 +213,7 @@ def draw_cloud_layer_names(self, context):
 		row.prop(rigify_layer, "name", text="")
 		row.prop(rigify_layer, "row", text="UI Row")
 
-class CloudGenerate(bpy.types.Operator):
+class CLOUDRIG_OT_generate(bpy.types.Operator):
 	"""Generates a rig from the active metarig armature using the CloudRig generator"""
 
 	bl_idname = "pose.cloudrig_generate"
@@ -273,11 +286,17 @@ def dropdown_ui(layout, params, dropdown_param_name):
 		return layout.column()
 	return None
 
+classes = [
+	CLOUDRIG_OT_generate,
+	CLOUDRIG_OT_layer_init,
+
+	CLOUDRIG_PT_actions
+]
+
 def register():
 	from bpy.utils import register_class
-	register_class(CloudGenerate)
-	register_class(CloudRigLayerInit)
-	
+	for c in classes:
+		register_class(c)
 
 	# Hijack Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_buttons.draw_old = bpy.types.DATA_PT_rigify_buttons.draw
@@ -291,8 +310,8 @@ def register():
 
 def unregister():
 	from bpy.utils import unregister_class
-	unregister_class(CloudGenerate)
-	unregister_class(CloudRigLayerInit)
+	for c in reversed(classes):
+		unregister_class(c)
 	
 	# Restore Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_buttons.draw = bpy.types.DATA_PT_rigify_buttons.draw_old
