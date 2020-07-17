@@ -3,6 +3,7 @@ from . import cloud_generator, actions
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 import traceback
+from .cloudrig import draw_layers_ui
 
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
@@ -11,7 +12,7 @@ def is_cloud_metarig(rig):
 				return True
 	return False
 
-def draw_cloud_generator_options(self, context):
+def draw_cloudrig_rigify_buttons(self, context):
 	layout = self.layout
 	obj = context.object
 
@@ -26,7 +27,16 @@ def draw_cloud_generator_options(self, context):
 
 	cloudrig = obj.data.cloudrig_parameters
 
-	if not dropdown_ui(layout, cloudrig, "options"): return
+	gen_box = dropdown_ui(layout, cloudrig, "options")
+	if gen_box:
+		draw_cloud_generator_options(gen_box, obj)
+	
+	action_box = dropdown_ui(layout, cloudrig, "show_actions")
+	if action_box:
+		actions.draw_cloudrig_actions(action_box, obj)
+
+def draw_cloud_generator_options(layout, obj):
+	cloudrig = obj.data.cloudrig_parameters
 
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(cloudrig, "custom_script")
@@ -48,10 +58,6 @@ def draw_cloud_generator_options(self, context):
 	naming_row.column().prop(cloudrig, "prefix_separator", text="")
 	naming_row.column().label(text="Suffix Separator")
 	naming_row.column().prop(cloudrig, "suffix_separator", text="")
-
-	if not dropdown_ui(layout, cloudrig, "show_actions"): return
-
-	actions.draw_cloudrig_actions(layout, obj)
 	
 def draw_cloud_bone_group_options(self, context):
 	""" Hijack Rigify's Bone Group panel and replace it with our own. """
@@ -157,16 +163,22 @@ def draw_cloud_layer_names(self, context):
 	
 	obj = context.object
 	arm = obj.data
+	cloudrig = arm.cloudrig_parameters
 	layout = self.layout
 	ui_label_with_linebreak(layout, "Organize Layers panel layout. Layers without a name and layers beginning with $ will not be shown.")
 	ui_label_with_linebreak(layout, "In the generated rig, the same layers will be active and protected as on the metarig.")
 
 	# Ensure that the layers exist
 	if len(arm.rigify_layers) != len(arm.layers):
-		layout.operator("pose.cloudrig_layer_init")
+		layout.operator('pose.cloudrig_layer_init')
 		return
 
-	# UI
+	# Layer Preview UI
+	if dropdown_ui(layout, cloudrig, 'show_layers_preview'):
+		draw_layers_ui(layout, obj)
+		pass
+
+	# Layer Setup UI
 	main_row = layout.row(align=True).split(factor=0.05)
 	col_number = main_row.column()
 	col_layer = main_row.column()
@@ -215,6 +227,7 @@ class CloudGenerate(bpy.types.Operator):
 def ui_label_with_linebreak(layout, text):
 	"""Attempt to simulate a proper textbox by only displaying as many characters in a single label as fits in the UI."""
 
+	col = layout.column(align=True)
 	paragraphs = text.split("\n")
 	for p in paragraphs:
 		words = p.split(" ")
@@ -241,7 +254,7 @@ def ui_label_with_linebreak(layout, text):
 				lines.append("")
 		
 		for line in lines:
-			layout.label(text=line)
+			col.label(text=line)
 
 def dropdown_ui(layout, params, dropdown_param_name):
 	is_dropdown_open = getattr(params, dropdown_param_name)
@@ -249,10 +262,16 @@ def dropdown_ui(layout, params, dropdown_param_name):
 	icon = 'TRIA_DOWN' if is_dropdown_open else 'TRIA_RIGHT'
 	row = layout.row()
 	row.use_property_split=False
-	row.prop(params, dropdown_param_name, toggle=True, icon=icon)
+	row.alignment = 'LEFT'
+	row.prop(params, dropdown_param_name, toggle=True, emboss=False, icon=icon)
+	row.scale_y = 0.8
 	if is_dropdown_open:
-		layout.separator()
-	return is_dropdown_open
+		# layout.separator()
+		# box = layout.box()
+		# box.scale_x = 2
+		# box.alignment='EXPAND'
+		return layout.column()
+	return None
 
 def register():
 	from bpy.utils import register_class
@@ -262,7 +281,7 @@ def register():
 
 	# Hijack Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_buttons.draw_old = bpy.types.DATA_PT_rigify_buttons.draw
-	bpy.types.DATA_PT_rigify_buttons.draw = draw_cloud_generator_options
+	bpy.types.DATA_PT_rigify_buttons.draw = draw_cloudrig_rigify_buttons
 
 	bpy.types.DATA_PT_rigify_bone_groups.draw_old = bpy.types.DATA_PT_rigify_bone_groups.draw
 	bpy.types.DATA_PT_rigify_bone_groups.draw = draw_cloud_bone_group_options

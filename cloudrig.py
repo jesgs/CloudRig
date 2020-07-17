@@ -920,34 +920,41 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
+def draw_layers_ui(layout, rig):
+	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
+	data = rig.data
+	# This should work even if the Rigify addon is not enabled.
+	layer_data = data['rigify_layers']
+	rigify_layers = [dict(l) for l in layer_data]
+
+	for i, l in enumerate(rigify_layers):
+		# When the Rigify addon is not enabled, finding the original index after sorting is impossible, so just store it.
+		l['index'] = i
+		if 'row' not in l:
+			l['row'] = 1
+
+	sorted_layers = sorted(rigify_layers, key=lambda l: l['row'])
+	sorted_layers = [l for l in sorted_layers if l['name']!=" "]
+	current_row_index = 0
+	for rigify_layer in sorted_layers:
+		if rigify_layer['name'] in ["", " "]: continue
+		if rigify_layer['name'].startswith("$"): continue
+
+		if rigify_layer['row'] > current_row_index:
+			current_row_index = rigify_layer['row']
+			row = layout.row()
+		row.prop(data, 'layers', index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
+
 class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_layers_" + script_id
 	bl_label = "Layers"
 
+	@staticmethod
+
 	def draw(self, context):
-		""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
 		rig = active_cloudrig()
 		if not rig: return
-		data = rig.data
-		# This should work even if the Rigify addon is not enabled.
-		rigify_layers = data['rigify_layers']
-
-		layout = self.layout
-		for i, l in enumerate(rigify_layers):
-			# When the Rigify addon is not enabled, finding the original index after sorting is impossible, so just store it.
-			l['index'] = i
-
-		sorted_layers = sorted(rigify_layers, key=lambda l: l['row'])
-		sorted_layers = [l for l in sorted_layers if l.name!=" "]
-		current_row_index = 0
-		for rigify_layer in sorted_layers:
-			if rigify_layer['name'] in ["", " "]: continue
-			if rigify_layer['name'].startswith("$"): continue
-
-			if rigify_layer['row'] > current_row_index:
-				current_row_index = rigify_layer['row']
-				row = layout.row()
-			row.prop(data, 'layers', index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
+		draw_layers_ui(self.layout, rig)
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_settings_" + script_id

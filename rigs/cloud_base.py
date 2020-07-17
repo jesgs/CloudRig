@@ -319,7 +319,7 @@ class CloudBaseRig(BaseRig, CloudUtilities):
 	def cloud_params_ui(cls, layout, params):
 		doc = cls.__doc__ or cls.__bases__[0].__doc__
 		if doc:
-			ui_label_with_linebreak(layout.column(align=True), doc)
+			ui_label_with_linebreak(layout, doc)
 		
 		layout.use_property_split = True
 		layout.use_property_decorate = False
