@@ -869,7 +869,9 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 
 			# Drawing properties with hierarchy
 			if 'prop_hierarchy' in prop_owner:
-				prop_hierarchy = eval(prop_owner['prop_hierarchy'])
+				prop_hierarchy = prop_owner['prop_hierarchy']
+				if type(prop_hierarchy)==str:
+					prop_hierarchy = eval(prop_hierarchy)
 
 				for parent_prop_name in prop_hierarchy.keys():
 					parent_prop_name_without_values = parent_prop_name
@@ -1041,12 +1043,6 @@ class CLOUDRIG_PT_face(CLOUDRIG_PT_main):
 
 		draw_rig_settings(layout, rig, "face_settings", label='')
 
-	def draw_old(self, context):
-		layout = self.layout
-		rig = active_cloudrig()
-		if not rig: return
-		face_props = rig.pose.bones.get('Properties_Face')
-
 class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_misc_" + script_id
 	bl_label = "Misc"
@@ -1061,14 +1057,8 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 		layout = self.layout
 		rig = active_cloudrig()
 		if not rig: return
-		ikfk_props = rig.pose.bones.get('Properties_IKFK')
 
-		if 'misc_settings' in rig:
-			layout.label(text="Grab Parents")
-			row = layout.row()
-			grab_parents = ['Root', 'Hand']
-			row.prop(ikfk_props, '["grab_parent_left"]',  text="Left Hand [" + grab_parents[ikfk_props["grab_parent_left"]] + "]", slider=True)
-			row.prop(ikfk_props, '["grab_parent_right"]',  text="Right Hand [" + grab_parents[ikfk_props["grab_parent_right"]] + "]", slider=True)
+		draw_rig_settings(layout, rig, "misc_settings", label='')
 
 class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_viewport_" + script_id
