@@ -13,7 +13,7 @@ from .rigs import cloud_utils
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
 
-from .utilities.naming import CloudNamingUtilitiesMixin
+from .utils.naming import CloudNamingUtilitiesMixin
 
 separators = [
 	(".", ".", "."),

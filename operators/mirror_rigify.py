@@ -1,5 +1,5 @@
 import bpy
-from ..utilities.naming import flip_name
+from ..utils.naming import flip_name
 from bpy.props import BoolProperty
 
 def copy_rigify_params(from_bone, to_bone):

@@ -6,8 +6,7 @@ from copy import deepcopy
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
-from ..utilities.naming import slice_name, make_name
-
+from ..utils.naming import slice_name, make_name
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.

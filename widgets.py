@@ -1,6 +1,6 @@
 import bpy
 from mathutils import Vector
-from .utilities.widget_maths import project_points_on_plane, scale_points_from_center
+from .utils.widget_maths import project_points_on_plane, scale_points_from_center
 import os
 
 def assign_to_collection(obj, collection):
