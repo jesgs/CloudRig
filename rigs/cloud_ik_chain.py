@@ -1,6 +1,7 @@
 from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians as rad
+from ..utils.maths import flat
 
 from .cloud_fk_chain import CloudFKChainRig
 

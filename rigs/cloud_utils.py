@@ -7,6 +7,7 @@ from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
 from ..utils.naming import slice_name, make_name
+from ..utils.maths import flat
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
@@ -524,23 +525,6 @@ def recursive_search_layer_collection(collName, layerColl=None):
 def set_active_collection(collection):
 	layer_collection = recursive_search_layer_collection(collection.name)
 	bpy.context.view_layer.active_layer_collection = layer_collection
-
-def flat(vec):
-	""" Return a copy of a vector with its two absolute lowest values set to 0. Useful for making vectors world-aligned. """
-	new_vec = vec.copy()
-
-	maxabs = 0
-	max_index = 0
-	for i, val in enumerate(vec):
-		if abs(val) > maxabs:
-			maxabs = abs(val)
-			max_index = i
-
-	for i in range(0, len(vec)):
-		if i != max_index:
-			new_vec[i] = 0
-
-	return new_vec
 
 class EnsureVisible:
 	""" Ensure an object is visible, then reset it to how it was before. """

@@ -63,3 +63,20 @@ def project_points_on_plane (points, projection_axis) -> List[Vector]:
 	projected_points.sort(key=lambda x: x[1])
 
 	return [p[0] for p in projected_points]
+
+def flat(vec) -> Vector:
+	"""Return a copy of a vector with its two absolute lowest values set to 0. Useful for making vectors world-aligned."""
+	new_vec = vec.copy()
+
+	maxabs = 0
+	max_index = 0
+	for i, val in enumerate(vec):
+		if abs(val) > maxabs:
+			maxabs = abs(val)
+			max_index = i
+
+	for i in range(0, len(vec)):
+		if i != max_index:
+			new_vec[i] = 0
+
+	return new_vec
