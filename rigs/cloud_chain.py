@@ -1,3 +1,5 @@
+from typing import Tuple, List
+
 from bpy.props import BoolProperty, IntProperty
 
 from ..definitions.bone import BoneInfo, BoneSet
@@ -46,7 +48,7 @@ class CloudChainRig(CloudBaseRig):
 
 		self.connect_parent_chain_rig()
 
-	def determine_segments(self, org_bone) -> (int, int):
+	def determine_segments(self, org_bone) -> Tuple[int, int]:
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		segments = self.params.CR_deform_segments
 
@@ -58,8 +60,8 @@ class CloudChainRig(CloudBaseRig):
 		
 		return segments, bbone_density
 
-	def make_str_chain(self, org_chain) -> [[BoneInfo]]:
-		self.main_str_bones = []
+	def make_str_chain(self, org_chain) -> List[List[BoneInfo]]:
+		self.main_str_bones: List[BoneInfo] = []
 		str_sections = []
 		for org_i, org_bone in enumerate(org_chain):
 			segments, bbone_density = self.determine_segments(org_bone)
@@ -111,7 +113,7 @@ class CloudChainRig(CloudBaseRig):
 		str_bone.bbone_width *= 1.2
 		return str_bone
 
-	def make_str_helpers(self, str_sections: [[BoneInfo]]):
+	def make_str_helpers(self, str_sections: List[List[BoneInfo]]):
 		"""STR-H are mechanism bones that keep STR controls between two main STR controls."""
 		main_str_bone = None
 		for sec_i, section in enumerate(str_sections):
@@ -173,7 +175,7 @@ class CloudChainRig(CloudBaseRig):
 
 			org_bone = str_bone.org_parent
 			org_bone.def_bones = []	# TODO: deprecate this? It's currently only used by the spine neck, which is also to be deprecated.
-			def_section = []
+			def_section: List[BoneInfo] = []
 
 			segments, bbone_density = self.determine_segments(org_bone)
 			tail = org_bone.tail

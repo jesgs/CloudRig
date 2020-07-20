@@ -6,9 +6,10 @@ from copy import deepcopy
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
-from ..utilities.naming import CloudNamingUtilitiesMixin, slice_name, make_name
+from ..utilities.naming import slice_name, make_name
 
-class CloudUtilities(CloudNamingUtilitiesMixin):
+
+class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
 	# If a class inherits this class, it's also expected to inherit CloudBaseRig - These are only split up for organizational purposes.
 
@@ -56,7 +57,7 @@ class CloudUtilities(CloudNamingUtilitiesMixin):
 
 		# Defaults for optional parameters
 		if not hng_name:
-			sliced = slice_name(bone.name)
+			sliced = self.slice_name(bone.name)
 			sliced[0].insert(0, "HNG")
 			hng_name = self.make_name(*sliced)
 		if not parent_bone:
@@ -226,7 +227,7 @@ class CloudUtilities(CloudNamingUtilitiesMixin):
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
 		def_bone = bone_set.new(
-			name = self.make_name(["DEF"], *slice_name(bone.name)[1:])
+			name = self.make_name(["DEF"], *self.slice_name(bone.name)[1:])
 			,source = bone
 			,use_deform = True
 			,parent = bone

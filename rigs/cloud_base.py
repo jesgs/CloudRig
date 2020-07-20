@@ -1,3 +1,6 @@
+import bpy
+from typing import Dict, List
+
 from bpy.props import BoolProperty, StringProperty, BoolVectorProperty
 from mathutils import Vector
 from collections import OrderedDict
@@ -7,6 +10,7 @@ from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
 from ..ui import ui_label_with_linebreak, dropdown_ui
 from ..cloudrig import draw_layers_ui
+from ..utilities.naming import CloudNamingUtilitiesMixin
 
 from rigify.base_rig import BaseRig
 
@@ -24,12 +28,12 @@ class DefaultLayers(Enum):
 	FACE_SECOND = 19
 	FACE_TWEAK = 20
 
-class CloudBaseRig(BaseRig, CloudUtilities):
+class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
-	ui_rows = {}	# Keep track of certain UI rows so they can be modified later.
+	ui_rows: Dict[str, bpy.types.UILayout] = {}	# Keep track of certain UI rows so they can be modified later.
 
-	bone_set_defs = OrderedDict()
+	bone_set_defs: Dict[str, str] = OrderedDict()
 	
 	default_layers = lambda name: DefaultLayers[name].value
 

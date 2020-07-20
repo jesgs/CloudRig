@@ -1,3 +1,5 @@
+from typing import Tuple, List, Optional
+
 left = 				['left',  'Left',  'LEFT', 	'.l', 	  '.L', 		'_l', 				'_L',				'-l',	   '-L', 	'l.', 	   'L.',	'l_', 			 'L_', 			  'l-', 	'L-']
 right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*dotl*', '*dotL*', 	'*underscorel*', 	'*underscoreL*', 	'*dashl*', '*dashL', '*ldot*', '*Ldot', '*lunderscore*', '*Lunderscore*', '*ldash*','*Ldash*']
 right = 			['right', 'Right', 'RIGHT', '.r', 	  '.R', 		'_r', 				'_R',				'-r',	   '-R', 	'r.', 	   'R.',	'r_', 			 'R_', 			  'r-', 	'R-']
@@ -11,14 +13,12 @@ def get_name(thing):
 class CloudNamingUtilitiesMixin:
 	"""Name management utilities with the convenience of being able to pass in anything that has a "name" attribute, or strings directly."""
 
-	def get_separators(self) -> (str, str):
+	def get_separators(self) -> Tuple[str, str]:
 		prefix_separator = "-"
 		suffix_separator = "."
 		if hasattr(self, 'generator'):
-			if hasattr(self.generator, 'prefix_separator'):
-				prefix_separator = self.generator.prefix_separator
-			if hasattr(self.generator, 'suffix_separator'):
-				suffix_separator = self.generator.suffix_separator
+			prefix_separator = self.generator.prefix_separator
+			suffix_separator = self.generator.suffix_separator
 
 		return (prefix_separator, suffix_separator)
 	
@@ -26,7 +26,7 @@ class CloudNamingUtilitiesMixin:
 		prefix_separator, suffix_separator = self.get_separators()
 		return make_name(prefixes, base, suffixes, prefix_separator, suffix_separator)
 
-	def slice_name(self, thing) -> ([str], str, [str]):
+	def slice_name(self, thing) -> Tuple[ List[str], str, List[str] ]:
 		prefix_separator, suffix_separator = self.get_separators()
 		name = get_name(thing)
 
@@ -45,8 +45,13 @@ class CloudNamingUtilitiesMixin:
 				names.append(t.name)
 			else:
 				names.append(str(t))
+		
+		if hasattr(self, 'generator'):
+			side_suf = self.generator.suffix_separator + self.side_suffix
+			side_pref = self.side_prefix + self.generator.prefix_separator
+		return combine_bone_names(names)
 
-	def side_is_left(self, thing) -> bool or None:
+	def side_is_left(self, thing) -> Optional[bool]:
 		return name_side_is_left(get_name(thing))
 
 def make_name(prefixes=[], base="", suffixes=[], prefix_separator="-", suffix_separator="."):
@@ -118,12 +123,9 @@ def flip_name(from_name, ignore_base=True, must_change=False):
 	
 	return new_name
 
-def combine_bone_names(rig, names):
+def combine_bone_names(names, side_suf=".L", side_pref="L_"):
 	"""Combine multiple bone names into one."""
 	# This is the most terrible code I have ever written.
-
-	side_suf = rig.generator.suffix_separator + rig.side_suffix
-	side_pref = rig.side_prefix + rig.generator.prefix_separator
 
 	### Combine bases
 	bases_nonunique = [slice_name(n)[1] for n in names]

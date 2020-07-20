@@ -1,3 +1,5 @@
+from typing import Optional
+
 import bpy
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
@@ -110,8 +112,9 @@ class CloudEyeRig(CloudBaseRig):
 			,custom_shape_scale = 2
 		)
 		bone.parent = root_bone
+		return root_bone
 
-	def ensure_group_master(self) -> BoneInfo:
+	def ensure_group_master(self) -> Optional[BoneInfo]:
 		# At the moment, this function will be called by each eye bone, but we want to make sure it only runs once per group.
 		# So check if a bone with the right name already exists and if it does, just return it.
 
@@ -129,7 +132,7 @@ class CloudEyeRig(CloudBaseRig):
 				eye_bones.append(b)
 
 		if len(eye_bones) < 2:
-			return
+			return None
 
 		# Center of all eyes
 		eyes_center = bounding_box_center([b.head for b in eye_bones])
