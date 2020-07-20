@@ -10,7 +10,7 @@ from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
 from ..ui import ui_label_with_linebreak, dropdown_ui
 from ..cloudrig import draw_layers_ui
-from ..utils.naming import CloudNamingUtilitiesMixin
+from ..utils.naming import CloudNamingUtilitiesMixin, name_side_is_left
 
 from rigify.base_rig import BaseRig
 
@@ -39,7 +39,18 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		super(CloudNamingUtilitiesMixin, self).__init__()
+
+		### Initialize NamingUtilities
+		prefix_separator = self.generator.prefix_separator
+		suffix_separator = self.generator.suffix_separator
+		# Determine Suffix/Prefix
+		side_suffix = "L"
+		side_prefix = "Left"
+		if not name_side_is_left(self.base_bone):
+			side_suffix = "R"
+			side_prefix = "Right"
+
+		CloudNamingUtilitiesMixin.__init__(self, prefix_separator, suffix_separator, side_suffix, side_prefix)
 
 	@property
 	def all_bones(self):
@@ -73,19 +84,6 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		from .. import cloud_generator
 		assert type(self.generator) == cloud_generator.CloudGenerator, "Error: CloudRig has wrong Generator type. CloudRig requires its own Generator class - Perhaps you're using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate?"
 
-		### Naming
-		self.prefix_separator = self.generator.prefix_separator
-		self.suffix_separator = self.generator.suffix_separator
-		# Determine Suffix/Prefix
-		self.side_suffix = ""
-		self.side_prefix = ""
-		base_bone_name = self.slice_name(self.base_bone)
-		if "L" in base_bone_name[2]:
-			self.side_suffix = "L"
-			self.side_prefix = "Left"
-		elif "R" in base_bone_name[2]:
-			self.side_suffix = "R"
-			self.side_prefix = "Right"
 
 		self.generator_params = self.generator.metarig.data
 
