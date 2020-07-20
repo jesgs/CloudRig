@@ -1,8 +1,10 @@
+from typing import Tuple, List
+
 import bpy
 from mathutils import Vector
 from math import atan2
 
-def bounding_box(points):
+def bounding_box(points) -> Tuple[Vector, Vector]:
 	"""Return two vectors representing the lowest and highest coordinates of a the bounding box of the passed points."""
 
 	lowest = points[0].copy()
@@ -16,12 +18,12 @@ def bounding_box(points):
 	
 	return lowest, highest
 
-def bounding_box_center(points):
+def bounding_box_center(points) -> Vector:
     """Find the bounding box center of some points."""
     bbox_low, bbox_high = bounding_box(points)
     return bbox_low + (bbox_high-bbox_low)/2
 
-def scale_points_from_center(points, scale):
+def scale_points_from_center(points, scale) -> List[Vector]:
 	"""Scale some points from their bounding box center."""
 	center = bounding_box_center(points)
 	new_points = []
@@ -31,7 +33,7 @@ def scale_points_from_center(points, scale):
 		)
 	return new_points
 
-def project_points_on_plane (points, projection_axis):
+def project_points_on_plane (points, projection_axis) -> List[Vector]:
 	# Find two vectors(ie. a plane) that are perpendicular to the projection axis.
 	projection_direction = projection_axis.normalized()
 	plane_x = projection_direction.cross(Vector((0, 0, 1)))

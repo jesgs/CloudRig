@@ -6,8 +6,9 @@ from mathutils import Vector
 
 from ..definitions.bone import BoneInfo
 from .cloud_base import CloudBaseRig
+
 from .. import widgets as cloud_widgets
-from ..utils import bounding_box_center
+from ..utilities.widget_maths import bounding_box_center
 
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
