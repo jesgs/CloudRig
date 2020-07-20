@@ -357,12 +357,6 @@ class CloudUtilities:
 	def lock_transforms(obj, loc=True, rot=True, scale=True):
 		return lock_transforms(obj, loc, rot, scale)
 
-	def add_prefix_to_name(self, name, new_prefix):
-		""" The most common case of making a bone name based on another one is to add a prefix to it. """
-		sliced_name = self.slice_name(name)
-		sliced_name[0].append(new_prefix)
-		return self.make_name(*sliced_name)
-
 	@staticmethod
 	def ensure_visible(obj):
 		return EnsureVisible(obj)

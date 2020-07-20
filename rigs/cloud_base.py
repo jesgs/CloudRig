@@ -37,6 +37,10 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 	
 	default_layers = lambda name: DefaultLayers[name].value
 
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		super(CloudNamingUtilitiesMixin, self).__init__()
+
 	@property
 	def all_bones(self):
 		""" Get a list of all bones in this rig, including bones in the generator. """
@@ -63,11 +67,25 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		)
 
 	def initialize(self):
-		super().initialize()
 		"""Gather and validate data about the rig."""
+		super().initialize()
 
 		from .. import cloud_generator
 		assert type(self.generator) == cloud_generator.CloudGenerator, "Error: CloudRig has wrong Generator type. CloudRig requires its own Generator class - Perhaps you're using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate?"
+
+		### Naming
+		self.prefix_separator = self.generator.prefix_separator
+		self.suffix_separator = self.generator.suffix_separator
+		# Determine Suffix/Prefix
+		self.side_suffix = ""
+		self.side_prefix = ""
+		base_bone_name = self.slice_name(self.base_bone)
+		if "L" in base_bone_name[2]:
+			self.side_suffix = "L"
+			self.side_prefix = "Left"
+		elif "R" in base_bone_name[2]:
+			self.side_suffix = "R"
+			self.side_prefix = "Right"
 
 		self.generator_params = self.generator.metarig.data
 
@@ -82,17 +100,6 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		self.bone_sets = []
 		self.defaults = dict(self.generator.defaults)
 		self.ensure_bone_sets()
-
-		# Determine Suffix/Prefix
-		self.side_suffix = ""
-		self.side_prefix = ""
-		base_bone_name = self.slice_name(self.base_bone)
-		if "L" in base_bone_name[2]:
-			self.side_suffix = "L"
-			self.side_prefix = "Left"
-		elif "R" in base_bone_name[2]:
-			self.side_suffix = "R"
-			self.side_prefix = "Right"
 
 		parent = self.get_bone(self.base_bone).parent
 		self.bones.parent = parent.name if parent else ""

@@ -272,7 +272,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			if i == 0: continue
 			if i == len(self.main_str_bones)-1: continue
 			main_str_helper = self.ik_mch.new(
-				name		 = main_str_bone.name.replace("STR-", "STR-S-")
+				name		 = self.add_prefix_to_name(main_str_bone, "S")
 				,source		 = main_str_bone
 				,bbone_width = 1/10
 				,parent		 = main_str_bone.parent

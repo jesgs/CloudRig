@@ -4,7 +4,7 @@ left = 				['left',  'Left',  'LEFT', 	'.l', 	  '.L', 		'_l', 				'_L',				'-l',
 right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*dotl*', '*dotL*', 	'*underscorel*', 	'*underscoreL*', 	'*dashl*', '*dashL', '*ldot*', '*Ldot', '*lunderscore*', '*Lunderscore*', '*ldash*','*Ldash*']
 right = 			['right', 'Right', 'RIGHT', '.r', 	  '.R', 		'_r', 				'_R',				'-r',	   '-R', 	'r.', 	   'R.',	'r_', 			 'R_', 			  'r-', 	'R-']
 
-def get_name(thing):
+def get_name(thing) -> str:
 	if hasattr(thing, 'name'):
 		return thing.name
 	else:
@@ -13,14 +13,15 @@ def get_name(thing):
 class CloudNamingUtilitiesMixin:
 	"""Name management utilities with the convenience of being able to pass in anything that has a "name" attribute, or strings directly."""
 
-	def get_separators(self) -> Tuple[str, str]:
-		prefix_separator = "-"
-		suffix_separator = "."
-		if hasattr(self, 'generator'):
-			prefix_separator = self.generator.prefix_separator
-			suffix_separator = self.generator.suffix_separator
+	def __init__(self, prefix_separator="_", suffix_separator=".", side_suffix="L", side_prefix="Left", **kwargs):
+		self.prefix_separator = prefix_separator
+		self.suffix_separator = suffix_separator
+		self.side_suffix = side_suffix
+		self.side_prefix = side_prefix
+		super().__init__(**kwargs)
 
-		return (prefix_separator, suffix_separator)
+	def get_separators(self) -> Tuple[str, str]:
+		return (self.prefix_separator, self.suffix_separator)
 	
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
 		prefix_separator, suffix_separator = self.get_separators()
@@ -46,14 +47,20 @@ class CloudNamingUtilitiesMixin:
 			else:
 				names.append(str(t))
 		
-		if hasattr(self, 'generator'):
-			side_suf = self.generator.suffix_separator + self.side_suffix
-			side_pref = self.side_prefix + self.generator.prefix_separator
+		side_suf = self.suffix_separator + self.side_suffix
+		side_pref = self.side_prefix + self.prefix_separator
 		return combine_bone_names(names)
 
 	def side_is_left(self, thing) -> Optional[bool]:
 		return name_side_is_left(get_name(thing))
-
+	
+	def add_prefix_to_name(self, thing, new_prefix) -> str:
+		"""The most common case of making a bone name based on another one is to add a prefix to it."""
+		name = get_name(thing)
+		sliced_name = self.slice_name(name)
+		sliced_name[0].append(new_prefix)
+		return self.make_name(*sliced_name)
+	
 def make_name(prefixes=[], base="", suffixes=[], prefix_separator="-", suffix_separator="."):
 	# In our naming convention, prefixes are separated by dashes and suffixes by periods, eg: DSP-FK-UpperArm_Parent.L.001
 	name = ""

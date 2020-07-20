@@ -150,7 +150,7 @@ class CloudChainRig(CloudBaseRig):
 	def make_dt_helper(self, str_bone) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints to aim at the previous and next STR bones."""
 		dt_bone = self.str_mch.new(
-			name = str_bone.name.replace("STR", "DT-STR")
+			name = self.add_prefix_to_name(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
 		)
