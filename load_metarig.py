@@ -24,12 +24,12 @@ def load_metarig(metarig_name):
         for o in data_from.objects:
             if o == metarig_name:
                 data_to.objects.append(o)
-    
+
     new_metarig = bpy.data.objects.get(available_name)
     if not new_metarig:
         print("Warning: Failed to load metarig: " + available_name)
         return
-    
+
     bpy.context.scene.collection.objects.link(new_metarig)
     bpy.context.view_layer.objects.active = new_metarig
     new_metarig.location = bpy.context.scene.cursor.location

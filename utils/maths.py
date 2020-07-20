@@ -1,6 +1,5 @@
 from typing import Tuple, List
 
-import bpy
 from mathutils import Vector
 from math import atan2
 
@@ -15,7 +14,7 @@ def bounding_box(points) -> Tuple[Vector, Vector]:
 				lowest[i] = p[i]
 			if p[i] > highest[i]:
 				highest[i] = p[i]
-	
+
 	return lowest, highest
 
 def bounding_box_center(points) -> Vector:
@@ -46,12 +45,10 @@ def project_points_on_plane (points, projection_axis) -> List[Vector]:
 
 	points_center = bounding_box_center(points)
 
-	bpy.context.scene.cursor.location = points_center
-
 	for point in points:
 		center_relative = point - points_center
 		projected_point = Vector((center_relative.dot(plane_x), center_relative.dot(plane_y), 0))
-		
+
 		angle_from_axis = atan2(
             projected_point.x - plane_y.x,
             projected_point.y - plane_y.y
