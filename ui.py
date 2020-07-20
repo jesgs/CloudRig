@@ -1,8 +1,6 @@
 import bpy
-from . import cloud_generator, actions
-from rigify.utils.errors import MetarigError
+from . import actions
 from rigify.ui import rigify_report_exception
-import traceback
 from .cloudrig import draw_layers_ui
 
 def is_cloud_metarig(rig):
@@ -227,29 +225,6 @@ def draw_cloud_layer_names(self, context):
 		row.prop(rigify_layer, "name", text="")
 		row.prop(rigify_layer, "row", text="UI Row")
 
-class CLOUDRIG_OT_generate(bpy.types.Operator):
-	"""Generates a rig from the active metarig armature using the CloudRig generator"""
-
-	bl_idname = "pose.cloudrig_generate"
-	bl_label = "CloudRig Generate Rig"
-	bl_options = {'UNDO'}
-	bl_description = 'Generates a rig from the active metarig armature using the CloudRig generator'
-
-	def execute(self, context):
-		try:
-			cloud_generator.generate_rig(context, context.object)
-		except MetarigError as rig_exception:
-			traceback.print_exc()
-
-			rigify_report_exception(self, rig_exception)
-		except Exception as rig_exception:
-			traceback.print_exc()
-
-			self.report({'ERROR'}, 'Generation has thrown an exception: ' + str(rig_exception))
-		finally:
-			bpy.ops.object.mode_set(mode='OBJECT')
-
-		return {'FINISHED'}
 
 def ui_label_with_linebreak(layout, text):
 	"""Attempt to simulate a proper textbox by only displaying as many characters in a single label as fits in the UI."""
@@ -297,7 +272,6 @@ def dropdown_ui(layout, params, dropdown_param_name):
 	return None
 
 classes = [
-	CLOUDRIG_OT_generate,
 	CLOUDRIG_OT_layer_init,
 
 	CLOUDRIG_PT_actions,

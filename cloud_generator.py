@@ -1,7 +1,13 @@
 import bpy, os
+import traceback
+
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
-from rigify.generate import *
+from rna_prop_ui import rna_idprop_ui_prop_get
+
+from rigify.generate import Generator, Timer, select_object, create_selection_sets
+from rigify.utils.errors import MetarigError
+
 from .definitions.bone import BoneSet
 from .rigs import cloud_utils
 from . import widgets as cloud_widgets
@@ -720,12 +726,44 @@ def generate_rig(context, metarig):
 		# Continue the exception
 		raise e
 
+class CLOUDRIG_OT_generate(bpy.types.Operator):
+	"""Generates a rig from the active metarig armature using the CloudRig generator"""
+
+	bl_idname = "pose.cloudrig_generate"
+	bl_label = "CloudRig Generate Rig"
+	bl_options = {'UNDO'}
+	bl_description = 'Generates a rig from the active metarig armature using the CloudRig generator'
+
+	def execute(self, context):
+		try:
+			generate_rig(context, context.object)
+		except MetarigError as rig_exception:
+			traceback.print_exc()
+
+			rigify_report_exception(self, rig_exception)
+		except Exception as rig_exception:
+			traceback.print_exc()
+
+			self.report({'ERROR'}, 'Generation has thrown an exception: ' + str(rig_exception))
+		finally:
+			bpy.ops.object.mode_set(mode='OBJECT')
+
+		return {'FINISHED'}
+
+classes = [
+	CloudRigProperties,
+
+	CLOUDRIG_OT_generate,
+]
+
 def register():
 	from bpy.utils import register_class
-	register_class(CloudRigProperties)
+	for c in classes:
+		register_class(c)
 	bpy.types.Armature.cloudrig_parameters = PointerProperty(type=CloudRigProperties)
 
 def unregister():
 	from bpy.utils import unregister_class
-	unregister_class(CloudRigProperties)
+	for c in classes:
+		unregister_class(c)
 	del bpy.types.Armature.cloudrig_parameters
