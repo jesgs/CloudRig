@@ -6,7 +6,8 @@ from .definitions.bone import BoneSet
 from .rigs import cloud_utils
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
-from .utils import flip_name, name_side_is_left
+
+from .utilities.naming import CloudNamingUtilitiesMixin
 
 separators = [
 	(".", ".", "."),
@@ -51,6 +52,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = True
 	)
 
+	# TODO: un-implement this functionality, it's so insignificant that it's not even worth cluttering the UI and the code with it.
 	prefix_separator: EnumProperty(
 		name		 = "Prefix Separator"
 		,description = "Character that separates prefixes in the bone names"
@@ -140,7 +142,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	actions: CollectionProperty(type=CloudRigAction)
 	active_action_index: IntProperty(min=0)
 
-class CloudGenerator(Generator):
+class CloudGenerator(Generator, CloudNamingUtilitiesMixin):
 	def __init__(self, context, metarig):
 		super().__init__(context, metarig)
 		self.params = metarig.data	# Generator parameters are stored in rig data.
@@ -385,14 +387,14 @@ class CloudGenerator(Generator):
 					if(bone and bone not in bones):
 						bones.append(bone)
 
-			do_symmetry = flip_name(subtarget)!=subtarget and act_def.symmetrical==True
+			do_symmetry = self.flipped_name(subtarget)!=subtarget and act_def.symmetrical==True
 
 			# Adding action constraints to the bones
 			for b in bones:
 				con_name = "Action_" + action.name
 				constraints = []
 
-				bone_is_left_side = name_side_is_left(b.name)
+				bone_is_left_side = self.side_is_left(b)
 
 				# If bone name is unflippable...
 				if bone_is_left_side==None:
@@ -420,10 +422,10 @@ class CloudGenerator(Generator):
 				# Configure Action constraints
 				for c in constraints:
 					# If constraint is not the same side as the control, flip it.
-					constraint_is_left_side = name_side_is_left(c.name)
-					control_is_left_side = name_side_is_left(subtarget)
+					constraint_is_left_side = self.side_is_left(c)
+					control_is_left_side = self.side_is_left(subtarget)
 					if constraint_is_left_side != control_is_left_side:
-						subtarget = flip_name(subtarget)
+						subtarget = self.flipped_name(subtarget)
 					c.target_space = act_def.target_space
 					c.transform_channel = act_def.transform_channel
 					c.target = rig

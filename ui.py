@@ -35,8 +35,8 @@ def draw_cloudrig_generator_settings(self, context):
 
 	layout.prop(obj.data, "rigify_force_widget_update")
 
-	layout.row().prop(cloudrig, "prefix_separator", expand=True)
-	layout.row().prop(cloudrig, "suffix_separator", expand=True)
+	# layout.row().prop(cloudrig, "prefix_separator", expand=True)
+	# layout.row().prop(cloudrig, "suffix_separator", expand=True)
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'

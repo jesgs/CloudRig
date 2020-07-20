@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
 
-from .utils import flip_name
+# This whole thing could be part of Rigify.
 
 class CLOUDRIG_OT_Action_Remove(bpy.types.Operator):
 	"""Remove an action setup"""
@@ -210,7 +210,7 @@ def draw_cloudrig_actions(layout, rig):
 	row = layout.row()
 	subtarget_exists = act.subtarget in rig.data.rigify_target_rig.data.bones
 	icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
-	flipped_subtarget = flip_name(act.subtarget)
+	flipped_subtarget = self.flipped_name(act.subtarget)
 	row.prop_search(act, 'subtarget', rig.data.rigify_target_rig.data, 'bones', icon=icon)
 	row.alert = not subtarget_exists
 

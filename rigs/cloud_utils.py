@@ -6,7 +6,9 @@ from copy import deepcopy
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
-class CloudUtilities:
+from ..utilities.naming import CloudNamingUtilitiesMixin, slice_name, make_name
+
+class CloudUtilities(CloudNamingUtilitiesMixin):
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
 	# If a class inherits this class, it's also expected to inherit CloudBaseRig - These are only split up for organizational purposes.
 
@@ -56,11 +58,11 @@ class CloudUtilities:
 		if not hng_name:
 			sliced = slice_name(bone.name)
 			sliced[0].insert(0, "HNG")
-			hng_name = make_name(*sliced)
+			hng_name = self.make_name(*sliced)
 		if not parent_bone:
 			parent_bone = bone.parent
 		if not limb_name:
-			limb_name = "Hinge: " + self.side_suffix + " " + slice_name(bone.name)[1]
+			limb_name = "Hinge: " + self.side_suffix + " " + self.slice_name(bone.name)[1]
 		if bone_set==None:
 			bone_set = bone.container
 
@@ -224,7 +226,7 @@ class CloudUtilities:
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
 		def_bone = bone_set.new(
-			name = make_name(["DEF"], *slice_name(bone.name)[1:])
+			name = self.make_name(["DEF"], *slice_name(bone.name)[1:])
 			,source = bone
 			,use_deform = True
 			,parent = bone
@@ -361,19 +363,9 @@ class CloudUtilities:
 		sliced_name[0].append(new_prefix)
 		return self.make_name(*sliced_name)
 
-	def make_name(self, prefixes=[], base="", suffixes=[]):
-		return make_name(prefixes, base, suffixes, self.generator.prefix_separator, self.generator.suffix_separator)
-	
-	def slice_name(self, name):
-		return slice_name(name, self.generator.prefix_separator, self.generator.suffix_separator)
-	
 	@staticmethod
 	def ensure_visible(obj):
 		return EnsureVisible(obj)
-	
-	@staticmethod
-	def flip_name(from_name, only=True, must_change=False):
-		return flip_name(from_name, only, must_change)
 	
 	@staticmethod
 	def flat_vector(vec):
@@ -446,25 +438,6 @@ def copy_driver(from_fcurve, obj, data_path=None, index=None):
 			copy_attributes(v1.targets[i], v2.targets[i])
 	
 	return new_fc
-
-def make_name(prefixes=[], base="", suffixes=[], prefix_separator="-", suffix_separator="."):
-	# In our naming convention, prefixes are separated by dashes and suffixes by periods, eg: DSP-FK-UpperArm_Parent.L.001
-	# Trailing zeroes should be avoided though, but that's not done by this function(for now?)
-	name = ""
-	for pre in prefixes:
-		if pre=="": continue
-		name += pre + prefix_separator
-	name += base
-	for suf in suffixes:
-		if suf=="": continue
-		name += suffix_separator + suf
-	return name
-
-def slice_name(name, prefix_separator="-", suffix_separator="."):
-	prefixes = name.split(prefix_separator)[:-1]
-	suffixes = name.split(suffix_separator)[1:]
-	base = name.split(prefix_separator)[-1].split(suffix_separator)[0]
-	return [prefixes, base, suffixes]
 
 def lock_transforms(obj, loc=True, rot=True, scale=True):
 	if type(loc) in (list, tuple):
@@ -557,63 +530,6 @@ def recursive_search_layer_collection(collName, layerColl=None):
 def set_active_collection(collection):
 	layer_collection = recursive_search_layer_collection(collection.name)
 	bpy.context.view_layer.active_layer_collection = layer_collection
-
-def flip_name(from_name, only=True, must_change=False):
-	# based on BLI_string_flip_side_name in https://developer.blender.org/diffusion/B/browse/master/source/blender/blenlib/intern/string_utils.c
-	# If only==True, only replace the first occurrence of a side identifier in the string, eg. "Left_Eyelid.L" would become "Right_Eyelid.L". With only==False, it would instead return "Right_Eyelid.R"
-	# if must_change==True, raise an error if the string couldn't be flipped.
-
-	l = len(from_name)	# Number of characters from left to right, that we still care about. At first we care about all of them.
-	
-	# Handling .### cases
-	if("." in from_name):
-		# Make sure there are only digits after the last period
-		after_last_period = from_name.split(".")[-1]
-		before_last_period = from_name.replace("."+after_last_period, "")
-		all_digits = True
-		for c in after_last_period:
-			if( c not in "0123456789" ):
-				all_digits = False
-				break
-		# If that is so, then we don't care about the characters after this last period.
-		if(all_digits):
-			l = len(before_last_period)
-	
-	new_name = from_name[:l]
-	
-	left = 				['left',  'Left',  'LEFT', 	'.l', 	  '.L', 		'_l', 				'_L',				'-l',	   '-L', 	'l.', 	   'L.',	'l_', 			 'L_', 			  'l-', 	'L-']
-	right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*dotl*', '*dotL*', 	'*underscorel*', 	'*underscoreL*', 	'*dashl*', '*dashL', '*ldot*', '*Ldot', '*lunderscore*', '*Lunderscore*', '*ldash*','*Ldash*']
-	right = 			['right', 'Right', 'RIGHT', '.r', 	  '.R', 		'_r', 				'_R',				'-r',	   '-R', 	'r.', 	   'R.',	'r_', 			 'R_', 			  'r-', 	'R-']
-	
-	def flip_sides(list_from, list_to, new_name):
-		for side_idx, side in enumerate(list_from):
-			opp_side = list_to[side_idx]
-			if(only):
-				# Only look at prefix/suffix.
-				if(new_name.startswith(side)):
-					new_name = new_name[len(side):]+opp_side
-					break
-				elif(new_name.endswith(side)):
-					new_name = new_name[:-len(side)]+opp_side
-					break
-			else:
-				if("-" not in side and "_" not in side):	# When it comes to searching the middle of a string, sides must Strictly a full word or separated with . otherwise we would catch stuff like "_leg" and turn it into "_reg".
-					# Replace all occurences and continue checking for keywords.
-					new_name = new_name.replace(side, opp_side)
-					continue
-		return new_name
-	
-	new_name = flip_sides(left, right_placehold, new_name)
-	new_name = flip_sides(right, left, new_name)
-	new_name = flip_sides(right_placehold, right, new_name)
-	
-	# Re-add trailing digits (.###)
-	new_name = new_name + from_name[l:]
-
-	if(must_change):
-		assert new_name != from_name, "Failed to flip string: " + from_name
-	
-	return new_name
 
 def flat(vec):
 	""" Return a copy of a vector with its two absolute lowest values set to 0. Useful for making vectors world-aligned. """

@@ -1,9 +1,7 @@
 from bpy.props import BoolProperty, IntProperty
 from mathutils import Vector
 
-from .cloud_utils import make_name, slice_name
 from .cloud_chain import CloudChainRig
-from ..utils import flip_name, combine_bone_names
 
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
@@ -67,7 +65,8 @@ class CloudFaceChainRig(CloudChainRig):
 				break
 
 		if not parent:
-			slices = self.slice_name(combine_bone_names(self, [b.name for b in bones]))
+			combined_name = self.combine_names(bones)
+			slices = self.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
 			bone_name = self.make_name(["STR", "I"], slices[1], slices[2])
 			parent = self.merged_controls.new(

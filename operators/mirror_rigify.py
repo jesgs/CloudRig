@@ -1,5 +1,5 @@
 import bpy
-from ..rigs import cloud_utils
+from ..utilities.naming import flip_name
 from bpy.props import BoolProperty
 
 def copy_rigify_params(from_bone, to_bone):
@@ -25,7 +25,7 @@ class MirrorRigifyParameters(bpy.types.Operator):
 		rig = context.object
 
 		for pb in context.selected_pose_bones:
-			flip_bone = rig.pose.bones.get(cloud_utils.flip_name(pb.name))
+			flip_bone = rig.pose.bones.get(flip_name(pb.name))
 			if flip_bone==pb or not flip_bone:
 				# Bone name could not be flipped or bone with flipped name doesn't exist, skip.
 				continue
