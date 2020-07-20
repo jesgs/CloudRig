@@ -2,7 +2,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
 
-from .cloud_utils import make_name, slice_name
+from ..definitions.bone import BoneInfo
 from .cloud_base import CloudBaseRig
 from .. import widgets as cloud_widgets
 from ..utils import bounding_box_center
@@ -47,11 +47,11 @@ class CloudEyeRig(CloudBaseRig):
 		if self.params.CR_eye_deform:
 			self.make_def_bone(eye_org, self.eye_def)
 
-	def find_target_pos(self, bone):
+	def find_target_pos(self, bone) -> Vector:
 		"""Find location of where the target bone should be for an eye bone."""
 		return bone.tail + bone.vector.normalized() * self.params.CR_eye_target_distance * self.scale
 
-	def make_target_control(self, bone, parent=None):
+	def make_target_control(self, bone, parent=None) -> BoneInfo:
 		"""Set up target control for a bone"""
 		if not parent:
 			parent = bone.parent
@@ -72,7 +72,7 @@ class CloudEyeRig(CloudBaseRig):
 
 		return target_bone
 
-	def make_aim_helper(self, bone, target_bone):
+	def make_aim_helper(self, bone, target_bone) -> BoneInfo:
 		"""Create an aim bone for bone targetting target_bone, while leaving bone free to rotate."""
 		aim_bone = self.eye_mch.new(
 			name		 = bone.name.replace("ORG", "AIM")
@@ -86,10 +86,10 @@ class CloudEyeRig(CloudBaseRig):
 		)
 		return aim_bone
 
-	def make_eye_control(self, bone):
+	def make_eye_control(self, bone) -> BoneInfo:
 		"""Create direct control for an eye, with a display bone that is eye radius away towards the bone's +Y axis."""
 		ctr_bone = self.target_ctrl.new(
-			name = make_name(["CTR"], *slice_name(bone.name)[1:])
+			name = self.make_name(["CTR"], *self.slice_name(bone.name)[1:])
 			,source = bone
 			,parent = bone.parent
 			,custom_shape = self.load_widget("Oval")
@@ -99,7 +99,7 @@ class CloudEyeRig(CloudBaseRig):
 		dsp_bone.put(ctr_bone.tail)
 		return ctr_bone
 
-	def make_eye_root(self, bone):
+	def make_eye_root(self, bone) -> BoneInfo:
 		# TODO: Root bone should be bigger and have a DSP- bone in the same place as the CTR bone.
 		base_bone = self.org_chain[0]
 		root_bone = self.target_ctrl.new(
@@ -107,10 +107,11 @@ class CloudEyeRig(CloudBaseRig):
 			,source = base_bone
 			,parent = base_bone.parent
 			,custom_shape = self.load_widget('Square')
+			,custom_shape_scale = 2
 		)
 		bone.parent = root_bone
 
-	def ensure_group_master(self):
+	def ensure_group_master(self) -> BoneInfo:
 		# At the moment, this function will be called by each eye bone, but we want to make sure it only runs once per group.
 		# So check if a bone with the right name already exists and if it does, just return it.
 

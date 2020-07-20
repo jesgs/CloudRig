@@ -1,6 +1,6 @@
 from bpy.props import BoolProperty, IntProperty
 
-from .cloud_utils import make_name, slice_name
+from ..definitions.bone import BoneInfo, BoneSet
 from .cloud_base import CloudBaseRig
 
 """
@@ -37,14 +37,16 @@ class CloudChainRig(CloudBaseRig):
 
 		str_sections = self.make_str_chain(self.org_chain)
 		self.make_str_helpers(str_sections)
+
 		if self.params.CR_smooth_spline:
-			self.make_dt_helpers(self.str_bones)
+			for str_bone in self.str_bones:
+				str_bone.dt_bone = self.make_dt_helper(str_bone)
 
 		self.make_def_chain(self.str_bones)
 
 		self.connect_parent_chain_rig()
 
-	def determine_segments(self, org_bone):
+	def determine_segments(self, org_bone) -> (int, int):
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		segments = self.params.CR_deform_segments
 
@@ -56,7 +58,7 @@ class CloudChainRig(CloudBaseRig):
 		
 		return segments, bbone_density
 
-	def make_str_chain(self, org_chain):
+	def make_str_chain(self, org_chain) -> [[BoneInfo]]:
 		self.main_str_bones = []
 		str_sections = []
 		for org_i, org_bone in enumerate(org_chain):
@@ -105,11 +107,11 @@ class CloudChainRig(CloudBaseRig):
 		str_bone.org_parent = org_bone
 		if segments>1 and seg_i>0:
 			sliced = self.slice_name(str_bone.name)
-			str_bone.name = make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
+			str_bone.name = self.make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
 		str_bone.bbone_width *= 1.2
 		return str_bone
 
-	def make_str_helpers(self, str_sections):
+	def make_str_helpers(self, str_sections: [[BoneInfo]]):
 		"""STR-H are mechanism bones that keep STR controls between two main STR controls."""
 		main_str_bone = None
 		for sec_i, section in enumerate(str_sections):
@@ -143,27 +145,26 @@ class CloudChainRig(CloudBaseRig):
 				str_h_bone.add_constraint('COPY_ROTATION', space='WORLD', subtarget=last_str, influence=influence)
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
-	def make_dt_helpers(self, str_chain):
-		""" Create a child bone for each STR bone with Damped Track constraints to aim at the previous and next STR bones. """
-
-		for str_bone in str_chain:
-			dt_bone = self.str_mch.new(
-				name = str_bone.name.replace("STR", "DT-STR")
-				,source = str_bone
-				,parent = str_bone
-			)
-			str_bone.dt_bone = dt_bone
+	def make_dt_helper(self, str_bone) -> BoneInfo:
+		"""Create a child bone for an STR bone with Damped Track constraints to aim at the previous and next STR bones."""
+		dt_bone = self.str_mch.new(
+			name = str_bone.name.replace("STR", "DT-STR")
+			,source = str_bone
+			,parent = str_bone
+		)
+		if str_bone.next:
+			pos_con = dt_bone.add_constraint('DAMPED_TRACK', subtarget = str_bone.next.name, track_axis='TRACK_Y')
+		if str_bone.prev:
+			neg_con = dt_bone.add_constraint('DAMPED_TRACK', subtarget = str_bone.prev.name, track_axis='TRACK_NEGATIVE_Y')
 			if str_bone.next:
-				pos_con = dt_bone.add_constraint('DAMPED_TRACK', subtarget = str_bone.next.name, track_axis='TRACK_Y')
-			if str_bone.prev:
-				neg_con = dt_bone.add_constraint('DAMPED_TRACK', subtarget = str_bone.prev.name, track_axis='TRACK_NEGATIVE_Y')
-				if str_bone.next:
-					neg_con.influence = 0.5
-			dt_bone.add_constraint('COPY_ROTATION', subtarget = str_bone.name, mix_mode='BEFORE')
-			dt_bone.inherit_scale = 'NONE'
-			dt_bone.add_constraint('COPY_SCALE', subtarget=str_bone.name)
+				neg_con.influence = 0.5
+		dt_bone.add_constraint('COPY_ROTATION', subtarget = str_bone.name, mix_mode='BEFORE')
+		dt_bone.inherit_scale = 'NONE'
+		dt_bone.add_constraint('COPY_SCALE', subtarget=str_bone.name)
 
-	def make_def_chain(self, str_chain):
+		return dt_bone
+
+	def make_def_chain(self, str_chain) -> BoneSet:
 		"""Create a deform chain stretching from one STR bone to the next"""
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
@@ -226,7 +227,7 @@ class CloudChainRig(CloudBaseRig):
 
 		return self.def_bones
 
-	def make_shape_key_helper(self, def_bone_1, def_bone_2):
+	def make_shape_key_helper(self, def_bone_1, def_bone_2) -> BoneInfo:
 		"""The goal is to accurately read the rotational difference between def_bone_1 and def_bone_2, each of which can be a bendy bone.
 		SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail of of def_bone_1.
 		SKH (Shape Key Helper): This is parented to SKP and Copy Transforms of the b-bone head of def_bone_2.
@@ -234,11 +235,11 @@ class CloudChainRig(CloudBaseRig):
 		"""
 
 		skp_bone = self.skh_bones.new(
-			name		 = def_bone_2.name.replace("DEF", "SKP")
+			name		 = def_bone_1.name.replace("DEF", "SKP")
+			,source		 = def_bone_1
 			,head		 = def_bone_1.tail.copy()
 			,tail		 = def_bone_1.tail + def_bone_1.vector
 			,parent		 = def_bone_1
-			,bbone_width = 0.05
 			,hide_select = self.mch_disable_select
 		)
 		skp_bone.scale_length(0.3)
@@ -250,13 +251,14 @@ class CloudChainRig(CloudBaseRig):
 		)
 
 		skh_bone = self.skh_bones.new(
-			name		 = def_bone_2.name.replace("DEF", "SKH")
+			name		 = def_bone_1.name.replace("DEF", "SKH")
+			,source		 = def_bone_1
 			,head		 = def_bone_2.head.copy()
 			,tail		 = def_bone_2.tail.copy()
 			,parent		 = skp_bone
-			,bbone_width = 0.03
 			,hide_select = self.mch_disable_select
 		)
+		skh_bone.scale_width(2)
 		skh_bone.scale_length(0.4)
 		skh_bone.add_constraint('COPY_TRANSFORMS'
 			,space			 = 'WORLD'
@@ -264,6 +266,7 @@ class CloudChainRig(CloudBaseRig):
 			,use_bbone_shape = True
 			,head_tail		 = 0
 		)
+		return skh_bone
 
 	def connect_parent_chain_rig(self):
 		# If the parent rig is a connected chain rig with cap_control=False, make the last DEF bone of that rig stretch to this rig's first STR.
