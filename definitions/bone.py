@@ -4,6 +4,7 @@ import bpy
 from mathutils import Vector
 import copy
 from ..rigs import cloud_utils
+from ..utils.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
 class LinkedList(list):
@@ -320,7 +321,7 @@ class BoneInfo:
 		return self.head + self.vector/2
 
 	def set_layers(self, layerlist, additive=False):
-		cloud_utils.set_layers(self, layerlist, additive)
+		set_layers(self, layerlist, additive)
 
 	def put(self, loc, length=None, width=None, scale_length=None, scale_width=None):
 		offset = loc-self.head

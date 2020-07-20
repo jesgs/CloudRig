@@ -5,6 +5,7 @@ from rigify.base_rig import BaseRig, stage
 
 from . import cloud_utils
 from ..rigs.cloud_base import DefaultLayers
+from ..utils.object import set_layers
 
 class Rig(BaseRig, cloud_utils.CloudUtilities):
 	"""Create or tweak a single bone in the generated rig."""
@@ -43,7 +44,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			self.def_bone_name = self.copy_bone(org_bone.name, def_bone_name)
 			def_bone = self.get_bone(self.def_bone_name)
 			def_bone.bbone_x = def_bone.bbone_z = org_bone.bbone_x
-			cloud_utils.set_layers(def_bone, [DefaultLayers['DEF'].value])
+			set_layers(def_bone, [DefaultLayers['DEF'].value])
 
 	@stage.configure_bones
 	def modify_bone_group(self):

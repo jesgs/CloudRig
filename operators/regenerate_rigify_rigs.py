@@ -1,7 +1,7 @@
 import bpy
 
 from ..ui import is_cloud_metarig
-from ..rigs.cloud_utils import EnsureVisible
+from ..utils.object import EnsureVisible
 
 def safe_generate(context, metarig, target_rig):
 	# Generating requires the metarig to be the active object, and the target rig to be visible.

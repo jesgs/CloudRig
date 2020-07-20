@@ -11,6 +11,7 @@ from .cloud_utils import CloudUtilities
 from ..ui import ui_label_with_linebreak, dropdown_ui
 from ..cloudrig import draw_layers_ui
 from ..utils.naming import CloudNamingUtilitiesMixin, name_side_is_left
+from ..utils.object import CloudObjectUtilitiesMixin
 
 from rigify.base_rig import BaseRig
 
@@ -28,13 +29,13 @@ class DefaultLayers(Enum):
 	FACE_SECOND = 19
 	FACE_TWEAK = 20
 
-class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
+class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin, CloudObjectUtilitiesMixin):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
 	ui_rows: Dict[str, bpy.types.UILayout] = {}	# Keep track of certain UI rows so they can be modified later.
 
 	bone_set_defs: Dict[str, str] = OrderedDict()
-	
+
 	default_layers = lambda name: DefaultLayers[name].value
 
 	def __init__(self, *args, **kwargs):
@@ -84,11 +85,10 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		from .. import cloud_generator
 		assert type(self.generator) == cloud_generator.CloudGenerator, "Error: CloudRig has wrong Generator type. CloudRig requires its own Generator class - Perhaps you're using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate?"
 
-
 		self.generator_params = self.generator.metarig.data
 
 		self.mch_disable_select = not self.generator_params.cloudrig_parameters.mechanism_selectable
-		
+
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
 		self.parent_candidates = {}
 
@@ -137,9 +137,9 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		if bone_set_name not in bone_set_defs:
 			print(f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set.")
 			return
-		
+
 		bone_set_def = bone_set_defs[bone_set_name]
-		
+
 		bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
 
 		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
@@ -255,7 +255,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 				description = f"Select what group {ui_name} should be assigned to"
 			)
 		)
-		
+
 		default_layers_bools = [i in default_layers for i in range(32)]
 		setattr(
 			params, 
@@ -269,7 +269,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		)
 
 		assert override in ['', 'DEF', 'MCH', 'ORG'], "Error: Unsupported bone set override"
-		
+
 		cls.bone_set_defs[ui_name] = {
 			'name'			: ui_name
 			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
@@ -295,7 +295,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 			RigifyParameters PropertyGroup
 		"""
 		cls.define_bone_sets(params)
-	
+
 	@classmethod
 	def bone_set_ui(cls, params, layout, set_info):
 		import bpy
@@ -307,7 +307,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 
 		cls.ui_rows[set_info['param']] = col = layout.column()
 		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
-		
+
 		if True:
 			layout.use_property_split=False
 			draw_layers_ui(layout, obj, show_hidden=cloudrig.show_layers_preview_hidden, owner=params, layers_prop = set_info['layer_param'])
@@ -342,7 +342,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		doc = cls.__doc__ or cls.__bases__[0].__doc__
 		if doc:
 			ui_label_with_linebreak(layout, doc)
-		
+
 		layout.use_property_split = True
 		layout.use_property_decorate = False
 		col = layout.column()
@@ -353,7 +353,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin):
 		""" Create the ui for the rig parameters.
 		"""
 		cls.ui_rows = {}
-		
+
 		layout = cls.cloud_params_ui(layout, params)
 		layout.separator()
 		cls.bone_sets_ui(layout, params)
