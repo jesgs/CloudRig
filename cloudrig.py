@@ -928,6 +928,11 @@ def draw_layers_ui(layout, rig, show_hidden=False, owner=None, layers_prop='laye
 	if not owner:
 		owner = data
 	# This should work even if the Rigify addon is not enabled.
+	if 'rigify_layers' not in data:
+		row = layout.row()
+		row.alert=True
+		row.label(text="Create Rigify layer data in the Rigify Layer Names panel.")
+		return
 	layer_data = data['rigify_layers']
 	rigify_layers = [dict(l) for l in layer_data]
 
