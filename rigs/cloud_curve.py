@@ -282,6 +282,11 @@ class CloudCurveRig(CloudBaseRig):
 			RigifyParameters PropertyGroup
 		"""
 		
+		# TODO: Add "X Symmetry" parameter, when enabled, determine hook bone
+		#  sides automatically based on X coordinate sign, and flip bones on 
+		# one side so mirror posing works as expected. 
+		# An actual symmetrical curve shape is not enforced, but expected.
+
 		params.CR_show_curve_rig_settings = BoolProperty(		
 			name		 = "Curve Settings"
 			,description = "Reveal settings for the cloud_curve rig type"
@@ -352,3 +357,12 @@ class CloudCurveRig(CloudBaseRig):
 
 class Rig(CloudCurveRig):
 	pass
+
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_curve")
+	# Need to do some extra stuff...
+	curve_ob = bpy.data.objects.get("cloud_curve")
+	bpy.context.scene.collection.objects.link(curve_ob)
+	curve_ob.location = bpy.context.scene.cursor.location

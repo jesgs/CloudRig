@@ -63,5 +63,12 @@ class CloudTemplateRig(CloudBaseRig):
 
 		return layout
 
+# Uncomment the next two lines to make this rig show up in Blender.
 # class Rig(CloudTemplateRig):
 # 	pass
+
+# For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_template")

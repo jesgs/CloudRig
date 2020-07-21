@@ -432,8 +432,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				"bones" : [self.pole_ctrl.name],
 				"select_bones" : True
 			}
-			default = 1.0 if self.limb_type=='LEG' else 0.0
-			self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=default)
+			self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=0.0)
 
 			# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
 			arm_con_bone = self.pole_ctrl.parent
@@ -512,11 +511,17 @@ class CloudIKChainRig(CloudFKChainRig):
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_ik_settings"): return layout
 
 		layout.prop(params, "CR_use_pole_target")
-		layout.prop(params, "CR_ik_at_tail")
+		# layout.prop(params, "CR_ik_at_tail")
 		layout.prop(params, "CR_world_aligned_controls")
+
+		# TODO: IK chains in blender are expected to be perfectly flat along a plane. I'm thinking maybe we could add an operator to the rig settings that would do this for you??
 
 		return layout
 
 class Rig(CloudIKChainRig):
-	
 	pass
+
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_ik_chain")

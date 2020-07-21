@@ -57,5 +57,8 @@ def load_sample(rig_name):
 	sample_ob = bpy.data.objects.get(sample_name)
 	sample_ob.location = bpy.context.scene.cursor.location
 	bpy.context.scene.collection.objects.link(sample_ob)
+	rig.select_set(True)
+	sample_ob.select_set(True)
+	bpy.context.view_layer.objects.active = rig
 	bpy.ops.object.join()
 	bpy.ops.object.mode_set(mode='EDIT')

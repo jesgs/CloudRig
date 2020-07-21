@@ -3,6 +3,10 @@ from mathutils import Vector
 
 from .cloud_chain import CloudChainRig
 
+"""TODO
+IMPORTANT: The rig sample throws error in relinking code when trying to generate.
+"""
+
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
 
@@ -159,3 +163,8 @@ class CloudFaceChainRig(CloudChainRig):
 
 class Rig(CloudFaceChainRig):
 	pass
+
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_face_chain")

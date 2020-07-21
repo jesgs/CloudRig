@@ -369,7 +369,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 	def parameters_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		cls.ui_rows = {}
+		cls.ui_rows = {}	# TODO IMPORTANT: Using this errors when a panel is closed, eg. on cloud_shoulder if the FK Settings panel is closed.
 
 		layout = cls.cloud_params_ui(layout, params)
 		layout.separator()
