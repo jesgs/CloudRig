@@ -399,7 +399,9 @@ class CloudChainRig(CloudBaseRig):
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_chain_settings"): return layout
 
-		layout.prop(params, "CR_deform_segments")
+		deform_segments = layout.row()
+		deform_segments.prop(params, "CR_deform_segments")
+		cls.ui_rows['CR_deform_segments'] = deform_segments
 		layout.prop(params, "CR_bbone_density")
 
 		layout.prop(params, "CR_shape_key_helpers")

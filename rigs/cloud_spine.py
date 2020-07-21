@@ -25,6 +25,7 @@ class CloudSpineRig(CloudChainRig):
 
 		self.ik_prop_name = "ik_spine"
 		self.ik_stretch_name = "ik_stretch_spine"
+		self.params.CR_deform_segments = 1
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
@@ -353,6 +354,7 @@ class CloudSpineRig(CloudChainRig):
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_spine_settings"): return layout
 		
+		cls.ui_rows['CR_deform_segments'].enabled = False
 		layout.prop(params, "CR_spine_length")
 		layout.prop(params, "CR_create_ik_spine")
 		layout.prop(params, "CR_double_controls")
