@@ -162,8 +162,8 @@ class CloudLimbRig(CloudIKChainRig):
 		rolly_stretchy.scale_width(0.4)
 		rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
 
-		sliced_name = self.slice_name(ik_foot.name)
-		master_name = self.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
+		sliced_name = self.naming.slice_name(ik_foot.name)
+		master_name = self.naming.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
 		roll_master = self.ik_mch.new(
 			name		 = master_name
 			,source		 = self.ik_mstr
@@ -172,7 +172,7 @@ class CloudLimbRig(CloudIKChainRig):
 		roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
 		self.ik_tgt_bone.clear_constraints()
 
-		roll_name = self.make_name(["ROLL"], sliced_name[1], sliced_name[2])
+		roll_name = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
 		roll_ctrl = self.ik_ctrls.new(
 			name		  = roll_name
 			,bbone_width  = 1/18

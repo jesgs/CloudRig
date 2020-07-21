@@ -76,7 +76,7 @@ class CloudEyeRig(CloudBaseRig):
 	def make_eye_control(self, bone) -> BoneInfo:
 		"""Create direct control for an eye, with a display bone that is eye radius away towards the bone's +Y axis."""
 		ctr_bone = self.target_ctrl.new(
-			name = self.make_name(["CTR"], *self.slice_name(bone.name)[1:])
+			name = self.naming.make_name(["CTR"], *self.naming.slice_name(bone.name)[1:])
 			,source = bone
 			,parent = bone.parent
 			,custom_shape = self.load_widget("Oval")

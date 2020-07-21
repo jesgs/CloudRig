@@ -43,18 +43,11 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 
 		### Quick access to the generator's name manager
 		self.naming = self.generator.naming
-		# temporary crap for testing
-		self.make_name = self.naming.make_name
-		self.slice_name = self.naming.slice_name
-		self.combine_names = self.naming.combine_names
-		self.flipped_name = self.naming.flipped_name
-		self.side_is_left = self.naming.side_is_left
-		self.add_prefix_to_name = self.naming.add_prefix_to_name
 
 		# Determine Suffix/Prefix
 		self.side_suffix = "L"
 		self.side_prefix = "Left"
-		if not self.side_is_left(self.base_bone):
+		if not self.naming.side_is_left(self.base_bone):
 			self.side_suffix = "R"
 			self.side_prefix = "Right"
 

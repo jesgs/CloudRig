@@ -61,13 +61,13 @@ class CloudUtilities:
 
 		# Defaults for optional parameters
 		if not hng_name:
-			sliced = self.slice_name(bone.name)
+			sliced = self.naming.slice_name(bone.name)
 			sliced[0].insert(0, "HNG")
-			hng_name = self.make_name(*sliced)
+			hng_name = self.naming.make_name(*sliced)
 		if not parent_bone:
 			parent_bone = bone.parent
 		if not limb_name:
-			limb_name = "Hinge: " + self.side_suffix + " " + self.slice_name(bone.name)[1]
+			limb_name = "Hinge: " + self.side_suffix + " " + self.naming.slice_name(bone.name)[1]
 		if bone_set==None:
 			bone_set = bone.container
 
@@ -231,7 +231,7 @@ class CloudUtilities:
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
 		def_bone = bone_set.new(
-			name = self.make_name(["DEF"], *self.slice_name(bone.name)[1:])
+			name = self.naming.make_name(["DEF"], *self.naming.slice_name(bone.name)[1:])
 			,source = bone
 			,use_deform = True
 			,parent = bone

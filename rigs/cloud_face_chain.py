@@ -65,10 +65,10 @@ class CloudFaceChainRig(CloudChainRig):
 				break
 
 		if not parent:
-			combined_name = self.combine_names(bones)
-			slices = self.slice_name(combined_name)
+			combined_name = self.naming.combine_names(bones)
+			slices = self.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
-			bone_name = self.make_name(["STR", "I"], slices[1], slices[2])
+			bone_name = self.naming.make_name(["STR", "I"], slices[1], slices[2])
 			parent = self.merged_controls.new(
 				name = bone_name
 				,source = bones[0]

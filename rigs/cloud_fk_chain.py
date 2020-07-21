@@ -9,7 +9,7 @@ class CloudFKChainRig(CloudChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		self.category = self.slice_name(self.base_bone)[1]
+		self.category = self.naming.slice_name(self.base_bone)[1]
 		if self.params.CR_use_custom_category_name:
 			self.category = self.params.CR_custom_category_name
 		

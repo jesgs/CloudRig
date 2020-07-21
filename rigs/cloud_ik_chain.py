@@ -83,7 +83,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	def create_pole_control(self):
 		# Create IK Pole Control
 		pole_ctrl = self.pole_ctrl = self.ik_ctrls.new(
-			name				= self.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
+			name				= self.naming.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
 			,bbone_width		= 0.1
 			,head				= self.pole_location
 			,tail				= self.pole_location + self.flat_vector(self.pole_vector) * 0.2
@@ -94,7 +94,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		)
 
 		pole_line = self.ik_ctrls.new(
-			name		  = self.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
+			name		  = self.naming.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
 			,source		  = pole_ctrl
 			,tail		  = self.org_chain[0].tail.copy()
 			,parent		  = pole_ctrl
@@ -273,7 +273,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			if i == 0: continue
 			if i == len(self.main_str_bones)-1: continue
 			main_str_helper = self.ik_mch.new(
-				name		 = self.add_prefix_to_name(main_str_bone, "S")
+				name		 = self.naming.add_prefix(main_str_bone, "S")
 				,source		 = main_str_bone
 				,bbone_width = 1/10
 				,parent		 = main_str_bone.parent

@@ -63,7 +63,7 @@ class CloudNameManager:
 	def side_is_left(self, thing) -> Optional[bool]:
 		return name_side_is_left(get_name(thing))
 	
-	def add_prefix_to_name(self, thing, new_prefix) -> str:
+	def add_prefix(self, thing, new_prefix) -> str:
 		"""The most common case of making a bone name based on another one is to add a prefix to it."""
 		name = get_name(thing)
 		sliced_name = self.slice_name(name)
@@ -163,8 +163,6 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 
 	if must_change:
 		assert new_name != from_name, "Failed to flip string: " + from_name
-
-	print(f"flipped {from_name} -> {new_name}")
 
 	return new_name
 

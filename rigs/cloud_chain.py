@@ -117,8 +117,8 @@ class CloudChainRig(CloudBaseRig):
 		)
 		str_bone.org_parent = org_bone
 		if segments>1 and seg_i>0:
-			sliced = self.slice_name(str_bone.name)
-			str_bone.name = self.make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
+			sliced = self.naming.slice_name(str_bone.name)
+			str_bone.name = self.naming.make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
 		str_bone.bbone_width *= 1.2
 		return str_bone
 
@@ -137,7 +137,7 @@ class CloudChainRig(CloudBaseRig):
 				main_str_bone.sub_bones.append(str_bone)
 
 				str_h_bone = self.str_mch.new(
-					name 		 = self.add_prefix_to_name(str_bone.name, "H")
+					name 		 = self.naming.add_prefix(str_bone.name, "H")
 					,source 	 = str_bone
 					,bbone_width = 1/10
 					,parent		 = str_bone.parent
@@ -173,7 +173,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Create a child bone for an STR bone with Damped Track constraints 
 		to aim at the previous and next STR bones."""
 		dt_bone = self.str_mch.new(
-			name = self.add_prefix_to_name(str_bone, "DT")
+			name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
 		)
