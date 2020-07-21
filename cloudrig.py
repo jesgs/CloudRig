@@ -938,7 +938,7 @@ def draw_layers_ui(layout, rig, show_hidden=False, owner=None, layers_prop='laye
 			l['row'] = 1
 
 	sorted_layers = sorted(rigify_layers, key=lambda l: l['row'])
-	sorted_layers = [l for l in sorted_layers if l['name']!=" "]
+	sorted_layers = [l for l in sorted_layers if 'name' in l and l['name']!=" "]
 	current_row_index = 0
 	for rigify_layer in sorted_layers:
 		if rigify_layer['name'] in ["", " "]: continue
