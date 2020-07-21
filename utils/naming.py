@@ -1,25 +1,31 @@
 from typing import Tuple, List, Optional
 
-side_left = 				['left',  'Left',  'LEFT', 	'l', 	'L',]
-side_right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*r*',	'*R*']
-side_right = 			['right', 'Right', 'RIGHT', 'r', 	'R']
 separators = "-_."
+
+def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[str]]:
+	left = 				['left',  'Left',  'LEFT', 	'l', 	'L',]
+	right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*r*',	'*R*']
+	right = 			['right', 'Right', 'RIGHT', 'r', 	'R']
+
+	# If the name is longer than 2 characters, only swap side identifiers if they
+	# are next to a separator.
+	if with_separators:
+		for l in [left, right_placehold, right]:
+			l_copy = l[:]
+			for side in l_copy:
+				if len(side)<4:
+					l.remove(side)
+				for sep in separators:
+					l.append(side+sep)
+					l.append(sep+side)
+	
+	return left, right_placehold, right
 
 def get_name(thing) -> str:
 	if hasattr(thing, 'name'):
 		return thing.name
 	else:
 		return str(thing)
-
-"""Idea: Instead of implementing this class as a Mixin class, it should instead
-stand on its own, and simply have an instance on cloud_base and cloud_generator.
-
-This has the downside of making some calls longer, eg. "self.naming.make_name()"
-instead of "self.make_name" but the upside of not having to use 
-multiple-inheritance, which is confusing and hard to read.
-
-If we do this, this could be renamed to class NameManager.
-"""
 
 class CloudNameManager:
 	"""Name management utilities with the convenience of being able to pass in 
@@ -138,22 +144,8 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 					continue
 		return name
 
-	# Make local copies of the side list so we can modify them
-	left = side_left[:]
-	right_placehold = side_right_placehold[:]
-	right = side_right[:]
-	# If the name is longer than 2 characters, only swap side identifiers if they
-	# are next to a separator.
-	if len(stripped_name)>2:
-		for l in [left, right_placehold, right]:
-			l_copy = l[:]
-			for side in l_copy:
-				if len(side)<4:
-					l.remove(side)
-				for sep in separators:
-					l.append(side+sep)
-					l.append(sep+side)
-
+	with_separators = len(stripped_name)>2
+	left, right_placehold, right = get_side_lists(with_separators)
 	flipped_name = flip_sides(left, right_placehold, stripped_name)
 	flipped_name = flip_sides(right, left, flipped_name)
 	flipped_name = flip_sides(right_placehold, right, flipped_name)
@@ -250,11 +242,13 @@ def name_side_is_left(name) -> Optional[bool]:
 				return True
 		return False
 
-	is_left_prefix = check_start_side(side_left, stripped_name)
-	is_left_suffix = check_end_side(side_left, stripped_name)
+	left, right_placehold, right = get_side_lists(with_separators=True)
 
-	is_right_prefix = check_start_side(side_right, stripped_name)
-	is_right_suffix = check_end_side(side_right, stripped_name)
+	is_left_prefix = check_start_side(left, stripped_name)
+	is_left_suffix = check_end_side(left, stripped_name)
+
+	is_right_prefix = check_start_side(right, stripped_name)
+	is_right_suffix = check_end_side(right, stripped_name)
 
 	# Prioritize suffix for determining the name's side.
 	if is_left_suffix or is_right_suffix:
@@ -265,8 +259,8 @@ def name_side_is_left(name) -> Optional[bool]:
 		return is_left_prefix
 
 	# If no relevant suffix or prefix found, try anywhere.
-	any_left = any([side in name for side in side_left])
-	any_right = any([side in name for side in side_right])
+	any_left = any([side in name for side in left])
+	any_right = any([side in name for side in right])
 	if any_left and not any_right:
 		return True
 	if any_right and not any_left:
