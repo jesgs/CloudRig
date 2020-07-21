@@ -1,5 +1,5 @@
 from typing import Tuple, List
-from ..definitions.bone import BoneInfo, BoneSet
+from ..bone import BoneInfo, BoneSet
 
 from bpy.props import BoolProperty, IntProperty
 

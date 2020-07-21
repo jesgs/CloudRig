@@ -3,8 +3,8 @@
 import bpy
 from mathutils import Vector
 import copy
-from ..rigs import cloud_utils
-from ..utils.object import set_layers
+from .rigs import cloud_utils
+from .utils.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
 class LinkedList(list):
@@ -169,7 +169,7 @@ class BoneInfo:
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		### Edit Bone properties
-		self.parent = None	# Blender expects bpy.types.EditBone, but we store definitions.bone.BoneInfo. str is also supported for now, but should be avoided.
+		self.parent = None	# Blender expects bpy.types.EditBone, but we store BoneInfo. str is also supported for now, but should be avoided.
 		self.head = Vector((0,0,0))
 		self.tail = Vector((0,1,0))
 		self.roll = 0
@@ -219,7 +219,7 @@ class BoneInfo:
 		### Pose Mode Only
 		self.bone_group = ""		# Blender expects bpy.types.BoneGroup, we store str.
 		self.custom_shape = None	# Blender expects bpy.types.Object, we store bpy.types.Object.
-		self.custom_shape_transform = None	# Blender expects bpy.types.PoseBone, we store definitions.bone.BoneInfo.
+		self.custom_shape_transform = None	# Blender expects bpy.types.PoseBone, we store BoneInfo.
 		self.custom_shape_scale = 1.0
 		self.use_custom_shape_bone_size = False
 

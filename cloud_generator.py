@@ -8,7 +8,7 @@ from rna_prop_ui import rna_idprop_ui_prop_get
 from rigify.generate import Generator, Timer, select_object, create_selection_sets
 from rigify.utils.errors import MetarigError
 
-from .definitions.bone import BoneSet
+from .bone import BoneSet
 from .rigs import cloud_utils
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction

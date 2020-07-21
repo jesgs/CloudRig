@@ -4,7 +4,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
 
-from ..definitions.bone import BoneInfo
+from ..bone import BoneInfo
 from .cloud_base import CloudBaseRig
 
 from .. import widgets as cloud_widgets
