@@ -67,14 +67,29 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 
 		return all_bones
 
-	def find_org_bones(self, bone):
-		"""Populate self.bones.org."""
-		from rigify.utils.bones import BoneDict
-		from rigify.utils.rig import connected_children_names
+	def find_org_bones(self, pose_bone):
+		"""Populate self.bones.org.main with a continuous connected bone chain
+			where none of the chain elements have a rigify type."""
 
-		return BoneDict(
-			main=[bone.name] + connected_children_names(self.obj, bone.name),
-		)
+		cur_pb = pose_bone
+		chain = [cur_pb.name]
+		while cur_pb and len(cur_pb.children)>0:
+			next_bone = None
+			for c in cur_pb.children:
+				if c.rigify_type=="" and c.bone.use_connect:
+					if next_bone != None:
+						print(f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
+						\tChain could continue with either {next_bone.name} or {c.name}. \n
+						\tPicking the first one arbitrarily! \n
+						\tDisconnect the bone or assign a rigify type to make it unambiguous.""")
+					else:
+						next_bone = c
+			if next_bone:
+				chain.append(next_bone.name)
+			cur_pb = next_bone
+
+		from rigify.utils.bones import BoneDict
+		return BoneDict(main=chain)
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""

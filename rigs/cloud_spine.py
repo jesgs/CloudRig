@@ -4,7 +4,6 @@ from mathutils import Vector
 
 from rigify.base_rig import stage
 from rigify.utils.bones import BoneDict
-from rigify.utils.rig import connected_children_names
 
 from .cloud_fk_chain import CloudChainRig
 
@@ -16,12 +15,6 @@ from .cloud_fk_chain import CloudChainRig
 
 class CloudSpineRig(CloudChainRig):
 	"""Spine setup with FK, IK-like and stretchy IK controls. Currently only one of these per rig is supported."""
-
-	def find_org_bones(self, bone):
-		"""Populate self.bones.org."""
-		return BoneDict(
-			main=[bone.name] + connected_children_names(self.obj, bone.name),
-		)
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""

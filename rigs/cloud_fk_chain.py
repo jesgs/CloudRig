@@ -1,3 +1,6 @@
+from typing import List
+from ..bone import BoneInfo
+
 from bpy.props import BoolProperty, StringProperty
 
 from .cloud_chain import CloudChainRig
@@ -25,6 +28,20 @@ class CloudFKChainRig(CloudChainRig):
 		super().ensure_bone_sets()
 		self.fk_chain = self.ensure_bone_set("FK Controls")
 		self.fk_mch = self.ensure_bone_set("FK Helpers")
+
+	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+		"""Extend cloud_chain by tweaking some bbone values"""
+		def_bones = super().make_def_chain(str_chain)
+		# If we didn't put a stretch constraint on the final deform bone, 
+		# it must mean there is no cap control.
+		last_def = def_bones[-1]
+		if len(last_def.constraint_infos)==0:
+			if last_def.prev:
+				# In this case, set the previous def_bone's easeout to 0.
+				last_def.prev.bbone_easeout = 0
+			# Also, parent this to the ORG bone. This is so that scaling 
+			# the last STR control doesn't affect this deform bone.
+			last_def.parent = last_def.parent.org_parent
 
 	def prepare_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
