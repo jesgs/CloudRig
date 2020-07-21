@@ -45,11 +45,15 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 		self.naming = self.generator.naming
 
 		# Determine Suffix/Prefix
-		self.side_suffix = "L"
-		self.side_prefix = "Left"
-		if not self.naming.side_is_left(self.base_bone):
+		self.side_suffix = ""
+		self.side_prefix = ""
+		is_left = self.naming.side_is_left(self.base_bone)
+		if is_left:
+			self.side_suffix = "L"
+			self.side_prefix = "Left"
+		elif is_left==False:
 			self.side_suffix = "R"
-			self.side_prefix = "Right"
+			self.side_suffix = "Right"
 
 	@property
 	def all_bones(self):
