@@ -1,5 +1,7 @@
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
+from .utils import naming
+
 
 # This whole thing could be part of Rigify.
 
@@ -210,14 +212,20 @@ def draw_cloudrig_actions(layout, rig):
 	row = layout.row()
 	subtarget_exists = act.subtarget in rig.data.rigify_target_rig.data.bones
 	icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
-	flipped_subtarget = self.flipped_name(act.subtarget)
+
 	row.prop_search(act, 'subtarget', rig.data.rigify_target_rig.data, 'bones', icon=icon)
 	row.alert = not subtarget_exists
 
-	if subtarget_exists and (act.subtarget.endswith(".L") or act.subtarget.endswith(".R")):
+	flipped_subtarget = naming.flip_name(act.subtarget)
+	flipped_subtarget_exists = flipped_subtarget in rig.data.rigify_target_rig.data.bones
+	if subtarget_exists and flipped_subtarget != act.subtarget:
 		row = layout.row()
 		row.use_property_split=True
-		row.prop(act, 'symmetrical', text=f"Symmetrical ({flipped_subtarget})")
+		text = f"Symmetrical ({flipped_subtarget})"
+		if not flipped_subtarget_exists:
+			text = text[:-1] + " not found!)"
+		row.prop(act, 'symmetrical', text=text)
+		row.enabled = flipped_subtarget_exists
 
 	if not subtarget_exists: return
 	layout.prop(act, 'frame_start', text="Frame Start")
