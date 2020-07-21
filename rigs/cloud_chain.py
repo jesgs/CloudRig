@@ -357,31 +357,31 @@ class CloudChainRig(CloudBaseRig):
 			,max		 = 9
 		)
 		params.CR_bbone_density = IntProperty(
-			 name="B-Bone Density"
-			,description="Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
-			,default=10
-			,min=0
-			,max=32
+			 name		 = "B-Bone Density"
+			,description = "Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
+			,default	 = 10
+			,min		 = 0
+			,max		 = 32
 		)
 		params.CR_shape_key_helpers = BoolProperty(
-			 name="Shape Key Helpers"
-			,description="Create SKH- bones that reliably read the rotation between two deform bones, and can therefore be used to drive shape keys"
+			 name		 = "Shape Key Helpers"
+			,description = "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
 		)
 		params.CR_sharp_sections = BoolProperty(
-			 name="Sharp Sections"
-			,description="B-Bone EaseIn/Out is set to 0 for bones connectiong two sections"
-			,default=False
+			 name		 = "Sharp Sections"
+			,description = "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
+			,default	 = False
 		)
 
 		params.CR_smooth_spline = BoolProperty(
-			 name="Smooth Spline"
-			,description="BBone Splines affect their neighbours to make smoother curves easier"
-			,default=False
+			 name		 = "Smooth Spline"
+			,description = "B-Bone Splines affect their neighbours for smoother curves"
+			,default	 = False
 		)
 
 		params.CR_cap_control = BoolProperty(
 			 name		 = "Final Control"
-			,description = "Add the final control at the end of the chain (Turn off if you connect another chain to this one)"
+			,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one"
 			,default	 = True
 		)
 
