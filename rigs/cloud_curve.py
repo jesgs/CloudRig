@@ -41,7 +41,7 @@ class CloudCurveRig(CloudBaseRig):
 		hook_name = self.params.CR_hook_name if self.params.CR_hook_name!="" else self.base_bone.replace("ORG-", "")
 		suffix = self.side_suffix
 		if suffix!="":
-			suffix = self.generator.suffix_separator + suffix
+			suffix = self.naming.suffix_separator + suffix
 		
 		hook_ctr = self.curve_hooks.new(
 			name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"

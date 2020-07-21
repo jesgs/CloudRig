@@ -13,22 +13,6 @@ from ..utils.maths import bounding_box_center
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
-	def initialize(self):
-		"""Gather and validate data about the rig."""
-		super().initialize()
-
-		self.category = self.slice_name(self.base_bone)[1]
-		if self.params.CR_use_custom_category_name:
-			self.category = self.params.CR_custom_category_name
-		
-		self.limb_name = self.category
-		if self.params.CR_use_custom_limb_name:
-			self.limb_name = self.params.CR_custom_limb_name		# Name used for naming bones. Should not contain a side identifier like .L/.R.
-		self.limb_ui_name = self.side_prefix + " " + self.limb_name	# Name used for UI related things. Should contain the side identifier.
-
-		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
-		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
-
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.group_mstr_set = self.ensure_bone_set("Eye Group Target Controls")

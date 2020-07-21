@@ -10,7 +10,7 @@ from ..definitions.bone import BoneSet
 from .cloud_utils import CloudUtilities
 from ..ui import ui_label_with_linebreak, dropdown_ui
 from ..cloudrig import draw_layers_ui
-from ..utils.naming import CloudNamingUtilitiesMixin, name_side_is_left
+from ..utils.naming import CloudNameManager, name_side_is_left
 from ..utils.object import CloudObjectUtilitiesMixin
 
 from rigify.base_rig import BaseRig
@@ -29,7 +29,7 @@ class DefaultLayers(Enum):
 	FACE_SECOND = 19
 	FACE_TWEAK = 20
 
-class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin, CloudObjectUtilitiesMixin):
+class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
 	ui_rows: Dict[str, bpy.types.UILayout] = {}	# Keep track of certain UI rows so they can be modified later.
@@ -41,17 +41,22 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudNamingUtilitiesMixin, CloudObje
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-		### Initialize NamingUtilities
-		prefix_separator = self.generator.prefix_separator
-		suffix_separator = self.generator.suffix_separator
-		# Determine Suffix/Prefix
-		side_suffix = "L"
-		side_prefix = "Left"
-		if not name_side_is_left(self.base_bone):
-			side_suffix = "R"
-			side_prefix = "Right"
+		### Quick access to the generator's name manager
+		self.naming = self.generator.naming
+		# temporary crap for testing
+		self.make_name = self.naming.make_name
+		self.slice_name = self.naming.slice_name
+		self.combine_names = self.naming.combine_names
+		self.flipped_name = self.naming.flipped_name
+		self.side_is_left = self.naming.side_is_left
+		self.add_prefix_to_name = self.naming.add_prefix_to_name
 
-		CloudNamingUtilitiesMixin.__init__(self, prefix_separator, suffix_separator, side_suffix, side_prefix)
+		# Determine Suffix/Prefix
+		self.side_suffix = "L"
+		self.side_prefix = "Left"
+		if not self.side_is_left(self.base_bone):
+			self.side_suffix = "R"
+			self.side_prefix = "Right"
 
 	@property
 	def all_bones(self):

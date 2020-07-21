@@ -1,8 +1,9 @@
 from typing import Tuple, List, Optional
 
-left = 				['left',  'Left',  'LEFT', 	'.l', 	  '.L', 		'_l', 				'_L',				'-l',	   '-L', 	'l.', 	   'L.',	'l_', 			 'L_', 			  'l-', 	'L-']
-right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*dotl*', '*dotL*', 	'*underscorel*', 	'*underscoreL*', 	'*dashl*', '*dashL', '*ldot*', '*Ldot', '*lunderscore*', '*Lunderscore*', '*ldash*','*Ldash*']
-right = 			['right', 'Right', 'RIGHT', '.r', 	  '.R', 		'_r', 				'_R',				'-r',	   '-R', 	'r.', 	   'R.',	'r_', 			 'R_', 			  'r-', 	'R-']
+side_left = 				['left',  'Left',  'LEFT', 	'l', 	'L',]
+side_right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*r*',	'*R*']
+side_right = 			['right', 'Right', 'RIGHT', 'r', 	'R']
+separators = "-_."
 
 def get_name(thing) -> str:
 	if hasattr(thing, 'name'):
@@ -20,17 +21,14 @@ multiple-inheritance, which is confusing and hard to read.
 If we do this, this could be renamed to class NameManager.
 """
 
-class CloudNamingUtilitiesMixin:
+class CloudNameManager:
 	"""Name management utilities with the convenience of being able to pass in 
 	anything that has a "name" attribute, or strings directly.
 	"""
 
-	def __init__(self, prefix_separator="_", suffix_separator=".", 
-				side_suffix="L", side_prefix="Left", **kwargs):
+	def __init__(self, prefix_separator="_", suffix_separator=".", **kwargs):
 		self.prefix_separator = prefix_separator
 		self.suffix_separator = suffix_separator
-		self.side_suffix = side_suffix
-		self.side_prefix = side_prefix
 		super().__init__(**kwargs)
 
 	def get_separators(self) -> Tuple[str, str]:
@@ -59,9 +57,7 @@ class CloudNamingUtilitiesMixin:
 				names.append(t.name)
 			else:
 				names.append(str(t))
-		
-		side_suf = self.suffix_separator + self.side_suffix
-		side_pref = self.side_prefix + self.prefix_separator
+
 		return combine_bone_names(names)
 
 	def side_is_left(self, thing) -> Optional[bool]:
@@ -124,21 +120,40 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 	def flip_sides(list_from, list_to, name):
 		for side_idx, side in enumerate(list_from):
 			opp_side = list_to[side_idx]
-			if(ignore_base):
+			if ignore_base:
 				# Only look at prefix/suffix.
-				if(name.startswith(side)):
+				if name.startswith(side):
 					name = name[len(side):]+opp_side
 					break
-				elif(name.endswith(side)):
+				elif name.endswith(side):
 					name = name[:-len(side)]+opp_side
 					break
 			else:
-				if not any([char not in side for char in "-_."]):	# When it comes to searching the middle of a string, sides must Strictly a full word or separated with . otherwise we would catch stuff like "_leg" and turn it into "_reg".
+				# When it comes to searching the middle of a string, 
+				# sides must strictly be a full word or separated with "." 
+				# otherwise we would catch stuff like "_leg" and turn it into "_reg".
+				if not any([char not in side for char in "-_."]):
 					# Replace all occurences and continue checking for keywords.
 					name = name.replace(side, opp_side)
 					continue
 		return name
-	
+
+	# Make local copies of the side list so we can modify them
+	left = side_left[:]
+	right_placehold = side_right_placehold[:]
+	right = side_right[:]
+	# If the name is longer than 2 characters, only swap side identifiers if they
+	# are next to a separator.
+	if len(stripped_name)>2:
+		for l in [left, right_placehold, right]:
+			l_copy = l[:]
+			for side in l_copy:
+				if len(side)<4:
+					l.remove(side)
+				for sep in separators:
+					l.append(side+sep)
+					l.append(sep+side)
+
 	flipped_name = flip_sides(left, right_placehold, stripped_name)
 	flipped_name = flip_sides(right, left, flipped_name)
 	flipped_name = flip_sides(right_placehold, right, flipped_name)
@@ -146,14 +161,15 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 	# Re-add trailing digits (.###)
 	new_name = flipped_name + number_suffix
 
-	if(must_change):
+	if must_change:
 		assert new_name != from_name, "Failed to flip string: " + from_name
+
+	print(f"flipped {from_name} -> {new_name}")
 
 	return new_name
 
-def combine_bone_names(names, side_suf=".L", side_pref="L_") -> str:
+def combine_bone_names(names) -> str:
 	"""Combine multiple bone names into one."""
-	# This is the most terrible code I have ever written.
 
 	### Combine bases
 	bases_nonunique = [slice_name(n)[1] for n in names]
@@ -183,29 +199,35 @@ def combine_bone_names(names, side_suf=".L", side_pref="L_") -> str:
 				final_base += "+"
 			final_base += base
 
-	### Combine suffixes
-	suffixes_nonunique = [slice_name(n)[2] for n in names]
-	suffixes: List[str] = []
-	for suf_list in suffixes_nonunique:
-		for suf in suf_list:
-			if suf not in suffixes:
-				suffixes.append(suf)
+	def combine_extensions(list_of_extensions: List[List[str]]) -> List[str]:
+		"""Combine a list of suffixes or prefixes by removing duplicates
+		and then removing matching side pairs.
 
-	opp_suf = flip_name(side_suf)
-	if side_suf[1:] in suffixes and opp_suf[1:] in suffixes:
-		suffixes = [suf for suf in suffixes if suf not in (side_suf[1:], opp_suf[1:])]
+		Eg. for the input ["Left", "Left", "Right", "Right", "STR", "STR", "I"]
+		return ["STR", "I"].
+		"""
+		nonunique = [slice_name(n)[2] for n in names]
+		unique: List[str] = []
+		for extensions in list_of_extensions:
+			for ext in extensions:
+				if ext not in unique:
+					unique.append(ext)
+
+		# If matching pairs of side suffixes are in the suffix list, remove both.
+		# For example, if L and R are both present, remove them.
+		for ext in unique:
+			flip_ext = flip_name(ext)
+			if flip_ext != ext and flip_ext in unique:
+				unique.remove(ext)
+				unique.remove(flip_ext)
+		
+		return unique
+
+	### Combine suffixes
+	suffixes = combine_extensions([slice_name(n)[2] for n in names])
 
 	### Combine prefixes
-	prefixes_nonunique = [slice_name(n)[0] for n in names]
-	prefixes: List[str] = []
-	for pre_list in prefixes_nonunique:
-		for pre in pre_list:
-			if pre not in prefixes:
-				prefixes.append(pre)
-	# If the prefixes contain both side prefixes, remove both!
-	opp_pre = flip_name(side_pref)
-	if side_pref[:-1] in prefixes and opp_pre[:-1] in prefixes:
-		prefixes = [pre for pre in prefixes if pre not in (side_pref[:-1], opp_pre[:-1])]
+	prefixes = combine_extensions([slice_name(n)[0] for n in names])
 
 	### Combine and return the result
 	return make_name(prefixes, final_base, suffixes)
@@ -230,11 +252,11 @@ def name_side_is_left(name) -> Optional[bool]:
 				return True
 		return False
 
-	is_left_prefix = check_start_side(left, stripped_name)
-	is_left_suffix = check_end_side(left, stripped_name)
+	is_left_prefix = check_start_side(side_left, stripped_name)
+	is_left_suffix = check_end_side(side_left, stripped_name)
 
-	is_right_prefix = check_start_side(right, stripped_name)
-	is_right_suffix = check_end_side(right, stripped_name)
+	is_right_prefix = check_start_side(side_right, stripped_name)
+	is_right_suffix = check_end_side(side_right, stripped_name)
 
 	# Prioritize suffix for determining the name's side.
 	if is_left_suffix or is_right_suffix:
@@ -245,8 +267,8 @@ def name_side_is_left(name) -> Optional[bool]:
 		return is_left_prefix
 
 	# If no relevant suffix or prefix found, try anywhere.
-	any_left = any([side in name for side in left])
-	any_right = any([side in name for side in left])
+	any_left = any([side in name for side in side_left])
+	any_right = any([side in name for side in side_right])
 	if any_left and not any_right:
 		return True
 	if any_right and not any_left:

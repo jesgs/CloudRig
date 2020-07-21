@@ -209,7 +209,7 @@ class CloudLimbRig(CloudIKChainRig):
 			self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
 
 		heel_pivot = self.ik_mch.new(
-			name		  = "IK-RollBack" + self.generator.suffix_separator + self.side_suffix
+			name		  = "IK-RollBack" + self.naming.suffix_separator + self.side_suffix
 			,bbone_width  = self.org_chain[-1].bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))

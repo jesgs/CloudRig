@@ -13,7 +13,7 @@ from .rigs import cloud_utils
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
 
-from .utils.naming import CloudNamingUtilitiesMixin
+from .utils.naming import CloudNameManager
 
 separators = [
 	(".", ".", "."),
@@ -148,16 +148,18 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	actions: CollectionProperty(type=CloudRigAction)
 	active_action_index: IntProperty(min=0)
 
-class CloudGenerator(Generator, CloudNamingUtilitiesMixin):
+class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
 		super().__init__(context, metarig)
 		self.params = metarig.data	# Generator parameters are stored in rig data.
 
 		self.scale = max(metarig.dimensions)/10
 
-		self.prefix_separator = self.params.cloudrig_parameters.prefix_separator
-		self.suffix_separator = self.params.cloudrig_parameters.suffix_separator
-		assert self.prefix_separator != self.suffix_separator, "CloudGenerator Error: Prefix and Suffix separators cannot be the same."
+		self.naming = CloudNameManager(
+			prefix_separator = self.params.cloudrig_parameters.prefix_separator
+			,suffix_separator = self.params.cloudrig_parameters.suffix_separator)
+		separators_match = self.naming.prefix_separator == self.naming.suffix_separator
+		assert not separators_match, "CloudGenerator Error: Prefix and Suffix separators cannot be the same."
 
 		self.defaults = {
 			'rotation_mode' : 'XYZ'
@@ -213,7 +215,7 @@ class CloudGenerator(Generator, CloudNamingUtilitiesMixin):
 		# object to generate the rig in.
 
 		metaname = self.metarig.name
-		rig_name = "RIG" + self.prefix_separator + metaname
+		rig_name = "RIG" + self.naming.prefix_separator + metaname
 		if "META" in metaname:
 			rig_name = metaname.replace("META", "RIG")
 
@@ -393,14 +395,14 @@ class CloudGenerator(Generator, CloudNamingUtilitiesMixin):
 					if(bone and bone not in bones):
 						bones.append(bone)
 
-			do_symmetry = self.flipped_name(subtarget)!=subtarget and act_def.symmetrical==True
+			do_symmetry = self.naming.flipped_name(subtarget)!=subtarget and act_def.symmetrical==True
 
 			# Adding action constraints to the bones
 			for b in bones:
 				con_name = "Action_" + action.name
 				constraints = []
 
-				bone_is_left_side = self.side_is_left(b)
+				bone_is_left_side = self.naming.side_is_left(b)
 
 				# If bone name is unflippable...
 				if bone_is_left_side==None:
@@ -428,10 +430,10 @@ class CloudGenerator(Generator, CloudNamingUtilitiesMixin):
 				# Configure Action constraints
 				for c in constraints:
 					# If constraint is not the same side as the control, flip it.
-					constraint_is_left_side = self.side_is_left(c)
-					control_is_left_side = self.side_is_left(subtarget)
+					constraint_is_left_side = self.naming.side_is_left(c)
+					control_is_left_side = self.naming.side_is_left(subtarget)
 					if constraint_is_left_side != control_is_left_side:
-						subtarget = self.flipped_name(subtarget)
+						subtarget = self.naming.flipped_name(subtarget)
 					c.target_space = act_def.target_space
 					c.transform_channel = act_def.transform_channel
 					c.target = rig
