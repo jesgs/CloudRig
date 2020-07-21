@@ -89,7 +89,7 @@ class CloudChainRig(CloudBaseRig):
 			if org_i==len(org_chain)-1 and self.params.CR_cap_control:
 				str_bone = self.make_str_bone(org_bone, i, 1)
 				str_bone.put(org_bone.tail)
-				str_bone.length = str_bone.prev.length
+				str_bone.vector = str_bone.prev.vector
 				str_bone.name = str_bone.name.replace("STR", "STR-TIP")
 				str_bone.custom_shape_scale *= 1.3
 				str_sections.append([str_bone])
@@ -382,7 +382,7 @@ class CloudChainRig(CloudBaseRig):
 
 		params.CR_smooth_spline = BoolProperty(
 			 name		 = "Smooth Spline"
-			,description = "B-Bone Splines affect their neighbours for smoother curves"
+			,description = "B-Bone Splines affect their neighbours for smoother curves. Works best when Deform Segments is 1, but that is not a requirement"
 			,default	 = False
 		)
 
@@ -415,3 +415,8 @@ class CloudChainRig(CloudBaseRig):
 
 class Rig(CloudChainRig):
 	pass
+
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_chain")
