@@ -195,7 +195,7 @@ class CloudChainRig(CloudBaseRig):
 
 		return dt_bone
 
-	def make_def_chain(self, str_chain: BoneSet) -> BoneSet:
+	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Create a deform chain stretching from one STR bone to the next"""
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
@@ -234,16 +234,26 @@ class CloudChainRig(CloudBaseRig):
 			if str_bone.next:
 				def_bone.tail = str_bone.next.head
 				def_bone.bbone_custom_handle_end = str_bone.next
-				# Last bone of the segment, but not the last bone of the chain.
-				if str_bone.next in self.main_str_bones and str_bone.next != str_chain[-1]:
-					def_bone.bbone_easeout = not self.params.CR_sharp_sections
+				def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.next.name)
 				if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
 					def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
-				def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.next.name)
+
+				is_last_of_segment = str_bone.next in self.main_str_bones
+
+				# Last bone of the segment, but not the last bone of the chain.
+				if is_last_of_segment and str_bone.next != str_chain[-1]:
+					def_bone.bbone_easeout = 1 - self.params.CR_sharp_sections
 
 			def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
-			# Force B-Bone segments to be a minimum of 2, unless bbone_density is 0.
-			if def_bone.bbone_segments < 2 and self.params.CR_bbone_density > 0:
+			# If bbone_density >0 and it's not the last bone of a rig with no cap control,
+			# force B-Bone segments to be a minimum of 2.
+			is_last_def = def_bone.bbone_custom_handle_end == None
+			if self.params.CR_cap_control:
+				is_last_def = def_bone.bbone_custom_handle_start == str_chain[-1]
+
+			if self.params.CR_bbone_density > 0 and \
+				def_bone.bbone_segments < 2 and \
+				not is_last_def:
 				def_bone.bbone_segments = 2
 
 			# B-Bone scale drivers
