@@ -3,7 +3,7 @@
 import bpy
 from mathutils import Vector
 import copy
-from .rigs import cloud_utils
+from .utils.maths import flat
 from .utils.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
@@ -338,7 +338,7 @@ class BoneInfo:
 			self.scale_width(scale_width)
 
 	def flatten(self):
-		self.vector = cloud_utils.flat(self.vector)
+		self.vector = flat(self.vector)
 		from math import pi
 		deg = self.roll*180/pi
 		# Round to nearest 90 degrees.

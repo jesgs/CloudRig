@@ -125,7 +125,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		info = {	# These parameter names must be kept in sync with Snap_IK2FK in cloudrig.py
 			"operator"				: "armature.ikfk_toggle",
-			"prop_bone"				: self.ikfk_properties_bone.name,
+			"prop_bone"				: self.ikfk_properties_bone,
 			"prop_id"				: self.ikfk_name,
 			"fk_chain"				: [b.name for b in fk_chain],
 			"ik_chain"				: [b.name for b in ik_chain],
@@ -247,7 +247,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		# Store info for UI
 		info = {
-			"prop_bone"			: self.ikfk_properties_bone.name,
+			"prop_bone"			: self.ikfk_properties_bone,
 			"prop_id" 			: self.ik_stretch_name,
 		}
 		self.add_ui_data("ik_stretches", self.category, self.limb_ui_name, info, default=1.0)
@@ -406,7 +406,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			else:
 				bones.append(self.ik_chain[0].name)
 			info = {
-				"prop_bone" : self.ikfk_properties_bone.name,
+				"prop_bone" : self.ikfk_properties_bone,
 				"prop_id" : ik_parents_prop_name,
 				"texts" : parent_names,
 				
@@ -425,7 +425,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			# Add option to the UI.
 			ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
 			info = {
-				"prop_bone" : self.ikfk_properties_bone.name,
+				"prop_bone" : self.ikfk_properties_bone,
 				"prop_id"	: ik_pole_follow_name,
 
 				"operator" : "pose.snap_simple",

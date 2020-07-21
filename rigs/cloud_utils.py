@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 from mathutils import Vector
 
 import bpy
@@ -9,8 +9,10 @@ from copy import deepcopy
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
+from ..bone import BoneInfo
 from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
+from ..ui import add_ui_data
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
@@ -21,33 +23,8 @@ class CloudUtilities:
 			if bi.name==name:
 				return bi
 
-	# TODO: move this to ui.py?
 	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
-		""" Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI. 
-		ui_area: One of a list of pre-defined strings that the UI script recognizes, that describes a panel or area in the UI. Eg, "fk_hinges", "ik_switches".
-		row_name: A row in the UI area.
-		col_name: A column within the row.
-		info: The dictionary to store in the rig data.
-		"""
-
-		assert ('prop_bone' in info) and ('prop_id' in info), 'Error: Expected an info dict with at least "prop_bone" and "prop_id" keys.'
-
-		if ui_area not in self.obj.data:
-			self.obj.data[ui_area] = {}
-
-		if row_name not in self.obj.data[ui_area]:
-			self.obj.data[ui_area][row_name] = {}
-
-		self.obj.data[ui_area][row_name][col_name] = info
-		
-		# Create custom property.
-		prop_bone = self.get_bone_info(info['prop_bone'])
-		prop_id = info['prop_id']
-		prop_bone.custom_props[prop_id] = {
-			"default" : default, 
-			"min" : _min,
-			"max" : _max
-		}
+		add_ui_data(self.obj, ui_area, row_name, col_name, info, default, _min, _max)
 
 	# TODO: Move this to cloud_fk_chain.py?
 	# This would require splitting off the neck and head from the spine rig.
@@ -72,7 +49,7 @@ class CloudUtilities:
 			bone_set = bone.container
 
 		info = {
-			"prop_bone"			: prop_bone.name,
+			"prop_bone"			: prop_bone,
 			"prop_id" 			: prop_name,
 
 			"operator" : "pose.snap_simple",
@@ -426,7 +403,7 @@ def copy_driver(from_fcurve, obj, data_path=None, index=None):
 	
 	return new_fc
 
-def vector_along_bone_chain(chain, length=0, index=-1) -> Tuple[Vector, Vector]:
+def vector_along_bone_chain(chain: List[BoneInfo], length=0, index=-1) -> Tuple[Vector, Vector]:
 	"""On a bone chain, find the point a given length down the chain. Return its position and direction."""
 	if index > -1:
 		# Instead of using bone length, simply return the location and direction of a bone at a given index.

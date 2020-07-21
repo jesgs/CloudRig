@@ -10,7 +10,6 @@ def is_cloud_metarig(rig):
 				return True
 	return False
 
-
 def draw_cloudrig_generator_settings(self, context):
 	layout = self.layout
 	layout.use_property_split=True
@@ -225,7 +224,6 @@ def draw_cloud_layer_names(self, context):
 		row.prop(rigify_layer, "name", text="")
 		row.prop(rigify_layer, "row", text="UI Row")
 
-
 def ui_label_with_linebreak(layout, text):
 	"""Attempt to simulate a proper textbox by only displaying as many characters in a single label as fits in the UI."""
 
@@ -270,6 +268,36 @@ def dropdown_ui(layout, params, dropdown_param_name):
 	if is_dropdown_open:
 		return layout
 	return None
+
+def add_ui_data(obj, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
+	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI. 
+	ui_area: One of a list of pre-defined strings that the UI script 
+				recognizes, that describes a panel or area in the UI. 
+				Eg, "fk_hinges", "ik_switches".
+	row_name: A row in the UI area.
+	col_name: A column within the row.
+	info: The dictionary to store in the rig data.
+	"""
+
+	assert ('prop_bone' in info) and ('prop_id' in info), 'Error: Expected an info dict with at least "prop_bone" and "prop_id" keys.'
+
+	if ui_area not in obj.data:
+		obj.data[ui_area] = {}
+
+	if row_name not in obj.data[ui_area]:
+		obj.data[ui_area][row_name] = {}
+
+	prop_bone = info['prop_bone']
+	info['prop_bone'] = prop_bone.name
+	obj.data[ui_area][row_name][col_name] = info
+	
+	# Create custom property.
+	prop_id = info['prop_id']
+	prop_bone.custom_props[prop_id] = {
+		"default" : default, 
+		"min" : _min,
+		"max" : _max
+	}
 
 classes = [
 	CLOUDRIG_OT_layer_init,

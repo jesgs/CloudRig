@@ -162,7 +162,7 @@ class CloudEyeRig(CloudBaseRig):
 		parent_names = self.rig_child(group_master, search_parents, self.ikfk_properties_bone, eye_group_parents_prop_name)
 		if len(parent_names) > 0:
 			info = {
-				"prop_bone" : self.ikfk_properties_bone.name,
+				"prop_bone" : self.ikfk_properties_bone,
 				"prop_id" : eye_group_parents_prop_name,
 				"texts" : parent_names,
 

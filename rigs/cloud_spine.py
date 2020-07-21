@@ -251,13 +251,13 @@ class CloudSpineRig(CloudChainRig):
 		
 		# Store info for UI
 		info = {
-			"prop_bone"		: self.ikfk_properties_bone.name,
+			"prop_bone"		: self.ikfk_properties_bone,
 			"prop_id" 		: self.ik_stretch_name,
 		}
 		self.add_ui_data("ik_stretches", "spine", "Spine", info, default=1.0)
 
 		info = {
-			"prop_bone"		: self.ikfk_properties_bone.name,
+			"prop_bone"		: self.ikfk_properties_bone,
 			"prop_id"		: self.ik_prop_name,
 		}
 		self.add_ui_data("ik_switches", "spine", "Spine", info, default=0.0)
