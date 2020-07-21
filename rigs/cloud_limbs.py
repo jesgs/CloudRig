@@ -356,7 +356,7 @@ class CloudLimbRig(CloudIKChainRig):
 			 name 		 = "Type"
 			,items 		 = (
 				("ARM", "Arm", "Arm (Chain of 3)"),
-				("LEG", "Leg", "Leg (Chain of 5, includes foot rig)"),
+				("LEG", "Leg", "Leg (Chain of 4, includes foot rig)"),
 			)
 			,default	 = 'ARM'
 		)

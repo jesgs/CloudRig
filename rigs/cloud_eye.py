@@ -194,7 +194,7 @@ class CloudEyeRig(CloudBaseRig):
 			RigifyParameters PropertyGroup
 		"""
 
-		params.CR_eye_show_settings = BoolProperty(name="Eye Rig")
+		params.CR_eye_show_settings = BoolProperty(name="Eye Settings")
 
 		params.CR_eye_group = StringProperty(
 			name		 = "Eye Group"

@@ -225,7 +225,7 @@ class CloudChainRig(CloudBaseRig):
 
 			### Configure BBone setup
 			# First bone of the segment, but not the first bone of the chain.
-			if str_bone in self.main_str_bones and str_i!=0:
+			if str_bone in self.main_str_bones:# and str_i!=0:
 				def_bone.bbone_easein = not self.params.CR_sharp_sections
 
 			if hasattr(def_bone.bbone_custom_handle_start, 'dt_bone'):
@@ -244,17 +244,14 @@ class CloudChainRig(CloudBaseRig):
 				if is_last_of_segment and str_bone.next != str_chain[-1]:
 					def_bone.bbone_easeout = 1 - self.params.CR_sharp_sections
 
-			def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
-			# If bbone_density >0 and it's not the last bone of a rig with no cap control,
-			# force B-Bone segments to be a minimum of 2.
-			is_last_def = def_bone.bbone_custom_handle_end == None
-			if self.params.CR_cap_control:
-				is_last_def = def_bone.bbone_custom_handle_start == str_chain[-1]
-
-			if self.params.CR_bbone_density > 0 and \
-				def_bone.bbone_segments < 2 and \
-				not is_last_def:
-				def_bone.bbone_segments = 2
+				def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
+				# If bbone_density is >0, force least 2 bbone_segments.
+				# Otherwise it's no longer a bendy bone.
+				if self.params.CR_bbone_density > 0 and def_bone.bbone_segments < 2:
+					def_bone.bbone_segments = 2
+			else:
+				# This only happens if this is the last deform bone and CR_cap_control==False.
+				pass
 
 			# B-Bone scale drivers
 			if def_bone.bbone_segments > 1:
