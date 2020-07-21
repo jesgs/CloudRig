@@ -84,20 +84,6 @@ class CloudFKChainRig(CloudChainRig):
 				fk_bone.parent = self.org_chain[i-1].fk_bone
 			if self.params.CR_center_all_fk:
 				self.create_dsp_bone(fk_bone, center=True)
-			if self.params.CR_counter_rotate_str:
-				str_bone = self.main_str_bones[i]
-				str_bone.add_constraint('TRANSFORM'
-					,subtarget				= fk_bone.name
-					,map_from				= 'ROTATION'
-					,map_to					= 'ROTATION'
-					,use_motion_extrapolate = True
-					,from_max_x_rot			= 1
-					,from_max_y_rot			= 1
-					,from_max_z_rot			= 1
-					,to_max_x_rot			= -0.5
-					,to_max_y_rot			= -0.5
-					,to_max_z_rot			= -0.5
-				)
 
 		# Create Hinge helper
 		if self.params.CR_use_fk_hinge:
@@ -150,11 +136,6 @@ class CloudFKChainRig(CloudChainRig):
 			name="FK Settings"
 			,description = "Reveal settings for the cloud_fk_chain rig type"
 		)
-		params.CR_counter_rotate_str = BoolProperty(
-			 name		 = "Counter-Rotate STR"
-			,description = "Main STR- bones will counter half the rotation of their parent FK bones. This forces Deform Segments parameter to be 1. Will result in easier to pose smooth curves"
-			,default	 = False
-		)
 		params.CR_center_all_fk = BoolProperty(
 			 name		 = "Display FK in center"
 			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
@@ -204,19 +185,18 @@ class CloudFKChainRig(CloudChainRig):
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_fk_settings"): return layout
 
-		limb_row = layout.row(align=True, heading="Custom Limb Name")
+		limb_row = layout.row(align=True, heading="Limb UI Name")
 		limb_row.prop(params, "CR_use_custom_limb_name", text="")
 		col = limb_row.column()
 		col.prop(params, "CR_custom_limb_name", text="")
 		col.enabled = params.CR_use_custom_limb_name
 
-		category_row = layout.row(align=True, heading="Custom Category Name")
+		category_row = layout.row(align=True, heading="UI Category")
 		category_row.prop(params, "CR_use_custom_category_name", text="")
 		col = category_row.column()
 		col.prop(params, "CR_custom_category_name", text="")
 		col.enabled = params.CR_use_custom_category_name
 
-		layout.prop(params, "CR_counter_rotate_str")
 		layout.prop(params, "CR_center_all_fk")
 		layout.prop(params, "CR_double_first_control")
 		layout.prop(params, "CR_use_fk_hinge")
