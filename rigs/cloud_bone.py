@@ -30,6 +30,8 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		for c in meta_pose_bone.constraints:
 			if c.type in ('CHILD_OF', 'ARMATURE'):
 				self.do_parenting = False
+		
+		self.create_deform_bone = self.meta_pose_bone.bone.use_deform
 
 	def generate_bones(self):
 		org_bone = self.get_bone(self.bones.org)
@@ -41,7 +43,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			self.bone_name = self.orgless_name
 
 			self.params = meta_bone.rigify_parameters
-		elif self.copy_type == "Create" and self.params.CR_create_deform_bone:
+		elif self.copy_type == "Create" and self.create_deform_bone:
 			# Make a copy with DEF- prefix, as our deform bone.
 			if meta_bone.bone.use_deform:
 				print(f"Warning: Creating deform bone for {self.orgless_name} that's already set to use_deform=True.")
@@ -351,15 +353,6 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			,default=False
 		)
 
-
-		# Parameters for copying the bone
-		# TODO: This param should be removed and it should use the bone's use_deform property instead.
-		params.CR_create_deform_bone = BoolProperty(
-			 name="Create Deform Bone"
-			,description="Create a copy of the ORG bone with use_deform enabled, and with the b-bone settings of this bone"
-			,default=True
-		)
-
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
@@ -368,6 +361,8 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 
 		layout.use_property_split = True
 		
+		pb = bpy.context.active_pose_bone
+
 		layout.prop(params, "CR_custom_bone_parent")
 		layout.row().prop(params, "CR_bone_copy_type", expand=True, text="Copy Type")
 		row = layout.row()
@@ -385,7 +380,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			col1.prop(params, "CR_ik_settings")
 			col1.prop(params, "CR_tweak_bbone_props")
 		else:
-			col1.prop(params, "CR_create_deform_bone")
+			col1.prop(pb.bone, "use_deform", text="Create Deform Bone")
 
 from ..load_metarig import load_sample
 

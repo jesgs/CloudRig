@@ -42,9 +42,14 @@ def rename_parameters(metarig, dictionary):
 def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of the addon as well as possible."""
 	data = metarig.data
+	version = data.cloudrig_parameters.version
 	# Beginning of metarig versioning: 2020-07-22.
 	# I should've started this sooner. Metarigs older than this are not guaranteed backwards compatibility.
-	if data.cloudrig_parameters.version == 0.0:
+	if version == 0.0:
+		data.cloudrig_parameters.version = 0.1
+		pass
+		# TODO: Assume that version 0.0 is the metarigs in CoffeeRun crowd.blend, and try to make them work with current CloudRig.
+	if version == 0.1:
 		dictionary = {
 			"CR_constraints_additive" : "CR_bone_constraints_additive"
 			,"CR_copy_type" : "CR_bone_copy_type"
@@ -82,8 +87,11 @@ def version_cloud_metarig(metarig):
 			,"" : ""
 		}
 		rename_parameters(metarig, dictionary)
-		data.cloudrig_parameters.version = 0.1
-		# TODO: Assume that version 0.0 is the metarigs in CoffeeRun crowd.blend, and try to make them work with current CloudRig.
+		data.cloudrig_parameters.version = 0.2
+	if version == 0.2:
+		for pb in metarig.pose.bones:
+			if 'CR_create_deform_bone' in pb.rigify_parameters.keys():
+				pb.bone.use_deform = pb.rigify_parameters['CR_create_deform_bone']
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
