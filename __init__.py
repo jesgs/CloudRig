@@ -19,12 +19,26 @@ def cloudrig_manual_map():
 	params_pref = "bpy.types.rigifyparameters.cr_"
 	generator_params_pref = "bpy.types.cloudrigproperties."
 
-	cloud_chain = "CloudRig-Types#cloud_chain"
-	cloud_fk_chain = "CloudRig-Types#cloud_fk_chain"
-	cloud_ik_chain = "CloudRig-Types#cloud_ik_chain"
-	cloud_limb = "CloudRig-Types#cloud_limb"
+	cloud_types_pref = "CloudRig-Types#cloud_"
+	cloud_types = ['bone', 'chain', 'curve', 'face_chain', 'fk_chain', 'ik_chain', 'limbs', 'shoulder', 'spine', 'spline_ik']
 
-	url_manual_mapping = (
+	# All CloudRig type parameters are expected to be prefixed with 
+	# CR_<rig_type>_, eg. CR_chain_segments for cloud_chain.
+	
+	# Also on the wiki, all CloudRig types should have a paragraph in the 
+	# CloudRig-Types page with the name of the type.
+	
+	# Knowing this, we can build a URL mapping automatically, which also 
+	# enables us to add or remove parameters in the future without having to 
+	# worry about keeping the URL mapping up to date, as long as we stick to the
+	# naming conventions above.
+	url_map = []
+	for t in cloud_types:
+		url_map.append(
+			(params_pref + t + "_*", cloud_types_pref+t)
+		)
+
+	url_map.extend([
 		("bpy.ops.pose.cloudrig_layer_init", "Organizing-Bones#customizing-bone-layers"),
 
 		("bpy.ops.pose.cloudrig_generate", "Generator-Parameters"),
@@ -50,41 +64,12 @@ def cloudrig_manual_map():
 
 		(generator_params_pref+"*", "Generator-Parameters"),
 
-		(params_pref+"show_chain_settings", cloud_chain),
-		(params_pref+"deform_segments", cloud_chain),
-		(params_pref+"bbone_segments", cloud_chain),
-		(params_pref+"shape_key_helpers", cloud_chain),
-		(params_pref+"sharp_sections", cloud_chain),
-		(params_pref+"cap_control", cloud_chain),
-
-		(params_pref+"show_fk_settings", cloud_fk_chain),
-		(params_pref+"use_custom_limb_name", cloud_fk_chain),
-		(params_pref+"use_custom_category_name", cloud_fk_chain),
-		(params_pref+"custom_limb_name", cloud_fk_chain),
-		(params_pref+"custom_category_name", cloud_fk_chain),
-		(params_pref+"counter_rotate_str", cloud_fk_chain),
-		(params_pref+"center_all_fk", cloud_fk_chain),
-		(params_pref+"double_first_control", cloud_fk_chain),
-		(params_pref+"use_fk_hinge", cloud_fk_chain),
-		(params_pref+"use_custom_category_name", cloud_fk_chain),
-
-		(params_pref+"show_ik_settings", cloud_ik_chain),
-		(params_pref+"use_pole_target", cloud_ik_chain),
-		(params_pref+"world_aligned_controls", cloud_ik_chain),
-
-		(params_pref+"limb_type", cloud_limb),
-		(params_pref+"use_foot_roll", cloud_limb),
-		(params_pref+"heel_pivot_bone", cloud_limb),
-		(params_pref+"double_ik_control", cloud_limb),
-		(params_pref+"limb_lock_yz", cloud_limb),
-
 		(params_pref+"bg_*", "Organizing-Bones#bone-sets"),
-
 		(params_pref+"*", "CloudRig-Types"),
 
 		("bpy.types.cloudrig_properties.*", "Custom-Properties"),
-	)
-	return url_manual_prefix, url_manual_mapping
+	])
+	return url_manual_prefix, url_map
 
 modules = [
 	regenerate_rigify_rigs,
@@ -93,6 +78,7 @@ modules = [
 	actions,
 	cloud_generator,
 	ui,
+	versioning
 ]
 
 def register():
@@ -101,7 +87,6 @@ def register():
 		m.register()
 
 	register_manual_map(cloudrig_manual_map)
-	versioning.do_blender_versioning()
 
 def unregister():
 	from bpy.utils import unregister_class, unregister_manual_map

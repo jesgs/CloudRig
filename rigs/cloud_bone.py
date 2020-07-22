@@ -22,7 +22,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		super().initialize()
 		self.bone_name = self.base_bone	# Name of the bone that is being created/modified.
 		self.orgless_name = self.base_bone.replace("ORG-", "")
-		self.copy_type = self.params.CR_copy_type
+		self.copy_type = self.params.CR_bone_copy_type
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
 		self.do_parenting = True
@@ -181,7 +181,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.bone.bbone_x = meta_bone.bone.bbone_x
 			mod_bone.bone.bbone_z = meta_bone.bone.bbone_z
 
-		if not self.params.CR_constraints_additive:
+		if not self.params.CR_bone_constraints_additive:
 			while len(mod_bone.constraints)>1:
 				mod_bone.constraints.remove(mod_bone.constraints[0])
 
@@ -283,13 +283,13 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		"""
 		super().add_parameters(params)
 
-		params.CR_constraints_additive = BoolProperty(
+		params.CR_bone_constraints_additive = BoolProperty(
 			name="Additive Constraints"
 			,description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead"
 			,default=True
 		)
 
-		params.CR_copy_type = EnumProperty(
+		params.CR_bone_copy_type = EnumProperty(
 			name="Copy Type"
 			,items=(
 				("Create", "Create", "Create a new bone"),
@@ -369,12 +369,12 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		layout.use_property_split = True
 		
 		layout.prop(params, "CR_custom_bone_parent")
-		layout.row().prop(params, "CR_copy_type", expand=True, text="Copy Type")
+		layout.row().prop(params, "CR_bone_copy_type", expand=True, text="Copy Type")
 		row = layout.row()
 		col1 = row.column()
 		col2 = row.column()	# Empty column for indent
-		if params.CR_copy_type=='Tweak':
-			col1.prop(params, "CR_constraints_additive")
+		if params.CR_bone_copy_type=='Tweak':
+			col1.prop(params, "CR_bone_constraints_additive")
 			col1.prop(params, "CR_bone_transforms")
 			col1.prop(params, "CR_transform_locks")
 			col1.prop(params, "CR_bone_rot_mode")

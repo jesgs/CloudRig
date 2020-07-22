@@ -21,7 +21,7 @@ class CloudCurveRig(CloudBaseRig):
 		self.curve_handles = self.ensure_bone_set("Curve Handles")
 
 	def initialize_curve_rig(self):
-		curve_ob = self.params.CR_target_curve
+		curve_ob = self.params.CR_curve_target
 		assert curve_ob, f"Error: Curve object not found for curve rig: {self.base_bone}"
 		assert curve_ob.type=='CURVE', f"Error: Curve target is not a curve for rig: {self.base_bone}"
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
@@ -38,7 +38,7 @@ class CloudCurveRig(CloudBaseRig):
 	def define_ctrls_for_curve_point(self, loc, loc_left, loc_right, i, cyclic=False):
 		""" Create hook controls for a bezier curve point defined by three points (loc, loc_left, loc_right). """
 
-		hook_name = self.params.CR_hook_name if self.params.CR_hook_name!="" else self.base_bone.replace("ORG-", "")
+		hook_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", "")
 		suffix = self.side_suffix
 		if suffix!="":
 			suffix = self.naming.suffix_separator + suffix
@@ -55,10 +55,10 @@ class CloudCurveRig(CloudBaseRig):
 		hook_ctr.right_handle_control = None
 		handles = []
 
-		if self.params.CR_controls_for_handles:
+		if self.params.CR_curve_controls_for_handles:
 			hook_ctr.custom_shape = self.load_widget("Circle")
 
-			if self.params.CR_separate_radius:
+			if self.params.CR_curve_separate_radius:
 				radius_control = self.curve_handles.new(
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
@@ -95,7 +95,7 @@ class CloudCurveRig(CloudBaseRig):
 			
 			for handle in handles:
 				handle.use_custom_shape_bone_size = True
-				if self.params.CR_rotatable_handles:
+				if self.params.CR_curve_rotatable_handles:
 					dsp_bone = self.create_dsp_bone(handle)
 					dsp_bone.head = handle.tail.copy()
 					dsp_bone.tail = handle.head.copy()
@@ -120,7 +120,7 @@ class CloudCurveRig(CloudBaseRig):
 		return hook_ctr
 
 	def define_ctrls_for_curve_points(self):
-		curve_ob = self.params.CR_target_curve
+		curve_ob = self.params.CR_curve_target
 
 		# Function to convert a location vector in the curve's local space into world space.
 		# For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
@@ -153,7 +153,7 @@ class CloudCurveRig(CloudBaseRig):
 		if not boneinfo: return
 
 		# Workaround of T74888, can be removed once D7190 is in master. (Preferably wait until it's in a release build)
-		curve_ob = self.params.CR_target_curve
+		curve_ob = self.params.CR_curve_target
 		spline = curve_ob.data.splines[0]
 		points = spline.bezier_points
 		cp = points[cp_i]
@@ -193,7 +193,7 @@ class CloudCurveRig(CloudBaseRig):
 		curve_ob: The curve object.
 		Only single-spline curve is supported. That one spline must have the same number of control points as the number of hooks."""
 
-		curve_ob = self.params.CR_target_curve
+		curve_ob = self.params.CR_curve_target
 		assert curve_ob, f"Error: Curve object doesn't exist for rig: {self.base_bone}"
 		curve_visible = self.ensure_visible(curve_ob)
 
@@ -221,7 +221,7 @@ class CloudCurveRig(CloudBaseRig):
 
 		for i in range(0, num_points):
 			hook_b = hooks[i]
-			if not self.params.CR_controls_for_handles:
+			if not self.params.CR_curve_controls_for_handles:
 				self.create_hook_modifier(i, hook_b, main_handle=True, left_handle=True, right_handle=True)
 			else:
 				self.create_hook_modifier(i, hook_b, main_handle=True)
@@ -246,7 +246,7 @@ class CloudCurveRig(CloudBaseRig):
 			var_tgt.transform_type = 'SCALE_X'
 			var_tgt.bone_target = hooks[i].name
 			
-			if self.params.CR_separate_radius:
+			if self.params.CR_curve_separate_radius:
 				var_tgt.bone_target = hooks[i].radius_control.name
 
 		# Restore modifier visibility on curve object
@@ -260,7 +260,7 @@ class CloudCurveRig(CloudBaseRig):
 
 		curve_visible.restore()
 
-		self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", "")).rigify_parameters.CR_target_curve = curve_ob
+		self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", "")).rigify_parameters.CR_curve_target = curve_ob
 
 	def configure_bones(self):
 		self.setup_curve(self.hooks)
@@ -287,56 +287,56 @@ class CloudCurveRig(CloudBaseRig):
 		# one side so mirror posing works as expected. 
 		# An actual symmetrical curve shape is not enforced, but expected.
 
-		params.CR_show_curve_rig_settings = BoolProperty(		
+		params.CR_curve_show_settings = BoolProperty(		
 			name		 = "Curve Settings"
 			,description = "Reveal settings for the cloud_curve rig type"
 		)
-		params.CR_hook_name = StringProperty(
+		params.CR_curve_hook_name = StringProperty(
 			 name		 = "Custom Name"
 			,description = "Used in the naming of created bones and objects. If empty, use the base bone's name"
 			,default	 = ""
 		)
-		params.CR_controls_for_handles = BoolProperty(
+		params.CR_curve_controls_for_handles = BoolProperty(
 			 name		 = "Controls for Handles"
 			,description = "For every curve point control, create two children that control the handles of that curve point"
 			,default	 = False
 		)
-		params.CR_rotatable_handles = BoolProperty(
+		params.CR_curve_rotatable_handles = BoolProperty(
 			 name		 = "Rotatable Handles"
 			,description = "Use a setup which allows handles to be rotated and scaled - Will behave oddly when rotation is done after translation"
 			,default	 = False
 		)
-		params.CR_separate_radius = BoolProperty(
+		params.CR_curve_separate_radius = BoolProperty(
 			 name		 = "Separate Radius Control"
 			,description = "Create a separate control for controlling the curve points' radii, instead of using the hook control's scale"
 			,default	 = False
 		)
 
-		params.CR_target_curve = PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
+		params.CR_curve_target = PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
 
 		super().add_parameters(params)
 
 	@classmethod
 	def bone_set_ui(cls, params, layout, set_info):
 		# We only want to draw Curve Handles bone set UI if the option for it is enabled.
-		if set_info['name'] != "Curve Handles" or params.CR_controls_for_handles:
+		if set_info['name'] != "Curve Handles" or params.CR_curve_controls_for_handles:
 			super().bone_set_ui(params, layout, set_info)
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
-		curve_ob = params.CR_target_curve
+		curve_ob = params.CR_curve_target
 		bad_curve = curve_ob==None or curve_ob.type!='CURVE'
 
-		icon = 'TRIA_DOWN' if params.CR_show_curve_rig_settings else 'TRIA_RIGHT'
+		icon = 'TRIA_DOWN' if params.CR_curve_show_settings else 'TRIA_RIGHT'
 		row = layout.row()
 		row.use_property_split=False
 		row.alert = bad_curve
-		row.prop(params, "CR_show_curve_rig_settings", toggle=True, icon=icon)
-		if not params.CR_show_curve_rig_settings: return
+		row.prop(params, "CR_curve_show_settings", toggle=True, icon=icon)
+		if not params.CR_curve_show_settings: return
 
 		target_curve_row = layout.row()
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
-		target_curve_row.prop(params, "CR_target_curve", icon=icon)
+		target_curve_row.prop(params, "CR_curve_target", icon=icon)
 
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
@@ -346,12 +346,12 @@ class CloudCurveRig(CloudBaseRig):
 
 		cls.curve_selector_ui(layout, params)
 
-		if not params.CR_show_curve_rig_settings: return layout
-		layout.prop(params, "CR_hook_name")
-		layout.prop(params, "CR_controls_for_handles")
-		if params.CR_controls_for_handles:
-			layout.prop(params, "CR_rotatable_handles")
-			layout.prop(params, "CR_separate_radius")
+		if not params.CR_curve_show_settings: return layout
+		layout.prop(params, "CR_curve_hook_name")
+		layout.prop(params, "CR_curve_controls_for_handles")
+		if params.CR_curve_controls_for_handles:
+			layout.prop(params, "CR_curve_rotatable_handles")
+			layout.prop(params, "CR_curve_separate_radius")
 
 		return layout
 

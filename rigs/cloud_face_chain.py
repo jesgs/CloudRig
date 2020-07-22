@@ -101,7 +101,7 @@ class CloudFaceChainRig(CloudChainRig):
 		for b in bones:
 			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
 			par_con_name = "Armature (Parenting affects local matrix)"
-			if b.container.rig.params.CR_smooth_spline:
+			if b.container.rig.params.CR_chain_smooth_spline:
 				b.add_constraint('ARMATURE', name=par_con_name, index=0, 
 					targets = [
 						{
@@ -131,7 +131,7 @@ class CloudFaceChainRig(CloudChainRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_face_chain_parameters = BoolProperty(
+		params.CR_face_chain_show_settings = BoolProperty(
 			name		 = "Face Chain Settings"
 			,description = "Reveal settings for the cloud_face_chain rig type"
 		)
@@ -152,7 +152,7 @@ class CloudFaceChainRig(CloudChainRig):
 		"""
 		layout = super().cloud_params_ui(layout, params)
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_face_chain_parameters"): return layout
+		if not cls.cloud_dropdown_ui(layout, params, "CR_face_chain_show_settings"): return layout
 
 		layout.prop(params, "CR_face_chain_merge")
 		layout.prop(params, "CR_face_chain_relink")

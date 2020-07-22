@@ -13,7 +13,7 @@ class CloudTemplateRig(CloudBaseRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		if self.params.CR_create_ctr:
+		if self.params.CR_template_use_control:
 			self.make_ctr_bone(self.org_chain[0])
 
 	def make_ctr_bone(self, bone):
@@ -41,11 +41,11 @@ class CloudTemplateRig(CloudBaseRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_template_parameters = BoolProperty(
+		params.CR_template_show_settings = BoolProperty(
 			name		 = "Template Settings"
 			,description = "Reveal settings for the cloud_template rig type"
 		)
-		params.CR_create_ctr = BoolProperty(
+		params.CR_template_use_control = BoolProperty(
 			name		 = "Make Control"
 			,description = "Create a Control bone"
 			,default	 = True
@@ -57,9 +57,9 @@ class CloudTemplateRig(CloudBaseRig):
 		"""
 		layout = super().cloud_params_ui(layout, params)
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_template_parameters"): return layout
+		if not cls.cloud_dropdown_ui(layout, params, "CR_template_show_settings"): return layout
 
-		layout.prop(params, "CR_create_ctr")
+		layout.prop(params, "CR_template_use_control")
 
 		return layout
 

@@ -22,7 +22,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Will be passed to the IK constraint's chain_count. 
 		# Elements of the rig can use this to avoid having to make assumptions about correlations between the length of the ORG chain vs how long the IK chain is.
 		self.chain_count = len(self.bones.org.main)-1
-		if self.params.CR_ik_at_tail:
+		if self.params.CR_ik_chain_at_tip:
 			self.chain_count += 1
 
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
@@ -130,8 +130,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			"fk_chain"				: [b.name for b in fk_chain],
 			"ik_chain"				: [b.name for b in ik_chain],
 			"str_chain"				: [b.name for b in self.main_str_bones],
-			"double_first_control"	: self.params.CR_double_first_control,
-			"double_ik_control"		: self.params.CR_double_ik_control,
+			"double_first_control"	: self.params.CR_fk_chain_double_first,
+			"double_ik_control"		: self.params.CR_limb_double_ik,
 			"ik_pole"				: ik_pole.name if ik_pole else "",
 			"ik_control"			: self.ik_mstr.name
 		}
@@ -171,7 +171,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				)
 				# Parent this one to the IK master.
 				ik_bone.parent = ik_mstr
-				if self.params.CR_world_aligned_controls:
+				if self.params.CR_ik_chain_world_aligned:
 					ik_mstr.flatten()
 
 		# Add IK/FK Snapping to the UI.
@@ -347,7 +347,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.calculate_ik_info()
 		# Create Pole control
 		self.pole_ctrl = None
-		if self.params.CR_use_pole_target:
+		if self.params.CR_ik_chain_use_pole:
 			self.pole_ctrl = self.create_pole_control()
 
 		# Create IK Chain
@@ -387,7 +387,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		if self.params.CR_world_aligned_controls:
+		if self.params.CR_ik_chain_world_aligned:
 			self.world_align_last_fk()
 		self.prepare_ik_chain()
 		self.prepare_org_limb()
@@ -406,7 +406,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		parent_names = self.rig_child(ik_ctrl, self.ik_parents, self.ikfk_properties_bone, ik_parents_prop_name)
 		if len(parent_names) > 0:
 			bones = [ik_ctrl.name]
-			if self.params.CR_use_pole_target:
+			if self.params.CR_ik_chain_use_pole:
 				bones.append(self.pole_ctrl.name)
 			else:
 				bones.append(self.ik_chain[0].name)
@@ -423,7 +423,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			self.add_ui_data("ik_parents", self.category, self.limb_ui_name, info, default=0, _max=len(parent_names)-1)
 
 		### IK Pole Follow
-		if self.params.CR_use_pole_target:
+		if self.params.CR_ik_chain_use_pole:
 			# Rig the IK Pole control's parent switcher.
 			self.rig_child(self.pole_ctrl, self.ik_parents, self.ikfk_properties_bone, ik_parents_prop_name)
 
@@ -485,21 +485,21 @@ class CloudIKChainRig(CloudFKChainRig):
 			RigifyParameters PropertyGroup
 		"""
 
-		params.CR_show_ik_settings = BoolProperty(
+		params.CR_ik_chain_show_settings = BoolProperty(
 			name		 = "IK Settings"
 			,description = "Reveal settings for the cloud_ik_chain rig type"
 		)
-		params.CR_ik_at_tail = BoolProperty(	# TODO: implement this.
+		params.CR_ik_chain_at_tip = BoolProperty(	# TODO: implement this.
 			name		 = "At Tail"
 			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
 			,default	 = False
 		)
-		params.CR_world_aligned_controls = BoolProperty(
+		params.CR_ik_chain_world_aligned = BoolProperty(
 			 name		 = "World Aligned Control"
 			,description = "Ankle/Wrist IK/FK controls are aligned with world axes"
 			,default	 = True
 		)
-		params.CR_use_pole_target = BoolProperty(
+		params.CR_ik_chain_use_pole = BoolProperty(
 			name 		 = "Use Pole Target"
 			,description = "If disabled, you can control the rotation of the IK chain by simply rotating its first bone, rather than with an IK pole control"
 			,default	 = True
@@ -513,11 +513,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		"""
 		layout = super().cloud_params_ui(layout, params)
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_ik_settings"): return layout
+		if not cls.cloud_dropdown_ui(layout, params, "CR_ik_chain_show_settings"): return layout
 
-		layout.prop(params, "CR_use_pole_target")
-		# layout.prop(params, "CR_ik_at_tail")
-		layout.prop(params, "CR_world_aligned_controls")
+		layout.prop(params, "CR_ik_chain_use_pole")
+		# layout.prop(params, "CR_ik_chain_at_tip")
+		layout.prop(params, "CR_ik_chain_world_aligned")
 
 		# TODO: IK chains in blender are expected to be perfectly flat along a plane. I'm thinking maybe we could add an operator to the rig settings that would do this for you??
 

@@ -23,8 +23,8 @@ class CloudLimbRig(CloudIKChainRig):
 		super().initialize()
 		"""Gather and validate data about the rig."""
 		# Forced parameters
-		self.params.CR_sharp_sections = True
-		self.meta_base_bone.rigify_parameters.CR_sharp_sections = True
+		self.params.CR_chain_sharp = True
+		self.meta_base_bone.rigify_parameters.CR_chain_sharp = True
 
 		# Safety checks
 		self.limb_type = self.params.CR_limb_type
@@ -35,12 +35,12 @@ class CloudLimbRig(CloudIKChainRig):
 
 		# UI Strings and Custom Property names
 		self.category = "arms" if self.limb_type == 'ARM' else "legs"
-		if self.params.CR_use_custom_category_name:
-			self.category = self.params.CR_custom_category_name
+		if self.params.CR_fk_chain_use_category_name:
+			self.category = self.params.CR_fk_chain_category_name
 
 		self.limb_name = self.limb_type.capitalize()
-		if self.params.CR_use_custom_limb_name:
-			self.limb_name = self.params.CR_custom_limb_name
+		if self.params.CR_fk_chain_use_limb_name:
+			self.limb_name = self.params.CR_fk_chain_limb_name
 		
 		self.limb_ui_name = self.side_prefix + " " + self.limb_name
 
@@ -68,7 +68,7 @@ class CloudLimbRig(CloudIKChainRig):
 		elif self.limb_type=='ARM' and org_bone == self.org_chain[-1]:
 			# Force strictly 1 segment on the wrist.
 			return 1, bbone_density
-		elif org_bone == self.org_chain[-1] and not self.params.CR_cap_control:
+		elif org_bone == self.org_chain[-1] and not self.params.CR_chain_tip_control:
 			return 1, 1
 
 		return segments, bbone_density
@@ -126,20 +126,20 @@ class CloudLimbRig(CloudIKChainRig):
 
 		foot_dsp(self.ik_mstr)
 		# Parent control
-		if self.params.CR_double_ik_control:
+		if self.params.CR_limb_double_ik:
 			double_control = self.create_parent_bone(self.ik_mstr, self.ik_parent_ctrls)
 			double_control.bone_group = "IK Parent Controls"
 			foot_dsp(double_control)
 
 		# IK Foot setup, including Foot Roll
 		if self.limb_type == 'LEG':
-			if self.params.CR_use_foot_roll:
+			if self.params.CR_limb_use_foot_roll:
 				self.prepare_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
 			self.prepare_ik_toe()
 
 		# Counter-Rotate setup for the first section of STR bones.
-		for i in range(0, self.params.CR_deform_segments):
-			factor_unit = 0.9 / self.params.CR_deform_segments
+		for i in range(0, self.params.CR_chain_segments):
+			factor_unit = 0.9 / self.params.CR_chain_segments
 			factor = 0.9 - factor_unit * i
 			self.first_str_counterrotate_setup(self.str_bones[i], self.org_chain[0], factor)
 
@@ -203,7 +203,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 
 		# Create bone to use as pivot point when rolling back. This is read from the metarig and should be placed at the heel of the shoe, pointing forward.
-		heel_pivot_name = self.params.CR_heel_pivot_bone
+		heel_pivot_name = self.params.CR_limb_heel_bone
 		if heel_pivot_name=="":
 			heel_pivot_name = self.org_chain[-2].name.replace("ORG-", "")
 		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
@@ -212,7 +212,7 @@ class CloudLimbRig(CloudIKChainRig):
 		# Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
 		self.ik_mstr._bbone_x = heel_pivot_bone.bbone_x
 		self.ik_mstr._bbone_z = heel_pivot_bone.bbone_z
-		if self.params.CR_double_ik_control:
+		if self.params.CR_limb_double_ik:
 			self.ik_mstr.parent._bbone_x = heel_pivot_bone.bbone_x
 			self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
 
@@ -333,7 +333,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 	def prepare_parent_switch(self):
 		ik_ctrl = self.ik_mstr
-		if self.params.CR_double_ik_control:
+		if self.params.CR_limb_double_ik:
 			ik_ctrl = ik_ctrl.parent
 
 		super().prepare_parent_switch(ik_ctrl)
@@ -355,7 +355,7 @@ class CloudLimbRig(CloudIKChainRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_limb_settings = BoolProperty(
+		params.CR_limb_show_settings = BoolProperty(
 			name		 = "Limb Settings"
 			,description = "Reveal settings for the cloud_limbs rig type"
 		)
@@ -368,7 +368,7 @@ class CloudLimbRig(CloudIKChainRig):
 			)
 			,default	 = 'ARM'
 		)
-		params.CR_double_ik_control = BoolProperty(
+		params.CR_limb_double_ik = BoolProperty(
 			 name		 = "Double IK Master"
 			,description = "The IK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
 			,default	 = True
@@ -379,12 +379,12 @@ class CloudLimbRig(CloudIKChainRig):
 			,description = "Lock Y and Z rotation of the elbow/shin"
 			,default 	 = False
 		)
-		params.CR_use_foot_roll = BoolProperty(
+		params.CR_limb_use_foot_roll = BoolProperty(
 			 name 		 = "Foot Roll"
 			,description = "Create Foot roll controls"
 			,default 	 = True
 		)
-		params.CR_heel_pivot_bone = StringProperty(
+		params.CR_limb_heel_bone = StringProperty(
 			 name		 = "Heel Pivot Bone"
 			,description = "Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone"
 			,default	 = ""
@@ -394,17 +394,17 @@ class CloudLimbRig(CloudIKChainRig):
 	def cloud_params_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
-		cls.disable_row('CR_sharp_sections')
+		cls.disable_row('CR_chain_sharp')
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_limb_settings"): return layout
+		if not cls.cloud_dropdown_ui(layout, params, "CR_limb_show_settings"): return layout
 
 		layout.prop(params, "CR_limb_type")
 		if params.CR_limb_type=='LEG':
-			layout.prop(params, "CR_use_foot_roll")
-			if params.CR_use_foot_roll:
-				layout.prop_search(params, "CR_heel_pivot_bone", bpy.context.object.data, "bones", text="Heel Pivot")
+			layout.prop(params, "CR_limb_use_foot_roll")
+			if params.CR_limb_use_foot_roll:
+				layout.prop_search(params, "CR_limb_heel_bone", bpy.context.object.data, "bones", text="Heel Pivot")
 
-		layout.prop(params, "CR_double_ik_control")
+		layout.prop(params, "CR_limb_double_ik")
 
 		word = "Elbow" if params.CR_limb_type == 'ARM' else "Shin"
 		layout.prop(params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")

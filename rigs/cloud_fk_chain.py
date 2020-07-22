@@ -13,12 +13,12 @@ class CloudFKChainRig(CloudChainRig):
 		super().initialize()
 
 		self.category = self.naming.slice_name(self.base_bone)[1]
-		if self.params.CR_use_custom_category_name:
-			self.category = self.params.CR_custom_category_name
+		if self.params.CR_fk_chain_use_category_name:
+			self.category = self.params.CR_fk_chain_category_name
 		
 		self.limb_name = self.category
-		if self.params.CR_use_custom_limb_name:
-			self.limb_name = self.params.CR_custom_limb_name								# Name used for naming bones. Should not contain a side identifier like .L/.R.
+		if self.params.CR_fk_chain_use_limb_name:
+			self.limb_name = self.params.CR_fk_chain_limb_name								# Name used for naming bones. Should not contain a side identifier like .L/.R.
 		self.limb_ui_name = self.side_prefix + " " + self.limb_name	# Name used for UI related things. Should contain the side identifier.
 
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
@@ -72,21 +72,21 @@ class CloudFKChainRig(CloudChainRig):
 			org_bone.fk_bone = fk_bone
 			if i == 0:
 				hng_child = fk_bone
-				if self.params.CR_double_first_control:
+				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
 					fk_parent_bone = self.create_parent_bone(fk_bone)
 					fk_parent_bone.custom_shape = self.load_widget("FK_Limb")
-					if self.params.CR_center_all_fk:
+					if self.params.CR_fk_chain_display_center:
 						self.create_dsp_bone(fk_parent_bone, center=True)
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
 				fk_bone.parent = self.org_chain[i-1].fk_bone
-			if self.params.CR_center_all_fk:
+			if self.params.CR_fk_chain_display_center:
 				self.create_dsp_bone(fk_bone, center=True)
 
 		# Create Hinge helper
-		if self.params.CR_use_fk_hinge:
+		if self.params.CR_fk_chain_hinge:
 			hng_bone = self.hinge_setup(
 				bone = hng_child, 
 				category = self.category,
@@ -132,43 +132,43 @@ class CloudFKChainRig(CloudChainRig):
 			RigifyParameters PropertyGroup
 		"""
 
-		params.CR_show_fk_settings = BoolProperty(
+		params.CR_fk_chain_show_settings = BoolProperty(
 			name="FK Settings"
 			,description = "Reveal settings for the cloud_fk_chain rig type"
 		)
-		params.CR_center_all_fk = BoolProperty(
+		params.CR_fk_chain_display_center = BoolProperty(
 			 name		 = "Display FK in center"
 			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
 			,default	 = False
 		)
-		params.CR_double_first_control = BoolProperty(
+		params.CR_fk_chain_double_first = BoolProperty(
 			 name		 = "Double First FK"
 			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
 			,default	 = True
 		)
 
-		params.CR_use_fk_hinge = BoolProperty(
+		params.CR_fk_chain_hinge = BoolProperty(
 			name		 = "Hinge Toggle"
 			,description = "Set up a hinge toggle"
 			,default	 = True
 		)
 		
-		params.CR_use_custom_limb_name = BoolProperty(
+		params.CR_fk_chain_use_limb_name = BoolProperty(
 			 name		 = "Custom Limb Name"
 			,description = "Specify a name for this limb. Settings for limbs with the same name will be displayed on the same row in the rig UI. If not enabled, use the name of the base bone, without pre and suffixes"
 			,default 	 = False
 		)
-		params.CR_custom_limb_name = StringProperty(
+		params.CR_fk_chain_limb_name = StringProperty(
 			name		 = "Custom Limb"
 			,default	 = "Arm"
 			,description = """This name should NOT include a side indicator such as ".L" or ".R", as that will be determined by the bone's name. There can be exactly two limbs with the same name(a left and a right one)"""
 		)
-		params.CR_use_custom_category_name = BoolProperty(
+		params.CR_fk_chain_use_category_name = BoolProperty(
 			 name		 = "Custom Category Name"
 			,description = "Specify a category for this limb. If not enabled, use the name of the base bone, without pre and suffixes"
 			,default	 = False,
 		)
-		params.CR_custom_category_name = StringProperty(
+		params.CR_fk_chain_category_name = StringProperty(
 			name		 = "Custom Category"
 			,default	 = "arms"
 			,description = "Limbs in the same category will have their settings displayed in the same column"
@@ -183,25 +183,25 @@ class CloudFKChainRig(CloudChainRig):
 		"""
 		layout = super().cloud_params_ui(layout, params)
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_fk_settings"): return layout
+		if not cls.cloud_dropdown_ui(layout, params, "CR_fk_chain_show_settings"): return layout
 
 		limb_row = layout.row(align=True, heading="Limb UI Name")
-		limb_row.prop(params, "CR_use_custom_limb_name", text="")
+		limb_row.prop(params, "CR_fk_chain_use_limb_name", text="")
 		col = limb_row.column()
-		col.prop(params, "CR_custom_limb_name", text="")
-		col.enabled = params.CR_use_custom_limb_name
+		col.prop(params, "CR_fk_chain_limb_name", text="")
+		col.enabled = params.CR_fk_chain_use_limb_name
 
 		category_row = layout.row(align=True, heading="UI Category")
-		category_row.prop(params, "CR_use_custom_category_name", text="")
+		category_row.prop(params, "CR_fk_chain_use_category_name", text="")
 		col = category_row.column()
-		col.prop(params, "CR_custom_category_name", text="")
-		col.enabled = params.CR_use_custom_category_name
+		col.prop(params, "CR_fk_chain_category_name", text="")
+		col.enabled = params.CR_fk_chain_use_category_name
 
 		center_fk_row = layout.row()
-		center_fk_row.prop(params, "CR_center_all_fk")
-		cls.ui_rows["CR_center_all_fk"] = center_fk_row
-		layout.prop(params, "CR_double_first_control")
-		layout.prop(params, "CR_use_fk_hinge")
+		center_fk_row.prop(params, "CR_fk_chain_display_center")
+		cls.ui_rows["CR_fk_chain_display_center"] = center_fk_row
+		layout.prop(params, "CR_fk_chain_double_first")
+		layout.prop(params, "CR_fk_chain_hinge")
 
 		return layout
 

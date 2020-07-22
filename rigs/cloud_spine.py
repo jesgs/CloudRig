@@ -29,7 +29,7 @@ class CloudSpineRig(CloudChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		self.params.CR_deform_segments = 1
+		self.params.CR_chain_segments = 1
 
 		assert len(self.bones.org.main) >= self.params.CR_spine_length, f"Spine Length parameter value({self.params.CR_spine_length}) cannot exceed length of bone chain connected to {self.base_bone} ({len(self.bones.org.main)})"
 		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones."
@@ -66,7 +66,7 @@ class CloudSpineRig(CloudChainRig):
 		)
 		self.register_parent(self.mstr_torso, "Torso")
 		self.mstr_torso.flatten()
-		if self.params.CR_double_controls:
+		if self.params.CR_spine_double:
 			double_mstr_pelvis = self.create_parent_bone(self.mstr_torso, self.spine_parent_ctrls)
 
 		self.org_spines = self.org_chain[:self.params.CR_spine_length]
@@ -119,7 +119,7 @@ class CloudSpineRig(CloudChainRig):
 
 	@stage.prepare_bones
 	def prepare_ik_spine(self):
-		if not self.params.CR_create_ik_spine: return
+		if not self.params.CR_spine_use_ik: return
 
 		# Create master chest control
 		self.mstr_chest = self.spine_main.new(
@@ -132,7 +132,7 @@ class CloudSpineRig(CloudChainRig):
 				,parent				= self.mstr_torso
 			)
 
-		if self.params.CR_double_controls:
+		if self.params.CR_spine_double:
 			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.spine_parent_ctrls)
 		
 		self.mstr_hips.flatten()
@@ -230,7 +230,7 @@ class CloudSpineRig(CloudChainRig):
 				damped_track_target = self.ik_ctr_chain[-1].name
 				head_tail = 0
 				self.mstr_chest.custom_shape_transform = ik_bone
-				if self.params.CR_double_controls:
+				if self.params.CR_spine_double:
 					self.mstr_chest.parent.custom_shape_transform = ik_bone
 
 			ik_bone.add_constraint('DAMPED_TRACK',
@@ -329,7 +329,7 @@ class CloudSpineRig(CloudChainRig):
 		"""
 		super().add_parameters(params)
 
-		params.CR_show_spine_settings = BoolProperty(
+		params.CR_spine_show_settings = BoolProperty(
 			name="Spine Settings"
 			,description = "Reveal settings for the cloud_spine rig type"
 			)
@@ -340,12 +340,12 @@ class CloudSpineRig(CloudChainRig):
 			,min		 = 3
 			,max		 = 99
 		)
-		params.CR_create_ik_spine = BoolProperty(
+		params.CR_spine_use_ik = BoolProperty(
 			name		 = "Create IK Setup"
 			,description = "If disabled, this spine rig will only have FK controls"
 			,default	 = True
 		)
-		params.CR_double_controls = BoolProperty(
+		params.CR_spine_double = BoolProperty(
 			name		 = "Double Controls"
 			,description = "Make duplicates of the main spine controls"
 			,default	 = True
@@ -353,21 +353,21 @@ class CloudSpineRig(CloudChainRig):
 
 	@classmethod
 	def bone_set_ui(cls, params, layout, set_info):
-		if (set_info['name'] != "Spine IK Secondary" or params.CR_create_ik_spine) and \
-			(set_info['name'] != "Spine Parent Controls" or params.CR_double_controls):
+		if (set_info['name'] != "Spine IK Secondary" or params.CR_spine_use_ik) and \
+			(set_info['name'] != "Spine Parent Controls" or params.CR_spine_double):
 			super().bone_set_ui(params, layout, set_info)
 
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
-		cls.disable_row('CR_deform_segments')
+		cls.disable_row('CR_chain_segments')
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_show_spine_settings"): return layout
+		if not cls.cloud_dropdown_ui(layout, params, "CR_spine_show_settings"): return layout
 
 		layout.prop(params, "CR_spine_length")
-		layout.prop(params, "CR_create_ik_spine")
-		layout.prop(params, "CR_double_controls")
+		layout.prop(params, "CR_spine_use_ik")
+		layout.prop(params, "CR_spine_double")
 
 		return layout
 

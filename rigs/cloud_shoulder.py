@@ -57,7 +57,7 @@ class CloudShoulderRig(CloudFKChainRig):
 	def cloud_params_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
-		cls.disable_row('CR_center_all_fk')
+		cls.disable_row('CR_fk_chain_display_center')
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_shoulder_show_settings"): return layout
 
