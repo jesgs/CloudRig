@@ -84,6 +84,12 @@ def version_cloud_metarig(metarig):
 			,"CR_sharp_sections" : "CR_chain_sharp"
 			,"CR_smooth_spline" : "CR_chain_smooth_spline"
 			,"CR_cap_control" : "CR_chain_tip_control"
+			,"CR_custom_bone_parent" : "CR_bone_parent"
+			,"CR_transform_locks" : "CR_bone_locks"
+			,"CR_layers" : "CR_bone_layers"
+			,"CR_custom_props" : "CR_bone_props"
+			,"CR_ik_settings" : "CR_bone_ik_settings"
+			,"CR_tweak_bbone_props" : "CR_bone_bbone_props"
 			,"" : ""
 		}
 		rename_parameters(metarig, dictionary)

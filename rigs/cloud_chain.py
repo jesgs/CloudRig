@@ -322,7 +322,7 @@ class CloudChainRig(CloudBaseRig):
 			if not parent_rig.params.CR_chain_tip_control:
 				meta_org_bone = self.generator.metarig.data.bones.get(self.org_chain[0].name.replace("ORG-", ""))
 				if meta_org_bone.use_connect:
-					def_bone = parent_rig.def_bones[-1]
+					def_bone = parent_rig.def_chain[-1]
 					str_bone = self.str_chain[0]
 					str_bone.custom_shape = self.load_widget('Sphere')
 					def_bone.bbone_custom_handle_end = str_bone

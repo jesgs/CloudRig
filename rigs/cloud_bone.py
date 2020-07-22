@@ -31,7 +31,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			if c.type in ('CHILD_OF', 'ARMATURE'):
 				self.do_parenting = False
 		
-		self.create_deform_bone = self.meta_pose_bone.bone.use_deform
+		self.create_deform_bone = meta_pose_bone.bone.use_deform
 
 	def generate_bones(self):
 		org_bone = self.get_bone(self.bones.org)
@@ -88,7 +88,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			def_bone = self.get_bone(self.def_bone_name)
 			def_bone.parent = mod_bone
 
-		parent_name = self.params.CR_custom_bone_parent
+		parent_name = self.params.CR_bone_parent
 		parent_bone = None
 		if parent_name != "" and self.do_parenting:
 			try:
@@ -114,7 +114,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		mod_bone = self.get_bone(self.bone_name)
 
 		# Add parenting constraint
-		parent_name = self.params.CR_custom_bone_parent
+		parent_name = self.params.CR_bone_parent
 		parent_bone = self.obj.pose.bones.get(parent_name)
 		if parent_bone and parent_bone.bone.bbone_segments > 1:
 			arm_con = mod_bone.constraints.new('ARMATURE')
@@ -141,7 +141,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 
 		mod_bone.bone.use_deform = meta_bone.bone.use_deform
 
-		if self.params.CR_transform_locks:
+		if self.params.CR_bone_locks:
 			mod_bone.lock_location = meta_bone.lock_location[:]
 			mod_bone.lock_rotation = meta_bone.lock_rotation[:]
 			mod_bone.lock_rotation_w = meta_bone.lock_rotation_w
@@ -157,10 +157,10 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.use_custom_shape_bone_size = meta_bone.use_custom_shape_bone_size
 			mod_bone.bone.show_wire = meta_bone.bone.show_wire
 		
-		if self.params.CR_layers:
+		if self.params.CR_bone_layers:
 			mod_bone.bone.layers = meta_bone.bone.layers[:]
 		
-		if self.params.CR_ik_settings:
+		if self.params.CR_bone_ik_settings:
 			mod_bone.ik_stretch = meta_bone.ik_stretch
 			mod_bone.lock_ik_x = meta_bone.lock_ik_x
 			mod_bone.lock_ik_y = meta_bone.lock_ik_y
@@ -178,7 +178,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.ik_min_z = meta_bone.ik_min_z
 			mod_bone.ik_max_z = meta_bone.ik_max_z
 		
-		if self.params.CR_tweak_bbone_props:
+		if self.params.CR_bone_bbone_props:
 			mod_bone.bone.bbone_segments = meta_bone.bone.bbone_segments
 			mod_bone.bone.bbone_x = meta_bone.bone.bbone_x
 			mod_bone.bone.bbone_z = meta_bone.bone.bbone_z
@@ -197,7 +197,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			self.relink_constraint(c)
 		
 		# Copy custom properties
-		if self.params.CR_custom_props and '_RNA_UI' in meta_bone.keys():
+		if self.params.CR_bone_props and '_RNA_UI' in meta_bone.keys():
 			keys = [k for k in meta_bone.keys() if k not in ['_RNA_UI', 'rigify_parameters', 'rigify_type']]
 			cloud_utils.copy_custom_properties(meta_bone, keys, mod_bone)
 
@@ -302,7 +302,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		)
 
 		# Parameters for tweaking existing bone
-		params.CR_custom_bone_parent = StringProperty(
+		params.CR_bone_parent = StringProperty(
 			 name="Parent"
 			,description="When this is not an empty string, set the parent to the bone with this name"
 			,default=""
@@ -312,7 +312,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			,description="Replace the matching generated bone's transforms with this bone's transforms" # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
 			,default=False
 		)
-		params.CR_transform_locks = BoolProperty(
+		params.CR_bone_locks = BoolProperty(
 			 name="Locks"
 			,description="Replace the matching generated bone's transform locks with this bone's transform locks"
 			,default=True
@@ -332,22 +332,22 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			,description="Replace the matching generated bone's group with this bone's group"
 			,default=False
 		)
-		params.CR_layers = BoolProperty(
+		params.CR_bone_layers = BoolProperty(
 			 name="Layers"
 			,description="Set the generated bone's layers to this bone's layers"
 			,default=False
 		)
-		params.CR_custom_props = BoolProperty(
+		params.CR_bone_props = BoolProperty(
 			 name="Custom Properties"
 			,description="Copy custom properties from this bone to the generated bone"
 			,default=False
 		)
-		params.CR_ik_settings = BoolProperty(
+		params.CR_bone_ik_settings = BoolProperty(
 			 name="IK Settings"
 			,description="Copy IK settings from this bone to the generated bone"
 			,default=False
 		)
-		params.CR_tweak_bbone_props = BoolProperty(
+		params.CR_bone_bbone_props = BoolProperty(
 			name="B-Bone Settings"
 			,description="Copy B-Bone settings from this bone to the generated bone"
 			,default=False
@@ -363,7 +363,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		
 		pb = bpy.context.active_pose_bone
 
-		layout.prop(params, "CR_custom_bone_parent")
+		layout.prop(params, "CR_bone_parent")
 		layout.row().prop(params, "CR_bone_copy_type", expand=True, text="Copy Type")
 		row = layout.row()
 		col1 = row.column()
@@ -371,14 +371,14 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		if params.CR_bone_copy_type=='Tweak':
 			col1.prop(params, "CR_bone_constraints_additive")
 			col1.prop(params, "CR_bone_transforms")
-			col1.prop(params, "CR_transform_locks")
+			col1.prop(params, "CR_bone_locks")
 			col1.prop(params, "CR_bone_rot_mode")
 			col1.prop(params, "CR_bone_shape")
 			col1.prop(params, "CR_bone_group")
-			col1.prop(params, "CR_layers")
-			col1.prop(params, "CR_custom_props")
-			col1.prop(params, "CR_ik_settings")
-			col1.prop(params, "CR_tweak_bbone_props")
+			col1.prop(params, "CR_bone_layers")
+			col1.prop(params, "CR_bone_props")
+			col1.prop(params, "CR_bone_ik_settings")
+			col1.prop(params, "CR_bone_bbone_props")
 		else:
 			col1.prop(pb.bone, "use_deform", text="Create Deform Bone")
 
