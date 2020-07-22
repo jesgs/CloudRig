@@ -1,7 +1,7 @@
 from typing import Optional
 
 import bpy
-from bpy.props import BoolProperty, FloatProperty, StringProperty
+from bpy.props import BoolProperty, FloatProperty, StringProperty, PointerProperty
 from mathutils import Vector
 
 from ..bone import BoneInfo
@@ -18,7 +18,8 @@ class CloudEyeRig(CloudBaseRig):
 		self.group_mstr_set = self.ensure_bone_set("Eye Group Target Controls")
 		self.target_ctrl = self.ensure_bone_set("Eye Target Controls")
 		self.eye_mch = self.ensure_bone_set("Eye Target Mechanism")
-		self.eye_def = self.ensure_bone_set("Eye Deform")
+		if self.params.CR_eye_deform:
+			self.eye_def = self.ensure_bone_set("Eye Deform")
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -219,6 +220,21 @@ class CloudEyeRig(CloudBaseRig):
 			,description = "Create a root bone for this rig."
 		)
 
+		# TODO IMPORTANT: Implement this.
+		params.CR_eye_sticky_eyelids = BoolProperty(
+			name		 = "Sticky Eyelids"
+			,description = "Eyelids will follow the rotation of the eye bone"
+			,default	 = False
+		)
+		params.CR_eye_lower_eyelid = StringProperty(
+			name		 = "Lower Eyelid Rig"
+			,description = "Select a bone with a cloud_chain rig type that will generate the lower eyelid for this eye"
+		)
+		params.CR_eye_upper_eyelid = StringProperty(
+			name		 = "Upper Eyelid Rig"
+			,description = "Select a bone with a cloud_chain rig type that will generate the upper eyelid for this eye"
+		)
+
 		super().add_parameters(params)
 
 	@classmethod
@@ -229,10 +245,16 @@ class CloudEyeRig(CloudBaseRig):
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_eye_show_settings"): return layout
 
+		ob = bpy.context.object
+
 		layout.prop(params, "CR_eye_group")
 		layout.prop(params, "CR_eye_target_distance")
 		layout.prop(params, "CR_eye_deform")
 		layout.prop(params, "CR_eye_root")
+		layout.prop(params, "CR_eye_sticky_eyelids")
+		if params.CR_eye_sticky_eyelids:
+			layout.prop_search(params, 'CR_eye_lower_eyelid', ob.pose, 'bones')
+			layout.prop_search(params, 'CR_eye_upper_eyelid', ob.pose, 'bones')
 
 		return layout
 
