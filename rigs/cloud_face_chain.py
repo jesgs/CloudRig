@@ -28,10 +28,23 @@ class CloudFaceChainRig(CloudChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
+
+		# Move constraints from ORG bones to main STR bones and relink them
+		if self.params.CR_face_chain_relink:
+			self.move_and_relink_constraints()
+
 		if self.params.CR_face_chain_merge:
 			self.merge_controls()
-		if self.params.CR_face_chain_relink:
-			self.relink_constraints_to_controls()
+
+	def move_and_relink_constraints(self):
+		for i, org in enumerate(self.org_chain):
+			for c in org.constraint_infos[:]:
+				if 'TAIL' in c.name:
+					self.main_str_bones[i+1].constraint_infos.append(c)
+				else:
+					self.main_str_bones[i].constraint_infos.append(c)
+				org.constraint_infos.remove(c)
+				c.relink()
 
 	def merge_controls(self):
 		# For each main STR control in this rig
@@ -59,7 +72,9 @@ class CloudFaceChainRig(CloudChainRig):
 				b.layers = self.sub_controls.layers[:]
 
 	def ensure_parent_control(self, bones):
-		"""Ensure that all bones share the same parent control. If this is not the case, create it and parent them."""
+		""" Ensure that all bones share the same parent control. 
+			If this is not the case, create it and parent them.
+		"""
 
 		# Check the bones' parents to see if the desired control was already created.
 		parent = None
@@ -88,34 +103,21 @@ class CloudFaceChainRig(CloudChainRig):
 				b.vector = self.flat_vector(b.vector)
 
 		for b in bones:
-			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for convenience here.
-			b.add_constraint('ARMATURE', index=0, 
-				targets = [
-					{
-						"subtarget" : parent.name
-					},
-				]
-			)
-			b.merged_control = parent
-
-	def relink_constraints_to_controls(self):
-		# For each ORG bone
-		#	Relink from that ORG bone to the corresponding main str control, which should exist.
-		# If final control param is enabled
-		#	For every constraint on the last ORG bone that starts with "TAIL"
-		# 		Relink from the last ORG bone to the last main STR control
-		from copy import deepcopy
-		for org in self.org_chain:
-			# Move constraints from ORG bone to their corresponding main STR control, then relink the constraint on the main STR control.
-			for c in org.constraint_infos:
-				move_constraint_to_bone = org.str_control
-				if hasattr(org, "tail_str_control") and c.name.startswith("TAIL"):
-					move_constraint_to_bone = org.tail_str_control
-				elif hasattr(org.str_control, "merged_control"):
-					move_constraint_to_bone = org.str_control.merged_control
-				move_constraint_to_bone.constraint_infos.append(c)
-				org.constraint_infos.remove(c)
-				c.relink()
+			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
+			par_con_name = "Armature (Parenting affects local matrix)"
+			if b.container.rig.params.CR_smooth_spline:
+				b.add_constraint('ARMATURE', name=par_con_name, index=0, 
+					targets = [
+						{
+							"subtarget" : parent.name
+						},
+					]
+				)
+			# Move constraints except the above one to the merged control
+			for c in b.constraint_infos[:]:
+				if c.name==par_con_name: continue
+				parent.constraint_infos.append(c)
+				b.constraint_infos.remove(c)
 
 	##############################
 	# Parameters

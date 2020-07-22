@@ -183,7 +183,7 @@ def combine_bone_names(names) -> str:
 		else:
 			break
 	final_base = base_start
-	for i, base in enumerate(bases_cropped):
+	for i, base in enumerate(sorted(bases_cropped)):
 		if base!="":
 			if i!=0:
 				final_base += "+"
@@ -193,9 +193,11 @@ def combine_bone_names(names) -> str:
 		"""Combine a list of suffixes or prefixes by removing duplicates
 		and then removing matching side pairs.
 
-		Eg. for the input ["Left", "Left", "Right", "Right", "STR", "STR", "I"]
+		Eg. for the input ["Left", "Left", "Right", "STR", "STR", "I"]
 		return ["STR", "I"].
 		"""
+
+		# Remove duplicates
 		nonunique = [slice_name(n)[2] for n in names]
 		unique: List[str] = []
 		for extensions in list_of_extensions:

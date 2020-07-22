@@ -85,12 +85,12 @@ class CloudChainRig(CloudBaseRig):
 						str_bone.custom_shape = self.load_widget("Hemisphere_Flip")
 			str_sections.append(str_section)
 
-			# Tip control at the end of the chain.
+			# Create STR-TIP control at the end of the chain.
 			if org_i==len(org_chain)-1 and self.params.CR_cap_control:
 				str_bone = self.make_str_bone(org_bone, i, 1)
 				str_bone.put(org_bone.tail)
 				str_bone.vector = str_bone.prev.vector
-				str_bone.name = str_bone.name.replace("STR", "STR-TIP")
+				str_bone.name = self.naming.add_prefix(str_bone, "TIP")
 				str_bone.custom_shape_scale *= 1.3
 				str_sections.append([str_bone])
 				str_bone.custom_shape = self.load_widget("Hemisphere")
@@ -115,7 +115,9 @@ class CloudChainRig(CloudBaseRig):
 			,custom_shape_scale = 0.3
 			,parent = org_bone
 		)
+
 		str_bone.org_parent = org_bone
+
 		if segments>1 and seg_i>0:
 			sliced = self.naming.slice_name(str_bone.name)
 			str_bone.name = self.naming.make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
@@ -137,7 +139,7 @@ class CloudChainRig(CloudBaseRig):
 				main_str_bone.sub_bones.append(str_bone)
 
 				str_h_bone = self.str_mch.new(
-					name 		 = self.naming.add_prefix(str_bone.name, "H")
+					name 		 = self.naming.add_prefix(str_bone, "H")
 					,source 	 = str_bone
 					,bbone_width = 1/10
 					,parent		 = str_bone.parent

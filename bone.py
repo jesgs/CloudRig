@@ -46,7 +46,7 @@ class BoneSet(LinkedList):
 		[(0.0313725508749485, 0.19215688109397888, 0.05490196496248245), (0.1098039299249649, 0.26274511218070984, 0.04313725605607033), (0.2039215862751007, 0.38431376218795776, 0.16862745583057404)],
 	]
 
-	def __init__(self, generator, ui_name="Bone Set",
+	def __init__(self, generator, rig=None, ui_name="Bone Set",
 			bone_group="Group", normal=None, select=None, active=None, preset=-1,
 			layers = [l==0 for l in range(32)],
 			defaults = {}
@@ -54,6 +54,7 @@ class BoneSet(LinkedList):
 		super().__init__()
 		
 		# Rigify BaseRig instance where this BoneSet is used, and should be stored.
+		self.rig = rig
 		self.generator = generator
 		self.scale = generator.scale
 

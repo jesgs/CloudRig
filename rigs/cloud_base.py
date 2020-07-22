@@ -172,6 +172,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 
 		new_set = BoneSet(
 			self.generator,
+			self,
 			ui_name = bone_set_def['name'],
 			bone_group = getattr(self.params, bone_set_def['param']),
 			layers = bone_set_def['layers'],
