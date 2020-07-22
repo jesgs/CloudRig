@@ -141,7 +141,7 @@ class CloudLimbRig(CloudIKChainRig):
 		for i in range(0, self.params.CR_chain_segments):
 			factor_unit = 0.9 / self.params.CR_chain_segments
 			factor = 0.9 - factor_unit * i
-			self.first_str_counterrotate_setup(self.str_bones[i], self.org_chain[0], factor)
+			self.first_str_counterrotate_setup(self.str_chain[i], self.org_chain[0], factor)
 
 	def first_str_counterrotate_setup(self, str_bone, org_bone, factor):
 		str_bone.add_constraint('TRANSFORM',

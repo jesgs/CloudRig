@@ -184,7 +184,7 @@ class CloudSpineRig(CloudChainRig):
 			org_bone.ik_bone = ik_bone = self.spine_mch.new(
 				name		 = ik_name
 				,source		 = fk_bone
-				,head		 = self.fk_chain[i-1].head.copy() if i>0 else self.def_bones[0].head.copy()
+				,head		 = self.fk_chain[i-1].head.copy() if i>0 else self.def_chain[0].head.copy()
 				,tail		 = fk_bone.head
 				,parent		 = next_parent
 				,hide_select = self.mch_disable_select
@@ -269,7 +269,7 @@ class CloudSpineRig(CloudChainRig):
 	@stage.prepare_bones
 	def prepare_def_str_spine(self):
 		# Tweak some display things
-		for str_bone in self.str_bones:
+		for str_bone in self.str_chain:
 			str_bone.use_custom_shape_bone_size = False
 			str_bone.custom_shape_scale = 0.15
 		
@@ -298,7 +298,7 @@ class CloudSpineRig(CloudChainRig):
 		if not self.org_head:
 			# If there is no head, we need to parent the last ORG- bone to the last FK bone so any child rigs parented to this rig will behave as expected.
 			self.org_chain[-1].parent = self.fk_chain[-1]
-			self.str_bones[-2].parent = self.fk_chain[-2]
+			self.str_chain[-2].parent = self.fk_chain[-2]
 		
 		# Change any ORG- children of the final spine bone to be owned by the neck bone instead. This is needed because of the index shift described above.
 		new_parent = self.org_head

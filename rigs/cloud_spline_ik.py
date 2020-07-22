@@ -16,7 +16,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		self.def_bones = self.ensure_bone_set("Curve Deform Bones")
+		self.def_chain = self.ensure_bone_set("Curve Deform Bones")
 
 	def create_curve(self):
 		""" Find or create the Bezier Curve that will be used by the rig. """
@@ -85,7 +85,7 @@ class CloudSplineIKRig(CloudCurveRig):
 				count_def_bone += 1
 
 				unit = org_bone.vector / segments
-				def_bone = self.def_bones.new(
+				def_bone = self.def_chain.new(
 					name		 = def_name
 					,source		 = org_bone
 					,head		 = org_bone.head + (unit * i)
@@ -96,8 +96,8 @@ class CloudSplineIKRig(CloudCurveRig):
 					,use_deform	 = True
 				)
 
-				if len(self.def_bones) > 1:
-					def_bone.parent = self.def_bones[-2]
+				if len(self.def_chain) > 1:
+					def_bone.parent = self.def_chain[-2]
 				else:
 					def_bone.parent = self.org_chain[0]
 
@@ -116,10 +116,10 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def add_spline_ik(self):
 		# Add constraint to deform chain
-		self.def_bones[-1].add_constraint('SPLINE_IK'
+		self.def_chain[-1].add_constraint('SPLINE_IK'
 			,target			  = self.params.CR_curve_target
 			,use_curve_radius = True
-			,chain_count	  = len(self.def_bones)
+			,chain_count	  = len(self.def_chain)
 		)
 
 	##############################

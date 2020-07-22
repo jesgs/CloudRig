@@ -26,15 +26,11 @@ class CloudChainRig(CloudBaseRig):
 		self.chain_length = 0
 
 	def ensure_bone_sets(self):
-		# TODO: We should introduce a convention that bone sets ending in 
-		# _chain are ones where the order is expected to be meaningful. 
-		# If our STR bones could be ordered, our code could be a bit cleaner. 
-		# And they are ordered, it's just not clear.
 		super().ensure_bone_sets()
-		self.str_bones = self.ensure_bone_set("Stretch Controls")
+		self.str_chain = self.ensure_bone_set("Stretch Controls")
 		self.str_mch = self.ensure_bone_set("Stretch Helpers")
 		self.skh_bones = self.ensure_bone_set("Shape Key Helpers")
-		self.def_bones = self.ensure_bone_set("Deform Bones")
+		self.def_chain = self.ensure_bone_set("Deform Bones")
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -47,10 +43,10 @@ class CloudChainRig(CloudBaseRig):
 		self.make_str_helpers(str_sections)
 
 		if self.params.CR_chain_smooth_spline:
-			for str_bone in self.str_bones:
+			for str_bone in self.str_chain:
 				str_bone.dt_bone = self.make_dt_helper(str_bone)
 
-		self.make_def_chain(self.str_bones)
+		self.make_def_chain(self.str_chain)
 
 		self.connect_parent_chain_rig()
 
@@ -104,7 +100,7 @@ class CloudChainRig(CloudBaseRig):
 		if seg_i==0 and org_bone.prev:
 			direction = org_bone.tail - org_bone.prev.head
 		unit = org_bone.vector / segments
-		str_bone = self.str_bones.new(
+		str_bone = self.str_chain.new(
 			name = org_bone.name.replace("ORG", "STR")
 			,source = org_bone
 			,head = org_bone.head + (unit * seg_i)
@@ -212,7 +208,7 @@ class CloudChainRig(CloudBaseRig):
 			tail = org_bone.tail
 
 			def_name = str_bone.name.replace("STR", "DEF")
-			def_bone = self.def_bones.new(
+			def_bone = self.def_chain.new(
 				name					 = def_name
 				,source					 = org_bone
 				,parent					 = str_bone
@@ -265,7 +261,7 @@ class CloudChainRig(CloudBaseRig):
 
 			org_bone.def_bones.append(def_bone)
 
-		return self.def_bones
+		return self.def_chain
 
 	def make_shape_key_helper(self, def_bone_1: BoneInfo, def_bone_2: BoneInfo) -> BoneInfo:
 		"""Create SKP and SKH helper bones.
@@ -327,13 +323,13 @@ class CloudChainRig(CloudBaseRig):
 				meta_org_bone = self.generator.metarig.data.bones.get(self.org_chain[0].name.replace("ORG-", ""))
 				if meta_org_bone.use_connect:
 					def_bone = parent_rig.def_bones[-1]
-					str_bone = self.str_bones[0]
+					str_bone = self.str_chain[0]
 					str_bone.custom_shape = self.load_widget('Sphere')
 					def_bone.bbone_custom_handle_end = str_bone
 					def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.name)
 					self.make_bbone_scale_drivers(def_bone)
 					if self.params.CR_chain_shape_key_helpers:
-						self.make_shape_key_helper(def_bone, self.def_bones[0])
+						self.make_shape_key_helper(def_bone, self.def_chain[0])
 
 	##############################
 	# Parameters
