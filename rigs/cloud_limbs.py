@@ -9,8 +9,6 @@ from rigify.base_rig import stage
 from .cloud_ik_chain import CloudIKChainRig
 
 """TODO
-IMPORTANT: IK stretching is broken again... when stretching and footrolling, something goes wrong.
-	There is a CopyLoc_IK_Stretch constraint on STR-S-Toes.L which looks like it should instead be on... the foot? The STR-S bone itself should've probably been created for the foot.
 feet control shouldn't be forced onto the floor, maybe based on an option, or use anklepivot bone, or whatever.
 ROLL-Foot.L shouldn't have its tail be offset in a flat forward direction. Instead, make it perpendicular to the knee, pointing towards the toe. (cross product of knee and toe bones' vectors?)
 Some smartypants way of ensuring that the IK pole, when IK Pole Follow is enabled, follows the IK control on its roll axis, but not the other axes?
@@ -64,7 +62,7 @@ class CloudLimbRig(CloudIKChainRig):
 	def determine_segments(self, org_bone):
 		segments, bbone_density = super().determine_segments(org_bone)
 
-		if self.limb_type=='LEG' and org_bone in self.org_chain[-3:-1]:
+		if self.limb_type=='LEG' and org_bone in self.org_chain[-2:]:
 			# Force strictly 1 segment on the foot and the toe.
 			return 1, bbone_density
 		elif self.limb_type=='ARM' and org_bone == self.org_chain[-1]:

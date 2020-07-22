@@ -198,9 +198,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def setup_ik_stretch(self):
 		ik_org_bone = self.org_chain[self.chain_count]
-		str_name = self.org_chain[0].name.replace("ORG", "IK-STR")
 		stretch_bone = self.ik_mch.new(
-			name		 = str_name
+			name		 = self.org_chain[0].name.replace("ORG", "IK-STR")
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
@@ -266,10 +265,16 @@ class CloudIKChainRig(CloudFKChainRig):
 		return stretch_bone
 
 	def main_str_transform_setup(self, stretch_bone, chain_length):
-		""" Set up transformation constraint to mid-limb STR bone that ensures that it stays in between the root of the limb and the IK master control during IK stretching. """
+		""" Set up transformation constraint to mid-limb STR bone that ensures 
+			that it stays in between the root of the limb and the IK master 
+			control during IK stretching.
+		"""
 
 		cum_length = self.org_chain[0].length
 		for i, main_str_bone in enumerate(self.main_str_bones):
+			# How far this bone is along the total chain length
+			head_tail = cum_length/chain_length
+			if head_tail > 1.0: break
 			if i == 0: continue
 			if i == len(self.main_str_bones)-1: continue
 			main_str_helper = self.ik_mch.new(
@@ -286,7 +291,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				,space			= 'WORLD'
 				,subtarget		= stretch_bone.name
 				,name			= con_name
-				,head_tail		= cum_length/chain_length	# How far this bone is along the total chain length
+				,head_tail		= head_tail
 			)
 			cum_length += self.org_chain[i].length
 
