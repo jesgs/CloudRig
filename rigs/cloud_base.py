@@ -355,6 +355,11 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 		return dropdown_ui(layout, params, dropdown_param_name)
 
 	@classmethod
+	def disable_row(cls, row_name):
+		if row_name in cls.ui_rows:
+			cls.ui_rows[row_name].enabled = False
+
+	@classmethod
 	def cloud_params_ui(cls, layout, params):
 		doc = cls.__doc__ or cls.__bases__[0].__doc__
 		if doc:
@@ -369,7 +374,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 	def parameters_ui(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		cls.ui_rows = {}	# TODO IMPORTANT: Using this errors when a panel is closed, eg. on cloud_shoulder if the FK Settings panel is closed.
+		cls.ui_rows = {}
 
 		layout = cls.cloud_params_ui(layout, params)
 		layout.separator()

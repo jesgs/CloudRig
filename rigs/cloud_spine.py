@@ -29,12 +29,13 @@ class CloudSpineRig(CloudChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
+		self.params.CR_deform_segments = 1
+
 		assert len(self.bones.org.main) >= self.params.CR_spine_length, f"Spine Length parameter value({self.params.CR_spine_length}) cannot exceed length of bone chain connected to {self.base_bone} ({len(self.bones.org.main)})"
 		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones."
 
 		self.ik_prop_name = "ik_spine"
 		self.ik_stretch_name = "ik_stretch_spine"
-		self.params.CR_deform_segments = 1
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
@@ -360,10 +361,10 @@ class CloudSpineRig(CloudChainRig):
 	def cloud_params_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
+		cls.disable_row('CR_deform_segments')
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_spine_settings"): return layout
-		
-		cls.ui_rows['CR_deform_segments'].enabled = False
+
 		layout.prop(params, "CR_spine_length")
 		layout.prop(params, "CR_create_ik_spine")
 		layout.prop(params, "CR_double_controls")

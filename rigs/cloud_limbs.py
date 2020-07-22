@@ -396,8 +396,7 @@ class CloudLimbRig(CloudIKChainRig):
 	def cloud_params_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
-		if 'CR_sharp_sections' in cls.ui_rows:
-			cls.ui_rows['CR_sharp_sections'].enabled = False
+		cls.disable_row('CR_sharp_sections')
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_show_limb_settings"): return layout
 
