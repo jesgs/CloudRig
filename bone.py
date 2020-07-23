@@ -186,6 +186,11 @@ class BoneInfo:
 		self.bbone_scaleoutx = 1
 		self.bbone_scaleouty = 1
 
+		# Recalculate Roll
+		self.roll_type = "" # This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
+		self.roll_bone = None # If roll_type=='ACTIVE', use this as the active bone. This is a BoneInfo instance or a string.
+		self.roll_cursor = Vector() # If roll_type=='CURSOR', use this as the cursor location.
+
 		### Bone properties
 		self.name = name
 		self.layers = [l==0 for l in range(32)]	# 32 bools where only the first one is True.
@@ -437,6 +442,21 @@ class BoneInfo:
 		# Custom Properties.
 		for prop_name, prop in self.custom_props_edit.items():
 			make_property(eb, prop_name, **prop)
+
+		# Recalculate roll.
+		if self.roll_type != "":
+			bpy.ops.armature.select_all(action='DESELECT')
+			eb.select = True
+			if self.roll_type == 'ACTIVE':
+				active_bone = armature.data.edit_bones.get(str(self.roll_bone))
+				if not active_bone:
+					print(f"Error: Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
+				else:
+					armature.data.edit_bones.active = active_bone
+			elif self.roll_type == 'CURSOR':
+				bpy.context.scene.cursor.location = self.roll_cursor
+			
+			bpy.ops.armature.calculate_roll(type=self.roll_type)
 
 	def write_pose_data(self, pose_bone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
