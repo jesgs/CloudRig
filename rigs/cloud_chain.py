@@ -85,7 +85,8 @@ class CloudChainRig(CloudBaseRig):
 			if org_i==len(org_chain)-1 and self.params.CR_chain_tip_control:
 				str_bone = self.make_str_bone(org_bone, i, 1)
 				str_bone.put(org_bone.tail)
-				str_bone.vector = str_bone.prev.vector
+				str_bone.vector = org_bone.vector
+				str_bone.length = str_bone.prev.length
 				str_bone.name = self.naming.add_prefix(str_bone, "TIP")
 				str_bone.custom_shape_scale *= 1.3
 				str_sections.append([str_bone])

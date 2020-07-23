@@ -160,10 +160,10 @@ class CloudEyeRig(CloudBaseRig):
 		# Parent switching
 		eye_group_parents_prop_name = "eye_group_parents_" + group_name.lower()
 		search_parents = ["Root", "Torso", "Chest", "Neck", "Head"]
-		parent_names = self.rig_child(group_master, search_parents, self.ikfk_properties_bone, eye_group_parents_prop_name)
+		parent_names = self.rig_child(group_master, search_parents, self.properties_bone, eye_group_parents_prop_name)
 		if len(parent_names) > 0:
 			info = {
-				"prop_bone" : self.ikfk_properties_bone,
+				"prop_bone" : self.properties_bone,
 				"prop_id" : eye_group_parents_prop_name,
 				"texts" : parent_names,
 

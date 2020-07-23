@@ -321,7 +321,7 @@ class CloudLimbRig(CloudIKChainRig):
 		ik_driver = {
 			'prop' : 'targets[1].weight',
 			'variables' : [
-				(self.ikfk_properties_bone.name, self.ikfk_name)
+				(self.properties_bone.name, self.ikfk_name)
 			]
 		}
 		toe_con.drivers.append(ik_driver)

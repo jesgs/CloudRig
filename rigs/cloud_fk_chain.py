@@ -19,7 +19,11 @@ class CloudFKChainRig(CloudChainRig):
 		self.limb_name = self.category
 		if self.params.CR_fk_chain_use_limb_name:
 			self.limb_name = self.params.CR_fk_chain_limb_name								# Name used for naming bones. Should not contain a side identifier like .L/.R.
-		self.limb_ui_name = self.side_prefix + " " + self.limb_name	# Name used for UI related things. Should contain the side identifier.
+		
+		# Name used for UI related things. Should contain the side identifier.
+		self.limb_ui_name = self.limb_name
+		if self.side_prefix!="":
+			self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
 
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
 		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
@@ -92,7 +96,7 @@ class CloudFKChainRig(CloudChainRig):
 				category = self.category,
 				parent_bone = self.limb_root_bone,
 				hng_name = self.base_bone.replace("ORG", "FK-HNG"),
-				prop_bone = self.ikfk_properties_bone,
+				prop_bone = self.properties_bone,
 				prop_name = self.fk_hinge_name,
 				limb_name = self.limb_ui_name,
 				bone_set = self.fk_mch

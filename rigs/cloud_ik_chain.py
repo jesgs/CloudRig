@@ -125,7 +125,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		info = {	# These parameter names must be kept in sync with Snap_IK2FK in cloudrig.py
 			"operator"				: "armature.ikfk_toggle",
-			"prop_bone"				: self.ikfk_properties_bone,
+			"prop_bone"				: self.properties_bone,
 			"prop_id"				: self.ikfk_name,
 			"fk_chain"				: [b.name for b in fk_chain],
 			"ik_chain"				: [b.name for b in ik_chain],
@@ -237,7 +237,7 @@ class CloudIKChainRig(CloudFKChainRig):
 						{
 							'id' : self.obj,
 							'id_type' : 'OBJECT',
-							'data_path' : f'pose.bones["{self.ikfk_properties_bone.name}"]["{self.ik_stretch_name}"]'
+							'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]'
 						}
 					]
 				}
@@ -246,7 +246,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		# Store info for UI
 		info = {
-			"prop_bone"			: self.ikfk_properties_bone,
+			"prop_bone"			: self.properties_bone,
 			"prop_id" 			: self.ik_stretch_name,
 		}
 		self.add_ui_data("ik_stretches", self.category, self.limb_ui_name, info, default=1.0)
@@ -302,13 +302,13 @@ class CloudIKChainRig(CloudFKChainRig):
 					'stretch' : {
 						'type' : 'SINGLE_PROP',
 						'targets' : [{
-							'data_path' : f'pose.bones["{self.ikfk_properties_bone.name}"]["{self.ik_stretch_name}"]'
+							'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]'
 						}]
 					},
 					'ik' : {
 						'type' : 'SINGLE_PROP',
 						'targets' : [{
-							'data_path' : f'pose.bones["{self.ikfk_properties_bone.name}"]["{self.ikfk_name}"]'
+							'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ikfk_name}"]'
 						}]
 					},
 					'distance' : {
@@ -381,7 +381,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			copy_trans.drivers.append({
 				'prop' : 'influence',
 				'variables' : [
-					(self.ikfk_properties_bone.name, self.ikfk_name)
+					(self.properties_bone.name, self.ikfk_name)
 				]
 			})
 
@@ -403,7 +403,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
 		# Try to rig the IK control's parent switcher, searching for these parent candidates.
-		parent_names = self.rig_child(ik_ctrl, self.ik_parents, self.ikfk_properties_bone, ik_parents_prop_name)
+		parent_names = self.rig_child(ik_ctrl, self.ik_parents, self.properties_bone, ik_parents_prop_name)
 		if len(parent_names) > 0:
 			bones = [ik_ctrl.name]
 			if self.params.CR_ik_chain_use_pole:
@@ -411,7 +411,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			else:
 				bones.append(self.ik_chain[0].name)
 			info = {
-				"prop_bone" : self.ikfk_properties_bone,
+				"prop_bone" : self.properties_bone,
 				"prop_id" : ik_parents_prop_name,
 				"texts" : parent_names,
 				
@@ -425,12 +425,12 @@ class CloudIKChainRig(CloudFKChainRig):
 		### IK Pole Follow
 		if self.params.CR_ik_chain_use_pole:
 			# Rig the IK Pole control's parent switcher.
-			self.rig_child(self.pole_ctrl, self.ik_parents, self.ikfk_properties_bone, ik_parents_prop_name)
+			self.rig_child(self.pole_ctrl, self.ik_parents, self.properties_bone, ik_parents_prop_name)
 
 			# Add option to the UI.
 			ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
 			info = {
-				"prop_bone" : self.ikfk_properties_bone,
+				"prop_bone" : self.properties_bone,
 				"prop_id"	: ik_pole_follow_name,
 
 				"operator" : "pose.snap_simple",
@@ -464,7 +464,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				d['variables']['follow'] = {
 					'type' : 'SINGLE_PROP',
 					'targets' : [{
-						'data_path' : f'pose.bones["{self.ikfk_properties_bone.name}"]["{ik_pole_follow_name}"]'
+						'data_path' : f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
 					}]
 				}
 
