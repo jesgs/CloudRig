@@ -190,7 +190,7 @@ class CloudChainRig(CloudBaseRig):
 				neg_con.influence = 0.5
 		dt_bone.add_constraint('COPY_ROTATION', subtarget = str_bone.name, mix_mode='BEFORE')
 		dt_bone.inherit_scale = 'NONE'
-		dt_bone.add_constraint('COPY_SCALE', subtarget=str_bone.name)
+		dt_bone.add_constraint('COPY_SCALE', subtarget=str_bone.name, space='WORLD')
 
 		return dt_bone
 

@@ -13,7 +13,6 @@ from ..utils.maths import bounding_box_center
 
 """TODO:
 Eyelid copy rotation influences should be set based on something rather than to just a hardcoded 1.0 and 0.5...
-BUG: Scale propagation is a bit busted on eyelid rigs, didn't investigate why.
 """
 
 class CloudEyeRig(CloudBaseRig):
@@ -99,8 +98,7 @@ class CloudEyeRig(CloudBaseRig):
 		# We parent ORG with transform constraint because we want to use the local transform matrix for reading its rotation.
 		bone.add_constraint('COPY_TRANSFORMS'
 			,subtarget = ctr_bone.name
-			,target_space = 'WORLD'
-			,owner_space = 'WORLD'
+			,space = 'WORLD'
 			,mix_mode = 'REPLACE'
 		)
 		dsp_bone = self.create_dsp_bone(ctr_bone)
