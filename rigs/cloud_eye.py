@@ -6,9 +6,15 @@ from mathutils import Vector
 
 from ..bone import BoneInfo
 from .cloud_base import CloudBaseRig
+from .cloud_chain import CloudChainRig
 
 from .. import widgets as cloud_widgets
 from ..utils.maths import bounding_box_center
+
+"""TODO:
+Eyelid copy rotation influences should be set based on something rather than to just a hardcoded 1.0 and 0.5...
+BUG: Scale propagation is a bit busted on eyelid rigs, didn't investigate why.
+"""
 
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
@@ -27,13 +33,19 @@ class CloudEyeRig(CloudBaseRig):
 		eye_org = self.org_chain[0]
 
 		if self.params.CR_eye_root:
-			self.make_eye_root(eye_org)
+			self.eye_root = self.make_eye_root(eye_org)
 		group_master = self.ensure_group_master()
-		target_bone = self.make_target_control(eye_org, group_master)
-		aim_bone = self.make_aim_helper(eye_org, target_bone)
-		self.make_eye_control(eye_org)
+		ctr_bone = self.make_eye_control(eye_org)
+		target_bone = self.make_target_control(ctr_bone, group_master)
+		aim_bone = self.make_aim_helper(ctr_bone, target_bone)
 		if self.params.CR_eye_deform:
 			self.make_def_bone(eye_org, self.eye_def)
+		
+		if self.params.CR_eye_sticky_eyelids:
+			if self.params.CR_eye_lower_eyelid != "":
+				self.setup_eyelid(self.params.CR_eye_lower_eyelid)
+			if self.params.CR_eye_upper_eyelid != "":
+				self.setup_eyelid(self.params.CR_eye_upper_eyelid)
 
 	def find_target_pos(self, bone) -> Vector:
 		"""Find location of where the target bone should be for an eye bone."""
@@ -61,9 +73,11 @@ class CloudEyeRig(CloudBaseRig):
 		return target_bone
 
 	def make_aim_helper(self, bone, target_bone) -> BoneInfo:
-		"""Create an aim bone for bone targetting target_bone, while leaving bone free to rotate."""
+		"""Create an AIM helper for @bone targetting @target_bone, while leaving
+		   @bone free to rotate.
+		"""
 		aim_bone = self.eye_mch.new(
-			name		 = bone.name.replace("ORG", "AIM")
+			name		 = self.org_chain[0].name.replace("ORG", "AIM")
 			,source		 = bone
 			,hide_select = self.mch_disable_select
 			,parent		 = bone.parent
@@ -82,7 +96,13 @@ class CloudEyeRig(CloudBaseRig):
 			,parent = bone.parent
 			,custom_shape = self.load_widget("Oval")
 		)
-		bone.parent = ctr_bone
+		# We parent ORG with transform constraint because we want to use the local transform matrix for reading its rotation.
+		bone.add_constraint('COPY_TRANSFORMS'
+			,subtarget = ctr_bone.name
+			,target_space = 'WORLD'
+			,owner_space = 'WORLD'
+			,mix_mode = 'REPLACE'
+		)
 		dsp_bone = self.create_dsp_bone(ctr_bone)
 		dsp_bone.put(ctr_bone.tail)
 		return ctr_bone
@@ -114,7 +134,7 @@ class CloudEyeRig(CloudBaseRig):
 		# Collect all cloud_eye rigs in this group.
 		eye_bones = []
 		for b in self.obj.pose.bones:
-			if b.rigify_type == 'cloud_eye' and b.rigify_parameters.CR_eye_group == self.params.CR_eye_group:
+			if b.rigify_type == 'cloud_eye' and b.rigify_parameters.CR_eye_group == group_name:
 				eye_bones.append(b)
 
 		if len(eye_bones) < 2:
@@ -172,9 +192,91 @@ class CloudEyeRig(CloudBaseRig):
 				"parent_names" : parent_names,
 				"bones" : [group_master.name],
 				}
-			self.add_ui_data("face_settings", self.params.CR_eye_group, self.params.CR_eye_group, info, default=0, _max=len(parent_names)-1)
+			self.add_ui_data("face_settings", group_name, group_name, info, default=0, _max=len(parent_names)-1)
 
 		return group_master
+
+	def setup_eyelid(self, eyelid_bone_name):
+		"""Create bones between the base bone and the main STR controls of the eyelid"""
+		
+		eyelid_rig = None
+		for rig in self.generator.rig_list:
+			if self.naming.strip_org(rig.base_bone) == eyelid_bone_name:
+				eyelid_rig = rig
+		assert eyelid_rig, f"Error: eyelid rig with base bone {eyelid_bone_name} not found."
+		assert isinstance(eyelid_rig, CloudChainRig), f"Error: Eyelid rig must be a CloudChainRig type."
+
+		sticky_prop_name = "sticky_eyelids_" + self.params.CR_eye_group.lower().replace(" ", "_")
+		info = {
+			'prop_bone' : self.properties_bone,
+			'prop_id' : sticky_prop_name
+		}
+		self.add_ui_data('face_settings', self.params.CR_eye_group, "Sticky", info, default=0.1)
+
+		eyelid_main_controls = []
+		for str_ctr in eyelid_rig.main_str_bones:
+			if hasattr(str_ctr, 'merged_control'):
+				str_ctr = str_ctr.merged_control
+			if str_ctr not in eyelid_main_controls:
+				eyelid_main_controls.append(str_ctr)
+
+		if self.params.CR_eye_root:
+			self.ensure_eyelid_root(eyelid_main_controls)
+
+		for str_ctr in eyelid_main_controls:
+			base_bone = self.org_chain[0]
+			rot_name = self.naming.make_name(["ROT"], *self.naming.slice_name(str_ctr)[1:])
+			rot_ctr = self.generator.find_bone_info(rot_name)
+			if not rot_ctr:
+				rot_ctr = self.eye_mch.new(
+					name = rot_name
+					,source = base_bone
+					,tail = str_ctr.head.copy()
+					,parent = str_ctr.parent
+					,roll_type = 'ACTIVE'
+					,roll_bone = base_bone
+				)
+				copyrot_x = rot_ctr.add_constraint('COPY_ROTATION'
+					,name='Copy Rotation X'
+					,subtarget=base_bone.name
+					,use_xyz = [True, False, False]
+				)
+				copyrot_x.drivers.append({
+					'prop' : 'influence'
+					,'expression' : "var*0.5"
+					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
+				})
+
+				copyrot_z = rot_ctr.add_constraint('COPY_ROTATION'
+					,name='Copy Rotation Z'
+					,subtarget=base_bone.name
+					,use_xyz = [False, False, True]
+				)
+				copyrot_z.drivers.append({
+					'prop' : 'influence'
+					,'expression' : "var*0.2"
+					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
+				})
+			str_ctr.parent = rot_ctr
+
+	def ensure_eyelid_root(self, eyelid_main_controls):
+		"""Create another root bone that owns the eye root bone as well as the 
+		   eyelid rotation helpers."""
+		base_bone = self.org_chain[0]
+		
+		# If the root bone already exists, just parent the bones and return.
+		if not hasattr(self, 'eyelid_root'):
+			self.eyelid_root = self.target_ctrl.new(
+				name = base_bone.name.replace("ORG", "ROOT-LID")
+				,source = base_bone
+				,parent = self.eye_root.parent
+				,custom_shape = self.load_widget('Square')
+				,custom_shape_scale = 3
+			)
+			self.eye_root.parent = self.eyelid_root
+
+		for str_bone in eyelid_main_controls:
+			str_bone.parent = self.eyelid_root
 
 	##############################
 	# Parameters
@@ -253,6 +355,7 @@ class CloudEyeRig(CloudBaseRig):
 		layout.prop(params, "CR_eye_root")
 		layout.prop(params, "CR_eye_sticky_eyelids")
 		if params.CR_eye_sticky_eyelids:
+			layout.label(text="Note: The eye bone should be parented to one of the eyelids, to make sure it is executed after them.")
 			layout.prop_search(params, 'CR_eye_lower_eyelid', ob.pose, 'bones')
 			layout.prop_search(params, 'CR_eye_upper_eyelid', ob.pose, 'bones')
 

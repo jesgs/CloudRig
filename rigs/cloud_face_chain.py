@@ -115,6 +115,8 @@ class CloudFaceChainRig(CloudChainRig):
 				parent.constraint_infos.append(c)
 				b.constraint_infos.remove(c)
 
+			b.merged_control = parent
+
 	##############################
 	# Parameters
 	@classmethod

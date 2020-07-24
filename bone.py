@@ -555,11 +555,11 @@ class ConstraintInfo(dict):
 		self.name = self.type.replace("_", " ").title()
 		self.drivers = []
 		
-		for key, value in kwargs.items():
-			self.__dict__[key] = value
-
 		if use_preferred_defaults:
 			self.set_preferred_defaults()
+
+		for key, value in kwargs.items():
+			self.__dict__[key] = value
 
 	def set_preferred_defaults(self):
 		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""

@@ -68,14 +68,18 @@ class CloudNameManager:
 
 	def side_is_left(self, thing) -> Optional[bool]:
 		return name_side_is_left(get_name(thing))
-	
+
 	def add_prefix(self, thing, new_prefix) -> str:
 		"""The most common case of making a bone name based on another one is to add a prefix to it."""
 		name = get_name(thing)
 		sliced_name = self.slice_name(name)
 		sliced_name[0].append(new_prefix)
 		return self.make_name(*sliced_name)
-	
+
+	def strip_org(self, name):
+		from rigify.utils.naming import strip_org
+		return strip_org(name)
+
 def make_name(prefixes=[], base="", suffixes=[], 
 			  prefix_separator="-", suffix_separator=".") -> str:
 	"""Make a name from a list of prefixes, a base, and a list of suffixes."""
