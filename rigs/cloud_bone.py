@@ -37,6 +37,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		org_bone = self.get_bone(self.bones.org)
 		meta_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
 		self.roll = org_bone.roll
+		org_bone.use_deform = False
 		if self.copy_type == "Tweak":
 			# Delete the Tweak ORG- bone. We will be copying stuff from the metarig bone instead.
 			self.obj.data.edit_bones.remove(org_bone)
