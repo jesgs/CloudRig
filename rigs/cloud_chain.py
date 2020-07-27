@@ -257,7 +257,7 @@ class CloudChainRig(CloudBaseRig):
 				def_bone.inherit_scale = 'NONE'
 				self.make_bbone_scale_drivers(def_bone)
 
-			if def_bone.prev:
+			if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 				self.make_shape_key_helper(def_bone.prev, def_bone)
 
 			org_bone.def_bones.append(def_bone)
@@ -266,7 +266,7 @@ class CloudChainRig(CloudBaseRig):
 
 	def make_shape_key_helper(self, def_bone_1: BoneInfo, def_bone_2: BoneInfo) -> BoneInfo:
 		"""Create SKP and SKH helper bones.
-		
+
 		Reading the local rotation of SKH
 		should give us the rotation which we can use to activate corrective
 		shape keys, since it will always represent the true rotational
