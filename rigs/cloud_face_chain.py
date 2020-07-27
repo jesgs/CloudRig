@@ -21,6 +21,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# However, pre-existing STR bones who then had a merged control created for them will be assigned the bone group and layer of this BoneSet.
 		self.sub_controls = self.ensure_bone_set("Sub Controls")
 		self.merged_controls = self.ensure_bone_set("Merged Controls")
+		self.face_mch = self.ensure_bone_set("Face Helpers")
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -35,10 +36,17 @@ class CloudFaceChainRig(CloudChainRig):
 	def move_and_relink_constraints(self):
 		for i, org in enumerate(self.org_chain):
 			for c in org.constraint_infos[:]:
+				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
-					self.main_str_bones[i+1].constraint_infos.append(c)
-				else:
-					self.main_str_bones[i].constraint_infos.append(c)
+					to_bone = self.main_str_bones[i+1]
+				
+				# Armature constraints turn parenting into local matrix, which messes up DT helper bones that rely on that local rotation.
+				# So if Smooth Spline param is enabled and we are relinking an armature constraint, make a separate bone for it.
+				if self.params.CR_chain_smooth_spline and c.type=='ARMATURE':
+					parent_bone = self.create_parent_bone(to_bone, self.face_mch)
+					to_bone = parent_bone
+
+				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				c.relink()
 
@@ -101,7 +109,8 @@ class CloudFaceChainRig(CloudChainRig):
 		for b in bones:
 			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
 			par_con_name = "Armature (Parenting affects local matrix)"
-			if b.container.rig.params.CR_chain_smooth_spline:
+			par_con = b.get_constraint(par_con_name)
+			if b.container.rig.params.CR_chain_smooth_spline and par_con==None:
 				b.add_constraint('ARMATURE', name=par_con_name, index=0, 
 					targets = [
 						{
@@ -123,8 +132,9 @@ class CloudFaceChainRig(CloudChainRig):
 	def define_bone_sets(cls, params):
 		""" Create parameters for this rig's bone sets. """
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Sub Controls", preset=1,	default_layers=[cls.default_layers('MCH')])
-		cls.define_bone_set(params, "Merged Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
+		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.default_layers('MCH')])
+		cls.define_bone_set(params, "Merged Controls",	preset=8,	default_layers=[cls.default_layers('STRETCH')])
+		cls.define_bone_set(params, "Face Helpers", 				default_layers=[cls.default_layers('MCH')])
 
 	@classmethod
 	def add_parameters(cls, params):
