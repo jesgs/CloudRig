@@ -12,7 +12,8 @@ from .. import widgets as cloud_widgets
 from ..utils.maths import bounding_box_center
 
 """TODO:
-Eyelid copy rotation influences should be set based on something rather than to just a hardcoded 1.0 and 0.5...
+Eyelid copy rotation influences should be set based on something rather than to 
+just a hardcoded 1.0 and 0.5...
 """
 
 class CloudEyeRig(CloudBaseRig):
@@ -239,9 +240,32 @@ class CloudEyeRig(CloudBaseRig):
 					,subtarget=base_bone.name
 					,use_xyz = [True, False, False]
 				)
+				# TODO: Below setup only works when the eye is facing towards the standard direction!
+				# Instead of flattening the vectors in global coord space, the rot bone's tails should be projected on a plane defined by the eye bone, then get their distance on that plane and plug that into the driver.
+
+				normal = self.meta_base_bone.z_axis
+				vec = rot_ctr.vector
+				projection = vec - (vec.dot(normal)) * normal
+
+				projection = maths.project_vector_on_plane(rot_ctr, self.meta_base_bone.z_axis)
+				
+				debug_bone = self.eye_mch.new(
+					name = "DEBUG-"+rot_name
+					,source = base_bone
+					,vector = projection
+					,roll_type = 'ACTIVE'
+					,roll_bone = base_bone
+				)
+
+				eye_size = base_bone.length
+				# X Influence should be correlated to the distance between the eye bone tail and the ROT bone tail ignoring their Z component.
+				eye_no_z = Vector((base_bone.tail.x, base_bone.tail.y, 0))
+				rot_no_z = Vector((rot_ctr.tail.x, rot_ctr.tail.y, 0))
+				distance = (eye_no_z - rot_no_z).length
+				factor = 1-distance/eye_size
 				copyrot_x.drivers.append({
 					'prop' : 'influence'
-					,'expression' : "var*0.5"
+					,'expression' : f"var*{factor}"
 					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
 				})
 
@@ -250,9 +274,14 @@ class CloudEyeRig(CloudBaseRig):
 					,subtarget=base_bone.name
 					,use_xyz = [False, False, True]
 				)
+				# Z Influence should be correlated to the distance between the eye bone tail and the ROT bone tail ignoring their X component.
+				eye_no_x = Vector((0, base_bone.tail.y, base_bone.tail.z))
+				rot_no_x = Vector((0, rot_ctr.tail.y, rot_ctr.tail.z))
+				distance = (eye_no_x - rot_no_x).length
+				factor = 1-distance/eye_size
 				copyrot_z.drivers.append({
 					'prop' : 'influence'
-					,'expression' : "var*0.2"
+					,'expression' : f"var*{factor}"
 					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
 				})
 			str_ctr.parent = rot_ctr
@@ -354,6 +383,7 @@ class CloudEyeRig(CloudBaseRig):
 		layout.prop(params, "CR_eye_sticky_eyelids")
 		if params.CR_eye_sticky_eyelids:
 			layout.label(text="Note: The eye bone should be parented to one of the eyelids, to make sure it is executed after them.")
+			layout.label(text="The eye bone's +Y axis should be the aiming(or rolling) axis, and +Z the up/down axis.")
 			layout.prop_search(params, 'CR_eye_lower_eyelid', ob.pose, 'bones')
 			layout.prop_search(params, 'CR_eye_upper_eyelid', ob.pose, 'bones')
 
