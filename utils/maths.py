@@ -32,6 +32,15 @@ def scale_points_from_center(points, scale) -> List[Vector]:
 		)
 	return new_points
 
+def project_vector_on_plane(vec: Vector, plane_x: Vector, plane_y: Vector = None) -> Vector:
+	# If plane_y wasn't passed, assume that plane_x is the normal of the plane.
+	normal = plane_x
+	if plane_y:
+		normal = plane_x.cross(plane_y).normalized()
+
+	projection = vec - (vec.dot(normal)) * normal
+	return projection
+
 def project_points_on_plane (points, projection_axis) -> List[Vector]:
 	# Find two vectors(ie. a plane) that are perpendicular to the projection axis.
 	projection_direction = projection_axis.normalized()

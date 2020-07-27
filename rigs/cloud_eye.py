@@ -9,12 +9,7 @@ from .cloud_base import CloudBaseRig
 from .cloud_chain import CloudChainRig
 
 from .. import widgets as cloud_widgets
-from ..utils.maths import bounding_box_center
-
-"""TODO:
-Eyelid copy rotation influences should be set based on something rather than to 
-just a hardcoded 1.0 and 0.5...
-"""
+from ..utils.maths import bounding_box_center, project_vector_on_plane
 
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
@@ -240,32 +235,16 @@ class CloudEyeRig(CloudBaseRig):
 					,subtarget=base_bone.name
 					,use_xyz = [True, False, False]
 				)
-				# TODO: Below setup only works when the eye is facing towards the standard direction!
-				# Instead of flattening the vectors in global coord space, the rot bone's tails should be projected on a plane defined by the eye bone, then get their distance on that plane and plug that into the driver.
-
-				normal = self.meta_base_bone.z_axis
-				vec = rot_ctr.vector
-				projection = vec - (vec.dot(normal)) * normal
-
-				projection = maths.project_vector_on_plane(rot_ctr, self.meta_base_bone.z_axis)
-				
-				debug_bone = self.eye_mch.new(
-					name = "DEBUG-"+rot_name
-					,source = base_bone
-					,vector = projection
-					,roll_type = 'ACTIVE'
-					,roll_bone = base_bone
-				)
-
 				eye_size = base_bone.length
-				# X Influence should be correlated to the distance between the eye bone tail and the ROT bone tail ignoring their Z component.
-				eye_no_z = Vector((base_bone.tail.x, base_bone.tail.y, 0))
-				rot_no_z = Vector((rot_ctr.tail.x, rot_ctr.tail.y, 0))
-				distance = (eye_no_z - rot_no_z).length
-				factor = 1-distance/eye_size
+
+				# X Influence should be correlated to the distance between the 
+				# ROT bone tail rejected onto the eye bone Z axis, vs the eye bone tail.
+				rejection_z = project_vector_on_plane(rot_ctr.vector, self.meta_base_bone.z_axis)
+				distance = (base_bone.vector - rejection_z).length
+				sticky_strength = 1 - distance / eye_size
 				copyrot_x.drivers.append({
 					'prop' : 'influence'
-					,'expression' : f"var*{factor}"
+					,'expression' : f"var*{sticky_strength}"
 					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
 				})
 
@@ -274,14 +253,15 @@ class CloudEyeRig(CloudBaseRig):
 					,subtarget=base_bone.name
 					,use_xyz = [False, False, True]
 				)
-				# Z Influence should be correlated to the distance between the eye bone tail and the ROT bone tail ignoring their X component.
-				eye_no_x = Vector((0, base_bone.tail.y, base_bone.tail.z))
-				rot_no_x = Vector((0, rot_ctr.tail.y, rot_ctr.tail.z))
-				distance = (eye_no_x - rot_no_x).length
-				factor = 1-distance/eye_size
+
+				# Z Influence should be correlated to the distance between the 
+				# ROT bone tail projected onto the eye bone vs the eye bone tail.
+				rejection_x = project_vector_on_plane(rot_ctr.vector, self.meta_base_bone.x_axis)
+				distance = (base_bone.vector - rejection_x).length
+				sticky_strength = 1-distance/eye_size
 				copyrot_z.drivers.append({
 					'prop' : 'influence'
-					,'expression' : f"var*{factor}"
+					,'expression' : f"var*{sticky_strength}"
 					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
 				})
 			str_ctr.parent = rot_ctr
