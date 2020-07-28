@@ -11,6 +11,13 @@ from .cloud_chain import CloudChainRig
 from .. import widgets as cloud_widgets
 from ..utils.maths import bounding_box_center, project_vector_on_plane
 
+"""TODO:
+This should be split into a simpler "cloud_aim" without the eyelid functionality.
+Then the Sticky Eyelids toggle can be removed, since it would be the only purpose of using this rig.
+
+Also, it's kindof arbitrary atm that we ask for 2 chain rigs. Nothing is stopping someone from making a full ring around the eyelids with one chain. Feels odd.
+"""
+
 class CloudEyeRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
@@ -326,10 +333,9 @@ class CloudEyeRig(CloudBaseRig):
 		params.CR_eye_root = BoolProperty(
 			name		 = "Create Root"
 			,default	 = False
-			,description = "Create a root bone for this rig."
+			,description = "Create a root bone for this rig"
 		)
 
-		# TODO IMPORTANT: Implement this.
 		params.CR_eye_sticky_eyelids = BoolProperty(
 			name		 = "Sticky Eyelids"
 			,description = "Eyelids will follow the rotation of the eye bone"

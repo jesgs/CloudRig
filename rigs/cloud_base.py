@@ -324,6 +324,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return
 
 		cls.ui_rows[set_info['param']] = col = layout.column()
+		col.use_property_split=True
 		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
 
 		if True:

@@ -189,17 +189,17 @@ class CloudFKChainRig(CloudChainRig):
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_fk_chain_show_settings"): return layout
 
-		limb_row = layout.row(align=True, heading="Limb UI Name")
-		limb_row.prop(params, "CR_fk_chain_use_limb_name", text="")
-		col = limb_row.column()
-		col.prop(params, "CR_fk_chain_limb_name", text="")
-		col.enabled = params.CR_fk_chain_use_limb_name
-
 		category_row = layout.row(align=True, heading="UI Category")
 		category_row.prop(params, "CR_fk_chain_use_category_name", text="")
 		col = category_row.column()
 		col.prop(params, "CR_fk_chain_category_name", text="")
 		col.enabled = params.CR_fk_chain_use_category_name
+
+		limb_row = layout.row(align=True, heading="Limb UI Name")
+		limb_row.prop(params, "CR_fk_chain_use_limb_name", text="")
+		col = limb_row.column()
+		col.prop(params, "CR_fk_chain_limb_name", text="")
+		col.enabled = params.CR_fk_chain_use_limb_name
 
 		center_fk_row = layout.row()
 		center_fk_row.prop(params, "CR_fk_chain_display_center")

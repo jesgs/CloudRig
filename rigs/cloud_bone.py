@@ -361,6 +361,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		ui_label_with_linebreak(layout, cls.__doc__)
 
 		layout.use_property_split = True
+		layout.use_property_decorate = False
 		
 		pb = bpy.context.active_pose_bone
 

@@ -3,6 +3,11 @@ from bpy.props import BoolProperty, IntProperty, FloatProperty
 
 from .cloud_curve import CloudCurveRig
 
+"""TODO:
+"Subdivide Bones" param should be re-implemented as "number of bones", since it has to max out at 255 anyways. And the bones should be distributed evenly anyways. It just makes a lot more sense.
+
+"""
+
 class CloudSplineIKRig(CloudCurveRig):
 	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
@@ -138,7 +143,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		"""
 		super().add_parameters(params)
 		
-		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK Rig")
+		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK Settings")
 		params.CR_spline_ik_match_hooks = BoolProperty(
 			 name		 = "Match Controls to Bones"
 			,description = "Hook controls will be created at each bone, instead of being equally distributed across the length of the chain"
