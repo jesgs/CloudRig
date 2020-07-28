@@ -1,13 +1,20 @@
 # What is CloudRig?
-CloudRig is a custom featureset package for the [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html) Blender addon, developed for the Blender Animation Studio in-house, with the help of professional animators.
+CloudRig is a collection of customizable rig building blocks that can be added to the [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html) Blender addon and rigging system. It is being developed for and by the Blender Animation Studio, with the guidance of professional animators.
 
-Put another way, CloudRig is a collection of customizable rig building blocks That can be added to Rigify.
+You can support this work by subscribing to the [Blender Cloud](https://cloud.blender.org/)!
 
 # Installing CloudRig
 Download this repository as a .zip via the "Clone or download" button.
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.  
-![](docs/featureset_load.gif)  
+
+<figure class="video_container">
+  <video controls="true" allowfullscreen="true" poster="path/to/poster_image.png">
+    <source src="docs/installation.mp4" type="video/mp4">
+  </video>
+</figure>
+
+
 
 # Using CloudRig
 The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Human (Metarig)**.
