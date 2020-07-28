@@ -7,18 +7,7 @@ You can support this work by subscribing to the [Blender Cloud](https://cloud.bl
 Download this repository as a .zip via the "Clone or download" button.
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.  
-
-<figure class="video_container">
-  <video controls="true" allowfullscreen="true" poster="path/to/poster_image.png">
-    <source src="docs/installation.mp4" type="video/mp4">
-  </video>
-</figure>
-
-<iframe src="https://www.youtube-nocookie.com/embed/aEjGQB9BKWA?start=76"></iframe>
-<iframe src="https://youtu.be/YQDDm9HLkV4?t=401"></iframe>
-
-
-
+![](docs/featureset_load.gif)  
 
 
 # Using CloudRig
