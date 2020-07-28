@@ -1,7 +1,7 @@
 # What is CloudRig?
-CloudRig is a custom featureset package for the [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html) Blender addon, developed for the Blender Animation Studio in-house, with the help of professional animators.
+CloudRig is a collection of customizable rig building blocks that can be added to the [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html) Blender addon and rigging system. It is being developed for and by the Blender Animation Studio, with the guidance of professional animators.
 
-Put another way, CloudRig is a collection of customizable rig building blocks That can be added to Rigify.
+You can support this work by subscribing to the [Blender Cloud](https://cloud.blender.org/)!
 
 # Installing CloudRig
 Download this repository as a .zip via the "Clone or download" button.
@@ -10,7 +10,7 @@ In the Rigify addon preferences, click on **Rigify: External feature sets->Insta
 ![](docs/featureset_load.gif)  
 
 # Using CloudRig
-The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Human (Metarig)**.
+The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Human (Metarig)**.  
 Next, you can generate this rig via **Properties->Object Data->Rigify Buttons->Generate Rig**.
 And bam, you have a rig!  
 ![](docs/armature_generate.gif)  
@@ -18,6 +18,7 @@ And bam, you have a rig!
 You can try moving around the bones in the Metarig in edit mode, and then generating again, to see the rig re-generated to the new proportions.
 
 CloudRig only helps you up to this stage in the rigging process - Weight Painting is still ahead of you. All the deform bones are on a single layer. You will have to weight paint your character to these bones using whatever your preferred workflow is.
+
 
 ### Rig Elements
 In order to customize a rig element, try selecting the "UpperArm.L" bone in pose mode. Then go to Properties->Bone->Rigify Type. You should find this interface:  
