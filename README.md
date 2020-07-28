@@ -14,6 +14,11 @@ In the Rigify addon preferences, click on **Rigify: External feature sets->Insta
   </video>
 </figure>
 
+<iframe src="https://www.youtube-nocookie.com/embed/aEjGQB9BKWA?start=76"></iframe>
+<iframe src="https://youtu.be/YQDDm9HLkV4?t=401"></iframe>
+
+
+
 
 
 # Using CloudRig
