@@ -20,7 +20,7 @@ def cloudrig_manual_map():
 	generator_params_pref = "bpy.types.cloudrigproperties."
 
 	cloud_types_pref = "CloudRig-Types#cloud_"
-	cloud_types = ['bone', 'chain', 'curve', 'face_chain', 'fk_chain', 'ik_chain', 'limbs', 'shoulder', 'spine', 'spline_ik']
+	cloud_types = ['bone', 'chain', 'curve', 'face_chain', 'fk_chain', 'ik_chain', 'limbs', 'shoulder', 'spine', 'spline_ik', 'eye']
 
 	# All CloudRig type parameters are expected to be prefixed with 
 	# CR_<rig_type>_, eg. CR_chain_segments for cloud_chain.
@@ -38,6 +38,8 @@ def cloudrig_manual_map():
 			(params_pref + t + "_*", cloud_types_pref+t)
 		)
 
+	# The following mapping has to be kept updated manually however.
+	# IMPORTANT: More specific data paths have to come FIRST before data paths with wildcards!
 	url_map.extend([
 		("bpy.ops.pose.cloudrig_layer_init", "Organizing-Bones#customizing-bone-layers"),
 
@@ -47,8 +49,6 @@ def cloudrig_manual_map():
 		(generator_params_pref+"double_root", "Generator-Parameters#double-root"),
 		(generator_params_pref+"mechanism_selectable", "Generator-Parameters#selectable-helpers"),
 		(generator_params_pref+"mechanism_movable", "Generator-Parameters#movable-helpers"),
-		(generator_params_pref+"prefix_separator", "Generator-Parameters#prefix/suffix-separator"),
-		(generator_params_pref+"suffix_separator", "Generator-Parameters#prefix/suffix-separator"),
 
 		(generator_params_pref+"override_options", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_bone_group", "Organizing-Bones#bone-sets"),
@@ -61,10 +61,13 @@ def cloudrig_manual_map():
 		(generator_params_pref+"mch_layers", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"override_org_layers", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"org_layers", "Organizing-Bones#bone-sets"),
+		(generator_params_pref+"show_layers_preview_hidden", "Organizing-Bones#bone-sets"),
+		(params_pref+"show_bone_sets", "Organizing-Bones#bone-sets"),
+
+		(params_pref+"bg_*", "Organizing-Bones#bone-sets"),
 
 		(generator_params_pref+"*", "Generator-Parameters"),
 
-		(params_pref+"bg_*", "Organizing-Bones#bone-sets"),
 		(params_pref+"*", "CloudRig-Types"),
 
 		("bpy.types.cloudrig_properties.*", "Custom-Properties"),

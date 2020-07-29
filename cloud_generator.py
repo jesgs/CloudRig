@@ -140,7 +140,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	show_layers_preview_hidden: BoolProperty(
 		name		 = "Show Hidden Layers"
-		,description = "Include hidden layers"
+		,description = "Include layers whose names start with $ and will be hidden on the rig UI"
 		,default	 = True
 	)
 
