@@ -6,7 +6,7 @@ You can support this work by subscribing to the [Blender Cloud](https://cloud.bl
 
 # Installation
 
-Download this repository as a .zip via the "Clone or download" button.
+Download this repository as a .zip.
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.  
 ![](docs/featureset_load.gif)  
@@ -30,3 +30,6 @@ And bam, you have a rig!
 You can try moving around the bones in the Metarig in edit mode, and then generating again, to see the rig re-generated to the new proportions.
 
 Using Rigify and CloudRig mostly consists of creating such a metarig yourself, with the proportions and features that suits your character's needs. To learn more on how to do that, check out the [wiki](/../../../-/wikis/home)!
+
+# Report problems
+If you run into weird error messages or have suggestions on how something could be improved, feel free to [open an issue](/../issues/new).

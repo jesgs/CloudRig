@@ -105,6 +105,7 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 				if target_rig:
 					subtarget_exists = act.subtarget in target_rig.data.bones
 					if not subtarget_exists:
+						row.alert=True
 						row.label(text='Control Bone missing!', icon='ERROR')
 					else:
 						row.label(text=act.subtarget, icon='BONE_DATA')
