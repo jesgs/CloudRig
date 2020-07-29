@@ -3,11 +3,22 @@ CloudRig is a collection of customizable rig building blocks that can be added t
 
 You can support this work by subscribing to the [Blender Cloud](https://cloud.blender.org/)!
 
-# Installing CloudRig
+
+# Installation
+
 Download this repository as a .zip via the "Clone or download" button.
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.  
 ![](docs/featureset_load.gif)  
+
+
+<details>
+<summary> Supported Blender versions: 2.82 and above. </summary>
+It may work with earlier versions of Blender, but it is not guaranteed.
+Any issues specific to older versions of Blender are not likely to be fixed.
+
+CloudRig is currently being developed right alongside Blender, so it should always work on the latest daily experimental Blender build.
+</details>
 
 
 # Using CloudRig
