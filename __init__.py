@@ -41,8 +41,7 @@ def cloudrig_manual_map():
 	# The following mapping has to be kept updated manually however.
 	# IMPORTANT: More specific data paths have to come FIRST before data paths with wildcards!
 	url_map.extend([
-		("bpy.ops.pose.cloudrig_layer_init", "Organizing-Bones#customizing-bone-layers"),
-
+		# Generator Parameters
 		("bpy.ops.pose.cloudrig_generate", "Generator-Parameters"),
 		(generator_params_pref+"custom_script", "Generator-Parameters#custom-script"),
 		(generator_params_pref+"create_root", "Generator-Parameters#create-root"),
@@ -50,6 +49,8 @@ def cloudrig_manual_map():
 		(generator_params_pref+"mechanism_selectable", "Generator-Parameters#selectable-helpers"),
 		(generator_params_pref+"mechanism_movable", "Generator-Parameters#movable-helpers"),
 
+		# Organizing Bones
+		("bpy.ops.pose.cloudrig_layer_init", "Organizing-Bones#customizing-bone-layers"),
 		(generator_params_pref+"override_options", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_bone_group", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_layers", "Organizing-Bones#bone-sets"),
@@ -63,13 +64,16 @@ def cloudrig_manual_map():
 		(generator_params_pref+"org_layers", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"show_layers_preview_hidden", "Organizing-Bones#bone-sets"),
 		(params_pref+"show_bone_sets", "Organizing-Bones#bone-sets"),
-
 		(params_pref+"bg_*", "Organizing-Bones#bone-sets"),
 
+		# Actions
+		("bpy.ops.pose.cloudrig_action_*", "Actions"),
+		(generator_params_pref+"active_action_index", "Actions"),
+		("bpy.types.cloudrigaction.*", "Actions"),
+
+		# Catch-alls
 		(generator_params_pref+"*", "Generator-Parameters"),
-
 		(params_pref+"*", "CloudRig-Types"),
-
 		("bpy.types.cloudrig_properties.*", "Custom-Properties"),
 	])
 	return url_manual_prefix, url_map
