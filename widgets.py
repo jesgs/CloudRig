@@ -63,7 +63,7 @@ def initiate_widget_generation(name):
 	if obj:
 		obdata = obj.data
 		bpy.data.objects.remove(obj)
-	
+
 	return ob_name
 
 def bezier_widget(rig, coords, bone):

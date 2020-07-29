@@ -25,7 +25,7 @@ class LinkedList(list):
 		super().append(value)
 
 class BoneSet(LinkedList):
-	""" Class to manage lists of BoneInfo instances. 
+	""" Class to manage lists of BoneInfo instances.
 	Also manages a bone group and layer assignment for these bones. """
 
 	presets = [
@@ -52,7 +52,7 @@ class BoneSet(LinkedList):
 			defaults = {}
 	):
 		super().__init__()
-		
+
 		# Rigify BaseRig instance where this BoneSet is used, and should be stored.
 		self.rig = rig
 		self.generator = generator
@@ -63,7 +63,7 @@ class BoneSet(LinkedList):
 
 		# Name that will be displayed in the Bone Sets UI.
 		self.ui_name = ui_name
-		
+
 		# Bone Group name to assign to newly defined BoneInfos.
 		self.bone_group = bone_group
 
@@ -131,7 +131,7 @@ class BoneSet(LinkedList):
 		bone_group = rig.pose.bone_groups.get(self.bone_group)
 		if bone_group and not overwrite:
 			return bone_group
-		
+
 		if not bone_group:
 			bone_group = rig.pose.bone_groups.new(name=self.bone_group)
 
@@ -143,16 +143,16 @@ class BoneSet(LinkedList):
 		return bone_group
 
 class BoneInfo:
-	""" 
+	"""
 	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone and bpy.types.EditBone
 	into a single concept.
 
 	This class does not concern itself with posing the bone, only creating and rigging it.
-	Eg, it does not store pose bone transformations such as loc/rot/scale. 
+	Eg, it does not store pose bone transformations such as loc/rot/scale.
 	"""
 
 	def __init__(self, container, name="Bone", source=None, **kwargs):
-		""" 
+		"""
 		container: Need a reference to what BoneSet this BoneInfo belongs to. #TODO: might be nice to make this not required?
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
@@ -377,7 +377,7 @@ class BoneInfo:
 			self.constraint_infos.append(con_info)
 
 		return con_info
-	
+
 	def add_constraint_from_real(self, BPY_constraint):
 		kwargs = {}
 		skip = ['active', 'bl_rna', 'error_location', 'error_rotation', 'is_proxy_local', 'is_valid', 'rna_type', 'type']
@@ -394,9 +394,9 @@ class BoneInfo:
 						'weight' : t.weight
 					})
 				continue
-			
+
 			kwargs[key] = getattr(BPY_constraint, key)
-		
+
 		new_con = ConstraintInfo(self, BPY_constraint.type, **kwargs)
 		self.constraint_infos.append(new_con)
 		return new_con
@@ -455,7 +455,7 @@ class BoneInfo:
 					armature.data.edit_bones.active = active_bone
 			elif self.roll_type == 'CURSOR':
 				bpy.context.scene.cursor.location = self.roll_cursor
-			
+
 			bpy.ops.armature.calculate_roll(type=self.roll_type)
 
 	def write_pose_data(self, pose_bone):
@@ -528,12 +528,12 @@ class BoneInfo:
 		for driver_info in self.drivers:
 			driver_info['prop'] = f'pose.bones["{pb.name}"].{driver_info["prop"]}'
 			make_driver(armature, target_id=armature, **driver_info)
-		
+
 		# Data Bone Drivers.
 		for driver_info in self.drivers_data:
 			driver_info['prop'] = f'bones["{pb.name}"].{driver_info["prop"]}'
 			make_driver(armature.data, target_id=armature, **driver_info)
-	
+
 	def get_real(self, armature):
 		"""If a bone with the name of this BoneInfo exists in the passed armature, return it."""
 		if armature.mode == 'EDIT':
@@ -554,7 +554,7 @@ class ConstraintInfo(dict):
 		self.target = target
 		self.name = self.type.replace("_", " ").title()
 		self.drivers = []
-		
+
 		if use_preferred_defaults:
 			self.set_preferred_defaults()
 
@@ -606,7 +606,7 @@ class ConstraintInfo(dict):
 			for i, t in enumerate(self.targets):
 				t['subtarget'] = subtargets[i]
 			return
-		
+
 		if len(subtargets) > 0:
 			self.subtarget = subtargets[0]
 
@@ -624,7 +624,7 @@ class ConstraintInfo(dict):
 			del con_info['target']
 
 		con = make_constraint(pose_bone, con_type, **con_info)
-		
+
 		if con_type == 'ARMATURE' and targets:
 			for target_info in targets:
 				target = con.targets.new()
@@ -632,9 +632,9 @@ class ConstraintInfo(dict):
 				for prop in ['weight', 'target', 'subtarget']:
 					if prop in target_info:
 						setattr(target, prop, target_info[prop])
-			
+
 		# Fix stretch constraints
 		if con_type == 'STRETCH_TO':
 			con.rest_length = 0
-		
+
 		return con

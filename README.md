@@ -8,8 +8,8 @@ You can support this work by subscribing to the [Blender Cloud](https://cloud.bl
 
 Download this repository as a .zip.
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
-In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.  
-![](docs/featureset_load.gif)  
+In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.
+![](docs/featureset_load.gif)
 
 
 <details>
@@ -22,10 +22,10 @@ CloudRig is currently being developed right alongside Blender, so it should alwa
 
 
 # Using CloudRig
-The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Humans -> Basic Human (Metarig)**.  
+The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Humans -> Basic Human (Metarig)**.
 Next, you can generate this rig via **Properties->Object Data->Rigify Buttons->Generate CloudRig**.
-And bam, you have a rig!  
-![](docs/armature_generate.gif)  
+And bam, you have a rig!
+![](docs/armature_generate.gif)
 
 You can try moving around the bones in the Metarig in edit mode, and then generating again, to see the rig re-generated to the new proportions.
 

@@ -54,13 +54,13 @@ class CloudChainRig(CloudBaseRig):
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		segments = self.params.CR_chain_segments
 
-		bbone_density = round(org_bone.length/self.average_org_length * 
+		bbone_density = round(org_bone.length/self.average_org_length *
 			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
 
 		# No segments for last bone of the chain if there is no control for its tail.
 		if org_bone == self.org_chain[-1] and not self.params.CR_chain_tip_control:
 			return 1, 1
-		
+
 		return segments, bbone_density
 
 	def make_str_chain(self, org_chain: BoneSet) -> List[List[BoneInfo]]:
@@ -92,7 +92,7 @@ class CloudChainRig(CloudBaseRig):
 				str_sections.append([str_bone])
 				str_bone.custom_shape = self.load_widget("Hemisphere")
 				self.main_str_bones.append(str_bone)
-		
+
 		return str_sections
 
 	def make_str_bone(self, org_bone: BoneInfo, seg_i: int, segments: int) -> BoneInfo:
@@ -127,9 +127,9 @@ class CloudChainRig(CloudBaseRig):
 		for sec_i, section in enumerate(str_sections):
 			for i, str_bone in enumerate(section):
 				# If this STR bone is not the first in its section
-				# Create an STR-H parent helper for it, which will hold some constraints 
+				# Create an STR-H parent helper for it, which will hold some constraints
 				# that keep this bone between the first and last STR bone of the section.
-				if i==0: 
+				if i==0:
 					main_str_bone = str_bone
 					main_str_bone.sub_bones = []
 					continue
@@ -169,7 +169,7 @@ class CloudChainRig(CloudBaseRig):
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
 	def make_dt_helper(self, str_bone: BoneInfo) -> BoneInfo:
-		"""Create a child bone for an STR bone with Damped Track constraints 
+		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
 		dt_bone = self.str_mch.new(
 			name = self.naming.add_prefix(str_bone, "DT")
@@ -273,7 +273,7 @@ class CloudChainRig(CloudBaseRig):
 		difference between the end of def_bone_1 and the start of def_bone_2.
 		"""
 
-		# SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail 
+		# SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail
 		# of def_bone_1.
 		skp_bone = self.skh_bones.new(
 			name		 = def_bone_1.name.replace("DEF", "SKP")
@@ -291,7 +291,7 @@ class CloudChainRig(CloudBaseRig):
 			,head_tail		 = 1
 		)
 
-		# SKH (Shape Key Helper): This is parented to SKP and Copy Transforms 
+		# SKH (Shape Key Helper): This is parented to SKP and Copy Transforms
 		# of the b-bone head of def_bone_2.
 		skh_bone = self.skh_bones.new(
 			name		 = def_bone_1.name.replace("DEF", "SKH")
@@ -313,8 +313,8 @@ class CloudChainRig(CloudBaseRig):
 
 	def connect_parent_chain_rig(self):
 		"""Connect two separate but connected cloud_chain rigs.
-		
-		If the parent rig is a connected chain rig with cap_control=False, 
+
+		If the parent rig is a connected chain rig with cap_control=False,
 		make the last DEF bone of that rig stretch to this rig's first STR.
 		"""
 

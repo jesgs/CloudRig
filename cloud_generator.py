@@ -84,8 +84,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default="Root"
 	)
 	root_layers: BoolVectorProperty(
-		size = 32, 
-		subtype = 'LAYER', 
+		size = 32,
+		subtype = 'LAYER',
 		description = "Layers to assign the root bone to",
 		default = [l==0 for l in range(32)]
 	)
@@ -96,8 +96,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default="Root Parent"
 	)
 	root_parent_layers: BoolVectorProperty(
-		size = 32, 
-		subtype = 'LAYER', 
+		size = 32,
+		subtype = 'LAYER',
 		description = "Layers to assign the the second root bone to",
 		default = [l==0 for l in range(32)]
 	)
@@ -108,8 +108,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	=True
 	)
 	def_layers: BoolVectorProperty(
-		size = 32, 
-		subtype = 'LAYER', 
+		size = 32,
+		subtype = 'LAYER',
 		description = "Select what layers this set of bones should be assigned to",
 		default = [l==29 for l in range(32)]
 	)
@@ -120,8 +120,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	=True
 	)
 	mch_layers: BoolVectorProperty(
-		size = 32, 
-		subtype = 'LAYER', 
+		size = 32,
+		subtype = 'LAYER',
 		description = "Select what layers this set of bones should be assigned to",
 		default = [l==30 for l in range(32)]
 	)
@@ -132,8 +132,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	=True
 	)
 	org_layers: BoolVectorProperty(
-		size = 32, 
-		subtype = 'LAYER', 
+		size = 32,
+		subtype = 'LAYER',
 		description = "Select what layers this set of bones should be assigned to",
 		default = [l==31 for l in range(32)]
 	)
@@ -280,14 +280,14 @@ class CloudGenerator(Generator):
 
 	def load_ui_script(self):
 		"""Load cloudrig.py (CloudRig UI script) into a text datablock, enable register checkbox and execute it."""
-		
+
 		# Check if it already exists
 		script_name = "cloudrig.py"
 		text = bpy.data.texts.get(script_name)
 		# If not, create it.
 		if not text:
 			text = bpy.data.texts.new(name=script_name)
-		
+
 		text.clear()
 		text.use_module = True
 
@@ -300,10 +300,10 @@ class CloudGenerator(Generator):
 		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
 		script_id = bpy.path.basename(bpy.data.filepath).split(".")[0]
 		if script_id=="":
-			# Default in case the file hasn't been saved yet. 
+			# Default in case the file hasn't been saved yet.
 			# Falling back to this could result in an older version of the rig trying to use a newer version of the rig UI script or vice versa, so it should be avoided.
 			script_id = "cloudrig"
-		
+
 		self.obj.data['cloudrig'] = script_id
 
 		for line in readfile:
@@ -355,7 +355,7 @@ class CloudGenerator(Generator):
 			# Create a Widgets collection within the master collection.
 			wgt_collection = bpy.data.collections.new(coll_name)
 			bpy.context.scene.collection.children.link(wgt_collection)
-		
+
 		wgt_collection.hide_viewport=True
 		wgt_collection.hide_render=True
 		return wgt_collection
@@ -368,7 +368,7 @@ class CloudGenerator(Generator):
 			if hasattr(rig, "bone_sets"):
 				for bs in rig.bone_sets:
 					exists = bs.find(name)
-					if exists: 
+					if exists:
 						return exists
 
 	def create_action_constraints(self):
@@ -476,7 +476,7 @@ class CloudGenerator(Generator):
 		self.wgt_collection = self.ensure_widget_collection()
 
 		self.define_root_bone()
-		
+
 		# Rename metarig data (TODO: parameter)
 		self.metarig.data.name = "Data_" + self.metarig.name
 
@@ -657,7 +657,7 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
-		
+
 		# Execute custom script
 		script = self.params.cloudrig_parameters.custom_script
 		if script:
@@ -703,7 +703,7 @@ class CloudGenerator(Generator):
 				mat = child.matrix_world.copy()
 				child.parent_bone = sub_parent
 				child.matrix_world = mat
-		
+
 		# Refresh drivers
 		bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
 

@@ -15,11 +15,11 @@ class CloudFKChainRig(CloudChainRig):
 		self.category = self.naming.slice_name(self.base_bone)[1]
 		if self.params.CR_fk_chain_use_category_name:
 			self.category = self.params.CR_fk_chain_category_name
-		
+
 		self.limb_name = self.category
 		if self.params.CR_fk_chain_use_limb_name:
 			self.limb_name = self.params.CR_fk_chain_limb_name								# Name used for naming bones. Should not contain a side identifier like .L/.R.
-		
+
 		# Name used for UI related things. Should contain the side identifier.
 		self.limb_ui_name = self.limb_name
 		if self.side_prefix!="":
@@ -36,14 +36,14 @@ class CloudFKChainRig(CloudChainRig):
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Extend cloud_chain by tweaking some bbone values"""
 		def_chain = super().make_def_chain(str_chain)
-		# If we didn't put a stretch constraint on the final deform bone, 
+		# If we didn't put a stretch constraint on the final deform bone,
 		# it must mean there is no cap control.
 		last_def = def_chain[-1]
 		if len(last_def.constraint_infos)==0:
 			if last_def.prev:
 				# In this case, set the previous def_bone's easeout to 0.
 				last_def.prev.bbone_easeout = 0
-			# Also, parent this to the ORG bone. This is so that scaling 
+			# Also, parent this to the ORG bone. This is so that scaling
 			# the last STR control doesn't affect this deform bone.
 			last_def.parent = last_def.parent.org_parent
 
@@ -92,7 +92,7 @@ class CloudFKChainRig(CloudChainRig):
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:
 			hng_bone = self.hinge_setup(
-				bone = hng_child, 
+				bone = hng_child,
 				category = self.category,
 				parent_bone = self.limb_root_bone,
 				hng_name = self.base_bone.replace("ORG", "FK-HNG"),
@@ -156,7 +156,7 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "Set up a hinge toggle"
 			,default	 = True
 		)
-		
+
 		params.CR_fk_chain_use_limb_name = BoolProperty(
 			 name		 = "Custom Limb Name"
 			,description = "Specify a name for this limb. Settings for limbs with the same name will be displayed on the same row in the rig UI. If not enabled, use the name of the base bone, without pre and suffixes"

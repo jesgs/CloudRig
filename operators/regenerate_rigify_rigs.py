@@ -5,7 +5,7 @@ from ..utils.object import EnsureVisible
 
 def safe_generate(context, metarig, target_rig):
 	# Generating requires the metarig to be the active object, and the target rig to be visible.
-	
+
 	meta_visible = EnsureVisible(metarig)
 	rig_visible = EnsureVisible(target_rig)
 

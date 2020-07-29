@@ -22,14 +22,14 @@ def cloudrig_manual_map():
 	cloud_types_pref = "CloudRig-Types#cloud_"
 	cloud_types = ['bone', 'chain', 'curve', 'face_chain', 'fk_chain', 'ik_chain', 'limbs', 'shoulder', 'spine', 'spline_ik', 'eye']
 
-	# All CloudRig type parameters are expected to be prefixed with 
+	# All CloudRig type parameters are expected to be prefixed with
 	# CR_<rig_type>_, eg. CR_chain_segments for cloud_chain.
-	
-	# Also on the wiki, all CloudRig types should have a paragraph in the 
+
+	# Also on the wiki, all CloudRig types should have a paragraph in the
 	# CloudRig-Types page with the name of the type.
-	
-	# Knowing this, we can build a URL mapping automatically, which also 
-	# enables us to add or remove parameters in the future without having to 
+
+	# Knowing this, we can build a URL mapping automatically, which also
+	# enables us to add or remove parameters in the future without having to
 	# worry about keeping the URL mapping up to date, as long as we stick to the
 	# naming conventions above.
 	url_map = []

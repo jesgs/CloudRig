@@ -25,20 +25,20 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def create_curve(self):
 		""" Find or create the Bezier Curve that will be used by the rig. """
-		
+
 		curve_ob = self.params.CR_curve_target
 		if curve_ob:
 			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.
 			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken.
 
-		
+
 		sum_bone_length = sum([b.length for b in self.org_chain])
 		length_unit = sum_bone_length / (self.num_controls-1)
 		handle_length = length_unit * self.params.CR_spline_ik_handle_length
 
 		curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
 		curve_name += "_" + (self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", ""))
-		
+
 		# Create and name curve object.
 		bpy.ops.curve.primitive_bezier_curve_add(radius=0.2, location=(0, 0, 0))
 
@@ -70,7 +70,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			p.co = loc
 			p.handle_right = loc + handle_length * direction
 			p.handle_left  = loc - handle_length * direction
-		
+
 		# Reset selection so Rigify can continue execution.
 		bpy.context.view_layer.objects.active = self.obj
 		self.obj.select_set(True)
@@ -113,7 +113,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		self.define_ctrls_for_curve_points()
 		self.create_def_chain()
 		self.add_spline_ik()
-	
+
 	def define_curve_controls(self):
 		# This rig's create_curve() relies on CloudBaseRig.prepare_bones() having already run.
 		# But if we simply call super().prepare_bones(), it will run define_ctrls_for_curve_points(), which, for this class, relies on create_curve() running beforehand.
@@ -142,7 +142,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			RigifyParameters PropertyGroup
 		"""
 		super().add_parameters(params)
-		
+
 		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK Settings")
 		params.CR_spline_ik_match_hooks = BoolProperty(
 			 name		 = "Match Controls to Bones"

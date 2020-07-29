@@ -42,7 +42,7 @@ class CloudEyeRig(CloudBaseRig):
 		aim_bone = self.make_aim_helper(ctr_bone, target_bone)
 		if self.params.CR_eye_deform:
 			self.make_def_bone(eye_org, self.eye_def)
-		
+
 		if self.params.CR_eye_sticky_eyelids:
 			if self.params.CR_eye_lower_eyelid != "":
 				self.setup_eyelid(self.params.CR_eye_lower_eyelid)
@@ -129,7 +129,7 @@ class CloudEyeRig(CloudBaseRig):
 		group_master_name = "MSTR-TGT-"+group_name
 
 		existing = self.generator.find_bone_info(group_master_name)
-		if existing: 
+		if existing:
 			return existing
 
 		# Collect all cloud_eye rigs in this group.
@@ -199,7 +199,7 @@ class CloudEyeRig(CloudBaseRig):
 
 	def setup_eyelid(self, eyelid_bone_name):
 		"""Create bones between the base bone and the main STR controls of the eyelid"""
-		
+
 		eyelid_rig = None
 		for rig in self.generator.rig_list:
 			if self.naming.strip_org(rig.base_bone) == eyelid_bone_name:
@@ -244,7 +244,7 @@ class CloudEyeRig(CloudBaseRig):
 				)
 				eye_size = base_bone.length
 
-				# X Influence should be correlated to the distance between the 
+				# X Influence should be correlated to the distance between the
 				# ROT bone tail rejected onto the eye bone Z axis, vs the eye bone tail.
 				rejection_z = project_vector_on_plane(rot_ctr.vector, self.meta_base_bone.z_axis)
 				distance = (base_bone.vector - rejection_z).length
@@ -261,7 +261,7 @@ class CloudEyeRig(CloudBaseRig):
 					,use_xyz = [False, False, True]
 				)
 
-				# Z Influence should be correlated to the distance between the 
+				# Z Influence should be correlated to the distance between the
 				# ROT bone tail projected onto the eye bone vs the eye bone tail.
 				rejection_x = project_vector_on_plane(rot_ctr.vector, self.meta_base_bone.x_axis)
 				distance = (base_bone.vector - rejection_x).length
@@ -274,10 +274,10 @@ class CloudEyeRig(CloudBaseRig):
 			str_ctr.parent = rot_ctr
 
 	def ensure_eyelid_root(self, eyelid_main_controls):
-		"""Create another root bone that owns the eye root bone as well as the 
+		"""Create another root bone that owns the eye root bone as well as the
 		   eyelid rotation helpers."""
 		base_bone = self.org_chain[0]
-		
+
 		# If the root bone already exists, just parent the bones and return.
 		if not hasattr(self, 'eyelid_root'):
 			self.eyelid_root = self.target_ctrl.new(
@@ -323,7 +323,7 @@ class CloudEyeRig(CloudBaseRig):
 			name		 = "Target Distance"
 			,default	 = 5.0
 			,description = "Distance of the target from the eye. This value is not in blender units, but is a value relative to the scale of the rig"
-            ,min         = 0
+			,min		 = 0
 		)
 		params.CR_eye_deform = BoolProperty(
 			name		 = "Create Deform"

@@ -10,7 +10,7 @@ class EnsureVisible:
 		self.obj_hide = obj.hide_get()
 		self.obj_hide_viewport = obj.hide_viewport
 		self.temp_coll = None
-		
+
 		if not obj.visible_get():
 			obj.hide_set(False)
 			obj.hide_viewport = False
@@ -25,14 +25,14 @@ class EnsureVisible:
 				temp_coll = bpy.data.collections.new(coll_name)
 			if coll_name not in bpy.context.scene.collection.children:
 				bpy.context.scene.collection.children.link(temp_coll)
-		
+
 			if obj.name not in temp_coll.objects:
 				temp_coll.objects.link(obj)
-			
+
 			self.temp_coll = temp_coll
 
 			set_active_collection(active_coll)
-	
+
 	def restore(self):
 		"""Restore visibility settings to their original state."""
 		obj = bpy.data.objects.get(self.obj_name)
@@ -93,14 +93,14 @@ def set_layers(obj, layerlist, additive=False):
 
 	if not additive:
 		layers = [False]*32
-	
+
 	for i, e in enumerate(layerlist):
 		if type(e)==bool:
 			assert len(layerlist)==32, f"ERROR: Layer assignment expected a list of 32 booleans, got {len(layerlist)}."
 			layers[i] = e
 		elif type(e)==int:
 			layers[e] = True
-	
+
 	obj.layers = layers[:]
 
 def recursive_search_layer_collection(collName, layerColl=None) -> bpy.types.LayerCollection:
@@ -108,7 +108,7 @@ def recursive_search_layer_collection(collName, layerColl=None) -> bpy.types.Lay
 	# This is the only way to set active collection as of 14-04-2020.
 	if not layerColl:
 		layerColl = bpy.context.view_layer.layer_collection
-	
+
 	found = None
 	if (layerColl.name == collName):
 		return layerColl

@@ -32,7 +32,7 @@ class MirrorRigifyParameters(bpy.types.Operator):
 			if flip_bone.bone.select:
 				print(f"Warning: Bone {pb.name} selected on both sides, mirroring would be ambiguous, skipping. Only select the left or right side, not both!")
 				continue
-			
+
 			flip_bone.rigify_type = pb.rigify_type
 			copy_rigify_params(pb, flip_bone)
 

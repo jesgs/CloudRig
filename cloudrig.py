@@ -37,7 +37,7 @@ def get_bones(rig, names):
 	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
 def draw_rig_settings(layout, rig, dict_name, label=""):
-	""" 
+	"""
 	dict_name is the name of the custom property dictionary that we expect to find in the rig.
 	Everything stored in a single dictionary is drawn in one call of this function.
 	These dictionaries are created during rig generation.
@@ -132,7 +132,7 @@ class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
 			matrices = []
 			for bone_name in bone_names:
 				matrices.append( self.save_frame_state(context, rig, bone_name) )
-			
+
 			self.apply_frame_state(context, rig, matrices, bone_names)
 
 		except Exception as e:
@@ -357,7 +357,7 @@ class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_simple):
 		names_unhide = self.hide_on if value==1 else self.hide_off
 
 		self.set_custom_property_value(
-			rig, self.prop_bone, self.prop_id, 1-value, 
+			rig, self.prop_bone, self.prop_id, 1-value,
 			keyflags=self.keyflags
 		)
 		my_map = json.loads(my_map)
@@ -525,9 +525,9 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 			prop_bone = self.prop_bone,
 			prop_id = self.prop_id,
 
-			map_on		= json.dumps(map_on), 
-			map_off		= json.dumps(map_off), 
-			hide_on		= json.dumps(hide_on), 
+			map_on		= json.dumps(map_on),
+			map_off		= json.dumps(map_off),
+			hide_on		= json.dumps(hide_on),
 			hide_off	= json.dumps(hide_off),
 
 			select_bones = True,
@@ -713,7 +713,7 @@ class CloudRig_ColorProperties(bpy.types.PropertyGroup):
 	# You would have to create these for yourself with a separate python script.
 	# C.object.data.cloud_colors.new()
 
-	# The reset colors operator will reset all color properties to this default. 
+	# The reset colors operator will reset all color properties to this default.
 	# Nothing's stopping you from changing this default, but it's not exposed in the UI, so it shouldn't be easy to accidently mess up.
 	default: FloatVectorProperty(
 		name='Default',
@@ -860,7 +860,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 					bp = bool_props[prop_id]
 					layout.prop(bp, 'value', toggle=True, text=bp.name, icon='TRIA_DOWN' if parent_prop_value in values else 'TRIA_RIGHT')
 				elif type(prop_owner[prop_id]) in [int, float]:
-					layout.prop(prop_owner, '["'+prop_id+'"]', slider=True, 
+					layout.prop(prop_owner, '["'+prop_id+'"]', slider=True,
 						text = get_text(prop_id, prop_owner[prop_id])
 					)
 				elif str(type(prop_owner[prop_id])) == "<class 'IDPropertyArray'>":
@@ -897,7 +897,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 					childrens_box = layout.box()
 					for child_prop_name in prop_hierarchy[parent_prop_name]:
 						add_prop(childrens_box, prop_owner, child_prop_name)
-					
+
 				# Marking child props as done drawing. (Regardless of whether they were actually drawn or not, since if the parent is disabled, we don't want to draw them.)
 				for parent in prop_hierarchy.keys():
 					for child in prop_hierarchy[parent]:

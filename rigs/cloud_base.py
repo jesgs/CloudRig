@@ -224,7 +224,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 		# TODO: Move this to generator code, before stage is called.
 		for bone_set in self.bone_sets:
 			for bi in bone_set:
-				if ( 
+				if (
 					bi.name in self.obj.data.edit_bones or
 					bi.name in self.bones.flatten() or
 					bi.name == 'root'
@@ -248,11 +248,11 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 
 	@classmethod
 	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
-		""" 
+		"""
 		A bone set is just a set of rig parameters for choosing a bone group and list of bone layers.
-		This function is responsible for creating those rig parameters, as well as storing them, 
-		so they can be referenced easily when implementing the creation of a new bone 
-		and assigning its bone group and layers. 
+		This function is responsible for creating those rig parameters, as well as storing them,
+		so they can be referenced easily when implementing the creation of a new bone
+		and assigning its bone group and layers.
 
 		For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
 		Then the "FK Main" bone set's bone group and bone layer can be customized via the parameters.
@@ -266,7 +266,7 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 		layer_param_name = "CR_BG_LAYERS_" + group_name.replace(" ", "_")
 
 		setattr(
-			params, 
+			params,
 			param_name,
 			StringProperty(
 				default = default_group,
@@ -276,11 +276,11 @@ class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
 
 		default_layers_bools = [i in default_layers for i in range(32)]
 		setattr(
-			params, 
-			layer_param_name, 
+			params,
+			layer_param_name,
 			BoolVectorProperty(
-				size = 32, 
-				subtype = 'LAYER', 
+				size = 32,
+				subtype = 'LAYER',
 				description = f"Select what layers {ui_name} should be assigned to",
 				default = default_layers_bools
 			)

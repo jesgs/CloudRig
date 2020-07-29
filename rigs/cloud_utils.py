@@ -28,9 +28,9 @@ class CloudUtilities:
 
 	# TODO: Move this to cloud_fk_chain.py?
 	# This would require splitting off the neck and head from the spine rig.
-	def hinge_setup(self, bone, category, *, 
-		prop_bone, prop_name, default_value=0.0, 
-		parent_bone=None, head_tail=0, 
+	def hinge_setup(self, bone, category, *,
+		prop_bone, prop_name, default_value=0.0,
+		parent_bone=None, head_tail=0,
 		hng_name=None, limb_name=None, bone_set=None
 	):
 		""" Create a hinge toggle for a bone. Bone is usually the first bone in an FK chain.
@@ -68,7 +68,7 @@ class CloudUtilities:
 		)
 
 		# Hinge Armature constraint
-		hng_con = hng_bone.add_constraint('ARMATURE', 
+		hng_con = hng_bone.add_constraint('ARMATURE',
 			targets = [
 				{
 					"subtarget" : 'root'
@@ -112,13 +112,13 @@ class CloudUtilities:
 
 	def get_parent_candidates(self, candidates={}):
 		""" Go recursively up the rig element hierarchy. Collect and return a list of the registered parent bones from each rig."""
-		
+
 		for parent_name in self.parent_candidates.keys():
 			candidates[parent_name] = self.parent_candidates[parent_name]
 
 		if self.rigify_parent and hasattr(self.rigify_parent, "get_parent_candidates"):
 			return self.rigify_parent.get_parent_candidates(candidates)
-		
+
 		return candidates
 
 	def load_widget(self, name):
@@ -142,7 +142,7 @@ class CloudUtilities:
 		for pn in parent_names:
 			if pn in list(parent_candidates.keys()):
 				found_parents.append(pn)
-		if len(found_parents) == 0: 
+		if len(found_parents) == 0:
 			print(f"Warning: No parents to be rigged for {child_bone.name}.")
 			return found_parents
 
@@ -163,7 +163,7 @@ class CloudUtilities:
 			})
 
 		# Add armature constraint
-		arm_con = arm_con_bone.add_constraint('ARMATURE', 
+		arm_con = arm_con_bone.add_constraint('ARMATURE',
 			targets = targets
 		)
 
@@ -343,7 +343,7 @@ def create_parent_bone(child, bone_set=None):
 	if bone_set==None:
 		bone_set = child.container
 	parent_bone = bone_set.new(
-		name				= parent_name 
+		name				= parent_name
 		,source				= child
 		,custom_shape		= child.custom_shape
 		,custom_shape_scale = child.custom_shape_scale * 1.1
@@ -355,11 +355,11 @@ def create_parent_bone(child, bone_set=None):
 
 def copy_custom_property(from_owner, to_owner, prop_name):
 	rna_ui = from_owner['_RNA_UI'].to_dict()
-	
+
 	if prop_name not in rna_ui:
 		print(f"Warning: Custom property {prop_name} not found on {from_owner}, failed to copy.")
 		return
-	
+
 	data = rna_ui[prop_name]
 	data['overridable'] = from_owner.is_property_library_overridable(f'["{prop_name}]"')
 
@@ -367,13 +367,13 @@ def copy_custom_property(from_owner, to_owner, prop_name):
 		data['default'] = 1.0
 	if not 'description' in data:
 		data['description'] = ""
-	
+
 	make_property(to_owner, prop_name, **data)
 
 def copy_driver(from_fcurve, obj, data_path=None, index=None):
 	if not data_path:
 		data_path = from_fcurve.data_path
-	
+
 	new_fc = None
 	if index:
 		new_fc = obj.driver_add(data_path, index)
@@ -400,19 +400,19 @@ def copy_driver(from_fcurve, obj, data_path=None, index=None):
 		copy_attributes(v1, v2)
 		for i in range(len(v1.targets)):
 			copy_attributes(v1.targets[i], v2.targets[i])
-	
+
 	return new_fc
 
 def vector_along_bone_chain(chain: List[BoneInfo], length=0, index=-1) -> Tuple[Vector, Vector]:
 	"""On a bone chain, find the point a given length down the chain. Return its position and direction."""
 	if index > -1:
 		# Instead of using bone length, simply return the location and direction of a bone at a given index.
-		
+
 		# If the index is too high, return the tail of the bone.
 		if index >= len(chain):
 			b = chain[-1]
 			return (b.tail.copy(), b.vector.normalized())
-		
+
 		b = chain[index]
 		direction = b.vector.normalized()
 
@@ -421,7 +421,7 @@ def vector_along_bone_chain(chain: List[BoneInfo], length=0, index=-1) -> Tuple[
 			direction = (b.vector + prev_bone.vector).normalized()
 		return (b.head.copy(), direction)
 
-	
+
 	length_cumultative = 0
 	for b in chain:
 		if length_cumultative + b.length > length:
@@ -431,7 +431,7 @@ def vector_along_bone_chain(chain: List[BoneInfo], length=0, index=-1) -> Tuple[
 			return (loc, direction)
 		else:
 			length_cumultative += b.length
-	
+
 	length_remaining = length - length_cumultative
 	direction = chain[-1].vector.normalized()
 	loc = chain[-1].tail + direction * length_remaining

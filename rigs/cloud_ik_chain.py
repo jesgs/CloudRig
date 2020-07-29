@@ -19,7 +19,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.pole_side = 1
 		self.ik_pole_offset = 3		# Scalar on distance from the body.
 
-		# Will be passed to the IK constraint's chain_count. 
+		# Will be passed to the IK constraint's chain_count.
 		# Elements of the rig can use this to avoid having to make assumptions about correlations between the length of the ORG chain vs how long the IK chain is.
 		self.chain_count = len(self.bones.org.main)-1
 		if self.params.CR_ik_chain_at_tip:
@@ -221,7 +221,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		length_factor = chain_length / stretch_bone.length
 		stretch_bone.add_constraint('STRETCH_TO', subtarget=self.stretch_target_bone.name)
-		limit_scale = stretch_bone.add_constraint('LIMIT_SCALE', 
+		limit_scale = stretch_bone.add_constraint('LIMIT_SCALE',
 			use_max_y = True,
 			max_y = length_factor,
 			influence = 0
@@ -265,8 +265,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		return stretch_bone
 
 	def main_str_transform_setup(self, stretch_bone, chain_length):
-		""" Set up transformation constraint to mid-limb STR bone that ensures 
-			that it stays in between the root of the limb and the IK master 
+		""" Set up transformation constraint to mid-limb STR bone that ensures
+			that it stays in between the root of the limb and the IK master
 			control during IK stretching.
 		"""
 
@@ -358,7 +358,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		if self.pole_ctrl:
 			# Add aim constraint to pole display bone
-			self.pole_ctrl.dsp_bone.add_constraint('DAMPED_TRACK', 
+			self.pole_ctrl.dsp_bone.add_constraint('DAMPED_TRACK',
 				subtarget  = stretch_bone.name,
 				head_tail  = 0.5,
 				track_axis = 'TRACK_NEGATIVE_Y'
@@ -414,7 +414,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				"prop_bone" : self.properties_bone,
 				"prop_id" : ik_parents_prop_name,
 				"texts" : parent_names,
-				
+
 				"operator" : "pose.cloudrig_switch_parent",
 				"icon" : "COLLAPSEMENU",
 				"parent_names" : parent_names,	# TODO: I think this is unused now.
@@ -453,13 +453,13 @@ class CloudIKChainRig(CloudFKChainRig):
 				'expression' : 'follow',
 				'variables' : {}	# Variable is created in the for loop below.
 			})
-			
+
 			# Tweak each driver on the IK pole parent
 			# NOTE: These were originally created by calling self.rig_child(self.pole_ctrl...
 			for i, d in enumerate(arm_con.drivers):
 				if i != len(arm_con.drivers)-1:
 					d['expression'] = f"({d['expression']}) - follow"
-				
+
 				# Add "follow" variable.
 				d['variables']['follow'] = {
 					'type' : 'SINGLE_PROP',

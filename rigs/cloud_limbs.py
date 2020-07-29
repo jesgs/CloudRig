@@ -41,7 +41,7 @@ class CloudLimbRig(CloudIKChainRig):
 		self.limb_name = self.limb_type.capitalize()
 		if self.params.CR_fk_chain_use_limb_name:
 			self.limb_name = self.params.CR_fk_chain_limb_name
-		
+
 		self.limb_ui_name = self.side_prefix + " " + self.limb_name
 
 		# IK values
@@ -50,7 +50,7 @@ class CloudLimbRig(CloudIKChainRig):
 			self.ik_pole_offset = 5
 			self.pole_side = -1
 			self.chain_count -= 1
-		
+
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
 		self.ik_parents = ['Root', 'Torso']
 		if self.limb_type == 'LEG':
@@ -97,7 +97,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 	def prepare_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
-		
+
 		# Disable first Copy Rotation constraint on the upperarm
 		# TODO: Why did we do this?
 		for b in self.main_str_bones[0].sub_bones:
@@ -149,7 +149,7 @@ class CloudLimbRig(CloudIKChainRig):
 			subtarget = org_bone.name,
 			map_from = 'ROTATION', map_to = 'ROTATION',
 			use_motion_extrapolate = True,
-			from_min_y_rot =   -1, 
+			from_min_y_rot =   -1,
 			from_max_y_rot =	1,
 			to_min_y_rot   =  factor,
 			to_max_y_rot   = -factor,
@@ -233,7 +233,7 @@ class CloudLimbRig(CloudIKChainRig):
 			from_min_x_rot = rad(-90),
 			to_min_x_rot = rad(60),
 		)
-		
+
 		# Create reverse bones
 		rik_chain = []
 		for i, b in reversed(list(enumerate(org_chain))):
@@ -263,7 +263,7 @@ class CloudLimbRig(CloudIKChainRig):
 					,to_min_z_rot   = rad(10)
 					,to_max_z_rot   = rad(-10)
 				)
-			
+
 			if i == 0:
 				rik_bone.add_constraint('COPY_LOCATION'
 					,space			= 'WORLD'
@@ -296,7 +296,7 @@ class CloudLimbRig(CloudIKChainRig):
 					,to_min_x_rot   = rad(0)
 					,to_max_x_rot   = rad(-31.8)
 				)
-			
+
 		# Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
 		for main_str_bone in self.main_str_bones:
 			ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')

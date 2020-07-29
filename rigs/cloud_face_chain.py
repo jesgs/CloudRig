@@ -39,7 +39,7 @@ class CloudFaceChainRig(CloudChainRig):
 				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
 					to_bone = self.main_str_bones[i+1]
-				
+
 				# Armature constraints turn parenting into local matrix, which messes up DT helper bones that rely on that local rotation.
 				# So if Smooth Spline param is enabled and we are relinking an armature constraint, make a separate bone for it.
 				if self.params.CR_chain_smooth_spline and c.type=='ARMATURE':
@@ -76,7 +76,7 @@ class CloudFaceChainRig(CloudChainRig):
 				b.layers = self.sub_controls.layers[:]
 
 	def ensure_parent_control(self, bones):
-		""" Ensure that all bones share the same parent control. 
+		""" Ensure that all bones share the same parent control.
 			If this is not the case, create it and parent them.
 		"""
 
@@ -111,7 +111,7 @@ class CloudFaceChainRig(CloudChainRig):
 			par_con_name = "Armature (Parenting affects local matrix)"
 			par_con = b.get_constraint(par_con_name)
 			if b.container.rig.params.CR_chain_smooth_spline and par_con==None:
-				b.add_constraint('ARMATURE', name=par_con_name, index=0, 
+				b.add_constraint('ARMATURE', name=par_con_name, index=0,
 					targets = [
 						{
 							"subtarget" : parent.name

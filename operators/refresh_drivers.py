@@ -26,7 +26,7 @@ class CLOUDRIG_OT_RefreshDrivers(bpy.types.Operator):
 				refresh_drivers(o.data)
 			if o.type=='MESH':
 				refresh_drivers(o.data.shape_keys)
-			
+
 			for ms in o.material_slots:
 				if ms.material:
 					refresh_drivers(ms.material)

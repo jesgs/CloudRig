@@ -30,7 +30,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		for c in meta_pose_bone.constraints:
 			if c.type in ('CHILD_OF', 'ARMATURE'):
 				self.do_parenting = False
-		
+
 		self.create_deform_bone = meta_pose_bone.bone.use_deform
 
 	def generate_bones(self):
@@ -107,7 +107,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.roll = self.roll
 			mod_bone.bbone_x = meta_bone.bbone_x
 			mod_bone.bbone_z = meta_bone.bbone_z
-		
+
 		# Rename the bone to its final name, without the ORG- prefix.
 		self.bone_name = mod_bone.name = self.orgless_name
 
@@ -126,7 +126,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.constraints.move(len(mod_bone.constraints)-1, 0)
 
 	@stage.finalize
-	def modify_pose_bone(self):	
+	def modify_pose_bone(self):
 		meta_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
 		mod_bone = self.get_bone(self.bone_name)
 
@@ -147,20 +147,20 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.lock_rotation = meta_bone.lock_rotation[:]
 			mod_bone.lock_rotation_w = meta_bone.lock_rotation_w
 			mod_bone.lock_scale = meta_bone.lock_scale[:]
-		
+
 		if self.params.CR_bone_rot_mode:
 			mod_bone.rotation_mode = meta_bone.rotation_mode
-		
+
 		if self.params.CR_bone_shape:
 			mod_bone.custom_shape = meta_bone.custom_shape
 			mod_bone.custom_shape_scale = meta_bone.custom_shape_scale
 			mod_bone.custom_shape_transform = meta_bone.custom_shape_transform
 			mod_bone.use_custom_shape_bone_size = meta_bone.use_custom_shape_bone_size
 			mod_bone.bone.show_wire = meta_bone.bone.show_wire
-		
+
 		if self.params.CR_bone_layers:
 			mod_bone.bone.layers = meta_bone.bone.layers[:]
-		
+
 		if self.params.CR_bone_ik_settings:
 			mod_bone.ik_stretch = meta_bone.ik_stretch
 			mod_bone.lock_ik_x = meta_bone.lock_ik_x
@@ -178,7 +178,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			mod_bone.ik_max_y = meta_bone.ik_max_y
 			mod_bone.ik_min_z = meta_bone.ik_min_z
 			mod_bone.ik_max_z = meta_bone.ik_max_z
-		
+
 		if self.params.CR_bone_bbone_props:
 			mod_bone.bone.bbone_segments = meta_bone.bone.bbone_segments
 			mod_bone.bone.bbone_x = meta_bone.bone.bbone_x
@@ -196,7 +196,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		# Relink constraints
 		for c in mod_bone.constraints:
 			self.relink_constraint(c)
-		
+
 		# Copy custom properties
 		if self.params.CR_bone_props and '_RNA_UI' in meta_bone.keys():
 			keys = [k for k in meta_bone.keys() if k not in ['_RNA_UI', 'rigify_parameters', 'rigify_type']]
@@ -230,7 +230,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 			except AttributeError:	# Read-Only properties throw AttributeError. These should all be added to the skip list.
 				print(f"Warning: Can't copy read-only attribute {key} to {new_con.type} type constraint")
 				continue
-		
+
 		return new_con
 
 	def relink_constraint(self, constraint):
@@ -362,7 +362,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 
 		layout.use_property_split = True
 		layout.use_property_decorate = False
-		
+
 		pb = bpy.context.active_pose_bone
 
 		layout.prop(params, "CR_bone_parent")

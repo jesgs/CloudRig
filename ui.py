@@ -95,7 +95,7 @@ class CLOUDRIG_PT_overrides(bpy.types.Panel):
 			layout.prop(cloudrig, "root_parent_layers", text="")
 
 		layout.separator()
-		
+
 		def draw_override_params(layout, param_name):
 			override_param_name = "override_"+param_name
 			layout.prop(cloudrig, override_param_name)
@@ -115,7 +115,7 @@ def draw_cloud_bone_group_options(self, context):
 	if not is_cloud_metarig(obj):
 		bpy.types.DATA_PT_rigify_bone_groups.draw_old(self, context)
 		return
-	
+
 	# Otherwise we draw our own.
 	layout = self.layout
 	layout.use_property_split=True
@@ -185,7 +185,7 @@ def draw_cloud_layer_names(self, context):
 	if not is_cloud_metarig(obj):
 		bpy.types.DATA_PT_rigify_layer_names.draw_old(self, context)
 		return
-	
+
 	obj = context.object
 	arm = obj.data
 	cloudrig = arm.cloudrig_parameters
@@ -237,7 +237,7 @@ def ui_label_with_linebreak(layout, text):
 		line_index = 0
 
 		cur_line_length = 0
-		# Try to determine maximum allowed characters in this line, based on pixel width of the area. 
+		# Try to determine maximum allowed characters in this line, based on pixel width of the area.
 		# Not a great metric, but I couldn't find anything better.
 		max_line_length = bpy.context.area.width/8
 
@@ -252,7 +252,7 @@ def ui_label_with_linebreak(layout, text):
 				cur_line_length = 0
 				line_index += 1
 				lines.append("")
-		
+
 		for line in lines:
 			col.label(text=line)
 
@@ -270,9 +270,9 @@ def dropdown_ui(layout, params, dropdown_param_name):
 	return None
 
 def add_ui_data(obj, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
-	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI. 
-	ui_area: One of a list of pre-defined strings that the UI script 
-				recognizes, that describes a panel or area in the UI. 
+	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI.
+	ui_area: One of a list of pre-defined strings that the UI script
+				recognizes, that describes a panel or area in the UI.
 				Eg, "fk_hinges", "ik_switches".
 	row_name: A row in the UI area.
 	col_name: A column within the row.
@@ -290,11 +290,11 @@ def add_ui_data(obj, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _
 	prop_bone = info['prop_bone']
 	info['prop_bone'] = prop_bone.name
 	obj.data[ui_area][row_name][col_name] = info
-	
+
 	# Create custom property.
 	prop_id = info['prop_id']
 	prop_bone.custom_props[prop_id] = {
-		"default" : default, 
+		"default" : default,
 		"min" : _min,
 		"max" : _max
 	}
@@ -325,7 +325,7 @@ def unregister():
 	from bpy.utils import unregister_class
 	for c in reversed(classes):
 		unregister_class(c)
-	
+
 	# Restore Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_buttons.draw = bpy.types.DATA_PT_rigify_buttons.draw_old
 	bpy.types.DATA_PT_rigify_bone_groups.draw = bpy.types.DATA_PT_rigify_bone_groups.draw_old

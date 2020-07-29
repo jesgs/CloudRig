@@ -42,7 +42,7 @@ class CloudCurveRig(CloudBaseRig):
 		suffix = self.side_suffix
 		if suffix!="":
 			suffix = self.naming.suffix_separator + suffix
-		
+
 		hook_ctr = self.curve_hooks.new(
 			name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"
 			,head						= loc
@@ -92,7 +92,7 @@ class CloudCurveRig(CloudBaseRig):
 				)
 				hook_ctr.right_handle_control = handle_right_ctr
 				handles.append(handle_right_ctr)
-			
+
 			for handle in handles:
 				handle.use_custom_shape_bone_size = True
 				if self.params.CR_curve_rotatable_handles:
@@ -116,7 +116,7 @@ class CloudCurveRig(CloudBaseRig):
 
 		else:
 			hook_ctr.custom_shape = self.load_widget("CurvePoint")
-		
+
 		return hook_ctr
 
 	def define_ctrls_for_curve_points(self):
@@ -132,10 +132,10 @@ class CloudCurveRig(CloudBaseRig):
 		for i, cp in enumerate(spline.bezier_points):
 			self.hooks.append(
 				self.define_ctrls_for_curve_point(
-					loc		  = worldspace(cp.co), 
-					loc_left  = worldspace(cp.handle_left), 
-					loc_right = worldspace(cp.handle_right), 
-					i		  = i, 
+					loc		  = worldspace(cp.co),
+					loc_left  = worldspace(cp.handle_left),
+					loc_right = worldspace(cp.handle_right),
+					i		  = i,
 					cyclic	  = spline.use_cyclic_u
 				)
 			)
@@ -143,12 +143,12 @@ class CloudCurveRig(CloudBaseRig):
 	def prepare_bones(self):
 		super().prepare_bones()
 		self.define_curve_controls()
-	
+
 	def define_curve_controls(self):
 		self.define_curve_root_ctrl()
 		self.define_ctrls_for_curve_points()
 
-	def create_hook_modifier(self, cp_i, boneinfo, main_handle=False, left_handle=False, right_handle=False):				
+	def create_hook_modifier(self, cp_i, boneinfo, main_handle=False, left_handle=False, right_handle=False):
 		""" Create a Hook modifier on the curve(active object, in edit mode), hooking the control point at a given index to a given bone. The bone must exist. """
 		if not boneinfo: return
 
@@ -216,7 +216,7 @@ class CloudCurveRig(CloudBaseRig):
 		for c in curve_ob.constraints:
 			constraint_vis_backup[c.name] = c.mute
 			c.mute=True
-		
+
 		bpy.context.view_layer.update()
 
 		for i in range(0, num_points):
@@ -231,7 +231,7 @@ class CloudCurveRig(CloudBaseRig):
 			# Add radius driver
 			data_path = f"splines[0].bezier_points[{i}].radius"
 			curve_ob.data.driver_remove(data_path)
-			
+
 			D = curve_ob.data.driver_add(data_path)
 			driver = D.driver
 
@@ -239,13 +239,13 @@ class CloudCurveRig(CloudBaseRig):
 			my_var = driver.variables.new()
 			my_var.name = "var"
 			my_var.type = 'TRANSFORMS'
-			
+
 			var_tgt = my_var.targets[0]
 			var_tgt.id = self.obj
 			var_tgt.transform_space = 'WORLD_SPACE'
 			var_tgt.transform_type = 'SCALE_X'
 			var_tgt.bone_target = hooks[i].name
-			
+
 			if self.params.CR_curve_separate_radius:
 				var_tgt.bone_target = hooks[i].radius_control.name
 
@@ -253,7 +253,7 @@ class CloudCurveRig(CloudBaseRig):
 		for m in curve_ob.modifiers:
 			if m.name in mod_vis_backup:
 				m.show_viewport = mod_vis_backup[m.name]
-		
+
 		# Restore constraints visibility on the curve object
 		for c in curve_ob.constraints:
 			c.mute = constraint_vis_backup[c.name]
@@ -281,13 +281,13 @@ class CloudCurveRig(CloudBaseRig):
 		""" Add the parameters of this rig type to the
 			RigifyParameters PropertyGroup
 		"""
-		
+
 		# TODO: Add "X Symmetry" parameter, when enabled, determine hook bone
-		#  sides automatically based on X coordinate sign, and flip bones on 
-		# one side so mirror posing works as expected. 
+		#  sides automatically based on X coordinate sign, and flip bones on
+		# one side so mirror posing works as expected.
 		# An actual symmetrical curve shape is not enforced, but expected.
 
-		params.CR_curve_show_settings = BoolProperty(		
+		params.CR_curve_show_settings = BoolProperty(
 			name		 = "Curve Settings"
 			,description = "Reveal settings for the cloud_curve rig type"
 		)

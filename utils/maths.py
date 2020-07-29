@@ -18,9 +18,9 @@ def bounding_box(points) -> Tuple[Vector, Vector]:
 	return lowest, highest
 
 def bounding_box_center(points) -> Vector:
-    """Find the bounding box center of some points."""
-    bbox_low, bbox_high = bounding_box(points)
-    return bbox_low + (bbox_high-bbox_low)/2
+	"""Find the bounding box center of some points."""
+	bbox_low, bbox_high = bounding_box(points)
+	return bbox_low + (bbox_high-bbox_low)/2
 
 def scale_points_from_center(points, scale) -> List[Vector]:
 	"""Scale some points from their bounding box center."""
@@ -59,9 +59,9 @@ def project_points_on_plane (points, projection_axis) -> List[Vector]:
 		projected_point = Vector((center_relative.dot(plane_x), center_relative.dot(plane_y), 0))
 
 		angle_from_axis = atan2(
-            projected_point.x - plane_y.x,
-            projected_point.y - plane_y.y
-        )
+			projected_point.x - plane_y.x,
+			projected_point.y - plane_y.y
+		)
 
 		projected_points.append((projected_point, angle_from_axis))
 

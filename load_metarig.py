@@ -53,7 +53,7 @@ def load_sample(rig_name):
 		for o in data_from.objects:
 			if o == sample_name:
 				data_to.objects.append(o)
-	
+
 	sample_ob = bpy.data.objects.get(sample_name)
 	sample_ob.location = bpy.context.scene.cursor.location
 	bpy.context.scene.collection.objects.link(sample_ob)

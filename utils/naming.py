@@ -18,7 +18,7 @@ def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[st
 				for sep in separators:
 					l.append(side+sep)
 					l.append(sep+side)
-	
+
 	return left, right_placehold, right
 
 def get_name(thing) -> str:
@@ -28,7 +28,7 @@ def get_name(thing) -> str:
 		return str(thing)
 
 class CloudNameManager:
-	"""Name management utilities with the convenience of being able to pass in 
+	"""Name management utilities with the convenience of being able to pass in
 	anything that has a "name" attribute, or strings directly.
 	"""
 
@@ -39,7 +39,7 @@ class CloudNameManager:
 
 	def get_separators(self) -> Tuple[str, str]:
 		return (self.prefix_separator, self.suffix_separator)
-	
+
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
 		prefix_separator, suffix_separator = self.get_separators()
 		return make_name(prefixes, base, suffixes, prefix_separator, suffix_separator)
@@ -80,7 +80,7 @@ class CloudNameManager:
 		from rigify.utils.naming import strip_org
 		return strip_org(name)
 
-def make_name(prefixes=[], base="", suffixes=[], 
+def make_name(prefixes=[], base="", suffixes=[],
 			  prefix_separator="-", suffix_separator=".") -> str:
 	"""Make a name from a list of prefixes, a base, and a list of suffixes."""
 	name = ""
@@ -119,7 +119,7 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 	Based on BLI_string_flip_side_name:
 	https://developer.blender.org/diffusion/B/browse/master/source/blender/blenlib/intern/string_utils.c
 
-	ignore_base: When True, ignore occurrences of side hints unless they're in 
+	ignore_base: When True, ignore occurrences of side hints unless they're in
 				 the beginning or end of the name string.
 	must_change: When True, raise an error if the name couldn't be flipped.
 	"""
@@ -139,8 +139,8 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 					name = name[:-len(side)]+opp_side
 					break
 			else:
-				# When it comes to searching the middle of a string, 
-				# sides must strictly be a full word or separated with "." 
+				# When it comes to searching the middle of a string,
+				# sides must strictly be a full word or separated with "."
 				# otherwise we would catch stuff like "_leg" and turn it into "_reg".
 				if not any([char not in side for char in "-_."]):
 					# Replace all occurences and continue checking for keywords.
@@ -153,7 +153,7 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 	flipped_name = flip_sides(left, right_placehold, stripped_name)
 	flipped_name = flip_sides(right, left, flipped_name)
 	flipped_name = flip_sides(right_placehold, right, flipped_name)
-	
+
 	# Re-add trailing digits (.###)
 	new_name = flipped_name + number_suffix
 
@@ -216,7 +216,7 @@ def combine_bone_names(names) -> str:
 			if flip_ext != ext and flip_ext in unique:
 				unique.remove(ext)
 				unique.remove(flip_ext)
-		
+
 		return unique
 
 	### Combine suffixes
