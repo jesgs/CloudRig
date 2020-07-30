@@ -14,14 +14,11 @@ class CloudEyeRig(CloudAimRig):
 		super().initialize()
 
 		# The aim rig has to be executed AFTER both of the eyelid rigs.
-		# The generator stores the rigs in execution order, so use that to check.
-		self_found = False
-		for rig_elem in self.generator.rig_list:
-			if rig_elem == self:
-				self_found = True
-			if self_found and self.naming.strip_org(rig_elem.base_bone) in [self.params.CR_eye_lower_eyelid, self.params.CR_eye_upper_eyelid]:
-				pass
-#				self.raise_error(f"cloud_eye rig must be parented to its eyelid rig ({self.naming.strip_org(rig_elem.base_bone)}) to make sure it's executed in the correct order.")
+		for lid in [self.params.CR_eye_lower_eyelid, self.params.CR_eye_upper_eyelid]:
+			for rig_elem in self.generator.rig_list:
+				if rig_elem.base_bone == "ORG-"+lid:
+					if not hasattr(rig_elem, 'chain_length'):
+						self.raise_error(f"cloud_eye rig must be parented to the eyelid rig ({self.naming.strip_org(rig_elem.base_bone)}) to make sure it's executed in the correct order.")
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
@@ -82,13 +79,14 @@ class CloudEyeRig(CloudAimRig):
 					,subtarget=base_bone.name
 					,use_xyz = [True, False, False]
 				)
-				eye_size = base_bone.length
+				eye_width = (eyelid_rig.org_chain[0].head - eyelid_rig.org_chain[-1].tail).length * 0.55
 
-				# X Influence should be correlated to the distance between the
-				# ROT bone tail rejected onto the eye bone Z axis, vs the eye bone tail.
+				# Reject the ROT bone tail onto the eye bone Z axis
 				rejection_z = project_vector_on_plane(rot_ctr.vector, self.meta_base_bone.z_axis)
+				# Take the distance between that and the base bone's vector
+				# to determine the constraints' influence.
 				distance = (base_bone.vector - rejection_z).length
-				sticky_strength = 1 - distance / eye_size
+				sticky_strength = 1 - distance / eye_width
 				copyrot_x.drivers.append({
 					'prop' : 'influence'
 					,'expression' : f"var*{sticky_strength}"
@@ -101,14 +99,9 @@ class CloudEyeRig(CloudAimRig):
 					,use_xyz = [False, False, True]
 				)
 
-				# Z Influence should be correlated to the distance between the
-				# ROT bone tail projected onto the eye bone vs the eye bone tail.
-				rejection_x = project_vector_on_plane(rot_ctr.vector, self.meta_base_bone.x_axis)
-				distance = (base_bone.vector - rejection_x).length
-				sticky_strength = 1-distance/eye_size
 				copyrot_z.drivers.append({
 					'prop' : 'influence'
-					,'expression' : f"var*{sticky_strength}"
+					,'expression' : f"var*{sticky_strength*0.5}"
 					,'variables' : [(self.properties_bone.name, sticky_prop_name)]
 				})
 			str_ctr.parent = rot_ctr
