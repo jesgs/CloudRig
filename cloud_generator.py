@@ -5,7 +5,7 @@ from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
 from rna_prop_ui import rna_idprop_ui_prop_get
 
-from rigify.generate import Generator, Timer, select_object, create_selection_sets
+from rigify.generate import Generator, Timer, select_object#, create_selection_sets
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 
@@ -147,6 +147,27 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	show_actions: BoolProperty(name="Actions")
 	actions: CollectionProperty(type=CloudRigAction)
 	active_action_index: IntProperty(min=0)
+
+def create_selection_sets(obj, metarig):
+	# Check if selection sets addon is installed
+	if 'bone_selection_sets' not in bpy.context.preferences.addons: return
+
+	obj.selection_sets.clear()
+
+	for i, name in enumerate(metarig.data.rigify_layers.keys()):
+		if name == '' or not metarig.data.rigify_layers[i].selset:
+			continue
+
+		selset = obj.selection_sets.add()
+		selset.name = name
+		if 'bone_selection_sets' in bpy.context.preferences.addons:
+			act_sel_set = obj.selection_sets[-1]
+
+			# iterate only the selected bones in current pose that are not hidden
+			for b in obj.pose.bones:
+				if b.bone.layers[i] and b.name not in selset.bone_ids:
+					bone_id = selset.bone_ids.add()
+					bone_id.name = b.name
 
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):

@@ -2,6 +2,7 @@ import bpy
 from . import actions
 from rigify.ui import rigify_report_exception
 from .cloudrig import draw_layers_ui
+import addon_utils
 
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
@@ -220,9 +221,14 @@ def draw_cloud_layer_names(self, context):
 		icon = 'RESTRICT_VIEW_OFF' if arm.layers[i] else 'RESTRICT_VIEW_ON'
 		row.prop(arm, "layers", index=i, text="", toggle=True, icon=icon)
 		icon = 'FAKE_USER_ON' if arm.layers_protected[i] else 'FAKE_USER_OFF'
+
 		row.prop(arm, "layers_protected", index=i, text="", toggle=True, icon=icon)
 		row.prop(rigify_layer, "name", text="")
 		row.prop(rigify_layer, "row", text="UI Row")
+
+		if addon_utils.check('bone_selection_sets')[1]:
+			icon = 'RADIOBUT_ON' if rigify_layer.selset else 'RADIOBUT_OFF'
+			row.prop(rigify_layer, "selset", text="", toggle=True, icon=icon)
 
 def ui_label_with_linebreak(layout, text):
 	"""Attempt to simulate a proper textbox by only displaying as many characters in a single label as fits in the UI."""
