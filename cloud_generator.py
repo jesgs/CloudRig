@@ -7,6 +7,7 @@ from rna_prop_ui import rna_idprop_ui_prop_get
 
 from rigify.generate import Generator, Timer, select_object, create_selection_sets
 from rigify.utils.errors import MetarigError
+from rigify.ui import rigify_report_exception
 
 from .bone import BoneSet
 from .rigs import cloud_utils
@@ -58,7 +59,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = True
 	)
 
-	# TODO: un-implement this functionality, it's so insignificant that it's not even worth cluttering the UI and the code with it.
 	prefix_separator: EnumProperty(
 		name		 = "Prefix Separator"
 		,description = "Character that separates prefixes in the bone names"
