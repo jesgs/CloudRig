@@ -121,9 +121,9 @@ class CloudAimRig(CloudBaseRig):
 
 		# Collect all cloud_aim rigs in this group.
 		aim_bones = []
-		for b in self.obj.pose.bones:
-			if b.rigify_type == 'cloud_aim' and b.rigify_parameters.CR_aim_group == group_name:
-				aim_bones.append(b)
+		for rig in self.generator.rig_list:
+			if isinstance(rig, CloudAimRig) and rig.params.CR_aim_group == group_name:
+				aim_bones.append(self.obj.pose.bones[rig.base_bone])
 
 		if len(aim_bones) < 2:
 			return None
@@ -144,11 +144,6 @@ class CloudAimRig(CloudBaseRig):
 			,bbone_width = 0.1
 			,parent = aim_bones[0].parent
 		)
-
-		# TODO: Not sure how to address the case where aim rigs in the same Aim Group might be parented to different bones.
-		for eb in aim_bones:
-			if eb.parent != aim_bones[0].parent:
-				print(f"Warning: Aim bones in the same group having different parents is not fully supported. {group_master_name} will be parented arbitrarily to {aim_bones[0].parent}!")
 
 		# Create the master bone.
 		group_master = self.group_mstr_set.new(
