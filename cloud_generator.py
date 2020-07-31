@@ -6,6 +6,8 @@ from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerPropert
 from rna_prop_ui import rna_idprop_ui_prop_get
 
 from rigify.generate import Generator, Timer, select_object#, create_selection_sets
+from rigify import rig_ui_template
+from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 
