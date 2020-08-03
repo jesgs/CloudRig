@@ -33,19 +33,11 @@ class CloudFKChainRig(CloudChainRig):
 		self.fk_chain = self.ensure_bone_set("FK Controls")
 		self.fk_mch = self.ensure_bone_set("FK Helpers")
 
-	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
-		"""Extend cloud_chain by tweaking some bbone values"""
-		def_chain = super().make_def_chain(str_chain)
-		# If we didn't put a stretch constraint on the final deform bone,
-		# it must mean there is no cap control.
-		last_def = def_chain[-1]
-		if len(last_def.constraint_infos)==0:
-			if last_def.prev:
-				# In this case, set the previous def_bone's easeout to 0.
-				last_def.prev.bbone_easeout = 0
-			# Also, parent this to the ORG bone. This is so that scaling
-			# the last STR control doesn't affect this deform bone.
-			last_def.parent = last_def.parent.org_parent
+	def prepare_bones(self):
+		super().prepare_bones()
+		self.prepare_root_bone()
+		self.prepare_fk_chain()
+		self.prepare_org_chain()
 
 	def prepare_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
@@ -102,6 +94,20 @@ class CloudFKChainRig(CloudChainRig):
 				bone_set = self.fk_mch
 			)
 
+	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+		"""Extend cloud_chain by tweaking some bbone values."""
+		def_chain = super().make_def_chain(str_chain)
+		# If we didn't put a stretch constraint on the final deform bone,
+		# it must mean there is no cap control.
+		last_def = def_chain[-1]
+		if len(last_def.constraint_infos)==0:
+			if last_def.prev:
+				# In this case, set the previous def_bone's easeout to 0.
+				last_def.prev.bbone_easeout = 0
+			# Also, parent this to the ORG bone. This is so that scaling
+			# the last STR control doesn't affect this deform bone.
+			last_def.parent = last_def.parent.org_parent
+
 	def prepare_org_chain(self):
 		# Find existing ORG bones
 		# Add Copy Transforms constraints targetting FK.
@@ -113,12 +119,6 @@ class CloudFKChainRig(CloudChainRig):
 				,subtarget		= fk_bone.name
 				,name			= "Copy Transforms FK"
 			)
-
-	def prepare_bones(self):
-		super().prepare_bones()
-		self.prepare_root_bone()
-		self.prepare_fk_chain()
-		self.prepare_org_chain()
 
 	##############################
 	# Parameters
@@ -133,7 +133,7 @@ class CloudFKChainRig(CloudChainRig):
 	@classmethod
 	def add_parameters(cls, params):
 		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
+			RigifyParameters PropertyGroup.
 		"""
 
 		params.CR_fk_chain_show_settings = BoolProperty(
@@ -180,11 +180,9 @@ class CloudFKChainRig(CloudChainRig):
 
 		super().add_parameters(params)
 
-
 	@classmethod
 	def cloud_params_ui(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_fk_chain_show_settings"): return layout
