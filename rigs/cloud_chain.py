@@ -6,14 +6,9 @@ from bpy.props import BoolProperty, IntProperty
 from .cloud_base import CloudBaseRig
 
 """
-TODO: Allow for circular chains, if the first bone's head is the same location
-as the last bone's tail, and final control is enabled. Doesn't have to be a parameter.
-
-Ideas:
+Ideas to improve this:
 Spline IK like controls(the other two types) for bendy bones' handles.
-Recursive generation of STR layers as per Pablo's request, so we don't just have
-main and sub STR controls, but any number of nested layers(although we would
-probably never use more than 3, but then again, I thought we would never use more than 2, so)
+Recursive generation of layers of STR controls... Little use case and lots of headache.
 """
 
 class CloudChainRig(CloudBaseRig):
@@ -34,6 +29,8 @@ class CloudChainRig(CloudBaseRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
+
+		self.cyclic = (self.org_chain[-1].tail - self.org_chain[0].head).length < 0.001
 
 		for org in self.org_chain:
 			self.chain_length += org.length
@@ -78,20 +75,29 @@ class CloudChainRig(CloudBaseRig):
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
 					if org_i==0:
-						str_bone.custom_shape = self.load_widget("Hemisphere_Flip")
+						if self.cyclic:
+							direction = (org_bone.tail - self.org_chain[-1].head).normalized()
+							str_bone.tail = str_bone.head + direction*str_bone.length
+						else:
+							str_bone.custom_shape = self.load_widget("Hemisphere_Flip")
+
 			str_sections.append(str_section)
 
 			# Create STR-TIP control at the end of the chain.
 			if org_i==len(org_chain)-1 and self.params.CR_chain_tip_control:
-				str_bone = self.make_str_bone(org_bone, i, 1)
-				str_bone.put(org_bone.tail)
-				str_bone.vector = org_bone.vector
-				str_bone.length = str_bone.prev.length
-				str_bone.name = self.naming.add_prefix(str_bone, "TIP")
-				str_bone.custom_shape_scale *= 1.3
-				str_sections.append([str_bone])
-				str_bone.custom_shape = self.load_widget("Hemisphere")
-				self.main_str_bones.append(str_bone)
+				if self.cyclic:
+					self.str_chain[-1].next = self.str_chain[0]
+					self.str_chain[0].prev = self.str_chain[-1]
+				else:
+					str_bone = self.make_str_bone(org_bone, i, 1)
+					str_bone.put(org_bone.tail)
+					str_bone.vector = org_bone.vector
+					str_bone.length = str_bone.prev.length
+					str_bone.name = self.naming.add_prefix(str_bone, "TIP")
+					str_bone.custom_shape_scale *= 1.3
+					str_sections.append([str_bone])
+					str_bone.custom_shape = self.load_widget("Hemisphere")
+					self.main_str_bones.append(str_bone)
 
 		return str_sections
 
@@ -206,7 +212,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Create a deform chain stretching from one STR bone to the next"""
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
-			if str_i == len(str_chain)-1 and self.params.CR_chain_tip_control:
+			if str_i == len(str_chain)-1 and self.params.CR_chain_tip_control and not self.cyclic:
 				continue
 
 			org_bone = str_bone.org_parent
@@ -254,7 +260,7 @@ class CloudChainRig(CloudBaseRig):
 			def_bone.bbone_segments = 2
 
 		if not next_str_bone:
-			next_std_bone = str_bone.next
+			next_str_bone = str_bone.next
 		if next_str_bone:
 			def_bone.bbone_custom_handle_end = next_str_bone
 			def_bone.add_constraint('STRETCH_TO', subtarget = next_str_bone.name)
@@ -264,7 +270,8 @@ class CloudChainRig(CloudBaseRig):
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
 			# Last bone of the segment, but not the last bone of the chain.
-			if is_last_of_segment and next_str_bone != self.str_chain[-1]:
+			if is_last_of_segment and next_str_bone != self.str_chain[-1] or \
+				next_str_bone not in self.str_chain:	# Catch case of connecting parent chain
 				def_bone.bbone_easeout = 1 - self.params.CR_chain_sharp
 
 		else:
