@@ -168,7 +168,8 @@ class CloudChainRig(CloudBaseRig):
 				)
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
-	def make_dt_helper(self, str_bone: BoneInfo) -> BoneInfo:
+	def make_dt_helper(self, str_bone: BoneInfo, 
+						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
 		dt_bone = self.str_mch.new(
@@ -176,17 +177,24 @@ class CloudChainRig(CloudBaseRig):
 			,source = str_bone
 			,parent = str_bone
 		)
-		if str_bone.next:
+		if not nxt:
+			nxt = str_bone.next
+		if not prev:
+			prev = str_bone.prev
+		
+		if nxt:
 			pos_con = dt_bone.add_constraint('DAMPED_TRACK'
-				,subtarget = str_bone.next.name
+				,name = "Damped Track +Y"
+				,subtarget = nxt.name
 				,track_axis='TRACK_Y'
 			)
-		if str_bone.prev:
+		if prev:
 			neg_con = dt_bone.add_constraint('DAMPED_TRACK'
-				,subtarget = str_bone.prev.name
+				,name = "Damped Track -Y"
+				,subtarget = prev.name
 				,track_axis='TRACK_NEGATIVE_Y'
 			)
-			if str_bone.next:
+			if nxt:
 				neg_con.influence = 0.5
 		dt_bone.add_constraint('COPY_ROTATION', subtarget = str_bone.name, mix_mode='BEFORE')
 		dt_bone.inherit_scale = 'NONE'
@@ -205,7 +213,6 @@ class CloudChainRig(CloudBaseRig):
 			org_bone.def_bones = []	# TODO: deprecate this? It's currently only used by the spine neck, which is also to be deprecated.
 			def_section: List[BoneInfo] = []
 
-			segments, bbone_density = self.determine_segments(org_bone)
 			tail = org_bone.tail
 
 			def_name = str_bone.name.replace("STR", "DEF")
@@ -222,47 +229,55 @@ class CloudChainRig(CloudBaseRig):
 				,use_deform				 = True
 			)
 
-			### Configure BBone setup
-			# First bone of the segment, but not the first bone of the chain.
-			if str_bone in self.main_str_bones:# and str_i!=0:
-				def_bone.bbone_easein = not self.params.CR_chain_sharp
-
-			if hasattr(def_bone.bbone_custom_handle_start, 'dt_bone'):
-				def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.dt_bone
-
-			if str_bone.next:
-				def_bone.tail = str_bone.next.head
-				def_bone.bbone_custom_handle_end = str_bone.next
-				def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.next.name)
-				if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
-					def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
-
-				is_last_of_segment = str_bone.next in self.main_str_bones
-
-				# Last bone of the segment, but not the last bone of the chain.
-				if is_last_of_segment and str_bone.next != str_chain[-1]:
-					def_bone.bbone_easeout = 1 - self.params.CR_chain_sharp
-
-				def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
-				# If bbone_density is >0, force least 2 bbone_segments.
-				# Otherwise it's no longer a bendy bone.
-				if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
-					def_bone.bbone_segments = 2
-			else:
-				# This only happens if this is the last deform bone and CR_chain_tip_control==False.
-				pass
-
-			# B-Bone scale drivers
-			if def_bone.bbone_segments > 1:
-				def_bone.inherit_scale = 'NONE'
-				self.make_bbone_scale_drivers(def_bone)
-
-			if self.params.CR_chain_shape_key_helpers and def_bone.prev:
-				self.make_shape_key_helper(def_bone.prev, def_bone)
+			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
 			org_bone.def_bones.append(def_bone)
 
 		return self.def_chain
+
+	def setup_def_bone(self, def_bone, org_bone, str_bone, next_str_bone=None):
+		"""Configure BBone setup for def_bone."""
+
+		segments, bbone_density = self.determine_segments(org_bone)
+
+		# If def_bone is the first bone of the segment, but not the first bone of the chain.
+		if str_bone in self.main_str_bones:
+			def_bone.bbone_easein = 1 - self.params.CR_chain_sharp
+
+		if hasattr(def_bone.bbone_custom_handle_start, 'dt_bone'):
+			def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.dt_bone
+
+		def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
+		# If bbone_density is >0, force at least 2 bbone_segments.
+		# Otherwise it's not a bendy bone.
+		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
+			def_bone.bbone_segments = 2
+
+		if not next_str_bone:
+			next_std_bone = str_bone.next
+		if next_str_bone:
+			def_bone.bbone_custom_handle_end = next_str_bone
+			def_bone.add_constraint('STRETCH_TO', subtarget = next_str_bone.name)
+			if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
+				def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
+
+			is_last_of_segment = next_str_bone in self.main_str_bones
+
+			# Last bone of the segment, but not the last bone of the chain.
+			if is_last_of_segment and next_str_bone != self.str_chain[-1]:
+				def_bone.bbone_easeout = 1 - self.params.CR_chain_sharp
+
+		else:
+			# This only happens if this is the last deform bone and CR_chain_tip_control==False.
+			pass
+
+		# B-Bone scale drivers
+		if def_bone.bbone_segments > 1:
+			def_bone.inherit_scale = 'NONE'
+			self.make_bbone_scale_drivers(def_bone)
+
+		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
+			self.make_shape_key_helper(def_bone.prev, def_bone)
 
 	def make_shape_key_helper(self, def_bone_1: BoneInfo, def_bone_2: BoneInfo) -> BoneInfo:
 		"""Create SKP and SKH helper bones.
@@ -323,14 +338,13 @@ class CloudChainRig(CloudBaseRig):
 			if not parent_rig.params.CR_chain_tip_control:
 				meta_org_bone = self.generator.metarig.data.bones.get(self.org_chain[0].name.replace("ORG-", ""))
 				if meta_org_bone.use_connect:
-					def_bone = parent_rig.def_chain[-1]
-					str_bone = self.str_chain[0]
-					str_bone.custom_shape = self.load_widget('Sphere')
-					def_bone.bbone_custom_handle_end = str_bone
-					def_bone.add_constraint('STRETCH_TO', subtarget = str_bone.name)
-					self.make_bbone_scale_drivers(def_bone)
-					if self.params.CR_chain_shape_key_helpers:
-						self.make_shape_key_helper(def_bone, self.def_chain[0])
+					parent_rig.params.CR_chain_tip_control = True
+					parent_rig.setup_def_bone(parent_rig.def_chain[-1], parent_rig.org_chain[-1], parent_rig.str_chain[-1], self.str_chain[0])
+					self.str_chain[0].custom_shape = self.load_widget('Sphere')
+					if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
+						self.make_shape_key_helper(parent_rig.def_chain[-1], self.def_chain[0])
+					if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
+						self.make_dt_helper(parent_rig.str_chain[-1], nxt=self.str_chain[0])
 
 	##############################
 	# Parameters
