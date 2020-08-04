@@ -8,7 +8,6 @@ from rigify.utils.bones import BoneDict
 from .cloud_fk_chain import CloudFKChainRig
 
 """TODO
-Copy Rotation constraints for IK-CTR controls should get their influence procedurally in a smart way, that works with arbitrary spine length. (Similar to STR bones staying inbetween STR main bones, but in this case it's rotation instead of location)
 Re-implement FK-C bones (maybe under a param)
 	Their values would probably have to be dependent on the length of the bone. Ie, a long bone should slide more when it's rotated, compared to a short bone.
 
@@ -127,6 +126,7 @@ class CloudSpineRig(CloudFKChainRig):
 					,influence = 0.5
 					,use_xyz   = [False, True, False]
 				)
+			if i == len(self.org_chain)-3:
 				ik_ctr_bone.add_constraint('COPY_ROTATION'
 					,subtarget = self.mstr_chest.name
 					,influence = 0.5
@@ -140,7 +140,6 @@ class CloudSpineRig(CloudFKChainRig):
 				# The rest to the torso root.
 				ik_ctr_bone.parent = self.mstr_torso
 			self.ik_ctr_chain.append(ik_ctr_bone)
-
 
 		### Reverse IK (IK-R) chain. Damped track to IK-CTR of one lower index.
 		next_parent = self.mstr_chest
@@ -179,7 +178,18 @@ class CloudSpineRig(CloudFKChainRig):
 			self.ik_chain.append(ik_bone)
 			next_parent = ik_bone
 
-			damped_track_target = self.ik_r_chain[-i+1].name
+			damped_track_target = None
+			head_tail = 1
+			if i == len(self.org_chain)-1:
+				# Special treatment for last IK bone...
+				damped_track_target = self.ik_ctr_chain[-1].name
+				head_tail = 0
+				self.mstr_chest.custom_shape_transform = ik_bone
+				if self.params.CR_spine_double:
+					self.mstr_chest.parent.custom_shape_transform = ik_bone
+			else:
+				damped_track_target = self.ik_r_chain[-i-1].name
+
 			if i > 0:
 				# IK Stretch Copy Location
 				con_name = "Copy Location (Stretchy Spine)"
@@ -207,15 +217,6 @@ class CloudSpineRig(CloudFKChainRig):
 					,subtarget = self.ik_ctr_chain[i-1].name
 				)
 				self.ik_ctr_chain[i-1].custom_shape_transform = ik_bone
-
-			head_tail = 1
-			if i == len(self.org_chain)-1:
-				# Special treatment for last IK bone...
-				damped_track_target = self.ik_ctr_chain[-1].name
-				head_tail = 0
-				self.mstr_chest.custom_shape_transform = ik_bone
-				if self.params.CR_spine_double:
-					self.mstr_chest.parent.custom_shape_transform = ik_bone
 
 			ik_bone.add_constraint('DAMPED_TRACK',
 				subtarget = damped_track_target,
