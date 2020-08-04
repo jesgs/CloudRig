@@ -83,7 +83,9 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Shift FK controls to their center.
 		for fk_bone in self.fk_chain:
-			fk_bone.put(fk_bone.center)
+			fk_bone.head = fk_bone.center
+			if fk_bone.prev:
+				fk_bone.prev.tail = fk_bone.head
 
 		# Parent the first one to MSTR-Torso.
 		self.fk_chain[0].parent = self.mstr_torso
