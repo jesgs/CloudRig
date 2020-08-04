@@ -20,6 +20,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 
 	def initialize(self):
 		super().initialize()
+
 		self.bone_name = self.base_bone	# Name of the bone that is being created/modified.
 		self.orgless_name = self.base_bone.replace("ORG-", "")
 		self.copy_type = self.params.CR_bone_copy_type
@@ -56,6 +57,9 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 
 	@stage.configure_bones
 	def modify_bone_group(self):
+		if self.bone_name not in self.obj.pose.bones:
+			self.raise_error(f"cloud_bone target bone not found.")
+
 		mod_bone = self.get_bone(self.bone_name)
 		if self.copy_type == 'Tweak':
 			# Since the ORG- bone got deleted during generate_bones, rename it to that name, to move any references from that ORG- bone over to the real bone.

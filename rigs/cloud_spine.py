@@ -22,8 +22,9 @@ class CloudSpineRig(CloudFKChainRig):
 		super().initialize()
 
 		self.params.CR_chain_segments = 1
+		self.params.CR_fk_chain_double_first = False
 
-		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones." # TODO: why?
+		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones."
 
 		# UI Strings and Custom Property names
 		self.category = self.naming.strip_org(self.base_bone)
@@ -53,20 +54,20 @@ class CloudSpineRig(CloudFKChainRig):
 
 	def prepare_root_bone(self):
 		# Overrides parent class method!
-		pass
-
-	def prepare_fk_chain(self):
-		super().prepare_fk_chain()
 
 		# Create Troso Master control
-		self.mstr_torso = self.spine_main.new(
+		self.limb_root_bone = self.mstr_torso = self.spine_main.new(
 			name 		  = f"MSTR-{self.spine_name}_Torso"
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.load_widget("Torso_Master")
 		)
+		return self.mstr_torso
 
-		# Create master (reverse) hip control
+	def prepare_fk_chain(self):
+		super().prepare_fk_chain()
+
+		# Create master hip control
 		self.mstr_hips = self.spine_main.new(
 				name				= f"MSTR-{self.spine_name}_Hips"
 				,source				= self.org_chain[0]
@@ -326,6 +327,7 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Create the ui for the rig parameters."""
 		layout = super().cloud_params_ui(layout, params)
 		cls.disable_row('CR_chain_segments')
+		cls.disable_row('CR_fk_chain_double_first')
 
 		if not cls.cloud_dropdown_ui(layout, params, "CR_spine_show_settings"): return layout
 

@@ -202,7 +202,10 @@ class CloudFKChainRig(CloudChainRig):
 		center_fk_row = layout.row()
 		center_fk_row.prop(params, "CR_fk_chain_display_center")
 		cls.ui_rows["CR_fk_chain_display_center"] = center_fk_row
-		layout.prop(params, "CR_fk_chain_double_first")
+
+		double_first_row = layout.row()
+		double_first_row.prop(params, "CR_fk_chain_double_first")
+		cls.ui_rows["CR_fk_chain_double_first"] = double_first_row
 		layout.prop(params, "CR_fk_chain_hinge")
 
 		return layout
