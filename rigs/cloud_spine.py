@@ -8,20 +8,11 @@ from rigify.utils.bones import BoneDict
 from .cloud_fk_chain import CloudFKChainRig
 
 """TODO
-Maybe should be split up to Spine/Neck/Head rigs. Or well, just remove the neck and head, and those should be separate FK chain rigs. Might make the code a lot simpler, but also might not.
-IK-CTR-Spine should have a copy rotation constraint to MSTR-Hips and possibly also MSTR-Chest. Ofc, implement this in a smart way, that works with arbitrary spine length. (Similar deal to how STR bones stay inbetween STR main bones, but in this case it's rotation instead of location)
+Copy Rotation constraints for IK-CTR controls should get their influence procedurally in a smart way, that works with arbitrary spine length. (Similar to STR bones staying inbetween STR main bones, but in this case it's rotation instead of location)
 Re-implement FK-C bones (maybe under a param)
 	Their values would probably have to be dependent on the length of the bone. Ie, a long bone should slide more when it's rotated, compared to a short bone.
 
 Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone?
-
-Allow multiple spine rigs in the same rig.
- Currently there can be only one spine in the rig, or at least only one that will be displayed in the UI, since the spine rig's IK property is always simply "ik_spine".
-	head hinge also has some hardcoded name strings.
-	When registering bones as a parent, the parent identifiers are also non-unique.
-	Main control names like MSTR-Torso are also non-unique...
-	
-	All of this could be solved by inheriting the UI name params from the FK chain rig. I should do that. 
 """
 
 class CloudSpineRig(CloudFKChainRig):
@@ -35,8 +26,17 @@ class CloudSpineRig(CloudFKChainRig):
 
 		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones." # TODO: why?
 
-		self.ik_prop_name = self.limb_name + "ik_spine"
-		self.ik_stretch_name = self.limb_name + "ik_stretch_spine"
+		# UI Strings and Custom Property names
+		self.category = self.naming.strip_org(self.base_bone)
+		if self.params.CR_fk_chain_use_category_name:
+			self.category = self.params.CR_fk_chain_category_name
+
+		self.spine_name = "Spine"
+		if self.params.CR_fk_chain_use_limb_name:
+			self.spine_name = self.params.CR_fk_chain_limb_name.replace(" ", "_")
+		
+		self.ik_prop_name = "ik_" + self.spine_name.lower()
+		self.ik_stretch_name = "ik_stretch_" + self.spine_name.lower()
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
@@ -61,7 +61,7 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Create Troso Master control
 		self.mstr_torso = self.spine_main.new(
-			name 		  = "MSTR-Torso"
+			name 		  = f"MSTR-{self.spine_name}_Torso"
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.load_widget("Torso_Master")
@@ -69,7 +69,7 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Create master (reverse) hip control
 		self.mstr_hips = self.spine_main.new(
-				name				= "MSTR-Hips"
+				name				= f"MSTR-{self.spine_name}_Hips"
 				,source				= self.org_chain[0]
 				,head				= self.org_chain[0].center
 				,custom_shape 		= self.load_widget("Hips")
@@ -89,9 +89,6 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Parent the first one to MSTR-Torso.
 		self.fk_chain[0].parent = self.mstr_torso
-		
-		# Delete the last one.
-		# self.fk_chain.remove(self.fk_chain[-1])
 
 		# Register final spine FK as an available parent.
 		self.register_parent(self.fk_chain[-1], "Chest")
@@ -99,7 +96,7 @@ class CloudSpineRig(CloudFKChainRig):
 	def prepare_ik_spine(self):
 		### Create master chest control
 		self.mstr_chest = self.spine_main.new(
-				name				= "MSTR-Chest"
+				name				= f"MSTR-{self.spine_name}_Chest"
 				,source 			= self.org_chain[-2]
 				,head				= self.org_chain[-2].center
 				,tail 				= self.org_chain[-2].center + Vector((0, 0, self.scale))
@@ -123,6 +120,19 @@ class CloudSpineRig(CloudFKChainRig):
 				,source				= fk_bone
 				,custom_shape 		= self.load_widget("Oval")
 			)
+
+			if i == 0:
+				ik_ctr_bone.add_constraint('COPY_ROTATION'
+					,subtarget = self.mstr_hips.name
+					,influence = 0.5
+					,use_xyz   = [False, True, False]
+				)
+				ik_ctr_bone.add_constraint('COPY_ROTATION'
+					,subtarget = self.mstr_chest.name
+					,influence = 0.5
+					,use_xyz   = [False, True, False]
+				)
+
 			if i >= len(self.org_chain)-2:
 				# Last two spine controls should be parented to the chest control.
 				ik_ctr_bone.parent = self.mstr_chest
@@ -232,13 +242,13 @@ class CloudSpineRig(CloudFKChainRig):
 			"prop_bone"		: self.properties_bone,
 			"prop_id" 		: self.ik_stretch_name,
 		}
-		self.add_ui_data("ik_stretches", "spine", "Spine", info, default=1.0)
+		self.add_ui_data("ik_stretches", self.category, self.spine_name, info, default=1.0)
 
 		info = {
 			"prop_bone"		: self.properties_bone,
 			"prop_id"		: self.ik_prop_name,
 		}
-		self.add_ui_data("ik_switches", "spine", "Spine", info, default=0.0)
+		self.add_ui_data("ik_switches", self.category, self.spine_name, info, default=0.0)
 
 	def prepare_def_str_spine(self):
 		# Tweak some display things

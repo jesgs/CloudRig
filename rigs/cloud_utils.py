@@ -24,7 +24,7 @@ class CloudUtilities:
 				return bi
 
 	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
-		add_ui_data(self.obj, ui_area, row_name, col_name, info, default, _min, _max)
+		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, default, _min, _max)
 
 	# TODO: Move this to cloud_fk_chain.py?
 	# This would require splitting off the neck and head from the spine rig.
