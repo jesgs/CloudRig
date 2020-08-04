@@ -15,8 +15,10 @@ class LinkedList(list):
 
 	def remove(self, value):
 		super().remove(value)
-		value.prev.next = value.next
-		value.next.prev = value.prev
+		if value.prev:
+			value.prev.next = value.next
+		if value.next:
+			value.next.prev = value.prev
 
 	def append(self, value):
 		if len(self)>0:
