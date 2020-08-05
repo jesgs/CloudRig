@@ -12,9 +12,9 @@ from rigify.utils.mechanism import make_property
 from ..bone import BoneInfo
 from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
-from ..utils.ui import add_ui_data
+from ..utils.ui import CloudUIMixin
 
-class CloudUtilities:
+class CloudUtilities(CloudUIMixin):
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
 	# If a class inherits this class, it's also expected to inherit CloudBaseRig - These are only split up for organizational purposes.
 
@@ -22,9 +22,6 @@ class CloudUtilities:
 		for bi in self.all_bones:
 			if bi.name==name:
 				return bi
-
-	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
-		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, default, _min, _max)
 
 	def register_parent(self, bone, name):
 		if name in self.parent_candidates:

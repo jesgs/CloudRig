@@ -2,6 +2,68 @@
 from rigify.ui import rigify_report_exception
 import bpy
 
+class CloudUIMixin:
+	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
+		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, default, _min, _max)
+
+	@classmethod
+	def disable_row(cls, row_name):
+		if row_name in cls.ui_rows:
+			cls.ui_rows[row_name].enabled = False
+
+	@classmethod
+	def cloud_params_ui(cls, layout, params):
+		doc = cls.__doc__ or cls.__bases__[0].__doc__
+		if doc:
+			ui_label_with_linebreak(layout, doc)
+
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		col = layout.column()
+		return col
+
+	@classmethod
+	def cloud_dropdown_ui(cls, layout, params, dropdown_param_name):
+		layout.separator()
+		return dropdown_ui(layout, params, dropdown_param_name)
+
+	@classmethod
+	def bone_set_ui(cls, params, layout, set_info):
+		import bpy
+		obj = bpy.context.object
+		cloudrig = obj.data.cloudrig_parameters
+		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return
+		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return
+		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return
+
+		cls.ui_rows[set_info['param']] = col = layout.column()
+		col.use_property_split=True
+		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
+
+		if True:
+			layout.use_property_split=False
+			draw_layers_ui(layout, obj, show_hidden=cloudrig.show_layers_preview_hidden, owner=params, layers_prop = set_info['layer_param'])
+			# TODO: This results in a pretty massive piece of UI. Might be nicer as a UIList, but not sure if possible?
+		else:
+			row = col.row()
+			row.use_property_split=False
+			row.prop(params, set_info['layer_param'], text="")
+		layout.separator()
+
+	@classmethod
+	def bone_sets_ui(cls, layout, params):
+		if not cls.cloud_dropdown_ui(layout, params, 'CR_show_bone_sets'): return
+
+		import bpy
+		obj = bpy.context.object
+
+		cloudrig = obj.data.cloudrig_parameters
+		layout.prop(cloudrig, 'show_layers_preview_hidden')
+
+		for ui_name in cls.bone_set_defs.keys():
+			set_info = cls.bone_set_defs[ui_name]
+			cls.bone_set_ui(params, layout, set_info)
+
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
 		for b in rig.pose.bones:
