@@ -261,11 +261,11 @@ class CloudFKChainRig(CloudChainRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def cloud_params_ui(cls, layout, params):
+	def draw_cloud_params(cls, layout, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().cloud_params_ui(layout, params)
+		layout = super().draw_cloud_params(layout, params)
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_fk_chain_show_settings"): return layout
+		if not cls.draw_dropdown_menu(layout, params, "CR_fk_chain_show_settings"): return layout
 
 		category_row = layout.row(align=True, heading="UI Category")
 		category_row.prop(params, "CR_fk_chain_use_category_name", text="")

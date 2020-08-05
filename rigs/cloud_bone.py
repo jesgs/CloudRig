@@ -361,8 +361,8 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
-		from ..utils.ui import ui_label_with_linebreak
-		ui_label_with_linebreak(layout, cls.__doc__)
+		from ..utils.ui import draw_label_with_linebreak
+		draw_label_with_linebreak(layout, cls.__doc__)
 
 		layout.use_property_split = True
 		layout.use_property_decorate = False

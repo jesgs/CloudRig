@@ -317,10 +317,10 @@ class CloudCurveRig(CloudBaseRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def bone_set_ui(cls, params, layout, set_info):
+	def draw_bone_set_params(cls, layout, params, set_info):
 		# We only want to draw Curve Handles bone set UI if the option for it is enabled.
 		if set_info['name'] != "Curve Handles" or params.CR_curve_controls_for_handles:
-			super().bone_set_ui(params, layout, set_info)
+			super().draw_bone_set_params(layout, params, set_info)
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
@@ -339,10 +339,10 @@ class CloudCurveRig(CloudBaseRig):
 		target_curve_row.prop(params, "CR_curve_target", icon=icon)
 
 	@classmethod
-	def cloud_params_ui(cls, layout, params):
+	def draw_cloud_params(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		layout = super().cloud_params_ui(layout, params)
+		layout = super().draw_cloud_params(layout, params)
 
 		cls.curve_selector_ui(layout, params)
 

@@ -12,10 +12,10 @@ class CloudUIMixin:
 			cls.ui_rows[row_name].enabled = False
 
 	@classmethod
-	def cloud_params_ui(cls, layout, params):
+	def draw_cloud_params(cls, layout, params):
 		doc = cls.__doc__ or cls.__bases__[0].__doc__
 		if doc:
-			ui_label_with_linebreak(layout, doc)
+			draw_label_with_linebreak(layout, doc)
 
 		layout.use_property_split = True
 		layout.use_property_decorate = False
@@ -23,12 +23,12 @@ class CloudUIMixin:
 		return col
 
 	@classmethod
-	def cloud_dropdown_ui(cls, layout, params, dropdown_param_name):
+	def draw_dropdown_menu(cls, layout, params, dropdown_param_name):
 		layout.separator()
-		return dropdown_ui(layout, params, dropdown_param_name)
+		return draw_dropdown(layout, params, dropdown_param_name)
 
 	@classmethod
-	def bone_set_ui(cls, params, layout, set_info):
+	def draw_bone_set_params(cls, layout, params, set_info):
 		obj = bpy.context.object
 		cloudrig = obj.data.cloudrig_parameters
 		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return
@@ -50,8 +50,8 @@ class CloudUIMixin:
 		layout.separator()
 
 	@classmethod
-	def bone_sets_ui(cls, layout, params):
-		if not cls.cloud_dropdown_ui(layout, params, 'CR_show_bone_sets'): return
+	def draw_bone_sets_params(cls, layout, params):
+		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return
 
 		obj = bpy.context.object
 
@@ -60,7 +60,7 @@ class CloudUIMixin:
 
 		for ui_name in cls.bone_set_defs.keys():
 			set_info = cls.bone_set_defs[ui_name]
-			cls.bone_set_ui(params, layout, set_info)
+			cls.draw_bone_set_params(layout, params, set_info)
 
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
@@ -69,7 +69,7 @@ def is_cloud_metarig(rig):
 				return True
 	return False
 
-def ui_label_with_linebreak(layout, text):
+def draw_label_with_linebreak(layout, text):
 	""" Attempt to simulate a proper textbox by only displaying as many 
 		characters in a single label as fits in the UI.
 		This only works well on specific UI zoom levels.
@@ -104,7 +104,7 @@ def ui_label_with_linebreak(layout, text):
 		for line in lines:
 			col.label(text=line)
 
-def dropdown_ui(layout, params, dropdown_param_name):
+def draw_dropdown(layout, params, dropdown_param_name):
 	is_dropdown_open = getattr(params, dropdown_param_name)
 
 	icon = 'TRIA_DOWN' if is_dropdown_open else 'TRIA_RIGHT'

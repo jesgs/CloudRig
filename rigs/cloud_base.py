@@ -319,6 +319,6 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 		"""
 		cls.ui_rows = {}
 
-		layout = cls.cloud_params_ui(layout, params)
+		layout = cls.draw_cloud_params(layout, params)
 		layout.separator()
-		cls.bone_sets_ui(layout, params)
+		cls.draw_bone_sets_params(layout, params)

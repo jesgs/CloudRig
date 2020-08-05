@@ -5,7 +5,7 @@ import bpy
 from . import actions
 from .cloudrig import draw_layers_ui
 import addon_utils
-from .utils.ui import ui_label_with_linebreak, is_cloud_metarig
+from .utils.ui import draw_label_with_linebreak, is_cloud_metarig
 
 class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
@@ -183,8 +183,8 @@ def draw_cloud_layer_names(self, context):
 	arm = obj.data
 	cloudrig = arm.cloudrig_parameters
 	layout = self.layout
-	ui_label_with_linebreak(layout, "Organize Layers panel layout. Layers without a name and layers beginning with $ will not be shown.")
-	ui_label_with_linebreak(layout, "In the generated rig, the same layers will be active and protected as on the metarig.")
+	draw_label_with_linebreak(layout, "Organize Layers panel layout. Layers without a name and layers beginning with $ will not be shown.")
+	draw_label_with_linebreak(layout, "In the generated rig, the same layers will be active and protected as on the metarig.")
 
 	# Ensure that the layers exist
 	if len(arm.rigify_layers) != len(arm.layers):

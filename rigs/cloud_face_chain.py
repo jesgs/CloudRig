@@ -159,12 +159,12 @@ class CloudFaceChainRig(CloudChainRig):
 		)
 
 	@classmethod
-	def cloud_params_ui(cls, layout, params):
+	def draw_cloud_params(cls, layout, params):
 		""" Create the ui for the rig parameters.
 		"""
-		layout = super().cloud_params_ui(layout, params)
+		layout = super().draw_cloud_params(layout, params)
 
-		if not cls.cloud_dropdown_ui(layout, params, "CR_face_chain_show_settings"): return layout
+		if not cls.draw_dropdown_menu(layout, params, "CR_face_chain_show_settings"): return layout
 
 		layout.prop(params, "CR_face_chain_merge")
 		layout.prop(params, "CR_face_chain_relink")
