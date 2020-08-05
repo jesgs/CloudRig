@@ -8,10 +8,10 @@ from enum import Enum
 
 from ..bone import BoneSet
 from .cloud_utils import CloudUtilities
-from ..ui import ui_label_with_linebreak, dropdown_ui
 from ..cloudrig import draw_layers_ui
 from ..utils.naming import CloudNameManager, name_side_is_left
 from ..utils.object import CloudObjectUtilitiesMixin
+from ..utils.ui import ui_label_with_linebreak, dropdown_ui
 
 from rigify.base_rig import BaseRig
 

@@ -12,7 +12,7 @@ from rigify.utils.mechanism import make_property
 from ..bone import BoneInfo
 from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
-from ..ui import add_ui_data
+from ..utils.ui import add_ui_data
 
 class CloudUtilities:
 	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.

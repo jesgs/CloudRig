@@ -1,6 +1,6 @@
 import bpy
 
-from ..ui import is_cloud_metarig
+from ..utils.ui import is_cloud_metarig
 from ..utils.object import EnsureVisible
 
 def safe_generate(context, metarig, target_rig):

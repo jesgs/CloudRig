@@ -361,7 +361,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
-		from ..ui import ui_label_with_linebreak
+		from ..utils.ui import ui_label_with_linebreak
 		ui_label_with_linebreak(layout, cls.__doc__)
 
 		layout.use_property_split = True

@@ -1,7 +1,7 @@
 import bpy
 from bpy.app.handlers import persistent
 from datetime import datetime as dt
-from .ui import is_cloud_metarig
+from .utils.ui import is_cloud_metarig
 
 blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) + str(bpy.app.version[2]))
 
