@@ -52,7 +52,7 @@ class CloudAimRig(CloudBaseRig):
 			,source = self.org_chain[0]
 			,head	= head
 			,tail	= tail
-			,custom_shape = self.load_widget("Oval")
+			,custom_shape = self.ensure_widget("Oval")
 			,parent = parent
 		)
 		dsp_bone = self.create_dsp_bone(target_bone)
@@ -82,7 +82,7 @@ class CloudAimRig(CloudBaseRig):
 			name = self.naming.make_name(["CTR"], *self.naming.slice_name(bone.name)[1:])
 			,source = bone
 			,parent = bone.parent
-			,custom_shape = self.load_widget("Oval")
+			,custom_shape = self.ensure_widget("Oval")
 		)
 		# We parent ORG with transform constraint because we want to use the local transform matrix for reading its rotation.
 		bone.add_constraint('COPY_TRANSFORMS'
@@ -101,7 +101,7 @@ class CloudAimRig(CloudBaseRig):
 			name = base_bone.name.replace("ORG", "ROOT")
 			,source = base_bone
 			,parent = base_bone.parent
-			,custom_shape = self.load_widget('Square')
+			,custom_shape = self.ensure_widget('Square')
 			,custom_shape_scale = 2
 		)
 		bone.parent = root_bone
@@ -194,9 +194,7 @@ class CloudAimRig(CloudBaseRig):
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
 		params.CR_aim_show_settings = BoolProperty(name="Aim Settings")
 
@@ -227,8 +225,7 @@ class CloudAimRig(CloudBaseRig):
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_aim_show_settings"): return layout

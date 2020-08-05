@@ -267,7 +267,7 @@ class CloudGenerator(Generator):
 		self.obj = obj
 		return obj
 
-	def define_root_bone(self):
+	def create_root_bones(self):
 		# Root bone groups
 		self.root_set = BoneSet(
 			self,
@@ -285,7 +285,7 @@ class CloudGenerator(Generator):
 				,head				= Vector((0, 0, 0))
 				,tail				= Vector((0, self.scale*5, 0))
 				,bbone_width		= 1/3
-				,custom_shape		= self.load_widget("Root")
+				,custom_shape		= self.ensure_widget("Root")
 				,custom_shape_scale = 1.5
 			)
 
@@ -383,8 +383,8 @@ class CloudGenerator(Generator):
 		wgt_collection.hide_render=True
 		return wgt_collection
 
-	def load_widget(self, widget_name):
-		return cloud_widgets.load_widget(widget_name, overwrite=self.params.rigify_force_widget_update, collection=self.wgt_collection)
+	def ensure_widget(self, widget_name):
+		return cloud_widgets.ensure_widget(widget_name, overwrite=self.params.rigify_force_widget_update, collection=self.wgt_collection)
 
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
@@ -498,7 +498,7 @@ class CloudGenerator(Generator):
 		# Keep track of created widgets, so we can add them to Rigify-created Widgets collection at the end.
 		self.wgt_collection = self.ensure_widget_collection()
 
-		self.define_root_bone()
+		self.create_root_bones()
 
 		# Rename metarig data (TODO: parameter)
 		self.metarig.data.name = "Data_" + self.metarig.name

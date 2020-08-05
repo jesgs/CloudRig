@@ -35,11 +35,11 @@ class CloudFKChainRig(CloudChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.prepare_root_bone()
-		self.prepare_fk_chain()
-		self.prepare_org_chain()
+		self.make_root_bone()
+		self.make_fk_chain()
+		self.attach_org_to_fk()
 
-	def prepare_root_bone(self):
+	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
 		base_bone = self.get_bone(self.base_bone)
@@ -47,12 +47,12 @@ class CloudFKChainRig(CloudChainRig):
 			name 					= root_name
 			,source 				= base_bone
 			,parent 				= self.bones.parent
-			,custom_shape 			= self.load_widget("Cube")
+			,custom_shape 			= self.ensure_widget("Cube")
 			,custom_shape_scale 	= 0.5
 		)
 		self.register_parent(self.limb_root_bone, self.limb_ui_name)
 
-	def prepare_fk_chain(self):
+	def make_fk_chain(self):
 		fk_name = ""
 
 		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
@@ -61,7 +61,7 @@ class CloudFKChainRig(CloudChainRig):
 			fk_bone = self.fk_chain.new(
 				name				= fk_name
 				,source				= org_bone
-				,custom_shape 		= self.load_widget("FK_Limb")
+				,custom_shape 		= self.ensure_widget("FK_Limb")
 				,custom_shape_scale = org_bone.custom_shape_scale
 				,parent				= self.bones.parent
 			)
@@ -71,7 +71,7 @@ class CloudFKChainRig(CloudChainRig):
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
 					fk_parent_bone = self.create_parent_bone(fk_bone)
-					fk_parent_bone.custom_shape = self.load_widget("FK_Limb")
+					fk_parent_bone.custom_shape = self.ensure_widget("FK_Limb")
 					if self.params.CR_fk_chain_display_center:
 						self.create_dsp_bone(fk_parent_bone, center=True)
 					hng_child = fk_parent_bone
@@ -83,7 +83,7 @@ class CloudFKChainRig(CloudChainRig):
 
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:
-			hng_bone = self.hinge_setup(
+			hng_bone = self.make_hinge_setup(
 				bone = hng_child,
 				category = self.category,
 				parent_bone = self.limb_root_bone,
@@ -94,7 +94,7 @@ class CloudFKChainRig(CloudChainRig):
 				bone_set = self.fk_mch
 			)
 
-	def hinge_setup(self, bone, category, *,
+	def make_hinge_setup(self, bone, category, *,
 		prop_bone, prop_name, default_value=0.0,
 		parent_bone=None, head_tail=0,
 		hng_name=None, limb_name=None, bone_set=None
@@ -188,7 +188,7 @@ class CloudFKChainRig(CloudChainRig):
 			# the last STR control doesn't affect this deform bone.
 			last_def.parent = last_def.parent.org_parent
 
-	def prepare_org_chain(self):
+	def attach_org_to_fk(self):
 		# Find existing ORG bones
 		# Add Copy Transforms constraints targetting FK.
 		for i, org_bone in enumerate(self.org_chain):
@@ -205,16 +205,14 @@ class CloudFKChainRig(CloudChainRig):
 
 	@classmethod
 	def define_bone_sets(cls, params):
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "FK Controls", preset=1, default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup.
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
 		params.CR_fk_chain_show_settings = BoolProperty(
 			name="FK Settings"

@@ -20,7 +20,7 @@ class CloudTemplateRig(CloudBaseRig):
 		ctr_bone = self.template_set.new(
 			name = bone.name.replace("ORG", "CTR")
 			,source = bone
-			,custom_shape = self.load_widget('Circle')
+			,custom_shape = self.ensure_widget('Circle')
 			,parent = bone.parent
 		)
 		copy_trans = bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)
@@ -30,15 +30,13 @@ class CloudTemplateRig(CloudBaseRig):
 	# Parameters
 	@classmethod
 	def define_bone_sets(cls, params):
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "Template Bones", preset=1,	default_layers=[cls.default_layers('IK_MAIN')])
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_template_show_settings = BoolProperty(
@@ -53,8 +51,7 @@ class CloudTemplateRig(CloudBaseRig):
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_template_show_settings"): return layout

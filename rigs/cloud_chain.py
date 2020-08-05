@@ -79,7 +79,7 @@ class CloudChainRig(CloudBaseRig):
 							direction = (org_bone.tail - self.org_chain[-1].head).normalized()
 							str_bone.tail = str_bone.head + direction*str_bone.length
 						else:
-							str_bone.custom_shape = self.load_widget("Hemisphere_Flip")
+							str_bone.custom_shape = self.ensure_widget("Hemisphere_Flip")
 
 			str_sections.append(str_section)
 
@@ -96,7 +96,7 @@ class CloudChainRig(CloudBaseRig):
 					str_bone.name = self.naming.add_prefix(str_bone, "TIP")
 					str_bone.custom_shape_scale *= 1.3
 					str_sections.append([str_bone])
-					str_bone.custom_shape = self.load_widget("Hemisphere")
+					str_bone.custom_shape = self.ensure_widget("Hemisphere")
 					self.main_str_bones.append(str_bone)
 
 		return str_sections
@@ -114,7 +114,7 @@ class CloudChainRig(CloudBaseRig):
 			,vector = direction
 			,length = org_bone.length / segments / 2
 			,roll = org_bone.roll
-			,custom_shape = self.load_widget("Sphere")
+			,custom_shape = self.ensure_widget("Sphere")
 			,custom_shape_scale = 0.3
 			,parent = org_bone
 		)
@@ -346,7 +346,7 @@ class CloudChainRig(CloudBaseRig):
 				if meta_org_bone.use_connect:
 					parent_rig.params.CR_chain_tip_control = True
 					parent_rig.setup_def_bone(parent_rig.def_chain[-1], parent_rig.org_chain[-1], parent_rig.str_chain[-1], self.str_chain[0])
-					self.str_chain[0].custom_shape = self.load_widget('Sphere')
+					self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
 					if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
 						self.make_shape_key_helper(parent_rig.def_chain[-1], self.def_chain[0])
 					if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
@@ -366,9 +366,7 @@ class CloudChainRig(CloudBaseRig):
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup.
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_chain_show_settings = BoolProperty(

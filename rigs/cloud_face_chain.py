@@ -31,7 +31,7 @@ class CloudFaceChainRig(CloudChainRig):
 			self.move_and_relink_constraints()
 
 		if self.params.CR_face_chain_merge:
-			self.merge_controls()
+			self.make_intersection_controls()
 
 	def move_and_relink_constraints(self):
 		for i, org in enumerate(self.org_chain):
@@ -50,7 +50,7 @@ class CloudFaceChainRig(CloudChainRig):
 				org.constraint_infos.remove(c)
 				c.relink()
 
-	def merge_controls(self):
+	def make_intersection_controls(self):
 		# For each main STR control in this rig
 		#   For each main STR control in every other rig
 		#	   If the two are in the same position
@@ -95,7 +95,7 @@ class CloudFaceChainRig(CloudChainRig):
 			parent = self.merged_controls.new(
 				name = bone_name
 				,source = bones[0]
-				,custom_shape = self.load_widget('Cube')
+				,custom_shape = self.ensure_widget('Cube')
 				,custom_shape_scale = bones[0].custom_shape_scale
 			)
 
@@ -130,7 +130,7 @@ class CloudFaceChainRig(CloudChainRig):
 	# Parameters
 	@classmethod
 	def define_bone_sets(cls, params):
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.default_layers('MCH')])
 		cls.define_bone_set(params, "Merged Controls",	preset=8,	default_layers=[cls.default_layers('STRETCH')])
@@ -138,9 +138,7 @@ class CloudFaceChainRig(CloudChainRig):
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_face_chain_show_settings = BoolProperty(
@@ -160,8 +158,7 @@ class CloudFaceChainRig(CloudChainRig):
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_face_chain_show_settings"): return layout

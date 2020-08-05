@@ -10,7 +10,7 @@ def assign_to_collection(obj, collection):
 	if obj.name not in collection.objects:
 		collection.objects.link(obj)
 
-def load_widget(name, overwrite=True, collection=None):
+def ensure_widget(name, overwrite=True, collection=None):
 	""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
 
 	# Check if it already exists.

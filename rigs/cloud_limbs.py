@@ -73,21 +73,15 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return segments, bbone_density
 
-	def world_align_last_fk(self):
-		# Make last FK bone world-aligned.
-		if self.params.CR_limb_type=='LEG':
-			self.world_align_fk(self.org_chain[-2].fk_bone)
-		else:
-			super().world_align_last_fk()
-
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.prepare_str_limb()
-		self.prepare_ik_limb()
-		self.foot_org_tweak()
+		self.tweak_str_limb()
+		self.make_ik_limb()
+		self.tweak_org_foot()
 
-	def prepare_fk_chain(self):
-		super().prepare_fk_chain()
+	def make_fk_chain(self):
+		"""Override."""
+		super().make_fk_chain()
 
 		if self.limb_type=='LEG':
 			self.fk_toe = self.org_chain[3].fk_bone
@@ -95,7 +89,22 @@ class CloudLimbRig(CloudIKChainRig):
 		elbow_knee = self.org_chain[1].fk_bone
 		elbow_knee.lock_rotation[1] = elbow_knee.lock_rotation[2] = self.params.CR_limb_lock_yz
 
-	def prepare_str_limb(self):
+	def world_align_last_fk(self):
+		"""Override. Make last FK bone world-aligned."""
+		if self.params.CR_limb_type=='LEG':
+			self.make_world_aligned_control(self.org_chain[-2].fk_bone)
+		else:
+			super().world_align_last_fk()
+
+	def make_parent_switch(self):
+		"""Override."""
+		ik_ctrl = self.ik_mstr
+		if self.params.CR_limb_double_ik:
+			ik_ctrl = ik_ctrl.parent
+
+		super().make_parent_switch(ik_ctrl)
+
+	def tweak_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
 
 		# Disable first Copy Rotation constraint on the upperarm
@@ -104,8 +113,8 @@ class CloudLimbRig(CloudIKChainRig):
 			str_h_bone = b.parent
 			str_h_bone.constraint_infos[2].mute = True
 
-	def prepare_ik_limb(self):
-		# NOTE: This runs after super().prepare_ik_chain()
+	def make_ik_limb(self):
+		# NOTE: This runs after super().make_ik_setup()
 
 		def foot_dsp(bone):
 			# Create foot DSP helpers
@@ -121,7 +130,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 		# Configure IK Master
 		wgt_name = 'Hand_IK' if self.limb_type=='ARM' else 'Foot_IK'
-		self.ik_mstr.custom_shape = self.load_widget(wgt_name)
+		self.ik_mstr.custom_shape = self.ensure_widget(wgt_name)
 		self.ik_mstr.custom_shape_scale = 0.8 if self.limb_type=='ARM' else 2.8
 
 		foot_dsp(self.ik_mstr)
@@ -134,29 +143,16 @@ class CloudLimbRig(CloudIKChainRig):
 		# IK Foot setup, including Foot Roll
 		if self.limb_type == 'LEG':
 			if self.params.CR_limb_use_foot_roll:
-				self.prepare_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
-			self.prepare_ik_toe()
+				self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
+			self.make_ik_toe()
 
 		# Counter-Rotate setup for the first section of STR bones.
 		for i in range(0, self.params.CR_chain_segments):
 			factor_unit = 0.9 / self.params.CR_chain_segments
 			factor = 0.9 - factor_unit * i
-			self.first_str_counterrotate_setup(self.str_chain[i], self.org_chain[0], factor)
+			self.add_counterrotate_constraint(self.str_chain[i], self.org_chain[0], factor)
 
-	def first_str_counterrotate_setup(self, str_bone, org_bone, factor):
-		str_bone.add_constraint('TRANSFORM',
-			name = "Transformation (Counter-Rotate)",
-			subtarget = org_bone.name,
-			map_from = 'ROTATION', map_to = 'ROTATION',
-			use_motion_extrapolate = True,
-			from_min_y_rot =   -1,
-			from_max_y_rot =	1,
-			to_min_y_rot   =  factor,
-			to_max_y_rot   = -factor,
-			from_rotation_mode = 'SWING_TWIST_Y'
-		)
-
-	def prepare_footroll(self, ik_tgt, ik_chain, org_chain):
+	def make_footroll(self, ik_tgt, ik_chain, org_chain):
 		ik_foot = ik_chain[0]
 
 		# Create ROLL control behind the foot (Limit Rotation, lock other transforms)
@@ -188,7 +184,7 @@ class CloudLimbRig(CloudIKChainRig):
 			,tail		  = ik_foot.head + Vector((0, self.scale/2, self.scale/4))
 			,roll		  = rad(180)
 			,parent		  = roll_master
-			,custom_shape = self.load_widget('FootRoll')
+			,custom_shape = self.ensure_widget('FootRoll')
 			,use_custom_shape_bone_size = True
 		)
 
@@ -303,7 +299,7 @@ class CloudLimbRig(CloudIKChainRig):
 			if ci:
 				ci.subtarget = rolly_stretchy.name
 
-	def prepare_ik_toe(self):
+	def make_ik_toe(self):
 		# FK Toe bone should be parented between FK Foot and IK Toe.
 		fk_toe = self.fk_toe
 		fk_toe.parent = None
@@ -331,14 +327,20 @@ class CloudLimbRig(CloudIKChainRig):
 		fk_driver['prop'] = 'targets[0].weight'
 		toe_con.drivers.append(fk_driver)
 
-	def prepare_parent_switch(self):
-		ik_ctrl = self.ik_mstr
-		if self.params.CR_limb_double_ik:
-			ik_ctrl = ik_ctrl.parent
+	def add_counterrotate_constraint(self, str_bone, org_bone, factor):
+		str_bone.add_constraint('TRANSFORM',
+			name = "Transformation (Counter-Rotate)",
+			subtarget = org_bone.name,
+			map_from = 'ROTATION', map_to = 'ROTATION',
+			use_motion_extrapolate = True,
+			from_min_y_rot =   -1,
+			from_max_y_rot =	1,
+			to_min_y_rot   =  factor,
+			to_max_y_rot   = -factor,
+			from_rotation_mode = 'SWING_TWIST_Y'
+		)
 
-		super().prepare_parent_switch(ik_ctrl)
-
-	def foot_org_tweak(self):
+	def tweak_org_foot(self):
 		# Delete IK constraint and driver from toe bone. It should always use FK.
 		if self.limb_type == 'LEG':
 			org_toe = self.org_chain[-1]
@@ -350,9 +352,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_limb_show_settings = BoolProperty(

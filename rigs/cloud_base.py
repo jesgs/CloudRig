@@ -141,7 +141,7 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 				,head		  = Vector((0, self.scale*2, 0))
 				,tail		  = Vector((0, self.scale*4, 0))
 				,bbone_width  = 1/8
-				,custom_shape = self.load_widget("Cogwheel")
+				,custom_shape = self.ensure_widget("Cogwheel")
 				,use_custom_shape_bone_size = True
 			)
 		return properties_bone
@@ -189,9 +189,9 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 		self.parent_switch_bones = self.ensure_bone_set("Parent Switch Helpers")
 
 	def prepare_bones(self):
-		self.load_org_bones()
+		self.load_org_bone_infos()
 
-	def load_org_bones(self):
+	def load_org_bone_infos(self):
 		# Load ORG bones into BoneInfo instances in self.org_chain.
 
 		for bn in self.bones.org.main:
@@ -248,7 +248,7 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 	@classmethod
 	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
 		"""
-		A bone set is just a set of rig parameters for choosing a bone group and list of bone layers.
+		A bone set is a set of rig parameters for choosing a bone group and list of bone layers.
 		This function is responsible for creating those rig parameters, as well as storing them,
 		so they can be referenced easily when implementing the creation of a new bone
 		and assigning its bone group and layers.
@@ -298,7 +298,7 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 
 	@classmethod
 	def define_bone_sets(cls, params):
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		cls.bone_set_defs = OrderedDict()
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
 
@@ -308,15 +308,12 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		cls.define_bone_sets(params)
 
 	@classmethod
 	def parameters_ui(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		cls.ui_rows = {}
 
 		layout = cls.draw_cloud_params(layout, params)

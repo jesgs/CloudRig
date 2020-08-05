@@ -23,8 +23,27 @@ class CloudSplineIKRig(CloudCurveRig):
 		super().ensure_bone_sets()
 		self.def_chain = self.ensure_bone_set("Curve Deform Bones")
 
+	def prepare_bones(self):
+		super().prepare_bones()
+		self.make_curve_root_ctrl()
+		self.create_curve()
+		self.make_ctrls_for_curve_points()
+		self.create_def_chain()
+		self.add_spline_ik()
+
+	def make_curve_controls(self):
+		""" Overrides.
+			This rig's create_curve() relies on CloudBaseRig.prepare_bones() 
+			having already run. But if we simply call super().prepare_bones(), 
+			it will run make_ctrls_for_curve_points(), which, for this class, 
+			relies on create_curve() running beforehand.
+			So, we override this with nothing, and we put the calls in the
+			correct order in our own prepare_bones().
+		"""
+		pass
+
 	def create_curve(self):
-		""" Find or create the Bezier Curve that will be used by the rig. """
+		"""Find or create the Bezier Curve that will be used by the rig."""
 
 		curve_ob = self.params.CR_curve_target
 		if curve_ob:
@@ -106,19 +125,6 @@ class CloudSplineIKRig(CloudCurveRig):
 				else:
 					def_bone.parent = self.org_chain[0]
 
-	def prepare_bones(self):
-		super().prepare_bones()
-		self.define_curve_root_ctrl()
-		self.create_curve()
-		self.define_ctrls_for_curve_points()
-		self.create_def_chain()
-		self.add_spline_ik()
-
-	def define_curve_controls(self):
-		# This rig's create_curve() relies on CloudBaseRig.prepare_bones() having already run.
-		# But if we simply call super().prepare_bones(), it will run define_ctrls_for_curve_points(), which, for this class, relies on create_curve() running beforehand.
-		pass
-
 	def add_spline_ik(self):
 		# Add constraint to deform chain
 		self.def_chain[-1].add_constraint('SPLINE_IK'
@@ -133,14 +139,12 @@ class CloudSplineIKRig(CloudCurveRig):
 	@classmethod
 	def define_bone_sets(cls, params):
 		super().define_bone_sets(params)
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		cls.define_bone_set(params, "Curve Deform Bones", default_layers=[cls.default_layers('DEF')], override='DEF')
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK Settings")
@@ -181,8 +185,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_spline_ik_show_settings"): return layout

@@ -37,8 +37,8 @@ class CloudMechanismMixin:
 
 		return candidates
 
-	def load_widget(self, name):
-		return self.generator.load_widget(name)
+	def ensure_widget(self, name):
+		return self.generator.ensure_widget(name)
 
 	def rig_child(self, child_bone, parent_names, prop_bone, prop_name, bone_set=None):
 		""" Rig a child with multiple switchable parents, using Armature constraint and drivers.

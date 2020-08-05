@@ -20,7 +20,7 @@ class CloudShoulderRig(CloudFKChainRig):
 
 	def prepare_fk_shoulder(self):
 		control = self.fk_chain[0]
-		control.custom_shape = self.load_widget("Clavicle")
+		control.custom_shape = self.ensure_widget("Clavicle")
 		self.register_parent(control, self.side_prefix.capitalize() + " Shoulder")
 		shoulder_rot = int(self.params.CR_shoulder_up_axis)
 		if shoulder_rot != 0:
@@ -36,9 +36,7 @@ class CloudShoulderRig(CloudFKChainRig):
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_shoulder_show_settings = BoolProperty(name="Shoulder Settings")

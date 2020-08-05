@@ -49,30 +49,31 @@ class CloudSpineRig(CloudFKChainRig):
 		super().prepare_bones()
 
 		if self.params.CR_spine_use_ik:
-			self.prepare_ik_spine()
-		self.prepare_def_str_spine()
+			self.make_ik_spine()
+		self.tweak_str_spine()
 
-	def prepare_root_bone(self):
-		# Overrides parent class method!
+	def make_root_bone(self):
+		"""Overrides."""
 
 		# Create Troso Master control
 		self.limb_root_bone = self.mstr_torso = self.spine_main.new(
 			name 		  = f"MSTR-{self.spine_name}_Torso"
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
-			,custom_shape = self.load_widget("Torso_Master")
+			,custom_shape = self.ensure_widget("Torso_Master")
 		)
 		return self.mstr_torso
 
-	def prepare_fk_chain(self):
-		super().prepare_fk_chain()
+	def make_fk_chain(self):
+		"""Overrides."""
+		super().make_fk_chain()
 
 		# Create master hip control
 		self.mstr_hips = self.spine_main.new(
 				name				= f"MSTR-{self.spine_name}_Hips"
 				,source				= self.org_chain[0]
 				,head				= self.org_chain[0].center
-				,custom_shape 		= self.load_widget("Hips")
+				,custom_shape 		= self.ensure_widget("Hips")
 				,custom_shape_scale	= 0.7
 				,parent				= self.mstr_torso
 		)
@@ -93,14 +94,14 @@ class CloudSpineRig(CloudFKChainRig):
 		# Register final spine FK as an available parent.
 		self.register_parent(self.fk_chain[-1], "Chest")
 
-	def prepare_ik_spine(self):
+	def make_ik_spine(self):
 		### Create master chest control
 		self.mstr_chest = self.spine_main.new(
 				name				= f"MSTR-{self.spine_name}_Chest"
 				,source 			= self.org_chain[-2]
 				,head				= self.org_chain[-2].center
 				,tail 				= self.org_chain[-2].center + Vector((0, 0, self.scale))
-				,custom_shape 		= self.load_widget("Chest_Master")
+				,custom_shape 		= self.ensure_widget("Chest_Master")
 				,custom_shape_scale = 0.7
 				,parent				= self.mstr_torso
 			)
@@ -118,7 +119,7 @@ class CloudSpineRig(CloudFKChainRig):
 			ik_ctr_bone = self.spine_ik_secondary.new(
 				name				= fk_bone.name.replace("FK", "IK-CTR")
 				,source				= fk_bone
-				,custom_shape 		= self.load_widget("Oval")
+				,custom_shape 		= self.ensure_widget("Oval")
 			)
 
 			if i == 0:
@@ -252,15 +253,15 @@ class CloudSpineRig(CloudFKChainRig):
 		}
 		self.add_ui_data("ik_switches", self.category, self.spine_name, info, default=0.0)
 
-	def prepare_def_str_spine(self):
+	def tweak_str_spine(self):
 		# Tweak some display things
 		for str_bone in self.str_chain:
-			str_bone.custom_shape = self.load_widget('Cube_Flat')
+			str_bone.custom_shape = self.ensure_widget('Cube_Flat')
 			# str_bone.use_custom_shape_bone_size = False
 			# str_bone.custom_shape_scale = 0.15
 
-	def prepare_org_chain(self):
-		# Overrides parent class method!
+	def attach_org_to_fk(self):
+		"""Overrides."""
 
 		# Parent ORG to FK. This is only important because STR- bones are owned by ORG- bones.
 		# We want each FK bone to control the STR- bone of one higher index, eg. FK-Spine0 would control STR-Spine1.
@@ -283,7 +284,7 @@ class CloudSpineRig(CloudFKChainRig):
 	@classmethod
 	def define_bone_sets(cls, params):
 		super().define_bone_sets(params)
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		cls.define_bone_set(params, "Spine Main Controls",	  preset=2,  default_layers=[cls.default_layers('IK_MAIN')]		)
 		cls.define_bone_set(params, "Spine Parent Controls",  preset=8,  default_layers=[cls.default_layers('IK_MAIN')]		)
 		cls.define_bone_set(params, "Spine IK Secondary",	  preset=10, default_layers=[cls.default_layers('IK_SECOND')]	)
@@ -291,9 +292,7 @@ class CloudSpineRig(CloudFKChainRig):
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
 		params.CR_spine_show_settings = BoolProperty(

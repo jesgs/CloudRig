@@ -27,11 +27,11 @@ class CloudEyeRig(CloudAimRig):
 		super().prepare_bones()
 
 		if self.params.CR_eye_lower_eyelid != "":
-			self.setup_eyelid(self.params.CR_eye_lower_eyelid)
+			self.make_sticky_eyelid(self.params.CR_eye_lower_eyelid)
 		if self.params.CR_eye_upper_eyelid != "":
-			self.setup_eyelid(self.params.CR_eye_upper_eyelid)
+			self.make_sticky_eyelid(self.params.CR_eye_upper_eyelid)
 
-	def setup_eyelid(self, eyelid_bone_name):
+	def make_sticky_eyelid(self, eyelid_bone_name):
 		"""Create bones between the base bone and the main STR controls of the eyelid"""
 
 		# Sanity checks
@@ -107,8 +107,8 @@ class CloudEyeRig(CloudAimRig):
 			str_ctr.parent = rot_ctr
 
 	def ensure_eyelid_root(self, eyelid_main_controls):
-		"""Create another root bone that owns the eye root bone as well as the
-		   eyelid rotation helpers.
+		""" Create another root bone that owns the eye root bone as well as the
+			eyelid rotation helpers.
 		"""
 		base_bone = self.org_chain[0]
 
@@ -118,7 +118,7 @@ class CloudEyeRig(CloudAimRig):
 				name = base_bone.name.replace("ORG", "ROOT-LID")
 				,source = base_bone
 				,parent = self.aim_root.parent
-				,custom_shape = self.load_widget('Square')
+				,custom_shape = self.ensure_widget('Square')
 				,custom_shape_scale = 3
 			)
 			self.aim_root.parent = self.eyelid_root
@@ -131,14 +131,12 @@ class CloudEyeRig(CloudAimRig):
 
 	@classmethod
 	def define_bone_sets(cls, params):
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
 		params.CR_eye_show_settings = BoolProperty(name="Eye Settings")
 
@@ -160,7 +158,7 @@ class CloudEyeRig(CloudAimRig):
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
-		"""Create the ui for the rig parameters"""
+		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_eye_show_settings"): return layout

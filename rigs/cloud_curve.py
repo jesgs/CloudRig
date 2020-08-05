@@ -26,16 +26,45 @@ class CloudCurveRig(CloudBaseRig):
 		assert curve_ob.type=='CURVE', f"Error: Curve target is not a curve for rig: {self.base_bone}"
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
 
-	def define_curve_root_ctrl(self):
+	def prepare_bones(self):
+		super().prepare_bones()
+		self.make_curve_controls()
+
+	def make_curve_controls(self):
+		self.make_curve_root_ctrl()
+		self.make_ctrls_for_curve_points()
+
+	def make_curve_root_ctrl(self):
 		self.root_control = self.curve_hooks.new(
 			name						= self.base_bone.replace("ORG", "ROOT")
 			,source						= self.org_chain[0]
-			,custom_shape				= self.load_widget("Cube")
+			,custom_shape				= self.ensure_widget("Cube")
 			,use_custom_shape_bone_size = True
 		)
 		self.org_chain[0].parent = self.root_control
 
-	def define_ctrls_for_curve_point(self, loc, loc_left, loc_right, i, cyclic=False):
+	def make_ctrls_for_curve_points(self):
+		curve_ob = self.params.CR_curve_target
+
+		# Function to convert a location vector in the curve's local space into world space.
+		# For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
+		# Use matrix_basis instead of matrix_world in case there are constraints on the curve.
+		worldspace = lambda loc: (curve_ob.matrix_basis @ Matrix.Translation(loc)).to_translation()
+
+		spline = curve_ob.data.splines[0]	# For now we only support a single spline per curve.
+		self.hooks = []
+		for i, cp in enumerate(spline.bezier_points):
+			self.hooks.append(
+				self.make_ctrls_for_curve_point(
+					loc		  = worldspace(cp.co),
+					loc_left  = worldspace(cp.handle_left),
+					loc_right = worldspace(cp.handle_right),
+					i		  = i,
+					cyclic	  = spline.use_cyclic_u
+				)
+			)
+
+	def make_ctrls_for_curve_point(self, loc, loc_left, loc_right, i, cyclic=False):
 		""" Create hook controls for a bezier curve point defined by three points (loc, loc_left, loc_right). """
 
 		hook_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", "")
@@ -56,14 +85,14 @@ class CloudCurveRig(CloudBaseRig):
 		handles = []
 
 		if self.params.CR_curve_controls_for_handles:
-			hook_ctr.custom_shape = self.load_widget("Circle")
+			hook_ctr.custom_shape = self.ensure_widget("Circle")
 
 			if self.params.CR_curve_separate_radius:
 				radius_control = self.curve_handles.new(
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
 					,parent						= hook_ctr
-					,custom_shape				= self.load_widget("Circle")
+					,custom_shape				= self.ensure_widget("Circle")
 					,use_custom_shape_bone_size	= True
 				)
 				radius_control.length *= 0.8
@@ -77,7 +106,7 @@ class CloudCurveRig(CloudBaseRig):
 					,head 		  = loc
 					,tail		  = loc_left
 					,parent		  = hook_ctr
-					,custom_shape = self.load_widget("CurveHandle")
+					,custom_shape = self.ensure_widget("CurveHandle")
 				)
 				hook_ctr.left_handle_control = handle_left_ctr
 				handles.append(handle_left_ctr)
@@ -88,7 +117,7 @@ class CloudCurveRig(CloudBaseRig):
 					,head 		  = loc
 					,tail 		  = loc_right
 					,parent 	  = hook_ctr
-					,custom_shape = self.load_widget("CurveHandle")
+					,custom_shape = self.ensure_widget("CurveHandle")
 				)
 				hook_ctr.right_handle_control = handle_right_ctr
 				handles.append(handle_right_ctr)
@@ -115,40 +144,11 @@ class CloudCurveRig(CloudBaseRig):
 					handle.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
 
 		else:
-			hook_ctr.custom_shape = self.load_widget("CurvePoint")
+			hook_ctr.custom_shape = self.ensure_widget("CurvePoint")
 
 		return hook_ctr
 
-	def define_ctrls_for_curve_points(self):
-		curve_ob = self.params.CR_curve_target
-
-		# Function to convert a location vector in the curve's local space into world space.
-		# For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
-		# Use matrix_basis instead of matrix_world in case there are constraints on the curve.
-		worldspace = lambda loc: (curve_ob.matrix_basis @ Matrix.Translation(loc)).to_translation()
-
-		spline = curve_ob.data.splines[0]	# For now we only support a single spline per curve.
-		self.hooks = []
-		for i, cp in enumerate(spline.bezier_points):
-			self.hooks.append(
-				self.define_ctrls_for_curve_point(
-					loc		  = worldspace(cp.co),
-					loc_left  = worldspace(cp.handle_left),
-					loc_right = worldspace(cp.handle_right),
-					i		  = i,
-					cyclic	  = spline.use_cyclic_u
-				)
-			)
-
-	def prepare_bones(self):
-		super().prepare_bones()
-		self.define_curve_controls()
-
-	def define_curve_controls(self):
-		self.define_curve_root_ctrl()
-		self.define_ctrls_for_curve_points()
-
-	def create_hook_modifier(self, cp_i, boneinfo, main_handle=False, left_handle=False, right_handle=False):
+	def make_hook_modifier(self, cp_i, boneinfo, main_handle=False, left_handle=False, right_handle=False):
 		""" Create a Hook modifier on the curve(active object, in edit mode), hooking the control point at a given index to a given bone. The bone must exist. """
 		if not boneinfo: return
 
@@ -187,9 +187,13 @@ class CloudCurveRig(CloudBaseRig):
 		for i in range(len(curve_ob.modifiers)):
 			bpy.ops.object.modifier_move_up(modifier=hook_m.name)
 
+	def configure_bones(self):
+		self.setup_curve(self.hooks)
+		super().configure_bones()
+
 	def setup_curve(self, hooks):
 		""" Configure the Hook Modifiers for the curve.
-		hooks: List of BoneInfo objects that were created with define_ctrls_for_curve_point().
+		hooks: List of BoneInfo objects that were created with make_ctrls_for_curve_point().
 		curve_ob: The curve object.
 		Only single-spline curve is supported. That one spline must have the same number of control points as the number of hooks."""
 
@@ -222,11 +226,11 @@ class CloudCurveRig(CloudBaseRig):
 		for i in range(0, num_points):
 			hook_b = hooks[i]
 			if not self.params.CR_curve_controls_for_handles:
-				self.create_hook_modifier(i, hook_b, main_handle=True, left_handle=True, right_handle=True)
+				self.make_hook_modifier(i, hook_b, main_handle=True, left_handle=True, right_handle=True)
 			else:
-				self.create_hook_modifier(i, hook_b, main_handle=True)
-				self.create_hook_modifier(i, hook_b.left_handle_control, left_handle=True)
-				self.create_hook_modifier(i, hook_b.right_handle_control, right_handle=True)
+				self.make_hook_modifier(i, hook_b, main_handle=True)
+				self.make_hook_modifier(i, hook_b.left_handle_control, left_handle=True)
+				self.make_hook_modifier(i, hook_b.right_handle_control, right_handle=True)
 
 			# Add radius driver
 			data_path = f"splines[0].bezier_points[{i}].radius"
@@ -262,25 +266,19 @@ class CloudCurveRig(CloudBaseRig):
 
 		self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", "")).rigify_parameters.CR_curve_target = curve_ob
 
-	def configure_bones(self):
-		self.setup_curve(self.hooks)
-		super().configure_bones()
-
 	##############################
 	# Parameters
 
 	@classmethod
 	def define_bone_sets(cls, params):
-		""" Create parameters for this rig's bone sets. """
+		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "Curve Hooks", preset=0)
 		cls.define_bone_set(params, "Curve Handles", preset=8)
 
 	@classmethod
 	def add_parameters(cls, params):
-		""" Add the parameters of this rig type to the
-			RigifyParameters PropertyGroup
-		"""
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
 		# TODO: Add "X Symmetry" parameter, when enabled, determine hook bone
 		#  sides automatically based on X coordinate sign, and flip bones on
@@ -340,8 +338,7 @@ class CloudCurveRig(CloudBaseRig):
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
-		""" Create the ui for the rig parameters.
-		"""
+		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
 		cls.curve_selector_ui(layout, params)
