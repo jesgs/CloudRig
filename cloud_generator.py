@@ -12,7 +12,7 @@ from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 
 from .bone import BoneSet
-from .rigs import cloud_utils
+from .utils import mechanism
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
 
@@ -298,7 +298,7 @@ class CloudGenerator(Generator):
 				preset = 8,
 				defaults = self.defaults
 			)
-			self.root_parent = cloud_utils.create_parent_bone(self.root_bone, self.root_parent_set)
+			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
 			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
 
 	def load_ui_script(self):

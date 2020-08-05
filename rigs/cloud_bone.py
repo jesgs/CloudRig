@@ -3,7 +3,7 @@ from bpy.props import BoolProperty, StringProperty, EnumProperty
 
 from rigify.base_rig import BaseRig, stage
 
-from . import cloud_utils
+from ..utils import mechanism
 from ..rigs.cloud_base import DefaultLayers
 from ..utils.object import set_layers
 
@@ -12,7 +12,7 @@ Split up into cloud_tweak for the tweaking functionality, maybe one can extend t
 Rework the entire thing so it uses BoneInfo instead of doing things normally? Not sure, should think about pros and cons.
 """
 
-class Rig(BaseRig, cloud_utils.CloudUtilities):
+class Rig(BaseRig, mechanism.CloudMechanismMixin):
 	"""Create or tweak a single bone in the generated rig."""
 
 	def find_org_bones(self, pose_bone):
@@ -204,7 +204,7 @@ class Rig(BaseRig, cloud_utils.CloudUtilities):
 		# Copy custom properties
 		if self.params.CR_bone_props and '_RNA_UI' in meta_bone.keys():
 			keys = [k for k in meta_bone.keys() if k not in ['_RNA_UI', 'rigify_parameters', 'rigify_type']]
-			cloud_utils.copy_custom_properties(meta_bone, keys, mod_bone)
+			mechanism.copy_custom_properties(meta_bone, keys, mod_bone)
 
 		# Copy and retarget drivers
 		self.copy_and_relink_drivers(mod_bone)

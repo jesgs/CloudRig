@@ -1,6 +1,6 @@
-
-from rigify.ui import rigify_report_exception
 import bpy
+from ..cloudrig import draw_layers_ui
+from rigify.ui import rigify_report_exception
 
 class CloudUIMixin:
 	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
@@ -29,7 +29,6 @@ class CloudUIMixin:
 
 	@classmethod
 	def bone_set_ui(cls, params, layout, set_info):
-		import bpy
 		obj = bpy.context.object
 		cloudrig = obj.data.cloudrig_parameters
 		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return
@@ -54,7 +53,6 @@ class CloudUIMixin:
 	def bone_sets_ui(cls, layout, params):
 		if not cls.cloud_dropdown_ui(layout, params, 'CR_show_bone_sets'): return
 
-		import bpy
 		obj = bpy.context.object
 
 		cloudrig = obj.data.cloudrig_parameters

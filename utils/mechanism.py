@@ -12,11 +12,9 @@ from rigify.utils.mechanism import make_property
 from ..bone import BoneInfo
 from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
-from ..utils.ui import CloudUIMixin
 
-class CloudUtilities(CloudUIMixin):
-	# Utility functions that probably won't be overriden by a sub-class because they perform a very specific task.
-	# If a class inherits this class, it's also expected to inherit CloudBaseRig - These are only split up for organizational purposes.
+class CloudMechanismMixin:
+	"""Mixin class for rigging functions."""
 
 	def get_bone_info(self, name):
 		for bi in self.all_bones:

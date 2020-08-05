@@ -7,11 +7,10 @@ from collections import OrderedDict
 from enum import Enum
 
 from ..bone import BoneSet
-from .cloud_utils import CloudUtilities
-from ..cloudrig import draw_layers_ui
+from ..utils.mechanism import CloudMechanismMixin
 from ..utils.naming import CloudNameManager, name_side_is_left
 from ..utils.object import CloudObjectUtilitiesMixin
-from ..utils.ui import ui_label_with_linebreak, dropdown_ui
+from ..utils.ui import CloudUIMixin
 
 from rigify.base_rig import BaseRig
 
@@ -29,7 +28,7 @@ class DefaultLayers(Enum):
 	FACE_SECOND = 19
 	FACE_TWEAK = 20
 
-class CloudBaseRig(BaseRig, CloudUtilities, CloudObjectUtilitiesMixin):
+class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, CloudUIMixin):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
 	ui_rows: Dict[str, bpy.types.UILayout] = {}	# Keep track of certain UI rows so they can be modified later.

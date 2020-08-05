@@ -104,7 +104,7 @@ class BoneSet(LinkedList):
 	def new(self, name="Bone", source=None, **kwargs):
 		"""Define a bone and add it to the list of bones."""
 
-		# TODO: cloud_utils.new_bone(bone_set, bone_name, kwargs) should do this checking?
+		# TODO: utils/mechanism.new_bone(bone_set, bone_name, kwargs) should do this checking?
 		# bi = self.riglet.get_bone_info(name)
 		# if bi:
 		# 	print(f"Warning: BoneInfo {name} already exists in BoneSet: {bi.bone_set}.")
