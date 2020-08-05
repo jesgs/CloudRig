@@ -212,14 +212,15 @@ class CloudChainRig(CloudBaseRig):
 		"""Create a deform chain stretching from one STR bone to the next"""
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
-			if str_i == len(str_chain)-1 and self.params.CR_chain_tip_control and not self.cyclic:
+			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.cyclic:
 				continue
 
 			org_bone = str_bone.org_parent
-			org_bone.def_bones = []	# TODO: deprecate this? It's currently only used by the spine neck, which is also to be deprecated.
 			def_section: List[BoneInfo] = []
 
 			tail = org_bone.tail
+			if str_bone.next:
+				tail = str_bone.next.head
 
 			def_name = str_bone.name.replace("STR", "DEF")
 			def_bone = self.def_chain.new(
@@ -236,8 +237,6 @@ class CloudChainRig(CloudBaseRig):
 			)
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
-
-			org_bone.def_bones.append(def_bone)
 
 		return self.def_chain
 
