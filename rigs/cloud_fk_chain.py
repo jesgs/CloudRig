@@ -94,6 +94,86 @@ class CloudFKChainRig(CloudChainRig):
 				bone_set = self.fk_mch
 			)
 
+	def hinge_setup(self, bone, category, *,
+		prop_bone, prop_name, default_value=0.0,
+		parent_bone=None, head_tail=0,
+		hng_name=None, limb_name=None, bone_set=None
+	):
+		""" Create a hinge toggle for a bone. 
+			Bone is usually the first bone in an FK chain.
+			When hinge is turned on, the bone doesn't inherit rotation from its 
+			parents, but still inherits rotation from the rig's root bone.
+		"""
+
+		# Defaults for optional parameters
+		if not hng_name:
+			sliced = self.naming.slice_name(bone.name)
+			sliced[0].insert(0, "HNG")
+			hng_name = self.naming.make_name(*sliced)
+		if not parent_bone:
+			parent_bone = bone.parent
+		if not limb_name:
+			limb_name = "Hinge: " + self.side_suffix + " " + self.naming.slice_name(bone.name)[1]
+		if bone_set==None:
+			bone_set = bone.container
+
+		info = {
+			"prop_bone"			: prop_bone,
+			"prop_id" 			: prop_name,
+
+			"operator" : "pose.snap_simple",
+			"bones" : [bone.name]
+		}
+
+		# Store UI info
+		self.add_ui_data("fk_hinges", category, limb_name, info, default=default_value)
+
+		# Create Hinge helper bone
+		BODY_MECH = 8
+		hng_bone = bone_set.new(
+			name			= hng_name
+			,source			= bone
+			,hide_select	= self.mch_disable_select
+		)
+
+		# Hinge Armature constraint
+		hng_con = hng_bone.add_constraint('ARMATURE',
+			targets = [
+				{
+					"subtarget" : 'root'
+				},
+				{
+					"subtarget" : str(parent_bone)
+				}
+			],
+		)
+
+		hng_con.drivers.append({
+			'prop' : 'targets[0].weight',
+			'variables' : [
+				(prop_bone.name, prop_name)
+			]
+		})
+
+		hng_con.drivers.append({
+			'prop' : 'targets[1].weight',
+			'expression' : '1-var',
+			'variables' : [
+				(prop_bone.name, prop_name)
+			]
+		})
+
+		# Hinge Copy Location constraint
+		hng_bone.add_constraint('COPY_LOCATION'
+			,space = 'WORLD'
+			,subtarget	   = str(parent_bone)
+			,head_tail	   = head_tail
+		)
+
+		# Parenting
+		bone.parent = hng_bone
+		return hng_bone
+
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Extend cloud_chain by tweaking some bbone values."""
 		def_chain = super().make_def_chain(str_chain)
