@@ -23,9 +23,9 @@ class CloudUIMixin:
 		return col
 
 	@classmethod
-	def draw_dropdown_menu(cls, layout, params, dropdown_param_name):
+	def draw_dropdown_menu(cls, layout, params, dropdown_param_name, alert=False):
 		layout.separator()
-		return draw_dropdown(layout, params, dropdown_param_name)
+		return draw_dropdown(layout, params, dropdown_param_name, alert)
 
 	@classmethod
 	def draw_bone_set_params(cls, layout, params, set_info):
@@ -104,7 +104,7 @@ def draw_label_with_linebreak(layout, text):
 		for line in lines:
 			col.label(text=line)
 
-def draw_dropdown(layout, params, dropdown_param_name):
+def draw_dropdown(layout, params, dropdown_param_name, alert=False):
 	is_dropdown_open = getattr(params, dropdown_param_name)
 
 	icon = 'TRIA_DOWN' if is_dropdown_open else 'TRIA_RIGHT'
@@ -112,6 +112,8 @@ def draw_dropdown(layout, params, dropdown_param_name):
 	row.use_property_split=False
 	row.alignment = 'LEFT'
 	row.prop(params, dropdown_param_name, toggle=True, emboss=False, icon=icon)
+	if alert:
+		row.prop(params, dropdown_param_name, text="", toggle=True, emboss=False, icon='ERROR')
 	row.scale_y = 0.8
 	if is_dropdown_open:
 		return layout

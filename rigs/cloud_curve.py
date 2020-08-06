@@ -325,12 +325,7 @@ class CloudCurveRig(CloudBaseRig):
 		curve_ob = params.CR_curve_target
 		bad_curve = curve_ob==None or curve_ob.type!='CURVE'
 
-		icon = 'TRIA_DOWN' if params.CR_curve_show_settings else 'TRIA_RIGHT'
-		row = layout.row()
-		row.use_property_split=False
-		row.alert = bad_curve
-		row.prop(params, "CR_curve_show_settings", toggle=True, icon=icon)
-		if not params.CR_curve_show_settings: return
+		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings", alert=bad_curve): return layout
 
 		target_curve_row = layout.row()
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
