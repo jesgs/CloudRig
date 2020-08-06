@@ -52,7 +52,7 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 			self.side_prefix = "Left"
 		elif is_left==False:
 			self.side_suffix = "R"
-			self.side_suffix = "Right"
+			self.side_prefix = "Right"
 
 	@property
 	def all_bones(self):

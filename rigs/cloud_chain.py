@@ -121,9 +121,9 @@ class CloudChainRig(CloudBaseRig):
 
 		str_bone.org_parent = org_bone
 
-		if segments>1 and seg_i>0:
+		if segments>1:
 			sliced = self.naming.slice_name(str_bone.name)
-			str_bone.name = self.naming.make_name(sliced[0], f"{sliced[1]}_{seg_i}", sliced[2])
+			str_bone.name = self.naming.make_name(sliced[0], f"{sliced[1]}{seg_i+1}", sliced[2])
 		str_bone.bbone_width *= 1.2
 		return str_bone
 
