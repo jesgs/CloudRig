@@ -4,12 +4,12 @@ from datetime import datetime as dt
 from .utils.ui import is_cloud_metarig
 
 blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) + str(bpy.app.version[2]))
-
-date_format = "%Y-%m-%d"
-build_date = dt.strptime(bpy.app.build_commit_date.decode(), date_format)
+cloudrig_version = 4
 
 def is_before_register_commit():
 	# https://developer.blender.org/rBAc20728941cf32e9cbe2f0bcd6ebae27bb6d01238
+	date_format = "%Y-%m-%d"
+	build_date = dt.strptime(bpy.app.build_commit_date.decode(), date_format)
 	register_commit_date = dt.strptime("2020-06-24", date_format)
 	return build_date < register_commit_date
 
@@ -25,6 +25,7 @@ def rename_parameters(metarig, dictionary):
 					new_key = dictionary[old_key]
 					value = pb.rigify_parameters[old_key]
 					try:
+						print(f"Rename param {old_key}->{new_key}")
 						setattr(pb.rigify_parameters, new_key, value)
 					except:
 						# We assume this fails because we're trying to assign an int to a string enum... The solution couldn't be simpler...!
@@ -40,16 +41,19 @@ def rename_parameters(metarig, dictionary):
 							pb.rigify_parameters[new_key] = value
 
 def version_cloud_metarig(metarig):
-	"""Convert older CloudRig metarigs to work with the current version of the addon as well as possible."""
+	"""Convert older CloudRig metarigs to work with the current version of 
+	CloudRig as well as possible. They will still need some manual cleanup!!!"""
 	data = metarig.data
-	version = data.cloudrig_parameters.version
+
+	if data.cloudrig_parameters.version == cloudrig_version: return
+
 	# Beginning of metarig versioning: 2020-07-22.
-	# I should've started this sooner. Metarigs older than this are not guaranteed backwards compatibility.
-	if version == 0.0:
-		data.cloudrig_parameters.version = 0.1
+	print(f"CloudRig Versioning: {metarig} version {data.cloudrig_parameters.version}")
+	if data.cloudrig_parameters.version == 0:
+		data.cloudrig_parameters.version = 1
 		pass
 		# TODO: Assume that version 0.0 is the metarigs in CoffeeRun crowd.blend, and try to make them work with current CloudRig.
-	if version == 0.1:
+	if data.cloudrig_parameters.version == 1:
 		dictionary = {
 			"CR_constraints_additive" : "CR_bone_constraints_additive"
 			,"CR_copy_type" : "CR_bone_copy_type"
@@ -90,14 +94,52 @@ def version_cloud_metarig(metarig):
 			,"CR_custom_props" : "CR_bone_props"
 			,"CR_ik_settings" : "CR_bone_ik_settings"
 			,"CR_tweak_bbone_props" : "CR_bone_bbone_props"
-			,"" : ""
+			,"CR_ankle_pivot_bone" : "CR_limb_heel_bone"
 		}
 		rename_parameters(metarig, dictionary)
-		data.cloudrig_parameters.version = 0.2
-	if version == 0.2:
+		data.cloudrig_parameters.version = 2
+	if data.cloudrig_parameters.version == 2:
 		for pb in metarig.pose.bones:
 			if 'CR_create_deform_bone' in pb.rigify_parameters.keys():
 				pb.bone.use_deform = pb.rigify_parameters['CR_create_deform_bone']
+		data.cloudrig_parameters.version = 3
+	if data.cloudrig_parameters.version == 3:
+		for pb in metarig.pose.bones:
+			# Spine rig no longer includes a neck and head.
+			if 'CR_spine_length' in pb.rigify_parameters.keys():
+				spine_length = pb.rigify_parameters['CR_spine_length']
+				spine_bone = pb
+				for i in range(spine_length):
+					if len(spine_bone.children)==0: break
+					spine_bone = spine_bone.children[0]
+				if spine_bone.rigify_type=='':
+					neck_bone = spine_bone
+					for i in range(2):
+						if not neck_bone.bone.use_connect: continue
+						neck_bone.rigify_type = 'cloud_fk_chain'
+						neck_bone.rigify_parameters['CR_chain_segments'] = 1
+						neck_bone.rigify_parameters['CR_chain_sharp'] = True
+						neck_bone.rigify_parameters['CR_fk_chain_double_first'] = False
+						neck_bone.rigify_parameters['CR_fk_chain_hinge'] = True
+
+						if 'CR_BG_LAYERS_stretch_controls' in spine_bone.rigify_parameters.keys():
+							neck_bone.rigify_parameters['CR_BG_LAYERS_stretch_controls'] = spine_bone.rigify_parameters['CR_BG_LAYERS_stretch_controls']
+						if 'CR_BG_stretch_controls' in spine_bone.rigify_parameters.keys():
+							neck_bone.rigify_parameters['CR_BG_stretch_controls'] = spine_bone.rigify_parameters['CR_BG_stretch_controls']
+
+						if len(neck_bone.children) == 0: 
+							break
+						neck_bone = neck_bone.children[0] # Head bone
+
+			# Curve target selection is now a PointerProperty instead of StringProperty.
+			if 'CR_target_curve_name' in pb.rigify_parameters.keys():
+				curve_name = pb.rigify_parameters['CR_target_curve_name']
+				while curve_name.startswith(" "):
+					curve_name = curve_name[1:]
+
+				pb.rigify_parameters['CR_curve_target'] = bpy.data.objects.get(curve_name)
+
+		data.cloudrig_parameters.version = 4
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
