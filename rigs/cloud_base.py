@@ -31,7 +31,6 @@ class DefaultLayers(Enum):
 class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, CloudUIMixin):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
-	ui_rows: Dict[str, bpy.types.UILayout] = {}	# Keep track of certain UI rows so they can be modified later.
 
 	bone_set_defs: Dict[str, str] = OrderedDict()
 
@@ -128,6 +127,16 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 		for k in self.obj.data.keys():
 			if k in ['_RNA_UI', 'rig_id']: continue
 			del self.obj.data[k]
+		
+		self.update_forced_params()
+
+	def update_forced_params(self):
+		clas = type(self)
+		for param in clas.forced_params.keys():
+			forced_value = clas.forced_params[param]
+			if forced_value != 'NOFORCE':
+				self.meta_base_bone[param] = forced_value
+				setattr(self.params, param, forced_value)
 
 	@property
 	def properties_bone(self):
@@ -314,7 +323,6 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
-		cls.ui_rows = {}
 
 		layout = cls.draw_cloud_params(layout, params)
 		layout.separator()

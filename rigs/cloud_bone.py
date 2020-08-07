@@ -285,7 +285,7 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 
 	@classmethod
 	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		"""Add rig parameters to the RigifyParameters PropertyGroup"""
 		super().add_parameters(params)
 
 		params.CR_bone_constraints_additive = BoolProperty(

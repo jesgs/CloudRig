@@ -56,7 +56,7 @@ class CloudTemplateRig(CloudBaseRig):
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_template_show_settings"): return layout
 
-		layout.prop(params, "CR_template_use_control")
+		cls.draw_prop(layout, params, "CR_template_use_control")
 
 		return layout
 

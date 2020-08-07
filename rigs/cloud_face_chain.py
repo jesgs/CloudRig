@@ -163,8 +163,8 @@ class CloudFaceChainRig(CloudChainRig):
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_face_chain_show_settings"): return layout
 
-		layout.prop(params, "CR_face_chain_merge")
-		layout.prop(params, "CR_face_chain_relink")
+		cls.draw_prop(layout, params, "CR_face_chain_merge")
+		cls.draw_prop(layout, params, "CR_face_chain_relink")
 
 		return layout
 

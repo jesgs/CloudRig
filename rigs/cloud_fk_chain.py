@@ -266,25 +266,20 @@ class CloudFKChainRig(CloudChainRig):
 		if not cls.draw_dropdown_menu(layout, params, "CR_fk_chain_show_settings"): return layout
 
 		category_row = layout.row(align=True, heading="UI Category")
-		category_row.prop(params, "CR_fk_chain_use_category_name", text="")
+		cls.draw_prop(category_row, params, 'CR_fk_chain_use_category_name', new_row=False, text="")
 		col = category_row.column()
-		col.prop(params, "CR_fk_chain_category_name", text="")
+		cls.draw_prop(col, params, 'CR_fk_chain_category_name', new_row=False, text="")
 		col.enabled = params.CR_fk_chain_use_category_name
 
 		limb_row = layout.row(align=True, heading="Limb UI Name")
-		limb_row.prop(params, "CR_fk_chain_use_limb_name", text="")
+		cls.draw_prop(limb_row, params, 'CR_fk_chain_use_limb_name', new_row=False, text="")
 		col = limb_row.column()
-		col.prop(params, "CR_fk_chain_limb_name", text="")
+		cls.draw_prop(col, params, 'CR_fk_chain_limb_name', new_row=False, text="")
 		col.enabled = params.CR_fk_chain_use_limb_name
 
-		center_fk_row = layout.row()
-		center_fk_row.prop(params, "CR_fk_chain_display_center")
-		cls.ui_rows["CR_fk_chain_display_center"] = center_fk_row
-
-		double_first_row = layout.row()
-		double_first_row.prop(params, "CR_fk_chain_double_first")
-		cls.ui_rows["CR_fk_chain_double_first"] = double_first_row
-		layout.prop(params, "CR_fk_chain_hinge")
+		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
+		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
+		cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
 
 		return layout
 

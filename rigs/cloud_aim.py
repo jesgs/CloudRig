@@ -232,10 +232,10 @@ class CloudAimRig(CloudBaseRig):
 
 		ob = bpy.context.object
 
-		layout.prop(params, "CR_aim_group")
-		layout.prop(params, "CR_aim_target_distance")
-		layout.prop(params, "CR_aim_deform")
-		layout.prop(params, "CR_aim_root")
+		cls.draw_prop(layout, params, "CR_aim_group")
+		cls.draw_prop(layout, params, "CR_aim_target_distance")
+		cls.draw_prop(layout, params, "CR_aim_deform")
+		cls.draw_prop(layout, params, "CR_aim_root")
 
 		return layout
 

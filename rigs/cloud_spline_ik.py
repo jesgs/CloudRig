@@ -11,6 +11,10 @@ from .cloud_curve import CloudCurveRig
 class CloudSplineIKRig(CloudCurveRig):
 	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
+	forced_params = {
+		'CR_curve_target' : None
+	}
+
 	def initialize_curve_rig(self):
 		length = len(self.bones.org.main)
 		subdiv = self.params.CR_spline_ik_subdivide
@@ -55,17 +59,17 @@ class CloudSplineIKRig(CloudCurveRig):
 		length_unit = sum_bone_length / (self.num_controls-1)
 		handle_length = length_unit * self.params.CR_spline_ik_handle_length
 
+		# Create and name curve object.
 		curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
 		curve_name += "_" + (self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", ""))
 
-		# Create and name curve object.
 		bpy.ops.curve.primitive_bezier_curve_add(radius=0.2, location=(0, 0, 0))
 
 		curve_ob = bpy.context.view_layer.objects.active
 		curve_ob.name = curve_name
-		self.meta_base_bone.rigify_parameters.CR_curve_target = self.params.CR_curve_target = curve_ob
-
 		self.lock_transforms(curve_ob)
+
+		self.meta_base_bone.rigify_parameters.CR_curve_target = self.params.CR_curve_target = curve_ob
 
 		# Place the first and last bezier points to the first and last bone.
 		spline = curve_ob.data.splines[0]
@@ -177,25 +181,29 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
-		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings"): return layout
+		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings"):
+			return layout
 
-		target_curve_row = layout.row()
-		target_curve_row.prop(params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
-		target_curve_row.enabled = False
+		cls.draw_prop(layout, params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_spline_ik_show_settings"): return layout
+		if not cls.draw_dropdown_menu(layout, params, "CR_spline_ik_show_settings"):
+			return layout
 
-		layout.prop(params, "CR_spline_ik_subdivide")
-		layout.prop(params, "CR_spline_ik_handle_length")
+		cls.draw_prop(layout, params, "CR_spline_ik_subdivide")
+		cls.draw_prop(layout, params, "CR_spline_ik_handle_length")
 
-		layout.prop(params, "CR_spline_ik_match_hooks")	# TODO: When this is false, the directions of the curve points and bones don't match, and both of them are unsatisfactory. It would be nice if we would interpolate between the direction of the two bones, using length_remaining/bone.length as a factor, or something similar to that.
+		# TODO: When this is false, the directions of the curve points and bones
+		# don't match, and both of them are unsatisfactory. It would be nice if
+		# we would interpolate between the direction of the two bones, using 
+		# length_remaining/bone.length as a factor, or something similar to that.
+		cls.draw_prop(layout, params, "CR_spline_ik_match_hooks")
 		if not params.CR_spline_ik_match_hooks:
-			layout.prop(params, "CR_spline_ik_hooks")
+			cls.draw_prop(layout, params, "CR_spline_ik_hooks")
 
 		return layout
 

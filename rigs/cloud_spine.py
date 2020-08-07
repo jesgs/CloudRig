@@ -17,12 +17,16 @@ Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone
 class CloudSpineRig(CloudFKChainRig):
 	"""Spine setup with FK, IK-like and stretchy IK controls. Currently only one of these per rig is supported."""
 
+	forced_params = {
+		'CR_chain_segments' : 1
+		,'CR_fk_chain_double_first' : False
+		,'CR_fk_chain_hinge' : False
+		,'CR_fk_chain_display_center' : False
+	}
+
 	def initialize(self):
 		"""Gather and validate data about the rig."""
 		super().initialize()
-
-		self.params.CR_chain_segments = 1
-		self.params.CR_fk_chain_double_first = False
 
 		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones."
 
@@ -325,13 +329,11 @@ class CloudSpineRig(CloudFKChainRig):
 	def draw_cloud_params(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
-		cls.disable_row('CR_chain_segments')
-		cls.disable_row('CR_fk_chain_double_first')
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_spine_show_settings"): return layout
 
-		layout.prop(params, "CR_spine_use_ik")
-		layout.prop(params, "CR_spine_double")
+		cls.draw_prop(layout, params, "CR_spine_use_ik")
+		cls.draw_prop(layout, params, "CR_spine_double")
 
 		return layout
 

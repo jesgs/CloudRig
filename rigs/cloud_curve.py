@@ -327,9 +327,8 @@ class CloudCurveRig(CloudBaseRig):
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings", alert=bad_curve): return layout
 
-		target_curve_row = layout.row()
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
-		target_curve_row.prop(params, "CR_curve_target", icon=icon)
+		cls.draw_prop(layout, params, 'CR_curve_target', icon=icon)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
@@ -339,11 +338,12 @@ class CloudCurveRig(CloudBaseRig):
 		cls.curve_selector_ui(layout, params)
 
 		if not params.CR_curve_show_settings: return layout
-		layout.prop(params, "CR_curve_hook_name")
-		layout.prop(params, "CR_curve_controls_for_handles")
+
+		cls.draw_prop(layout, params, "CR_curve_hook_name")
+		cls.draw_prop(layout, params, "CR_curve_controls_for_handles")
 		if params.CR_curve_controls_for_handles:
-			layout.prop(params, "CR_curve_rotatable_handles")
-			layout.prop(params, "CR_curve_separate_radius")
+			cls.draw_prop(layout, params, "CR_curve_rotatable_handles")
+			cls.draw_prop(layout, params, "CR_curve_separate_radius")
 
 		return layout
 

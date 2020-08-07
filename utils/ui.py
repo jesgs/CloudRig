@@ -3,13 +3,22 @@ from ..cloudrig import draw_layers_ui
 from rigify.ui import rigify_report_exception
 
 class CloudUIMixin:
+	forced_params = dict()
+
 	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
 		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, default, _min, _max)
 
 	@classmethod
-	def disable_row(cls, row_name):
-		if row_name in cls.ui_rows:
-			cls.ui_rows[row_name].enabled = False
+	def draw_prop(cls, layout, prop_owner, prop_name, new_row=True, **kwargs):
+		row = draw_prop(layout, prop_owner, prop_name, new_row, **kwargs)
+		if prop_name in cls.forced_params.keys():
+			row.enabled = False
+
+	@classmethod
+	def draw_prop_search(cls, layout, prop_owner, prop_name, collection, coll_prop_name, new_row=True, **kwargs):
+		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, new_row, **kwargs)
+		if prop_name in cls.forced_params.keys():
+			row.enabled = False
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
@@ -35,9 +44,9 @@ class CloudUIMixin:
 		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return
 		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return
 
-		cls.ui_rows[set_info['param']] = col = layout.column()
+		col = layout.column()
 		col.use_property_split=True
-		col.prop_search(params, set_info['param'], obj.pose, "bone_groups", text=set_info['name'])
+		cls.draw_prop_search(col, params, set_info['param'], obj.pose, "bone_groups", new_row=False, text=set_info['name'])
 
 		if True:
 			layout.use_property_split=False
@@ -46,7 +55,7 @@ class CloudUIMixin:
 		else:
 			row = col.row()
 			row.use_property_split=False
-			row.prop(params, set_info['layer_param'], text="")
+			cls.draw_prop(row, params, set_info['layer_param'], text="")
 		layout.separator()
 
 	@classmethod
@@ -103,6 +112,18 @@ def draw_label_with_linebreak(layout, text):
 
 		for line in lines:
 			col.label(text=line)
+
+def draw_prop(layout, prop_owner, prop_name, new_row=True, **kwargs):
+	if new_row:
+		layout = layout.row()
+	layout.prop(prop_owner, prop_name, **kwargs)
+	return layout
+
+def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, new_row, **kwargs):
+	if new_row:
+		layout = layout.row()
+	layout.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
+	return layout
 
 def draw_dropdown(layout, params, dropdown_param_name, alert=False):
 	is_dropdown_open = getattr(params, dropdown_param_name)

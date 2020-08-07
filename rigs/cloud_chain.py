@@ -416,17 +416,13 @@ class CloudChainRig(CloudBaseRig):
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_chain_show_settings"): return layout
 
-		deform_segments = layout.row()
-		deform_segments.prop(params, "CR_chain_segments")
-		cls.ui_rows['CR_chain_segments'] = deform_segments
-		layout.prop(params, "CR_chain_bbone_density")
+		cls.draw_prop(layout, params, "CR_chain_segments")
+		cls.draw_prop(layout, params, "CR_chain_bbone_density")
 
-		layout.prop(params, "CR_chain_shape_key_helpers")
-		sharp_sections = layout.row()
-		sharp_sections.prop(params, "CR_chain_sharp")
-		layout.prop(params, "CR_chain_smooth_spline")
-		cls.ui_rows['CR_chain_sharp'] = sharp_sections
-		layout.prop(params, "CR_chain_tip_control")
+		cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
+		cls.draw_prop(layout, params, "CR_chain_sharp")
+		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
+		cls.draw_prop(layout, params, "CR_chain_tip_control")
 
 		return layout
 

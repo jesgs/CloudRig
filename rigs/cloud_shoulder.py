@@ -7,6 +7,10 @@ from .cloud_fk_chain import CloudFKChainRig
 class CloudShoulderRig(CloudFKChainRig):
 	"""A single bone control to connect an arm to a spine."""
 
+	forced_params = {
+		'CR_fk_chain_display_center' : False
+	}
+
 	def initialize(self):
 		super().initialize()
 		"""Gather and validate data about the rig."""
@@ -55,11 +59,10 @@ class CloudShoulderRig(CloudFKChainRig):
 	def draw_cloud_params(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
-		cls.disable_row('CR_fk_chain_display_center')
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_shoulder_show_settings"): return layout
 
-		layout.prop(params, 'CR_shoulder_up_axis')
+		cls.draw_prop(layout, params, 'CR_shoulder_up_axis')
 
 		return layout
 

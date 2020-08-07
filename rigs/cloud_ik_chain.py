@@ -517,9 +517,9 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_ik_chain_show_settings"): return layout
 
-		layout.prop(params, "CR_ik_chain_use_pole")
-		# layout.prop(params, "CR_ik_chain_at_tip")
-		layout.prop(params, "CR_ik_chain_world_aligned")
+		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
+		# cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
+		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
 		# TODO: 
 		# IK chains in blender are expected to be perfectly flat along a plane. 

@@ -19,19 +19,20 @@ Scissor limb rig possible? (limb with an extra bone to help elbow/knee deformati
 class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features for specific limbs, such as foot roll."""
 
+	forced_params = {
+		'CR_chain_sharp' : True
+	}
+
 	def initialize(self):
 		super().initialize()
 		"""Gather and validate data about the rig."""
-		# Forced parameters
-		self.params.CR_chain_sharp = True
-		self.meta_base_bone.rigify_parameters.CR_chain_sharp = True
 
 		# Safety checks
 		self.limb_type = self.params.CR_limb_type
-		if self.limb_type=='ARM':
-			assert len(self.bones.org.main) == 3, "Arm chain must be exactly 3 connected bones."
-		if self.limb_type=='LEG':
-			assert len(self.bones.org.main) == 4, "Leg chain must be exactly 4 connected bones."
+		if self.limb_type=='ARM' and len(self.bones.org.main) != 3:
+			self.raise_error("Arm chain must be exactly 3 connected bones.")
+		if self.limb_type=='LEG' and len(self.bones.org.main) != 4:
+			self.raise_error("Leg chain must be exactly 4 connected bones.")
 
 		# UI Strings and Custom Property names
 		self.category = "arms" if self.limb_type == 'ARM' else "legs"
@@ -394,20 +395,19 @@ class CloudLimbRig(CloudIKChainRig):
 	def draw_cloud_params(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
-		cls.disable_row('CR_chain_sharp')
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_limb_show_settings"): return layout
 
-		layout.prop(params, "CR_limb_type")
+		cls.draw_prop(layout, params, "CR_limb_type")
 		if params.CR_limb_type=='LEG':
-			layout.prop(params, "CR_limb_use_foot_roll")
+			cls.draw_prop(layout, params, "CR_limb_use_foot_roll")
 			if params.CR_limb_use_foot_roll:
-				layout.prop_search(params, "CR_limb_heel_bone", bpy.context.object.data, "bones", text="Heel Pivot")
+				cls.draw_prop_search(layout, params, "CR_limb_heel_bone", bpy.context.object.data, "bones", text="Heel Pivot")
 
-		layout.prop(params, "CR_limb_double_ik")
+		cls.draw_prop(layout, params, "CR_limb_double_ik")
 
 		word = "Elbow" if params.CR_limb_type == 'ARM' else "Shin"
-		layout.prop(params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")
+		cls.draw_prop(layout, params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")
 
 		return layout
 
