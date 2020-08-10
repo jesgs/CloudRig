@@ -1,5 +1,10 @@
 rigify_info = {
 	"name": "CloudRig"
+    "author": "Demeter Dzadik",
+    "blender": (2, 82, 0),
+    "description": "Feature set developed by the Blender Animation Studio",
+    "doc_url": "https://gitlab.com/blender/CloudRig/-/wikis/",
+	"tracker_url": "https://gitlab.com/blender/CloudRig/-/issues/new",
 }
 
 from .operators import regenerate_rigify_rigs
@@ -12,6 +17,9 @@ from . import ui
 import bpy, os
 from bpy.props import StringProperty
 from . import versioning
+
+def draw_preferences(layout, context, addon_prefs):
+	layout.label(text="Hello there.")
 
 # This allows you to right click on a button and link to documentation
 def cloudrig_manual_map():
