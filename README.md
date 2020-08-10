@@ -1,5 +1,5 @@
 # What is CloudRig?
-CloudRig is a collection of customizable rig building blocks that can be added to the [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html) Blender addon and rigging system. It is being developed for and by the Blender Animation Studio, with the guidance of professional animators.
+CloudRig is a collection of customizable rig building blocks that can be added to the [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html) Blender addon/rigging system. This feature set is being developed for and by the Blender Animation Studio, with the guidance of professional animators.
 
 You can support this work by subscribing to the [Blender Cloud](https://cloud.blender.org/)!
 

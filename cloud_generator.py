@@ -152,8 +152,11 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	active_action_index: IntProperty(min=0)
 
 def create_selection_sets(obj, metarig):
+
 	# Check if selection sets addon is installed
-	if 'bone_selection_sets' not in bpy.context.preferences.addons: return
+	if 'bone_selection_groups' not in bpy.context.preferences.addons \
+			and 'bone_selection_sets' not in bpy.context.preferences.addons:
+		return
 
 	obj.selection_sets.clear()
 
@@ -163,14 +166,11 @@ def create_selection_sets(obj, metarig):
 
 		selset = obj.selection_sets.add()
 		selset.name = name
-		if 'bone_selection_sets' in bpy.context.preferences.addons:
-			act_sel_set = obj.selection_sets[-1]
 
-			# iterate only the selected bones in current pose that are not hidden
-			for b in obj.pose.bones:
-				if b.bone.layers[i] and b.name not in selset.bone_ids:
-					bone_id = selset.bone_ids.add()
-					bone_id.name = b.name
+		for b in obj.pose.bones:
+			if b.bone.layers[i] and b.name not in selset.bone_ids:
+				bone_id = selset.bone_ids.add()
+				bone_id.name = b.name
 
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
