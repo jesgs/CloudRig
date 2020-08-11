@@ -6,13 +6,6 @@ from .utils.ui import is_cloud_metarig
 blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) + str(bpy.app.version[2]))
 cloudrig_version = 4
 
-def is_before_register_commit():
-	# https://developer.blender.org/rBAc20728941cf32e9cbe2f0bcd6ebae27bb6d01238
-	date_format = "%Y-%m-%d"
-	build_date = dt.strptime(bpy.app.build_commit_date.decode(), date_format)
-	register_commit_date = dt.strptime("2020-06-24", date_format)
-	return build_date < register_commit_date
-
 def do_blender_versioning():
 	"""Code that needs to run only for specific versions of Blender."""
 	pass

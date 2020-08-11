@@ -1,7 +1,7 @@
 rigify_info = {
 	'name': "CloudRig",
 	'author': "Demeter Dzadik",
-	'version' : (0, 0, 4),
+	'version': (0, 0, 4),
 	'blender': (2, 82, 0),
 	'description': "Feature set developed by the Blender Animation Studio",
 	'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/",
@@ -25,7 +25,7 @@ modules = [
 	cloud_generator,
 	ui,
 	versioning,
-	manual
+	manual,
 	regenerate_rigify_rigs,
 	refresh_drivers,
 	mirror_rigify,
@@ -41,5 +41,6 @@ def unregister():
 	for m in reversed(modules):
 		m.unregister()
 
-if versioning.is_before_register_commit():
+from rigify import feature_set_list
+if not hasattr(feature_set_list, 'call_register_function'):
 	register()
