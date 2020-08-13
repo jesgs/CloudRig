@@ -361,19 +361,10 @@ class CloudGenerator(Generator):
 
 	def ensure_widget_collection(self):
 		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
-		wgt_collection = None
 		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").lower()
 
-		# Try finding a "Widgets" collection next to the metarig.
-		for c in self.metarig.users_collection:
-			wgt_collection = c.children.get(coll_name)
-			if wgt_collection: break
-
-		if not wgt_collection:
-			# Try finding a "Widgets" collection next to the generated rig.
-			for c in self.obj.users_collection:
-				wgt_collection = c.children.get(coll_name)
-				if wgt_collection: break
+		# Try finding the widgets collection anywhere.
+		wgt_collection = bpy.data.collections.get(coll_name)
 
 		if not wgt_collection:
 			# Create a Widgets collection within the master collection.
