@@ -177,9 +177,13 @@ class CloudFKChainRig(CloudChainRig):
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Extend cloud_chain by tweaking some bbone values."""
 		def_chain = super().make_def_chain(str_chain)
+
+		last_def = def_chain[-1]
+		if last_def == def_chain[0]:
+			return
+
 		# If we didn't put a stretch constraint on the final deform bone,
 		# it must mean there is no cap control.
-		last_def = def_chain[-1]
 		if len(last_def.constraint_infos)==0:
 			if last_def.prev:
 				# In this case, set the previous def_bone's easeout to 0.

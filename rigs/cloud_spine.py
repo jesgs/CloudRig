@@ -260,10 +260,9 @@ class CloudSpineRig(CloudFKChainRig):
 	def tweak_str_spine(self):
 		# Tweak some display things
 		for i, str_bone in enumerate(self.str_chain):
-			if i == len(self.str_chain)-2:
+			if i == len(self.str_chain) - 1 - self.params.CR_chain_tip_control:
 				str_bone.parent = self.fk_chain[-2]
 			str_bone.custom_shape = self.ensure_widget('Cube_Flat')
-
 
 	def attach_org_to_fk(self):
 		"""Overrides."""
