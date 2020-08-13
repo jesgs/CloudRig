@@ -259,10 +259,11 @@ class CloudSpineRig(CloudFKChainRig):
 
 	def tweak_str_spine(self):
 		# Tweak some display things
-		for str_bone in self.str_chain:
+		for i, str_bone in enumerate(self.str_chain):
+			if i == len(self.str_chain)-2:
+				str_bone.parent = self.fk_chain[-2]
 			str_bone.custom_shape = self.ensure_widget('Cube_Flat')
-			# str_bone.use_custom_shape_bone_size = False
-			# str_bone.custom_shape_scale = 0.15
+
 
 	def attach_org_to_fk(self):
 		"""Overrides."""
@@ -273,9 +274,8 @@ class CloudSpineRig(CloudFKChainRig):
 			if i == 0:
 				# First STR bone should by owned by the hips.
 				org_bone.parent = self.mstr_hips
-			elif hasattr(self.fk_chain[i-1], 'fk_child'):
-				# Otherwise, every ORG bone should be owned by the FK bone of one lower index.
-				org_bone.parent = self.fk_chain[i-1].fk_child
+			elif i == len(self.org_chain)-1:
+				org_bone.parent = self.fk_chain[-1]
 			else:
 				org_bone.parent = self.fk_chain[i-1]
 		
