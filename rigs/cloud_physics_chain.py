@@ -16,7 +16,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		self.physics_set = self.ensure_bone_set("Physics Bones")
+		self.physics_chain = self.ensure_bone_set("Physics Bones")
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -85,7 +85,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		if not next_parent:
 			next_parent = self.root_bone
 		for fk_ctrl in from_chain:
-			phys_ctrl = self.physics_set.new(
+			phys_ctrl = self.physics_chain.new(
 				name = self.phys_name(fk_ctrl)
 				,source = fk_ctrl
 				,custom_shape = fk_ctrl.custom_shape
@@ -95,17 +95,21 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			)
 			next_parent = phys_ctrl
 		
-		pin_bone = self.physics_set.new(
+		pin_bone = self.physics_chain.new(
 			name = "PIN-"+self.params.CR_physics_chain_object.name
-			,source = self.physics_set[0]
-			,parent = self.physics_set[0]
+			,source = self.physics_chain[0]
+			,parent = self.physics_chain[0]
 			,use_deform = True
 		)
 		self.set_layers(pin_bone, [type(self).default_layers('MCH')])
 
 		# Add Armature modifier on physics object.
-		arm_mod = phys_ob.modifiers.new(type='ARMATURE', name="Armature")
-		arm_mod.object = self.obj
+		if phys_ob.modifiers.find('Armature') == -1:
+			arm_mod = phys_ob.modifiers.new(type='ARMATURE', name="Armature")
+			arm_mod.object = self.obj
+
+		# Parent first FK control to first PSX control.
+		self.fk_chain[0].parent = self.physics_chain[0]
 
 	def constrain_chain_to_phys_ob(self, phys_ob: bpy.types.Object, bone_chain: List[BoneInfo]):
 		# For the moment, let's just slap some constraints on the FK chain.
@@ -124,9 +128,11 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			bpy.context.view_layer.objects.active = cloth_ob
 			bpy.ops.object.modifier_move_to_index(modifier='Armature', index=0)
 			bpy.context.view_layer.objects.active = self.obj
+			cloth_ob.parent = None
 		else:
 			# Parent cloth object.
 			cloth_ob.parent = self.obj
+			cloth_ob.parent_type = 'BONE'
 			parent = self.org_chain[0].parent
 			if not parent:
 				parent = self.root_bone
@@ -141,7 +147,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Physics Bones", preset=1,	default_layers=[28])
+		cls.define_bone_set(params, "Physics Bones", preset=3,	default_layers=[28])
 
 	@classmethod
 	def add_parameters(cls, params):
