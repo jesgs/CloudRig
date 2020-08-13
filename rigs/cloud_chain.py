@@ -262,7 +262,11 @@ class CloudChainRig(CloudBaseRig):
 			next_str_bone = str_bone.next
 		if next_str_bone:
 			def_bone.bbone_custom_handle_end = next_str_bone
-			def_bone.add_constraint('STRETCH_TO', subtarget = next_str_bone.name)
+			def_bone.add_constraint('STRETCH_TO'
+				,subtarget = next_str_bone.name
+				,use_bulge_min = not self.params.CR_chain_preserve_volume
+				,use_bulge_max = not self.params.CR_chain_preserve_volume
+			)
 			if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
 				def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
 
@@ -396,17 +400,20 @@ class CloudChainRig(CloudBaseRig):
 			,description = "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
 			,default	 = False
 		)
-
 		params.CR_chain_smooth_spline = BoolProperty(
 			 name		 = "Smooth Spline"
 			,description = "B-Bone Splines affect their neighbours for smoother curves. Works best when Deform Segments is 1, but that is not a requirement"
 			,default	 = False
 		)
-
 		params.CR_chain_tip_control = BoolProperty(
 			 name		 = "Final Control"
 			,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one"
 			,default	 = True
+		)
+		params.CR_chain_preserve_volume = BoolProperty(
+			 name		 = "Preserve Volume"
+			,description = "Squash and stretch will preserve volume"
+			,default	 = False
 		)
 
 	@classmethod
@@ -423,6 +430,7 @@ class CloudChainRig(CloudBaseRig):
 		cls.draw_prop(layout, params, "CR_chain_sharp")
 		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
 		cls.draw_prop(layout, params, "CR_chain_tip_control")
+		cls.draw_prop(layout, params, "CR_chain_preserve_volume")
 
 		return layout
 
