@@ -76,8 +76,9 @@ class CloudNameManager:
 		sliced_name[0].append(new_prefix)
 		return self.make_name(*sliced_name)
 
-	def strip_org(self, name):
+	def strip_org(self, thing):
 		from rigify.utils.naming import strip_org
+		name = get_name(thing)
 		return strip_org(name)
 
 def make_name(prefixes=[], base="", suffixes=[],

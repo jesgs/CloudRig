@@ -18,14 +18,17 @@ class DefaultLayers(Enum):
 	IK_MAIN = 0
 	IK_SECOND = 16
 	FK_MAIN = 1
+	FK_SECOND = 17
+
 	STRETCH = 2
+
+	FACE_MAIN = 3
+	FACE_SECOND = 19
 
 	DEF = 29
 	MCH = 30
 	ORG = 31
 
-	FACE_MAIN = 3
-	FACE_SECOND = 19
 	FACE_TWEAK = 20
 
 class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, CloudUIMixin):
