@@ -114,6 +114,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		bpy.context.view_layer.objects.active = cloth_ob
 		cloth_ob.select_set(True)
 		bpy.ops.object.mode_set(mode='EDIT')
+		bpy.context.tool_settings.mesh_select_mode[0] = True
 		bpy.ops.mesh.select_all(action='SELECT')
 		# bpy.ops.mesh.extrude_region()
 		bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value":(0, 0.01, 0)})
