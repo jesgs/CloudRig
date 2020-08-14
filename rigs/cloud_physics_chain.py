@@ -71,7 +71,16 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		cloth_mod = cloth_ob.modifiers.new(type='CLOTH', name="Cloth")
 		cloth_mod.settings.vertex_group_mass = pin_name
 
+		bpy.ops.object.mode_set(mode='OBJECT')
+		bpy.context.view_layer.objects.active = cloth_ob
+		cloth_ob.select_set(True)
+		bpy.ops.object.mode_set(mode='EDIT')
+		bpy.ops.mesh.select_all(action='SELECT')
+		bpy.ops.mesh.extrude_region()
+		bpy.ops.object.mode_set(mode='OBJECT')
+
 		bpy.context.view_layer.objects.active = self.obj
+		bpy.ops.object.mode_set(mode='EDIT')
 		self.params.CR_physics_chain_object = cloth_ob
 		self.meta_base_bone.rigify_parameters.CR_physics_chain_object = cloth_ob
 		return cloth_ob
