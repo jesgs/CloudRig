@@ -51,6 +51,11 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,type		 = bpy.types.Text
 		,description = "Execute a python script after the rig is generated"
 	)
+	widget_collection: PointerProperty(
+		name		 = "Widgets Collection"
+		,type		 = bpy.types.Collection
+		,description = "Collection in which widgets will be placed"
+	)
 	mechanism_movable: BoolProperty(
 		name		 = "Movable Helpers"
 		,description = "Whether helper bones can be moved or not"
@@ -361,6 +366,10 @@ class CloudGenerator(Generator):
 
 	def ensure_widget_collection(self):
 		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
+		wgt_collection = self.params.cloudrig_parameters.widget_collection
+		if wgt_collection:
+			return wgt_collection
+		
 		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").lower()
 
 		# Try finding the widgets collection anywhere.
@@ -370,6 +379,8 @@ class CloudGenerator(Generator):
 			# Create a Widgets collection within the master collection.
 			wgt_collection = bpy.data.collections.new(coll_name)
 			bpy.context.scene.collection.children.link(wgt_collection)
+			self.params.cloudrig_parameters.widget_collection = wgt_collection
+			self.metarig.data.cloudrig_parameters.widget_collection = wgt_collection
 
 		wgt_collection.hide_viewport=True
 		wgt_collection.hide_render=True

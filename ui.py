@@ -141,6 +141,7 @@ def draw_cloudrig_generator_settings(self, context):
 
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(cloudrig, "custom_script")
+	layout.prop(cloudrig, "widget_collection")
 
 	layout.prop(cloudrig, "create_root")
 	if cloudrig.create_root:
