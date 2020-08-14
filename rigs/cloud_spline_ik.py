@@ -32,7 +32,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		self.make_curve_root_ctrl()
 		self.create_curve()
 		self.make_ctrls_for_curve_points()
-		self.create_def_chain()
+		self.make_def_chain()
 		self.add_spline_ik()
 
 	def make_curve_controls(self):
@@ -101,7 +101,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 		return curve_ob
 
-	def create_def_chain(self):
+	def make_def_chain(self):
 		segments = self.params.CR_spline_ik_subdivide
 
 		count_def_bone = 0
@@ -181,6 +181,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
+		"""Overrides."""
 		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings"):
 			return layout
 

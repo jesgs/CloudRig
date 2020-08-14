@@ -55,6 +55,16 @@ class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 				layer.name = "Clothes"
 				layer.row = 7
 
+			if i==29:
+				layer.name = "$DEF"
+				layer.row = 32
+			if i==30:
+				layer.name = "$ORG"
+				layer.row = 32
+			if i==31:
+				layer.name = "$MCH"
+				layer.row = 32
+
 		return {'FINISHED'}
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
