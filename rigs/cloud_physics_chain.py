@@ -4,12 +4,23 @@ from typing import List
 from ..bone import BoneInfo
 
 from mathutils import Matrix
+from math import sqrt
 
-from bpy.props import BoolProperty, PointerProperty
+from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
 from .cloud_fk_chain import CloudFKChainRig
 
 class CloudPhysicsChainRig(CloudFKChainRig):
 	"""FK Chain with cloth physics."""
+
+	forced_params = {
+		'CR_fk_chain_double_first' : False
+		,'CR_fk_chain_hinge' : False
+
+		,'CR_fk_chain_use_category_name' : False
+		,'CR_fk_chain_category_name' : ""
+		,'CR_fk_chain_use_limb_name' : False
+		,'CR_fk_chain_limb_name' : ""
+	}
 
 	def initialize(self):
 		super().initialize()
@@ -58,14 +69,42 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		bm.to_mesh(cloth_mesh)
 		bm.free()
 
-		# Create and assign vertex groups.
+
+		### Create and assign vertex groups.
+
+		# Total length of the chain
+		total_length = 0
+		for b in bone_chain:
+			total_length += b.length
+		total_length *= self.params.CR_physics_chain_pin_falloff_offset
+		cum_length = 0
+
 		pin_name = "PIN-"+cloth_ob.name
+
+		# Assign weights.
+		pin_vg = cloth_ob.vertex_groups.new(name=pin_name)
+		pin_vg.add([0], 1, 'REPLACE')
 		for i, v in enumerate(cloth_mesh.vertices):
-			name = pin_name
-			if i>0:
-				name = self.phys_name(bone_chain[i-1])
+			if i==0: continue
+			pin_weight = 1
+			name = self.phys_name(bone_chain[i-1])
+			# Determine pin weight on this vertex.
+			cum_length += bone_chain[i-1].length
+			ratio = self.params.CR_physics_chain_pin_falloff_offset - cum_length / total_length
+			if self.params.CR_physics_chain_pin_falloff == 'NONE':
+				pin_weight = 0
+			elif self.params.CR_physics_chain_pin_falloff == 'LINEAR':
+				pin_weight = ratio
+			elif self.params.CR_physics_chain_pin_falloff == 'QUADRATIC':
+				pin_weight = ratio*ratio
+			elif self.params.CR_physics_chain_pin_falloff == 'SQRT':
+				pin_weight = sqrt(ratio)
+			
+			print("pin weight: " + str(pin_weight))
+
 			vg = cloth_ob.vertex_groups.new(name=name)
 			vg.add([i], 1, 'REPLACE')
+			pin_vg.add([i], pin_weight, 'REPLACE')
 
 		# Create Cloth modifier.
 		cloth_mod = cloth_ob.modifiers.new(type='CLOTH', name="Cloth")
@@ -76,7 +115,8 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		cloth_ob.select_set(True)
 		bpy.ops.object.mode_set(mode='EDIT')
 		bpy.ops.mesh.select_all(action='SELECT')
-		bpy.ops.mesh.extrude_region()
+		# bpy.ops.mesh.extrude_region()
+		bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value":(0, 0.01, 0)})
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		bpy.context.view_layer.objects.active = self.obj
@@ -173,9 +213,28 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			,description = "Select an object which has vertex groups corresponding to the bone names of the chain, prefixed with 'phys_'. Leave empty to generate the object"
 		)
 		params.CR_physics_chain_force_regen = BoolProperty(
-			name		 = "Regenerate Mesh"
+			name		 = "Force Re-generate"
 			,description = "Even if the mesh already exists, force it to be re-generated from scratch"
 			,default	 = True
+		)
+		params.CR_physics_chain_pin_falloff = EnumProperty(
+			name		 = "Pin Falloff"
+			,description = "Type of falloff to apply to the generated cloth mesh's pin vertex group. The first vertex is always fully pinned"
+			,items		 = [
+				('NONE', "None", "First vertex fully pinned, rest fully unpinned"),
+				('LINEAR', "Linear", "First vertex fully pinned, last vertex not pinned at all, vertices inbetween are linear interpolated"),
+				('QUADRATIC', "Loose", "First vertex fully pinned, last vertex not pinned at all, vertices inbetween are linear interpolated and then raised to 2nd power"),
+				('SQRT', "Stiff", "First vertex fully pinned, last vertex not pinned at all, vertices inbetween are linear interpolated and then their square root is taken"),
+
+			]
+			,default	 = 'QUADRATIC'
+		)
+		params.CR_physics_chain_pin_falloff_offset = FloatProperty(
+			name		 = "Pin Falloff Offset"
+			,description = "Calculate the pin falloffs as if the bone chain was this much longer than it actually is. Increasing this beyond 1.0 will cause all vertices to be more pinned"
+			,default	 = 1.20
+			,min		 = 0.0
+			,max		 = 10.0
 		)
 		params.CR_physics_chain_make_ctrl = BoolProperty(
 			name		 = "Make Control Chain"
@@ -191,7 +250,15 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		if not cls.draw_dropdown_menu(layout, params, "CR_physics_chain_show_settings"): return layout
 
 		cls.draw_prop(layout, params, 'CR_physics_chain_object')
-		cls.draw_prop(layout, params, 'CR_physics_chain_force_regen')
+		if params.CR_physics_chain_object:
+			cls.draw_prop(layout, params, 'CR_physics_chain_force_regen')
+		
+		if not params.CR_physics_chain_object or params.CR_physics_chain_force_regen:
+			cls.draw_prop(layout, params, 'CR_physics_chain_pin_falloff')
+			if params.CR_physics_chain_pin_falloff != 'NONE':
+				cls.draw_prop(layout, params, 'CR_physics_chain_pin_falloff_offset')
+		layout.separator()
+
 		cls.draw_prop(layout, params, 'CR_physics_chain_make_ctrl')
 
 		return layout
