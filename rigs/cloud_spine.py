@@ -62,6 +62,7 @@ class CloudSpineRig(CloudFKChainRig):
 		# Create Troso Master control
 		self.limb_root_bone = self.mstr_torso = self.spine_main.new(
 			name 		  = f"MSTR-{self.spine_name}_Torso"
+			,parent		  = self.root_bone
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.ensure_widget("Torso_Master")

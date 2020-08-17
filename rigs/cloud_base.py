@@ -80,9 +80,9 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 				if c.rigify_type=="" and c.bone.use_connect:
 					if next_bone != None:
 						print(f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
-						\tChain could continue with either {next_bone.name} or {c.name}. \n
-						\tPicking the first one arbitrarily! \n
-						\tDisconnect the bone or assign a rigify type to make it unambiguous.""")
+							\tChain could continue with either {next_bone.name} or {c.name}. \n
+							\tPicking the first one arbitrarily! \n
+							\tDisconnect the bone or assign a rigify type to make it unambiguous.""")
 					else:
 						next_bone = c
 			if next_bone:
@@ -177,6 +177,7 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 				,source		 = eb
 				,hide_select = self.mch_disable_select
 			)
+			org_bi.parent = self.org_chain.find(eb.name)
 			# Remove constraints from the ORG bone and load them into the BoneInfo so they can be read and modified.
 			pb = self.obj.pose.bones.get(eb.name)
 			for c in pb.constraints:

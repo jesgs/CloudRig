@@ -6,7 +6,7 @@ rigify_info = {
 	'description': "Feature set developed by the Blender Animation Studio",
 	'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/",
 	'tracker_url': "https://gitlab.com/blender/CloudRig/-/issues/new",
-    'link': "https://gitlab.com/blender/CloudRig/",
+	'link': "https://gitlab.com/blender/CloudRig/",
 }
 
 import bpy, os

@@ -276,7 +276,6 @@ class CloudGenerator(Generator):
 	def create_root_bones(self):
 		# Root bone groups
 		self.root_set = BoneSet(
-			self,
 			ui_name = 'Root',
 			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
 			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
@@ -297,7 +296,6 @@ class CloudGenerator(Generator):
 
 		if self.params.cloudrig_parameters.double_root:
 			self.root_parent_set = BoneSet(
-				self,
 				ui_name = 'Root',
 				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
 				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
@@ -494,6 +492,8 @@ class CloudGenerator(Generator):
 		# Create/find the rig object and set it up
 		obj = self.create_rig_object()
 
+		self.defaults['rig'] = obj
+
 		# Ensure it's transforms are cleared.
 		backup_matrix = obj.matrix_world.copy()
 		obj.matrix_world = Matrix()
@@ -626,7 +626,12 @@ class CloudGenerator(Generator):
 					# Scale bone shape based on B-Bone scale
 					bi.write_pose_data(pose_bone)
 					if not pose_bone.use_custom_shape_bone_size:
-						pose_bone.custom_shape_scale *= self.scale * bi.bbone_width * 10
+						pose_bone.custom_shape_scale *= bi.bbone_width * 10
+						pose_bone.bone.bbone_x = bi.bbone_width
+						pose_bone.bone.bbone_z = bi.bbone_width
+						pose_bone.bone.envelope_distance = bi.bbone_width
+						pose_bone.bone.head_radius = bi.bbone_width
+						pose_bone.bone.tail_radius = bi.bbone_width
 
 		self.invoke_configure_bones()
 

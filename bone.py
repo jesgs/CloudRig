@@ -1,11 +1,10 @@
-# Data Container and utilities for de-coupling bone creation and setup from BPY.
-# Lets us easily create bones without having to worry about edit/pose mode.
+from typing import Dict, List
+
 import bpy
 from bpy.props import StringProperty, BoolVectorProperty
 from mathutils import Vector
 import copy
 from collections import OrderedDict
-from typing import Dict
 
 from .utils.maths import flat
 from .utils.object import set_layers
@@ -15,7 +14,7 @@ class LinkedList(list):
 	"""Some very basic doubly linked list functionality to help manage chains of bones."""
 	def __init__(self):
 		super().__init__()
-		self.ll_head = self.ll_tail = None
+		self.first = self.last = None
 
 	def remove(self, value):
 		super().remove(value)
@@ -31,8 +30,9 @@ class LinkedList(list):
 		super().append(value)
 
 class BoneSet(LinkedList):
-	""" Class to manage lists of BoneInfo instances.
-	Also manages a bone group and layer assignment for these bones. """
+	""" Class to create and store lists of BoneInfo instances.
+		Can also assign a bone group and set of layers for the created bones.
+	"""
 
 	presets = [
 		[(0.6039215922355652, 0.0, 0.0), (0.7411764860153198, 0.06666667014360428, 0.06666667014360428), (0.9686275124549866, 0.03921568766236305, 0.03921568766236305)],
@@ -52,29 +52,24 @@ class BoneSet(LinkedList):
 		[(0.0313725508749485, 0.19215688109397888, 0.05490196496248245), (0.1098039299249649, 0.26274511218070984, 0.04313725605607033), (0.2039215862751007, 0.38431376218795776, 0.16862745583057404)],
 	]
 
-	def __init__(self, generator, rig=None, ui_name="Bone Set",
+	def __init__(self, ui_name="Bone Set",
 			bone_group="Group", normal=None, select=None, active=None, preset=-1,
 			layers = [l==0 for l in range(32)],
 			defaults = {}
 	):
 		super().__init__()
 
-		# Rigify BaseRig instance where this BoneSet is used, and should be stored.
-		self.rig = rig
-		self.generator = generator
-		self.scale = generator.scale
-
-		# kwargs that should always be passed to bones created in this bone set.
+		# kwargs that will be passed to new BoneInfo() instances.
 		self.defaults = defaults
 
 		# Name that will be displayed in the Bone Sets UI.
 		self.ui_name = ui_name
 
-		# Bone Group name to assign to newly defined BoneInfos.
-		self.bone_group = bone_group
-
 		# Layers to assign to newly defined BoneInfos.
 		self.layers = layers
+
+		# Bone Group name to assign to newly defined BoneInfos.
+		self.bone_group = bone_group
 
 		self.color_set = 'CUSTOM'
 		self.normal = [0, 0, 0]
@@ -126,7 +121,7 @@ class BoneSet(LinkedList):
 			if key not in kwargs:
 				kwargs[key] = self.defaults[key]
 
-		bi = BoneInfo(self, name, source, **kwargs)
+		bi = BoneInfo(name, source, **kwargs)
 		self.append(bi)
 
 		return bi
@@ -150,21 +145,18 @@ class BoneSet(LinkedList):
 
 class BoneInfo:
 	"""
-	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone and bpy.types.EditBone
-	into a single concept.
+	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone 
+	and bpy.types.EditBone into a single concept.
 
-	This class does not concern itself with posing the bone, only creating and rigging it.
-	Eg, it does not store pose bone transformations such as loc/rot/scale.
+	This class does not concern itself with posing the bone, only creating and 
+	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
-	def __init__(self, bone_set, name="Bone", source=None, **kwargs):
+	def __init__(self, name="Bone", source: bpy.types.EditBone or BoneInfo =None, **kwargs):
 		"""
-		bone_set: What BoneSet this BoneInfo belongs to.
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
 		"""
-
-		self.bone_set = bone_set
 
 		self.next = self.prev = None	# for LinkedList behaviour.
 
@@ -176,7 +168,8 @@ class BoneInfo:
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		### Edit Bone properties
-		self.parent = None	# Blender expects bpy.types.EditBone, but we store BoneInfo. str is also supported for now, but should be avoided.
+		self._parent: BoneInfo = None
+		self.children: List[BoneInfo] = []
 		self.head = Vector((0,0,0))
 		self.tail = Vector((0,1,0))
 		self.roll = 0
@@ -209,13 +202,13 @@ class BoneInfo:
 		self.show_wire = False
 		self.use_endroll_as_inroll = False
 
-		self._bbone_x = 0.1		# NOTE: These two are wrapped by bbone_width @property. TODO: These no longer need the underscore.
-		self._bbone_z = 0.1
+		self.bbone_x = 0.1		# NOTE: These two are wrapped by bbone_width @property.
+		self.bbone_z = 0.1
 		self.bbone_segments = 1
 		self.bbone_handle_type_start = "AUTO"
 		self.bbone_handle_type_end = "AUTO"
-		self.bbone_custom_handle_start = None # Blender expects bpy.types.Bone, but we store BoneInfo.
-		self.bbone_custom_handle_end = None
+		self.bbone_custom_handle_start: BoneInfo = None
+		self.bbone_custom_handle_end: BoneInfo = None
 
 		self.envelope_distance = 0.25
 		self.envelope_weight = 1.0
@@ -229,9 +222,9 @@ class BoneInfo:
 		self.use_relative_parent = False
 
 		### Pose Mode Only
-		self.bone_group = ""		# Blender expects bpy.types.BoneGroup, we store str.
-		self.custom_shape = None	# Blender expects bpy.types.Object, we store bpy.types.Object.
-		self.custom_shape_transform = None	# Blender expects bpy.types.PoseBone, we store BoneInfo.
+		self.bone_group: str = ""	# This should NOT be a bpy.types.BoneGroup!
+		self.custom_shape: bpy.types.Object = None
+		self.custom_shape_transform: BoneInfo = None
 		self.custom_shape_scale = 1.0
 		self.use_custom_shape_bone_size = False
 
@@ -239,10 +232,6 @@ class BoneInfo:
 		self.lock_rotation = [False, False, False]
 		self.lock_rotation_w = False
 		self.lock_scale = [False, False, False]
-
-		# Apply bone_set's defaults
-		for key, value in self.bone_set.defaults.items():
-			setattr(self, key, value)
 
 		if source:
 			self.head = source.head.copy()
@@ -257,8 +246,8 @@ class BoneInfo:
 				self.bone_group = source.bone_group
 				self.bbone_width = source.bbone_width
 			else:
-				self._bbone_x = source.bbone_x
-				self._bbone_z = source.bbone_z
+				self.bbone_x = source.bbone_x
+				self.bbone_z = source.bbone_z
 			if source.parent:
 				if type(source)==BoneInfo:
 					self.parent = source.parent
@@ -290,17 +279,29 @@ class BoneInfo:
 		return self.name
 
 	@property
+	def parent(self):
+		return self._parent
+
+	@parent.setter
+	def parent(self, value):
+		if self._parent and isinstance(self._parent, BoneInfo):
+			self._parent.children.remove(self)
+		self._parent = value
+		if value and isinstance(value, BoneInfo):
+			value.children.append(self)
+
+	@property
 	def bbone_width(self):
-		return self._bbone_x / self.bone_set.scale
+		return self.bbone_x
 
 	@bbone_width.setter
 	def bbone_width(self, value):
 		"""Set B-Bone width relative to the rig's scale."""
-		self._bbone_x = value * self.bone_set.scale
-		self._bbone_z = value * self.bone_set.scale
-		self.envelope_distance = value * self.bone_set.scale
-		self.head_radius = value * self.bone_set.scale
-		self.tail_radius = value * self.bone_set.scale
+		self.bbone_x = value
+		self.bbone_z = value
+		self.envelope_distance = value
+		self.head_radius = value
+		self.tail_radius = value
 
 	@property
 	def vector(self):
@@ -308,14 +309,14 @@ class BoneInfo:
 		return self.tail-self.head
 
 	@vector.setter
-	def vector(self, value):
+	def vector(self, value: Vector):
 		self.tail = self.head + value
 
-	def scale_width(self, value):
+	def scale_width(self, value: int):
 		"""Set b-bone width relative to current."""
 		self.bbone_width *= value
 
-	def scale_length(self, value):
+	def scale_length(self, value: int):
 		"""Set bone length relative to its current length."""
 		self.tail = self.head + self.vector * value
 
@@ -335,7 +336,10 @@ class BoneInfo:
 	def set_layers(self, layerlist, additive=False):
 		set_layers(self, layerlist, additive)
 
-	def put(self, loc, length=None, width=None, scale_length=None, scale_width=None):
+	def put(self, loc=None, length=None, width=None, scale_length=None, scale_width=None):
+		if not loc:
+			loc = self.head
+
 		offset = loc-self.head
 		self.head = loc
 		self.tail = loc+offset
@@ -359,17 +363,15 @@ class BoneInfo:
 
 	def disown(self, new_parent):
 		""" Parent all children of this bone to a new parent. """
-		# TODO: make self.parent a @property so bones are aware of their children!
-		for b in self.bone_set.bones:
-			if b.parent==self or b.parent==self.name:
-				b.parent = new_parent
+		for b in self.children:
+			b.parent = new_parent
 
 	def get_constraint(self, name):
 		for ci in self.constraint_infos:
 			if ci.name == name:
 				return ci
 
-	def add_constraint(self, contype, index=None, **kwargs):
+	def add_constraint(self, contype: str, index: int=None, **kwargs):
 		"""Store constraint information about a constraint in this BoneInfo.
 		contype: Type of constraint, eg. 'STRETCH_TO'.
 		kwargs: Dictionary of properties and values.
@@ -384,26 +386,26 @@ class BoneInfo:
 
 		return con_info
 
-	def add_constraint_from_real(self, BPY_constraint):
+	def add_constraint_from_real(self, constraint: bpy.types.Constraint):
 		kwargs = {}
 		skip = ['active', 'bl_rna', 'error_location', 'error_rotation', 'is_proxy_local', 'is_valid', 'rna_type', 'type']
-		for key in dir(BPY_constraint):
+		for key in dir(constraint):
 			if "__" in key: continue
 			if key in skip: continue
 
-			if key=='targets' and BPY_constraint.type=='ARMATURE':
+			if key=='targets' and constraint.type=='ARMATURE':
 				kwargs['targets'] = []
-				for t in BPY_constraint.targets:
+				for t in constraint.targets:
 					kwargs['targets'].append({
-						'target' : self.bone_set.generator.obj,
+						'target' : constraint.id_data,
 						'subtarget' : t.subtarget,
 						'weight' : t.weight
 					})
 				continue
 
-			kwargs[key] = getattr(BPY_constraint, key)
+			kwargs[key] = getattr(constraint, key)
 
-		new_con = ConstraintInfo(self, BPY_constraint.type, **kwargs)
+		new_con = ConstraintInfo(self, constraint.type, **kwargs)
 		self.constraint_infos.append(new_con)
 		return new_con
 
@@ -425,10 +427,7 @@ class BoneInfo:
 		eb.use_connect = False	# NOTE: Without this, ORG- bones' Copy Transforms constraints can't work properly.
 
 		if self.parent:
-			if type(self.parent)==str:
-				eb.parent = armature.data.edit_bones.get(self.parent)
-			else:
-				eb.parent = armature.data.edit_bones.get(self.parent.name)
+			eb.parent = armature.data.edit_bones.get(str(self.parent))
 
 		eb.head = self.head.copy()
 		eb.tail = self.tail.copy()
@@ -489,8 +488,8 @@ class BoneInfo:
 		b = pb.bone
 		b.layers = self.layers[:]
 		b.use_deform = self.use_deform
-		b.bbone_x = self._bbone_x
-		b.bbone_z = self._bbone_z
+		b.bbone_x = self.bbone_x
+		b.bbone_z = self.bbone_z
 		b.bbone_segments = self.bbone_segments
 		b.bbone_handle_type_start = self.bbone_handle_type_start
 		b.bbone_handle_type_end = self.bbone_handle_type_end
@@ -571,8 +570,10 @@ class ConstraintInfo(dict):
 		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
 
 		# Set target as the rig object, except for some constraint types.
-		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE', 'LIMIT_ROTATION', 'SHRINKWRAP']:
-			self.target = self.bone_info.bone_set.generator.obj
+		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE', 
+							'LIMIT_ROTATION', 'SHRINKWRAP']:
+			if hasattr(self.bone_info, 'rig'):
+				self.target = self.bone_info.rig
 
 		# Constraints that support local space should default to local space.
 		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',
@@ -672,8 +673,6 @@ class BoneSetManager:
 			bone_set_def['layers'] = cloudrig.org_layers[:]
 
 		new_set = BoneSet(
-			self.generator,
-			self,
 			ui_name = bone_set_def['name'],
 			bone_group = getattr(self.params, bone_set_def['param']),
 			layers = bone_set_def['layers'],
