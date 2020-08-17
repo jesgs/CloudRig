@@ -3,7 +3,7 @@
 # I tried implementing Bone Sets as a UIList. This would make the UI a lot nicer.
 # There are a host of issues with it though.
 
-# Rigify won't let us register CollectionProperties because https://developer.blender.org/diffusion/BA/browse/master/rigify/__init__.py$434 
+# Rigify won't let us register CollectionProperties because https://developer.blender.org/diffusion/BA/browse/master/rigify/__init__.py$434 - CollectionProperties don't have an update function, so this line errors.
 # Even if it did allow us, we couldn't populate the CollectionProperty from any of the rig object classmethods or drawing functions because wrong context.
 # So the best we could do is add a button to populate the list, or do it in the update callback of the BoneSet hide toggle or something like that...
 
@@ -35,7 +35,7 @@ def find_rig_class(rig_type):
 	rig_module = rig_lists.rigs[rig_type]["module"]
 
 	return rig_module.Rig
-		
+
 def draw_bone_set_list(layout, params):
 	context = bpy.context
 	bone = context.active_pose_bone
@@ -60,7 +60,7 @@ def register():
 	from bpy.utils import register_class
 	for c in classes:
 		register_class(c)
-	bpy.types.Scene.cloudrig_bone_sets = CollectionProperty(type=BoneSetDefinition)
+	bpy.types.PoseBone.cloudrig_bone_sets = CollectionProperty(type=BoneSetDefinition)
 	bpy.types.PoseBone.cloudrig_active_bone_set_index = IntProperty(min=0)
 
 def unregister():

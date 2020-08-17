@@ -1,12 +1,11 @@
 import bpy
 from typing import Dict, List
 
-from bpy.props import BoolProperty, StringProperty, BoolVectorProperty
+from bpy.props import BoolProperty
 from mathutils import Vector
-from collections import OrderedDict
 from enum import Enum
 
-from ..bone import BoneSet
+from ..bone import BoneSetManager
 from ..utils.mechanism import CloudMechanismMixin
 from ..utils.naming import CloudNameManager, name_side_is_left
 from ..utils.object import CloudObjectUtilitiesMixin
@@ -31,11 +30,8 @@ class DefaultLayers(Enum):
 
 	FACE_TWEAK = 20
 
-class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, CloudUIMixin):
+class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, CloudUIMixin, BoneSetManager):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
-
-
-	bone_set_defs: Dict[str, str] = OrderedDict()
 
 	default_layers = lambda name: DefaultLayers[name].value
 
@@ -158,43 +154,6 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 			)
 		return properties_bone
 
-	def ensure_bone_set(self, bone_set_name):
-		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
-		bone_set_defs = type(self).bone_set_defs
-
-		if bone_set_name not in bone_set_defs:
-			print(f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set.")
-			return
-
-		bone_set_def = bone_set_defs[bone_set_name]
-
-		bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
-
-		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
-		cloudrig = self.generator_params.cloudrig_parameters
-		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
-			bone_set_def['layers'] = cloudrig.def_layers[:]
-
-		if bone_set_def['override'] == 'MCH' and cloudrig.override_mch_layers:
-			bone_set_def['layers'] = cloudrig.mch_layers[:]
-
-		if bone_set_def['override'] == 'ORG' and cloudrig.override_org_layers:
-			bone_set_def['layers'] = cloudrig.org_layers[:]
-
-		new_set = BoneSet(
-			self.generator,
-			self,
-			ui_name = bone_set_def['name'],
-			bone_group = getattr(self.params, bone_set_def['param']),
-			layers = bone_set_def['layers'],
-			preset = bone_set_def['preset'],
-			defaults = self.defaults
-		)
-
-		self.bone_sets.append(new_set)
-
-		return new_set
-
 	def ensure_bone_sets(self):
 		self.org_chain = self.ensure_bone_set("Original Bones")
 		self.dsp_bones = self.ensure_bone_set("Display Transform Helpers")
@@ -258,70 +217,19 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 	# Parameters
 
 	@classmethod
-	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
-		"""
-		A bone set is a set of rig parameters for choosing a bone group and list of bone layers.
-		This function is responsible for creating those rig parameters, as well as storing them,
-		so they can be referenced easily when implementing the creation of a new bone
-		and assigning its bone group and layers.
-
-		For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
-		Then the "FK Main" bone set's bone group and bone layer can be customized via the parameters.
-		"""
-
-		group_name = ui_name.replace(" ", "_").lower()
-		if default_group=="":
-			default_group = ui_name
-
-		param_name = "CR_BG_" + group_name.replace(" ", "_")
-		layer_param_name = "CR_BG_LAYERS_" + group_name.replace(" ", "_")
-
-		setattr(
-			params,
-			param_name,
-			StringProperty(
-				default = default_group,
-				description = f"Select what group {ui_name} should be assigned to"
-			)
-		)
-
-		default_layers_bools = [i in default_layers for i in range(32)]
-		setattr(
-			params,
-			layer_param_name,
-			BoolVectorProperty(
-				size = 32,
-				subtype = 'LAYER',
-				description = f"Select what layers {ui_name} should be assigned to",
-				default = default_layers_bools
-			)
-		)
-
-		assert override in ['', 'DEF', 'MCH', 'ORG'], "Error: Unsupported bone set override"
-
-		cls.bone_set_defs[ui_name] = {
-			'name'			: ui_name
-			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
-			,'param' 	 	: param_name		# Name of the bone group name parameter
-			,'layer_param'	: layer_param_name	# Name of the bone layers parameter
-			,'override'		: override
-		}
-		return ui_name
+	def add_parameters(cls, params):
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		cls.define_bone_sets(params)
 
 	@classmethod
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		cls.bone_set_defs = OrderedDict()
+		super().define_bone_sets(params)
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
 
 		cls.define_bone_set(params, "Original Bones",			 default_layers=[cls.default_layers('ORG')], override='ORG')
 		cls.define_bone_set(params, "Display Transform Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Parent Switch Helpers",	 default_layers=[cls.default_layers('MCH')], override='MCH')
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		cls.define_bone_sets(params)
 
 	@classmethod
 	def parameters_ui(cls, layout, params):

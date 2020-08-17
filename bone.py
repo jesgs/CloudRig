@@ -1,8 +1,12 @@
 # Data Container and utilities for de-coupling bone creation and setup from BPY.
 # Lets us easily create bones without having to worry about edit/pose mode.
 import bpy
+from bpy.props import StringProperty, BoolVectorProperty
 from mathutils import Vector
 import copy
+from collections import OrderedDict
+from typing import Dict
+
 from .utils.maths import flat
 from .utils.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
@@ -153,14 +157,14 @@ class BoneInfo:
 	Eg, it does not store pose bone transformations such as loc/rot/scale.
 	"""
 
-	def __init__(self, container, name="Bone", source=None, **kwargs):
+	def __init__(self, bone_set, name="Bone", source=None, **kwargs):
 		"""
-		container: Need a reference to what BoneSet this BoneInfo belongs to. #TODO: might be nice to make this not required?
+		bone_set: What BoneSet this BoneInfo belongs to.
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
 		"""
 
-		self.container = container
+		self.bone_set = bone_set
 
 		self.next = self.prev = None	# for LinkedList behaviour.
 
@@ -176,7 +180,7 @@ class BoneInfo:
 		self.head = Vector((0,0,0))
 		self.tail = Vector((0,1,0))
 		self.roll = 0
-		# NOTE: For these bbone properties, we are referring only to edit bone versions of the values.
+		# NOTE: These bbone properties refer only to edit bone versions of the values.
 		self.bbone_curveinx = 0
 		self.bbone_curveiny = 0
 		self.bbone_curveoutx = 0
@@ -236,8 +240,8 @@ class BoneInfo:
 		self.lock_rotation_w = False
 		self.lock_scale = [False, False, False]
 
-		# Apply container's defaults
-		for key, value in self.container.defaults.items():
+		# Apply bone_set's defaults
+		for key, value in self.bone_set.defaults.items():
 			setattr(self, key, value)
 
 		if source:
@@ -287,16 +291,16 @@ class BoneInfo:
 
 	@property
 	def bbone_width(self):
-		return self._bbone_x / self.container.scale
+		return self._bbone_x / self.bone_set.scale
 
 	@bbone_width.setter
 	def bbone_width(self, value):
 		"""Set B-Bone width relative to the rig's scale."""
-		self._bbone_x = value * self.container.scale
-		self._bbone_z = value * self.container.scale
-		self.envelope_distance = value * self.container.scale
-		self.head_radius = value * self.container.scale
-		self.tail_radius = value * self.container.scale
+		self._bbone_x = value * self.bone_set.scale
+		self._bbone_z = value * self.bone_set.scale
+		self.envelope_distance = value * self.bone_set.scale
+		self.head_radius = value * self.bone_set.scale
+		self.tail_radius = value * self.bone_set.scale
 
 	@property
 	def vector(self):
@@ -356,7 +360,7 @@ class BoneInfo:
 	def disown(self, new_parent):
 		""" Parent all children of this bone to a new parent. """
 		# TODO: make self.parent a @property so bones are aware of their children!
-		for b in self.container.bones:
+		for b in self.bone_set.bones:
 			if b.parent==self or b.parent==self.name:
 				b.parent = new_parent
 
@@ -391,7 +395,7 @@ class BoneInfo:
 				kwargs['targets'] = []
 				for t in BPY_constraint.targets:
 					kwargs['targets'].append({
-						'target' : self.container.generator.obj,
+						'target' : self.bone_set.generator.obj,
 						'subtarget' : t.subtarget,
 						'weight' : t.weight
 					})
@@ -568,7 +572,7 @@ class ConstraintInfo(dict):
 
 		# Set target as the rig object, except for some constraint types.
 		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE', 'LIMIT_ROTATION', 'SHRINKWRAP']:
-			self.target = self.bone_info.container.generator.obj
+			self.target = self.bone_info.bone_set.generator.obj
 
 		# Constraints that support local space should default to local space.
 		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',
@@ -640,3 +644,102 @@ class ConstraintInfo(dict):
 			con.rest_length = 0
 
 		return con
+
+class BoneSetManager:
+	bone_set_defs: Dict[str, str] = OrderedDict()
+
+	def ensure_bone_set(self, bone_set_name):
+		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
+		bone_set_defs = type(self).bone_set_defs
+
+		if bone_set_name not in bone_set_defs:
+			print(f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set.")
+			return
+
+		bone_set_def = bone_set_defs[bone_set_name]
+
+		bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
+
+		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
+		cloudrig = self.generator_params.cloudrig_parameters
+		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
+			bone_set_def['layers'] = cloudrig.def_layers[:]
+
+		if bone_set_def['override'] == 'MCH' and cloudrig.override_mch_layers:
+			bone_set_def['layers'] = cloudrig.mch_layers[:]
+
+		if bone_set_def['override'] == 'ORG' and cloudrig.override_org_layers:
+			bone_set_def['layers'] = cloudrig.org_layers[:]
+
+		new_set = BoneSet(
+			self.generator,
+			self,
+			ui_name = bone_set_def['name'],
+			bone_group = getattr(self.params, bone_set_def['param']),
+			layers = bone_set_def['layers'],
+			preset = bone_set_def['preset'],
+			defaults = self.defaults
+		)
+
+		self.bone_sets.append(new_set)
+
+		return new_set
+
+	##############################
+	# Parameters
+
+	@classmethod
+	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
+		"""
+		A bone set is a set of rig parameters for choosing a bone group and list of bone layers.
+		This function is responsible for creating those rig parameters, as well as storing them,
+		so they can be referenced easily when implementing the creation of a new bone
+		and assigning its bone group and layers.
+
+		For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
+		Then the "FK Main" bone set's bone group and bone layer can be customized via the parameters.
+		"""
+
+		group_name = ui_name.replace(" ", "_").lower()
+		if default_group=="":
+			default_group = ui_name
+
+		param_name = "CR_BG_" + group_name.replace(" ", "_")
+		layer_param_name = "CR_BG_LAYERS_" + group_name.replace(" ", "_")
+
+		setattr(
+			params,
+			param_name,
+			StringProperty(
+				default = default_group,
+				description = f"Select what group {ui_name} should be assigned to"
+			)
+		)
+
+		default_layers_bools = [i in default_layers for i in range(32)]
+		setattr(
+			params,
+			layer_param_name,
+			BoolVectorProperty(
+				size = 32,
+				subtype = 'LAYER',
+				description = f"Select what layers {ui_name} should be assigned to",
+				default = default_layers_bools
+			)
+		)
+
+		assert override in ['', 'DEF', 'MCH', 'ORG'], "Error: Unsupported bone set override"
+
+		cls.bone_set_defs[ui_name] = {
+			'name'			: ui_name
+			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
+			,'param' 	 	: param_name		# Name of the bone group name parameter
+			,'layer_param'	: layer_param_name	# Name of the bone layers parameter
+			,'override'		: override
+		}
+		return ui_name
+
+	@classmethod
+	def define_bone_sets(cls, params):
+		"""Create parameters for this rig's bone sets."""
+		cls.bone_set_defs = OrderedDict()
