@@ -47,7 +47,7 @@ class CloudAimRig(CloudBaseRig):
 		head = self.find_target_pos(bone)
 		tail = head + bone.vector.normalized() * self.scale/5
 
-		target_bone = self.target_ctrl.new(
+		target_bone = self.new_bonei(self.target_ctrl,
 			name	= self.org_chain[0].name.replace("ORG", "TGT")
 			,source = self.org_chain[0]
 			,head	= head
@@ -64,8 +64,8 @@ class CloudAimRig(CloudBaseRig):
 		"""Create an AIM helper for @bone targetting @target_bone, while leaving
 		   @bone free to rotate.
 		"""
-		aim_bone = self.aim_mch.new(
-			name		 = self.org_chain[0].name.replace("ORG", "AIM")
+		aim_bone = self.new_bonei(aim_mch
+			,name		 = self.org_chain[0].name.replace("ORG", "AIM")
 			,source		 = bone
 			,hide_select = self.mch_disable_select
 			,parent		 = bone.parent
@@ -78,8 +78,8 @@ class CloudAimRig(CloudBaseRig):
 
 	def make_aim_control(self, bone) -> BoneInfo:
 		"""Create direct control, with a display bone that is aim radius away towards the bone's +Y axis."""
-		ctr_bone = self.target_ctrl.new(
-			name = self.naming.make_name(["CTR"], *self.naming.slice_name(bone.name)[1:])
+		ctr_bone = self.new_bonei(self.target_ctrl
+			,name = self.naming.make_name(["CTR"], *self.naming.slice_name(bone.name)[1:])
 			,source = bone
 			,parent = bone.parent
 			,custom_shape = self.ensure_widget("Oval")
@@ -97,8 +97,8 @@ class CloudAimRig(CloudBaseRig):
 	def make_aim_root(self, bone) -> BoneInfo:
 		# TODO: Root bone should be bigger and have a DSP- bone in the same place as the CTR bone.
 		base_bone = self.org_chain[0]
-		root_bone = self.target_ctrl.new(
-			name = base_bone.name.replace("ORG", "ROOT")
+		root_bone = self.new_bonei(self.target_ctrl
+			,name = base_bone.name.replace("ORG", "ROOT")
 			,source = base_bone
 			,parent = base_bone.parent
 			,custom_shape = self.ensure_widget('Square')
@@ -137,8 +137,8 @@ class CloudAimRig(CloudBaseRig):
 
 		# Create a helper bone in the center.
 		group_vec = target_center - aims_center
-		center_bone = self.aim_mch.new(
-			name = "CEN-"+group_name
+		center_bone = self.new_bonei(self.aim_mch
+			,name = "CEN-"+group_name
 			,head = aims_center
 			,tail = aims_center + group_vec.normalized() * self.scale/10
 			,bbone_width = 0.1
@@ -146,8 +146,8 @@ class CloudAimRig(CloudBaseRig):
 		)
 
 		# Create the master bone.
-		group_master = self.group_mstr_set.new(
-			name = group_master_name
+		group_master = self.new_bonei(self.group_mstr_set
+			,name = group_master_name
 			,head = target_center
 			,tail = target_center - group_vec.normalized()*self.scale/10
 			,bbone_width = 0.1

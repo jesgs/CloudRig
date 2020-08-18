@@ -144,8 +144,8 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 		bone_name = "Properties"
 		properties_bone = self.get_bone_info(bone_name)
 		if not properties_bone:
-			properties_bone = self.generator.root_set.new(
-				name		  = bone_name
+			properties_bone = self.new_bonei(self.generator.root_set
+				,name		  = bone_name
 				,head		  = Vector((0, self.scale*2, 0))
 				,tail		  = Vector((0, self.scale*4, 0))
 				,bbone_width  = 1/8
@@ -172,8 +172,8 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 			meta_org_name = eb.name[4:]
 			meta_org = self.generator.metarig.pose.bones.get(meta_org_name)
 
-			org_bi = self.org_chain.new(
-				name		 = bn
+			org_bi = self.new_bonei(self.org_chain
+				,name		 = bn
 				,source		 = eb
 				,hide_select = self.mch_disable_select
 			)

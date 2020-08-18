@@ -1,11 +1,11 @@
 from typing import Tuple, List
-from mathutils import Vector
+import os
+from copy import deepcopy
 
 import bpy
 from rna_prop_ui import rna_idprop_ui_create
-import os
+from mathutils import Vector
 
-from copy import deepcopy
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
@@ -263,6 +263,7 @@ def create_parent_bone(child, bone_set=None):
 		,source				= child
 		,custom_shape		= child.custom_shape
 		,custom_shape_scale = child.custom_shape_scale * 1.1
+		,use_custom_shape_bone_size = child.use_custom_shape_bone_size
 		,parent 			= child.parent
 	)
 

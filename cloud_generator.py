@@ -289,9 +289,10 @@ class CloudGenerator(Generator):
 				name				= "root"
 				,head				= Vector((0, 0, 0))
 				,tail				= Vector((0, self.scale*5, 0))
-				,bbone_width		= 1/3
+				,bbone_width		= 1/10
 				,custom_shape		= self.ensure_widget("Root")
 				,custom_shape_scale = 1.5
+				,use_custom_shape_bone_size = True
 			)
 
 		if self.params.cloudrig_parameters.double_root:

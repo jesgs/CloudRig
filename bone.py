@@ -98,7 +98,7 @@ class BoneSet(LinkedList):
 		return None
 
 	def __repr__(self):
-		return self.ui_name
+		return f"{self.ui_name}: {super().__repr__()}"
 
 	def new(self, name="Bone", source=None, **kwargs):
 		"""Define a bone and add it to the list of bones."""
@@ -152,7 +152,7 @@ class BoneInfo:
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
-	def __init__(self, name="Bone", source: bpy.types.EditBone or BoneInfo =None, **kwargs):
+	def __init__(self, name="Bone", source: bpy.types.EditBone or BoneInfo = None, **kwargs):
 		"""
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
@@ -648,6 +648,12 @@ class ConstraintInfo(dict):
 
 class BoneSetManager:
 	bone_set_defs: Dict[str, str] = OrderedDict()
+
+	def new_bonei(self, bone_set: BoneSet = None, **kwargs) -> BoneInfo:
+		if bone_set is not None:
+			return bone_set.new(**kwargs)
+		else:
+			return BoneInfo(**kwargs)
 
 	def ensure_bone_set(self, bone_set_name):
 		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
