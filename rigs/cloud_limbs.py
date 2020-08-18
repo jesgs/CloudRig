@@ -157,8 +157,8 @@ class CloudLimbRig(CloudIKChainRig):
 		ik_foot = ik_chain[0]
 
 		# Create ROLL control behind the foot (Limit Rotation, lock other transforms)
-		rolly_stretchy = self.ik_mch.new(
-			name		 = self.org_chain[0].name.replace("ORG", "IK-STR-ROLL")
+		rolly_stretchy = self.new_bonei(self.ik_mch
+			,name		 = self.org_chain[0].name.replace("ORG", "IK-STR-ROLL")
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
@@ -169,8 +169,8 @@ class CloudLimbRig(CloudIKChainRig):
 
 		sliced_name = self.naming.slice_name(ik_foot.name)
 		master_name = self.naming.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
-		roll_master = self.ik_mch.new(
-			name		 = master_name
+		roll_master = self.new_bonei(self.ik_mch
+			,name		 = master_name
 			,source		 = self.ik_mstr
 			,parent		 = self.ik_mstr
 		)
@@ -178,8 +178,8 @@ class CloudLimbRig(CloudIKChainRig):
 		self.ik_tgt_bone.clear_constraints()
 
 		roll_name = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
-		roll_ctrl = self.ik_ctrls.new(
-			name		  = roll_name
+		roll_ctrl = self.new_bonei(self.ik_ctrls
+			,name		  = roll_name
 			,bbone_width  = 1/18
 			,head		  = ik_foot.head + Vector((0, self.scale, self.scale/4))
 			,tail		  = ik_foot.head + Vector((0, self.scale/2, self.scale/4))
@@ -213,8 +213,8 @@ class CloudLimbRig(CloudIKChainRig):
 			self.ik_mstr.parent._bbone_x = heel_pivot_bone.bbone_x
 			self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
 
-		heel_pivot = self.ik_mch.new(
-			name		  = "IK-RollBack" + self.naming.suffix_separator + self.side_suffix
+		heel_pivot = self.new_bonei(self.ik_mch
+			,name		  = "IK-RollBack" + self.naming.suffix_separator + self.side_suffix
 			,bbone_width  = self.org_chain[-1].bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
@@ -234,8 +234,8 @@ class CloudLimbRig(CloudIKChainRig):
 		# Create reverse bones
 		rik_chain = []
 		for i, b in reversed(list(enumerate(org_chain))):
-			rik_bone = self.ik_mch.new(
-				name		 = b.name.replace("ORG", "RIK")
+			rik_bone = self.new_bonei(self.ik_mch
+				,name		 = b.name.replace("ORG", "RIK")
 				,source		 = b
 				,head		 = b.tail.copy()
 				,tail		 = b.head.copy()

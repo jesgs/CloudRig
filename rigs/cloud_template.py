@@ -17,8 +17,8 @@ class CloudTemplateRig(CloudBaseRig):
 			self.make_ctr_bone(self.org_chain[0])
 
 	def make_ctr_bone(self, bone):
-		ctr_bone = self.template_set.new(
-			name = bone.name.replace("ORG", "CTR")
+		ctr_bone = self.new_bonei(self.template_set
+			,name = bone.name.replace("ORG", "CTR")
 			,source = bone
 			,custom_shape = self.ensure_widget('Circle')
 			,parent = bone.parent

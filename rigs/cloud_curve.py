@@ -35,8 +35,8 @@ class CloudCurveRig(CloudBaseRig):
 		self.make_ctrls_for_curve_points()
 
 	def make_curve_root_ctrl(self):
-		self.root_control = self.curve_hooks.new(
-			name						= self.base_bone.replace("ORG", "ROOT")
+		self.root_control = self.new_bonei(self.curve_hooks
+			,name						= self.base_bone.replace("ORG", "ROOT")
 			,source						= self.org_chain[0]
 			,custom_shape				= self.ensure_widget("Cube")
 			,use_custom_shape_bone_size = True
@@ -72,8 +72,8 @@ class CloudCurveRig(CloudBaseRig):
 		if suffix!="":
 			suffix = self.naming.suffix_separator + suffix
 
-		hook_ctr = self.curve_hooks.new(
-			name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"
+		hook_ctr = self.new_bonei(self.curve_hooks
+			,name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"
 			,head						= loc
 			,tail						= loc_left
 			,parent						= self.base_bone
@@ -88,8 +88,8 @@ class CloudCurveRig(CloudBaseRig):
 			hook_ctr.custom_shape = self.ensure_widget("Circle")
 
 			if self.params.CR_curve_separate_radius:
-				radius_control = self.curve_handles.new(
-					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
+				radius_control = self.new_bonei(self.curve_handles
+					,name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
 					,parent						= hook_ctr
 					,custom_shape				= self.ensure_widget("Circle")
@@ -101,8 +101,8 @@ class CloudCurveRig(CloudBaseRig):
 				hook_ctr.radius_control = radius_control
 
 			if (i != 0) or cyclic:				# Skip for first hook unless cyclic.
-				handle_left_ctr = self.curve_handles.new(
-					name		  = f"Hook_L_{hook_name}_{str(i).zfill(2)}{suffix}"
+				handle_left_ctr = self.new_bonei(self.curve_handles
+					,name		  = f"Hook_L_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail		  = loc_left
 					,parent		  = hook_ctr
@@ -112,8 +112,8 @@ class CloudCurveRig(CloudBaseRig):
 				handles.append(handle_left_ctr)
 
 			if (i != self.num_controls-1) or cyclic:	# Skip for last hook unless cyclic.
-				handle_right_ctr = self.curve_handles.new(
-					name 		  = f"Hook_R_{hook_name}_{str(i).zfill(2)}{suffix}"
+				handle_right_ctr = self.new_bonei(self.curve_handles
+					,name 		  = f"Hook_R_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail 		  = loc_right
 					,parent 	  = hook_ctr

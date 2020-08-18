@@ -92,8 +92,8 @@ class CloudFaceChainRig(CloudChainRig):
 			slices = self.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
 			bone_name = self.naming.make_name(["STR", "I"], slices[1], slices[2])
-			parent = self.merged_controls.new(
-				name = bone_name
+			parent = self.new_bonei(self.merged_controls
+				,name = bone_name
 				,source = bones[0]
 				,custom_shape = self.ensure_widget('Cube')
 				,custom_shape_scale = bones[0].custom_shape_scale

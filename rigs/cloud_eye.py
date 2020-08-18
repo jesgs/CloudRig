@@ -66,8 +66,8 @@ class CloudEyeRig(CloudAimRig):
 			rot_name = self.naming.make_name(["ROT"], *self.naming.slice_name(str_ctr)[1:])
 			rot_ctr = self.generator.find_bone_info(rot_name)
 			if not rot_ctr:
-				rot_ctr = self.aim_mch.new(
-					name = rot_name
+				rot_ctr = self.new_bonei(self.aim_mch
+					,name = rot_name
 					,source = base_bone
 					,tail = str_ctr.head.copy()
 					,parent = str_ctr.parent
@@ -114,8 +114,8 @@ class CloudEyeRig(CloudAimRig):
 
 		# If the root bone already exists, just parent the bones and return.
 		if not hasattr(self, 'eyelid_root'):
-			self.eyelid_root = self.target_ctrl.new(
-				name = base_bone.name.replace("ORG", "ROOT-LID")
+			self.eyelid_root = self.new_bonei(self.target_ctrl
+				,name = base_bone.name.replace("ORG", "ROOT-LID")
 				,source = base_bone
 				,parent = self.aim_root.parent
 				,custom_shape = self.ensure_widget('Square')
