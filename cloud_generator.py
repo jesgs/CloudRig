@@ -1,5 +1,6 @@
 import bpy, os
 import traceback
+from typing import List
 
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
@@ -10,8 +11,9 @@ from rigify import rig_ui_template
 from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
+from rigify.utils.bones import new_bone
 
-from .bone import BoneSet
+from .bone import BoneSet, BoneInfo, new_bonei
 from .utils import mechanism
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
@@ -190,6 +192,13 @@ class CloudGenerator(Generator):
 		separators_match = self.naming.prefix_separator == self.naming.suffix_separator
 		assert not separators_match, "CloudGenerator Error: Prefix and Suffix separators cannot be the same."
 
+		# List that stores a reference to all BoneInfo instances of all rigs.
+		# IMPORTANT: This should not be a BoneInfo, just a regular list. Otherwise the LinkedList behaviour gets all messed up! 
+		# Each BoneInfo should only exist in a single BoneSet!
+		self.bone_infos = []
+		# List that stores a reference to all BoneSets of all rigs.
+		self.bone_sets: List[BoneSet] = []
+		# Default kwargs that are passed in to every created BoneInfo
 		self.defaults = {
 			'rotation_mode' : 'XYZ'
 		}
@@ -282,11 +291,12 @@ class CloudGenerator(Generator):
 			preset = 2,
 			defaults = self.defaults
 		)
+		self.bone_sets.append(self.root_set)
 
 		self.root_bone = None
 		if self.params.cloudrig_parameters.create_root:
-			self.root_bone = self.root_set.new(
-				name				= "root"
+			self.root_bone = new_bonei(self, self.root_set
+				,name				= "root"
 				,head				= Vector((0, 0, 0))
 				,tail				= Vector((0, self.scale*5, 0))
 				,bbone_width		= 1/10
@@ -303,6 +313,7 @@ class CloudGenerator(Generator):
 				preset = 8,
 				defaults = self.defaults
 			)
+			self.bone_sets.append(self.root_parent_set)
 			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
 			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
 
@@ -351,17 +362,14 @@ class CloudGenerator(Generator):
 			for bone_group in self.obj.pose.bone_groups:
 				self.obj.pose.bone_groups.remove(bone_group)
 
-		# Create Bone Groups based on CloudRig Bone Sets.
-		for rig in self.rig_list:
-			if not hasattr(rig, 'bone_sets'): continue	# TODO: Rigify compatibility.
-			for bone_set in rig.bone_sets:
-				meta_bg = bone_set.ensure_bone_group(self.metarig, overwrite=False)
-				if meta_bg:
-					bone_set.normal = meta_bg.colors.normal[:]
-					bone_set.select = meta_bg.colors.select[:]
-					bone_set.active = meta_bg.colors.active[:]
+		for bone_set in self.bone_sets:
+			meta_bg = bone_set.ensure_bone_group(self.metarig, overwrite=False)
+			if meta_bg:
+				bone_set.normal = meta_bg.colors.normal[:]
+				bone_set.select = meta_bg.colors.select[:]
+				bone_set.active = meta_bg.colors.active[:]
 
-				bone_set.ensure_bone_group(self.obj, overwrite=True)
+			bone_set.ensure_bone_group(self.obj, overwrite=True)
 
 	def ensure_widget_collection(self):
 		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
@@ -595,6 +603,13 @@ class CloudGenerator(Generator):
 		if self.params.cloudrig_parameters.create_root:
 			self._Generator__create_root_bone()
 
+		for bi in self.bone_infos:
+			if bi.name in self.obj.data.edit_bones:
+				print(f"Warning: Bone {bi.name} already exists, skipping. This should never happen!")
+				continue
+			
+			new_bone(self.obj, bi.name)
+
 		self.invoke_generate_bones()
 
 		t.tick("Generate bones: ")
@@ -604,6 +619,10 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='EDIT')
 
 		self.invoke_parent_bones()
+
+		for bi in self.bone_infos:
+			edit_bone = self.obj.data.edit_bones.get(bi.name)
+			bi.write_edit_data(self.obj, edit_bone)
 
 		if self.root_bone:
 			self._Generator__parent_bones_to_root()
@@ -615,24 +634,21 @@ class CloudGenerator(Generator):
 
 		self.ensure_bone_groups()
 
-		for rig in self.rig_list:
-			if not hasattr(rig, 'bone_sets'): continue
-			for bone_set in rig.bone_sets:
-				for bi in bone_set:
-					pose_bone = obj.pose.bones.get(bi.name)
-					if not pose_bone:
-						print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
-						continue
+		for bi in self.bone_infos:
+			pose_bone = obj.pose.bones.get(bi.name)
+			if not pose_bone:
+				print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
+				continue
 
-					# Scale bone shape based on B-Bone scale
-					bi.write_pose_data(pose_bone)
-					if not pose_bone.use_custom_shape_bone_size:
-						pose_bone.custom_shape_scale *= bi.bbone_width * 10
-						pose_bone.bone.bbone_x = bi.bbone_width
-						pose_bone.bone.bbone_z = bi.bbone_width
-						pose_bone.bone.envelope_distance = bi.bbone_width
-						pose_bone.bone.head_radius = bi.bbone_width
-						pose_bone.bone.tail_radius = bi.bbone_width
+			# Scale bone shape based on B-Bone scale
+			bi.write_pose_data(pose_bone)
+			if not pose_bone.use_custom_shape_bone_size:
+				pose_bone.custom_shape_scale *= bi.bbone_width * 10
+				pose_bone.bone.bbone_x = bi.bbone_width
+				pose_bone.bone.bbone_z = bi.bbone_width
+				pose_bone.bone.envelope_distance = bi.bbone_width
+				pose_bone.bone.head_radius = bi.bbone_width
+				pose_bone.bone.tail_radius = bi.bbone_width
 
 		self.invoke_configure_bones()
 

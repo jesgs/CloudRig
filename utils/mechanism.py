@@ -9,7 +9,7 @@ from mathutils import Vector
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
-from ..bone import BoneInfo
+from ..bone import BoneInfo, new_bonei
 from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
 
@@ -101,13 +101,13 @@ class CloudMechanismMixin:
 		return found_parents
 
 	def create_parent_bone(self, child, bone_set=None):
-		return create_parent_bone(child, bone_set)
+		return create_parent_bone(self.generator, child, bone_set)
 
 	def create_dsp_bone(self, parent, center=False):
 		"""Create a bone to be used as another control's custom_shape_transform."""
 		dsp_name = "DSP-" + parent.name
-		dsp_bone = self.dsp_bones.new(
-			name			= dsp_name
+		dsp_bone = self.new_bonei(self.dsp_bones
+			,name			= dsp_name
 			,source			= parent
 			,bbone_width	= parent.bbone_width*0.5
 			,only_transform = True
@@ -123,8 +123,8 @@ class CloudMechanismMixin:
 
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
-		def_bone = bone_set.new(
-			name = self.naming.make_name(["DEF"], *self.naming.slice_name(bone.name)[1:])
+		def_bone = self.new_bonei(bone_set
+			,name = self.naming.make_name(["DEF"], *self.naming.slice_name(bone.name)[1:])
 			,source = bone
 			,use_deform = True
 			,parent = bone
@@ -251,15 +251,15 @@ class CloudMechanismMixin:
 	def flat_vector(vec):
 		return flat(vec)
 
-def create_parent_bone(child, bone_set=None):
+def create_parent_bone(generator, child, bone_set=None):
 	"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
 	sliced = slice_name(child.name)
 	sliced[0].append("P")
 	parent_name = make_name(*sliced)
 	if bone_set==None:
 		bone_set = child.container
-	parent_bone = bone_set.new(
-		name				= parent_name
+	parent_bone = new_bonei(generator, bone_set
+		,name				= parent_name
 		,source				= child
 		,custom_shape		= child.custom_shape
 		,custom_shape_scale = child.custom_shape_scale * 1.1

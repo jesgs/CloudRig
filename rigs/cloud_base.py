@@ -5,7 +5,7 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 from enum import Enum
 
-from ..bone import BoneSetManager
+from ..bone import BoneInfoMixin
 from ..utils.mechanism import CloudMechanismMixin
 from ..utils.naming import CloudNameManager, name_side_is_left
 from ..utils.object import CloudObjectUtilitiesMixin
@@ -30,7 +30,13 @@ class DefaultLayers(Enum):
 
 	FACE_TWEAK = 20
 
-class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, CloudUIMixin, BoneSetManager):
+class CloudBaseRig(
+					BaseRig, 
+					CloudMechanismMixin, 
+					CloudObjectUtilitiesMixin, 
+					CloudUIMixin, 
+					BoneInfoMixin
+	):
 	"""Base for all CloudRig rigs. Does nothing on its own."""
 
 	default_layers = lambda name: DefaultLayers[name].value
@@ -51,22 +57,8 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 		elif is_left==False:
 			self.side_suffix = "R"
 			self.side_prefix = "Right"
-
-	@property
-	def all_bones(self):
-		""" Get a list of all bones in this rig, including bones in the generator. """
-		all_bones = []
-
-		sets = self.bone_sets[:]
-		sets.append(self.generator.root_set)
-		if self.generator_params.cloudrig_parameters.double_root:
-			sets.append(self.generator.root_parent_set)
-
-		for bone_set in sets:
-			for bi in bone_set:
-				all_bones.append(bi)
-
-		return all_bones
+		
+		self.all_bones = []
 
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main with a continuous connected bone chain
@@ -185,31 +177,6 @@ class CloudBaseRig(BaseRig, CloudMechanismMixin, CloudObjectUtilitiesMixin, Clou
 				pb.constraints.remove(c)
 
 			org_bi.meta_bone = meta_org
-
-	def generate_bones(self):
-		self.bone_sets.append(self.generator.root_set)
-		try:
-			self.bone_sets.append(self.generator.root_parent_set)
-		except:
-			pass
-		# TODO: Move this to generator code, before stage is called.
-		for bone_set in self.bone_sets:
-			for bi in bone_set:
-				if (
-					bi.name in self.obj.data.edit_bones or
-					bi.name in self.bones.flatten() or
-					bi.name == 'root'
-				):
-					# print(f"Warning: Bone {bi.name} already exists, skipping!")
-					continue
-				self.copy_bone('root', bi.name)
-
-	def parent_bones(self):
-		# TODO: Move this to generator code, before stage is called.
-		for bone_set in self.bone_sets:
-			for bi in bone_set:
-				edit_bone = self.get_bone(bi.name)
-				bi.write_edit_data(self.obj, edit_bone)
 
 	def configure_bones(self):
 		pass

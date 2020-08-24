@@ -101,17 +101,7 @@ class BoneSet(LinkedList):
 		return f"{self.ui_name}: {super().__repr__()}"
 
 	def new(self, name="Bone", source=None, **kwargs):
-		"""Define a bone and add it to the list of bones."""
-
-		# TODO: utils/mechanism.new_bone(bone_set, bone_name, kwargs) should do this checking?
-		# bi = self.riglet.get_bone_info(name)
-		# if bi:
-		# 	print(f"Warning: BoneInfo {name} already exists in BoneSet: {bi.bone_set}.")
-		# 	name += ".001"
-		# 	while(self.riglet.get_bone_info(name)):
-		# 		num = int(name[-1])
-		# 		name = name[:-4] + str(num+1).zfill(3)
-		# 	print(f"Adding as {name} to {self}")
+		"""Create and add a new BoneInfo to self."""
 
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group
@@ -646,14 +636,44 @@ class ConstraintInfo(dict):
 
 		return con
 
-class BoneSetManager:
+def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> BoneInfo:
+	""" Create a BoneInfo, optionally as part of a BoneSet.
+		Ideally all bones should be part of a BoneSet
+	"""
+	new = None
+
+	# Ensure we never overwrite an existing BoneInfo.
+	# If a BoneInfo with the passed name already exists, add numbers at the end.
+	# bi = generator.bone_infos.find(name)
+	# if bi and False:	# TODO Implement this if we want to avoid overwriting of bones...
+	# 	old_name = name
+	# 	name += ".001"
+	# 	while(generator.bone_infos.find(name)):
+	# 		num = int(name[-1])
+	# 		name = name[:-4] + str(num+1).zfill(3)
+	# 	print(f"Warning: Attempted to re-define BoneInfo with name {old_name}. Defining as {name} instead.")
+
+	kwargs['name'] = name
+	if bone_set is not None:
+		new = bone_set.new(**kwargs)
+	else:
+		new = BoneInfo(**kwargs)
+
+	generator.bone_infos.append(new)
+
+	return new
+
+class BoneInfoMixin:
+	""" This class should be used for implementing BoneInfo and BoneSet
+		use in a rig.
+	"""
+
 	bone_set_defs: Dict[str, str] = OrderedDict()
 
-	def new_bonei(self, bone_set: BoneSet = None, **kwargs) -> BoneInfo:
-		if bone_set is not None:
-			return bone_set.new(**kwargs)
-		else:
-			return BoneInfo(**kwargs)
+	def new_bonei(self, bone_set: BoneSet = None, name="Bone", **kwargs) -> BoneInfo:
+		new = new_bonei(self.generator, bone_set, name, **kwargs)
+		self.all_bones.append(new)
+		return new
 
 	def ensure_bone_set(self, bone_set_name):
 		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
@@ -685,6 +705,12 @@ class BoneSetManager:
 			preset = bone_set_def['preset'],
 			defaults = self.defaults
 		)
+
+		if not hasattr(self.generator, 'bone_sets'):
+			self.generator.bone_sets = []
+		self.generator.bone_sets.append(new_set)
+
+		self.generator.bone_sets.append(new_set)
 
 		self.bone_sets.append(new_set)
 
