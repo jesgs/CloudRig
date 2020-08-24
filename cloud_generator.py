@@ -605,10 +605,11 @@ class CloudGenerator(Generator):
 
 		for bi in self.bone_infos:
 			if bi.name in self.obj.data.edit_bones:
-				print(f"Warning: Bone {bi.name} already exists, skipping. This should never happen!")
+				# print(f"Warning: Bone {bi.name} already exists, skipping. This should never happen!") #TODO: This happens for ORG bones now that we load into BoneInfo objects.
 				continue
 			
-			new_bone(self.obj, bi.name)
+			new_name = new_bone(self.obj, bi.name)
+			self.bone_owners[new_name] = None
 
 		self.invoke_generate_bones()
 
