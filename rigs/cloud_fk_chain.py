@@ -39,6 +39,8 @@ class CloudFKChainRig(CloudChainRig):
 		self.make_root_bone()
 		self.make_fk_chain()
 		self.attach_org_to_fk()
+		if self.params.CR_chain_preserve_volume:
+			self.tweak_def_chain()
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
@@ -130,7 +132,6 @@ class CloudFKChainRig(CloudChainRig):
 		self.add_ui_data("fk_hinges", category, limb_name, info, default=default_value)
 
 		# Create Hinge helper bone
-		BODY_MECH = 8
 		hng_bone = self.new_bonei(bone_set
 			,name			= hng_name
 			,source			= bone
@@ -192,6 +193,16 @@ class CloudFKChainRig(CloudChainRig):
 			# Also, parent this to the ORG bone. This is so that scaling
 			# the last STR control doesn't affect this deform bone.
 			last_def.parent = last_def.parent.org_parent
+
+	def tweak_def_chain(self):
+
+		for i, def_bone in enumerate(self.def_chain):
+			fk_control = self.fk_chain[int(i/self.params.CR_chain_segments)]
+			def_bone.inherit_scale = 'FULL'
+			for d in def_bone.drivers:
+				if 'bbone_scale' not in d['prop']: continue
+				d['variables']['scale']['targets'][0]['bone_target'] = fk_control.name
+
 
 	def attach_org_to_fk(self):
 		# Find existing ORG bones
