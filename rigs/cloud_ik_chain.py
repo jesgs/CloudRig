@@ -99,10 +99,10 @@ class CloudIKChainRig(CloudFKChainRig):
 	def calculate_ik_info(self):
 		""" Calculate pole angle, pole control direction and distance. """
 		meta_first_name = self.org_chain[0].name.replace("ORG-", "")
-		meta_first = self.meta_bone(meta_first_name, pose=True)
+		meta_first = self.meta_bone(meta_first_name)
 
 		meta_last_name = self.org_chain[1].name.replace("ORG-", "")
-		meta_last = self.meta_bone(meta_last_name, pose=True)
+		meta_last = self.meta_bone(meta_last_name)
 
 		chain_vector = meta_last.bone.tail_local - meta_first.bone.head_local
 

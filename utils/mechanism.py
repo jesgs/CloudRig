@@ -131,12 +131,9 @@ class CloudMechanismMixin:
 		)
 		return
 
-	def meta_bone(self, bone_name, pose=False):
+	def meta_bone(self, bone_name):
 		""" Find and return a bone in the metarig. """
-		if self.obj.mode=='EDIT' and not pose:
-			return self.generator.metarig.data.edit_bones.get(bone_name)
-		else:
-			return self.generator.metarig.pose.bones.get(bone_name)
+		return self.generator.metarig.pose.bones.get(bone_name)
 
 	def make_bbone_scale_drivers(self, boneinfo):
 		bi = boneinfo

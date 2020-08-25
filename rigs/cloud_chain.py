@@ -263,11 +263,6 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
 			def_bone.bbone_segments = 2
 
-		# If this is the last DEF bone and there is no tip STR control,
-		# then it shouldn't be a bendy bone, so set deform segments to 1.
-		if not self.params.CR_chain_tip_control and def_bone==self.def_chain[-1]:
-			def_bone.bbone_segments = 1
-
 		if not next_str_bone:
 			next_str_bone = str_bone.next
 		if next_str_bone:
@@ -289,7 +284,8 @@ class CloudChainRig(CloudBaseRig):
 
 		else:
 			# This only happens if this is the last deform bone and CR_chain_tip_control==False.
-			pass
+			# In this case it shouldn't be a bendy bone, so set deform segments to 1.
+			def_bone.bbone_segments = 1
 
 		# B-Bone scale drivers
 		if def_bone.bbone_segments > 1:
@@ -355,16 +351,21 @@ class CloudChainRig(CloudBaseRig):
 
 		parent_rig = self.rigify_parent
 		if isinstance(parent_rig, CloudChainRig):
-			if not parent_rig.params.CR_chain_tip_control:
-				meta_org_bone = self.generator.metarig.data.bones.get(self.org_chain[0].name.replace("ORG-", ""))
-				if meta_org_bone.use_connect:
-					parent_rig.params.CR_chain_tip_control = True
-					parent_rig.setup_def_bone(parent_rig.def_chain[-1], parent_rig.org_chain[-1], parent_rig.str_chain[-1], self.str_chain[0])
-					self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
-					if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
-						self.make_shape_key_helper(parent_rig.def_chain[-1], self.def_chain[0])
-					if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-						self.make_dt_helper(parent_rig.str_chain[-1], nxt=self.str_chain[0])
+			if parent_rig.params.CR_chain_tip_control: return
+
+			meta_org_bone = self.meta_bone(self.naming.strip_org(self.org_chain[0]))
+			if not meta_org_bone.bone.use_connect: return
+
+			parent_rig.params.CR_chain_tip_control = True
+			def_bone = parent_rig.def_chain[-1]
+			str_bone = parent_rig.str_chain[-1]
+			parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.str_chain[0])
+			def_bone.parent = str_bone
+			self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
+			if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
+				self.make_shape_key_helper(def_bone, self.def_chain[0])
+			if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
+				self.make_dt_helper(str_bone, nxt=self.str_chain[0])
 
 	##############################
 	# Parameters
