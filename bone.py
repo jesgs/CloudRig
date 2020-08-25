@@ -286,7 +286,7 @@ class BoneInfo:
 
 	@bbone_width.setter
 	def bbone_width(self, value):
-		"""Set B-Bone width relative to the rig's scale."""
+		"""Set all bone size related values at once."""
 		self.bbone_x = value
 		self.bbone_z = value
 		self.envelope_distance = value
