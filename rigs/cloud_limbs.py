@@ -425,8 +425,48 @@ class CloudLimbRig(CloudIKChainRig):
 				driver_to_min_z['expression'] += " * -1"
 				driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
 				trans_con.drivers.append(driver_to_min_z)
+			
+			# Scale the main STR bone on local Y to get a smooth curve 
+			# in spite of Sharp Sections parameter being enabled.
+			if i==1:
+				main_str = str_list[0].prev
+				trans_con = main_str.add_constraint('TRANSFORM'
+					,name = "Transformation (Rubber Hose)"
+					,subtarget = org_elbow.name
+					,map_to = 'SCALE'
+				)
 
-		# TODO: middle bone could have transf constraints for counter-rotate and scale, same influence drivers. 
+				# Influence driver
+				trans_con.drivers.append({
+					'prop' : 'influence'
+					,'variables' : [
+						(self.properties_bone.name, prop_name),
+					]
+				})
+
+				# Offset driver
+				trans_con.drivers.append({
+					'prop' : 'to_min_y_scale'
+					,'expression' : f"1 + ( (abs(rot_x)+abs(rot_z)) / pi ) * 1.5"
+					,'variables' : {
+						'rot_x' : {
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_X'
+							}]
+						}
+						,'rot_z' : {
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_Z'
+							}]
+						}
+					}
+				})
 
 	##############################
 	# Parameters
@@ -442,7 +482,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 		params.CR_limb_auto_hose = BoolProperty(
 			name		 = "Auto Rubber Hose"
-			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be greater than 1. For best results, Chain Segments parameter should be an even number, and Smooth Spline parameter should be enabled"
+			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be greater than 1. For best results, Smooth Spline parameter should be enabled"
 			,default	 = False
 		)
 
