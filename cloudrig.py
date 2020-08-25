@@ -1020,7 +1020,7 @@ class CLOUDRIG_PT_fk(CLOUDRIG_PT_main):
 	def poll(cls, context):
 		rig = active_cloudrig()
 		if not rig: return False
-		fk_settings = ['fk_hinges']
+		fk_settings = ['fk_hinges', 'auto_rubber_hose']
 		for fk_setting in fk_settings:
 			if fk_setting in rig.data:
 				return True
@@ -1032,6 +1032,7 @@ class CLOUDRIG_PT_fk(CLOUDRIG_PT_main):
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "fk_hinges", label='FK Hinge')
+		draw_rig_settings(layout, rig, "auto_rubber_hose", label='Auto Rubber Hose')
 
 class CLOUDRIG_PT_face(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_face_" + script_id

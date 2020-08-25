@@ -4,7 +4,7 @@ import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 from mathutils import Vector
 from math import radians as rad
-from math import pi
+from math import pi, pow
 from copy import deepcopy
 
 from rigify.base_rig import stage
@@ -366,26 +366,67 @@ class CloudLimbRig(CloudIKChainRig):
 			str_lower controls, driven by org_elbow. (Also meant for legs)
 		"""
 
-		for str_list in [str_upper, str_lower]:
+		# Create UI property
+		prop_name = "auto_rubber_hose_" + self.limb_name_props
+		info = {
+			"prop_bone"			: self.properties_bone,
+			"prop_id" 			: prop_name,
+		}
+		self.add_ui_data("auto_rubber_hose", self.category, self.limb_ui_name, info)
+
+		for i, str_list in enumerate([str_upper, str_lower]):
+			org_bone = self.org_chain[i]
 			for str_bone in str_list:
-				distance = org_elbow.length / 2.5
-				str_bone.add_constraint('TRANSFORM'
+				offset = org_bone.length / 2.5
+
+				# Inverse of distance from center divided by half of bone length
+				# This results in 1.0 at the center of the bone and 0.0 at the head or tail of the bone.
+				distance_to_org_center = (str_bone.head - org_bone.center).length
+				centeredness = 1 - (distance_to_org_center / (org_bone.length/2))
+
+				total_offset = offset * pow(centeredness, 0.5)
+
+				trans_con = str_bone.add_constraint('TRANSFORM'
 					,name = "Transformation (Rubber Hose)"
 					,subtarget = org_elbow.name
 					,map_from = 'ROTATION'
-					,from_min_x_rot = -pi
-					,from_max_x_rot = pi
-					,from_min_z_rot = -pi
-					,from_max_z_rot = pi
-					,to_min_x = -distance
-					,to_max_x = distance
-					,to_min_z = distance
-					,to_max_z = -distance
 					,map_to_x_from = 'Z'
 					,map_to_z_from = 'X'
 				)
-		# TODO: influence based on center-ness, hooked up to a UI property with a driver
-		# middle bone should have transf constraints for counter-rotate and scale, same influence drivers. 
+
+				# Influence driver
+				trans_con.drivers.append({
+					'prop' : 'influence'
+					,'variables' : [
+						(self.properties_bone.name, prop_name),
+					]
+				})
+
+				# Offset drivers
+				driver_to_min_x = {
+					'prop' : 'to_min_x'
+					,'expression' : f"(var/pi) * {total_offset}"
+					,'variables' : [
+						{
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_Z'
+							}]
+						}
+					]
+				}
+
+				trans_con.drivers.append(driver_to_min_x)
+
+				driver_to_min_z = deepcopy(driver_to_min_x)
+				driver_to_min_z['prop'] = 'to_min_z'
+				driver_to_min_z['expression'] += " * -1"
+				driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
+				trans_con.drivers.append(driver_to_min_z)
+
+		# TODO: middle bone could have transf constraints for counter-rotate and scale, same influence drivers. 
 
 	##############################
 	# Parameters
@@ -401,7 +442,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 		params.CR_limb_auto_hose = BoolProperty(
 			name		 = "Auto Rubber Hose"
-			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Works best when Chain Segments parameter is an even number, and it must be greater than 1"
+			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be greater than 1. For best results, Chain Segments parameter should be an even number, and Smooth Spline parameter should be enabled"
 			,default	 = False
 		)
 
