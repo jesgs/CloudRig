@@ -425,7 +425,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				"parent_names" : parent_names,	# TODO: I think this is unused now.
 				"bones" : bones,
 				}
-			self.add_ui_data("ik_parents", self.category, self.limb_ui_name, info, default=0, _max=len(parent_names)-1)
+			self.add_ui_data("ik_parents", self.category, self.limb_ui_name, info, default=0, max=len(parent_names)-1)
 
 		### IK Pole Follow
 		if self.params.CR_ik_chain_use_pole:

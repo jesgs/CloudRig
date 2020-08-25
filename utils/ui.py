@@ -5,8 +5,8 @@ from rigify.ui import rigify_report_exception
 class CloudUIMixin:
 	forced_params = dict()
 
-	def add_ui_data(self, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
-		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, default, _min, _max)
+	def add_ui_data(self, ui_area, row_name, col_name, info, **custom_property_dict):
+		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, **custom_property_dict)
 
 	@classmethod
 	def draw_prop(cls, layout, prop_owner, prop_name, new_row=True, **kwargs):
@@ -141,7 +141,7 @@ def draw_dropdown(layout, params, dropdown_param_name, alert=False):
 		return layout
 	return None
 
-def add_ui_data(obj, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _max=1.0):
+def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
 	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI.
 	ui_area: One of a list of pre-defined strings that the UI script
 				recognizes, that describes a panel or area in the UI.
@@ -165,8 +165,6 @@ def add_ui_data(obj, ui_area, row_name, col_name, info, default=0.0, _min=0.0, _
 
 	# Create custom property.
 	prop_id = info['prop_id']
-	prop_bone.custom_props[prop_id] = {
-		"default" : default,
-		"min" : _min,
-		"max" : _max
-	}
+	if 'default' not in custom_prop_dict:
+		custom_prop_dict['default'] = 0.0
+	prop_bone.custom_props[prop_id] = custom_prop_dict

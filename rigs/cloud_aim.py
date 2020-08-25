@@ -175,7 +175,7 @@ class CloudAimRig(CloudBaseRig):
 				"parent_names" : parent_names,
 				"bones" : [group_master.name],
 				}
-			self.add_ui_data("face_settings", group_name, group_name, info, default=0, _max=len(parent_names)-1)
+			self.add_ui_data("face_settings", group_name, group_name, info, default=0, max=len(parent_names)-1)
 
 		return group_master
 
