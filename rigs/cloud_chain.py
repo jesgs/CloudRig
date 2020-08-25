@@ -258,6 +258,11 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
 			def_bone.bbone_segments = 2
 
+		# If this is the last DEF bone and there is no tip STR control,
+		# then it shouldn't be a bendy bone, so set deform segments to 1.
+		if not self.params.CR_chain_tip_control and def_bone==self.def_chain[-1]:
+			def_bone.bbone_segments = 1
+
 		if not next_str_bone:
 			next_str_bone = str_bone.next
 		if next_str_bone:
