@@ -655,8 +655,10 @@ def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> Bon
 
 	kwargs['name'] = name
 	if bone_set is not None:
+		kwargs['bone_set'] = bone_set
 		new = bone_set.new(**kwargs)
 	else:
+		print("Warning: Creating BoneInfo without a BoneSet. This could cause errors and should never happen! Always pass a BoneSet to new_bonei()!")
 		new = BoneInfo(**kwargs)
 
 	generator.bone_infos.append(new)
@@ -672,6 +674,7 @@ class BoneInfoMixin:
 
 	def new_bonei(self, bone_set: BoneSet = None, name="Bone", **kwargs) -> BoneInfo:
 		new = new_bonei(self.generator, bone_set, name, **kwargs)
+		new.owner_rig = self
 		self.all_bones.append(new)
 		return new
 

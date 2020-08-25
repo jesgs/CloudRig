@@ -31,6 +31,7 @@ class CloudFKChainRig(CloudChainRig):
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.fk_chain = self.ensure_bone_set("FK Controls")
+		self.fk_extras = self.ensure_bone_set("FK Controls Extra")
 		self.fk_mch = self.ensure_bone_set("FK Helpers")
 
 	def prepare_bones(self):
@@ -70,7 +71,7 @@ class CloudFKChainRig(CloudChainRig):
 				hng_child = fk_bone
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
-					fk_parent_bone = self.create_parent_bone(fk_bone)
+					fk_parent_bone = self.create_parent_bone(fk_bone, bone_set=self.fk_extras)
 					fk_parent_bone.custom_shape = self.ensure_widget("FK_Limb")
 					if self.params.CR_fk_chain_display_center:
 						self.create_dsp_bone(fk_parent_bone, center=True)
@@ -84,14 +85,14 @@ class CloudFKChainRig(CloudChainRig):
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:
 			hng_bone = self.make_hinge_setup(
-				bone = hng_child,
-				category = self.category,
-				parent_bone = self.limb_root_bone,
-				hng_name = self.base_bone.replace("ORG", "FK-HNG"),
-				prop_bone = self.properties_bone,
-				prop_name = self.fk_hinge_name,
-				limb_name = self.limb_ui_name,
-				bone_set = self.fk_mch
+				bone		 = hng_child
+				,bone_set	 = self.fk_mch
+				,category	 = self.category
+				,parent_bone = self.limb_root_bone
+				,hng_name	 = self.base_bone.replace("ORG", "FK-HNG")
+				,prop_bone	 = self.properties_bone
+				,prop_name	 = self.fk_hinge_name
+				,limb_name	 = self.limb_ui_name
 			)
 
 	def make_hinge_setup(self, bone, category, *,
@@ -115,7 +116,7 @@ class CloudFKChainRig(CloudChainRig):
 		if not limb_name:
 			limb_name = "Hinge: " + self.side_suffix + " " + self.naming.slice_name(bone.name)[1]
 		if bone_set==None:
-			bone_set = bone.container
+			bone_set = bone.bone_set
 
 		info = {
 			"prop_bone"			: prop_bone,
@@ -212,6 +213,7 @@ class CloudFKChainRig(CloudChainRig):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "FK Controls", preset=1, default_layers=[cls.default_layers('FK_MAIN')])
+		cls.define_bone_set(params, "FK Controls Extra", preset=1, default_layers=[cls.default_layers('FK_SECOND')])
 		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 
 	@classmethod

@@ -1,12 +1,16 @@
+from typing import List
+
 import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 from mathutils import Vector
 from math import radians as rad
+from math import pi
 from copy import deepcopy
 
 from rigify.base_rig import stage
 
 from .cloud_ik_chain import CloudIKChainRig
+from ..bone import BoneInfo
 
 """TODO
 feet control shouldn't be forced onto the floor, maybe based on an option, or use anklepivot bone, or whatever.
@@ -27,17 +31,10 @@ class CloudLimbRig(CloudIKChainRig):
 		super().initialize()
 		"""Gather and validate data about the rig."""
 
-		# Safety checks
 		self.limb_type = self.params.CR_limb_type
-		if self.limb_type=='ARM' and len(self.bones.org.main) != 3:
-			self.raise_error("Arm chain must be exactly 3 connected bones.")
-		if self.limb_type=='LEG' and len(self.bones.org.main) != 4:
-			self.raise_error("Leg chain must be exactly 4 connected bones.")
 
 		# UI Strings and Custom Property names
-		self.category = "arms" if self.limb_type == 'ARM' else "legs"
-		if self.params.CR_fk_chain_use_category_name:
-			self.category = self.params.CR_fk_chain_category_name
+		self.category = ""
 
 		self.limb_name = self.limb_type.capitalize()
 		if self.params.CR_fk_chain_use_limb_name:
@@ -47,18 +44,29 @@ class CloudLimbRig(CloudIKChainRig):
 
 		# IK values
 		self.ik_pole_direction = 1 if self.limb_type=='ARM' else -1				#TODO: self.limb_type doesn't exist in cloud_ik_chain...
+
+		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
+		self.ik_parents = ['Root', 'Torso', self.limb_ui_name]
+	
 		if self.limb_type=='LEG':
+			if len(self.bones.org.main) != 4:
+				self.raise_error("Leg chain must be exactly 4 connected bones.")
+			self.ik_parents.append('Hips')
+
 			self.ik_pole_offset = 5
 			self.pole_side = -1
 			self.chain_count -= 1
 
-		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
-		self.ik_parents = ['Root', 'Torso']
-		if self.limb_type == 'LEG':
-			self.ik_parents.append('Hips')
-		elif self.limb_type == 'ARM':
+			self.category = "legs"
+		elif self.limb_type=='ARM':
+			if len(self.bones.org.main) != 3:
+				self.raise_error("Arm chain must be exactly 3 connected bones.")
 			self.ik_parents.append('Chest')
-		self.ik_parents.append(self.limb_ui_name)
+
+			self.category = "arms"
+
+		if self.params.CR_fk_chain_use_category_name:
+			self.category = self.params.CR_fk_chain_category_name
 
 	def determine_segments(self, org_bone):
 		segments, bbone_density = super().determine_segments(org_bone)
@@ -79,6 +87,11 @@ class CloudLimbRig(CloudIKChainRig):
 		self.tweak_str_limb()
 		self.make_ik_limb()
 		self.tweak_org_foot()
+		segments = self.params.CR_chain_segments
+		if self.params.CR_limb_auto_hose and segments > 1:
+			upper = self.str_chain[1:segments]
+			lower = self.str_chain[segments+1:segments*2]
+			self.setup_rubber_hose(self.org_chain[1], upper, lower)
 
 	def make_fk_chain(self):
 		"""Override."""
@@ -348,6 +361,32 @@ class CloudLimbRig(CloudIKChainRig):
 			org_toe.constraint_infos.pop()
 			org_toe.drivers = {}
 
+	def setup_rubber_hose(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo]):
+		""" Add translating Transformation constraints to str_upper and 
+			str_lower controls, driven by org_elbow. (Also meant for legs)
+		"""
+
+		for str_list in [str_upper, str_lower]:
+			for str_bone in str_list:
+				distance = org_elbow.length / 2.5
+				str_bone.add_constraint('TRANSFORM'
+					,name = "Transformation (Rubber Hose)"
+					,subtarget = org_elbow.name
+					,map_from = 'ROTATION'
+					,from_min_x_rot = -pi
+					,from_max_x_rot = pi
+					,from_min_z_rot = -pi
+					,from_max_z_rot = pi
+					,to_min_x = -distance
+					,to_max_x = distance
+					,to_min_z = distance
+					,to_max_z = -distance
+					,map_to_x_from = 'Z'
+					,map_to_z_from = 'X'
+				)
+		# TODO: influence based on center-ness, hooked up to a UI property with a driver
+		# middle bone should have transf constraints for counter-rotate and scale, same influence drivers. 
+
 	##############################
 	# Parameters
 
@@ -359,6 +398,11 @@ class CloudLimbRig(CloudIKChainRig):
 		params.CR_limb_show_settings = BoolProperty(
 			name		 = "Limb Settings"
 			,description = "Reveal settings for the cloud_limbs rig type"
+		)
+		params.CR_limb_auto_hose = BoolProperty(
+			name		 = "Auto Rubber Hose"
+			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Works best when Chain Segments parameter is an even number, and it must be greater than 1"
+			,default	 = False
 		)
 
 		params.CR_limb_type = EnumProperty(
@@ -408,6 +452,8 @@ class CloudLimbRig(CloudIKChainRig):
 
 		word = "Elbow" if params.CR_limb_type == 'ARM' else "Shin"
 		cls.draw_prop(layout, params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")
+		row = cls.draw_prop(layout, params, 'CR_limb_auto_hose')
+		row.enabled = params.CR_chain_segments > 1
 
 		return layout
 

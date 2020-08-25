@@ -257,7 +257,7 @@ def create_parent_bone(generator, child, bone_set=None):
 	sliced[0].append("P")
 	parent_name = make_name(*sliced)
 	if bone_set==None:
-		bone_set = child.container
+		bone_set = child.bone_set
 	parent_bone = new_bonei(generator, bone_set
 		,name				= parent_name
 		,source				= child

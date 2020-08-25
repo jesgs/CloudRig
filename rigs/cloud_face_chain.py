@@ -110,7 +110,7 @@ class CloudFaceChainRig(CloudChainRig):
 			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
 			par_con_name = "Armature (Parenting affects local matrix)"
 			par_con = b.get_constraint(par_con_name)
-			if b.container.rig.params.CR_chain_smooth_spline and par_con==None:
+			if b.owner_rig.params.CR_chain_smooth_spline and par_con==None:
 				b.add_constraint('ARMATURE', name=par_con_name, index=0,
 					targets = [
 						{

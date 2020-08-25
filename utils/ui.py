@@ -13,6 +13,7 @@ class CloudUIMixin:
 		row = draw_prop(layout, prop_owner, prop_name, new_row, **kwargs)
 		if prop_name in cls.forced_params.keys():
 			row.enabled = False
+		return row
 
 	@classmethod
 	def draw_prop_search(cls, layout, prop_owner, prop_name, collection, coll_prop_name, new_row=True, **kwargs):
