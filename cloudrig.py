@@ -472,6 +472,85 @@ class CLOUDRIG_OT_switch_parent(CLOUDRIG_OT_snap_simple):
 		else:
 			return self.execute(context)
 
+class CLOUDRIG_OT_switch_parent_bake(rigify_ui.POSE_OT_rigify_switch_parent_bake):
+	bl_idname = "pose.cloudrig_switch_parent_bake"
+	bl_label = "Apply Switch Parent To Keyframes"
+	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
+
+	do_bake: BoolProperty(name="Bake Keyframes in Range")
+	frame_start: IntProperty(name="Start Frame")
+	frame_end: IntProperty(name="End Frame")
+
+	# TODO: I don't get why these parameters don't get inherited, but Sergey 
+	# doesn't know either, so what am I gonna do
+	bones:		  StringProperty(name="Control Bones")
+	prop_bone:    StringProperty(name="Property Bone")
+	prop_id:      StringProperty(name="Property")
+	parent_names: StringProperty(name="Parent Names")
+	locks:        BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+
+	parent_items = [('0','None','None')]
+
+	selected: EnumProperty(
+		name='Selected Parent',
+		items=lambda s,c: rigify_ui.RigifySwitchParentBase.parent_items
+	)
+
+	@classmethod
+	def poll(cls, context):
+		return context.active_object is not None and context.object.mode=='POSE'
+
+	def draw(self, context):
+		layout = self.layout
+
+		self.layout.prop(self, 'selected', text='')
+
+		self.layout.prop(self, 'do_bake')
+		time_row = layout.row(align=True)
+		if self.do_bake:
+			time_row.prop(self, 'frame_start')
+			time_row.prop(self, 'frame_end')
+
+		bone_names = layout.column(align=True)
+		bone_names.label(text="Affected bones:")
+		for b in self.bone_names:
+			bone_names.label(text="            " + b)
+
+	def execute(self, context):
+		bone_names = json.loads(self.bones)
+		if not self.do_bake:
+			for b in bone_names:
+				# This feels rather sinful.
+				parents = json.loads(self.parent_names)
+				pitems = [(str(i), name, name) for i, name in enumerate(parents)]
+				CLOUDRIG_OT_switch_parent.parent_items = pitems
+
+				bpy.ops.pose.cloudrig_switch_parent(
+					bones = self.bones
+					,prop_bone = self.prop_bone
+					,prop_id = self.prop_id
+					,parent_names = self.parent_names
+					,locks = self.locks
+					,selected = self.selected
+				)
+			return {'FINISHED'}
+		
+		for b in bone_names:
+			self.bone = b
+			super().execute(context)
+
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		self.frame_start = context.scene.frame_start
+		self.frame_end = context.scene.frame_end
+		self.bone_names = json.loads(self.bones)
+		self.bone = self.bone_names[0]	# For super() compatibility, but doesn't actually do anything (I think)
+		return super().invoke(context, event)
+
+	# TODO: When do_bake is enabled, display a list of bones whose keyframes will be affected, and the name of the property whose keyframes will be cleared.
+	# TODO: Only bake keyframes at all if the do_bake is True.
+
 class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 	bl_description = "Toggle between IK and FK, and snap the controls accordingly. This will NOT place any keyframes, but it will select the affected bones"
 	bl_idname = "armature.ikfk_toggle"

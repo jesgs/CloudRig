@@ -170,7 +170,7 @@ class CloudAimRig(CloudBaseRig):
 				"prop_id" : aim_group_parents_prop_name,
 				"texts" : parent_names,
 
-				"operator" : "pose.cloudrig_switch_parent",
+				"operator" : "pose.cloudrig_switch_parent_bake",
 				"icon" : "COLLAPSEMENU",
 				"parent_names" : parent_names,
 				"bones" : [group_master.name],
