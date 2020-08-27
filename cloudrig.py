@@ -1,18 +1,24 @@
 """
-This file is executed and loaded into a self-registering text datablock when a CloudRig is generated.
-It's responsible for drawing rig UI
+This file is executed and loaded into a self-registering text datablock when a 
+rig is generated with the CloudRig feature set.
+It's responsible for drawing rig UI and operators such as IK/FK snapping and
+keyframe baking.
 
-The only change made during rig generation is replacing SCRIPT_ID with the name of the blend file.
-This is used to allow multiple characters generated with different versions of CloudRig
-to co-exist in the same scene.
-So each rig uses the script that belongs to it, and not another, potentially newer or older version.
+The only change made during rig generation is replacing SCRIPT_ID with the name 
+of the blend file. This is used to allow multiple characters generated with 
+different versions of CloudRig to co-exist in the same scene. So each rig uses 
+the script that belongs to it, and not another, potentially newer or older version.
 """
 
 import bpy, traceback, json
-from bpy.props import StringProperty, BoolProperty, BoolVectorProperty, EnumProperty, FloatVectorProperty, PointerProperty, CollectionProperty
+from bpy.props import 	(StringProperty, BoolProperty, BoolVectorProperty, 
+						EnumProperty, FloatVectorProperty, PointerProperty, 
+						CollectionProperty, IntProperty)
 from mathutils import Vector, Matrix
 from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path
+
+from rigify.feature_sets.CloudRig import rig_ui as rigify_ui
 
 script_id = "SCRIPT_ID"
 # TODO: Shouldn't this be added to operator bl_idnames?
@@ -148,7 +154,7 @@ class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
 			for b in context.selected_pose_bones:
 				b.bone.select = False
 			for b in bones:
-				b.bone.select=True
+				b.bone.select = True
 
 	def save_frame_state(self, context, rig, bone):
 		return self.get_transform_matrix(rig, bone, with_constraints=False)
@@ -1087,24 +1093,25 @@ class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 			layout.prop(cp, "current", text=cp.name)
 
 classes = (
-	CLOUDRIG_OT_switch_parent,
-	CLOUDRIG_OT_snap_mapped,	# NOTE: For some reason, if the operators inheriting from snap_simple aren't registered before it, blender complains.
-	CLOUDRIG_OT_snap_simple,
-	CLOUDRIG_OT_ikfk_toggle,
-	CLOUDRIG_OT_reset_colors,
+	CLOUDRIG_OT_switch_parent_bake
+	,CLOUDRIG_OT_switch_parent
+	,CLOUDRIG_OT_snap_mapped	# NOTE: Operators inheriting from others must be registered BEFORE the ones they are inheriting from!!!
+	,CLOUDRIG_OT_snap_simple
+	,CLOUDRIG_OT_ikfk_toggle
+	,CLOUDRIG_OT_reset_colors
 
-	CloudRig_ColorProperties,
-	CloudRig_Properties,
+	,CloudRig_ColorProperties
+	,CloudRig_Properties
 
-	CLOUDRIG_PT_character,
-	CLOUDRIG_PT_layers,
-	CLOUDRIG_PT_settings,
-	CLOUDRIG_PT_fkik,
-	CLOUDRIG_PT_ik,
-	CLOUDRIG_PT_fk,
-	CLOUDRIG_PT_face,
-	CLOUDRIG_PT_misc,
-	CLOUDRIG_PT_viewport,
+	,CLOUDRIG_PT_character
+	,CLOUDRIG_PT_layers
+	,CLOUDRIG_PT_settings
+	,CLOUDRIG_PT_fkik
+	,CLOUDRIG_PT_ik
+	,CLOUDRIG_PT_fk
+	,CLOUDRIG_PT_face
+	,CLOUDRIG_PT_misc
+	,CLOUDRIG_PT_viewport
 )
 
 def register():
