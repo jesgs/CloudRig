@@ -11,6 +11,7 @@ the script that belongs to it, and not another, potentially newer or older versi
 """
 
 import bpy, traceback, json
+from typing import List, Dict
 from bpy.props import 	(StringProperty, BoolProperty, BoolVectorProperty, 
 						EnumProperty, FloatVectorProperty, PointerProperty, 
 						CollectionProperty, IntProperty)
@@ -130,11 +131,10 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 	def poll(cls, context):
 		return context.pose_object
 
-	def invoke(self, context, event):
+	def init_invoke(self, context):
 		self.frame_start = context.scene.frame_start
 		self.frame_end = context.scene.frame_end
 		self.bone_names = json.loads(self.bones)
-		return super().invoke(context, event)
 
 	def draw(self, context):
 		layout = self.layout
@@ -156,6 +156,8 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 		self.keyflags = self.get_autokey_flags(context, ignore_keyset=True)
 		self.keyflags_switch = self.add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
+		self.bone_names = json.loads(self.bones)
+
 		if self.do_bake:
 			self.bone = self.bone_names[0]
 			return super().execute(context)
@@ -164,9 +166,7 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 		bones = get_bones(rig, self.bones)
 
 		try:
-			matrices = []
-			for bone_name in bone_names:
-				matrices.append( self.save_frame_state(context, rig, bone_name) )
+			matrices = self.save_frame_state(context, rig)
 
 			# Change the parent
 			# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
@@ -207,18 +207,19 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 			for b in bones:
 				b.bone.select = True
 
-	def save_frame_state(self, context, rig, bone=None):
+	def save_frame_state(self, context, rig, bone=None) -> List[Matrix]:
 		if not bone:
 			bone = self.bone_names[0]
-		return self.get_transform_matrix(rig, bone, with_constraints=False)
+		return self.get_chain_transform_matrices(rig, self.bone_names)
 
-	def apply_frame_state(self, context, rig, old_matrices):
+	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
 		# Restore transform matrices
-		if type(old_matrices)==Matrix:
-			old_matrices = [old_matrices]
+		print("apply frame state")
+		print(self.bone_names)
+		print(matrices)
 
 		for i, bone_name in enumerate(self.bone_names):
-			old_matrix = old_matrices[i]
+			old_matrix = matrices[i]
 			self.set_transform_from_matrix(
 				rig, bone_name, old_matrix, keyflags=self.keyflags,
 				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
@@ -322,6 +323,9 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 			return rig.convert_space(pose_bone=bone, matrix=bone.matrix, from_space='POSE', to_space=space)
 		else:
 			return rig.convert_space(pose_bone=bone, matrix=bone.matrix_basis, from_space='LOCAL', to_space=space)
+
+	def get_chain_transform_matrices(self, obj, bone_names, **options):
+		return [self.get_transform_matrix(obj, name, **options) for name in bone_names]
 
 	def set_transform_from_matrix(self, rig, bone_name, matrix, *, space='POSE', ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
 		"Apply the matrix to the transformation of the bone, taking locked channels, mode and certain constraints into account, and optionally keyframe it."

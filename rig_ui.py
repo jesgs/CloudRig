@@ -3,6 +3,7 @@ import math
 import json
 import collections
 import traceback
+from typing import Dict, List
 from math import pi
 from bpy.props import StringProperty
 from mathutils import Euler, Matrix, Quaternion, Vector
@@ -201,7 +202,7 @@ def set_custom_property_value(obj, bone_name, prop, value, *, keyflags=None):
     if keyflags is not None:
         bone.keyframe_insert(rna_idprop_quote_path(prop), group=bone.name, options=keyflags)
 
-def get_transform_matrix(obj, bone_name, *, space='POSE', with_constraints=True):
+def get_transform_matrix(obj, bone_name, *, space='POSE', with_constraints=True) -> Matrix:
     "Retrieve the matrix of the bone before or after constraints in the given space."
     bone = obj.pose.bones[bone_name]
     if with_constraints:
@@ -209,7 +210,7 @@ def get_transform_matrix(obj, bone_name, *, space='POSE', with_constraints=True)
     else:
         return obj.convert_space(pose_bone=bone, matrix=bone.matrix_basis, from_space='LOCAL', to_space=space)
 
-def get_chain_transform_matrices(obj, bone_names, **options):
+def get_chain_transform_matrices(obj, bone_names, **options) -> List[Matrix]:
     return [get_transform_matrix(obj, name, **options) for name in bone_names]
 
 def set_transform_from_matrix(obj, bone_name, matrix, *, space='POSE', undo_copy_scale=False, ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
@@ -488,14 +489,98 @@ class RigifyOperatorMixinBase:
 class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
     """Basic framework for an operator that updates a set of keyed frames."""
 
-    # Utilities
-    def nla_from_raw(self, frames):
-        "Convert frame(s) from inner action time to scene time."
-        return nla_tweak_to_scene(self.bake_anim, frames)
+    @classmethod
+    def poll(cls, context):
+        return context.mode=='POSE'#find_action(context.active_object) is not None
 
-    def nla_to_raw(self, frames):
-        "Convert frame(s) from scene time to inner action time."
-        return nla_tweak_to_scene(self.bake_anim, frames, invert=True)
+    def invoke(self, context, event):
+        self.init_invoke(context)
+
+        if hasattr(self, 'draw'):
+            return context.window_manager.invoke_props_dialog(self)
+        else:
+            return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context):
+        self.init_execute(context)
+        self.bake_init(context)
+
+        curves = self.execute_scan_curves(context, self.bake_rig)
+
+        if self.report_bake_empty():
+            return {'CANCELLED'}
+
+        try:
+            save_state = self.bake_save_state(context)
+
+            range, range_raw = self.bake_clean_curves_in_range(context, curves)
+
+            self.execute_before_apply(context, self.bake_rig, range, range_raw)
+
+            self.bake_apply_state(context, save_state)
+
+        except Exception as e:
+            traceback.print_exc()
+            self.report({'ERROR'}, 'Exception: ' + str(e))
+
+        return {'FINISHED'}
+
+    # Default behavior implementation
+    def bake_init(self, context):
+        self.bake_rig = context.active_object
+        self.bake_anim = self.bake_rig.animation_data
+        self.bake_frame_range = RIGIFY_OT_get_frame_range.get_range(context)
+        self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
+        self.bake_curve_table = ActionCurveTable(self.bake_rig)
+        self.bake_current_frame = context.scene.frame_current
+        self.bake_frames_raw = set()
+
+        self.keyflags = get_keying_flags(context)
+        self.keyflags_switch = None
+
+        if context.window_manager.rigify_transfer_use_all_keys:
+            self.bake_add_curve_frames(self.bake_curve_table.curve_map)
+
+    def execute_scan_curves(self, context, obj):
+        "Override to register frames to be baked, and return curves that should be cleared."
+        raise NotImplementedError()
+
+    def bake_save_state(self, context) -> Dict[int, List[Matrix]]:
+        "Scans frames and collects data for baking before changing anything."
+        rig = self.bake_rig
+        scene = context.scene
+
+        save_state = dict()
+
+        try:
+            self.before_save_state(context, rig)
+
+            for frame in self.bake_frames:
+                scene.frame_set(frame)
+                save_state[frame] = self.save_frame_state(context, rig)
+
+        finally:
+            self.after_save_state(context, rig)
+        
+        return save_state
+
+    def execute_before_apply(self, context, obj, range, range_raw):
+        "Override to execute code one time before the bake apply frame scan."
+        pass
+
+    def bake_apply_state(self, context, save_state: Dict[int, List[Matrix]]):
+        "Scans frames and applies the baking operation."
+        rig = self.bake_rig
+        scene = context.scene
+
+        for frame in self.bake_frames:
+            scene.frame_set(frame)
+            self.apply_frame_state(context, rig, save_state.get(frame))
+
+        clean_action_empty_curves(self.bake_rig)
+        scene.frame_set(self.bake_current_frame)
+
+    # Utilities
 
     def bake_get_bone(self, bone_name):
         "Get pose bone by name."
@@ -544,27 +629,18 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
             set_custom_property_value(self.bake_rig, bone, prop, new_value, keyflags={'INSERTKEY_AVAILABLE'})
             set_curve_key_interpolation(prop_curves, 'CONSTANT', range_raw)
 
-    # Default behavior implementation
-    def bake_init(self, context):
-        self.bake_rig = context.active_object
-        self.bake_anim = self.bake_rig.animation_data
-        self.bake_frame_range = RIGIFY_OT_get_frame_range.get_range(context)
-        self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
-        self.bake_curve_table = ActionCurveTable(self.bake_rig)
-        self.bake_current_frame = context.scene.frame_current
-        self.bake_frames_raw = set()
-        self.bake_state = dict()
-
-        self.keyflags = get_keying_flags(context)
-        self.keyflags_switch = None
-
-        if context.window_manager.rigify_transfer_use_all_keys:
-            self.bake_add_curve_frames(self.bake_curve_table.curve_map)
-
     def bake_add_frames_done(self):
         "Computes and sets the final set of frames to bake."
         frames = self.nla_from_raw(self.bake_frames_raw)
         self.bake_frames = sorted(set(map(round, frames)))
+
+    def nla_from_raw(self, frames):
+        "Convert frame(s) from inner action time to scene time."
+        return nla_tweak_to_scene(self.bake_anim, frames)
+
+    def nla_to_raw(self, frames):
+        "Convert frame(s) from scene time to inner action time."
+        return nla_tweak_to_scene(self.bake_anim, frames, invert=True)
 
     def is_bake_empty(self):
         return len(self.bake_frames_raw) == 0
@@ -589,22 +665,6 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
         range = self.get_bake_range()
         return range, self.nla_to_raw(range)
 
-    def bake_save_state(self, context):
-        "Scans frames and collects data for baking before changing anything."
-        rig = self.bake_rig
-        scene = context.scene
-        saved_state = self.bake_state
-
-        try:
-            self.before_save_state(context, rig)
-
-            for frame in self.bake_frames:
-                scene.frame_set(frame)
-                saved_state[frame] = self.save_frame_state(context, rig)
-
-        finally:
-            self.after_save_state(context, rig)
-
     def bake_clean_curves_in_range(self, context, curves):
         "Deletes all keys from the given curves in the bake range."
         range, range_raw = self.get_bake_range_pair()
@@ -614,68 +674,11 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 
         return range, range_raw
 
-    def bake_apply_state(self, context):
-        "Scans frames and applies the baking operation."
-        rig = self.bake_rig
-        scene = context.scene
-        saved_state = self.bake_state
-
-        for frame in self.bake_frames:
-            scene.frame_set(frame)
-            self.apply_frame_state(context, rig, saved_state.get(frame))
-
-        clean_action_empty_curves(self.bake_rig)
-        scene.frame_set(self.bake_current_frame)
-
     @staticmethod
     def draw_common_bake_ui(context, layout):
         layout.prop(context.window_manager, 'rigify_transfer_use_all_keys')
 
         RIGIFY_OT_get_frame_range.draw_range_ui(context, layout)
-
-    @classmethod
-    def poll(cls, context):
-        return context.mode=='POSE'#find_action(context.active_object) is not None
-
-    def execute_scan_curves(self, context, obj):
-        "Override to register frames to be baked, and return curves that should be cleared."
-        raise NotImplementedError()
-
-    def execute_before_apply(self, context, obj, range, range_raw):
-        "Override to execute code one time before the bake apply frame scan."
-        pass
-
-    def execute(self, context):
-        self.init_execute(context)
-        self.bake_init(context)
-
-        curves = self.execute_scan_curves(context, self.bake_rig)
-
-        if self.report_bake_empty():
-            return {'CANCELLED'}
-
-        try:
-            self.bake_save_state(context)
-
-            range, range_raw = self.bake_clean_curves_in_range(context, curves)
-
-            self.execute_before_apply(context, self.bake_rig, range, range_raw)
-
-            self.bake_apply_state(context)
-
-        except Exception as e:
-            traceback.print_exc()
-            self.report({'ERROR'}, 'Exception: ' + str(e))
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        self.init_invoke(context)
-
-        if hasattr(self, 'draw'):
-            return context.window_manager.invoke_props_dialog(self)
-        else:
-            return context.window_manager.invoke_confirm(self, event)
 
 
 class RigifySingleUpdateMixin(RigifyOperatorMixinBase):
@@ -729,7 +732,7 @@ class RigifyGenericSnapBase:
         self.output_bone_list = json.loads(self.output_bones)
         self.ctrl_bone_list = json.loads(self.ctrl_bones)
 
-    def save_frame_state(self, context, obj):
+    def save_frame_state(self, context, obj) -> List[Matrix]:
         return get_chain_transform_matrices(obj, self.input_bone_list)
 
     def apply_frame_state(self, context, obj, matrices):

@@ -523,8 +523,8 @@ class CloudGenerator(Generator):
 
 		# Get rid of anim data in case the rig already existed
 
-		obj.animation_data_clear()
-		obj.data.animation_data_clear()
+		# obj.animation_data_clear()
+		# obj.data.animation_data_clear()
 
 		select_object(context, obj, deselect_all=True)
 
