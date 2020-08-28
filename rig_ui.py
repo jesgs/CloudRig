@@ -680,40 +680,6 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 
         RIGIFY_OT_get_frame_range.draw_range_ui(context, layout)
 
-
-class RigifySingleUpdateMixin(RigifyOperatorMixinBase):
-    """Basic framework for an operator that updates only the current frame."""
-
-    def execute(self, context):
-        self.init_execute(context)
-        obj = context.active_object
-        self.keyflags = get_autokey_flags(context, ignore_keyset=True)
-        self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
-
-        try:
-            try:
-                self.before_save_state(context, obj)
-                state = self.save_frame_state(context, obj)
-            finally:
-                self.after_save_state(context, obj)
-
-            self.apply_frame_state(context, obj, state)
-
-        except Exception as e:
-            traceback.print_exc()
-            self.report({'ERROR'}, 'Exception: ' + str(e))
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        self.init_invoke(context)
-
-        if hasattr(self, 'draw'):
-            return context.window_manager.invoke_props_popup(self, event)
-        else:
-            return self.execute(context)
-
-
 #############################
 ## Generic Snap (FK to IK) ##
 #############################
@@ -741,15 +707,6 @@ class RigifyGenericSnapBase:
             undo_copy_scale=self.undo_copy_scale, keyflags=self.keyflags,
             no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2],
         )
-
-class POSE_OT_rigify_generic_snap(RigifyGenericSnapBase, RigifySingleUpdateMixin, bpy.types.Operator):
-    bl_idname = "pose.rigify_generic_snap_" + rig_id
-    bl_label = "Snap Bones"
-    bl_description = "Snap on the current frame"
-
-    @classmethod
-    def description(cls, context, props):
-        return "Snap " + props.tooltip + " on the current frame"
 
 class POSE_OT_rigify_generic_snap_bake(RigifyGenericSnapBase, RigifyBakeKeyframesMixin, bpy.types.Operator):
     bl_idname = "pose.rigify_generic_snap_bake"
@@ -1078,11 +1035,6 @@ class RigifyLimbIk2FkBase:
                 no_rot=use_pole,
             )
 
-class POSE_OT_rigify_limb_ik2fk(RigifyLimbIk2FkBase, RigifySingleUpdateMixin, bpy.types.Operator):
-    bl_idname = "pose.rigify_limb_ik2fk_" + rig_id
-    bl_label = "Snap IK->FK"
-    bl_description = "Snap the IK chain to FK result"
-
 class POSE_OT_rigify_limb_ik2fk_bake(RigifyLimbIk2FkBase, RigifyBakeKeyframesMixin, bpy.types.Operator):
     bl_idname = "pose.rigify_limb_ik2fk_bake_" + rig_id
     bl_label = "Apply Snap IK->FK To Keyframes"
@@ -1133,11 +1085,6 @@ class RigifyLimbTogglePoleBase(RigifyLimbIk2FkBase):
 
     def init_invoke(self, context):
         self.use_pole = not bool(context.active_object.pose.bones[self.prop_bone][self.pole_prop])
-
-class POSE_OT_rigify_limb_toggle_pole(RigifyLimbTogglePoleBase, RigifySingleUpdateMixin, bpy.types.Operator):
-    bl_idname = "pose.rigify_limb_toggle_pole_" + rig_id
-    bl_label = "Toggle Pole"
-    bl_description = "Switch the IK chain between pole and rotation"
 
 class POSE_OT_rigify_limb_toggle_pole_bake(RigifyLimbTogglePoleBase, RigifyBakeKeyframesMixin, bpy.types.Operator):
     bl_idname = "pose.rigify_limb_toggle_pole_bake_" + rig_id
@@ -1211,18 +1158,6 @@ class RigifySwitchParentBase:
 
         self.selected = str(pose.bones[self.prop_bone][self.prop_id])
 
-
-class POSE_OT_rigify_switch_parent(RigifySwitchParentBase, RigifySingleUpdateMixin, bpy.types.Operator):
-    bl_idname = "pose.rigify_switch_parent"
-    bl_label = "Switch Parent (Keep Transform)"
-    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-    bl_description = "Switch parent, preserving the bone position and orientation"
-
-    def draw(self, _context):
-        col = self.layout.column()
-        col.prop(self, 'selected', expand=True)
-
-
 class POSE_OT_rigify_switch_parent_bake(RigifySwitchParentBase, RigifyBakeKeyframesMixin, bpy.types.Operator):
     bl_idname = "pose.rigify_switch_parent_bake"
     bl_label = "Apply Switch Parent To Keyframes"
@@ -1237,50 +1172,20 @@ class POSE_OT_rigify_switch_parent_bake(RigifySwitchParentBase, RigifyBakeKeyfra
     def draw(self, context):
         self.layout.prop(self, 'selected', text='')
 
-
-###################
-## Rig UI Panels ##
-###################
-
-
-class RigBakeSettings(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_label = "Rig Bake Settings"
-    bl_idname = "VIEW3D_PT_rig_bake_settings_" + rig_id
-    bl_category = 'Item'
-
-    @classmethod
-    def poll(self, context):
-        return context.mode=='POSE' and find_action(context.active_object) is not None
-
-    def draw(self, context):
-        RigifyBakeKeyframesMixin.draw_common_bake_ui(context, self.layout)
-
 def register():
-    bpy.utils.register_class(RigBakeSettings)
     bpy.utils.register_class(RIGIFY_OT_get_frame_range)
-    bpy.utils.register_class(POSE_OT_rigify_generic_snap)
     bpy.utils.register_class(POSE_OT_rigify_generic_snap_bake)
     bpy.utils.register_class(POSE_OT_rigify_clear_keyframes)
-    bpy.utils.register_class(POSE_OT_rigify_limb_ik2fk)
     bpy.utils.register_class(POSE_OT_rigify_limb_ik2fk_bake)
-    bpy.utils.register_class(POSE_OT_rigify_limb_toggle_pole)
     bpy.utils.register_class(POSE_OT_rigify_limb_toggle_pole_bake)
-    bpy.utils.register_class(POSE_OT_rigify_switch_parent)
     bpy.utils.register_class(POSE_OT_rigify_switch_parent_bake)
 
 def unregister():
-    bpy.utils.unregister_class(RigBakeSettings)
     bpy.utils.unregister_class(RIGIFY_OT_get_frame_range)
-    bpy.utils.unregister_class(POSE_OT_rigify_generic_snap)
     bpy.utils.unregister_class(POSE_OT_rigify_generic_snap_bake)
     bpy.utils.unregister_class(POSE_OT_rigify_clear_keyframes)
-    bpy.utils.unregister_class(POSE_OT_rigify_limb_ik2fk)
     bpy.utils.unregister_class(POSE_OT_rigify_limb_ik2fk_bake)
-    bpy.utils.unregister_class(POSE_OT_rigify_limb_toggle_pole)
     bpy.utils.unregister_class(POSE_OT_rigify_limb_toggle_pole_bake)
-    bpy.utils.unregister_class(POSE_OT_rigify_switch_parent)
     bpy.utils.unregister_class(POSE_OT_rigify_switch_parent_bake)
 
 register()

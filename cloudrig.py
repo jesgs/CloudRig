@@ -167,17 +167,7 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 
 		try:
 			matrices = self.save_frame_state(context, rig)
-
-			# Change the parent
-			# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
-			value = self.get_custom_property_value(rig, self.prop_bone, self.prop_id)
-
-			self.set_custom_property_value(
-				rig, self.prop_bone, self.prop_id, 1-value,
-				keyflags=self.keyflags_switch
-			)
-			context.view_layer.update()
-
+			self.after_save_state(context, rig)
 			self.apply_frame_state(context, rig, matrices)
 
 		except Exception as e:
@@ -194,11 +184,9 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 		self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
 
 	def execute_scan_curves(self, context, obj):
-		return self.bake_add_bone_frames(self.bone)
-
-	def execute_before_apply(self, context, obj, range, range_raw):
-		value = self.get_custom_property_value(obj, self.prop_bone, self.prop_id)
-		self.bake_replace_custom_prop_keys_constant(self.prop_bone, self.prop_id, 1-value)
+		"Register frames to be baked, and return curves that should be cleared."
+		self.bake_add_bone_frames(self.bone)
+		return None
 
 	def set_selection(self, context, bones):
 		if self.select_bones:
@@ -211,6 +199,19 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 		if not bone:
 			bone = self.bone_names[0]
 		return self.get_chain_transform_matrices(rig, self.bone_names)
+
+	def after_save_state(self, context, rig):
+		value = self.get_custom_property_value(rig, self.prop_bone, self.prop_id)
+		if self.do_bake:
+			self.bake_replace_custom_prop_keys_constant(
+				self.prop_bone, self.prop_id, 1-value
+			)
+		else:
+			self.set_custom_property_value(
+				rig, self.prop_bone, self.prop_id, 1-value,
+				keyflags=self.keyflags_switch
+			)
+		context.view_layer.update()
 
 	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
 		# Restore transform matrices
