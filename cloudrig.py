@@ -473,6 +473,10 @@ class CLOUDRIG_OT_switch_parent(CLOUDRIG_OT_snap_simple):
 			return self.execute(context)
 
 class CLOUDRIG_OT_switch_parent_bake(rigify_ui.POSE_OT_rigify_switch_parent_bake):
+	""" Extends Rigify's Parent Switch Bake operator to allow multiple target bones		# TODO: This probably doesn't work since once we call super().execute() once, the property will already be flipped, so any bones after the second one won't be put back to their old matrix.
+		and inputting the frame range inside the operator pop-up rather than
+		another place in the UI.
+	"""
 	bl_idname = "pose.cloudrig_switch_parent_bake"
 	bl_label = "Apply Switch Parent To Keyframes"
 	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
@@ -489,11 +493,14 @@ class CLOUDRIG_OT_switch_parent_bake(rigify_ui.POSE_OT_rigify_switch_parent_bake
 	parent_names: StringProperty(name="Parent Names")
 	locks:        BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
 
-	parent_items = [('0','None','None')]
+	def parent_items(self, context):
+		parents = json.loads(self.parent_names)
+		items = [(str(i), name, name) for i, name in enumerate(parents)]
+		return items
 
 	selected: EnumProperty(
 		name='Selected Parent',
-		items=lambda s,c: rigify_ui.RigifySwitchParentBase.parent_items
+		items=parent_items
 	)
 
 	@classmethod
@@ -520,10 +527,6 @@ class CLOUDRIG_OT_switch_parent_bake(rigify_ui.POSE_OT_rigify_switch_parent_bake
 		bone_names = json.loads(self.bones)
 		if not self.do_bake:
 			for b in bone_names:
-				# This feels rather sinful.
-				parents = json.loads(self.parent_names)
-				pitems = [(str(i), name, name) for i, name in enumerate(parents)]
-				CLOUDRIG_OT_switch_parent.parent_items = pitems
 
 				bpy.ops.pose.cloudrig_switch_parent(
 					bones = self.bones
