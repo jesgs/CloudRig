@@ -19,7 +19,9 @@ from mathutils import Vector, Matrix
 from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path
 
-from rigify.feature_sets.CloudRig import rig_ui as rigify_ui
+from rigify.feature_sets.CloudRig.rig_ui import (get_chain_transform_matrices,
+	RigifyBakeKeyframesMixin, set_transform_from_matrix, set_custom_property_value,
+	get_autokey_flags, add_flags_if_set, keyframe_transform_properties)
 
 script_id = "SCRIPT_ID"
 # TODO: Shouldn't this be added to operator bl_idnames?
@@ -110,10 +112,16 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 							value = json.dumps(value)
 						setattr(operator, param, value)
 
-class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operator):
-	""" Toggle a custom property while ensuring that some bones stay in place. """
-	bl_idname = "pose.cloudrig_snap_bake"
-	bl_label = "Snap And Bake Bones"
+def get_custom_property_value(rig, bone_name, prop_id):
+	prop_bone = rig.pose.bones.get(bone_name)
+	assert prop_bone, f"Bone snapping failed: Properties bone {bone_name} not found.)"
+	assert prop_id in prop_bone, f"Bone snapping failed: Bone {bone_name} has no property {bone_id}"
+	return prop_bone[prop_id]
+
+class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
+	""" Extend Rigify's keyframe baking with the ability to select the frame range
+		as part of the operator, and the ability to affect more than a single bone.
+	"""
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	do_bake: BoolProperty(name="Bake Keyframes in Range", options={'SKIP_SAVE'},
@@ -131,10 +139,33 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 	def poll(cls, context):
 		return context.pose_object
 
+	### Override some inherited functions
 	def init_invoke(self, context):
 		self.frame_start = context.scene.frame_start
 		self.frame_end = context.scene.frame_end
 		self.bone_names = json.loads(self.bones)
+
+	def bake_init(self, context):
+		super().bake_init(context)
+		self.bake_frame_range = (self.frame_start, self.frame_end)
+		self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
+
+	def execute_scan_curves(self, context, obj):
+		"Register frames to be baked, and return curves that should be cleared."
+		self.bake_add_bone_frames(self.bone)
+		return None
+
+	def set_selection(self, context, bones):
+		if self.select_bones:
+			for b in context.selected_pose_bones:
+				b.bone.select = False
+			for b in bones:
+				b.bone.select = True
+
+class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
+	""" Toggle a custom property while ensuring that some bones stay in place. """
+	bl_idname = "pose.cloudrig_snap_bake"
+	bl_label = "Snap And Bake Bones"
 
 	def draw(self, context):
 		layout = self.layout
@@ -153,8 +184,8 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
 		# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
-		self.keyflags = self.get_autokey_flags(context, ignore_keyset=True)
-		self.keyflags_switch = self.add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
+		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
+		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
 		self.bone_names = json.loads(self.bones)
 
@@ -178,36 +209,20 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 
 		return {'FINISHED'}
 
-	def bake_init(self, context):
-		super().bake_init(context)
-		self.bake_frame_range = (self.frame_start, self.frame_end)
-		self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
-
-	def execute_scan_curves(self, context, obj):
-		"Register frames to be baked, and return curves that should be cleared."
-		self.bake_add_bone_frames(self.bone)
-		return None
-
-	def set_selection(self, context, bones):
-		if self.select_bones:
-			for b in context.selected_pose_bones:
-				b.bone.select = False
-			for b in bones:
-				b.bone.select = True
-
 	def save_frame_state(self, context, rig, bone=None) -> List[Matrix]:
 		if not bone:
 			bone = self.bone_names[0]
-		return self.get_chain_transform_matrices(rig, self.bone_names)
+		return get_chain_transform_matrices(rig, self.bone_names)
 
 	def after_save_state(self, context, rig):
-		value = self.get_custom_property_value(rig, self.prop_bone, self.prop_id)
+		"""After saving the bone matrices, it's time to set the property value."""
+		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 		if self.do_bake:
 			self.bake_replace_custom_prop_keys_constant(
 				self.prop_bone, self.prop_id, 1-value
 			)
 		else:
-			self.set_custom_property_value(
+			set_custom_property_value(
 				rig, self.prop_bone, self.prop_id, 1-value,
 				keyflags=self.keyflags_switch
 			)
@@ -221,166 +236,9 @@ class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operat
 
 		for i, bone_name in enumerate(self.bone_names):
 			old_matrix = matrices[i]
-			self.set_transform_from_matrix(
+			set_transform_from_matrix(
 				rig, bone_name, old_matrix, keyflags=self.keyflags,
 				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-			)
-
-	######################
-	## Keyframing tools ##
-	######################
-
-	def get_keying_flags(self, context):
-		"Retrieve the general keyframing flags from user preferences."
-		prefs = context.preferences
-		ts = context.scene.tool_settings
-		flags = set()
-		# Not adding INSERTKEY_VISUAL
-		if prefs.edit.use_keyframe_insert_needed:
-			flags.add('INSERTKEY_NEEDED')
-		if prefs.edit.use_insertkey_xyz_to_rgb:
-			flags.add('INSERTKEY_XYZ_TO_RGB')
-		if ts.use_keyframe_cycle_aware:
-			flags.add('INSERTKEY_CYCLE_AWARE')
-		return flags
-
-	def get_autokey_flags(self, context, ignore_keyset=False):
-		"Retrieve the Auto Keyframe flags, or None if disabled."
-		ts = context.scene.tool_settings
-		if ts.use_keyframe_insert_auto and (ignore_keyset or not ts.use_keyframe_insert_keyingset):
-			flags = self.get_keying_flags(context)
-			if context.preferences.edit.use_keyframe_insert_available:
-				flags.add('INSERTKEY_AVAILABLE')
-			if ts.auto_keying_mode == 'REPLACE_KEYS':
-				flags.add('INSERTKEY_REPLACE')
-			return flags
-		else:
-			return None
-
-	def add_flags_if_set(self, base, new_flags):
-		"Add more flags if base is not None."
-		if base is None:
-			return None
-		else:
-			return base | new_flags
-
-	def get_4d_rotlock(self, bone):
-		"Retrieve the lock status for 4D rotation."
-		if bone.lock_rotations_4d:
-			return [bone.lock_rotation_w, *bone.lock_rotation]
-		else:
-			return [all(bone.lock_rotation)] * 4
-
-	def keyframe_transform_properties(self, rig, bone_name, keyflags, *, ignore_locks=False, no_loc=False, no_rot=False, no_scale=False):
-		"Keyframe transformation properties, taking flags and mode into account, and avoiding keying locked channels."
-		bone = rig.pose.bones[bone_name]
-
-		def keyframe_channels(prop, locks):
-			if ignore_locks or not all(locks):
-				if ignore_locks or not any(locks):
-					bone.keyframe_insert(prop, group=bone_name, options=keyflags)
-				else:
-					for i, lock in enumerate(locks):
-						if not lock:
-							bone.keyframe_insert(prop, index=i, group=bone_name, options=keyflags)
-
-		if not (no_loc or bone.bone.use_connect):
-			keyframe_channels('location', bone.lock_location)
-
-		if not no_rot:
-			if bone.rotation_mode == 'QUATERNION':
-				keyframe_channels('rotation_quaternion', self.get_4d_rotlock(bone))
-			elif bone.rotation_mode == 'AXIS_ANGLE':
-				keyframe_channels('rotation_axis_angle', self.get_4d_rotlock(bone))
-			else:
-				keyframe_channels('rotation_euler', bone.lock_rotation)
-
-		if not no_scale:
-			keyframe_channels('scale', bone.lock_scale)
-
-	###############################
-	## Assign and keyframe tools ##
-	###############################
-
-	def get_custom_property_value(self, rig, bone_name, prop_id):
-		prop_bone = rig.pose.bones.get(self.prop_bone)
-		assert prop_bone, f"Bone snapping failed: Properties bone {self.bone_name} not found.)"
-		assert self.prop_id in prop_bone, f"Bone snapping failed: Bone {self.bone_name} has no property {self.bone_id}"
-		return prop_bone[self.prop_id]
-
-	def set_custom_property_value(self, rig, bone_name, prop, value, *, keyflags=None):
-		"Assign the value of a custom property, and optionally keyframe it."
-		from rna_prop_ui import rna_idprop_ui_prop_update
-		bone = rig.pose.bones[bone_name]
-		bone[prop] = value
-		rna_idprop_ui_prop_update(bone, prop)
-		if keyflags is not None:
-			bone.keyframe_insert(rna_idprop_quote_path(prop), group=bone.name, options=keyflags)
-
-	def get_transform_matrix(self, rig, bone_name, *, space='POSE', with_constraints=True):
-		"Retrieve the matrix of the bone before or after constraints in the given space."
-		bone = rig.pose.bones[bone_name]
-		if with_constraints:
-			return rig.convert_space(pose_bone=bone, matrix=bone.matrix, from_space='POSE', to_space=space)
-		else:
-			return rig.convert_space(pose_bone=bone, matrix=bone.matrix_basis, from_space='LOCAL', to_space=space)
-
-	def get_chain_transform_matrices(self, obj, bone_names, **options):
-		return [self.get_transform_matrix(obj, name, **options) for name in bone_names]
-
-	def set_transform_from_matrix(self, rig, bone_name, matrix, *, space='POSE', ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
-		"Apply the matrix to the transformation of the bone, taking locked channels, mode and certain constraints into account, and optionally keyframe it."
-		bone = rig.pose.bones[bone_name]
-
-		def restore_channels(prop, old_vec, locks, extra_lock):
-			if extra_lock or (not ignore_locks and all(locks)):
-				setattr(bone, prop, old_vec)
-			else:
-				if not ignore_locks and any(locks):
-					new_vec = Vector(getattr(bone, prop))
-
-					for i, lock in enumerate(locks):
-						if lock:
-							new_vec[i] = old_vec[i]
-
-					setattr(bone, prop, new_vec)
-
-		# Save the old values of the properties
-		old_loc = Vector(bone.location)
-		old_rot_euler = Vector(bone.rotation_euler)
-		old_rot_quat = Vector(bone.rotation_quaternion)
-		old_rot_axis = Vector(bone.rotation_axis_angle)
-		old_scale = Vector(bone.scale)
-
-		# Compute and assign the local matrix
-		if space != 'LOCAL':
-			matrix = rig.convert_space(pose_bone=bone, matrix=matrix, from_space=space, to_space='LOCAL')
-
-		bone.matrix_basis = matrix
-
-		# Restore locked properties
-		restore_channels('location', old_loc, bone.lock_location, no_loc or bone.bone.use_connect)
-
-		if bone.rotation_mode == 'QUATERNION':
-			restore_channels('rotation_quaternion', old_rot_quat, self.get_4d_rotlock(bone), no_rot)
-			bone.rotation_axis_angle = old_rot_axis
-			bone.rotation_euler = old_rot_euler
-		elif bone.rotation_mode == 'AXIS_ANGLE':
-			bone.rotation_quaternion = old_rot_quat
-			restore_channels('rotation_axis_angle', old_rot_axis, self.get_4d_rotlock(bone), no_rot)
-			bone.rotation_euler = old_rot_euler
-		else:
-			bone.rotation_quaternion = old_rot_quat
-			bone.rotation_axis_angle = old_rot_axis
-			restore_channels('rotation_euler', old_rot_euler, bone.lock_rotation, no_rot)
-
-		restore_channels('scale', old_scale, bone.lock_scale, no_scale)
-
-		# Keyframe properties
-		if keyflags is not None:
-			self.keyframe_transform_properties(
-				rig, bone_name, keyflags, ignore_locks=ignore_locks,
-				no_loc=no_loc, no_rot=no_rot, no_scale=no_scale
 			)
 
 class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
@@ -484,15 +342,15 @@ class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_bake):
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
-		self.keyflags = self.get_autokey_flags(context, ignore_keyset=True)
-		self.keyflags_switch = self.add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
+		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
+		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
-		value = self.get_custom_property_value(rig, self.prop_bone, self.prop_id)
+		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 		my_map = self.map_off if value==1 else self.map_on
 		names_hide = self.hide_off if value==1 else self.hide_on
 		names_unhide = self.hide_on if value==1 else self.hide_off
 
-		self.set_custom_property_value(
+		set_custom_property_value(
 			rig, self.prop_bone, self.prop_id, 1-value,
 			keyflags=self.keyflags
 		)
@@ -515,7 +373,7 @@ class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_bake):
 
 			# Keyframe properties
 			if self.keyflags is not None:
-				self.keyframe_transform_properties(
+				keyframe_transform_properties(
 					rig, affected_bone.name, self.keyflags,
 					no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
 				)
