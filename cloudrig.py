@@ -109,11 +109,15 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 							value = json.dumps(value)
 						setattr(operator, param, value)
 
-class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
+class CLOUDRIG_OT_snap_simple(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operator):
 	bl_description = "Toggle a custom property while ensuring that some bones stay in place"
 	bl_idname = "pose.snap_simple"
 	bl_label = "Snap Simple"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	do_bake: BoolProperty(name="Bake Keyframes in Range")
+	frame_start: IntProperty(name="Start Frame")
+	frame_end: IntProperty(name="End Frame")
 
 	bones:		  StringProperty(name="Control Bone")
 	prop_bone:	  StringProperty(name="Property Bone")
@@ -125,12 +129,36 @@ class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
 	def poll(cls, context):
 		return context.pose_object
 
+	def invoke(self, context, event):
+		self.frame_start = context.scene.frame_start
+		self.frame_end = context.scene.frame_end
+		self.bone_names = json.loads(self.bones)
+		return super().invoke(context, event)
+
+	def draw(self, context):
+		layout = self.layout
+
+		self.layout.prop(self, 'do_bake')
+		time_row = layout.row(align=True)
+		if self.do_bake:
+			time_row.prop(self, 'frame_start')
+			time_row.prop(self, 'frame_end')
+
+		bone_names = layout.column(align=True)
+		bone_names.label(text="Affected bones:")
+		for b in self.bone_names:
+			bone_names.label(text="            " + b)
+
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
 		# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
 		self.keyflags = self.get_autokey_flags(context, ignore_keyset=True)
 		self.keyflags_switch = self.add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
+		if self.do_bake:
+			self.bone = self.bone_names[0]
+			return super().execute(context)
+		
 		bone_names = json.loads(self.bones)
 		bones = get_bones(rig, self.bones)
 
@@ -139,7 +167,17 @@ class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
 			for bone_name in bone_names:
 				matrices.append( self.save_frame_state(context, rig, bone_name) )
 
-			self.apply_frame_state(context, rig, matrices, bone_names)
+			# Change the parent
+			# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
+			value = self.get_custom_property_value(rig, self.prop_bone, self.prop_id)
+
+			self.set_custom_property_value(
+				rig, self.prop_bone, self.prop_id, 1-value,
+				keyflags=self.keyflags_switch
+			)
+			context.view_layer.update()
+
+			self.apply_frame_state(context, rig, matrices)
 
 		except Exception as e:
 			traceback.print_exc()
@@ -149,6 +187,19 @@ class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
 
 		return {'FINISHED'}
 
+	def bake_init(self, context):
+		super().bake_init(context)
+		self.bake_frame_range = (self.frame_start, self.frame_end)
+		self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
+
+	def execute_scan_curves(self, context, obj):
+		return self.bake_add_bone_frames(self.bone)
+
+	def execute_before_apply(self, context, obj, range, range_raw):
+		value = self.get_custom_property_value(obj, self.prop_bone, self.prop_id)
+		self.bake_replace_custom_prop_keys_constant(self.prop_bone, self.prop_id, 1-value)
+
+
 	def set_selection(self, context, bones):
 		if self.select_bones:
 			for b in context.selected_pose_bones:
@@ -156,23 +207,17 @@ class CLOUDRIG_OT_snap_simple(bpy.types.Operator):
 			for b in bones:
 				b.bone.select = True
 
-	def save_frame_state(self, context, rig, bone):
+	def save_frame_state(self, context, rig, bone=None):
+		if not bone:
+			bone = self.bone_names[0]
 		return self.get_transform_matrix(rig, bone, with_constraints=False)
 
-	def apply_frame_state(self, context, rig, old_matrices, bone_names):
-		# Change the parent
-		# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
-		value = self.get_custom_property_value(rig, self.prop_bone, self.prop_id)
+	def apply_frame_state(self, context, rig, old_matrices):
+		# Restore transform matrices
+		if type(old_matrices)==Matrix:
+			old_matrices = [old_matrices]
 
-		self.set_custom_property_value(
-			rig, self.prop_bone, self.prop_id, 1-value,
-			keyflags=self.keyflags_switch
-		)
-
-		context.view_layer.update()
-
-		# Set the transforms to restore position
-		for i, bone_name in enumerate(bone_names):
+		for i, bone_name in enumerate(self.bone_names):
 			old_matrix = old_matrices[i]
 			self.set_transform_from_matrix(
 				rig, bone_name, old_matrix, keyflags=self.keyflags,
@@ -549,10 +594,10 @@ class CLOUDRIG_OT_switch_parent_bake(rigify_ui.POSE_OT_rigify_switch_parent_bake
 		self.frame_end = context.scene.frame_end
 		self.bone_names = json.loads(self.bones)
 		self.bone = self.bone_names[0]	# For super() compatibility, but doesn't actually do anything (I think)
+
 		return super().invoke(context, event)
 
 	# TODO: When do_bake is enabled, display a list of bones whose keyframes will be affected, and the name of the property whose keyframes will be cleared.
-	# TODO: Only bake keyframes at all if the do_bake is True.
 
 class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 	bl_description = "Toggle between IK and FK, and snap the controls accordingly. This will NOT place any keyframes, but it will select the affected bones"

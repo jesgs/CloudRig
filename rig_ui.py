@@ -528,7 +528,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
         "Register frames keyed in the specified curves for baking."
         self.bake_frames_raw |= get_curve_frame_set(curves, self.bake_frame_range_raw)
 
-    def bake_add_bone_frames(self, bone_names, props):
+    def bake_add_bone_frames(self, bone_names, props=TRANSFORM_PROPS_ALL):
         "Register frames keyed for the specified properties of the specified bones for baking."
         curves = self.bake_get_all_bone_curves(bone_names, props)
         self.bake_add_curve_frames(curves)
@@ -635,7 +635,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 
     @classmethod
     def poll(cls, context):
-        return find_action(context.active_object) is not None
+        return context.mode=='POSE'#find_action(context.active_object) is not None
 
     def execute_scan_curves(self, context, obj):
         "Override to register frames to be baked, and return curves that should be cleared."
@@ -749,7 +749,7 @@ class POSE_OT_rigify_generic_snap(RigifyGenericSnapBase, RigifySingleUpdateMixin
         return "Snap " + props.tooltip + " on the current frame"
 
 class POSE_OT_rigify_generic_snap_bake(RigifyGenericSnapBase, RigifyBakeKeyframesMixin, bpy.types.Operator):
-    bl_idname = "pose.rigify_generic_snap_bake_" + rig_id
+    bl_idname = "pose.rigify_generic_snap_bake"
     bl_label = "Apply Snap To Keyframes"
     bl_description = "Apply snap to keyframes"
 
@@ -1239,458 +1239,6 @@ class POSE_OT_rigify_switch_parent_bake(RigifySwitchParentBase, RigifyBakeKeyfra
 ## Rig UI Panels ##
 ###################
 
-class RigUI(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_label = "Rig Main Properties"
-    bl_idname = "VIEW3D_PT_rig_ui_" + rig_id
-    bl_category = 'Item'
-
-    @classmethod
-    def poll(self, context):
-        if context.mode != 'POSE':
-            return False
-        try:
-            return (context.active_object.data.get("rig_id") == rig_id)
-        except (AttributeError, KeyError, TypeError):
-            return False
-
-    def draw(self, context):
-        layout = self.layout
-        pose_bones = context.active_object.pose.bones
-        try:
-            selected_bones = set(bone.name for bone in context.selected_pose_bones)
-            selected_bones.add(context.active_pose_bone.name)
-        except (AttributeError, TypeError):
-            return
-
-        def is_selected(names):
-            # Returns whether any of the named bones are selected.
-            if isinstance(names, list) or isinstance(names, set):
-                return not selected_bones.isdisjoint(names)
-            elif names in selected_bones:
-                return True
-            return False
-
-        num_rig_separators = [-1]
-
-        def emit_rig_separator():
-            if num_rig_separators[0] >= 0:
-                layout.separator()
-            num_rig_separators[0] += 1
-
-        
-        all_controls   = ['eye.L', 'eye.R', 'eyes', 'master_eye.L', 'master_eye.R', 'ear.L', 'ear.R', 'jaw_master', 'teeth.T', 'teeth.B', 'tongue_master', 'brow.B.L', 'brow.B.L.001', 'brow.B.L.002', 'brow.B.L.003', 'brow.B.L.004', 'brow.B.R', 'brow.B.R.001', 'brow.B.R.002', 'brow.B.R.003', 'brow.B.R.004', 'brow.T.L', 'brow.T.L.001', 'brow.T.L.002', 'brow.T.L.003', 'brow.T.R', 'brow.T.R.001', 'brow.T.R.002', 'brow.T.R.003', 'cheek.B.L.001', 'cheek.B.R.001', 'cheek.T.L.001', 'cheek.T.R.001', 'chin', 'chin.001', 'chin.002', 'chin.L', 'chin.R', 'ear.L.002', 'ear.L.003', 'ear.L.004', 'ear.R.002', 'ear.R.003', 'ear.R.004', 'jaw', 'jaw.L', 'jaw.L.001', 'jaw.R', 'jaw.R.001', 'lid.B.L', 'lid.B.L.001', 'lid.B.L.002', 'lid.B.L.003', 'lid.B.R', 'lid.B.R.001', 'lid.B.R.002', 'lid.B.R.003', 'lid.T.L', 'lid.T.L.001', 'lid.T.L.002', 'lid.T.L.003', 'lid.T.R', 'lid.T.R.001', 'lid.T.R.002', 'lid.T.R.003', 'lip.B.L.001', 'lip.B.R.001', 'lip.T.L.001', 'lips.L', 'lip.T.R.001', 'lips.R', 'nose', 'nose.001', 'nose.002', 'nose.003', 'nose.004', 'nose.005', 'nose.L', 'nose.L.001', 'nose.R', 'nose.R.001', 'tongue', 'tongue.001', 'tongue.002', 'tongue.003', 'lip.T', 'lip.B']
-        jaw_ctrl_name  = 'jaw_master'
-        eyes_ctrl_name = 'eyes'
-        
-        if is_selected(all_controls):
-            layout.prop(pose_bones[jaw_ctrl_name],  '["mouth_lock"]', slider=True)
-            layout.prop(pose_bones[eyes_ctrl_name], '["eyes_follow"]', slider=True)
-        
-
-        num_rig_separators[0] = 0
-
-        if is_selected({'hand_ik.L', 'hand_fk.L', 'upper_arm_ik.L', 'upper_arm_ik_target.L', 'forearm_tweak.L', 'forearm_tweak.L.001', 'upper_arm_tweak.L.001', 'upper_arm_fk.L', 'upper_arm_parent.L', 'upper_arm_tweak.L', 'VIS_upper_arm_ik_pole.L', 'forearm_fk.L', 'hand_tweak.L'}):
-            emit_rig_separator()
-            if is_selected({'hand_fk.L', 'forearm_fk.L', 'upper_arm_fk.L', 'upper_arm_parent.L'}):
-                layout.prop(pose_bones['upper_arm_parent.L'], '["FK_limb_follow"]', text='FK Limb Follow', slider=True)
-            layout.prop(pose_bones['upper_arm_parent.L'], '["IK_FK"]', text='IK-FK (hand.L)', slider=True)
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_generic_snap_cloudrig', text='FK->IK (hand.L)', icon='SNAP_ON')
-            props.output_bones = '["upper_arm_fk.L", "forearm_fk.L", "hand_fk.L"]'
-            props.input_bones = '["upper_arm_ik.L", "MCH-forearm_ik.L", "MCH-upper_arm_ik_target.L"]'
-            props.ctrl_bones = '["upper_arm_ik.L", "upper_arm_ik_target.L", "hand_ik.L"]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_generic_snap_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.output_bones = '["upper_arm_fk.L", "forearm_fk.L", "hand_fk.L"]'
-            props.input_bones = '["upper_arm_ik.L", "MCH-forearm_ik.L", "MCH-upper_arm_ik_target.L"]'
-            props.ctrl_bones = '["upper_arm_ik.L", "upper_arm_ik_target.L", "hand_ik.L"]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["upper_arm_fk.L", "forearm_fk.L", "hand_fk.L"]'
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_limb_ik2fk_cloudrig', text='IK->FK (hand.L)', icon='SNAP_ON')
-            props.prop_bone = 'upper_arm_parent.L'
-            props.fk_bones = '["upper_arm_fk.L", "forearm_fk.L", "hand_fk.L"]'
-            props.ik_bones = '["upper_arm_ik.L", "MCH-forearm_ik.L", "MCH-upper_arm_ik_target.L"]'
-            props.ctrl_bones = '["upper_arm_ik.L", "hand_ik.L", "upper_arm_ik_target.L"]'
-            props.extra_ctrls = '[]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_limb_ik2fk_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.prop_bone = 'upper_arm_parent.L'
-            props.fk_bones = '["upper_arm_fk.L", "forearm_fk.L", "hand_fk.L"]'
-            props.ik_bones = '["upper_arm_ik.L", "MCH-forearm_ik.L", "MCH-upper_arm_ik_target.L"]'
-            props.ctrl_bones = '["upper_arm_ik.L", "hand_ik.L", "upper_arm_ik_target.L"]'
-            props.extra_ctrls = '[]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["upper_arm_ik.L", "hand_ik.L", "upper_arm_ik_target.L"]'
-            if is_selected({'hand_ik.L', 'upper_arm_ik.L', 'upper_arm_ik_target.L', 'upper_arm_parent.L'}):
-                layout.prop(pose_bones['upper_arm_parent.L'], '["IK_Stretch"]', text='IK Stretch', slider=True)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_limb_toggle_pole_cloudrig', icon='FORCE_MAGNETIC')
-                props.prop_bone = 'upper_arm_parent.L'
-                props.ik_bones = '["upper_arm_ik.L", "MCH-forearm_ik.L", "MCH-upper_arm_ik_target.L"]'
-                props.ctrl_bones = '["upper_arm_ik.L", "hand_ik.L", "upper_arm_ik_target.L"]'
-                props.extra_ctrls = '[]'
-                group2.prop(pose_bones['upper_arm_parent.L'], '["pole_vector"]', text='')
-                props = group1.operator('pose.rigify_limb_toggle_pole_bake_cloudrig', text='', icon='ACTION_TWEAK')
-                props.prop_bone = 'upper_arm_parent.L'
-                props.ik_bones = '["upper_arm_ik.L", "MCH-forearm_ik.L", "MCH-upper_arm_ik_target.L"]'
-                props.ctrl_bones = '["upper_arm_ik.L", "hand_ik.L", "upper_arm_ik_target.L"]'
-                props.extra_ctrls = '[]'
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='IK Parent', icon='DOWNARROW_HLT')
-                props.bone = 'hand_ik.L'
-                props.prop_bone = 'upper_arm_parent.L'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.L"]'
-                props.locks = (False, False, False)
-                group2.prop(pose_bones['upper_arm_parent.L'], '["IK_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'hand_ik.L'
-                props.prop_bone = 'upper_arm_parent.L'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.L"]'
-                props.locks = (False, False, False)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='Pole Parent', icon='DOWNARROW_HLT')
-                props.bone = 'upper_arm_ik_target.L'
-                props.prop_bone = 'upper_arm_parent.L'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.L", "hand_ik.L"]'
-                props.locks = (False, True, True)
-                group2.prop(pose_bones['upper_arm_parent.L'], '["pole_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'upper_arm_ik_target.L'
-                props.prop_bone = 'upper_arm_parent.L'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.L", "hand_ik.L"]'
-                props.locks = (False, True, True)
-            if is_selected({'upper_arm_tweak.L.001'}):
-                layout.prop(pose_bones['upper_arm_tweak.L.001'], '["rubber_tweak"]', text='Rubber Tweak (upper_arm.L)', slider=True)
-            if is_selected({'forearm_tweak.L'}):
-                layout.prop(pose_bones['forearm_tweak.L'], '["rubber_tweak"]', text='Rubber Tweak (forearm.L)', slider=True)
-            if is_selected({'forearm_tweak.L.001'}):
-                layout.prop(pose_bones['forearm_tweak.L.001'], '["rubber_tweak"]', text='Rubber Tweak (forearm.L)', slider=True)
-
-        if is_selected({'f_index.01_master.L', 'f_index.03.L', 'f_index.02.L', 'f_index.01.L.001', 'f_index.01.L'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_index.01_master.L'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'thumb.01.L', 'thumb.01.L.001', 'thumb.01_master.L', 'thumb.03.L', 'thumb.02.L'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['thumb.01_master.L'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'f_middle.01.L.001', 'f_middle.01.L', 'f_middle.01_master.L', 'f_middle.03.L', 'f_middle.02.L'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_middle.01_master.L'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'f_ring.01_master.L', 'f_ring.01.L.001', 'f_ring.03.L', 'f_ring.01.L', 'f_ring.02.L'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_ring.01_master.L'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'f_pinky.01.L.001', 'f_pinky.01_master.L', 'f_pinky.02.L', 'f_pinky.01.L', 'f_pinky.03.L'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_pinky.01_master.L'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'forearm_tweak.R', 'upper_arm_ik.R', 'upper_arm_tweak.R', 'upper_arm_ik_target.R', 'VIS_upper_arm_ik_pole.R', 'hand_tweak.R', 'forearm_tweak.R.001', 'hand_fk.R', 'hand_ik.R', 'forearm_fk.R', 'upper_arm_fk.R', 'upper_arm_parent.R', 'upper_arm_tweak.R.001'}):
-            emit_rig_separator()
-            if is_selected({'hand_fk.R', 'upper_arm_fk.R', 'upper_arm_parent.R', 'forearm_fk.R'}):
-                layout.prop(pose_bones['upper_arm_parent.R'], '["FK_limb_follow"]', text='FK Limb Follow', slider=True)
-            layout.prop(pose_bones['upper_arm_parent.R'], '["IK_FK"]', text='IK-FK (hand.R)', slider=True)
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_generic_snap_cloudrig', text='FK->IK (hand.R)', icon='SNAP_ON')
-            props.output_bones = '["upper_arm_fk.R", "forearm_fk.R", "hand_fk.R"]'
-            props.input_bones = '["upper_arm_ik.R", "MCH-forearm_ik.R", "MCH-upper_arm_ik_target.R"]'
-            props.ctrl_bones = '["upper_arm_ik.R", "upper_arm_ik_target.R", "hand_ik.R"]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_generic_snap_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.output_bones = '["upper_arm_fk.R", "forearm_fk.R", "hand_fk.R"]'
-            props.input_bones = '["upper_arm_ik.R", "MCH-forearm_ik.R", "MCH-upper_arm_ik_target.R"]'
-            props.ctrl_bones = '["upper_arm_ik.R", "upper_arm_ik_target.R", "hand_ik.R"]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["upper_arm_fk.R", "forearm_fk.R", "hand_fk.R"]'
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_limb_ik2fk_cloudrig', text='IK->FK (hand.R)', icon='SNAP_ON')
-            props.prop_bone = 'upper_arm_parent.R'
-            props.fk_bones = '["upper_arm_fk.R", "forearm_fk.R", "hand_fk.R"]'
-            props.ik_bones = '["upper_arm_ik.R", "MCH-forearm_ik.R", "MCH-upper_arm_ik_target.R"]'
-            props.ctrl_bones = '["upper_arm_ik.R", "hand_ik.R", "upper_arm_ik_target.R"]'
-            props.extra_ctrls = '[]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_limb_ik2fk_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.prop_bone = 'upper_arm_parent.R'
-            props.fk_bones = '["upper_arm_fk.R", "forearm_fk.R", "hand_fk.R"]'
-            props.ik_bones = '["upper_arm_ik.R", "MCH-forearm_ik.R", "MCH-upper_arm_ik_target.R"]'
-            props.ctrl_bones = '["upper_arm_ik.R", "hand_ik.R", "upper_arm_ik_target.R"]'
-            props.extra_ctrls = '[]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["upper_arm_ik.R", "hand_ik.R", "upper_arm_ik_target.R"]'
-            if is_selected({'upper_arm_ik_target.R', 'upper_arm_ik.R', 'upper_arm_parent.R', 'hand_ik.R'}):
-                layout.prop(pose_bones['upper_arm_parent.R'], '["IK_Stretch"]', text='IK Stretch', slider=True)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_limb_toggle_pole_cloudrig', icon='FORCE_MAGNETIC')
-                props.prop_bone = 'upper_arm_parent.R'
-                props.ik_bones = '["upper_arm_ik.R", "MCH-forearm_ik.R", "MCH-upper_arm_ik_target.R"]'
-                props.ctrl_bones = '["upper_arm_ik.R", "hand_ik.R", "upper_arm_ik_target.R"]'
-                props.extra_ctrls = '[]'
-                group2.prop(pose_bones['upper_arm_parent.R'], '["pole_vector"]', text='')
-                props = group1.operator('pose.rigify_limb_toggle_pole_bake_cloudrig', text='', icon='ACTION_TWEAK')
-                props.prop_bone = 'upper_arm_parent.R'
-                props.ik_bones = '["upper_arm_ik.R", "MCH-forearm_ik.R", "MCH-upper_arm_ik_target.R"]'
-                props.ctrl_bones = '["upper_arm_ik.R", "hand_ik.R", "upper_arm_ik_target.R"]'
-                props.extra_ctrls = '[]'
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='IK Parent', icon='DOWNARROW_HLT')
-                props.bone = 'hand_ik.R'
-                props.prop_bone = 'upper_arm_parent.R'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.R"]'
-                props.locks = (False, False, False)
-                group2.prop(pose_bones['upper_arm_parent.R'], '["IK_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'hand_ik.R'
-                props.prop_bone = 'upper_arm_parent.R'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.R"]'
-                props.locks = (False, False, False)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='Pole Parent', icon='DOWNARROW_HLT')
-                props.bone = 'upper_arm_ik_target.R'
-                props.prop_bone = 'upper_arm_parent.R'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.R", "hand_ik.R"]'
-                props.locks = (False, True, True)
-                group2.prop(pose_bones['upper_arm_parent.R'], '["pole_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'upper_arm_ik_target.R'
-                props.prop_bone = 'upper_arm_parent.R'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "shoulder.R", "hand_ik.R"]'
-                props.locks = (False, True, True)
-            if is_selected({'upper_arm_tweak.R.001'}):
-                layout.prop(pose_bones['upper_arm_tweak.R.001'], '["rubber_tweak"]', text='Rubber Tweak (upper_arm.R)', slider=True)
-            if is_selected({'forearm_tweak.R'}):
-                layout.prop(pose_bones['forearm_tweak.R'], '["rubber_tweak"]', text='Rubber Tweak (forearm.R)', slider=True)
-            if is_selected({'forearm_tweak.R.001'}):
-                layout.prop(pose_bones['forearm_tweak.R.001'], '["rubber_tweak"]', text='Rubber Tweak (forearm.R)', slider=True)
-
-        if is_selected({'f_index.03.R', 'f_index.01_master.R', 'f_index.01.R.001', 'f_index.02.R', 'f_index.01.R'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_index.01_master.R'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'thumb.02.R', 'thumb.01.R', 'thumb.03.R', 'thumb.01_master.R', 'thumb.01.R.001'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['thumb.01_master.R'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'f_middle.01.R.001', 'f_middle.03.R', 'f_middle.01.R', 'f_middle.02.R', 'f_middle.01_master.R'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_middle.01_master.R'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'f_ring.01.R.001', 'f_ring.03.R', 'f_ring.01_master.R', 'f_ring.01.R', 'f_ring.02.R'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_ring.01_master.R'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'f_pinky.02.R', 'f_pinky.01_master.R', 'f_pinky.01.R', 'f_pinky.03.R', 'f_pinky.01.R.001'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['f_pinky.01_master.R'], '["finger_curve"]', text='Curvature', slider=True)
-
-        if is_selected({'spine_fk.003', 'tweak_spine', 'chest', 'spine_fk', 'tweak_spine.003', 'spine_fk.001', 'tweak_spine.005', 'tweak_spine.002', 'hips', 'head', 'tweak_spine.001', 'torso', 'neck', 'tweak_spine.004', 'spine_fk.002'}):
-            emit_rig_separator()
-            layout.prop(pose_bones['torso'], '["neck_follow"]', text='Neck Follow', slider=True)
-            layout.prop(pose_bones['torso'], '["head_follow"]', text='Head Follow', slider=True)
-            if is_selected({'spine_fk.003', 'tweak_spine', 'chest', 'spine_fk', 'tweak_spine.003', 'spine_fk.001', 'tweak_spine.002', 'hips', 'tweak_spine.001', 'torso', 'tweak_spine.004', 'spine_fk.002'}):
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='Torso Parent', icon='DOWNARROW_HLT')
-                props.bone = 'torso'
-                props.prop_bone = 'torso'
-                props.prop_id = 'torso_parent'
-                props.parent_names = '["None", "Root"]'
-                props.locks = (False, False, False)
-                group2.prop(pose_bones['torso'], '["torso_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'torso'
-                props.prop_bone = 'torso'
-                props.prop_id = 'torso_parent'
-                props.parent_names = '["None", "Root"]'
-                props.locks = (False, False, False)
-
-        if is_selected({'thigh_ik_target.L', 'thigh_fk.L', 'foot_ik.L', 'thigh_tweak.L.001', 'foot_spin_ik.L', 'shin_tweak.L.001', 'thigh_ik.L', 'shin_fk.L', 'thigh_parent.L', 'foot_fk.L', 'foot_tweak.L', 'thigh_tweak.L', 'shin_tweak.L', 'VIS_thigh_ik_pole.L', 'foot_heel_ik.L', 'toe.L'}):
-            emit_rig_separator()
-            if is_selected({'thigh_fk.L', 'toe.L', 'foot_fk.L', 'shin_fk.L', 'thigh_parent.L'}):
-                layout.prop(pose_bones['thigh_parent.L'], '["FK_limb_follow"]', text='FK Limb Follow', slider=True)
-            layout.prop(pose_bones['thigh_parent.L'], '["IK_FK"]', text='IK-FK (foot.L)', slider=True)
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_generic_snap_cloudrig', text='FK->IK (foot.L)', icon='SNAP_ON')
-            props.output_bones = '["thigh_fk.L", "shin_fk.L", "foot_fk.L"]'
-            props.input_bones = '["thigh_ik.L", "MCH-shin_ik.L", "MCH-thigh_ik_target.L"]'
-            props.ctrl_bones = '["thigh_ik.L", "thigh_ik_target.L", "foot_ik.L", "foot_heel_ik.L", "foot_spin_ik.L"]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_generic_snap_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.output_bones = '["thigh_fk.L", "shin_fk.L", "foot_fk.L"]'
-            props.input_bones = '["thigh_ik.L", "MCH-shin_ik.L", "MCH-thigh_ik_target.L"]'
-            props.ctrl_bones = '["thigh_ik.L", "thigh_ik_target.L", "foot_ik.L", "foot_heel_ik.L", "foot_spin_ik.L"]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["thigh_fk.L", "shin_fk.L", "foot_fk.L"]'
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_limb_ik2fk_cloudrig', text='IK->FK (foot.L)', icon='SNAP_ON')
-            props.prop_bone = 'thigh_parent.L'
-            props.fk_bones = '["thigh_fk.L", "shin_fk.L", "foot_fk.L", "toe.L"]'
-            props.ik_bones = '["thigh_ik.L", "MCH-shin_ik.L", "MCH-thigh_ik_target.L"]'
-            props.ctrl_bones = '["thigh_ik.L", "foot_ik.L", "thigh_ik_target.L"]'
-            props.extra_ctrls = '["foot_heel_ik.L", "foot_spin_ik.L"]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_limb_ik2fk_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.prop_bone = 'thigh_parent.L'
-            props.fk_bones = '["thigh_fk.L", "shin_fk.L", "foot_fk.L", "toe.L"]'
-            props.ik_bones = '["thigh_ik.L", "MCH-shin_ik.L", "MCH-thigh_ik_target.L"]'
-            props.ctrl_bones = '["thigh_ik.L", "foot_ik.L", "thigh_ik_target.L"]'
-            props.extra_ctrls = '["foot_heel_ik.L", "foot_spin_ik.L"]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["thigh_ik.L", "foot_ik.L", "thigh_ik_target.L", "foot_heel_ik.L", "foot_spin_ik.L"]'
-            if is_selected({'thigh_ik_target.L', 'thigh_ik.L', 'foot_spin_ik.L', 'foot_ik.L', 'foot_heel_ik.L', 'thigh_parent.L'}):
-                layout.prop(pose_bones['thigh_parent.L'], '["IK_Stretch"]', text='IK Stretch', slider=True)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_limb_toggle_pole_cloudrig', icon='FORCE_MAGNETIC')
-                props.prop_bone = 'thigh_parent.L'
-                props.ik_bones = '["thigh_ik.L", "MCH-shin_ik.L", "MCH-thigh_ik_target.L"]'
-                props.ctrl_bones = '["thigh_ik.L", "foot_ik.L", "thigh_ik_target.L"]'
-                props.extra_ctrls = '["foot_heel_ik.L", "foot_spin_ik.L"]'
-                group2.prop(pose_bones['thigh_parent.L'], '["pole_vector"]', text='')
-                props = group1.operator('pose.rigify_limb_toggle_pole_bake_cloudrig', text='', icon='ACTION_TWEAK')
-                props.prop_bone = 'thigh_parent.L'
-                props.ik_bones = '["thigh_ik.L", "MCH-shin_ik.L", "MCH-thigh_ik_target.L"]'
-                props.ctrl_bones = '["thigh_ik.L", "foot_ik.L", "thigh_ik_target.L"]'
-                props.extra_ctrls = '["foot_heel_ik.L", "foot_spin_ik.L"]'
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='IK Parent', icon='DOWNARROW_HLT')
-                props.bone = 'foot_ik.L'
-                props.prop_bone = 'thigh_parent.L'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head"]'
-                props.locks = (False, False, False)
-                group2.prop(pose_bones['thigh_parent.L'], '["IK_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'foot_ik.L'
-                props.prop_bone = 'thigh_parent.L'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head"]'
-                props.locks = (False, False, False)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='Pole Parent', icon='DOWNARROW_HLT')
-                props.bone = 'thigh_ik_target.L'
-                props.prop_bone = 'thigh_parent.L'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "foot_ik.L"]'
-                props.locks = (False, True, True)
-                group2.prop(pose_bones['thigh_parent.L'], '["pole_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'thigh_ik_target.L'
-                props.prop_bone = 'thigh_parent.L'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "foot_ik.L"]'
-                props.locks = (False, True, True)
-            if is_selected({'thigh_tweak.L.001'}):
-                layout.prop(pose_bones['thigh_tweak.L.001'], '["rubber_tweak"]', text='Rubber Tweak (thigh.L)', slider=True)
-            if is_selected({'shin_tweak.L'}):
-                layout.prop(pose_bones['shin_tweak.L'], '["rubber_tweak"]', text='Rubber Tweak (shin.L)', slider=True)
-            if is_selected({'shin_tweak.L.001'}):
-                layout.prop(pose_bones['shin_tweak.L.001'], '["rubber_tweak"]', text='Rubber Tweak (shin.L)', slider=True)
-
-        if is_selected({'foot_ik.R', 'shin_fk.R', 'shin_tweak.R', 'thigh_tweak.R', 'thigh_tweak.R.001', 'thigh_parent.R', 'foot_tweak.R', 'toe.R', 'foot_heel_ik.R', 'thigh_fk.R', 'thigh_ik.R', 'thigh_ik_target.R', 'shin_tweak.R.001', 'foot_fk.R', 'VIS_thigh_ik_pole.R', 'foot_spin_ik.R'}):
-            emit_rig_separator()
-            if is_selected({'thigh_parent.R', 'foot_fk.R', 'thigh_fk.R', 'shin_fk.R', 'toe.R'}):
-                layout.prop(pose_bones['thigh_parent.R'], '["FK_limb_follow"]', text='FK Limb Follow', slider=True)
-            layout.prop(pose_bones['thigh_parent.R'], '["IK_FK"]', text='IK-FK (foot.R)', slider=True)
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_generic_snap_cloudrig', text='FK->IK (foot.R)', icon='SNAP_ON')
-            props.output_bones = '["thigh_fk.R", "shin_fk.R", "foot_fk.R"]'
-            props.input_bones = '["thigh_ik.R", "MCH-shin_ik.R", "MCH-thigh_ik_target.R"]'
-            props.ctrl_bones = '["thigh_ik.R", "thigh_ik_target.R", "foot_ik.R", "foot_heel_ik.R", "foot_spin_ik.R"]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_generic_snap_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.output_bones = '["thigh_fk.R", "shin_fk.R", "foot_fk.R"]'
-            props.input_bones = '["thigh_ik.R", "MCH-shin_ik.R", "MCH-thigh_ik_target.R"]'
-            props.ctrl_bones = '["thigh_ik.R", "thigh_ik_target.R", "foot_ik.R", "foot_heel_ik.R", "foot_spin_ik.R"]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["thigh_fk.R", "shin_fk.R", "foot_fk.R"]'
-            group1 = layout.column(align=True)
-            props = group1.operator('pose.rigify_limb_ik2fk_cloudrig', text='IK->FK (foot.R)', icon='SNAP_ON')
-            props.prop_bone = 'thigh_parent.R'
-            props.fk_bones = '["thigh_fk.R", "shin_fk.R", "foot_fk.R", "toe.R"]'
-            props.ik_bones = '["thigh_ik.R", "MCH-shin_ik.R", "MCH-thigh_ik_target.R"]'
-            props.ctrl_bones = '["thigh_ik.R", "foot_ik.R", "thigh_ik_target.R"]'
-            props.extra_ctrls = '["foot_heel_ik.R", "foot_spin_ik.R"]'
-            group2 = group1.row(align=True)
-            props = group2.operator('pose.rigify_limb_ik2fk_bake_cloudrig', text='Action', icon='ACTION_TWEAK')
-            props.prop_bone = 'thigh_parent.R'
-            props.fk_bones = '["thigh_fk.R", "shin_fk.R", "foot_fk.R", "toe.R"]'
-            props.ik_bones = '["thigh_ik.R", "MCH-shin_ik.R", "MCH-thigh_ik_target.R"]'
-            props.ctrl_bones = '["thigh_ik.R", "foot_ik.R", "thigh_ik_target.R"]'
-            props.extra_ctrls = '["foot_heel_ik.R", "foot_spin_ik.R"]'
-            props = group2.operator('pose.rigify_clear_keyframes_cloudrig', text='Clear', icon='CANCEL')
-            props.bones = '["thigh_ik.R", "foot_ik.R", "thigh_ik_target.R", "foot_heel_ik.R", "foot_spin_ik.R"]'
-            if is_selected({'thigh_parent.R', 'foot_ik.R', 'thigh_ik.R', 'thigh_ik_target.R', 'foot_spin_ik.R', 'foot_heel_ik.R'}):
-                layout.prop(pose_bones['thigh_parent.R'], '["IK_Stretch"]', text='IK Stretch', slider=True)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_limb_toggle_pole_cloudrig', icon='FORCE_MAGNETIC')
-                props.prop_bone = 'thigh_parent.R'
-                props.ik_bones = '["thigh_ik.R", "MCH-shin_ik.R", "MCH-thigh_ik_target.R"]'
-                props.ctrl_bones = '["thigh_ik.R", "foot_ik.R", "thigh_ik_target.R"]'
-                props.extra_ctrls = '["foot_heel_ik.R", "foot_spin_ik.R"]'
-                group2.prop(pose_bones['thigh_parent.R'], '["pole_vector"]', text='')
-                props = group1.operator('pose.rigify_limb_toggle_pole_bake_cloudrig', text='', icon='ACTION_TWEAK')
-                props.prop_bone = 'thigh_parent.R'
-                props.ik_bones = '["thigh_ik.R", "MCH-shin_ik.R", "MCH-thigh_ik_target.R"]'
-                props.ctrl_bones = '["thigh_ik.R", "foot_ik.R", "thigh_ik_target.R"]'
-                props.extra_ctrls = '["foot_heel_ik.R", "foot_spin_ik.R"]'
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='IK Parent', icon='DOWNARROW_HLT')
-                props.bone = 'foot_ik.R'
-                props.prop_bone = 'thigh_parent.R'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head"]'
-                props.locks = (False, False, False)
-                group2.prop(pose_bones['thigh_parent.R'], '["IK_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'foot_ik.R'
-                props.prop_bone = 'thigh_parent.R'
-                props.prop_id = 'IK_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head"]'
-                props.locks = (False, False, False)
-                group1 = layout.row(align=True)
-                group2 = group1.split(factor=0.75, align=True)
-                props = group2.operator('pose.rigify_switch_parent', text='Pole Parent', icon='DOWNARROW_HLT')
-                props.bone = 'thigh_ik_target.R'
-                props.prop_bone = 'thigh_parent.R'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "foot_ik.R"]'
-                props.locks = (False, True, True)
-                group2.prop(pose_bones['thigh_parent.R'], '["pole_parent"]', text='')
-                props = group1.operator('pose.rigify_switch_parent_bake', text='', icon='ACTION_TWEAK')
-                props.bone = 'thigh_ik_target.R'
-                props.prop_bone = 'thigh_parent.R'
-                props.prop_id = 'pole_parent'
-                props.parent_names = '["None", "Root", "Torso", "Hips", "Chest", "Head", "foot_ik.R"]'
-                props.locks = (False, True, True)
-            if is_selected({'thigh_tweak.R.001'}):
-                layout.prop(pose_bones['thigh_tweak.R.001'], '["rubber_tweak"]', text='Rubber Tweak (thigh.R)', slider=True)
-            if is_selected({'shin_tweak.R'}):
-                layout.prop(pose_bones['shin_tweak.R'], '["rubber_tweak"]', text='Rubber Tweak (shin.R)', slider=True)
-            if is_selected({'shin_tweak.R.001'}):
-                layout.prop(pose_bones['shin_tweak.R.001'], '["rubber_tweak"]', text='Rubber Tweak (shin.R)', slider=True)
 
 class RigBakeSettings(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
@@ -1701,14 +1249,13 @@ class RigBakeSettings(bpy.types.Panel):
 
     @classmethod
     def poll(self, context):
-        return RigUI.poll(context) and find_action(context.active_object) is not None
+        return context.mode=='POSE' and find_action(context.active_object) is not None
 
     def draw(self, context):
         RigifyBakeKeyframesMixin.draw_common_bake_ui(context, self.layout)
 
 def register():
     bpy.utils.register_class(RigBakeSettings)
-    bpy.utils.register_class(RigUI)
     bpy.utils.register_class(RIGIFY_OT_get_frame_range)
     bpy.utils.register_class(POSE_OT_rigify_generic_snap)
     bpy.utils.register_class(POSE_OT_rigify_generic_snap_bake)
@@ -1722,7 +1269,6 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(RigBakeSettings)
-    bpy.utils.unregister_class(RigUI)
     bpy.utils.unregister_class(RIGIFY_OT_get_frame_range)
     bpy.utils.unregister_class(POSE_OT_rigify_generic_snap)
     bpy.utils.unregister_class(POSE_OT_rigify_generic_snap_bake)
