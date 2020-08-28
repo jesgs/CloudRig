@@ -109,13 +109,14 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 							value = json.dumps(value)
 						setattr(operator, param, value)
 
-class CLOUDRIG_OT_snap_simple(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operator):
-	bl_description = "Toggle a custom property while ensuring that some bones stay in place"
-	bl_idname = "pose.snap_simple"
-	bl_label = "Snap Simple"
+class CLOUDRIG_OT_snap_bake(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Operator):
+	""" Toggle a custom property while ensuring that some bones stay in place. """
+	bl_idname = "pose.cloudrig_snap_bake"
+	bl_label = "Snap And Bake Bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	do_bake: BoolProperty(name="Bake Keyframes in Range")
+	do_bake: BoolProperty(name="Bake Keyframes in Range", options={'SKIP_SAVE'},
+		description="Bake keyframes for the affected bones and remove keyframes from the switched property")
 	frame_start: IntProperty(name="Start Frame")
 	frame_end: IntProperty(name="End Frame")
 
@@ -198,7 +199,6 @@ class CLOUDRIG_OT_snap_simple(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Oper
 	def execute_before_apply(self, context, obj, range, range_raw):
 		value = self.get_custom_property_value(obj, self.prop_bone, self.prop_id)
 		self.bake_replace_custom_prop_keys_constant(self.prop_bone, self.prop_id, 1-value)
-
 
 	def set_selection(self, context, bones):
 		if self.select_bones:
@@ -378,7 +378,87 @@ class CLOUDRIG_OT_snap_simple(rigify_ui.RigifyBakeKeyframesMixin, bpy.types.Oper
 				no_loc=no_loc, no_rot=no_rot, no_scale=no_scale
 			)
 
-class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_simple):
+class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
+	""" Extends CLOUDRIG_OT_snap_bake operator to allow multiple target bones		# TODO: This probably doesn't work since once we call super().execute() once, the property will already be flipped, so any bones after the second one won't be put back to their old matrix.
+		and inputting the frame range inside the operator pop-up rather than
+		another place in the UI.
+	"""
+	bl_idname = "pose.cloudrig_switch_parent_bake"
+	bl_label = "Apply Switch Parent To Keyframes"
+	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	do_bake: BoolProperty(name="Bake Keyframes in Range")
+	frame_start: IntProperty(name="Start Frame")
+	frame_end: IntProperty(name="End Frame")
+
+	# TODO: I don't get why these parameters don't get inherited, but Sergey 
+	# doesn't know either, so what am I gonna do
+	bones:		  StringProperty(name="Control Bones")
+	prop_bone:    StringProperty(name="Property Bone")
+	prop_id:      StringProperty(name="Property")
+	parent_names: StringProperty(name="Parent Names")
+	locks:        BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+
+	def parent_items(self, context):
+		parents = json.loads(self.parent_names)
+		items = [(str(i), name, name) for i, name in enumerate(parents)]
+		return items
+
+	selected: EnumProperty(
+		name='Selected Parent',
+		items=parent_items
+	)
+
+	@classmethod
+	def poll(cls, context):
+		return context.active_object is not None and context.object.mode=='POSE'
+
+	def draw(self, context):
+		# TODO: Display name of the property bone and property whose keyframes will be cleared.
+		layout = self.layout
+
+		self.layout.prop(self, 'selected', text='')
+
+		self.layout.prop(self, 'do_bake')
+		time_row = layout.row(align=True)
+		if self.do_bake:
+			time_row.prop(self, 'frame_start')
+			time_row.prop(self, 'frame_end')
+
+		bone_names = layout.column(align=True)
+		bone_names.label(text="Affected bones:")
+		for b in self.bone_names:
+			bone_names.label(text="            " + b)
+
+	def execute(self, context):
+		bone_names = json.loads(self.bones)
+		if not self.do_bake:
+			for b in bone_names:
+
+				bpy.ops.pose.cloudrig_snap_bake(
+					bones = self.bones
+					,prop_bone = self.prop_bone
+					,prop_id = self.prop_id
+					,locks = self.locks
+				)
+			return {'FINISHED'}
+		
+		for b in bone_names:
+			self.bone = b
+			super().execute(context)
+
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		self.frame_start = context.scene.frame_start
+		self.frame_end = context.scene.frame_end
+		self.bone_names = json.loads(self.bones)
+		self.bone = self.bone_names[0]	# For super() compatibility, but doesn't actually do anything (I think)
+
+		return super().invoke(context, event)
+
+class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_bake):
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_idname = "pose.snap_mapped"
 	bl_label = "Snap Bones"
@@ -449,161 +529,13 @@ class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_simple):
 		for b in unhide_bones:
 			b.bone.hide = False
 
-class CLOUDRIG_OT_switch_parent(CLOUDRIG_OT_snap_simple):
-	bl_description = "Switch parent, preserving the bone position and orientation"
-	bl_idname = "pose.cloudrig_switch_parent"
-	bl_label = "Switch Parent (Keep Transform)"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	bones:		  StringProperty(name="Control Bone")
-	prop_bone:	  StringProperty(name="Property Bone")
-	prop_id:	  StringProperty(name="Property")
-
-	select_bones: BoolProperty(name="Select Affected Bones", default=True)
-
-	parent_names: StringProperty(name="Parent Names")
-	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-
-	parent_items = [('0','None','None')]
-
-	selected:	  EnumProperty(
-		name='Selected Parent',
-		items=lambda s,c: CLOUDRIG_OT_switch_parent.parent_items
-	)
-
-	def apply_frame_state(self, context, rig, old_matrices, bone_names):
-		# Change the parent
-		self.set_custom_property_value(
-			rig, self.prop_bone, self.prop_id, int(self.selected),
-			keyflags=self.keyflags_switch
-		)
-
-		context.view_layer.update()
-
-		# Set the transforms to restore position
-		for i, bone_name in enumerate(bone_names):
-			old_matrix = old_matrices[i]
-			self.set_transform_from_matrix(
-				rig, bone_name, old_matrix, keyflags=self.keyflags,
-				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-			)
-
-	def draw(self, _context):
-		col = self.layout.column()
-		col.prop(self, 'selected', expand=True)
-
-	def invoke(self, context, event):
-		rig = context.pose_object or context.active_object
-		pose = rig.pose
-
-		if (
-			not pose or not self.parent_names
-			#or self.bone not in pose.bones
-			or self.prop_bone not in pose.bones
-			or self.prop_id not in pose.bones[self.prop_bone]
-			):
-				self.report({'ERROR'}, "Invalid parameters")
-				return {'CANCELLED'}
-
-		parents = json.loads(self.parent_names)
-		pitems = [(str(i), name, name) for i, name in enumerate(parents)]
-
-		CLOUDRIG_OT_switch_parent.parent_items = pitems
-
-		self.selected = str(pose.bones[self.prop_bone][self.prop_id])
-
-		if hasattr(self, 'draw'):
-			return context.window_manager.invoke_props_popup(self, event)
-		else:
-			return self.execute(context)
-
-class CLOUDRIG_OT_switch_parent_bake(rigify_ui.POSE_OT_rigify_switch_parent_bake):
-	""" Extends Rigify's Parent Switch Bake operator to allow multiple target bones		# TODO: This probably doesn't work since once we call super().execute() once, the property will already be flipped, so any bones after the second one won't be put back to their old matrix.
-		and inputting the frame range inside the operator pop-up rather than
-		another place in the UI.
-	"""
-	bl_idname = "pose.cloudrig_switch_parent_bake"
-	bl_label = "Apply Switch Parent To Keyframes"
-	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
-
-	do_bake: BoolProperty(name="Bake Keyframes in Range")
-	frame_start: IntProperty(name="Start Frame")
-	frame_end: IntProperty(name="End Frame")
-
-	# TODO: I don't get why these parameters don't get inherited, but Sergey 
-	# doesn't know either, so what am I gonna do
-	bones:		  StringProperty(name="Control Bones")
-	prop_bone:    StringProperty(name="Property Bone")
-	prop_id:      StringProperty(name="Property")
-	parent_names: StringProperty(name="Parent Names")
-	locks:        BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-
-	def parent_items(self, context):
-		parents = json.loads(self.parent_names)
-		items = [(str(i), name, name) for i, name in enumerate(parents)]
-		return items
-
-	selected: EnumProperty(
-		name='Selected Parent',
-		items=parent_items
-	)
-
-	@classmethod
-	def poll(cls, context):
-		return context.active_object is not None and context.object.mode=='POSE'
-
-	def draw(self, context):
-		layout = self.layout
-
-		self.layout.prop(self, 'selected', text='')
-
-		self.layout.prop(self, 'do_bake')
-		time_row = layout.row(align=True)
-		if self.do_bake:
-			time_row.prop(self, 'frame_start')
-			time_row.prop(self, 'frame_end')
-
-		bone_names = layout.column(align=True)
-		bone_names.label(text="Affected bones:")
-		for b in self.bone_names:
-			bone_names.label(text="            " + b)
-
-	def execute(self, context):
-		bone_names = json.loads(self.bones)
-		if not self.do_bake:
-			for b in bone_names:
-
-				bpy.ops.pose.cloudrig_switch_parent(
-					bones = self.bones
-					,prop_bone = self.prop_bone
-					,prop_id = self.prop_id
-					,parent_names = self.parent_names
-					,locks = self.locks
-					,selected = self.selected
-				)
-			return {'FINISHED'}
-		
-		for b in bone_names:
-			self.bone = b
-			super().execute(context)
-
-		return {'FINISHED'}
-
-	def invoke(self, context, event):
-		self.frame_start = context.scene.frame_start
-		self.frame_end = context.scene.frame_end
-		self.bone_names = json.loads(self.bones)
-		self.bone = self.bone_names[0]	# For super() compatibility, but doesn't actually do anything (I think)
-
-		return super().invoke(context, event)
-
-	# TODO: When do_bake is enabled, display a list of bones whose keyframes will be affected, and the name of the property whose keyframes will be cleared.
-
 class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
-	bl_description = "Toggle between IK and FK, and snap the controls accordingly. This will NOT place any keyframes, but it will select the affected bones"
+	""" Toggle between IK and FK, and snap the controls accordingly. 
+		This will NOT place any keyframes, but it will select the affected bones
+	"""
 	bl_idname = "armature.ikfk_toggle"
 	bl_label = "Toggle IK/FK"
-	bl_options = {'REGISTER', 'UNDO'}
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	prop_bone:	StringProperty()
 	prop_id:	StringProperty()
@@ -1221,9 +1153,8 @@ class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
-	,CLOUDRIG_OT_switch_parent
 	,CLOUDRIG_OT_snap_mapped	# NOTE: Operators inheriting from others must be registered BEFORE the ones they are inheriting from!!!
-	,CLOUDRIG_OT_snap_simple
+	,CLOUDRIG_OT_snap_bake
 	,CLOUDRIG_OT_ikfk_toggle
 	,CLOUDRIG_OT_reset_colors
 

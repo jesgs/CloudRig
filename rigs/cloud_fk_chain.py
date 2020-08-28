@@ -124,7 +124,7 @@ class CloudFKChainRig(CloudChainRig):
 			"prop_bone"			: prop_bone,
 			"prop_id" 			: prop_name,
 
-			"operator" : "pose.snap_simple",
+			"operator" : "pose.cloudrig_snap_bake",
 			"bones" : [bone.name]
 		}
 

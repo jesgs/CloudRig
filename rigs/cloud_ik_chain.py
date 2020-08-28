@@ -438,7 +438,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				"prop_bone" : self.properties_bone,
 				"prop_id"	: ik_pole_follow_name,
 
-				"operator" : "pose.snap_simple",
+				"operator" : "pose.cloudrig_snap_bake",
 				"bones" : [self.pole_ctrl.name],
 				"select_bones" : True
 			}
