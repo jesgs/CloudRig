@@ -134,7 +134,7 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 	frame_start: IntProperty(name="Start Frame")
 	frame_end: IntProperty(name="End Frame")
 
-	bones:		  StringProperty(name="Control Bone")
+	bones:		  StringProperty(name="Control Bones")
 	prop_bone:	  StringProperty(name="Property Bone")
 	prop_id:	  StringProperty(name="Property")
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
@@ -150,14 +150,19 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 		self.frame_end = context.scene.frame_end
 		self.bone_names = json.loads(self.bones)
 
+	def init_execute(self, context):
+		# In case the operator is executed without init.
+		self.init_invoke(context)
+
 	def bake_init(self, context):
+		# Override to use operator's frame range instead of Rigify's globally set range.
 		super().bake_init(context)
 		self.bake_frame_range = (self.frame_start, self.frame_end)
 		self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
 
 	def execute_scan_curves(self, context, obj):
 		"Register frames to be baked, and return curves that should be cleared."
-		self.bake_add_bone_frames(self.bone)
+		self.bake_add_bone_frames(self.bone_names)
 		return None
 
 	def set_selection(self, context, bones):
@@ -196,14 +201,13 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		self.bone_names = json.loads(self.bones)
 
 		if self.do_bake:
-			self.bone = self.bone_names[0]
 			return super().execute(context)
-		
+
 		bone_names = json.loads(self.bones)
 		bones = get_bones(rig, self.bones)
 
 		try:
-			matrices = self.save_frame_state(context, rig)
+			matrices = self.save_frame_state(context, rig, bone_names)
 			self.after_save_state(context, rig)
 			self.apply_frame_state(context, rig, matrices)
 
@@ -215,10 +219,10 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 
 		return {'FINISHED'}
 
-	def save_frame_state(self, context, rig, bone=None) -> List[Matrix]:
-		if not bone:
-			bone = self.bone_names[0]
-		return get_chain_transform_matrices(rig, self.bone_names)
+	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
+		if not bone_names:
+			bone_names = self.bone_names
+		return get_chain_transform_matrices(rig, bone_names)
 
 	def after_save_state(self, context, rig):
 		"""After saving the bone matrices, it's time to set the property value."""
@@ -260,12 +264,13 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 	frame_start: IntProperty(name="Start Frame")
 	frame_end: IntProperty(name="End Frame")
 
-	bones:		  StringProperty(name="Control Bone")
+	bones:		  StringProperty(name="Control Bones")
 	prop_bone:	  StringProperty(name="Property Bone")
 	prop_id:	  StringProperty(name="Property")
-	parent_names: StringProperty(name="Parent Names")
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
 	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+	
+	parent_names: StringProperty(name="Parent Names")
 
 	def parent_items(self, context):
 		parents = json.loads(self.parent_names)
@@ -276,11 +281,6 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 		name='Selected Parent',
 		items=parent_items
 	)
-
-	def init_invoke(self, context):
-		ret = super().init_invoke(context)
-		self.bone = self.bone_names[0]	# For super() compatibility, but doesn't actually do anything (I think)
-		return ret
 
 	def draw(self, context):
 		layout = self.layout
@@ -301,6 +301,79 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 				keyflags=self.keyflags_switch
 			)
 		context.view_layer.update()
+
+class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
+	""" Extend CLOUDRIG_OT_snap_bake with the ability to snap a list of bones
+		to another (equal length) list of bones.
+	"""
+
+	bl_idname = "pose.cloudrig_snap_mapped_bake"
+	bl_label = "Snap And Bake Bones (Mapped)"
+	bl_description = "Toggle a custom property and snap some bones to some other bones"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# TODO: For some reason operator property definitions don't get inherited...???
+	do_bake: BoolProperty(
+		name="Bake Keyframes in Range",
+		options={'SKIP_SAVE'},
+		description="Bake keyframes for the affected bones and remove keyframes from the switched property",
+		default=False
+	)
+	frame_start: IntProperty(name="Start Frame")
+	frame_end: IntProperty(name="End Frame")
+
+	prop_bone:	  StringProperty(name="Property Bone")
+	prop_id:	  StringProperty(name="Property")
+	select_bones: BoolProperty(name="Select Affected Bones", default=True)
+	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+
+	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
+	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
+
+	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
+	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
+
+	# In save_frame_state, we save the states of the bones we're mapping to, and in apply_frame_state, we apply those states to the bones we're mapping from.
+	# That should be the only tricky part I think... but I'm probably wrong.
+	# For initial testing, use this for IK/FK switching (ignore pole target)
+
+	def init_invoke(self, context):
+		rig = context.pose_object or context.active_object
+		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+
+		map_on = json.loads(self.map_on)
+		map_off = json.loads(self.map_off)
+
+		self.bone_map = map_off if value==1 else map_on
+		bone_names = [t[0] for t in self.bone_map]
+		self.bones = json.dumps(bone_names)
+		super().init_invoke(context)	# This creates self.bone_names based on self.bones.
+
+	def save_frame_state(self, context, rig, bone_names) -> List[Matrix]:
+		bone_names = [t[1] for t in self.bone_map]
+		return get_chain_transform_matrices(rig, bone_names, space='WORLD')
+
+	def execute_scan_curves(self, context, obj):
+		"Register frames to be baked, and return curves that should be cleared."
+		bone_names = [t[1] for t in self.bone_map]
+		self.bake_add_bone_frames(bone_names)
+		return None
+
+	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
+		# Slap the transform matrices of the map_from bones to the map_to bones
+		for i, bone_name in enumerate(self.bone_names):
+			old_matrix = matrices[i]
+			set_transform_from_matrix(
+				rig, bone_name, old_matrix, space='WORLD', keyflags=self.keyflags,
+				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
+			)
+			context.evaluated_depsgraph_get().update()	# This matters!!!!
+
+class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
+	""" This should extend CLOUDRIG_OT_snap_mapped_bake with special treatment 
+		for the IK elbow.
+	"""
+	pass
 
 class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_bake):
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
@@ -386,13 +459,12 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 
 	fk_chain:	StringProperty()
 	ik_chain:	StringProperty()
-	str_chain:	StringProperty()
 
 	ik_control: StringProperty()
 	ik_pole:	StringProperty()
 
-	double_first_control: BoolProperty(default=False)	# Flag for handling when the first FK bone is "doubled" (ie. has an extra parent bone).
-	double_ik_control:	  BoolProperty(default=False)	# Flag for handling when the IK control(eg. IK_Wrist.L) is "doubled".
+	double_first_fk: BoolProperty(default=False)	# Flag for handling when the first FK bone is "doubled" (ie. has an extra parent bone).
+	double_ik:	  BoolProperty(default=False)	# Flag for handling when the IK control(eg. IK_Wrist.L) is "doubled".
 
 	@classmethod
 	def poll(cls, context):
@@ -403,28 +475,29 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 
 		fk_chain = get_bones(armature, self.fk_chain)
 		ik_chain = get_bones(armature, self.ik_chain)
-		str_chain = get_bones(armature, self.str_chain)
 
 		ik_pole = armature.pose.bones.get(self.ik_pole)	# Can be None.
 		ik_control = armature.pose.bones.get(self.ik_control)
 		assert ik_control, "ERROR: Could not find IK Control: " + self.ik_control
 
-		# List of bone tuples to snap from->to.
-		map_on = []									# Which bone will be snapped to which when the custom property prop_id is set to 1.
-		map_off = [] 								# Which bone will be snapped to which when the custom property prop_id is set to 0.
+		# List of bone tuples to snap (from, to).
+		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
+		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
 		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
 		hide_off = [self.ik_control, self.ik_pole]	# Which bones will be hidden when the custom property is set to 0.
 
-		if self.double_ik_control:
+		if self.double_ik:
 			hide_off.append(ik_control.parent.name)
 			map_on.append( (ik_control.parent.name, fk_chain[-1].name) )
+
 		map_on.append( (self.ik_control, fk_chain[-1].name) )
 		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
-		if self.double_first_control:
+
+		if self.double_first_fk:
 			hide_on.append( (fk_chain[0].parent.name) )
 			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
 		map_off.append( (fk_chain[0].name, ik_chain[0].name) )
-		map_off.append( (fk_chain[1].name, str_chain[1].name) )
+		map_off.append( (fk_chain[1].name, ik_chain[1].name) )
 		map_off.append( (fk_chain[2].name, ik_control.name) )
 
 		prop_bone = armature.pose.bones.get(self.prop_bone)
@@ -451,11 +524,8 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 				ik_pole.bone.select=True
 				# self.match_pole_target(first_ik_bone, last_ik_bone, ik_pole, first_fk_bone, 0.5)
 			else:
-				if first_ik_bone.rotation_mode == fk_chain[0].rotation_mode:
-					first_ik_bone.location = fk_chain[0].location.copy()
-					first_ik_bone.rotation_euler = fk_chain[0].rotation_euler.copy()
-				else:
-					first_ik_bone.wdmatrix = fk_chain[0].matrix.copy()
+				first_ik_bone.matrix = fk_chain[0].matrix.copy()
+
 			context.evaluated_depsgraph_get().update() #TODO: This might be useless?
 
 		return {'FINISHED'}
@@ -997,7 +1067,9 @@ class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
+	# ,CLOUDRIG_OT_ikfk_bake
 	,CLOUDRIG_OT_snap_mapped	# NOTE: Operators inheriting from others must be registered BEFORE the ones they are inheriting from!!!
+	,CLOUDRIG_OT_snap_mapped_bake
 	,CLOUDRIG_OT_snap_bake
 	,CLOUDRIG_OT_ikfk_toggle
 	,CLOUDRIG_OT_reset_colors
