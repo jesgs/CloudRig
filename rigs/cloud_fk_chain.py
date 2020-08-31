@@ -195,14 +195,12 @@ class CloudFKChainRig(CloudChainRig):
 			last_def.parent = last_def.parent.org_parent
 
 	def tweak_def_chain(self):
-
 		for i, def_bone in enumerate(self.def_chain):
 			fk_control = self.fk_chain[int(i/self.params.CR_chain_segments)]
 			def_bone.inherit_scale = 'FULL'
 			for d in def_bone.drivers:
 				if 'bbone_scale' not in d['prop']: continue
 				d['variables']['scale']['targets'][0]['bone_target'] = fk_control.name
-
 
 	def attach_org_to_fk(self):
 		# Find existing ORG bones
@@ -274,6 +272,12 @@ class CloudFKChainRig(CloudChainRig):
 		)
 
 		super().add_parameters(params)
+
+	@classmethod
+	def draw_bone_set_params(cls, layout, params, set_info):
+		# We only want to draw Curve Handles bone set UI if the option for it is enabled.
+		if set_info['name'] != "FK Controls Extra" or params.CR_fk_chain_double_first:
+			super().draw_bone_set_params(layout, params, set_info)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, params):
