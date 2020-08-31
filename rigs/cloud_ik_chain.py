@@ -232,9 +232,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			"prop_id"				: self.ikfk_name,
 			"fk_chain"				: [b.name for b in fk_chain],
 			"ik_chain"				: [b.name for b in ik_chain],
-			"str_chain"				: [b.name for b in self.main_str_bones],
-			"double_first_control"	: self.params.CR_fk_chain_double_first,
-			"double_ik_control"		: self.params.CR_limb_double_ik,
+			"double_first_fk"	: self.params.CR_fk_chain_double_first,
+			"double_ik"		: self.params.CR_limb_double_ik,
 			"ik_pole"				: ik_pole.name if ik_pole else "",
 			"ik_control"			: self.ik_mstr.name
 		}

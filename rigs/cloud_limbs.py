@@ -85,7 +85,6 @@ class CloudLimbRig(CloudIKChainRig):
 	def prepare_bones(self):
 		super().prepare_bones()
 		self.tweak_str_limb()
-		self.make_ik_limb()
 		self.tweak_org_foot()
 		segments = self.params.CR_chain_segments
 		if self.params.CR_limb_auto_hose and segments > 1:
@@ -93,8 +92,50 @@ class CloudLimbRig(CloudIKChainRig):
 			lower = self.str_chain[segments+1:segments*2]
 			self.setup_rubber_hose(self.org_chain[1], upper, lower)
 
+	##############################
+	# Override some inherited functionality
+
+	def make_ik_setup(self):
+		"""Override."""
+		super().make_ik_setup()
+		# Configure IK Master
+		wgt_name = 'Hand_IK' if self.limb_type=='ARM' else 'Foot_IK'
+		self.ik_mstr.custom_shape = self.ensure_widget(wgt_name)
+		self.ik_mstr.custom_shape_scale = 0.8 if self.limb_type=='ARM' else 2.8
+
+		def foot_dsp(bone):
+			# Create foot DSP helpers
+			if self.limb_type=='LEG':
+				dsp_bone = self.create_dsp_bone(bone)
+				direction = 1 if self.side_suffix=='L' else -1
+				projected_head = Vector((bone.head[0], bone.head[1], 0))
+				projected_tail = Vector((bone.tail[0], bone.tail[1], 0))
+				projected_center = projected_head + (projected_tail-projected_head) / 2
+				dsp_bone.head = projected_center
+				dsp_bone.tail = projected_center + Vector((0, -self.scale/10, 0))
+				dsp_bone.roll = rad(90) * direction
+
+		foot_dsp(self.ik_mstr)
+		# Parent control
+		if self.params.CR_limb_double_ik:
+			double_control = self.create_parent_bone(self.ik_mstr, self.ik_parent_ctrls)
+			double_control.bone_group = "IK Parent Controls"
+			foot_dsp(double_control)
+
+		# IK Foot setup, including Foot Roll
+		if self.limb_type == 'LEG':
+			if self.params.CR_limb_use_foot_roll:
+				self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
+			self.make_ik_toe()
+
+		# Counter-Rotate setup for the first section of STR bones.
+		for i in range(0, self.params.CR_chain_segments):
+			factor_unit = 0.9 / self.params.CR_chain_segments
+			factor = 0.9 - factor_unit * i
+			self.add_counterrotate_constraint(self.str_chain[i], self.org_chain[0], factor)
+
 	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole=None):
-		"""Overrides."""
+		"""Override."""
 		if self.limb_type=='LEG':
 			fk_chain = fk_chain[:-1]
 		super().add_ui_data_ik_fk(fk_chain, ik_chain, ik_pole)
@@ -122,7 +163,13 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.params.CR_limb_double_ik:
 			ik_ctrl = ik_ctrl.parent
 
+		print("Adding parent switch mechanism:")
+		print(ik_ctrl)
+
 		super().make_parent_switch(ik_ctrl)
+
+	##############################
+	# End of overrides
 
 	def tweak_str_limb(self):
 		# We want to make some changes to the STR chain to make it behave more limb-like.
@@ -132,45 +179,6 @@ class CloudLimbRig(CloudIKChainRig):
 		for b in self.main_str_bones[0].sub_bones:
 			str_h_bone = b.parent
 			str_h_bone.constraint_infos[2].mute = True
-
-	def make_ik_limb(self):
-		# NOTE: This runs after super().make_ik_setup()
-
-		def foot_dsp(bone):
-			# Create foot DSP helpers
-			if self.limb_type=='LEG':
-				dsp_bone = self.create_dsp_bone(bone)
-				direction = 1 if self.side_suffix=='L' else -1
-				projected_head = Vector((bone.head[0], bone.head[1], 0))
-				projected_tail = Vector((bone.tail[0], bone.tail[1], 0))
-				projected_center = projected_head + (projected_tail-projected_head) / 2
-				dsp_bone.head = projected_center
-				dsp_bone.tail = projected_center + Vector((0, -self.scale/10, 0))
-				dsp_bone.roll = rad(90) * direction
-
-		# Configure IK Master
-		wgt_name = 'Hand_IK' if self.limb_type=='ARM' else 'Foot_IK'
-		self.ik_mstr.custom_shape = self.ensure_widget(wgt_name)
-		self.ik_mstr.custom_shape_scale = 0.8 if self.limb_type=='ARM' else 2.8
-
-		foot_dsp(self.ik_mstr)
-		# Parent control
-		if self.params.CR_limb_double_ik:
-			double_control = self.create_parent_bone(self.ik_mstr, self.ik_parent_ctrls)
-			double_control.bone_group = "IK Parent Controls"
-			foot_dsp(double_control)
-
-		# IK Foot setup, including Foot Roll
-		if self.limb_type == 'LEG':
-			if self.params.CR_limb_use_foot_roll:
-				self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
-			self.make_ik_toe()
-
-		# Counter-Rotate setup for the first section of STR bones.
-		for i in range(0, self.params.CR_chain_segments):
-			factor_unit = 0.9 / self.params.CR_chain_segments
-			factor = 0.9 - factor_unit * i
-			self.add_counterrotate_constraint(self.str_chain[i], self.org_chain[0], factor)
 
 	def make_footroll(self, ik_tgt, ik_chain, org_chain):
 		ik_foot = ik_chain[0]
