@@ -378,7 +378,120 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 	""" This should extend CLOUDRIG_OT_snap_mapped_bake with special treatment 
 		for the IK elbow.
 	"""
-	pass
+
+	bl_idname = "pose.cloudrig_toggle_ikfk_bake"
+	bl_label = "Toggle And Bake IK/FK"
+	bl_description = "Toggle a custom property and snap some bones to some other bones"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# TODO: For some reason operator property definitions don't get inherited...???
+	do_bake: BoolProperty(
+		name="Bake Keyframes in Range",
+		options={'SKIP_SAVE'},
+		description="Bake keyframes for the affected bones and remove keyframes from the switched property",
+		default=False
+	)
+	frame_start: IntProperty(name="Start Frame")
+	frame_end: IntProperty(name="End Frame")
+
+	prop_bone:	  StringProperty(name="Property Bone")
+	prop_id:	  StringProperty(name="Property")
+	select_bones: BoolProperty(name="Select Affected Bones", default=True)
+	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+
+	fk_chain:	StringProperty()
+	ik_chain:	StringProperty()
+
+	ik_control: StringProperty()
+	ik_pole:	StringProperty()
+
+	double_first_fk: BoolProperty(default=False)	# Flag for handling when the first FK bone is "doubled" (ie. has an extra parent bone).
+	double_ik:	  BoolProperty(default=False)	# Flag for handling when the IK control(eg. IK_Wrist.L) is "doubled".
+
+	def init_invoke(self, context):
+		rig = context.object
+		fk_chain = get_bones(rig, self.fk_chain)
+		ik_chain = get_bones(rig, self.ik_chain)
+
+		ik_pole = rig.pose.bones.get(self.ik_pole)	# Can be None.
+		ik_control = rig.pose.bones.get(self.ik_control)
+		assert ik_control, "ERROR: Could not find IK Control: " + self.ik_control
+
+		# List of bone tuples to snap (from, to).
+		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
+		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
+
+		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
+		hide_off = [self.ik_control, self.ik_pole]	# Which bones will be hidden when the custom property is set to 0.
+
+		if self.double_ik:
+			hide_off.append(ik_control.parent.name)
+			map_on.append( (ik_control.parent.name, fk_chain[-1].name) )
+
+		map_on.append( (self.ik_control, fk_chain[-1].name) )
+		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
+
+		if self.double_first_fk:
+			hide_on.append( (fk_chain[0].parent.name) )
+			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
+		map_off.append( (fk_chain[0].name, ik_chain[0].name) )
+		map_off.append( (fk_chain[1].name, ik_chain[1].name) )
+		map_off.append( (fk_chain[2].name, ik_control.name) )
+
+		self.pole = ik_pole
+		self.fk_first = fk_chain[0]
+		self.fk_last = fk_chain[1]
+
+		self.map_on = json.dumps(map_on)
+		self.map_off = json.dumps(map_off)
+		self.hide_on = json.dumps(hide_on)
+		self.hide_off = json.dumps(hide_off)
+		self.select_bones = True
+
+		prop_value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+		self.is_pole = prop_value==0 and self.pole!=None
+
+		if self.is_pole:
+			self.pole.bone.select=True
+		
+		super().init_invoke(context)
+
+	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
+		matrices = super().save_frame_state(context, rig, bone_names)
+		if self.is_pole:
+			matrices.append(self.get_pole_target_matrix())
+		return matrices
+
+	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
+		# Restore transform matrices
+		if self.is_pole:
+			self.bone_names.append(self.pole.name)
+
+		for i, bone_name in enumerate(self.bone_names):
+			old_matrix = matrices[i]
+			set_transform_from_matrix(
+				rig, bone_name, old_matrix, keyflags=self.keyflags,
+				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
+			)
+			context.evaluated_depsgraph_get().update()
+
+	def get_pole_target_matrix(self):
+		""" Find the matrix where the IK pole should be. """
+		""" This is only accurate when the bone chain lies perfectly on a plane 
+			and the IK Pole Angle is divisible by 90. 
+			This should be the case for a correct IK chain! 
+		"""
+
+		chain_length = self.fk_first.vector.length + self.fk_last.vector.length
+		pole_distance = chain_length/2
+
+		pole_direction = (self.fk_first.vector - self.fk_last.vector).normalized()
+
+		pole_loc = self.fk_first.tail + pole_direction * pole_distance
+
+		mat = self.pole.matrix.copy()
+		mat.translation = pole_loc
+		return mat
 
 class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_bake):
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
@@ -1072,7 +1185,7 @@ class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
-	# ,CLOUDRIG_OT_ikfk_bake
+	,CLOUDRIG_OT_ikfk_bake
 	,CLOUDRIG_OT_snap_mapped	# NOTE: Operators inheriting from others must be registered BEFORE the ones they are inheriting from!!!
 	,CLOUDRIG_OT_snap_mapped_bake
 	,CLOUDRIG_OT_snap_bake
