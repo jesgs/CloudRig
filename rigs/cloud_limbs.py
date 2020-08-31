@@ -93,6 +93,12 @@ class CloudLimbRig(CloudIKChainRig):
 			lower = self.str_chain[segments+1:segments*2]
 			self.setup_rubber_hose(self.org_chain[1], upper, lower)
 
+	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole=None):
+		"""Overrides."""
+		if self.limb_type=='LEG':
+			fk_chain = fk_chain[:-1]
+		super().add_ui_data_ik_fk(fk_chain, ik_chain, ik_pole)
+
 	def make_fk_chain(self):
 		"""Override."""
 		super().make_fk_chain()
