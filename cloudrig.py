@@ -207,7 +207,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		bones = get_bones(rig, self.bones)
 
 		try:
-			matrices = self.save_frame_state(context, rig, bone_names)
+			matrices = self.save_frame_state(context, rig)
 			self.after_save_state(context, rig)
 			self.apply_frame_state(context, rig, matrices)
 
@@ -228,9 +228,11 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		"""After saving the bone matrices, it's time to set the property value."""
 		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 		if self.do_bake:
-			self.bake_replace_custom_prop_keys_constant(
-				self.prop_bone, self.prop_id, 1-value
-			)
+			any_curves_on_property = self.bake_get_bone_prop_curves(self.prop_bone, f'["{self.prop_id}"]')
+			if any_curves_on_property:
+				self.bake_replace_custom_prop_keys_constant(
+					self.prop_bone, self.prop_id, 1-value
+				)
 		else:
 			set_custom_property_value(
 				rig, self.prop_bone, self.prop_id, 1-value,
@@ -349,13 +351,16 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 		self.bones = json.dumps(bone_names)
 		super().init_invoke(context)	# This creates self.bone_names based on self.bones.
 
-	def save_frame_state(self, context, rig, bone_names) -> List[Matrix]:
-		bone_names = [t[1] for t in self.bone_map]
+	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
+		if not bone_names:
+			bone_names = [t[1] for t in self.bone_map]
 		return get_chain_transform_matrices(rig, bone_names, space='WORLD')
 
 	def execute_scan_curves(self, context, obj):
 		"Register frames to be baked, and return curves that should be cleared."
 		bone_names = [t[1] for t in self.bone_map]
+		self.bake_add_bone_frames(bone_names)
+		bone_names = [t[0] for t in self.bone_map]
 		self.bake_add_bone_frames(bone_names)
 		return None
 
