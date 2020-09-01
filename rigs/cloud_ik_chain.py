@@ -239,7 +239,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		ik_pole = self.pole_ctrl
 
 		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
-		hide_off = [ik_mstr.name, ik_pole.name]	# Which bones will be hidden when the custom property is set to 0.
+		hide_off = [ik_mstr.name]	# Which bones will be hidden when the custom property is set to 0.
+		if ik_pole:
+			hide_off.append(ik_pole.name)
 
 		if self.params.CR_limb_double_ik:
 			hide_off.append(ik_mstr.parent.name)

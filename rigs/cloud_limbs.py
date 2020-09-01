@@ -404,7 +404,28 @@ class CloudLimbRig(CloudIKChainRig):
 			"prop_bone"			: self.properties_bone,
 			"prop_id" 			: prop_name,
 		}
-		self.add_ui_data("auto_rubber_hose", self.category, self.limb_ui_name, info)
+
+		control_bone = None
+		if self.params.CR_limb_auto_hose_control:
+			# Create control bone
+			control_bone = self.make_rubber_hose_control()
+			self.properties_bone.custom_props[prop_name] = {'default' : 0.0}
+			self.properties_bone.drivers.append({
+				'prop' : f'["{prop_name}"]'
+				,'expression' : "var-1"
+				,'variables' : [
+					{
+						'type' : 'TRANSFORMS'
+						,'targets' : [{
+							'bone_target' : control_bone.name
+							,'transform_space' : 'LOCAL_SPACE'
+							,'transform_type' : 'SCALE_Y'
+						}]
+					}
+				]
+			})
+		else:
+			self.add_ui_data("auto_rubber_hose", self.category, self.limb_ui_name, info)
 
 		for i, str_list in enumerate([str_upper, str_lower]):
 			org_bone = self.org_chain[i]
@@ -500,6 +521,34 @@ class CloudLimbRig(CloudIKChainRig):
 					}
 				})
 
+	def make_rubber_hose_control(self) -> BoneInfo:
+		org_elbow = self.org_chain[1]
+		
+		control_bone = self.new_bonei(self.fk_extras
+			,name = org_elbow.name.replace("ORG", "AutoRubberHose")
+			,source = org_elbow
+			,custom_shape = self.ensure_widget('Double_Arrow')
+		)
+		parent_bone = self.new_bonei(self.fk_mch
+			,name = self.naming.add_prefix(control_bone, 'P')
+			,source = org_elbow
+			,parent = org_elbow#self.main_str_bones[1]
+			,use_inherit_rotation = False
+			,length = self.scale/10
+		)
+		control_bone.parent = parent_bone
+		# Shift it towards the IK pole or where it would be.
+		new_loc = control_bone.head + self.pole_vector/10
+		control_bone.head = new_loc
+		control_bone.vector = org_elbow.vector * 0.3
+		control_bone.roll = pi/2 if self.limb_type=='LEG' else 0	# TODO this breaks support for arbitrary bone roll on limbs.
+		self.lock_transforms(control_bone, scale=[True, False, True])
+		control_bone.add_constraint('LIMIT_SCALE'
+			,use_max_y = True
+			,max_y = 2
+		)
+		return control_bone
+
 	##############################
 	# Parameters
 
@@ -515,6 +564,11 @@ class CloudLimbRig(CloudIKChainRig):
 		params.CR_limb_auto_hose = BoolProperty(
 			name		 = "Auto Rubber Hose"
 			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be greater than 1. For best results, Smooth Spline parameter should be enabled"
+			,default	 = False
+		)
+		params.CR_limb_auto_hose_control = BoolProperty(
+			name		 = "Create Control Bone"
+			,description = "Instead of controlling the Auto Rubber Hose property from the rig UI, create a control bone on the FK Extras layer"
 			,default	 = False
 		)
 
@@ -567,6 +621,10 @@ class CloudLimbRig(CloudIKChainRig):
 		cls.draw_prop(layout, params, "CR_limb_lock_yz", text=f"Lock {word} Y/Z")
 		row = cls.draw_prop(layout, params, 'CR_limb_auto_hose')
 		row.enabled = params.CR_chain_segments > 1
+		if row.enabled and params.CR_limb_auto_hose:
+			split = layout.split(factor=0.05)
+			split.row()
+			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_control')
 
 		return layout
 
