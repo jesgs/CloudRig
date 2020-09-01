@@ -479,7 +479,7 @@ class CloudLimbRig(CloudIKChainRig):
 				# Offset driver
 				trans_con.drivers.append({
 					'prop' : 'to_min_y_scale'
-					,'expression' : f"1 + ( (abs(rot_x)+abs(rot_z)) / pi ) * 1.5"
+					,'expression' : "1 + pow( (abs(rot_x) + abs(rot_z)) / pi, 0.5 ) * 1.5"
 					,'variables' : {
 						'rot_x' : {
 							'type' : 'TRANSFORMS'

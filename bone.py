@@ -571,6 +571,10 @@ class ConstraintInfo(dict):
 						'ACTION', 'TRANSFORM']
 		if not hasattr(self, 'space') and self.type in support_local:
 			self.space = 'LOCAL'
+		
+		if self.type == 'TRANSFORM':
+			self.mix_mode_scale = 'MULTIPLY'
+			self.mix_mode_rot = 'BEFORE'
 		if self.type == 'STRETCH_TO':
 			self.use_bulge_min = True
 			self.use_bulge_max = True
