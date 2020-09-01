@@ -11,6 +11,7 @@ from rigify.base_rig import stage
 
 from .cloud_ik_chain import CloudIKChainRig
 from ..bone import BoneInfo
+from ..utils.maths import flat
 
 """TODO
 feet control shouldn't be forced onto the floor, maybe based on an option, or use anklepivot bone, or whatever.
@@ -126,6 +127,17 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.limb_type == 'LEG':
 			if self.params.CR_limb_use_foot_roll:
 				self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
+
+				# For FK->IK snapping to work properly when the IK control is world-aligned,
+				# we need a world-aligned child of the IK bone.
+				if self.params.CR_ik_chain_world_aligned:
+					self.foot_snap_bone = self.new_bonei(self.ik_mch
+						,name		 = self.fk_chain[2].name.replace("W-", "W-SNAP")
+						,source		 = self.fk_chain[2]
+						,vector		 = flat(self.fk_chain[2].vector)
+						,parent		 = self.ik_chain[2]
+						,hide_select = self.mch_disable_select
+					)
 			self.make_ik_toe()
 
 		# Counter-Rotate setup for the first section of STR bones.
@@ -134,11 +146,17 @@ class CloudLimbRig(CloudIKChainRig):
 			factor = 0.9 - factor_unit * i
 			self.add_counterrotate_constraint(self.str_chain[i], self.org_chain[0], factor)
 
-	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole=None):
+	def get_ui_data_ik_fk(self):
 		"""Override."""
+		ui_data = super().get_ui_data_ik_fk()
 		if self.limb_type=='LEG':
-			fk_chain = fk_chain[:-1]
-		super().add_ui_data_ik_fk(fk_chain, ik_chain, ik_pole)
+			# Toe is not relevant for IK/FK switching.
+			ui_data['map_off'] = ui_data['map_off'][:-1]
+			if self.params.CR_ik_chain_world_aligned and self.params.CR_limb_use_foot_roll:
+				# In the case of world aligned IK control + footroll, we must 
+				# snap the FK foot to a specialized helper bone rather than any IK bone.
+				ui_data['map_off'][-1] = (ui_data['map_off'][-1][0], self.foot_snap_bone.name)
+		return ui_data
 
 	def make_fk_chain(self):
 		"""Override."""

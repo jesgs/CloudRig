@@ -12,9 +12,11 @@ the script that belongs to it, and not another, potentially newer or older versi
 
 import bpy, traceback, json
 from typing import List, Dict
-from bpy.props import 	(StringProperty, BoolProperty, BoolVectorProperty, 
+from bpy.props import (
+						StringProperty, BoolProperty, BoolVectorProperty, 
 						EnumProperty, FloatVectorProperty, PointerProperty, 
-						CollectionProperty, IntProperty)
+						CollectionProperty, IntProperty
+					)
 from mathutils import Vector, Matrix
 from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path
@@ -399,62 +401,27 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
 	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
 
-	fk_chain:	StringProperty()
-	ik_chain:	StringProperty()
+	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
+	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
 
-	ik_control: StringProperty()
+	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
+	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
+
 	ik_pole:	StringProperty()
-
-	double_first_fk: BoolProperty(default=False)	# Flag for handling when the first FK bone is "doubled" (ie. has an extra parent bone).
-	double_ik:	  BoolProperty(default=False)	# Flag for handling when the IK control(eg. IK_Wrist.L) is "doubled".
+	fk_first:	StringProperty()
+	fk_last:	StringProperty()
 
 	def init_invoke(self, context):
 		rig = context.object
-		fk_chain = get_bones(rig, self.fk_chain)
-		ik_chain = get_bones(rig, self.ik_chain)
 
-		ik_pole = rig.pose.bones.get(self.ik_pole)	# Can be None.
-		ik_control = rig.pose.bones.get(self.ik_control)
-		assert ik_control, "ERROR: Could not find IK Control: " + self.ik_control
-
-		# List of bone tuples to snap (from, to).
-		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
-		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
-
-		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
-		hide_off = [self.ik_control, self.ik_pole]	# Which bones will be hidden when the custom property is set to 0.
-
-		if self.double_ik:
-			hide_off.append(ik_control.parent.name)
-			map_on.append( (ik_control.parent.name, fk_chain[-1].name) )
-
-		map_on.append( (self.ik_control, fk_chain[-1].name) )
-		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
-
-		if self.double_first_fk:
-			hide_on.append( (fk_chain[0].parent.name) )
-			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
-		map_off.append( (fk_chain[0].name, ik_chain[0].name) )
-		map_off.append( (fk_chain[1].name, ik_chain[1].name) )
-		map_off.append( (fk_chain[2].name, ik_control.name) )
-
-		self.pole = ik_pole
-		self.fk_first = fk_chain[0]
-		self.fk_last = fk_chain[1]
-
-		self.map_on = json.dumps(map_on)
-		self.map_off = json.dumps(map_off)
-		self.hide_on = json.dumps(hide_on)
-		self.hide_off = json.dumps(hide_off)
-		self.select_bones = True
-
+		self.pole = rig.pose.bones.get(self.ik_pole)	# Can be None.
 		prop_value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 		self.is_pole = prop_value==0 and self.pole!=None
 
-		if self.is_pole:
-			self.pole.bone.select=True
-		
 		super().init_invoke(context)
+
+		if self.is_pole:
+			self.bone_names.append(self.pole.name)
 
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
 		matrices = super().save_frame_state(context, rig, bone_names)
@@ -464,8 +431,6 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 
 	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
 		# Restore transform matrices
-		if self.is_pole:
-			self.bone_names.append(self.pole.name)
 
 		for i, bone_name in enumerate(self.bone_names):
 			old_matrix = matrices[i]
@@ -482,248 +447,9 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 			This should be the case for a correct IK chain! 
 		"""
 
-		chain_length = self.fk_first.vector.length + self.fk_last.vector.length
-		pole_distance = chain_length/2
-
-		pole_direction = (self.fk_first.vector - self.fk_last.vector).normalized()
-
-		pole_loc = self.fk_first.tail + pole_direction * pole_distance
-
-		mat = self.pole.matrix.copy()
-		mat.translation = pole_loc
-		return mat
-
-class CLOUDRIG_OT_snap_mapped(CLOUDRIG_OT_snap_bake):
-	bl_description = "Toggle a custom property and snap some bones to some other bones"
-	bl_idname = "pose.snap_mapped"
-	bl_label = "Snap Bones"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	prop_bone:	  StringProperty(name="Property Bone")
-	prop_id:	  StringProperty(name="Property")
-
-	select_bones: BoolProperty(name="Select Affected Bones", default=False)
-	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-
-	# Lists of bone names separated (converted to string so they could be passed to an operator)
-	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
-	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
-
-	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
-	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
-
-	def execute(self, context):
-		rig = context.pose_object or context.active_object
-		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
-		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
-
-		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
-		my_map = self.map_off if value==1 else self.map_on
-		names_hide = self.hide_off if value==1 else self.hide_on
-		names_unhide = self.hide_on if value==1 else self.hide_off
-
-		set_custom_property_value(
-			rig, self.prop_bone, self.prop_id, 1-value,
-			keyflags=self.keyflags
-		)
-		my_map = json.loads(my_map)
-
-		names_affected = [t[0] for t in my_map]
-		names_affector = [t[1] for t in my_map]
-
-		matrices = []
-		for affector_name in names_affector:
-			affector_bone = rig.pose.bones.get(affector_name)
-			assert affector_bone, f"Error: Snapping failed, bone not found: {affector_name}"
-			matrices.append(affector_bone.matrix.copy())
-
-		for i, affected_name in enumerate(names_affected):
-			affected_bone = rig.pose.bones.get(affected_name)
-			assert affected_bone, f"Error: Snapping failed, bones not found: {affected_name}"
-			affected_bone.matrix = matrices[i]
-			context.evaluated_depsgraph_get().update()
-
-			# Keyframe properties
-			if self.keyflags is not None:
-				keyframe_transform_properties(
-					rig, affected_bone.name, self.keyflags,
-					no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-				)
-
-		self.hide_unhide_bones(get_bones(rig, names_hide), get_bones(rig, names_unhide))
-		self.set_selection(context, get_bones(rig, json.dumps(names_affected)))
-
-		return {'FINISHED'}
-
-	def hide_unhide_bones(self, hide_bones, unhide_bones):
-		# Hide bones
-		for b in hide_bones:
-			b.bone.hide = True
-
-		# Unhide bones
-		for b in unhide_bones:
-			b.bone.hide = False
-
-class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
-	""" Toggle between IK and FK, and snap the controls accordingly. 
-		This will NOT place any keyframes, but it will select the affected bones
-	"""
-	bl_idname = "armature.ikfk_toggle"
-	bl_label = "Toggle IK/FK"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	prop_bone:	StringProperty()
-	prop_id:	StringProperty()
-
-	fk_chain:	StringProperty()
-	ik_chain:	StringProperty()
-
-	ik_control: StringProperty()
-	ik_pole:	StringProperty()
-
-	double_first_fk: BoolProperty(default=False)	# Flag for handling when the first FK bone is "doubled" (ie. has an extra parent bone).
-	double_ik:	  BoolProperty(default=False)	# Flag for handling when the IK control(eg. IK_Wrist.L) is "doubled".
-
-	@classmethod
-	def poll(cls, context):
-		return context.pose_object
-
-	def execute(self, context):
-		armature = context.pose_object
-
-		fk_chain = get_bones(armature, self.fk_chain)
-		ik_chain = get_bones(armature, self.ik_chain)
-
-		ik_pole = armature.pose.bones.get(self.ik_pole)	# Can be None.
-		ik_control = armature.pose.bones.get(self.ik_control)
-		assert ik_control, "ERROR: Could not find IK Control: " + self.ik_control
-
-		# List of bone tuples to snap (from, to).
-		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
-		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
-		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
-		hide_off = [self.ik_control, self.ik_pole]	# Which bones will be hidden when the custom property is set to 0.
-
-		if self.double_ik:
-			hide_off.append(ik_control.parent.name)
-			map_on.append( (ik_control.parent.name, fk_chain[-1].name) )
-
-		map_on.append( (self.ik_control, fk_chain[-1].name) )
-		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
-
-		if self.double_first_fk:
-			hide_on.append( (fk_chain[0].parent.name) )
-			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
-		map_off.append( (fk_chain[0].name, ik_chain[0].name) )
-		map_off.append( (fk_chain[1].name, ik_chain[1].name) )
-		map_off.append( (fk_chain[2].name, ik_control.name) )
-
-		prop_bone = armature.pose.bones.get(self.prop_bone)
-		value = prop_bone[self.prop_id]
-
-		bpy.ops.pose.snap_mapped(
-			prop_bone = self.prop_bone,
-			prop_id = self.prop_id,
-
-			map_on		= json.dumps(map_on),
-			map_off		= json.dumps(map_off),
-			hide_on		= json.dumps(hide_on),
-			hide_off	= json.dumps(hide_off),
-
-			select_bones = True,
-		)
-
-		if value==0:
-			# Snap the last IK control to the last FK control.
-			first_ik_bone = ik_chain[0]
-			last_ik_bone = ik_chain[-1]
-			if ik_pole:
-				self.match_pole_target_new(ik_pole, fk_chain[0], fk_chain[1])
-				ik_pole.bone.select=True
-				# self.match_pole_target(first_ik_bone, last_ik_bone, ik_pole, first_fk_bone, 0.5)
-			else:
-				first_ik_bone.matrix = fk_chain[0].matrix.copy()
-
-			context.evaluated_depsgraph_get().update() #TODO: This might be useless?
-
-		return {'FINISHED'}
-
-	def perpendicular_vector(self, v):
-		""" Returns a vector that is perpendicular to the one given.
-			The returned vector is _not_ guaranteed to be normalized.
-		"""
-		# Create a vector that is not aligned with v.
-		# It doesn't matter what vector.  Just any vector
-		# that's guaranteed to not be pointing in the same
-		# direction.
-		if abs(v[0]) < abs(v[1]):
-			tv = Vector((1,0,0))
-		else:
-			tv = Vector((0,1,0))
-
-		# Use cross prouct to generate a vector perpendicular to
-		# both tv and (more importantly) v.
-		return v.cross(tv)
-
-	def set_pose_translation(self, pose_bone, mat):
-		""" Sets the pose bone's translation to the same translation as the given matrix.
-			Matrix should be given in bone's local space.
-		"""
-		if pose_bone.bone.use_local_location == True:
-			pose_bone.location = mat.to_translation()
-		else:
-			loc = mat.to_translation()
-
-			rest = pose_bone.bone.matrix_local.copy()
-			par_rest = Matrix()
-			if pose_bone.bone.parent:
-				par_rest = pose_bone.bone.parent.matrix_local.copy()
-
-			q = (par_rest.inverted() @ rest).to_quaternion()
-			pose_bone.location = q @ loc
-
-	def get_pose_matrix_in_other_space(self, mat, pose_bone):
-		""" Returns the transform matrix relative to pose_bone's current
-			transform space.  In other words, presuming that mat is in
-			armature space, slapping the returned matrix onto pose_bone
-			should give it the armature-space transforms of mat.
-			TODO: try to handle cases with axis-scaled parents better.
-		"""
-		rest = pose_bone.bone.matrix_local.copy()
-		rest_inv = rest.inverted()
-		if pose_bone.parent:
-			par_mat = pose_bone.parent.matrix.copy()
-			par_inv = par_mat.inverted()
-			par_rest = pose_bone.parent.bone.matrix_local.copy()
-		else:
-			par_mat = Matrix()
-			par_inv = Matrix()
-			par_rest = Matrix()
-
-		# Get matrix in bone's current transform space
-		smat = rest_inv @ (par_rest @ (par_inv @ mat))
-
-		# Compensate for non-local location
-		#if not pose_bone.bone.use_local_location:
-		#	loc = smat.to_translation() @ (par_rest.inverted() @ rest).to_quaternion()
-		#	smat.translation = loc
-
-		return smat
-
-	def rotation_difference(self, mat1, mat2):
-		""" Returns the shortest-path rotational difference between two
-			matrices.
-		"""
-		q1 = mat1.to_quaternion()
-		q2 = mat2.to_quaternion()
-		angle = acos(min(1,max(-1,q1.dot(q2)))) * 2
-		if angle > radians(90):
-			angle = -angle + radians(180)
-		return angle
-
-	def match_pole_target_new(self, ik_pole, fk_first, fk_last):
-		""" Place an IK pole control based on 2 FK bones in a way where the IK chain would match the FK chain. """
-		""" This may only work if the bone chain lies perfectly on a plane and the IK Pole Angle is divisible by 90. This should be the case for a correct IK chain! """
+		fk_first = rig.pose.bones.get(self.fk_first)
+		fk_last = rig.pose.bones.get(self.fk_last)
+		assert fk_first and fk_last, f"Error: Can't calculate pole target location due to on of these FK bones missing: {self.fk_first}, {self.fk_last}"
 
 		chain_length = fk_first.vector.length + fk_last.vector.length
 		pole_distance = chain_length/2
@@ -732,60 +458,9 @@ class CLOUDRIG_OT_ikfk_toggle(bpy.types.Operator):
 
 		pole_loc = fk_first.tail + pole_direction * pole_distance
 
-		ik_pole.matrix.translation = pole_loc
-
-	def match_pole_target(self, ik_first, ik_last, pole, match_bone, length):
-		""" Places an IK chain's pole target to match ik_first's
-			transforms to match_bone.  All bones should be given as pose bones.
-			You need to be in pose mode on the relevant armature object.
-			ik_first: first bone in the IK chain
-			ik_last:  last bone in the IK chain
-			pole:  pole target bone for the IK chain
-			match_bone:  bone to match ik_first to (probably first bone in a matching FK chain)
-			length:  distance pole target should be placed from the chain center
-		"""
-		a = ik_first.matrix.to_translation()
-		b = ik_last.matrix.to_translation() + ik_last.vector
-
-		# Vector from the head of ik_first to the
-		# tip of ik_last
-		ikv = b - a
-
-		# Get a vector perpendicular to ikv
-		pv = self.perpendicular_vector(ikv).normalized() * length
-
-		def set_pole(pvi):
-			""" Set pole target's position based on a vector
-				from the arm center line.
-			"""
-			# Translate pvi into armature space
-			ploc = a + (ikv/2) + pvi
-
-			# Set pole target to location
-			mat = self.get_pose_matrix_in_other_space(Matrix.Translation(ploc), pole)
-			self.set_pose_translation(pole, mat)
-
-			org_mode = bpy.context.object.mode
-			bpy.ops.object.mode_set(mode='OBJECT')
-			bpy.ops.object.mode_set(mode=org_mode)
-
-		set_pole(pv)
-
-		# Get the rotation difference between ik_first and match_bone
-		angle = self.rotation_difference(ik_first.matrix, match_bone.matrix)
-
-		# Try compensating for the rotation difference in both directions
-		pv1 = Matrix.Rotation(angle, 4, ikv) @ pv
-		set_pole(pv1)
-		tail_dist1 = (ik_first.tail - match_bone.tail).length
-
-		pv2 = Matrix.Rotation(-angle, 4, ikv) @ pv
-		set_pole(pv2)
-		tail_dist2 = (ik_first.tail - match_bone.tail).length
-
-		# Do the one with the smaller angle
-		if tail_dist1 < tail_dist2:
-			set_pole(pv1)
+		mat = self.pole.matrix.copy()
+		mat.translation = pole_loc
+		return mat
 
 class CLOUDRIG_OT_reset_colors(bpy.types.Operator):
 	bl_description = "Reset rig color properties to their stored default"
@@ -1186,10 +861,8 @@ class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
 	,CLOUDRIG_OT_ikfk_bake
-	,CLOUDRIG_OT_snap_mapped	# NOTE: Operators inheriting from others must be registered BEFORE the ones they are inheriting from!!!
 	,CLOUDRIG_OT_snap_mapped_bake
 	,CLOUDRIG_OT_snap_bake
-	,CLOUDRIG_OT_ikfk_toggle
 	,CLOUDRIG_OT_reset_colors
 
 	,CloudRig_ColorProperties

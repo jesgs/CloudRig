@@ -43,6 +43,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		if self.params.CR_ik_chain_world_aligned:
 			self.world_align_last_fk()
 		self.make_ik_setup()
+		# Add IK/FK Snapping to the UI.
+		self.add_ui_data_ik_fk(self.fk_chain, self.ik_chain, self.pole_ctrl)
 		self.attach_org_to_ik()
 		self.make_parent_switch()
 
@@ -219,25 +221,53 @@ class CloudIKChainRig(CloudFKChainRig):
 				if self.params.CR_ik_chain_world_aligned:
 					ik_mstr.flatten()
 
-		# Add IK/FK Snapping to the UI.
-		self.add_ui_data_ik_fk(self.fk_chain, ik_chain, pole_target)
 		return ik_chain
 
 	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole=None):
 		""" Prepare the data needed to be stored on the armature object for IK/FK snapping. """
+		ui_data = self.get_ui_data_ik_fk()
+		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, ui_data, default=1.0)
 
-		info = {	# These parameter names must be kept in sync with Snap_IK2FK in cloudrig.py
+	def get_ui_data_ik_fk(self):
+		# List of bone tuples to snap (from, to).
+		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
+		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
+
+		fk_chain = self.fk_chain
+		ik_chain = self.ik_chain
+		ik_mstr = self.ik_mstr
+		ik_pole = self.pole_ctrl
+
+		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
+		hide_off = [ik_mstr.name, ik_pole.name]	# Which bones will be hidden when the custom property is set to 0.
+
+		if self.params.CR_limb_double_ik:
+			hide_off.append(ik_mstr.parent.name)
+			map_on.append( (ik_mstr.parent.name, fk_chain[-1].name) )
+
+		map_on.append( (ik_mstr.name, fk_chain[-1].name) )
+		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
+
+		if self.params.CR_fk_chain_double_first:
+			hide_on.append( (fk_chain[0].parent.name) )
+			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
+
+		for i, fk_bone in enumerate(fk_chain):
+			map_off.append( (fk_chain[i].name, ik_chain[i].name))
+
+		ui_data = {
 			'operator'				: 'pose.cloudrig_toggle_ikfk_bake'
 			,'prop_bone'			: self.properties_bone
 			,'prop_id'				: self.ikfk_name
-			,'fk_chain'				: [b.name for b in fk_chain]
-			,'ik_chain'				: [b.name for b in ik_chain]
-			,'double_first_fk'		: self.params.CR_fk_chain_double_first
-			,'double_ik'			: self.params.CR_limb_double_ik
+			,'map_on'				: map_on
+			,'map_off'				: map_off
+			,'hide_on'				: hide_on
+			,'hide_off'				: hide_off
 			,'ik_pole'				: ik_pole.name if ik_pole else ''
-			,'ik_control'			: self.ik_mstr.name
+			,'fk_first'				: self.fk_chain[0].name
+			,'fk_last'				: self.fk_chain[1].name
 		}
-		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, info, default=1.0)
+		return ui_data
 
 	def make_ik_stretch(self):
 		ik_org_bone = self.org_chain[self.chain_count]

@@ -1,4 +1,5 @@
 import bpy
+import json
 from ..cloudrig import draw_layers_ui
 from rigify.ui import rigify_report_exception
 
@@ -152,6 +153,11 @@ def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
 	"""
 
 	assert ('prop_bone' in info) and ('prop_id' in info), 'Error: Expected an info dict with at least "prop_bone" and "prop_id" keys.'
+
+	for key in info.keys():
+		value = info[key]
+		if type(value) in (list, dict):
+			info[key] = json.dumps(value)
 
 	if ui_area not in obj.data:
 		obj.data[ui_area] = {}
