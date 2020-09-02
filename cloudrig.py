@@ -205,6 +205,8 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		if self.do_bake:
 			return super().execute(context)
 
+		self.init_execute(context)
+		self.bake_init(context)
 		bone_names = json.loads(self.bones)
 		bones = get_bones(rig, self.bones)
 
@@ -446,6 +448,8 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 			and the IK Pole Angle is divisible by 90. 
 			This should be the case for a correct IK chain! 
 		"""
+
+		rig = self.bake_rig
 
 		fk_first = rig.pose.bones.get(self.fk_first)
 		fk_last = rig.pose.bones.get(self.fk_last)
