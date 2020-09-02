@@ -541,11 +541,14 @@ class CloudLimbRig(CloudIKChainRig):
 		new_loc = control_bone.head + self.pole_vector/10
 		control_bone.head = new_loc
 		control_bone.vector = org_elbow.vector * 0.3
+		control_bone.custom_shape_scale = 0.4
 		control_bone.roll = pi/2 if self.limb_type=='LEG' else 0	# TODO this breaks support for arbitrary bone roll on limbs.
 		self.lock_transforms(control_bone, scale=[True, False, True])
 		control_bone.add_constraint('LIMIT_SCALE'
 			,use_max_y = True
 			,max_y = 2
+			,use_min_y = True
+			,min_y = 1
 		)
 		return control_bone
 

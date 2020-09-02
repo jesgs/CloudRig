@@ -257,13 +257,10 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 				t.subtarget = subtargets[i]
 			return
 
-		if not constraint.target:
+		if hasattr(constraint, 'target') and not constraint.target:
 			constraint.target = self.obj
-		if len(subtargets) > 0:
+		if hasattr(constraint, 'subtarget') and len(subtargets) > 0:
 			constraint.subtarget = subtargets[0]
-		else:
-			# This is allowed to happen with targetless constraints like Limit Location.
-			pass
 
 	def copy_and_relink_drivers(self, bone):
 		"""Copy and retarget drivers from both the metarig Object and the metarig Data."""
