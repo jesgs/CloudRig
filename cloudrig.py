@@ -21,8 +21,8 @@ from mathutils import Vector, Matrix
 from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path
 
-from rigify.feature_sets.CloudRig.rig_ui import (get_chain_transform_matrices,
-	RigifyBakeKeyframesMixin, set_transform_from_matrix, set_custom_property_value,
+from rigify.feature_sets.CloudRig.rig_ui import (RigifyBakeKeyframesMixin, 
+	set_transform_from_matrix, set_custom_property_value,
 	get_autokey_flags, add_flags_if_set, keyframe_transform_properties)
 
 script_id = "SCRIPT_ID"
@@ -226,7 +226,9 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
 		if not bone_names:
 			bone_names = self.bone_names
-		return get_chain_transform_matrices(rig, bone_names)
+		
+		matrices = [rig.pose.bones.get(bone_name).matrix for bone_name in bone_names]
+		return matrices
 
 	def after_save_state(self, context, rig):
 		"""After saving the bone matrices, it's time to set the property value."""
@@ -356,9 +358,8 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 		super().init_invoke(context)	# This creates self.bone_names based on self.bones.
 
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
-		if not bone_names:
-			bone_names = [t[1] for t in self.bone_map]
-		return get_chain_transform_matrices(rig, bone_names, space='WORLD')
+		bone_names = [t[1] for t in self.bone_map]
+		return super().save_frame_state(context, rig, bone_names)
 
 	def execute_scan_curves(self, context, obj):
 		"Register frames to be baked, and return curves that should be cleared."
