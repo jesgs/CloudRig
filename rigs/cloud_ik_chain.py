@@ -552,9 +552,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		# cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
 		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
-		# TODO: 
-		# IK chains in blender are expected to be perfectly flat along a plane. 
-		# I'm thinking maybe we could add an operator to the rig settings that would do this for you??
+		op = layout.operator('object.cloudrig_flatten_bones')
+		op.use_selected = False
+		import bpy #TODO AAARGH we need proper access to context!
+		op.start_bone = bpy.context.active_pose_bone.name
+		op.chain_length = 2 # TODO AAARGH same! Kind of. We need to know how long our chain is!
 
 		return layout
 

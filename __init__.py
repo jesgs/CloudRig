@@ -16,9 +16,7 @@ from . import cloud_generator
 from . import ui
 from . import versioning
 from . import manual
-from .operators import regenerate_rigify_rigs
-from .operators import refresh_drivers
-from .operators import mirror_rigify
+from . import operators
 
 modules = [
 	actions,
@@ -26,9 +24,7 @@ modules = [
 	ui,
 	versioning,
 	manual,
-	regenerate_rigify_rigs,
-	refresh_drivers,
-	mirror_rigify,
+	operators,
 ]
 
 def register():
