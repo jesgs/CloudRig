@@ -152,10 +152,6 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 		self.frame_end = context.scene.frame_end
 		self.bone_names = json.loads(self.bones)
 
-	def init_execute(self, context):
-		# In case the operator is executed without init.
-		self.init_invoke(context)
-
 	def bake_init(self, context):
 		# Override to use operator's frame range instead of Rigify's globally set range.
 		super().bake_init(context)
