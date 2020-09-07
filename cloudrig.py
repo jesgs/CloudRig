@@ -10,7 +10,7 @@ different versions of CloudRig to co-exist in the same scene. So each rig uses
 the script that belongs to it, and not another, potentially newer or older version.
 """
 
-import bpy, traceback, json
+import bpy, traceback, json, collections
 from typing import List, Dict
 from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty, 
@@ -19,11 +19,7 @@ from bpy.props import (
 					)
 from mathutils import Vector, Matrix
 from math import radians, acos
-from rna_prop_ui import rna_idprop_quote_path
-
-from rigify.feature_sets.CloudRig.rig_ui import (RigifyBakeKeyframesMixin, 
-	set_transform_from_matrix, set_custom_property_value,
-	get_autokey_flags, add_flags_if_set, keyframe_transform_properties)
+from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
 script_id = "SCRIPT_ID"
 # TODO: Shouldn't this be added to operator bl_idnames?
@@ -38,87 +34,471 @@ def active_cloudrig():
 	if o and o.type == 'ARMATURE' and 'cloudrig' in o.data and o.data['cloudrig']==script_id:
 		return o
 
-def get_char_bone(rig):
-	for b in rig.pose.bones:
-		if b.name.startswith("Properties_Character"):
-			return b
+#######################################
+# Keyframe baking framework from Rigify
+#######################################
 
-def get_bones(rig, names):
-	""" Return a list of pose bones from a string of bone names in json format. """
-	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
+###########################
+## Animation curve tools ##
+###########################
 
-def draw_rig_settings(layout, rig, dict_name, label=""):
-	"""
-	dict_name is the name of the custom property dictionary that we expect to find in the rig.
-	Everything stored in a single dictionary is drawn in one call of this function.
-	These dictionaries are created during rig generation.
+def set_curve_key_interpolation(curves, ipo, key_range=None):
+	"Assign the given interpolation value to all curve keys in range."
+	for key in flatten_curve_key_set(curves, key_range):
+		key.interpolation = ipo
 
-	For an example dictionary, select an existing CloudRig, and put this in the PyConsole:
-	>>> import json
-	>>> print(json.dumps(C.object.data['ik_stretches'].to_dict(), indent=4))
+def delete_curve_keys_in_range(curves, key_range=None):
+	"Delete all keys of the given curves within the given range."
+	for curve in flatten_curve_set(curves):
+		points = curve.keyframe_points
+		for i in range(len(points), 0, -1):
+			key = points[i - 1]
+			if key_range is None or key_range[0] <= key.co[0] <= key_range[1]:
+				points.remove(key, fast=True)
+		curve.update()
 
-	Parameters expected to be found in the dictionary:
-		prop_bone: Name of the pose bone that holds the custom property.
-		prop_id: Name of the custom property on aforementioned bone. This is the property that gets drawn in the UI as a slider.
+def flatten_curve_set(curves):
+	"Iterate over all FCurves inside a set of nested lists and dictionaries."
+	if curves is None:
+		pass
+	elif isinstance(curves, bpy.types.FCurve):
+		yield curves
+	elif isinstance(curves, dict):
+		for sub in curves.values():
+			yield from flatten_curve_set(sub)
+	else:
+		for sub in curves:
+			yield from flatten_curve_set(sub)
 
-	Further optional parameters:
-		texts: List of strings to display alongside an integer property slider.
-		operator: Specify an operator to draw next to the slider.
-		icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
-		Any other arbitrary parameters will be passed on to the operator as kwargs.
-	"""
+def flatten_curve_key_set(curves, key_range=None):
+	"Iterate over all keys of the given fcurves in the specified range."
+	for curve in flatten_curve_set(curves):
+		for key in curve.keyframe_points:
+			if key_range is None or key_range[0] <= key.co[0] <= key_range[1]:
+				yield key
 
-	if dict_name not in rig.data: return
+def get_curve_frame_set(curves, key_range=None):
+	"Compute a set of all time values with existing keys in the given curves and range."
+	return set(key.co[0] for key in flatten_curve_key_set(curves, key_range))
 
-	if label != "":
-		layout.label(text=label)
+def clean_action_empty_curves(action):
+	"Delete completely empty curves from the given action."
+	action = find_action(action)
+	for curve in list(action.fcurves):
+		if curve.is_empty:
+			action.fcurves.remove(curve)
+	action.update_tag()
 
-	main_dict = rig.data[dict_name].to_dict()
-	# Each top-level dictionary within the main dictionary defines a row.
-	for row_name in main_dict.keys():
-		row = layout.row()
-		# Each second-level dictionary within that defines a slider (and operator, if given).
-		# If there is more than one, they will be drawn next to each other, since they're in the same row.
-		row_entries = main_dict[row_name]
-		for entry_name in row_entries.keys():
-			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-			assert 'prop_bone' in info and 'prop_id' in info, f"ERROR: Limb definition lacks properties bone or prop ID: {row_name}, {info}"
-			prop_bone = rig.pose.bones.get(info['prop_bone'])
-			prop_id = info['prop_id']
-			assert prop_bone and prop_id in prop_bone, f"ERROR: Properties bone or property does not exist: {info}"
+def find_action(action):
+	if isinstance(action, bpy.types.Object):
+		action = action.animation_data
+	if isinstance(action, bpy.types.AnimData):
+		action = action.action
+	if isinstance(action, bpy.types.Action):
+		return action
+	else:
+		return None
 
-			col = row.column()
-			sub_row = col.row(align=True)
+TRANSFORM_PROPS_LOCATION = frozenset(['location'])
+TRANSFORM_PROPS_ROTATION = frozenset(['rotation_euler', 'rotation_quaternion', 'rotation_axis_angle'])
+TRANSFORM_PROPS_SCALE = frozenset(['scale'])
+TRANSFORM_PROPS_ALL = frozenset(TRANSFORM_PROPS_LOCATION | TRANSFORM_PROPS_ROTATION | TRANSFORM_PROPS_SCALE)
 
-			slider_text = entry_name
-			if 'texts' in info:
-				prop_value = prop_bone[prop_id]
-				cur_text = info['texts'][int(prop_value)]
-				slider_text = entry_name + ": " + cur_text
+class FCurveTable(object):
+	"Table for efficient lookup of FCurves by properties."
 
-			sub_row.prop(prop_bone, '["' + prop_id + '"]', slider=True, text=slider_text)
+	def __init__(self):
+		self.curve_map = collections.defaultdict(dict)
 
-			# Draw an operator if provided.
-			if 'operator' in info:
-				icon = 'FILE_REFRESH'
-				if 'icon' in info:
-					icon = info['icon']
+	def index_curves(self, curves):
+		for curve in curves:
+			index = curve.array_index
+			if index < 0:
+				index = 0
+			self.curve_map[curve.data_path][index] = curve
 
-				operator = sub_row.operator(info['operator'], text="", icon=icon)
-				# Pass on any paramteres to the operator that it will accept.
-				for param in info.keys():
-					if hasattr(operator, param):
-						value = info[param]
-						# Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-						if type(value) in [list, dict]:
-							value = json.dumps(value)
-						setattr(operator, param, value)
+	def get_prop_curves(self, ptr, prop_path):
+		"Returns a dictionary from array index to curve for the given property, or Null."
+		return self.curve_map.get(ptr.path_from_id(prop_path))
+
+	def list_all_prop_curves(self, ptr_set, path_set):
+		"Iterates over all FCurves matching the given object(s) and properti(es)."
+		if isinstance(ptr_set, bpy.types.bpy_struct):
+			ptr_set = [ptr_set]
+		for ptr in ptr_set:
+			for path in path_set:
+				curves = self.get_prop_curves(ptr, path)
+				if curves:
+					yield from curves.values()
+
+	def get_custom_prop_curves(self, ptr, prop):
+		return self.get_prop_curves(ptr, rna_idprop_quote_path(prop))
+
+class ActionCurveTable(FCurveTable):
+	"Table for efficient lookup of Action FCurves by properties."
+
+	def __init__(self, action):
+		super().__init__()
+		self.action = find_action(action)
+		if self.action:
+			self.index_curves(self.action.fcurves)
+
+def nla_tweak_to_scene(anim_data, frames, invert=False):
+	"Convert a frame value or list between scene and tweaked NLA strip time."
+	if frames is None:
+		return None
+	elif anim_data is None or not anim_data.use_tweak_mode:
+		return frames
+	elif isinstance(frames, (int, float)):
+		return anim_data.nla_tweak_strip_time_to_scene(frames, invert=invert)
+	else:
+		return type(frames)(
+			anim_data.nla_tweak_strip_time_to_scene(v, invert=invert) for v in frames
+		)
+
+def add_flags_if_set(base, new_flags):
+	"Add more flags if base is not None."
+	if base is None:
+		return None
+	else:
+		return base | new_flags
+
+def get_keying_flags(context):
+	"Retrieve the general keyframing flags from user preferences."
+	prefs = context.preferences
+	ts = context.scene.tool_settings
+	flags = set()
+	# Not adding INSERTKEY_VISUAL
+	if prefs.edit.use_keyframe_insert_needed:
+		flags.add('INSERTKEY_NEEDED')
+	if prefs.edit.use_insertkey_xyz_to_rgb:
+		flags.add('INSERTKEY_XYZ_TO_RGB')
+	if ts.use_keyframe_cycle_aware:
+		flags.add('INSERTKEY_CYCLE_AWARE')
+	return flags
+
+def get_autokey_flags(context, ignore_keyset=False):
+	"Retrieve the Auto Keyframe flags, or None if disabled."
+	ts = context.scene.tool_settings
+	if ts.use_keyframe_insert_auto and (ignore_keyset or not ts.use_keyframe_insert_keyingset):
+		flags = get_keying_flags(context)
+		if context.preferences.edit.use_keyframe_insert_available:
+			flags.add('INSERTKEY_AVAILABLE')
+		if ts.auto_keying_mode == 'REPLACE_KEYS':
+			flags.add('INSERTKEY_REPLACE')
+		return flags
+	else:
+		return None
+
+def keyframe_transform_properties(obj, bone_name, keyflags, *, ignore_locks=False, no_loc=False, no_rot=False, no_scale=False):
+	"Keyframe transformation properties, taking flags and mode into account, and avoiding keying locked channels."
+	bone = obj.pose.bones[bone_name]
+
+	def keyframe_channels(prop, locks):
+		if ignore_locks or not all(locks):
+			if ignore_locks or not any(locks):
+				bone.keyframe_insert(prop, group=bone_name, options=keyflags)
+			else:
+				for i, lock in enumerate(locks):
+					if not lock:
+						bone.keyframe_insert(prop, index=i, group=bone_name, options=keyflags)
+
+	if not (no_loc or bone.bone.use_connect):
+		keyframe_channels('location', bone.lock_location)
+
+	if not no_rot:
+		if bone.rotation_mode == 'QUATERNION':
+			keyframe_channels('rotation_quaternion', get_4d_rotlock(bone))
+		elif bone.rotation_mode == 'AXIS_ANGLE':
+			keyframe_channels('rotation_axis_angle', get_4d_rotlock(bone))
+		else:
+			keyframe_channels('rotation_euler', bone.lock_rotation)
+
+	if not no_scale:
+		keyframe_channels('scale', bone.lock_scale)
+
+def set_transform_from_matrix(obj, bone_name, matrix, *, space='POSE', ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
+	"Apply the matrix to the transformation of the bone, taking locked channels, mode and certain constraints into account, and optionally keyframe it."
+	bone = obj.pose.bones[bone_name]
+
+	def restore_channels(prop, old_vec, locks, extra_lock):
+		if extra_lock or (not ignore_locks and all(locks)):
+			setattr(bone, prop, old_vec)
+		else:
+			if not ignore_locks and any(locks):
+				new_vec = Vector(getattr(bone, prop))
+
+				for i, lock in enumerate(locks):
+					if lock:
+						new_vec[i] = old_vec[i]
+
+				setattr(bone, prop, new_vec)
+
+	# Save the old values of the properties
+	old_loc = Vector(bone.location)
+	old_rot_euler = Vector(bone.rotation_euler)
+	old_rot_quat = Vector(bone.rotation_quaternion)
+	old_rot_axis = Vector(bone.rotation_axis_angle)
+	old_scale = Vector(bone.scale)
+
+	# Compute and assign the local matrix
+	if space != 'LOCAL':
+		matrix = obj.convert_space(pose_bone=bone, matrix=matrix, from_space=space, to_space='LOCAL')
+
+	# if undo_copy_scale:
+	#	 matrix = undo_copy_scale_constraints(obj, bone, matrix)
+
+	bone.matrix_basis = matrix
+
+	# Restore locked properties
+	restore_channels('location', old_loc, bone.lock_location, no_loc or bone.bone.use_connect)
+
+	if bone.rotation_mode == 'QUATERNION':
+		restore_channels('rotation_quaternion', old_rot_quat, get_4d_rotlock(bone), no_rot)
+		bone.rotation_axis_angle = old_rot_axis
+		bone.rotation_euler = old_rot_euler
+	elif bone.rotation_mode == 'AXIS_ANGLE':
+		bone.rotation_quaternion = old_rot_quat
+		restore_channels('rotation_axis_angle', old_rot_axis, get_4d_rotlock(bone), no_rot)
+		bone.rotation_euler = old_rot_euler
+	else:
+		bone.rotation_quaternion = old_rot_quat
+		bone.rotation_axis_angle = old_rot_axis
+		restore_channels('rotation_euler', old_rot_euler, bone.lock_rotation, no_rot)
+
+	restore_channels('scale', old_scale, bone.lock_scale, no_scale)
+
+	# Keyframe properties
+	if keyflags is not None:
+		keyframe_transform_properties(
+			obj, bone_name, keyflags, ignore_locks=ignore_locks,
+			no_loc=no_loc, no_rot=no_rot, no_scale=no_scale
+		)
 
 def get_custom_property_value(rig, bone_name, prop_id):
 	prop_bone = rig.pose.bones.get(bone_name)
 	assert prop_bone, f"Bone snapping failed: Properties bone {bone_name} not found.)"
 	assert prop_id in prop_bone, f"Bone snapping failed: Bone {bone_name} has no property {bone_id}"
 	return prop_bone[prop_id]
+
+def set_custom_property_value(obj, bone_name, prop, value, *, keyflags=None):
+	"Assign the value of a custom property, and optionally keyframe it."
+	bone = obj.pose.bones[bone_name]
+	bone[prop] = value
+	rna_idprop_ui_prop_update(bone, prop)
+	if keyflags is not None:
+		bone.keyframe_insert(rna_idprop_quote_path(prop), group=bone.name, options=keyflags)
+
+class RigifyOperatorMixinBase:
+	bl_options = {'UNDO', 'INTERNAL'}
+
+	def init_invoke(self, context):
+		"Override to initialize the operator before invoke."
+
+	def init_execute(self, context):
+		"Override to initialize the operator before execute."
+
+	def before_save_state(self, context, rig):
+		"Override to prepare for saving state."
+
+	def after_save_state(self, context, rig):
+		"Override to undo before_save_state."
+
+class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
+	"""Basic framework for an operator that updates a set of keyed frames."""
+
+	@classmethod
+	def poll(cls, context):
+		return context.mode=='POSE'#find_action(context.active_object) is not None
+
+	def invoke(self, context, event):
+		self.init_invoke(context)
+
+		if hasattr(self, 'draw'):
+			return context.window_manager.invoke_props_dialog(self)
+		else:
+			return context.window_manager.invoke_confirm(self, event)
+
+	def execute(self, context):
+		self.init_execute(context)
+		self.bake_init(context)
+
+		curves = self.execute_scan_curves(context, self.bake_rig)
+
+		if self.report_bake_empty():
+			return {'CANCELLED'}
+
+		try:
+			save_state = self.bake_save_state(context)
+
+			range, range_raw = self.bake_clean_curves_in_range(context, curves)
+
+			self.execute_before_apply(context, self.bake_rig, range, range_raw)
+
+			self.bake_apply_state(context, save_state)
+
+		except Exception as e:
+			traceback.print_exc()
+			self.report({'ERROR'}, 'Exception: ' + str(e))
+
+		return {'FINISHED'}
+
+	# Default behavior implementation
+	def bake_init(self, context):
+		self.bake_rig = context.active_object
+		self.bake_anim = self.bake_rig.animation_data
+		# self.bake_frame_range = RIGIFY_OT_get_frame_range.get_range(context)
+		# self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
+		self.bake_curve_table = ActionCurveTable(self.bake_rig)
+		self.bake_current_frame = context.scene.frame_current
+		self.bake_frames_raw = set()
+
+		self.keyflags = get_keying_flags(context)
+		self.keyflags_switch = None
+
+		if context.window_manager.rigify_transfer_use_all_keys:
+			self.bake_add_curve_frames(self.bake_curve_table.curve_map)
+
+	def execute_scan_curves(self, context, obj):
+		"Override to register frames to be baked, and return curves that should be cleared."
+		raise NotImplementedError()
+
+	def bake_save_state(self, context) -> Dict[int, List[Matrix]]:
+		"Scans frames and collects data for baking before changing anything."
+		rig = self.bake_rig
+		scene = context.scene
+
+		save_state = dict()
+
+		try:
+			self.before_save_state(context, rig)
+
+			for frame in self.bake_frames:
+				scene.frame_set(frame)
+				save_state[frame] = self.save_frame_state(context, rig)
+
+		finally:
+			self.after_save_state(context, rig)
+		
+		return save_state
+
+	def execute_before_apply(self, context, obj, range, range_raw):
+		"Override to execute code one time before the bake apply frame scan."
+		pass
+
+	def bake_apply_state(self, context, save_state: Dict[int, List[Matrix]]):
+		"Scans frames and applies the baking operation."
+		rig = self.bake_rig
+		scene = context.scene
+
+		for frame in self.bake_frames:
+			scene.frame_set(frame)
+			self.apply_frame_state(context, rig, save_state.get(frame))
+
+		clean_action_empty_curves(self.bake_rig)
+		scene.frame_set(self.bake_current_frame)
+
+	# Utilities
+
+	def bake_get_bone(self, bone_name):
+		"Get pose bone by name."
+		return self.bake_rig.pose.bones[bone_name]
+
+	def bake_get_bones(self, bone_names):
+		"Get multiple pose bones by name."
+		if isinstance(bone_names, (list, set)):
+			return [self.bake_get_bone(name) for name in bone_names]
+		else:
+			return self.bake_get_bone(bone_names)
+
+	def bake_get_all_bone_curves(self, bone_names, props):
+		"Get a list of all curves for the specified properties of the specified bones."
+		return list(self.bake_curve_table.list_all_prop_curves(self.bake_get_bones(bone_names), props))
+
+	def bake_get_all_bone_custom_prop_curves(self, bone_names, props):
+		"Get a list of all curves for the specified custom properties of the specified bones."
+		return self.bake_get_all_bone_curves(bone_names, [rna_idprop_quote_path(p) for p in props])
+
+	def bake_get_bone_prop_curves(self, bone_name, prop):
+		"Get an index to curve dict for the specified property of the specified bone."
+		return self.bake_curve_table.get_prop_curves(self.bake_get_bone(bone_name), prop)
+
+	def bake_get_bone_custom_prop_curves(self, bone_name, prop):
+		"Get an index to curve dict for the specified custom property of the specified bone."
+		return self.bake_curve_table.get_custom_prop_curves(self.bake_get_bone(bone_name), prop)
+
+	def bake_add_curve_frames(self, curves):
+		"Register frames keyed in the specified curves for baking."
+		self.bake_frames_raw |= get_curve_frame_set(curves, self.bake_frame_range_raw)
+
+	def bake_add_bone_frames(self, bone_names, props=TRANSFORM_PROPS_ALL):
+		"Register frames keyed for the specified properties of the specified bones for baking."
+		curves = self.bake_get_all_bone_curves(bone_names, props)
+		self.bake_add_curve_frames(curves)
+		return curves
+
+	def bake_replace_custom_prop_keys_constant(self, bone, prop, new_value):
+		"If the property is keyframed, delete keys in bake range and re-key as Constant."
+		prop_curves = self.bake_get_bone_custom_prop_curves(bone, prop)
+
+		if prop_curves and 0 in prop_curves:
+			range_raw = self.nla_to_raw(self.get_bake_range())
+			delete_curve_keys_in_range(prop_curves, range_raw)
+			set_custom_property_value(self.bake_rig, bone, prop, new_value, keyflags={'INSERTKEY_AVAILABLE'})
+			set_curve_key_interpolation(prop_curves, 'CONSTANT', range_raw)
+
+	def bake_add_frames_done(self):
+		"Computes and sets the final set of frames to bake."
+		frames = self.nla_from_raw(self.bake_frames_raw)
+		self.bake_frames = sorted(set(map(round, frames)))
+
+	def nla_from_raw(self, frames):
+		"Convert frame(s) from inner action time to scene time."
+		return nla_tweak_to_scene(self.bake_anim, frames)
+
+	def nla_to_raw(self, frames):
+		"Convert frame(s) from scene time to inner action time."
+		return nla_tweak_to_scene(self.bake_anim, frames, invert=True)
+
+	def is_bake_empty(self):
+		return len(self.bake_frames_raw) == 0
+
+	def report_bake_empty(self):
+		self.bake_add_frames_done()
+		if self.is_bake_empty():
+			self.report({'WARNING'}, 'No keys to bake.')
+			return True
+		return False
+
+	def get_bake_range(self):
+		"Returns the frame range that is being baked."
+		if self.bake_frame_range:
+			return self.bake_frame_range
+		else:
+			frames = self.bake_frames
+			return (frames[0], frames[-1])
+
+	def get_bake_range_pair(self):
+		"Returns the frame range that is being baked, both in scene and action time."
+		range = self.get_bake_range()
+		return range, self.nla_to_raw(range)
+
+	def bake_clean_curves_in_range(self, context, curves):
+		"Deletes all keys from the given curves in the bake range."
+		range, range_raw = self.get_bake_range_pair()
+
+		context.scene.frame_set(range[0])
+		delete_curve_keys_in_range(curves, range_raw)
+
+		return range, range_raw
+
+#######################################
+########### Keyframe baking ###########
+#######################################
+
+def get_bones(rig, names):
+	""" Return a list of pose bones from a string of bone names in json format. """
+	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
 class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 	""" Extend Rigify's keyframe baking with the ability to select the frame range
@@ -188,7 +568,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		bone_names = layout.column(align=True)
 		bone_names.label(text="Affected bones:")
 		for b in self.bone_names:
-			bone_names.label(text="            " + b)
+			bone_names.label(text=" "*10 + b)
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
@@ -479,6 +859,81 @@ class CLOUDRIG_OT_reset_colors(bpy.types.Operator):
 		for cp in rig.cloud_colors:
 			cp.current = cp.default
 		return {'FINISHED'}
+
+############################################
+############ UI
+
+def get_char_bone(rig):
+	for b in rig.pose.bones:
+		if b.name.startswith("Properties_Character"):
+			return b
+
+def draw_rig_settings(layout, rig, dict_name, label=""):
+	"""
+	dict_name is the name of the custom property dictionary that we expect to find in the rig.
+	Everything stored in a single dictionary is drawn in one call of this function.
+	These dictionaries are created during rig generation.
+
+	For an example dictionary, select an existing CloudRig, and put this in the PyConsole:
+	>>> import json
+	>>> print(json.dumps(C.object.data['ik_stretches'].to_dict(), indent=4))
+
+	Parameters expected to be found in the dictionary:
+		prop_bone: Name of the pose bone that holds the custom property.
+		prop_id: Name of the custom property on aforementioned bone. This is the property that gets drawn in the UI as a slider.
+
+	Further optional parameters:
+		texts: List of strings to display alongside an integer property slider.
+		operator: Specify an operator to draw next to the slider.
+		icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
+		Any other arbitrary parameters will be passed on to the operator as kwargs.
+	"""
+
+	if dict_name not in rig.data: return
+
+	if label != "":
+		layout.label(text=label)
+
+	main_dict = rig.data[dict_name].to_dict()
+	# Each top-level dictionary within the main dictionary defines a row.
+	for row_name in main_dict.keys():
+		row = layout.row()
+		# Each second-level dictionary within that defines a slider (and operator, if given).
+		# If there is more than one, they will be drawn next to each other, since they're in the same row.
+		row_entries = main_dict[row_name]
+		for entry_name in row_entries.keys():
+			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
+			assert 'prop_bone' in info and 'prop_id' in info, f"ERROR: Limb definition lacks properties bone or prop ID: {row_name}, {info}"
+			prop_bone = rig.pose.bones.get(info['prop_bone'])
+			prop_id = info['prop_id']
+			assert prop_bone and prop_id in prop_bone, f"ERROR: Properties bone or property does not exist: {info}"
+
+			col = row.column()
+			sub_row = col.row(align=True)
+
+			slider_text = entry_name
+			if 'texts' in info:
+				prop_value = prop_bone[prop_id]
+				cur_text = info['texts'][int(prop_value)]
+				slider_text = entry_name + ": " + cur_text
+
+			sub_row.prop(prop_bone, '["' + prop_id + '"]', slider=True, text=slider_text)
+
+			# Draw an operator if provided.
+			if 'operator' in info:
+				icon = 'FILE_REFRESH'
+				if 'icon' in info:
+					icon = info['icon']
+
+				operator = sub_row.operator(info['operator'], text="", icon=icon)
+				# Pass on any paramteres to the operator that it will accept.
+				for param in info.keys():
+					if hasattr(operator, param):
+						value = info[param]
+						# Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+						if type(value) in [list, dict]:
+							value = json.dumps(value)
+						setattr(operator, param, value)
 
 class CloudRig_ColorProperties(bpy.types.PropertyGroup):
 	""" Store a color property that can be used to drive colors on the rig, and then be controlled even when the rig is linked. """
