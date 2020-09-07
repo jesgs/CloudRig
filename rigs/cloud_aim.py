@@ -64,7 +64,7 @@ class CloudAimRig(CloudBaseRig):
 		"""Create an AIM helper for @bone targetting @target_bone, while leaving
 		   @bone free to rotate.
 		"""
-		aim_bone = self.new_bonei(aim_mch
+		aim_bone = self.new_bonei(self.aim_mch
 			,name		 = self.org_chain[0].name.replace("ORG", "AIM")
 			,source		 = bone
 			,hide_select = self.mch_disable_select
