@@ -18,7 +18,7 @@ class CloudTemplateRig(CloudBaseRig):
 
 	def make_ctr_bone(self, bone):
 		ctr_bone = self.new_bonei(self.template_set
-			,name = bone.name.replace("ORG", "CTR")
+			,name = bone.name.replace('ORG', "CTR")
 			,source = bone
 			,custom_shape = self.ensure_widget('Circle')
 			,parent = bone.parent
@@ -54,9 +54,9 @@ class CloudTemplateRig(CloudBaseRig):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, params)
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_template_show_settings"): return layout
+		if not cls.draw_dropdown_menu(layout, params, 'CR_template_show_settings'): return layout
 
-		cls.draw_prop(layout, params, "CR_template_use_control")
+		cls.draw_prop(layout, params, 'CR_template_use_control')
 
 		return layout
 

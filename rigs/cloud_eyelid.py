@@ -1,0 +1,130 @@
+from bpy.props import BoolProperty
+from .cloud_face_chain import CloudFaceChainRig
+from .cloud_aim import CloudAimRig
+
+from ..utils.maths import project_vector_on_plane
+
+class CloudEyelidRig(CloudFaceChainRig):
+	"""Extends cloud_face_chain with eyelid functionality.""" #TODO: better description
+
+	def initialize(self):
+		super().initialize()
+
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.eyelid_mch = self.ensure_bone_set('Eyelid Mechanism')
+
+	def prepare_bones(self):
+		super().prepare_bones()
+		self.make_sticky_eyelid()
+
+	def make_sticky_eyelid(self):
+		"""Create bones between the base bone and the main STR controls of the eyelid"""
+
+		# Parent rig must be a cloud_aim type rig!
+		parent_rig = self.rigify_parent
+		if not isinstance(parent_rig, CloudAimRig):
+			self.raise_error(f"Eyelid rig's parent MUST be a cloud_aim rig type, not {type(parent_rig)}!")
+
+		sticky_prop_name = "sticky_eyelids_" + parent_rig.params.CR_aim_group.lower().replace(" ", "_")
+		self.create_sticky_property(parent_rig, sticky_prop_name)
+
+		# TODO: Maybe cloud_face_chain should to a better job of keeping track of this thing.
+		main_controls = []
+		for str_ctr in self.main_str_bones:
+			if hasattr(str_ctr, 'merged_control'):
+				str_ctr = str_ctr.merged_control
+			if str_ctr not in main_controls:
+				main_controls.append(str_ctr)
+
+		for str_ctr in main_controls:
+			eye_bone = parent_rig.org_chain[0]
+			rot_name = self.naming.make_name(["ROT"], *self.naming.slice_name(str_ctr)[1:])
+			rot_ctr = self.generator.find_bone_info(rot_name)
+			if rot_ctr:
+				continue
+
+			rot_ctr = self.new_bonei(self.eyelid_mch
+				,name = rot_name
+				,source = eye_bone
+				,tail = str_ctr.head.copy()
+				,parent = parent_rig.org_chain[0].parent
+				,roll_type = 'ACTIVE'
+				,roll_bone = eye_bone
+			)
+			copyrot_x = rot_ctr.add_constraint('COPY_ROTATION'
+				,name = 'Copy Rotation X'
+				,subtarget = eye_bone.name
+				,use_xyz = [True, False, False]
+			)
+			eyelid_width = (self.org_chain[0].head - self.org_chain[-1].tail).length * 0.55
+
+			# Reject the ROT bone tail onto the eye bone Z axis
+			rejection_z = project_vector_on_plane(rot_ctr.vector, parent_rig.meta_base_bone.z_axis)
+			# Take the distance between that and the base bone's vector
+			# to determine the constraints' influence.
+			distance = (eye_bone.vector - rejection_z).length
+			sticky_strength = 1 - distance / eyelid_width
+			copyrot_x.drivers.append({
+				'prop' : 'influence'
+				,'expression' : f"var*{sticky_strength}"
+				,'variables' : [(parent_rig.properties_bone.name, sticky_prop_name)]
+			})
+
+			copyrot_z = rot_ctr.add_constraint('COPY_ROTATION'
+				,name = 'Copy Rotation Z'
+				,subtarget = eye_bone.name
+				,use_xyz = [False, False, True]
+			)
+
+			copyrot_z.drivers.append({
+				'prop' : 'influence'
+				,'expression' : f"var*{sticky_strength*0.5}"
+				,'variables' : [(self.properties_bone.name, sticky_prop_name)]
+			})
+			str_ctr.parent = rot_ctr
+
+	def create_sticky_property(self, eye_rig: CloudAimRig, sticky_prop_name):
+		info = {
+			'prop_bone' : eye_rig.properties_bone,
+			'prop_id' : sticky_prop_name
+		}
+		self.add_ui_data('face_settings', eye_rig.params.CR_aim_group, "Sticky", info, default=0.1)
+
+	##############################
+	# Parameters
+	@classmethod
+	def define_bone_sets(cls, params):
+		"""Create parameters for this rig's bone sets."""
+		super().define_bone_sets(params)
+		cls.define_bone_set(params, "Eyelid Mechanism", default_layers=[cls.default_layers('MCH')], override='MCH')
+
+	@classmethod
+	def add_parameters(cls, params):
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		super().add_parameters(params)
+
+		params.CR_eyelid_show_settings = BoolProperty(
+			name		 = "Eyelid Settings"
+			,description = "Reveal settings for the cloud_eyelid rig type"
+		)
+
+	@classmethod
+	def draw_cloud_params(cls, layout, params):
+		"""Create the ui for the rig parameters."""
+		layout = super().draw_cloud_params(layout, params)
+
+		if not cls.draw_dropdown_menu(layout, params, 'CR_eyelid_show_settings'): return layout
+
+		layout.label(text="Simply make sure this rig is parented to a cloud_aim rig.")
+
+		return layout
+
+class Rig(CloudEyelidRig):
+	pass
+
+# For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_template")

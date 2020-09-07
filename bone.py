@@ -686,9 +686,7 @@ class BoneInfoMixin:
 		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
 		bone_set_defs = type(self).bone_set_defs
 
-		if bone_set_name not in bone_set_defs:
-			print(f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set.")
-			return
+		assert bone_set_name in bone_set_defs, f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set."
 
 		bone_set_def = bone_set_defs[bone_set_name]
 

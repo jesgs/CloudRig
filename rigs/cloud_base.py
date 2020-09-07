@@ -170,7 +170,9 @@ class CloudBaseRig(
 				,hide_select = self.mch_disable_select
 				,bbone_width = eb.bbone_x / self.generator.scale
 			)
-			org_bi.parent = self.org_chain.find(eb.name)
+			if eb.parent:
+				parent = self.generator.find_bone_info(eb.parent.name)
+				org_bi.parent = parent
 			# Remove constraints from the ORG bone and load them into the BoneInfo so they can be read and modified.
 			pb = self.obj.pose.bones.get(eb.name)
 			for c in pb.constraints:
