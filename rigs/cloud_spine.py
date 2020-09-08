@@ -22,6 +22,7 @@ class CloudSpineRig(CloudFKChainRig):
 		,'CR_fk_chain_double_first' : False
 		,'CR_fk_chain_hinge' : False
 		,'CR_fk_chain_display_center' : False
+		,'CR_fk_chain_root' : True
 	}
 
 	def initialize(self):
@@ -60,14 +61,14 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Overrides."""
 
 		# Create Troso Master control
-		self.limb_root_bone = self.mstr_torso = self.new_bonei(self.spine_main
+		limb_root_bone = self.new_bonei(self.spine_main
 			,name 		  = f"MSTR-{self.spine_name}_Torso"
 			,parent		  = self.root_bone
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.ensure_widget("Torso_Master")
 		)
-		return self.mstr_torso
+		return limb_root_bone
 
 	def make_fk_chain(self):
 		"""Overrides."""
@@ -80,12 +81,12 @@ class CloudSpineRig(CloudFKChainRig):
 				,head				= self.org_chain[0].center
 				,custom_shape 		= self.ensure_widget("Hips")
 				,custom_shape_scale	= 0.7
-				,parent				= self.mstr_torso
+				,parent				= self.limb_root_bone
 		)
-		self.register_parent(self.mstr_torso, "Torso")
-		self.mstr_torso.flatten()
+		self.register_parent(self.limb_root_bone, "Torso")
+		self.limb_root_bone.flatten()
 		if self.params.CR_spine_double:
-			double_mstr_pelvis = self.create_parent_bone(self.mstr_torso, self.spine_parent_ctrls)
+			double_mstr_pelvis = self.create_parent_bone(self.limb_root_bone, self.spine_parent_ctrls)
 
 		# Shift FK controls to their center.
 		for fk_bone in self.fk_chain:
@@ -94,7 +95,7 @@ class CloudSpineRig(CloudFKChainRig):
 				fk_bone.prev.tail = fk_bone.head
 
 		# Parent the first one to MSTR-Torso.
-		self.fk_chain[0].parent = self.mstr_torso
+		self.fk_chain[0].parent = self.limb_root_bone
 
 		# Register final spine FK as an available parent.
 		self.register_parent(self.fk_chain[-1], "Chest")
@@ -108,7 +109,7 @@ class CloudSpineRig(CloudFKChainRig):
 				,tail 				= self.org_chain[-2].center + Vector((0, 0, self.scale))
 				,custom_shape 		= self.ensure_widget("Chest_Master")
 				,custom_shape_scale = 0.7
-				,parent				= self.mstr_torso
+				,parent				= self.limb_root_bone
 			)
 
 		if self.params.CR_spine_double:
@@ -145,7 +146,7 @@ class CloudSpineRig(CloudFKChainRig):
 				ik_ctr_bone.parent = self.mstr_chest
 			else:
 				# The rest to the torso root.
-				ik_ctr_bone.parent = self.mstr_torso
+				ik_ctr_bone.parent = self.limb_root_bone
 			self.ik_ctr_chain.append(ik_ctr_bone)
 
 		### Reverse IK (IK-R) chain. Damped track to IK-CTR of one lower index.

@@ -28,6 +28,9 @@ class CloudFKChainRig(CloudChainRig):
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
 		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
+		if not self.params.CR_fk_chain_root:
+			self.params.CR_fk_chain_hinge = False
+
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.fk_chain = self.ensure_bone_set("FK Controls")
@@ -36,7 +39,10 @@ class CloudFKChainRig(CloudChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.make_root_bone()
+		self.limb_root_bone = self.org_chain[0]
+		self.rig_parent_bone = self.limb_root_bone.parent
+		if self.params.CR_fk_chain_root:
+			self.limb_root_bone = self.make_root_bone()
 		self.make_fk_chain()
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
@@ -45,15 +51,16 @@ class CloudFKChainRig(CloudChainRig):
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
-		base_bone = self.get_bone(self.base_bone)
-		self.limb_root_bone = self.new_bonei(self.fk_mch
+		base_bone = self.org_chain[0]
+		limb_root_bone = self.new_bonei(self.fk_extras
 			,name 					= root_name
 			,source 				= base_bone
-			,parent 				= self.bones.parent
+			,parent 				= base_bone.parent
 			,custom_shape 			= self.ensure_widget("Cube")
-			,custom_shape_scale 	= 0.5
+			,use_custom_shape_bone_size = True
 		)
-		self.register_parent(self.limb_root_bone, self.limb_ui_name)
+		self.register_parent(limb_root_bone, self.limb_ui_name)
+		return limb_root_bone
 
 	def make_fk_chain(self):
 		fk_name = ""
@@ -244,6 +251,11 @@ class CloudFKChainRig(CloudChainRig):
 			,default	 = True
 		)
 
+		params.CR_fk_chain_root = BoolProperty(
+			name		 = "Root Control"
+			,description = "Create a root control"
+			,default	 = False
+		)
 		params.CR_fk_chain_hinge = BoolProperty(
 			name		 = "Hinge Toggle"
 			,description = "Set up a hinge toggle"
@@ -300,7 +312,9 @@ class CloudFKChainRig(CloudChainRig):
 
 		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
-		cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
+		cls.draw_prop(layout, params, 'CR_fk_chain_root')
+		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
+		row.enabled = params.CR_fk_chain_root
 
 		return layout
 
