@@ -158,6 +158,12 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	actions: CollectionProperty(type=CloudRigAction)
 	active_action_index: IntProperty(min=0)
 
+	override_workaround: BoolProperty(
+		name		 = "Library Override Workarounds"
+		,description = "Enable workarounds for current limitations of Library Overrides. Currently this consists of hooking up rig layers to drivers with an overridable custom property"
+		,default	 = False
+	)
+
 def create_selection_sets(obj, metarig):
 
 	# Check if selection sets addon is installed
@@ -178,6 +184,32 @@ def create_selection_sets(obj, metarig):
 			if b.bone.layers[i] and b.name not in selset.bone_ids:
 				bone_id = selset.bone_ids.add()
 				bone_id.name = b.name
+
+def override_workaround_layers(rig, workaround: bool):
+	
+	if workaround:
+		from rna_prop_ui import rna_idprop_ui_create
+
+		rna_idprop_ui_create(
+			rig, 'override_layers', default=[l==0 for l in range(32)],
+			min = 0, max = 1,
+			overridable = True,
+		)
+
+		for i in range(32):
+			rig.data.driver_remove('layers', i)
+			D = rig.data.driver_add('layers', i)
+			d = D.driver
+			d.type = 'SUM'
+			var = d.variables.new()
+			var.type = 'SINGLE_PROP'
+			var.targets[0].id = rig
+			var.targets[0].data_path = f'["override_layers"][{i}]'
+	else:
+		for i in range(32):
+			rig.data.driver_remove('layers', i)
+		if 'override_layers' in rig.keys():
+			del rig['override_layers']
 
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
@@ -736,6 +768,9 @@ class CloudGenerator(Generator):
 
 		# Create Selection Sets
 		create_selection_sets(obj, metarig)
+
+		# Hack around Overrides
+		override_workaround_layers(self.obj, self.params.cloudrig_parameters.override_workaround)
 
 		t.tick("The rest: ")
 

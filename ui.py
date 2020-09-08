@@ -161,6 +161,8 @@ def draw_cloudrig_generator_settings(self, context):
 	if cloudrig.mechanism_selectable:
 		layout.prop(cloudrig, "mechanism_movable")
 
+	layout.prop(cloudrig, "override_workaround")
+
 	layout.prop(obj.data, "rigify_force_widget_update")
 
 def draw_cloud_bone_group_options(self, context):
