@@ -37,7 +37,8 @@ class CloudChainRig(CloudBaseRig):
 		self.average_org_length = self.chain_length / len(self.org_chain)
 
 		str_sections = self.make_str_chain(self.org_chain)
-		self.make_str_helpers(str_sections)
+		if self.params.CR_chain_segments > 1:
+			self.make_str_helpers(str_sections)
 
 		if self.params.CR_chain_smooth_spline:
 			for str_bone in self.str_chain:
@@ -131,6 +132,9 @@ class CloudChainRig(CloudBaseRig):
 		"""Create STR-H bones that keep STR controls between two main STR controls."""
 		main_str_bone = None
 		for sec_i, section in enumerate(str_sections):
+			if self.params.CR_chain_tip_control and section==str_sections[-1]:
+				# If there is a tip control, the last section will be just that tip control, so do nothing.
+				continue
 			for i, str_bone in enumerate(section):
 				# If this STR bone is not the first in its section
 				# Create an STR-H parent helper for it, which will hold some constraints
