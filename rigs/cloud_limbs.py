@@ -201,7 +201,6 @@ class CloudLimbRig(CloudIKChainRig):
 	def make_footroll(self, ik_tgt, ik_chain, org_chain):
 		ik_foot = ik_chain[0]
 
-		# Create ROLL control behind the foot (Limit Rotation, lock other transforms)
 		rolly_stretchy = self.new_bonei(self.ik_mch
 			,name		 = self.org_chain[0].name.replace("ORG", "IK-STR-ROLL")
 			,source		 = self.org_chain[0]
@@ -222,6 +221,7 @@ class CloudLimbRig(CloudIKChainRig):
 		roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
 		self.ik_tgt_bone.clear_constraints()
 
+		# Create ROLL control behind the foot
 		roll_name = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
 		roll_ctrl = self.new_bonei(self.ik_ctrls
 			,name		  = roll_name
@@ -229,11 +229,12 @@ class CloudLimbRig(CloudIKChainRig):
 			,head		  = ik_foot.head + Vector((0, self.scale, self.scale/4))
 			,tail		  = ik_foot.head + Vector((0, self.scale/2, self.scale/4))
 			,roll		  = rad(180)
-			,parent		  = roll_master
+			,parent		  = self.ik_mstr#roll_master
 			,custom_shape = self.ensure_widget('FootRoll')
 			,use_custom_shape_bone_size = True
 		)
-
+		# Limit Rotation, lock other transforms
+		self.lock_transforms(roll_ctrl, rot=False)
 		roll_ctrl.add_constraint('LIMIT_ROTATION'
 			,use_limit_x=True
 			,min_x = rad(-90)
