@@ -57,7 +57,6 @@ class CloudFKChainRig(CloudChainRig):
 			,source 				= base_bone
 			,parent 				= base_bone.parent
 			,custom_shape 			= self.ensure_widget("Cube")
-			,use_custom_shape_bone_size = True
 		)
 		self.register_parent(limb_root_bone, self.limb_ui_name)
 		return limb_root_bone

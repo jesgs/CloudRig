@@ -126,7 +126,7 @@ class CloudBaseRig(
 		for param in clas.forced_params.keys():
 			forced_value = clas.forced_params[param]
 			if forced_value != 'NOFORCE':
-				self.meta_base_bone[param] = forced_value
+				self.meta_base_bone.rigify_parameters[param] = forced_value
 				setattr(self.params, param, forced_value)
 
 	@property

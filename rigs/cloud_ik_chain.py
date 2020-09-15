@@ -12,6 +12,10 @@ Allow disabling IK stretch functionality.
 class CloudIKChainRig(CloudFKChainRig):
 	"""IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
+	forced_params = {
+		'CR_fk_chain_root' : True,
+	}
+
 	def initialize(self):
 		"""Gather and validate data about the rig."""
 		super().initialize()

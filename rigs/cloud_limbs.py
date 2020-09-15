@@ -25,7 +25,8 @@ class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features for specific limbs, such as foot roll."""
 
 	forced_params = {
-		'CR_chain_sharp' : True
+		'CR_fk_chain_root' : True
+		,'CR_chain_sharp' : True
 	}
 
 	def initialize(self):
