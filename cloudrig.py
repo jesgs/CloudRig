@@ -572,7 +572,6 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
-		# TODO: Instead of relying on scene settings(auto-keying, keyingset, etc) maybe it would be better to have a custom boolean to decide whether to insert keyframes or not. Ask animators.
 		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
 		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
@@ -603,7 +602,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		if not bone_names:
 			bone_names = self.bone_names
 		
-		matrices = [rig.pose.bones.get(bone_name).matrix for bone_name in bone_names]
+		matrices = [rig.pose.bones.get(bone_name).matrix.copy() for bone_name in bone_names]
 		return matrices
 
 	def after_save_state(self, context, rig):
