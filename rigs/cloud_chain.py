@@ -11,6 +11,8 @@ Spline IK like controls(the other two types) for bendy bones' handles.
 Recursive generation of layers of STR controls... Little use case and lots of headache.
 """
 
+CUSTOM_SPACE = False
+
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 
@@ -179,7 +181,6 @@ class CloudChainRig(CloudBaseRig):
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
 	def set_up_smooth_spline(self, str_bone, prev=None, nxt=None):
-		return # This functionality relies on D7437.
 		str_bone.dt_bone = self.make_dt_helper(str_bone, prev, nxt)
 		str_bone.tangent_helper = self.make_tangent_helper(str_bone)
 
@@ -230,18 +231,26 @@ class CloudChainRig(CloudBaseRig):
 			,name = "Copy Rotation (Damped Track Helper)"
 			,subtarget = dt.name
 		)
-		tangent_helper.add_constraint('COPY_ROTATION'
-			,name = "Copy Rotation (User Rotation Reader)"
-			,subtarget = str_bone.name
-			,owner_space = 'CUSTOM'
-			,space_object = self.obj
-			,space_subtarget = str_bone.name
-		)
+		if CUSTOM_SPACE:
+			tangent_helper.add_constraint('COPY_ROTATION'
+				,name = "Copy Rotation (User Rotation Reader)"
+				,subtarget = str_bone.name
+				,owner_space = 'CUSTOM'
+				,space_object = self.obj
+				,space_subtarget = str_bone.name
+			)
+		else:
+			tangent_helper.add_constraint('COPY_ROTATION'
+				,name = "Copy Rotation (User Rotation)"
+				,subtarget = str_bone.name
+			)
 		tangent_helper.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
 			,space = 'WORLD'
 		)
 
+		if not CUSTOM_SPACE: 
+			return tangent_helper
 		# TODO: Had to copy paste this code, would be nice to have a proper 
 		# utility for copying a bone with its constraints and drivers and whatnot.
 		tangent_clone = self.new_bonei(self.str_mch
@@ -260,7 +269,6 @@ class CloudChainRig(CloudBaseRig):
 			,owner_space = 'CUSTOM'
 			,space_object = self.obj
 			,space_subtarget = str_bone.name
-
 		)
 
 		tangent_helper.add_constraint('COPY_ROTATION'
