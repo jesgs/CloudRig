@@ -842,23 +842,6 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		mat.translation = pole_loc
 		return mat
 
-class CLOUDRIG_OT_reset_colors(bpy.types.Operator):
-	bl_description = "Reset rig color properties to their stored default"
-	bl_idname = "object.reset_rig_colors"
-	bl_label = "Reset Rig Colors"
-	bl_options = {'REGISTER', 'UNDO'}
-
-	@classmethod
-	def poll(cls, context):
-		rig = context.pose_object or context.object
-		return 'cloudrig' in rig.data
-
-	def execute(self, context):
-		rig = context.pose_object or context.object
-		for cp in rig.cloud_colors:
-			cp.current = cp.default
-		return {'FINISHED'}
-
 ############################################
 ############ UI
 
@@ -933,31 +916,6 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 						if type(value) in [list, dict]:
 							value = json.dumps(value)
 						setattr(operator, param, value)
-
-class CloudRig_ColorProperties(bpy.types.PropertyGroup):
-	""" Store a color property that can be used to drive colors on the rig, and then be controlled even when the rig is linked. """
-	# Currently, a generated rig won't create any customproperties for itself.
-	# You would have to create these for yourself with a separate python script.
-	# C.object.data.cloud_colors.new()
-
-	# The reset colors operator will reset all color properties to this default.
-	# Nothing's stopping you from changing this default, but it's not exposed in the UI, so it shouldn't be easy to accidently mess up.
-	default: FloatVectorProperty(
-		name='Default',
-		description='',
-		subtype='COLOR',
-		min=0,
-		max=1,
-		options={'LIBRARY_EDITABLE'}	# Make it not animatable.
-	)
-	current: FloatVectorProperty(
-		name='Color',
-		description='',
-		subtype='COLOR',
-		min=0,
-		max=1,
-		options={'LIBRARY_EDITABLE'}	# Make it not animatable.
-	)
 
 class CloudRig_Properties(bpy.types.PropertyGroup):
 	""" PropertyGroup for storing fancy custom properties in. """
@@ -1299,32 +1257,12 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 
 		draw_rig_settings(layout, rig, "misc_settings", label='')
 
-class CLOUDRIG_PT_viewport(CLOUDRIG_PT_main):
-	bl_idname = "CLOUDRIG_PT_viewport_" + script_id
-	bl_label = "Viewport Display"
-
-	@classmethod
-	def poll(cls, context):
-		rig = active_cloudrig()
-		return rig and hasattr(rig, "cloud_colors") and len(rig.cloud_colors)>0
-
-	def draw(self, context):
-		layout = self.layout
-		rig = active_cloudrig()
-		if not rig: return
-		layout.operator(CLOUDRIG_OT_reset_colors.bl_idname, text="Reset Colors")
-		layout.separator()
-		for cp in rig.cloud_colors:
-			layout.prop(cp, "current", text=cp.name)
-
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
 	,CLOUDRIG_OT_ikfk_bake
 	,CLOUDRIG_OT_snap_mapped_bake
 	,CLOUDRIG_OT_snap_bake
-	,CLOUDRIG_OT_reset_colors
 
-	,CloudRig_ColorProperties
 	,CloudRig_Properties
 
 	,CLOUDRIG_PT_character
@@ -1335,7 +1273,6 @@ classes = (
 	,CLOUDRIG_PT_fk
 	,CLOUDRIG_PT_face
 	,CLOUDRIG_PT_misc
-	,CLOUDRIG_PT_viewport
 )
 
 def register():
@@ -1345,7 +1282,6 @@ def register():
 
 	# We store everything in Object rather than Armature because Armature data cannot be accessed on proxy armatures.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
-	bpy.types.Object.cloud_colors = CollectionProperty(type=CloudRig_ColorProperties)
 
 def unregister():
 	from bpy.utils import unregister_class
@@ -1353,6 +1289,5 @@ def unregister():
 		unregister_class(c)
 
 	del bpy.types.Object.cloud_rig
-	del bpy.types.Object.cloud_colors
 
 register()
