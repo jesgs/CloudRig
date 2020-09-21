@@ -120,8 +120,9 @@ class CloudLimbRig(CloudIKChainRig):
 		foot_dsp(self.ik_mstr)
 		# Parent control
 		if self.params.CR_limb_double_ik:
-			double_control = self.create_parent_bone(self.ik_mstr, self.ik_parent_ctrls)
+			double_control = self.create_parent_bone(self.ik_mstr, self.ik_ctrls_parents)
 			double_control.bone_group = "IK Parent Controls"
+			self.ik_mstr.set_layers(self.ik_ctrls_secondary.layers, additive=True)
 			foot_dsp(double_control)
 
 		# IK Foot setup, including Foot Roll
@@ -531,6 +532,11 @@ class CloudLimbRig(CloudIKChainRig):
 			,source = org_elbow
 			,custom_shape = self.ensure_widget('Double_Arrow')
 		)
+		# Assign to main FK layer and both IK layers also
+		control_bone.set_layers(self.fk_chain.layers, additive=True)
+		control_bone.set_layers(self.ik_ctrls.layers, additive=True)
+		control_bone.set_layers(self.fk_chain.layers, additive=True)
+
 		parent_bone = self.new_bonei(self.fk_mch
 			,name = self.naming.add_prefix(control_bone, 'P')
 			,source = org_elbow

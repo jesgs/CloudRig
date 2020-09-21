@@ -89,15 +89,15 @@ def set_layers(obj, layerlist, additive=False):
 
 	obj can either be a bone or an armature.
 	"""
-	layers = obj.layers[:]
+	layers = list(obj.layers[:])
+	layerlist = layerlist[:]
 
 	if not additive:
 		layers = [False]*32
-
 	for i, e in enumerate(layerlist):
 		if type(e)==bool:
 			assert len(layerlist)==32, f"ERROR: Layer assignment expected a list of 32 booleans, got {len(layerlist)}."
-			layers[i] = e
+			layers[i] = e or layers[i]
 		elif type(e)==int:
 			layers[e] = True
 

@@ -39,7 +39,8 @@ class CloudIKChainRig(CloudFKChainRig):
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.ik_ctrls = self.ensure_bone_set("IK Controls")
-		self.ik_parent_ctrls = self.ensure_bone_set("IK Parent Controls")
+		self.ik_ctrls_secondary = self.ensure_bone_set("IK Extra Controls")
+		self.ik_ctrls_parents = self.ensure_bone_set("IK Parent Controls")
 		self.ik_mch = self.ensure_bone_set("IK Mechanism")
 
 	def prepare_bones(self):
@@ -516,6 +517,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		super().define_bone_sets(params)
 		"""Create parameters for this rig's bone sets."""
 		cls.define_bone_set(params, "IK Controls", preset=2, default_layers=[cls.default_layers('IK_MAIN')])
+		cls.define_bone_set(params, "IK Extra Controls", preset=2, default_layers=[cls.default_layers('IK_SECOND')])
 		cls.define_bone_set(params, "IK Parent Controls", preset=8, default_layers=[cls.default_layers('IK_MAIN')])
 		cls.define_bone_set(params, "IK Mechanism", default_layers=[cls.default_layers('MCH')], override='MCH')
 
