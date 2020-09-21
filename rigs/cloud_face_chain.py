@@ -1,3 +1,6 @@
+from typing import List
+from ..bone import BoneInfo
+
 from bpy.props import BoolProperty, IntProperty
 from mathutils import Vector
 
@@ -14,85 +17,108 @@ class CloudFaceChainRig(CloudChainRig):
 		for rig in self.generator.rig_list:
 			if isinstance(rig, type(self)):
 				self.chain_rigs.append(rig)
+		
+		self.is_last_chain_rig = self == self.chain_rigs[-1]
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		# This bone set is special in that its .new() function should never be called, and therefore it never creates any bones.
-		# However, pre-existing STR bones who then had a merged control created for them will be assigned the bone group and layer of this BoneSet.
+		# This bone set is special in that its .new() function should never be 
+		# called, and therefore it never creates any bones. However, pre-existing 
+		# STR bones who then had a merged control created for them will be assigned 
+		# the bone group and layer of this BoneSet.
 		self.sub_controls = self.ensure_bone_set("Sub Controls")
 		self.merged_controls = self.ensure_bone_set("Merged Controls")
 		self.face_mch = self.ensure_bone_set("Face Helpers")
 
 	def prepare_bones(self):
 		super().prepare_bones()
-
-		# Move constraints from ORG bones to main STR bones and relink them
+		
 		if self.params.CR_face_chain_relink:
 			self.move_and_relink_constraints()
 
-		if self.params.CR_face_chain_merge:
-			self.make_intersection_controls()
+		### Following code is only run ONCE by the LAST face_chain_rig.
+		if not self.is_last_chain_rig:
+			return
+
+		all_str_bones = self.group_str_bones()
+		self.ensure_intersection_controls(all_str_bones)
+		self.create_armature_parents(all_str_bones)
 
 	def move_and_relink_constraints(self):
+		"""Move constraints from ORG bones to main STR bones and relink them.
+
+		If the constraint name contains 'TAIL', we assume the constraint is meant
+		for the STR bone at the tip or the ORG bone rather than at the head.
+		"""
 		for i, org in enumerate(self.org_chain):
 			for c in org.constraint_infos[:]:
 				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
 					to_bone = self.main_str_bones[i+1]
 
-				# Armature constraints turn parenting into local matrix, which messes up DT helper bones that rely on that local rotation.
-				# So if Smooth Spline param is enabled and we are relinking an armature constraint, make a separate bone for it.
-				if self.params.CR_chain_smooth_spline and c.type=='ARMATURE':
-					parent_bone = self.create_parent_bone(to_bone, self.face_mch)
-					to_bone = parent_bone
-
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				c.relink()
 
-	def make_intersection_controls(self):
+	def group_str_bones(self):
+		"""Gather a list of lists of more than one STR bones that are in the same 
+		location as another STR bone from another face_chain rig with
+		CR_face_chain_merge==True.
+		"""
+		merge_threshold = 0.000001
+		sets_to_merge = {}
+
+		all_str_bones = []
+		for rig in self.chain_rigs:
+			if not rig.params.CR_face_chain_merge: continue
+			all_str_bones.extend(rig.main_str_bones)
+
+		for str_bone in all_str_bones:
+			for other_str in all_str_bones:
+				if str_bone == other_str: continue
+				if (str_bone.head - other_str.head).length < merge_threshold:
+					if hasattr(str_bone, 'group') and other_str not in str_bone.group:
+						str_bone.group.append(other_str)
+						other_str.group = str_bone.group
+					elif hasattr(other_str, 'group') and str_bone not in other_str.group:
+						other_str.group.append(str_bone)
+						str_bone.group = other_str.group
+					else:
+						str_bone.group = other_str.group = [str_bone, other_str]
+		
+		return all_str_bones
+
+	def ensure_intersection_controls(self, all_str_bones):
 		# For each main STR control in this rig
 		#   For each main STR control in every other rig
 		#	   If the two are in the same position
 		#		   Ensure a parent control
 		#		   Move both to the layers of the Sub Controls bone set.
 
-		merge_threshold = 0.000001
-		sets_to_merge = []
-		for my_main in self.main_str_bones:
-			set_to_merge = [my_main]
-			for other_rig in self.chain_rigs:
-				if not hasattr(other_rig, "main_str_bones"): continue
-				for other_main in other_rig.main_str_bones:
-					if other_main == my_main: continue
-					if (my_main.head-other_main.head).length < merge_threshold:
-						set_to_merge.append(other_main)
-			if len(set_to_merge)>1:
-				sets_to_merge.append(set_to_merge)
+		for str_bone in all_str_bones:
+			if hasattr(str_bone, 'group'):
+				self.ensure_intersection_control(str_bone.group)
 
-		for bones in sets_to_merge:
-			self.ensure_parent_control(bones)
-			for b in bones:
-				b.layers = self.sub_controls.layers[:]
-
-	def ensure_parent_control(self, bones):
+	def ensure_intersection_control(self, bones):
 		""" Ensure that all bones share the same parent control.
 			If this is not the case, create it and parent them.
 		"""
 
 		# Check the bones' parents to see if the desired control was already created.
-		parent = None
+		intersection_control = None
 		for b in bones:
+			b.layers = b.owner_rig.sub_controls.layers[:]
 			if b.parent.name.startswith("STR-I"):
-				parent = b.parent
+				# TODO: I thought this should never happen, but it dooo
+				intersection_control = b.parent
 				break
 
-		if not parent:
+		if not intersection_control:
 			combined_name = self.naming.combine_names(bones)
 			slices = self.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
 			bone_name = self.naming.make_name(["STR", "I"], slices[1], slices[2])
-			parent = self.new_bonei(self.merged_controls
+			intersection_control = bones[0].owner_rig.new_bonei(bones[0].owner_rig.merged_controls
 				,name = bone_name
 				,source = bones[0]
 				,custom_shape = self.ensure_widget('Cube')
@@ -100,31 +126,57 @@ class CloudFaceChainRig(CloudChainRig):
 			)
 
 		# If bones are in the center, flatten them to make sure they produce a clean curvature.
-		if abs(parent.head.x) < 0.001:
-			parent.vector = Vector((0, 0, parent.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
-			parent.roll = 0
+		if abs(intersection_control.head.x) < 0.001:
+			intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
+			intersection_control.roll = 0
 			for b in bones:
 				b.vector = self.flat_vector(b.vector)
 
-		for b in bones:
-			b.parent = parent # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
-			par_con_name = "Armature (Parenting affects local matrix)"
-			par_con = b.get_constraint(par_con_name)
-			if b.owner_rig.params.CR_chain_smooth_spline and par_con==None:
-				b.add_constraint('ARMATURE', name=par_con_name, index=0,
-					targets = [
-						{
-							"subtarget" : parent.name
-						},
-					]
-				)
-			# Move constraints except the above one to the merged control
-			for c in b.constraint_infos[:]:
-				if c.name==par_con_name: continue
-				parent.constraint_infos.append(c)
-				b.constraint_infos.remove(c)
+		for str_bone in bones:
+			if hasattr(str_bone, 'merged_control'):
+				continue
 
-			b.merged_control = parent
+			str_bone.parent = intersection_control # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
+
+			str_bone.merged_control = intersection_control
+
+			if not str_bone.owner_rig.params.CR_chain_smooth_spline:
+				continue
+
+			str_bone.tangent_helper.add_constraint('COPY_ROTATION'
+				,subtarget = intersection_control.name
+				,index = 1
+				,owner_space = 'CUSTOM'
+				,space_object = self.obj
+				,space_subtarget = intersection_control.name
+			)
+
+			str_bone.tangent_clone.add_constraint('COPY_ROTATION'
+				,index = 1
+				,subtarget = intersection_control.name
+				,owner_space = 'CUSTOM'
+				,space_object = self.obj
+				,space_subtarget = intersection_control.name
+			)
+
+	def create_armature_parents(self, all_str_bones):
+		"""For Main STR Controls and Intersection controls that now have an Armature
+		constraint, create a parent bone and move the armature constraint to that.
+		"""
+
+		# Armature constraints turn parenting into local matrix, which 
+		# messes up DT helper bones that rely on that local rotation.
+		# So if Smooth Spline param is enabled and we are relinking an 
+		# armature constraint, make a separate bone for it.
+		for str_bone in all_str_bones:
+			for c in str_bone.constraint_infos:
+
+				if c.type=='ARMATURE' and not hasattr(str_bone.parent, 'arm_parent'):
+					str_bone.parent.arm_parent = self.create_parent_bone(str_bone.parent, self.face_mch)
+					str_bone.parent.arm_parent.constraint_infos.append(c)
+				else:
+					str_bone.parent.constraint_infos.append(c)
+				str_bone.constraint_infos.remove(c)
 
 	##############################
 	# Parameters

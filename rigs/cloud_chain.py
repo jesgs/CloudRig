@@ -42,7 +42,7 @@ class CloudChainRig(CloudBaseRig):
 
 		if self.params.CR_chain_smooth_spline:
 			for str_bone in self.str_chain:
-				str_bone.dt_bone = self.make_dt_helper(str_bone)
+				self.set_up_smooth_spline(str_bone)
 
 		self.make_def_chain(self.str_chain)
 
@@ -178,6 +178,11 @@ class CloudChainRig(CloudBaseRig):
 				)
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
+	def set_up_smooth_spline(self, str_bone, prev=None, nxt=None):
+		return # This functionality relies on D7437.
+		str_bone.dt_bone = self.make_dt_helper(str_bone, prev, nxt)
+		str_bone.tangent_helper = self.make_tangent_helper(str_bone)
+
 	def make_dt_helper(self, str_bone: BoneInfo, 
 						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
@@ -206,16 +211,70 @@ class CloudChainRig(CloudBaseRig):
 			)
 			if nxt:
 				neg_con.influence = 0.5
-		dt_bone.add_constraint('COPY_ROTATION'
-			,subtarget = str_bone.name
-			,mix_mode = 'BEFORE'
-			,use_y = False
-			,euler_order = 'XZY'
-		)
-		dt_bone.inherit_scale = 'NONE'
-		dt_bone.add_constraint('COPY_SCALE', subtarget=str_bone.name, space='WORLD')
+		dt_bone.inherit_scale = 'AVERAGE'	# No real purpose, just for viewport display
 
 		return dt_bone
+
+	def make_tangent_helper(self, str_bone):
+		assert hasattr(str_bone, 'dt_bone'), "make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first."
+
+		dt = str_bone.dt_bone
+
+		tangent_helper = self.new_bonei(self.str_mch
+			,name = self.naming.add_prefix(str_bone, "TAN")
+			,source = str_bone
+			,parent = str_bone
+			,inherit_scale = 'NONE'
+		)
+		tangent_helper.add_constraint('COPY_ROTATION'
+			,name = "Copy Rotation (Damped Track Helper)"
+			,subtarget = dt.name
+		)
+		tangent_helper.add_constraint('COPY_ROTATION'
+			,name = "Copy Rotation (User Rotation Reader)"
+			,subtarget = str_bone.name
+			,owner_space = 'CUSTOM'
+			,space_object = self.obj
+			,space_subtarget = str_bone.name
+		)
+		tangent_helper.add_constraint('COPY_SCALE'
+			,subtarget = str_bone.name
+			,space = 'WORLD'
+		)
+
+		# TODO: Had to copy paste this code, would be nice to have a proper 
+		# utility for copying a bone with its constraints and drivers and whatnot.
+		tangent_clone = self.new_bonei(self.str_mch
+			,name = self.naming.add_prefix(tangent_helper, "CLONE")
+			,source = str_bone
+			,parent = str_bone
+			,inherit_scale = 'NONE'
+		)
+		tangent_clone.add_constraint('COPY_ROTATION'
+			,name = "Copy Rotation (Damped Track Helper)"
+			,subtarget = dt.name
+		)
+		tangent_clone.add_constraint('COPY_ROTATION'
+			,name = "Copy Rotation (User Rotation Reader)"
+			,subtarget = str_bone.name
+			,owner_space = 'CUSTOM'
+			,space_object = self.obj
+			,space_subtarget = str_bone.name
+
+		)
+
+		tangent_helper.add_constraint('COPY_ROTATION'
+			,subtarget = tangent_clone.name
+			,use_xyz = [False, True, False]
+			,invert_xyz = [False, True, False]
+			,owner_space = 'CUSTOM'
+			,space_object = self.obj
+			,space_subtarget = tangent_clone.name
+		)
+
+		str_bone.tangent_clone = tangent_clone
+
+		return tangent_helper
 
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Create a deform chain stretching from one STR bone to the next"""
@@ -258,8 +317,8 @@ class CloudChainRig(CloudBaseRig):
 		if str_bone in self.main_str_bones:
 			def_bone.bbone_easein = 1 - self.params.CR_chain_sharp
 
-		if hasattr(def_bone.bbone_custom_handle_start, 'dt_bone'):
-			def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.dt_bone
+		if hasattr(def_bone.bbone_custom_handle_start, 'tangent_helper'):
+			def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.tangent_helper
 
 		def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
 		# If bbone_density is >0, force at least 2 bbone_segments.
@@ -276,8 +335,8 @@ class CloudChainRig(CloudBaseRig):
 				,use_bulge_min = not self.params.CR_chain_preserve_volume
 				,use_bulge_max = not self.params.CR_chain_preserve_volume
 			)
-			if hasattr(def_bone.bbone_custom_handle_end, 'dt_bone'):
-				def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.dt_bone
+			if hasattr(def_bone.bbone_custom_handle_end, 'tangent_helper'):
+				def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.tangent_helper
 
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
@@ -369,7 +428,7 @@ class CloudChainRig(CloudBaseRig):
 			if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
 				self.make_shape_key_helper(def_bone, self.def_chain[0])
 			if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-				self.make_dt_helper(str_bone, nxt=self.str_chain[0])
+				self.set_up_smooth_spline(str_bone, nxt=self.str_chain[0])
 
 	##############################
 	# Parameters
