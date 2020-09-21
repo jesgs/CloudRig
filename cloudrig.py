@@ -842,6 +842,29 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		mat.translation = pole_loc
 		return mat
 
+class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
+	"""Keyframe all custom properties on the Properties bone"""
+	bl_idname = "pose.cloudrig_keyframe_all_settings"
+	bl_label = "Keyframe CloudRig Settings"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	@classmethod
+	def poll(cls, context):
+		return (active_cloudrig() is not None) and (context.pose_object or context.active_object)
+
+	def execute(self, context):
+		rig = context.pose_object or context.active_object
+		properties_bone = rig.pose.bones.get('Properties')
+		if not properties_bone:
+			return {'CANCELLED'}
+		
+		for prop_name in properties_bone.keys():
+			if prop_name=='_RNA_UI': continue
+			set_custom_property_value(rig, properties_bone.name, prop_name, properties_bone[prop_name], keyflags={'INSERTKEY_NEEDED'})
+
+
+		return {'FINISHED'}
+
 ############################################
 ############ UI
 
@@ -1158,6 +1181,13 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_settings_" + script_id
 	bl_label = "Settings"
 
+	def draw(self, context):
+		layout = self.layout
+		rig = active_cloudrig()
+		if not rig: return
+
+		layout.operator('pose.cloudrig_keyframe_all_settings', text='Keyframe All Settings', icon='KEYFRAME_HLT')
+
 class CLOUDRIG_PT_fkik(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_fkik_" + script_id
 	bl_label = "FK/IK Switch"
@@ -1262,6 +1292,8 @@ classes = (
 	,CLOUDRIG_OT_ikfk_bake
 	,CLOUDRIG_OT_snap_mapped_bake
 	,CLOUDRIG_OT_snap_bake
+
+	,CLOUDRIG_OT_keyframe_all_settings
 
 	,CloudRig_Properties
 
