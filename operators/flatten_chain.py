@@ -10,8 +10,10 @@ class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	use_selected: BoolProperty(name="Selected Bones", default=True)
+
 	start_bone: StringProperty(name="Start bone")
 	chain_length: IntProperty(name="Chain Length")
+
 	axis: EnumProperty(name="Axis",
 		items = [
 			('X', 'X', 'X'),
@@ -38,7 +40,7 @@ class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 			if not start_bone:
 				return {'CANCELLED'}
 			bones = [start_bone]
-			for i in range(self.chain_length):
+			for i in range(self.chain_length-1):
 				if len(bones[-1].children)==0:
 					break
 				bones.append(bones[-1].children[0])
@@ -52,7 +54,8 @@ class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 
 		bpy.ops.armature.select_all(action='DESELECT')
 
-		for b in bones:
+		bones[0].select=True
+		for b in bones[1:]:
 			b.select=True
 			intersect = intersect_point_line(b.head, chain_start, chain_end)[0]
 			if self.axis != 'X':
