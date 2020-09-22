@@ -565,38 +565,36 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 			time_row.prop(self, 'frame_start')
 			time_row.prop(self, 'frame_end')
 
-		bone_names = layout.column(align=True)
-		bone_names.label(text="Affected bones:")
+		bone_column = layout.column(align=True)
+		bone_column.label(text="Affected bones:")
 		for b in self.bone_names:
-			bone_names.label(text=" "*10 + b)
+			bone_column.label(text=" "*10 + b)
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
 		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
 		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
-		self.bone_names = json.loads(self.bones)
-
+		ret = {'FINISHED'}
 		if self.do_bake:
-			return super().execute(context)
+			ret = super().execute(context)
+		else:
+			self.init_execute(context)
+			self.bake_init(context)
 
-		self.init_execute(context)
-		self.bake_init(context)
-		bone_names = json.loads(self.bones)
+			try:
+				matrices = self.save_frame_state(context, rig)
+				self.after_save_state(context, rig)
+				self.apply_frame_state(context, rig, matrices)
+
+			except Exception as e:
+				traceback.print_exc()
+				self.report({'ERROR'}, 'Exception: ' + str(e))
+
 		bones = get_bones(rig, self.bones)
-
-		try:
-			matrices = self.save_frame_state(context, rig)
-			self.after_save_state(context, rig)
-			self.apply_frame_state(context, rig, matrices)
-
-		except Exception as e:
-			traceback.print_exc()
-			self.report({'ERROR'}, 'Exception: ' + str(e))
-
 		self.set_selection(context, bones)
 
-		return {'FINISHED'}
+		return ret
 
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
 		if not bone_names:
@@ -733,7 +731,8 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 		super().init_invoke(context)	# This creates self.bone_names based on self.bones.
 
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
-		bone_names = [t[1] for t in self.bone_map]
+		if not bone_names:
+			bone_names = [t[1] for t in self.bone_map]
 		return super().save_frame_state(context, rig, bone_names)
 
 	def execute_scan_curves(self, context, obj):
@@ -800,16 +799,17 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 
 		if self.is_pole:
 			self.bone_names.append(self.pole.name)
+			self.bones = json.dumps(self.bone_names)
 
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
-		matrices = super().save_frame_state(context, rig, bone_names)
+		matrices = super().save_frame_state(context, rig)
 		if self.is_pole:
 			matrices.append(self.get_pole_target_matrix())
+
 		return matrices
 
 	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
 		# Restore transform matrices
-
 		for i, bone_name in enumerate(self.bone_names):
 			old_matrix = matrices[i]
 			set_transform_from_matrix(
@@ -829,7 +829,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 
 		fk_first = rig.pose.bones.get(self.fk_first)
 		fk_last = rig.pose.bones.get(self.fk_last)
-		assert fk_first and fk_last, f"Error: Can't calculate pole target location due to on of these FK bones missing: {self.fk_first}, {self.fk_last}"
+		assert fk_first and fk_last, f"Error: Can't calculate pole target location due to one of these FK bones missing: {self.fk_first}, {self.fk_last}"
 
 		chain_length = fk_first.vector.length + fk_last.vector.length
 		pole_distance = chain_length/2
