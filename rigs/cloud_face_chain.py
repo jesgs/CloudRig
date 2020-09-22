@@ -170,12 +170,13 @@ class CloudFaceChainRig(CloudChainRig):
 		# armature constraint, make a separate bone for it.
 		for str_bone in all_str_bones:
 			for c in str_bone.constraint_infos:
-
-				if c.type=='ARMATURE' and not hasattr(str_bone.parent, 'arm_parent'):
-					str_bone.parent.arm_parent = self.create_parent_bone(str_bone.parent, self.face_mch)
-					str_bone.parent.arm_parent.constraint_infos.append(c)
+				bone = str_bone
+				# bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
+				if c.type=='ARMATURE' and not hasattr(bone, 'arm_parent'):
+					bone.arm_parent = self.create_parent_bone(bone, self.face_mch)
+					bone.arm_parent.constraint_infos.append(c)
 				else:
-					str_bone.parent.constraint_infos.append(c)
+					bone.constraint_infos.append(c)
 				str_bone.constraint_infos.remove(c)
 
 	##############################
