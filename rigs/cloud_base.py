@@ -60,12 +60,12 @@ class CloudBaseRig(
 		
 		self.all_bones = []
 
-	def find_org_bones(self, pose_bone):
-		"""Populate self.bones.org.main with a continuous connected bone chain
-			where none of the chain elements have a rigify type."""
-
+	@staticmethod
+	def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
+		"""Get a continuous connected bone chain where none of the chain elements
+		have a rigify type."""
 		cur_pb = pose_bone
-		chain = [cur_pb.name]
+		chain = [cur_pb]
 		while cur_pb and len(cur_pb.children)>0:
 			next_bone = None
 			for c in cur_pb.children:
@@ -78,11 +78,16 @@ class CloudBaseRig(
 					else:
 						next_bone = c
 			if next_bone:
-				chain.append(next_bone.name)
+				chain.append(next_bone)
 			cur_pb = next_bone
+		return chain
 
+	def find_org_bones(self, pose_bone):
+		"""Populate self.bones.org.main."""
+
+		chain = self.get_rigify_chain(pose_bone)
 		from rigify.utils.bones import BoneDict
-		return BoneDict(main=chain)
+		return BoneDict(main=[b.name for b in chain])
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""

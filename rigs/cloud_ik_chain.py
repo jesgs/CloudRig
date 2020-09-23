@@ -1,3 +1,6 @@
+import bpy
+from typing import List
+
 from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians as rad
@@ -103,18 +106,22 @@ class CloudIKChainRig(CloudFKChainRig):
 				track_axis = 'TRACK_NEGATIVE_Y'
 			)
 
-	def calculate_ik_info(self):
-		""" Calculate pole angle, pole control direction and distance. """
-		meta_first_name = self.org_chain[0].name.replace("ORG-", "")
-		meta_first = self.meta_bone(meta_first_name)
+	@staticmethod
+	def calculate_ik_info_static(
+			meta_first: bpy.types.PoseBone, 
+			meta_last: bpy.types.PoseBone
+		) -> (float, Vector, Vector):
 
-		meta_last_name = self.org_chain[1].name.replace("ORG-", "")
-		meta_last = self.meta_bone(meta_last_name)
+		# chain_vector = meta_last.bone.tail_local - meta_first.bone.head_local
 
-		chain_vector = meta_last.bone.tail_local - meta_first.bone.head_local
+		# first_tail = meta_first.bone.tail_local
+		# last_tail = meta_last.bone.tail_local
+		
+		chain_vector = meta_last.tail - meta_first.head
 
-		first_tail = meta_first.bone.tail_local
-		last_tail = meta_last.bone.tail_local
+		first_tail = meta_first.tail
+		last_tail = meta_last.tail
+
 
 		# Calculate the distances of the four points to the tail of the last bone.
 		# These four points are in the four directions of the bone around the bone's tail.
@@ -134,7 +141,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		lowest_distance = axis_dict[min(list(axis_dict.keys()))]	# Find the tuple to use by picking the one corresponding to the lowest distance.
 		rotation_axis = lowest_distance[0]
-		self.pole_angle = rad(lowest_distance[1])
+		pole_angle = rad(lowest_distance[1])
 
 		vector_flipper = 1
 		perpendicular_axis = meta_first.x_axis
@@ -144,10 +151,25 @@ class CloudIKChainRig(CloudFKChainRig):
 			perpendicular_axis = meta_first.z_axis
 
 		# Find the vector that is perpendicular to a plane defined by the chain vector and the main rotation axis.
-		self.pole_vector = chain_vector.cross(perpendicular_axis).normalized() * vector_flipper * chain_vector.length
+		pole_vector = chain_vector.cross(perpendicular_axis).normalized() * vector_flipper * chain_vector.length
 
 		# We want the pole control to be offset from the first bone's tail by that vector.
-		self.pole_location = first_tail + self.pole_vector
+		pole_location = first_tail + pole_vector
+
+		return pole_angle, pole_vector, pole_location
+
+	def calculate_ik_info(self):
+		""" Calculate pole angle, pole control direction and distance. """
+		meta_first_name = self.org_chain[0].name.replace("ORG-", "")
+		meta_first = self.meta_bone(meta_first_name)
+
+		meta_last_name = self.org_chain[1].name.replace("ORG-", "")
+		meta_last = self.meta_bone(meta_last_name)
+
+		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_last)
+		self.pole_angle = pole_angle
+		self.pole_vector = pole_vector
+		self.pole_location = pole_location
 
 	def make_pole_control(self):
 		# Create IK Pole Control
@@ -565,6 +587,19 @@ class CloudIKChainRig(CloudFKChainRig):
 		op.chain_length = 2 # TODO AAARGH same! Kind of. We need to know how long our chain is!
 
 		return layout
+
+	##############################
+	# Overlay
+	@classmethod
+	def draw_overlay(cls, context) -> list((Vector, Vector)):
+		active_pb = context.active_pose_bone
+		last_pb = cls.get_rigify_chain(active_pb)[-1]
+
+		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(active_pb, last_pb)
+
+		line = (active_pb.tail.copy(), pole_location)
+
+		return [line]
 
 class Rig(CloudIKChainRig):
 	pass

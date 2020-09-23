@@ -17,6 +17,7 @@ from . import ui
 from . import versioning
 from . import manual
 from . import operators
+from . import overlay
 
 modules = [
 	actions,
@@ -25,9 +26,11 @@ modules = [
 	versioning,
 	manual,
 	operators,
+	overlay,
 ]
 
 def register():
+	print("Registering CloudRig.")
 	from bpy.utils import register_class
 	for m in modules:
 		m.register()

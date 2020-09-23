@@ -28,7 +28,7 @@ def get_rigs():
 	""" Find all cloudrig armatures in the file. """
 	return [o for o in bpy.data.objects if o.type=='ARMATURE' and 'cloudrig' in o.data]
 
-def active_cloudrig():
+def active_cloudrig(): # TODO: This should recieve context!!
 	""" If the active object is a cloudrig, return it. """
 	o = bpy.context.pose_object or bpy.context.object
 	if o and o.type == 'ARMATURE' and 'cloudrig' in o.data and o.data['cloudrig']==script_id:
