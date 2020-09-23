@@ -644,11 +644,11 @@ class CloudLimbRig(CloudIKChainRig):
 	@classmethod
 	def draw_overlay(cls, context, buffer) -> list((Vector, Vector)):
 		active_pb = context.active_pose_bone
-		second_pb = cls.get_rigify_chain(active_pb)[1]
+		rig_chain = cls.find_rig_of_bone(active_pb)
 
-		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(active_pb, second_pb)
+		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(rig_chain[0], rig_chain[1])
 
-		buffer.draw_line_3d(active_pb.tail, pole_location)
+		buffer.draw_line_3d(rig_chain[0].tail, pole_location)
 
 class Rig(CloudLimbRig):
 	pass

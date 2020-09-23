@@ -9,7 +9,11 @@ from bpy.app.handlers import persistent
 import time
 
 from .cloudrig import active_cloudrig
+from .utils.mechanism import find_rig_of_bone
 from . import rigs
+
+# Dictionary holding previously selected rig's bones.
+last_chain = []
 
 def dpifac():
 	prefs = bpy.context.preferences.system
@@ -86,44 +90,68 @@ class RenderBuffer:
 		self.lines = []
 
 buffer = RenderBuffer()
-last_active_pose_bone = ""
+
+def update_bone_group_highlighting(rig, rig_chain, last_chain):
+	"""Make a bone group for rig element highlighting."""
+
+	highlight_group = rig.pose.bone_groups.get('temp_highlight_group')
+	if not highlight_group:
+		highlight_group = rig.pose.bone_groups.new(name="temp_highlight_group")
+		highlight_group.color_set = 'CUSTOM'
+
+	if rig_chain == last_chain:
+		return
+
+	for b in rig.pose.bones:
+		if not 'bone_group_backup' in b:
+			if b.bone_group and b.bone_group.name=='temp_highlight_group':
+				b.bone_group = None
+			continue
+		rig = b.id_data
+		b.bone_group = rig.pose.bone_groups.get(b['bone_group_backup'])
+		del b['bone_group_backup']
+
+	last_chain = rig_chain
+	for bone in rig_chain:
+		if bone.bone_group and bone.bone_group.name!='temp_highlight_group':
+			bone['bone_group_backup'] = bone.bone_group.name
+		bone.bone_group = highlight_group
 
 @persistent
 def update_overlay():
-	global last_active_pose_bone
+	global last_chain
 
 	refresh_time = 1/60
 
 	context = bpy.context
 	ob = context.object
 
-	active_pb = context.active_pose_bone
+	active_bone = context.active_pose_bone
+	buffer.clear()
 
-	if not active_pb:
-		buffer.clear()
-		last_active_pose_bone = ""
+	if not (ob and active_bone and ob.type=='ARMATURE' and ob.mode in ['POSE']):	# TODO: Ideally, Edit mode would be supported, but it's a pain.
 		return refresh_time
 
-	if active_pb.name == last_active_pose_bone:
-		buffer.clear()
-		# return refresh_time
+	rig_chain = find_rig_of_bone(active_bone)
 
-	if active_pb.name != last_active_pose_bone:
-		last_active_pose_bone = active_pb.name
-		buffer.clear()
-
-	if not hasattr(active_pb, 'rigify_type') or not hasattr(rigs, active_pb['rigify_type']):
+	if rig_chain == None:
 		return refresh_time
 
-	# Get the CloudRig rig type
-	rig_module = getattr(rigs, active_pb['rigify_type'])
+	rig_owner = rig_chain[0]
+
+	if not hasattr(rigs, rig_owner.rigify_type):
+		return refresh_time
+
+	update_bone_group_highlighting(ob, rig_chain, last_chain)
+
+	# Get the rig type's draw_overlay() function if it exists and execute it
+	rig_module = getattr(rigs, rig_owner.rigify_type)
 	rig_class = getattr(rig_module, 'Rig')
 	if not hasattr(rig_class, 'draw_overlay'):
 		return refresh_time
-
-	# Execute the rig's draw function to get what it wants to draw - For now we just support lines.
 	lines = rig_class.draw_overlay(context, buffer)
-	
+
+	# Draw the buffer
 	buffer.parent_object = ob
 	buffer.draw_all()
 
@@ -134,7 +162,6 @@ def load_handler(dummy):
 	bpy.app.timers.register(update_overlay)
 
 def register():
-	print("Registering CloudRig overlay.")
 	buffer.clear()
 	bpy.app.handlers.load_post.append(load_handler)
 

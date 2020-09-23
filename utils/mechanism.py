@@ -21,6 +21,14 @@ class CloudMechanismMixin:
 			if bi.name==name:
 				return bi
 
+	@staticmethod
+	def find_rig_of_bone(pose_bone):
+		return find_rig_of_bone(pose_bone)
+	
+	@staticmethod
+	def get_rigify_chain(pose_bone):
+		return get_rigify_chain(pose_bone)
+
 	def register_parent(self, bone, name):
 		if name in self.parent_candidates:
 			print(f"Warning: Overwriting registered parent: {bone.name}, {name}")
@@ -247,6 +255,36 @@ class CloudMechanismMixin:
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)
+
+
+def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
+	if pose_bone.rigify_type != "":
+		return get_rigify_chain(pose_bone)
+	if pose_bone.parent==None:
+		return None
+
+	return find_rig_of_bone(pose_bone.parent)
+
+def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
+	"""Get a continuous connected bone chain where none of the chain elements
+	have a rigify type."""
+	cur_pb = pose_bone
+	chain = [cur_pb]
+	while cur_pb and len(cur_pb.children)>0:
+		next_bone = None
+		for c in cur_pb.children:
+			if c.rigify_type=="" and c.bone.use_connect:
+				if next_bone != None:
+					print(f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
+						\tChain could continue with either {next_bone.name} or {c.name}. \n
+						\tPicking the first one arbitrarily! \n
+						\tDisconnect the bone or assign a rigify type to make it unambiguous.""")
+				else:
+					next_bone = c
+		if next_bone:
+			chain.append(next_bone)
+		cur_pb = next_bone
+	return chain
 
 def create_parent_bone(generator, child, bone_set=None):
 	"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""

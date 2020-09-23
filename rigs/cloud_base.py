@@ -60,28 +60,6 @@ class CloudBaseRig(
 		
 		self.all_bones = []
 
-	@staticmethod
-	def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
-		"""Get a continuous connected bone chain where none of the chain elements
-		have a rigify type."""
-		cur_pb = pose_bone
-		chain = [cur_pb]
-		while cur_pb and len(cur_pb.children)>0:
-			next_bone = None
-			for c in cur_pb.children:
-				if c.rigify_type=="" and c.bone.use_connect:
-					if next_bone != None:
-						print(f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
-							\tChain could continue with either {next_bone.name} or {c.name}. \n
-							\tPicking the first one arbitrarily! \n
-							\tDisconnect the bone or assign a rigify type to make it unambiguous.""")
-					else:
-						next_bone = c
-			if next_bone:
-				chain.append(next_bone)
-			cur_pb = next_bone
-		return chain
-
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main."""
 
