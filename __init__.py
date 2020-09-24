@@ -18,6 +18,7 @@ from . import versioning
 from . import manual
 from . import operators
 from . import overlay
+from . import gizmo
 
 modules = [
 	actions,
@@ -27,6 +28,7 @@ modules = [
 	manual,
 	operators,
 	overlay,
+	# gizmo,
 ]
 
 def register():
