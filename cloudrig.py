@@ -860,8 +860,10 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 		
 		for prop_name in properties_bone.keys():
 			if prop_name=='_RNA_UI': continue
-			set_custom_property_value(rig, properties_bone.name, prop_name, properties_bone[prop_name], keyflags={'INSERTKEY_NEEDED'})
-
+			value = properties_bone[prop_name]
+			if type(value) not in (int, float):
+				continue
+			set_custom_property_value(rig, properties_bone.name, prop_name, value, keyflags={'INSERTKEY_NEEDED'})
 
 		return {'FINISHED'}
 
