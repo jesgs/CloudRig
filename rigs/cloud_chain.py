@@ -2,6 +2,7 @@ from typing import Tuple, List
 from ..bone import BoneInfo, BoneSet
 
 from bpy.props import BoolProperty, IntProperty
+from mathutils.geometry import intersect_point_line
 
 from .cloud_base import CloudBaseRig
 
@@ -49,6 +50,39 @@ class CloudChainRig(CloudBaseRig):
 		self.make_def_chain(self.str_chain)
 
 		self.connect_parent_chain_rig()
+
+	def reparent_bone(self, child: BoneInfo):
+		"""Override.
+
+		Children of this rig's ORG bones should be re-parented to the appropriate 
+		DEF bone using Armature constraint, if that DEF bone's bbone_segments > 1.
+		"""
+
+		parent = super().reparent_bone(child)
+		# At this point it is known that parent is an ORG bone.
+		
+		# Also note that this function is expected to be called by child rigs, 
+		# which means this rig already finished executing, which means we know that
+		# make_def_chain() has run, and ORG bones are aware of their DEF bones.
+
+		# Get ratio of how far along the child bone is on the ORG bone.
+		intersect = intersect_point_line(child.head, parent.head, parent.tail)
+		ratio = intersect[1]
+		def_index = ratio * self.params.CR_chain_segments
+		def_index = int(def_index)
+		def_index = max(0, min(def_index, len(parent.def_bones)) )	# Clamp it.
+
+		child.parent = parent.def_bones[def_index]
+		if child.parent.bbone_segments > 1:
+			child.add_constraint('ARMATURE'
+				,targets = [
+					{
+						"subtarget" : child.parent.name
+					}
+				],
+			)
+
+		return parent
 
 	def determine_segments(self, org_bone: BoneInfo) -> Tuple[int, int]:
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
@@ -292,7 +326,8 @@ class CloudChainRig(CloudBaseRig):
 				continue
 
 			org_bone = str_bone.org_parent
-			def_section: List[BoneInfo] = []
+			if not hasattr(org_bone, 'def_bones'):
+				org_bone.def_bones = []
 
 			tail = org_bone.tail
 			if str_bone.next:
@@ -311,6 +346,8 @@ class CloudChainRig(CloudBaseRig):
 				,hide_select			 = self.mch_disable_select
 				,use_deform				 = True
 			)
+			org_bone.def_bones.append(def_bone)
+			print(f"Added {def_bone} to {org_bone}")
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 

@@ -148,6 +148,7 @@ class BoneInfo:
 		kwargs: Allow setting arbitrary bone properties at initialization.
 		"""
 
+		self.owner_rig = None	# This should be set after creating the instance!
 		self.next = self.prev = None	# for LinkedList behaviour.
 
 		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().

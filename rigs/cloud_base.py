@@ -1,4 +1,6 @@
 import bpy
+
+from ..bone import BoneInfo
 from typing import Dict, List
 
 from bpy.props import BoolProperty
@@ -37,7 +39,7 @@ class CloudBaseRig(
 					CloudUIMixin, 
 					BoneInfoMixin
 	):
-	"""Base for all CloudRig rigs. Does nothing on its own."""
+	"""Base class that all CloudRig rigs should inherit from."""
 
 	default_layers = lambda name: DefaultLayers[name].value
 
@@ -137,8 +139,15 @@ class CloudBaseRig(
 	def prepare_bones(self):
 		self.load_org_bone_infos()
 
+	def reparent_bone(self, child: BoneInfo):
+		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
+		parent = super().reparent_bone(child)
+
+		assert parent in self.org_chain, f"ERROR: Cannot reparent {child}, its parent, {child.parent} was expected to be an ORG bone of rig {self.base_bone}"
+		return parent
+
 	def load_org_bone_infos(self):
-		# Load ORG bones into BoneInfo instances in self.org_chain.
+		"""Read ORG bones into BoneInfo instances in self.org_chain."""
 
 		for bn in self.bones.org.main:
 			eb = self.get_bone(bn)
