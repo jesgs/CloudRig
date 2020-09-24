@@ -530,6 +530,7 @@ class CloudLimbRig(CloudIKChainRig):
 		control_bone = self.new_bonei(self.fk_extras
 			,name = org_elbow.name.replace("ORG", "AutoRubberHose")
 			,source = org_elbow
+			,parent = org_elbow
 			,custom_shape = self.ensure_widget('Double_Arrow')
 		)
 		# Assign to main FK layer and both IK layers also
@@ -537,16 +538,8 @@ class CloudLimbRig(CloudIKChainRig):
 		control_bone.set_layers(self.ik_ctrls.layers, additive=True)
 		control_bone.set_layers(self.fk_chain.layers, additive=True)
 
-		parent_bone = self.new_bonei(self.fk_mch
-			,name = self.naming.add_prefix(control_bone, 'P')
-			,source = org_elbow
-			,parent = org_elbow#self.main_str_bones[1]
-			,use_inherit_rotation = False
-			,length = self.scale/10
-		)
-		control_bone.parent = parent_bone
 		# Shift it towards the IK pole or where it would be.
-		new_loc = control_bone.head + self.pole_vector/10
+		new_loc = control_bone.head + self.pole_vector.normalized() * org_elbow.bbone_width*self.scale * 6
 		control_bone.head = new_loc
 		control_bone.vector = org_elbow.vector * 0.3
 		control_bone.custom_shape_scale = 0.4
@@ -558,6 +551,12 @@ class CloudLimbRig(CloudIKChainRig):
 			,use_min_y = True
 			,min_y = 1
 		)
+
+		dsp_bone = self.create_dsp_bone(control_bone)
+		dsp_bone.parent = self.main_str_bones[1].tangent_helper	# Ugly hardcoding...
+		dsp_bone.inherit_scale = 'AVERAGE'
+		dsp_bone.add_constraint('COPY_SCALE', subtarget=control_bone.name, )
+
 		return control_bone
 
 	##############################
