@@ -17,7 +17,7 @@ from .bone import BoneSet, BoneInfo, new_bonei
 from .utils import mechanism
 from . import widgets as cloud_widgets
 from .actions import CloudRigAction
-from .versioning import cloudrig_version
+from .versioning import cloud_metarig_version
 
 from .utils.naming import CloudNameManager
 
@@ -28,10 +28,10 @@ separators = [
 ]
 
 class CloudRigProperties(bpy.types.PropertyGroup):
-	version: FloatProperty(
+	version: IntProperty(
 		name		 = "CloudRig Version"
 		,description = "For internal use only"
-		,default	 = cloudrig_version
+		,default	 = cloud_metarig_version
 	)
 	options: BoolProperty(
 		name		 = "CloudRig Settings"

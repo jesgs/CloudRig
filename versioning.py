@@ -4,11 +4,11 @@ from datetime import datetime as dt
 from .utils.ui import is_cloud_metarig
 
 blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) + str(bpy.app.version[2]))
-cloudrig_version = 4
 
-def do_blender_versioning():
-	"""Code that needs to run only for specific versions of Blender."""
-	pass
+# This should get a version bump whenever there is a change that affects metarigs.
+# For example, changing names of rig types, splitting an old rig type into multiple, 
+# changing names of parameters, etc.
+cloud_metarig_version = 4
 
 def rename_parameters(metarig, dictionary):
 	for pb in metarig.pose.bones:
@@ -38,15 +38,12 @@ def version_cloud_metarig(metarig):
 	CloudRig as well as possible. They will still need some manual cleanup!!!"""
 	data = metarig.data
 
-	if data.cloudrig_parameters.version == cloudrig_version: return
-
 	# Beginning of metarig versioning: 2020-07-22.
-	print(f"CloudRig Versioning: {metarig} version {data.cloudrig_parameters.version}")
-	if data.cloudrig_parameters.version == 0:
-		data.cloudrig_parameters.version = 1
+	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig_parameters.version} -> {cloud_metarig_version}")
+	if data.cloudrig_parameters.version < 1:
 		pass
 		# TODO: Assume that version 0.0 is the metarigs in CoffeeRun crowd.blend, and try to make them work with current CloudRig.
-	if data.cloudrig_parameters.version == 1:
+	if data.cloudrig_parameters.version < 2:
 		dictionary = {
 			"CR_constraints_additive" : "CR_bone_constraints_additive"
 			,"CR_copy_type" : "CR_bone_copy_type"
@@ -90,13 +87,11 @@ def version_cloud_metarig(metarig):
 			,"CR_ankle_pivot_bone" : "CR_limb_heel_bone"
 		}
 		rename_parameters(metarig, dictionary)
-		data.cloudrig_parameters.version = 2
-	if data.cloudrig_parameters.version == 2:
+	if data.cloudrig_parameters.version < 3:
 		for pb in metarig.pose.bones:
 			if 'CR_create_deform_bone' in pb.rigify_parameters.keys():
 				pb.bone.use_deform = pb.rigify_parameters['CR_create_deform_bone']
-		data.cloudrig_parameters.version = 3
-	if data.cloudrig_parameters.version == 3:
+	if data.cloudrig_parameters.version < 4:
 		for pb in metarig.pose.bones:
 			# Spine rig no longer includes a neck and head.
 			if 'CR_spine_length' in pb.rigify_parameters.keys():
@@ -137,11 +132,16 @@ def version_cloud_metarig(metarig):
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
 	for metarig in cloud_metarigs:
+		if metarig.data.cloudrig_parameters.version == cloud_metarig_version: 
+			continue
+		if metarig.data.cloudrig_parameters.version > cloud_metarig_version:
+			print(f"""ERROR:\tFound a metarig with a higher metarig version than the current: {metarig.name} \n\tIt must have been created with a newer version of CloudRig, and won't behave as expected. \n\tYou should update CloudRig!""")
+			continue
 		version_cloud_metarig(metarig)
+		metarig.data.cloudrig_parameters.version = cloud_metarig_version
 
 @persistent
 def do_versioning(dummy):
-	do_blender_versioning()
 	do_metarig_versioning()
 
 def register():
