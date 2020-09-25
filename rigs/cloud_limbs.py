@@ -3,6 +3,7 @@ from typing import List
 import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 from mathutils import Vector
+from mathutils.geometry import intersect_point_line
 from math import radians as rad
 from math import pi, pow
 from copy import deepcopy
@@ -12,14 +13,6 @@ from rigify.base_rig import stage
 from .cloud_ik_chain import CloudIKChainRig
 from ..bone import BoneInfo
 from ..utils.maths import flat
-
-"""TODO
-feet control shouldn't be forced onto the floor, maybe based on an option, or use anklepivot bone, or whatever.
-ROLL-Foot.L shouldn't have its tail be offset in a flat forward direction. Instead, make it perpendicular to the knee, pointing towards the toe. (cross product of knee and toe bones' vectors?)
-Some smartypants way of ensuring that the IK pole, when IK Pole Follow is enabled, follows the IK control on its roll axis, but not the other axes?
-Scissor limb rig possible? (limb with an extra bone to help elbow/knee deformation) - Can it work in FK?
-	I guess this would have to manifest more like an "arbitrary length limb" idea. IK chains can already be arbitrary length, but to allow that for limbs... might be super tricky. Especially when it comes to IK->FK snapping!
-"""
 
 class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features for specific limbs, such as foot roll."""
@@ -70,19 +63,9 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.params.CR_fk_chain_use_category_name:
 			self.category = self.params.CR_fk_chain_category_name
 
-	def determine_segments(self, org_bone):
-		segments, bbone_density = super().determine_segments(org_bone)
-
-		if self.limb_type=='LEG' and org_bone in self.org_chain[-2:]:
-			# Force strictly 1 segment on the foot and the toe.
-			return 1, bbone_density
-		elif self.limb_type=='ARM' and org_bone == self.org_chain[-1]:
-			# Force strictly 1 segment on the wrist.
-			return 1, bbone_density
-		elif org_bone == self.org_chain[-1] and not self.params.CR_chain_tip_control:
-			return 1, 1
-
-		return segments, bbone_density
+	def ensure_bone_sets(self):
+		super().ensure_bone_sets()
+		self.ik_double_ctrls = self.ensure_bone_set("IK Child Controls")
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -97,6 +80,21 @@ class CloudLimbRig(CloudIKChainRig):
 	##############################
 	# Override some inherited functionality
 
+	def determine_segments(self, org_bone):
+		"""Overrides function from cloud_chain."""
+		segments, bbone_density = super().determine_segments(org_bone)
+
+		if self.limb_type=='LEG' and org_bone in self.org_chain[-2:]:
+			# Force strictly 1 segment on the foot and the toe.
+			return 1, bbone_density
+		elif self.limb_type=='ARM' and org_bone == self.org_chain[-1]:
+			# Force strictly 1 segment on the wrist.
+			return 1, bbone_density
+		elif org_bone == self.org_chain[-1] and not self.params.CR_chain_tip_control:
+			return 1, 1
+
+		return segments, bbone_density
+
 	def make_ik_setup(self):
 		"""Override."""
 		super().make_ik_setup()
@@ -110,20 +108,31 @@ class CloudLimbRig(CloudIKChainRig):
 			if self.limb_type=='LEG':
 				dsp_bone = self.create_dsp_bone(bone)
 				direction = 1 if self.side_suffix=='L' else -1
-				projected_head = Vector((bone.head[0], bone.head[1], 0))
-				projected_tail = Vector((bone.tail[0], bone.tail[1], 0))
-				projected_center = projected_head + (projected_tail-projected_head) / 2
-				dsp_bone.head = projected_center
-				dsp_bone.tail = projected_center + Vector((0, -self.scale/10, 0))
-				dsp_bone.roll = rad(90) * direction
 
-		foot_dsp(self.ik_mstr)
+				# To get the position of the foot bone display helper,
+				# project a line out of the knee bone, then find the point on that line
+				# which is closest the toe bone's tail.
+				knee = self.org_chain[1]
+				toe = self.org_chain[-1]
+				intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+
+				dsp_bone.head = intersect
+				dsp_bone.tail = toe.tail.copy()
+				dsp_bone.length = 0.1 * self.scale
+				dsp_bone.roll_type = 'ACTIVE'
+				dsp_bone.roll_bone = toe
+				dsp_bone.roll = rad(-90) * direction
+
 		# Parent control
 		if self.params.CR_limb_double_ik:
-			double_control = self.create_parent_bone(self.ik_mstr, self.ik_ctrls_parents)
-			double_control.bone_group = "IK Parent Controls"
-			self.ik_mstr.set_layers(self.ik_ctrls_secondary.layers, additive=True)
+			old_name = self.ik_mstr.name
+			self.ik_mstr.name = self.naming.add_prefix(self.ik_mstr, "C")
+			double_control = self.create_parent_bone(self.ik_mstr, self.ik_double_ctrls)
+			double_control.name = old_name
+			double_control.bone_group = "IK Child Controls"
+			double_control.set_layers(self.ik_ctrls_secondary.layers, additive=True)
 			foot_dsp(double_control)
+		foot_dsp(self.ik_mstr)
 
 		# IK Foot setup, including Foot Roll
 		if self.limb_type == 'LEG':
@@ -224,13 +233,29 @@ class CloudLimbRig(CloudIKChainRig):
 		self.ik_tgt_bone.clear_constraints()
 
 		# Create ROLL control behind the foot
-		roll_name = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
+
+		# To get the position,  project a line out of the knee bone, then find 
+		# the point on that line which is closest the toe bone's tail, then 
+		# move it away from the toe bone and then back up along the knee bone.
+
+		# The tail should point toward the toe bone but stay perpendicular to the knee bone.
+
+		knee = self.org_chain[1]
+		toe = self.org_chain[-1]
+		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+		intersect_to_toe = (intersect - toe.tail).normalized()
+		shift_from_toe = intersect_to_toe * self.scale * 1.7
+		shift_along_knee = (knee.tail - intersect).normalized() * self.scale * 1.5
+		head = intersect + shift_from_toe + shift_along_knee
+		tail = head + intersect_to_toe * self.scale * -1
+
 		roll_ctrl = self.new_bonei(self.ik_ctrls
-			,name		  = roll_name
+			,name		  = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
 			,bbone_width  = 1/18
-			,head		  = ik_foot.head + Vector((0, self.scale, self.scale/4))
-			,tail		  = ik_foot.head + Vector((0, self.scale/2, self.scale/4))
-			,roll		  = rad(180)
+			,head		  = head
+			,tail		  = tail
+			,roll_type	  = 'ACTIVE'
+			,roll_bone	  = toe
 			,parent		  = self.ik_mstr#roll_master
 			,custom_shape = self.ensure_widget('FootRoll')
 			,use_custom_shape_bone_size = True
@@ -248,11 +273,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 
 		# Create bone to use as pivot point when rolling back. This is read from the metarig and should be placed at the heel of the shoe, pointing forward.
-		heel_pivot_name = self.params.CR_limb_heel_bone
-		if heel_pivot_name=="":
-			heel_pivot_name = self.org_chain[-2].name.replace("ORG-", "")
-		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
-		assert heel_pivot_bone, f"ERROR: Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
+		heel_pivot_bone = self.get_heel_pivot_meta_bone()
 
 		# Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
 		self.ik_mstr._bbone_x = heel_pivot_bone.bbone_x
@@ -347,6 +368,15 @@ class CloudLimbRig(CloudIKChainRig):
 			ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')
 			if ci:
 				ci.subtarget = rolly_stretchy.name
+
+	def get_heel_pivot_meta_bone(self):
+		heel_pivot_name = self.params.CR_limb_heel_bone
+		if heel_pivot_name=="":
+			heel_pivot_name = self.org_chain[-2].name.replace("ORG-", "")
+		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
+		assert heel_pivot_bone, f"ERROR: Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
+
+		return heel_pivot_bone
 
 	def make_ik_toe(self):
 		# FK Toe bone should be parented between FK Foot and IK Toe.
@@ -561,6 +591,12 @@ class CloudLimbRig(CloudIKChainRig):
 
 	##############################
 	# Parameters
+
+	@classmethod
+	def define_bone_sets(cls, params):
+		"""Create parameters for this rig's bone sets."""
+		super().define_bone_sets(params)
+		cls.define_bone_set(params, "IK Child Controls", preset=8, default_layers=[cls.default_layers('IK_MAIN')])
 
 	@classmethod
 	def add_parameters(cls, params):

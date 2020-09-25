@@ -453,6 +453,7 @@ class BoneInfo:
 				bpy.context.scene.cursor.location = self.roll_cursor
 
 			bpy.ops.armature.calculate_roll(type=self.roll_type)
+			eb.roll += self.roll
 
 	def write_pose_data(self, pose_bone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
