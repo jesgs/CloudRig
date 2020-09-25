@@ -1,0 +1,390 @@
+from typing import List
+
+import bpy
+from bpy.props import BoolProperty, StringProperty, EnumProperty
+from mathutils import Vector
+from mathutils.geometry import intersect_point_line
+from math import radians as rad
+from math import pi, pow
+from copy import deepcopy
+
+from rigify.base_rig import stage
+
+from .cloud_limb import CloudLimbRig
+from ..bone import BoneInfo
+from ..utils.maths import flat
+
+class CloudLegRig(CloudLimbRig):
+	"""Limb rig with extra features for legs, such as foot roll."""
+
+	forced_params = {
+		'CR_fk_chain_root' : True
+		,'CR_chain_sharp' : True
+	}
+
+	required_chain_length = 4
+
+	def initialize(self):
+		"""Gather and validate data about the rig."""
+		super().initialize()
+		
+		# UI Strings and Custom Property names
+
+		if self.limb_name == "Arm":
+			self.limb_name = "Leg"
+
+		# IK values
+		self.ik_pole_direction = -1
+	
+		self.ik_parents.remove('Chest')
+		self.ik_parents.append('Hips')
+
+		self.ik_pole_offset = 5
+		self.pole_side = -1
+		self.chain_count -= 1
+
+		self.category = "legs"
+		if self.params.CR_fk_chain_use_category_name:
+			self.category = self.params.CR_fk_chain_category_name
+
+	def prepare_bones(self):
+		super().prepare_bones()
+		self.tweak_org_foot()
+
+	##############################
+	# Override some inherited functionality
+
+	def determine_segments(self, org_bone):
+		"""Overrides."""
+		segments, bbone_density = super().determine_segments(org_bone)
+
+		if org_bone in self.org_chain[-2:]:
+			# Force strictly 1 segment on the foot and the toe.
+			return 1, bbone_density
+		else:
+			return segments, bbone_density
+
+	def make_ik_setup(self):
+		"""Override."""
+		super().make_ik_setup()
+
+		if self.params.CR_limb_double_ik:
+			self.create_foot_dsp(self.ik_mstr.parent)
+		self.create_foot_dsp(self.ik_mstr)
+
+		# IK Foot setup, including Foot Roll
+		if self.params.CR_leg_use_foot_roll:
+			self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.org_chain[-2:])
+
+			# For FK->IK snapping to work properly when the IK control is world-aligned,
+			# we need a world-aligned child of the IK bone.
+			if self.params.CR_ik_chain_world_aligned:
+				self.foot_snap_bone = self.new_bonei(self.ik_mch
+					,name		 = self.fk_chain[2].name.replace("W-", "W-SNAP")
+					,source		 = self.fk_chain[2]
+					,vector		 = flat(self.fk_chain[2].vector)
+					,parent		 = self.ik_chain[2]
+					,hide_select = self.mch_disable_select
+				)
+
+		self.make_ik_toe()
+
+	def create_foot_dsp(self, bone):
+		"""Create display helper for the foot IK control."""
+		dsp_bone = self.create_dsp_bone(bone)
+		direction = 1 if self.side_suffix=='L' else -1
+
+		# To get the position of the foot bone display helper,
+		# project a line out of the knee bone, then find the point on that line
+		# which is closest the toe bone's tail.
+		knee = self.org_chain[1]
+		toe = self.org_chain[-1]
+		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+
+		dsp_bone.head = intersect
+		dsp_bone.tail = toe.tail.copy()
+		dsp_bone.length = 0.1 * self.scale
+		dsp_bone.roll_type = 'ACTIVE'
+		dsp_bone.roll_bone = toe
+		dsp_bone.roll = rad(-90) * direction
+
+		return dsp_bone
+
+	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
+		"""Override."""
+		if shape_name=="":
+			shape_name="Foot_IK"
+		ik_master = super().create_ik_master(bone_set, source_bone, bone_name, shape_name)
+		ik_master.custom_shape_scale = 2.8
+
+		return ik_master
+
+	def get_ui_data_ik_fk(self):
+		"""Override."""
+		ui_data = super().get_ui_data_ik_fk()
+		# Toe is not relevant for IK/FK switching.
+		ui_data['map_off'] = ui_data['map_off'][:-1]
+		if self.params.CR_ik_chain_world_aligned and self.params.CR_leg_use_foot_roll:
+			# In the case of world aligned IK control + footroll, we must 
+			# snap the FK foot to a specialized helper bone rather than any IK bone.
+			ui_data['map_off'][-1] = (ui_data['map_off'][-1][0], self.foot_snap_bone.name)
+		return ui_data
+
+	def make_fk_chain(self):
+		"""Override."""
+		super().make_fk_chain()
+		self.fk_toe = self.org_chain[3].fk_bone
+
+	def world_align_last_fk(self):
+		"""Override. Make SECOND TO last FK bone world-aligned."""
+		self.make_world_aligned_control(self.org_chain[-2].fk_bone)
+
+	##############################
+	# End of overrides
+
+	def make_footroll(self, ik_tgt, ik_chain, org_chain):
+		ik_foot = ik_chain[0]
+
+		rolly_stretchy = self.new_bonei(self.ik_mch
+			,name		 = self.org_chain[0].name.replace("ORG", "IK-STR-ROLL")
+			,source		 = self.org_chain[0]
+			,tail		 = self.ik_mstr.head.copy()
+			,parent		 = self.limb_root_bone.name
+			,hide_select = self.mch_disable_select
+		)
+		rolly_stretchy.scale_width(0.4)
+		rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
+
+		sliced_name = self.naming.slice_name(ik_foot.name)
+		master_name = self.naming.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
+		roll_master = self.new_bonei(self.ik_mch
+			,name		 = master_name
+			,source		 = self.ik_mstr
+			,parent		 = self.ik_mstr
+		)
+		roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
+		self.ik_tgt_bone.clear_constraints()
+
+		# Create ROLL control behind the foot
+
+		# To get the position,  project a line out of the knee bone, then find 
+		# the point on that line which is closest the toe bone's tail, then 
+		# move it away from the toe bone and then back up along the knee bone.
+
+		# The tail should point toward the toe bone but stay perpendicular to the knee bone.
+
+		knee = self.org_chain[1]
+		toe = self.org_chain[-1]
+		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+		intersect_to_toe = (intersect - toe.tail).normalized()
+		shift_from_toe = intersect_to_toe * self.scale * 1.7
+		shift_along_knee = (knee.tail - intersect).normalized() * self.scale * 1.5
+		head = intersect + shift_from_toe + shift_along_knee
+		tail = head + intersect_to_toe * self.scale * -1
+
+		roll_ctrl = self.new_bonei(self.ik_ctrls
+			,name		  = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
+			,bbone_width  = 1/18
+			,head		  = head
+			,tail		  = tail
+			,roll_type	  = 'ACTIVE'
+			,roll_bone	  = toe
+			,parent		  = self.ik_mstr#roll_master
+			,custom_shape = self.ensure_widget('FootRoll')
+			,use_custom_shape_bone_size = True
+		)
+		# Limit Rotation, lock other transforms
+		self.lock_transforms(roll_ctrl, rot=False)
+		roll_ctrl.add_constraint('LIMIT_ROTATION'
+			,use_limit_x=True
+			,min_x = rad(-90)
+			,max_x = rad(130)
+			,use_limit_y=True
+			,use_limit_z=True
+			,min_z = rad(-90)
+			,max_z = rad(90)
+		)
+
+		# Create bone to use as pivot point when rolling back. This is read from the metarig and should be placed at the heel of the shoe, pointing forward.
+		heel_pivot_bone = self.get_heel_pivot_meta_bone()
+
+		# Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
+		self.ik_mstr._bbone_x = heel_pivot_bone.bbone_x
+		self.ik_mstr._bbone_z = heel_pivot_bone.bbone_z
+		if self.params.CR_limb_double_ik:
+			self.ik_mstr.parent._bbone_x = heel_pivot_bone.bbone_x
+			self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
+
+		heel_pivot = self.new_bonei(self.ik_mch
+			,name		  = "IK-RollBack" + self.naming.suffix_separator + self.side_suffix
+			,bbone_width  = self.org_chain[-1].bbone_width
+			,head		  = heel_pivot_bone.head_local
+			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
+			,roll		  = 0
+			,parent		  = roll_master
+			,hide_select  = self.mch_disable_select
+		)
+
+		heel_pivot.add_constraint('TRANSFORM',
+			subtarget = roll_ctrl.name,
+			map_from = 'ROTATION',
+			map_to = 'ROTATION',
+			from_min_x_rot = rad(-90),
+			to_min_x_rot = rad(60),
+		)
+
+		# Create reverse bones
+		rik_chain = []
+		for i, b in reversed(list(enumerate(org_chain))):
+			rik_bone = self.new_bonei(self.ik_mch
+				,name		 = b.name.replace("ORG", "RIK")
+				,source		 = b
+				,head		 = b.tail.copy()
+				,tail		 = b.head.copy()
+				,roll		 = 0
+				,parent		 = heel_pivot
+				,hide_select = self.mch_disable_select
+			)
+			rik_chain.append(rik_bone)
+			ik_chain[i].parent = rik_bone
+
+			if i == 1:
+				rik_bone.add_constraint('TRANSFORM'
+					,subtarget		= roll_ctrl.name
+					,map_from		= 'ROTATION'
+					,map_to			= 'ROTATION'
+					,from_min_x_rot	= rad(90)
+					,from_max_x_rot	= rad(166)
+					,to_min_x_rot   = rad(0)
+					,to_max_x_rot   = rad(169)
+					,from_min_z_rot	= rad(-60)
+					,from_max_z_rot	= rad(60)
+					,to_min_z_rot   = rad(10)
+					,to_max_z_rot   = rad(-10)
+				)
+
+			if i == 0:
+				rik_bone.add_constraint('COPY_LOCATION'
+					,space			= 'WORLD'
+					,target			= self.obj
+					,subtarget		= rik_chain[-2].name
+					,head_tail		= 1
+				)
+
+				rik_bone.add_constraint('TRANSFORM'
+					,name = "Transformation Roll"
+					,subtarget = roll_ctrl.name
+					,map_from = 'ROTATION'
+					,map_to = 'ROTATION'
+					,from_min_x_rot = rad(0)
+					,from_max_x_rot = rad(135)
+					,to_min_x_rot   = rad(0)
+					,to_max_x_rot   = rad(118)
+					,from_min_z_rot = rad(-45)
+					,from_max_z_rot = rad(45)
+					,to_min_z_rot   = rad(25)
+					,to_max_z_rot   = rad(-25)
+				)
+				rik_bone.add_constraint('TRANSFORM'
+					,name = "Transformation CounterRoll"
+					,subtarget = roll_ctrl.name
+					,map_from = 'ROTATION'
+					,map_to = 'ROTATION'
+					,from_min_x_rot = rad(90)
+					,from_max_x_rot = rad(135)
+					,to_min_x_rot   = rad(0)
+					,to_max_x_rot   = rad(-31.8)
+				)
+
+		# Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
+		for main_str_bone in self.main_str_bones:
+			ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')
+			if ci:
+				ci.subtarget = rolly_stretchy.name
+
+	def get_heel_pivot_meta_bone(self):
+		heel_pivot_name = self.params.CR_leg_heel_bone
+		if heel_pivot_name=="":
+			heel_pivot_name = self.org_chain[-2].name.replace("ORG-", "")
+		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
+		assert heel_pivot_bone, f"ERROR: Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
+
+		return heel_pivot_bone
+
+	def make_ik_toe(self):
+		# FK Toe bone should be parented between FK Foot and IK Toe.
+		fk_toe = self.fk_toe
+		fk_toe.parent = None
+		toe_con = fk_toe.add_constraint('ARMATURE',
+			targets = [
+				{
+					"subtarget" : self.org_chain[-2].fk_bone.name	# FK Foot
+				},
+				{
+					"subtarget" : self.ik_chain[-1].name	# IK Toe
+				}
+			],
+		)
+
+		ik_driver = {
+			'prop' : 'targets[1].weight',
+			'variables' : [
+				(self.properties_bone.name, self.ikfk_name)
+			]
+		}
+		toe_con.drivers.append(ik_driver)
+
+		fk_driver = deepcopy(ik_driver)
+		fk_driver['expression'] = "1-var"
+		fk_driver['prop'] = 'targets[0].weight'
+		toe_con.drivers.append(fk_driver)
+
+	def tweak_org_foot(self):
+		# Delete IK constraint and driver from toe bone. It should always use FK.
+		org_toe = self.org_chain[-1]
+		org_toe.constraint_infos.pop()
+		org_toe.drivers = {}
+
+	##############################
+	# Parameters
+
+	@classmethod
+	def add_parameters(cls, params):
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		super().add_parameters(params)
+
+		params.CR_leg_show_settings = BoolProperty(
+			name		 = "Leg Settings"
+			,description = "Reveal settings for the cloud_leg rig type"
+		)
+		params.CR_leg_use_foot_roll = BoolProperty(
+			 name 		 = "Foot Roll"
+			,description = "Create Foot roll controls"
+			,default 	 = True
+		)
+		params.CR_leg_heel_bone = StringProperty(
+			 name		 = "Heel Pivot Bone"
+			,description = "Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone"
+			,default	 = ""
+		)
+
+	@classmethod
+	def draw_cloud_params(cls, layout, params):
+		"""Create the ui for the rig parameters."""
+		layout = super().draw_cloud_params(layout, params)
+
+		if not cls.draw_dropdown_menu(layout, params, "CR_leg_show_settings"): return layout
+
+		cls.draw_prop(layout, params, "CR_leg_use_foot_roll")
+		if params.CR_leg_use_foot_roll:
+			cls.draw_prop_search(layout, params, "CR_leg_heel_bone", bpy.context.object.data, "bones", text="Heel Pivot")
+
+		return layout
+
+class Rig(CloudLegRig):
+	pass
+
+from ..load_metarig import load_sample
+
+def create_sample(obj):
+	load_sample("cloud_limb")

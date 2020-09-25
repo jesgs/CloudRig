@@ -8,7 +8,7 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple, 
 # changing names of parameters, etc.
-cloud_metarig_version = 4
+cloud_metarig_version = 5
 
 def rename_parameters(metarig, dictionary):
 	for pb in metarig.pose.bones:
@@ -55,8 +55,8 @@ def version_cloud_metarig(metarig):
 			,"CR_create_ik_spine" : "CR_spine_use_ik"
 			,"CR_double_controls" : "CR_spine_double"
 			,"CR_double_ik_control" : "CR_limb_double_ik"
-			,"CR_use_foot_roll" : "CR_limb_use_foot_roll"
-			,"CR_limb_heel_bone" : "CR_limb_heel_bone"
+			,"CR_use_foot_roll" : "CR_leg_use_foot_roll"
+			,"CR_leg_heel_bone" : "CR_leg_heel_bone"
 			,"CR_ik_at_tail" : "CR_ik_chain_at_tip"
 			,"CR_world_aligned_controls" : "CR_ik_chain_world_aligned"
 			,"CR_use_pole_target" : "CR_ik_chain_use_pole"
@@ -84,7 +84,7 @@ def version_cloud_metarig(metarig):
 			,"CR_custom_props" : "CR_bone_props"
 			,"CR_ik_settings" : "CR_bone_ik_settings"
 			,"CR_tweak_bbone_props" : "CR_bone_bbone_props"
-			,"CR_ankle_pivot_bone" : "CR_limb_heel_bone"
+			,"CR_ankle_pivot_bone" : "CR_leg_heel_bone"
 		}
 		rename_parameters(metarig, dictionary)
 	if data.cloudrig_parameters.version < 3:
@@ -126,8 +126,20 @@ def version_cloud_metarig(metarig):
 					curve_name = curve_name[1:]
 
 				pb.rigify_parameters['CR_curve_target'] = bpy.data.objects.get(curve_name)
+	if data.cloudrig_parameters.version < 5:
+		for pb in metarig.pose.bones:
+			# cloud_limb is now only for arms, leg is split off into cloud_leg.
+			if pb.rigify_type=='cloud_limbs':
+				if 'CR_limb_type' in pb.rigify_parameters.keys() and pb.rigify_parameters['CR_limb_type']==1:
+					pb.rigify_type = 'cloud_leg'
+				else:
+					pb.rigify_type = 'cloud_limb'
 
-		data.cloudrig_parameters.version = 4
+		dictionary = {
+			"CR_leg_use_foot_roll" : "CR_leg_use_foot_roll"
+			,"CR_leg_heel_bone" : "CR_leg_heel_bone"
+		}
+		rename_parameters(metarig, dictionary)
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]

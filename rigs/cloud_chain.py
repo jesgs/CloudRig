@@ -251,7 +251,7 @@ class CloudChainRig(CloudBaseRig):
 		return dt_bone
 
 	def make_tangent_helper(self, str_bone):
-		assert hasattr(str_bone, 'dt_bone'), "make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first."
+		assert hasattr(str_bone, 'dt_bone'), f"make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first."
 
 		dt = str_bone.dt_bone
 
@@ -347,7 +347,6 @@ class CloudChainRig(CloudBaseRig):
 				,use_deform				 = True
 			)
 			org_bone.def_bones.append(def_bone)
-			print(f"Added {def_bone} to {org_bone}")
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 

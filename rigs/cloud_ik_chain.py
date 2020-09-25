@@ -78,11 +78,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Create IK Master control
 		ik_org_bone = self.org_chain[self.chain_count]
 		mstr_name = ik_org_bone.name.replace("ORG", "IK-MSTR")
-		self.ik_mstr = self.new_bonei(self.ik_ctrls
-			,name		  = mstr_name
-			,source		  = self.org_chain[self.chain_count]
-			,custom_shape = self.ensure_widget("Sphere")
-			,parent		  = None
+		self.ik_mstr = self.create_ik_master(
+			self.ik_ctrls, 
+			ik_org_bone, 
 		)
 
 		self.calculate_ik_info()
@@ -104,6 +102,19 @@ class CloudIKChainRig(CloudFKChainRig):
 				head_tail  = 0.5,
 				track_axis = 'TRACK_NEGATIVE_Y'
 			)
+
+	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name="Sphere"):
+		if bone_name=="":
+			bone_name = "IK-MSTR-" + source_bone.name.replace("ORG-", "")
+
+		ik_master = self.new_bonei(self.ik_ctrls
+			,name		  = bone_name
+			,source		  = source_bone
+			,custom_shape = self.ensure_widget(shape_name)
+			,parent		  = None
+		)
+
+		return ik_master
 
 	@staticmethod
 	def calculate_ik_info_static(
