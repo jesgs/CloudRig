@@ -4,7 +4,7 @@ from ..bone import BoneInfo
 from bpy.props import BoolProperty, IntProperty
 from mathutils import Vector
 
-from .cloud_chain import CloudChainRig
+from .cloud_chain import CloudChainRig, CUSTOM_SPACE
 
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
@@ -143,6 +143,8 @@ class CloudFaceChainRig(CloudChainRig):
 			if not str_bone.owner_rig.params.CR_chain_smooth_spline:
 				continue
 
+			if not CUSTOM_SPACE:
+				return
 			str_bone.tangent_helper.add_constraint('COPY_ROTATION'
 				,subtarget = intersection_control.name
 				,index = 1
