@@ -40,9 +40,6 @@ class CloudLimbRig(CloudIKChainRig):
 
 		# IK values
 		self.ik_pole_direction = 1
-
-		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
-		self.ik_parents = ['Root', 'Torso', 'Chest', self.limb_ui_name]
 	
 		self.check_correct_chain_length()
 
@@ -118,13 +115,16 @@ class CloudLimbRig(CloudIKChainRig):
 		elbow_knee = self.org_chain[1].fk_bone
 		elbow_knee.lock_rotation[1] = elbow_knee.lock_rotation[2] = self.params.CR_limb_lock_yz
 
-	def make_parent_switch(self):
+	def setup_ik_parent_switches(self, 
+			ik_parents_identifiers: List[str], 
+			ik_ctrl: BoneInfo=None
+		):
 		"""Override."""
 		ik_ctrl = self.ik_mstr
 		if self.params.CR_limb_double_ik:
 			ik_ctrl = ik_ctrl.parent
 
-		super().make_parent_switch(ik_ctrl)
+		super().setup_ik_parent_switches(ik_parents_identifiers, ik_ctrl)
 
 	##############################
 	# End of overrides

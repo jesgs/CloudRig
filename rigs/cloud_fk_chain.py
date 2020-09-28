@@ -58,7 +58,7 @@ class CloudFKChainRig(CloudChainRig):
 			,parent 				= base_bone.parent
 			,custom_shape 			= self.ensure_widget("Cube")
 		)
-		self.register_parent(limb_root_bone, self.limb_ui_name)
+		self.register_parent(limb_root_bone, self.limb_ui_name + " Root")
 		return limb_root_bone
 
 	def make_fk_chain(self):
@@ -76,6 +76,7 @@ class CloudFKChainRig(CloudChainRig):
 			)
 			org_bone.fk_bone = fk_bone
 			if i == 0:
+				self.register_parent(fk_bone, self.limb_ui_name)
 				hng_child = fk_bone
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.

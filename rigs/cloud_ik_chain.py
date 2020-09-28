@@ -1,5 +1,6 @@
 import bpy
 from typing import List
+from ..bone import BoneInfo
 
 from bpy.props import BoolProperty
 from mathutils import Vector
@@ -36,9 +37,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		if self.params.CR_ik_chain_at_tip:
 			self.chain_count += 1
 
-		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
-		self.ik_parents = ['Root', 'Torso', 'Hips', 'Chest', self.limb_ui_name]
-
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.ik_ctrls = self.ensure_bone_set("IK Controls")
@@ -53,7 +51,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Add IK/FK Snapping to the UI.
 		self.add_ui_data_ik_fk(self.fk_chain, self.ik_chain, self.pole_ctrl)
 		self.attach_org_to_ik()
-		self.make_parent_switch()
+
+		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
+		ik_parents_identifiers = ['Root', 'Torso', 'Hips', 'Chest', self.limb_ui_name+" Root"]
+		self.setup_ik_parent_switches(ik_parents_identifiers)
 
 	def world_align_last_fk(self):
 		# Make last FK bone world-aligned.
@@ -466,7 +467,10 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def make_parent_switch(self, ik_ctrl=None):
+	def setup_ik_parent_switches(self, 
+			ik_parents_identifiers: List[str], 
+			ik_ctrl: BoneInfo = None
+		):
 		if not ik_ctrl:
 			ik_ctrl = self.ik_mstr
 
@@ -475,8 +479,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			return
 
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
-		# Try to rig the IK control's parent switcher, searching for these parent candidates.
-		parent_names = self.rig_child(ik_ctrl, self.ik_parents, self.properties_bone, ik_parents_prop_name)
+		# Rig the IK control's parent switcher.
+		parent_names = self.rig_child(ik_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name)
 		if len(parent_names) > 0:
 			bones = [ik_ctrl.name]
 			if self.params.CR_ik_chain_use_pole:
@@ -497,49 +501,55 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		### IK Pole Follow
 		if self.params.CR_ik_chain_use_pole:
-			# Rig the IK Pole control's parent switcher.
-			self.rig_child(self.pole_ctrl, self.ik_parents, self.properties_bone, ik_parents_prop_name)
+			self.setup_ik_pole_parent_switch(ik_parents_identifiers, ik_parents_prop_name)
 
-			# Add option to the UI.
-			ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
-			info = {
-				"prop_bone" : self.properties_bone,
-				"prop_id"	: ik_pole_follow_name,
+	def setup_ik_pole_parent_switch(self, 
+			ik_parents_identifiers: List[str],
+			ik_parents_prop_name: str
+		):
+		# Rig the IK Pole control's parent switcher.
+		self.rig_child(self.pole_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name)
 
-				"operator" : "pose.cloudrig_snap_bake",
-				"bones" : [self.pole_ctrl.name],
-				"select_bones" : True
+		# Add option to the UI.
+		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
+		info = {
+			"prop_bone" : self.properties_bone,
+			"prop_id"	: ik_pole_follow_name,
+
+			"operator" : "pose.cloudrig_snap_bake",
+			"bones" : [self.pole_ctrl.name],
+			"select_bones" : True
+		}
+		self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=0.0)
+
+		# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
+		arm_con_bone = self.pole_ctrl.parent
+		arm_con = arm_con_bone.constraint_infos[0]
+		arm_con.targets.append({
+			"subtarget" : self.ik_mstr.name
+		})
+
+		# Add driver to the new constraint target
+		target_idx = len(arm_con.targets)-1
+		arm_con.drivers.append({
+			'prop' : f'targets[{target_idx}].weight',
+			'expression' : 'follow',
+			'variables' : {}	# Variable is created in the for loop below.
+		})
+
+		# Tweak each driver on the IK pole parent
+		# NOTE: These were originally created by calling self.rig_child(self.pole_ctrl...
+		for i, d in enumerate(arm_con.drivers):
+			if i != len(arm_con.drivers)-1:
+				d['expression'] = f"({d['expression']}) - follow"
+
+			# Add "follow" variable.
+			d['variables']['follow'] = {
+				'type' : 'SINGLE_PROP',
+				'targets' : [{
+					'data_path' : f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
+				}]
 			}
-			self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=0.0)
-
-			# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
-			arm_con_bone = self.pole_ctrl.parent
-			arm_con = arm_con_bone.constraint_infos[0]
-			arm_con.targets.append({
-				"subtarget" : self.ik_mstr.name
-			})
-
-			# Add driver to the new constraint target
-			target_idx = len(arm_con.targets)-1
-			arm_con.drivers.append({
-				'prop' : f'targets[{target_idx}].weight',
-				'expression' : 'follow',
-				'variables' : {}	# Variable is created in the for loop below.
-			})
-
-			# Tweak each driver on the IK pole parent
-			# NOTE: These were originally created by calling self.rig_child(self.pole_ctrl...
-			for i, d in enumerate(arm_con.drivers):
-				if i != len(arm_con.drivers)-1:
-					d['expression'] = f"({d['expression']}) - follow"
-
-				# Add "follow" variable.
-				d['variables']['follow'] = {
-					'type' : 'SINGLE_PROP',
-					'targets' : [{
-						'data_path' : f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
-					}]
-				}
 
 	##############################
 	# Parameters
