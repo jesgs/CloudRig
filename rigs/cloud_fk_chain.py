@@ -243,7 +243,7 @@ class CloudFKChainRig(CloudChainRig):
 			curve_map[fk.name] = curves
 		
 		# Populate FCurves with keyframes
-		axes = [0, 1, 2]
+		axes = [0, 2, 1]
 		angles = [0, 130, 0, -130, 0]
 		frame = 1
 		frame_step = 15
@@ -251,9 +251,15 @@ class CloudFKChainRig(CloudChainRig):
 			curves = curve_map[fk.name]
 			for axis_index in axes:
 				curve = curves[axis_index]
+				curve.color_mode = 'AUTO_RGB'
 				curve.keyframe_points.add(len(angles))
 				for i, angle in enumerate(angles):
-					curve.keyframe_points[i].co = (frame, rad(angle))
+					kp = curve.keyframe_points[i]
+					kp.co = (frame, rad(angle))
+					kp.handle_left = (kp.co.x - frame_step/3, kp.co.y)
+					kp.handle_right = (kp.co.x + frame_step/3, kp.co.y)
+					kp.handle_left_type = 'AUTO_CLAMPED'
+					kp.handle_right_type = 'AUTO_CLAMPED'
 					frame += frame_step
 				frame -= frame_step
 
