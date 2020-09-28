@@ -29,7 +29,7 @@ separators = [
 
 class CloudRigProperties(bpy.types.PropertyGroup):
 	version: IntProperty(
-		name		 = "CloudRig Version"
+		name		 = "CloudRig MetaRig Version"
 		,description = "For internal use only"
 		,default	 = cloud_metarig_version
 	)
