@@ -58,6 +58,18 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,type		 = bpy.types.Collection
 		,description = "Collection in which widgets will be placed"
 	)
+
+	generate_test_action: BoolProperty(
+		name		 = "Generate Test Action"
+		,description = "Whether to update the deform test action or not"
+		,default	 = True
+	)
+	test_action: PointerProperty(
+		name		 = "Test Action"
+		,type		 = bpy.types.Action
+		,description = "Action which will be generated with the keyframes neccessary to test the whole rig's deformations"
+	)
+
 	mechanism_movable: BoolProperty(
 		name		 = "Movable Helpers"
 		,description = "Whether helper bones can be moved or not"
@@ -368,6 +380,9 @@ class CloudGenerator(Generator):
 				bone_set.normal = meta_bg.colors.normal[:]
 				bone_set.select = meta_bg.colors.select[:]
 				bone_set.active = meta_bg.colors.active[:]
+			if self.params.rigify_colors_lock:
+				bone_set.select = self.params.rigify_selection_colors.select
+				bone_set.active = self.params.rigify_selection_colors.active
 
 			bone_set.ensure_bone_group(self.obj, overwrite=True)
 
@@ -395,6 +410,20 @@ class CloudGenerator(Generator):
 
 	def ensure_widget(self, widget_name):
 		return cloud_widgets.ensure_widget(widget_name, overwrite=self.params.rigify_force_widget_update, collection=self.wgt_collection)
+
+	def ensure_test_action(self):
+		# Ensure test action exists
+		test_action = self.params.cloudrig_parameters.test_action
+		if not test_action:
+			test_action = bpy.data.actions.new("RIG.DeformTest."+self.obj.name)
+			self.metarig.data.cloudrig_parameters.test_action = test_action
+
+		# Nuke all curves
+		for fc in test_action.fcurves[:]:
+			test_action.fcurves.remove(fc)
+
+		if not self.obj.animation_data.action:
+			self.obj.animation_data.action = test_action
 
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
@@ -718,10 +747,14 @@ class CloudGenerator(Generator):
 		# Armature display settings
 		obj.display_type = self.metarig.display_type
 		obj.data.display_type = self.metarig.data.display_type
+		
+		if self.params.cloudrig_parameters.generate_test_action:
+			self.ensure_test_action()
 
 		self.invoke_finalize()
 
-		#TODO: For some reason when cloud_bone adds constraints to a bone, sometimes those constraints can be invalid even though they aren't actually.
+		# TODO: For some reason when cloud_bone adds constraints to a bone, 
+		# sometimes those constraints can be invalid even though they aren't actually.
 		for pb in obj.pose.bones:
 			for c in pb.constraints:
 				if hasattr(c, 'subtarget'):

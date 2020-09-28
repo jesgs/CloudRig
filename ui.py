@@ -153,18 +153,24 @@ def draw_cloudrig_generator_settings(self, context):
 	layout.prop(cloudrig, "custom_script")
 	layout.prop(cloudrig, "widget_collection")
 
-	layout.prop(cloudrig, "create_root")
+	act_row = layout.row(heading="Test Action")
+	act_row.prop(cloudrig, 'generate_test_action', text="")
+	act_col = act_row.column()
+	act_col.prop(cloudrig, 'test_action', text="")
+	act_col.enabled = cloudrig.generate_test_action
+
+	layout.prop(cloudrig, 'create_root')
 	if cloudrig.create_root:
-		layout.prop(cloudrig, "double_root")
+		layout.prop(cloudrig, 'double_root')
 
-	layout.prop(cloudrig, "mechanism_selectable")
+	layout.prop(cloudrig, 'mechanism_selectable')
 	if cloudrig.mechanism_selectable:
-		layout.prop(cloudrig, "mechanism_movable")
+		layout.prop(cloudrig, 'mechanism_movable')
 
-	layout.prop(obj.data, "rigify_force_widget_update")
+	layout.prop(obj.data, 'rigify_force_widget_update')
 
 	version_row = layout.row()
-	version_row.prop(cloudrig, "version")
+	version_row.prop(cloudrig, 'version')
 	version_row.enabled = False
 
 def draw_cloud_bone_group_options(self, context):

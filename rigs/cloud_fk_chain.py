@@ -2,6 +2,7 @@ from typing import List
 from ..bone import BoneInfo
 
 from bpy.props import BoolProperty, StringProperty
+from math import radians as rad
 
 from .cloud_chain import CloudChainRig
 
@@ -220,6 +221,41 @@ class CloudFKChainRig(CloudChainRig):
 				,subtarget		= fk_bone.name
 				,name			= "Copy Transforms FK"
 			)
+
+	##############################
+	# Test Action
+	def finalize(self):
+		self.make_test_action()
+
+	def make_test_action(self):
+		"""Create keyframes in the deformation test action for easy weight painting."""
+
+		action = self.generator.params.cloudrig_parameters.test_action
+		
+		# Create FCurves
+		curve_map = {}
+		for fk in self.fk_chain:
+			data_path = f'pose.bones["{fk.name}"].rotation_euler'
+			curves = []
+			for i in range(3):
+				curve = action.fcurves.new(data_path, index=i, action_group=fk.name)
+				curves.append(curve)
+			curve_map[fk.name] = curves
+		
+		# Populate FCurves with keyframes
+		axes = [0, 1, 2]
+		angles = [0, 130, 0, -130, 0]
+		frame = 1
+		frame_step = 15
+		for fk in self.fk_chain:
+			curves = curve_map[fk.name]
+			for axis_index in axes:
+				curve = curves[axis_index]
+				curve.keyframe_points.add(len(angles))
+				for i, angle in enumerate(angles):
+					curve.keyframe_points[i].co = (frame, rad(angle))
+					frame += frame_step
+				frame -= frame_step
 
 	##############################
 	# Parameters
