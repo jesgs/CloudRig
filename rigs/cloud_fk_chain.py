@@ -231,24 +231,36 @@ class CloudFKChainRig(CloudChainRig):
 		"""Create keyframes in the deformation test action for easy weight painting."""
 
 		action = self.generator.params.cloudrig_parameters.test_action
-		
+
 		# Create FCurves
+		curve_map = self.test_action_create_fcurves(
+			action
+			,self.fk_chain
+			,'rotation_euler'
+		)
+
+		# Populate FCurves with keyframes
+		self.test_action_create_keyframes(
+			curve_map
+			,angles = [0, 130, 0, -130, 0]
+			,axes = [0, 2, 1]
+		)
+
+	def test_action_create_fcurves(self, action, bones, data_path):
 		curve_map = {}
-		for fk in self.fk_chain:
-			data_path = f'pose.bones["{fk.name}"].rotation_euler'
+		for b in bones:
+			full_data_path = f'pose.bones["{b.name}"].{data_path}'
 			curves = []
 			for i in range(3):
-				curve = action.fcurves.new(data_path, index=i, action_group=fk.name)
+				curve = action.fcurves.new(full_data_path, index=i, action_group=b.name)
 				curves.append(curve)
-			curve_map[fk.name] = curves
-		
-		# Populate FCurves with keyframes
-		axes = [0, 2, 1]
-		angles = [0, 130, 0, -130, 0]
-		frame = 1
-		frame_step = 15
-		for fk in self.fk_chain:
-			curves = curve_map[fk.name]
+			curve_map[b.name] = curves
+		return curve_map
+	
+	def test_action_create_keyframes(self, curve_map, start_frame=1, frame_step=15, angles=[0, 90, 0], axes=[0, 1, 2]):
+		frame = start_frame
+		for bone_name in curve_map.keys():
+			curves = curve_map[bone_name]
 			for axis_index in axes:
 				curve = curves[axis_index]
 				curve.color_mode = 'AUTO_RGB'
