@@ -10,12 +10,12 @@ class CloudAnimationMixin:
 
 	def initialize_test_action(self):
 		self.test_action = self.generator.params.cloudrig_parameters.test_action
+		self.first_test_frame = 1
+		self.last_test_frame = 1
 		if self.rigify_parent:
 			self.first_test_frame = self.rigify_parent.last_test_frame
-			self.last_test_frame = self.rigify_parent.last_test_frame
-		else:
-			self.first_test_frame = 1
-			self.last_test_frame = 1
+		
+		self.last_test_frame = self.first_test_frame
 
 	def test_action_create_fcurves(self
 		,action: bpy.types.Action
@@ -32,11 +32,12 @@ class CloudAnimationMixin:
 			curve_map[b.name] = curves
 		return curve_map
 
-	def test_action_create_keyframes(self
+	def create_keyframes_on_curves(self
 			,curve_map: Dict[str, List[bpy.types.FCurve]]
 			,start_frame = 1
 			,frame_step = 15
-			,angles = [0, 90, 0]
+			,values = [0, 90, 0]
+			,is_rotation = True
 			,axes = [0, 1, 2]
 		) -> int:
 		frame = start_frame
@@ -45,15 +46,33 @@ class CloudAnimationMixin:
 			for axis_index in axes:
 				curve = curves[axis_index]
 				curve.color_mode = 'AUTO_RGB'
-				curve.keyframe_points.add(len(angles))
-				for i, angle in enumerate(angles):
+				curve.keyframe_points.add(len(values))
+				for i, value in enumerate(values):
 					kp = curve.keyframe_points[i]
-					kp.co = (frame, rad(angle))
+					if is_rotation:
+						value = rad(value)
+					kp.co = (frame, value)
 					kp.handle_left = (kp.co.x - frame_step/3, kp.co.y)
 					kp.handle_right = (kp.co.x + frame_step/3, kp.co.y)
 					kp.handle_left_type = 'AUTO_CLAMPED'
 					kp.handle_right_type = 'AUTO_CLAMPED'
 					frame += frame_step
 				frame -= frame_step
-		
+
 		return frame
+	
+	def disable_property_for_test_action(self, prop_id):
+		action = self.test_action
+		prop_bone = self.properties_bone
+
+		data_path = f'pose.bones["{prop_bone.name}"]["{prop_id}"]'
+		# Create FCurve for IK/FK toggle
+		fc = action.fcurves.new(data_path, index=-1, action_group=prop_bone.name)
+
+		# Add keyframes
+		fc.keyframe_points.add(2)
+		# fc.keyframe_points[0].co = (self.first_test_frame, 0)
+		fc.keyframe_points[0].co = (0, 0)
+		fc.keyframe_points[1].co = (self.last_test_frame, 1)
+		fc.keyframe_points[0].interpolation = 'CONSTANT'
+		fc.keyframe_points[1].interpolation = 'CONSTANT'

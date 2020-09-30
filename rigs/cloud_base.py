@@ -176,9 +176,6 @@ class CloudBaseRig(
 
 			org_bi.meta_bone = meta_org
 
-	def configure_bones(self):
-		pass
-
 	##############################
 	# Parameters
 

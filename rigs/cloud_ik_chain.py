@@ -551,6 +551,11 @@ class CloudIKChainRig(CloudFKChainRig):
 				}]
 			}
 
+	def make_test_action(self):
+		"""Override. Add keyframes to disable IK for the deformation test and re-enable it at the end."""
+		super().make_test_action()
+		self.disable_property_for_test_action(self.ikfk_name)
+
 	##############################
 	# Parameters
 
