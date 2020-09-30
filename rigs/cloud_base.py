@@ -176,6 +176,15 @@ class CloudBaseRig(
 
 			org_bi.meta_bone = meta_org
 
+	def find_symmetry_rig(self):
+		"""Find another rig in the generator with the opposite name for self.base_bone."""
+		flipped_name = self.naming.flipped_name(self.base_bone)
+		if flipped_name == self.base_bone: return
+
+		for rig in self.generator.rig_list:
+			if rig.base_bone == flipped_name:
+				return rig
+
 	##############################
 	# Parameters
 

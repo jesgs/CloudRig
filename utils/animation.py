@@ -37,6 +37,7 @@ class CloudAnimationMixin:
 			,start_frame = 1
 			,frame_step = 15
 			,values = [0, 90, 0]
+			,flip_xyz = [False, False, False]
 			,is_rotation = True
 			,axes = [0, 1, 2]
 		) -> int:
@@ -51,6 +52,8 @@ class CloudAnimationMixin:
 					kp = curve.keyframe_points[i]
 					if is_rotation:
 						value = rad(value)
+					if flip_xyz[axis_index]:
+						value = -value
 					kp.co = (frame, value)
 					kp.handle_left = (kp.co.x - frame_step/3, kp.co.y)
 					kp.handle_right = (kp.co.x + frame_step/3, kp.co.y)

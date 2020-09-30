@@ -233,11 +233,17 @@ class CloudFKChainRig(CloudChainRig):
 		# TODO: Siblings should NOT play at the same time, but wait for each other just like they wait for their parents.
 		# But what should the order be, and how should it be determined?
 		# For example, finger bones would ideally go in a defined order of either thumb to pinky or reverse. A random order here is really not ideal.
-		
-		# On the other hand, symmetrical elements should always animate at the same time.
-		self.last_test_frame = self.add_fk_chain_test_curves()
 
-	def add_fk_chain_test_curves(self) -> int:
+		# On the other hand, symmetrical elements should always animate at the same time.
+		symm_rig = self.find_symmetry_rig()
+		flip_y = flip_z = False
+		if symm_rig and hasattr(symm_rig, 'first_test_frame'):
+			self.first_test_frame = symm_rig.first_test_frame
+			flip_y = flip_z = True
+
+		self.last_test_frame = self.add_fk_chain_test_curves(flip_xyz = [False, flip_y, flip_z])
+
+	def add_fk_chain_test_curves(self, flip_xyz=[False, False, False]) -> int:
 		action = self.test_action
 
 		# Create FCurves
@@ -252,6 +258,7 @@ class CloudFKChainRig(CloudChainRig):
 			curve_map
 			,start_frame = self.first_test_frame
 			,values = [0, 130, 0, -130, 0]
+			,flip_xyz = flip_xyz
 			,axes = [0, 2, 1]
 		)
 
