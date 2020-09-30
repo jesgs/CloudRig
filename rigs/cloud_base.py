@@ -1,19 +1,21 @@
+# Typing
 import bpy
-
 from ..bone import BoneInfo
 from typing import Dict, List
 
+# CloudBaseRig parent classes
+from rigify.base_rig import BaseRig
+from ..bone import BoneInfoMixin
+from ..utils.ui import CloudUIMixin
+from ..utils.naming import CloudNameManager
+from ..utils.mechanism import CloudMechanismMixin
+from ..utils.animation import CloudAnimationMixin
+from ..utils.object import CloudObjectUtilitiesMixin
+
+# The rest
 from bpy.props import BoolProperty
 from mathutils import Vector
 from enum import Enum
-
-from ..bone import BoneInfoMixin
-from ..utils.mechanism import CloudMechanismMixin
-from ..utils.naming import CloudNameManager, name_side_is_left
-from ..utils.object import CloudObjectUtilitiesMixin
-from ..utils.ui import CloudUIMixin
-
-from rigify.base_rig import BaseRig
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0
@@ -37,6 +39,7 @@ class CloudBaseRig(
 					CloudMechanismMixin, 
 					CloudObjectUtilitiesMixin, 
 					CloudUIMixin, 
+					CloudAnimationMixin,
 					BoneInfoMixin
 	):
 	"""Base class that all CloudRig rigs should inherit from."""
@@ -59,7 +62,7 @@ class CloudBaseRig(
 		elif is_left==False:
 			self.side_suffix = "R"
 			self.side_prefix = "Right"
-		
+
 		self.all_bones = []
 
 	def find_org_bones(self, pose_bone):

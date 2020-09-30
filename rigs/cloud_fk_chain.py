@@ -2,7 +2,6 @@ from typing import List
 from ..bone import BoneInfo
 
 from bpy.props import BoolProperty, StringProperty
-from math import radians as rad
 
 from .cloud_chain import CloudChainRig
 
@@ -229,8 +228,11 @@ class CloudFKChainRig(CloudChainRig):
 
 	def make_test_action(self):
 		"""Create keyframes in the deformation test action for easy weight painting."""
+		self.initialize_test_action()
+		self.last_test_frame = self.add_fk_chain_test_curves()
 
-		action = self.generator.params.cloudrig_parameters.test_action
+	def add_fk_chain_test_curves(self):
+		action = self.test_action
 
 		# Create FCurves
 		curve_map = self.test_action_create_fcurves(
@@ -240,40 +242,14 @@ class CloudFKChainRig(CloudChainRig):
 		)
 
 		# Populate FCurves with keyframes
-		self.test_action_create_keyframes(
+		last_frame = self.test_action_create_keyframes(
 			curve_map
+			,start_frame = self.first_test_frame
 			,angles = [0, 130, 0, -130, 0]
 			,axes = [0, 2, 1]
 		)
 
-	def test_action_create_fcurves(self, action, bones, data_path):
-		curve_map = {}
-		for b in bones:
-			full_data_path = f'pose.bones["{b.name}"].{data_path}'
-			curves = []
-			for i in range(3):
-				curve = action.fcurves.new(full_data_path, index=i, action_group=b.name)
-				curves.append(curve)
-			curve_map[b.name] = curves
-		return curve_map
-	
-	def test_action_create_keyframes(self, curve_map, start_frame=1, frame_step=15, angles=[0, 90, 0], axes=[0, 1, 2]):
-		frame = start_frame
-		for bone_name in curve_map.keys():
-			curves = curve_map[bone_name]
-			for axis_index in axes:
-				curve = curves[axis_index]
-				curve.color_mode = 'AUTO_RGB'
-				curve.keyframe_points.add(len(angles))
-				for i, angle in enumerate(angles):
-					kp = curve.keyframe_points[i]
-					kp.co = (frame, rad(angle))
-					kp.handle_left = (kp.co.x - frame_step/3, kp.co.y)
-					kp.handle_right = (kp.co.x + frame_step/3, kp.co.y)
-					kp.handle_left_type = 'AUTO_CLAMPED'
-					kp.handle_right_type = 'AUTO_CLAMPED'
-					frame += frame_step
-				frame -= frame_step
+		return last_frame
 
 	##############################
 	# Parameters

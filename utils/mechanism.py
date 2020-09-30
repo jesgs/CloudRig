@@ -3,7 +3,6 @@ import os
 from copy import deepcopy
 
 import bpy
-from rna_prop_ui import rna_idprop_ui_create
 from mathutils import Vector
 
 from rigify.utils.misc import copy_attributes
@@ -14,7 +13,7 @@ from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
 
 class CloudMechanismMixin:
-	"""Mixin class for rigging functions."""
+	"""Mixin class for rigging functions, using mostly the BoneInfo class."""
 
 	def get_bone_info(self, name):
 		for bi in self.all_bones:
@@ -265,7 +264,6 @@ class CloudMechanismMixin:
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)
-
 
 def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
 	if pose_bone.rigify_type != "":
