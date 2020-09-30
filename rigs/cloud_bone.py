@@ -84,9 +84,15 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 	@stage.apply_bones
 	def modify_edit_bone(self):
 		meta_bone = self.generator.metarig.data.bones.get(self.orgless_name)
+		meta_pose_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
 
 		mod_bone = self.get_bone(self.bone_name)
 		pose_bone = self.obj.pose.bones.get(mod_bone.name)
+
+		# If there's an armature constraint, unparent
+		for c in meta_pose_bone.constraints:
+			if c.type=='ARMATURE':
+				mod_bone.parent = None
 
 		if hasattr(self, "def_bone_name"):
 			# TODO: Would this fail if I put it in generate_bones stage? I feel like that's where it started, and it would fail, but I don't really get why.
