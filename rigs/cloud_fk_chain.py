@@ -1,7 +1,7 @@
 from typing import List
 from ..bone import BoneInfo
 
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, StringProperty, IntVectorProperty, BoolVectorProperty
 
 from .cloud_chain import CloudChainRig
 
@@ -232,6 +232,9 @@ class CloudFKChainRig(CloudChainRig):
 		Return the frame at which animation is finished.
 		"""
 
+		if not self.params.CR_fk_chain_test_animation_generate:
+			return start_frame
+
 		# Create FCurves
 		curve_map = self.test_action_create_fcurves(
 			action
@@ -240,12 +243,19 @@ class CloudFKChainRig(CloudChainRig):
 		)
 
 		# Populate FCurves with keyframes
+		min_rot = self.params.CR_fk_chain_test_animation_rotation_range[0]
+		max_rot = self.params.CR_fk_chain_test_animation_rotation_range[1]
+
+		axes_boolean = self.params.CR_fk_chain_test_animation_axes
+		order = [0, 2, 1]
+		axes = [order[i] for i in range(3) if axes_boolean[i]]
+
 		last_frame = self.create_keyframes_on_curves(
 			curve_map
 			,start_frame = start_frame
-			,values = [0, 130, 0, -130, 0]
+			,values = [0, max_rot, 0, min_rot, 0]
 			,flip_xyz = flip_xyz
-			,axes = [0, 2, 1]
+			,axes = axes
 		)
 
 		return last_frame
@@ -312,6 +322,26 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "Limbs in the same category will have their settings displayed in the same column"
 		)
 
+		params.CR_fk_chain_test_animation_generate = BoolProperty(
+			 name		 = "Generate Test Animation"
+			,description = "Include this rig element in the test animation"
+			,default	 = True,
+		)
+		params.CR_fk_chain_test_animation_rotation_range = IntVectorProperty(
+			 name		 = "Rotation Range"
+			,description = "Minimum and Maximum rotations for the test animation"
+			,size		 = 2
+			,default	 = (-130, 130)
+			,min 		 = -180
+			,max		 = 180
+		)
+		params.CR_fk_chain_test_animation_axes = BoolVectorProperty(
+			 name		 = "Rotation Axes"
+			,description = "Rotation axes to test in the test animation"
+			,subtype	 = 'EULER'
+			,default	 = (True, True, True)
+		)
+
 		super().add_parameters(params)
 
 	@classmethod
@@ -344,6 +374,17 @@ class CloudFKChainRig(CloudChainRig):
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
 		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
 		row.enabled = params.CR_fk_chain_root
+
+		if context.object.data.cloudrig_parameters.generate_test_action:
+			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
+			if params.CR_fk_chain_test_animation_generate:
+				row = layout.row()
+				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
+				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
+				row = layout.row(heading="Rotation Axes", align=True)
+				row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
+				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
+				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
 
 		return layout
 
