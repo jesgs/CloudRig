@@ -184,6 +184,14 @@ class CloudBaseRig(
 		for rig in self.generator.rig_list:
 			if rig.base_bone == flipped_name:
 				return rig
+	
+	def find_sibling_rigs(self):
+		siblings = []
+		for rig in self.generator.rig_list:
+			if rig.rigify_parent == self.rigify_parent:
+				siblings.append(rig)
+		
+		return siblings
 
 	##############################
 	# Parameters

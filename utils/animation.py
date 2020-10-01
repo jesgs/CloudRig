@@ -8,15 +8,6 @@ from math import radians as rad
 class CloudAnimationMixin:
 	"""Mixin class for functions to generate actions with animation."""
 
-	def initialize_test_action(self):
-		self.test_action = self.generator.params.cloudrig_parameters.test_action
-		self.first_test_frame = 1
-		self.last_test_frame = 1
-		if self.rigify_parent:
-			self.first_test_frame = self.rigify_parent.last_test_frame
-		
-		self.last_test_frame = self.first_test_frame
-
 	def test_action_create_fcurves(self
 		,action: bpy.types.Action
 		,bones: List[BoneInfo]
@@ -64,8 +55,7 @@ class CloudAnimationMixin:
 
 		return frame
 	
-	def disable_property_for_test_action(self, prop_id):
-		action = self.test_action
+	def disable_property_until_frame(self, action, last_frame, prop_id):
 		prop_bone = self.properties_bone
 
 		data_path = f'pose.bones["{prop_bone.name}"]["{prop_id}"]'
@@ -74,8 +64,7 @@ class CloudAnimationMixin:
 
 		# Add keyframes
 		fc.keyframe_points.add(2)
-		# fc.keyframe_points[0].co = (self.first_test_frame, 0)
 		fc.keyframe_points[0].co = (0, 0)
-		fc.keyframe_points[1].co = (self.last_test_frame, 1)
+		fc.keyframe_points[1].co = (last_frame, 1)
 		fc.keyframe_points[0].interpolation = 'CONSTANT'
 		fc.keyframe_points[1].interpolation = 'CONSTANT'

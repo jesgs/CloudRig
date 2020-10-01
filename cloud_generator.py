@@ -411,19 +411,6 @@ class CloudGenerator(Generator):
 	def ensure_widget(self, widget_name):
 		return cloud_widgets.ensure_widget(widget_name, overwrite=self.params.rigify_force_widget_update, collection=self.wgt_collection)
 
-	def ensure_test_action(self):
-		# Ensure test action exists
-		test_action = self.params.cloudrig_parameters.test_action
-		if not test_action:
-			test_action = bpy.data.actions.new("RIG.DeformTest."+self.obj.name)
-			self.metarig.data.cloudrig_parameters.test_action = test_action
-
-		# Nuke all curves
-		for fc in test_action.fcurves[:]:
-			test_action.fcurves.remove(fc)
-
-		if not self.obj.animation_data.action:
-			self.obj.animation_data.action = test_action
 
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
@@ -512,6 +499,51 @@ class CloudGenerator(Generator):
 							max_tmp = c.max
 							c.max = c.min
 							c.min = max_tmp
+
+	def ensure_test_action(self):
+		# Ensure test action exists
+		test_action = self.params.cloudrig_parameters.test_action
+		if not test_action:
+			test_action = bpy.data.actions.new("RIG.DeformTest."+self.obj.name)
+			self.metarig.data.cloudrig_parameters.test_action = test_action
+
+		# Nuke all curves
+		for fc in test_action.fcurves[:]:
+			test_action.fcurves.remove(fc)
+
+		if not self.obj.animation_data.action:
+			self.obj.animation_data.action = test_action
+		
+		return test_action
+
+	def create_test_animation(self, action):
+		rigs_anim_order = []
+		def get_rig_children(rig):
+			children = []
+			for r in self.rig_list:
+				if r.rigify_parent == rig:
+					children.append(r)
+			return children
+
+		def add_rig_hierarchy_to_animation_order(rig):
+			if hasattr(type(rig), 'has_test_animation') and type(rig).has_test_animation:
+				rigs_anim_order.append(rig)
+			for child_rig in get_rig_children(rig):
+				add_rig_hierarchy_to_animation_order(child_rig)
+
+		for root_rig in self.root_rigs:
+			add_rig_hierarchy_to_animation_order(root_rig)
+
+		start_frame = 1
+		for rig in rigs_anim_order:
+			symm_rig = rig.find_symmetry_rig()
+			symm_new_start_frame = 1
+			new_start_frame = rig.add_test_animation(action, start_frame)
+			if symm_rig:
+				symm_new_start_frame = symm_rig.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
+				rigs_anim_order.remove(symm_rig)
+			start_frame = max(new_start_frame, symm_new_start_frame)
+			
 
 	def generate(self):
 		print("CloudRig Generation begin")
@@ -747,9 +779,6 @@ class CloudGenerator(Generator):
 		# Armature display settings
 		obj.display_type = self.metarig.display_type
 		obj.data.display_type = self.metarig.data.display_type
-		
-		if self.params.cloudrig_parameters.generate_test_action:
-			self.ensure_test_action()
 
 		self.invoke_finalize()
 
@@ -769,6 +798,11 @@ class CloudGenerator(Generator):
 
 		# Create Selection Sets
 		create_selection_sets(obj, metarig)
+
+		# Create test animation
+		if self.params.cloudrig_parameters.generate_test_action:
+			action = self.ensure_test_action()
+			self.create_test_animation(action)
 
 		t.tick("The rest: ")
 

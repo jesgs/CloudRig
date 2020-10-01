@@ -8,6 +8,8 @@ from .cloud_chain import CloudChainRig
 class CloudFKChainRig(CloudChainRig):
 	"""FK chain with squash and stretch controls."""
 
+	has_test_animation = True
+
 	def initialize(self):
 		"""Gather and validate data about the rig."""
 		super().initialize()
@@ -223,28 +225,12 @@ class CloudFKChainRig(CloudChainRig):
 
 	##############################
 	# Test Action
-	def finalize(self):
-		super().finalize()
-		self.initialize_test_action()
-		self.make_test_action()
 
-	def make_test_action(self):
-		"""Create keyframes in the deformation test action for easy weight painting."""
-		# TODO: Siblings should NOT play at the same time, but wait for each other just like they wait for their parents.
-		# But what should the order be, and how should it be determined?
-		# For example, finger bones would ideally go in a defined order of either thumb to pinky or reverse. A random order here is really not ideal.
+	def add_test_animation(self, action, start_frame=1, flip_xyz=[False, False, False]) -> int:
+		"""Add animation curves to the action to test this rig.
 
-		# On the other hand, symmetrical elements should always animate at the same time.
-		symm_rig = self.find_symmetry_rig()
-		flip_y = flip_z = False
-		if symm_rig and hasattr(symm_rig, 'first_test_frame'):
-			self.first_test_frame = symm_rig.first_test_frame
-			flip_y = flip_z = True
-
-		self.last_test_frame = self.add_fk_chain_test_curves(flip_xyz = [False, flip_y, flip_z])
-
-	def add_fk_chain_test_curves(self, flip_xyz=[False, False, False]) -> int:
-		action = self.test_action
+		Return the frame at which animation is finished.
+		"""
 
 		# Create FCurves
 		curve_map = self.test_action_create_fcurves(
@@ -256,7 +242,7 @@ class CloudFKChainRig(CloudChainRig):
 		# Populate FCurves with keyframes
 		last_frame = self.create_keyframes_on_curves(
 			curve_map
-			,start_frame = self.first_test_frame
+			,start_frame = start_frame
 			,values = [0, 130, 0, -130, 0]
 			,flip_xyz = flip_xyz
 			,axes = [0, 2, 1]

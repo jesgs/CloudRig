@@ -551,10 +551,14 @@ class CloudIKChainRig(CloudFKChainRig):
 				}]
 			}
 
-	def make_test_action(self):
-		"""Override. Add keyframes to disable IK for the deformation test and re-enable it at the end."""
-		super().make_test_action()
-		self.disable_property_for_test_action(self.ikfk_name)
+	def add_test_animation(self, action, start_frame=1, flip_xyz=[False, False, False]) -> int:
+		"""Add animation curves to the action to test this rig.
+
+		Return the frame at which animation is finished.
+		"""
+		last_frame = super().add_test_animation(action, start_frame, flip_xyz)
+		self.disable_property_until_frame(action, last_frame, self.ikfk_name)
+		return last_frame
 
 	##############################
 	# Parameters
