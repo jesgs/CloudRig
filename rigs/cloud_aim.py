@@ -228,9 +228,9 @@ class CloudAimRig(CloudBaseRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, params):
+	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, params)
+		layout = super().draw_cloud_params(layout, context, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_aim_show_settings"): return layout
 

@@ -23,7 +23,7 @@ class CloudUIMixin:
 			row.enabled = False
 
 	@classmethod
-	def draw_cloud_params(cls, layout, params):
+	def draw_cloud_params(cls, layout, context, params):
 		doc = cls.__doc__ or cls.__bases__[0].__doc__
 		if doc:
 			draw_label_with_linebreak(layout, doc)

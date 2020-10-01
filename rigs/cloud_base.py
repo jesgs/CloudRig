@@ -176,7 +176,8 @@ class CloudBaseRig(
 
 			org_bi.meta_bone = meta_org
 
-	def find_symmetry_rig(self):
+	# TODO these functions probably belong to the generator and should be called get_ instead of find_.
+	def find_symmetry_rig(self) -> BaseRig:
 		"""Find another rig in the generator with the opposite name for self.base_bone."""
 		flipped_name = self.naming.flipped_name(self.base_bone)
 		if flipped_name == self.base_bone: return
@@ -185,7 +186,7 @@ class CloudBaseRig(
 			if rig.base_bone == flipped_name:
 				return rig
 	
-	def find_sibling_rigs(self):
+	def find_sibling_rigs(self) -> List[BaseRig]:
 		siblings = []
 		for rig in self.generator.rig_list:
 			if rig.rigify_parent == self.rigify_parent:
@@ -215,6 +216,6 @@ class CloudBaseRig(
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
 
-		layout = cls.draw_cloud_params(layout, params)
+		layout = cls.draw_cloud_params(layout, bpy.context, params)
 		layout.separator()
 		cls.draw_bone_sets_params(layout, params)

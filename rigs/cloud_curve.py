@@ -331,9 +331,9 @@ class CloudCurveRig(CloudBaseRig):
 		cls.draw_prop(layout, params, 'CR_curve_target', icon=icon)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, params):
+	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, params)
+		layout = super().draw_cloud_params(layout, context, params)
 
 		cls.curve_selector_ui(layout, params)
 
