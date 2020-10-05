@@ -43,17 +43,22 @@ def load_sample(rig_name):
 	rig = bpy.context.object
 	bpy.ops.object.mode_set(mode='OBJECT')
 
-	assert sample_name not in bpy.data.objects, "Error: Rig sample is floating around in the file, purge it!"
+	assert sample_name not in bpy.data.objects, "Error: Rig sample exists in the file, delete and purge it!"
 
 	# Loading rig sample object from file
 	filename = "metarigs/MetaRigs.blend"
 	filedir = os.path.dirname(os.path.realpath(__file__))
 	blend_path = os.path.join(filedir, filename)
 
+	found = False
 	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
 		for o in data_from.objects:
 			if o == sample_name:
 				data_to.objects.append(o)
+				found = True
+				break
+
+	assert found, "Error: Sample rig not found in MetaRigs.blend."
 
 	sample_ob = bpy.data.objects.get(sample_name)
 	sample_ob.location = bpy.context.scene.cursor.location
