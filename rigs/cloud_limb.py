@@ -126,6 +126,23 @@ class CloudLimbRig(CloudIKChainRig):
 
 		super().setup_ik_parent_switches(ik_parents_identifiers, ik_ctrl)
 
+
+	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+		"""Override."""
+		ui_data = super().create_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
+
+		if self.params.CR_limb_double_ik:
+			ui_data['hide_off'].append(ik_mstr.parent.name)
+			map_on = {}
+			# Need to awkwardly insert IK master parent->last FK bone switching BEFORE IK master parent, 
+			# because in this dictionary order matters.
+			for mapping in ui_data['map_on']:
+				if mapping[0] == ik_mstr.name:
+					map_on.append( (ik_mstr.parent.name, fk_chain[-1].name) )
+				map_on.append( mapping )
+			ui_data['map_on'] = map_on
+		return ui_data
+
 	##############################
 	# End of overrides
 

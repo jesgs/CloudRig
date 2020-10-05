@@ -167,7 +167,7 @@ class CloudAimRig(CloudBaseRig):
 		aim_group_parents_prop_name = "aim_group_parents_" + group_name.lower()
 		search_parents = ["Root", "Torso", "Chest", "Neck", "Head"]
 		parent_names = self.rig_child(group_master, search_parents, self.properties_bone, aim_group_parents_prop_name)
-		if len(parent_names) > 0:
+		if len(parent_names) > 1:
 			info = {
 				"prop_bone" : self.properties_bone,
 				"prop_id" : aim_group_parents_prop_name,

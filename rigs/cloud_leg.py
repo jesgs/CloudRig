@@ -116,15 +116,16 @@ class CloudLegRig(CloudLimbRig):
 
 		return ik_master
 
-	def get_ui_data_ik_fk(self):
+	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Override."""
-		ui_data = super().get_ui_data_ik_fk()
+		ui_data = super().create_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 		# Toe is not relevant for IK/FK switching.
 		ui_data['map_off'] = ui_data['map_off'][:-1]
 		if self.params.CR_ik_chain_world_aligned and self.params.CR_leg_use_foot_roll:
 			# In the case of world aligned IK control + footroll, we must 
 			# snap the FK foot to a specialized helper bone rather than any IK bone.
 			ui_data['map_off'][-1] = (ui_data['map_off'][-1][0], self.foot_snap_bone.name)
+
 		return ui_data
 
 	def make_fk_chain(self):

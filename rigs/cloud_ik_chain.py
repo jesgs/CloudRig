@@ -49,7 +49,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			self.world_align_last_fk()
 		self.make_ik_setup()
 		# Add IK/FK Snapping to the UI.
-		self.add_ui_data_ik_fk(self.fk_chain, self.ik_chain, self.pole_ctrl)
+		ui_data = self.create_ui_data(self.fk_chain, self.ik_chain, self.ik_mstr, self.pole_ctrl)
+		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, ui_data, default=1.0)
 		self.attach_org_to_ik()
 
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
@@ -261,29 +262,15 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		return ik_chain
 
-	def add_ui_data_ik_fk(self, fk_chain, ik_chain, ik_pole=None):
-		""" Prepare the data needed to be stored on the armature object for IK/FK snapping. """
-		ui_data = self.get_ui_data_ik_fk()
-		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, ui_data, default=1.0)
-
-	def get_ui_data_ik_fk(self):
+	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		# List of bone tuples to snap (from, to).
 		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
 		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
-
-		fk_chain = self.fk_chain
-		ik_chain = self.ik_chain
-		ik_mstr = self.ik_mstr
-		ik_pole = self.pole_ctrl
 
 		hide_on = [b.name for b in fk_chain]		# Which bones will be hidden when the custom property is set to 1.
 		hide_off = [ik_mstr.name]	# Which bones will be hidden when the custom property is set to 0.
 		if ik_pole:
 			hide_off.append(ik_pole.name)
-
-		if self.params.CR_limb_double_ik:
-			hide_off.append(ik_mstr.parent.name)
-			map_on.append( (ik_mstr.parent.name, fk_chain[-1].name) )
 
 		map_on.append( (ik_mstr.name, fk_chain[-1].name) )
 		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
@@ -481,7 +468,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
 		# Rig the IK control's parent switcher.
 		parent_names = self.rig_child(ik_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name)
-		if len(parent_names) > 0:
+		if len(parent_names) > 1:
 			bones = [ik_ctrl.name]
 			if self.params.CR_ik_chain_use_pole:
 				bones.append(self.pole_ctrl.name)
@@ -508,7 +495,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			ik_parents_prop_name: str
 		):
 		# Rig the IK Pole control's parent switcher.
-		self.rig_child(self.pole_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name)
+		self.rig_child(self.pole_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name, force_setup=True)
 
 		# Add option to the UI.
 		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
@@ -522,6 +509,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		}
 		self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=0.0)
 
+		# TODO This will fail when the IK chain is at the rig's root and therefore only has one parent and no parent switching setup and no armature constraint!
 		# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
 		arm_con_bone = self.pole_ctrl.parent
 		arm_con = arm_con_bone.constraint_infos[0]

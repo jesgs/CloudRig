@@ -57,13 +57,14 @@ class CloudMechanismMixin:
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
 
-	def rig_child(self, child_bone, parent_names, prop_bone, prop_name, bone_set=None):
+	def rig_child(self, child_bone, parent_names, prop_bone, prop_name, bone_set=None, force_setup=False):
 		""" Rig a child with multiple switchable parents, using Armature constraint and drivers.
 		child_bone: The child bone.
 		parent_names: Parent identifiers(NOT BONE NAMES!) to search for among registered parent identifiers (These are hard-coded identifiers such as 'Hips', 'Torso', etc.)
 		prop_bone: Bone which stores the property that controls the parent switching.
 		prop_name: Name of said property on the prop_bone.
 		bone_set: BoneSet to create this bone in. If not provided, use "Parent Switch Helpers" from cloud_base.
+		force_setup: Create the parent switching helper bone and constraint even if there is less than 2 parent candidates.
 		Return list of parent names for which a registered parent candidate was found and rigged.
 		"""
 		if bone_set==None:
@@ -75,8 +76,12 @@ class CloudMechanismMixin:
 		for pn in parent_names:
 			if pn in list(parent_candidates.keys()):
 				found_parents.append(pn)
-		if len(found_parents) == 0:
+		if len(found_parents) == 0 and not force_setup:
 			print(f"Warning: No parents to be rigged for {child_bone.name}.")
+			return found_parents
+		if len(found_parents) == 1 and not force_setup:
+			print(f"Warning: Only single parent found for parent switching setup, so falling back to regular parenting.")
+			child_bone.parent = list(parent_candidates.values())[0]
 			return found_parents
 
 		# Create parent bone for the bone that stores the Armature constraint.
