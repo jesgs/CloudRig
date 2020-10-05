@@ -60,7 +60,9 @@ class CloudAnimationMixin:
 
 		data_path = f'pose.bones["{prop_bone.name}"]["{prop_id}"]'
 		# Create FCurve for IK/FK toggle
-		fc = action.fcurves.new(data_path, index=-1, action_group=prop_bone.name)
+		fc = action.fcurves.find(data_path, index=-1)
+		if not fc:
+			fc = action.fcurves.new(data_path, index=-1, action_group=prop_bone.name)
 
 		# Add keyframes
 		fc.keyframe_points.add(2)
