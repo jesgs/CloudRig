@@ -511,6 +511,9 @@ class CloudGenerator(Generator):
 		for fc in test_action.fcurves[:]:
 			test_action.fcurves.remove(fc)
 
+		if not self.obj.animation_data:
+			self.obj.animation_data_create()
+
 		if not self.obj.animation_data.action:
 			self.obj.animation_data.action = test_action
 		
@@ -801,8 +804,8 @@ class CloudGenerator(Generator):
 
 		# Create test animation
 		if self.params.cloudrig_parameters.generate_test_action:
-			action = self.ensure_test_action()
-			self.create_test_animation(action)
+					action = self.ensure_test_action()
+					self.create_test_animation(action)
 
 		t.tick("The rest: ")
 
