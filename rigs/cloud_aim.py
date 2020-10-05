@@ -106,7 +106,8 @@ class CloudAimRig(CloudBaseRig):
 		)
 		bone.parent = root_bone
 		
-		self.rigify_parent.reparent_bone(root_bone)
+		if self.rigify_parent:
+			self.rigify_parent.reparent_bone(root_bone)
 		return root_bone
 
 	def ensure_group_master(self) -> Optional[BoneInfo]:
