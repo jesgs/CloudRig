@@ -804,8 +804,11 @@ class CloudGenerator(Generator):
 
 		# Create test animation
 		if self.params.cloudrig_parameters.generate_test_action:
+			for rig in self.rig_list:
+				if hasattr(rig.params, 'CR_fk_chain_test_animation_generate') and rig.params.CR_fk_chain_test_animation_generate:
 					action = self.ensure_test_action()
 					self.create_test_animation(action)
+					break
 
 		t.tick("The rest: ")
 
