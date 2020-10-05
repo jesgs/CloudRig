@@ -350,10 +350,10 @@ class CloudCurveRig(CloudBaseRig):
 class Rig(CloudCurveRig):
 	pass
 
-from ..load_metarig import load_sample
+from ..load_metarig import load_sample_by_file
 
 def create_sample(obj):
-	load_sample("cloud_curve")
+	load_sample_by_file(__file__)
 	# Need to do some extra stuff...
 	curve_ob = bpy.data.objects.get("cloud_curve")
 	bpy.context.scene.collection.objects.link(curve_ob)

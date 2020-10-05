@@ -246,7 +246,7 @@ class CloudAimRig(CloudBaseRig):
 class Rig(CloudAimRig):
 	pass
 
-from ..load_metarig import load_sample
+from ..load_metarig import load_sample_by_file
 
 def create_sample(obj):
-	load_sample("cloud_aim")
+	load_sample_by_file(__file__)

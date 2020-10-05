@@ -391,7 +391,7 @@ class CloudFKChainRig(CloudChainRig):
 class Rig(CloudFKChainRig):
 	pass
 
-from ..load_metarig import load_sample
+from ..load_metarig import load_sample_by_file
 
 def create_sample(obj):
-	load_sample("cloud_fk_chain")
+	load_sample_by_file(__file__)

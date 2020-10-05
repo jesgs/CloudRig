@@ -68,3 +68,6 @@ def load_sample(rig_name):
 	bpy.context.view_layer.objects.active = rig
 	bpy.ops.object.join()
 	bpy.ops.object.mode_set(mode='EDIT')
+
+def load_sample_by_file(filename):
+	load_sample(os.path.splitext(os.path.basename(filename))[0])

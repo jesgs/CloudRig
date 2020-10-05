@@ -620,6 +620,8 @@ class ConstraintInfo(dict):
 		for key in ['type', 'bone_info', 'drivers']:
 			del con_info[key]
 
+		# TODO this armature constraint hackaround can be removed once D9092 is in. 
+		# This will break backwards compatibility with prior blender versions.
 		targets = None
 		if con_type == 'ARMATURE' and 'targets' in con_info:
 			targets = con_info['targets']

@@ -389,7 +389,7 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 		else:
 			col1.prop(pb.bone, "use_deform", text="Create Deform Bone")
 
-from ..load_metarig import load_sample
+from ..load_metarig import load_sample_by_file
 
 def create_sample(obj):
-	load_sample("cloud_bone")
+	load_sample_by_file(__file__)
