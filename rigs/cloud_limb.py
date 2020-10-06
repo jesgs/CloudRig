@@ -150,16 +150,18 @@ class CloudLimbRig(CloudIKChainRig):
 			str_h_bone.constraint_infos[2].mute = True
 
 	def add_counterrotate_constraint(self, str_bone, org_bone, factor):
-		str_bone.add_constraint('TRANSFORM',
-			name = "Transformation (Counter-Rotate)",
-			subtarget = org_bone.name,
-			map_from = 'ROTATION', map_to = 'ROTATION',
-			use_motion_extrapolate = True,
-			from_min_y_rot =   -1,
-			from_max_y_rot =	1,
-			to_min_y_rot   =  factor,
-			to_max_y_rot   = -factor,
-			from_rotation_mode = 'SWING_TWIST_Y'
+		str_bone.add_constraint('TRANSFORM'
+			,name					= "Transformation (Counter-Rotate)"
+			,subtarget				= org_bone.name
+			,map_from				= 'ROTATION'
+			,map_to					= 'ROTATION'
+			,use_motion_extrapolate = True
+			,from_min_y_rot			= -1
+			,from_max_y_rot			= 1
+			,to_min_y_rot			= factor
+			,to_max_y_rot			= -factor
+			,from_rotation_mode		= 'SWING_TWIST_Y'
+			,influence				= 0.5
 		)
 
 	def setup_rubber_hose(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo]):
