@@ -133,7 +133,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 		if self.params.CR_limb_double_ik:
 			ui_data['hide_off'].append(ik_mstr.parent.name)
-			map_on = {}
+			map_on = []
 			# Need to awkwardly insert IK master parent->last FK bone switching BEFORE IK master parent, 
 			# because in this dictionary order matters.
 			for mapping in ui_data['map_on']:
