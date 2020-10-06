@@ -299,6 +299,18 @@ def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
 		cur_pb = next_bone
 	return chain
 
+def get_bone_chain(rig, start_bone):
+	bones = [start_bone]
+	if type(start_bone) == bpy.types.PoseBone:
+		bones = [start_bone.bone]
+	while len(bones[-1].children)>0:
+		# Find first connected child
+		for c in bones[-1].children:
+			if c.use_connect:
+				bones.append(bones[-1].children[0])
+				break
+	return bones
+
 def create_parent_bone(generator, child, bone_set=None):
 	"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
 	sliced = slice_name(child.name)

@@ -5,8 +5,9 @@ from ..bone import BoneInfo
 from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians as rad
-from ..utils.maths import flat
 
+from ..utils.maths import flat
+from ..utils.mechanism import get_bone_chain
 from .cloud_fk_chain import CloudFKChainRig
 
 """Ideas to improve this:
@@ -592,9 +593,9 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		op = layout.operator('object.cloudrig_flatten_bones')
 		op.use_selected = False
-		import bpy #TODO AAARGH we need proper access to context!
-		op.start_bone = bpy.context.active_pose_bone.name
-		op.chain_length = 2 # TODO AAARGH same! Kind of. We need to know how long our chain is!
+		op.start_bone = context.active_pose_bone.name
+		op.chain_length = len(get_bone_chain(context.object, context.active_pose_bone) ) - 1
+		op.skip_popup = True
 
 		return layout
 
