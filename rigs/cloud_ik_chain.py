@@ -29,10 +29,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.ik_stretch_name = "ik_stretch_" + self.limb_name_props
 
 		self.pole_side = 1
-		self.ik_pole_offset = 3		# Scalar on distance from the body.
+		self.ik_pole_offset = 3		# Scalar on distance from the body. Could become a parameter but it's unimportant.
 
 		# Will be passed to the IK constraint's chain_count.
-		# Elements of the rig can use this to avoid having to make assumptions about correlations between the length of the ORG chain vs how long the IK chain is.
+		# Elements of the rig can use this to avoid having to make assumptions about correlations 
+		# between the length of the ORG chain vs how long the IK chain is.
 		self.chain_count = len(self.bones.org.main)-1
 		if self.params.CR_ik_chain_at_tip:
 			self.chain_count += 1
@@ -94,16 +95,15 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Create IK Chain
 		self.ik_chain = self.make_ik_chain(self.org_chain, self.ik_mstr, self.pole_ctrl)
 
-		# Set up IK Stretch
-		stretch_bone = self.make_ik_stretch()
-
 		if self.pole_ctrl:
 			# Add aim constraint to pole display bone
 			self.pole_ctrl.dsp_bone.add_constraint('DAMPED_TRACK',
-				subtarget  = stretch_bone.name,
-				head_tail  = 0.5,
+				subtarget  = self.ik_chain[1].name,
 				track_axis = 'TRACK_NEGATIVE_Y'
 			)
+
+		# Set up IK Stretch
+		stretch_bone = self.make_ik_stretch()
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name="Sphere"):
 		if bone_name=="":
@@ -123,17 +123,11 @@ class CloudIKChainRig(CloudFKChainRig):
 			meta_first: bpy.types.PoseBone, 
 			meta_last: bpy.types.PoseBone
 		) -> (float, Vector, Vector):
-
-		# chain_vector = meta_last.bone.tail_local - meta_first.bone.head_local
-
-		# first_tail = meta_first.bone.tail_local
-		# last_tail = meta_last.bone.tail_local
 		
 		chain_vector = meta_last.tail - meta_first.head
 
 		first_tail = meta_first.tail
 		last_tail = meta_last.tail
-
 
 		# Calculate the distances of the four points to the tail of the last bone.
 		# These four points are in the four directions of the bone around the bone's tail.

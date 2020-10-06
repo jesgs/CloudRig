@@ -1,18 +1,13 @@
 from typing import List
 
-import bpy
-from bpy.props import BoolProperty, StringProperty, EnumProperty
+from bpy.props import BoolProperty
 from mathutils import Vector
-from mathutils.geometry import intersect_point_line
 from math import radians as rad
 from math import pi, pow
 from copy import deepcopy
 
-from rigify.base_rig import stage
-
 from .cloud_ik_chain import CloudIKChainRig
 from ..bone import BoneInfo
-from ..utils.maths import flat
 
 class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features such as Auto-Rubberhose for a simple limb like an arm."""
@@ -40,7 +35,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 		# IK values
 		self.ik_pole_direction = 1
-	
+
 		self.check_correct_chain_length()
 
 		self.category = "arms"
@@ -72,13 +67,14 @@ class CloudLimbRig(CloudIKChainRig):
 		"""Overrides function from cloud_chain."""
 		segments, bbone_density = super().determine_segments(org_bone)
 
+		# Force strictly 1 segment on the toe.
 		if org_bone == self.org_chain[-1]:
-			# Force strictly 1 segment on the wrist.
-			return 1, bbone_density
-		elif org_bone == self.org_chain[-1] and not self.params.CR_chain_tip_control:
-			return 1, 1
-		else:
-			return segments, bbone_density
+			if self.params.CR_chain_tip_control:
+				return 1, bbone_density
+			else:
+				return 1, 1
+
+		return segments, bbone_density
 
 	def make_ik_setup(self):
 		"""Override."""
@@ -126,7 +122,6 @@ class CloudLimbRig(CloudIKChainRig):
 
 		super().setup_ik_parent_switches(ik_parents_identifiers, ik_ctrl)
 
-
 	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Override."""
 		ui_data = super().create_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
@@ -134,8 +129,7 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.params.CR_limb_double_ik:
 			ui_data['hide_off'].append(ik_mstr.parent.name)
 			map_on = []
-			# Need to awkwardly insert IK master parent->last FK bone switching BEFORE IK master parent, 
-			# because in this dictionary order matters.
+			# Need to awkwardly insert IK master parent->last FK bone switching BEFORE IK master parent.
 			for mapping in ui_data['map_on']:
 				if mapping[0] == ik_mstr.name:
 					map_on.append( (ik_mstr.parent.name, fk_chain[-1].name) )
