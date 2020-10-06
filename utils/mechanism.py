@@ -303,11 +303,14 @@ def get_bone_chain(rig, start_bone):
 	bones = [start_bone]
 	if type(start_bone) == bpy.types.PoseBone:
 		bones = [start_bone.bone]
-	while len(bones[-1].children)>0:
+	has_connected_children = True
+	while has_connected_children:
 		# Find first connected child
 		for c in bones[-1].children:
+			has_connected_children = False
 			if c.use_connect:
 				bones.append(bones[-1].children[0])
+				has_connected_children = True
 				break
 	return bones
 
