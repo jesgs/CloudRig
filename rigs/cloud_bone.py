@@ -47,8 +47,6 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 			self.params = meta_bone.rigify_parameters
 		elif self.copy_type == "Create" and self.create_deform_bone:
 			# Make a copy with DEF- prefix, as our deform bone.
-			if meta_bone.bone.use_deform:
-				print(f"Warning: Creating deform bone for {self.orgless_name} that's already set to use_deform=True.")
 			def_bone_name = "DEF-" + self.orgless_name
 			self.def_bone_name = self.copy_bone(org_bone.name, def_bone_name)
 			def_bone = self.get_bone(self.def_bone_name)
