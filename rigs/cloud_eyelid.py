@@ -16,10 +16,18 @@ class CloudEyelidRig(CloudFaceChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.make_sticky_eyelid()
+		
+		### Following code is only run ONCE by the LAST face_chain_rig.
+		if not self.is_last_chain_rig:
+			return
+
+		for rig in self.chain_rigs:
+			if not rig.params.CR_face_chain_merge: continue
+			if not type(rig) == type(self): continue
+			rig.make_sticky_eyelid()
 
 	def make_sticky_eyelid(self):
-		"""Create bones between the base bone and the main STR controls of the eyelid"""
+		"""Create ROT helper bones between the aim bone's base and the main STR controls of the eyelid"""
 
 		# Parent rig must be a cloud_aim type rig!
 		parent_rig = self.rigify_parent
@@ -51,6 +59,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				,parent = parent_rig.org_chain[0].parent
 				,roll_type = 'ACTIVE'
 				,roll_bone = eye_bone
+				,roll = 0
 			)
 			copyrot_x = rot_ctr.add_constraint('COPY_ROTATION'
 				,name = 'Copy Rotation X'

@@ -12,7 +12,7 @@ class CloudFaceChainRig(CloudChainRig):
 	def initialize(self):
 		super().initialize()
 
-		# Gather all cloud_face_chain rigs from the generator, excluding self.
+		# Gather all cloud_face_chain rigs from the generator, including self.
 		self.chain_rigs = []
 		for rig in self.generator.rig_list:
 			if isinstance(rig, type(self)):
@@ -32,17 +32,21 @@ class CloudFaceChainRig(CloudChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		
-		if self.params.CR_face_chain_relink:
-			self.move_and_relink_constraints()
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
+		# This is all code that needs to create or interact with intersection controls.
 		if not self.is_last_chain_rig:
 			return
 
-		all_str_bones = self.group_str_bones()
-		self.ensure_intersection_controls(all_str_bones)
+		all_str_bones = self.group_str_bones(self.chain_rigs)
+		all_intersection_bones = self.ensure_intersection_controls(all_str_bones)
+
+		for rig in self.chain_rigs:
+			if rig.params.CR_face_chain_relink:
+				rig.move_and_relink_constraints()
+
 		self.create_armature_parents(all_str_bones)
+		self.create_armature_parents(all_intersection_bones)
 
 	def move_and_relink_constraints(self):
 		"""Move constraints from ORG bones to main STR bones and relink them.
@@ -54,13 +58,19 @@ class CloudFaceChainRig(CloudChainRig):
 			for c in org.constraint_infos[:]:
 				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
+					if len(self.main_str_bones) <= i+1:
+						self.raise_error(f"Cannot move constraint {c.name} from {org_bone.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
 					to_bone = self.main_str_bones[i+1]
+
+				if hasattr(to_bone, 'merged_control'):
+					to_bone = to_bone.merged_control
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				c.relink()
 
-	def group_str_bones(self):
+	@staticmethod
+	def group_str_bones(chain_rigs):
 		"""Gather a list of lists of more than one STR bones that are in the same 
 		location as another STR bone from another face_chain rig with
 		CR_face_chain_merge==True.
@@ -69,7 +79,7 @@ class CloudFaceChainRig(CloudChainRig):
 		sets_to_merge = {}
 
 		all_str_bones = []
-		for rig in self.chain_rigs:
+		for rig in chain_rigs:
 			if not rig.params.CR_face_chain_merge: continue
 			all_str_bones.extend(rig.main_str_bones)
 
@@ -88,21 +98,31 @@ class CloudFaceChainRig(CloudChainRig):
 		
 		return all_str_bones
 
-	def ensure_intersection_controls(self, all_str_bones):
+	@staticmethod
+	def ensure_intersection_controls(all_str_bones):
 		# For each main STR control in this rig
 		#   For each main STR control in every other rig
 		#	   If the two are in the same position
 		#		   Ensure a parent control
 		#		   Move both to the layers of the Sub Controls bone set.
 
+		intersection_controls = []
 		for str_bone in all_str_bones:
 			if hasattr(str_bone, 'group'):
-				self.ensure_intersection_control(str_bone.group)
+				rig = str_bone.owner_rig
+				intersection_control = rig.ensure_intersection_control(str_bone.group)
+				if intersection_control not in intersection_controls:
+					intersection_controls.append(intersection_control)
+		
+		return intersection_controls
 
-	def ensure_intersection_control(self, bones):
+	@staticmethod
+	def ensure_intersection_control(bones):
 		""" Ensure that all bones share the same parent control.
 			If this is not the case, create it and parent them.
 		"""
+
+		rig = bones[0].owner_rig
 
 		# Check the bones' parents to see if the desired control was already created.
 		intersection_control = None
@@ -114,14 +134,14 @@ class CloudFaceChainRig(CloudChainRig):
 				break
 
 		if not intersection_control:
-			combined_name = self.naming.combine_names(bones)
-			slices = self.naming.slice_name(combined_name)
+			combined_name = rig.naming.combine_names(bones)
+			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
-			bone_name = self.naming.make_name(["STR", "I"], slices[1], slices[2])
-			intersection_control = bones[0].owner_rig.new_bonei(bones[0].owner_rig.merged_controls
+			bone_name = rig.naming.make_name(["STR", "I"], slices[1], slices[2])
+			intersection_control = rig.new_bonei(rig.merged_controls
 				,name = bone_name
 				,source = bones[0]
-				,custom_shape = self.ensure_widget('Cube')
+				,custom_shape = rig.ensure_widget('Cube')
 				,custom_shape_scale = bones[0].custom_shape_scale
 			)
 
@@ -130,7 +150,7 @@ class CloudFaceChainRig(CloudChainRig):
 			intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
 			intersection_control.roll = 0
 			for b in bones:
-				b.vector = self.flat_vector(b.vector)
+				b.vector = rig.flat_vector(b.vector)
 
 		for str_bone in bones:
 			if hasattr(str_bone, 'merged_control'):
@@ -144,12 +164,12 @@ class CloudFaceChainRig(CloudChainRig):
 				continue
 
 			if not CUSTOM_SPACE:
-				return
+				return intersection_control
 			str_bone.tangent_helper.add_constraint('COPY_ROTATION'
 				,subtarget = intersection_control.name
 				,index = 1
 				,owner_space = 'CUSTOM'
-				,space_object = self.obj
+				,space_object = rig.obj
 				,space_subtarget = intersection_control.name
 			)
 
@@ -157,11 +177,14 @@ class CloudFaceChainRig(CloudChainRig):
 				,index = 1
 				,subtarget = intersection_control.name
 				,owner_space = 'CUSTOM'
-				,space_object = self.obj
+				,space_object = rig.obj
 				,space_subtarget = intersection_control.name
 			)
+		
+		return intersection_control
 
-	def create_armature_parents(self, all_str_bones):
+	@staticmethod
+	def create_armature_parents(all_str_bones):
 		"""For Main STR Controls and Intersection controls that now have an Armature
 		constraint, create a parent bone and move the armature constraint to that.
 		"""
@@ -173,9 +196,10 @@ class CloudFaceChainRig(CloudChainRig):
 		for str_bone in all_str_bones:
 			for c in str_bone.constraint_infos:
 				bone = str_bone
+				rig = bone.owner_rig
 				# bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
 				if c.type=='ARMATURE' and not hasattr(bone, 'arm_parent'):
-					bone.arm_parent = self.create_parent_bone(bone, self.face_mch)
+					bone.arm_parent = rig.create_parent_bone(bone, rig.face_mch)
 					bone.arm_parent.constraint_infos.append(c)
 				else:
 					bone.constraint_infos.append(c)

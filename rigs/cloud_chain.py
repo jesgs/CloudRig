@@ -59,7 +59,7 @@ class CloudChainRig(CloudBaseRig):
 		"""
 
 		parent = super().reparent_bone(child)
-		# At this point it is known that parent is an ORG bone.
+		# At this point it is known that parent is an ORG bone. TODO: assert it then!
 		
 		# Also note that this function is expected to be called by child rigs, 
 		# which means this rig already finished executing, which means we know that
@@ -184,10 +184,12 @@ class CloudChainRig(CloudBaseRig):
 				str_h_bone = self.new_bonei(self.str_mch
 					,name 		 = self.naming.add_prefix(str_bone, "H")
 					,source 	 = str_bone
-					,bbone_width = 1/10
+					,bbone_width = str_bone.bbone_width
 					,parent		 = str_bone.parent
 					,hide_select = self.mch_disable_select
 				)
+				# if self.rigify_parent:
+				# 	self.rigify_parent.reparent_bone(str_h_bone.parent)
 				str_bone.parent = str_h_bone
 
 				first_str = section[0].name
