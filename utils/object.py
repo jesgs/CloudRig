@@ -96,7 +96,7 @@ def set_layers(obj, layerlist, additive=False):
 		layers = [False]*32
 	for i, e in enumerate(layerlist):
 		if type(e)==bool:
-			assert len(layerlist)==32, f"ERROR: Layer assignment expected a list of 32 booleans, got {len(layerlist)}."
+			assert len(layerlist)==32, f"Layer assignment expected a list of 32 booleans, got {len(layerlist)}."
 			layers[i] = e or layers[i]
 		elif type(e)==int:
 			layers[e] = True

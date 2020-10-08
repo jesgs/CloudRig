@@ -56,7 +56,8 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 	@stage.configure_bones
 	def modify_bone_group(self):
 		if self.bone_name not in self.obj.pose.bones:
-			self.raise_error(f"cloud_bone target bone not found.")
+			# TODO: Warn and ignore.
+			self.raise_error(f"Target bone not found.")
 
 		mod_bone = self.get_bone(self.bone_name)
 		if self.copy_type == 'Tweak':

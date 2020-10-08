@@ -50,7 +50,7 @@ class CloudMechanismMixin:
 		Override this when the rig needs to do something special for correct parenting result.
 		"""
 		parent = child.parent
-		assert parent.owner_rig == self, f"ERROR: Cannot reparent {child}, its parent bone's owner rig was expected to be the rig of {self.base_bone}, not {child.parent}!"
+		assert parent.owner_rig == self, f"Cannot reparent {child}, its parent bone's owner rig was expected to be the rig of {self.base_bone}, not {child.parent}!"
 
 		return parent
 

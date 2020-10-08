@@ -22,8 +22,10 @@ class CloudCurveRig(CloudBaseRig):
 
 	def initialize_curve_rig(self):
 		curve_ob = self.params.CR_curve_target
-		assert curve_ob, f"Error: Curve object not found for curve rig: {self.base_bone}"
-		assert curve_ob.type=='CURVE', f"Error: Curve target is not a curve for rig: {self.base_bone}"
+		if not curve_ob:
+			self.raise_error("Curve object not found!")
+		if curve_ob.type != 'CURVE':
+			self.raise_error("Curve target must be a curve!")
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
 
 	def prepare_bones(self):
@@ -198,16 +200,17 @@ class CloudCurveRig(CloudBaseRig):
 		Only single-spline curve is supported. That one spline must have the same number of control points as the number of hooks."""
 
 		curve_ob = self.params.CR_curve_target
-		assert curve_ob, f"Error: Curve object doesn't exist for rig: {self.base_bone}"
+		if not curve_ob:
+			self.raise_error("Curve object not found!")
 		curve_visible = self.ensure_visible(curve_ob)
 
-		assert curve_ob.visible_get(), "Error: Curve object could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?"
+		assert curve_ob.visible_get(), "Curve object could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?"
 
 		spline = curve_ob.data.splines[0]
 		points = spline.bezier_points
 		num_points = len(points)
 
-		assert num_points == len(hooks), f"Error: Curve object {curve_ob.name} has {num_points} points, but {len(hooks)} hooks were passed."
+		assert num_points == len(hooks), f"Curve object {curve_ob.name} has {num_points} points, but {len(hooks)} hooks were passed."
 
 		# Disable all modifiers on the curve object
 		mod_vis_backup = {}

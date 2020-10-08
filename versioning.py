@@ -147,7 +147,7 @@ def do_metarig_versioning():
 		if metarig.data.cloudrig_parameters.version == cloud_metarig_version: 
 			continue
 		if metarig.data.cloudrig_parameters.version > cloud_metarig_version:
-			print(f"""ERROR:\tFound a metarig with a higher metarig version than the current: {metarig.name} \n\tIt must have been created with a newer version of CloudRig, and won't behave as expected. \n\tYou should update CloudRig!""")
+			print(f"""\tFound a metarig with a higher metarig version than the current: {metarig.name} \n\tIt must have been created with a newer version of CloudRig, and won't behave as expected. \n\tYou should update CloudRig!""")
 			continue
 		version_cloud_metarig(metarig)
 		metarig.data.cloudrig_parameters.version = cloud_metarig_version

@@ -77,7 +77,7 @@ class CloudBaseRig(
 		super().initialize()
 
 		from .. import cloud_generator
-		assert type(self.generator) == cloud_generator.CloudGenerator, "Error: CloudRig has wrong Generator type. CloudRig requires its own Generator class - Perhaps you're using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate?"
+		assert type(self.generator) == cloud_generator.CloudGenerator, "CloudRig has wrong Generator type. CloudRig requires its own Generator class - You're probably using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate. Perhaps the Generate button is not being replaced even though it should?"
 
 		self.generator_params = self.generator.metarig.data
 
@@ -146,7 +146,7 @@ class CloudBaseRig(
 		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
 		parent = super().reparent_bone(child)
 
-		assert parent in self.org_chain, f"ERROR: Cannot reparent {child}, its parent, {child.parent} was expected to be an ORG bone of rig {self.base_bone}"
+		assert parent in self.org_chain, f"Cannot reparent {child}, its parent, {child.parent} was expected to be an ORG bone of rig {self.base_bone}"
 		return parent
 
 	def load_org_bone_infos(self):

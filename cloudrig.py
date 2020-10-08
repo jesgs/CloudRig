@@ -829,7 +829,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 
 		fk_first = rig.pose.bones.get(self.fk_first)
 		fk_last = rig.pose.bones.get(self.fk_last)
-		assert fk_first and fk_last, f"Error: Can't calculate pole target location due to one of these FK bones missing: {self.fk_first}, {self.fk_last}"
+		assert fk_first and fk_last, f"Can't calculate pole target location due to one of these FK bones missing: {self.fk_first}, {self.fk_last}"
 
 		chain_length = fk_first.vector.length + fk_last.vector.length
 		pole_distance = chain_length/2
@@ -910,10 +910,10 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 		row_entries = main_dict[row_name]
 		for entry_name in row_entries.keys():
 			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-			assert 'prop_bone' in info and 'prop_id' in info, f"ERROR: Limb definition lacks properties bone or prop ID: {row_name}, {info}"
+			assert 'prop_bone' in info and 'prop_id' in info, f"Limb definition lacks properties bone or prop ID: {row_name}, {info}"
 			prop_bone = rig.pose.bones.get(info['prop_bone'])
 			prop_id = info['prop_id']
-			assert prop_bone and prop_id in prop_bone, f"ERROR: Properties bone or property does not exist: {info}"
+			assert prop_bone and prop_id in prop_bone, f"Properties bone or property does not exist: {info}"
 
 			col = row.column()
 			sub_row = col.row(align=True)

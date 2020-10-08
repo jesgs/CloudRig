@@ -309,12 +309,12 @@ class CloudLegRig(CloudLimbRig):
 			if ci:
 				ci.subtarget = rolly_stretchy.name
 
-	def get_heel_pivot_meta_bone(self):
+	def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
 		heel_pivot_name = self.params.CR_leg_heel_bone
 		if heel_pivot_name=="":
 			heel_pivot_name = self.org_chain[-2].name.replace("ORG-", "")
 		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
-		assert heel_pivot_bone, f"ERROR: Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
+		assert heel_pivot_bone, f"Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
 
 		return heel_pivot_bone
 

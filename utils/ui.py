@@ -152,7 +152,7 @@ def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
 	info: The dictionary to store in the rig data.
 	"""
 
-	assert ('prop_bone' in info) and ('prop_id' in info), 'Error: Expected an info dict with at least "prop_bone" and "prop_id" keys.'
+	assert ('prop_bone' in info) and ('prop_id' in info), 'Expected an info dict with at least "prop_bone" and "prop_id" keys.'
 
 	for key in info.keys():
 		value = info[key]

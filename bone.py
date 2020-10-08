@@ -405,7 +405,7 @@ class BoneInfo:
 
 	def write_edit_data(self, armature, edit_bone):
 		"""Write relevant data of this BoneInfo into an EditBone."""
-		assert armature.mode == 'EDIT', "Error: Armature must be in Edit Mode when writing edit bone data."
+		assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."
 
 		# Check for 0-length bones.
 		if (self.head - self.tail).length == 0:
@@ -446,7 +446,7 @@ class BoneInfo:
 			if self.roll_type == 'ACTIVE':
 				active_bone = armature.data.edit_bones.get(str(self.roll_bone))
 				if not active_bone:
-					print(f"Error: Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
+					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
 					armature.data.edit_bones.active = active_bone
 			elif self.roll_type == 'CURSOR':
@@ -607,6 +607,7 @@ class ConstraintInfo(dict):
 
 		if self.type=='ARMATURE':
 			if len(self.targets) > len(subtargets):
+				# TODO: Turn into warning and resolve automatically.
 				self.bone_info.owner_rig.raise_error(f"Failed to relink constraint due to too many targets in constraint {self.name} (Remove unneeded targets from the Armature constraint!")
 
 			for i, t in enumerate(self.targets):
@@ -771,7 +772,7 @@ class BoneInfoMixin:
 			)
 		)
 
-		assert override in ['', 'DEF', 'MCH', 'ORG'], "Error: Unsupported bone set override"
+		assert override in ['', 'DEF', 'MCH', 'ORG'], "Unsupported bone set override"
 
 		cls.bone_set_defs[ui_name] = {
 			'name'			: ui_name

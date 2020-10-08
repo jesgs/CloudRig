@@ -202,7 +202,7 @@ class CloudGenerator(Generator):
 			prefix_separator = self.params.cloudrig_parameters.prefix_separator
 			,suffix_separator = self.params.cloudrig_parameters.suffix_separator)
 		separators_match = self.naming.prefix_separator == self.naming.suffix_separator
-		assert not separators_match, "CloudGenerator Error: Prefix and Suffix separators cannot be the same."
+		assert not separators_match, "Prefix and Suffix separators cannot be the same."
 
 		# List that stores a reference to all BoneInfo instances of all rigs.
 		# IMPORTANT: This should not be a BoneInfo, just a regular list. Otherwise the LinkedList behaviour gets all messed up! 
@@ -281,7 +281,7 @@ class CloudGenerator(Generator):
 			# Object wasn't found anywhere, so create it.
 			obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
 
-		assert obj, "Error: Failed to find or create object!"
+		assert obj, "Failed to find or create object!"
 		obj.data.name = "Data_" + obj.name
 
 		# Ensure rig is in the metarig's collection.
