@@ -113,7 +113,7 @@ class CloudFaceChainRig(CloudChainRig):
 				intersection_control = rig.ensure_intersection_control(str_bone.group)
 				if intersection_control not in intersection_controls:
 					intersection_controls.append(intersection_control)
-		
+
 		return intersection_controls
 
 	@staticmethod
@@ -129,12 +129,16 @@ class CloudFaceChainRig(CloudChainRig):
 		for b in bones:
 			b.layers = b.owner_rig.sub_controls.layers[:]
 			if b.parent.name.startswith("STR-I"):
+				# print(f"{b.name} - This should never happen because every STR bone should only be passed to ensure_intersection_control() once!")
 				# TODO: I thought this should never happen, but it dooo
 				intersection_control = b.parent
 				break
 
 		if not intersection_control:
 			combined_name = rig.naming.combine_names(bones)
+			# TODO: This does something funky for combining bones with Cheek and Chin.
+			# Eg., STR-TIP-Chin.L + STR-TIP-Cheek1.L + STR-TIP-Cheek3_2.L = STR-I-Cheek1+eek3_2+in.L
+
 			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
 			bone_name = rig.naming.make_name(["STR", "I"], slices[1], slices[2])
@@ -211,7 +215,7 @@ class CloudFaceChainRig(CloudChainRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.default_layers('MCH')])#, override='MCH')
 		cls.define_bone_set(params, "Merged Controls",	preset=8,	default_layers=[cls.default_layers('STRETCH')])
 		cls.define_bone_set(params, "Face Helpers", 				default_layers=[cls.default_layers('MCH')], override='MCH')
 
