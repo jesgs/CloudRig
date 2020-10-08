@@ -280,6 +280,12 @@ class CloudChainRig(CloudBaseRig):
 				,name = "Copy Rotation (User Rotation)"
 				,subtarget = str_bone.name
 			)
+			tangent_helper.add_constraint('COPY_ROTATION'
+				,name = "Copy Rotation (Remove Y)"
+				,use_xyz = [False, True, False]
+				,invert_xyz = [False, True, False]
+				,subtarget = str_bone.name
+			)
 		tangent_helper.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
 			,space = 'WORLD'

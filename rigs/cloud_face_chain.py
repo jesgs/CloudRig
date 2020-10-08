@@ -45,8 +45,14 @@ class CloudFaceChainRig(CloudChainRig):
 			if rig.params.CR_face_chain_relink:
 				rig.move_and_relink_constraints()
 
-		self.create_armature_parents(all_str_bones)
 		self.create_armature_parents(all_intersection_bones)
+		self.create_armature_parents(all_str_bones)
+		if not CUSTOM_SPACE:
+			for str_bone in all_str_bones:
+				if hasattr(str_bone, 'merged_control'):
+					str_bone.parent = str_bone.merged_control.parent
+					if hasattr(str_bone, 'local_helper'):
+						str_bone.local_helper.parent = str_bone.parent
 
 	def move_and_relink_constraints(self):
 		"""Move constraints from ORG bones to main STR bones and relink them.
@@ -154,13 +160,17 @@ class CloudFaceChainRig(CloudChainRig):
 			intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
 			intersection_control.roll = 0
 			for b in bones:
-				b.vector = rig.flat_vector(b.vector)
+				flipped = rig.naming.flipped_name(b)
+				if flipped!=b.name:
+					b.vector = rig.flat_vector(b.vector)
+					if hasattr(b, 'tangent_helper'):
+						b.tangent_helper.vector = rig.flat_vector(b.tangent_helper.vector)
 
 		for str_bone in bones:
 			if hasattr(str_bone, 'merged_control'):
 				continue
 
-			str_bone.parent = intersection_control # This will be set to None later by the generator when it sees the Armature constraint, just using it for easy access here.
+			str_bone.parent = intersection_control
 
 			str_bone.merged_control = intersection_control
 
@@ -168,6 +178,40 @@ class CloudFaceChainRig(CloudChainRig):
 				continue
 
 			if not CUSTOM_SPACE:
+				# Add old-style helpers to propagate rotation from Intersection(STR-I) to STR bones.
+				rig = str_bone.owner_rig
+				intersection_helper = rig.new_bonei(rig.face_mch
+					,name = rig.naming.add_prefix(str_bone, "I-H")
+					,source = str_bone
+					,parent = intersection_control
+				)
+				
+				local_helper = str_bone.local_helper = rig.new_bonei(rig.face_mch
+					,name = rig.naming.add_prefix(str_bone, "I-H-L")
+					,source = str_bone
+					,parent = intersection_control.parent
+				)
+				local_helper.add_constraint('COPY_ROTATION'
+					,subtarget = intersection_helper.name
+					,mix_mode = 'REPLACE'
+					,space = 'WORLD'
+				)
+				local_helper.add_constraint('COPY_LOCATION'
+					,subtarget = intersection_helper.name
+					,space = 'WORLD'
+				)
+
+				str_bone.add_constraint('COPY_ROTATION'
+					,subtarget = local_helper.name
+				)
+				str_bone.add_constraint('COPY_LOCATION'
+					,subtarget = local_helper.name
+				)
+				str_bone.add_constraint('COPY_SCALE'
+					,subtarget = intersection_control.name
+					,space = 'LOCAL'
+				)
+
 				return intersection_control
 			str_bone.tangent_helper.add_constraint('COPY_ROTATION'
 				,subtarget = intersection_control.name
