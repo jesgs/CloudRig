@@ -16,7 +16,9 @@ class CloudEyelidRig(CloudFaceChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		
+
+		self.org_chain[0].parent = self.rigify_parent.org_chain[0].parent
+
 		### Following code is only run ONCE by the LAST face_chain_rig.
 		if not self.is_last_chain_rig:
 			return
