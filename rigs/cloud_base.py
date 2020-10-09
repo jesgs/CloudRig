@@ -52,6 +52,9 @@ class CloudBaseRig(
 		### Quick access to the generator's name manager
 		self.naming = self.generator.naming
 
+		### Quick access to the generator's log manager
+		self.logger = self.generator.logger
+
 		# Determine Suffix/Prefix
 		self.side_suffix = ""
 		self.side_prefix = ""
@@ -175,6 +178,29 @@ class CloudBaseRig(
 				pb.constraints.remove(c)
 
 			org_bi.meta_bone = meta_org
+
+	def add_log(self
+			,description_short
+			,description = "Something went terribly wrong!"
+			,trouble_bone = ""
+			,icon = 'ERROR'
+			,note = ""
+			,note_icon = ''
+			,operator = ''
+			,op_kwargs = {}
+			,op_text = ""
+		):
+		self.generator.logger.log(description_short
+			,owner_bone = self.meta_base_bone.name
+			,trouble_bone = trouble_bone
+			,description = description
+			,icon = icon
+			,note = note
+			,note_icon = note_icon
+			,operator = operator
+			,op_kwargs = op_kwargs
+			,op_text = op_text
+		)
 
 	# TODO these functions probably belong to the generator and should be called get_ instead of find_.
 	def find_symmetry_rig(self) -> BaseRig:

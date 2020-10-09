@@ -140,7 +140,15 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 		mod_bone = self.get_bone(self.bone_name)
 
 		if mod_bone.rotation_mode == 'QUATERNION':
-			print(f"Warning: cloud_bone {meta_bone.name} was on Quaternion rotation mode. Forcing it to XYZ.")
+			self.generator.logger.log("Quaternion rotation"
+				,owner_bone = self.orgless_name
+				,trouble_bone = self.bone_name
+				,description = f"{meta_bone.name} is on Quaternion rotation mode. Animator-facing controls should be set to Euler!"
+				,icon = 'GIZMO'
+				,operator = 'pose.cloudrig_troubleshoot_rotationmode'
+				,op_kwargs = {'bone_name' : self.bone_name}
+				,op_text = f"Set {meta_bone.name} to XYZ Euler"
+			)
 			mod_bone.rotation_mode = 'XYZ'
 
 		if self.copy_type == 'Create':

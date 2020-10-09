@@ -16,8 +16,10 @@ from rigify.utils.bones import new_bone
 from .bone import BoneSet, BoneInfo, new_bonei
 from .utils import mechanism
 from . import widgets as cloud_widgets
-from .actions import CloudRigAction
 from .versioning import cloud_metarig_version
+
+from .actions import CloudRigAction
+from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
 from .utils.naming import CloudNameManager
 
@@ -166,9 +168,11 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = True
 	)
 
-	show_actions: BoolProperty(name="Actions")
 	actions: CollectionProperty(type=CloudRigAction)
 	active_action_index: IntProperty(min=0)
+
+	logs: CollectionProperty(type=CloudRigLogEntry)
+	active_log_index: IntProperty(min=0)
 
 def create_selection_sets(obj, metarig):
 
@@ -520,6 +524,19 @@ class CloudGenerator(Generator):
 		return test_action
 
 	def create_test_animation(self, action):
+		"""Generate deformation test animation.
+
+		In order to generate the test animation, we need to call add_test_animation() on rigs
+		in a different order than regular rig execution, and we also want to account for symmetry.
+
+		Usual rig execution is in order of hierarchical levels: highest level gets executed first,
+		then all second level rigs, then all third level rigs. 
+		For the animation, we need a hierarchy to be executed all the way down before moving on to 
+		the next one.
+
+		Symmetrical rigs should animate at the same time, and with the Y and Z axis rotations flipped.
+		"""
+
 		rigs_anim_order = []
 		def get_rig_children(rig):
 			children = []
@@ -546,7 +563,7 @@ class CloudGenerator(Generator):
 				symm_new_start_frame = symm_rig.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
-			
+
 
 	def generate(self):
 		print("CloudRig Generation begin")
@@ -584,6 +601,10 @@ class CloudGenerator(Generator):
 
 		# Make sure X-Mirror editing is disabled, always!!
 		obj.data.use_mirror_x = False
+
+		# Nuke log entries
+		self.logger = CloudLogManager(self.metarig, self.obj)
+		self.logger.clear()
 
 		# Get rid of anim data in case the rig already existed
 
@@ -809,6 +830,9 @@ class CloudGenerator(Generator):
 					action = self.ensure_test_action()
 					self.create_test_animation(action)
 					break
+		
+		# Cheap troubleshooting
+		self.logger.report_unused_named_layers()
 
 		t.tick("The rest: ")
 

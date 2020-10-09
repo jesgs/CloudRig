@@ -19,10 +19,12 @@ from . import manual
 from . import operators
 from . import overlay
 from . import gizmo
+from . import troubleshooting
 
 modules = [
 	actions,
-	cloud_generator,
+	troubleshooting,
+	cloud_generator, # NOTE: Load order matters, since cloud_generator relies on some types already being registered!
 	ui,
 	versioning,
 	manual,
