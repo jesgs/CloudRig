@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
 from .utils import naming
-
+from .utils.ui import is_cloud_metarig
 
 # This whole thing could be part of Rigify.
 
@@ -166,6 +166,21 @@ class CloudRigAction(bpy.types.PropertyGroup):
 	trans_max: FloatProperty(name="Max",
 		default=0.05)
 
+class CLOUDRIG_PT_actions(bpy.types.Panel):
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = 'data'
+	bl_label = "Rigify Actions"
+
+	@classmethod
+	def poll(cls, context):
+		obj = context.object
+		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
+
+	def draw(self, context):
+		obj = context.object
+		draw_cloudrig_actions(self.layout, obj)
+
 def draw_cloudrig_actions(layout, rig):
 	cloudrig = rig.data.cloudrig_parameters
 	actions = cloudrig.actions
@@ -244,7 +259,8 @@ classes = [
 	CLOUDRIG_UL_action_slots,
 	CLOUDRIG_OT_Action_Add,
 	CLOUDRIG_OT_Action_Remove,
-	CLOUDRIG_OT_Action_Move
+	CLOUDRIG_OT_Action_Move,
+	CLOUDRIG_PT_actions,
 ]
 
 def register():

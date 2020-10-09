@@ -2,7 +2,6 @@
 # Such things would belong in CloudRig/utils/ui.py.
 
 import bpy
-from . import actions
 from .cloudrig import draw_layers_ui
 import addon_utils
 from .utils.ui import draw_label_with_linebreak, is_cloud_metarig
@@ -66,21 +65,6 @@ class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 				layer.row = 32
 
 		return {'FINISHED'}
-
-class CLOUDRIG_PT_actions(bpy.types.Panel):
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = 'data'
-	bl_label = "Rigify Actions"
-
-	@classmethod
-	def poll(cls, context):
-		obj = context.object
-		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
-
-	def draw(self, context):
-		obj = context.object
-		actions.draw_cloudrig_actions(self.layout, obj)
 
 class CLOUDRIG_PT_overrides(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
@@ -246,7 +230,6 @@ def draw_cloud_layer_names(self, context):
 classes = [
 	CLOUDRIG_OT_layer_init,
 
-	CLOUDRIG_PT_actions,
 	CLOUDRIG_PT_overrides
 ]
 
