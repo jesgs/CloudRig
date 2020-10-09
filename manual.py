@@ -1,4 +1,5 @@
 import bpy
+from . import rigs
 
 # This allows you to right click on a button and link to documentation
 def cloudrig_manual_map():
@@ -7,8 +8,8 @@ def cloudrig_manual_map():
 	generator_params_pref = "bpy.types.cloudrigproperties."
 
 	cloud_types_pref = "CloudRig-Types#cloud_"
-	cloud_types = ['bone', 'chain', 'curve', 'face_chain', 'fk_chain', 
-	'ik_chain', 'limbs', 'shoulder', 'spine', 'spline_ik', 'aim', 'eye']
+
+	cloud_types = [name.replace("cloud_", "") for name in dir(rigs) if "cloud" in name]
 
 	# All CloudRig type parameters are expected to be prefixed with
 	# CR_<rig_type>_, eg. CR_chain_segments for cloud_chain.
