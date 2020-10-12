@@ -147,7 +147,7 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 				,icon = 'GIZMO'
 				,operator = 'pose.cloudrig_troubleshoot_rotationmode'
 				,op_kwargs = {'bone_name' : self.bone_name}
-				,op_text = f"Set {meta_bone.name} to XYZ Euler"
+				,op_text = f"Set {meta_bone.name} to Euler"
 			)
 			mod_bone.rotation_mode = 'XYZ'
 
