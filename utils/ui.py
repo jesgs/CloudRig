@@ -102,9 +102,9 @@ def draw_label_with_linebreak(layout, text):
 
 		while word_index < len(words):
 			word = words[word_index]
+			word_index += 1
 
 			if cur_line_length + len(word)+1 < max_line_length:
-				word_index += 1
 				cur_line_length += len(word)+1
 				lines[line_index] += word + " "
 			else:
