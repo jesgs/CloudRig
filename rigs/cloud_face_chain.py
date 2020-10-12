@@ -49,7 +49,7 @@ class CloudFaceChainRig(CloudChainRig):
 		self.create_armature_parents(all_str_bones)
 		if not CUSTOM_SPACE:
 			for str_bone in all_str_bones:
-				if hasattr(str_bone, 'merged_control') and hasattr(str_bone.merged_control, 'arm_parent'):
+				if hasattr(str_bone, 'merged_control'):
 					str_bone.parent = str_bone.merged_control.parent
 					if hasattr(str_bone, 'local_helper'):
 						str_bone.local_helper.parent = str_bone.parent
