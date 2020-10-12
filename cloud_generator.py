@@ -172,6 +172,11 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	active_action_index: IntProperty(min=0)
 
 	logs: CollectionProperty(type=CloudRigLogEntry)
+	log_show_stack_trace: BoolProperty(
+		name		 = "Show Stack Trace"
+		,description = "Show stack trace of the selected log entry"
+		,default	 = False
+	)
 	active_log_index: IntProperty(min=0)
 
 def create_selection_sets(obj, metarig):

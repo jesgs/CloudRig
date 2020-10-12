@@ -80,13 +80,14 @@ def is_cloud_metarig(rig):
 				return True
 	return False
 
-def draw_label_with_linebreak(layout, text):
+def draw_label_with_linebreak(layout, text, alert=False):
 	""" Attempt to simulate a proper textbox by only displaying as many 
 		characters in a single label as fits in the UI.
 		This only works well on specific UI zoom levels.
 	"""
 
 	col = layout.column(align=True)
+	col.alert = alert
 	paragraphs = text.split("\n")
 	for p in paragraphs:
 		words = p.split(" ")
@@ -114,6 +115,7 @@ def draw_label_with_linebreak(layout, text):
 
 		for line in lines:
 			col.label(text=line)
+	return col
 
 def draw_prop(layout, prop_owner, prop_name, new_row=True, **kwargs):
 	if new_row:

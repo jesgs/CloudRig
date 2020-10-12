@@ -1,8 +1,11 @@
 import bpy
-from bpy.props import StringProperty, IntProperty
-from .utils import naming
 import json
-from .utils.ui import is_cloud_metarig, draw_label_with_linebreak
+import traceback
+
+from bpy.props import StringProperty, IntProperty
+
+from .utils import naming
+from .utils.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown
 
 # This whole thing could be part of Rigify.
 
@@ -19,6 +22,32 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmetrical transformations
 	- Symmetrically named rigs have asymmmetrical constraints
 """
+
+def get_pretty_stack() -> str:
+	ret = []
+	stack = traceback.extract_stack()
+	after_generator = False
+	previous_sort_file = ""
+	for i, frame in enumerate(stack):
+		if 'generator' in frame.filename:
+			after_generator = True
+		if not after_generator:
+			continue
+
+		if 'troubleshooting.py' in frame.filename or frame.name=="add_log":
+			continue
+
+		short_file = frame.filename
+		if 'scripts' in short_file:
+			short_file = frame.filename.split("scripts")[1]
+		
+		if i>0 and frame.filename == stack[i-1].filename:
+			short_file = " " * int(len(frame.filename)/2)
+
+		ret.append(f"{short_file} -> {frame.name} -> line {frame.lineno}")
+
+	ret = f" {chr(8629)}\n".join(ret)
+	return ret
 
 class CloudLogManager:
 	def __init__(self, metarig, rig):
@@ -39,6 +68,7 @@ class CloudLogManager:
 		):
 		"""Add a log entry to the metarig object's data."""
 		entry = self.metarig.data.cloudrig_parameters.logs.add()
+		entry.pretty_stack = get_pretty_stack()
 		entry.owner_bone = owner_bone
 		entry.trouble_bone = trouble_bone
 		entry.description_short = description_short
@@ -49,6 +79,7 @@ class CloudLogManager:
 		entry.operator = operator
 		entry.op_kwargs = json.dumps(op_kwargs)
 		entry.op_text = op_text
+		return entry
 	
 	def clear(self):
 		cloudrig = self.metarig.data.cloudrig_parameters
@@ -115,6 +146,10 @@ class CloudRigLogEntry(bpy.types.PropertyGroup):
 		name = "Description"
 		,description = ""
 		,default = ""
+	)
+	pretty_stack: StringProperty(
+		name = "Pretty Stack"
+		,description = "Stack trace in the code of where this log entry was added. For internal use only"
 	)
 	operator: StringProperty(
 		name = "Operator"
@@ -219,11 +254,16 @@ def draw_cloudrig_log(layout, metarig):
 		for key in kwargs.keys():
 			setattr(op, key, kwargs[key])
 
+	layout.separator()
+
+	if draw_dropdown(layout, cloudrig, 'log_show_stack_trace'):
+		col = draw_label_with_linebreak(layout, log.pretty_stack, alert=True)
+
 ########################################
 ######### Quick-Fix Operators ##########
 ########################################
 class CLOUDRIG_OT_Troubleshoot_RotationMode(bpy.types.Operator):
-	"""Change rotation mode of a bone to Euler XYZ"""
+	"""Change rotation mode of a bone."""
 
 	bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
 	bl_label = "Change Rotation Mode"
