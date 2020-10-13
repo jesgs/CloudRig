@@ -649,6 +649,11 @@ class CloudGenerator(Generator):
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
 		obj.data["rig_id"] = self.rig_id
 
+		# Nuke all drivers on the rig
+		if obj.animation_data:
+			for d in obj.animation_data.drivers[:]:
+				obj.animation_data.drivers.remove(d)
+
 		self.script = None
 		if self.rigify_compatible:
 			self.script = rig_ui_template.ScriptGenerator(self)
@@ -697,8 +702,10 @@ class CloudGenerator(Generator):
 			if bi.name in self.obj.data.edit_bones:
 				# print(f"Warning: Bone {bi.name} already exists, skipping. This should never happen!") #TODO: This happens for ORG bones now that we load into BoneInfo objects.
 				continue
-			
 			new_name = new_bone(self.obj, bi.name)
+			if new_name != bi.name:
+				self.logger.log("Bone naming failed", trouble_bone=bi.name, description=f"Bone name {bi.name} ended up being {new_name}")
+				bi.name = new_name
 			self.bone_owners[new_name] = None
 
 		self.invoke_generate_bones()
@@ -838,6 +845,7 @@ class CloudGenerator(Generator):
 		
 		# Cheap troubleshooting
 		self.logger.report_unused_named_layers()
+		self.logger.report_invalid_drivers()
 
 		t.tick("The rest: ")
 

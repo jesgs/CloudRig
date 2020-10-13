@@ -49,6 +49,15 @@ def get_pretty_stack() -> str:
 	ret = f" {chr(8629)}\n".join(ret)
 	return ret
 
+def get_object_hierarchy_recursive(obj, all_objects=[]):
+	if obj not in all_objects:
+		all_objects.append(obj)
+
+	for c in obj.children:
+		get_object_hierarchy_recursive(c, all_objects)
+
+	return all_objects
+
 class CloudLogManager:
 	def __init__(self, metarig, rig):
 		self.metarig = metarig
@@ -89,12 +98,13 @@ class CloudLogManager:
 	####################################################################
 	# Functions for finding various issues at the end of rig generation.
 	def report_unused_named_layers(self):
+		rig = self.rig
 		used_layers = [False]*32
-		for b in self.rig.data.bones:
+		for b in rig.data.bones:
 			for i in range(32):
 				used_layers[i] = used_layers[i] or b.layers[i]
 
-		rigify_layers = self.rig.data.rigify_layers
+		rigify_layers = rig.data.rigify_layers
 		for i, rigify_layer in enumerate(rigify_layers):
 			if rigify_layer.name!="" and not rigify_layer.name.startswith("$") and not used_layers[i]:
 				self.log("Layer named but empty"
@@ -110,6 +120,21 @@ class CloudLogManager:
 					,icon = 'LAYER_ACTIVE'
 					,note = str(i)
 				)
+
+	def report_invalid_drivers(self):
+		rig = self.rig
+		objects = [rig] + get_object_hierarchy_recursive(rig)
+		for o in objects:
+			if not (hasattr(o, 'animation_data') and o.animation_data):
+				continue
+			for d in o.animation_data.drivers:
+				if not d.is_valid:
+					self.log("Invalid Driver"
+						,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
+						,icon = 'DRIVER'
+						,note = o.name
+					)
+				
 
 class CloudRigLogEntry(bpy.types.PropertyGroup):
 	icon: StringProperty(
