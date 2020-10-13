@@ -1,14 +1,12 @@
 from typing import List
 
 import bpy
-from bpy.props import BoolProperty, StringProperty, EnumProperty
+from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 from math import radians as rad
-from math import pi, pow
+from math import pi
 from copy import deepcopy
-
-from rigify.base_rig import stage
 
 from .cloud_limb import CloudLimbRig
 from ..bone import BoneInfo
@@ -77,7 +75,7 @@ class CloudLegRig(CloudLimbRig):
 			# we need a world-aligned child of the IK bone.
 			if self.params.CR_ik_chain_world_aligned:
 				self.foot_snap_bone = self.new_bonei(self.ik_mch
-					,name		 = self.fk_chain[2].name.replace("W-", "W-SNAP")
+					,name		 = self.fk_chain[2].name.replace("W-", "W-SNAP-")
 					,source		 = self.fk_chain[2]
 					,vector		 = flat(self.fk_chain[2].vector)
 					,parent		 = self.ik_chain[2]

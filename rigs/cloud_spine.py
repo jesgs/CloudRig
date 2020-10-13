@@ -1,9 +1,5 @@
-import bpy
-from bpy.props import BoolProperty, IntProperty
+from bpy.props import BoolProperty
 from mathutils import Vector
-
-from rigify.base_rig import stage
-from rigify.utils.bones import BoneDict
 
 from .cloud_fk_chain import CloudFKChainRig
 

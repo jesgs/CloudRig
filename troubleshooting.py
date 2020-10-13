@@ -123,7 +123,7 @@ class CloudLogManager:
 
 	def report_invalid_drivers(self):
 		rig = self.rig
-		objects = [rig] + get_object_hierarchy_recursive(rig)
+		objects = get_object_hierarchy_recursive(rig)
 		for o in objects:
 			if not (hasattr(o, 'animation_data') and o.animation_data):
 				continue

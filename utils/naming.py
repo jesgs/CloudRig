@@ -3,31 +3,6 @@ import re
 
 separators = "-_."
 
-def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[str]]:
-	left = 				['left',  'Left',  'LEFT', 	'l', 	'L',]
-	right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*r*',	'*R*']
-	right = 			['right', 'Right', 'RIGHT', 'r', 	'R']
-
-	# If the name is longer than 2 characters, only swap side identifiers if they
-	# are next to a separator.
-	if with_separators:
-		for l in [left, right_placehold, right]:
-			l_copy = l[:]
-			for side in l_copy:
-				if len(side)<4:
-					l.remove(side)
-				for sep in separators:
-					l.append(side+sep)
-					l.append(sep+side)
-
-	return left, right_placehold, right
-
-def get_name(thing) -> str:
-	if hasattr(thing, 'name'):
-		return thing.name
-	else:
-		return str(thing)
-
 class CloudNameManager:
 	"""Name management utilities with the convenience of being able to pass in
 	anything that has a "name" attribute, or strings directly.
@@ -37,6 +12,9 @@ class CloudNameManager:
 		self.prefix_separator = prefix_separator
 		self.suffix_separator = suffix_separator
 		super().__init__(**kwargs)
+
+	def get_name(self, thing):
+		return get_name(thing)
 
 	def get_separators(self) -> Tuple[str, str]:
 		return (self.prefix_separator, self.suffix_separator)
@@ -85,11 +63,12 @@ class CloudNameManager:
 		name = get_name(thing)
 		return strip_org(name)
 
-def has_trailing_zeroes(thing):
-	name = get_name(thing)
-	regex = "\.[0-9][0-9][0-9]$"
-	search = re.search(regex, name)
-	return search != None
+def get_name(thing) -> str:
+	if hasattr(thing, 'name'):
+		return thing.name
+	else:
+		return str(thing)
+
 
 def make_name(prefixes=[], base="", suffixes=[],
 			  prefix_separator="-", suffix_separator=".") -> str:
@@ -111,6 +90,13 @@ def slice_name(name, prefix_separator="-", suffix_separator="."):
 	base = name.split(prefix_separator)[-1].split(suffix_separator)[0]
 	return [prefixes, base, suffixes]
 
+
+def has_trailing_zeroes(thing):
+	name = get_name(thing)
+	regex = "\.[0-9][0-9][0-9]$"
+	search = re.search(regex, name)
+	return search != None
+
 def strip_trailing_numbers(name) -> Tuple[str, str]:
 	if "." in name:
 		# Check if there are only digits after the last period
@@ -124,54 +110,6 @@ def strip_trailing_numbers(name) -> Tuple[str, str]:
 
 	return name, ""
 
-def flip_name(from_name, ignore_base=True, must_change=False) -> str:
-	"""Turn a left-sided name into a right-sided one or vice versa.
-
-	Based on BLI_string_flip_side_name:
-	https://developer.blender.org/diffusion/B/browse/master/source/blender/blenlib/intern/string_utils.c
-
-	ignore_base: When True, ignore occurrences of side hints unless they're in
-				 the beginning or end of the name string.
-	must_change: When True, raise an error if the name couldn't be flipped.
-	"""
-
-	# Handling .### cases
-	stripped_name, number_suffix = strip_trailing_numbers(from_name)
-
-	def flip_sides(list_from, list_to, name):
-		for side_idx, side in enumerate(list_from):
-			opp_side = list_to[side_idx]
-			if ignore_base:
-				# Only look at prefix/suffix.
-				if name.startswith(side):
-					name = name[len(side):]+opp_side
-					break
-				elif name.endswith(side):
-					name = name[:-len(side)]+opp_side
-					break
-			else:
-				# When it comes to searching the middle of a string,
-				# sides must strictly be a full word or separated with "."
-				# otherwise we would catch stuff like "_leg" and turn it into "_reg".
-				if not any([char not in side for char in "-_."]):
-					# Replace all occurences and continue checking for keywords.
-					name = name.replace(side, opp_side)
-					continue
-		return name
-
-	with_separators = len(stripped_name)>2
-	left, right_placehold, right = get_side_lists(with_separators)
-	flipped_name = flip_sides(left, right_placehold, stripped_name)
-	flipped_name = flip_sides(right, left, flipped_name)
-	flipped_name = flip_sides(right_placehold, right, flipped_name)
-
-	# Re-add trailing digits (.###)
-	new_name = flipped_name + number_suffix
-
-	if must_change:
-		assert new_name != from_name, "Failed to flip string: " + from_name
-
-	return new_name
 
 def combine_bone_names(names) -> str:
 	"""Combine multiple bone names into one."""
@@ -238,6 +176,75 @@ def combine_bone_names(names) -> str:
 
 	### Combine and return the result
 	return make_name(prefixes, final_base, suffixes)
+
+
+def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[str]]:
+	left = 				['left',  'Left',  'LEFT', 	'l', 	'L',]
+	right_placehold = 	['*rgt*', '*Rgt*', '*RGT*', '*r*',	'*R*']
+	right = 			['right', 'Right', 'RIGHT', 'r', 	'R']
+
+	# If the name is longer than 2 characters, only swap side identifiers if they
+	# are next to a separator.
+	if with_separators:
+		for l in [left, right_placehold, right]:
+			l_copy = l[:]
+			for side in l_copy:
+				if len(side)<4:
+					l.remove(side)
+				for sep in separators:
+					l.append(side+sep)
+					l.append(sep+side)
+
+	return left, right_placehold, right
+
+def flip_name(from_name, ignore_base=True, must_change=False) -> str:
+	"""Turn a left-sided name into a right-sided one or vice versa.
+
+	Based on BLI_string_flip_side_name:
+	https://developer.blender.org/diffusion/B/browse/master/source/blender/blenlib/intern/string_utils.c
+
+	ignore_base: When True, ignore occurrences of side hints unless they're in
+				 the beginning or end of the name string.
+	must_change: When True, raise an error if the name couldn't be flipped.
+	"""
+
+	# Handling .### cases
+	stripped_name, number_suffix = strip_trailing_numbers(from_name)
+
+	def flip_sides(list_from, list_to, name):
+		for side_idx, side in enumerate(list_from):
+			opp_side = list_to[side_idx]
+			if ignore_base:
+				# Only look at prefix/suffix.
+				if name.startswith(side):
+					name = name[len(side):]+opp_side
+					break
+				elif name.endswith(side):
+					name = name[:-len(side)]+opp_side
+					break
+			else:
+				# When it comes to searching the middle of a string,
+				# sides must strictly be a full word or separated with "."
+				# otherwise we would catch stuff like "_leg" and turn it into "_reg".
+				if not any([char not in side for char in "-_."]):
+					# Replace all occurences and continue checking for keywords.
+					name = name.replace(side, opp_side)
+					continue
+		return name
+
+	with_separators = len(stripped_name)>2
+	left, right_placehold, right = get_side_lists(with_separators)
+	flipped_name = flip_sides(left, right_placehold, stripped_name)
+	flipped_name = flip_sides(right, left, flipped_name)
+	flipped_name = flip_sides(right_placehold, right, flipped_name)
+
+	# Re-add trailing digits (.###)
+	new_name = flipped_name + number_suffix
+
+	if must_change:
+		assert new_name != from_name, "Failed to flip string: " + from_name
+
+	return new_name
 
 def name_side_is_left(name) -> Optional[bool]:
 	"""Identify whether a name belongs to the left or right side or neither."""
