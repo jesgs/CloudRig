@@ -1,4 +1,5 @@
 from typing import Tuple, List, Optional
+import re
 
 separators = "-_."
 
@@ -40,6 +41,9 @@ class CloudNameManager:
 	def get_separators(self) -> Tuple[str, str]:
 		return (self.prefix_separator, self.suffix_separator)
 
+	def has_trailing_zeroes(self, thing):
+		return has_trailing_zeroes(thing)
+
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
 		prefix_separator, suffix_separator = self.get_separators()
 		return make_name(prefixes, base, suffixes, prefix_separator, suffix_separator)
@@ -80,6 +84,12 @@ class CloudNameManager:
 		from rigify.utils.naming import strip_org
 		name = get_name(thing)
 		return strip_org(name)
+
+def has_trailing_zeroes(thing):
+	name = get_name(thing)
+	regex = "\.[0-9][0-9][0-9]$"
+	search = re.search(regex, name)
+	return search != None
 
 def make_name(prefixes=[], base="", suffixes=[],
 			  prefix_separator="-", suffix_separator=".") -> str:

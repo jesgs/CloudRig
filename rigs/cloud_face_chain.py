@@ -171,7 +171,6 @@ class CloudFaceChainRig(CloudChainRig):
 				continue
 
 			str_bone.parent = intersection_control
-			rig.add_log("Hello")
 
 			str_bone.merged_control = intersection_control
 

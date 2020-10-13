@@ -162,6 +162,9 @@ class CloudBaseRig(
 			meta_org_name = eb.name[4:]
 			meta_org = self.generator.metarig.pose.bones.get(meta_org_name)
 
+			if self.naming.has_trailing_zeroes(meta_org):
+				self.add_log("Trailing Zeroes!", trouble_bone=eb.name)
+
 			org_bi = self.new_bonei(self.org_chain
 				,name		 = bn
 				,source		 = eb
