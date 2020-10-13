@@ -142,7 +142,7 @@ def update_overlay():
 	if not hasattr(rigs, rig_owner.rigify_type):
 		return refresh_time
 
-	update_bone_group_highlighting(ob, rig_chain, last_chain)
+	# update_bone_group_highlighting(ob, rig_chain, last_chain)
 
 	# Get the rig type's draw_overlay() function if it exists and execute it
 	rig_module = getattr(rigs, rig_owner.rigify_type)
