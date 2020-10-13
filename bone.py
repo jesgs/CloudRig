@@ -607,8 +607,12 @@ class ConstraintInfo(dict):
 
 		if self.type=='ARMATURE':
 			if len(self.targets) > len(subtargets):
-				# TODO: Turn into warning and resolve automatically.
-				self.bone_info.owner_rig.raise_error(f"Failed to relink constraint due to too many targets in constraint {self.name} (Remove unneeded targets from the Armature constraint!")
+				self.bone_info.owner_rig.add_log(
+					"Relinking failed", 
+					trouble_bone = self.bone_info.name, 
+					description=f"Failed to relink constraint due to too many targets in constraint {self.name}.\n Remove unneeded targets from the Armature constraint!"
+				)
+				return
 
 			for i, t in enumerate(self.targets):
 				t['subtarget'] = subtargets[i]
