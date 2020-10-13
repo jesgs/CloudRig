@@ -59,8 +59,15 @@ class CloudChainRig(CloudBaseRig):
 		"""
 
 		parent = super().reparent_bone(child)
-		# At this point it is known that parent is an ORG bone. TODO: assert it then!
-		
+
+		if child.parent not in self.org_chain:
+			return
+		if len(parent.def_bones)==0:
+			return
+		for c in child.constraint_infos:
+			if c.type=='ARMATURE':
+				return
+
 		# Also note that this function is expected to be called by child rigs, 
 		# which means this rig already finished executing, which means we know that
 		# make_def_chain() has run, and ORG bones are aware of their DEF bones.
@@ -70,17 +77,21 @@ class CloudChainRig(CloudBaseRig):
 		ratio = intersect[1]
 		def_index = ratio * self.params.CR_chain_segments
 		def_index = int(def_index)
-		def_index = max(0, min(def_index, len(parent.def_bones)) )	# Clamp it.
+		def_index = max(0, min(def_index, len(parent.def_bones)-1) )	# Clamp it.
 
-		child.parent = parent.def_bones[def_index]
-		if child.parent.bbone_segments > 1:
-			child.add_constraint('ARMATURE'
-				,targets = [
-					{
-						"subtarget" : child.parent.name
-					}
-				],
-			)
+		def_bone = parent.def_bones[def_index]
+
+		if def_bone.bbone_segments == 1:
+			return
+
+		child.parent = def_bone
+		child.add_constraint('ARMATURE'
+			,targets = [
+				{
+					"subtarget" : child.parent.name
+				}
+			],
+		)
 
 		return parent
 
