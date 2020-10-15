@@ -410,11 +410,9 @@ class BoneInfo:
 		# Check for 0-length bones.
 		if (self.head - self.tail).length == 0:
 			# Warn and force length.
-			self.owner_rig.add_log("(BUG) Bone with 0 length"
+			self.owner_rig.add_log_bug("Bone with 0 length"
 				,trouble_bone = self.name
-				,description = "Bones cannot be created with a length of 0. Fell back to default vector. Please report this as a bug."
-				,icon = 'URL'
-				,operator = 'wm.cloudrig_report_bug'
+				,description = "Bones cannot be created with a length of 0. Fell back to default vector."
 			)
 			self.tail = self.head+Vector((0, 0.1, 0))
 
@@ -666,11 +664,10 @@ def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> Bon
 	# If a BoneInfo with the passed name already exists, overwrite it and add a warning.
 	bi = generator.find_bone_info(name)
 	if bi:
-		generator.logger.log("(BUG) Overwritten bone"
+		generator.logger.log_bug("Overwritten bone"
+			,owner_bone = bi.owner_rig.meta_base_bone.name
 			,trouble_bone = bi.name
-			,description = "Bone was defined twice. Please report this as a bug."
-			,icon = 'URL'
-			,operator = 'wm.cloudrig_report_bug'
+			,description = "Bone was defined twice."
 		)
 
 	kwargs['name'] = name
@@ -678,11 +675,9 @@ def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> Bon
 		kwargs['bone_set'] = bone_set
 		new = bone_set.new(**kwargs)
 	else:
-		generator.logger.log("(BUG) Bone without BoneSet"
+		generator.logger.log_bug("Bone without BoneSet"
 			,trouble_bone = name
-			,description = "BoneInfo was created without a BoneSet. Please report this as a bug."
-			,icon = 'URL'
-			,operator = 'wm.cloudrig_report_bug'
+			,description = "BoneInfo was created without a BoneSet."
 		)
 		new = BoneInfo(**kwargs)
 
@@ -709,7 +704,7 @@ class BoneInfoMixin:
 
 		if not bone_set_name in bone_set_defs:
 			msg = f"Error: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set. Report a bug!"
-			self.add_log("(BUG) Bone Set Error", description=msg, icon='URL', operator='wm.cloudrig_report_bug')
+			self.add_log_bug("Bone Set Error", description=msg)
 			assert False, msg
 
 		bone_set_def = bone_set_defs[bone_set_name]

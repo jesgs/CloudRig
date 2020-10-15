@@ -184,26 +184,17 @@ class CloudBaseRig(
 
 	def add_log(self
 			,description_short
-			,description = "Something went terribly wrong!"
-			,trouble_bone = ""
-			,icon = 'ERROR'
-			,note = ""
-			,note_icon = ''
-			,operator = ''
-			,op_kwargs = {}
-			,op_text = ""
+			,**kwargs
 		):
-		self.generator.logger.log(description_short
-			,owner_bone = self.meta_base_bone.name
-			,trouble_bone = trouble_bone
-			,description = description
-			,icon = icon
-			,note = note
-			,note_icon = note_icon
-			,operator = operator
-			,op_kwargs = op_kwargs
-			,op_text = op_text
-		)
+		kwargs['owner_bone'] = self.meta_base_bone.name
+		self.generator.logger.log(description_short ,**kwargs)
+	
+	def add_log_bug(self
+			,description_short
+			,**kwargs
+		):
+		kwargs['owner_bone'] = self.meta_base_bone.name
+		self.generator.logger.log_bug(description_short ,**kwargs)
 
 	# TODO these functions probably belong to the generator and should be called get_ instead of find_.
 	def find_symmetry_rig(self) -> BaseRig:

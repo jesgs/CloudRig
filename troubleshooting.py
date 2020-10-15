@@ -13,9 +13,6 @@ from .utils.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown
 """
 Possible warnings to implement:
 	- IK Chain is not flat - IK Chains should be flat along a plane for perfect IK/FK snapping and predictable bending direction. Instant Fix: Flatten Chain.
-	- Arbitrary data - For debugging, this could be a lot more convenient than printing to the console.
-	- Search code for "warning:" and "self.raise_error()" for more.
-	- Can search "assert" but I think I cleaned them all up. (Asserts should never be user-facing and should always halt generation)
 Some things are expensive to test so maybe should be checked outside of generation:
 	- Symmetrical action setup's transform curves are actually asymmetrical
 	- Action setup for curves whose value never changes
@@ -23,6 +20,60 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmetrical transformations
 	- Symmetrically named rigs have asymmmetrical constraints
 """
+
+def url_prefill_from_blender(stack_trace=""):
+	import struct
+	import platform
+	import urllib.parse
+	import io
+
+	fh = io.StringIO()
+
+	fh.write("**System Information**\n")
+	fh.write(
+		"Operating system: %s %d Bits\n" % (
+			platform.platform(),
+			struct.calcsize("P") * 8,
+		)
+	)
+
+	fh.write(
+		"\n"
+		"**Blender Version**\n"
+	)
+	fh.write(
+		"%s, branch: %s, commit date: %s %s, hash: `rB%s`\n" % (
+			bpy.app.version_string,
+			bpy.app.build_branch.decode('utf-8', 'replace'),
+			bpy.app.build_commit_date.decode('utf-8', 'replace'),
+			bpy.app.build_commit_time.decode('utf-8', 'replace'),
+			bpy.app.build_hash.decode('ascii'),
+		)
+	)
+
+	if stack_trace!="":
+		fh.write(
+			"\nStack trace\n```\n" + stack_trace + "\n```\n"
+		)
+
+	fh.write(
+		"\n"
+		"***************************************"
+	)
+
+	fh.write(
+		"\n"
+		"[Describe the issue here in as much detail as possible."
+		"If possible, please attach a .blend file with the metarig which results in the bug upon generation."
+		"\n"
+	)
+
+	fh.seek(0)
+
+	return (
+		"https://gitlab.com/blender/CloudRig/-/issues/new?issue[description]=" +
+		urllib.parse.quote(fh.read())
+	)
 
 def get_pretty_stack() -> str:
 	ret = []
@@ -60,7 +111,7 @@ def get_object_hierarchy_recursive(obj, all_objects=[]):
 	return all_objects
 
 class CloudLogManager:
-	def __init__(self, metarig, rig):
+	def __init__(self, metarig, rig=None):
 		self.metarig = metarig
 		self.rig = rig
 
@@ -68,7 +119,7 @@ class CloudLogManager:
 			,description_short
 			,owner_bone = ""
 			,trouble_bone = ""
-			,description = "Something went terribly wrong!"
+			,description = "No description."
 			,icon = 'ERROR'
 			,note = ""
 			,note_icon = ''
@@ -91,6 +142,25 @@ class CloudLogManager:
 		entry.op_text = op_text
 		return entry
 	
+	
+	def log_bug(self
+		,description_short
+		,description = "Something went terribly wrong!"
+		,icon = 'URL'
+		,operator = 'wm.cloudrig_report_bug'
+		,**kwargs
+	):
+		if 'op_kwargs' not in kwargs:
+			kwargs['op_kwargs'] = {}
+		kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
+		self.log(
+			"(BUG) " + description_short
+			,description = description + "\nPlease report this as a bug."
+			,icon = icon
+			,operator = operator
+			,**kwargs
+		)
+	
 	def clear(self):
 		cloudrig = self.metarig.data.cloudrig_parameters
 		cloudrig.logs.clear()
@@ -98,6 +168,7 @@ class CloudLogManager:
 
 	####################################################################
 	# Functions for finding various issues at the end of rig generation.
+	# For these, self.rig is expected to be set.
 	def report_unused_named_layers(self):
 		rig = self.rig
 		used_layers = [False]*32
@@ -326,7 +397,7 @@ class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
 	stack_trace: StringProperty()
 
 	def execute(self, context):
-		webbrowser.open("https://gitlab.com/blender/CloudRig/-/issues/new")
+		webbrowser.open(url_prefill_from_blender(self.stack_trace))
 
 		return { 'FINISHED' }
 
@@ -348,7 +419,7 @@ classes = [
 	CloudRigLogEntry,
 	CLOUDRIG_PT_log,
 
-	CLOUDRIG_OT_Troubleshoot_RotationMode
+	CLOUDRIG_OT_Troubleshoot_RotationMode,
 	CLOUDRIG_OT_Report_Bug,
 ]
 

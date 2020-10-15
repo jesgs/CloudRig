@@ -31,7 +31,7 @@ class CloudMechanismMixin:
 	def register_parent(self, bone, name):
 		if name in self.parent_candidates:
 			self.add_log("Parent registration overwritten"
-				,f'Overwrote previously registered parent:\n "{name}": {self.parent_candidates[name]}  -> {bone.name}.\nThis is currently a known limitation and cannot be fixed, please ignore.'
+				,description = f'Overwrote previously registered parent:\n "{name}": {self.parent_candidates[name]}  -> {bone.name}.\nThis is currently a known limitation and cannot be fixed, please ignore.'
 				,trouble_bone = bone.name
 				,icon='FILE_PARENT'
 			)

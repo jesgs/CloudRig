@@ -224,6 +224,10 @@ class CloudGenerator(Generator):
 			'rotation_mode' : 'XYZ'
 		}
 
+		# Nuke log entries
+		self.logger = CloudLogManager(metarig)
+		self.logger.clear()
+
 		# Flag for whether there are any non-CloudRig rig types in the metarig.
 		self.rigify_compatible = False
 		for b in metarig.pose.bones:
@@ -424,10 +428,8 @@ class CloudGenerator(Generator):
 			,collection = self.wgt_collection
 		)
 		if not wgt:
-			self.logger.log("(BUG) Failed to create widget"
+			self.logger.log_bug("Failed to create widget"
 				,description = "Failed to load widget named '{widget_name}'."
-				,icon = 'URL'
-				,operator = 'wm.cloudrig_report_bug'
 			)
 		return wgt
 
@@ -579,7 +581,6 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
-
 	def generate(self):
 		print("CloudRig Generation begin")
 
@@ -596,6 +597,8 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Create/find the rig object and set it up
 		obj = self.create_rig_object()
+		self.logger.rig = obj
+		self.logger.metarig = metarig
 
 		self.defaults['rig'] = obj
 
@@ -616,10 +619,6 @@ class CloudGenerator(Generator):
 
 		# Make sure X-Mirror editing is disabled, always!!
 		obj.data.use_mirror_x = False
-
-		# Nuke log entries
-		self.logger = CloudLogManager(self.metarig, self.obj)
-		self.logger.clear()
 
 		# Get rid of anim data in case the rig already existed
 
@@ -714,7 +713,11 @@ class CloudGenerator(Generator):
 				continue
 			new_name = new_bone(self.obj, bi.name)
 			if new_name != bi.name:
-				self.logger.log("Bone naming failed", trouble_bone=bi.name, description=f"Bone name {bi.name} ended up being {new_name}")
+				self.logger.log(
+					"Bone naming failed"
+					,trouble_bone = bi.name
+					,description = f"Bone name {bi.name} ended up being {new_name}. This is a bug unless your bone names were close to 63 characters long to begin with."
+				)
 				bi.name = new_name
 			self.bone_owners[new_name] = None
 
@@ -748,9 +751,7 @@ class CloudGenerator(Generator):
 				self.logger.log("Bone creation failed"
 					,owner_bone = bi.owner_rig.base_bone
 					,trouble_bone = bi.name
-					,description = f"(BUG) BoneInfo {bi.name} wasn't created for some reason."
-					,icon = 'URL'
-					,operator = 'wm.cloudrig_report_bug'
+					,description = f"BoneInfo {bi.name} wasn't created for some reason."
 				)
 				continue
 
