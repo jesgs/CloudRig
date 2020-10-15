@@ -9,29 +9,30 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # For example, changing names of rig types, splitting an old rig type into multiple, 
 # changing names of parameters, etc.
 cloud_metarig_version = 5
+cloudrig_version = 0.1
 
 def rename_parameters(metarig, dictionary):
 	for pb in metarig.pose.bones:
-		if pb.rigify_type!='':
-			for old_key in pb.rigify_parameters.keys():
-				if old_key in dictionary:
-					new_key = dictionary[old_key]
-					value = pb.rigify_parameters[old_key]
-					try:
-						print(f"Rename param {old_key}->{new_key}")
-						setattr(pb.rigify_parameters, new_key, value)
-					except:
-						# We assume this fails because we're trying to assign an int to a string enum... The solution couldn't be simpler...!
-						rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py('RigifyParameters')
-						enum_prop = rna_class.bl_rna.properties.get(new_key)
-						if enum_prop:
-							# This will only work for the current version
-							enum_string_value = enum_prop.enum_items[value].name
-							print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
-							setattr(pb.rigify_parameters, new_key, enum_string_value)
-						else:
-							# For other versions, just back it up.
-							pb.rigify_parameters[new_key] = value
+		if pb.rigify_type=='': continue
+		for old_key in pb.rigify_parameters.keys():
+			if old_key in dictionary:
+				new_key = dictionary[old_key]
+				value = pb.rigify_parameters[old_key]
+				try:
+					print(f"Rename param {old_key}->{new_key}")
+					setattr(pb.rigify_parameters, new_key, value)
+				except:
+					# We assume this fails because we're trying to assign an int to a string enum... The solution couldn't be simpler...!
+					rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py('RigifyParameters')
+					enum_prop = rna_class.bl_rna.properties.get(new_key)
+					if enum_prop:
+						# This will only work for the current version
+						enum_string_value = enum_prop.enum_items[value].name
+						print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
+						setattr(pb.rigify_parameters, new_key, enum_string_value)
+					else:
+						# For other versions, just back it up.
+						pb.rigify_parameters[new_key] = value
 
 def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of 

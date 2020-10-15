@@ -21,11 +21,12 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmmetrical constraints
 """
 
-def url_prefill_from_blender(stack_trace=""):
+def url_prefill_from_cloudrig(stack_trace=""):
 	import struct
 	import platform
 	import urllib.parse
 	import io
+	from versioning import cloudrig_version
 
 	fh = io.StringIO()
 
@@ -49,6 +50,10 @@ def url_prefill_from_blender(stack_trace=""):
 			bpy.app.build_commit_time.decode('utf-8', 'replace'),
 			bpy.app.build_hash.decode('ascii'),
 		)
+	)
+
+	fh.write(
+		"\nCloudRig: " + str(cloudrig_version)
 	)
 
 	if stack_trace!="":
@@ -397,7 +402,7 @@ class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
 	stack_trace: StringProperty()
 
 	def execute(self, context):
-		webbrowser.open(url_prefill_from_blender(self.stack_trace))
+		webbrowser.open(url_prefill_from_cloudrig(self.stack_trace))
 
 		return { 'FINISHED' }
 
