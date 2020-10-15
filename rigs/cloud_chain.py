@@ -86,6 +86,7 @@ class CloudChainRig(CloudBaseRig):
 
 		child.parent = def_bone
 		child.add_constraint('ARMATURE'
+			,use_deform_preserve_volume = True
 			,targets = [
 				{
 					"subtarget" : child.parent.name
