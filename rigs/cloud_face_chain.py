@@ -50,7 +50,10 @@ class CloudFaceChainRig(CloudChainRig):
 		if not CUSTOM_SPACE:
 			for str_bone in all_str_bones:
 				if hasattr(str_bone, 'merged_control'):
-					str_bone.parent = str_bone.merged_control.parent
+					if str_bone.owner_rig.params.CR_chain_smooth_spline:
+						str_bone.parent = str_bone.merged_control.parent
+					else:
+						str_bone.parent = str_bone.merged_control
 					if hasattr(str_bone, 'local_helper'):
 						str_bone.local_helper.parent = str_bone.parent
 
@@ -144,6 +147,12 @@ class CloudFaceChainRig(CloudChainRig):
 			combined_name = rig.naming.combine_names(bones)
 			# TODO: This does something funky for combining bones with Cheek and Chin.
 			# Eg., STR-TIP-Chin.L + STR-TIP-Cheek1.L + STR-TIP-Cheek3_2.L = STR-I-Cheek1+eek3_2+in.L
+
+			# If the combined name is too long for a bone name (63 chars), ignore bones until the name is short enough.
+			for i in range(1, len(bones)-1):
+				if len(combined_name) < 60:
+					break
+				combined_name = rig.naming.combine_names(bones[:-i])
 
 			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
