@@ -446,7 +446,7 @@ class CloudGenerator(Generator):
 		action_defs = self.params.cloudrig_parameters.actions
 
 		rig = self.obj
-		for act_def in action_defs:
+		for act_def in reversed(action_defs):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
 			if not act_def.enabled: continue
 			if not act_def.action: continue
 			if not act_def.subtarget: continue
@@ -520,6 +520,9 @@ class CloudGenerator(Generator):
 							max_tmp = c.max
 							c.max = c.min
 							c.min = max_tmp
+
+					# Move constraints to top of the stack in the same order. Important that Action constraints are above Armature constraints.
+					b.constraints.move(len(b.constraints)-1, 0)
 
 	def ensure_test_action(self):
 		# Ensure test action exists
