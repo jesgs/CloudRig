@@ -1174,10 +1174,6 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 	def draw(self, context):
 		rig = active_cloudrig()
 		if not rig: return
-		# HACK: Library Override doesn't support changing layers
-		if 'override_layers' in rig.keys():
-			draw_layers_ui(self.layout, rig, owner=rig, layers_prop='["override_layers"]')
-			return
 		draw_layers_ui(self.layout, rig)
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
