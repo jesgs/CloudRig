@@ -108,7 +108,11 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 				else:
 					mod_bone.parent = None # For parenting to bendy bones, we add Armature constraint in modify_pose_bone().
 			except:
-				print(f"Warning: Target parent bone {parent_name} not found for rig {self.base_bone}")
+				self.generator.logger.log(
+					"Parent not found"
+					,owner_bone = self.base_bone
+					,description = f"Target parent bone {parent_name} not found"
+				)
 
 		if self.params.CR_bone_transforms:
 			mod_bone.head = meta_bone.head_local.copy()

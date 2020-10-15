@@ -410,7 +410,12 @@ class BoneInfo:
 		# Check for 0-length bones.
 		if (self.head - self.tail).length == 0:
 			# Warn and force length.
-			print("Warning: Had to force 0-length bone to have some length: " + self.name)
+			self.owner_rig.add_log("(BUG) Bone with 0 length"
+				,trouble_bone = self.name
+				,description = "Bones cannot be created with a length of 0. Fell back to default vector. Please report this as a bug."
+				,icon = 'URL'
+				,operator = 'wm.cloudrig_report_bug'
+			)
 			self.tail = self.head+Vector((0, 0.1, 0))
 
 		### Edit Bone properties
@@ -658,23 +663,27 @@ def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> Bon
 	"""
 	new = None
 
-	# Ensure we never overwrite an existing BoneInfo.
-	# If a BoneInfo with the passed name already exists, add numbers at the end.
-	# bi = generator.bone_infos.find(name)
-	# if bi and False:	# TODO Implement this if we want to avoid overwriting of bones...
-	# 	old_name = name
-	# 	name += ".001"
-	# 	while(generator.bone_infos.find(name)):
-	# 		num = int(name[-1])
-	# 		name = name[:-4] + str(num+1).zfill(3)
-	# 	print(f"Warning: Attempted to re-define BoneInfo with name {old_name}. Defining as {name} instead.")
+	# If a BoneInfo with the passed name already exists, overwrite it and add a warning.
+	bi = generator.find_bone_info(name)
+	if bi:
+		generator.logger.log("(BUG) Overwritten bone"
+			,trouble_bone = bi.name
+			,description = "Bone was defined twice. Please report this as a bug."
+			,icon = 'URL'
+			,operator = 'wm.cloudrig_report_bug'
+		)
 
 	kwargs['name'] = name
 	if bone_set is not None:
 		kwargs['bone_set'] = bone_set
 		new = bone_set.new(**kwargs)
 	else:
-		print("Warning: Creating BoneInfo without a BoneSet. This could cause errors and should never happen! Always pass a BoneSet to new_bonei()!")
+		generator.logger.log("(BUG) Bone without BoneSet"
+			,trouble_bone = name
+			,description = "BoneInfo was created without a BoneSet. Please report this as a bug."
+			,icon = 'URL'
+			,operator = 'wm.cloudrig_report_bug'
+		)
 		new = BoneInfo(**kwargs)
 
 	generator.bone_infos.append(new)
@@ -698,7 +707,10 @@ class BoneInfoMixin:
 		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
 		bone_set_defs = type(self).bone_set_defs
 
-		assert bone_set_name in bone_set_defs, f"Warning: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set."
+		if not bone_set_name in bone_set_defs:
+			msg = f"Error: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set. Report a bug!"
+			self.add_log("(BUG) Bone Set Error", description=msg, icon='URL', operator='wm.cloudrig_report_bug')
+			assert False, msg
 
 		bone_set_def = bone_set_defs[bone_set_name]
 

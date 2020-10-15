@@ -81,10 +81,10 @@ class CloudMechanismMixin:
 			if pn in list(parent_candidates.keys()):
 				found_parents.append(pn)
 		if len(found_parents) == 0 and not force_setup:
-			print(f"Warning: No parents to be rigged for {child_bone.name}.")
+			# No parents to be rigged for child_bone.
 			return found_parents
 		if len(found_parents) == 1 and not force_setup:
-			print(f"Warning: Only single parent found for parent switching setup, so falling back to regular parenting.")
+			# Only single parent found for parent switching setup, so falling back to regular parenting.
 			child_bone.parent = list(parent_candidates.values())[0]
 			return found_parents
 

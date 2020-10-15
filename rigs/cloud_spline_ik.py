@@ -27,7 +27,9 @@ class CloudSplineIKRig(CloudCurveRig):
 			while total > 255:
 				subdiv -= 1
 				total = length * subdiv
-			print(f"Warning: Spline IK rig on {self.base_bone}: Trying to subdivide each bone {old_subdiv} times, in a bone chain of {length}, would result in {old_total} bones. The Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} for a new total of {total} bones.")
+			self.add_log("Spline IK longer than 255 bones"
+				,description = f"Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \nThe Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} for a new total of {total} bones."
+			)
 
 		self.num_controls = len(self.bones.org.main)+1 if self.params.CR_spline_ik_match_hooks else self.params.CR_spline_ik_hooks
 

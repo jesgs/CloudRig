@@ -1,6 +1,7 @@
 import bpy
 import json
 import traceback
+import webbrowser
 
 from bpy.props import StringProperty, IntProperty
 
@@ -315,6 +316,20 @@ class CLOUDRIG_OT_Troubleshoot_RotationMode(bpy.types.Operator):
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
+	"""Report a bug on the CloudRig repository."""
+
+	bl_idname = "wm.cloudrig_report_bug"
+	bl_label = "Report CloudRig Bug"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	stack_trace: StringProperty()
+
+	def execute(self, context):
+		webbrowser.open("https://gitlab.com/blender/CloudRig/-/issues/new")
+
+		return { 'FINISHED' }
+
 def remove_active_log(metarig):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -332,7 +347,9 @@ classes = [
 	CLOUDRIG_UL_log_entry_slots,
 	CloudRigLogEntry,
 	CLOUDRIG_PT_log,
+
 	CLOUDRIG_OT_Troubleshoot_RotationMode
+	CLOUDRIG_OT_Report_Bug,
 ]
 
 def register():

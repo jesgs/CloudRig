@@ -418,8 +418,18 @@ class CloudGenerator(Generator):
 		return wgt_collection
 
 	def ensure_widget(self, widget_name):
-		return cloud_widgets.ensure_widget(widget_name, overwrite=self.params.rigify_force_widget_update, collection=self.wgt_collection)
-
+		wgt = cloud_widgets.ensure_widget(
+			widget_name
+			,overwrite = self.params.rigify_force_widget_update
+			,collection = self.wgt_collection
+		)
+		if not wgt:
+			self.logger.log("(BUG) Failed to create widget"
+				,description = "Failed to load widget named '{widget_name}'."
+				,icon = 'URL'
+				,operator = 'wm.cloudrig_report_bug'
+			)
+		return wgt
 
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
@@ -735,7 +745,13 @@ class CloudGenerator(Generator):
 		for bi in self.bone_infos:
 			pose_bone = obj.pose.bones.get(bi.name)
 			if not pose_bone:
-				print(f"Warning: BoneInfo {bi.name} wasn't created for some reason.")
+				self.logger.log("Bone creation failed"
+					,owner_bone = bi.owner_rig.base_bone
+					,trouble_bone = bi.name
+					,description = f"(BUG) BoneInfo {bi.name} wasn't created for some reason."
+					,icon = 'URL'
+					,operator = 'wm.cloudrig_report_bug'
+				)
 				continue
 
 			# Scale bone shape based on B-Bone scale
