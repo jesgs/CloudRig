@@ -410,7 +410,7 @@ class BoneInfo:
 		# Check for 0-length bones.
 		if (self.head - self.tail).length == 0:
 			# Warn and force length.
-			self.owner_rig.add_log_bug("Bone with 0 length"
+			self.generator.logger.log_bug("Bone with 0 length"
 				,trouble_bone = self.name
 				,description = "Bones cannot be created with a length of 0. Fell back to default vector."
 			)
@@ -682,7 +682,7 @@ def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> Bon
 		new = BoneInfo(**kwargs)
 
 	generator.bone_infos.append(new)
-
+	new.generator = generator
 	return new
 
 class BoneInfoMixin:

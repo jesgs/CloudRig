@@ -429,7 +429,7 @@ class CloudGenerator(Generator):
 		)
 		if not wgt:
 			self.logger.log_bug("Failed to create widget"
-				,description = "Failed to load widget named '{widget_name}'."
+				,description = f"Failed to load widget named '{widget_name}'."
 			)
 		return wgt
 

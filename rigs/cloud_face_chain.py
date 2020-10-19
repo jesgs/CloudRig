@@ -157,12 +157,17 @@ class CloudFaceChainRig(CloudChainRig):
 			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
 			bone_name = rig.naming.make_name(["STR", "I"], slices[1], slices[2])
-			intersection_control = rig.new_bonei(rig.merged_controls
-				,name = bone_name
-				,source = bones[0]
-				,custom_shape = rig.ensure_widget('Cube')
-				,custom_shape_scale = bones[0].custom_shape_scale
-			)
+
+			# Check again if it exists - TODO this shouldn't be necessary, it should be caught above with the parent check. Although checking doesn't hurt. But if it already existed, add a bug log.
+			intersection_control = rig.generator.find_bone_info(bone_name)
+
+			if not intersection_control:
+				intersection_control = rig.new_bonei(rig.merged_controls
+					,name = bone_name
+					,source = bones[0]
+					,custom_shape = rig.ensure_widget('Cube')
+					,custom_shape_scale = bones[0].custom_shape_scale
+				)
 
 		# If bones are in the center, flatten them to make sure they produce a clean curvature.
 		if abs(intersection_control.head.x) < 0.001:
