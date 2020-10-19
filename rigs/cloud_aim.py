@@ -145,7 +145,7 @@ class CloudAimRig(CloudBaseRig):
 			,head = aims_center
 			,tail = aims_center + group_vec.normalized() * self.scale/10
 			,bbone_width = 0.1
-			,parent = aim_bones[0].parent
+			,parent = self.generator.find_bone_info(aim_bones[0].parent.name)
 		)
 
 		# Create the master bone.
