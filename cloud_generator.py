@@ -63,13 +63,13 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	generate_test_action: BoolProperty(
 		name		 = "Generate Test Action"
-		,description = "Whether to update the deform test action or not"
+		,description = "Whether to create/update the deform test action or not"
 		,default	 = True
 	)
 	test_action: PointerProperty(
 		name		 = "Test Action"
 		,type		 = bpy.types.Action
-		,description = "Action which will be generated with the keyframes neccessary to test the whole rig's deformations"
+		,description = "Action which will be generated with the keyframes neccessary to test the rig's deformations"
 	)
 
 	mechanism_movable: BoolProperty(

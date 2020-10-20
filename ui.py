@@ -137,7 +137,10 @@ def draw_cloudrig_generator_settings(self, context):
 	layout.prop(cloudrig, "custom_script")
 	layout.prop(cloudrig, "widget_collection")
 
-	act_row = layout.row(heading="Test Action")
+	heading = "Generate Action"
+	if cloudrig.test_action:
+		heading = "Update Action"
+	act_row = layout.row(heading=heading)
 	act_row.prop(cloudrig, 'generate_test_action', text="")
 	act_col = act_row.column()
 	act_col.prop(cloudrig, 'test_action', text="")
