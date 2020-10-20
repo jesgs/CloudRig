@@ -26,7 +26,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	import platform
 	import urllib.parse
 	import io
-	from versioning import cloudrig_version
+	from .versioning import cloudrig_version
 
 	fh = io.StringIO()
 
@@ -68,8 +68,8 @@ def url_prefill_from_cloudrig(stack_trace=""):
 
 	fh.write(
 		"\n"
-		"[Describe the issue here in as much detail as possible."
-		"If possible, please attach a .blend file with the metarig which results in the bug upon generation."
+		"[Describe the issue here in as much detail as possible.]\n"
+		"[If possible, please attach a .blend file with the metarig which results in the bug upon generation.]"
 		"\n"
 	)
 
