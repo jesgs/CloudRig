@@ -179,14 +179,14 @@ class CloudLegRig(CloudLimbRig):
 		# The tail should point toward the toe bone but stay perpendicular to the knee bone.
 
 		knee = self.org_chain[1]
-		scalar = knee.bbone_width
+		scalar = knee.bbone_width * self.scale
 		toe = self.org_chain[-1]
 		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
 		intersect_to_toe = (intersect - toe.tail).normalized()
-		shift_from_toe = intersect_to_toe * scalar * 1.7
-		shift_along_knee = (knee.tail - intersect).normalized() * scalar * 1.5
+		shift_from_toe = intersect_to_toe * scalar * 8
+		shift_along_knee = (knee.tail - intersect).normalized() * scalar * 2
 		head = intersect + shift_from_toe + shift_along_knee
-		tail = head + intersect_to_toe * scalar * -1
+		tail = head + intersect_to_toe * scalar*4 * -1
 
 		roll_ctrl = self.new_bonei(self.ik_ctrls
 			,name		  = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
