@@ -656,8 +656,10 @@ class CloudGenerator(Generator):
 
 		# Nuke all drivers on the rig
 		if obj.animation_data:
-			for d in obj.animation_data.drivers[:]:
-				obj.animation_data.drivers.remove(d)
+			datablocks = [obj, obj.data]
+			for db in datablocks:
+				for d in db.animation_data.drivers[:]:
+					db.animation_data.drivers.remove(d)
 
 		self.defaults['rig'] = obj
 
