@@ -523,6 +523,27 @@ class CloudGenerator(Generator):
 
 					# Move constraints to top of the stack in the same order. Important that Action constraints are above Armature constraints.
 					b.constraints.move(len(b.constraints)-1, 0)
+					
+					# Set up usage with Evaluation Time feature and a driver instead of old setup
+					if not hasattr(c, 'use_eval_time'):
+						continue
+					
+					c.use_eval_time = True
+					fcurve = rig.driver_add(f'pose.bones["{b.name}"].constraints["{c.name}"].eval_time')
+					driver = fcurve.driver
+
+					var_range = c.max - c.min
+					range_mid = c.min + (c.max - c.min)/2
+
+					driver.expression = f'(var - {range_mid}) / {var_range} + 0.5'
+					var = driver.variables.new()
+					var.type = 'TRANSFORMS'
+					target = var.targets[0]
+					target.id = rig
+					target.bone_target = subtarget
+					target.transform_type = c.transform_channel.replace("ATION", "")
+					target.transform_space = c.target_space + "_SPACE"
+
 
 	def ensure_test_action(self):
 		# Ensure test action exists
