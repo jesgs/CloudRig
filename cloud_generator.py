@@ -543,6 +543,57 @@ class CloudGenerator(Generator):
 		
 		return test_action
 
+	def get_children_data(self):
+		obj = self.obj
+
+		# Get parented objects to restore later
+		children = list(obj.children[:])
+		for o in bpy.data.objects:
+			for c in o.constraints:
+				if c.type=='ARMATURE':
+					for tar in c.targets:
+						if tar.target==obj and o not in children:
+							children.append(o)
+
+		children_data = {}  # {child_object: (parent_bone_name, {constraint_name : constraint_subtarget(s)}}
+		for child in children:
+			constraint_bone_targets = {}
+			for c in child.constraints:
+				if hasattr(c, 'subtarget') and c.subtarget!="":
+					constraint_bone_targets[c.name] = c.subtarget
+					c.subtarget = ""
+				if c.type=='ARMATURE':
+					subtargets = []
+					for tar in c.targets:
+						subtargets.append(tar.subtarget)
+						tar.subtarget = ""
+					constraint_bone_targets[c.name] = subtargets
+			children_data[child] = (child.parent_bone, constraint_bone_targets)
+			child.parent = None
+		
+		return children_data
+	
+	def restore_children_parenting(self, children_data):
+		obj = self.obj
+		for child, child_data in children_data.items():
+			child.parent = obj
+
+			parent_bone_name = child_data[0]
+			if parent_bone_name in obj.pose.bones:
+				mat = child.matrix_world.copy()
+				child.parent_bone = parent_bone_name
+				child.matrix_world = mat
+
+			constraint_bone_targets = child_data[1]
+			for c_name in constraint_bone_targets.keys():
+				c = child.constraints[c_name]
+				if c.type=='ARMATURE':
+					subtargets = constraint_bone_targets[c_name]
+					for i, t in enumerate(c.targets):
+						t.subtarget = subtargets[i]
+				else:
+					c.subtarget = constraint_bone_targets[c_name]
+
 	def create_test_animation(self, action):
 		"""Generate deformation test animation.
 
@@ -603,6 +654,11 @@ class CloudGenerator(Generator):
 		self.logger.rig = obj
 		self.logger.metarig = metarig
 
+		# Nuke all drivers on the rig
+		if obj.animation_data:
+			for d in obj.animation_data.drivers[:]:
+				obj.animation_data.drivers.remove(d)
+
 		self.defaults['rig'] = obj
 
 		# Ensure it's transforms are cleared.
@@ -637,10 +693,7 @@ class CloudGenerator(Generator):
 		t.tick("Create main WGTS: ")
 
 		#------------------------------------------
-		# Get parented objects to restore later
-		childs = {}  # {object: bone}
-		for child in obj.children:
-			childs[child] = child.parent_bone
+		children_data = self.get_children_data()
 
 		#------------------------------------------
 		# Copy bones from metarig to obj
@@ -660,11 +713,6 @@ class CloudGenerator(Generator):
 		# Put the rig_name in the armature custom properties
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
 		obj.data["rig_id"] = self.rig_id
-
-		# Nuke all drivers on the rig
-		if obj.animation_data:
-			for d in obj.animation_data.drivers[:]:
-				obj.animation_data.drivers.remove(d)
 
 		self.script = None
 		if self.rigify_compatible:
@@ -877,11 +925,7 @@ class CloudGenerator(Generator):
 		obj.matrix_world = backup_matrix
 
 		# Restore parent to bones
-		for child, sub_parent in childs.items():
-			if sub_parent in obj.pose.bones:
-				mat = child.matrix_world.copy()
-				child.parent_bone = sub_parent
-				child.matrix_world = mat
+		self.restore_children_parenting(children_data)
 
 		# Refresh drivers
 		bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
