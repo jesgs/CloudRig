@@ -45,13 +45,17 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 			self.bone_name = self.orgless_name
 
 			self.params = meta_bone.rigify_parameters
-		elif self.copy_type == "Create" and self.create_deform_bone:
-			# Make a copy with DEF- prefix, as our deform bone.
-			def_bone_name = "DEF-" + self.orgless_name
-			self.def_bone_name = self.copy_bone(org_bone.name, def_bone_name)
-			def_bone = self.get_bone(self.def_bone_name)
-			def_bone.bbone_x = def_bone.bbone_z = org_bone.bbone_x
-			set_layers(def_bone, [DefaultLayers['DEF'].value])
+		elif self.copy_type == "Create":
+			# Rename the bone to its final name, without the ORG- prefix.
+			self.bone_name = org_bone.name = self.orgless_name
+			self.register_new_bone(self.orgless_name, self.bones.org)
+			if self.create_deform_bone:
+				# Make a copy with DEF- prefix, as our deform bone.
+				def_bone_name = "DEF-" + self.orgless_name
+				self.def_bone_name = self.copy_bone(org_bone.name, def_bone_name)
+				def_bone = self.get_bone(self.def_bone_name)
+				def_bone.bbone_x = def_bone.bbone_z = org_bone.bbone_x
+				set_layers(def_bone, [DefaultLayers['DEF'].value])
 
 	@stage.configure_bones
 	def modify_bone_group(self):
@@ -120,9 +124,6 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 			mod_bone.roll = self.roll
 			mod_bone.bbone_x = meta_bone.bbone_x
 			mod_bone.bbone_z = meta_bone.bbone_z
-
-		# Rename the bone to its final name, without the ORG- prefix.
-		self.bone_name = mod_bone.name = self.orgless_name
 
 	def do_parenting_with_constraint(self):
 		mod_bone = self.get_bone(self.bone_name)
