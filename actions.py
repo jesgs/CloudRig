@@ -10,18 +10,26 @@ from .utils.ui import is_cloud_metarig
 def find_slot_by_action(rig, action):
 	"""Find the CloudRigActionSlot in the rig which targets this action."""
 	cloudrig = rig.data.cloudrig_parameters
-	for slot in cloudrig.action_slots:
+	for i, slot in enumerate(cloudrig.action_slots):
 		if slot.action==action:
-			return slot
+			return slot, i
 
-def is_cloudrig_action(self, action):
-	"""Whether an action is used by a CloudRigActionSlot or not."""
+def poll_trigger_action(self, action):
+	"""Whether an action can be used as a corrective action's trigger or not."""
 	rig = bpy.context.object
 	cloudrig = rig.data.cloudrig_parameters
 	action_slots = cloudrig.action_slots
+	active_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
+
+	# If this action is the same as the active slot's action, don't show it.
+	if action == active_slot.action:
+		return False
+
+	# If this action is used by any other action slot, show it.
 	for act in action_slots:
 		if act.action == action:
 			return True
+
 	return False
 
 class CLOUDRIG_OT_Action_Remove(bpy.types.Operator):
@@ -131,6 +139,22 @@ class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
 		action_slot.action = a
 		return {'FINISHED'}
 
+class CLOUDRIG_OT_Action_Jump(bpy.types.Operator):
+	"""Set Active Action Slot Index"""
+
+	bl_idname = "object.cloudrig_action_jump"
+	bl_label = "Jump to Action Slot"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	to_index: IntProperty()
+
+	def execute(self, context):
+		cloudrig = context.object.data.cloudrig_parameters
+		action_slots = cloudrig.action_slots
+		cloudrig.active_action_slot_index = self.to_index
+
+		return { 'FINISHED' }
+
 class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		rig = context.object
@@ -235,13 +259,13 @@ class ActionSlot(bpy.types.PropertyGroup):
 		name = "Trigger A"
 		,description = "Action whose activation will trigger the corrective action"
 		,type = bpy.types.Action
-		,poll = is_cloudrig_action
+		,poll = poll_trigger_action
 	)
 	trigger_action_b: PointerProperty(
 		name="Trigger B"
 		,description = "Action whose activation will trigger the corrective action"
 		,type = bpy.types.Action
-		,poll = is_cloudrig_action
+		,poll = poll_trigger_action
 	)
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
@@ -301,15 +325,17 @@ def draw_cloudrig_actions(layout, rig):
 		for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
 			trigger = getattr(act, trigger_prop)
 			icon = 'ACTION' if act.trigger_action_a else 'ERROR'
-			layout.prop(act, trigger_prop, icon=icon)
+			row = layout.row()
+			row.prop(act, trigger_prop, icon=icon)
 			if trigger:
 				col = layout.column()
 				col.enabled = False
-				trigger_slot = find_slot_by_action(rig, trigger)
+				trigger_slot, slot_index = find_slot_by_action(rig, trigger)
+				op = row.operator(CLOUDRIG_OT_Action_Jump.bl_idname, text="", icon='LOOP_FORWARDS')
+				op.to_index = slot_index
 				draw_action_slot_properties(col, trigger_slot, rig.data.rigify_target_rig.data)
 		return
 
-	# layout.prop_search(act, 'subtarget', rig.data, 'bones')
 	if not rig.data.rigify_target_rig:
 		row = layout.row()
 		row.alert=True
@@ -354,6 +380,7 @@ classes = [
 	CLOUDRIG_OT_Action_Add,
 	CLOUDRIG_OT_Action_Remove,
 	CLOUDRIG_OT_Action_Move,
+	CLOUDRIG_OT_Action_Jump,
 	CLOUDRIG_OT_Action_Create,
 	CLOUDRIG_PT_actions,
 ]
