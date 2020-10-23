@@ -8,8 +8,22 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple, 
 # changing names of parameters, etc.
-cloud_metarig_version = 5
+cloud_metarig_version = 6
 cloudrig_version = 0.1
+
+def update_enum_property(owner, old_key, new_key, int_value):
+	# Enum properties are a bit tricky because once their definition is lost their string value is lost and is left with an int.
+	property_group_class_name = type(owner).__name__
+	rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(property_group_class_name)
+	enum_prop = rna_class.bl_rna.properties.get(new_key)
+	if enum_prop:
+		# This will only work for the current version
+		enum_string_value = str(enum_prop.enum_items[int_value]).split('"')[1]
+		print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
+		setattr(owner, new_key, enum_string_value)
+	else:
+		# For other versions, just back it up.
+		owner[new_key] = int_value
 
 def rename_parameters(metarig, dictionary):
 	for pb in metarig.pose.bones:
@@ -22,17 +36,7 @@ def rename_parameters(metarig, dictionary):
 					print(f"Rename param {old_key}->{new_key}")
 					setattr(pb.rigify_parameters, new_key, value)
 				except:
-					# We assume this fails because we're trying to assign an int to a string enum... The solution couldn't be simpler...!
-					rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py('RigifyParameters')
-					enum_prop = rna_class.bl_rna.properties.get(new_key)
-					if enum_prop:
-						# This will only work for the current version
-						enum_string_value = enum_prop.enum_items[value].name
-						print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
-						setattr(pb.rigify_parameters, new_key, enum_string_value)
-					else:
-						# For other versions, just back it up.
-						pb.rigify_parameters[new_key] = value
+					update_enum_property(pb.rigify_parameters, old_key, new_key)
 
 def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of 
@@ -141,6 +145,17 @@ def version_cloud_metarig(metarig):
 			,"CR_leg_heel_bone" : "CR_leg_heel_bone"
 		}
 		rename_parameters(metarig, dictionary)
+	if data.cloudrig_parameters.version < 6:
+		# Renamed actions to action_slots
+		if 'actions' in data.cloudrig_parameters:
+			for old_slot in data.cloudrig_parameters['actions']:
+				slot_data = old_slot.to_dict()
+				new_slot = data.cloudrig_parameters.action_slots.add()
+				for key in slot_data.keys():
+					try:
+						setattr(new_slot, key, old_slot[key])
+					except:
+						update_enum_property(new_slot, key, key, old_slot[key])
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]

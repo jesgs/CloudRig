@@ -10,7 +10,7 @@ from .utils.ui import is_cloud_metarig
 def find_slot_by_action(rig, action):
 	"""Find the CloudRigActionSlot in the rig which targets this action."""
 	cloudrig = rig.data.cloudrig_parameters
-	for slot in cloudrig.actions:
+	for slot in cloudrig.action_slots:
 		if slot.action==action:
 			return slot
 
@@ -18,8 +18,8 @@ def is_cloudrig_action(self, action):
 	"""Whether an action is used by a CloudRigActionSlot or not."""
 	rig = bpy.context.object
 	cloudrig = rig.data.cloudrig_parameters
-	actions = cloudrig.actions
-	for act in actions:
+	action_slots = cloudrig.action_slots
+	for act in action_slots:
 		if act.action == action:
 			return True
 	return False
@@ -27,7 +27,7 @@ def is_cloudrig_action(self, action):
 class CLOUDRIG_OT_Action_Remove(bpy.types.Operator):
 	"""Remove an action setup"""
 
-	bl_idname = "pose.cloudrig_action_remove"
+	bl_idname = "object.cloudrig_action_remove"
 	bl_label = "Remove CloudRig Action Setup"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -36,47 +36,47 @@ class CLOUDRIG_OT_Action_Remove(bpy.types.Operator):
 	@classmethod
 	def poll(cls, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		return len(cloudrig.actions)>0
+		return len(cloudrig.action_slots)>0
 
 	def execute(self, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		actions = cloudrig.actions
-		active_index = cloudrig.active_action_index
+		action_slots = cloudrig.action_slots
+		active_index = cloudrig.active_action_slot_index
 		# This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
 		to_index = active_index
-		if to_index>len(actions)-2:
-			to_index=len(actions)-2
+		if to_index>len(action_slots)-2:
+			to_index=len(action_slots)-2
 
-		cloudrig.actions.remove(self.index)
-		cloudrig.active_action_index = to_index
+		cloudrig.action_slots.remove(self.index)
+		cloudrig.active_action_slot_index = to_index
 
 		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Action_Add(bpy.types.Operator):
 	"""Add an action setup"""
 
-	bl_idname = "pose.cloudrig_action_add"
+	bl_idname = "object.cloudrig_action_add"
 	bl_label = "Add CloudRig Action Setup"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	def execute(self, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		actions = cloudrig.actions
-		active_index = cloudrig.active_action_index
+		action_slots = cloudrig.action_slots
+		active_index = cloudrig.active_action_slot_index
 		to_index = active_index + 1
-		if len(actions)==0:
+		if len(action_slots)==0:
 			to_index = 0
 
-		cloudrig.actions.add()
-		cloudrig.actions.move(len(cloudrig.actions)-1, to_index)
-		cloudrig.active_action_index = to_index
+		cloudrig.action_slots.add()
+		cloudrig.action_slots.move(len(cloudrig.action_slots)-1, to_index)
+		cloudrig.active_action_slot_index = to_index
 
 		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Action_Move(bpy.types.Operator):
 	"""Move an action setup"""
 
-	bl_idname = "pose.cloudrig_action_move"
+	bl_idname = "object.cloudrig_action_move"
 	bl_label = "Move CloudRig Action Setup"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -92,21 +92,21 @@ class CLOUDRIG_OT_Action_Move(bpy.types.Operator):
 	@classmethod
 	def poll(cls, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		return len(cloudrig.actions)>1
+		return len(cloudrig.action_slots)>1
 
 	def execute(self, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		actions = cloudrig.actions
-		active_index = cloudrig.active_action_index
+		action_slots = cloudrig.action_slots
+		active_index = cloudrig.active_action_slot_index
 		to_index = active_index + (1 if self.direction=='DOWN' else -1)
 
-		if to_index > len(actions)-1:
+		if to_index > len(action_slots)-1:
 			to_index = 0
 		if to_index < 0:
-			to_index = len(actions)-1
+			to_index = len(action_slots)-1
 
-		cloudrig.actions.move(active_index, to_index)
-		cloudrig.active_action_index = to_index
+		cloudrig.action_slots.move(active_index, to_index)
+		cloudrig.active_action_slot_index = to_index
 
 		return { 'FINISHED' }
 
@@ -123,8 +123,9 @@ class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
 		a = bpy.data.actions.new(name="Action")
 		rig = context.object
 		cloudrig = rig.data.cloudrig_parameters
-		action_slot = cloudrig.actions[cloudrig.active_action_index]
+		action_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
 		if action_slot.action:
+			# This could be an assert, it should never happen.
 			self.report({'ERROR'}, "Action slot already has an action!")
 			return {'CANCELLED'}
 		action_slot.action = a
@@ -134,18 +135,19 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		rig = context.object
 		cloudrig = data
-		active_action = cloudrig.actions[cloudrig.active_action_index]
+		active_action = cloudrig.action_slots[cloudrig.active_action_slot_index]
 		act = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			if act.action:
 				row = layout.row()
 				icon = 'ACTION'
-				# Check if this action is a trigger for the active one
+				# Check if this action is a trigger for the active corrective action
 				if active_action.is_corrective and \
 					act.action in [active_action.trigger_action_a, active_action.trigger_action_b]:
-					icon = 'AUTOMERGE_ON'
+					icon = 'RESTRICT_INSTANCED_OFF'
+				# Check if the active action is a trigger for this corrective action.
 				if act.is_corrective and active_action.action in [act.trigger_action_a, act.trigger_action_b]:
-					icon = 'AUTOMERGE_OFF'
+					icon = 'RESTRICT_INSTANCED_OFF'
 
 				row.prop(act.action, 'name', text="", emboss=False, icon=icon)
 
@@ -157,7 +159,7 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 
 					if act.is_corrective:
 						text = "Corrective"
-						icon = 'AUTOMERGE_ON'
+						icon = 'RESTRICT_INSTANCED_OFF'
 						if None in [act.trigger_action_a, act.trigger_action_b]:
 							row.alert = True
 							text = "Trigger Action missing!"
@@ -179,7 +181,7 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 			layout.alignment = 'CENTER'
 			layout.label(text="", icon_value=icon)
 
-class CloudRigAction(bpy.types.PropertyGroup):
+class ActionSlot(bpy.types.PropertyGroup):
 	enabled: BoolProperty(
 		name="Enabled"
 		,description = "Create constraints for this action on the generated rig"
@@ -259,8 +261,8 @@ class CLOUDRIG_PT_actions(bpy.types.Panel):
 
 def draw_cloudrig_actions(layout, rig):
 	cloudrig = rig.data.cloudrig_parameters
-	actions = cloudrig.actions
-	active_index = cloudrig.active_action_index
+	action_slots = cloudrig.action_slots
+	active_index = cloudrig.active_action_slot_index
 
 	row = layout.row()
 
@@ -268,24 +270,24 @@ def draw_cloudrig_actions(layout, rig):
 		'CLOUDRIG_UL_action_slots',
 		'',
 		cloudrig,
-		'actions',
+		'action_slots',
 		cloudrig,
-		'active_action_index',
+		'active_action_slot_index',
 	)
 
 	col = row.column()
-	col.operator('pose.cloudrig_action_add', text="", icon='ADD')
-	remove_op = col.operator('pose.cloudrig_action_remove', text="", icon='REMOVE')
+	col.operator('object.cloudrig_action_add', text="", icon='ADD')
+	remove_op = col.operator('object.cloudrig_action_remove', text="", icon='REMOVE')
 	remove_op.index = active_index
 	col.separator()
-	move_up_op = col.operator('pose.cloudrig_action_move', text="", icon='TRIA_UP')
+	move_up_op = col.operator('object.cloudrig_action_move', text="", icon='TRIA_UP')
 	move_up_op.direction='UP'
-	move_down_op = col.operator('pose.cloudrig_action_move', text="", icon='TRIA_DOWN')
+	move_down_op = col.operator('object.cloudrig_action_move', text="", icon='TRIA_DOWN')
 	move_down_op.direction='DOWN'
 
-	if len(actions)==0:
+	if len(action_slots)==0:
 		return
-	act = actions[active_index]
+	act = action_slots[active_index]
 
 	layout.template_ID(act, 'action', new='object.cloudrig_action_create')
 	if not act.action:
@@ -316,7 +318,7 @@ def draw_cloudrig_actions(layout, rig):
 
 	draw_action_slot_properties(layout, act, rig.data.rigify_target_rig.data)
 
-def draw_action_slot_properties(layout, action_slot: CloudRigAction, target_armature: bpy.types.Armature):
+def draw_action_slot_properties(layout, action_slot: ActionSlot, target_armature: bpy.types.Armature):
 	row = layout.row()
 	subtarget_exists = action_slot.subtarget in target_armature.bones
 	icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
@@ -347,7 +349,7 @@ def draw_action_slot_properties(layout, action_slot: CloudRigAction, target_arma
 	layout.separator()
 
 classes = [
-	CloudRigAction,
+	ActionSlot,
 	CLOUDRIG_UL_action_slots,
 	CLOUDRIG_OT_Action_Add,
 	CLOUDRIG_OT_Action_Remove,

@@ -18,7 +18,7 @@ from .utils import mechanism
 from . import widgets as cloud_widgets
 from .versioning import cloud_metarig_version
 
-from .actions import CloudRigAction
+from .actions import ActionSlot
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
 from .utils.naming import CloudNameManager
@@ -33,7 +33,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	version: IntProperty(
 		name		 = "CloudRig MetaRig Version"
 		,description = "For internal use only"
-		,default	 = cloud_metarig_version
+		,default	 = -1
 	)
 	options: BoolProperty(
 		name		 = "CloudRig Settings"
@@ -168,8 +168,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = True
 	)
 
-	actions: CollectionProperty(type=CloudRigAction)
-	active_action_index: IntProperty(min=0)
+	action_slots: CollectionProperty(type=ActionSlot)
+	active_action_slot_index: IntProperty(min=0)
 
 	logs: CollectionProperty(type=CloudRigLogEntry)
 	log_show_stack_trace: BoolProperty(
@@ -443,16 +443,16 @@ class CloudGenerator(Generator):
 
 	def create_action_constraints(self):
 		bones = self.obj.pose.bones
-		action_defs = self.params.cloudrig_parameters.actions
+		action_slots = self.params.cloudrig_parameters.action_slots
 
 		rig = self.obj
-		for act_def in reversed(action_defs):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
-			if not act_def.enabled: continue
-			if not act_def.action: continue
-			if not act_def.subtarget: continue
+		for act_slot in reversed(action_slots):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
+			if not act_slot.enabled: continue
+			if not act_slot.action: continue
+			if not act_slot.subtarget: continue
 
-			action = act_def.action
-			subtarget = act_def.subtarget
+			action = act_slot.action
+			subtarget = act_slot.subtarget
 
 			# Getting a list of pose bones on the rig corresponding to the selected action's keyframes
 			bones = []
@@ -465,7 +465,7 @@ class CloudGenerator(Generator):
 					if(bone and bone not in bones):
 						bones.append(bone)
 
-			do_symmetry = self.naming.flipped_name(subtarget)!=subtarget and act_def.symmetrical==True
+			do_symmetry = self.naming.flipped_name(subtarget)!=subtarget and act_slot.symmetrical==True
 
 			# Adding action constraints to the bones
 			for b in bones:
@@ -504,17 +504,17 @@ class CloudGenerator(Generator):
 					control_is_left_side = self.naming.side_is_left(subtarget)
 					if constraint_is_left_side != control_is_left_side:
 						subtarget = self.naming.flipped_name(subtarget)
-					c.target_space = act_def.target_space
-					c.transform_channel = act_def.transform_channel
+					c.target_space = act_slot.target_space
+					c.transform_channel = act_slot.transform_channel
 					c.target = rig
 					c.subtarget = subtarget
 					c.action = action
-					c.min = act_def.trans_min
-					c.max = act_def.trans_max
-					c.frame_start = act_def.frame_start
-					c.frame_end = act_def.frame_end
+					c.min = act_slot.trans_min
+					c.max = act_slot.trans_max
+					c.frame_start = act_slot.frame_start
+					c.frame_end = act_slot.frame_end
 					c.mix_mode = 'BEFORE'
-					if c.subtarget!=act_def.subtarget:
+					if c.subtarget != act_slot.subtarget:
 						# Flip min/max in some cases.
 						if(c.transform_channel in ['ROTATION_Z', 'LOCATION_X']):
 							max_tmp = c.max
@@ -543,7 +543,6 @@ class CloudGenerator(Generator):
 					target.bone_target = subtarget
 					target.transform_type = c.transform_channel.replace("ATION", "")
 					target.transform_space = c.target_space + "_SPACE"
-
 
 	def ensure_test_action(self):
 		# Ensure test action exists
@@ -674,6 +673,9 @@ class CloudGenerator(Generator):
 		obj = self.create_rig_object()
 		self.logger.rig = obj
 		self.logger.metarig = metarig
+
+		# Update metarig version
+		metarig.data.cloudrig_parameters.version = cloud_metarig_version
 
 		# Nuke all drivers on the rig
 		if obj.animation_data:

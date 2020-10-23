@@ -56,9 +56,9 @@ def cloudrig_manual_map():
 		(params_pref+"bg_*", "Organizing-Bones#bone-sets"),
 
 		# Actions
-		("bpy.ops.pose.cloudrig_action_*", "Actions"),
-		(generator_params_pref+"active_action_index", "Actions"),
-		("bpy.types.cloudrigaction.*", "Actions"),
+		(generator_params_pref+"active_action_slot_index", "Actions"),
+		("bpy.types.actionslot.*", "Actions"),
+		("bpy.ops.object.cloudrig_action*", "Actions"),
 
 		# Catch-alls
 		(generator_params_pref+"*", "Generator-Parameters"),
