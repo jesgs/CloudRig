@@ -6,7 +6,7 @@ from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
 from rna_prop_ui import rna_idprop_ui_prop_get
 
-from rigify.generate import Generator, Timer, select_object#, create_selection_sets
+from rigify.generate import Generator, Timer, select_object
 from rigify import rig_ui_template
 from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX
 from rigify.utils.errors import MetarigError
@@ -341,6 +341,19 @@ class CloudGenerator(Generator):
 			self.bone_sets.append(self.root_parent_set)
 			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
 			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
+		
+		# If the Metarig has any Action Slots, create an Action Property Helper bone.
+		if len(self.metarig.data.cloudrig_parameters.action_slots) > 0:
+			self.action_helper = self.create_action_helper()
+
+	def create_action_helper(self):
+		action_helper = new_bonei(self, self.root_set
+			,name				= "action_props"
+			,head				= Vector((0, 0, 0))
+			,tail				= Vector((0, self.scale*1, 0))
+			,bbone_width		= 1/20
+		)
+		return action_helper
 
 	def load_ui_script(self):
 		"""Load cloudrig.py (CloudRig UI script) into a text datablock, enable register checkbox and execute it."""
@@ -449,7 +462,7 @@ class CloudGenerator(Generator):
 		for act_slot in reversed(action_slots):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
 			if not act_slot.enabled: continue
 			if not act_slot.action: continue
-			if not act_slot.subtarget: continue
+			if not act_slot.subtarget and not act_slot.is_corrective: continue
 
 			action = act_slot.action
 			subtarget = act_slot.subtarget
@@ -458,11 +471,11 @@ class CloudGenerator(Generator):
 			bones = []
 			for fc in action.fcurves:
 				# Extracting bone name from fcurve data path
-				if("pose.bones" in fc.data_path):
+				if "pose.bones" in fc.data_path:
 					bone_name = fc.data_path.split('["')[1].split('"]')[0]
 
 					bone = rig.pose.bones.get(bone_name)
-					if(bone and bone not in bones):
+					if bone and bone not in bones:
 						bones.append(bone)
 
 			do_symmetry = self.naming.flipped_name(subtarget)!=subtarget and act_slot.symmetrical==True
@@ -494,7 +507,8 @@ class CloudGenerator(Generator):
 				else:
 					# Constraint name should indicate side
 					c = b.constraints.new(type='ACTION')
-					c.name = con_name + (".L" if bone_is_left_side else ".R")
+					con_name += ".L" if bone_is_left_side else ".R"
+					c.name = con_name
 					constraints.append(c)
 
 				# Configure Action constraints
@@ -516,33 +530,69 @@ class CloudGenerator(Generator):
 					c.mix_mode = 'BEFORE'
 					if c.subtarget != act_slot.subtarget:
 						# Flip min/max in some cases.
-						if(c.transform_channel in ['ROTATION_Z', 'LOCATION_X']):
+						if c.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
 							max_tmp = c.max
 							c.max = c.min
 							c.min = max_tmp
 
 					# Move constraints to top of the stack in the same order. Important that Action constraints are above Armature constraints.
 					b.constraints.move(len(b.constraints)-1, 0)
-					
+
+					if act_slot.is_corrective:
+						c.use_eval_time = True
+						fcurve = rig.driver_add(f'pose.bones["{b.name}"].constraints["{c.name}"].eval_time')
+						driver = fcurve.driver
+						trigger_a_con_name = c.name.replace(action.name, act_slot.trigger_action_a.name)
+						trigger_b_con_name = c.name.replace(action.name, act_slot.trigger_action_b.name)
+						target_a.id = target_b.id = rig
+
+						relation = ">=" if act_slot.corrective_type=='POSITIVE' else "<="
+						sign = "-" if act_slot.corrective_type=='POSITIVE' else "+"
+						# This expression calculates the correct value for this corrective action's eval_time.
+						driver.expression = f'0.5 if A {relation} 0.5 else 0.5 {sign} (B-0.5) * (A-0.5) *2'
+
+						# For example, let's say you have these two actions:
+						# A = Lips_UpDown.eval_time
+						var_a = driver.variables.new()
+						var_a.name = "A"
+						target_a = var_a.targets[0]
+						target_a.data_path = f'pose.bones["{self.action_helper.name}"]["{trigger_a_con_name}"]'
+						# B = Lips_ThinWide.eval_time
+						var_b = driver.variables.new()
+						var_b.name = "B"
+						target_b = var_b.targets[0]
+						target_b.data_path = f'pose.bones["{self.action_helper.name}"]["{trigger_b_con_name}"]'
+						continue
+
 					# Set up usage with Evaluation Time feature and a driver instead of old setup
 					if not hasattr(c, 'use_eval_time'):
 						continue
 					
 					c.use_eval_time = True
-					fcurve = rig.driver_add(f'pose.bones["{b.name}"].constraints["{c.name}"].eval_time')
-					driver = fcurve.driver
+					data_paths = [
+						f'pose.bones["{b.name}"].constraints["{c.name}"].eval_time'
+					]
+					if hasattr(self, 'action_helper'):
+						action_helper = rig.pose.bones.get(self.action_helper.name)
+						action_helper[c.name] = 0.5
+						data_paths.append(
+							f'pose.bones["{self.action_helper.name}"]["{c.name}"]'
+						)
+					for data_path in data_paths:
+						fcurve = rig.driver_add(data_path)
+						driver = fcurve.driver
 
-					var_range = c.max - c.min
-					range_mid = c.min + (c.max - c.min)/2
+						var_range = c.max - c.min
+						range_mid = c.min + (c.max - c.min)/2
 
-					driver.expression = f'(var - {range_mid}) / {var_range} + 0.5'
-					var = driver.variables.new()
-					var.type = 'TRANSFORMS'
-					target = var.targets[0]
-					target.id = rig
-					target.bone_target = subtarget
-					target.transform_type = c.transform_channel.replace("ATION", "")
-					target.transform_space = c.target_space + "_SPACE"
+						driver.expression = f'(var - {range_mid}) / {var_range} + 0.5'
+						var = driver.variables.new()
+						var.type = 'TRANSFORMS'
+						target = var.targets[0]
+						target.id = rig
+						target.bone_target = subtarget
+						target.transform_type = c.transform_channel.replace("ATION", "")
+						target.transform_space = c.target_space + "_SPACE"
 
 	def ensure_test_action(self):
 		# Ensure test action exists

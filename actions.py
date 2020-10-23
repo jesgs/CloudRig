@@ -268,6 +268,13 @@ class ActionSlot(bpy.types.PropertyGroup):
 	)
 	show_action_a: BoolProperty(name="Show Settings")
 	show_action_b: BoolProperty(name="Show Settings")
+	corrective_type: EnumProperty(
+		name = "Corrective Range"
+		,items = [
+			('NEGATIVE', 'A > 0.5', "This corrective action's evaluation time changes only when the evaluation time of trigger A is GREATER than 0.5"),
+			('POSITIVE', 'A < 0.5', "This corrective action's evaluation time changes only when the evaluation time of trigger A is LESS than 0.5")
+		]
+	)
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
@@ -323,6 +330,7 @@ def draw_cloudrig_actions(layout, rig):
 	layout.use_property_decorate=False
 	layout.prop(active_slot, 'is_corrective')
 	if active_slot.is_corrective:
+		layout.prop(active_slot, 'corrective_type')
 		layout.prop(active_slot, 'frame_start', text="Frame Start")
 		layout.prop(active_slot, 'frame_end', text="End")
 		layout.separator()
