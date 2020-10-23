@@ -26,8 +26,8 @@ def poll_trigger_action(self, action):
 		return False
 
 	# If this action is used by any other action slot, show it.
-	for act in action_slots:
-		if act.action == action:
+	for slot in action_slots:
+		if slot.action == action:
 			return True
 
 	return False
@@ -160,31 +160,31 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 		rig = context.object
 		cloudrig = data
 		active_action = cloudrig.action_slots[cloudrig.active_action_slot_index]
-		act = item
+		action_slot = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
-			if act.action:
+			if action_slot.action:
 				row = layout.row()
 				icon = 'ACTION'
 				# Check if this action is a trigger for the active corrective action
 				if active_action.is_corrective and \
-					act.action in [active_action.trigger_action_a, active_action.trigger_action_b]:
+					action_slot.action in [active_action.trigger_action_a, active_action.trigger_action_b]:
 					icon = 'RESTRICT_INSTANCED_OFF'
 				# Check if the active action is a trigger for this corrective action.
-				if act.is_corrective and active_action.action in [act.trigger_action_a, act.trigger_action_b]:
+				if action_slot.is_corrective and active_action.action in [action_slot.trigger_action_a, action_slot.trigger_action_b]:
 					icon = 'RESTRICT_INSTANCED_OFF'
 
-				row.prop(act.action, 'name', text="", emboss=False, icon=icon)
+				row.prop(action_slot.action, 'name', text="", emboss=False, icon=icon)
 
 				target_rig = rig.data.rigify_target_rig
 				if target_rig:
-					subtarget_exists = act.subtarget in target_rig.data.bones
-					text = act.subtarget
+					subtarget_exists = action_slot.subtarget in target_rig.data.bones
+					text = action_slot.subtarget
 					icon = 'BONE_DATA'
 
-					if act.is_corrective:
+					if action_slot.is_corrective:
 						text = "Corrective"
 						icon = 'RESTRICT_INSTANCED_OFF'
-						if None in [act.trigger_action_a, act.trigger_action_b]:
+						if None in [action_slot.trigger_action_a, action_slot.trigger_action_b]:
 							row.alert = True
 							text = "Trigger Action missing!"
 							icon = 'ERROR'
@@ -195,10 +195,9 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 
 					row.label(text=text, icon=icon)
 
-				# icon = 'HIDE_OFF' if act.enabled else 'HIDE_ON'
-				icon = 'CHECKBOX_HLT' if act.enabled else 'CHECKBOX_DEHLT'
-				row.enabled = act.enabled
-				layout.prop(act, 'enabled', text="", icon=icon, emboss=False)
+				icon = 'CHECKBOX_HLT' if action_slot.enabled else 'CHECKBOX_DEHLT'
+				row.enabled = action_slot.enabled
+				layout.prop(action_slot, 'enabled', text="", icon=icon, emboss=False)
 			else:
 				layout.label(text="", translate=False, icon='ACTION')
 		elif self.layout_type in {'GRID'}:
@@ -267,6 +266,8 @@ class ActionSlot(bpy.types.PropertyGroup):
 		,type = bpy.types.Action
 		,poll = poll_trigger_action
 	)
+	show_action_a: BoolProperty(name="Show Settings")
+	show_action_b: BoolProperty(name="Show Settings")
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
@@ -311,29 +312,37 @@ def draw_cloudrig_actions(layout, rig):
 
 	if len(action_slots)==0:
 		return
-	act = action_slots[active_index]
+	active_slot = action_slots[active_index]
 
-	layout.template_ID(act, 'action', new='object.cloudrig_action_create')
-	if not act.action:
+	layout.template_ID(active_slot, 'action', new='object.cloudrig_action_create')
+	if not active_slot.action:
 		return
 
 	layout = layout.column()
 	layout.use_property_split=True
 	layout.use_property_decorate=False
-	layout.prop(act, 'is_corrective')
-	if act.is_corrective:
+	layout.prop(active_slot, 'is_corrective')
+	if active_slot.is_corrective:
+		layout.prop(active_slot, 'frame_start', text="Frame Start")
+		layout.prop(active_slot, 'frame_end', text="End")
+		layout.separator()
 		for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
-			trigger = getattr(act, trigger_prop)
-			icon = 'ACTION' if act.trigger_action_a else 'ERROR'
+			trigger = getattr(active_slot, trigger_prop)
+			icon = 'ACTION' if active_slot.trigger_action_a else 'ERROR'
 			row = layout.row()
-			row.prop(act, trigger_prop, icon=icon)
+			row.prop(active_slot, trigger_prop, icon=icon)
 			if trigger:
 				col = layout.column()
 				col.enabled = False
 				trigger_slot, slot_index = find_slot_by_action(rig, trigger)
+				show_prop_name = 'show_action_' + trigger_prop[-1]
+				show = getattr(active_slot, show_prop_name)
+				icon = 'HIDE_OFF' if show else 'HIDE_ON'
+				row.prop(active_slot, show_prop_name, icon=icon, text="")
 				op = row.operator(CLOUDRIG_OT_Action_Jump.bl_idname, text="", icon='LOOP_FORWARDS')
 				op.to_index = slot_index
-				draw_action_slot_properties(col, trigger_slot, rig.data.rigify_target_rig.data)
+				if show:
+					draw_action_slot_properties(col, trigger_slot, rig.data.rigify_target_rig.data)
 		return
 
 	if not rig.data.rigify_target_rig:
@@ -342,7 +351,7 @@ def draw_cloudrig_actions(layout, rig):
 		row.label(text="Generate the rig to select a control bone for this action.")
 		return
 
-	draw_action_slot_properties(layout, act, rig.data.rigify_target_rig.data)
+	draw_action_slot_properties(layout, active_slot, rig.data.rigify_target_rig.data)
 
 def draw_action_slot_properties(layout, action_slot: ActionSlot, target_armature: bpy.types.Armature):
 	row = layout.row()
