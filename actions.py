@@ -5,6 +5,25 @@ from .utils.ui import is_cloud_metarig
 
 # This whole thing could be part of Rigify.
 
+# TODO: UI doesn't currently communicate that an action should only be used by a singular CloudRigActionSlot.
+
+def find_slot_by_action(rig, action):
+	"""Find the CloudRigActionSlot in the rig which targets this action."""
+	cloudrig = rig.data.cloudrig_parameters
+	for slot in cloudrig.actions:
+		if slot.action==action:
+			return slot
+
+def is_cloudrig_action(self, action):
+	"""Whether an action is used by a CloudRigActionSlot or not."""
+	rig = bpy.context.object
+	cloudrig = rig.data.cloudrig_parameters
+	actions = cloudrig.actions
+	for act in actions:
+		if act.action == action:
+			return True
+	return False
+
 class CLOUDRIG_OT_Action_Remove(bpy.types.Operator):
 	"""Remove an action setup"""
 
@@ -49,6 +68,7 @@ class CLOUDRIG_OT_Action_Add(bpy.types.Operator):
 			to_index = 0
 
 		cloudrig.actions.add()
+		cloudrig.actions.move(len(cloudrig.actions)-1, to_index)
 		cloudrig.active_action_index = to_index
 
 		return { 'FINISHED' }
@@ -90,25 +110,64 @@ class CLOUDRIG_OT_Action_Move(bpy.types.Operator):
 
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
+	"""Create new Action"""
+	# This is needed because bpy.ops.action.new() has a poll function that blocks
+	# the operator unless it's drawn in an animation UI panel, which is dumb.
+
+	bl_idname = "object.cloudrig_action_create"
+	bl_label = "New"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	def execute(self, context):
+		a = bpy.data.actions.new(name="Action")
+		rig = context.object
+		cloudrig = rig.data.cloudrig_parameters
+		action_slot = cloudrig.actions[cloudrig.active_action_index]
+		if action_slot.action:
+			self.report({'ERROR'}, "Action slot already has an action!")
+			return {'CANCELLED'}
+		action_slot.action = a
+		return {'FINISHED'}
 
 class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		rig = context.object
 		cloudrig = data
+		active_action = cloudrig.actions[cloudrig.active_action_index]
 		act = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			if act.action:
 				row = layout.row()
-				row.prop(act.action, 'name', text="", emboss=False, icon='ACTION')
+				icon = 'ACTION'
+				# Check if this action is a trigger for the active one
+				if active_action.is_corrective and \
+					act.action in [active_action.trigger_action_a, active_action.trigger_action_b]:
+					icon = 'AUTOMERGE_ON'
+				if act.is_corrective and active_action.action in [act.trigger_action_a, act.trigger_action_b]:
+					icon = 'AUTOMERGE_OFF'
+
+				row.prop(act.action, 'name', text="", emboss=False, icon=icon)
 
 				target_rig = rig.data.rigify_target_rig
 				if target_rig:
 					subtarget_exists = act.subtarget in target_rig.data.bones
-					if not subtarget_exists:
-						row.alert=True
-						row.label(text='Control Bone missing!', icon='ERROR')
-					else:
-						row.label(text=act.subtarget, icon='BONE_DATA')
+					text = act.subtarget
+					icon = 'BONE_DATA'
+
+					if act.is_corrective:
+						text = "Corrective"
+						icon = 'AUTOMERGE_ON'
+						if None in [act.trigger_action_a, act.trigger_action_b]:
+							row.alert = True
+							text = "Trigger Action missing!"
+							icon = 'ERROR'
+					elif not subtarget_exists:
+						row.alert = True
+						text = 'Control Bone missing!'
+						icon = 'ERROR'
+
+					row.label(text=text, icon=icon)
 
 				# icon = 'HIDE_OFF' if act.enabled else 'HIDE_ON'
 				icon = 'CHECKBOX_HLT' if act.enabled else 'CHECKBOX_DEHLT'
@@ -166,6 +225,23 @@ class CloudRigAction(bpy.types.PropertyGroup):
 	trans_max: FloatProperty(name="Max",
 		default=0.05)
 
+	is_corrective: BoolProperty(
+		name = "Corrective"
+		,description = "Indicate that this is a corrective action. Corrective actions will activate based on the activation of two other actions"
+	)
+	trigger_action_a: PointerProperty(
+		name = "Trigger A"
+		,description = "Action whose activation will trigger the corrective action"
+		,type = bpy.types.Action
+		,poll = is_cloudrig_action
+	)
+	trigger_action_b: PointerProperty(
+		name="Trigger B"
+		,description = "Action whose activation will trigger the corrective action"
+		,type = bpy.types.Action
+		,poll = is_cloudrig_action
+	)
+
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
@@ -211,8 +287,24 @@ def draw_cloudrig_actions(layout, rig):
 		return
 	act = actions[active_index]
 
-	layout.template_ID(act, 'action', new='action.new')
+	layout.template_ID(act, 'action', new='object.cloudrig_action_create')
 	if not act.action:
+		return
+
+	layout = layout.column()
+	layout.use_property_split=True
+	layout.use_property_decorate=False
+	layout.prop(act, 'is_corrective')
+	if act.is_corrective:
+		for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
+			trigger = getattr(act, trigger_prop)
+			icon = 'ACTION' if act.trigger_action_a else 'ERROR'
+			layout.prop(act, trigger_prop, icon=icon)
+			if trigger:
+				col = layout.column()
+				col.enabled = False
+				trigger_slot = find_slot_by_action(rig, trigger)
+				draw_action_slot_properties(col, trigger_slot, rig.data.rigify_target_rig.data)
 		return
 
 	# layout.prop_search(act, 'subtarget', rig.data, 'bones')
@@ -222,36 +314,36 @@ def draw_cloudrig_actions(layout, rig):
 		row.label(text="Generate the rig to select a control bone for this action.")
 		return
 
-	layout = layout.column()
-	layout.use_property_split=True
-	layout.use_property_decorate=False
+	draw_action_slot_properties(layout, act, rig.data.rigify_target_rig.data)
+
+def draw_action_slot_properties(layout, action_slot: CloudRigAction, target_armature: bpy.types.Armature):
 	row = layout.row()
-	subtarget_exists = act.subtarget in rig.data.rigify_target_rig.data.bones
+	subtarget_exists = action_slot.subtarget in target_armature.bones
 	icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
 
-	row.prop_search(act, 'subtarget', rig.data.rigify_target_rig.data, 'bones', icon=icon)
+	row.prop_search(action_slot, 'subtarget', target_armature, 'bones', icon=icon)
 	row.alert = not subtarget_exists
 
-	flipped_subtarget = naming.flip_name(act.subtarget)
-	flipped_subtarget_exists = flipped_subtarget in rig.data.rigify_target_rig.data.bones
-	if subtarget_exists and flipped_subtarget != act.subtarget:
+	flipped_subtarget = naming.flip_name(action_slot.subtarget)
+	flipped_subtarget_exists = flipped_subtarget in target_armature.bones
+	if subtarget_exists and flipped_subtarget != action_slot.subtarget:
 		row = layout.row()
 		row.use_property_split=True
 		text = f"Symmetrical ({flipped_subtarget})"
 		if not flipped_subtarget_exists:
 			text = text[:-1] + " not found!)"
-		row.prop(act, 'symmetrical', text=text)
+		row.prop(action_slot, 'symmetrical', text=text)
 		row.enabled = flipped_subtarget_exists
 
 	if not subtarget_exists: return
-	layout.prop(act, 'frame_start', text="Frame Start")
-	layout.prop(act, 'frame_end', text="End")
+	layout.prop(action_slot, 'frame_start', text="Frame Start")
+	layout.prop(action_slot, 'frame_end', text="End")
 
-	layout.prop(act, 'target_space', text="Target Space")
-	layout.prop(act, 'transform_channel', text="Transform Channel")
+	layout.prop(action_slot, 'target_space', text="Target Space")
+	layout.prop(action_slot, 'transform_channel', text="Transform Channel")
 
-	layout.prop(act, 'trans_min')
-	layout.prop(act, 'trans_max')
+	layout.prop(action_slot, 'trans_min')
+	layout.prop(action_slot, 'trans_max')
 	layout.separator()
 
 classes = [
@@ -260,6 +352,7 @@ classes = [
 	CLOUDRIG_OT_Action_Add,
 	CLOUDRIG_OT_Action_Remove,
 	CLOUDRIG_OT_Action_Move,
+	CLOUDRIG_OT_Action_Create,
 	CLOUDRIG_PT_actions,
 ]
 
