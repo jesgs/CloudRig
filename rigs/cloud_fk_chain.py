@@ -74,7 +74,7 @@ class CloudFKChainRig(CloudChainRig):
 				,source				= org_bone
 				,custom_shape 		= self.ensure_widget("FK_Limb")
 				,custom_shape_scale = org_bone.custom_shape_scale
-				,parent				= self.bones.parent
+				,parent				= org_bone.parent
 			)
 			org_bone.fk_bone = fk_bone
 			if i == 0:
