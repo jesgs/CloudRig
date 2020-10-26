@@ -58,7 +58,6 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 
 	@stage.configure_bones
 	def modify_bone_group(self):
-		print("Trying to find " + self.base_bone)
 		mod_bone = self.get_bone(self.base_bone)
 		if self.copy_type == 'Tweak':
 			# Since the ORG- bone got deleted during generate_bones, rename it to that name, 
