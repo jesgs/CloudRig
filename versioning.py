@@ -36,7 +36,7 @@ def rename_parameters(metarig, dictionary):
 					print(f"Rename param {old_key}->{new_key}")
 					setattr(pb.rigify_parameters, new_key, value)
 				except:
-					update_enum_property(pb.rigify_parameters, old_key, new_key)
+					update_enum_property(pb.rigify_parameters, old_key, new_key, value)
 
 def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of 
