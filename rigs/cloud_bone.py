@@ -21,7 +21,6 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 	def initialize(self):
 		super().initialize()
 
-		self.bone_name = self.base_bone	# Name of the bone that is being created/modified.
 		self.orgless_name = self.base_bone.replace("ORG-", "")
 		self.copy_type = self.params.CR_bone_copy_type
 
@@ -35,23 +34,23 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 		self.create_deform_bone = meta_pose_bone.bone.use_deform
 
 	def generate_bones(self):
+		self.base_bone = self.orgless_name
 		org_bone = self.get_bone(self.bones.org)
-		meta_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
+		meta_bone = self.generator.metarig.pose.bones.get(self.base_bone)
 		self.roll = org_bone.roll
 		org_bone.use_deform = False
 		if self.copy_type == "Tweak":
 			# Delete the Tweak ORG- bone. We will be copying stuff from the metarig bone instead.
 			self.obj.data.edit_bones.remove(org_bone)
-			self.bone_name = self.orgless_name
 
 			self.params = meta_bone.rigify_parameters
 		elif self.copy_type == "Create":
 			# Rename the bone to its final name, without the ORG- prefix.
-			self.bone_name = org_bone.name = self.orgless_name
-			self.register_new_bone(self.orgless_name, self.bones.org)
+			org_bone.name = self.base_bone
+			self.register_new_bone(self.base_bone, self.bones.org)
 			if self.create_deform_bone:
 				# Make a copy with DEF- prefix, as our deform bone.
-				def_bone_name = "DEF-" + self.orgless_name
+				def_bone_name = "DEF-" + self.base_bone
 				self.def_bone_name = self.copy_bone(org_bone.name, def_bone_name)
 				def_bone = self.get_bone(self.def_bone_name)
 				def_bone.bbone_x = def_bone.bbone_z = org_bone.bbone_x
@@ -59,17 +58,19 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 
 	@stage.configure_bones
 	def modify_bone_group(self):
-		if self.bone_name not in self.obj.pose.bones:
-			# TODO: Warn and ignore.
-			self.raise_error(f"Target bone not found.")
-
-		mod_bone = self.get_bone(self.bone_name)
+		print("Trying to find " + self.base_bone)
+		mod_bone = self.get_bone(self.base_bone)
 		if self.copy_type == 'Tweak':
-			# Since the ORG- bone got deleted during generate_bones, rename it to that name, to move any references from that ORG- bone over to the real bone.
+			# Since the ORG- bone got deleted during generate_bones, rename it to that name, 
+			# to move any references from that ORG- bone over to the real bone.
 			mod_bone.name = "ORG-"+mod_bone.name
-			self.bone_name = self.base_bone
+			# Then name it back, which will trigger a scan over the references and fix them too.
+			mod_bone.name = self.base_bone
+		elif self.base_bone not in self.obj.pose.bones:
+			# TODO: Warn and ignore.
+			self.raise_error(f"cloud_bone {self.base_bone} was not created!")
 
-		meta_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
+		meta_bone = self.generator.metarig.pose.bones.get(self.base_bone)
 
 		meta_bg = meta_bone.bone_group
 		if self.copy_type=='Create' or self.params.CR_bone_group:
@@ -86,10 +87,10 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 
 	@stage.apply_bones
 	def modify_edit_bone(self):
-		meta_bone = self.generator.metarig.data.bones.get(self.orgless_name)
-		meta_pose_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
+		meta_bone = self.generator.metarig.data.bones.get(self.base_bone)
+		meta_pose_bone = self.generator.metarig.pose.bones.get(self.base_bone)
 
-		mod_bone = self.get_bone(self.bone_name)
+		mod_bone = self.get_bone(self.base_bone)
 		pose_bone = self.obj.pose.bones.get(mod_bone.name)
 
 		# If there's an armature constraint, unparent
@@ -126,7 +127,7 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 			mod_bone.bbone_z = meta_bone.bbone_z
 
 	def do_parenting_with_constraint(self):
-		mod_bone = self.get_bone(self.bone_name)
+		mod_bone = self.get_bone(self.base_bone)
 
 		# Add parenting constraint
 		parent_name = self.params.CR_bone_parent
@@ -141,17 +142,17 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 
 	@stage.finalize
 	def modify_pose_bone(self):
-		meta_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
-		mod_bone = self.get_bone(self.bone_name)
+		meta_bone = self.generator.metarig.pose.bones.get(self.base_bone)
+		mod_bone = self.get_bone(self.base_bone)
 
 		if mod_bone.rotation_mode == 'QUATERNION':
 			self.generator.logger.log("Quaternion rotation"
-				,owner_bone = self.orgless_name
-				,trouble_bone = self.bone_name
+				,owner_bone = self.base_bone
+				,trouble_bone = self.base_bone
 				,description = f"{meta_bone.name} is on Quaternion rotation mode. Animator-facing controls should be set to Euler!"
 				,icon = 'GIZMO'
 				,operator = 'pose.cloudrig_troubleshoot_rotationmode'
-				,op_kwargs = {'bone_name' : self.bone_name}
+				,op_kwargs = {'bone_name' : self.base_bone}
 				,op_text = f"Set {meta_bone.name} to Euler"
 			)
 			mod_bone.rotation_mode = 'XYZ'
