@@ -544,7 +544,6 @@ class CloudGenerator(Generator):
 						driver = fcurve.driver
 						trigger_a_con_name = c.name.replace(action.name, act_slot.trigger_action_a.name)
 						trigger_b_con_name = c.name.replace(action.name, act_slot.trigger_action_b.name)
-						target_a.id = target_b.id = rig
 
 						relation = ">=" if act_slot.corrective_type=='POSITIVE' else "<="
 						sign = "-" if act_slot.corrective_type=='POSITIVE' else "+"
@@ -562,6 +561,8 @@ class CloudGenerator(Generator):
 						var_b.name = "B"
 						target_b = var_b.targets[0]
 						target_b.data_path = f'pose.bones["{self.action_helper.name}"]["{trigger_b_con_name}"]'
+						
+						target_a.id = target_b.id = rig
 						continue
 
 					# Set up usage with Evaluation Time feature and a driver instead of old setup
