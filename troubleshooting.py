@@ -137,6 +137,7 @@ class CloudLogManager:
 		entry.pretty_stack = get_pretty_stack()
 		entry.owner_bone = owner_bone
 		entry.trouble_bone = trouble_bone
+		entry.name = owner_bone + " " + trouble_bone + " " + description_short + " " + note + " " + description # For search.
 		entry.description_short = description_short
 		entry.description = description
 		entry.note = note
@@ -191,6 +192,9 @@ class CloudLogManager:
 				)
 		
 		for i in range(32):
+			if i > len(rigify_layers)-1:
+				# TODO (upstream): Rigify Layers should be initialized as a list of 32 booleans!!!
+				break
 			if used_layers[i] and rigify_layers[i].name=="":
 				self.log("Layer used but not named"
 					,description = f"Layer {i} has bones on it, but it does not have a Rigify Layer Name, therefore it won't display in the Layers panel."
@@ -202,16 +206,19 @@ class CloudLogManager:
 		rig = self.rig
 		objects = get_object_hierarchy_recursive(rig)
 		for o in objects:
-			if not (hasattr(o, 'animation_data') and o.animation_data):
-				continue
-			for d in o.animation_data.drivers:
-				if not d.is_valid:
-					self.log("Invalid Driver"
-						,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
-						,icon = 'DRIVER'
-						,note = o.name
-					)
-				
+			try:
+				if not (hasattr(o, 'animation_data') and o.animation_data):
+					continue
+				for d in o.animation_data.drivers:
+					if not d.is_valid:
+						self.log("Invalid Driver"
+							,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
+							,icon = 'DRIVER'
+							,note = o.name
+						)
+			except:
+				# "StructRNA of type Object has been removed", don't know why this happens.
+				pass
 
 class CloudRigLogEntry(bpy.types.PropertyGroup):
 	icon: StringProperty(
