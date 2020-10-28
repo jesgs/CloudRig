@@ -9,7 +9,7 @@ rigify_info = {
 	'link': "https://gitlab.com/blender/CloudRig/",
 }
 
-import bpy, os
+import bpy, os, importlib
 
 from . import actions
 from . import cloud_generator
@@ -37,6 +37,7 @@ def register():
 	print("Registering CloudRig.")
 	from bpy.utils import register_class
 	for m in modules:
+		importlib.reload(m)
 		m.register()
 
 def unregister():
