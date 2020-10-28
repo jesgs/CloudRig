@@ -371,7 +371,7 @@ def draw_cloudrig_log(layout, metarig):
 ########################################
 ######### Quick-Fix Operators ##########
 ########################################
-class CLOUDRIG_OT_Troubleshoot_RotationMode(bpy.types.Operator):
+class CLOUDRIG_OT_Change_Rotation_Mode(bpy.types.Operator):
 	"""Change rotation mode of a bone."""
 
 	bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
@@ -413,6 +413,44 @@ class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
 
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Rename_Bone(bpy.types.Operator):
+	"""Report a bug on the CloudRig repository."""
+
+	bl_idname = "object.cloudrig_rename_bone"
+	bl_label = "Rename Bone"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	old_name: StringProperty() # Should be provided to the operator by the UI, and not changed!
+	new_name: StringProperty(name="Name") # Exposed to user
+
+	def invoke(self, context, event):
+		wm = context.window_manager
+		self.new_name = self.old_name
+		return wm.invoke_props_dialog(self)
+
+	def draw(self, context):
+		layout = self.layout
+		metarig = context.object
+		if self.new_name in metarig.data.bones:
+			layout.prop(self, 'new_name', icon='ERROR')
+			layout.label(text="This bone name is taken!")
+		else:
+			layout.prop(self, 'new_name')
+			layout.label(text="Bone name available!")
+
+	def execute(self, context):
+		metarig = context.object
+		bone = metarig.data.bones.get(self.old_name)
+		if self.new_name in metarig.data.bones:
+			self.report({'ERROR'}, "That bone name is already taken!")
+			return {'CANCELLED'}
+		assert bone, f"Error! Old bone {self.old_name} not found or not provided! This should never happen."
+
+		bone.name = self.new_name
+		if bone.name == self.new_name:
+			remove_active_log(metarig)
+		return { 'FINISHED' }
+
 def remove_active_log(metarig):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -431,8 +469,9 @@ classes = [
 	CloudRigLogEntry,
 	CLOUDRIG_PT_log,
 
-	CLOUDRIG_OT_Troubleshoot_RotationMode,
+	CLOUDRIG_OT_Change_Rotation_Mode,
 	CLOUDRIG_OT_Report_Bug,
+	CLOUDRIG_OT_Rename_Bone,
 ]
 
 def register():
