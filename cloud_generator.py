@@ -461,11 +461,19 @@ class CloudGenerator(Generator):
 		rig = self.obj
 		for act_slot in reversed(action_slots):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
 			if not act_slot.enabled: continue
-			if not act_slot.action: continue
-			if not act_slot.subtarget and not act_slot.is_corrective: continue
-
 			action = act_slot.action
 			subtarget = act_slot.subtarget
+
+			if not action:
+				self.logger.log("Action missing for Action Slot.")
+				continue
+			if subtarget not in bones and not act_slot.is_corrective:
+				self.logger.log("Invalid Control Bone for Action"
+					,trouble_bone = subtarget
+					,description = f"Control Bone {subtarget} doesn't exist in the generated rig for Action Slot {action.name}"
+				)
+				continue
+
 
 			# Getting a list of pose bones on the rig corresponding to the selected action's keyframes
 			bones = []

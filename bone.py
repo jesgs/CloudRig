@@ -630,6 +630,12 @@ class ConstraintInfo(dict):
 		con_info = self.__dict__.copy()
 		for key in ['type', 'bone_info', 'drivers']:
 			del con_info[key]
+		
+		subtargets = []
+		if 'subtarget' in con_info:
+			subtargets = [con_info['subtarget']]
+		if 'targets' in con_info:
+			subtargets = [t['subtarget'] for t in con_info['targets']]
 
 		# TODO this armature constraint hackaround can be removed once D9092 is in. 
 		# This will break backwards compatibility with prior blender versions.
@@ -638,6 +644,20 @@ class ConstraintInfo(dict):
 			targets = con_info['targets']
 			del con_info['targets']
 			del con_info['target']
+
+		for i, subtarget in enumerate(subtargets):
+			if subtarget not in pose_bone.id_data.data.bones:
+				self.bone_info.owner_rig.add_log("Invalid constraint target!"
+					,owner_bone = self.bone_info.name
+					,trouble_bone = subtarget
+					,description = f"Constraint {self.name} on bone {self.bone_info} has non-existent target bone {subtarget}."
+				)
+				if targets:
+					targets[i]['subtarget'] = ""
+				elif 'subtarget' in con_info:
+					con_info['subtarget'] = ""
+				else:
+					return
 
 		con = make_constraint(pose_bone, con_type, **con_info)
 
