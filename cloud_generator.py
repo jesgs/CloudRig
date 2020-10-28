@@ -614,7 +614,7 @@ class CloudGenerator(Generator):
 		
 		return test_action
 
-	def get_children_data(self):
+	def save_parenting_info(self):
 		obj = self.obj
 
 		# Get parented objects to restore later
@@ -626,7 +626,7 @@ class CloudGenerator(Generator):
 						if tar.target==obj and o not in children:
 							children.append(o)
 
-		children_data = {}  # {child_object: (parent_bone_name, {constraint_name : constraint_subtarget(s)}}
+		self.children_data = {}  # {child_object: (parent_bone_name, {constraint_name : constraint_subtarget(s)}}
 		for child in children:
 			constraint_bone_targets = {}
 			for c in child.constraints:
@@ -639,14 +639,14 @@ class CloudGenerator(Generator):
 						subtargets.append(tar.subtarget)
 						tar.subtarget = ""
 					constraint_bone_targets[c.name] = subtargets
-			children_data[child] = (child.parent_bone, constraint_bone_targets)
+			self.children_data[child] = (child.parent_bone, constraint_bone_targets)
 			child.parent = None
 		
-		return children_data
+		return self.children_data
 	
-	def restore_children_parenting(self, children_data):
+	def restore_parenting_info(self):
 		obj = self.obj
-		for child, child_data in children_data.items():
+		for child, child_data in self.children_data.items():
 			child.parent = obj
 
 			parent_bone_name = child_data[0]
@@ -732,13 +732,16 @@ class CloudGenerator(Generator):
 		if obj.animation_data:
 			datablocks = [obj, obj.data]
 			for db in datablocks:
+				if not hasattr(db.animation_data, 'drivers'): continue
+				if not db.animation_data: continue
+				
 				for d in db.animation_data.drivers[:]:
 					db.animation_data.drivers.remove(d)
 
 		self.defaults['rig'] = obj
 
 		# Ensure it's transforms are cleared.
-		backup_matrix = obj.matrix_world.copy()
+		self.backup_matrix = obj.matrix_world.copy()
 		obj.matrix_world = Matrix()
 
 		# Keep track of created widgets, so we can add them to Rigify-created Widgets collection at the end.
@@ -769,7 +772,7 @@ class CloudGenerator(Generator):
 		t.tick("Create main WGTS: ")
 
 		#------------------------------------------
-		children_data = self.get_children_data()
+		self.save_parenting_info()
 
 		#------------------------------------------
 		# Copy bones from metarig to obj
@@ -997,36 +1000,36 @@ class CloudGenerator(Generator):
 
 		t.tick("The rest: ")
 
-		#----------------------------------
+		self.cleanup()
+	
+	def cleanup(self):
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
-		obj.data.pose_position = 'POSE'
-		# Restore rig object matrix to what it was before generation.
-		obj.matrix_world = backup_matrix
+		self.metarig.data.pose_position = 'POSE'
+		self.obj.data.pose_position = 'POSE'
 
-		# Restore parent to bones
-		self.restore_children_parenting(children_data)
+		# Restore object parenting
+		if hasattr(self, 'children_data'):
+			self.restore_parenting_info()
+
+		# Restore rig object matrix to what it was before generation.
+		if hasattr(self, 'backup_matrix'):
+			self.obj.matrix_world = self.backup_matrix
 
 		# Refresh drivers
 		bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
 
+
 def generate_rig(context, metarig):
 	""" Generates a rig from a metarig.	"""
-	# Initial configuration
-	rest_backup = metarig.data.pose_position
-	metarig.data.pose_position = 'REST'
-
+	generator = CloudGenerator(context, metarig)
 	try:
-		CloudGenerator(context, metarig).generate()
-
-		metarig.data.pose_position = rest_backup
-
+		generator.generate()
 	except Exception as e:
 		# Cleanup if something goes wrong
 		print("Rigify: failed to generate rig.")
 
-		bpy.ops.object.mode_set(mode='OBJECT')
-		metarig.data.pose_position = rest_backup
+		generator.cleanup()
 
 		# Continue the exception
 		raise e
