@@ -988,6 +988,10 @@ class CloudGenerator(Generator):
 					break
 		
 		# Cheap troubleshooting
+		for b in obj.pose.bones:
+			for c in b.constraints:
+				if c.type=='STRETCH_TO':
+					c.rest_length = 0
 		self.logger.report_unused_named_layers()
 		self.logger.report_invalid_drivers()
 
