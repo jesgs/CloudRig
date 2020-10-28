@@ -138,11 +138,10 @@ class CloudChainRig(CloudBaseRig):
 					self.str_chain[-1].next = self.str_chain[0]
 					self.str_chain[0].prev = self.str_chain[-1]
 				else:
-					str_bone = self.make_str_bone(org_bone, i, 1)
+					str_bone = self.make_str_bone(org_bone, i, 1, name=self.naming.add_prefix(str_bone, "TIP"))
 					str_bone.put(org_bone.tail)
 					str_bone.vector = org_bone.vector
 					str_bone.length = str_bone.prev.length
-					str_bone.name = self.naming.add_prefix(str_bone, "TIP")
 					str_bone.custom_shape_scale *= 1.3
 					str_sections.append([str_bone])
 					str_bone.custom_shape = self.ensure_widget("Hemisphere")
@@ -150,14 +149,16 @@ class CloudChainRig(CloudBaseRig):
 
 		return str_sections
 
-	def make_str_bone(self, org_bone: BoneInfo, seg_i: int, segments: int) -> BoneInfo:
+	def make_str_bone(self, org_bone: BoneInfo, seg_i: int, segments: int, name="") -> BoneInfo:
 		"""Create an STR control."""
 		direction = org_bone.vector
 		if seg_i==0 and org_bone.prev:
 			direction = org_bone.tail - org_bone.prev.head
 		unit = org_bone.vector / segments
+		if name=="":
+			name = org_bone.name.replace("ORG", "STR")
 		str_bone = self.new_bonei(self.str_chain
-			,name = org_bone.name.replace("ORG", "STR")
+			,name = name
 			,source = org_bone
 			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
@@ -240,6 +241,7 @@ class CloudChainRig(CloudBaseRig):
 			,name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
+			,overwrite = True
 		)
 		if not nxt:
 			nxt = str_bone.next
@@ -274,6 +276,7 @@ class CloudChainRig(CloudBaseRig):
 			,source = str_bone
 			,parent = str_bone
 			,inherit_scale = 'NONE'
+			,overwrite = True
 		)
 		tangent_helper.add_constraint('COPY_ROTATION'
 			,name = "Copy Rotation (Damped Track Helper)"
@@ -477,22 +480,22 @@ class CloudChainRig(CloudBaseRig):
 		"""
 
 		parent_rig = self.rigify_parent
-		if isinstance(parent_rig, CloudChainRig):
-			if parent_rig.params.CR_chain_tip_control: return
+		if not isinstance(parent_rig, CloudChainRig): return
+		if parent_rig.params.CR_chain_tip_control: return
 
-			meta_org_bone = self.meta_bone(self.naming.strip_org(self.org_chain[0]))
-			if not meta_org_bone.bone.use_connect: return
+		meta_org_bone = self.meta_bone(self.naming.strip_org(self.org_chain[0]))
+		if not meta_org_bone.bone.use_connect: return
 
-			parent_rig.params.CR_chain_tip_control = True
-			def_bone = parent_rig.def_chain[-1]
-			str_bone = parent_rig.str_chain[-1]
-			parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.str_chain[0])
-			def_bone.parent = str_bone
-			self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
-			if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
-				self.make_shape_key_helper(def_bone, self.def_chain[0])
-			if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-				self.set_up_smooth_spline(str_bone, nxt=self.str_chain[0])
+		parent_rig.params.CR_chain_tip_control = True
+		def_bone = parent_rig.def_chain[-1]
+		str_bone = parent_rig.str_chain[-1]
+		parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.str_chain[0])
+		def_bone.parent = str_bone
+		self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
+		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
+			self.make_shape_key_helper(def_bone, self.def_chain[0])
+		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
+			self.set_up_smooth_spline(str_bone, nxt=self.str_chain[0])
 
 	##############################
 	# Parameters

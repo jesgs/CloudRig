@@ -655,7 +655,7 @@ class ConstraintInfo(dict):
 
 		return con
 
-def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> BoneInfo:
+def new_bonei(generator, bone_set: BoneSet = None, name="Bone", overwrite=False, **kwargs) -> BoneInfo:
 	""" Create a BoneInfo, optionally as part of a BoneSet.
 		Ideally all bones should be part of a BoneSet
 	"""
@@ -663,7 +663,7 @@ def new_bonei(generator, bone_set: BoneSet = None, name="Bone", **kwargs) -> Bon
 
 	# If a BoneInfo with the passed name already exists, overwrite it and add a warning.
 	bi = generator.find_bone_info(name)
-	if bi:
+	if bi and not overwrite:
 		generator.logger.log_bug("Overwritten bone"
 			,owner_bone = bi.owner_rig.meta_base_bone.name
 			,trouble_bone = bi.name
