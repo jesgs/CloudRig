@@ -11,6 +11,10 @@ class EnsureVisible:
 		self.obj_hide_viewport = obj.hide_viewport
 		self.temp_coll = None
 
+		space = bpy.context.area.spaces.active
+		if hasattr(space, 'local_view') and space.local_view:
+			bpy.ops.view3d.localview()
+
 		if not obj.visible_get():
 			obj.hide_set(False)
 			obj.hide_viewport = False
