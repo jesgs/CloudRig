@@ -455,9 +455,9 @@ class CloudGenerator(Generator):
 						return exists
 
 	def create_action_constraints(self):
+		# TODO: This gigantic function should be split up! And possibly moved to a separate class that can be inherited or composited by the generator.
 		rig = self.obj
-		bones = rig.pose.bones
-		action_slots = rig.data.cloudrig_parameters.action_slots
+		action_slots = self.metarig.data.cloudrig_parameters.action_slots
 
 		for act_slot in reversed(action_slots):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
 			if not act_slot.enabled: continue
@@ -465,9 +465,9 @@ class CloudGenerator(Generator):
 			subtarget = act_slot.subtarget
 
 			if not action:
-				self.logger.log("Action missing for Action Slot.")
+				self.logger.log("Action missing for an Action Slot.")
 				continue
-			if subtarget not in bones and not act_slot.is_corrective:
+			if subtarget not in rig.pose.bones and not act_slot.is_corrective:
 				self.logger.log("Invalid Control Bone for Action"
 					,trouble_bone = subtarget
 					,description = f"Control Bone {subtarget} doesn't exist in the generated rig for Action Slot {action.name}"
@@ -475,21 +475,21 @@ class CloudGenerator(Generator):
 				continue
 
 
-			# Getting a list of pose bones on the rig corresponding to the selected action's keyframes
-			bones = []
+			# Getting a list of pose bones that have keyframes on this action
+			keyed_bones = []
 			for fc in action.fcurves:
 				# Extracting bone name from fcurve data path
 				if "pose.bones" in fc.data_path:
 					bone_name = fc.data_path.split('["')[1].split('"]')[0]
 
 					bone = rig.pose.bones.get(bone_name)
-					if bone and bone not in bones:
-						bones.append(bone)
+					if bone and bone not in keyed_bones:
+						keyed_bones.append(bone)
 
 			do_symmetry = self.naming.flipped_name(subtarget)!=subtarget and act_slot.symmetrical==True
 
 			# Adding action constraints to the bones
-			for b in bones:
+			for b in keyed_bones:
 				con_name = "Action_" + action.name
 				constraints = []
 
