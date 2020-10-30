@@ -78,7 +78,6 @@ class CloudFKChainRig(CloudChainRig):
 			)
 			org_bone.fk_bone = fk_bone
 			if i == 0:
-				self.register_parent(fk_bone, self.limb_ui_name)
 				hng_child = fk_bone
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
