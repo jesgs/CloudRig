@@ -1,9 +1,9 @@
 from typing import List
 
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, EnumProperty
 from mathutils import Vector
 from math import radians as rad
-from math import pi, pow
+from math import pow
 from copy import deepcopy
 
 from .cloud_ik_chain import CloudIKChainRig
@@ -196,101 +196,10 @@ class CloudLimbRig(CloudIKChainRig):
 				]
 			})
 		else:
+			# Don't create a control bone, instead just add a slider in the UI.
 			self.add_ui_data("auto_rubber_hose", self.category, self.limb_ui_name, info)
 
-		for i, str_list in enumerate([str_upper, str_lower]):
-			org_bone = self.org_chain[i]
-			for str_bone in str_list:
-				offset = org_bone.length / 2.5
-
-				# Inverse of distance from center divided by half of bone length
-				# This results in 1.0 at the center of the bone and 0.0 at the head or tail of the bone.
-				distance_to_org_center = (str_bone.head - org_bone.center).length
-				centeredness = 1 - (distance_to_org_center / (org_bone.length/2))
-
-				total_offset = offset * pow(centeredness, 0.5)
-
-				trans_con = str_bone.add_constraint('TRANSFORM'
-					,name = "Transformation (Rubber Hose)"
-					,subtarget = org_elbow.name
-					,map_from = 'ROTATION'
-					,map_to_x_from = 'Z'
-					,map_to_z_from = 'X'
-				)
-
-				# Influence driver
-				trans_con.drivers.append({
-					'prop' : 'influence'
-					,'variables' : [
-						(self.properties_bone.name, prop_name),
-					]
-				})
-
-				# Offset drivers
-				driver_to_min_x = {
-					'prop' : 'to_min_x'
-					,'expression' : f"(var/pi) * {total_offset}"
-					,'variables' : [
-						{
-							'type' : 'TRANSFORMS'
-							,'targets' : [{
-								'bone_target' : org_elbow.name
-								,'transform_space' : 'LOCAL_SPACE'
-								,'transform_type' : 'ROT_Z'
-							}]
-						}
-					]
-				}
-
-				trans_con.drivers.append(driver_to_min_x)
-
-				driver_to_min_z = deepcopy(driver_to_min_x)
-				driver_to_min_z['prop'] = 'to_min_z'
-				driver_to_min_z['expression'] += " * -1"
-				driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
-				trans_con.drivers.append(driver_to_min_z)
-			
-			# Scale the main STR bone on local Y to get a smooth curve 
-			# in spite of Sharp Sections parameter being enabled.
-			if i==1:
-				main_str = str_list[0].prev
-				trans_con = main_str.add_constraint('TRANSFORM'
-					,name = "Transformation (Rubber Hose)"
-					,subtarget = org_elbow.name
-					,map_to = 'SCALE'
-				)
-
-				# Influence driver
-				trans_con.drivers.append({
-					'prop' : 'influence'
-					,'variables' : [
-						(self.properties_bone.name, prop_name),
-					]
-				})
-
-				# Offset driver
-				trans_con.drivers.append({
-					'prop' : 'to_min_y_scale'
-					,'expression' : "1 + pow( (abs(rot_x) + abs(rot_z)) / pi, 0.5 ) * 1.5"
-					,'variables' : {
-						'rot_x' : {
-							'type' : 'TRANSFORMS'
-							,'targets' : [{
-								'bone_target' : org_elbow.name
-								,'transform_space' : 'LOCAL_SPACE'
-								,'transform_type' : 'ROT_X'
-							}]
-						}
-						,'rot_z' : {
-							'type' : 'TRANSFORMS'
-							,'targets' : [{
-								'bone_target' : org_elbow.name
-								,'transform_space' : 'LOCAL_SPACE'
-								,'transform_type' : 'ROT_Z'
-							}]
-						}
-					}
-				})
+		self.setup_long_rubber_hose(org_elbow, str_upper, str_lower, prop_name)
 
 	def make_rubber_hose_control(self) -> BoneInfo:
 		org_elbow = self.org_chain[1]
@@ -329,6 +238,107 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return control_bone
 
+	def setup_long_rubber_hose(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo], prop_name: str):
+		for i, str_list in enumerate([str_upper, str_lower]):
+			org_bone = self.org_chain[i]
+			for str_bone in str_list:
+				offset = org_bone.length / 2.5
+
+				# Inverse of distance from center divided by half of bone length
+				# This results in 1.0 at the center of the bone and 0.0 at the head or tail of the bone.
+				distance_to_org_center = (str_bone.head - org_bone.center).length
+				centeredness = 1 - (distance_to_org_center / (org_bone.length/2))
+
+				total_offset = offset * pow(centeredness, 0.5)
+
+				trans_con = str_bone.add_constraint('TRANSFORM'
+					,name = "Transformation (Rubber Hose STR)"
+					,subtarget = org_elbow.name
+					,map_from = 'ROTATION'
+					,map_to_x_from = 'Z'
+					,map_to_z_from = 'X'
+				)
+
+				# Influence driver
+				driver_influence = {
+					'prop' : 'influence'
+					,'expression' : 'var'
+					,'variables' : [
+						(self.properties_bone.name, prop_name),
+					]
+				}
+				if self.params.CR_limb_auto_hose_type=='ELBOW_IN':
+					# For the alternate auto hose type, the shifting just needs to be reduced by half.
+					driver_influence['expression'] += "/2"
+
+				trans_con.drivers.append(driver_influence)
+
+				# Offset drivers
+				driver_to_min_x = {
+					'prop' : 'to_min_x'
+					,'expression' : f"(var/pi) * {total_offset}"
+					,'variables' : [
+						{
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_Z'
+							}]
+						}
+					]
+				}
+
+				trans_con.drivers.append(driver_to_min_x)
+
+				driver_to_min_z = deepcopy(driver_to_min_x)
+				driver_to_min_z['prop'] = 'to_min_z'
+				driver_to_min_z['expression'] += " * -1"
+				driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
+				trans_con.drivers.append(driver_to_min_z)
+			
+			# Scale the main STR bone on local Y to get a smooth curve 
+			# in spite of Sharp Sections parameter being enabled.
+			if i==1:
+				main_str = str_list[0].prev
+				scale_con = main_str.add_constraint('TRANSFORM'
+					,name = "Transformation (Rubber Hose Elbow Scale)"
+					,subtarget = org_elbow.name
+					,map_to = 'SCALE'
+				)
+
+				# Influence driver
+				scale_con.drivers.append({
+					'prop' : 'influence'
+					,'variables' : [
+						(self.properties_bone.name, prop_name),
+					]
+				})
+
+				# Scale driver
+				scale_con.drivers.append({
+					'prop' : 'to_min_y_scale'
+					,'expression' : "1 + pow( (abs(rot_x) + abs(rot_z)) / pi, 0.5 ) * 1.5"
+					,'variables' : {
+						'rot_x' : {
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_X'
+							}]
+						}
+						,'rot_z' : {
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_Z'
+							}]
+						}
+					}
+				})
+
 	##############################
 	# Parameters
 
@@ -348,14 +358,22 @@ class CloudLimbRig(CloudIKChainRig):
 			,description = "Reveal settings for the cloud_limb rig type"
 		)
 		params.CR_limb_auto_hose = BoolProperty(
-			name		 = "Auto Rubber Hose"
+			name		 = "Rubber Hose"
 			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be greater than 1 and Smooth Spline must be enabled"
 			,default	 = False
 		)
 		params.CR_limb_auto_hose_control = BoolProperty(
-			name		 = "Create Control Bone"
+			name		 = "Control Bone"
 			,description = "Instead of controlling the Auto Rubber Hose property from the rig UI, create a control bone on the FK Extras layer"
 			,default	 = False
+		)
+		params.CR_limb_auto_hose_type = EnumProperty(
+			name		 = "Type"
+			,description = "The rubber hosing effect can be achieved in different ways. This lets you pick which one you prefer"
+			,items	 = [
+				('MIDDLE_OUT', "Long", "Shift mid-limb STR bones away from the elbow bending direction. As a result, the limb becomes longer")
+				,('ELBOW_IN', "Short", "Shift the elbow STR bone towards the elbow bending direction, and counter-shift the mid-limb STR bones so they stay roughly in place. As a result, the limb becomes shorter")
+			]
 		)
 
 		params.CR_limb_double_ik = BoolProperty(
@@ -385,6 +403,9 @@ class CloudLimbRig(CloudIKChainRig):
 			split = layout.split(factor=0.05)
 			split.row()
 			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_control')
+			split = layout.split(factor=0.05)
+			split.row()
+			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_type')
 
 		return layout
 
