@@ -123,12 +123,9 @@ class CloudChainRig(CloudBaseRig):
 				if i==0:
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
-					if org_i==0:
-						if self.cyclic:
-							direction = (org_bone.tail - self.org_chain[-1].head).normalized()
-							str_bone.tail = str_bone.head + direction*str_bone.length
-						else:
-							str_bone.custom_shape = self.ensure_widget("Hemisphere_Flip")
+					if org_i == 0 and self.cyclic:
+						direction = (org_bone.tail - self.org_chain[-1].head).normalized()
+						str_bone.tail = str_bone.head + direction*str_bone.length
 
 			str_sections.append(str_section)
 
@@ -144,8 +141,11 @@ class CloudChainRig(CloudBaseRig):
 					str_bone.length = str_bone.prev.length
 					str_bone.custom_shape_scale *= 1.3
 					str_sections.append([str_bone])
-					str_bone.custom_shape = self.ensure_widget("Hemisphere")
 					self.main_str_bones.append(str_bone)
+		
+		# Set first and last control's shapes
+		self.str_chain[0].custom_shape = self.ensure_widget("Hemisphere_Flip")
+		self.str_chain[-1].custom_shape = self.ensure_widget("Hemisphere")
 
 		return str_sections
 
@@ -247,7 +247,7 @@ class CloudChainRig(CloudBaseRig):
 			nxt = str_bone.next
 		if not prev:
 			prev = str_bone.prev
-		
+
 		if nxt:
 			pos_con = dt_bone.add_constraint('DAMPED_TRACK'
 				,name = "Damped Track +Y"
