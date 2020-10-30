@@ -455,10 +455,10 @@ class CloudGenerator(Generator):
 						return exists
 
 	def create_action_constraints(self):
-		bones = self.obj.pose.bones
-		action_slots = self.params.cloudrig_parameters.action_slots
-
 		rig = self.obj
+		bones = rig.pose.bones
+		action_slots = rig.data.cloudrig_parameters.action_slots
+
 		for act_slot in reversed(action_slots):	# Reversed to get correct order after moving each constraint to the top (hence they get reversed)
 			if not act_slot.enabled: continue
 			action = act_slot.action
