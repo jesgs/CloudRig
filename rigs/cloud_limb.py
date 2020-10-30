@@ -169,6 +169,8 @@ class CloudLimbRig(CloudIKChainRig):
 			str_lower controls, driven by org_elbow. (Also meant for legs)
 		"""
 
+		# TODO: These functions are too huge and do a lot of things, split, split, split them up!
+
 		# Create UI property
 		prop_name = "auto_rubber_hose_" + self.limb_name_props
 		info = {
@@ -199,7 +201,7 @@ class CloudLimbRig(CloudIKChainRig):
 			# Don't create a control bone, instead just add a slider in the UI.
 			self.add_ui_data("auto_rubber_hose", self.category, self.limb_ui_name, info)
 
-		self.setup_long_rubber_hose(org_elbow, str_upper, str_lower, prop_name)
+		self.make_rubber_hose_constraints(org_elbow, str_upper, str_lower, prop_name)
 
 	def make_rubber_hose_control(self) -> BoneInfo:
 		org_elbow = self.org_chain[1]
@@ -238,7 +240,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return control_bone
 
-	def setup_long_rubber_hose(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo], prop_name: str):
+	def make_rubber_hose_constraints(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo], prop_name: str):
 		for i, str_list in enumerate([str_upper, str_lower]):
 			org_bone = self.org_chain[i]
 			for str_bone in str_list:
@@ -273,7 +275,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 				trans_con.drivers.append(driver_influence)
 
-				# Offset drivers
+				# Translation drivers
 				driver_to_min_x = {
 					'prop' : 'to_min_x'
 					,'expression' : f"(var/pi) * {total_offset}"
@@ -301,6 +303,7 @@ class CloudLimbRig(CloudIKChainRig):
 			# in spite of Sharp Sections parameter being enabled.
 			if i==1:
 				main_str = str_list[0].prev
+				# Scale constraint
 				scale_con = main_str.add_constraint('TRANSFORM'
 					,name = "Transformation (Rubber Hose Elbow Scale)"
 					,subtarget = org_elbow.name
@@ -338,6 +341,39 @@ class CloudLimbRig(CloudIKChainRig):
 						}
 					}
 				})
+
+				if not self.params.CR_limb_auto_hose_type=='ELBOW_IN':
+					return
+
+				# TODO: This only works when FK Elbow is rotated on its local X axis, but Z should also work!
+				# Translation constraint
+				trans_con = main_str.add_constraint('TRANSFORM'
+					,name = "Transformation (Rubber Hose Elbow Translate)"
+					,subtarget = org_elbow.name
+				)
+
+				# Translation drivers
+				driver_to_min_y = {
+					'prop' : 'to_min_y'
+					,'expression' : f"-(var/pi) * {org_elbow.length/4}"
+					,'variables' : [
+						{
+							'type' : 'TRANSFORMS'
+							,'targets' : [{
+								'bone_target' : org_elbow.name
+								,'transform_space' : 'LOCAL_SPACE'
+								,'transform_type' : 'ROT_X'
+							}]
+						}
+					]
+				}
+				
+				trans_con.drivers.append(driver_to_min_y)
+
+				driver_to_min_z = deepcopy(driver_to_min_y)
+				driver_to_min_z['prop'] = 'to_min_z'
+				driver_to_min_z['expression'] += " * -1"
+				trans_con.drivers.append(driver_to_min_z)
 
 	##############################
 	# Parameters
