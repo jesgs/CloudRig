@@ -1050,7 +1050,6 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 
 		def add_props(prop_owner):
 			props_done = []
-			bool_props = []		# Not implemented.
 
 			def get_text(prop_id, value):
 				""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
@@ -1067,10 +1066,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			def add_prop(layout, prop_owner, prop_id):
 				if prop_id in props_done: return
 
-				if(prop_id in bool_props):
-					bp = bool_props[prop_id]
-					layout.prop(bp, 'value', toggle=True, text=bp.name, icon='TRIA_DOWN' if parent_prop_value in values else 'TRIA_RIGHT')
-				elif type(prop_owner[prop_id]) in [int, float]:
+				if type(prop_owner[prop_id]) in [int, float]:
 					layout.prop(prop_owner, '["'+prop_id+'"]', slider=True,
 						text = get_text(prop_id, prop_owner[prop_id])
 					)
@@ -1088,7 +1084,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 					parent_prop_name_without_values = parent_prop_name
 					values = [1]	# Values which this property needs to be for its children to show. For bools this is always 1.
 					# Example entry in prop_hierarchy: ['Jacket-23' : ['Hood', 'Belt']] This would mean Hood and Belt are only visible when Jacket is either 2 or 3.
-					if('-' in parent_prop_name):
+					if '-' in parent_prop_name:
 						split = parent_prop_name.split('-')
 						parent_prop_name_without_values = split[0]
 						values = [int(val) for val in split[1]]	# Convert them to an int list ( eg. '23' -> [2, 3] )
@@ -1102,7 +1098,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 					props_done.append(parent_prop_name_without_values)
 
 					# Checking if we should draw children.
-					if(parent_prop_value not in values): continue
+					if parent_prop_value not in values: continue
 
 					# Drawing children.
 					childrens_box = layout.box()

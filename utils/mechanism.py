@@ -79,7 +79,11 @@ class CloudMechanismMixin:
 		found_parents = []
 		for pn in parent_names:
 			if pn in list(parent_candidates.keys()):
+				# The strings in found_parents will be used for UI display, so let's
+				# add the bone name for clarity.
+				pn += f" [{parent_candidates[pn]}]"
 				found_parents.append(pn)
+		
 		if len(found_parents) == 0 and not force_setup:
 			# No parents to be rigged for child_bone.
 			return found_parents
