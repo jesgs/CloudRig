@@ -241,6 +241,14 @@ class CloudLimbRig(CloudIKChainRig):
 		return control_bone
 
 	def make_rubber_hose_constraints(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo], prop_name: str):
+		driver_influence = {
+			'prop' : 'influence'
+			,'expression' : 'var'
+			,'variables' : [
+				(self.properties_bone.name, prop_name),
+			]
+		}
+
 		for i, str_list in enumerate([str_upper, str_lower]):
 			org_bone = self.org_chain[i]
 			for str_bone in str_list:
@@ -262,18 +270,12 @@ class CloudLimbRig(CloudIKChainRig):
 				)
 
 				# Influence driver
-				driver_influence = {
-					'prop' : 'influence'
-					,'expression' : 'var'
-					,'variables' : [
-						(self.properties_bone.name, prop_name),
-					]
-				}
+				driver = deepcopy(driver_influence)
 				if self.params.CR_limb_auto_hose_type=='ELBOW_IN':
 					# For the alternate auto hose type, the shifting just needs to be reduced by half.
-					driver_influence['expression'] += "/2"
+					driver['expression'] += "/2"
 
-				trans_con.drivers.append(driver_influence)
+				trans_con.drivers.append(driver)
 
 				# Translation drivers
 				driver_to_min_x = {
@@ -286,6 +288,7 @@ class CloudLimbRig(CloudIKChainRig):
 								'bone_target' : org_elbow.name
 								,'transform_space' : 'LOCAL_SPACE'
 								,'transform_type' : 'ROT_Z'
+								,'rotation_mode' : 'SWING_TWIST_Y'
 							}]
 						}
 					]
@@ -311,12 +314,7 @@ class CloudLimbRig(CloudIKChainRig):
 				)
 
 				# Influence driver
-				scale_con.drivers.append({
-					'prop' : 'influence'
-					,'variables' : [
-						(self.properties_bone.name, prop_name),
-					]
-				})
+				scale_con.drivers.append(deepcopy(driver_influence))
 
 				# Scale driver
 				scale_con.drivers.append({
@@ -329,6 +327,7 @@ class CloudLimbRig(CloudIKChainRig):
 								'bone_target' : org_elbow.name
 								,'transform_space' : 'LOCAL_SPACE'
 								,'transform_type' : 'ROT_X'
+								,'rotation_mode' : 'SWING_TWIST_Y'
 							}]
 						}
 						,'rot_z' : {
@@ -337,6 +336,7 @@ class CloudLimbRig(CloudIKChainRig):
 								'bone_target' : org_elbow.name
 								,'transform_space' : 'LOCAL_SPACE'
 								,'transform_type' : 'ROT_Z'
+								,'rotation_mode' : 'SWING_TWIST_Y'
 							}]
 						}
 					}
@@ -352,28 +352,42 @@ class CloudLimbRig(CloudIKChainRig):
 					,subtarget = org_elbow.name
 				)
 
+				# Influence driver
+				trans_con.drivers.append(deepcopy(driver_influence))
+
 				# Translation drivers
+				var_x = {
+					'type' : 'TRANSFORMS'
+					,'targets' : [{
+						'bone_target' : org_elbow.name
+						,'transform_space' : 'LOCAL_SPACE'
+						,'transform_type' : 'ROT_X'
+						,'rotation_mode' : 'SWING_TWIST_Y'
+					}]
+				}
+				var_z = deepcopy(var_x)
+				var_z['targets'][0]['transform_type'] = 'ROT_Z'
 				driver_to_min_y = {
 					'prop' : 'to_min_y'
-					,'expression' : f"-(var/pi) * {org_elbow.length/4}"
-					,'variables' : [
+					,'expression' : f"(abs(x + z)/pi) * {org_elbow.length/4}"
+					,'variables' : 
 						{
-							'type' : 'TRANSFORMS'
-							,'targets' : [{
-								'bone_target' : org_elbow.name
-								,'transform_space' : 'LOCAL_SPACE'
-								,'transform_type' : 'ROT_X'
-							}]
+							'x' : var_x,
+							'z' : var_z,
 						}
-					]
 				}
-				
+
 				trans_con.drivers.append(driver_to_min_y)
 
 				driver_to_min_z = deepcopy(driver_to_min_y)
 				driver_to_min_z['prop'] = 'to_min_z'
-				driver_to_min_z['expression'] += " * -1"
+				driver_to_min_z['expression'] = f"(x/pi) * {org_elbow.length/4}"
 				trans_con.drivers.append(driver_to_min_z)
+
+				driver_to_min_x = deepcopy(driver_to_min_y)
+				driver_to_min_x['prop'] = 'to_min_x'
+				driver_to_min_x['expression'] = f"(-z/pi) * {org_elbow.length/4}"
+				trans_con.drivers.append(driver_to_min_x)
 
 	##############################
 	# Parameters
