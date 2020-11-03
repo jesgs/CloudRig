@@ -46,6 +46,12 @@ class CloudLegRig(CloudLimbRig):
 		super().prepare_bones()
 		self.tweak_org_foot()
 
+		# Tweak foot bone's first DEF bone
+		foot_def = self.def_chain[-2]
+		for d in foot_def.drivers:
+			if d['prop']=='bbone_easein':
+				foot_def.drivers.remove(d)
+
 	##############################
 	# Override some inherited functionality
 
