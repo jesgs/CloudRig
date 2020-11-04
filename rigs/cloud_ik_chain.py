@@ -56,8 +56,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.attach_org_to_ik()
 
 		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
-		ik_parents_identifiers = ['Root', 'Torso', 'Hips', 'Chest', self.limb_ui_name+" Root"]
-		self.setup_ik_parent_switches(ik_parents_identifiers)
+		self.setup_ik_parent_switches()
 
 	def world_align_last_fk(self):
 		# Make last FK bone world-aligned.
@@ -449,20 +448,17 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def setup_ik_parent_switches(self, 
-			ik_parents_identifiers: List[str], 
-			ik_ctrl: BoneInfo = None
-		):
+	def setup_ik_parent_switches(self, ik_ctrl: BoneInfo = None):
 		if not ik_ctrl:
 			ik_ctrl = self.ik_mstr
 
-		if len(self.get_parent_candidates()) == 0:
+		if len(self.get_parent_candidates({})) == 0:
 			# If this rig has no parent candidates, there's nothing to be done here.
 			return
 
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
 		# Rig the IK control's parent switcher.
-		parent_names = self.rig_child(ik_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name)
+		parent_names = self.rig_child(ik_ctrl, self.properties_bone, ik_parents_prop_name)
 		if len(parent_names) > 1:
 			bones = [ik_ctrl.name]
 			if self.params.CR_ik_chain_use_pole:
@@ -483,14 +479,11 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		### IK Pole Follow
 		if self.params.CR_ik_chain_use_pole:
-			self.setup_ik_pole_parent_switch(ik_parents_identifiers, ik_parents_prop_name)
+			self.setup_ik_pole_parent_switch(ik_parents_prop_name)
 
-	def setup_ik_pole_parent_switch(self, 
-			ik_parents_identifiers: List[str],
-			ik_parents_prop_name: str
-		):
+	def setup_ik_pole_parent_switch(self, ik_parents_prop_name: str):
 		# Rig the IK Pole control's parent switcher.
-		self.rig_child(self.pole_ctrl, ik_parents_identifiers, self.properties_bone, ik_parents_prop_name, force_setup=True)
+		self.rig_child(self.pole_ctrl, self.properties_bone, ik_parents_prop_name, force_setup=True)
 
 		# Add option to the UI.
 		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props

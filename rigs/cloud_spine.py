@@ -53,6 +53,8 @@ class CloudSpineRig(CloudFKChainRig):
 			self.make_ik_spine()
 		self.tweak_str_spine()
 
+		self.register_parents()
+
 	def make_root_bone(self):
 		"""Overrides."""
 
@@ -79,7 +81,6 @@ class CloudSpineRig(CloudFKChainRig):
 				,custom_shape_scale	= 0.7
 				,parent				= self.limb_root_bone
 		)
-		self.register_parent(self.limb_root_bone, "Torso")
 		self.limb_root_bone.flatten()
 		if self.params.CR_spine_double:
 			double_mstr_pelvis = self.create_parent_bone(self.limb_root_bone, self.spine_parent_ctrls)
@@ -92,9 +93,6 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Parent the first one to MSTR-Torso.
 		self.fk_chain[0].parent = self.limb_root_bone
-
-		# Register final spine FK as an available parent.
-		self.register_parent(self.fk_chain[-1], "Chest")
 
 	def make_ik_spine(self):
 		### Create master chest control
@@ -112,7 +110,6 @@ class CloudSpineRig(CloudFKChainRig):
 			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.spine_parent_ctrls)
 
 		self.mstr_hips.flatten()
-		self.register_parent(self.mstr_hips, "Hips")
 
 		### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
 		self.ik_ctr_chain = []
@@ -278,6 +275,15 @@ class CloudSpineRig(CloudFKChainRig):
 		
 		if self.params.CR_chain_tip_control:
 			self.str_chain[-1].parent = self.fk_chain[-1]
+
+	def register_parents(self):
+		"""Register some primary controls as available parents for parent switching."""
+		# Hips
+		self.register_parent(self.mstr_hips, "Hips")
+		# Final spine FK.
+		self.register_parent(self.fk_chain[-1], "Chest")
+		# Torso root.
+		self.register_parent(self.limb_root_bone, "Torso")
 
 	##############################
 	# Parameters

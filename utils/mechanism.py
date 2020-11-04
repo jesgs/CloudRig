@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import os
 from copy import deepcopy
 
@@ -37,11 +37,12 @@ class CloudMechanismMixin:
 			)
 		self.parent_candidates[name] = bone
 
-	def get_parent_candidates(self, candidates={}):
+	def get_parent_candidates(self, candidates: Dict): # NOTE: An empty dictionary must be passed in on the initial call!
 		""" Go recursively up the rig element hierarchy. Collect and return a list of the registered parent bones from each rig."""
 
 		for parent_name in self.parent_candidates.keys():
-			candidates[parent_name] = self.parent_candidates[parent_name]
+			if parent_name not in candidates:
+				candidates[parent_name] = self.parent_candidates[parent_name]
 
 		if self.rigify_parent and hasattr(self.rigify_parent, "get_parent_candidates"):
 			return self.rigify_parent.get_parent_candidates(candidates)
@@ -61,10 +62,9 @@ class CloudMechanismMixin:
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
 
-	def rig_child(self, child_bone, parent_names, prop_bone, prop_name, bone_set=None, force_setup=False):
+	def rig_child(self, child_bone, prop_bone, prop_name, bone_set=None, force_setup=False):
 		""" Rig a child with multiple switchable parents, using Armature constraint and drivers.
 		child_bone: The child bone.
-		parent_names: Parent identifiers(NOT BONE NAMES!) to search for among registered parent identifiers (These are hard-coded identifiers such as 'Hips', 'Torso', etc.)
 		prop_bone: Bone which stores the property that controls the parent switching.
 		prop_name: Name of said property on the prop_bone.
 		bone_set: BoneSet to create this bone in. If not provided, use "Parent Switch Helpers" from cloud_base.
@@ -75,14 +75,16 @@ class CloudMechanismMixin:
 			bone_set = self.parent_switch_bones
 
 		# Test that at least one of the parents exists.
-		parent_candidates = self.get_parent_candidates()
+		parent_candidates = self.get_parent_candidates({})
+		parent_names = list(parent_candidates.keys())
+		# Root should be first, rest reversed.
+		parent_names = [parent_names[0]] + list(reversed(parent_names[1:]))
 		found_parents = []
 		for pn in parent_names:
-			if pn in list(parent_candidates.keys()):
-				# The strings in found_parents will be used for UI display, so let's
-				# add the bone name for clarity.
-				pn += f" [{parent_candidates[pn]}]"
-				found_parents.append(pn)
+			# The strings in found_parents will be used for UI display, so let's
+			# add the bone name for clarity.
+			pn += f" [{parent_candidates[pn]}]"
+			found_parents.append(pn)
 		
 		if len(found_parents) == 0 and not force_setup:
 			# No parents to be rigged for child_bone.
