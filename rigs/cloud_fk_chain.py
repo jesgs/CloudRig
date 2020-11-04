@@ -49,6 +49,7 @@ class CloudFKChainRig(CloudChainRig):
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
+		self.register_parent(self.fk_chain[0], self.limb_ui_name)
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
@@ -60,7 +61,6 @@ class CloudFKChainRig(CloudChainRig):
 			,parent 				= base_bone.parent
 			,custom_shape 			= self.ensure_widget("Cube")
 		)
-		self.register_parent(limb_root_bone, self.limb_ui_name + " Root")
 		return limb_root_bone
 
 	def make_fk_chain(self):

@@ -452,7 +452,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		if not ik_ctrl:
 			ik_ctrl = self.ik_mstr
 
-		if len(self.get_parent_candidates({})) == 0:
+		if len(self.get_parent_candidates({}, exclude_self=True)) == 0:
 			# If this rig has no parent candidates, there's nothing to be done here.
 			return
 

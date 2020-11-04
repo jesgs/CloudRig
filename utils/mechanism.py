@@ -37,15 +37,16 @@ class CloudMechanismMixin:
 			)
 		self.parent_candidates[name] = bone
 
-	def get_parent_candidates(self, candidates: Dict): # NOTE: An empty dictionary must be passed in on the initial call!
+	def get_parent_candidates(self, candidates: Dict, exclude_self=False): # NOTE: An empty dictionary must be passed in on the initial call!
 		""" Go recursively up the rig element hierarchy. Collect and return a list of the registered parent bones from each rig."""
 
-		for parent_name in self.parent_candidates.keys():
-			if parent_name not in candidates:
-				candidates[parent_name] = self.parent_candidates[parent_name]
+		if not exclude_self:
+			for parent_name in self.parent_candidates.keys():
+				if parent_name not in candidates:
+					candidates[parent_name] = self.parent_candidates[parent_name]
 
 		if self.rigify_parent and hasattr(self.rigify_parent, "get_parent_candidates"):
-			return self.rigify_parent.get_parent_candidates(candidates)
+			return self.rigify_parent.get_parent_candidates(candidates, exclude_self=False)
 
 		return candidates
 
@@ -75,7 +76,7 @@ class CloudMechanismMixin:
 			bone_set = self.parent_switch_bones
 
 		# Test that at least one of the parents exists.
-		parent_candidates = self.get_parent_candidates({})
+		parent_candidates = self.get_parent_candidates({}, exclude_self=True)
 		parent_names = list(parent_candidates.keys())
 		# Root should be first, rest reversed.
 		parent_names = [parent_names[0]] + list(reversed(parent_names[1:]))
