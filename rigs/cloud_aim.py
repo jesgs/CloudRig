@@ -124,9 +124,13 @@ class CloudAimRig(CloudBaseRig):
 
 		# Collect all cloud_aim rigs in this group.
 		aim_bones = []
+		first_parent = ""
 		for rig in self.generator.rig_list:
 			if isinstance(rig, CloudAimRig) and rig.params.CR_aim_group == group_name:
-				aim_bones.append(self.obj.pose.bones[rig.base_bone])
+				aim_bone = self.obj.pose.bones[rig.base_bone]
+				aim_bones.append(aim_bone)
+				if aim_bone.parent and first_parent=="":
+					first_parent = aim_bone.parent.name
 
 		if len(aim_bones) < 2:
 			return None
@@ -145,7 +149,7 @@ class CloudAimRig(CloudBaseRig):
 			,head = aims_center
 			,tail = aims_center + group_vec.normalized() * self.scale/10
 			,bbone_width = 0.1
-			,parent = self.generator.find_bone_info(str(aim_bones[0].parent))
+			,parent = self.generator.find_bone_info(first_parent)
 		)
 
 		# Create the master bone.
