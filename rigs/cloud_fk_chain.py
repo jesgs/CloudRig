@@ -41,11 +41,17 @@ class CloudFKChainRig(CloudChainRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		self.limb_root_bone = self.org_chain[0]
-		self.rig_parent_bone = self.limb_root_bone.parent
 		if self.params.CR_fk_chain_root:
 			self.limb_root_bone = self.make_root_bone()
+
 		self.make_fk_chain()
+
+		if not hasattr(self, 'limb_root_bone'):
+			self.limb_root_bone = self.fk_chain[0]
+
+		if self.rigify_parent and hasattr(self.rigify_parent, 'reparent_bone'):
+			self.rigify_parent.reparent_bone(self.limb_root_bone)
+
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()

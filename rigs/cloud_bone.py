@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+from ..bone import BoneInfo
 
 from rigify.base_rig import BaseRig, stage
 
@@ -32,6 +33,10 @@ class Rig(BaseRig, mechanism.CloudMechanismMixin):
 				self.do_parenting = False
 
 		self.create_deform_bone = meta_pose_bone.bone.use_deform
+
+	def reparent_bone(self, child: BoneInfo):
+		"""Overrides CloudMechanismMixin."""
+		return None
 
 	def generate_bones(self):
 		self.base_bone = self.orgless_name

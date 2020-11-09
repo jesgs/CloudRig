@@ -64,6 +64,10 @@ class CloudChainRig(CloudBaseRig):
 			return
 		if len(parent.def_bones)==0:
 			return
+		# If this rig is connected to our rig, use ORG parenting otherwise we dependency cycle.
+		child_meta_bone = self.meta_bone(self.naming.strip_org(child.owner_rig.base_bone))
+		if child_meta_bone.bone.use_connect:
+			return
 		for c in child.constraint_infos:
 			if c.type=='ARMATURE':
 				return
