@@ -97,13 +97,17 @@ class CloudLegRig(CloudLimbRig):
 
 		# To get the position of the foot bone display helper,
 		# project a line out of the knee bone, then find the point on that line
-		# which is closest the toe bone's tail.
+		# which is closest the toe bone's tail, lowered to the Z position of the heel bone if there is one and it is lower.
 		knee = self.org_chain[1]
 		toe = self.org_chain[-1]
-		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+		shoe_tip = toe.tail.copy()
+		heel_pivot_bone = self.get_heel_pivot_meta_bone()
+		if heel_pivot_bone.tail_local.z < shoe_tip.z:
+			shoe_tip.z = heel_pivot_bone.tail_local.z
+		intersect = intersect_point_line(shoe_tip, knee.head, knee.tail)[0]
 
 		dsp_bone.head = intersect
-		dsp_bone.tail = toe.tail.copy()
+		dsp_bone.tail = shoe_tip
 		dsp_bone.length = 0.1 * self.scale
 		dsp_bone.roll_type = 'ACTIVE'
 		dsp_bone.roll_bone = toe
@@ -313,10 +317,10 @@ class CloudLegRig(CloudLimbRig):
 		heel_pivot_name = self.params.CR_leg_heel_bone
 		if heel_pivot_name=="":
 			heel_pivot_name = self.org_chain[-2].name.replace("ORG-", "")
-		heel_pivot_bone = self.generator.metarig.data.bones.get(heel_pivot_name)
-		assert heel_pivot_bone, f"Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
+		heel_pivot_pb = self.meta_bone(heel_pivot_name)
+		assert heel_pivot_pb, f"Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
 
-		return heel_pivot_bone
+		return heel_pivot_pb.bone
 
 	def make_ik_toe(self):
 		# FK Toe bone should be parented between FK Foot and IK Toe.
