@@ -37,6 +37,7 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	def execute(self, context):
+		rigs_generated = 0
 		for o in bpy.data.objects:
 			if o.type!='ARMATURE': continue
 			if o.data.rigify_target_rig:
@@ -44,6 +45,11 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 				target_rig = o.data.rigify_target_rig
 				if target_rig:
 					safe_generate(context, metarig, target_rig)
+					rigs_generated+=1
+		if rigs_generated==0:
+			self.report({'INFO'}, "No rigs found to re-generate!")
+		else:
+			self.report({'INFO'}, f"Successfully re-generated {rigs_generated} rig{'s' if rigs_generated>1 else ''}")
 
 		return { 'FINISHED' }
 
