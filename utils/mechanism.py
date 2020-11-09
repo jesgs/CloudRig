@@ -148,7 +148,6 @@ class CloudMechanismMixin:
 			,name			= dsp_name
 			,source			= parent
 			,bbone_width	= parent.bbone_width*0.5
-			,only_transform = True
 			,custom_shape	= None
 			,parent			= parent
 			,hide_select	= self.mch_disable_select

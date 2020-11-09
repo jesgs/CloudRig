@@ -232,9 +232,13 @@ class CloudIKChainRig(CloudFKChainRig):
 				# First IK bone special treatment
 				ik_bone.parent = self.limb_root_bone
 				ik_bone.custom_shape = self.ensure_widget("Rectangles")
-				ik_bone.use_custom_shape_bone_size = True
 				ik_bone.bone_group	  = self.ik_ctrls.bone_group
+				ik_bone.use_custom_shape_bone_size = True
 				ik_bone.layers		  = self.ik_ctrls.layers[:]
+				dsp = self.create_dsp_bone(ik_bone)
+				dsp.length = self.scale
+				ik_bone.custom_shape_scale = dsp.length / ik_bone.length
+				dsp.add_constraint('STRETCH_TO', subtarget=ik_bone.name, head_tail=1, rest_length=dsp.length)
 
 			else:
 				ik_bone.parent = ik_chain[-2]

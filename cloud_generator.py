@@ -1002,7 +1002,12 @@ class CloudGenerator(Generator):
 		for b in obj.pose.bones:
 			for c in b.constraints:
 				if c.type=='STRETCH_TO':
-					c.rest_length = 0
+					bone_info = self.find_bone_info(b.name)
+					con_info = bone_info.get_constraint(c.name)
+					if con_info and 'rest_length' in con_info:
+						c.rest_length = con_info.rest_length
+					else:
+						c.rest_length = 0
 		self.logger.report_unused_named_layers()
 		self.logger.report_invalid_drivers()
 
