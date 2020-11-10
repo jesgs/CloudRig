@@ -53,7 +53,6 @@ class CloudSpineRig(CloudFKChainRig):
 			self.make_ik_spine()
 		self.tweak_str_spine()
 
-		self.register_parents()
 
 	def make_root_bone(self):
 		"""Overrides."""
@@ -69,7 +68,7 @@ class CloudSpineRig(CloudFKChainRig):
 		return limb_root_bone
 
 	def make_fk_chain(self):
-		"""Overrides."""
+		"""Overrides cloud_fk_chain."""
 		super().make_fk_chain()
 
 		# Create master hip control
@@ -277,7 +276,10 @@ class CloudSpineRig(CloudFKChainRig):
 			self.str_chain[-1].parent = self.fk_chain[-1]
 
 	def register_parents(self):
-		"""Register some primary controls as available parents for parent switching."""
+		"""Overrides cloud_fk_chain.
+		
+		Register some primary controls as available parents for parent switching."""
+		if not self.params.CR_fk_chain_parent_candidates: return
 		# Hips
 		self.register_parent(self.mstr_hips, "Hips")
 		# Final spine FK.

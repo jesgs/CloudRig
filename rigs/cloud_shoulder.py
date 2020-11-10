@@ -22,10 +22,14 @@ class CloudShoulderRig(CloudFKChainRig):
 		super().prepare_bones()
 		self.prepare_fk_shoulder()
 
+	def register_parents(self):
+		"""Overrides cloud_fk_chain."""
+		if self.params.CR_fk_chain_parent_candidates:
+			self.register_parent(self.fk_chain[0], self.side_prefix.capitalize() + " Shoulder")
+
 	def prepare_fk_shoulder(self):
 		control = self.fk_chain[0]
 		control.custom_shape = self.ensure_widget("Clavicle")
-		self.register_parent(control, self.side_prefix.capitalize() + " Shoulder")
 		shoulder_rot = int(self.params.CR_shoulder_up_axis)
 		if shoulder_rot != 0:
 			dsp_bone = self.create_dsp_bone(control, center=False)
