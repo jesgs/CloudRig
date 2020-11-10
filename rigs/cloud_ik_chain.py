@@ -80,7 +80,6 @@ class CloudIKChainRig(CloudFKChainRig):
 	def make_ik_setup(self):
 		# Create IK Master control
 		ik_org_bone = self.org_chain[self.chain_count]
-		mstr_name = ik_org_bone.name.replace("ORG", "IK-MSTR")
 		self.ik_mstr = self.create_ik_master(
 			self.ik_ctrls, 
 			ik_org_bone, 
@@ -107,7 +106,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name="Sphere"):
 		if bone_name=="":
-			bone_name = "IK-MSTR-" + source_bone.name.replace("ORG-", "")
+			bone_name = source_bone.name.replace("ORG", "IK-MSTR")
 
 		ik_master = self.new_bonei(self.ik_ctrls
 			,name		  = bone_name
@@ -245,7 +244,6 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			if i == self.chain_count:
 				# Add the IK constraint to the previous bone, targetting this one.
-				pole_target_name = pole_target.name if pole_target else ""
 				ik_chain[-2].add_constraint('IK',
 					pole_target		= self.obj if pole_target else None,
 					pole_subtarget	= pole_target.name if pole_target else "",
@@ -277,7 +275,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			hide_on.append( (fk_chain[0].parent.name) )
 			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
 
-		for i, fk_bone in enumerate(fk_chain):
+		for i in range(len(fk_chain)):
 			map_off.append( (fk_chain[i].name, ik_chain[i].name))
 
 		ui_data = {
