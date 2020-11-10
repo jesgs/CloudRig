@@ -353,6 +353,7 @@ class CloudGenerator(Generator):
 			,tail				= Vector((0, self.scale*1, 0))
 			,bbone_width		= 1/20
 		)
+		action_helper.layers = [i==31 for i in range(32)]
 		return action_helper
 
 	def load_ui_script(self):
