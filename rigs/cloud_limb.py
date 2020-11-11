@@ -86,8 +86,8 @@ class CloudLimbRig(CloudIKChainRig):
 			self.ik_mstr.name = self.naming.add_prefix(self.ik_mstr, "C")
 			double_control = self.create_parent_bone(self.ik_mstr, self.ik_double_ctrls)
 			double_control.name = old_name
-			double_control.bone_group = "IK Child Controls"
-			double_control.set_layers(self.ik_ctrls_secondary.layers, additive=True)
+			self.ik_mstr.bone_group = "IK Child Controls"
+			self.ik_mstr.set_layers(self.ik_ctrls_secondary.layers, additive=True)
 
 		# Counter-Rotate setup for the first section of STR bones.
 		for i in range(0, self.params.CR_chain_segments):
@@ -393,7 +393,7 @@ class CloudLimbRig(CloudIKChainRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "IK Child Controls", preset=8, default_layers=[cls.default_layers('IK_MAIN')])
+		cls.define_bone_set(params, "IK Child Controls", preset=8, default_layers=[cls.default_layers('IK_SECOND')])
 
 	@classmethod
 	def add_parameters(cls, params):

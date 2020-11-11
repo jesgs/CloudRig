@@ -352,7 +352,7 @@ class CloudFKChainRig(CloudChainRig):
 		params.CR_fk_chain_test_animation_generate = BoolProperty(
 			 name		 = "Generate Test Animation"
 			,description = "Include this rig element in the test animation"
-			,default	 = True,
+			,default	 = False,
 		)
 		params.CR_fk_chain_test_animation_rotation_range = IntVectorProperty(
 			 name		 = "Rotation Range"
