@@ -42,6 +42,8 @@ class CloudFKChainRig(CloudChainRig):
 	def prepare_bones(self):
 		super().prepare_bones()
 		if self.params.CR_fk_chain_root:
+			# This has to come before make_fk_chain() so inheriting rig classes 
+			# that override make_fk_chain() can expect root bone to already exist.
 			self.limb_root_bone = self.make_root_bone()
 
 		self.make_fk_chain()
@@ -49,8 +51,12 @@ class CloudFKChainRig(CloudChainRig):
 		if not hasattr(self, 'limb_root_bone'):
 			self.limb_root_bone = self.fk_chain[0]
 
-		if self.rigify_parent and hasattr(self.rigify_parent, 'reparent_bone'):
+		if self.params.CR_fk_chain_def_parenting and \
+			self.rigify_parent and hasattr(self.rigify_parent, 'reparent_bone'
+			):
 			self.rigify_parent.reparent_bone(self.limb_root_bone)
+		else:
+			self.limb_root_bone.parent = self.org_chain[0].parent
 
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
@@ -316,6 +322,11 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "Let this rig register candidates for the parent switching mechanisms of its child rigs"
 			,default	 = False
 		)
+		params.CR_fk_chain_def_parenting = BoolProperty(
+			name		 = "Parent to Deform"
+			,description = "Attempt parenting this rig to the deform layer of its parent"
+			,default	 = False
+		)
 
 		params.CR_fk_chain_use_limb_name = BoolProperty(
 			 name		 = "Custom Limb Name"
@@ -391,6 +402,7 @@ class CloudFKChainRig(CloudChainRig):
 		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
 		row.enabled = params.CR_fk_chain_root
 		cls.draw_prop(layout, params, 'CR_fk_chain_parent_candidates')
+		cls.draw_prop(layout, params, 'CR_fk_chain_def_parenting')
 
 		if context.object.data.cloudrig_parameters.generate_test_action:
 			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
