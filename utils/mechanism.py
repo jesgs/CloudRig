@@ -136,7 +136,7 @@ class CloudMechanismMixin:
 	def create_parent_bone(self, child, bone_set=None):
 		# TODO: This should be consistent with create_dsp_bone(), probably by implementing that function like this.
 		# That is, move the code to a static function that does not require self.
-		# This feels a bit dirty though because it would be nice if we only appended to self.all_bones directly from one place, which is self. new_bonei().
+		# This feels a bit dirty though because it would be nice if we only appended to self.all_bones directly from one place, which is self.new_bonei().
 		parent = create_parent_bone(self.generator, child, bone_set)
 		self.all_bones.append(parent)
 		return parent
@@ -340,7 +340,7 @@ def create_parent_bone(generator, child, bone_set=None):
 		,name				= parent_name
 		,source				= child
 		,custom_shape		= child.custom_shape
-		,custom_shape_scale = child.custom_shape_scale * 1.1
+		,custom_shape_scale = child.custom_shape_scale * 1.2
 		,use_custom_shape_bone_size = child.use_custom_shape_bone_size
 		,parent 			= child.parent
 	)
