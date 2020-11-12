@@ -63,7 +63,9 @@ class CloudMechanismMixin:
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
 
-	def rig_child(self, child_bone, prop_bone, prop_name, bone_set=None, force_setup=False):
+	def rig_child(self, child_bone: BoneInfo, prop_bone: BoneInfo, prop_name: str,
+		bone_set=None, force_setup=False
+		) -> List[str]:
 		""" Rig a child with multiple switchable parents, using Armature constraint and drivers.
 		child_bone: The child bone.
 		prop_bone: Bone which stores the property that controls the parent switching.
@@ -72,6 +74,8 @@ class CloudMechanismMixin:
 		force_setup: Create the parent switching helper bone and constraint even if there is less than 2 parent candidates.
 		Return list of parent names for which a registered parent candidate was found and rigged.
 		"""
+		if self.rigify_parent==None:
+			return []
 		if bone_set==None:
 			bone_set = self.parent_switch_bones
 
