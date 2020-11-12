@@ -144,8 +144,9 @@ class CloudChainRig(CloudBaseRig):
 					self.main_str_bones.append(str_bone)
 		
 		# Set first and last control's shapes
-		self.str_chain[0].custom_shape = self.ensure_widget("Hemisphere_Flip")
-		self.str_chain[-1].custom_shape = self.ensure_widget("Hemisphere")
+		if not self.cyclic:
+			self.str_chain[0].custom_shape = self.ensure_widget("Hemisphere_Flip")
+			self.str_chain[-1].custom_shape = self.ensure_widget("Hemisphere")
 
 		return str_sections
 
