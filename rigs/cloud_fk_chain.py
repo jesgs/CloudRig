@@ -341,7 +341,7 @@ class CloudFKChainRig(CloudChainRig):
 		params.CR_fk_chain_use_category_name = BoolProperty(
 			 name		 = "Custom Category Name"
 			,description = "Specify a category for this limb. If not enabled, use the name of the base bone, without pre and suffixes"
-			,default	 = False,
+			,default	 = False
 		)
 		params.CR_fk_chain_category_name = StringProperty(
 			name		 = "Custom Category"
@@ -352,7 +352,7 @@ class CloudFKChainRig(CloudChainRig):
 		params.CR_fk_chain_test_animation_generate = BoolProperty(
 			 name		 = "Generate Test Animation"
 			,description = "Include this rig element in the test animation"
-			,default	 = False,
+			,default	 = False
 		)
 		params.CR_fk_chain_test_animation_rotation_range = IntVectorProperty(
 			 name		 = "Rotation Range"
@@ -373,9 +373,14 @@ class CloudFKChainRig(CloudChainRig):
 
 	@classmethod
 	def draw_bone_set_params(cls, layout, params, set_info):
-		# We only want to draw Curve Handles bone set UI if the option for it is enabled.
+		# We only want to draw this bone set UI if the option for it is enabled.
 		if set_info['name'] != "FK Controls Extra" or params.CR_fk_chain_double_first:
 			super().draw_bone_set_params(layout, params, set_info)
+
+	@classmethod
+	def draw_hinge_param(cls, layout, params):
+		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
+		row.enabled = params.CR_fk_chain_root
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
@@ -399,8 +404,7 @@ class CloudFKChainRig(CloudChainRig):
 		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
-		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
-		row.enabled = params.CR_fk_chain_root
+		cls.draw_hinge_param(layout, params)
 		cls.draw_prop(layout, params, 'CR_fk_chain_parent_candidates')
 		cls.draw_prop(layout, params, 'CR_fk_chain_def_parenting')
 

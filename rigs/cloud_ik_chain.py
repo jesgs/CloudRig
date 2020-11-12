@@ -576,6 +576,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		super().add_parameters(params)
 
 	@classmethod
+	def draw_hinge_param(cls, layout, params):
+		cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
+
+	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
@@ -583,7 +587,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		if not cls.draw_dropdown_menu(layout, params, "CR_ik_chain_show_settings"): return layout
 
 		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
-		# cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
 		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
 		op = layout.operator('object.cloudrig_flatten_bones')
