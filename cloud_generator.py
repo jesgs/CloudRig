@@ -339,7 +339,7 @@ class CloudGenerator(Generator):
 				defaults = self.defaults
 			)
 			self.bone_sets.append(self.root_parent_set)
-			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
+			self.root_parent = mechanism.create_parent_bone(self, self.root_bone, self.root_parent_set)
 			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
 		
 		# If the Metarig has any Action Slots, create an Action Property Helper bone.
