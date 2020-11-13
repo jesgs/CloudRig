@@ -8,7 +8,7 @@ from mathutils import Vector
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
-from ..bone import BoneInfo, new_bonei
+from ..bone import BoneInfo
 from ..utils.naming import slice_name, make_name
 from ..utils.maths import flat
 
@@ -140,16 +140,14 @@ class CloudMechanismMixin:
 	def create_parent_bone(self, child, bone_set=None):
 		# TODO: This should be consistent with create_dsp_bone(), probably by implementing that function like this.
 		# That is, move the code to a static function that does not require self.
-		# This feels a bit dirty though because it would be nice if we only appended to self.all_bones directly from one place, which is self.new_bonei().
 		parent = create_parent_bone(self.generator, child, bone_set)
-		self.all_bones.append(parent)
 		return parent
 
 	def create_dsp_bone(self, parent, center=False):
 		"""Create a bone to be used as another control's custom_shape_transform."""
 		dsp_name = "DSP-" + parent.name
-		dsp_bone = self.new_bonei(self.dsp_bones
-			,name			= dsp_name
+		dsp_bone = self.dsp_bones.new(
+			name			= dsp_name
 			,source			= parent
 			,bbone_width	= parent.bbone_width*0.5
 			,custom_shape	= None
@@ -164,8 +162,8 @@ class CloudMechanismMixin:
 
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
-		def_bone = self.new_bonei(bone_set
-			,name = self.naming.make_name(["DEF"], *self.naming.slice_name(bone.name)[1:])
+		def_bone = bone_set.new(
+			name = self.naming.make_name(["DEF"], *self.naming.slice_name(bone.name)[1:])
 			,source = bone
 			,use_deform = True
 			,parent = bone
@@ -340,8 +338,8 @@ def create_parent_bone(generator, child, bone_set=None):
 	parent_name = make_name(*sliced)
 	if bone_set==None:
 		bone_set = child.bone_set
-	parent_bone = new_bonei(generator, bone_set
-		,name				= parent_name
+	parent_bone = bone_set.new(
+		name				= parent_name
 		,source				= child
 		,custom_shape		= child.custom_shape
 		,custom_shape_scale = child.custom_shape_scale * 1.2

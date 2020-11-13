@@ -13,7 +13,7 @@ from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
 
-from .bone import BoneSet, BoneInfo, new_bonei
+from .bone import BoneSet, BoneInfo
 from .utils import mechanism
 from . import widgets as cloud_widgets
 from .versioning import cloud_metarig_version
@@ -320,8 +320,8 @@ class CloudGenerator(Generator):
 
 		self.root_bone = None
 		if self.params.cloudrig_parameters.create_root:
-			self.root_bone = new_bonei(self, self.root_set
-				,name				= "root"
+			self.root_bone = self.root_set.new(
+				name				= "root"
 				,head				= Vector((0, 0, 0))
 				,tail				= Vector((0, self.scale*5, 0))
 				,bbone_width		= 1/10
@@ -347,8 +347,8 @@ class CloudGenerator(Generator):
 			self.action_helper = self.create_action_helper()
 
 	def create_action_helper(self):
-		action_helper = new_bonei(self, self.root_set
-			,name				= "action_props"
+		action_helper = self.root_set.new(
+			name				= "action_props"
 			,head				= Vector((0, 0, 0))
 			,tail				= Vector((0, self.scale*1, 0))
 			,bbone_width		= 1/20
