@@ -175,7 +175,6 @@ class CloudBaseRig(
 			org_bi.layers = self.org_chain.layers[:]
 			org_bi.hide_select = self.mch_disable_select
 			org_bi.bbone_width = eb.bbone_x / self.scale
-			org_bi.custom_shape_scale /= org_bi.bbone_width * 10 * self.scale
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent

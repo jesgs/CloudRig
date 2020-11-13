@@ -5,15 +5,13 @@ from ..bone import BoneInfo, BoneSet
 from .cloud_base import CloudBaseRig
 
 """TODO
-Split up into cloud_tweak for the tweaking functionality, maybe one can extend the other idk.
-
-Whoa, cloud_aim could actually inherit from this class... in theory, that should be good.
+cloud_aim could maybe inherit from this?
 
 Could also move parent switching mechanism and root bone from cloud_aim to here instead.
 """
 
-class CloudBoneRig(CloudBaseRig):
-	"""Create a single bone in the generated rig."""
+class CloudCopyRig(CloudBaseRig):
+	"""Copy this bone to the generated rig."""
 
 	def initialize(self):
 		super().initialize()
@@ -36,6 +34,8 @@ class CloudBoneRig(CloudBaseRig):
 	def prepare_bones(self):
 		super().prepare_bones()
 		bi = self.org_chain[0]
+		if not bi.use_custom_shape_bone_size:
+			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
 
 		# Strip ORG from bone's name (@name.setter takes care of everything)
 		bi.name = self.orgless_name
@@ -155,7 +155,7 @@ class CloudBoneRig(CloudBaseRig):
 
 		return layout
 
-class Rig(CloudBoneRig):
+class Rig(CloudCopyRig):
 	pass
 
 from ..load_metarig import load_sample_by_file

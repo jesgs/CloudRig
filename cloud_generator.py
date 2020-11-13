@@ -240,7 +240,7 @@ class CloudGenerator(Generator):
 		""" Rigify compatibility function: Assign ORG/MCH/DEF layers, only to non-CloudRig types. """
 		cloudrig_bones = []
 		for rig in self.rig_list:
-			if "cloud" in str(type(r)):
+			if "cloud" in str(type(rig)):
 				for bone_set in rig.bone_sets:
 					for bone_info in bone_set:
 						cloudrig_bones.append(bone_info.name)
