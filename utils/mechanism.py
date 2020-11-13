@@ -16,9 +16,7 @@ class CloudMechanismMixin:
 	"""Mixin class for rigging functions, using mostly the BoneInfo class."""
 
 	def get_bone_info(self, name):
-		for bi in self.all_bones:
-			if bi.name==name:
-				return bi
+		return self.generator.find_bone_info(name)
 
 	@staticmethod
 	def find_rig_of_bone(pose_bone):

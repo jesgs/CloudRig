@@ -238,18 +238,14 @@ class CloudGenerator(Generator):
 
 	def rigify_assign_layers(self):
 		""" Rigify compatibility function: Assign ORG/MCH/DEF layers, only to non-CloudRig types. """
-		bone_names = []
-		for r in self.rig_list:
+		cloudrig_bones = []
+		for rig in self.rig_list:
 			if "cloud" in str(type(r)):
-				if hasattr(r, "all_bones"):
-					for bi in r.all_bones:
-						bone_names.append(bi.name)
-				elif "cloud_bone" in str(type(r)):	# TODO: cloud_bone should store bones more consistently with cloud_base.
-					bone_names.append(r.bone_name)
-					if hasattr(r, "def_bone_name"):
-						bone_names.append(r.def_bone_name)
+				for bone_set in rig.bone_sets:
+					for bone_info in bone_set:
+						cloudrig_bones.append(bone_info.name)
 
-		bones = [b for b in self.obj.data.bones if b.name not in bone_names]
+		bones = [b for b in self.obj.data.bones if b.name not in cloudrig_bones]
 
 		# Every bone that has a name starting with "DEF-" make deforming.  All the
 		# others make non-deforming.

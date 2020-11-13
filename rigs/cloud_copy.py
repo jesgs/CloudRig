@@ -131,8 +131,8 @@ class CloudBoneRig(CloudBaseRig):
 		super().add_parameters(params)
 
 		params.CR_copy_show_settings = BoolProperty(
-			name		 = "Bone Settings"
-			,description = "Reveal settings for the cloud_bone rig type"
+			name		 = "Copy Settings"
+			,description = "Reveal settings for the cloud_copy rig type"
 		)
 
 		params.CR_copy_parent = StringProperty(

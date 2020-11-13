@@ -238,10 +238,6 @@ class BoneSet(LinkedList):
 		self.append(bone_info)
 		generator.bone_infos.append(bone_info)
 		bone_info.owner_rig = self.rig
-		# TODO delete all_bones, I don't know why we need it.
-		if not hasattr(bone_info.owner_rig, 'all_bones'):
-			bone_info.owner_rig.all_bones = []
-		bone_info.owner_rig.all_bones.append(bone_info)
 
 		return bone_info
 

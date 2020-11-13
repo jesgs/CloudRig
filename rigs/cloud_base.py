@@ -66,8 +66,6 @@ class CloudBaseRig(
 			self.side_suffix = "R"
 			self.side_prefix = "Right"
 
-		self.all_bones = []
-
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main."""
 
