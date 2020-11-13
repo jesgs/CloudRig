@@ -170,6 +170,21 @@ class BoneSet(LinkedList):
 	def new(self, name="Bone", source=None, **kwargs):
 		"""Create and add a new BoneInfo to self."""
 
+
+		generator = self.rig
+		if hasattr(self.rig, 'generator'):
+			generator = self.rig.generator
+
+		# If a BoneInfo with the passed name already exists, add a warning and do not create a new one.
+		bi = generator.find_bone_info(name)
+		if bi:
+			generator.logger.log_bug("Redefining bone"
+				,owner_bone = bi.owner_rig.meta_base_bone.name
+				,trouble_bone = bi.name
+				,description = "Bone was defined twice."
+			)
+			return bi
+
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group
 		if 'layers' not in kwargs:
@@ -180,6 +195,13 @@ class BoneSet(LinkedList):
 
 		bi = BoneInfo(name, source, **kwargs)
 		self.append(bi)
+		generator.bone_infos.append(bi)
+		bi.owner_rig = self.rig
+		# TODO delete all_bones, I don't know why we need it.
+		if not hasattr(bi.owner_rig, 'all_bones'):
+			bi.owner_rig.all_bones = []
+		bi.owner_rig.all_bones.append(bi)
+
 
 		return bi
 
@@ -690,34 +712,15 @@ class ConstraintInfo(dict):
 
 		return con
 
-def new_bonei(generator, bone_set: BoneSet = None, name="Bone", overwrite=False, **kwargs) -> BoneInfo:
-	""" Create a BoneInfo, optionally as part of a BoneSet.
-		Ideally all bones should be part of a BoneSet
+def new_bonei(generator, bone_set: BoneSet, name="Bone", **kwargs) -> BoneInfo:
+	""" To allow the Generator to create the root bones.
+	TODO get rid of this somehow
 	"""
 	new = None
 
-	# If a BoneInfo with the passed name already exists, overwrite it and add a warning.
-	bi = generator.find_bone_info(name)
-	if bi and not overwrite:
-		generator.logger.log_bug("Overwritten bone"
-			,owner_bone = bi.owner_rig.meta_base_bone.name
-			,trouble_bone = bi.name
-			,description = "Bone was defined twice."
-		)
-
 	kwargs['name'] = name
-	if bone_set is not None:
-		kwargs['bone_set'] = bone_set
-		new = bone_set.new(**kwargs)
-	else:
-		generator.logger.log_bug("Bone without BoneSet"
-			,trouble_bone = name
-			,description = "BoneInfo was created without a BoneSet."
-		)
-		new = BoneInfo(**kwargs)
+	new = bone_set.new(**kwargs)
 
-	generator.bone_infos.append(new)
-	new.generator = generator
 	return new
 
 class BoneInfoMixin:
@@ -727,10 +730,8 @@ class BoneInfoMixin:
 
 	bone_set_defs: Dict[str, str] = OrderedDict()
 
-	def new_bonei(self, bone_set: BoneSet = None, name="Bone", **kwargs) -> BoneInfo:
-		new = new_bonei(self.generator, bone_set, name, **kwargs)
-		new.owner_rig = self
-		self.all_bones.append(new)
+	def new_bonei(self, bone_set: BoneSet, name="Bone", **kwargs) -> BoneInfo:
+		new = bone_set.new(name, **kwargs)
 		return new
 
 	def ensure_bone_set(self, bone_set_name):
