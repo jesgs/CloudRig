@@ -33,7 +33,7 @@ def rename_parameters(metarig, dictionary):
 				new_key = dictionary[old_key]
 				value = pb.rigify_parameters[old_key]
 				try:
-					print(f"Rename param {old_key}->{new_key}")
+					print(f"Rename param {pb.name}: {old_key}->{new_key}")
 					setattr(pb.rigify_parameters, new_key, value)
 				except:
 					update_enum_property(pb.rigify_parameters, old_key, new_key, value)
@@ -52,7 +52,7 @@ def version_cloud_metarig(metarig):
 		print("2:")
 		dictionary = {
 			"CR_constraints_additive" : "CR_copy_constraints_additive"
-			,"CR_copy_type" : "CR_copy_copy_type"
+			,"CR_bone_type" : "CR_bone_copy_type"
 			,"CR_show_spline_ik_settings" : "CR_spline_ik_show_settings"
 			,"CR_match_hooks_to_bones" : "CR_spline_ik_match_hooks"
 			,"CR_curve_handle_length" : "CR_spline_ik_handle_length"
@@ -178,11 +178,10 @@ def version_cloud_metarig(metarig):
 		}
 		for pb in metarig.pose.bones:
 			if pb.rigify_type=='cloud_bone':
-				if 'copy_type' not in pb.rigify_parameters:
-					copy_type = 0
+				if 'CR_bone_copy_type' in pb.rigify_parameters and pb.rigify_parameters['CR_bone_copy_type']==1:
+					pb.rigify_type = 'cloud_copy'
 				else:
-					copy_type = pb.rigify_parameters['CR_copy_type']
-				pb.rigify_type = ['cloud_copy', 'cloud_tweak'][copy_type]
+					pb.rigify_type = 'cloud_tweak'
 				print(f"{pb.name} rigify_type: cloud_bone -> {pb.rigify_type}")
 		rename_parameters(metarig, dictionary)
 

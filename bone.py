@@ -526,7 +526,7 @@ class BoneInfo:
 		# Check for 0-length bones.
 		if (self.head - self.tail).length == 0:
 			# Warn and force length.
-			self.generator.logger.log_bug("Bone with 0 length"
+			self.bone_set.rig.add_log_bug("Bone with 0 length"
 				,trouble_bone = self.name
 				,description = "Bones cannot be created with a length of 0. Fell back to default vector."
 			)
@@ -541,6 +541,8 @@ class BoneInfo:
 
 		if self.parent:
 			eb.parent = armature.data.edit_bones.get(str(self.parent))
+			if eb.parent==None:
+				self.bone_set.rig.add_log("Bone failed to parent", trouble_bone=self.name, description=f"Failed to find parent {self.parent}. It's also possible that parenting failed because the parent bone is a child of this bone.")
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props_edit.items():
