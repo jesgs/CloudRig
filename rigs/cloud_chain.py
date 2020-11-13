@@ -28,7 +28,6 @@ class CloudChainRig(CloudBaseRig):
 		self.str_chain = self.ensure_bone_set("Stretch Controls")
 		self.str_mch = self.ensure_bone_set("Stretch Helpers")
 		self.skh_bones = self.ensure_bone_set("Shape Key Helpers")
-		self.def_chain = self.ensure_bone_set("Deform Bones")
 
 	def prepare_bones(self):
 		super().prepare_bones()
@@ -508,8 +507,7 @@ class CloudChainRig(CloudBaseRig):
 		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
 		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Deform Bones",					default_layers=[cls.default_layers('DEF')], override='DEF')
-
+		
 	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""

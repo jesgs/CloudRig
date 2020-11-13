@@ -92,7 +92,7 @@ class CloudBaseRig(
 		self.scale = self.generator.scale
 
 		# Prepare Bone Sets
-		self.bone_sets = []
+		self.bone_sets = []	# TODO: This is currently not used, but it may be turned into a dictionary in future.
 		self.defaults = dict(self.generator.defaults)
 		self.ensure_bone_sets()
 
@@ -100,12 +100,15 @@ class CloudBaseRig(
 		self.bones.parent = parent.name if parent else ""
 
 		# Get a reference to the Root bone from the generator, and register it as a parent candidate.
+		# TODO: It's a bit awkward that every rig registers the root bone as a parent candidate. 
+		# Instead, the root bone could be hardcoded into get_parent_candidates().
 		self.root_bone = None
 		if self.generator_params.cloudrig_parameters.create_root:
 			self.root_bone = self.generator.root_bone
 			self.register_parent(self.root_bone, "Root")
 
 		# Clear rig object custom properties.
+		# TODO: Why is this not in the generator code???
 		for k in self.obj.data.keys():
 			if k in ['_RNA_UI', 'rig_id']: continue
 			del self.obj.data[k]
@@ -141,6 +144,7 @@ class CloudBaseRig(
 		self.org_chain = self.ensure_bone_set("Original Bones")
 		self.dsp_bones = self.ensure_bone_set("Display Transform Helpers")
 		self.parent_switch_bones = self.ensure_bone_set("Parent Switch Helpers")
+		self.def_chain = self.ensure_bone_set("Deform Bones")
 
 	def prepare_bones(self):
 		self.load_org_bone_infos()
@@ -169,21 +173,18 @@ class CloudBaseRig(
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 
-			org_bi = self.new_bonei(self.org_chain
-				,name		 = bn
-				,source		 = eb
-				,hide_select = self.mch_disable_select
-				,bbone_width = eb.bbone_x / self.generator.scale
-			)
+			# TODO: This is janky. Should add from_real() support to new_bonei().
+			org_bi = BoneInfo.from_real(self.obj, eb)
+			self.org_chain.append(org_bi)
+			self.generator.bone_infos.append(org_bi)
+			org_bi.layers = self.org_chain.layers[:]
+			org_bi.hide_select = self.mch_disable_select
+			org_bi.bbone_width = eb.bbone_x / self.generator.scale
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent
-			# Remove constraints from the ORG bone and load them into the BoneInfo so they can be read and modified.
-			pb = self.obj.pose.bones.get(eb.name)
-			for c in pb.constraints:
-				ci = org_bi.add_constraint_from_real(c)
-				pb.constraints.remove(c)
 
+			# TODO: arbitrary property assignment, should be avoided!
 			org_bi.meta_bone = meta_org
 
 	def add_log(self
@@ -235,6 +236,7 @@ class CloudBaseRig(
 		cls.define_bone_set(params, "Original Bones",			 default_layers=[cls.default_layers('ORG')], override='ORG')
 		cls.define_bone_set(params, "Display Transform Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Parent Switch Helpers",	 default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Deform Bones",				 default_layers=[cls.default_layers('DEF')], override='DEF')
 
 	@classmethod
 	def parameters_ui(cls, layout, params):
