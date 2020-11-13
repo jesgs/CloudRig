@@ -91,7 +91,8 @@ class CloudCopyRig(CloudBaseRig):
 			self.generator.bone_sets.append(new_set)
 			bi.bone_group = bg_name
 		
-		# Find parent bone
+		# Parenting
+		if self.params.CR_copy_parent == '': return
 		parent_name = self.params.CR_copy_parent
 		parent_bone = self.generator.find_bone_info(parent_name)
 		if not parent_bone:
@@ -103,7 +104,6 @@ class CloudCopyRig(CloudBaseRig):
 			# Still try string-based parenting, which is not ideal but ohwell.
 			bi.parent = parent_name
 			return
-
 		else:
 			bi.parent = parent_bone
 			# If parent bone has BBone segments, use Armature constraint for parenting.
