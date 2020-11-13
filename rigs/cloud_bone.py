@@ -1,13 +1,11 @@
 import bpy
-from bpy.props import BoolProperty, StringProperty, EnumProperty
+from bpy.props import BoolProperty, StringProperty
 from ..bone import BoneInfo, BoneSet
 
-from ..rigs.cloud_base import DefaultLayers
 from .cloud_base import CloudBaseRig
 
 """TODO
 Split up into cloud_tweak for the tweaking functionality, maybe one can extend the other idk.
-Rework the entire thing so it uses BoneInfo instead of doing things normally? Not sure, should think about pros and cons.
 
 Whoa, cloud_aim could actually inherit from this class... in theory, that should be good.
 
