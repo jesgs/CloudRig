@@ -65,6 +65,14 @@ class CloudUIMixin:
 
 	@classmethod
 	def draw_bone_sets_params(cls, layout, params):
+		# If all bone sets are overridden, don't draw anything.
+		any_non_overridden = False
+		for bsd in cls.bone_set_defs.values():
+			if 'override' not in bsd:
+				any_non_overridden = True
+				break
+		if not any_non_overridden: return layout
+
 		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
 
 		obj = bpy.context.object
