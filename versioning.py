@@ -8,7 +8,7 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple, 
 # changing names of parameters, etc.
-cloud_metarig_version = 6
+cloud_metarig_version = 7
 cloudrig_version = 0.1
 
 def update_enum_property(owner, old_key, new_key, int_value):
@@ -49,9 +49,10 @@ def version_cloud_metarig(metarig):
 		pass
 		# TODO: Assume that version 0.0 is the metarigs in CoffeeRun crowd.blend, and try to make them work with current CloudRig.
 	if data.cloudrig_parameters.version < 2:
+		print("2:")
 		dictionary = {
-			"CR_constraints_additive" : "CR_bone_constraints_additive"
-			,"CR_copy_type" : "CR_bone_copy_type"
+			"CR_constraints_additive" : "CR_copy_constraints_additive"
+			,"CR_copy_type" : "CR_copy_copy_type"
 			,"CR_show_spline_ik_settings" : "CR_spline_ik_show_settings"
 			,"CR_match_hooks_to_bones" : "CR_spline_ik_match_hooks"
 			,"CR_curve_handle_length" : "CR_spline_ik_handle_length"
@@ -83,20 +84,22 @@ def version_cloud_metarig(metarig):
 			,"CR_sharp_sections" : "CR_chain_sharp"
 			,"CR_smooth_spline" : "CR_chain_smooth_spline"
 			,"CR_cap_control" : "CR_chain_tip_control"
-			,"CR_custom_bone_parent" : "CR_bone_parent"
-			,"CR_transform_locks" : "CR_bone_locks"
-			,"CR_layers" : "CR_bone_layers"
-			,"CR_custom_props" : "CR_bone_props"
-			,"CR_ik_settings" : "CR_bone_ik_settings"
-			,"CR_tweak_bbone_props" : "CR_bone_bbone_props"
+			,"CR_custom_bone_parent" : "CR_copy_parent"
+			,"CR_transform_locks" : "CR_copy_locks"
+			,"CR_layers" : "CR_copy_layers"
+			,"CR_custom_props" : "CR_copy_props"
+			,"CR_ik_settings" : "CR_copy_ik_settings"
+			,"CR_tweak_bbone_props" : "CR_copy_bbone_props"
 			,"CR_ankle_pivot_bone" : "CR_leg_heel_bone"
 		}
 		rename_parameters(metarig, dictionary)
 	if data.cloudrig_parameters.version < 3:
+		print("3:")
 		for pb in metarig.pose.bones:
 			if 'CR_create_deform_bone' in pb.rigify_parameters.keys():
 				pb.bone.use_deform = pb.rigify_parameters['CR_create_deform_bone']
 	if data.cloudrig_parameters.version < 4:
+		print("4:")
 		for pb in metarig.pose.bones:
 			# Spine rig no longer includes a neck and head.
 			if 'CR_spine_length' in pb.rigify_parameters.keys():
@@ -132,6 +135,7 @@ def version_cloud_metarig(metarig):
 
 				pb.rigify_parameters['CR_curve_target'] = bpy.data.objects.get(curve_name)
 	if data.cloudrig_parameters.version < 5:
+		print("5:")
 		for pb in metarig.pose.bones:
 			# cloud_limb is now only for arms, leg is split off into cloud_leg.
 			if pb.rigify_type=='cloud_limbs':
@@ -146,6 +150,7 @@ def version_cloud_metarig(metarig):
 		}
 		rename_parameters(metarig, dictionary)
 	if data.cloudrig_parameters.version < 6:
+		print("6:")
 		# Renamed actions to action_slots
 		if 'actions' in data.cloudrig_parameters:
 			for old_slot in data.cloudrig_parameters['actions']:
@@ -156,6 +161,30 @@ def version_cloud_metarig(metarig):
 						setattr(new_slot, key, old_slot[key])
 					except:
 						update_enum_property(new_slot, key, key, old_slot[key])
+	if data.cloudrig_parameters.version < 7:
+		print("7:")
+		# Split up cloud_bone into cloud_copy and cloud_tweak
+		dictionary = {
+			'CR_bone_parent' : 'CR_copy_parent',
+			'CR_bone_constraints_additive' : 'CR_tweak_constraints_additive',
+			'CR_bone_transforms' : 'CR_tweak_transforms',
+			'CR_bone_locks' : 'CR_tweak_locks',
+			'CR_bone_rot_mode' : 'CR_tweak_rot_mode',
+			'CR_bone_shape' : 'CR_tweak_shape',
+			'CR_bone_group' : 'CR_tweak_group',
+			'CR_bone_layers' : 'CR_tweak_layers',
+			'CR_bone_ik_settings' : 'CR_tweak_ik_settings',
+			'CR_bone_bbone_props' : 'CR_tweak_bbone_props',
+		}
+		for pb in metarig.pose.bones:
+			if pb.rigify_type=='cloud_bone':
+				if 'copy_type' not in pb.rigify_parameters:
+					copy_type = 0
+				else:
+					copy_type = pb.rigify_parameters['CR_copy_type']
+				pb.rigify_type = ['cloud_copy', 'cloud_tweak'][copy_type]
+				print(f"{pb.name} rigify_type: cloud_bone -> {pb.rigify_type}")
+		rename_parameters(metarig, dictionary)
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]

@@ -92,7 +92,7 @@ class CloudBoneRig(CloudBaseRig):
 			bi.bone_group = bg_name
 		
 		# Find parent bone
-		parent_name = self.params.CR_bone_parent
+		parent_name = self.params.CR_copy_parent
 		parent_bone = self.generator.find_bone_info(parent_name)
 		if not parent_bone:
 			self.generator.logger.log(
@@ -130,12 +130,12 @@ class CloudBoneRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup"""
 		super().add_parameters(params)
 
-		params.CR_bone_show_settings = BoolProperty(
+		params.CR_copy_show_settings = BoolProperty(
 			name		 = "Bone Settings"
 			,description = "Reveal settings for the cloud_bone rig type"
 		)
 
-		params.CR_bone_parent = StringProperty(
+		params.CR_copy_parent = StringProperty(
 			 name="Parent"
 			,description="When this is not an empty string, set the parent to the bone with this name"
 			,default=""
@@ -146,11 +146,11 @@ class CloudBoneRig(CloudBaseRig):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
 
-		if not cls.draw_dropdown_menu(layout, params, 'CR_bone_show_settings'): return layout
+		if not cls.draw_dropdown_menu(layout, params, 'CR_copy_show_settings'): return layout
 
 		pb = bpy.context.active_pose_bone
 
-		layout.prop(params, "CR_bone_parent")
+		layout.prop(params, "CR_copy_parent")
 		layout.prop(pb.bone, "use_deform", text="Create Deform Bone")
 
 		return layout
