@@ -21,6 +21,7 @@ class CloudUIMixin:
 		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, new_row, **kwargs)
 		if prop_name in cls.forced_params.keys():
 			row.enabled = False
+		return row
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
@@ -42,9 +43,9 @@ class CloudUIMixin:
 	def draw_bone_set_params(cls, layout, params, set_info):
 		obj = bpy.context.object
 		cloudrig = obj.data.cloudrig_parameters
-		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return
-		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return
-		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return
+		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return layout
+		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return layout
+		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return layout
 
 		col = layout.column()
 		col.use_property_split=True
@@ -60,9 +61,11 @@ class CloudUIMixin:
 			cls.draw_prop(row, params, set_info['layer_param'], text="")
 		layout.separator()
 
+		return layout
+
 	@classmethod
 	def draw_bone_sets_params(cls, layout, params):
-		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return
+		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
 
 		obj = bpy.context.object
 
@@ -72,6 +75,8 @@ class CloudUIMixin:
 		for ui_name in cls.bone_set_defs.keys():
 			set_info = cls.bone_set_defs[ui_name]
 			cls.draw_bone_set_params(layout, params, set_info)
+		
+		return layout
 
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
