@@ -11,7 +11,7 @@ Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone
 """
 
 class CloudSpineRig(CloudFKChainRig):
-	"""Spine setup with FK, IK-like and stretchy IK controls. Currently only one of these per rig is supported."""
+	"""Spine setup with FK, IK-like and stretchy IK controls."""
 
 	forced_params = {
 		'CR_chain_segments' : 1

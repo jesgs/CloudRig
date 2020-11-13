@@ -103,28 +103,15 @@ def draw_label_with_linebreak(layout, text, alert=False):
 	col.alert = alert
 	paragraphs = text.split("\n")
 	for p in paragraphs:
-		words = p.split(" ")
-		word_index = 0
-
-		lines = [""]
-		line_index = 0
-
-		cur_line_length = 0
 		# Try to determine maximum allowed characters in this line, based on pixel width of the area.
 		# Not a great metric, but I couldn't find anything better.
 		max_line_length = bpy.context.area.width/8
-
-		while word_index < len(words):
-			word = words[word_index]
-			word_index += 1
-
-			if cur_line_length + len(word)+1 < max_line_length:
-				cur_line_length += len(word)+1
-				lines[line_index] += word + " "
-			else:
-				cur_line_length = 0
-				line_index += 1
+		
+		lines = [""]
+		for word in p.split(" "):
+			if len(lines[-1]) + len(word)+1 > max_line_length:
 				lines.append("")
+			lines[-1] += word + " "
 
 		for line in lines:
 			col.label(text=line)
