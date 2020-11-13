@@ -175,14 +175,14 @@ class BoneSet(LinkedList):
 			generator = self.rig.generator
 
 		# If a BoneInfo with the passed name already exists, add a warning and do not create a new one.
-		bi = generator.find_bone_info(name)
-		if bi:
+		bone_info = generator.find_bone_info(name)
+		if bone_info:
 			generator.logger.log_bug("Redefining bone"
-				,owner_bone = bi.owner_rig.meta_base_bone.name
-				,trouble_bone = bi.name
+				,owner_bone = bone_info.owner_rig.meta_base_bone.name
+				,trouble_bone = bone_info.name
 				,description = "Bone was defined twice."
 			)
-			return bi
+			return bone_info
 
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group
@@ -192,17 +192,50 @@ class BoneSet(LinkedList):
 			if key not in kwargs:
 				kwargs[key] = self.defaults[key]
 
-		bi = BoneInfo(name, source, **kwargs)
-		self.append(bi)
-		generator.bone_infos.append(bi)
-		bi.owner_rig = self.rig
+		bone_info = BoneInfo(name, source, **kwargs)
+		self.append(bone_info)
+		generator.bone_infos.append(bone_info)
+		bone_info.owner_rig = self.rig
 		# TODO delete all_bones, I don't know why we need it.
-		if not hasattr(bi.owner_rig, 'all_bones'):
-			bi.owner_rig.all_bones = []
-		bi.owner_rig.all_bones.append(bi)
+		if not hasattr(bone_info.owner_rig, 'all_bones'):
+			bone_info.owner_rig.all_bones = []
+		bone_info.owner_rig.all_bones.append(bone_info)
 
+		return bone_info
 
-		return bi
+	def new_from_real(self, rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
+		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
+		# NOTE: Parenting should be done outside of this function.
+		# TODO: drivers, custom properties.
+
+		# TODO: Currently, attempting to rename an ORG bone will result in some disaster, where the old bone will stay.
+		# Could be solved by turning name into a property and actually renaming the real bone if it exists,
+		# Or by deleting the ORG bone here in this function.
+
+		pose_bone = rig.pose.bones.get(edit_bone.name)
+		data_bone = pose_bone.bone
+		bone_info = self.new(name=edit_bone.name)
+
+		for key in pose_bone_properties:
+			value = getattr(pose_bone, key)
+			if value in [None, ""]: continue
+			if key=='bone_group':
+				value = value.name
+			setattr(bone_info, key, value)
+		for key in bone_properties:
+			setattr(bone_info, key, getattr(data_bone, key))
+		for key in edit_bone_properties:
+			value = getattr(edit_bone, key)
+			if type(value)==Vector:
+				value = value.copy()
+			setattr(bone_info, key, value)
+
+		# Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
+		for c in pose_bone.constraints:
+			ci = bone_info.add_constraint_from_real(c)
+			pose_bone.constraints.remove(c)
+
+		return bone_info
 
 	def ensure_bone_group(self, rig, overwrite=False):
 		""" Create the bone group defined by this bone set on rig. """
@@ -229,37 +262,6 @@ class BoneInfo:
 	This class does not concern itself with posing the bone, only creating and 
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
-
-	@staticmethod
-	def from_real(rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
-		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
-		# NOTE: Parenting should be set outside of this function.
-
-		pose_bone = rig.pose.bones.get(edit_bone.name)
-		data_bone = pose_bone.bone
-		bone_info = BoneInfo(edit_bone.name, source=edit_bone, layers=data_bone.layers[:])
-
-		for key in pose_bone_properties:
-			value = getattr(pose_bone, key)
-			if value in [None, ""]: continue
-			if key=='bone_group':
-				value = value.name
-			setattr(bone_info, key, value)
-		for key in bone_properties:
-			setattr(bone_info, key, getattr(data_bone, key))
-		for key in edit_bone_properties:
-			value = getattr(edit_bone, key)
-			if type(value)==Vector:
-				value = value.copy()
-			setattr(bone_info, key, value)
-
-		# Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
-		for c in pose_bone.constraints:
-			ci = bone_info.add_constraint_from_real(c)
-			pose_bone.constraints.remove(c)
-		
-		# TODO: drivers, custom properties.
-		return bone_info
 
 	def __init__(self, name="Bone", source: bpy.types.EditBone or BoneInfo = None, **kwargs):
 		"""

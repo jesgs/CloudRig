@@ -173,11 +173,7 @@ class CloudBaseRig(
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 
-			# TODO: This is janky. Should add from_real() support to BoneSet.new().
-			org_bi = BoneInfo.from_real(self.obj, eb)
-			org_bi.owner_rig = self
-			self.org_chain.append(org_bi)
-			self.generator.bone_infos.append(org_bi)
+			org_bi = self.org_chain.new_from_real(self.obj, eb)
 			org_bi.layers = self.org_chain.layers[:]
 			org_bi.hide_select = self.mch_disable_select
 			org_bi.bbone_width = eb.bbone_x / self.scale
