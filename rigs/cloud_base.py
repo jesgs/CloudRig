@@ -5,7 +5,7 @@ from typing import Dict, List
 
 # CloudBaseRig parent classes
 from rigify.base_rig import BaseRig
-from ..bone import BoneInfoMixin
+from ..bone import BoneSetMixin
 from ..utils.ui import CloudUIMixin
 from ..utils.naming import CloudNameManager
 from ..utils.mechanism import CloudMechanismMixin
@@ -40,7 +40,7 @@ class CloudBaseRig(
 					CloudObjectUtilitiesMixin, 
 					CloudUIMixin, 
 					CloudAnimationMixin,
-					BoneInfoMixin
+					BoneSetMixin
 	):
 	"""Base class that all CloudRig rigs should inherit from."""
 
@@ -130,8 +130,8 @@ class CloudBaseRig(
 		bone_name = "Properties"
 		properties_bone = self.get_bone_info(bone_name)
 		if not properties_bone:
-			properties_bone = self.new_bonei(self.generator.root_set
-				,name		  = bone_name
+			properties_bone = self.generator.root_set.new(
+				name		  = bone_name
 				,head		  = Vector((0, self.scale*2, 0))
 				,tail		  = Vector((0, self.scale*4, 0))
 				,bbone_width  = 1/8
@@ -173,7 +173,7 @@ class CloudBaseRig(
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 
-			# TODO: This is janky. Should add from_real() support to new_bonei().
+			# TODO: This is janky. Should add from_real() support to BoneSet.new().
 			org_bi = BoneInfo.from_real(self.obj, eb)
 			org_bi.owner_rig = self
 			self.org_chain.append(org_bi)

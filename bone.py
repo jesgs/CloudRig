@@ -170,7 +170,6 @@ class BoneSet(LinkedList):
 	def new(self, name="Bone", source=None, **kwargs):
 		"""Create and add a new BoneInfo to self."""
 
-
 		generator = self.rig
 		if hasattr(self.rig, 'generator'):
 			generator = self.rig.generator
@@ -712,27 +711,8 @@ class ConstraintInfo(dict):
 
 		return con
 
-def new_bonei(generator, bone_set: BoneSet, name="Bone", **kwargs) -> BoneInfo:
-	""" To allow the Generator to create the root bones.
-	TODO get rid of this somehow
-	"""
-	new = None
-
-	kwargs['name'] = name
-	new = bone_set.new(**kwargs)
-
-	return new
-
-class BoneInfoMixin:
-	""" This class should be used for implementing BoneInfo and BoneSet
-		use in a rig.
-	"""
-
+class BoneSetMixin:
 	bone_set_defs: Dict[str, str] = OrderedDict()
-
-	def new_bonei(self, bone_set: BoneSet, name="Bone", **kwargs) -> BoneInfo:
-		new = bone_set.new(name, **kwargs)
-		return new
 
 	def ensure_bone_set(self, bone_set_name):
 		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""

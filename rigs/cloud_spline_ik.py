@@ -123,8 +123,8 @@ class CloudSplineIKRig(CloudCurveRig):
 				count_def_bone += 1
 
 				unit = org_bone.vector / segments
-				def_bone = self.new_bonei(self.def_chain
-					,name		 = def_name
+				def_bone = self.def_chain.new(
+					name		 = def_name
 					,source		 = org_bone
 					,head		 = org_bone.head + (unit * i)
 					,tail		 = org_bone.head + (unit * (i+1))

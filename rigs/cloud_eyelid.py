@@ -54,8 +54,8 @@ class CloudEyelidRig(CloudFaceChainRig):
 			if rot_ctr:
 				continue
 
-			rot_ctr = self.new_bonei(self.eyelid_mch
-				,name = rot_name
+			rot_ctr = self.eyelid_mch.new(
+				name = rot_name
 				,source = eye_bone
 				,tail = str_ctr.head.copy()
 				,parent = parent_rig.org_chain[0].parent

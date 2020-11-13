@@ -162,8 +162,8 @@ class CloudFaceChainRig(CloudChainRig):
 			intersection_control = rig.generator.find_bone_info(bone_name)
 
 			if not intersection_control:
-				intersection_control = rig.new_bonei(rig.merged_controls
-					,name = bone_name
+				intersection_control = rig.merged_controls.new(
+					name = bone_name
 					,source = bones[0]
 					,custom_shape = rig.ensure_widget('Cube')
 					,custom_shape_scale = bones[0].custom_shape_scale
@@ -194,14 +194,14 @@ class CloudFaceChainRig(CloudChainRig):
 			if not CUSTOM_SPACE:
 				# Add old-style helpers to propagate rotation from Intersection(STR-I) to STR bones.
 				rig = str_bone.owner_rig
-				intersection_helper = rig.new_bonei(rig.face_mch
-					,name = rig.naming.add_prefix(str_bone, "I-H")
+				intersection_helper = rig.face_mch.new(
+					name = rig.naming.add_prefix(str_bone, "I-H")
 					,source = str_bone
 					,parent = intersection_control
 				)
 				
-				local_helper = str_bone.local_helper = rig.new_bonei(rig.face_mch
-					,name = rig.naming.add_prefix(str_bone, "I-H-L")
+				local_helper = str_bone.local_helper = rig.face_mch.new(
+					name = rig.naming.add_prefix(str_bone, "I-H-L")
 					,source = str_bone
 					,parent = intersection_control.parent
 				)

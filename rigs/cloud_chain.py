@@ -157,8 +157,8 @@ class CloudChainRig(CloudBaseRig):
 		unit = org_bone.vector / segments
 		if name=="":
 			name = org_bone.name.replace("ORG", "STR")
-		str_bone = self.new_bonei(self.str_chain
-			,name = name
+		str_bone = self.str_chain.new(
+			name = name
 			,source = org_bone
 			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
@@ -194,8 +194,8 @@ class CloudChainRig(CloudBaseRig):
 					continue
 				main_str_bone.sub_bones.append(str_bone)
 
-				str_h_bone = self.new_bonei(self.str_mch
-					,name 		 = self.naming.add_prefix(str_bone, "H")
+				str_h_bone = self.str_mch.new(
+					name 		 = self.naming.add_prefix(str_bone, "H")
 					,source 	 = str_bone
 					,bbone_width = str_bone.bbone_width
 					,parent		 = str_bone.parent
@@ -237,8 +237,8 @@ class CloudChainRig(CloudBaseRig):
 						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
-		dt_bone = self.new_bonei(self.str_mch
-			,name = self.naming.add_prefix(str_bone, "DT")
+		dt_bone = self.str_mch.new(
+			name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
 			,overwrite = True
@@ -271,8 +271,8 @@ class CloudChainRig(CloudBaseRig):
 
 		dt = str_bone.dt_bone
 
-		tangent_helper = self.new_bonei(self.str_mch
-			,name = self.naming.add_prefix(str_bone, "TAN")
+		tangent_helper = self.str_mch.new(
+			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone
 			,inherit_scale = 'NONE'
@@ -310,8 +310,8 @@ class CloudChainRig(CloudBaseRig):
 			return tangent_helper
 		# TODO: Had to copy paste this code, would be nice to have a proper 
 		# utility for copying a bone with its constraints and drivers and whatnot.
-		tangent_clone = self.new_bonei(self.str_mch
-			,name = self.naming.add_prefix(tangent_helper, "CLONE")
+		tangent_clone = self.str_mch.new(
+			name = self.naming.add_prefix(tangent_helper, "CLONE")
 			,source = str_bone
 			,parent = str_bone
 			,inherit_scale = 'NONE'
@@ -357,8 +357,8 @@ class CloudChainRig(CloudBaseRig):
 				tail = str_bone.next.head
 
 			def_name = str_bone.name.replace("STR", "DEF")
-			def_bone = self.new_bonei(self.def_chain
-				,name					 = def_name
+			def_bone = self.def_chain.new(
+				name					 = def_name
 				,source					 = org_bone
 				,parent					 = str_bone
 				,head					 = str_bone.head
@@ -436,8 +436,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail
 		# of def_bone_1.
-		skp_bone = self.new_bonei(self.skh_bones
-			,name		 = def_bone_1.name.replace("DEF", "SKP")
+		skp_bone = self.skh_bones.new(
+			name		 = def_bone_1.name.replace("DEF", "SKP")
 			,source		 = def_bone_1
 			,head		 = def_bone_1.tail.copy()
 			,tail		 = def_bone_1.tail + def_bone_1.vector
@@ -454,8 +454,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# SKH (Shape Key Helper): This is parented to SKP and Copy Transforms
 		# of the b-bone head of def_bone_2.
-		skh_bone = self.new_bonei(self.skh_bones
-			,name		 = def_bone_1.name.replace("DEF", "SKH")
+		skh_bone = self.skh_bones.new(
+			name		 = def_bone_1.name.replace("DEF", "SKH")
 			,source		 = def_bone_1
 			,head		 = def_bone_2.head.copy()
 			,tail		 = def_bone_2.tail.copy()

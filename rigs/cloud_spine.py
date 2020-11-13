@@ -58,8 +58,8 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Overrides."""
 
 		# Create Troso Master control
-		limb_root_bone = self.new_bonei(self.spine_main
-			,name 		  = f"MSTR-{self.spine_name}_Torso"
+		limb_root_bone = self.spine_main.new(
+			name 		  = f"MSTR-{self.spine_name}_Torso"
 			,parent		  = self.root_bone
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
@@ -72,8 +72,8 @@ class CloudSpineRig(CloudFKChainRig):
 		super().make_fk_chain()
 
 		# Create master hip control
-		self.mstr_hips = self.new_bonei(self.spine_main
-				,name				= f"MSTR-{self.spine_name}_Hips"
+		self.mstr_hips = self.spine_main.new(
+				name				= f"MSTR-{self.spine_name}_Hips"
 				,source				= self.org_chain[0]
 				,head				= self.org_chain[0].center
 				,custom_shape 		= self.ensure_widget("Hips")
@@ -95,8 +95,8 @@ class CloudSpineRig(CloudFKChainRig):
 
 	def make_ik_spine(self):
 		### Create master chest control
-		self.mstr_chest = self.new_bonei(self.spine_main
-				,name				= f"MSTR-{self.spine_name}_Chest"
+		self.mstr_chest = self.spine_main.new(
+				name				= f"MSTR-{self.spine_name}_Chest"
 				,source 			= self.org_chain[-2]
 				,head				= self.org_chain[-2].center
 				,tail 				= self.org_chain[-2].center + Vector((0, 0, self.scale))
@@ -114,8 +114,8 @@ class CloudSpineRig(CloudFKChainRig):
 		self.ik_ctr_chain = []
 		for i, org_bone in enumerate(self.org_chain):
 			fk_bone = org_bone.fk_bone
-			ik_ctr_bone = self.new_bonei(self.spine_ik_secondary
-				,name				= fk_bone.name.replace("FK", "IK-CTR")
+			ik_ctr_bone = self.spine_ik_secondary.new(
+				name				= fk_bone.name.replace("FK", "IK-CTR")
 				,source				= fk_bone
 				,custom_shape 		= self.ensure_widget("Oval")
 			)
@@ -147,8 +147,8 @@ class CloudSpineRig(CloudFKChainRig):
 		for i, org_bone in enumerate(reversed(self.org_chain[1:])):	# We skip the first spine.
 			fk_bone = org_bone.fk_bone
 			ik_r_name = fk_bone.name.replace("FK", "IK-R")
-			org_bone.ik_r_bone = ik_r_bone = self.new_bonei(self.spine_mch
-				,name		 = ik_r_name
+			org_bone.ik_r_bone = ik_r_bone = self.spine_mch.new(
+				name		 = ik_r_name
 				,source 	 = fk_bone
 				,head		 = fk_bone.head
 				,tail 		 = fk_bone.prev.head
@@ -167,8 +167,8 @@ class CloudSpineRig(CloudFKChainRig):
 		for i, org_bone in enumerate(self.org_chain):
 			fk_bone = org_bone.fk_bone
 			ik_name = fk_bone.name.replace("FK", "IK")
-			ik_bone = self.new_bonei(self.spine_mch
-				,name		 = ik_name
+			ik_bone = self.spine_mch.new(
+				name		 = ik_name
 				,source		 = fk_bone
 				,head		 = fk_bone.prev.head if i>0 else self.def_chain[0].head
 				,tail		 = fk_bone.head if i>0 else self.fk_chain[0].head

@@ -203,8 +203,8 @@ class CloudLimbRig(CloudIKChainRig):
 	def make_rubber_hose_control(self) -> BoneInfo:
 		org_elbow = self.org_chain[1]
 		
-		control_bone = self.new_bonei(self.fk_extras
-			,name = org_elbow.name.replace("ORG", "AutoRubberHose")
+		control_bone = self.fk_extras.new(
+			name = org_elbow.name.replace("ORG", "AutoRubberHose")
 			,source = org_elbow
 			,parent = org_elbow
 			,custom_shape = self.ensure_widget('Double_Arrow')

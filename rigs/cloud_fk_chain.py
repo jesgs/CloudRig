@@ -68,8 +68,8 @@ class CloudFKChainRig(CloudChainRig):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
 		base_bone = self.org_chain[0]
-		limb_root_bone = self.new_bonei(self.fk_extras
-			,name 					= root_name
+		limb_root_bone = self.fk_extras.new(
+			name 					= root_name
 			,source 				= base_bone
 			,parent 				= base_bone.parent
 			,custom_shape 			= self.ensure_widget("Cube")
@@ -82,8 +82,8 @@ class CloudFKChainRig(CloudChainRig):
 		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
 		for i, org_bone in enumerate(self.org_chain):
 			fk_name = org_bone.name.replace("ORG", "FK")
-			fk_bone = self.new_bonei(self.fk_chain
-				,name				= fk_name
+			fk_bone = self.fk_chain.new(
+				name				= fk_name
 				,source				= org_bone
 				,custom_shape 		= self.ensure_widget("FK_Limb")
 				,parent				= org_bone.parent
@@ -152,8 +152,8 @@ class CloudFKChainRig(CloudChainRig):
 		self.add_ui_data("fk_hinges", category, limb_name, info, default=default_value)
 
 		# Create Hinge helper bone
-		hng_bone = self.new_bonei(bone_set
-			,name			= hng_name
+		hng_bone = bone_set.new(
+			name			= hng_name
 			,source			= bone
 			,hide_select	= self.mch_disable_select
 		)

@@ -69,8 +69,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		# Make child control for the world-aligned control, that will have the original transforms and name.
 		# This is currently just the target of a Copy Transforms constraint on the ORG bone.
-		fk_child_bone = self.new_bonei(self.fk_mch
-			,name		= old_name
+		fk_child_bone = self.fk_mch.new(
+			name		= old_name
 			,source		= bone
 			,parent		= bone
 		)
@@ -108,8 +108,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		if bone_name=="":
 			bone_name = source_bone.name.replace("ORG", "IK-MSTR")
 
-		ik_master = self.new_bonei(self.ik_ctrls
-			,name		  = bone_name
+		ik_master = self.ik_ctrls.new(
+			name		  = bone_name
 			,source		  = source_bone
 			,custom_shape = self.ensure_widget(shape_name)
 			,parent		  = None
@@ -178,8 +178,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def make_pole_control(self):
 		# Create IK Pole Control
-		pole_ctrl = self.pole_ctrl = self.new_bonei(self.ik_ctrls
-			,name				= self.naming.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
+		pole_ctrl = self.pole_ctrl = self.ik_ctrls.new(
+			name				= self.naming.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
 			,bbone_width		= 0.1
 			,head				= self.pole_location
 			,tail				= self.pole_location + self.flat_vector(self.pole_vector) * 0.2
@@ -189,8 +189,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			,use_custom_shape_bone_size = True
 		)
 
-		pole_line = self.new_bonei(self.ik_ctrls
-			,name		  = self.naming.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
+		pole_line = self.ik_ctrls.new(
+			name		  = self.naming.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
 			,source		  = pole_ctrl
 			,tail		  = self.org_chain[0].tail.copy()
 			,parent		  = pole_ctrl
@@ -220,8 +220,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		""" Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
 		ik_chain = []
 		for i, org_bone in enumerate(org_chain):
-			ik_bone = self.new_bonei(self.ik_mch
-				,name		 = org_bone.name.replace("ORG", "IK")
+			ik_bone = self.ik_mch.new(
+				name		 = org_bone.name.replace("ORG", "IK")
 				,source		 = org_bone
 				,hide_select = self.mch_disable_select
 			)
@@ -294,8 +294,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def make_ik_stretch(self):
 		ik_org_bone = self.org_chain[self.chain_count]
-		stretch_bone = self.new_bonei(self.ik_mch
-			,name		 = self.org_chain[0].name.replace("ORG", "IK-STR")
+		stretch_bone = self.ik_mch.new(
+			name		 = self.org_chain[0].name.replace("ORG", "IK-STR")
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.limb_root_bone.name
@@ -304,8 +304,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		stretch_bone.scale_width(0.4)
 
 		# Bone responsible for giving stretch_bone the target position to stretch to.
-		self.stretch_target_bone = self.new_bonei(self.ik_mch
-			,name		 = ik_org_bone.name.replace("ORG", "IK-STR-TGT")
+		self.stretch_target_bone = self.ik_mch.new(
+			name		 = ik_org_bone.name.replace("ORG", "IK-STR-TGT")
 			,source		 = ik_org_bone
 			,parent		 = self.ik_mstr
 			,hide_select = self.mch_disable_select
@@ -373,8 +373,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			if head_tail > 1.0: break
 			if i == 0: continue
 			if i == len(self.main_str_bones)-1: continue
-			main_str_helper = self.new_bonei(self.ik_mch
-				,name		 = self.naming.add_prefix(main_str_bone, "S")
+			main_str_helper = self.ik_mch.new(
+				name		 = self.naming.add_prefix(main_str_bone, "S")
 				,source		 = main_str_bone
 				,bbone_width = 1/10
 				,parent		 = main_str_bone.parent

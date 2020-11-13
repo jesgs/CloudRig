@@ -135,8 +135,8 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		if not next_parent:
 			next_parent = self.root_bone
 		for fk_ctrl in from_chain:
-			phys_ctrl = self.new_bonei(self.physics_chain
-				,name = self.phys_name(fk_ctrl)
+			phys_ctrl = self.physics_chain.new(
+				name = self.phys_name(fk_ctrl)
 				,source = fk_ctrl
 				,custom_shape = fk_ctrl.custom_shape
 				,custom_shape_scale = fk_ctrl.custom_shape_scale * 1.2
@@ -145,8 +145,8 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			)
 			next_parent = phys_ctrl
 		
-		pin_bone = self.new_bonei(self.physics_chain
-			,name = "PIN-"+self.params.CR_physics_chain_object.name
+		pin_bone = self.physics_chain.new(
+			name = "PIN-"+self.params.CR_physics_chain_object.name
 			,source = self.physics_chain[0]
 			,parent = self.physics_chain[0]
 			,use_deform = True
