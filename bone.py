@@ -10,6 +10,71 @@ from .utils.maths import flat
 from .utils.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
+edit_bone_properties = {
+	'head' : Vector((0, 0, 0))
+	,'tail' : Vector((0, 0, 1))
+	,'roll' : 0
+	,'head_radius' : 0.1
+	,'tail_radius' : 0.1
+	,'use_connect' : False
+
+	,'bbone_curveinx' : 0
+	,'bbone_curveiny' : 0
+	,'bbone_curveoutx' : 0
+	,'bbone_curveouty' : 0
+	,'bbone_easein' : 1
+	,'bbone_easeout' : 1
+	,'bbone_scaleinx' : 1
+	,'bbone_scaleiny' : 1
+	,'bbone_scaleoutx' : 1
+	,'bbone_scaleouty' : 1
+}
+
+bone_properties = {
+	'name' : "Bone"
+	,'layers' : [l==0 for l in range(32)]	# 32 bools where only the first one is True.
+	,'hide_select' : False
+	,'hide' : False
+
+	,'use_deform' : False
+	,'show_wire' : False
+	,'use_endroll_as_inroll' : False
+
+	,'bbone_x' : 0.1		# NOTE: These two are wrapped by bbone_width @property.
+	,'bbone_z' : 0.1
+	,'bbone_segments' : 1
+	,'bbone_handle_type_start' : 'AUTO'
+	,'bbone_handle_type_end' : 'AUTO'
+	,'bbone_custom_handle_start': None	# BoneInfo
+	,'bbone_custom_handle_end': None		# BoneInfo
+
+	,'envelope_distance' : 0.25
+	,'envelope_weight' : 1.0
+	,'use_envelope_multiply' : False
+	,'head_radius' : 0.1
+	,'tail_radius' : 0.1
+
+	,'use_inherit_rotation' : True
+	,'inherit_scale' : 'FULL'
+	,'use_local_location' : True
+	,'use_relative_parent' : False
+}
+
+pose_bone_properties = {
+	'bone_group' : ""		# This should be str, NOT a bpy.types.BoneGroup!
+
+	,'custom_shape' : None	# bpy.types.Object
+	,'custom_shape_transform' : None # BoneInfo
+	,'custom_shape_scale' : 1.0
+	,'use_custom_shape_bone_size' : False
+
+	,'rotation_mode' : 'QUATERNION'
+	,'lock_location' : [False, False, False]
+	,'lock_rotation' : [False, False, False]
+	,'lock_rotation_w' : False
+	,'lock_scale' : [False, False, False]
+}
+
 class LinkedList(list):
 	"""Some very basic doubly linked list functionality to help manage chains of bones."""
 	def __init__(self):
@@ -151,6 +216,16 @@ class BoneInfo:
 		data_bone = pose_bone.bone
 		bone_info = BoneInfo(edit_bone.name, source=edit_bone, layers=data_bone.layers[:])
 
+		for key in pose_bone_properties:
+			setattr(bone_info, key, getattr(pose_bone, key))
+		for key in bone_properties:
+			setattr(bone_info, key, getattr(data_bone, key))
+		for key in edit_bone_properties:
+			value = getattr(edit_bone, key)
+			if type(value)==Vector:
+				value = value.copy()
+			setattr(bone_info, key, value)
+
 		# Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
 		for c in pose_bone.constraints:
 			ci = bone_info.add_constraint_from_real(c)
@@ -176,70 +251,25 @@ class BoneInfo:
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		### Edit Bone properties
-		self._parent: BoneInfo = None
+		for key in edit_bone_properties.keys():
+			setattr(self, key, edit_bone_properties[key])
+		self._parent = None
 		self.children: List[BoneInfo] = []
-		self.head = Vector((0,0,0))
-		self.tail = Vector((0,1,0))
-		self.roll = 0
-		# NOTE: These bbone properties refer only to edit bone versions of the values.
-		self.bbone_curveinx = 0
-		self.bbone_curveiny = 0
-		self.bbone_curveoutx = 0
-		self.bbone_curveouty = 0
-		self.bbone_easein = 1
-		self.bbone_easeout = 1
-		self.bbone_scaleinx = 1
-		self.bbone_scaleiny = 1
-		self.bbone_scaleoutx = 1
-		self.bbone_scaleouty = 1
+
+		### Bone properties
+		for key in bone_properties.keys():
+			setattr(self, key, bone_properties[key])
+
+		### Pose Bone properties
+		for key in pose_bone_properties.keys():
+			setattr(self, key, pose_bone_properties[key])
+
+		self.name=name
 
 		# Recalculate Roll
 		self.roll_type = "" # This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
 		self.roll_bone = None # If roll_type=='ACTIVE', use this as the active bone. This is a BoneInfo instance or a string.
 		self.roll_cursor = Vector() # If roll_type=='CURSOR', use this as the cursor location.
-
-		### Bone properties
-		self.name = name
-		self.layers = [l==0 for l in range(32)]	# 32 bools where only the first one is True.
-		self.rotation_mode = 'QUATERNION'
-		self.hide_select = False
-		self.hide = False
-
-		self.use_connect = False
-		self.use_deform = False
-		self.show_wire = False
-		self.use_endroll_as_inroll = False
-
-		self.bbone_x = 0.1		# NOTE: These two are wrapped by bbone_width @property.
-		self.bbone_z = 0.1
-		self.bbone_segments = 1
-		self.bbone_handle_type_start = "AUTO"
-		self.bbone_handle_type_end = "AUTO"
-		self.bbone_custom_handle_start: BoneInfo = None
-		self.bbone_custom_handle_end: BoneInfo = None
-
-		self.envelope_distance = 0.25
-		self.envelope_weight = 1.0
-		self.use_envelope_multiply = False
-		self.head_radius = 0.1
-		self.tail_radius = 0.1
-
-		self.use_inherit_rotation = True
-		self.inherit_scale = "FULL"
-		self.use_local_location = True
-		self.use_relative_parent = False
-
-		### Pose Mode Only
-		self.bone_group: str = ""	# This should NOT be a bpy.types.BoneGroup!
-		self.custom_shape: bpy.types.Object = None
-		self.custom_shape_transform: BoneInfo = None
-		self.custom_shape_scale = 1.0
-		self.use_custom_shape_bone_size = False
-
-		self.lock_location = [False, False, False]
-		self.lock_rotation = [False, False, False]
-		self.lock_rotation_w = False
-		self.lock_scale = [False, False, False]
 
 		if source:
 			self.head = source.head.copy()
@@ -435,31 +465,20 @@ class BoneInfo:
 
 		### Edit Bone properties
 		eb = edit_bone
+
+		for key in edit_bone_properties:
+			setattr(eb, key, self.__dict__[key])
 		eb.use_connect = False	# NOTE: Without this, ORG- bones' Copy Transforms constraints can't work properly.
 
 		if self.parent:
 			eb.parent = armature.data.edit_bones.get(str(self.parent))
-
-		eb.head = self.head.copy()
-		eb.tail = self.tail.copy()
-		eb.roll = self.roll
-
-		eb.bbone_curveinx = self.bbone_curveinx
-		eb.bbone_curveiny = self.bbone_curveiny
-		eb.bbone_curveoutx = self.bbone_curveoutx
-		eb.bbone_curveouty = self.bbone_curveouty
-		eb.bbone_easein = self.bbone_easein
-		eb.bbone_easeout = self.bbone_easeout
-		eb.bbone_scaleinx = self.bbone_scaleinx
-		eb.bbone_scaleiny = self.bbone_scaleiny
-		eb.bbone_scaleoutx = self.bbone_scaleoutx
-		eb.bbone_scaleouty = self.bbone_scaleouty
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props_edit.items():
 			make_property(eb, prop_name, **prop)
 
 		# Recalculate roll.
+		cursor_backup = bpy.context.scene.cursor.location.copy()
 		if self.roll_type != "":
 			bpy.ops.armature.select_all(action='DESELECT')
 			eb.select = True
@@ -474,6 +493,7 @@ class BoneInfo:
 
 			bpy.ops.armature.calculate_roll(type=self.roll_type)
 			eb.roll += self.roll
+			bpy.context.scene.cursor.location = cursor_backup
 
 	def write_pose_data(self, pose_bone: bpy.types.PoseBone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
@@ -483,52 +503,24 @@ class BoneInfo:
 
 		# Pose bone data
 		pb = pose_bone
-		pb.custom_shape = self.custom_shape
-		pb.custom_shape_scale = self.custom_shape_scale
-		if self.custom_shape_transform:
-			pb.custom_shape_transform = armature.pose.bones.get(self.custom_shape_transform.name)
-		pb.use_custom_shape_bone_size = self.use_custom_shape_bone_size
-
-		pb.lock_location = self.lock_location
-		pb.lock_rotation = self.lock_rotation
-		pb.lock_rotation_w = self.lock_rotation_w
-		pb.lock_scale = self.lock_scale
-
-		pb.rotation_mode = self.rotation_mode
+		for key in pose_bone_properties:
+			value = self.__dict__[key]
+			if value in [None, ""]: continue
+			if key=='custom_shape_transform':
+				value = armature.pose.bones.get(value.name)
+			if key=='bone_group':
+				value = armature.pose.bone_groups.get(self.bone_group)
+			setattr(pb, key, value)
 
 		# Bone data
 		b = pb.bone
-		b.layers = self.layers[:]
-		b.use_deform = self.use_deform
-		b.bbone_x = self.bbone_x
-		b.bbone_z = self.bbone_z
-		b.bbone_segments = self.bbone_segments
-		b.bbone_handle_type_start = self.bbone_handle_type_start
-		b.bbone_handle_type_end = self.bbone_handle_type_end
-		if self.bbone_custom_handle_start:
-			b.bbone_custom_handle_start = armature.data.bones.get(self.bbone_custom_handle_start.name)
-		if self.bbone_custom_handle_end:
-			b.bbone_custom_handle_end = armature.data.bones.get(self.bbone_custom_handle_end.name)
-		b.show_wire = self.show_wire
-		b.use_endroll_as_inroll = self.use_endroll_as_inroll
+		for key in bone_properties:
+			value = self.__dict__[key]
+			if value in [None, ""]: continue
+			if 'bbone_custom_handle' in key:
+				value = armature.data.bones.get(value.name)
 
-		b.hide_select = self.hide_select
-		b.hide = self.hide
-
-		b.use_inherit_rotation = self.use_inherit_rotation
-		b.inherit_scale = self.inherit_scale
-		b.use_local_location = self.use_local_location
-		b.use_relative_parent = self.use_relative_parent
-
-		b.envelope_distance = self.envelope_distance
-		b.envelope_weight = self.envelope_weight
-		b.use_envelope_multiply = self.use_envelope_multiply
-		b.head_radius = self.head_radius
-		b.tail_radius = self.tail_radius
-
-		# Bone Group
-		if type(self.bone_group)==str and self.bone_group!="":
-			pb.bone_group = armature.pose.bone_groups.get(self.bone_group)
+			setattr(b, key, value)
 
 		# Constraints.
 		for ci in self.constraint_infos:
