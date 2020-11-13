@@ -72,6 +72,23 @@ pose_bone_properties = {
 	,'lock_rotation' : [False, False, False]
 	,'lock_rotation_w' : False
 	,'lock_scale' : [False, False, False]
+
+	,'ik_stretch' : 0
+	,'lock_ik_x' : False
+	,'lock_ik_y' : False
+	,'lock_ik_z' : False
+	,'ik_stiffness_x' : 0
+	,'ik_stiffness_y' : 0
+	,'ik_stiffness_z' : 0
+	,'use_ik_limit_x' : False
+	,'use_ik_limit_y' : False
+	,'use_ik_limit_z' : False
+	,'ik_min_x' : 0
+	,'ik_max_x' : 0
+	,'ik_min_y' : 0
+	,'ik_max_y' : 0
+	,'ik_min_z' : 0
+	,'ik_max_z' : 0
 }
 
 def driver_from_real(driver):

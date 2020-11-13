@@ -1,5 +1,6 @@
 from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
+from ..bone import BoneInfo, BoneSet
 
 class CloudTweakRig(CloudBaseRig):
 	"""Tweak a single bone with the same name as this bone in the generated rig."""
@@ -7,32 +8,105 @@ class CloudTweakRig(CloudBaseRig):
 	def initialize(self):
 		super().initialize()
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.template_set = self.ensure_bone_set("Template Bones")
+		self.orgless_name = self.base_bone.replace("ORG-", "")
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		if self.params.CR_template_use_control:
-			self.make_ctr_bone(self.org_chain[0])
+		tweak_bone = self.generator.find_bone_info(self.orgless_name)
+		meta_bone = self.meta_bone(self.orgless_name)
+		org_bi = self.org_chain[0]
 
-	def make_ctr_bone(self, bone):
-		ctr_bone = self.template_set.new(
-			name = bone.name.replace('ORG', "CTR")
-			,source = bone
-			,custom_shape = self.ensure_widget('Circle')
-			,parent = bone.parent
-		)
-		copy_trans = bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)
-		return ctr_bone
+		if not tweak_bone:
+			self.add_log("No bone to tweak", trouble_bone=self.orgless_name, description=f"Could not find a bone called {self.orgless_name} on the generated rig. If it exists, make sure the cloud_tweak bone is lower in the hierarchy than the target bone's rig.")
+			return
+
+		if self.params.CR_bone_transforms:
+			tweak_bone.head = org_bi.head.copy()
+			tweak_bone.tail = org_bi.tail.copy()
+			tweak_bone.roll = org_bi.roll
+			tweak_bone.bbone_x = org_bi.bbone_x
+			tweak_bone.bbone_z = org_bi.bbone_z
+
+		# Transfer and relink constraints and their drivers
+		if not self.params.CR_bone_constraints_additive:
+			tweak_bone.clear_constraints()
+		for c in org_bi.constraint_infos:
+			tweak_bone.constraint_infos.append(c)
+			c.relink()
+			# Relink constraint drivers
+			for d in c.drivers:
+				self.relink_driver(d)
+			org_bi.constraint_infos.remove(c)
+
+		# Transfer and relink bone drivers
+		for d in org_bi.drivers[:]:
+			tweak_bone.drivers.append(d)
+			org_bi.drivers.remove(d)
+			self.relink_driver(d)
+
+		if self.params.CR_bone_locks:
+			tweak_bone.lock_location = org_bi.lock_location[:]
+			tweak_bone.lock_rotation = org_bi.lock_rotation[:]
+			tweak_bone.lock_rotation_w = org_bi.lock_rotation_w
+			tweak_bone.lock_scale = org_bi.lock_scale[:]
+
+		if self.params.CR_bone_rot_mode:
+			tweak_bone.rotation_mode = org_bi.rotation_mode
+
+		if self.params.CR_bone_shape:
+			tweak_bone.custom_shape = org_bi.custom_shape
+			tweak_bone.custom_shape_scale = org_bi.custom_shape_scale
+			tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
+			tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
+			tweak_bone.show_wire = org_bi.show_wire
+
+		if self.params.CR_bone_group:
+			# TODO: This code overlaps a lot with cloud_bone, maybe it could be shared somehow?
+			# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
+			meta_bg = meta_bone.bone_group
+			if meta_bg:
+				bg_name = meta_bg.name
+				
+				new_set = BoneSet(self,
+					ui_name = bg_name
+					,bone_group = bg_name
+					,layers = meta_bone.bone.layers[:]
+					,normal = meta_bg.colors.normal[:]
+					,active = meta_bg.colors.active[:]
+					,select = meta_bg.colors.select[:]
+					,defaults = self.defaults
+				)
+				self.generator.bone_sets.append(new_set)
+				tweak_bone.bone_group = bg_name
+
+		if self.params.CR_bone_layers:
+			tweak_bone.layers = meta_bone.bone.layers[:]
+
+		if self.params.CR_bone_ik_settings:
+			tweak_bone.ik_stretch = org_bi.ik_stretch
+			tweak_bone.lock_ik_x = org_bi.lock_ik_x
+			tweak_bone.lock_ik_y = org_bi.lock_ik_y
+			tweak_bone.lock_ik_z = org_bi.lock_ik_z
+			tweak_bone.ik_stiffness_x = org_bi.ik_stiffness_x
+			tweak_bone.ik_stiffness_y = org_bi.ik_stiffness_y
+			tweak_bone.ik_stiffness_z = org_bi.ik_stiffness_z
+			tweak_bone.use_ik_limit_x = org_bi.use_ik_limit_x
+			tweak_bone.use_ik_limit_y = org_bi.use_ik_limit_y
+			tweak_bone.use_ik_limit_z = org_bi.use_ik_limit_z
+			tweak_bone.ik_min_x = org_bi.ik_min_x
+			tweak_bone.ik_max_x = org_bi.ik_max_x
+			tweak_bone.ik_min_y = org_bi.ik_min_y
+			tweak_bone.ik_max_y = org_bi.ik_max_y
+			tweak_bone.ik_min_z = org_bi.ik_min_z
+			tweak_bone.ik_max_z = org_bi.ik_max_z
+
+		if self.params.CR_bone_bbone_props:
+			tweak_bone.bbone_segments = org_bi.bbone_segments
+			tweak_bone.bbone_x = org_bi.bbone_x
+			tweak_bone.bbone_z = org_bi.bbone_z
 
 	##############################
 	# Parameters
-	@classmethod
-	def define_bone_sets(cls, params):
-		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Template Bones", preset=1,	default_layers=[cls.default_layers('IK_MAIN')])
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -44,6 +118,11 @@ class CloudTweakRig(CloudBaseRig):
 			,description = "Reveal settings for the cloud_tweak rig type"
 		)
 
+		params.CR_bone_constraints_additive = BoolProperty(
+			name="Additive Constraints"
+			,description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead"
+			,default=True
+		)
 		params.CR_bone_transforms = BoolProperty(
 			 name="Transforms"
 			,description="Replace the matching generated bone's transforms with this bone's transforms" # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
@@ -74,11 +153,6 @@ class CloudTweakRig(CloudBaseRig):
 			,description="Set the generated bone's layers to this bone's layers"
 			,default=False
 		)
-		params.CR_bone_props = BoolProperty(
-			 name="Custom Properties"
-			,description="Copy custom properties from this bone to the generated bone"
-			,default=False
-		)
 		params.CR_bone_ik_settings = BoolProperty(
 			 name="IK Settings"
 			,description="Copy IK settings from this bone to the generated bone"
@@ -104,13 +178,11 @@ class CloudTweakRig(CloudBaseRig):
 		layout.prop(params, "CR_bone_shape")
 		layout.prop(params, "CR_bone_group")
 		layout.prop(params, "CR_bone_layers")
-		layout.prop(params, "CR_bone_props")
 		layout.prop(params, "CR_bone_ik_settings")
 		layout.prop(params, "CR_bone_bbone_props")
 
 		return layout
 
-# Uncomment the next two lines to make this rig show up in Blender.
 class Rig(CloudTweakRig):
 	pass
 
