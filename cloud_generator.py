@@ -309,7 +309,7 @@ class CloudGenerator(Generator):
 
 	def create_root_bones(self):
 		# Root bone groups
-		self.root_set = BoneSet(
+		self.root_set = BoneSet(self,
 			ui_name = 'Root',
 			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
 			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
@@ -331,7 +331,7 @@ class CloudGenerator(Generator):
 			)
 
 		if self.params.cloudrig_parameters.double_root:
-			self.root_parent_set = BoneSet(
+			self.root_parent_set = BoneSet(self,
 				ui_name = 'Root',
 				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
 				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],

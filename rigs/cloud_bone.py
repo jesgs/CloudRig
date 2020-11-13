@@ -86,7 +86,7 @@ class CloudBoneRig(CloudBaseRig):
 		if meta_bg:
 			bg_name = meta_bg.name
 			
-			new_set = BoneSet(
+			new_set = BoneSet(self,
 				ui_name = bg_name
 				,bone_group = bg_name
 				,layers = meta_bone.bone.layers[:]
