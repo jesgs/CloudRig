@@ -150,7 +150,12 @@ class CloudCopyRig(CloudBaseRig):
 
 		pb = bpy.context.active_pose_bone
 
-		layout.prop(params, "CR_copy_parent")
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+		if rig:
+			layout.prop_search(params, 'CR_copy_parent', rig.pose, 'bones')
+		else:
+			layout.prop(params, "CR_copy_parent")
 		layout.prop(pb.bone, "use_deform", text="Create Deform Bone")
 
 		return layout
