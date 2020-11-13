@@ -217,7 +217,11 @@ class BoneInfo:
 		bone_info = BoneInfo(edit_bone.name, source=edit_bone, layers=data_bone.layers[:])
 
 		for key in pose_bone_properties:
-			setattr(bone_info, key, getattr(pose_bone, key))
+			value = getattr(pose_bone, key)
+			if value in [None, ""]: continue
+			if key=='bone_group':
+				value = value.name
+			setattr(bone_info, key, value)
 		for key in bone_properties:
 			setattr(bone_info, key, getattr(data_bone, key))
 		for key in edit_bone_properties:
