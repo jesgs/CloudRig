@@ -176,14 +176,14 @@ def version_cloud_metarig(metarig):
 			'CR_bone_ik_settings' : 'CR_tweak_ik_settings',
 			'CR_bone_bbone_props' : 'CR_tweak_bbone_props',
 		}
+		rename_parameters(metarig, dictionary)
 		for pb in metarig.pose.bones:
 			if pb.rigify_type=='cloud_bone':
 				if 'CR_bone_copy_type' in pb.rigify_parameters and pb.rigify_parameters['CR_bone_copy_type']==1:
-					pb.rigify_type = 'cloud_copy'
-				else:
 					pb.rigify_type = 'cloud_tweak'
+				else:
+					pb.rigify_type = 'cloud_copy'
 				print(f"{pb.name} rigify_type: cloud_bone -> {pb.rigify_type}")
-		rename_parameters(metarig, dictionary)
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
