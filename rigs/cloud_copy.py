@@ -154,9 +154,14 @@ class CloudCopyRig(CloudBaseRig):
 		rig = metarig.data.rigify_target_rig
 		if rig:
 			layout.prop_search(params, 'CR_copy_parent', rig.pose, 'bones')
+			parent_bone = rig.pose.bones.get(params.CR_copy_parent)
+			if parent_bone and parent_bone.bone.bbone_segments > 1:
+				split=layout.row().split(factor=0.4)
+				split.row()
+				split.label(text="Bendy Bone, will use Armature Constraint")
 		else:
-			layout.prop(params, "CR_copy_parent")
-		layout.prop(pb.bone, "use_deform", text="Create Deform Bone")
+			layout.prop(params, 'CR_copy_parent')
+		layout.prop(pb.bone, 'use_deform', text="Create Deform Bone")
 
 		return layout
 
