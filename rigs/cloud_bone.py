@@ -54,13 +54,12 @@ class CloudBoneRig(CloudBaseRig):
 			return
 
 		if bi.rotation_mode == 'QUATERNION':
-			self.generator.logger.log("Quaternion rotation"
-				,owner_bone = self.base_bone
+			self.add_log("Quaternion rotation"
 				,trouble_bone = self.base_bone
 				,description = f"{meta_bone.name} is on Quaternion rotation mode. Animator-facing controls should be set to Euler!"
 				,icon = 'GIZMO'
 				,operator = 'pose.cloudrig_troubleshoot_rotationmode'
-				,op_kwargs = {'bone_name' : self.base_bone}
+				,op_kwargs = {'bone_name' : self.orgless_name}
 				,op_text = f"Set {meta_bone.name} to Euler"
 			)
 			bi.rotation_mode = 'XYZ'

@@ -175,11 +175,13 @@ class CloudBaseRig(
 
 			# TODO: This is janky. Should add from_real() support to new_bonei().
 			org_bi = BoneInfo.from_real(self.obj, eb)
+			org_bi.owner_rig = self
 			self.org_chain.append(org_bi)
 			self.generator.bone_infos.append(org_bi)
 			org_bi.layers = self.org_chain.layers[:]
 			org_bi.hide_select = self.mch_disable_select
-			org_bi.bbone_width = eb.bbone_x / self.generator.scale
+			org_bi.bbone_width = eb.bbone_x / self.scale
+			org_bi.custom_shape_scale /= org_bi.bbone_width * 10 * self.scale
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent
