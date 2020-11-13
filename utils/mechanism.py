@@ -170,7 +170,7 @@ class CloudMechanismMixin:
 			,use_deform = True
 			,parent = bone
 		)
-		return
+		return def_bone
 
 	def meta_bone(self, bone_name):
 		""" Find and return a bone in the metarig. """
