@@ -265,23 +265,15 @@ class CloudMechanismMixin:
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)
 
-	def copy_and_relink_driver(self, fcurve, obj, data_path, index=None):
-		"""Copy a driver to some other data path, while accounting for any constraint relinking."""
-
-		data_path = fcurve.data_path
-		if 'constraints' in data_path:
-			org_con_name = data_path.split('constraints["')[-1].split('"]')[0]
-			new_con_name = org_con_name.split("@")[0]
-			data_path = data_path.replace(org_con_name, new_con_name)
-
-		new_fc = copy_driver(fcurve, self.obj, data_path, index)
-		new_fc.data_path = data_path
-
-		# Switch targets from metarig or None to generated rig.
-		for var in new_fc.driver.variables:
-			for t in var.targets:
-				if t.id in [None, self.generator.metarig]:
-					t.id = self.obj
+	def relink_driver(self, driver_info):
+		for var_info in driver_info['variables']:
+			if '@' in var_info['name']:
+				splits = var_info['name'].split("@")
+				var_info['name'] = splits[0]
+				for i, t in enumerate(var_info['targets']):
+					var_info['targets'][i]['bone_target'] = splits[i+1]
+					if t['id']==None or t['id']==self.generator.metarig:
+						t['id'] = self.obj
 
 	@staticmethod
 	def flat_vector(vec):

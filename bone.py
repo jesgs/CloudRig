@@ -74,6 +74,32 @@ pose_bone_properties = {
 	,'lock_scale' : [False, False, False]
 }
 
+def driver_from_real(driver):
+	"""Return a dictionary describing the driver."""
+	ret = {
+		'type' : driver.type
+		,'variables' : []
+	}
+	if driver.type=='SCRIPTED':
+		ret['expression'] = driver.expression
+	for var in driver.variables: 
+		ret['variables'].append({
+			'name' : var.name
+			,'type' : var.type
+			,'targets' : []
+		})
+		for t in var.targets:
+			target_info = {
+				'id' : t.id
+			}
+			if var.type == 'SINGLE_PROP':
+				target_info['id_type'] = t.id_type
+				target_info['data_path'] = t.data_path
+			else:
+				target_info['bone_target'] = t.bone_target
+			ret['variables'][-1]['targets'].append(target_info)
+	return ret
+
 class LinkedList(list):
 	"""Some very basic doubly linked list functionality to help manage chains of bones."""
 	def __init__(self):
@@ -204,8 +230,8 @@ class BoneSet(LinkedList):
 
 	def new_from_real(self, rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
 		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
-		# NOTE: Parenting should be done outside of this function.
-		# TODO: drivers, custom properties.
+		# NOTE: Parenting should be done outside of this function. (TODO but maybe shouldn't need to be?)
+		# NOTE: Does not load custom properties.
 
 		pose_bone = rig.pose.bones.get(edit_bone.name)
 		data_bone = pose_bone.bone
@@ -229,6 +255,21 @@ class BoneSet(LinkedList):
 		for c in pose_bone.constraints:
 			ci = bone_info.add_constraint_from_real(c)
 			pose_bone.constraints.remove(c)
+		
+		# Load drivers
+		for fcurve in rig.animation_data.drivers:
+			data_path = fcurve.data_path
+			driver = fcurve.driver
+			if bone_info.name in fcurve.data_path:
+				path_from_last = data_path.split('"].')[-1]
+				driver_info = driver_from_real(driver)
+				driver_info['prop'] = path_from_last
+				if 'constraints' in fcurve.data_path:
+					con_name = data_path.split('constraints["')[-1].split('"]')[0]
+					constraint = bone_info.get_constraint(con_name)
+					constraint.drivers.append(driver_info)
+				else:
+					bone_info.drivers.append(driver_info)
 
 		return bone_info
 

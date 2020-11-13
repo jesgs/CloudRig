@@ -68,9 +68,13 @@ class CloudBoneRig(CloudBaseRig):
 		# Relink constraints
 		for c in bi.constraint_infos:
 			c.relink()
+			# Relink constraint drivers
+			for d in c.drivers:
+				self.relink_driver(d)
 
-		# Copy and retarget drivers
-		# self.copy_and_relink_drivers(mod_bone)
+		# Relink bone drivers
+		for d in bi.drivers:
+			self.relink_driver(d)
 
 		# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
 		meta_bg = meta_bone.bone_group
