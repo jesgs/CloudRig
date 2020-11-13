@@ -142,6 +142,23 @@ class BoneInfo:
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
+	@staticmethod
+	def from_real(rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
+		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
+		# NOTE: Parenting should be set outside of this function.
+
+		pose_bone = rig.pose.bones.get(edit_bone.name)
+		data_bone = pose_bone.bone
+		bone_info = BoneInfo(edit_bone.name, source=edit_bone, layers=data_bone.layers[:])
+
+		# Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
+		for c in pose_bone.constraints:
+			ci = bone_info.add_constraint_from_real(c)
+			pose_bone.constraints.remove(c)
+		
+		# TODO: drivers, custom properties.
+		return bone_info
+
 	def __init__(self, name="Bone", source: bpy.types.EditBone or BoneInfo = None, **kwargs):
 		"""
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
@@ -403,7 +420,7 @@ class BoneInfo:
 	def clear_constraints(self):
 		self.constraint_infos = []
 
-	def write_edit_data(self, armature, edit_bone):
+	def write_edit_data(self, armature: bpy.types.Armature, edit_bone: bpy.types.EditBone):
 		"""Write relevant data of this BoneInfo into an EditBone."""
 		assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."
 
@@ -458,7 +475,7 @@ class BoneInfo:
 			bpy.ops.armature.calculate_roll(type=self.roll_type)
 			eb.roll += self.roll
 
-	def write_pose_data(self, pose_bone):
+	def write_pose_data(self, pose_bone: bpy.types.PoseBone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
 		armature = pose_bone.id_data
 
@@ -534,12 +551,12 @@ class BoneInfo:
 			driver_info['prop'] = f'bones["{pb.name}"].{driver_info["prop"]}'
 			make_driver(armature.data, target_id=armature, **driver_info)
 
-	def get_real(self, armature):
-		"""If a bone with the name of this BoneInfo exists in the passed armature, return it."""
-		if armature.mode == 'EDIT':
-			return armature.data.edit_bones.get(self.name)
+	def get_real(self, rig: bpy.types.Object):
+		"""If a bone with the name of this BoneInfo exists in the passed rig, return it."""
+		if rig.mode == 'EDIT':
+			return rig.data.edit_bones.get(self.name)
 		else:
-			return armature.pose.bones.get(self.name)
+			return rig.pose.bones.get(self.name)
 
 class ConstraintInfo(dict):
 	"""Helper class to store and manage constraint info before it's passed to Rigify's make_constraint."""
@@ -750,12 +767,7 @@ class BoneInfoMixin:
 			defaults = self.defaults
 		)
 
-		if not hasattr(self.generator, 'bone_sets'):
-			self.generator.bone_sets = []
 		self.generator.bone_sets.append(new_set)
-
-		self.generator.bone_sets.append(new_set)
-
 		self.bone_sets.append(new_set)
 
 		return new_set
