@@ -37,18 +37,14 @@ class CloudBoneRig(CloudBaseRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		# Strip ORG from bone's name
 		bi = self.org_chain[0]
 
-		# Renaming an ORG bone is a bit satanic...
-		edit_bone = self.get_bone(bi.name)
-		bi.name = edit_bone.name = self.orgless_name
-		self.generator.bone_owners[bi.name] = self
+		# Strip ORG from bone's name (@name.setter takes care of everything)
+		bi.name = self.orgless_name
 
 		meta_bone = self.meta_bone(bi.name)
 		bi.layers = meta_bone.bone.layers[:]
 		bi.use_deform = False
-		bi.custom_shape = meta_bone.custom_shape
 		if not meta_bone:
 			self.add_log_bug("Bone not found in MetaRig", trouble_bone=bi.name)
 			return
@@ -72,11 +68,6 @@ class CloudBoneRig(CloudBaseRig):
 		# Relink constraints
 		for c in bi.constraint_infos:
 			c.relink()
-
-		# Copy custom properties
-		# if '_RNA_UI' in meta_bone.keys():
-		# 	keys = [k for k in meta_bone.keys() if k not in ['_RNA_UI', 'rigify_parameters', 'rigify_type']]
-		# 	mechanism.copy_custom_properties(meta_bone, keys, mod_bone)
 
 		# Copy and retarget drivers
 		# self.copy_and_relink_drivers(mod_bone)
@@ -115,7 +106,7 @@ class CloudBoneRig(CloudBaseRig):
 			bi.parent = parent_bone
 			# If parent bone has BBone segments, use Armature constraint for parenting.
 			if parent_bone.bbone_segments > 1:
-				arm_con = bi.add_constraint('ARMATURE'
+				arm_con = bi.add_constraint('ARMATURE', index=-len(bi.constraint_infos)
 					,use_deform_preserve_volume = True
 					,targets = [
 						{

@@ -31,8 +31,7 @@ edit_bone_properties = {
 }
 
 bone_properties = {
-	'name' : "Bone"
-	,'layers' : [l==0 for l in range(32)]	# 32 bools where only the first one is True.
+	'layers' : [l==0 for l in range(32)]	# 32 bools where only the first one is True.
 	,'hide_select' : False
 	,'hide' : False
 
@@ -46,7 +45,7 @@ bone_properties = {
 	,'bbone_handle_type_start' : 'AUTO'
 	,'bbone_handle_type_end' : 'AUTO'
 	,'bbone_custom_handle_start': None	# BoneInfo
-	,'bbone_custom_handle_end': None		# BoneInfo
+	,'bbone_custom_handle_end': None	# BoneInfo
 
 	,'envelope_distance' : 0.25
 	,'envelope_weight' : 1.0
@@ -178,7 +177,7 @@ class BoneSet(LinkedList):
 		bone_info = generator.find_bone_info(name)
 		if bone_info:
 			generator.logger.log_bug("Redefining bone"
-				,owner_bone = bone_info.owner_rig.meta_base_bone.name
+				,owner_bone = bone_info.bone_set.rig.meta_base_bone.name
 				,trouble_bone = bone_info.name
 				,description = "Bone was defined twice."
 			)
@@ -192,7 +191,7 @@ class BoneSet(LinkedList):
 			if key not in kwargs:
 				kwargs[key] = self.defaults[key]
 
-		bone_info = BoneInfo(name, source, **kwargs)
+		bone_info = BoneInfo(self, name, source, **kwargs)
 		self.append(bone_info)
 		generator.bone_infos.append(bone_info)
 		bone_info.owner_rig = self.rig
@@ -207,10 +206,6 @@ class BoneSet(LinkedList):
 		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
 		# NOTE: Parenting should be done outside of this function.
 		# TODO: drivers, custom properties.
-
-		# TODO: Currently, attempting to rename an ORG bone will result in some disaster, where the old bone will stay.
-		# Could be solved by turning name into a property and actually renaming the real bone if it exists,
-		# Or by deleting the ORG bone here in this function.
 
 		pose_bone = rig.pose.bones.get(edit_bone.name)
 		data_bone = pose_bone.bone
@@ -263,12 +258,13 @@ class BoneInfo:
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
-	def __init__(self, name="Bone", source: bpy.types.EditBone or BoneInfo = None, **kwargs):
+	def __init__(self, bone_set, name="Bone", source: bpy.types.EditBone or BoneInfo = None, **kwargs):
 		"""
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
 		"""
 
+		self.bone_set = bone_set
 		self.owner_rig = None	# This should be set after creating the instance!
 		self.next = self.prev = None	# for LinkedList behaviour.
 
@@ -279,6 +275,7 @@ class BoneInfo:
 
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
+		self._name = name
 		### Edit Bone properties
 		for key in edit_bone_properties.keys():
 			setattr(self, key, edit_bone_properties[key])
@@ -292,8 +289,6 @@ class BoneInfo:
 		### Pose Bone properties
 		for key in pose_bone_properties.keys():
 			setattr(self, key, pose_bone_properties[key])
-
-		self.name=name
 
 		# Recalculate Roll
 		self.roll_type = "" # This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
@@ -325,25 +320,21 @@ class BoneInfo:
 		for key, value in kwargs.items():
 			setattr(self, key, value)
 
-	def clone(self, new_name=None):
-		"""Return a clone of self."""
-		custom_ob_backup = self.custom_object	# This would fail to deepcopy since it's a bpy.types.Object.
-		self.custom_object = None
-
-		my_clone = copy.deepcopy(self)
-		my_clone.name = self.name + ".001"
-		if new_name:
-			my_clone.name = new_name
-
-		my_clone.custom_object = custom_ob_backup
-
-		return my_clone
-
-	def __repr__(self):
-		return self.name
-
-	def __str__(self):
-		return self.name
+	@property
+	def name(self):
+		return self._name
+	
+	@name.setter
+	def name(self, value):
+		rig = self.bone_set.rig
+		rig_ob = rig.obj
+		bone = rig_ob.data.bones.get(self._name)
+		if bone:
+			generator = rig.generator
+			del generator.bone_owners[self._name]
+			generator.bone_owners[value] = rig
+			bone.name = value
+		self._name = value
 
 	@property
 	def parent(self):
@@ -427,11 +418,6 @@ class BoneInfo:
 		# Round to nearest 90 degrees.
 		rounded = round(deg/90)*90
 		self.roll = pi/180*rounded
-
-	def disown(self, new_parent):
-		""" Parent all children of this bone to a new parent. """
-		for b in self.children:
-			b.parent = new_parent
 
 	def get_constraint(self, name):
 		for ci in self.constraint_infos:
@@ -572,12 +558,37 @@ class BoneInfo:
 			driver_info['prop'] = f'bones["{pb.name}"].{driver_info["prop"]}'
 			make_driver(armature.data, target_id=armature, **driver_info)
 
+	def clone(self, new_name=None):
+		"""Return a clone of self."""
+		custom_ob_backup = self.custom_object	# This would fail to deepcopy since it's a bpy.types.Object.
+		self.custom_object = None
+
+		my_clone = copy.deepcopy(self)
+		my_clone.name = self.name + ".001"
+		if new_name:
+			my_clone.name = new_name
+
+		my_clone.custom_object = custom_ob_backup
+
+		return my_clone
+
+	def disown(self, new_parent):
+		""" Parent all children of this bone to a new parent. """
+		for b in self.children:
+			b.parent = new_parent
+
 	def get_real(self, rig: bpy.types.Object):
 		"""If a bone with the name of this BoneInfo exists in the passed rig, return it."""
 		if rig.mode == 'EDIT':
 			return rig.data.edit_bones.get(self.name)
 		else:
 			return rig.pose.bones.get(self.name)
+
+	def __repr__(self):
+		return self.name
+
+	def __str__(self):
+		return self.name
 
 class ConstraintInfo(dict):
 	"""Helper class to store and manage constraint info before it's passed to Rigify's make_constraint."""
