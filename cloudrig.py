@@ -922,8 +922,9 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 			if 'texts' in info:
 				texts = json.loads(info['texts'])
 				prop_value = prop_bone[prop_id]
-				cur_text = texts[int(prop_value)]
-				slider_text = entry_name + ": " + cur_text
+				value = int(prop_value)
+				if len(texts) > value:
+					slider_text = entry_name + ": " + texts[value]
 
 			sub_row.prop(prop_bone, '["' + prop_id + '"]', slider=True, text=slider_text)
 
