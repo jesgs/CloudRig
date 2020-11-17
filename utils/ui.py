@@ -68,7 +68,7 @@ class CloudUIMixin:
 		# If all bone sets are overridden, don't draw anything.
 		any_non_overridden = False
 		for bsd in cls.bone_set_defs.values():
-			if 'override' not in bsd:
+			if 'override' not in bsd or bsd['override']=='':
 				any_non_overridden = True
 				break
 		if not any_non_overridden: return layout
