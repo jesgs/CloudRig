@@ -270,19 +270,20 @@ class BoneSet(LinkedList):
 			pose_bone.constraints.remove(c)
 		
 		# Load drivers
-		for fcurve in rig.animation_data.drivers:
-			data_path = fcurve.data_path
-			driver = fcurve.driver
-			if bone_info.name in fcurve.data_path:
-				path_from_last = data_path.split('"].')[-1]
-				driver_info = driver_from_real(driver)
-				driver_info['prop'] = path_from_last
-				if 'constraints' in fcurve.data_path:
-					con_name = data_path.split('constraints["')[-1].split('"]')[0]
-					constraint = bone_info.get_constraint(con_name)
-					constraint.drivers.append(driver_info)
-				else:
-					bone_info.drivers.append(driver_info)
+		if rig.animation_data:
+			for fcurve in rig.animation_data.drivers:
+				data_path = fcurve.data_path
+				driver = fcurve.driver
+				if bone_info.name in fcurve.data_path:
+					path_from_last = data_path.split('"].')[-1]
+					driver_info = driver_from_real(driver)
+					driver_info['prop'] = path_from_last
+					if 'constraints' in fcurve.data_path:
+						con_name = data_path.split('constraints["')[-1].split('"]')[0]
+						constraint = bone_info.get_constraint(con_name)
+						constraint.drivers.append(driver_info)
+					else:
+						bone_info.drivers.append(driver_info)
 
 		return bone_info
 
