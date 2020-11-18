@@ -14,11 +14,10 @@ In the Rigify addon preferences, click on **Rigify: External feature sets->Insta
 
 
 <details>
-<summary> Supported Blender versions: 2.82 and above. </summary>
-It may work with earlier versions of Blender, but it is not guaranteed.
-Any issues specific to older versions of Blender are not likely to be fixed.
-
+<summary> Supported Blender versions: 2.92 and above. </summary>
 CloudRig is currently being developed right alongside Blender, so it should always work on the latest daily experimental Blender build.
+
+For previous versions of Blender going back to 2.81, see the [Releases](/../../../-/releases) page.
 </details>
 
 
