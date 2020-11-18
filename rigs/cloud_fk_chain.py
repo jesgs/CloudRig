@@ -212,7 +212,7 @@ class CloudFKChainRig(CloudChainRig):
 				last_def.prev.bbone_easeout = 0
 			# Also, parent this to the ORG bone. This is so that scaling
 			# the last STR control doesn't affect this deform bone.
-			last_def.parent = last_def.parent.org_parent
+			last_def.parent = self.org_chain[-1]
 
 	def tweak_def_chain(self):
 		for i, def_bone in enumerate(self.def_chain):
