@@ -1037,9 +1037,13 @@ def generate_rig(context, metarig):
 		generator.generate()
 	except Exception as e:
 		# Cleanup if something goes wrong
-		print("Rigify: failed to generate rig.")
-
 		generator.cleanup()
+		# Remove all log entries.
+		generator.logger.clear()
+		# Add a log entry about the error.
+		traceback_str = traceback.format_exc()
+		log = generator.logger.log_bug("Execution Error!", op_kwargs={'stack_trace' : traceback_str})
+		log.pretty_stack = traceback_str
 
 		# Continue the exception
 		raise e
@@ -1053,16 +1057,15 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 	bl_description = 'Generates a rig from the active metarig armature using the CloudRig generator'
 
 	def execute(self, context):
+		metarig = context.object
 		try:
-			generate_rig(context, context.object)
+			generate_rig(context, metarig)
 		except MetarigError as rig_exception:
 			traceback.print_exc()
 
 			rigify_report_exception(self, rig_exception)
 		except Exception as rig_exception:
-			traceback.print_exc()
-
-			self.report({'ERROR'}, 'Generation has thrown an exception: ' + str(rig_exception))
+			self.report({'ERROR'}, 'Failed to generate from metarig: ' + metarig.name)
 		finally:
 			bpy.ops.object.mode_set(mode='OBJECT')
 

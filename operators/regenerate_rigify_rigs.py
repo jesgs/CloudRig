@@ -20,16 +20,6 @@ def safe_generate(context, metarig, target_rig):
 	meta_visible.restore()
 	rig_visible.restore()
 
-def rigify_cleanup(context, rig):
-	# TODO: This should be taken care of by CloudGenerator.
-	""" Rigify does some nasty things so late in the generation process that it cannot be handled from a custom featureset's code, so I'll put it here. """
-	# Delete driver on pass_index
-	rig.driver_remove("pass_index")
-	# Delete rig_ui.py from blend file
-	text = bpy.data.texts.get("rig_ui.py")
-	if text:
-		bpy.data.texts.remove(text)
-
 class Regenerate_Rigify_Rigs(bpy.types.Operator):
 	""" Regenerate all Rigify rigs in the file. (Only works on metarigs that have an existing target rig.) """
 	bl_idname = "object.regenerate_all_rigify_rigs"
@@ -38,18 +28,26 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 
 	def execute(self, context):
 		rigs_generated = 0
+		rigs_failed = 0
 		for o in bpy.data.objects:
 			if o.type!='ARMATURE': continue
 			if o.data.rigify_target_rig:
 				metarig = o
 				target_rig = o.data.rigify_target_rig
 				if target_rig:
-					safe_generate(context, metarig, target_rig)
-					rigs_generated+=1
-		if rigs_generated==0:
+					try:
+						safe_generate(context, metarig, target_rig)
+						rigs_generated+=1
+					except:
+						rigs_failed += 1
+		if rigs_generated==0 and rigs_failed==0:
 			self.report({'INFO'}, "No rigs found to re-generate!")
+		elif rigs_generated>0 and rigs_failed >0:
+			self.report({'INFO'}, f"{rigs_failed} rig{'s' if rigs_failed>1 else ''} failed to generate. ({rigs_generated} succeeded.)")
+		elif rigs_failed>0:
+			self.report({'ERROR'}, f"{rigs_failed} rig{'s' if rigs_failed>1 else ''} failed to generate. See the Rigify Log on the Metarig for more details.")
 		else:
-			self.report({'INFO'}, f"Successfully re-generated {rigs_generated} rig{'s' if rigs_generated>1 else ''}")
+			self.report({'INFO'}, f"{rigs_generated} rig{'s' if rigs_generated>1 else ''} successfully generated!")
 
 		return { 'FINISHED' }
 

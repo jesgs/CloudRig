@@ -82,9 +82,8 @@ def url_prefill_from_cloudrig(stack_trace=""):
 
 def get_pretty_stack() -> str:
 	ret = []
-	stack = traceback.extract_stack()
+		stack = traceback.extract_stack()
 	after_generator = False
-	previous_sort_file = ""
 	for i, frame in enumerate(stack):
 		if 'generator' in frame.filename:
 			after_generator = True
@@ -158,8 +157,8 @@ class CloudLogManager:
 	):
 		if 'op_kwargs' not in kwargs:
 			kwargs['op_kwargs'] = {}
-		kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
-		self.log(
+			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
+		return self.log(
 			"(BUG) " + description_short
 			,description = description + "\nPlease report this as a bug."
 			,icon = icon
