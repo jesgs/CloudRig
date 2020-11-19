@@ -784,6 +784,7 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Copy bones from metarig to obj
 		self._Generator__duplicate_rig()
+		self.nuke_drivers()
 
 		t.tick("Duplicate rig: ")
 
