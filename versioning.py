@@ -9,7 +9,6 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # For example, changing names of rig types, splitting an old rig type into multiple, 
 # changing names of parameters, etc.
 cloud_metarig_version = 7
-cloudrig_version = 0.1
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	# Enum properties are a bit tricky because once their definition is lost their string value is lost and is left with an int.

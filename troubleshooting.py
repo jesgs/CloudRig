@@ -2,6 +2,8 @@ import bpy
 import json
 import traceback
 import webbrowser
+import importlib
+import os
 
 from bpy.props import StringProperty, IntProperty
 
@@ -26,7 +28,6 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	import platform
 	import urllib.parse
 	import io
-	from .versioning import cloudrig_version
 
 	fh = io.StringIO()
 
@@ -51,6 +52,8 @@ def url_prefill_from_cloudrig(stack_trace=""):
 		)
 	)
 
+	CloudRig = importlib.import_module('rigify.feature_sets.'+os.path.basename(os.path.dirname(__file__)))
+	cloudrig_version = CloudRig.rigify_info['version']
 	fh.write(
 		"\nCloudRig: " + str(cloudrig_version)
 	)

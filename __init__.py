@@ -1,14 +1,3 @@
-rigify_info = {
-	'name': "CloudRig",
-	'author': "Demeter Dzadik",
-	'version': (0, 0, 4),
-	'blender': (2, 82, 0),
-	'description': "Feature set developed by the Blender Animation Studio",
-	'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/",
-	'tracker_url': "https://gitlab.com/blender/CloudRig/-/issues/new",
-	'link': "https://gitlab.com/blender/CloudRig/",
-}
-
 import bpy, os, importlib
 
 from . import actions
@@ -20,6 +9,16 @@ from . import operators
 from . import overlay
 from . import gizmo
 from . import troubleshooting
+
+rigify_info = {
+	'name': "CloudRig",
+	'author': "Demeter Dzadik",
+	'version': (0, 0, 5),
+	'blender': (2, 92, 0),
+	'description': "Feature set developed by the Blender Animation Studio",
+	'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/",
+	'link': "https://gitlab.com/blender/CloudRig/",
+}
 
 modules = [
 	actions,
@@ -39,6 +38,8 @@ def register():
 	for m in modules:
 		importlib.reload(m)
 		m.register()
+
+	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
 
 def unregister():
 	from bpy.utils import unregister_class
