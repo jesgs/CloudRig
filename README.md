@@ -32,4 +32,4 @@ You can try moving around the bones in the Metarig in edit mode, and then genera
 Using Rigify and CloudRig mostly consists of creating such a metarig yourself, with the proportions and features that suits your character's needs. To learn more on how to do that, check out the [wiki](/../../../-/wikis/home)!
 
 # Report problems
-If you run into weird error messages or have suggestions on how something could be improved, feel free to [open an issue](/../../../-/issues/new).
+If you run into weird error messages or have suggestions on how something could be improved, feel free to [open an issue](/../../../-/issues/new?issuable_template=Bug).

@@ -43,12 +43,11 @@ def url_prefill_from_cloudrig(stack_trace=""):
 		"**Blender Version**\n"
 	)
 	fh.write(
-		"%s, branch: %s, commit date: %s %s, hash: `rB%s`\n" % (
+		"%s, branch: %s, commit date: `[https://developer.blender.org/rB%s`](%s)\n" % (
 			bpy.app.version_string,
 			bpy.app.build_branch.decode('utf-8', 'replace'),
-			bpy.app.build_commit_date.decode('utf-8', 'replace'),
-			bpy.app.build_commit_time.decode('utf-8', 'replace'),
 			bpy.app.build_hash.decode('ascii'),
+			bpy.app.build_commit_date.decode('utf-8', 'replace'),
 		)
 	)
 
@@ -82,7 +81,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 
 def get_pretty_stack() -> str:
 	ret = []
-		stack = traceback.extract_stack()
+	stack = traceback.extract_stack()
 	after_generator = False
 	for i, frame in enumerate(stack):
 		if 'generator' in frame.filename:

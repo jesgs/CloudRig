@@ -1,3 +1,8 @@
-If your rig failed to generate, there should be a Report Bug button when you select your metarig and go to Properties->Armature->Rigify Log. This button will pre-fill a lot of information in this form that will be helpful for me in finding the issue.
+Thank you for wanting to submit a report and help me improve CloudRig. Please don't write your bug report from scratch! I've put buttons in the Blender interface which will start a report for you with a lot of  useful information pre-filled.
 
-If you could attach a small .blend file with nothing but your metarig object in it, that would also be useful!
+- If your bug is about a metarig that fails to generate:  
+    Select your metarig and go to Properties->Object Data->Rigify Log, and click on "Report CloudRig Bug".
+- For all other bugs:  
+    Go in the Rigify Addon preferences, select the CloudRig feature set and click on "Report a Bug."
+- For feature suggestions:  
+    In this case you may delete this text and write from scratch.
