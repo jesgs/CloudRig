@@ -68,7 +68,7 @@ class CloudFaceChainRig(CloudChainRig):
 				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
 					if len(self.main_str_bones) <= i+1:
-						self.raise_error(f"Cannot move constraint {c.name} from {org_bone.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
+						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
 					to_bone = self.main_str_bones[i+1]
 
 				if hasattr(to_bone, 'merged_control'):

@@ -281,7 +281,8 @@ class BoneSet(LinkedList):
 					if 'constraints' in fcurve.data_path:
 						con_name = data_path.split('constraints["')[-1].split('"]')[0]
 						constraint = bone_info.get_constraint(con_name)
-						constraint.drivers.append(driver_info)
+						if constraint:
+							constraint.drivers.append(driver_info)
 					else:
 						bone_info.drivers.append(driver_info)
 

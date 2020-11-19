@@ -711,6 +711,17 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
+	def nuke_drivers(self):
+		# Nuke all drivers on the rig
+		if self.obj.animation_data:
+			datablocks = [self.obj, self.obj.data]
+			for db in datablocks:
+				if not hasattr(db.animation_data, 'drivers'): continue
+				if not db.animation_data: continue
+				
+				for d in db.animation_data.drivers[:]:
+					db.animation_data.drivers.remove(d)
+
 	def generate(self):
 		print("CloudRig Generation begin")
 
@@ -727,21 +738,12 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Create/find the rig object and set it up
 		obj = self.create_rig_object()
+		self.nuke_drivers()
 		self.logger.rig = obj
 		self.logger.metarig = metarig
 
 		# Update metarig version
 		metarig.data.cloudrig_parameters.version = cloud_metarig_version
-
-		# Nuke all drivers on the rig
-		if obj.animation_data:
-			datablocks = [obj, obj.data]
-			for db in datablocks:
-				if not hasattr(db.animation_data, 'drivers'): continue
-				if not db.animation_data: continue
-				
-				for d in db.animation_data.drivers[:]:
-					db.animation_data.drivers.remove(d)
 
 		self.defaults['rig'] = obj
 
@@ -782,6 +784,7 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Copy bones from metarig to obj
 		self._Generator__duplicate_rig()
+		self.nuke_drivers()
 
 		t.tick("Duplicate rig: ")
 
