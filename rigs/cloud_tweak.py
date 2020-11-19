@@ -38,6 +38,8 @@ class CloudTweakRig(CloudBaseRig):
 			for d in c.drivers:
 				self.relink_driver(d)
 			org_bi.constraint_infos.remove(c)
+			for d in c.drivers:
+				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
 
 		# Transfer and relink bone drivers
 		for d in org_bi.drivers[:]:

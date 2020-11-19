@@ -76,6 +76,8 @@ class CloudFaceChainRig(CloudChainRig):
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
+				for d in c.drivers:
+					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
 
 	@staticmethod
