@@ -22,6 +22,23 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmetrical transformations
 	- Symmetrically named rigs have asymmmetrical constraints
 """
+import time
+def cloudrig_last_modified() -> str:
+	"""Return the date at which the most recent CloudRig .py file was modified. 
+	
+	Used in the bug report form pre-fill.
+	"""
+	max_mtime = 0
+	for dirname, subdirs, files in os.walk(os.path.dirname(__file__)):
+		for fname in files:
+			full_path = os.path.join(dirname, fname)
+			mtime = os.path.getmtime(full_path) 
+			if mtime > max_mtime:
+				max_mtime = mtime
+				max_file = fname
+
+	# For me this is in UTC, I can only hope it is for everyone.
+	return time.strftime('%Y-%m-%d %H:%M', time.gmtime(max_mtime))
 
 def url_prefill_from_cloudrig(stack_trace=""):
 	import struct
@@ -54,8 +71,9 @@ def url_prefill_from_cloudrig(stack_trace=""):
 
 	CloudRig = importlib.import_module('rigify.feature_sets.'+os.path.basename(os.path.dirname(__file__)))
 	cloudrig_version = CloudRig.rigify_info['version']
+	last_modified = cloudrig_last_modified()
 	fh.write(
-		"\nCloudRig: " + str(cloudrig_version)
+		f"\nCloudRig: {cloudrig_version} ({last_modified})"
 	)
 
 	if stack_trace!="":
