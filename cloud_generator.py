@@ -1062,9 +1062,9 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 			generate_rig(context, metarig)
 		except MetarigError as rig_exception:
 			traceback.print_exc()
-
 			rigify_report_exception(self, rig_exception)
 		except Exception as rig_exception:
+			traceback.print_exc()
 			self.report({'ERROR'}, 'Failed to generate from metarig: ' + metarig.name)
 		finally:
 			bpy.ops.object.mode_set(mode='OBJECT')
