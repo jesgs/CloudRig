@@ -722,6 +722,20 @@ class CloudGenerator(Generator):
 				for d in db.animation_data.drivers[:]:
 					db.animation_data.drivers.remove(d)
 
+	def map_drivers(self):
+		"""Create a dictionary matching bone names to full data paths of drivers that belong to those bones."""
+		# This is for optimization, so we don't have to loop through every driver for every bone when relinking drivers.
+		self.driver_map = {}
+		if not self.obj.animation_data:
+			return
+		for fc in self.obj.animation_data.drivers:
+			data_path = fc.data_path
+			if "pose.bones" in data_path:
+				bone_name = data_path.split('pose.bones["')[1].split('"]')[0]
+				if bone_name not in self.driver_map:
+					self.driver_map[bone_name] = []
+				self.driver_map[bone_name].append((data_path, fc.array_index))
+
 	def generate(self):
 		print("CloudRig Generation begin")
 
@@ -783,16 +797,17 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		# Copy bones from metarig to obj
-		self._Generator__duplicate_rig()
 		self.nuke_drivers()
+		self._Generator__duplicate_rig()
 
 		t.tick("Duplicate rig: ")
 
 		#------------------------------------------
 		# Add the ORG_PREFIX to the original bones.
+		self._Generator__rename_org_bones()
 		bpy.ops.object.mode_set(mode='OBJECT')
 
-		self._Generator__rename_org_bones()
+		self.map_drivers()
 
 		t.tick("Make list of org bones: ")
 

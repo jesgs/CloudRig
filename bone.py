@@ -268,13 +268,14 @@ class BoneSet(LinkedList):
 		for c in pose_bone.constraints:
 			ci = bone_info.add_constraint_from_real(c)
 			pose_bone.constraints.remove(c)
-		
+
 		# Load drivers
 		if rig.animation_data:
-			for fcurve in rig.animation_data.drivers:
-				data_path = fcurve.data_path
-				driver = fcurve.driver
-				if bone_info.name in fcurve.data_path:
+			driver_map = self.rig.generator.driver_map
+			if bone_info.name in driver_map:
+				for data_path, array_index in driver_map[bone_info.name]:
+					fcurve = rig.animation_data.drivers.find(data_path, index=array_index)
+					driver = fcurve.driver
 					path_from_last = data_path.split('"].')[-1]
 					driver_info = driver_from_real(driver)
 					driver_info['prop'] = path_from_last
@@ -285,6 +286,7 @@ class BoneSet(LinkedList):
 							constraint.drivers.append(driver_info)
 					else:
 						bone_info.drivers.append(driver_info)
+					rig.animation_data.drivers.remove(fcurve)
 
 		return bone_info
 
