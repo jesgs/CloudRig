@@ -184,6 +184,12 @@ def version_cloud_metarig(metarig):
 					pb.rigify_type = 'cloud_copy'
 				print(f"{pb.name} rigify_type: cloud_bone -> {pb.rigify_type}")
 
+			# Demote uses of cloud_eye to cloud_aim
+			# (This was done in a previous version but I forgot to add versioning code)
+			if pb.rigify_type=='cloud_eye':
+				pb.rigify_type = 'cloud_aim'
+				print(f"{pb.name} rigify_type: cloud_eye -> {pb.rigify_type}")
+
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
 	for metarig in cloud_metarigs:
