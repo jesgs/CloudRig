@@ -108,6 +108,7 @@ class CloudLegRig(CloudLimbRig):
 
 		dsp_bone.head = intersect
 		dsp_bone.tail = shoe_tip
+		dsp_bone.head.z = dsp_bone.tail.z
 		dsp_bone.length = 0.1 * self.scale
 		dsp_bone.roll_type = 'ACTIVE'
 		dsp_bone.roll_bone = toe
