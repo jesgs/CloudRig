@@ -66,6 +66,9 @@ class CloudObjectUtilitiesMixin:
 	@staticmethod
 	def ensure_visible(obj) -> EnsureVisible:
 		return EnsureVisible(obj)
+	
+	def add_to_widget_collection(self, obj):
+		self.generator.add_to_widget_collection(obj)
 
 def lock_transforms(obj, loc=True, rot=True, scale=True):
 	if type(loc) in (list, tuple):

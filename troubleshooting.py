@@ -1,8 +1,6 @@
 import bpy
 import json
-import traceback
 import webbrowser
-import importlib
 import os
 
 from bpy.props import StringProperty, IntProperty
@@ -22,8 +20,8 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmetrical transformations
 	- Symmetrically named rigs have asymmmetrical constraints
 """
-import time
 def cloudrig_last_modified() -> str:
+	import time
 	"""Return the date at which the most recent CloudRig .py file was modified. 
 	
 	Used in the bug report form pre-fill.
@@ -45,6 +43,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	import platform
 	import urllib.parse
 	import io
+	import importlib
 
 	fh = io.StringIO()
 
@@ -101,6 +100,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	)
 
 def get_pretty_stack() -> str:
+	import traceback
 	ret = []
 	stack = traceback.extract_stack()
 	after_generator = False
@@ -166,8 +166,7 @@ class CloudLogManager:
 		entry.op_kwargs = json.dumps(op_kwargs)
 		entry.op_text = op_text
 		return entry
-	
-	
+
 	def log_bug(self
 		,description_short
 		,description = "Something went terribly wrong!"
@@ -238,6 +237,48 @@ class CloudLogManager:
 			except:
 				# "StructRNA of type Object has been removed", don't know why this happens.
 				pass
+
+	def report_widgets(self, widget_collection):
+		"""Find and log unused and duplicate widgets."""
+
+		widgets = widget_collection.all_objects
+
+		used_widgets = []
+		for pb in self.rig.pose.bones:
+			if pb.custom_shape and pb.custom_shape.name not in used_widgets:
+				used_widgets.append(pb.custom_shape.name)
+
+		for widget in widgets:
+			unprefixed = widget.name
+			if widget.name[-4]=='.':
+				unprefixed = widget.name[:-4]
+
+			if widget.name not in used_widgets and unprefixed not in used_widgets:
+				self.log("Unused widget"
+					,note = widget.name
+					,icon = 'X'
+					,description = f"Widget {widget.name} is not used by any bones."
+					,operator = CLOUDRIG_OT_Delete_Object.bl_idname
+					,op_kwargs = {'ob_name' : widget.name}
+				)
+
+			if unprefixed != widget.name:
+				if unprefixed in bpy.data.objects:
+					self.log("Duplicate widget"
+						,note = widget.name
+						,icon = 'DUPLICATE'
+						,description = f"There exists a widget called {unprefixed}, that should be used instead of {widget.name}."
+						,operator = CLOUDRIG_OT_Swap_Bone_Shape.bl_idname
+						,op_kwargs = {'old_name' : widget.name, 'new_name' : unprefixed}
+					)
+				else:
+					self.log("Widget with number suffix"
+						,note = widget.name
+						,icon = 'FILE_TEXT'
+						,description = f"This widget's {widget.name[-4:]} suffix isn't necessary."
+						,operator = CLOUDRIG_OT_Rename_Object.bl_idname
+						,op_kwargs = {'old_name' : widget.name, 'new_name' : unprefixed}
+					)
 
 class CloudRigLogEntry(bpy.types.PropertyGroup):
 	icon: StringProperty(
@@ -391,7 +432,7 @@ def draw_cloudrig_log(layout, metarig):
 ######### Quick-Fix Operators ##########
 ########################################
 class CLOUDRIG_OT_Change_Rotation_Mode(bpy.types.Operator):
-	"""Change rotation mode of a bone."""
+	"""Change rotation mode of a bone"""
 
 	bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
 	bl_label = "Change Rotation Mode"
@@ -419,7 +460,7 @@ class CLOUDRIG_OT_Change_Rotation_Mode(bpy.types.Operator):
 		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
-	"""Report a bug on the CloudRig repository."""
+	"""Report a bug on the CloudRig repository"""
 
 	bl_idname = "wm.cloudrig_report_bug"
 	bl_label = "Report CloudRig Bug"
@@ -433,7 +474,7 @@ class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
 		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Rename_Bone(bpy.types.Operator):
-	"""Report a bug on the CloudRig repository."""
+	"""Rename a bone"""
 
 	bl_idname = "object.cloudrig_rename_bone"
 	bl_label = "Rename Bone"
@@ -470,6 +511,105 @@ class CLOUDRIG_OT_Rename_Bone(bpy.types.Operator):
 			remove_active_log(metarig)
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Swap_Bone_Shape(bpy.types.Operator):
+	"""Redirect custom bone shape references from one object to another"""
+
+	bl_idname = "object.cloudrig_swap_bone_shape"
+	bl_label = "Swap Bone Shapes"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Both of these should be provided by the UI.
+	old_name: StringProperty()
+	new_name: StringProperty()
+
+	def execute(self, context):
+		metarig = context.object
+		old_obj = bpy.data.objects.get(self.old_name)
+		new_obj = bpy.data.objects.get(self.new_name)
+
+		assert old_obj and new_obj, f"Error! One of {self.old_name} or {self.new_name} wasn't found! This should never happen."
+
+		rigs = [metarig]
+
+		rig = metarig.data.rigify_target_rig
+		if rig:
+			rigs.append(rig)
+
+		for rig in rigs:
+			for pb in rig.pose.bones:
+				if pb.custom_shape == old_obj:
+					pb.custom_shape = new_obj
+		
+		bpy.data.objects.remove(old_obj)
+		widget_collection = metarig.data.cloudrig_parameters.widget_collection
+		if widget_collection and new_obj.name not in widget_collection.objects:
+			widget_collection.objects.link(new_obj)
+
+		remove_active_log(metarig)
+		self.report({'INFO'}, f"Successfully replaced all references of {self.old_name}(now deleted) to {self.new_name}.")
+		return { 'FINISHED' }
+
+class CLOUDRIG_OT_Rename_Object(bpy.types.Operator):
+	"""Rename an object"""
+
+	bl_idname = "object.cloudrig_rename_object"
+	bl_label = "Rename Object"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	old_name: StringProperty() # Should be provided to the operator by the UI, and not changed!
+	new_name: StringProperty(name="Name") # Exposed to user
+
+	def invoke(self, context, event):
+		wm = context.window_manager
+		if self.new_name=='':
+			self.new_name = self.old_name
+		return wm.invoke_props_dialog(self)
+
+	def draw(self, context):
+		layout = self.layout
+		if self.new_name in bpy.data.objects:
+			layout.prop(self, 'new_name', icon='ERROR')
+			layout.label(text="This object name is taken!")
+		else:
+			layout.prop(self, 'new_name')
+			layout.label(text="Object name available!")
+
+	def execute(self, context):
+		metarig = context.object
+		obj = bpy.data.objects.get(self.old_name)
+
+		if self.new_name in bpy.data.objects:
+			self.report({'ERROR'}, "That object name is already taken!")
+			return {'CANCELLED'}
+		assert obj, f"Error! Old object {self.old_name} not found or not provided! This should never happen."
+
+		obj.name = self.new_name
+		if obj.name == self.new_name:
+			remove_active_log(metarig)
+		return { 'FINISHED' }
+
+class CLOUDRIG_OT_Delete_Object(bpy.types.Operator):
+	"""Delete an object"""
+
+	bl_idname = "object.cloudrig_delete_object"
+	bl_label = "Delete Object"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	ob_name: StringProperty()
+
+	def execute(self, context):
+		metarig = context.object
+		ob = bpy.data.objects.get(self.ob_name)
+
+		assert ob, f"Error! {self.ob_name} wasn't found! This should never happen."
+
+		bpy.data.objects.remove(ob)
+
+		remove_active_log(metarig)
+		self.report({'INFO'}, f"Successfully deleted {self.ob_name}.")
+		return { 'FINISHED' }
+
 def remove_active_log(metarig):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -491,6 +631,10 @@ classes = [
 	CLOUDRIG_OT_Change_Rotation_Mode,
 	CLOUDRIG_OT_Report_Bug,
 	CLOUDRIG_OT_Rename_Bone,
+	CLOUDRIG_OT_Swap_Bone_Shape,
+
+	CLOUDRIG_OT_Rename_Object,
+	CLOUDRIG_OT_Delete_Object
 ]
 
 def register():

@@ -94,6 +94,9 @@ class CloudCopyRig(CloudBaseRig):
 			self.add_log_bug("Bone not found in MetaRig", trouble_bone=bi.name)
 			return
 
+		if meta_bone.custom_shape:
+			self.add_to_widget_collection(meta_bone.custom_shape)
+
 		if bi.rotation_mode == 'QUATERNION':
 			self.add_log("Quaternion rotation"
 				,trouble_bone = self.base_bone

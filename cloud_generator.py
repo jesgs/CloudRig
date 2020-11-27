@@ -443,6 +443,14 @@ class CloudGenerator(Generator):
 			)
 		return wgt
 
+	def add_to_widget_collection(self, widget_ob):
+		if not self.wgt_collection:
+			return
+		if widget_ob.name not in self.wgt_collection.objects:
+			self.wgt_collection.objects.link(widget_ob)
+		if widget_ob.name in bpy.context.scene.collection.objects:
+			bpy.context.scene.collection.objects.unlink(widget_ob)
+
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
 			if hasattr(rig, "bone_sets"):
@@ -619,7 +627,7 @@ class CloudGenerator(Generator):
 		
 		return test_action
 
-	def save_parenting_info(self):
+	def save_parenting_info(self) -> dict:
 		obj = self.obj
 
 		# Get parented objects to restore later
@@ -1012,7 +1020,7 @@ class CloudGenerator(Generator):
 					action = self.ensure_test_action()
 					self.create_test_animation(action)
 					break
-		
+
 		# Cheap troubleshooting
 		for b in obj.pose.bones:
 			for c in b.constraints:
@@ -1025,6 +1033,10 @@ class CloudGenerator(Generator):
 						c.rest_length = 0
 		self.logger.report_unused_named_layers()
 		self.logger.report_invalid_drivers()
+		self.logger.report_widgets(self.wgt_collection)
+
+		# Only leave Force Widget Update enabled until a successful generation.
+		self.metarig.data.rigify_force_widget_update = False
 
 		t.tick("The rest: ")
 

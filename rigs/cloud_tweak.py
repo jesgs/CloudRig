@@ -62,6 +62,8 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
 			tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
 			tweak_bone.show_wire = org_bi.show_wire
+			if org_bi.custom_shape:
+				self.add_to_widget_collection(org_bi.custom_shape)
 
 		if self.params.CR_tweak_group:
 			# TODO: This code overlaps a lot with cloud_bone, maybe it could be shared somehow?
