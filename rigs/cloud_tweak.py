@@ -27,24 +27,8 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.bbone_x = org_bi.bbone_x
 			tweak_bone.bbone_z = org_bi.bbone_z
 
-		# Transfer and relink constraints and their drivers
-		if not self.params.CR_tweak_constraints_additive:
-			tweak_bone.clear_constraints()
-		for c in org_bi.constraint_infos:
-			tweak_bone.constraint_infos.append(c)
-			c.relink()
-			# Relink constraint drivers
-			for d in c.drivers:
-				self.relink_driver(d)
-			org_bi.constraint_infos.remove(c)
-			for d in c.drivers:
-				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
-
 		# Transfer and relink bone drivers
-		for d in org_bi.drivers[:]:
-			tweak_bone.drivers.append(d)
-			org_bi.drivers.remove(d)
-			self.relink_driver(d)
+		self.transfer_relink_drivers(org_bi, tweak_bone)
 
 		if self.params.CR_tweak_locks:
 			tweak_bone.lock_location = org_bi.lock_location[:]
@@ -111,6 +95,23 @@ class CloudTweakRig(CloudBaseRig):
 
 		# # Parenting
 		# bendy_parenting(tweak_bone, self.params.CR_base_parent)
+
+	def relink(self):
+		# Transfer and relink constraints and their drivers
+		if not self.params.CR_tweak_constraints_additive:
+			self.tweak_bone.clear_constraints()
+		for c in self.org_chain[0].constraint_infos:
+			self.tweak_bone.constraint_infos.append(c)
+			c.relink()
+			# Relink constraint drivers
+			for d in c.drivers:
+				self.relink_driver(d)
+			self.org_chain[0].constraint_infos.remove(c)
+
+			# Remove actual bpy drivers, as their re-linked version will be created later by the generator.
+			for d in c.drivers:
+				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
+
 
 	def apply_custom_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""

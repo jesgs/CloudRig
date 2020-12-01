@@ -264,14 +264,27 @@ class CloudMechanismMixin:
 		return vector_along_bone_chain(chain, length, index)
 
 	def relink_driver(self, driver_info):
+		"""Adjust drivers read from the metarig according to some conventions:
+
+		An empty target object or the metarig as the target object will be replaced with the generated rig.
+		Variable names with @ in them will be split by the @, and the part after the @ will be the target bone name.
+		"""
 		for var_info in driver_info['variables']:
+			if type(var_info)==tuple: break
 			if '@' in var_info['name']:
 				splits = var_info['name'].split("@")
 				var_info['name'] = splits[0]
 				for i, t in enumerate(var_info['targets']):
 					var_info['targets'][i]['bone_target'] = splits[i+1]
-					if t['id']==None or t['id']==self.generator.metarig:
+					if t['id'] == None or t['id'] == self.generator.metarig:
 						t['id'] = self.obj
+	
+	def transfer_relink_drivers(self, from_thing, to_thing):
+		# Transfer and relink bone drivers
+		for d in from_thing.drivers[:]:
+			to_thing.drivers.append(d)
+			from_thing.drivers.remove(d)
+			self.relink_driver(d)
 
 	def bendy_parenting(self, bone, parent_name):
 		if parent_name=="": return

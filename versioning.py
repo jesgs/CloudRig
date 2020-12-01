@@ -195,6 +195,7 @@ def version_cloud_metarig(metarig):
 		# Move various parameters and functionality to cloud_base.
 		dictionary = {
 			'CR_copy_parent' : 'CR_base_parent',
+			'CR_face_chain_relink' : 'CR_base_relink'
 		}
 		rename_parameters(metarig, dictionary)
 		# CR_fk_chain_def_parenting turns from a checkbox to a string input, tricky.

@@ -147,6 +147,8 @@ class CloudBaseRig(
 		self.create_bone_infos()
 		if self.params.CR_base_parent!="":
 			self.apply_custom_parent()
+		if self.params.CR_base_relink:
+			self.relink()
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
@@ -157,6 +159,18 @@ class CloudBaseRig(
 		if parent_name=="":
 			parent_name = self.params.CR_base_parent
 		self.bendy_parenting(bone, parent_name)
+
+	def relink(self):
+		bi = self.org_chain[0]
+		# Relink bone drivers
+		for d in bi.drivers:
+			self.relink_driver(d)
+
+		for c in bi.constraint_infos:
+			c.relink()
+			# Relink constraint drivers
+			for d in c.drivers:
+				self.relink_driver(d)
 
 	def reparent_bone(self, child: BoneInfo):
 		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
@@ -240,9 +254,9 @@ class CloudBaseRig(
 			name = "Parent Switching"
 			,description = "Use parent switching mechanism for the root of this rig"
 		)
-		params.CR_base_relink_constraints = BoolProperty(
+		params.CR_base_relink = BoolProperty(
 			name		 = "Relink Constraints"
-			,description = "Constraints on this rig will be relinked to the corresponding primary controls that are created for them. This can be different for each rig type. For more info, right click and Open Manual"
+			,description = "Constraints and drivers on this rig will be relinked to the corresponding primary controls that are created for each bone. This can be different for each rig type. For more info, right click and Open Manual"
 			,default	 = True
 		)
 		params.CR_base_parent = StringProperty(
@@ -280,7 +294,7 @@ class CloudBaseRig(
 		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
 
 		cls.draw_prop(layout, params, "CR_base_parent_switching")
-		cls.draw_prop(layout, params, "CR_base_relink_constraints")
+		cls.draw_prop(layout, params, "CR_base_relink")
 
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig

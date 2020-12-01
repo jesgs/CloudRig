@@ -41,10 +41,6 @@ class CloudFaceChainRig(CloudChainRig):
 		all_str_bones = self.group_str_bones(self.chain_rigs)
 		all_intersection_bones = self.ensure_intersection_controls(all_str_bones)
 
-		for rig in self.chain_rigs:
-			if rig.params.CR_face_chain_relink:
-				rig.move_and_relink_constraints()
-
 		self.create_armature_parents(all_intersection_bones)
 		self.create_armature_parents(all_str_bones)
 		if not CUSTOM_SPACE:
@@ -56,6 +52,14 @@ class CloudFaceChainRig(CloudChainRig):
 						str_bone.parent = str_bone.merged_control
 					if hasattr(str_bone, 'local_helper'):
 						str_bone.local_helper.parent = str_bone.parent
+
+	def relink(self):
+		"""Overrides cloud_base."""
+		if not self.is_last_chain_rig:
+			return
+
+		for rig in self.chain_rigs:
+			rig.move_and_relink_constraints()
 
 	def move_and_relink_constraints(self):
 		"""Move constraints from ORG bones to main STR bones and relink them.
@@ -293,12 +297,6 @@ class CloudFaceChainRig(CloudChainRig):
 			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
 			,default	 = True
 		)
-		# TODO: Deprecate this for cloud_base CR_base_relink_constraints.
-		params.CR_face_chain_relink = BoolProperty(
-			name		 = "Relink Constraints"
-			,description = "Constraints on this chain will be relinked to the corresponding STR controls that are created for them. For the final bone of the chain, constraints intended for the final control should be prefixed with \"TAIL-\""
-			,default	 = True
-		)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
@@ -308,7 +306,6 @@ class CloudFaceChainRig(CloudChainRig):
 		if not cls.draw_dropdown_menu(layout, params, "CR_face_chain_show_settings"): return layout
 
 		cls.draw_prop(layout, params, "CR_face_chain_merge")
-		cls.draw_prop(layout, params, "CR_face_chain_relink")
 
 		return layout
 
