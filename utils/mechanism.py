@@ -273,6 +273,33 @@ class CloudMechanismMixin:
 					if t['id']==None or t['id']==self.generator.metarig:
 						t['id'] = self.obj
 
+	def bendy_parenting(self, bone, parent_name):
+		if parent_name=="": return
+		parent_bone = self.generator.find_bone_info(parent_name)
+		if not parent_bone:
+			self.add_log(
+				"Parent not found"
+				,trouble_bone = bone.name
+				,description = f"Target parent bone {parent_name} not found. If this bone does actually exist, you should make sure that this cloud_copy/tweak rig is lower in the parenting hierarchy than the rig that generated the target bone."
+			)
+			# Still try string-based parenting, which is not ideal but ohwell.
+			bone.parent = parent_name
+			return
+		else:
+			bone.parent = parent_bone
+			# If parent bone has BBone segments, use Armature constraint for parenting.
+			# In this case, we also want to create a parent helper bone to hold that armature constraint.
+			if parent_bone.bbone_segments > 1:
+				parent_helper = self.create_parent_bone(bone, self.parent_switch_bones)
+				parent_helper.add_constraint('ARMATURE', index=-len(bone.constraint_infos)
+					,use_deform_preserve_volume = True
+					,targets = [
+						{
+							"subtarget" : parent_bone.name
+						}
+					]
+				)
+
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)

@@ -323,6 +323,7 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "Let this rig register candidates for the parent switching mechanisms of its child rigs"
 			,default	 = False
 		)
+		# TODO: deprecate this for cloud_base CR_base_parent_to_def.
 		params.CR_fk_chain_def_parenting = BoolProperty(
 			name		 = "Parent to Deform"
 			,description = "Attempt parenting this rig to the deform layer of its parent"

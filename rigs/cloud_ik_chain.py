@@ -484,10 +484,10 @@ class CloudIKChainRig(CloudFKChainRig):
 			self.setup_ik_pole_parent_switch(ik_parents_prop_name)
 
 	def setup_ik_pole_parent_switch(self, ik_parents_prop_name: str):
-		# Rig the IK Pole control's parent switcher.
+		"""Rig the IK Pole control's parent switcher, with an additional "IK Pole Follows" slider."""
 		self.rig_child(self.pole_ctrl, self.properties_bone, ik_parents_prop_name, force_setup=True)
 
-		# Add option to the UI.
+		# Add IK Pole Follows option to the UI.
 		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
 		info = {
 			"prop_bone" : self.properties_bone,
@@ -507,7 +507,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			"subtarget" : self.ik_mstr.name
 		})
 
-		# Add driver to the new constraint target
+		# Add driver to the new constraint target.
 		target_idx = len(arm_con.targets)-1
 		arm_con.drivers.append({
 			'prop' : f'targets[{target_idx}].weight',
@@ -515,8 +515,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			'variables' : {}	# Variable is created in the for loop below.
 		})
 
-		# Tweak each driver on the IK pole parent
-		# NOTE: These were originally created by calling self.rig_child(self.pole_ctrl...
+		# Tweak each driver on the IK pole parent.
+		# NOTE: These drivers were created by the call to self.rig_child() above.
 		for i, d in enumerate(arm_con.drivers):
 			if i != len(arm_con.drivers)-1:
 				d['expression'] = f"({d['expression']}) - follow"

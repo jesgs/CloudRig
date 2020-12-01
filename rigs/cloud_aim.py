@@ -218,11 +218,13 @@ class CloudAimRig(CloudBaseRig):
 			,description = "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
 			,min		 = 0
 		)
+		# TODO: Do this the same way as cloud_copy instead, ie. use the bone's use_deform property.
 		params.CR_aim_deform = BoolProperty(
 			name		 = "Create Deform"
 			,default	 = False
 			,description = "Create a deform bone for this rig"
 		)
+		# TODO: Move this to cloud_base.
 		params.CR_aim_root = BoolProperty(
 			name		 = "Create Root"
 			,default	 = False

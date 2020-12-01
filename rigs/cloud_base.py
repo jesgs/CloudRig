@@ -7,13 +7,12 @@ from typing import Dict, List
 from rigify.base_rig import BaseRig
 from ..bone import BoneSetMixin
 from ..utils.ui import CloudUIMixin
-from ..utils.naming import CloudNameManager
 from ..utils.mechanism import CloudMechanismMixin
 from ..utils.animation import CloudAnimationMixin
 from ..utils.object import CloudObjectUtilitiesMixin
 
 # The rest
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from enum import Enum
 
@@ -146,6 +145,15 @@ class CloudBaseRig(
 
 	def prepare_bones(self):
 		self.load_org_bone_infos()
+		if self.params.CR_base_parent!="":
+			self.apply_custom_parent()
+	
+	def apply_custom_parent(self, bone=None, parent_name=""):
+		if not bone:
+			bone = self.org_chain[0]
+		if parent_name=="":
+			parent_name = self.params.CR_base_parent
+		self.bendy_parenting(bone, parent_name)
 
 	def reparent_bone(self, child: BoneInfo):
 		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
@@ -220,6 +228,26 @@ class CloudBaseRig(
 	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		
+		params.CR_base_show_settings = BoolProperty(
+			name		 = "Base Settings"
+			,description = "Reveal settings for the cloud_base rig type"
+		)
+		params.CR_base_parent_switching = BoolProperty(
+			name = "Parent Switching"
+			,description = "Use parent switching mechanism for the root of this rig"
+		)
+		params.CR_base_relink_constraints = BoolProperty(
+			name		 = "Relink Constraints"
+			,description = "Constraints on this rig will be relinked to the corresponding primary controls that are created for them. This can be different for each rig type. For more info, right click and Open Manual"
+			,default	 = True
+		)
+		params.CR_base_parent = StringProperty(
+			name		 = "Parent"
+			,description = "If specified, parent this rig to the chosen bone. This bone should be a part of a parent rig"
+			,default	 = ""
+		)
+
 		cls.define_bone_sets(params)
 
 	@classmethod
@@ -240,3 +268,34 @@ class CloudBaseRig(
 		layout = cls.draw_cloud_params(layout, bpy.context, params)
 		layout.separator()
 		cls.draw_bone_sets_params(layout, params)
+
+	@classmethod
+	def draw_cloud_params(cls, layout, context, params):
+		"""Create the ui for the rig parameters."""
+		layout = super().draw_cloud_params(layout, context, params)
+
+		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
+
+		cls.draw_prop(layout, params, "CR_base_parent_switching")
+		cls.draw_prop(layout, params, "CR_base_relink_constraints")
+
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+		if rig:
+			row = layout.row()
+			parent_bone = rig.pose.bones.get(params.CR_base_parent)
+			if params.CR_base_parent!="" and not parent_bone:
+				row.prop_search(params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
+				row.label(text="Bone no longer exists in rig!")
+			else:
+				row.prop_search(params, 'CR_base_parent', rig.pose, 'bones')
+			if parent_bone and parent_bone.bone.bbone_segments > 1:
+				split=layout.row().split(factor=0.4)
+				split.row()
+				split.label(text="Bendy Bone, will use Armature Constraint")
+		else:
+			row = layout.row()
+			row.prop(params, 'CR_base_parent')
+			row.label(text="Generate the rig to pick a custom parent.")
+
+		return layout

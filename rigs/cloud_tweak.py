@@ -1,7 +1,6 @@
 from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
 from ..bone import BoneInfo, BoneSet
-from .cloud_copy import bendy_parenting, add_parent_param, draw_parent_param
 
 class CloudTweakRig(CloudBaseRig):
 	"""Tweak a single bone with the same name as this bone in the generated rig."""
@@ -13,7 +12,7 @@ class CloudTweakRig(CloudBaseRig):
 
 	def prepare_bones(self):
 		super().prepare_bones()
-		tweak_bone = self.generator.find_bone_info(self.orgless_name)
+		self.tweak_bone = tweak_bone = self.generator.find_bone_info(self.orgless_name)
 		meta_bone = self.meta_bone(self.orgless_name)
 		org_bi = self.org_chain[0]
 
@@ -111,7 +110,11 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.bbone_z = org_bi.bbone_z
 
 		# Parenting
-		bendy_parenting(tweak_bone, self.params.CR_copy_parent)
+		bendy_parenting(tweak_bone, self.params.CR_base_parent)
+
+	def apply_custom_parent(self, bone=None, parent_name=""):
+		"""Overrides cloud_base."""
+		super().apply_custom_parent(self.tweak_bone)
 
 	##############################
 	# Parameters
@@ -171,7 +174,6 @@ class CloudTweakRig(CloudBaseRig):
 			,description="Copy B-Bone settings from this bone to the generated bone"
 			,default=False
 		)
-		add_parent_param(params)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
@@ -180,7 +182,6 @@ class CloudTweakRig(CloudBaseRig):
 
 		if not cls.draw_dropdown_menu(layout, params, 'CR_tweak_show_settings'): return layout
 
-		draw_parent_param(layout, context, params)
 		layout.prop(params, "CR_tweak_constraints_additive")
 		layout.prop(params, "CR_tweak_transforms")
 		layout.prop(params, "CR_tweak_locks")

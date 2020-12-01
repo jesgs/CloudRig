@@ -8,7 +8,7 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple, 
 # changing names of parameters, etc.
-cloud_metarig_version = 7
+cloud_metarig_version = 8
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	# Enum properties are a bit tricky because once their definition is lost their string value is lost and is left with an int.
@@ -189,6 +189,13 @@ def version_cloud_metarig(metarig):
 			if pb.rigify_type=='cloud_eye':
 				pb.rigify_type = 'cloud_aim'
 				print(f"{pb.name} rigify_type: cloud_eye -> {pb.rigify_type}")
+	if data.cloudrig_parameters.version < 8:
+		print(8)
+		# Move various parameters and functionality to cloud_base.
+		dictionary = {
+			'CR_copy_parent' : 'CR_base_parent',
+		}
+		rename_parameters(metarig, dictionary)
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]

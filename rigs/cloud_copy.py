@@ -8,54 +8,8 @@ from .cloud_base import CloudBaseRig
 cloud_aim could maybe inherit from this?
 
 Could also move parent switching mechanism and root bone from cloud_aim to here instead.
+Better yet, to cloud_base!
 """
-
-def bendy_parenting(bone, parent_name):
-	if parent_name=="": return
-	generator = bone.bone_set.rig.generator
-	parent_bone = generator.find_bone_info(parent_name)
-	if not parent_bone:
-		bone.bone_set.rig.add_log(
-			"Parent not found"
-			,trouble_bone = bone.name
-			,description = f"Target parent bone {parent_name} not found. If this bone does actually exist, you should make sure that this cloud_copy/tweak rig is lower in the parenting hierarchy than the rig that generated the target bone."
-		)
-		# Still try string-based parenting, which is not ideal but ohwell.
-		bone.parent = parent_name
-		return
-	else:
-		bone.parent = parent_bone
-		# If parent bone has BBone segments, use Armature constraint for parenting.
-		if parent_bone.bbone_segments > 1:
-			bone.add_constraint('ARMATURE', index=-len(bone.constraint_infos)
-				,use_deform_preserve_volume = True
-				,targets = [
-					{
-						"subtarget" : parent_bone.name
-					}
-				]
-			)
-
-def add_parent_param(params):
-	params.CR_copy_parent = StringProperty(
-		name="Parent"
-		,description="When this is not an empty string, set the parent to the bone with this name"
-		,default=""
-	)
-
-def draw_parent_param(layout, context, params):
-	metarig = context.object
-	rig = metarig.data.rigify_target_rig
-	if rig:
-		layout.prop_search(params, 'CR_copy_parent', rig.pose, 'bones')
-		parent_bone = rig.pose.bones.get(params.CR_copy_parent)
-		if parent_bone and parent_bone.bone.bbone_segments > 1:
-			split=layout.row().split(factor=0.4)
-			split.row()
-			split.label(text="Bendy Bone, will use Armature Constraint")
-	else:
-		layout.prop(params, 'CR_copy_parent')
-	return layout
 
 class CloudCopyRig(CloudBaseRig):
 	"""Copy this bone to the generated rig."""
@@ -84,9 +38,6 @@ class CloudCopyRig(CloudBaseRig):
 		if not bi.use_custom_shape_bone_size:
 			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
 
-		# Strip ORG from bone's name (@name.setter takes care of everything)
-		bi.name = self.orgless_name
-
 		meta_bone = self.meta_bone(bi.name)
 		bi.layers = meta_bone.bone.layers[:]
 		bi.use_deform = False
@@ -114,11 +65,12 @@ class CloudCopyRig(CloudBaseRig):
 			def_bone.parent = bi
 
 		# Relink constraints
-		for c in bi.constraint_infos:
-			c.relink()
-			# Relink constraint drivers
-			for d in c.drivers:
-				self.relink_driver(d)
+		if self.params.CR_base_relink_constraints:
+			for c in bi.constraint_infos:
+				c.relink()
+				# Relink constraint drivers
+				for d in c.drivers:
+					self.relink_driver(d)
 
 		# Relink bone drivers
 		for d in bi.drivers:
@@ -141,8 +93,13 @@ class CloudCopyRig(CloudBaseRig):
 			self.generator.bone_sets.append(new_set)
 			bi.bone_group = bg_name
 
-		# Parenting
-		bendy_parenting(bi, self.params.CR_copy_parent)
+	def load_org_bone_infos(self):
+		"""Overrides cloud_base."""
+		# TODO: This kind of function hijacking is very ugly. Could add a proper callback function, but I'm not a fan of those either.
+		super().load_org_bone_infos()
+		bi = self.org_chain[0]
+		# Strip ORG from bone's name (@name.setter takes care of everything)
+		bi.name = self.orgless_name
 
 	##############################
 	# Parameters
@@ -161,7 +118,6 @@ class CloudCopyRig(CloudBaseRig):
 			name		 = "Copy Settings"
 			,description = "Reveal settings for the cloud_copy rig type"
 		)
-		add_parent_param(params)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
@@ -172,7 +128,6 @@ class CloudCopyRig(CloudBaseRig):
 
 		pb = bpy.context.active_pose_bone
 
-		draw_parent_param(layout, context, params)
 		layout.prop(pb.bone, 'use_deform', text="Create Deform Bone")
 
 		return layout

@@ -293,6 +293,7 @@ class CloudFaceChainRig(CloudChainRig):
 			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
 			,default	 = True
 		)
+		# TODO: Deprecate this for cloud_base CR_base_relink_constraints.
 		params.CR_face_chain_relink = BoolProperty(
 			name		 = "Relink Constraints"
 			,description = "Constraints on this chain will be relinked to the corresponding STR controls that are created for them. For the final bone of the chain, constraints intended for the final control should be prefixed with \"TAIL-\""
