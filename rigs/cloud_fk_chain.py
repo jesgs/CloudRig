@@ -39,8 +39,8 @@ class CloudFKChainRig(CloudChainRig):
 		self.fk_extras = self.ensure_bone_set("FK Controls Extra")
 		self.fk_mch = self.ensure_bone_set("FK Helpers")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		if self.params.CR_fk_chain_root:
 			# This has to come before make_fk_chain() so inheriting rig classes 
 			# that override make_fk_chain() can expect root bone to already exist.
@@ -51,18 +51,18 @@ class CloudFKChainRig(CloudChainRig):
 		if not hasattr(self, 'limb_root_bone'):
 			self.limb_root_bone = self.fk_chain[0]
 
-		if self.params.CR_fk_chain_def_parenting and \
-			self.rigify_parent and hasattr(self.rigify_parent, 'reparent_bone'
-			):
-			self.rigify_parent.reparent_bone(self.limb_root_bone)
-		else:
-			self.limb_root_bone.parent = self.org_chain[0].parent
+		# Default root parenting
+		self.limb_root_bone.parent = self.org_chain[0].parent
 
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
 
 		self.register_parents()
+
+	def apply_custom_parent(self, bone=None, parent_name=""):
+		"""Overrides cloud_base."""
+		super().apply_custom_parent(self.limb_root_bone)
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
@@ -323,12 +323,6 @@ class CloudFKChainRig(CloudChainRig):
 			,description = "Let this rig register candidates for the parent switching mechanisms of its child rigs"
 			,default	 = False
 		)
-		# TODO: deprecate this for cloud_base CR_base_parent_to_def.
-		params.CR_fk_chain_def_parenting = BoolProperty(
-			name		 = "Parent to Deform"
-			,description = "Attempt parenting this rig to the deform layer of its parent"
-			,default	 = False
-		)
 
 		params.CR_fk_chain_use_limb_name = BoolProperty(
 			 name		 = "Custom Limb Name"
@@ -408,7 +402,6 @@ class CloudFKChainRig(CloudChainRig):
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
 		cls.draw_hinge_param(layout, params)
 		cls.draw_prop(layout, params, 'CR_fk_chain_parent_candidates')
-		cls.draw_prop(layout, params, 'CR_fk_chain_def_parenting')
 
 		if context.object.data.cloudrig_parameters.generate_test_action:
 			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')

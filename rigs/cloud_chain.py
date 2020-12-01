@@ -34,8 +34,8 @@ class CloudChainRig(CloudBaseRig):
 			self.def_ctr = self.ensure_bone_set("Deform Controls")
 			self.def_mch = self.ensure_bone_set("Deform Helpers")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
 		self.cyclic = (self.org_chain[-1].tail - self.org_chain[0].head).length < 0.001
 

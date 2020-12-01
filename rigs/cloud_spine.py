@@ -46,8 +46,8 @@ class CloudSpineRig(CloudFKChainRig):
 		self.spine_ik_secondary	= self.ensure_bone_set("Spine IK Secondary")
 		self.spine_mch			= self.ensure_bone_set("Spine Mechanism")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
 		if self.params.CR_spine_use_ik:
 			self.make_ik_spine()

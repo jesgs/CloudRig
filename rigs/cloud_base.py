@@ -144,10 +144,13 @@ class CloudBaseRig(
 		self.def_chain = self.ensure_bone_set("Deform Bones")
 
 	def prepare_bones(self):
-		self.load_org_bone_infos()
+		self.create_bone_infos()
 		if self.params.CR_base_parent!="":
 			self.apply_custom_parent()
-	
+
+	def create_bone_infos(self):
+		self.load_org_bone_infos()
+
 	def apply_custom_parent(self, bone=None, parent_name=""):
 		if not bone:
 			bone = self.org_chain[0]

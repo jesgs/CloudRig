@@ -109,8 +109,8 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.bbone_x = org_bi.bbone_x
 			tweak_bone.bbone_z = org_bi.bbone_z
 
-		# Parenting
-		bendy_parenting(tweak_bone, self.params.CR_base_parent)
+		# # Parenting
+		# bendy_parenting(tweak_bone, self.params.CR_base_parent)
 
 	def apply_custom_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""

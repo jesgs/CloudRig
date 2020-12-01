@@ -41,6 +41,7 @@ def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of 
 	CloudRig as well as possible. They will still need some manual cleanup!!!"""
 	data = metarig.data
+	target_rig = data.rigify_target_rig
 
 	# Beginning of metarig versioning: 2020-07-22.
 	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig_parameters.version} -> {cloud_metarig_version}")
@@ -196,6 +197,15 @@ def version_cloud_metarig(metarig):
 			'CR_copy_parent' : 'CR_base_parent',
 		}
 		rename_parameters(metarig, dictionary)
+		# CR_fk_chain_def_parenting turns from a checkbox to a string input, tricky.
+		if target_rig:
+			for pb in metarig.pose.bones:
+				if 'CR_fk_chain_def_parenting' in pb.rigify_parameters and pb.rigify_parameters['CR_fk_chain_def_parenting']:
+					org_bone = target_rig.data.bones.get("ORG-"+pb.name)
+					parent = org_bone.parent
+					def_name = parent.name.replace("ORG", "DEF")
+					pb.rigify_parameters['CR_base_parent'] = def_name
+					print(f"Convert param {pb.name}: CR_fk_chain_def_parenting -> CR_base_parent ({def_name})")
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
