@@ -10,8 +10,8 @@ class CloudTweakRig(CloudBaseRig):
 
 		self.orgless_name = self.base_bone.replace("ORG-", "")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		self.tweak_bone = tweak_bone = self.generator.find_bone_info(self.orgless_name)
 		meta_bone = self.meta_bone(self.orgless_name)
 		org_bi = self.org_chain[0]

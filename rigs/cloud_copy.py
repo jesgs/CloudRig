@@ -32,9 +32,13 @@ class CloudCopyRig(CloudBaseRig):
 		"""Overrides CloudMechanismMixin."""
 		return None
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		bi = self.org_chain[0]
+
+		# Strip ORG from bone's name (@name.setter takes care of everything)
+		bi.name = self.orgless_name
+
 		if not bi.use_custom_shape_bone_size:
 			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
 
@@ -92,14 +96,6 @@ class CloudCopyRig(CloudBaseRig):
 			)
 			self.generator.bone_sets.append(new_set)
 			bi.bone_group = bg_name
-
-	def load_org_bone_infos(self):
-		"""Overrides cloud_base."""
-		# TODO: This kind of function hijacking is very ugly. Could add a proper callback function, but I'm not a fan of those either.
-		super().load_org_bone_infos()
-		bi = self.org_chain[0]
-		# Strip ORG from bone's name (@name.setter takes care of everything)
-		bi.name = self.orgless_name
 
 	##############################
 	# Parameters

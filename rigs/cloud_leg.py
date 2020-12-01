@@ -42,8 +42,8 @@ class CloudLegRig(CloudLimbRig):
 		if self.params.CR_fk_chain_use_category_name:
 			self.category = self.params.CR_fk_chain_category_name
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		self.tweak_org_foot()
 
 		# Tweak foot bone's first DEF bone

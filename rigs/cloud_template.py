@@ -11,8 +11,8 @@ class CloudTemplateRig(CloudBaseRig):
 		super().ensure_bone_sets()
 		self.template_set = self.ensure_bone_set("Template Bones")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		if self.params.CR_template_use_control:
 			self.make_ctr_bone(self.org_chain[0])
 

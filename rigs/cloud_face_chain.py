@@ -30,8 +30,8 @@ class CloudFaceChainRig(CloudChainRig):
 		self.merged_controls = self.ensure_bone_set("Merged Controls")
 		self.face_mch = self.ensure_bone_set("Face Helpers")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
 		# This is all code that needs to create or interact with intersection controls.

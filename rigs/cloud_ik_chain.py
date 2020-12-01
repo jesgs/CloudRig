@@ -45,8 +45,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.ik_ctrls_secondary = self.ensure_bone_set("IK Extra Controls")
 		self.ik_mch = self.ensure_bone_set("IK Mechanism")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		if self.params.CR_ik_chain_world_aligned:
 			self.world_align_last_fk()
 		self.make_ik_setup()

@@ -29,8 +29,8 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		super().ensure_bone_sets()
 		self.physics_chain = self.ensure_bone_set("Physics Bones")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
 		phys_ob = self.ensure_cloth_object(self.fk_chain)
 		if self.params.CR_physics_chain_make_ctrl:

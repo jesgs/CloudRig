@@ -51,8 +51,8 @@ class CloudLimbRig(CloudIKChainRig):
 		super().ensure_bone_sets()
 		self.ik_double_ctrls = self.ensure_bone_set("IK Child Controls")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		self.tweak_str_limb()
 		segments = self.params.CR_chain_segments
 		if self.params.CR_limb_auto_hose and segments > 1:

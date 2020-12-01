@@ -28,8 +28,8 @@ class CloudCurveRig(CloudBaseRig):
 			self.raise_error("Curve target must be a curve!")
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		self.make_curve_controls()
 
 	def make_curve_controls(self):

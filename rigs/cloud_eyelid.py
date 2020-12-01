@@ -14,8 +14,8 @@ class CloudEyelidRig(CloudFaceChainRig):
 		super().ensure_bone_sets()
 		self.eyelid_mch = self.ensure_bone_set('Eyelid Mechanism')
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
 		self.org_chain[0].parent = self.rigify_parent.org_chain[0].parent
 

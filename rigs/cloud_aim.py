@@ -21,8 +21,8 @@ class CloudAimRig(CloudBaseRig):
 		if self.params.CR_aim_deform:
 			self.aim_def = self.ensure_bone_set("Aim Deform")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
 		aim_org = self.org_chain[0]
 

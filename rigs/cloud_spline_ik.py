@@ -37,8 +37,8 @@ class CloudSplineIKRig(CloudCurveRig):
 		super().ensure_bone_sets()
 		self.def_chain = self.ensure_bone_set("Curve Deform Bones")
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 		self.make_curve_root_ctrl()
 		self.create_curve()
 		self.make_ctrls_for_curve_points()
@@ -47,13 +47,14 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def make_curve_controls(self):
 		""" Overrides.
-			This rig's create_curve() relies on CloudBaseRig.prepare_bones() 
-			having already run. But if we simply call super().prepare_bones(), 
+			This rig's create_curve() relies on CloudBaseRig.create_bone_infos() 
+			having already run. But if we simply call super().create_bone_infos(), 
 			it will run make_ctrls_for_curve_points(), which, for this class, 
 			relies on create_curve() running beforehand.
 			So, we override this with nothing, and we put the calls in the
-			correct order in our own prepare_bones().
+			correct order in our own create_bone_infos().
 		"""
+		# TODO: This could perhaps be better done with a callback of some kind.
 		pass
 
 	def create_curve(self):
