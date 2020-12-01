@@ -1,6 +1,7 @@
 import bpy, os
 import traceback
 from typing import List
+from datetime import datetime
 
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
@@ -1021,7 +1022,12 @@ class CloudGenerator(Generator):
 					self.create_test_animation(action)
 					break
 
-		# Cheap troubleshooting
+		# Troubleshooting
+		today = datetime.today()
+		now = datetime.now()
+		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
+		obj.data['generation_time'] = f"{now.hour}:{now.minute}:{now.second}"
+
 		for b in obj.pose.bones:
 			for c in b.constraints:
 				if c.type=='STRETCH_TO':

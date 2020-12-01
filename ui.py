@@ -156,10 +156,6 @@ def draw_cloudrig_generator_settings(self, context):
 
 	layout.prop(obj.data, 'rigify_force_widget_update')
 
-	version_row = layout.row()
-	version_row.prop(cloudrig, 'version')
-	version_row.enabled = False
-
 def draw_cloud_bone_group_options(self, context):
 	""" Hijack Rigify's Bone Group panel and replace it with our own. """
 	obj = context.object
