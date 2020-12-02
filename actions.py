@@ -5,7 +5,8 @@ from .utils.ui import is_cloud_metarig
 
 # This whole thing could be part of Rigify.
 
-# TODO: UI doesn't currently communicate that an action should only be used by a singular CloudRigActionSlot.
+# TODO: UI doesn't currently communicate that an action should only be used by a singular ActionSlot.
+# Although, does it have to be? I guess not...
 
 def find_slot_by_action(rig, action):
 	"""Find the CloudRigActionSlot in the rig which targets this action."""

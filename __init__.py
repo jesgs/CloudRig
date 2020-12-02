@@ -9,6 +9,7 @@ from . import operators
 from . import overlay
 from . import gizmo
 from . import troubleshooting
+from . import parent_switching
 
 rigify_info = {
 	'name': "CloudRig",
@@ -29,6 +30,7 @@ modules = [
 	manual,
 	operators,
 	overlay,
+	parent_switching,
 	# gizmo,
 ]
 

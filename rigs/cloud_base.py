@@ -15,6 +15,7 @@ from ..utils.object import CloudObjectUtilitiesMixin
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from enum import Enum
+from ..parent_switching import draw_cloudrig_parents
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0
@@ -293,23 +294,26 @@ class CloudBaseRig(
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
 
-		cls.draw_prop(layout, params, "CR_base_parent_switching")
 		cls.draw_prop(layout, params, "CR_base_relink")
 
+		cls.draw_prop(layout, params, "CR_base_parent_switching")
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
 		if rig:
-			row = layout.row()
-			parent_bone = rig.pose.bones.get(params.CR_base_parent)
-			if params.CR_base_parent!="" and not parent_bone:
-				row.prop_search(params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
-				row.label(text="Bone no longer exists in rig!")
+			if params.CR_base_parent_switching:
+				draw_cloudrig_parents(layout, context.active_pose_bone.bone)
 			else:
-				row.prop_search(params, 'CR_base_parent', rig.pose, 'bones')
-			if parent_bone and parent_bone.bone.bbone_segments > 1:
-				split=layout.row().split(factor=0.4)
-				split.row()
-				split.label(text="Bendy Bone, will use Armature Constraint")
+				row = layout.row()
+				parent_bone = rig.pose.bones.get(params.CR_base_parent)
+				if params.CR_base_parent!="" and not parent_bone:
+					row.prop_search(params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
+					row.label(text="Bone no longer exists in rig!")
+				else:
+					row.prop_search(params, 'CR_base_parent', rig.pose, 'bones')
+				if parent_bone and parent_bone.bone.bbone_segments > 1:
+					split=layout.row().split(factor=0.4)
+					split.row()
+					split.label(text="Bendy Bone, will use Armature Constraint")
 		else:
 			row = layout.row()
 			row.prop(params, 'CR_base_parent')
