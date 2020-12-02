@@ -275,18 +275,6 @@ class CloudSpineRig(CloudFKChainRig):
 		if self.params.CR_chain_tip_control:
 			self.str_chain[-1].parent = self.fk_chain[-1]
 
-	def register_parents(self):
-		"""Overrides cloud_fk_chain.
-		
-		Register some primary controls as available parents for parent switching."""
-		if not self.params.CR_fk_chain_parent_candidates: return
-		# Hips
-		self.register_parent(self.mstr_hips, "Hips")
-		# Final spine FK.
-		self.register_parent(self.fk_chain[-1], "Chest")
-		# Torso root.
-		self.register_parent(self.limb_root_bone, "Torso")
-
 	##############################
 	# Parameters
 

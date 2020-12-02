@@ -26,28 +26,6 @@ class CloudMechanismMixin:
 	def get_rigify_chain(pose_bone):
 		return get_rigify_chain(pose_bone)
 
-	def register_parent(self, bone, name):
-		if name in self.parent_candidates:
-			self.add_log("Parent registration overwritten"
-				,description = f'Overwrote previously registered parent:\n "{name}": {self.parent_candidates[name]}  -> {bone.name}.\nThis is currently a known limitation and cannot be fixed, please ignore.'
-				,trouble_bone = bone.name
-				,icon='FILE_PARENT'
-			)
-		self.parent_candidates[name] = bone
-
-	def get_parent_candidates(self, candidates: Dict, exclude_self=False): # NOTE: An empty dictionary must be passed in on the initial call!
-		""" Go recursively up the rig element hierarchy. Collect and return a list of the registered parent bones from each rig."""
-
-		if not exclude_self:
-			for parent_name in self.parent_candidates.keys():
-				if parent_name not in candidates:
-					candidates[parent_name] = self.parent_candidates[parent_name]
-
-		if self.rigify_parent and hasattr(self.rigify_parent, "get_parent_candidates"):
-			return self.rigify_parent.get_parent_candidates(candidates, exclude_self=False)
-
-		return candidates
-
 	def reparent_bone(self, child: BoneInfo):
 		"""Child is expected to be a BoneInfo that is parented to one of this rig's ORG bones.
 
@@ -60,80 +38,6 @@ class CloudMechanismMixin:
 
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
-
-	def rig_child(self, child_bone: BoneInfo, prop_bone: BoneInfo, prop_name: str,
-		bone_set=None, force_setup=False
-		) -> List[str]:
-		""" Rig a child with multiple switchable parents, using Armature constraint and drivers.
-		child_bone: The child bone.
-		prop_bone: Bone which stores the property that controls the parent switching.
-		prop_name: Name of said property on the prop_bone.
-		bone_set: BoneSet to create this bone in. If not provided, use "Parent Switch Helpers" from cloud_base.
-		force_setup: Create the parent switching helper bone and constraint even if there is less than 2 parent candidates.
-		Return list of parent names for which a registered parent candidate was found and rigged.
-		"""
-		if self.rigify_parent==None:
-			return []
-		if bone_set==None:
-			bone_set = self.parent_switch_bones
-
-		# Test that at least one of the parents exists.
-		parent_candidates = self.get_parent_candidates({}, exclude_self=True)
-		parent_names = list(parent_candidates.keys())
-		# Root should be first, rest reversed.
-		parent_names = [parent_names[0]] + list(reversed(parent_names[1:]))
-		found_parents = []
-		for pn in parent_names:
-			# The strings in found_parents will be used for UI display, so let's
-			# add the bone name for clarity.
-			pn += f" [{parent_candidates[pn]}]"
-			found_parents.append(pn)
-		
-		if len(found_parents) == 0 and not force_setup:
-			# No parents to be rigged for child_bone.
-			return found_parents
-		if len(found_parents) == 1 and not force_setup:
-			# Only single parent found for parent switching setup, so falling back to regular parenting.
-			child_bone.parent = list(parent_candidates.values())[0]
-			return found_parents
-
-		# Create parent bone for the bone that stores the Armature constraint.
-		# NOTE: Bones with Armature constraints should never be exposed to the animator directly because it breaks snapping functionality!
-		arm_con_bone = self.create_parent_bone(child_bone, bone_set)
-		arm_con_bone.hide_select = self.mch_disable_select
-		arm_con_bone.name = "Parents_" + child_bone.name
-		arm_con_bone.custom_shape = None
-
-		targets = []
-		for pn in parent_names:
-			if pn not in parent_candidates.keys():
-				continue
-			pb = parent_candidates[pn]
-			targets.append({
-				"subtarget" : pb.name
-			})
-
-		# Add armature constraint
-		arm_con = arm_con_bone.add_constraint('ARMATURE',
-			targets = targets
-		)
-
-		# Add weight drivers
-		for i, t in enumerate(arm_con.targets):
-			arm_con.drivers.append({
-				'prop' : f'targets[{i}].weight',
-				'expression' : f'parent=={i}',
-				'variables' : {
-					'parent' : {
-						'type' : 'SINGLE_PROP',
-						'targets' : [{
-							'data_path' : f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
-						}]
-					}
-				}
-			})
-
-		return found_parents
 
 	def create_parent_bone(self, child, bone_set=None):
 		# TODO: This should be consistent with create_dsp_bone(), probably by implementing that function like this.

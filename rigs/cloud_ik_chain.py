@@ -508,7 +508,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		})
 
 		# Tweak each driver on the IK pole parent.
-		# NOTE: These drivers were created by the call to self.rig_child() above.
 		for i, d in enumerate(arm_con_info.drivers):
 			if i != len(arm_con_info.drivers)-1:
 				d['expression'] = f"({d['expression']}) - follow"

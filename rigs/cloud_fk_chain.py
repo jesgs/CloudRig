@@ -58,8 +58,6 @@ class CloudFKChainRig(CloudChainRig):
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
 
-		self.register_parents()
-
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
 		super().apply_custom_root_parent(self.limb_root_bone)
@@ -236,11 +234,6 @@ class CloudFKChainRig(CloudChainRig):
 				,name			= "Copy Transforms FK"
 			)
 
-	def register_parents(self):
-		"""Register first FK control as available parent for parent switching."""
-		if self.params.CR_fk_chain_parent_candidates:
-			self.register_parent(self.fk_chain[0], self.limb_ui_name)
-
 	##############################
 	# Test Action
 
@@ -317,11 +310,6 @@ class CloudFKChainRig(CloudChainRig):
 			name		 = "Hinge Toggle"
 			,description = "Set up a hinge toggle"
 			,default	 = True
-		)
-		params.CR_fk_chain_parent_candidates = BoolProperty(
-			name		 = "Parent Candidates"
-			,description = "Let this rig register candidates for the parent switching mechanisms of its child rigs"
-			,default	 = False
 		)
 
 		params.CR_fk_chain_use_limb_name = BoolProperty(
@@ -401,7 +389,6 @@ class CloudFKChainRig(CloudChainRig):
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
 		cls.draw_hinge_param(layout, params)
-		cls.draw_prop(layout, params, 'CR_fk_chain_parent_candidates')
 
 		if context.object.data.cloudrig_parameters.generate_test_action:
 			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')

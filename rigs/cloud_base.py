@@ -85,7 +85,6 @@ class CloudBaseRig(
 		self.mch_disable_select = not self.generator_params.cloudrig_parameters.mechanism_selectable
 
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
-		self.parent_candidates = {}
 
 		self.scale = self.generator.scale
 
@@ -97,13 +96,10 @@ class CloudBaseRig(
 		parent = self.get_bone(self.base_bone).parent
 		self.bones.parent = parent.name if parent else ""
 
-		# Get a reference to the Root bone from the generator, and register it as a parent candidate.
-		# TODO: It's a bit awkward that every rig registers the root bone as a parent candidate. 
-		# Instead, the root bone could be hardcoded into get_parent_candidates().
+		# Get a reference to the Root bone from the generator.
 		self.root_bone = None
 		if self.generator_params.cloudrig_parameters.create_root:
 			self.root_bone = self.generator.root_bone
-			self.register_parent(self.root_bone, "Root")
 
 		# Clear rig object custom properties.
 		# TODO: Why is this not in the generator code???
