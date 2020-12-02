@@ -146,6 +146,8 @@ class CloudBaseRig(
 
 	def prepare_bones(self):
 		self.create_bone_infos()
+		if self.params.CR_base_parent_switching:
+			self.apply_parent_switching()
 		if self.params.CR_base_parent!="":
 			self.apply_custom_parent()
 		if self.params.CR_base_relink:
@@ -153,6 +155,90 @@ class CloudBaseRig(
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
+
+	def apply_parent_switching(self, child_bone=None, prop_bone=None, prop_name="", ui_area="misc_settings", row_name="", col_name=""):
+		"""Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
+		if not child_bone:
+			child_bone = self.org_chain[0]
+		if not prop_bone:
+			prop_bone = child_bone
+		if prop_name=="":
+			prop_name="parents_"+child_bone.name
+		if row_name=="":
+			row_name = child_bone.name.split(".")[0]
+		if col_name=="":
+			col_name = child_bone.name
+
+		# Create parent bone that will hold the Armature constraint.
+		arm_con_bone = self.create_parent_bone(child_bone, self.parent_switch_bones)
+		arm_con_bone.hide_select = self.mch_disable_select
+		arm_con_bone.name = "Parents_" + child_bone.name
+		arm_con_bone.custom_shape = None
+
+		# Gather parent information and check for issues.
+		parent_slots = self.meta_base_bone.bone.parent_slots
+		parent_names = ["Root"]
+		targets = [{'subtarget' : "root"}]	# TODO: only if Create Root is enabled.
+		for i, ps in enumerate(parent_slots):
+			if ps.bone=="":
+				self.add_log(
+					"Parent not found"
+					,trouble_bone = child_bone.name
+					,description=f"Parent slot #{i}: {ps.bone} not specified, skipping."
+				)
+				continue
+			if ps.name=="":
+				self.add_log(
+					"Nameless parent"
+					,trouble_bone = child_bone.name
+					,description = f"Parent slot #{i}: {ps.bone} has no UI name, falling back to the bone's name."
+				)
+				parent_names.append(ps.bone)
+			else:
+				parent_names.append(ps.name)
+			targets.append({
+				'subtarget' : ps.bone
+			})
+		if len(parent_names)==1:
+			self.add_log("No parents found"
+				,trouble_bone = child_bone.name
+				,description = f"No parents specified for parent switching setup, skipping completely."
+			)
+			return
+
+		# Create custom property
+		info = {
+			"prop_bone" : prop_bone,
+			"prop_id" : prop_name,
+			"texts" : parent_names,
+
+			"operator" : "pose.cloudrig_switch_parent_bake",
+			"icon" : "COLLAPSEMENU",
+			"parent_names" : parent_names,
+			"bones" : [child_bone.name],
+			}
+		self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_names)-1)
+
+		# Add armature constraint
+		arm_con = arm_con_bone.add_constraint('ARMATURE',
+			targets = targets
+		)
+
+		# Add weight drivers
+		for i, t in enumerate(arm_con.targets):
+			arm_con.drivers.append({
+				'prop' : f'targets[{i}].weight',
+				'expression' : f'parent=={i}',
+				'variables' : {
+					'parent' : {
+						'type' : 'SINGLE_PROP',
+						'targets' : [{
+							'data_path' : f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
+						}]
+					}
+				}
+			})
+
 
 	def apply_custom_parent(self, bone=None, parent_name=""):
 		if not bone:

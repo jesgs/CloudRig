@@ -304,6 +304,7 @@ class CloudMechanismMixin:
 			# In this case, we also want to create a parent helper bone to hold that armature constraint.
 			if parent_bone.bbone_segments > 1:
 				parent_helper = self.create_parent_bone(bone, self.parent_switch_bones)
+				parent_helper.custom_shape = None
 				parent_helper.add_constraint('ARMATURE', index=-len(bone.constraint_infos)
 					,use_deform_preserve_volume = True
 					,targets = [
