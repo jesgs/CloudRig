@@ -113,9 +113,9 @@ class CloudTweakRig(CloudBaseRig):
 				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
 
 
-	def apply_custom_parent(self, bone=None, parent_name=""):
+	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
-		super().apply_custom_parent(self.tweak_bone)
+		super().apply_custom_root_parent(self.tweak_bone)
 
 	##############################
 	# Parameters

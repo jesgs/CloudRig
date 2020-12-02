@@ -110,13 +110,17 @@ class CloudLimbRig(CloudIKChainRig):
 		elbow_knee = self.org_chain[1].fk_bone
 		elbow_knee.lock_rotation[1] = elbow_knee.lock_rotation[2] = self.params.CR_limb_lock_yz
 
-	def setup_ik_parent_switches(self, ik_ctrl: BoneInfo=None):
-		"""Override."""
-		ik_ctrl = self.ik_mstr
-		if self.params.CR_limb_double_ik:
-			ik_ctrl = ik_ctrl.parent
+	def apply_parent_switching(self, 
+			child_bone=None, 
+			prop_bone=None, prop_name="", 
+			ui_area="misc_settings", row_name="", col_name=""
+		):
+		"""Overrides cloud_base."""
 
-		super().setup_ik_parent_switches(ik_ctrl)
+		if self.params.CR_limb_double_ik:
+			child_bone = self.ik_mstr.parent
+
+		super().apply_parent_switching(child_bone=child_bone)
 
 	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Override."""

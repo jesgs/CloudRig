@@ -60,9 +60,9 @@ class CloudFKChainRig(CloudChainRig):
 
 		self.register_parents()
 
-	def apply_custom_parent(self, bone=None, parent_name=""):
+	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
-		super().apply_custom_parent(self.limb_root_bone)
+		super().apply_custom_root_parent(self.limb_root_bone)
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.

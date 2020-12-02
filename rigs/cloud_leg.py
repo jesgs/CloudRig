@@ -146,10 +146,6 @@ class CloudLegRig(CloudLimbRig):
 		"""Override. Make SECOND TO last FK bone world-aligned."""
 		self.make_world_aligned_control(self.org_chain[-2].fk_bone)
 
-	def setup_ik_parent_switches(self, ik_ctrl: BoneInfo=None):
-		"""Override. Remove Chest, add Hips as a parent candidate."""
-		super().setup_ik_parent_switches(ik_ctrl)
-
 	##############################
 	# End of overrides
 

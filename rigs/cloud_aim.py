@@ -28,10 +28,10 @@ class CloudAimRig(CloudBaseRig):
 
 		if self.params.CR_aim_root:
 			self.aim_root = self.make_aim_root(aim_org) # TODO: This might as well be a call to self.make_parent_control(), no?
-		group_master = self.ensure_group_master()
-		ctr_bone = self.make_aim_control(aim_org)
-		target_bone = self.make_target_control(ctr_bone, group_master)
-		aim_bone = self.make_aim_helper(ctr_bone, target_bone)
+		self.group_master = self.ensure_group_master()
+		self.ctr_bone = self.make_aim_control(aim_org)
+		target_bone = self.make_target_control(self.ctr_bone, self.group_master)
+		aim_bone = self.make_aim_helper(self.ctr_bone, target_bone)
 		if self.params.CR_aim_deform:
 			self.make_def_bone(aim_org, self.aim_def)
 
@@ -167,25 +167,25 @@ class CloudAimRig(CloudBaseRig):
 		group_master.custom_shape = group_widget
 		group_master.custom_shape_scale = 1/self.scale
 
-		# Parent switching
-		aim_group_parents_prop_name = "aim_group_parents_" + group_name.lower()
-		parent_names = self.rig_child(group_master, self.properties_bone, aim_group_parents_prop_name)
-		if len(parent_names) > 1:
-			info = {
-				"prop_bone" : self.properties_bone,
-				"prop_id" : aim_group_parents_prop_name,
-				"texts" : parent_names,
-
-				"operator" : "pose.cloudrig_switch_parent_bake",
-				"icon" : "COLLAPSEMENU",
-				"parent_names" : parent_names,
-				"bones" : [group_master.name],
-				}
-			self.add_ui_data("face_settings", group_name, group_name, info, default=0, max=len(parent_names)-1)
-		else:
-			group_master.parent = self.org_chain[0].parent
-
 		return group_master
+
+	def apply_parent_switching(self, 
+			child_bone=None, 
+			prop_bone=None, prop_name="", 
+			ui_area="misc_settings", row_name="", col_name=""
+		):
+		"""Overrides cloud_base."""
+		# Ensure parent switching for the group master
+		if len(self.group_master.constraint_infos) > 1:
+			# If the armature constraint was already added to the group master, skip.
+			# TODO: This is a bit ugly. It's one of those cases where a bone is shared across multiple rigs, so how do we chose which rig to pull input from?
+			# This will pull the parenting data from the first rig that has any, and any subsequent ones will be ignored, which is awkward and unintuitive.
+			return
+		super().apply_parent_switching(
+			child_bone = self.group_master
+			,prop_bone = self.ctr_bone
+			,ui_area = 'face_settings'
+		)
 
 	##############################
 	# Parameters

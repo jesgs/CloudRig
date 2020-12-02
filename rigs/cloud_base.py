@@ -149,14 +149,18 @@ class CloudBaseRig(
 		if self.params.CR_base_parent_switching:
 			self.apply_parent_switching()
 		if self.params.CR_base_parent!="":
-			self.apply_custom_parent()
+			self.apply_custom_root_parent()
 		if self.params.CR_base_relink:
 			self.relink()
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
 
-	def apply_parent_switching(self, child_bone=None, prop_bone=None, prop_name="", ui_area="misc_settings", row_name="", col_name=""):
+	def apply_parent_switching(self, 
+			child_bone=None, 
+			prop_bone=None, prop_name="", 
+			ui_area="misc_settings", row_name="", col_name=""
+		):
 		"""Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
 		if not child_bone:
 			child_bone = self.org_chain[0]
@@ -175,36 +179,8 @@ class CloudBaseRig(
 		arm_con_bone.name = "Parents_" + child_bone.name
 		arm_con_bone.custom_shape = None
 
-		# Gather parent information and check for issues.
-		parent_slots = self.meta_base_bone.bone.parent_slots
-		parent_names = ["Root"]
-		targets = [{'subtarget' : "root"}]	# TODO: only if Create Root is enabled.
-		for i, ps in enumerate(parent_slots):
-			if ps.bone=="":
-				self.add_log(
-					"Parent not found"
-					,trouble_bone = child_bone.name
-					,description=f"Parent slot #{i}: {ps.bone} not specified, skipping."
-				)
-				continue
-			if ps.name=="":
-				self.add_log(
-					"Nameless parent"
-					,trouble_bone = child_bone.name
-					,description = f"Parent slot #{i}: {ps.bone} has no UI name, falling back to the bone's name."
-				)
-				parent_names.append(ps.bone)
-			else:
-				parent_names.append(ps.name)
-			targets.append({
-				'subtarget' : ps.bone
-			})
-		if len(parent_names)==1:
-			self.add_log("No parents found"
-				,trouble_bone = child_bone.name
-				,description = f"No parents specified for parent switching setup, skipping completely."
-			)
-			return
+		parent_names, parent_bones = self.collect_parents()
+		targets = [{'subtarget' : bone_name} for bone_name in parent_bones]
 
 		# Create custom property
 		info = {
@@ -239,8 +215,44 @@ class CloudBaseRig(
 				}
 			})
 
+	def collect_parents(self) -> (List[str], List[str]):
+		"""Gather parent information and check for issues.
+		
+		Returns two lists of equal length, first one is the UI name second is the bone name of each parent.
+		"""
 
-	def apply_custom_parent(self, bone=None, parent_name=""):
+		parent_bones = []
+		parent_names = []
+		if self.generator_params.cloudrig_parameters.create_root:
+			parent_names.append("Root")
+			parent_bones.append('root')
+
+		parent_slots = self.meta_base_bone.bone.parent_slots
+		for i, ps in enumerate(parent_slots):
+			if ps.bone=="":
+				self.add_log(
+					"Parent not found"
+					,description=f"Parent slot #{i}: {ps.bone} not specified, skipping."
+				)
+				continue
+			if ps.name=="":
+				self.add_log(
+					"Nameless parent"
+					,description = f"Parent slot #{i}: {ps.bone} has no UI name, falling back to the bone's name."
+				)
+				parent_names.append(ps.bone)
+			else:
+				parent_names.append(ps.name)
+			parent_bones.append(ps.bone)
+		if len(parent_names)==1:
+			self.add_log("No parents found"
+				,description = f"No parents specified for parent switching setup, skipping completely."
+			)
+			return [], []
+		
+		return parent_names, parent_bones
+
+	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		if not bone:
 			bone = self.org_chain[0]
 		if parent_name=="":
@@ -338,8 +350,9 @@ class CloudBaseRig(
 			,description = "Reveal settings for the cloud_base rig type"
 		)
 		params.CR_base_parent_switching = BoolProperty(
-			name = "Parent Switching"
-			,description = "Use parent switching mechanism for the root of this rig"
+			name		 = "Parent Switching"
+			,description = "Use parent switching for this rig. Different rig types may implement this differently. For more information, right click and Open Manual"
+			,default	 = False
 		)
 		params.CR_base_relink = BoolProperty(
 			name		 = "Relink Constraints"
@@ -347,8 +360,8 @@ class CloudBaseRig(
 			,default	 = True
 		)
 		params.CR_base_parent = StringProperty(
-			name		 = "Parent"
-			,description = "If specified, parent this rig to the chosen bone. This bone should be a part of a parent rig"
+			name		 = "Root Parent"
+			,description = "If specified, parent the root of this rig to the chosen bone"
 			,default	 = ""
 		)
 
@@ -380,26 +393,26 @@ class CloudBaseRig(
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
 
-		cls.draw_prop(layout, params, "CR_base_relink")
-
-		cls.draw_prop(layout, params, "CR_base_parent_switching")
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
+
+		cls.draw_prop(layout, params, "CR_base_relink")
+		row = layout.row()
+		parent_bone = rig.pose.bones.get(params.CR_base_parent)
+		if params.CR_base_parent!="" and not parent_bone:
+			cls.draw_prop_search(row, params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
+			row.label(text="Bone no longer exists in rig!")
+		else:
+			cls.draw_prop_search(row, params, 'CR_base_parent', rig.pose, 'bones')
+			if parent_bone and parent_bone.bone.bbone_segments > 1:
+				split = layout.row().split(factor=0.4)
+				split.row()
+				split.label(text="Bendy Bone, will use Armature Constraint")
+
+		cls.draw_prop(layout, params, "CR_base_parent_switching")
 		if rig:
 			if params.CR_base_parent_switching:
 				draw_cloudrig_parents(layout, context.active_pose_bone.bone)
-			else:
-				row = layout.row()
-				parent_bone = rig.pose.bones.get(params.CR_base_parent)
-				if params.CR_base_parent!="" and not parent_bone:
-					row.prop_search(params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
-					row.label(text="Bone no longer exists in rig!")
-				else:
-					row.prop_search(params, 'CR_base_parent', rig.pose, 'bones')
-				if parent_bone and parent_bone.bone.bbone_segments > 1:
-					split=layout.row().split(factor=0.4)
-					split.row()
-					split.label(text="Bendy Bone, will use Armature Constraint")
 		else:
 			row = layout.row()
 			row.prop(params, 'CR_base_parent')

@@ -55,9 +55,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, ui_data, default=1.0)
 		self.attach_org_to_ik()
 
-		# List of parent candidate identifiers that this rig is looking for among its registered parent candidates
-		self.setup_ik_parent_switches()
-
 	def world_align_last_fk(self):
 		# Make last FK bone world-aligned.
 		self.make_world_aligned_control(self.org_chain[-1].fk_bone)
@@ -450,36 +447,25 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def setup_ik_parent_switches(self, ik_ctrl: BoneInfo = None):
-		if not ik_ctrl:
-			ik_ctrl = self.ik_mstr
-
-		if len(self.get_parent_candidates({}, exclude_self=True)) == 0:
-			# If this rig has no parent candidates, there's nothing to be done here.
-			return
+	def apply_parent_switching(self, 
+			child_bone=None, 
+			prop_bone=None, prop_name="", 
+			ui_area="misc_settings", row_name="", col_name=""
+		):
+		"""Overrides cloud_base."""
+		if not child_bone:
+			child_bone = self.ik_mstr
 
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
-		# Rig the IK control's parent switcher.
-		parent_names = self.rig_child(ik_ctrl, self.properties_bone, ik_parents_prop_name)
-		if len(parent_names) > 1:
-			bones = [ik_ctrl.name]
-			if self.params.CR_ik_chain_use_pole:
-				bones.append(self.pole_ctrl.name)
-			else:
-				bones.append(self.ik_chain[0].name)
-			info = {
-				"prop_bone" : self.properties_bone,
-				"prop_id" : ik_parents_prop_name,
-				"texts" : parent_names,
-
-				"operator" : "pose.cloudrig_switch_parent_bake",
-				"icon" : "COLLAPSEMENU",
-				"parent_names" : parent_names,	# TODO: I think this is unused now.
-				"bones" : bones,
-				}
-			self.add_ui_data("ik_parents", self.category, self.limb_ui_name, info, default=0, max=len(parent_names)-1)
-
-		### IK Pole Follow
+		super().apply_parent_switching(
+			child_bone = child_bone
+			,prop_bone = child_bone
+			,prop_name = ik_parents_prop_name
+			,ui_area = 'ik_parents'
+			,row_name = self.category
+			,col_name = self.limb_ui_name
+		)
+		
 		if self.params.CR_ik_chain_use_pole:
 			self.setup_ik_pole_parent_switch(ik_parents_prop_name)
 
