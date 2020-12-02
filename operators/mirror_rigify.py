@@ -2,12 +2,19 @@ import bpy
 from ..utils.naming import flip_name
 from bpy.props import BoolProperty
 
-def copy_rigify_params(from_bone, to_bone):
+def copy_rigify_params(from_bone, to_bone, mirror=False):
 	for key, value in from_bone.rigify_parameters.items():
 		try:
-			setattr(to_bone.rigify_parameters, key, getattr(from_bone.rigify_parameters, key))
+			if type(value==str) and mirror:
+				value = flip_name(value)
+			setattr(to_bone.rigify_parameters, key, value)
 		except:
 			pass
+	to_bone.bone.parent_slots.clear()
+	for ps in from_bone.bone.parent_slots:
+		new_ps = to_bone.bone.parent_slots.add()
+		new_ps.name = ps.name if not mirror else flip_name(ps.name)
+		new_ps.bone = ps.bone if not mirror else flip_name(ps.bone)
 
 class MirrorRigifyParameters(bpy.types.Operator):
 	"""Mirror rigify type and parameters of selected bones"""
@@ -34,7 +41,7 @@ class MirrorRigifyParameters(bpy.types.Operator):
 				continue
 
 			flip_bone.rigify_type = pb.rigify_type
-			copy_rigify_params(pb, flip_bone)
+			copy_rigify_params(pb, flip_bone, mirror=True)
 
 		return { 'FINISHED' }
 
