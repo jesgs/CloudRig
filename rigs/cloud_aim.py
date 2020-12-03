@@ -185,6 +185,7 @@ class CloudAimRig(CloudBaseRig):
 			child_bone = self.group_master
 			,prop_bone = self.ctr_bone
 			,ui_area = 'face_settings'
+			,col_name = self.params.CR_aim_group + " Parent"
 		)
 
 	##############################
