@@ -176,7 +176,7 @@ class CloudAimRig(CloudBaseRig):
 		):
 		"""Overrides cloud_base."""
 		# Ensure parent switching for the group master
-		if len(self.group_master.constraint_infos) > 1:
+		if len(self.group_master.constraint_infos) > 0:
 			# If the armature constraint was already added to the group master, skip.
 			# TODO: This is a bit ugly. It's one of those cases where a bone is shared across multiple rigs, so how do we chose which rig to pull input from?
 			# This will pull the parenting data from the first rig that has any, and any subsequent ones will be ignored, which is awkward and unintuitive.
