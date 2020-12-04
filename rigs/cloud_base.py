@@ -219,9 +219,6 @@ class CloudBaseRig(
 
 		parent_bones = []
 		parent_names = []
-		if self.generator_params.cloudrig_parameters.create_root:
-			parent_names.append("Root")
-			parent_bones.append('root')
 
 		parent_slots = self.meta_base_bone.bone.parent_slots
 		for i, ps in enumerate(parent_slots):
@@ -245,7 +242,11 @@ class CloudBaseRig(
 				,description = f"No parents specified for parent switching setup, skipping completely."
 			)
 			return [], []
-		
+
+		if self.generator_params.cloudrig_parameters.create_root and 'root' not in parent_bones:
+			parent_names.insert(0, "Root")
+			parent_bones.insert(0, 'root')
+
 		return parent_names, parent_bones
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
