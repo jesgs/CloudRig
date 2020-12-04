@@ -58,6 +58,14 @@ class CloudFKChainRig(CloudChainRig):
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
 
+	def relink(self):
+		"""Override cloud_chain.
+		Importantly, do nothing. We don't want to get rid of the constraints that 
+		we ourselves have put on ORG bones.
+		"""
+		# TODO: I guess ORG constraints should be relinked to the FK bones.
+		pass
+
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
 		super().apply_custom_root_parent(self.limb_root_bone)

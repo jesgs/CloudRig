@@ -100,6 +100,31 @@ class CloudChainRig(CloudBaseRig):
 
 		return parent
 
+	def relink(self):
+		"""Overrides cloud_base"""
+		self.move_and_relink_constraints()
+	
+	def move_and_relink_constraints(self):
+		"""Move constraints from ORG bones to main STR bones and relink them.
+
+		If the constraint name contains 'TAIL', we assume the constraint is meant
+		for the STR bone at the tip or the ORG bone rather than at the head.
+		"""
+		for i, org in enumerate(self.org_chain):
+			for c in org.constraint_infos[:]:
+				to_bone = self.main_str_bones[i]
+				if 'TAIL' in c.name:
+					if len(self.main_str_bones) <= i+1:
+						# TODO: Add a log, don't totally cancel the generation!
+						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
+					to_bone = self.main_str_bones[i+1]
+
+				to_bone.constraint_infos.append(c)
+				org.constraint_infos.remove(c)
+				for d in c.drivers:
+					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
+				c.relink()
+
 	def determine_segments(self, org_bone: BoneInfo) -> Tuple[int, int]:
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		segments = self.params.CR_chain_segments

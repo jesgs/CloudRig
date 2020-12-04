@@ -62,10 +62,7 @@ class CloudFaceChainRig(CloudChainRig):
 			rig.move_and_relink_constraints()
 
 	def move_and_relink_constraints(self):
-		"""Move constraints from ORG bones to main STR bones and relink them.
-
-		If the constraint name contains 'TAIL', we assume the constraint is meant
-		for the STR bone at the tip or the ORG bone rather than at the head.
+		"""Overrides cloud_chain.
 		"""
 		for i, org in enumerate(self.org_chain):
 			for c in org.constraint_infos[:]:
@@ -75,6 +72,8 @@ class CloudFaceChainRig(CloudChainRig):
 						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
 					to_bone = self.main_str_bones[i+1]
 
+				# TODO: This is currently a pretty big copy paste from cloud_chain's relink(), except for the below two lines. Not great!
+				# Probably split off this middle bit into a def get_relink_target(self, index) or so.
 				if hasattr(to_bone, 'merged_control'):
 					to_bone = to_bone.merged_control
 
