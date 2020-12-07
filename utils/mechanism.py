@@ -168,21 +168,8 @@ class CloudMechanismMixin:
 		return vector_along_bone_chain(chain, length, index)
 
 	def relink_driver(self, driver_info):
-		"""Adjust drivers read from the metarig according to some conventions:
+		relink_driver(self.generator.metarig, self.obj, driver_info)
 
-		An empty target object or the metarig as the target object will be replaced with the generated rig.
-		Variable names with @ in them will be split by the @, and the part after the @ will be the target bone name.
-		"""
-		for var_info in driver_info['variables']:
-			if type(var_info)==tuple: break
-			if '@' in var_info['name']:
-				splits = var_info['name'].split("@")
-				var_info['name'] = splits[0]
-				for i, t in enumerate(var_info['targets']):
-					var_info['targets'][i]['bone_target'] = splits[i+1]
-					if t['id'] == None or t['id'] == self.generator.metarig:
-						t['id'] = self.obj
-	
 	def transfer_relink_drivers(self, from_thing, to_thing):
 		# Transfer and relink bone drivers
 		for d in from_thing.drivers[:]:
@@ -221,6 +208,22 @@ class CloudMechanismMixin:
 	@staticmethod
 	def flat_vector(vec):
 		return flat(vec)
+
+def relink_driver(metarig, rig, driver_info):
+	"""Adjust drivers read from the metarig according to some conventions:
+
+	An empty target object or the metarig as the target object will be replaced with the generated rig.
+	Variable names with @ in them will be split by the @, and the part after the @ will be the target bone name.
+	"""
+	for var_info in driver_info['variables']:
+		if type(var_info)==tuple: break
+		if '@' in var_info['name']:
+			splits = var_info['name'].split("@")
+			var_info['name'] = splits[0]
+			for i, t in enumerate(var_info['targets']):
+				var_info['targets'][i]['bone_target'] = splits[i+1]
+				if t['id'] == None or t['id'] == metarig:
+					t['id'] = rig
 
 def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
 	if pose_bone.rigify_type != "":

@@ -523,6 +523,18 @@ class BoneInfo:
 	def clear_constraints(self):
 		self.constraint_infos = []
 
+	def relink(self):
+		"""Relinking a bone just means relinking its drivers, constraints and constraint drivers."""
+		# Relink bone drivers
+		for d in self.drivers:
+			self.bone_set.rig.relink_driver(d)
+
+		for c in self.constraint_infos:
+			c.relink()
+			# Relink constraint drivers
+			for d in c.drivers:
+				self.bone_set.rig.relink_driver(d)
+
 	def write_edit_data(self, armature: bpy.types.Armature, edit_bone: bpy.types.EditBone):
 		"""Write relevant data of this BoneInfo into an EditBone."""
 		assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."

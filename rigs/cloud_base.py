@@ -257,16 +257,9 @@ class CloudBaseRig(
 		self.bendy_parenting(bone, parent_name)
 
 	def relink(self):
+		# Relink the base bone.
 		bi = self.org_chain[0]
-		# Relink bone drivers
-		for d in bi.drivers:
-			self.relink_driver(d)
-
-		for c in bi.constraint_infos:
-			c.relink()
-			# Relink constraint drivers
-			for d in c.drivers:
-				self.relink_driver(d)
+		bi.relink()
 
 	def reparent_bone(self, child: BoneInfo):
 		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
