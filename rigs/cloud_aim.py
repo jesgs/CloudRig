@@ -176,14 +176,12 @@ class CloudAimRig(CloudBaseRig):
 		):
 		"""Overrides cloud_base."""
 		# Ensure parent switching for the group master
-		if len(self.group_master.constraint_infos) > 0:
-			# If the armature constraint was already added to the group master, skip.
-			# TODO: This is a bit ugly. It's one of those cases where a bone is shared across multiple rigs, so how do we chose which rig to pull input from?
-			# This will pull the parenting data from the first rig that has any, and any subsequent ones will be ignored, which is awkward and unintuitive.
+		if self.group_master.parent and self.group_master.parent.name == "Parents_"+self.group_master.name:
+			# If the parent switching set-up already exists, don't create it again.
 			return
 		super().apply_parent_switching(
 			child_bone = self.group_master
-			,prop_bone = self.ctr_bone
+			,prop_bone = self.properties_bone
 			,ui_area = 'face_settings'
 			,col_name = self.params.CR_aim_group + " Parent"
 		)
