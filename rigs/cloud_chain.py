@@ -12,7 +12,7 @@ Spline IK like controls(the other two types) for bendy bones' handles.
 Recursive generation of layers of STR controls... Little use case and lots of headache.
 """
 
-CUSTOM_SPACE = False
+CUSTOM_SPACE = False	# TODO: This is now in master but smooth chains are apparently glitching again, whether this is True or False, when the character's root is rotated. What!?
 
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
@@ -50,6 +50,9 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_smooth_spline:
 			for str_bone in self.str_chain:
 				self.set_up_smooth_spline(str_bone)
+		else:
+			for str_bone in self.str_chain:
+				str_bone.tangent_helper = self.make_tangent_helper(str_bone)
 
 		self.make_def_chain(self.str_chain)
 
@@ -297,10 +300,6 @@ class CloudChainRig(CloudBaseRig):
 		return dt_bone
 
 	def make_tangent_helper(self, str_bone):
-		assert hasattr(str_bone, 'dt_bone'), f"make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first."
-
-		dt = str_bone.dt_bone
-
 		tangent_helper = self.str_mch.new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
@@ -308,6 +307,17 @@ class CloudChainRig(CloudBaseRig):
 			,inherit_scale = 'NONE'
 			,overwrite = True
 		)
+		tangent_helper.add_constraint('COPY_SCALE'
+			,subtarget = str_bone.name
+			,space = 'WORLD'
+		)
+
+		if not self.params.CR_chain_smooth_spline:
+			return tangent_helper
+
+		assert hasattr(str_bone, 'dt_bone'), f"make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first, while Smooth Chain param is True."
+
+		dt = str_bone.dt_bone
 		tangent_helper.add_constraint('COPY_ROTATION'
 			,name = "Copy Rotation (Damped Track Helper)"
 			,subtarget = dt.name
@@ -331,10 +341,6 @@ class CloudChainRig(CloudBaseRig):
 				,invert_xyz = [False, True, False]
 				,subtarget = str_bone.name
 			)
-		tangent_helper.add_constraint('COPY_SCALE'
-			,subtarget = str_bone.name
-			,space = 'WORLD'
-		)
 
 		if not CUSTOM_SPACE: 
 			return tangent_helper
@@ -395,7 +401,7 @@ class CloudChainRig(CloudBaseRig):
 				,tail					 = tail
 				,bbone_handle_type_start = 'TANGENT'
 				,bbone_handle_type_end	 = 'TANGENT'
-				,bbone_custom_handle_start = str_bone
+				,bbone_custom_handle_start = str_bone.tangent_helper
 				,hide_select			 = self.mch_disable_select
 				,use_deform				 = True
 			)
@@ -424,9 +430,6 @@ class CloudChainRig(CloudBaseRig):
 		if str_bone in self.main_str_bones:
 			def_bone.bbone_easein = 1 - self.params.CR_chain_sharp
 
-		if hasattr(def_bone.bbone_custom_handle_start, 'tangent_helper'):
-			def_bone.bbone_custom_handle_start = def_bone.bbone_custom_handle_start.tangent_helper
-
 		def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
 		# If bbone_density is >0, force at least 2 bbone_segments.
 		# Otherwise it's not a bendy bone.
@@ -436,14 +439,12 @@ class CloudChainRig(CloudBaseRig):
 		if not next_str_bone:
 			next_str_bone = str_bone.next
 		if next_str_bone:
-			def_bone.bbone_custom_handle_end = next_str_bone
+			def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 			def_bone.add_constraint('STRETCH_TO'
 				,subtarget = next_str_bone.name
 				,use_bulge_min = not self.params.CR_chain_preserve_volume
 				,use_bulge_max = not self.params.CR_chain_preserve_volume
 			)
-			if hasattr(def_bone.bbone_custom_handle_end, 'tangent_helper'):
-				def_bone.bbone_custom_handle_end = def_bone.bbone_custom_handle_end.tangent_helper
 
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
