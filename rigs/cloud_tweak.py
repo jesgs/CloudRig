@@ -98,15 +98,16 @@ class CloudTweakRig(CloudBaseRig):
 
 	def relink(self):
 		# Transfer and relink constraints and their drivers
+		org_bi = self.org_chain[0]
 		if not self.params.CR_tweak_constraints_additive:
 			self.tweak_bone.clear_constraints()
-		for c in self.org_chain[0].constraint_infos:
+		for c in org_bi.constraint_infos:
 			self.tweak_bone.constraint_infos.append(c)
 			c.relink()
 			# Relink constraint drivers
 			for d in c.drivers:
 				self.relink_driver(d)
-			self.org_chain[0].constraint_infos.remove(c)
+			org_bi.constraint_infos.remove(c)
 
 			# Remove actual bpy drivers, as their re-linked version will be created later by the generator.
 			for d in c.drivers:
