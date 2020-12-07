@@ -833,6 +833,12 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		self.instantiate_rig_tree()
+		# cloud_tweak rigs should be pushed to the end of the list!
+		from .rigs.cloud_tweak import CloudTweakRig
+		for rig in self.rig_list[:]:
+			if isinstance(rig, CloudTweakRig):
+				self.rig_list.remove(rig)
+				self.rig_list.append(rig)
 
 		t.tick("Instantiate rigs: ")
 

@@ -17,7 +17,7 @@ class CloudTweakRig(CloudBaseRig):
 		org_bi = self.org_chain[0]
 
 		if not tweak_bone:
-			self.add_log("No bone to tweak", trouble_bone=self.orgless_name, description=f"Could not find a bone called {self.orgless_name} on the generated rig. If it exists, make sure the cloud_tweak bone is lower in the hierarchy than the target bone's rig.")
+			self.add_log("No bone to tweak", trouble_bone=self.orgless_name, description=f"Could not find a bone called {self.orgless_name} on the generated rig.")
 			return
 
 		if self.params.CR_tweak_transforms:
@@ -111,7 +111,6 @@ class CloudTweakRig(CloudBaseRig):
 			# Remove actual bpy drivers, as their re-linked version will be created later by the generator.
 			for d in c.drivers:
 				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
-
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
