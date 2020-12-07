@@ -459,7 +459,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
 		super().apply_parent_switching(
 			child_bone = child_bone
-			,prop_bone = child_bone
+			,prop_bone = self.properties_bone
 			,prop_name = ik_parents_prop_name
 			,ui_area = 'ik_parents'
 			,row_name = self.category
