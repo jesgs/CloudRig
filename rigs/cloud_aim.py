@@ -105,7 +105,7 @@ class CloudAimRig(CloudBaseRig):
 			,custom_shape_scale = 2
 		)
 		bone.parent = root_bone
-		
+
 		if self.rigify_parent:
 			self.rigify_parent.reparent_bone(root_bone)
 		return root_bone
@@ -169,9 +169,9 @@ class CloudAimRig(CloudBaseRig):
 
 		return group_master
 
-	def apply_parent_switching(self, 
-			child_bone=None, 
-			prop_bone=None, prop_name="", 
+	def apply_parent_switching(self,
+			child_bone=None,
+			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
 		"""Overrides cloud_base."""

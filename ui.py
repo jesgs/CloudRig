@@ -1,4 +1,4 @@
-# This module shouldn't need to be imported anywhere else. 
+# This module shouldn't need to be imported anywhere else.
 # Such things would belong in CloudRig/utils/ui.py.
 
 import bpy

@@ -61,7 +61,7 @@ class CloudChainRig(CloudBaseRig):
 	def reparent_bone(self, child: BoneInfo):
 		"""Override.
 
-		Children of this rig's ORG bones should be re-parented to the appropriate 
+		Children of this rig's ORG bones should be re-parented to the appropriate
 		DEF bone using Armature constraint, if that DEF bone's bbone_segments > 1.
 		"""
 
@@ -75,7 +75,7 @@ class CloudChainRig(CloudBaseRig):
 			if c.type=='ARMATURE':
 				return
 
-		# Also note that this function is expected to be called by child rigs, 
+		# Also note that this function is expected to be called by child rigs,
 		# which means this rig already finished executing, which means we know that
 		# make_def_chain() has run, and ORG bones are aware of their DEF bones.
 
@@ -106,7 +106,7 @@ class CloudChainRig(CloudBaseRig):
 	def relink(self):
 		"""Overrides cloud_base"""
 		self.move_and_relink_constraints()
-	
+
 	def move_and_relink_constraints(self):
 		"""Move constraints from ORG bones to main STR bones and relink them.
 
@@ -174,7 +174,7 @@ class CloudChainRig(CloudBaseRig):
 					str_bone.custom_shape_scale *= 1.3
 					str_sections.append([str_bone])
 					self.main_str_bones.append(str_bone)
-		
+
 		# Set first and last control's shapes
 		if not self.cyclic:
 			self.str_chain[0].custom_shape = self.ensure_widget("Hemisphere_Flip")
@@ -266,7 +266,7 @@ class CloudChainRig(CloudBaseRig):
 		str_bone.dt_bone = self.make_dt_helper(str_bone, prev, nxt)
 		str_bone.tangent_helper = self.make_tangent_helper(str_bone)
 
-	def make_dt_helper(self, str_bone: BoneInfo, 
+	def make_dt_helper(self, str_bone: BoneInfo,
 						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
@@ -342,9 +342,9 @@ class CloudChainRig(CloudBaseRig):
 				,subtarget = str_bone.name
 			)
 
-		if not CUSTOM_SPACE: 
+		if not CUSTOM_SPACE:
 			return tangent_helper
-		# TODO: Had to copy paste this code, would be nice to have a proper 
+		# TODO: Had to copy paste this code, would be nice to have a proper
 		# utility for copying a bone with its constraints and drivers and whatnot.
 		tangent_clone = self.str_mch.new(
 			name = self.naming.add_prefix(tangent_helper, "CLONE")
@@ -559,7 +559,7 @@ class CloudChainRig(CloudBaseRig):
 		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], override='MCH')
-		
+
 	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""

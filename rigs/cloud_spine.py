@@ -35,7 +35,7 @@ class CloudSpineRig(CloudFKChainRig):
 		self.spine_name = "Spine"
 		if self.params.CR_fk_chain_use_limb_name:
 			self.spine_name = self.params.CR_fk_chain_limb_name.replace(" ", "_")
-		
+
 		self.ik_prop_name = "ik_" + self.spine_name.lower()
 		self.ik_stretch_name = "ik_stretch_" + self.spine_name.lower()
 
@@ -271,7 +271,7 @@ class CloudSpineRig(CloudFKChainRig):
 				org_bone.parent = self.fk_chain[-1]
 			else:
 				org_bone.parent = self.fk_chain[i-1]
-		
+
 		if self.params.CR_chain_tip_control:
 			self.str_chain[-1].parent = self.fk_chain[-1]
 

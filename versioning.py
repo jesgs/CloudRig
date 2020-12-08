@@ -6,7 +6,7 @@ from .utils.ui import is_cloud_metarig
 blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) + str(bpy.app.version[2]))
 
 # This should get a version bump whenever there is a change that affects metarigs.
-# For example, changing names of rig types, splitting an old rig type into multiple, 
+# For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
 cloud_metarig_version = 8
 
@@ -38,7 +38,7 @@ def rename_parameters(metarig, dictionary):
 					update_enum_property(pb.rigify_parameters, old_key, new_key, value)
 
 def version_cloud_metarig(metarig):
-	"""Convert older CloudRig metarigs to work with the current version of 
+	"""Convert older CloudRig metarigs to work with the current version of
 	CloudRig as well as possible. They will still need some manual cleanup!!!"""
 	data = metarig.data
 	target_rig = data.rigify_target_rig
@@ -123,7 +123,7 @@ def version_cloud_metarig(metarig):
 						if 'CR_BG_stretch_controls' in spine_bone.rigify_parameters.keys():
 							neck_bone.rigify_parameters['CR_BG_stretch_controls'] = spine_bone.rigify_parameters['CR_BG_stretch_controls']
 
-						if len(neck_bone.children) == 0: 
+						if len(neck_bone.children) == 0:
 							break
 						neck_bone = neck_bone.children[0] # Head bone
 
@@ -211,7 +211,7 @@ def version_cloud_metarig(metarig):
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
 	for metarig in cloud_metarigs:
-		if metarig.data.cloudrig_parameters.version == cloud_metarig_version: 
+		if metarig.data.cloudrig_parameters.version == cloud_metarig_version:
 			continue
 		if metarig.data.cloudrig_parameters.version > cloud_metarig_version:
 			print(f"""\tFound a metarig with a higher metarig version than the current: {metarig.name} \n\tIt must have been created with a newer version of CloudRig, and won't behave as expected. \n\tYou should update CloudRig!""")

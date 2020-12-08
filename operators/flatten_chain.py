@@ -123,7 +123,7 @@ class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 		roll_type = "GLOBAL_POS_" + self.axis[-1]
 		if not self.axis.startswith("-"):
 			roll_type = roll_type.replace("POS_", "NEG_")
-		
+
 		bpy.ops.armature.calculate_roll(type=roll_type)
 
 		bpy.ops.object.mode_set(mode=org_mode)

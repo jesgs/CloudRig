@@ -33,7 +33,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.ik_pole_offset = 3		# Scalar on distance from the body. Could become a parameter but it's unimportant.
 
 		# Will be passed to the IK constraint's chain_count.
-		# Elements of the rig can use this to avoid having to make assumptions about correlations 
+		# Elements of the rig can use this to avoid having to make assumptions about correlations
 		# between the length of the ORG chain vs how long the IK chain is.
 		self.chain_count = len(self.bones.org.main)-1
 		if self.params.CR_ik_chain_at_tip:
@@ -78,8 +78,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Create IK Master control
 		ik_org_bone = self.org_chain[self.chain_count]
 		self.ik_mstr = self.create_ik_master(
-			self.ik_ctrls, 
-			ik_org_bone, 
+			self.ik_ctrls,
+			ik_org_bone,
 		)
 
 		self.calculate_ik_info()
@@ -116,10 +116,10 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	@staticmethod
 	def calculate_ik_info_static(
-			meta_first: bpy.types.PoseBone, 
+			meta_first: bpy.types.PoseBone,
 			meta_last: bpy.types.PoseBone
 		) -> (float, Vector, Vector):
-		
+
 		chain_vector = meta_last.tail - meta_first.head
 
 		first_tail = meta_first.tail
@@ -447,9 +447,9 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def apply_parent_switching(self, 
-			child_bone=None, 
-			prop_bone=None, prop_name="", 
+	def apply_parent_switching(self,
+			child_bone=None,
+			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
 		"""Overrides cloud_base."""

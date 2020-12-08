@@ -83,7 +83,7 @@ class CloudUIMixin:
 		for ui_name in cls.bone_set_defs.keys():
 			set_info = cls.bone_set_defs[ui_name]
 			cls.draw_bone_set_params(layout, params, set_info)
-		
+
 		return layout
 
 def is_cloud_metarig(rig):
@@ -94,7 +94,7 @@ def is_cloud_metarig(rig):
 	return False
 
 def draw_label_with_linebreak(layout, text, alert=False):
-	""" Attempt to simulate a proper textbox by only displaying as many 
+	""" Attempt to simulate a proper textbox by only displaying as many
 		characters in a single label as fits in the UI.
 		This only works well on specific UI zoom levels.
 	"""
@@ -106,7 +106,7 @@ def draw_label_with_linebreak(layout, text, alert=False):
 		# Try to determine maximum allowed characters in this line, based on pixel width of the area.
 		# Not a great metric, but I couldn't find anything better.
 		max_line_length = bpy.context.area.width/8
-		
+
 		lines = [""]
 		for word in p.split(" "):
 			if len(lines[-1]) + len(word)+1 > max_line_length:

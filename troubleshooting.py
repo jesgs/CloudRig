@@ -22,15 +22,15 @@ Some things are expensive to test so maybe should be checked outside of generati
 """
 def cloudrig_last_modified() -> str:
 	import time
-	"""Return the date at which the most recent CloudRig .py file was modified. 
-	
+	"""Return the date at which the most recent CloudRig .py file was modified.
+
 	Used in the bug report form pre-fill.
 	"""
 	max_mtime = 0
 	for dirname, subdirs, files in os.walk(os.path.dirname(__file__)):
 		for fname in files:
 			full_path = os.path.join(dirname, fname)
-			mtime = os.path.getmtime(full_path) 
+			mtime = os.path.getmtime(full_path)
 			if mtime > max_mtime:
 				max_mtime = mtime
 				max_file = fname
@@ -116,7 +116,7 @@ def get_pretty_stack() -> str:
 		short_file = frame.filename
 		if 'scripts' in short_file:
 			short_file = frame.filename.split("scripts")[1]
-		
+
 		if i>0 and frame.filename == stack[i-1].filename:
 			short_file = " " * int(len(frame.filename)/2)
 
@@ -184,7 +184,7 @@ class CloudLogManager:
 			,operator = operator
 			,**kwargs
 		)
-	
+
 	def clear(self):
 		cloudrig = self.metarig.data.cloudrig_parameters
 		cloudrig.logs.clear()
@@ -208,7 +208,7 @@ class CloudLogManager:
 					,icon = 'LAYER_USED'
 					,note = f"{rigify_layer.name} ({i})"
 				)
-		
+
 		for i in range(32):
 			if i > len(rigify_layers)-1:
 				# TODO (upstream): Rigify Layers should be initialized as a list of 32 booleans!!!
@@ -405,7 +405,7 @@ def draw_cloudrig_log(layout, metarig):
 		row = split.row()
 		row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
 		row.enabled = False
-	
+
 	desc = log.description_short
 	if log.description!="":
 		desc = log.description
@@ -539,7 +539,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(bpy.types.Operator):
 			for pb in rig.pose.bones:
 				if pb.custom_shape == old_obj:
 					pb.custom_shape = new_obj
-		
+
 		bpy.data.objects.remove(old_obj)
 		widget_collection = metarig.data.cloudrig_parameters.widget_collection
 		if widget_collection and new_obj.name not in widget_collection.objects:
@@ -613,7 +613,7 @@ class CLOUDRIG_OT_Delete_Object(bpy.types.Operator):
 def remove_active_log(metarig):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
-	
+
 	active_index = cloudrig.active_log_index
 	# This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
 	to_index = active_index

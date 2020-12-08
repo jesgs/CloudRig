@@ -35,10 +35,10 @@ class DefaultLayers(Enum):
 	FACE_TWEAK = 20
 
 class CloudBaseRig(
-					BaseRig, 
-					CloudMechanismMixin, 
-					CloudObjectUtilitiesMixin, 
-					CloudUIMixin, 
+					BaseRig,
+					CloudMechanismMixin,
+					CloudObjectUtilitiesMixin,
+					CloudUIMixin,
 					CloudAnimationMixin,
 					BoneSetMixin
 	):
@@ -106,7 +106,7 @@ class CloudBaseRig(
 		for k in self.obj.data.keys():
 			if k in ['_RNA_UI', 'rig_id']: continue
 			del self.obj.data[k]
-		
+
 		self.update_forced_params()
 
 	def update_forced_params(self):
@@ -152,9 +152,9 @@ class CloudBaseRig(
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
 
-	def apply_parent_switching(self, 
-			child_bone=None, 
-			prop_bone=None, prop_name="", 
+	def apply_parent_switching(self,
+			child_bone=None,
+			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
 		"""Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
@@ -213,7 +213,7 @@ class CloudBaseRig(
 
 	def collect_parents(self) -> (List[str], List[str]):
 		"""Gather parent information and check for issues.
-		
+
 		Returns two lists of equal length, first one is the UI name second is the bone name of each parent.
 		"""
 
@@ -302,7 +302,7 @@ class CloudBaseRig(
 		):
 		kwargs['owner_bone'] = self.meta_base_bone.name
 		self.generator.logger.log(description_short ,**kwargs)
-	
+
 	def add_log_bug(self
 			,description_short
 			,**kwargs
@@ -319,13 +319,13 @@ class CloudBaseRig(
 		for rig in self.generator.rig_list:
 			if rig.base_bone == flipped_name:
 				return rig
-	
+
 	def find_sibling_rigs(self) -> List[BaseRig]:
 		siblings = []
 		for rig in self.generator.rig_list:
 			if rig.rigify_parent == self.rigify_parent:
 				siblings.append(rig)
-		
+
 		return siblings
 
 	##############################
@@ -334,7 +334,7 @@ class CloudBaseRig(
 	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		
+
 		params.CR_base_show_settings = BoolProperty(
 			name		 = "Base Settings"
 			,description = "Reveal settings for the cloud_base rig type"

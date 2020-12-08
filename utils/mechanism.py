@@ -21,7 +21,7 @@ class CloudMechanismMixin:
 	@staticmethod
 	def find_rig_of_bone(pose_bone):
 		return find_rig_of_bone(pose_bone)
-	
+
 	@staticmethod
 	def get_rigify_chain(pose_bone):
 		return get_rigify_chain(pose_bone)

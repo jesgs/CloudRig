@@ -47,9 +47,9 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	def make_curve_controls(self):
 		""" Overrides.
-			This rig's create_curve() relies on CloudBaseRig.create_bone_infos() 
-			having already run. But if we simply call super().create_bone_infos(), 
-			it will run make_ctrls_for_curve_points(), which, for this class, 
+			This rig's create_curve() relies on CloudBaseRig.create_bone_infos()
+			having already run. But if we simply call super().create_bone_infos(),
+			it will run make_ctrls_for_curve_points(), which, for this class,
 			relies on create_curve() running beforehand.
 			So, we override this with nothing, and we put the calls in the
 			correct order in our own create_bone_infos().
@@ -211,7 +211,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 		# TODO: When this is false, the directions of the curve points and bones
 		# don't match, and both of them are unsatisfactory. It would be nice if
-		# we would interpolate between the direction of the two bones, using 
+		# we would interpolate between the direction of the two bones, using
 		# length_remaining/bone.length as a factor, or something similar to that.
 		cls.draw_prop(layout, params, "CR_spline_ik_match_hooks")
 		if not params.CR_spline_ik_match_hooks:

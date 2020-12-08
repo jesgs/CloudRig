@@ -42,7 +42,7 @@ class CloudFKChainRig(CloudChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		if self.params.CR_fk_chain_root:
-			# This has to come before make_fk_chain() so inheriting rig classes 
+			# This has to come before make_fk_chain() so inheriting rig classes
 			# that override make_fk_chain() can expect root bone to already exist.
 			self.limb_root_bone = self.make_root_bone()
 
@@ -60,7 +60,7 @@ class CloudFKChainRig(CloudChainRig):
 
 	def relink(self):
 		"""Override cloud_chain.
-		Importantly, do nothing. We don't want to get rid of the constraints that 
+		Importantly, do nothing. We don't want to get rid of the constraints that
 		we ourselves have put on ORG bones.
 		"""
 		# TODO: I guess ORG constraints should be relinked to the FK bones.
@@ -128,9 +128,9 @@ class CloudFKChainRig(CloudChainRig):
 		parent_bone=None, head_tail=0,
 		hng_name=None, limb_name=None, bone_set=None
 	):
-		""" Create a hinge toggle for a bone. 
+		""" Create a hinge toggle for a bone.
 			Bone is usually the first bone in an FK chain.
-			When hinge is turned on, the bone doesn't inherit rotation from its 
+			When hinge is turned on, the bone doesn't inherit rotation from its
 			parents, but still inherits rotation from the rig's root bone.
 		"""
 

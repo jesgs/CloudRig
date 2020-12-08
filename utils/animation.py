@@ -54,7 +54,7 @@ class CloudAnimationMixin:
 				frame -= frame_step
 
 		return frame
-	
+
 	def disable_property_until_frame(self, action, last_frame, prop_id):
 		prop_bone = self.properties_bone
 

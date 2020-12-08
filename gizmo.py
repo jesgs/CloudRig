@@ -135,7 +135,7 @@ class CloudRigWidgetGroup(GizmoGroup):
 			# first attempt simple update
 			force_full_update = False
 			# TODO: if rig owner bone is not the same as before: force_full_update=True
-			
+
 			if force_full_update:
 				self.gizmos.clear()
 				# same as above

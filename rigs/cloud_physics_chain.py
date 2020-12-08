@@ -99,7 +99,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 				pin_weight = ratio*ratio
 			elif self.params.CR_physics_chain_pin_falloff == 'SQRT':
 				pin_weight = sqrt(ratio)
-			
+
 			print("pin weight: " + str(pin_weight))
 
 			vg = cloth_ob.vertex_groups.new(name=name)
@@ -144,7 +144,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 				,use_deform = True
 			)
 			next_parent = phys_ctrl
-		
+
 		pin_bone = self.physics_chain.new(
 			name = "PIN-"+self.params.CR_physics_chain_object.name
 			,source = self.physics_chain[0]
@@ -172,7 +172,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 
 	def finalize(self):
 		cloth_ob = self.params.CR_physics_chain_object
-		
+
 		if self.params.CR_physics_chain_make_ctrl:
 			# Move armature modifier to top of the stack
 			bpy.context.view_layer.objects.active = cloth_ob
@@ -253,7 +253,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		cls.draw_prop(layout, params, 'CR_physics_chain_object')
 		if params.CR_physics_chain_object:
 			cls.draw_prop(layout, params, 'CR_physics_chain_force_regen')
-		
+
 		if not params.CR_physics_chain_object or params.CR_physics_chain_force_regen:
 			cls.draw_prop(layout, params, 'CR_physics_chain_pin_falloff')
 			if params.CR_physics_chain_pin_falloff != 'NONE':

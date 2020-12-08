@@ -99,7 +99,7 @@ def driver_from_real(driver):
 	}
 	if driver.type=='SCRIPTED':
 		ret['expression'] = driver.expression
-	for var in driver.variables: 
+	for var in driver.variables:
 		ret['variables'].append({
 			'name' : var.name
 			,'type' : var.type
@@ -163,7 +163,7 @@ class BoneSet(LinkedList):
 			bone_group="Group", normal=None, select=None, active=None, preset=-1,
 			layers = [l==0 for l in range(32)],
 			defaults = {}
-	):
+		):
 		super().__init__()
 
 		self.rig = rig
@@ -309,10 +309,10 @@ class BoneSet(LinkedList):
 
 class BoneInfo:
 	"""
-	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone 
+	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone
 	and bpy.types.EditBone into a single concept.
 
-	This class does not concern itself with posing the bone, only creating and 
+	This class does not concern itself with posing the bone, only creating and
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
@@ -381,7 +381,7 @@ class BoneInfo:
 	@property
 	def name(self):
 		return self._name
-	
+
 	@name.setter
 	def name(self, value):
 		rig = self.bone_set.rig
@@ -686,7 +686,7 @@ class ConstraintInfo(dict):
 		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
 
 		# Set target as the rig object, except for some constraint types.
-		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE', 
+		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE',
 							'LIMIT_ROTATION', 'SHRINKWRAP']:
 			if hasattr(self.bone_info, 'rig'):
 				self.target = self.bone_info.rig
@@ -697,7 +697,7 @@ class ConstraintInfo(dict):
 						'ACTION', 'TRANSFORM']
 		if not hasattr(self, 'space') and self.type in support_local:
 			self.space = 'LOCAL'
-		
+
 		if self.type == 'TRANSFORM':
 			self.mix_mode_scale = 'MULTIPLY'
 			self.mix_mode_rot = 'BEFORE'
@@ -732,8 +732,8 @@ class ConstraintInfo(dict):
 		if self.type=='ARMATURE':
 			if len(self.targets) > len(subtargets):
 				self.bone_info.owner_rig.add_log(
-					"Relinking failed", 
-					trouble_bone = self.bone_info.name, 
+					"Relinking failed",
+					trouble_bone = self.bone_info.name,
 					description=f"Failed to relink constraint due to too many targets in constraint {self.name}.\n Remove unneeded targets from the Armature constraint!"
 				)
 				return
@@ -751,14 +751,14 @@ class ConstraintInfo(dict):
 		con_info = self.__dict__.copy()
 		for key in ['type', 'bone_info', 'drivers']:
 			del con_info[key]
-		
+
 		subtargets = []
 		if 'subtarget' in con_info:
 			subtargets = [con_info['subtarget']]
 		if 'targets' in con_info:
 			subtargets = [t['subtarget'] for t in con_info['targets']]
 
-		# TODO this armature constraint hackaround can be removed once D9092 is in. 
+		# TODO this armature constraint hackaround can be removed once D9092 is in.
 		# This will break backwards compatibility with prior blender versions.
 		targets = None
 		if con_type == 'ARMATURE' and 'targets' in con_info:

@@ -4,7 +4,7 @@ from mathutils import Vector
 from math import atan2
 
 def bounding_box(points) -> Tuple[Vector, Vector]:
-	""" Return two vectors representing the lowest and highest coordinates of 
+	""" Return two vectors representing the lowest and highest coordinates of
 		a the bounding box of the passed points.
 	"""
 
@@ -73,7 +73,7 @@ def project_points_on_plane (points, projection_axis: Vector) -> List[Vector]:
 	return [p[0] for p in projected_points]
 
 def flat(vec) -> Vector:
-	""" Return a copy of a vector with its two absolute lowest values set to 0. 
+	""" Return a copy of a vector with its two absolute lowest values set to 0.
 		Useful for making vectors world-aligned.
 	"""
 	new_vec = vec.copy()

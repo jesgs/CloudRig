@@ -1,20 +1,20 @@
 """
-This file is executed and loaded into a self-registering text datablock when a 
+This file is executed and loaded into a self-registering text datablock when a
 rig is generated with the CloudRig feature set.
 It's responsible for drawing rig UI and operators such as IK/FK snapping and
 keyframe baking.
 
-The only change made during rig generation is replacing SCRIPT_ID with the name 
-of the blend file. This is used to allow multiple characters generated with 
-different versions of CloudRig to co-exist in the same scene. So each rig uses 
+The only change made during rig generation is replacing SCRIPT_ID with the name
+of the blend file. This is used to allow multiple characters generated with
+different versions of CloudRig to co-exist in the same scene. So each rig uses
 the script that belongs to it, and not another, potentially newer or older version.
 """
 
 import bpy, traceback, json, collections
 from typing import List, Dict
 from bpy.props import (
-						StringProperty, BoolProperty, BoolVectorProperty, 
-						EnumProperty, FloatVectorProperty, PointerProperty, 
+						StringProperty, BoolProperty, BoolVectorProperty,
+						EnumProperty, FloatVectorProperty, PointerProperty,
 						CollectionProperty, IntProperty
 					)
 from mathutils import Vector, Matrix
@@ -379,7 +379,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 
 		finally:
 			self.after_save_state(context, rig)
-		
+
 		return save_state
 
 	def execute_before_apply(self, context, obj, range, range_raw):
@@ -502,7 +502,7 @@ def get_bones(rig, names):
 
 class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 	""" Extend Rigify's keyframe baking with the ability to select the frame range
-		as part of the operator, make baking optional, 
+		as part of the operator, make baking optional,
 		and add the ability to affect more than a single bone.
 	"""
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -599,7 +599,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
 		if not bone_names:
 			bone_names = self.bone_names
-		
+
 		matrices = [rig.pose.bones.get(bone_name).matrix.copy() for bone_name in bone_names]
 		return matrices
 
@@ -650,7 +650,7 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 	prop_id:	  StringProperty(name="Property")
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
 	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-	
+
 	parent_names: StringProperty(name="Parent Names")
 
 	def parent_items(self, context):
@@ -754,7 +754,7 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 			context.evaluated_depsgraph_get().update()	# This matters!!!!
 
 class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
-	""" This should extend CLOUDRIG_OT_snap_mapped_bake with special treatment 
+	""" This should extend CLOUDRIG_OT_snap_mapped_bake with special treatment
 		for the IK elbow.
 	"""
 
@@ -820,9 +820,9 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 
 	def get_pole_target_matrix(self):
 		""" Find the matrix where the IK pole should be. """
-		""" This is only accurate when the bone chain lies perfectly on a plane 
-			and the IK Pole Angle is divisible by 90. 
-			This should be the case for a correct IK chain! 
+		""" This is only accurate when the bone chain lies perfectly on a plane
+			and the IK Pole Angle is divisible by 90.
+			This should be the case for a correct IK chain!
 		"""
 
 		rig = self.bake_rig
@@ -857,7 +857,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 		properties_bone = rig.pose.bones.get('Properties')
 		if not properties_bone:
 			return {'CANCELLED'}
-		
+
 		for prop_name in properties_bone.keys():
 			if prop_name=='_RNA_UI': continue
 			value = properties_bone[prop_name]

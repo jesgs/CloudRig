@@ -215,7 +215,7 @@ class CloudGenerator(Generator):
 		assert not separators_match, "Prefix and Suffix separators cannot be the same."
 
 		# List that stores a reference to all BoneInfo instances of all rigs.
-		# IMPORTANT: This should not be a BoneInfo, just a regular list. Otherwise the LinkedList behaviour gets all messed up! 
+		# IMPORTANT: This should not be a BoneInfo, just a regular list. Otherwise the LinkedList behaviour gets all messed up!
 		# Each BoneInfo should only exist in a single BoneSet!
 		self.bone_infos = []
 		# List that stores a reference to all BoneSets of all rigs.
@@ -338,7 +338,7 @@ class CloudGenerator(Generator):
 			self.bone_sets.append(self.root_parent_set)
 			self.root_parent = mechanism.create_parent_bone(self, self.root_bone, self.root_parent_set)
 			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
-		
+
 		# If the Metarig has any Action Slots, create an Action Property Helper bone.
 		if len(self.metarig.data.cloudrig_parameters.action_slots) > 0:
 			self.action_helper = self.create_action_helper()
@@ -415,7 +415,7 @@ class CloudGenerator(Generator):
 		wgt_collection = self.params.cloudrig_parameters.widget_collection
 		if wgt_collection:
 			return wgt_collection
-		
+
 		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").lower()
 
 		# Try finding the widgets collection anywhere.
@@ -575,14 +575,14 @@ class CloudGenerator(Generator):
 						var_b.name = "B"
 						target_b = var_b.targets[0]
 						target_b.data_path = f'pose.bones["{self.action_helper.name}"]["{trigger_b_con_name}"]'
-						
+
 						target_a.id = target_b.id = rig
 						continue
 
 					# Set up usage with Evaluation Time feature and a driver instead of old setup
 					if not hasattr(c, 'use_eval_time'):
 						continue
-					
+
 					c.use_eval_time = True
 					data_paths = [
 						f'pose.bones["{b.name}"].constraints["{c.name}"].eval_time'
@@ -625,7 +625,7 @@ class CloudGenerator(Generator):
 
 		if not self.obj.animation_data.action:
 			self.obj.animation_data.action = test_action
-		
+
 		return test_action
 
 	def save_parenting_info(self) -> dict:
@@ -655,9 +655,9 @@ class CloudGenerator(Generator):
 					constraint_bone_targets[c.name] = subtargets
 			self.children_data[child] = (child.parent_bone, constraint_bone_targets)
 			child.parent = None
-		
+
 		return self.children_data
-	
+
 	def restore_parenting_info(self):
 		obj = self.obj
 		for child, child_data in self.children_data.items():
@@ -686,8 +686,8 @@ class CloudGenerator(Generator):
 		in a different order than regular rig execution, and we also want to account for symmetry.
 
 		Usual rig execution is in order of hierarchical levels: highest level gets executed first,
-		then all second level rigs, then all third level rigs. 
-		For the animation, we need a hierarchy to be executed all the way down before moving on to 
+		then all second level rigs, then all third level rigs.
+		For the animation, we need a hierarchy to be executed all the way down before moving on to
 		the next one.
 
 		Symmetrical rigs should animate at the same time, and with the Y and Z axis rotations flipped.
@@ -727,7 +727,7 @@ class CloudGenerator(Generator):
 			for db in datablocks:
 				if not hasattr(db.animation_data, 'drivers'): continue
 				if not db.animation_data: continue
-				
+
 				for d in db.animation_data.drivers[:]:
 					db.animation_data.drivers.remove(d)
 
@@ -1003,7 +1003,7 @@ class CloudGenerator(Generator):
 
 		self.invoke_finalize()
 
-		# TODO: For some reason when cloud_bone adds constraints to a bone, 
+		# TODO: For some reason when cloud_bone adds constraints to a bone,
 		# sometimes those constraints can be invalid even though they aren't actually.
 		for pb in obj.pose.bones:
 			for c in pb.constraints:
@@ -1053,7 +1053,7 @@ class CloudGenerator(Generator):
 		t.tick("The rest: ")
 
 		self.cleanup()
-	
+
 	def cleanup(self):
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')

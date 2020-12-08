@@ -29,15 +29,15 @@ class Line:
 class RenderBuffer:
 	"""Keep track of things to draw, before actually drawing them.
 
-	The goal is to get similar behaviour as what the PyAPI already does with 
-	Blender's UI drawing. A UILayout object is passed to all draw() functions, 
+	The goal is to get similar behaviour as what the PyAPI already does with
+	Blender's UI drawing. A UILayout object is passed to all draw() functions,
 	and from in there, we call functions on it to add UI elements.
 
 	A RenderBuffer object instance is created in load_handler(), and passed
 	to all CloudRig rig types' draw_overlay() functions, where they can draw
-	whatever they want. 
-	
-	The implementation provides an abstraction layer top of the PyAPI's gpu 
+	whatever they want.
+
+	The implementation provides an abstraction layer top of the PyAPI's gpu
 	module, just to keep the code in the draw_overlay()	functions nice and clean.
 
 	We currently only create one RenderBuffer instance, but you could create
@@ -50,7 +50,7 @@ class RenderBuffer:
 		self.lines = []
 
 		self.parent_object = parent_object
-	
+
 	def draw_line_3d(self, vec1, vec2, size=3, color=(1.0, 1.0, 0.0, 1.0)):
 		self.lines.append(Line(vec1.copy(), vec2.copy(), size, color))
 
@@ -69,7 +69,7 @@ class RenderBuffer:
 	def draw_all(self):
 		for line in self.lines:
 			points = (line.vec1, line.vec2)
-			
+
 			# TODO: This code doesn't really belong here. It can go in utilities/math or so, and then called from each rigs' draw_overlay(). Otherwise, if a rig wanted to draw an overlay that isn't parented to the armature object, it couldn't... although, maybe that's fine... HMMM....
 			if self.parent_object:
 				line_matrix = ( Matrix.Translation(line.vec1),

@@ -54,7 +54,7 @@ class CloudTweakRig(CloudBaseRig):
 			meta_bg = meta_bone.bone_group
 			if meta_bg:
 				bg_name = meta_bg.name
-				
+
 				new_set = BoneSet(self,
 					ui_name = bg_name
 					,bone_group = bg_name

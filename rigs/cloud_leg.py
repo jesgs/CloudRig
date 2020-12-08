@@ -25,7 +25,7 @@ class CloudLegRig(CloudLimbRig):
 	def initialize(self):
 		"""Gather and validate data about the rig."""
 		super().initialize()
-		
+
 		# UI Strings and Custom Property names
 
 		if self.limb_name == "Arm":
@@ -131,7 +131,7 @@ class CloudLegRig(CloudLimbRig):
 		# Toe is not relevant for IK/FK switching.
 		ui_data['map_off'] = ui_data['map_off'][:-1]
 		if self.params.CR_ik_chain_world_aligned and self.params.CR_leg_use_foot_roll:
-			# In the case of world aligned IK control + footroll, we must 
+			# In the case of world aligned IK control + footroll, we must
 			# snap the FK foot to a specialized helper bone rather than any IK bone.
 			ui_data['map_off'][-1] = (ui_data['map_off'][-1][0], self.foot_snap_bone.name)
 
@@ -174,8 +174,8 @@ class CloudLegRig(CloudLimbRig):
 
 		# Create ROLL control behind the foot
 
-		# To get the position,  project a line out of the knee bone, then find 
-		# the point on that line which is closest the toe bone's tail, then 
+		# To get the position,  project a line out of the knee bone, then find
+		# the point on that line which is closest the toe bone's tail, then
 		# move it away from the toe bone and then back up along the knee bone.
 
 		# The tail should point toward the toe bone but stay perpendicular to the knee bone.

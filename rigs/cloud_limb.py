@@ -100,7 +100,7 @@ class CloudLimbRig(CloudIKChainRig):
 			shape_name="Hand_IK"
 		ik_master = super().create_ik_master(bone_set, source_bone, bone_name, shape_name)
 		ik_master.custom_shape_scale = 0.8
-		
+
 		return ik_master
 
 	def make_fk_chain(self):
@@ -110,9 +110,9 @@ class CloudLimbRig(CloudIKChainRig):
 		elbow_knee = self.org_chain[1].fk_bone
 		elbow_knee.lock_rotation[1] = elbow_knee.lock_rotation[2] = self.params.CR_limb_lock_yz
 
-	def apply_parent_switching(self, 
-			child_bone=None, 
-			prop_bone=None, prop_name="", 
+	def apply_parent_switching(self,
+			child_bone=None,
+			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
 		"""Overrides cloud_base."""
@@ -129,7 +129,7 @@ class CloudLimbRig(CloudIKChainRig):
 			# TODO: These checks for CR_limb_double_ik should be replaced with a @property.
 
 		super().setup_ik_pole_parent_switch(ik_mstr, ik_parents_prop_name)
-	
+
 	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Override."""
 		ui_data = super().create_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
@@ -173,7 +173,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 
 	def setup_rubber_hose(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo]):
-		""" Add translating Transformation constraints to str_upper and 
+		""" Add translating Transformation constraints to str_upper and
 			str_lower controls, driven by org_elbow. (Also meant for legs)
 		"""
 
@@ -213,7 +213,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 	def make_rubber_hose_control(self) -> BoneInfo:
 		org_elbow = self.org_chain[1]
-		
+
 		control_bone = self.fk_extras.new(
 			name = org_elbow.name.replace("ORG", "AutoRubberHose")
 			,source = org_elbow
@@ -309,8 +309,8 @@ class CloudLimbRig(CloudIKChainRig):
 				driver_to_min_z['expression'] += " * -1"
 				driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
 				trans_con.drivers.append(driver_to_min_z)
-			
-			# Scale the main STR bone on local Y to get a smooth curve 
+
+			# Scale the main STR bone on local Y to get a smooth curve
 			# in spite of Sharp Sections parameter being enabled.
 			if i==1:
 				main_str = str_list[0].prev
@@ -378,7 +378,7 @@ class CloudLimbRig(CloudIKChainRig):
 				driver_to_min_y = {
 					'prop' : 'to_min_y'
 					,'expression' : f"(abs(x + z)/pi) * {org_elbow.length/4}"
-					,'variables' : 
+					,'variables' :
 						{
 							'x' : var_x,
 							'z' : var_z,

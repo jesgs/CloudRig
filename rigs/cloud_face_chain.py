@@ -17,14 +17,14 @@ class CloudFaceChainRig(CloudChainRig):
 		for rig in self.generator.rig_list:
 			if isinstance(rig, type(self)):
 				self.chain_rigs.append(rig)
-		
+
 		self.is_last_chain_rig = self == self.chain_rigs[-1]
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		# This bone set is special in that its .new() function should never be 
-		# called, and therefore it never creates any bones. However, pre-existing 
-		# STR bones who then had a merged control created for them will be assigned 
+		# This bone set is special in that its .new() function should never be
+		# called, and therefore it never creates any bones. However, pre-existing
+		# STR bones who then had a merged control created for them will be assigned
 		# the bone group and layer of this BoneSet.
 		self.sub_controls = self.ensure_bone_set("Sub Controls")
 		self.merged_controls = self.ensure_bone_set("Merged Controls")
@@ -85,7 +85,7 @@ class CloudFaceChainRig(CloudChainRig):
 
 	@staticmethod
 	def group_str_bones(chain_rigs):
-		"""Gather a list of lists of more than one STR bones that are in the same 
+		"""Gather a list of lists of more than one STR bones that are in the same
 		location as another STR bone from another face_chain rig with
 		CR_face_chain_merge==True.
 		"""
@@ -109,7 +109,7 @@ class CloudFaceChainRig(CloudChainRig):
 						str_bone.group = other_str.group
 					else:
 						str_bone.group = other_str.group = [str_bone, other_str]
-		
+
 		return all_str_bones
 
 	@staticmethod
@@ -204,7 +204,7 @@ class CloudFaceChainRig(CloudChainRig):
 					,source = str_bone
 					,parent = intersection_control
 				)
-				
+
 				local_helper = str_bone.local_helper = rig.face_mch.new(
 					name = rig.naming.add_prefix(str_bone, "I-H-L")
 					,source = str_bone
@@ -247,7 +247,7 @@ class CloudFaceChainRig(CloudChainRig):
 				,space_object = rig.obj
 				,space_subtarget = intersection_control.name
 			)
-		
+
 		return intersection_control
 
 	@staticmethod
@@ -256,9 +256,9 @@ class CloudFaceChainRig(CloudChainRig):
 		constraint, create a parent bone and move the armature constraint to that.
 		"""
 
-		# Armature constraints turn parenting into local matrix, which 
+		# Armature constraints turn parenting into local matrix, which
 		# messes up DT helper bones that rely on that local rotation.
-		# So if Smooth Spline param is enabled and we are relinking an 
+		# So if Smooth Spline param is enabled and we are relinking an
 		# armature constraint, make a separate bone for it.
 		for str_bone in all_str_bones:
 			for c in str_bone.constraint_infos:
