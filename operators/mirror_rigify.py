@@ -5,16 +5,23 @@ from bpy.props import BoolProperty
 def copy_rigify_params(from_bone, to_bone, mirror=False):
 	for key, value in from_bone.rigify_parameters.items():
 		try:
-			if type(value==str) and mirror:
+			if type(value)==str and mirror:
 				value = flip_name(value)
+			# Collection Properties!
+			elif type(value)==list:
+				other_coll = getattr(to_bone.rigify_parameters, key)
+				other_coll.clear()
+				for entry in value:
+					new = other_coll.add()
+					for sub_key in entry.to_dict().keys():
+						sub_value = entry.to_dict()[sub_key]
+						if type(sub_value)==str and mirror:
+							sub_value = flip_name(sub_value)
+						setattr(new, sub_key, sub_value)
+				continue
 			setattr(to_bone.rigify_parameters, key, value)
 		except:
 			pass
-	to_bone.bone.parent_slots.clear()
-	for ps in from_bone.bone.parent_slots:
-		new_ps = to_bone.bone.parent_slots.add()
-		new_ps.name = ps.name if not mirror else flip_name(ps.name)
-		new_ps.bone = ps.bone if not mirror else flip_name(ps.bone)
 
 class MirrorRigifyParameters(bpy.types.Operator):
 	"""Mirror rigify type and parameters of selected bones"""
