@@ -1052,16 +1052,12 @@ class CloudGenerator(Generator):
 						c.rest_length = con_info.rest_length
 					else:
 						c.rest_length = 0
-		self.logger.report_unused_named_layers()
-		self.logger.report_invalid_drivers()
-		self.logger.report_widgets(self.wgt_collection)
 
 		# Only leave Force Widget Update enabled until a successful generation.
 		self.metarig.data.rigify_force_widget_update = False
 
-		t.tick("The rest: ")
-
 		self.cleanup()
+		t.tick("The rest: ")
 
 	def cleanup(self):
 		# Deconfigure
@@ -1073,12 +1069,15 @@ class CloudGenerator(Generator):
 		if hasattr(self, 'children_data'):
 			self.restore_parenting_info()
 
+		self.logger.report_unused_named_layers()
+		self.logger.report_widgets(self.wgt_collection)
+
 		# Restore rig object matrix to what it was before generation.
 		if hasattr(self, 'backup_matrix'):
 			self.obj.matrix_world = self.backup_matrix
 
 		# Refresh drivers
-		bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
+		self.logger.report_invalid_drivers()
 
 
 def generate_rig(context, metarig):

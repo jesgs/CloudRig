@@ -220,23 +220,40 @@ class CloudLogManager:
 					,note = str(i)
 				)
 
+	def report_invalid_drivers_on_datablock(self, datablock):
+		# No matter how hard I try, this refuses to work. the is_valid flag seems to not get updated until the generate operator is entirely finished.
+		if not datablock: return
+		if not hasattr(datablock, "animation_data"): return
+		if not datablock.animation_data: return
+		try:
+			for d in datablock.animation_data.drivers:
+				d.driver.type = d.driver.type
+				if not d.is_valid:
+					print(d)
+					self.log("Invalid Driver"
+						,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
+						,icon = 'DRIVER'
+						,note = o.name
+					)
+		except:
+			# "StructRNA of type Object has been removed", don't know why this happens.
+			pass
+
 	def report_invalid_drivers(self):
 		rig = self.rig
-		objects = get_object_hierarchy_recursive(rig)
+		objects = get_object_hierarchy_recursive(rig, all_objects=[])
+
 		for o in objects:
-			try:
-				if not (hasattr(o, 'animation_data') and o.animation_data):
-					continue
-				for d in o.animation_data.drivers:
-					if not d.is_valid:
-						self.log("Invalid Driver"
-							,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
-							,icon = 'DRIVER'
-							,note = o.name
-						)
-			except:
-				# "StructRNA of type Object has been removed", don't know why this happens.
-				pass
+			self.report_invalid_drivers_on_datablock(o)
+			if hasattr(o, "data") and o.data:
+				self.report_invalid_drivers_on_datablock(o.data)
+			if o.type=='MESH':
+				self.report_invalid_drivers_on_datablock(o.data.shape_keys)
+
+			for ms in o.material_slots:
+				if ms.material:
+					self.report_invalid_drivers_on_datablock(ms.material)
+					self.report_invalid_drivers_on_datablock(ms.material.node_tree)
 
 	def report_widgets(self, widget_collection):
 		"""Find and log unused and duplicate widgets."""
