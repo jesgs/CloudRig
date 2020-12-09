@@ -243,13 +243,25 @@ class ActionSlot(bpy.types.PropertyGroup):
 		default="LOCAL"
 	)
 
-	frame_start: IntProperty(name="Start Frame")
-	frame_end: IntProperty(name="End Frame",
-		default=2)
-	trans_min: FloatProperty(name="Min",
-		default=-0.05)
-	trans_max: FloatProperty(name="Max",
-		default=0.05)
+	frame_start: IntProperty(
+		name		 = "Start Frame"
+		,description = "First frame of the action's timeline"
+	)
+	frame_end: IntProperty(
+		name		 = "End Frame"
+		,default	 = 2
+		,description = "Last frame of the action's timeline"
+	)
+	trans_min: FloatProperty(
+		name		 = "Min"
+		,default	 = -0.05
+		,description = "Value that the transformation value must reach to put the action's timeline to the first frame. Rotations are in degrees"
+	)
+	trans_max: FloatProperty(
+		name		 = "Max"
+		,default	 = 0.05
+		,description = "Value that the transformation value must reach to put the action's timeline to the last frame. Rotations are in degrees"
+	)
 
 	is_corrective: BoolProperty(
 		name = "Corrective"

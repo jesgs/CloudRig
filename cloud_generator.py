@@ -3,6 +3,7 @@ import traceback
 from typing import List
 from datetime import datetime
 
+import math
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
 from rna_prop_ui import rna_idprop_ui_prop_get
@@ -600,7 +601,15 @@ class CloudGenerator(Generator):
 						var_range = c.max - c.min
 						range_mid = c.min + (c.max - c.min)/2
 
-						driver.expression = f'(var - {range_mid}) / {var_range} + 0.5'
+						expression = f'(var - {range_mid}) / {var_range} + 0.5'
+						if range_mid==0:
+							expression = f'var / {var_range} + 0.5'
+
+						# Convert rotation to degrees as promised in the tooltip.
+						if 'ROTATION' in act_slot.transform_channel:
+							expression = expression.replace('var', 'var*180/pi')
+
+						driver.expression = expression
 						var = driver.variables.new()
 						var.type = 'TRANSFORMS'
 						target = var.targets[0]
