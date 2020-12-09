@@ -8,7 +8,7 @@ blender_version = float(str(bpy.app.version[0]) + "." + str(bpy.app.version[1]) 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 8
+cloud_metarig_version = 9
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	# Enum properties are a bit tricky because once their definition is lost their string value is lost and is left with an int.
@@ -207,6 +207,20 @@ def version_cloud_metarig(metarig):
 					def_name = parent.name.replace("ORG", "DEF")
 					pb.rigify_parameters['CR_base_parent'] = def_name
 					print(f"Convert param {pb.name}: CR_fk_chain_def_parenting -> CR_base_parent ({def_name})")
+	if data.cloudrig_parameters.version < 9:
+		print(9)
+		# Rigify now supports CollectionProperty parameters, so we no longer need to store
+		# the parent switching list on bpy.types.Bone.
+		for pb in metarig.pose.bones:
+			b = pb.bone
+			if 'parent_slots' in b.keys():
+				for i, old_slot in enumerate(b['parent_slots']):
+					new_slot = pb.rigify_parameters.CR_base_parent_slots.add()
+					new_slot.name = old_slot['name']
+					new_slot.bone = old_slot['bone']
+				del b['parent_slots']
+				pb.rigify_parameters.CR_base_active_parent_slot_index = b['active_parent_slot_index']
+				del b['active_parent_slot_index']
 
 def do_metarig_versioning():
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]

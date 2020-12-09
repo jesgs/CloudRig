@@ -16,20 +16,20 @@ class CLOUDRIG_OT_Parent_Remove(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		bone = context.active_pose_bone.bone
-		return len(bone.parent_slots)>0
+		pbone = context.active_pose_bone
+		return len(pbone.rigify_parameters.CR_base_parent_slots)>0
 
 	def execute(self, context):
-		bone = context.active_pose_bone.bone
-		parent_slots = bone.parent_slots
-		active_index = bone.active_parent_slot_index
+		pbone = context.active_pose_bone
+		parent_slots = pbone.rigify_parameters.CR_base_parent_slots
+		active_index = pbone.rigify_parameters.CR_base_active_parent_slot_index
 		# This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
 		to_index = active_index
 		if to_index>len(parent_slots)-2:
 			to_index=len(parent_slots)-2
 
-		bone.parent_slots.remove(self.index)
-		bone.active_parent_slot_index = to_index
+		parent_slots.remove(self.index)
+		pbone.rigify_parameters.CR_base_active_parent_slot_index = to_index
 
 		return { 'FINISHED' }
 
@@ -41,16 +41,16 @@ class CLOUDRIG_OT_Parent_Add(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	def execute(self, context):
-		bone = context.active_pose_bone.bone
-		parent_slots = bone.parent_slots
-		active_index = bone.active_parent_slot_index
+		pbone = context.active_pose_bone
+		parent_slots = pbone.rigify_parameters.CR_base_parent_slots
+		active_index = pbone.rigify_parameters.CR_base_active_parent_slot_index
 		to_index = active_index + 1
 		if len(parent_slots)==0:
 			to_index = 0
 
-		bone.parent_slots.add()
-		bone.parent_slots.move(len(bone.parent_slots)-1, to_index)
-		bone.active_parent_slot_index = to_index
+		parent_slots.add()
+		parent_slots.move(len(parent_slots)-1, to_index)
+		pbone.rigify_parameters.CR_base_active_parent_slot_index = to_index
 
 		return { 'FINISHED' }
 
@@ -72,13 +72,13 @@ class CLOUDRIG_OT_Parent_Move(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		bone = context.active_pose_bone.bone
-		return len(bone.parent_slots)>1
+		pbone = context.active_pose_bone
+		return len(pbone.rigify_parameters.CR_base_parent_slots)>1
 
 	def execute(self, context):
-		bone = context.active_pose_bone.bone
-		parent_slots = bone.parent_slots
-		active_index = bone.active_parent_slot_index
+		pbone = context.active_pose_bone
+		parent_slots = pbone.rigify_parameters.CR_base_parent_slots
+		active_index = pbone.rigify_parameters.CR_base_active_parent_slot_index
 		to_index = active_index + (1 if self.direction=='DOWN' else -1)
 
 		if to_index > len(parent_slots)-1:
@@ -86,8 +86,8 @@ class CLOUDRIG_OT_Parent_Move(bpy.types.Operator):
 		if to_index < 0:
 			to_index = len(parent_slots)-1
 
-		bone.parent_slots.move(active_index, to_index)
-		bone.active_parent_slot_index = to_index
+		parent_slots.move(active_index, to_index)
+		pbone.rigify_parameters.CR_base_active_parent_slot_index = to_index
 
 		return { 'FINISHED' }
 
@@ -95,8 +95,8 @@ class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
-		bone = context.active_pose_bone.bone
-		for i, parent_slot in enumerate(bone.parent_slots):
+		pbone = context.active_pose_bone
+		for i, parent_slot in enumerate(pbone.rigify_parameters.CR_base_parent_slots):
 			if item==parent_slot:
 				break
 		parent_slot = item
@@ -112,18 +112,18 @@ class ParentSlot(bpy.types.PropertyGroup):
 	name: StringProperty(name="Name", description="Name to display in the UI")
 	bone: StringProperty(name="Bone", description="Bone to use as the available parent")
 
-def draw_cloudrig_parents(layout, bone):
-	active_index = bone.active_parent_slot_index
+def draw_cloudrig_parents(layout, pbone):
+	active_index = pbone.rigify_parameters.CR_base_active_parent_slot_index
 
 	row = layout.row()
 
 	row.template_list(
 		'CLOUDRIG_UL_parent_slots',
 		'',
-		bone,
-		'parent_slots',
-		bone,
-		'active_parent_slot_index',
+		pbone.rigify_parameters,
+		'CR_base_parent_slots',
+		pbone.rigify_parameters,
+		'CR_base_active_parent_slot_index',
 	)
 
 	col = row.column()
@@ -149,13 +149,7 @@ def register():
 	for c in classes:
 		register_class(c)
 
-	bpy.types.Bone.parent_slots = CollectionProperty(type=ParentSlot)
-	bpy.types.Bone.active_parent_slot_index = IntProperty()
-
 def unregister():
 	from bpy.utils import unregister_class
 	for c in reversed(classes):
 		unregister_class(c)
-
-	del bpy.types.Bone.parent_slots
-	del bpy.types.Bone.active_parent_slot_index

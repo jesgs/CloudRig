@@ -12,10 +12,10 @@ from ..utils.animation import CloudAnimationMixin
 from ..utils.object import CloudObjectUtilitiesMixin
 
 # The rest
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, StringProperty, CollectionProperty, PointerProperty, IntProperty
 from mathutils import Vector
 from enum import Enum
-from ..parent_switching import draw_cloudrig_parents
+from ..parent_switching import draw_cloudrig_parents, ParentSlot
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0
@@ -220,7 +220,7 @@ class CloudBaseRig(
 		parent_bones = []
 		parent_names = []
 
-		parent_slots = self.meta_base_bone.bone.parent_slots
+		parent_slots = self.params.CR_base_parent_slots
 		for i, ps in enumerate(parent_slots):
 			if ps.bone=="":
 				self.add_log(
@@ -354,6 +354,8 @@ class CloudBaseRig(
 			,description = "If specified, parent the root of this rig to the chosen bone"
 			,default	 = ""
 		)
+		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
+		params.CR_base_active_parent_slot_index = IntProperty()
 
 		cls.define_bone_sets(params)
 
@@ -406,6 +408,6 @@ class CloudBaseRig(
 
 		cls.draw_prop(layout, params, "CR_base_parent_switching")
 		if params.CR_base_parent_switching:
-			draw_cloudrig_parents(layout, context.active_pose_bone.bone)
+			draw_cloudrig_parents(layout, context.active_pose_bone)
 
 		return layout
