@@ -122,6 +122,9 @@ class CloudChainRig(CloudBaseRig):
 						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
 					to_bone = self.main_str_bones[i+1]
 
+				if c.type=='ARMATURE':
+					to_bone = self.create_parent_bone(to_bone, self.parent_switch_bones)
+
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				for d in c.drivers:
