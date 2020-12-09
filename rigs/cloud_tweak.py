@@ -2,22 +2,29 @@ from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
 from ..bone import BoneInfo, BoneSet
 
+"""TODO
+We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds it if it isn't already there. 
+This means one of our bones will get a .001 in its name...
+"""
+
 class CloudTweakRig(CloudBaseRig):
 	"""Tweak a single bone with the same name as this bone in the generated rig."""
 
 	def initialize(self):
 		super().initialize()
 
-		self.orgless_name = self.base_bone.replace("ORG-", "")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		self.tweak_bone = tweak_bone = self.generator.find_bone_info(self.orgless_name)
-		meta_bone = self.meta_bone(self.orgless_name)
+		meta_bone = self.meta_bone(self.base_bone)
+		if not meta_bone:
+			orgless_name = self.base_bone.replace("ORG-", "", 1)
+			meta_bone = self.meta_bone(orgless_name)
+
+		self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
 		org_bi = self.org_chain[0]
 
 		if not tweak_bone:
-			self.add_log("No bone to tweak", trouble_bone=self.orgless_name, description=f"Could not find a bone called {self.orgless_name} on the generated rig.")
+			self.add_log("No bone to tweak", trouble_bone=orgless_name, description=f"Could not find a bone called {orgless_name} on the generated rig.")
 			return
 
 		if self.params.CR_tweak_transforms:
