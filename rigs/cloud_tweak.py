@@ -56,7 +56,7 @@ class CloudTweakRig(CloudBaseRig):
 				self.add_to_widget_collection(org_bi.custom_shape)
 
 		if self.params.CR_tweak_group:
-			# TODO: This code overlaps a lot with cloud_bone, maybe it could be shared somehow?
+			# TODO: This code overlaps a lot with cloud_copy, maybe it could be shared somehow?
 			# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
 			meta_bg = meta_bone.bone_group
 			if meta_bg:
@@ -100,8 +100,7 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.bbone_x = org_bi.bbone_x
 			tweak_bone.bbone_z = org_bi.bbone_z
 
-		# # Parenting
-		# bendy_parenting(tweak_bone, self.params.CR_base_parent)
+		org_bi.layers = self.parent_switch_bones.layers[:]
 
 	def relink(self):
 		# Transfer and relink constraints and their drivers

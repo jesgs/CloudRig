@@ -1012,7 +1012,7 @@ class CloudGenerator(Generator):
 
 		self.invoke_finalize()
 
-		# TODO: For some reason when cloud_bone adds constraints to a bone,
+		# TODO: For some reason when cloud_tweak adds constraints to a bone,
 		# sometimes those constraints can be invalid even though they aren't actually.
 		for pb in obj.pose.bones:
 			for c in pb.constraints:
