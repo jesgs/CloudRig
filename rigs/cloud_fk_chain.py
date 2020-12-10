@@ -1,7 +1,7 @@
 from typing import List
 from ..bone import BoneInfo
 
-from bpy.props import BoolProperty, StringProperty, IntVectorProperty, BoolVectorProperty
+from bpy.props import BoolProperty, StringProperty, IntVectorProperty, BoolVectorProperty, EnumProperty
 
 from .cloud_chain import CloudChainRig
 
@@ -93,6 +93,7 @@ class CloudFKChainRig(CloudChainRig):
 				,source				= org_bone
 				,custom_shape 		= self.ensure_widget("FK_Limb")
 				,parent				= org_bone.parent
+				,inherit_scale		= self.params.CR_fk_chain_inherit_scale
 			)
 			org_bone.fk_bone = fk_bone
 			if i == 0:
@@ -298,6 +299,18 @@ class CloudFKChainRig(CloudChainRig):
 			name="FK Settings"
 			,description = "Reveal settings for the cloud_fk_chain rig type"
 		)
+		params.CR_fk_chain_inherit_scale = EnumProperty(
+			 name		 = "Inherit Scale"
+			,description = "Scale inheritance type for FK controls"
+			,items		 = [
+				('NONE', 'None', "Completely ignore parent scaling")
+				,('AVERAGE', 'Average', "Inherit uniform scaling representing the overall change in the volume of the parent")
+				,('ALIGNED', 'Aligned', "Rotate non-uniform parent scaling to align with the child, applying parent X scale to child X axis, and so forth")
+				,('FIX_SHEAR', 'Fix Shear', "Inherit scaling, but remove shearing of the child in the rest orientation")
+				,('FULL', 'Full', "Inherit all affects of parent scaling")
+			]
+			,default	 = 'ALIGNED'
+		)
 		params.CR_fk_chain_display_center = BoolProperty(
 			 name		 = "Display FK in center"
 			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
@@ -393,6 +406,7 @@ class CloudFKChainRig(CloudChainRig):
 		cls.draw_prop(col, params, 'CR_fk_chain_limb_name', new_row=False, text="")
 		col.enabled = params.CR_fk_chain_use_limb_name
 
+		cls.draw_prop(layout, params, 'CR_fk_chain_inherit_scale')
 		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
