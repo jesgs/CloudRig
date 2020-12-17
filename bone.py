@@ -114,6 +114,8 @@ def driver_from_real(driver):
 				target_info['data_path'] = t.data_path
 			else:
 				target_info['bone_target'] = t.bone_target
+				target_info['transform_type'] = t.transform_type
+				target_info['transform_space'] = t.transform_space
 			ret['variables'][-1]['targets'].append(target_info)
 	return ret
 
@@ -276,7 +278,9 @@ class BoneSet(LinkedList):
 				for data_path, array_index in driver_map[bone_info.name]:
 					fcurve = rig.animation_data.drivers.find(data_path, index=array_index)
 					driver = fcurve.driver
-					path_from_last = data_path.split('"].')[-1]
+					path_from_last = "." + data_path.split('"].')[-1]
+					if path_from_last.endswith('"]'):
+						path_from_last = "[" + path_from_last.split("][")[-1]
 					driver_info = driver_from_real(driver)
 					driver_info['prop'] = path_from_last
 					if 'constraints' in fcurve.data_path:
@@ -613,7 +617,7 @@ class BoneInfo:
 		for ci in self.constraint_infos:
 			con = ci.make_real(pb)
 			for driver_info in ci.drivers:
-				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"].{driver_info["prop"]}'
+				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"]{driver_info["prop"]}'
 				make_driver(armature, target_id=armature, **driver_info)
 
 		# Custom Properties.
@@ -622,12 +626,12 @@ class BoneInfo:
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:
-			driver_info['prop'] = f'pose.bones["{pb.name}"].{driver_info["prop"]}'
+			driver_info['prop'] = f'pose.bones["{pb.name}"]{driver_info["prop"]}'
 			make_driver(armature, target_id=armature, **driver_info)
 
 		# Data Bone Drivers.
 		for driver_info in self.drivers_data:
-			driver_info['prop'] = f'bones["{pb.name}"].{driver_info["prop"]}'
+			driver_info['prop'] = f'bones["{pb.name}"]{driver_info["prop"]}'
 			make_driver(armature.data, target_id=armature, **driver_info)
 
 	def clone(self, new_name=None):
@@ -725,6 +729,14 @@ class ConstraintInfo(dict):
 
 	def relink(self):
 		"""Allow the Rigify relink naming convention of an @ symbol separating the constraint name from a list of subtargets separated by commas."""
+
+		if "@" not in self.name:
+			if self.type=='ARMATURE':
+				for i, t in enumerate(self.targets):
+					if t == metarig:
+						self.targets[i] = rig
+			return
+		
 		split_name = self.name.split("@")
 		subtargets = split_name[1:]
 		self.name = split_name[0]
