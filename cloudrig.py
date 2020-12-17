@@ -1058,7 +1058,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 				if "$"+prop_id in prop_owner and type(value)==int:
 					names = prop_owner["$"+prop_id]
 					if value > len(names)-1:
-						print(f"Warning: Name list for this property is not long enough for current value: {prop_id}")
+						print(f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}")
 						return text
 					return text + ": " + names[value]
 				else:

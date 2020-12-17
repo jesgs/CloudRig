@@ -35,7 +35,6 @@ modules = [
 ]
 
 def register():
-	print("Registering CloudRig.")
 	from bpy.utils import register_class
 	for m in modules:
 		importlib.reload(m)

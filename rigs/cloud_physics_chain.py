@@ -100,8 +100,6 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			elif self.params.CR_physics_chain_pin_falloff == 'SQRT':
 				pin_weight = sqrt(ratio)
 
-			print("pin weight: " + str(pin_weight))
-
 			vg = cloth_ob.vertex_groups.new(name=name)
 			vg.add([i], 1, 'REPLACE')
 			pin_vg.add([i], pin_weight, 'REPLACE')

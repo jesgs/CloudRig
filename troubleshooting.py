@@ -221,7 +221,6 @@ class CloudLogManager:
 				)
 
 	def report_invalid_drivers_on_datablock(self, datablock):
-		# No matter how hard I try, this refuses to work. the is_valid flag seems to not get updated until the generate operator is entirely finished.
 		if not datablock: return
 		if not hasattr(datablock, "animation_data"): return
 		if not datablock.animation_data: return
@@ -229,6 +228,7 @@ class CloudLogManager:
 			for d in datablock.animation_data.drivers:
 				d.driver.type = d.driver.type
 				if not d.is_valid:
+					# TODO: This refuses to work. the is_valid flag seems to not get updated until the generate operator is entirely finished.
 					print(d)
 					self.log("Invalid Driver"
 						,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
