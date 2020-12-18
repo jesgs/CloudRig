@@ -1102,8 +1102,10 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 					if parent_prop_value not in values: continue
 
 					# Drawing children.
-					childrens_box = layout.box()
+					childrens_box = None
 					for child_prop_name in prop_hierarchy[parent_prop_name]:
+						if not childrens_box:
+							childrens_box = layout.box()
 						add_prop(childrens_box, prop_owner, child_prop_name)
 
 				# Marking child props as done drawing. (Regardless of whether they were actually drawn or not, since if the parent is disabled, we don't want to draw them.)
