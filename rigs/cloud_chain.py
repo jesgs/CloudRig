@@ -307,7 +307,7 @@ class CloudChainRig(CloudBaseRig):
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone
-			,inherit_scale = 'ALIGNED'
+			,inherit_scale = 'NONE'
 			,overwrite = True
 		)
 		tangent_helper.add_constraint('COPY_SCALE'
