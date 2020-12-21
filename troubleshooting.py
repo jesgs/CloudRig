@@ -3,6 +3,16 @@ import json
 import webbrowser
 import os
 
+import time
+
+import struct
+import platform
+import urllib.parse
+import io
+import importlib
+
+import traceback
+
 from bpy.props import StringProperty, IntProperty
 
 from .utils import naming
@@ -20,8 +30,8 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmetrical transformations
 	- Symmetrically named rigs have asymmmetrical constraints
 """
+
 def cloudrig_last_modified() -> str:
-	import time
 	"""Return the date at which the most recent CloudRig .py file was modified.
 
 	Used in the bug report form pre-fill.
@@ -39,12 +49,6 @@ def cloudrig_last_modified() -> str:
 	return time.strftime('%Y-%m-%d %H:%M', time.gmtime(max_mtime))
 
 def url_prefill_from_cloudrig(stack_trace=""):
-	import struct
-	import platform
-	import urllib.parse
-	import io
-	import importlib
-
 	fh = io.StringIO()
 
 	fh.write("**System Information**\n")
@@ -100,7 +104,6 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	)
 
 def get_pretty_stack() -> str:
-	import traceback
 	ret = []
 	stack = traceback.extract_stack()
 	after_generator = False
@@ -174,6 +177,7 @@ class CloudLogManager:
 		,operator = 'wm.cloudrig_report_bug'
 		,**kwargs
 	):
+		"""This should be used over asserts, especially when something small goes wrong that shouldn't halt generation."""
 		if 'op_kwargs' not in kwargs:
 			kwargs['op_kwargs'] = {}
 			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
