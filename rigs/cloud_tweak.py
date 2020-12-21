@@ -23,7 +23,7 @@ class CloudTweakRig(CloudBaseRig):
 		self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
 		org_bi = self.org_chain[0]
 
-		if not tweak_bone:
+		if not self.tweak_bone:
 			self.add_log("No bone to tweak", trouble_bone=orgless_name, description=f"Could not find a bone called {orgless_name} on the generated rig.")
 			return
 
@@ -110,6 +110,9 @@ class CloudTweakRig(CloudBaseRig):
 
 	def relink(self):
 		# Transfer and relink constraints and their drivers
+		if not self.tweak_bone:
+			return
+
 		org_bi = self.org_chain[0]
 		if not self.params.CR_tweak_constraints_additive:
 			self.tweak_bone.clear_constraints()
@@ -128,6 +131,8 @@ class CloudTweakRig(CloudBaseRig):
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
 		super().apply_custom_root_parent(self.tweak_bone)
+		if not self.tweak_bone:
+			return
 
 	##############################
 	# Parameters
