@@ -1001,7 +1001,16 @@ class CloudGenerator(Generator):
 		# Execute custom script
 		script = self.params.cloudrig_parameters.custom_script
 		if script:
-			exec(script.as_string(), {})
+			try:
+				exec(script.as_string(), {})
+			except Exception as e:
+				traceback_str = traceback.format_exc()
+				entry = self.logger.log(
+					"Post-Generation Script failed."
+					,description=f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
+					,note=str(e)
+				)
+				entry.pretty_stack = traceback_str
 
 		# Load and execute cloudrig.py rig UI script
 		obj.data['script'] = self.load_ui_script()
