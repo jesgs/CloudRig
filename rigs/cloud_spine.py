@@ -53,9 +53,21 @@ class CloudSpineRig(CloudFKChainRig):
 			self.make_ik_spine()
 		self.tweak_str_spine()
 
+		if self.params.CR_spine_double:
+			self.create_parent_bone(self.limb_root_bone, self.spine_parent_ctrls)
+
+	def apply_custom_root_parent(self, bone=None, parent_name=""):
+		"""Overrides cloud_base."""
+		if not bone:
+			bone = self.limb_root_bone
+			if self.params.CR_spine_double:
+				bone = bone.parent
+		if parent_name=="":
+			parent_name = self.params.CR_base_parent
+		self.bendy_parenting(bone, parent_name)
 
 	def make_root_bone(self):
-		"""Overrides."""
+		"""Overrides cloud_fk_chain."""
 
 		# Create Troso Master control
 		limb_root_bone = self.spine_main.new(
@@ -81,8 +93,6 @@ class CloudSpineRig(CloudFKChainRig):
 				,parent				= self.limb_root_bone
 		)
 		self.limb_root_bone.flatten()
-		if self.params.CR_spine_double:
-			double_mstr_pelvis = self.create_parent_bone(self.limb_root_bone, self.spine_parent_ctrls)
 
 		# Shift FK controls to their center.
 		for fk_bone in self.fk_chain:
