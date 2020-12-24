@@ -5,6 +5,7 @@ from bpy.props import BoolProperty, IntProperty
 from mathutils import Vector
 
 from .cloud_chain import CloudChainRig, CUSTOM_SPACE
+from .cloud_chain_anchor import CloudChainAnchorRig
 
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
@@ -141,15 +142,24 @@ class CloudFaceChainRig(CloudChainRig):
 
 		rig = bones[0].owner_rig
 
-		# Check the bones' parents to see if the desired control was already created.
 		intersection_control = None
-		for b in bones:
-			b.layers = b.owner_rig.sub_controls.layers[:]
-			if b.parent.name.startswith("STR-I"):
-				# print(f"{b.name} - This should never happen because every STR bone should only be passed to ensure_intersection_control() once!")
-				# TODO: I thought this should never happen, but it dooo
-				intersection_control = b.parent
-				break
+		# Search for an anchor rig
+		for anchor_rig in rig.generator.rig_list:
+			if isinstance(anchor_rig, CloudChainAnchorRig):
+				distance = (anchor_rig.org_chain[0].head - bones[0].head).length
+				if distance < 0.000001:
+					intersection_control = anchor_rig.org_chain[0]
+					break
+
+		# Check the bones' parents to see if the desired control was already created.
+		if not intersection_control:
+			for b in bones:
+				b.layers = b.owner_rig.sub_controls.layers[:]
+				if b.parent.name.startswith("STR-I"):
+					# print(f"{b.name} - This should never happen because every STR bone should only be passed to ensure_intersection_control() once!")
+					# TODO: I thought this should never happen, but it dooo
+					intersection_control = b.parent
+					break
 
 		if not intersection_control:
 			combined_name = rig.naming.combine_names(bones)
@@ -179,8 +189,8 @@ class CloudFaceChainRig(CloudChainRig):
 
 		# If bones are in the center, flatten them to make sure they produce a clean curvature.
 		if abs(intersection_control.head.x) < 0.001:
-			intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
-			intersection_control.roll = 0
+			# intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
+			# intersection_control.roll = 0
 			for b in bones:
 				flipped = rig.naming.flipped_name(b)
 				if flipped!=b.name:
@@ -269,7 +279,8 @@ class CloudFaceChainRig(CloudChainRig):
 				rig = bone.owner_rig
 				# bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
 				if c.type=='ARMATURE' and not hasattr(bone, 'arm_parent'):
-					bone.arm_parent = rig.create_parent_bone(bone, rig.face_mch)
+					bone.arm_parent = rig.create_parent_bone(bone, rig.parent_switch_bones)
+
 					bone.arm_parent.constraint_infos.append(c)
 				else:
 					bone.constraint_infos.append(c)
