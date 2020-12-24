@@ -175,12 +175,16 @@ class CloudAimRig(CloudBaseRig):
 			ui_area="misc_settings", row_name="", col_name=""
 		):
 		"""Overrides cloud_base."""
-		# Ensure parent switching for the group master
-		if self.group_master.parent and self.group_master.parent.name == "Parents_"+self.group_master.name:
-			# If the parent switching set-up already exists, don't create it again.
-			return
+		control_bone = self.group_master
+		if not control_bone:
+			control_bone = self.ctr_bone
+		else:
+			# Ensure parent switching for the group master
+			if self.group_master.parent and self.group_master.parent.name == "Parents_"+self.group_master.name:
+				# If the parent switching set-up already exists, don't create it again.
+				return
 		super().apply_parent_switching(
-			child_bone = self.group_master
+			child_bone = control_bone
 			,prop_bone = self.properties_bone
 			,ui_area = 'face_settings'
 			,col_name = self.params.CR_aim_group + " Parent"
