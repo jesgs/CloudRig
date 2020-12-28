@@ -842,12 +842,25 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		self.instantiate_rig_tree()
-		# cloud_tweak rigs should be pushed to the end of the list!
+		# HACK
+		# cloud_tweak rigs should be pushed to the end of the list! This is not too hacky, but:
+		# cloud_chain_anchor should be pushed to before the first cloud_face_chain. 
+		# Otherwise we have to parent all the anchors in a chain and parent the cloud_face_chain 
+		# rigs to the last anchor. And even when I did do that terribleness, it still wouldn't work...
 		from .rigs.cloud_tweak import CloudTweakRig
-		for rig in self.rig_list[:]:
-			if isinstance(rig, CloudTweakRig):
+		from .rigs.cloud_chain_anchor import CloudChainAnchorRig
+		from .rigs.cloud_face_chain import CloudFaceChainRig
+		first_face = -1
+		for i, rig in enumerate(self.rig_list[:]):
+			if isinstance(rig, CloudTweakRig) or isinstance(rig, CloudChainAnchorRig):
 				self.rig_list.remove(rig)
 				self.rig_list.append(rig)
+			if isinstance(rig, CloudFaceChainRig) and first_face==-1:
+				first_face = i
+		for rig in self.rig_list[:]:
+			if isinstance(rig, CloudChainAnchorRig):
+				self.rig_list.remove(rig)
+				self.rig_list.insert(first_face, rig)
 
 		t.tick("Instantiate rigs: ")
 

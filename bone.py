@@ -801,6 +801,12 @@ class ConstraintInfo(dict):
 				for prop in ['weight', 'target', 'subtarget']:
 					if prop in target_info:
 						setattr(target, prop, target_info[prop])
+		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those tweak bones end up targetting the ORG bone which is not good.
+				if target.subtarget.startswith("ORG-"):
+					target.subtarget = target.subtarget[4:]
+		else:
+			if hasattr(con, 'subtarget') and con.subtarget.startswith('ORG-'):
+				con.subtarget = con.subtarget[4:]
 
 		# Fix stretch constraints
 		if con_type == 'STRETCH_TO':
