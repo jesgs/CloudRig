@@ -35,9 +35,10 @@ class CloudFaceChainRig(CloudChainRig):
 		super().create_bone_infos()
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
-		# This is all code that needs to create or interact with intersection controls.
 		if not self.is_last_chain_rig:
 			return
+
+		# This is all code that needs to create or interact with intersection controls.
 
 		all_str_bones = self.group_str_bones(self.chain_rigs)
 		all_intersection_bones = self.ensure_intersection_controls(all_str_bones)
@@ -127,8 +128,7 @@ class CloudFaceChainRig(CloudChainRig):
 		intersection_controls = []
 		for str_bone in all_str_bones:
 			if hasattr(str_bone, 'group'):
-				rig = str_bone.owner_rig
-				intersection_control = rig.ensure_intersection_control(str_bone.group)
+				intersection_control = str_bone.owner_rig.ensure_intersection_control(str_bone.group)
 				if intersection_control not in intersection_controls:
 					intersection_controls.append(intersection_control)
 
@@ -274,16 +274,16 @@ class CloudFaceChainRig(CloudChainRig):
 		# So if Smooth Spline param is enabled and we are relinking an
 		# armature constraint, make a separate bone for it.
 		for str_bone in all_str_bones:
+			if isinstance(str_bone.owner_rig, CloudChainAnchorRig):
+				continue
 			for c in str_bone.constraint_infos:
-				bone = str_bone
-				rig = bone.owner_rig
-				# bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
-				if c.type=='ARMATURE' and not hasattr(bone, 'arm_parent'):
-					bone.arm_parent = rig.create_parent_bone(bone, rig.parent_switch_bones)
+				# str_bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
+				if c.type=='ARMATURE' and not hasattr(str_bone, 'arm_parent'):
+					str_bone.arm_parent = str_bone.owner_rig.create_parent_bone(str_bone, str_bone.owner_rig.parent_switch_bones)
 
-					bone.arm_parent.constraint_infos.append(c)
+					str_bone.arm_parent.constraint_infos.append(c)
 				else:
-					bone.constraint_infos.append(c)
+					str_bone.constraint_infos.append(c)
 				str_bone.constraint_infos.remove(c)
 
 	##############################
