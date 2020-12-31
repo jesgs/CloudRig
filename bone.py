@@ -113,6 +113,9 @@ def driver_from_real(driver):
 				target_info['id_type'] = t.id_type
 				target_info['data_path'] = t.data_path
 			else:
+				# HACK: drivers targetting existing bones (ie. cloud_copy/tweak bones) need ORG- stripped...
+				if t.bone_target.startswith("ORG-"):
+					t.bone_target = t.bone_target[4:]
 				target_info['bone_target'] = t.bone_target
 				target_info['transform_type'] = t.transform_type
 				target_info['transform_space'] = t.transform_space

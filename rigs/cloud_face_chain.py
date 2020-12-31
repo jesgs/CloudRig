@@ -143,12 +143,14 @@ class CloudFaceChainRig(CloudChainRig):
 		rig = bones[0].owner_rig
 
 		intersection_control = None
+		flatten = True
 		# Search for an anchor rig
 		for anchor_rig in rig.generator.rig_list:
 			if isinstance(anchor_rig, CloudChainAnchorRig):
 				distance = (anchor_rig.org_chain[0].head - bones[0].head).length
 				if distance < 0.000001:
 					intersection_control = anchor_rig.org_chain[0]
+					flatten = False
 					break
 
 		# Check the bones' parents to see if the desired control was already created.
@@ -189,8 +191,9 @@ class CloudFaceChainRig(CloudChainRig):
 
 		# If bones are in the center, flatten them to make sure they produce a clean curvature.
 		if abs(intersection_control.head.x) < 0.001:
-			# intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
-			# intersection_control.roll = 0
+			if flatten:
+				intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
+				intersection_control.roll = 0
 			for b in bones:
 				flipped = rig.naming.flipped_name(b)
 				if flipped!=b.name:
@@ -273,6 +276,8 @@ class CloudFaceChainRig(CloudChainRig):
 		# messes up DT helper bones that rely on that local rotation.
 		# So if Smooth Spline param is enabled and we are relinking an
 		# armature constraint, make a separate bone for it.
+
+		# TODO: This runs in a bunch of cases when it's not needed, like when all intersecting rigs have 0 bbone segments or Smooth Spline off.
 		for str_bone in all_str_bones:
 			if isinstance(str_bone.owner_rig, CloudChainAnchorRig):
 				continue
