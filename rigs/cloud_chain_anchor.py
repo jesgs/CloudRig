@@ -18,7 +18,7 @@ class CloudChainAnchorRig(CloudCopyRig):
 		meta_bone = self.meta_bone(bi.name)
 
 		if not meta_bone.custom_shape:
-			bi.custom_shape = self.load_widget('Cube')
+			bi.custom_shape = self.ensure_widget('Cube')
 		
 		if not meta_bone.bone_group:
 			pass # TODO: Add default bone group? Perhaps even add a whole Anchor BoneSet just for this?

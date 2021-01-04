@@ -12,7 +12,7 @@ Spline IK like controls(the other two types) for bendy bones' handles.
 Recursive generation of layers of STR controls... Little use case and lots of headache.
 """
 
-CUSTOM_SPACE = False	# TODO: This is now in master but smooth chains are apparently glitching again, whether this is True or False, when the character's root is rotated. What!?
+CUSTOM_SPACE = True	# TODO: This is now in master but smooth chains are apparently glitching again, whether this is True or False, when the character's root is rotated. What!?
 
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""

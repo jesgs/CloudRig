@@ -279,8 +279,8 @@ class CloudFaceChainRig(CloudChainRig):
 
 		# TODO: This runs in a bunch of cases when it's not needed, like when all intersecting rigs have 0 bbone segments or Smooth Spline off.
 		for str_bone in all_str_bones:
-			if isinstance(str_bone.owner_rig, CloudChainAnchorRig):
-				continue
+			# if isinstance(str_bone.owner_rig, CloudChainAnchorRig):
+			# 	continue
 			for c in str_bone.constraint_infos:
 				# str_bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
 				if c.type=='ARMATURE' and not hasattr(str_bone, 'arm_parent'):
