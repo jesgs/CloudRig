@@ -637,6 +637,47 @@ class CloudGenerator(Generator):
 
 		return test_action
 
+	def create_test_animation(self, action):
+		"""Generate deformation test animation.
+
+		In order to generate the test animation, we need to call add_test_animation() on rigs
+		in a different order than regular rig execution, and we also want to account for symmetry.
+
+		Usual rig execution is in order of hierarchical levels: highest level gets executed first,
+		then all second level rigs, then all third level rigs.
+		For the animation, we need a hierarchy to be executed all the way down before moving on to
+		the next one.
+
+		Symmetrical rigs should animate at the same time, and with the Y and Z axis rotations flipped.
+		"""
+
+		rigs_anim_order = []
+		def get_rig_children(rig):
+			children = []
+			for r in self.rig_list:
+				if r.rigify_parent == rig:
+					children.append(r)
+			return children
+
+		def add_rig_hierarchy_to_animation_order(rig):
+			if hasattr(type(rig), 'has_test_animation') and type(rig).has_test_animation:
+				rigs_anim_order.append(rig)
+			for child_rig in get_rig_children(rig):
+				add_rig_hierarchy_to_animation_order(child_rig)
+
+		for root_rig in self.root_rigs:
+			add_rig_hierarchy_to_animation_order(root_rig)
+
+		start_frame = 1
+		for rig in rigs_anim_order:
+			symm_rig = rig.find_symmetry_rig()
+			symm_new_start_frame = 1
+			new_start_frame = rig.add_test_animation(action, start_frame)
+			if symm_rig:
+				symm_new_start_frame = symm_rig.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
+				rigs_anim_order.remove(symm_rig)
+			start_frame = max(new_start_frame, symm_new_start_frame)
+
 	def save_parenting_info(self) -> dict:
 		obj = self.obj
 
@@ -687,47 +728,6 @@ class CloudGenerator(Generator):
 						t.subtarget = subtargets[i]
 				else:
 					c.subtarget = constraint_bone_targets[c_name]
-
-	def create_test_animation(self, action):
-		"""Generate deformation test animation.
-
-		In order to generate the test animation, we need to call add_test_animation() on rigs
-		in a different order than regular rig execution, and we also want to account for symmetry.
-
-		Usual rig execution is in order of hierarchical levels: highest level gets executed first,
-		then all second level rigs, then all third level rigs.
-		For the animation, we need a hierarchy to be executed all the way down before moving on to
-		the next one.
-
-		Symmetrical rigs should animate at the same time, and with the Y and Z axis rotations flipped.
-		"""
-
-		rigs_anim_order = []
-		def get_rig_children(rig):
-			children = []
-			for r in self.rig_list:
-				if r.rigify_parent == rig:
-					children.append(r)
-			return children
-
-		def add_rig_hierarchy_to_animation_order(rig):
-			if hasattr(type(rig), 'has_test_animation') and type(rig).has_test_animation:
-				rigs_anim_order.append(rig)
-			for child_rig in get_rig_children(rig):
-				add_rig_hierarchy_to_animation_order(child_rig)
-
-		for root_rig in self.root_rigs:
-			add_rig_hierarchy_to_animation_order(root_rig)
-
-		start_frame = 1
-		for rig in rigs_anim_order:
-			symm_rig = rig.find_symmetry_rig()
-			symm_new_start_frame = 1
-			new_start_frame = rig.add_test_animation(action, start_frame)
-			if symm_rig:
-				symm_new_start_frame = symm_rig.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
-				rigs_anim_order.remove(symm_rig)
-			start_frame = max(new_start_frame, symm_new_start_frame)
 
 	def nuke_drivers(self):
 		# Nuke all drivers on the rig
