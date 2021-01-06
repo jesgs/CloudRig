@@ -524,6 +524,7 @@ class BoneInfo:
 			kwargs[key] = getattr(constraint, key)
 
 		new_con = ConstraintInfo(self, constraint.type, **kwargs)
+		new_con.is_from_real = True
 		self.constraint_infos.append(new_con)
 		return new_con
 
@@ -683,6 +684,8 @@ class ConstraintInfo(dict):
 		self.name = self.type.replace("_", " ").title()
 		self.drivers = []
 
+		self.is_from_real = False
+
 		if use_preferred_defaults:
 			self.set_preferred_defaults()
 
@@ -764,7 +767,7 @@ class ConstraintInfo(dict):
 		""" Create a constraint based on this ConstraintInfo on a given pose bone. """
 		con_type = self.type
 		con_info = self.__dict__.copy()
-		for key in ['type', 'bone_info', 'drivers']:
+		for key in ['type', 'bone_info', 'drivers', 'is_from_real']:
 			del con_info[key]
 
 		subtargets = []
@@ -804,11 +807,12 @@ class ConstraintInfo(dict):
 				for prop in ['weight', 'target', 'subtarget']:
 					if prop in target_info:
 						setattr(target, prop, target_info[prop])
-		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those tweak bones end up targetting the ORG bone which is not good.
-				if target.subtarget.startswith("ORG-"):
+		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those 
+		# tweak bones end up targetting the ORG bone which is not good.
+				if target.subtarget.startswith("ORG-") and self.is_from_real:
 					target.subtarget = target.subtarget[4:]
 		else:
-			if hasattr(con, 'subtarget') and con.subtarget.startswith('ORG-'):
+			if hasattr(con, 'subtarget') and con.subtarget.startswith('ORG-') and self.is_from_real:
 				con.subtarget = con.subtarget[4:]
 
 		# Fix stretch constraints

@@ -54,6 +54,7 @@ class CloudAimRig(CloudBaseRig):
 			,tail	= tail
 			,custom_shape = self.ensure_widget("Oval")
 			,parent = parent
+			,roll_type = 'GLOBAL_POS_Z'
 		)
 		dsp_bone = self.create_dsp_bone(target_bone)
 		dsp_bone.add_constraint('DAMPED_TRACK', subtarget=bone.name, track_axis='TRACK_NEGATIVE_Y')
