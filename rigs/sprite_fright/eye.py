@@ -24,7 +24,7 @@ class SpriteEyeRig(CloudAimRig):
 		# Lock all location and Y scale
 		self.lock_transforms(self.ctr_bone, loc=True, rot=False, scale=[False, True, False])
 
-		if self.params.CR_sprite_eye_show_settings:
+		if self.params.CR_sprite_eye_highlight:
 			self.create_eye_highlight(self.ctr_bone)
 	
 	def create_eye_highlight(self, ctr_bone):
