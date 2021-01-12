@@ -27,7 +27,7 @@ class CloudAimRig(CloudBaseRig):
 		aim_org = self.org_chain[0]
 
 		if self.params.CR_aim_root:
-			self.aim_root = self.make_aim_root(aim_org) # TODO: This might as well be a call to self.make_parent_control(), no?
+			self.aim_root = self.make_root_bone(aim_org)
 		self.group_master = self.ensure_group_master()
 		self.ctr_bone = self.make_aim_control(aim_org)
 		target_bone = self.make_target_control(self.ctr_bone, self.group_master)
@@ -95,8 +95,7 @@ class CloudAimRig(CloudBaseRig):
 		dsp_bone.put(ctr_bone.tail)
 		return ctr_bone
 
-	def make_aim_root(self, bone) -> BoneInfo:
-		# TODO: Root bone should be bigger and have a DSP- bone in the same place as the CTR bone.
+	def make_root_bone(self, bone) -> BoneInfo:
 		base_bone = self.org_chain[0]
 		root_bone = self.target_ctrl.new(
 			name = base_bone.name.replace("ORG", "ROOT")
@@ -105,11 +104,18 @@ class CloudAimRig(CloudBaseRig):
 			,custom_shape = self.ensure_widget('Square')
 			,custom_shape_scale = 2
 		)
+		root_dsp = self.create_dsp_bone(root_bone)
+		root_dsp.put(self.org_chain[0].tail)
+
 		bone.parent = root_bone
 
 		if self.rigify_parent:
 			self.rigify_parent.reparent_bone(root_bone)
 		return root_bone
+
+	def apply_custom_root_parent(self, bone=None, parent_name=""):
+		"""Overrides cloud_base to do nothing."""
+		pass
 
 	def ensure_group_master(self) -> Optional[BoneInfo]:
 		"""This function will be called by each aim rig, but we want to make sure
@@ -175,7 +181,8 @@ class CloudAimRig(CloudBaseRig):
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
-		"""Overrides cloud_base."""
+		"""Overrides cloud_base to apply the parent switching to the aim target 
+		or group master if it exists."""
 		control_bone = self.group_master
 		if not control_bone:
 			control_bone = self.ctr_bone

@@ -736,11 +736,15 @@ class ConstraintInfo(dict):
 	def relink(self):
 		"""Allow the Rigify relink naming convention of an @ symbol separating the constraint name from a list of subtargets separated by commas."""
 
+		rig_element = self.bone_info.bone_set.rig
+		rig = rig_element.obj
+		metarig = rig_element.generator.metarig
+
 		if "@" not in self.name:
 			if self.type=='ARMATURE':
 				for i, t in enumerate(self.targets):
 					if t == metarig:
-						self.targets[i] = rig
+						self.targets[i]['target'] = rig
 			return
 		
 		split_name = self.name.split("@")
@@ -784,6 +788,16 @@ class ConstraintInfo(dict):
 			del con_info['targets']
 			del con_info['target']
 
+		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those 
+		# tweak bones end up targetting the ORG bone which is not good.
+		if self.is_from_real:
+			if con_type == 'ARMATURE':
+				for t in targets:
+					if t['subtarget'].startswith('ORG-'):
+						t['subtarget'] = t['subtarget'][4:]
+			elif hasattr(self, 'subtarget') and self.subtarget.startswith('ORG'):
+				self.subtarget = self.subtarget[4:]
+
 		for i, subtarget in enumerate(subtargets):
 			if subtarget not in pose_bone.id_data.data.bones:
 				self.bone_info.owner_rig.add_log("Invalid constraint target!"
@@ -807,13 +821,6 @@ class ConstraintInfo(dict):
 				for prop in ['weight', 'target', 'subtarget']:
 					if prop in target_info:
 						setattr(target, prop, target_info[prop])
-		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those 
-		# tweak bones end up targetting the ORG bone which is not good.
-				if target.subtarget.startswith("ORG-") and self.is_from_real:
-					target.subtarget = target.subtarget[4:]
-		else:
-			if hasattr(con, 'subtarget') and con.subtarget.startswith('ORG-') and self.is_from_real:
-				con.subtarget = con.subtarget[4:]
 
 		# Fix stretch constraints
 		if con_type == 'STRETCH_TO':

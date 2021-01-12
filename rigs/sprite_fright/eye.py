@@ -14,7 +14,7 @@ class SpriteEyeRig(CloudAimRig):
 
 		# ORG bone should only inherit rotation, not location or scale.
 		org_bi = self.org_chain[0]
-		org_bi.clear_constraints()
+		org_bi.constraint_infos[0].mute = True
 		c = org_bi.add_constraint('COPY_ROTATION'
 			,space = 'WORLD'
 			,mix_mode = 'REPLACE'
@@ -38,9 +38,16 @@ class SpriteEyeRig(CloudAimRig):
 			,length = ctr_bone.length/5
 			,custom_shape_scale = ctr_bone.custom_shape_scale/3
 		)
+		self.lock_transforms(highlight_ctr, loc=True, rot=False, scale=[False, True, False])
 		highlight_dsp = self.create_dsp_bone(highlight_ctr)
 		highlight_dsp.put(ctr_bone.tail)
 		self.make_def_bone(highlight_ctr, self.aim_def)
+
+		# If we have a root bone, parent eye highlight to it and copy local rotation from the ORG bone.
+		# This is to prevent the eye highlight control from inheriting scale from the eye control.
+		if self.params.CR_aim_root:
+			highlight_ctr.parent = self.aim_root
+			highlight_ctr.add_constraint('COPY_ROTATION', subtarget=self.org_chain[0].name)
 
 	##############################
 	# Parameters
