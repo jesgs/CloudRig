@@ -202,6 +202,37 @@ def create_selection_sets(obj, metarig):
 				bone_id = selset.bone_ids.add()
 				bone_id.name = b.name
 
+
+def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
+	"""Load a text file into a text datablock, enable register checkbox and execute it.
+	Also run an optional search and replace on the file content.
+	"""
+
+	# Check if it already exists
+	text = bpy.data.texts.get(file_name)
+	# If not, create it.
+	if not text:
+		text = bpy.data.texts.new(name=file_name)
+
+	text.clear()
+	text.use_module = True
+
+	if file_path=="":
+		file_path = os.path.dirname(os.path.realpath(__file__))
+
+	readfile = open(os.path.join(file_path, file_name), 'r')
+
+	for line in readfile:
+		if search!="" and replace!="" and search in line:
+			line = line.replace(search, replace)
+		text.write(line)
+	readfile.close()
+
+	# Run UI script
+	exec(text.as_string(), {})
+
+	return text
+
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
 		super().__init__(context, metarig)
@@ -233,7 +264,7 @@ class CloudGenerator(Generator):
 		# Flag for whether there are any non-CloudRig rig types in the metarig.
 		self.rigify_compatible = False
 		for b in metarig.pose.bones:
-			if b.rigify_type!='' and 'cloud' not in b.rigify_type:
+			if b.rigify_type!='' and 'cloud' not in b.rigify_type and 'sprite_fright' not in b.rigify_type:
 				self.rigify_compatible = True
 				print("Rigify compatible generation enabled.")
 				break
@@ -353,45 +384,6 @@ class CloudGenerator(Generator):
 		)
 		action_helper.layers = [i==31 for i in range(32)]
 		return action_helper
-
-	def load_ui_script(self):
-		"""Load cloudrig.py (CloudRig UI script) into a text datablock, enable register checkbox and execute it."""
-
-		# Check if it already exists
-		script_name = "cloudrig.py"
-		text = bpy.data.texts.get(script_name)
-		# If not, create it.
-		if not text:
-			text = bpy.data.texts.new(name=script_name)
-
-		text.clear()
-		text.use_module = True
-
-		filename = script_name
-		filedir = os.path.dirname(os.path.realpath(__file__))
-		# filedir = os.path.split(filedir)[0]
-
-		readfile = open(os.path.join(filedir, filename), 'r')
-
-		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
-		script_id = bpy.path.basename(bpy.data.filepath).split(".")[0]
-		if script_id=="":
-			# Default in case the file hasn't been saved yet.
-			# Falling back to this could result in an older version of the rig trying to use a newer version of the rig UI script or vice versa, so it should be avoided.
-			script_id = "cloudrig"
-
-		self.obj.data['cloudrig'] = script_id
-
-		for line in readfile:
-			if 'SCRIPT_ID' in line:
-				line = line.replace("SCRIPT_ID", script_id)
-			text.write(line)
-		readfile.close()
-
-		# Run UI script
-		exec(text.as_string(), {})
-
-		return text
 
 	def ensure_bone_groups(self):
 		# Wipe any existing bone groups from the target rig.
@@ -1025,8 +1017,21 @@ class CloudGenerator(Generator):
 				)
 				entry.pretty_stack = traceback_str
 
-		# Load and execute cloudrig.py rig UI script
-		obj.data['script'] = self.load_ui_script()
+		### Load and execute cloudrig.py rig UI script
+		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
+		replace = bpy.path.basename(bpy.data.filepath).split(".")[0]
+		if replace=="":
+			# Default in case the file hasn't been saved yet.
+			# Falling back to this could result in an older version of the rig trying to use a newer version of the rig UI script or vice versa, so it should be avoided.
+			replace = "cloudrig"
+
+		obj.data['cloudrig'] = replace
+		obj.data['script'] = load_script(
+			file_path = os.path.dirname(os.path.realpath(__file__))
+			,file_name="cloudrig.py"
+			,search="SCRIPT_ID"
+			,replace=replace
+		)
 
 		# Armature display settings
 		obj.display_type = self.metarig.display_type
