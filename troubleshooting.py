@@ -64,7 +64,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 		"**Blender Version**\n"
 	)
 	fh.write(
-		"%s, branch: %s, commit date: `[https://developer.blender.org/rB%s`](%s)\n" % (
+		"%s, branch: %s, commit date: [https://developer.blender.org/rB%s](%s)\n" % (
 			bpy.app.version_string,
 			bpy.app.build_branch.decode('utf-8', 'replace'),
 			bpy.app.build_hash.decode('ascii'),
@@ -76,7 +76,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	cloudrig_version = CloudRig.rigify_info['version']
 	last_modified = cloudrig_last_modified()
 	fh.write(
-		f"\nCloudRig: {cloudrig_version} ({last_modified})"
+		f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n"
 	)
 
 	if stack_trace!="":
@@ -91,8 +91,8 @@ def url_prefill_from_cloudrig(stack_trace=""):
 
 	fh.write(
 		"\n"
-		"[Describe the issue here in as much detail as possible.]\n"
-		"[If possible, please attach a .blend file with the metarig which results in the bug upon generation.]"
+		"Description of the problem:\n"
+		"Attached .blend file to reproduce the problem:\n"
 		"\n"
 	)
 
