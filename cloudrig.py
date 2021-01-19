@@ -22,7 +22,6 @@ from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
 script_id = "SCRIPT_ID"
-# TODO: Shouldn't this be added to operator bl_idnames?
 
 def get_rigs():
 	""" Find all cloudrig armatures in the file. """
@@ -552,7 +551,7 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 
 class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 	""" Toggle a custom property while ensuring that some bones stay in place. """
-	bl_idname = "pose.cloudrig_snap_bake"
+	bl_idname = "pose.cloudrig_snap_bake_" + script_id
 	bl_label = "Snap And Bake Bones"
 
 	def draw(self, context):
@@ -630,7 +629,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 
 class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 	"""Extend CLOUDRIG_OT_snap_bake with a parent selector."""
-	bl_idname = "pose.cloudrig_switch_parent_bake"
+	bl_idname = "pose.cloudrig_switch_parent_bake_" + script_id
 	bl_label = "Apply Switch Parent To Keyframes"
 	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -688,7 +687,7 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 		to another (equal length) list of bones.
 	"""
 
-	bl_idname = "pose.cloudrig_snap_mapped_bake"
+	bl_idname = "pose.cloudrig_snap_mapped_bake_" + script_id
 	bl_label = "Snap And Bake Bones (Mapped)"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -758,7 +757,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		for the IK elbow.
 	"""
 
-	bl_idname = "pose.cloudrig_toggle_ikfk_bake"
+	bl_idname = "pose.cloudrig_toggle_ikfk_bake_" + script_id
 	bl_label = "Toggle And Bake IK/FK"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -844,7 +843,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 
 class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	"""Keyframe all custom properties on the Properties bone"""
-	bl_idname = "pose.cloudrig_keyframe_all_settings"
+	bl_idname = "pose.cloudrig_keyframe_all_settings_" + script_id
 	bl_label = "Keyframe CloudRig Settings"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -930,6 +929,10 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 
 			# Draw an operator if provided.
 			if 'operator' in info:
+				# HACK: We want to add script_id to operator names for when multiple characters are in the same file
+				# But this means having to add it here as well, which is a bit nasty.
+				if info['operator'].startswith("pose.cloudrig"):
+					info['operator'] += "_"+script_id
 				icon = 'FILE_REFRESH'
 				if 'icon' in info:
 					icon = info['icon']
@@ -1184,7 +1187,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
 		rig = active_cloudrig()
 		if not rig: return
 
-		layout.operator('pose.cloudrig_keyframe_all_settings', text='Keyframe All Settings', icon='KEYFRAME_HLT')
+		layout.operator(CLOUDRIG_OT_keyframe_all_settings.bl_idname, text='Keyframe All Settings', icon='KEYFRAME_HLT')
 
 class CLOUDRIG_PT_fkik(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_fkik_" + script_id
@@ -1320,4 +1323,5 @@ def unregister():
 
 	del bpy.types.Object.cloud_rig
 
-register()
+if __name__ == '__main__':
+	register()
