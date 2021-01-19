@@ -79,6 +79,7 @@ class CloudFKChainRig(CloudChainRig):
 			,source 				= base_bone
 			,parent 				= base_bone.parent
 			,custom_shape 			= self.ensure_widget("Cube")
+			,inherit_scale			= self.params.CR_fk_chain_inherit_scale
 		)
 		return limb_root_bone
 
