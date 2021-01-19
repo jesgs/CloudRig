@@ -14,7 +14,7 @@ from . import parent_switching
 rigify_info = {
 	'name': "CloudRig",
 	'author': "Demeter Dzadik",
-	'version': (0, 0, 5),
+	'version': (0, 0, 6),
 	'blender': (2, 92, 0),
 	'description': "Feature set developed by the Blender Animation Studio",
 	'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/",

@@ -18,7 +18,7 @@ from rigify.utils.bones import new_bone
 from .bone import BoneSet, BoneInfo
 from .utils import mechanism
 from . import widgets as cloud_widgets
-from .versioning import cloud_metarig_version
+from .versioning import cloud_metarig_version, blender_version
 
 from .actions import ActionSlot
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
@@ -812,14 +812,13 @@ class CloudGenerator(Generator):
 
 		t.tick("Duplicate rig: ")
 
-		#------------------------------------------
-		# Add the ORG_PREFIX to the original bones.
-		self._Generator__rename_org_bones()
+		# Compatibility pre-rBA25c81824e45b28910cf93
+		# (Pre-2.93 for simplicity)
+		if blender_version < 2.93:
+			self._Generator__rename_org_bones()
+
 		bpy.ops.object.mode_set(mode='OBJECT')
-
 		self.map_drivers()
-
-		t.tick("Make list of org bones: ")
 
 		#------------------------------------------
 		# Put the rig_name in the armature custom properties
@@ -837,8 +836,10 @@ class CloudGenerator(Generator):
 		# HACK
 		# cloud_tweak rigs should be pushed to the end of the list! This is not too hacky, but:
 		# cloud_chain_anchor should be pushed to before the first cloud_face_chain. 
-		# Otherwise we have to parent all the anchors in a chain and parent the cloud_face_chain 
-		# rigs to the last anchor. And even when I did do that terribleness, it still wouldn't work...
+		# I don't hate this in concept, this just feels like an awkward way to implement it. 
+		# It would be nicer if the rig class would know how to sort its instances in the rig list.
+		# Then the generator could call some Rig.sort(cls, rig_list) function to let each rig sort the rig execution order as it wishes.
+		# That way the generator doesn't have to give special treatment to various rig types, which is the hacky part of this.
 		from .rigs.cloud_tweak import CloudTweakRig
 		from .rigs.cloud_chain_anchor import CloudChainAnchorRig
 		from .rigs.cloud_face_chain import CloudFaceChainRig
