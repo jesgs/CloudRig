@@ -90,3 +90,10 @@ def flat(vec) -> Vector:
 			new_vec[i] = 0
 
 	return new_vec
+
+def clamp(val, _min=0, _max=1) -> float or int:
+	if val < _min:
+		return _min
+	if val > _max:
+		return _max
+	return val
