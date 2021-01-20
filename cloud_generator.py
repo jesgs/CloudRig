@@ -689,7 +689,7 @@ class CloudGenerator(Generator):
 				if hasattr(c, 'subtarget') and c.subtarget!="":
 					constraint_bone_targets[c.name] = c.subtarget
 					c.subtarget = ""
-				if c.type=='ARMATURE':
+				if c.type=='ARMATURE':	# TODO: Hook modifiers.
 					subtargets = []
 					for tar in c.targets:
 						subtargets.append(tar.subtarget)
@@ -708,6 +708,7 @@ class CloudGenerator(Generator):
 			parent_bone_name = child_data[0]
 			if parent_bone_name in obj.pose.bones:
 				mat = child.matrix_world.copy()
+				child.parent_type = 'BONE'
 				child.parent_bone = parent_bone_name
 				child.matrix_world = mat
 
