@@ -63,7 +63,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		curve_ob = self.params.CR_curve_target
 		if curve_ob:
 			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.
-			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken.
+			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken. TODO: This could be avoided with some reshuffling and Object.user_remap().
 
 
 		sum_bone_length = sum([b.length for b in self.org_chain])

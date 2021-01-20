@@ -48,6 +48,8 @@ class CloudChainAnchorRig(CloudCopyRig):
 
 		if not cls.draw_dropdown_menu(layout, params, 'CR_anchor_show_settings'): return layout
 
+		layout.label(text="No parameters for this rig type.")
+
 		return layout
 
 class Rig(CloudChainAnchorRig):
