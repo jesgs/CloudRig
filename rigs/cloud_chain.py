@@ -412,7 +412,7 @@ class CloudChainRig(CloudBaseRig):
 
 			if self.params.CR_chain_unlock_deform:
 				def_bone_control = self.create_parent_bone(def_bone, bone_set=self.def_ctr)
-				def_bone_control.name = def_bone_control.name.replace("DEF-P-", "DEF_CTR-")
+				def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
 				def_bone_control.inherit_scale = 'ALIGNED'
 				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.def_mch)
 				def_bone_control.head = def_bone_control.center

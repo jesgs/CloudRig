@@ -40,7 +40,7 @@ class CloudLatticeRig(CloudBaseRig):
 		self.hook_bone = self.make_hook_ctrl(self.root_bone)
 
 	def make_root_ctrl(self, org_bi):
-		root_name = org_bi.name.replace("ORG", "ROOT")
+		root_name = org_bi.name.replace("ORG", "ROOT-LTC")
 		root_bone = self.lattice_ctrls.new(
 			name 						= root_name
 			,source 					= org_bi
@@ -51,7 +51,7 @@ class CloudLatticeRig(CloudBaseRig):
 		return root_bone
 
 	def make_hook_ctrl(self, root_bone):
-		hook_name = root_bone.name.replace("ROOT", "LTC")
+		hook_name = root_bone.name.replace("ROOT-LTC", "LTC")
 		hook_bone = self.lattice_ctrls.new(
 			name 						= hook_name
 			,source 					= root_bone
