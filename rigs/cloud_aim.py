@@ -25,15 +25,23 @@ class CloudAimRig(CloudBaseRig):
 		super().create_bone_infos()
 
 		aim_org = self.org_chain[0]
+		aim_bone = self.make_aim_helper(aim_org)
 
 		if self.params.CR_aim_root:
 			self.aim_root = self.make_root_bone(aim_org)
 		self.group_master = self.ensure_group_master()
-		self.ctr_bone = self.make_aim_control(aim_org)
+		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
 		target_bone = self.make_target_control(self.ctr_bone, self.group_master)
-		aim_bone = self.make_aim_helper(self.ctr_bone, target_bone)
+
+		aim_bone.add_constraint('DAMPED_TRACK'
+			,subtarget = target_bone.name
+		)
+
 		if self.params.CR_aim_deform:
-			self.make_def_bone(aim_org, self.aim_def)
+			self.make_def_bone(self.ctr_bone, self.aim_def)
+
+		if self.params.CR_aim_eye_highlight:
+			self.create_eye_highlight(self.ctr_bone)
 
 	def find_target_pos(self, bone) -> Vector:
 		"""Find location of where the target bone should be for an aim bone."""
@@ -61,38 +69,57 @@ class CloudAimRig(CloudBaseRig):
 
 		return target_bone
 
-	def make_aim_helper(self, bone, target_bone) -> BoneInfo:
-		"""Create an AIM helper for @bone targetting @target_bone, while leaving
-		   @bone free to rotate.
+	def make_aim_helper(self, org_bone) -> BoneInfo:
+		"""Create an AIM helper for @org_bone targetting @target_bone, while leaving
+		   @org_bone free to rotate.
 		"""
 		aim_bone = self.aim_mch.new(
 			name		 = self.org_chain[0].name.replace("ORG", "AIM")
-			,source		 = bone
+			,source		 = org_bone
 			,hide_select = self.mch_disable_select
-			,parent		 = bone.parent
-		)
-		bone.parent = aim_bone
-		aim_bone.add_constraint('DAMPED_TRACK'
-			,subtarget = target_bone.name
+			,parent		 = org_bone
 		)
 		return aim_bone
 
-	def make_aim_control(self, bone) -> BoneInfo:
+	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
 		"""Create direct control, with a display bone that is aim radius away towards the bone's +Y axis."""
 		ctr_bone = self.target_ctrl.new(
-			name = self.naming.make_name(["CTR"], *self.naming.slice_name(bone.name)[1:])
-			,source = bone
-			,parent = bone.parent
+			name = self.naming.make_name(["CTR"], *self.naming.slice_name(org_bone.name)[1:])
+			,source = org_bone
+			,parent = org_bone
 			,custom_shape = self.ensure_widget("Oval")
 		)
-		# We parent ORG with transform constraint because we want to use the local transform matrix for reading its rotation.
-		bone.add_constraint('COPY_TRANSFORMS'
-			,subtarget = ctr_bone.name
-			,space = 'WORLD'
-			,mix_mode = 'REPLACE'
+		ctr_bone.add_constraint('COPY_ROTATION'
+			,subtarget = aim_bone.name
+		)
+
+		# Lock all location and Y scale
+		self.lock_transforms(ctr_bone, loc=True, rot=False, scale=[False, True, False])
+
+		# Scale hack! Don't actually allow scaling the control bone, 
+		# but send the scaling input into the display bone's scale, so it appears like it is scaling.
+		# This is done because actually scaling the bone would result in scaling the eyeball which is not useful
+		# but this way we can hook up the scale to iris scaling shape keys.
+		ctr_bone.add_constraint('LIMIT_SCALE'
+			,use_min_x = True, use_min_y = True, use_min_z = True
+			,use_max_x = True, use_max_y = True, use_max_z = True
+			,min_x = 1, min_y = 1, min_z = 1
+			,max_x = 1, max_y = 1, max_z = 1
+			,use_transform_limit = False
+			,space = 'LOCAL'
 		)
 		dsp_bone = self.create_dsp_bone(ctr_bone)
 		dsp_bone.put(ctr_bone.tail)
+		dsp_bone.drivers.append({
+			'prop' : 'scale'
+			,'index' : 0
+			,'variables' : [(ctr_bone.name, '.scale[0]')]
+		})
+		dsp_bone.drivers.append({
+			'prop' : '.scale'
+			,'index' : 2
+			,'variables' : [(ctr_bone.name, '.scale[2]')]
+		})
 		return ctr_bone
 
 	def make_root_bone(self, bone) -> BoneInfo:
@@ -112,6 +139,22 @@ class CloudAimRig(CloudBaseRig):
 		if self.rigify_parent:
 			self.rigify_parent.reparent_bone(root_bone)
 		return root_bone
+
+	def create_eye_highlight(self, ctr_bone):
+		name_slices = self.naming.slice_name(ctr_bone)
+		name_slices[1] += "_Highlight"
+		highlight_ctr = self.target_ctrl.new(
+			name = self.naming.make_name(*name_slices)
+			,source = ctr_bone
+			,parent = ctr_bone
+			,custom_shape = self.ensure_widget("Oval")
+			,length = ctr_bone.length/5
+			,custom_shape_scale = ctr_bone.custom_shape_scale/3
+		)
+		self.lock_transforms(highlight_ctr, loc=True, rot=False, scale=[False, True, False])
+		highlight_dsp = self.create_dsp_bone(highlight_ctr)
+		highlight_dsp.put(ctr_bone.tail)
+		self.make_def_bone(highlight_ctr, self.aim_def)
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base to do nothing."""
@@ -241,6 +284,11 @@ class CloudAimRig(CloudBaseRig):
 			,default	 = False
 			,description = "Create a root bone for this rig"
 		)
+		params.CR_aim_eye_highlight = BoolProperty(
+			name		 = "Eye Highlight"
+			,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
+			,default	 = True
+		)
 
 		super().add_parameters(params)
 
@@ -257,6 +305,7 @@ class CloudAimRig(CloudBaseRig):
 		cls.draw_prop(layout, params, "CR_aim_target_distance")
 		cls.draw_prop(layout, params, "CR_aim_deform")
 		cls.draw_prop(layout, params, "CR_aim_root")
+		cls.draw_prop(layout, params, "CR_aim_eye_highlight")
 
 		return layout
 
