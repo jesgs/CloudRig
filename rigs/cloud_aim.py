@@ -8,7 +8,7 @@ from ..bone import BoneInfo
 from .cloud_base import CloudBaseRig
 
 from .. import widgets as cloud_widgets
-from ..utils.maths import bounding_box_center
+from ..utils.maths import bounding_box_center, flat
 
 class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
@@ -31,7 +31,7 @@ class CloudAimRig(CloudBaseRig):
 			self.aim_root = self.make_root_bone(aim_org)
 		self.group_master = self.ensure_group_master()
 		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
-		target_bone = self.make_target_control(self.ctr_bone, self.group_master)
+		target_bone = self.make_target_control(aim_bone, self.group_master)
 
 		aim_bone.add_constraint('DAMPED_TRACK'
 			,subtarget = target_bone.name
@@ -45,7 +45,10 @@ class CloudAimRig(CloudBaseRig):
 
 	def find_target_pos(self, bone) -> Vector:
 		"""Find location of where the target bone should be for an aim bone."""
-		return bone.tail + bone.vector.normalized() * self.params.CR_aim_target_distance * self.scale
+		if self.params.CR_aim_flatten:
+			return bone.head + flat(bone.vector).normalized() * self.params.CR_aim_target_distance * self.scale
+		else:
+			return bone.tail + bone.vector.normalized() * self.params.CR_aim_target_distance * self.scale
 
 	def make_target_control(self, bone, parent=None) -> BoneInfo:
 		"""Set up target control for a bone"""
@@ -53,6 +56,7 @@ class CloudAimRig(CloudBaseRig):
 			parent = bone.parent
 
 		head = self.find_target_pos(bone)
+		bpy.context.scene.cursor.location = head.copy()
 		tail = head + bone.vector.normalized() * self.scale/5
 
 		target_bone = self.target_ctrl.new(
@@ -79,6 +83,8 @@ class CloudAimRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 			,parent		 = org_bone
 		)
+		if self.params.CR_aim_flatten:
+			aim_bone.flatten()
 		return aim_bone
 
 	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
@@ -86,11 +92,8 @@ class CloudAimRig(CloudBaseRig):
 		ctr_bone = self.target_ctrl.new(
 			name = self.naming.make_name(["CTR"], *self.naming.slice_name(org_bone.name)[1:])
 			,source = org_bone
-			,parent = org_bone
+			,parent = aim_bone
 			,custom_shape = self.ensure_widget("Oval")
-		)
-		ctr_bone.add_constraint('COPY_ROTATION'
-			,subtarget = aim_bone.name
 		)
 
 		# Lock all location and Y scale
@@ -289,6 +292,11 @@ class CloudAimRig(CloudBaseRig):
 			,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
 			,default	 = True
 		)
+		params.CR_aim_flatten = BoolProperty(
+			name		 = "World-aligned Offset"
+			,description = 'Offset the default direction to be world aligned. Useful for eyes that have significant default rotation. When this is enabled, the eye targets will always be directly "in front" of the eye on its longest world axis'
+			,default	 = True
+		)
 
 		super().add_parameters(params)
 
@@ -303,6 +311,7 @@ class CloudAimRig(CloudBaseRig):
 
 		cls.draw_prop(layout, params, "CR_aim_group")
 		cls.draw_prop(layout, params, "CR_aim_target_distance")
+		cls.draw_prop(layout, params, "CR_aim_flatten")
 		cls.draw_prop(layout, params, "CR_aim_deform")
 		cls.draw_prop(layout, params, "CR_aim_root")
 		cls.draw_prop(layout, params, "CR_aim_eye_highlight")
