@@ -617,11 +617,16 @@ class BoneInfo:
 
 			setattr(b, key, value)
 
+		def fixed_path(data_path):
+			if not data_path.startswith("[") and not data_path.startswith("."):
+				return "." + data_path
+			return data_path
+
 		# Constraints.
 		for ci in self.constraint_infos:
 			con = ci.make_real(pb)
 			for driver_info in ci.drivers:
-				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"]{driver_info["prop"]}'
+				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
 				make_driver(armature, target_id=armature, **driver_info)
 
 		# Custom Properties.
@@ -630,12 +635,12 @@ class BoneInfo:
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:
-			driver_info['prop'] = f'pose.bones["{pb.name}"]{driver_info["prop"]}'
+			driver_info['prop'] = f'pose.bones["{pb.name}"]{fixed_path(driver_info["prop"])}'
 			make_driver(armature, target_id=armature, **driver_info)
 
 		# Data Bone Drivers.
 		for driver_info in self.drivers_data:
-			driver_info['prop'] = f'bones["{pb.name}"]{driver_info["prop"]}'
+			driver_info['prop'] = f'bones["{pb.name}"]{fixed_path(driver_info["prop"])}'
 			make_driver(armature.data, target_id=armature, **driver_info)
 
 	def clone(self, new_name=None):
