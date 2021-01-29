@@ -46,7 +46,10 @@ class CloudAimRig(CloudBaseRig):
 	def find_target_pos(self, bone) -> Vector:
 		"""Find location of where the target bone should be for an aim bone."""
 		if self.params.CR_aim_flatten:
-			return bone.head + flat(bone.vector).normalized() * self.params.CR_aim_target_distance * self.scale
+			direction = bone.vector.normalized()
+			# Ignore X axis
+			direction[0] = 0.0
+			return bone.head + direction * self.params.CR_aim_target_distance * self.scale
 		else:
 			return bone.tail + bone.vector.normalized() * self.params.CR_aim_target_distance * self.scale
 
@@ -83,8 +86,8 @@ class CloudAimRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 			,parent		 = org_bone
 		)
-		if self.params.CR_aim_flatten:
-			aim_bone.flatten()
+		# if self.params.CR_aim_flatten:
+			# aim_bone.flatten()
 		return aim_bone
 
 	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
@@ -92,8 +95,12 @@ class CloudAimRig(CloudBaseRig):
 		ctr_bone = self.target_ctrl.new(
 			name = self.naming.make_name(["CTR"], *self.naming.slice_name(org_bone.name)[1:])
 			,source = org_bone
-			,parent = aim_bone
+			,parent = org_bone
 			,custom_shape = self.ensure_widget("Oval")
+		)
+
+		ctr_bone.add_constraint('COPY_ROTATION'
+			,subtarget = aim_bone.name
 		)
 
 		# Lock all location and Y scale
