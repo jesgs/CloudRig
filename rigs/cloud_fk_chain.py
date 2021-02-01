@@ -300,6 +300,7 @@ class CloudFKChainRig(CloudChainRig):
 			name="FK Settings"
 			,description = "Reveal settings for the cloud_fk_chain rig type"
 		)
+		# We are re-defining this instead of using the bone's own `inherit_scale` property because we want the default to be 'ALIGNED' instead of 'FULL'.
 		params.CR_fk_chain_inherit_scale = EnumProperty(
 			 name		 = "Inherit Scale"
 			,description = "Scale inheritance type for FK controls"

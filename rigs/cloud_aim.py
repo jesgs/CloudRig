@@ -282,6 +282,11 @@ class CloudAimRig(CloudBaseRig):
 			,description = "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
 			,min		 = 0
 		)
+		params.CR_aim_flatten = BoolProperty(
+			name		 = "Flatten X"
+			,description = "Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other"
+			,default	 = False
+		)
 		# TODO: Do this the same way as cloud_copy instead, ie. use the bone's use_deform property.
 		params.CR_aim_deform = BoolProperty(
 			name		 = "Create Deform"
@@ -295,16 +300,10 @@ class CloudAimRig(CloudBaseRig):
 			,description = "Create a root bone for this rig"
 		)
 		params.CR_aim_eye_highlight = BoolProperty(
-			name		 = "Eye Highlight"
+			name		 = "Create Sub-Control"
 			,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
-			,default	 = True
+			,default	 = False
 		)
-		params.CR_aim_flatten = BoolProperty(
-			name		 = "World-aligned Offset"
-			,description = 'Offset the default direction to be world aligned. Useful for eyes that have significant default rotation. When this is enabled, the eye targets will always be directly "in front" of the eye on its longest world axis'
-			,default	 = True
-		)
-
 		super().add_parameters(params)
 
 	@classmethod
