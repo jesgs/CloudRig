@@ -53,7 +53,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = False
 	)
 	custom_script: PointerProperty(
-		name		 = "Custom Script"
+		name		 = "Post-Generation Script"
 		,type		 = bpy.types.Text
 		,description = "Execute a python script after the rig is generated"
 	)
