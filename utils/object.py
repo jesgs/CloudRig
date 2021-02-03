@@ -1,4 +1,3 @@
-from typing import Tuple, List, Optional
 import bpy
 
 class EnsureVisible:

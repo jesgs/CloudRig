@@ -56,7 +56,7 @@ class CloudFaceChainRig(CloudChainRig):
 						str_bone.local_helper.parent = str_bone.parent
 
 	def relink(self):
-		"""Overrides cloud_base."""
+		"""Overrides cloud_chain."""
 		if not self.is_last_chain_rig:
 			return
 
@@ -64,8 +64,7 @@ class CloudFaceChainRig(CloudChainRig):
 			rig.move_and_relink_constraints()
 
 	def move_and_relink_constraints(self):
-		"""Overrides cloud_chain.
-		"""
+		"""Overrides cloud_chain."""
 		for i, org in enumerate(self.org_chain):
 			for c in org.constraint_infos[:]:
 				to_bone = self.main_str_bones[i]

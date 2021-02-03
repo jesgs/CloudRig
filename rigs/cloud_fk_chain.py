@@ -60,11 +60,17 @@ class CloudFKChainRig(CloudChainRig):
 
 	def relink(self):
 		"""Override cloud_chain.
-		Importantly, do nothing. We don't want to get rid of the constraints that
-		we ourselves have put on ORG bones.
+		Move constraints from ORG to FK chain and relink them.
 		"""
-		# TODO: I guess ORG constraints should be relinked to the FK bones.
-		pass
+		for i, org in enumerate(self.org_chain):
+			for c in org.constraint_infos[:]:
+				if not c.is_from_real: continue
+				to_bone = self.fk_chain[i]
+				to_bone.constraint_infos.append(c)
+				org.constraint_infos.remove(c)
+				for d in c.drivers:
+					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
+				c.relink()
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
@@ -223,7 +229,6 @@ class CloudFKChainRig(CloudChainRig):
 			if not self.params.CR_chain_unlock_deform:
 				last_def.parent = self.org_chain[-1]
 
-
 	def tweak_def_chain(self):
 		for i, def_bone in enumerate(self.def_chain):
 			fk_control = self.fk_chain[int(i/self.params.CR_chain_segments)]
@@ -238,7 +243,7 @@ class CloudFKChainRig(CloudChainRig):
 		for i, org_bone in enumerate(self.org_chain):
 			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))
 
-			org_bone.add_constraint('COPY_TRANSFORMS'
+			con = org_bone.add_constraint('COPY_TRANSFORMS'
 				,space			= 'WORLD'
 				,subtarget		= fk_bone.name
 				,name			= "Copy Transforms FK"

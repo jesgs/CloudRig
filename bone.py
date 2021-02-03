@@ -689,7 +689,7 @@ class ConstraintInfo(dict):
 		self.name = self.type.replace("_", " ").title()
 		self.drivers = []
 
-		self.is_from_real = False
+		self.is_from_real = False	# Whether this constraint was read from a real bpy.types.Constraint.
 
 		if use_preferred_defaults:
 			self.set_preferred_defaults()
