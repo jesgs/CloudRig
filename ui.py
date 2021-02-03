@@ -2,9 +2,14 @@
 # Such things would belong in CloudRig/utils/ui.py.
 
 import bpy
-from .cloudrig import draw_layers_ui
 import addon_utils
+
+from rigify import rig_lists
+
+from .cloudrig import draw_layers_ui
 from .utils.ui import draw_label_with_linebreak, is_cloud_metarig
+
+# NOTE: STRICTLY NOT ALLOWED TO IMPORT RIG CLASSES! RESULTS IN IMPOSSIBLE TO TROUBLESHOOT ERRORS!
 
 class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
@@ -93,7 +98,9 @@ class CLOUDRIG_PT_overrides(bpy.types.Panel):
 
 		if cloudrig.double_root:
 			layout.prop_search(cloudrig, "root_parent_group", context.object.pose, "bone_groups")
-			layout.prop(cloudrig, "root_parent_layers", text="")
+			row = layout.row()
+			row.use_property_split=False
+			row.prop(cloudrig, "root_parent_layers", text="")
 
 		layout.separator()
 
@@ -124,6 +131,16 @@ def draw_cloudrig_rigify_buttons(self, context):
 
 	draw_cloudrig_generator_settings(self, context)
 
+def metarig_contains_fk_chain(metarig):
+	"""Return whether or not a metarig contains an FK rig. Used to determine
+	whether animation generation checkbox should appear or not."""
+	for pb in metarig.pose.bones:
+		if pb.rigify_type!='':
+			rig_module = rig_lists.rigs[pb.rigify_type]["module"].Rig
+			# This is a bit nasty but importing CloudFKCHainRig and using issubclass() breaks parameter registering (don't ask me why!)
+			if 'cloud_fk_chain' in str(rig_module.mro()):
+				return True
+
 def draw_cloudrig_generator_settings(self, context):
 	layout = self.layout
 	layout.use_property_split=True
@@ -134,17 +151,19 @@ def draw_cloudrig_generator_settings(self, context):
 	cloudrig = obj.data.cloudrig_parameters
 
 	layout.prop(obj.data, "rigify_target_rig")
+	layout.prop(obj.data, "rigify_rig_ui")
 	layout.prop(cloudrig, "custom_script")
 	layout.prop(cloudrig, "widget_collection")
 
-	heading = "Generate Action"
-	if cloudrig.test_action:
-		heading = "Update Action"
-	act_row = layout.row(heading=heading)
-	act_row.prop(cloudrig, 'generate_test_action', text="")
-	act_col = act_row.column()
-	act_col.prop(cloudrig, 'test_action', text="")
-	act_col.enabled = cloudrig.generate_test_action
+	if metarig_contains_fk_chain(obj):
+		heading = "Generate Action"
+		if cloudrig.test_action:
+			heading = "Update Action"
+		act_row = layout.row(heading=heading)
+		act_row.prop(cloudrig, 'generate_test_action', text="")
+		act_col = act_row.column()
+		act_col.prop(cloudrig, 'test_action', text="")
+		act_col.enabled = cloudrig.generate_test_action
 
 	layout.prop(cloudrig, 'create_root')
 	if cloudrig.create_root:
