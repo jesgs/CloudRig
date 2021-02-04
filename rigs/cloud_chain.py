@@ -298,7 +298,6 @@ class CloudChainRig(CloudBaseRig):
 			)
 			if nxt:
 				neg_con.influence = 0.5
-		dt_bone.inherit_scale = 'AVERAGE'	# No real purpose, just for viewport display
 
 		return dt_bone
 
@@ -307,12 +306,12 @@ class CloudChainRig(CloudBaseRig):
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone
-			,inherit_scale = 'NONE'
+			# ,inherit_scale = 'NONE'
 			,overwrite = True
 		)
 		tangent_helper.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
-			,space = 'WORLD'
+			,space = 'LOCAL'
 		)
 
 		if not self.params.CR_chain_smooth_spline:
