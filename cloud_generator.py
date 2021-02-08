@@ -1085,6 +1085,9 @@ class CloudGenerator(Generator):
 		# Only leave Force Widget Update enabled until a successful generation.
 		self.metarig.data.rigify_force_widget_update = False
 
+		# Make sure Hidden Layers checkbox is saved in the generated rig, so it remains even if the Rigify addon is disabled.
+		self.obj.data.cloudrig_parameters.show_layers_preview_hidden = False
+
 		self.cleanup()
 		t.tick("The rest: ")
 

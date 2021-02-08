@@ -53,7 +53,7 @@ class CloudUIMixin:
 
 		if True:
 			layout.use_property_split=False
-			draw_layers_ui(layout, obj, show_hidden=cloudrig.show_layers_preview_hidden, owner=params, layers_prop = set_info['layer_param'])
+			draw_layers_ui(layout, obj, owner=params, layers_prop = set_info['layer_param'])
 			# TODO: This results in a pretty massive piece of UI. Might be nicer as a UIList, but not sure if possible?
 		else:
 			row = col.row()

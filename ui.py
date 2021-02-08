@@ -202,7 +202,6 @@ def draw_cloud_layer_names(self, context):
 		bpy.types.DATA_PT_rigify_layer_names.draw_old(self, context)
 		return
 
-	obj = context.object
 	arm = obj.data
 	cloudrig = arm.cloudrig_parameters
 	layout = self.layout
@@ -215,8 +214,7 @@ def draw_cloud_layer_names(self, context):
 		return
 
 	# Layer Preview UI
-	layout.prop(cloudrig, 'show_layers_preview_hidden', text='Show Hidden')
-	draw_layers_ui(layout, obj, show_hidden=cloudrig.show_layers_preview_hidden)
+	draw_layers_ui(layout, obj)
 
 	# Layer Setup UI
 	main_row = layout.row(align=True).split(factor=0.05)

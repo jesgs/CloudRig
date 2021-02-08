@@ -27,11 +27,22 @@ def get_rigs():
 	""" Find all cloudrig armatures in the file. """
 	return [o for o in bpy.data.objects if o.type=='ARMATURE' and 'cloudrig' in o.data]
 
-def active_cloudrig(): # TODO: This should recieve context!!
+def active_cloudrig(context):
 	""" If the active object is a cloudrig, return it. """
-	o = bpy.context.pose_object or bpy.context.object
-	if o and o.type == 'ARMATURE' and 'cloudrig' in o.data and o.data['cloudrig']==script_id:
-		return o
+	rig = context.pose_object or context.object
+	if 		rig and \
+			rig.type == 'ARMATURE' and \
+			'cloudrig' in rig.data and \
+			rig.data['cloudrig'] == script_id:
+		return rig
+
+def active_cloud_metarig(context):
+	rig = context.pose_object or context.object
+	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
+		for b in rig.pose.bones:
+			if 'cloud' in b.rigify_type:
+				return rig
+
 
 #######################################
 # Keyframe baking framework from Rigify
@@ -849,7 +860,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return (active_cloudrig() is not None) and (context.pose_object or context.active_object)
+		return (active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
@@ -1022,7 +1033,7 @@ class CLOUDRIG_PT_main(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return active_cloudrig() is not None
+		return active_cloudrig(context) is not None
 
 	def draw(self, context):
 		layout = self.layout
@@ -1037,7 +1048,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			return False
 
 		# Only display this panel if there is either an outfit with options, multiple outfits, or character options.
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 		rig_props = rig.cloud_rig
 		multiple_outfits = len(rig_props.items_outfit(context)) > 1
@@ -1135,12 +1146,20 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
-def draw_layers_ui(layout, rig, show_hidden=False, owner=None, layers_prop='layers'):
+def draw_layers_ui(layout, rig, show_hidden=True, owner=None, layers_prop='layers'):
 	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
+	# This should be able to run even if the Rigify addon is disabled.
+
 	data = rig.data
 	if not owner:
 		owner = data
-	# This should work even if the Rigify addon is not enabled.
+
+	# This part will only work if CloudRig is present.
+	if show_hidden and hasattr(data, 'cloudrig_parameters'):
+		cloudrig = data.cloudrig_parameters
+		layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden")
+		show_hidden = cloudrig.show_layers_preview_hidden
+
 	if 'rigify_layers' not in data:
 		row = layout.row()
 		row.alert=True
@@ -1171,10 +1190,14 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_layers_" + script_id
 	bl_label = "Layers"
 
-	@staticmethod
+	@classmethod
+	def poll(cls, context):
+		return active_cloudrig(context) or active_cloud_metarig(context)
 
 	def draw(self, context):
-		rig = active_cloudrig()
+		rig = active_cloudrig(context) 
+		if not rig:
+			rig = active_cloud_metarig(context)
 		if not rig: return
 		draw_layers_ui(self.layout, rig)
 
@@ -1184,7 +1207,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 
 		layout.operator(CLOUDRIG_OT_keyframe_all_settings.bl_idname, text='Keyframe All Settings', icon='KEYFRAME_HLT')
@@ -1196,12 +1219,12 @@ class CLOUDRIG_PT_fkik(CLOUDRIG_PT_main):
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		return rig and "ik_switches" in rig.data
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "ik_switches")
@@ -1213,7 +1236,7 @@ class CLOUDRIG_PT_ik(CLOUDRIG_PT_main):
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return False
 		ik_settings = ['ik_stretches', 'ik_hinges', 'parents', 'ik_pole_follows']
 		for ik_setting in ik_settings:
@@ -1223,7 +1246,7 @@ class CLOUDRIG_PT_ik(CLOUDRIG_PT_main):
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "ik_stretches", label="IK Stretch")
@@ -1238,7 +1261,7 @@ class CLOUDRIG_PT_fk(CLOUDRIG_PT_main):
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return False
 		fk_settings = ['fk_hinges', 'auto_rubber_hose']
 		for fk_setting in fk_settings:
@@ -1248,7 +1271,7 @@ class CLOUDRIG_PT_fk(CLOUDRIG_PT_main):
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "fk_hinges", label='FK Hinge')
@@ -1261,12 +1284,12 @@ class CLOUDRIG_PT_face(CLOUDRIG_PT_main):
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		return rig and "face_settings" in rig.data
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "face_settings", label='')
@@ -1278,12 +1301,12 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		return rig and "misc_settings" in rig.data
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig()
+		rig = active_cloudrig(context)
 		if not rig: return
 
 		draw_rig_settings(layout, rig, "misc_settings", label='')
