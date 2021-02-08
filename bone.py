@@ -269,6 +269,9 @@ class BoneSet(LinkedList):
 				value = value.copy()
 			setattr(bone_info, key, value)
 
+		#HACK: force use_deform to False for now...
+		bone_info.use_deform = False
+
 		# Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
 		for c in pose_bone.constraints:
 			ci = bone_info.add_constraint_from_real(c)
