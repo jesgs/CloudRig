@@ -306,7 +306,7 @@ class CloudChainRig(CloudBaseRig):
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone
-			# ,inherit_scale = 'NONE'
+			,inherit_scale = 'NONE'	# This is important for rubber hose functionality.
 			,overwrite = True
 		)
 		tangent_helper.add_constraint('COPY_SCALE'
