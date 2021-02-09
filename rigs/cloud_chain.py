@@ -22,8 +22,6 @@ class CloudChainRig(CloudBaseRig):
 		super().initialize()
 
 		self.chain_length = 0
-		if self.params.CR_chain_bbone_density > 0:
-			self.params.CR_chain_unlock_deform = False
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
@@ -416,10 +414,16 @@ class CloudChainRig(CloudBaseRig):
 				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.def_mch)
 				def_bone_control.head = def_bone_control.center
 				def_bone_control.custom_shape_scale *= 0.5
-				self.setup_def_bone(def_bone_parent, org_bone, str_bone, str_bone.next)
+				# self.setup_def_bone(def_bone_parent, org_bone, str_bone, str_bone.next)
+				if str_bone.next:
+					def_bone_parent.add_constraint('STRETCH_TO'
+						,subtarget = str_bone.next.name
+						,use_bulge_min = not self.params.CR_chain_preserve_volume
+						,use_bulge_max = not self.params.CR_chain_preserve_volume
+					)
 				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
-			else:
-				self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
+
+			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
 		return self.def_chain
 
@@ -442,11 +446,12 @@ class CloudChainRig(CloudBaseRig):
 			next_str_bone = str_bone.next
 		if next_str_bone:
 			def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
-			def_bone.add_constraint('STRETCH_TO'
-				,subtarget = next_str_bone.name
-				,use_bulge_min = not self.params.CR_chain_preserve_volume
-				,use_bulge_max = not self.params.CR_chain_preserve_volume
-			)
+			if not self.params.CR_chain_unlock_deform:
+				def_bone.add_constraint('STRETCH_TO'
+					,subtarget = next_str_bone.name
+					,use_bulge_min = not self.params.CR_chain_preserve_volume
+					,use_bulge_max = not self.params.CR_chain_preserve_volume
+				)
 
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
@@ -462,7 +467,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# B-Bone scale drivers
 		if def_bone.bbone_segments > 1:
-			def_bone.inherit_scale = 'NONE'
+			if not self.params.CR_chain_unlock_deform:
+				def_bone.inherit_scale = 'NONE'
 			self.make_bbone_scale_drivers(def_bone)
 
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
@@ -557,7 +563,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
-		cls.define_bone_set(params, "Deform Controls", preset=5,	default_layers=[cls.default_layers('STRETCH')])
+		cls.define_bone_set(params, "Deform Controls", preset=5,	default_layers=[cls.default_layers('DEF_CTR')])
 		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], override='MCH')
 		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], override='MCH')
@@ -586,8 +592,8 @@ class CloudChainRig(CloudBaseRig):
 			,max		 = 32
 		)
 		params.CR_chain_unlock_deform = BoolProperty(
-			 name		 = "Unlock Deform"
-			,description = "Allow Deform bones to be controlled directly, by moving their constraints to a parent helper bone. This requires that B-Bone Density is set to 0"
+			 name		 = "Direct Deform Controls"
+			,description = "Create CTR-DEF controls that allow Deform bones to be controlled directly"
 			,default	 = False
 		)
 		params.CR_chain_shape_key_helpers = BoolProperty(
@@ -624,8 +630,7 @@ class CloudChainRig(CloudBaseRig):
 
 		cls.draw_prop(layout, params, "CR_chain_segments")
 		cls.draw_prop(layout, params, "CR_chain_bbone_density")
-		row = cls.draw_prop(layout, params, "CR_chain_unlock_deform")
-		row.enabled = params.CR_chain_bbone_density==0
+		cls.draw_prop(layout, params, "CR_chain_unlock_deform")
 
 		cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
 		cls.draw_prop(layout, params, "CR_chain_sharp")

@@ -24,6 +24,7 @@ class DefaultLayers(Enum):
 	FK_SECOND = 17
 
 	STRETCH = 2
+	DEF_CTR = 18
 
 	FACE_MAIN = 3
 	FACE_SECOND = 19

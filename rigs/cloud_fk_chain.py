@@ -220,7 +220,7 @@ class CloudFKChainRig(CloudChainRig):
 
 		# If we didn't put a stretch constraint on the final deform bone,
 		# it must mean there is no cap control.
-		if len(last_def.constraint_infos)==0:
+		if len(last_def.constraint_infos)==0 and not self.params.CR_chain_unlock_deform:
 			if last_def.prev:
 				# In this case, set the previous def_bone's easeout to 0.
 				last_def.prev.bbone_easeout = 0
