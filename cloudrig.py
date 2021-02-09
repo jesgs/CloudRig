@@ -1148,7 +1148,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
-def draw_layers_ui(layout, rig, show_hidden=True, owner=None, layers_prop='layers'):
+def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_prop='layers'):
 	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
 	# This should be able to run even if the Rigify addon is disabled.
 
@@ -1156,11 +1156,14 @@ def draw_layers_ui(layout, rig, show_hidden=True, owner=None, layers_prop='layer
 	if not owner:
 		owner = data
 
-	# This part will only work if CloudRig is present.
-	if show_hidden and hasattr(data, 'cloudrig_parameters'):
+	# Hidden layers will only work if CloudRig is enabled.
+	if hasattr(data, 'cloudrig_parameters'):	# If CloudRig is enabled:
 		cloudrig = data.cloudrig_parameters
-		layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden")
+		if show_hidden_checkbox:
+			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden")
 		show_hidden = cloudrig.show_layers_preview_hidden
+	else:
+		show_hidden = False
 
 	if 'rigify_layers' not in data:
 		row = layout.row()
