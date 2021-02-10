@@ -519,12 +519,14 @@ class BoneInfo:
 				for t in constraint.targets:
 					kwargs['targets'].append({
 						'target' : constraint.id_data,
-						'subtarget' : t.subtarget,
+						'subtarget' : t.subtarget.replace("ORG-", ""),
 						'weight' : t.weight
 					})
 				continue
 
 			kwargs[key] = getattr(constraint, key)
+			if key == 'space_subtarget':
+				kwargs[key] = kwargs[key].replace("ORG-", "")
 
 		new_con = ConstraintInfo(self, constraint.type, **kwargs)
 		new_con.is_from_real = True
