@@ -29,7 +29,9 @@ class CloudAimRig(CloudBaseRig):
 
 		if self.params.CR_aim_root:
 			self.aim_root = self.make_root_bone(aim_org)
-		self.group_master = self.ensure_group_master()
+		self.group_master = None
+		if self.params.CR_aim_group!="":
+			self.group_master = self.ensure_group_master()
 		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
 		target_bone = self.make_target_control(aim_bone, self.group_master)
 
