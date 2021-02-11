@@ -1,4 +1,5 @@
 import bpy
+from bpy.props import BoolProperty
 
 from ..utils.ui import is_cloud_metarig
 from ..utils.object import EnsureVisible
@@ -26,13 +27,22 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 	bl_label = "Regenerate All Rigify Rigs"
 	bl_options = {'REGISTER', 'UNDO'}
 
+	auto_hide: BoolProperty(
+		name="Auto Hide/Unhide"
+		,default=False
+		,description="Enable additional convenience functionality when generating a single rig: After a successful generation, hide the metarig, unhide the generated rig, and enter the same mode on the generated rig as the current mode"
+	)
+
 	def execute(self, context):
 		rigs_generated = 0
 		rigs_failed = 0
+		auto_mode = 'OBJECT'
 		for o in bpy.data.objects:
 			if o.type!='ARMATURE': continue
 			if o.data.rigify_target_rig:
 				metarig = o
+				if metarig==context.object:
+					auto_mode = metarig.mode
 				target_rig = o.data.rigify_target_rig
 				if target_rig:
 					try:
@@ -48,6 +58,15 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 			self.report({'ERROR'}, f"{rigs_failed} rig{'s' if rigs_failed>1 else ''} failed to generate. See the Rigify Log on the Metarig for more details.")
 		else:
 			self.report({'INFO'}, f"{rigs_generated} rig{'s' if rigs_generated>1 else ''} successfully generated!")
+
+		if self.auto_hide and rigs_generated==1 and rigs_failed==0:
+			metarig.hide_set(True)
+			rig = metarig.data.rigify_target_rig
+			rig.hide_set(False)
+			bpy.ops.object.mode_set(mode='OBJECT')
+			context.view_layer.objects.active = rig
+			rig.select_set(True)
+			bpy.ops.object.mode_set(mode=auto_mode)
 
 		return { 'FINISHED' }
 
