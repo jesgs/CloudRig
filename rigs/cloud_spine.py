@@ -25,7 +25,8 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		assert len(self.bones.org.main) > 2, "Spine must consist of at least 3 connected bones."
+		if self.params.CR_spine_use_ik:
+			assert len(self.bones.org.main) > 2, "Spine with IK must consist of at least 3 connected bones."
 
 		# UI Strings and Custom Property names
 		self.category = self.naming.strip_org(self.base_bone)
