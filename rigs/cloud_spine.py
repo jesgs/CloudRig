@@ -8,6 +8,7 @@ Re-implement FK-C bones (maybe under a param)
 	Their values would probably have to be dependent on the length of the bone. Ie, a long bone should slide more when it's rotated, compared to a short bone.
 
 Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone?
+TODO: This errors without an assert when it's just a single bone. Should be supported.
 """
 
 class CloudSpineRig(CloudFKChainRig):
@@ -70,9 +71,9 @@ class CloudSpineRig(CloudFKChainRig):
 	def make_root_bone(self):
 		"""Overrides cloud_fk_chain."""
 
-		# Create Troso Master control
+		# Create Torso Master control
 		limb_root_bone = self.spine_main.new(
-			name 		  = f"MSTR-{self.spine_name}_Torso"
+			name 		  = self.naming.make_name(["MSTR"], self.spine_name+"_Torso", [self.side_suffix])
 			,parent		  = self.root_bone
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
@@ -86,14 +87,15 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Create master hip control
 		self.mstr_hips = self.spine_main.new(
-				name				= f"MSTR-{self.spine_name}_Hips"
+				name				= self.naming.make_name(["MSTR"], self.spine_name+"_Hips", [self.side_suffix])
 				,source				= self.org_chain[0]
 				,head				= self.org_chain[0].center
 				,custom_shape 		= self.ensure_widget("Hips")
 				,custom_shape_scale	= 0.7
 				,parent				= self.limb_root_bone
 		)
-		self.limb_root_bone.flatten()
+		if self.params.CR_spine_world_align:
+			self.limb_root_bone.flatten()
 
 		# Shift FK controls to their center.
 		for fk_bone in self.fk_chain:
@@ -119,7 +121,8 @@ class CloudSpineRig(CloudFKChainRig):
 		if self.params.CR_spine_double:
 			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.spine_parent_ctrls)
 
-		self.mstr_hips.flatten()
+		if self.params.CR_spine_world_align:
+			self.mstr_hips.flatten()
 
 		### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
 		self.ik_ctr_chain = []
@@ -312,6 +315,12 @@ class CloudSpineRig(CloudFKChainRig):
 			,description = "FK Bones will be placed at the halfway points of original bones. Thanks to Bendy Bones, this can result in smoother deformation, but also some volume loss"
 			,default	 = True
 		)
+
+		params.CR_spine_world_align = BoolProperty(
+			name		 = "World-Align Controls"
+			,description = "Flatten the torso and hips to align with the closest world axis"	# TODO: This makes sense to have for the torso, but flattening the hips only when IK is enabled seems pretty random.
+			,default	 = True
+		)
 		params.CR_spine_use_ik = BoolProperty(
 			name		 = "Create IK Setup"
 			,description = "If disabled, this spine rig will only have FK controls"
@@ -338,6 +347,7 @@ class CloudSpineRig(CloudFKChainRig):
 
 		cls.draw_prop(layout, params, "CR_spine_use_ik")
 		cls.draw_prop(layout, params, "CR_spine_double")
+		cls.draw_prop(layout, params, "CR_spine_world_align")
 
 		return layout
 
