@@ -1,0 +1,81 @@
+from ..cloud_fk_chain import CloudFKChainRig
+from ...bone import BoneInfo, BoneSet
+
+"""TODO
+
+"""
+
+class SpriteFeatherRig(CloudFKChainRig):
+	"""Slightly modified version of cloud_fk_chain, for rigging the Sprite Fright bird's feathers."""
+
+	forced_params = {
+		'CR_chain_segments' : 1
+		,'CR_chain_tip_control' : True
+		,'CR_fk_chain_display_center' : False
+	}
+
+	def initialize(self):
+		super().initialize()
+
+		if self.params.CR_spine_use_ik:
+			assert len(self.bones.org.main)==1, "Feather rig must consist of exactly 1 bone."
+
+	def create_bone_infos(self):
+		super().create_bone_infos()
+
+		self.fk_chain[0].custom_shape = self.ensure_widget("Feather")
+		fk_dsp = self.create_dsp_bone(self.fk_chain[0])
+		fk_dsp.put(loc=fk_dsp.tail)
+
+		# Create a new bone parented to ORG, and parent the tip control to it.
+		org = self.org_chain[0]
+		bend_ctr = self.fk_extras.new(
+			name 			= org.name.replace("ORG", "BEND")
+			,source 		= org
+			,parent 		= org
+			,custom_shape 	= self.ensure_widget("Feather")
+		)
+		bend_ctr.bone_group = self.str_chain.bone_group
+		self.str_chain[-1].parent = bend_ctr
+
+		bend_dsp = self.create_dsp_bone(bend_ctr)
+		dsp_loc = bend_ctr.head + (bend_ctr.tail-bend_ctr.head)*0.95
+		bend_dsp.put(loc=dsp_loc)
+
+		# Create a visual helper line from the bend to the FK control's display positions.
+		line = self.fk_extras.new(
+			name	= org.name.replace("ORG", "LINE-BEND")
+			,source = bend_dsp
+			,parent = bend_dsp
+			,custom_shape = self.ensure_widget("Pole_Line")
+			,use_custom_shape_bone_size = True
+		)
+		line.bone_group = self.str_chain.bone_group
+		line.hide_select = True
+
+		line.tail = fk_dsp.head.copy()
+		line.add_constraint('STRETCH_TO', subtarget=fk_dsp.name)
+
+	##############################
+	# Parameters
+
+	@classmethod
+	def add_parameters(cls, params):
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		super().add_parameters(params)
+
+	@classmethod
+	def draw_cloud_params(cls, layout, context, params):
+		"""Create the ui for the rig parameters."""
+		layout = super().draw_cloud_params(layout, context, params)
+
+		return layout
+
+class Rig(SpriteFeatherRig):
+	pass
+
+# For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
+from ...load_metarig import load_sample_by_file
+
+def create_sample(obj):
+	load_sample_by_file(__file__)

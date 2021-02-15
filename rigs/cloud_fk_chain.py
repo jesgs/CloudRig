@@ -81,11 +81,11 @@ class CloudFKChainRig(CloudChainRig):
 		root_name = self.base_bone.replace("ORG", "ROOT")
 		base_bone = self.org_chain[0]
 		limb_root_bone = self.fk_extras.new(
-			name 					= root_name
-			,source 				= base_bone
-			,parent 				= base_bone.parent
-			,custom_shape 			= self.ensure_widget("Cube")
-			,inherit_scale			= self.params.CR_fk_chain_inherit_scale
+			name 			= root_name
+			,source 		= base_bone
+			,parent 		= base_bone.parent
+			,custom_shape 	= self.ensure_widget("Cube")
+			,inherit_scale	= self.params.CR_fk_chain_inherit_scale
 		)
 		return limb_root_bone
 
@@ -382,12 +382,6 @@ class CloudFKChainRig(CloudChainRig):
 		)
 
 		super().add_parameters(params)
-
-	@classmethod
-	def draw_bone_set_params(cls, layout, params, set_info):
-		# We only want to draw this bone set UI if the option for it is enabled.
-		if set_info['name'] != "FK Controls Extra" or params.CR_fk_chain_double_first:
-			super().draw_bone_set_params(layout, params, set_info)
 
 	@classmethod
 	def draw_hinge_param(cls, layout, params):
