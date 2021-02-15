@@ -56,6 +56,9 @@ class SpriteFeatherRig(CloudFKChainRig):
 		line.tail = fk_dsp.head.copy()
 		line.add_constraint('STRETCH_TO', subtarget=fk_dsp.name)
 
+		# Make the tip control copy partial rotation of the bend control
+		self.str_chain[-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
+
 	##############################
 	# Parameters
 
