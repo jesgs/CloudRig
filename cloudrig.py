@@ -38,7 +38,7 @@ def active_cloudrig(context):
 
 def active_cloud_metarig(context):
 	rig = context.pose_object or context.object
-	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
+	if rig and rig.type=='ARMATURE' and 'rig_id' not in rig.data:
 		for pb in rig.pose.bones:
 			if not hasattr(pb, 'rigify_type'):
 				return None
