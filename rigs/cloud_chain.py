@@ -275,7 +275,7 @@ class CloudChainRig(CloudBaseRig):
 			name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
-			,overwrite = True
+			,inherit_scale = 'NONE'
 		)
 		if not nxt:
 			nxt = str_bone.next
@@ -318,6 +318,14 @@ class CloudChainRig(CloudBaseRig):
 		assert hasattr(str_bone, 'dt_bone'), f"make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first, while Smooth Chain param is True."
 
 		dt = str_bone.dt_bone
+
+		str_child_no_scale = self.str_mch.new(
+			name = str_bone.name.replace("STR", "STR-NOSCALE")
+			,source = str_bone
+			,parent = str_bone
+			,inherit_scale = 'NONE'
+		)
+
 		tangent_helper.add_constraint('COPY_ROTATION'
 			,name = "Copy Rotation (Damped Track Helper)"
 			,subtarget = dt.name
@@ -328,7 +336,7 @@ class CloudChainRig(CloudBaseRig):
 				,subtarget = str_bone.name
 				,owner_space = 'CUSTOM'
 				,space_object = self.obj
-				,space_subtarget = str_bone.name
+				,space_subtarget = str_child_no_scale.name
 			)
 		else:
 			tangent_helper.add_constraint('COPY_ROTATION'
@@ -361,7 +369,7 @@ class CloudChainRig(CloudBaseRig):
 			,subtarget = str_bone.name
 			,owner_space = 'CUSTOM'
 			,space_object = self.obj
-			,space_subtarget = str_bone.name
+			,space_subtarget = str_child_no_scale.name
 		)
 
 		tangent_helper.add_constraint('COPY_ROTATION'
