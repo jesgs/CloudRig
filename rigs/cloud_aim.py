@@ -69,9 +69,8 @@ class CloudAimRig(CloudBaseRig):
 			,source = self.org_chain[0]
 			,head	= head
 			,tail	= tail
-			,custom_shape = self.ensure_widget("Oval")
+			,custom_shape = self.ensure_widget("Circle")
 			,parent = parent
-			,roll_type = 'GLOBAL_POS_Z'
 		)
 		dsp_bone = self.create_dsp_bone(target_bone)
 		dsp_bone.add_constraint('DAMPED_TRACK', subtarget=bone.name, track_axis='TRACK_NEGATIVE_Y')
@@ -93,12 +92,12 @@ class CloudAimRig(CloudBaseRig):
 		return aim_bone
 
 	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
-		"""Create direct control, with a display bone that is aim radius away towards the bone's +Y axis."""
+		"""Create direct control, with a display bone at the tip of it."""
 		ctr_bone = self.target_ctrl.new(
 			name = self.naming.make_name(["CTR"], *self.naming.slice_name(org_bone.name)[1:])
 			,source = org_bone
 			,parent = org_bone
-			,custom_shape = self.ensure_widget("Oval")
+			,custom_shape = self.ensure_widget("Circle")
 		)
 
 		ctr_bone.add_constraint('COPY_ROTATION'
