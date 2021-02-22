@@ -521,10 +521,11 @@ class CloudGenerator(Generator):
 				# Configure Action constraints
 				for c in constraints:
 					# If constraint is not the same side as the control, flip it.
-					constraint_is_left_side = self.naming.side_is_left(c)
-					control_is_left_side = self.naming.side_is_left(subtarget)
-					if constraint_is_left_side != control_is_left_side:
-						subtarget = self.naming.flipped_name(subtarget)
+					if do_symmetry:
+						constraint_is_left_side = self.naming.side_is_left(c)
+						control_is_left_side = self.naming.side_is_left(subtarget)
+						if constraint_is_left_side != control_is_left_side:
+							subtarget = self.naming.flipped_name(subtarget)
 					c.target_space = act_slot.target_space
 					c.transform_channel = act_slot.transform_channel
 					c.target = rig
