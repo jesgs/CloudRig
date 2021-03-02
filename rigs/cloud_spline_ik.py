@@ -12,7 +12,7 @@ class CloudSplineIKRig(CloudCurveRig):
 	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
 	forced_params = {
-		'CR_curve_target' : None
+		# 'CR_curve_target' : None TODO: This shouldn't be user-modifiable, but it also can't be set to None, because we need the curve reference in create_curve_object().
 	}
 
 	def initialize_curve_rig(self):
@@ -40,31 +40,30 @@ class CloudSplineIKRig(CloudCurveRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		self.make_curve_root_ctrl()
-		self.create_curve()
+		self.create_curve_object()
 		self.make_ctrls_for_curve_points()
 		self.make_def_chain()
 		self.add_spline_ik()
 
 	def make_curve_controls(self):
 		""" Overrides.
-			This rig's create_curve() relies on CloudBaseRig.create_bone_infos()
+			This rig's create_curve_object() relies on CloudBaseRig.create_bone_infos()
 			having already run. But if we simply call super().create_bone_infos(),
 			it will run make_ctrls_for_curve_points(), which, for this class,
-			relies on create_curve() running beforehand.
+			relies on create_curve_object() running beforehand.
 			So, we override this with nothing, and we put the calls in the
 			correct order in our own create_bone_infos().
 		"""
 		# TODO: This could perhaps be better done with a callback of some kind.
 		pass
 
-	def create_curve(self):
+	def create_curve_object(self):
 		"""Find or create the Bezier Curve that will be used by the rig."""
 
 		curve_ob = self.params.CR_curve_target
 		if curve_ob:
 			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.
 			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken. TODO: This could be avoided with some reshuffling and Object.user_remap().
-
 
 		sum_bone_length = sum([b.length for b in self.org_chain])
 		length_unit = sum_bone_length / (self.num_controls-1)
@@ -147,6 +146,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			,use_curve_radius = True
 			,chain_count	  = len(self.def_chain)
 		)
+
 
 	##############################
 	# Parameters

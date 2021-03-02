@@ -267,7 +267,7 @@ class CloudCurveRig(CloudBaseRig):
 
 		curve_visible.restore()
 
-		self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", "")).rigify_parameters.CR_curve_target = curve_ob
+		self.meta_base_bone.rigify_parameters.CR_curve_target = curve_ob
 
 	##############################
 	# Parameters
