@@ -610,6 +610,7 @@ class CloudGenerator(Generator):
 						target.bone_target = subtarget
 						target.transform_type = c.transform_channel.replace("ATION", "")
 						target.transform_space = c.target_space + "_SPACE"
+						target.rotation_mode = 'SWING_TWIST_Y'	# NOTE: I'm not sure if this is ever not desired.
 
 	def ensure_test_action(self):
 		# Ensure test action exists
