@@ -37,7 +37,7 @@ class CloudCurveRig(CloudBaseRig):
 		self.make_ctrls_for_curve_points()
 
 	def make_curve_root_ctrl(self):
-		self.root_control = self.curve_hooks.new(
+		self.root_control = self.curve_handles.new(
 			name						= self.base_bone.replace("ORG", "ROOT")
 			,source						= self.org_chain[0]
 			,custom_shape				= self.ensure_widget("Cube")

@@ -147,11 +147,27 @@ class CloudSplineIKRig(CloudCurveRig):
 			,chain_count	  = len(self.def_chain)
 		)
 
+	def relink(self):
+		"""Override cloud_base.
+		Move constraints from ORG to Hook controls and relink them.
+		Only works when CR_spline_ik_match_hooks==True. TODO: Indicate this by graying out in the UI!
+		"""
+		if not self.params.CR_spline_ik_match_hooks: return
+		for i, org in enumerate(self.org_chain):
+			for c in org.constraint_infos[:]:
+				if not c.is_from_real: continue
+				to_bone = self.curve_hooks[i]
+				to_bone.constraint_infos.append(c)
+				org.constraint_infos.remove(c)
+				for d in c.drivers:
+					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
+				c.relink()
+
 	def configure_bones(self):
 		"""This is a rare case of using a Rigify stage, because we actually 
 		do want to apply the rest pose of the deform bones, as dictated by
 		the Spline IK constraint."""
-		
+		super().configure_bones()
 		bpy.ops.object.mode_set(mode='POSE')
 		for pb in self.obj.pose.bones:
 			pb.bone.select = False
