@@ -13,7 +13,8 @@ class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features such as Auto-Rubberhose for a simple limb like an arm."""
 
 	forced_params = {
-		'CR_fk_chain_root' : True
+		'CR_ik_chain_at_tip' : False
+		,'CR_fk_chain_root' : True
 		,'CR_chain_sharp' : True
 	}
 

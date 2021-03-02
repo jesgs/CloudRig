@@ -47,6 +47,14 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
+		self.last_org = self.org_chain[-1]
+		if self.params.CR_ik_chain_at_tip:
+			self.org_chain.new(
+				name = "TIP-"+self.last_org.name
+				,source = self.last_org
+				,head = self.last_org.tail.copy()
+				,vector = self.last_org.vector
+			)
 		if self.params.CR_ik_chain_world_aligned:
 			self.world_align_last_fk()
 		self.make_ik_setup()
@@ -57,7 +65,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def world_align_last_fk(self):
 		# Make last FK bone world-aligned.
-		self.make_world_aligned_control(self.org_chain[-1].fk_bone)
+		self.make_world_aligned_control(self.last_org.fk_bone)
 
 	def make_world_aligned_control(self, bone):
 		# Make a world-aligned parent control for a bone.
@@ -76,10 +84,9 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def make_ik_setup(self):
 		# Create IK Master control
-		ik_org_bone = self.org_chain[self.chain_count]
 		self.ik_mstr = self.create_ik_master(
 			self.ik_ctrls,
-			ik_org_bone,
+			self.org_chain[self.chain_count],
 		)
 
 		self.calculate_ik_info()
@@ -369,7 +376,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			head_tail = cum_length/chain_length
 			if head_tail > 1.0: break
 			if i == 0: continue
-			if i == len(self.main_str_bones)-1: continue
+			if i == len(self.main_str_bones)-1 and not self.params.CR_ik_chain_at_tip: continue
 			main_str_helper = self.ik_mch.new(
 				name		 = self.naming.add_prefix(main_str_bone, "S")
 				,source		 = main_str_bone
@@ -548,7 +555,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			name		 = "IK Settings"
 			,description = "Reveal settings for the cloud_ik_chain rig type"
 		)
-		params.CR_ik_chain_at_tip = BoolProperty(	# TODO: implement this.
+		params.CR_ik_chain_at_tip = BoolProperty(
 			name		 = "At Tail"
 			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
 			,default	 = False
@@ -579,6 +586,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
 		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
+		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
 
 		op = layout.operator('object.cloudrig_flatten_bones')
 		op.use_selected = False

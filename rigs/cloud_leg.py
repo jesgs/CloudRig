@@ -16,7 +16,8 @@ class CloudLegRig(CloudLimbRig):
 	"""Limb rig with extra features for legs, such as foot roll."""
 
 	forced_params = {
-		'CR_fk_chain_root' : True
+		'CR_ik_chain_at_tip' : False
+		,'CR_fk_chain_root' : True
 		,'CR_chain_sharp' : True
 	}
 
