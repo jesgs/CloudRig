@@ -9,10 +9,9 @@ from .cloud_base import CloudBaseRig
 """
 Ideas to improve this:
 Spline IK like controls(the other two types) for bendy bones' handles.
-Recursive generation of layers of STR controls... Little use case and lots of headache.
 """
 
-CUSTOM_SPACE = True	# TODO: This is now in master but smooth chains are apparently glitching again, whether this is True or False, when the character's root is rotated. What!?
+CUSTOM_SPACE = True	# TODO: This is now in master, but this flag should be used for backwards compatibility
 
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
@@ -110,6 +109,9 @@ class CloudChainRig(CloudBaseRig):
 
 		If the constraint name contains 'TAIL', we assume the constraint is meant
 		for the STR bone at the tip or the ORG bone rather than at the head.
+
+		If the constraint type is Armature, create a parent helper bone to prevent 
+		the parenting from affecting the local matrix.
 		"""
 		for i, org in enumerate(self.org_chain):
 			for c in org.constraint_infos[:]:
@@ -121,6 +123,7 @@ class CloudChainRig(CloudBaseRig):
 					to_bone = self.main_str_bones[i+1]
 
 				if c.type=='ARMATURE':
+					# TODO IMPORTANT: This is not running for Ellie's fannypack belt, why??
 					to_bone = self.create_parent_bone(to_bone, self.parent_switch_bones)
 
 				to_bone.constraint_infos.append(c)
@@ -430,6 +433,7 @@ class CloudChainRig(CloudBaseRig):
 						,use_bulge_max = not self.params.CR_chain_preserve_volume
 					)
 				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
+				def_bone_control.layers = self.def_ctr.layers[:] # TODO: This should not be necessary!
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
@@ -475,8 +479,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# B-Bone scale drivers
 		if def_bone.bbone_segments > 1:
-			if not self.params.CR_chain_unlock_deform:
-				def_bone.inherit_scale = 'NONE'
+			# if not self.params.CR_chain_unlock_deform:
+			# 	def_bone.inherit_scale = 'NONE'
 			self.make_bbone_scale_drivers(def_bone)
 
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
