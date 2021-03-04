@@ -483,7 +483,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		parent_helper.custom_shape = None
 
 		# Copy the constraint and drivers from the IK master
-		import copy
 		arm_con_info = parent_helper.add_constraint('ARMATURE', use_deform_preserve_volume=True)
 		arm_con_info.targets = [dict(d) for d in ik_mstr.parent.constraint_infos[0].targets]
 		arm_con_info.drivers = [dict(d) for d in ik_mstr.parent.constraint_infos[0].drivers]
