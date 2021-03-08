@@ -818,7 +818,7 @@ class CloudGenerator(Generator):
 		# Compatibility pre-rBA25c81824e45b28910cf93
 		# (Pre-2.93 for simplicity)
 		if blender_version < 2.93:
-			self._Generator__rename_org_bones()
+			self._Generator__rename_org_bones(self.obj)
 
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.map_drivers()
