@@ -64,11 +64,11 @@ def url_prefill_from_cloudrig(stack_trace=""):
 		"**Blender Version**\n"
 	)
 	fh.write(
-		"%s, branch: %s, commit date: [https://developer.blender.org/rB%s](%s)\n" % (
+		"%s, branch: %s, commit: [%s](https://developer.blender.org/rB%s)\n" % (
 			bpy.app.version_string,
 			bpy.app.build_branch.decode('utf-8', 'replace'),
-			bpy.app.build_hash.decode('ascii'),
 			bpy.app.build_commit_date.decode('utf-8', 'replace'),
+			bpy.app.build_hash.decode('ascii'),
 		)
 	)
 
