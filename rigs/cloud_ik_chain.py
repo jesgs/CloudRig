@@ -297,6 +297,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		return ui_data
 
 	def make_ik_stretch(self):
+		"""Primary function that starts the entire Stretchy IK set-up.
+		Some extra stuff is in attach_org_to_ik. # TODO: Put these things under a parameter, so IK Stretch can be disabled when not needed.
+		"""
+
 		ik_org_bone = self.org_chain[self.chain_count]
 		stretch_bone = self.ik_mch.new(
 			name		 = self.org_chain[0].name.replace("ORG", "IK-STR")
@@ -370,6 +374,46 @@ class CloudIKChainRig(CloudFKChainRig):
 			control during IK stretching.
 		"""
 
+		# This driver will cause the Copy Location constraint to activate exactly
+		# when the stretch bone's current length exceeds its original length.
+		ik_stretch_engaged_driver = {
+			'prop' : 'influence',
+			'expression' : f"ik * stretch * (distance > {chain_length} * scale)",
+			'variables' : {
+				'stretch' : {
+					'type' : 'SINGLE_PROP',
+					'targets' : [{
+						'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]'
+					}]
+				},
+				'ik' : {
+					'type' : 'SINGLE_PROP',
+					'targets' : [{
+						'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ikfk_name}"]'
+					}]
+				},
+				'distance' : {
+					'type' : 'LOC_DIFF',
+					'targets' : [{
+						'bone_target' : self.ik_tgt_bone.name,
+						'transform_space' : 'WORLD_SPACE'
+					},
+					{
+						'bone_target' : self.ik_chain[0].name,
+						'transform_space' : 'WORLD_SPACE'
+					}]
+				},
+				'scale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : self.ik_chain[0].name,
+						'transform_type' : 'SCALE_Y',
+						'transform_space' : 'WORLD_SPACE'
+					}]
+				}
+			}
+		}
+
 		cum_length = self.org_chain[0].length
 		for i, main_str_bone in enumerate(self.main_str_bones):
 			# How far this bone is along the total chain length
@@ -387,51 +431,33 @@ class CloudIKChainRig(CloudFKChainRig):
 			main_str_bone.parent = main_str_helper
 
 			con_name = 'CopyLoc_IK_Stretch'
-			main_str_helper.add_constraint('COPY_LOCATION'
+			copyloc = main_str_helper.add_constraint('COPY_LOCATION'
 				,space			= 'WORLD'
 				,subtarget		= stretch_bone.name
 				,name			= con_name
 				,head_tail		= head_tail
 			)
-			cum_length += self.org_chain[i].length
+			org_bone = self.org_chain[i]
+			cum_length += org_bone.length
 
-			main_str_helper.drivers.append({
-				'prop' : f'constraints["{con_name}"].influence',
-				'expression' : f"ik * stretch * (distance > {chain_length} * scale)",
-				'variables' : {
-					'stretch' : {
-						'type' : 'SINGLE_PROP',
-						'targets' : [{
-							'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]'
-						}]
-					},
-					'ik' : {
-						'type' : 'SINGLE_PROP',
-						'targets' : [{
-							'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ikfk_name}"]'
-						}]
-					},
-					'distance' : {
-						'type' : 'LOC_DIFF',
-						'targets' : [{
-							'bone_target' : self.ik_tgt_bone.name,
-							'transform_space' : 'WORLD_SPACE'
-						},
-						{
-							'bone_target' : self.ik_chain[0].name,
-							'transform_space' : 'WORLD_SPACE'
-						}]
-					},
-					'scale' : {
-						'type' : 'TRANSFORMS',
-						'targets' : [{
-							'bone_target' : self.ik_chain[0].name,
-							'transform_type' : 'SCALE_Y',
-							'transform_space' : 'WORLD_SPACE'
-						}]
-					}
-				}
-			})
+			copyloc.drivers.append(dict(ik_stretch_engaged_driver))
+
+		# Attach ORG chain to IK Stretch	- This works but provides no benefit, and can result in snapping if the IK Base control is translated.
+		# cum_length = 0
+		# for i, org_bone in enumerate(self.org_chain):
+		# 	head_tail = cum_length/chain_length
+		# 	cum_length += org_bone.length
+		# 	# ORG Copy Transforms to IK Stretch bone
+		# 	ct_ik_str = org_bone.add_constraint('COPY_TRANSFORMS'
+		# 		,name	   = "Copy Transforms IK Stretch"
+		# 		,space	   = 'WORLD'
+		# 		,subtarget = stretch_bone.name
+		# 		,head_tail = head_tail
+				
+		# 	)
+
+		# 	ct_ik_str.drivers.append(dict(ik_stretch_engaged_driver))
+
 
 	def attach_org_to_ik(self):
 		# Note: Runs after attach_org_to_fk().
@@ -440,16 +466,18 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Put driver on the influence to be able to disable IK.
 
 		for org_bone in self.org_chain:
+			# Copy Transforms to IK bone
 			ik_bone = self.get_bone_info(org_bone.name.replace("ORG", "IK"))
-			copy_trans = org_bone.add_constraint('COPY_TRANSFORMS'
+			ct_ik = org_bone.add_constraint('COPY_TRANSFORMS'
 				,space		  = 'WORLD'
 				,subtarget	  = ik_bone.name
 				,name		  = "Copy Transforms IK"
+				# ,index		  = 1 # In case IK Stretch is enabled, this constraint needs to be inserted before the Copy Transforms IK Stretch constraint!
 			)
 
-			copy_trans.drivers.append({
-				'prop' : 'influence',
-				'variables' : [
+			ct_ik.drivers.append({
+				'prop' : 'influence'
+				,'variables' : [
 					(self.properties_bone.name, self.ikfk_name)
 				]
 			})

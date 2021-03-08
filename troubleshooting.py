@@ -138,6 +138,11 @@ def get_object_hierarchy_recursive(obj, all_objects=[]):
 	return all_objects
 
 class CloudLogManager:
+	"""Class to manage CloudRigLogEntry CollectionProperty on metarigs.
+
+	This class is instanced once per rig generation, by the CloudGenerator class.
+	"""
+
 	def __init__(self, metarig, rig=None):
 		self.metarig = metarig
 		self.rig = rig
@@ -302,6 +307,15 @@ class CloudLogManager:
 					)
 
 class CloudRigLogEntry(bpy.types.PropertyGroup):
+	"""Container for storing information about a single metarig warning/error.
+
+	A CollectionProperty of CloudRigLogEntries are added to the armature datablock
+	in cloud_generator.register().
+
+	This CollectionProperty is then populated by CloudLogManager via log() and 
+	log_bug() functions.
+	"""
+
 	icon: StringProperty(
 		name = "Icon"
 		,description = "Icon for this log entry"
@@ -358,6 +372,9 @@ class CloudRigLogEntry(bpy.types.PropertyGroup):
 	)
 
 class CLOUDRIG_UL_log_entry_slots(bpy.types.UIList):
+	"""CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log, 
+	when the active object is a CloudRig Metarig.
+	"""
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		rig = context.object
 		cloudrig = data
@@ -413,6 +430,8 @@ def draw_cloudrig_log(layout, metarig):
 
 	layout.use_property_split = False
 
+	# It is optional for the log entry to provide a bone from the metarig, in case
+	# the log entry relates to a rigify type.
 	if log.owner_bone!="":
 		split = layout.row().split(factor=0.3)
 		split.label(text="Rig Element:")
