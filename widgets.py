@@ -13,19 +13,22 @@ def assign_to_collection(obj, collection):
 def ensure_widget(name, overwrite=True, collection=None):
 	""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
 
+	if not collection:
+		collection = bpy.context.scene.collection
+
 	# Check if it already exists.
 	wgt_name = "WGT-"+name
 	wgt_ob = bpy.data.objects.get(wgt_name)
 
-	exists = wgt_ob is not None
 
-	if exists and not overwrite:
-		return wgt_ob
-
-	# If it exists, and we want to update it, rename it while we append the new one.
 	if wgt_ob:
-		wgt_ob.name = wgt_ob.name + "_temp"
-		wgt_ob.data.name = wgt_ob.data.name + "_temp"
+		assign_to_collection(wgt_ob, collection)
+		if overwrite:
+			# If it exists, and we want to update it, rename it while we append the new one.
+			wgt_ob.name = wgt_ob.name + "_temp"
+			wgt_ob.data.name = wgt_ob.data.name + "_temp"
+		else:
+			return wgt_ob
 
 	# Loading widget object from file.
 	filename = "Widgets.blend"
