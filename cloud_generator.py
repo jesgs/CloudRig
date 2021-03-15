@@ -578,6 +578,7 @@ class CloudGenerator(Generator):
 						continue
 
 					c.use_eval_time = True
+					# Add driven custom properties to the Action Helper bone that mirror the eval_time of each action.
 					data_paths = [
 						f'pose.bones["{b.name}"].constraints["{c.name}"].eval_time'
 					]
@@ -588,6 +589,9 @@ class CloudGenerator(Generator):
 							f'pose.bones["{self.action_helper.name}"]["{c.name}"]'
 						)
 					for data_path in data_paths:
+						exists = rig.animation_data.drivers.find(data_path)
+						if exists:
+							continue
 						fcurve = rig.driver_add(data_path)
 						driver = fcurve.driver
 
@@ -610,7 +614,7 @@ class CloudGenerator(Generator):
 						target.bone_target = subtarget
 						target.transform_type = c.transform_channel.replace("ATION", "")
 						target.transform_space = c.target_space + "_SPACE"
-						target.rotation_mode = 'SWING_TWIST_Y'	# NOTE: I'm not sure if this is ever not desired.
+						target.rotation_mode = 'SWING_TWIST_Y'
 
 	def ensure_test_action(self):
 		# Ensure test action exists
