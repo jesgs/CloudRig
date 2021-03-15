@@ -158,7 +158,7 @@ class CloudAimRig(CloudBaseRig):
 			name = self.naming.make_name(*name_slices)
 			,source = ctr_bone
 			,parent = ctr_bone
-			,custom_shape = self.ensure_widget("Oval")
+			,custom_shape = self.ensure_widget("Circle")
 			,length = ctr_bone.length/5
 			,custom_shape_scale = ctr_bone.custom_shape_scale/3
 		)
