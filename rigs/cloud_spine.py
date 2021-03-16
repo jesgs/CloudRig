@@ -266,11 +266,12 @@ class CloudSpineRig(CloudFKChainRig):
 		self.add_ui_data("ik_switches", self.category, self.spine_name, info, default=0.0)
 
 	def tweak_str_spine(self):
-		# Tweak some display things
+		""" We need to parent the last non-tip STR control to the 2nd-to-last FK control, 
+		otherwise that FK control's rotation disconnects the spine from itself."""
+		# TODO: Why isn't this parenting done in the same place where STR bones get parented normally?
 		for i, str_bone in enumerate(self.str_chain):
 			if i == len(self.str_chain) - 1 - self.params.CR_chain_tip_control:
 				str_bone.parent = self.fk_chain[-2]
-			str_bone.custom_shape = self.ensure_widget('Cube_Flat')
 
 	def attach_org_to_fk(self):
 		"""Overrides."""
