@@ -1351,5 +1351,8 @@ def unregister():
 
 	del bpy.types.Object.cloud_rig
 
-if __name__ == '__main__':
+if __name__ in ['__main__', 'builtins']:
+	# __name__ is __main__ when the script is executed in the text editor.
+	# __name__ is builtins when the script is executed via exec() in cloud_generator.
+	print("Cloudrig registering...")
 	register()
