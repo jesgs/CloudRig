@@ -434,6 +434,7 @@ class CloudChainRig(CloudBaseRig):
 					)
 				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
 				def_bone_control.layers = self.def_ctr.layers[:] # TODO: This should not be necessary!
+				def_bone.def_ctr_bone = def_bone_control
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
@@ -464,6 +465,27 @@ class CloudChainRig(CloudBaseRig):
 					,use_bulge_min = not self.params.CR_chain_preserve_volume
 					,use_bulge_max = not self.params.CR_chain_preserve_volume
 				)
+			else:
+				# Add drivers to BBone Roll so that rotating CTR-DEF controls on
+				# local Y axis gives the results an animator might expect.
+				rollin_driver = {
+					'prop' : 'bbone_rollin',
+					'variables' : {
+						'var' : {
+							'type' : 'TRANSFORMS',
+							'targets' : [{
+								'bone_target' : def_bone.def_ctr_bone.name,
+								'transform_space' : 'LOCAL_SPACE',
+								'rotation_mode' : 'SWING_TWIST_Y',
+								'transform_type' : 'ROT_Y',
+							}]
+						}
+					}
+				}
+				def_bone.drivers.append(rollin_driver)
+				rollout_driver = dict(rollin_driver)
+				rollout_driver['prop'] = 'bbone_rollout'
+				def_bone.drivers.append(rollout_driver)
 
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
