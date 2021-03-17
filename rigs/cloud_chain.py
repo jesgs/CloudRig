@@ -432,7 +432,7 @@ class CloudChainRig(CloudBaseRig):
 						,use_bulge_min = not self.params.CR_chain_preserve_volume
 						,use_bulge_max = not self.params.CR_chain_preserve_volume
 					)
-				def_bone_control.custom_shape = self.ensure_widget('Sphere')
+				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
 				def_bone_control.layers = self.def_ctr.layers[:] # TODO: This should not be necessary!
 				def_bone.def_ctr_bone = def_bone_control
 
