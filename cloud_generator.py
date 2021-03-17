@@ -1027,18 +1027,22 @@ class CloudGenerator(Generator):
 
 		### Load and execute cloudrig.py rig UI script
 		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
-		replace = bpy.path.basename(bpy.data.filepath).split(".")[0]
-		if replace=="":
+		script_id = bpy.path.basename(bpy.data.filepath).split(".")[0]
+		# Since this script_id will be used in bl_idnames, let's sanitize it so Blender doesn't complain about invalid bl_idnames.
+		# Only keep alphabetical characters and convert them to lowercase.
+		script_id = ''.join(e for e in script_id if e.isalpha()).lower()
+
+		if script_id=="":
 			# Default in case the file hasn't been saved yet.
 			# Falling back to this could result in an older version of the rig trying to use a newer version of the rig UI script or vice versa, so it should be avoided.
-			replace = "cloudrig"
+			script_id = "cloudrig"
 
-		obj.data['cloudrig'] = replace
+		obj.data['cloudrig'] = script_id
 		obj.data['script'] = load_script(
 			file_path = os.path.dirname(os.path.realpath(__file__))
 			,file_name="cloudrig.py"
 			,search="SCRIPT_ID"
-			,replace=replace
+			,replace=script_id
 		)
 
 		# Armature display settings
