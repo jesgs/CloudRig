@@ -181,8 +181,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# Set first and last control's shapes
 		if not self.cyclic:
-			self.str_chain[0].custom_shape = self.ensure_widget("Cube_Flat_Half_Flip")
-			self.str_chain[-1].custom_shape = self.ensure_widget("Cube_Flat_Half")
+			self.str_chain[0].custom_shape = self.ensure_widget("Hemisphere_Flip")
+			self.str_chain[-1].custom_shape = self.ensure_widget("Hemisphere")
 
 		return str_sections
 
@@ -201,7 +201,7 @@ class CloudChainRig(CloudBaseRig):
 			,vector = direction
 			,length = org_bone.length / segments / 2
 			,roll = org_bone.roll
-			,custom_shape = self.ensure_widget("Cube_Flat")
+			,custom_shape = self.ensure_widget("Sphere")
 			,custom_shape_scale = 0.6
 			,parent = org_bone
 		)
@@ -432,7 +432,7 @@ class CloudChainRig(CloudBaseRig):
 						,use_bulge_min = not self.params.CR_chain_preserve_volume
 						,use_bulge_max = not self.params.CR_chain_preserve_volume
 					)
-				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
+				def_bone_control.custom_shape = self.ensure_widget('Sphere')
 				def_bone_control.layers = self.def_ctr.layers[:] # TODO: This should not be necessary!
 				def_bone.def_ctr_bone = def_bone_control
 
@@ -576,7 +576,7 @@ class CloudChainRig(CloudBaseRig):
 			def_bone = parent_rig.def_mch[-1]
 		parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.str_chain[0])
 		def_bone.parent = str_bone
-		self.str_chain[0].custom_shape = self.ensure_widget('Cube_Flat')
+		self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
 			self.make_shape_key_helper(def_bone, self.def_chain[0])
 		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
