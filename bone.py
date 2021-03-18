@@ -91,16 +91,16 @@ pose_bone_properties = {
 	,'ik_max_z' : 0
 }
 
-def driver_from_real(driver):
+def driver_from_real(driver: bpy.types.Driver) -> dict:
 	"""Return a dictionary describing the driver."""
-	ret = {
+	driver_info = {
 		'type' : driver.type
 		,'variables' : []
 	}
 	if driver.type=='SCRIPTED':
-		ret['expression'] = driver.expression
+		driver_info['expression'] = driver.expression
 	for var in driver.variables:
-		ret['variables'].append({
+		driver_info['variables'].append({
 			'name' : var.name
 			,'type' : var.type
 			,'targets' : []
@@ -119,8 +119,8 @@ def driver_from_real(driver):
 				target_info['bone_target'] = t.bone_target
 				target_info['transform_type'] = t.transform_type
 				target_info['transform_space'] = t.transform_space
-			ret['variables'][-1]['targets'].append(target_info)
-	return ret
+			driver_info['variables'][-1]['targets'].append(target_info)
+	return driver_info
 
 class LinkedList(list):
 	"""Some very basic doubly linked list functionality to help manage chains of bones."""
