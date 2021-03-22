@@ -93,19 +93,27 @@ def is_cloud_metarig(rig):
 				return True
 	return False
 
-def draw_label_with_linebreak(layout, text, alert=False):
+def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 	""" Attempt to simulate a proper textbox by only displaying as many
 		characters in a single label as fits in the UI.
 		This only works well on specific UI zoom levels.
 	"""
 
+	if text=="": return
 	col = layout.column(align=True)
 	col.alert = alert
+	if align_split:
+		split = col.split(factor=0.4)
+		split.row()
+		col = split.row().column()
 	paragraphs = text.split("\n")
+
+	# Try to determine maximum allowed characters per line, based on pixel width of the area.
+	# Not a great metric, but I couldn't find anything better.
+	max_line_length = bpy.context.area.width/8
+	if align_split:
+		max_line_length *= 0.6
 	for p in paragraphs:
-		# Try to determine maximum allowed characters in this line, based on pixel width of the area.
-		# Not a great metric, but I couldn't find anything better.
-		max_line_length = bpy.context.area.width/8
 
 		lines = [""]
 		for word in p.split(" "):

@@ -12,10 +12,11 @@ from ..utils.animation import CloudAnimationMixin
 from ..utils.object import CloudObjectUtilitiesMixin
 
 # The rest
-from bpy.props import BoolProperty, StringProperty, CollectionProperty, PointerProperty, IntProperty
+from bpy.props import BoolProperty, StringProperty, CollectionProperty, PointerProperty, IntProperty, EnumProperty
 from mathutils import Vector
 from enum import Enum
 from ..parent_switching import draw_cloudrig_parents, ParentSlot
+from ..utils.ui import draw_label_with_linebreak
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0
@@ -46,6 +47,14 @@ class CloudBaseRig(
 	"""Base class that all CloudRig rigs should inherit from."""
 
 	default_layers = lambda name: DefaultLayers[name].value
+
+	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
+	use_custom_props = False
+	custom_prop_behaviour = 'Use a bone named "Properties" to store custom properties.'
+	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name.'
+	parent_switch_behaviour = 'The active parent will own the rig\'s root bone.'
+	parent_switch_overwrites_root_parent = True
+
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -119,10 +128,10 @@ class CloudBaseRig(
 				setattr(self.params, param, forced_value)
 
 	@property
-	def properties_bone(self):
+	def properties_bone(self, bone_name="Properties"):
 		"""Ensure that a Properties bone exists, and return it."""
 		# This is a @property so that if it's never called(like in the case of very simple rigs), the properties bone is not created.
-		bone_name = "Properties"
+		# https://en.wikipedia.org/wiki/Lazy_initialization
 		properties_bone = self.get_bone_info(bone_name)
 		if not properties_bone:
 			properties_bone = self.generator.root_set.new(
@@ -263,6 +272,7 @@ class CloudBaseRig(
 		bi.relink()
 
 	def reparent_bone(self, child: BoneInfo):
+		# TODO: This should be deprecated. It's only used by cloud_aim, which should instead rely on apply_custom_root_parent!
 		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
 		parent = super().reparent_bone(child)
 
@@ -341,13 +351,13 @@ class CloudBaseRig(
 			,description = "Reveal settings for the cloud_base rig type"
 		)
 		params.CR_base_parent_switching = BoolProperty(
-			name		 = "Parent Switching"
-			,description = "Use parent switching for this rig. Different rig types may implement this differently. For more information, right click and Open Manual"
+			name		 = "Multiple Parents"
+			,description = "Use parent switching for this rig. Different rig types may implement this differently. A rig type specific explanation is shown below when this is enabled"
 			,default	 = False
 		)
 		params.CR_base_relink = BoolProperty(
 			name		 = "Relink Constraints"
-			,description = "Constraints and drivers on this rig will be relinked to the corresponding primary controls that are created for each bone. This can be different for each rig type. For more info, right click and Open Manual"
+			,description = "Constraints and drivers on this rig will be relinked to the corresponding primary controls that are created for each bone. This can be different for each rig type, see the description text below or right click and click Open Manual"
 			,default	 = True
 		)
 		params.CR_base_parent = StringProperty(
@@ -357,6 +367,20 @@ class CloudBaseRig(
 		)
 		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
 		params.CR_base_active_parent_slot_index = IntProperty()
+
+		params.CR_base_props_storage = EnumProperty(
+			name		 = "Custom Property Storage"
+			,items		 = [
+				('DEFAULT', "Default", 'Use a shared bone called "Properties"')
+				,('CUSTOM', "Custom", "Select an existing bone")
+				,('GENERATED', "Generated", "Generate a bone specifically for this rig element. This can be implemented differently by different rig types")
+			]
+		)
+		params.CR_base_props_storage_bone = StringProperty(
+			name		 = "Properties Bone"
+			,description = 'Store custom properties in the chosen bone. If empty, will fall back to a bone called "Properties"'
+			,default	 = ""
+		)
 
 		cls.define_bone_sets(params)
 
@@ -386,29 +410,39 @@ class CloudBaseRig(
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
 
-		cls.draw_prop(layout, params, "CR_base_relink")
+		relink_box = layout.box()
+		cls.draw_prop(relink_box, params, "CR_base_relink")
+		if params.CR_base_relink:
+			draw_label_with_linebreak(relink_box, cls.relinking_behaviour, align_split=True)
 
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
-		row = layout.row()
-		split = layout.split(factor=0.4)
-		split.row()
-		text_row = split.row()
+
 		if not rig:
-			text_row.label(text="Generate the rig to see parenting parameters.")
+			draw_label_with_linebreak(layout, "Generate the rig to see more parameters.", align_split=True)
 			return layout
 
+		parent_box = layout.box()
 		parent_bone = rig.pose.bones.get(params.CR_base_parent)
+		cls.draw_prop(parent_box, params, "CR_base_parent_switching")
 		if params.CR_base_parent!="" and not parent_bone:
-			cls.draw_prop_search(row, params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
-			text_row.label(text="Bone no longer exists in rig!")
-		else:
-			cls.draw_prop_search(row, params, 'CR_base_parent', rig.pose, 'bones')
+			cls.draw_prop_search(parent_box, params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
+			draw_label_with_linebreak(parent_box, "Bone no longer exists in rig!", align_split=True)
+		elif not (cls.parent_switch_overwrites_root_parent and params.CR_base_parent_switching):
+			cls.draw_prop_search(parent_box, params, 'CR_base_parent', rig.pose, 'bones')
 			if parent_bone and parent_bone.bone.bbone_segments > 1:
-				text_row.label(text="Bendy Bone, will use Armature Constraint")
+				draw_label_with_linebreak(parent_box, "Bendy Bone, will use Armature Constraint and create a parent helper bone!", align_split=True)
 
-		cls.draw_prop(layout, params, "CR_base_parent_switching")
 		if params.CR_base_parent_switching:
-			draw_cloudrig_parents(layout, context.active_pose_bone)
+			draw_label_with_linebreak(parent_box, cls.parent_switch_behaviour, align_split=True)
+			draw_cloudrig_parents(parent_box, context.active_pose_bone)
+
+		if cls.use_custom_props:
+			custom_props_box = layout.box()
+			cls.draw_prop(custom_props_box, params, "CR_base_props_storage", expand=True)
+			if params.CR_base_props_storage == 'CUSTOM':
+				cls.draw_prop_search(custom_props_box, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
+			elif params.CR_base_props_storage == 'GENERATED':
+				draw_label_with_linebreak(custom_props_box, cls.custom_prop_behaviour, align_split=True)
 
 		return layout

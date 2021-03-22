@@ -17,6 +17,10 @@ Allow disabling IK stretch functionality.
 class CloudIKChainRig(CloudFKChainRig):
 	"""IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
+	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
+	parent_switch_behaviour = 'The active parent will own the IK master and pole controls.'
+	parent_switch_overwrites_root_parent = False
+
 	forced_params = {
 		'CR_fk_chain_root' : True,
 	}

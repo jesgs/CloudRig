@@ -8,6 +8,11 @@ from .cloud_chain import CloudChainRig
 class CloudFKChainRig(CloudChainRig):
 	"""FK chain with squash and stretch controls."""
 
+	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
+	use_custom_props = True
+	custom_prop_behaviour = 'Create a bone with a gear cog shape near the end of the limb to store custom properties.'
+	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the FK controls.'
+
 	has_test_animation = True
 
 	def initialize(self):
