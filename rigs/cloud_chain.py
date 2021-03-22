@@ -202,7 +202,7 @@ class CloudChainRig(CloudBaseRig):
 			,length = org_bone.length / segments / 2
 			,roll = org_bone.roll
 			,custom_shape = self.ensure_widget("Sphere")
-			,custom_shape_scale = 0.6
+			,custom_shape_scale = 0.4
 			,parent = org_bone
 		)
 
