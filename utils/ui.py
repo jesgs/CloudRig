@@ -103,7 +103,7 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 	col = layout.column(align=True)
 	col.alert = alert
 	if align_split:
-		split = col.split(factor=0.4)
+		split = col.split(factor=0.2)
 		split.row()
 		col = split.row().column()
 	paragraphs = text.split("\n")
@@ -112,7 +112,7 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 	# Not a great metric, but I couldn't find anything better.
 	max_line_length = bpy.context.area.width/8
 	if align_split:
-		max_line_length *= 0.6
+		max_line_length *= 0.95
 	for p in paragraphs:
 
 		lines = [""]

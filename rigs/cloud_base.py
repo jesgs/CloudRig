@@ -50,11 +50,10 @@ class CloudBaseRig(
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	use_custom_props = False
-	custom_prop_behaviour = 'Use a bone named "Properties" to store custom properties.'
+	custom_prop_behaviour = 'Store Custom Properties for this rig element in a shared bone named "Properties".'
 	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name.'
 	parent_switch_behaviour = 'The active parent will own the rig\'s root bone.'
 	parent_switch_overwrites_root_parent = True
-
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)

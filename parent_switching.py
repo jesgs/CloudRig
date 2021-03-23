@@ -96,26 +96,25 @@ class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
 		pbone = context.active_pose_bone
-		for i, parent_slot in enumerate(pbone.rigify_parameters.CR_base_parent_slots):
-			if item==parent_slot:
-				break
 		parent_slot = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
-			row.prop(parent_slot, 'name', text=f"Parent {i} UI Name:", emboss=True, icon='FILE_TEXT')
-			row.prop_search(parent_slot, 'bone', rig.data, 'bones')
+			row.prop(parent_slot, 'name', text=f"", emboss=True)
+			row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="")
 		elif self.layout_type in {'GRID'}:
 			layout.alignment = 'CENTER'
 			layout.label(text="", icon_value=icon)
 
 class ParentSlot(bpy.types.PropertyGroup):
-	name: StringProperty(name="Name", description="Name to display in the UI")
-	bone: StringProperty(name="Bone", description="Bone to use as the available parent")
+	name: StringProperty(name="Name", description="Name to display in the UI for this parent option")
+	bone: StringProperty(name="Bone", description="Bone that will be used as the parent")
 
 def draw_cloudrig_parents(layout, pbone):
 	active_index = pbone.rigify_parameters.CR_base_active_parent_slot_index
 
-	row = layout.row()
+	split = layout.split(factor=0.1)
+	split.row()
+	row = split.row()
 
 	row.template_list(
 		'CLOUDRIG_UL_parent_slots',
