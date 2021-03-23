@@ -2,6 +2,7 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 
 from .cloud_fk_chain import CloudFKChainRig
+from .cloud_base import CloudBaseRig
 
 """TODO
 Re-implement FK-C bones (maybe under a param)
@@ -21,6 +22,7 @@ class CloudSpineRig(CloudFKChainRig):
 		,'CR_fk_chain_display_center' : False
 		,'CR_fk_chain_root' : True
 	}
+	use_custom_props = True
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""
@@ -351,6 +353,11 @@ class CloudSpineRig(CloudFKChainRig):
 		cls.draw_prop(layout, params, "CR_spine_world_align")
 
 		return layout
+
+	@classmethod
+	def draw_custom_prop_params(cls, layout, context, params):
+		"""Overrides cloud_fk_chain."""
+		CloudBaseRig.draw_custom_prop_params(layout, context, params)
 
 class Rig(CloudSpineRig):
 	pass

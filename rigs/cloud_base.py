@@ -49,8 +49,8 @@ class CloudBaseRig(
 	default_layers = lambda name: DefaultLayers[name].value
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
-	use_custom_props = False
-	custom_prop_behaviour = 'Store Custom Properties for this rig element in a shared bone named "Properties".'
+	use_custom_props = False	# TODO: Instead of an awkward "feauter exists or not" flag like this, we should split these features off into a compositable class, eg. utils.custom_properties->CloudCustomPropertyMixin.
+	custom_prop_behaviour = 'Store Custom Properties for this rig element in a cogwheel shaped bone at the base of the rig.'
 	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name.'
 	parent_switch_behaviour = 'The active parent will own the rig\'s root bone.'
 	parent_switch_overwrites_root_parent = True
@@ -127,27 +127,56 @@ class CloudBaseRig(
 				setattr(self.params, param, forced_value)
 
 	@property
-	def properties_bone(self, bone_name="Properties"):
+	def properties_bone(self) -> BoneInfo:
 		"""Ensure that a Properties bone exists, and return it."""
 		# This is a @property so that if it's never called(like in the case of very simple rigs), the properties bone is not created.
 		# https://en.wikipedia.org/wiki/Lazy_initialization
-		properties_bone = self.get_bone_info(bone_name)
-		if not properties_bone:
-			properties_bone = self.generator.root_set.new(
-				name		  = bone_name
-				,head		  = Vector((0, self.scale*2, 0))
-				,tail		  = Vector((0, self.scale*4, 0))
-				,bbone_width  = 1/8
-				,custom_shape = self.ensure_widget("Cogwheel")
+
+		if self.params.CR_base_props_storage == 'CUSTOM':
+			prop_bone_name = self.params.CR_base_props_storage_bone
+			properties_bone = self.generator.find_bone_info(prop_bone_name)
+			if not properties_bone:
+				self.add_log("Custom Property bone not found"
+					,trouble_bone = prop_bone_name
+					,description = f"Custom Property bone named {prop_bone_name} not found, falling back to default Properties bone. If it exists, make sure it generates before this rig."
+				)
+				self.params.CR_base_props_storage = 'DEFAULT'
+			else:
+				return properties_bone
+
+		if self.params.CR_base_props_storage == 'DEFAULT':
+			bone_name = "Properties"
+			properties_bone = self.generator.find_bone_info(bone_name)
+			if not properties_bone:
+				properties_bone = self.generator.root_set.new(
+					name		  = bone_name
+					,head		  = Vector((0, self.scale*2, 0))
+					,tail		  = Vector((0, self.scale*2, self.scale*2))
+					,bbone_width  = 1/8
+					,custom_shape = self.ensure_widget("Cogwheel_Y")
+					,use_custom_shape_bone_size = True
+				)
+			return properties_bone
+		elif self.params.CR_base_props_storage == 'GENERATED':
+			# Create a bone at the base of the rig with a cogwheel shape.
+			org_bone = self.org_chain[0]
+			properties_bone = self.mch_bones.new(
+				name		  = org_bone.name.replace("ORG", "PRP")
+				,source 	  = org_bone
+				,parent		  = org_bone
+				,custom_shape = self.ensure_widget("Cogwheel_Y")
 				,use_custom_shape_bone_size = True
 			)
-		return properties_bone
+			properties_bone.layers = self.meta_base_bone.bone.layers[:]
+			# This block should only run once, so change the storage type to no longer be 'GENERATED'.
+			self.params.CR_base_props_storage = 'CUSTOM'
+			self.params.CR_base_props_storage_bone = properties_bone.name
+			return properties_bone
 
 	def ensure_bone_sets(self):
-		self.org_chain = self.ensure_bone_set("Original Bones")
-		self.dsp_bones = self.ensure_bone_set("Display Transform Helpers")
-		self.parent_switch_bones = self.ensure_bone_set("Parent Switch Helpers")
 		self.def_chain = self.ensure_bone_set("Deform Bones")
+		self.mch_bones = self.ensure_bone_set("Mechanism Bones")
+		self.org_chain = self.ensure_bone_set("Original Bones")
 
 	def prepare_bones(self):
 		self.create_bone_infos()
@@ -436,11 +465,17 @@ class CloudBaseRig(
 			draw_cloudrig_parents(parent_box, context.active_pose_bone)
 
 		if cls.use_custom_props:
-			custom_props_box = layout.box()
-			cls.draw_prop(custom_props_box, params, "CR_base_props_storage", expand=True)
-			if params.CR_base_props_storage == 'CUSTOM':
-				cls.draw_prop_search(custom_props_box, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
-			elif params.CR_base_props_storage == 'GENERATED':
-				draw_label_with_linebreak(custom_props_box, cls.custom_prop_behaviour, align_split=True)
+			cls.draw_custom_prop_params(layout, context, params)
 
 		return layout
+
+	@classmethod
+	def draw_custom_prop_params(cls, layout, context, params):
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+		custom_props_box = layout.box()
+		cls.draw_prop(custom_props_box, params, "CR_base_props_storage", expand=True)
+		if params.CR_base_props_storage == 'CUSTOM':
+			cls.draw_prop_search(custom_props_box, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
+		elif params.CR_base_props_storage == 'GENERATED':
+			draw_label_with_linebreak(custom_props_box, cls.custom_prop_behaviour, align_split=True)

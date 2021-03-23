@@ -13,6 +13,8 @@ from ..utils.maths import bounding_box_center, flat
 class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
+	use_custom_props = True
+
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.group_mstr_set = self.ensure_bone_set("Aim Group Target Controls")

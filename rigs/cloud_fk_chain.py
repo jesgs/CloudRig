@@ -10,7 +10,6 @@ class CloudFKChainRig(CloudChainRig):
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	use_custom_props = True
-	custom_prop_behaviour = 'Create a bone with a gear cog shape near the end of the limb to store custom properties.'
 	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the FK controls.'
 
 	has_test_animation = True
@@ -430,6 +429,14 @@ class CloudFKChainRig(CloudChainRig):
 				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
 
 		return layout
+
+	@classmethod
+	def draw_custom_prop_params(cls, layout, context, params):
+		"""Overrides cloud_base."""
+		if not (params.CR_fk_chain_hinge and params.CR_fk_chain_root):
+			return
+		
+		super().draw_custom_prop_params(layout, context, params)
 
 class Rig(CloudFKChainRig):
 	pass
