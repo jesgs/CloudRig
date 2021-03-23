@@ -106,7 +106,7 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.bbone_x = org_bi.bbone_x
 			tweak_bone.bbone_z = org_bi.bbone_z
 
-		org_bi.layers = self.parent_switch_bones.layers[:]
+		org_bi.layers = self.mch_bones.layers[:]
 
 	def relink(self):
 		# Transfer and relink constraints and their drivers

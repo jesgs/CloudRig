@@ -179,7 +179,7 @@ class CloudBaseRig(
 			col_name = child_bone.name
 
 		# Create parent bone that will hold the Armature constraint.
-		arm_con_bone = self.create_parent_bone(child_bone, self.parent_switch_bones)
+		arm_con_bone = self.create_parent_bone(child_bone, self.mch_bones)
 		arm_con_bone.hide_select = self.mch_disable_select
 		arm_con_bone.name = "Parents_" + child_bone.name
 		arm_con_bone.custom_shape = None
@@ -389,10 +389,9 @@ class CloudBaseRig(
 		super().define_bone_sets(params)
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
 
-		cls.define_bone_set(params, "Original Bones",			 default_layers=[cls.default_layers('ORG')], override='ORG')
-		cls.define_bone_set(params, "Display Transform Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Parent Switch Helpers",	 default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Deform Bones",				 default_layers=[cls.default_layers('DEF')], override='DEF')
+		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.default_layers('DEF')], override='DEF')
+		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Original Bones",	default_layers=[cls.default_layers('ORG')], override='ORG')
 
 	@classmethod
 	def parameters_ui(cls, layout, params):

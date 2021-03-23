@@ -511,7 +511,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	def setup_ik_pole_parent_switch(self, ik_mstr, ik_parents_prop_name: str):
 		"""Rig the IK Pole control's parent switcher, with an additional "IK Pole Follows" slider."""
 		# Create parent helper bone
-		parent_helper = self.create_parent_bone(self.pole_ctrl, bone_set=self.parent_switch_bones)
+		parent_helper = self.create_parent_bone(self.pole_ctrl, bone_set=self.mch_bones)
 		parent_helper.custom_shape = None
 
 		# Copy the constraint and drivers from the IK master

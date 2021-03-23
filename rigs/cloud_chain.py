@@ -124,7 +124,7 @@ class CloudChainRig(CloudBaseRig):
 
 				if c.type=='ARMATURE':
 					# TODO IMPORTANT: This is not running for Ellie's fannypack belt, why??
-					to_bone = self.create_parent_bone(to_bone, self.parent_switch_bones)
+					to_bone = self.create_parent_bone(to_bone, self.mch_bones)
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)

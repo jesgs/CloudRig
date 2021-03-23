@@ -79,7 +79,7 @@ class CloudFaceChainRig(CloudChainRig):
 					to_bone = to_bone.merged_control
 
 				if c.type=='ARMATURE':
-					to_bone = self.create_parent_bone(to_bone, self.parent_switch_bones)
+					to_bone = self.create_parent_bone(to_bone, self.mch_bones)
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
