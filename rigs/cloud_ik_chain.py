@@ -128,13 +128,13 @@ class CloudIKChainRig(CloudFKChainRig):
 	@staticmethod
 	def calculate_ik_info_static(
 			meta_first: bpy.types.PoseBone,
-			meta_last: bpy.types.PoseBone
+			meta_second: bpy.types.PoseBone
 		) -> (float, Vector, Vector):
 
-		chain_vector = meta_last.tail - meta_first.head
+		chain_vector = meta_second.tail - meta_first.head
 
 		first_tail = meta_first.tail
-		last_tail = meta_last.tail
+		last_tail = meta_second.tail
 
 		# Calculate the distances of the four points to the tail of the last bone.
 		# These four points are in the four directions of the bone around the bone's tail.
@@ -176,10 +176,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		meta_first_name = self.org_chain[0].name.replace("ORG-", "")
 		meta_first = self.meta_bone(meta_first_name)
 
-		meta_last_name = self.org_chain[1].name.replace("ORG-", "")
-		meta_last = self.meta_bone(meta_last_name)
+		meta_second_name = self.org_chain[1].name.replace("ORG-", "")
+		meta_second = self.meta_bone(meta_second_name)
 
-		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_last)
+		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second)
 		self.pole_angle = pole_angle
 		self.pole_vector = pole_vector
 		self.pole_location = pole_location
@@ -634,9 +634,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		active_pb = context.active_pose_bone
 		chain = cls.get_rigify_chain(active_pb)
 
-		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(chain[0], chain[-1])
+		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(chain[0], chain[1])
 
-		buffer.draw_line_3d(chain[-1].head, pole_location)
+		buffer.draw_line_3d(chain[1].head, pole_location)
 
 class Rig(CloudIKChainRig):
 	pass
