@@ -298,6 +298,15 @@ class BoneSet(LinkedList):
 						bone_info.drivers.append(driver_info)
 					rig.animation_data.drivers.remove(fcurve)
 
+		# Load custom properties
+		if '_RNA_UI' in pose_bone.keys():
+			prop_dict = pose_bone['_RNA_UI'].to_dict()
+			for prop_name in prop_dict:
+				prop_info = prop_dict[prop_name]
+				if 'default' not in prop_info:
+					prop_info['default'] = pose_bone[prop_name]
+				bone_info.custom_props[prop_name] = prop_info
+
 		return bone_info
 
 	def ensure_bone_group(self, rig, overwrite=False):
