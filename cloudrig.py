@@ -853,6 +853,8 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		mat = self.pole.matrix.copy()
 		mat.translation = pole_loc
 		return mat
+# This list of property names are hard coded identifiers of different areas in the rig UI.
+area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
 
 class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	"""Keyframe all rig settings that are being drawn in the below UI"""
@@ -867,8 +869,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
 		data = rig.data
-		# This list of property names are hard coded identifiers of different areas in the rig UI.
-		area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
+
 		for area_name in area_names:
 			area_dict = data[area_name].to_dict()
 			for row_dict in list(area_dict.values()):
@@ -1205,7 +1206,11 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 
 	@classmethod
 	def poll(cls, context):
-		return active_cloudrig(context) or active_cloud_metarig(context)
+		rig = active_cloudrig(context) or active_cloud_metarig(context)
+		if not rig: return False
+
+		if 'rigify_layers' in rig.data and len(rig.data['rigify_layers'][:]) > 0:
+			return True
 
 	def draw(self, context):
 		rig = active_cloudrig(context) 
@@ -1217,6 +1222,14 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
 	bl_idname = "CLOUDRIG_PT_settings_" + script_id
 	bl_label = "Settings"
+
+	@classmethod
+	def poll(cls, context):
+		rig = active_cloudrig(context)
+		if not rig: return False
+		for area_name in area_names:
+			if area_name in rig.data:
+				return True
 
 	def draw(self, context):
 		layout = self.layout
@@ -1362,5 +1375,4 @@ def unregister():
 if __name__ in ['__main__', 'builtins']:
 	# __name__ is __main__ when the script is executed in the text editor.
 	# __name__ is builtins when the script is executed via exec() in cloud_generator.
-	print("Cloudrig registering...")
 	register()

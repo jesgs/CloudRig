@@ -207,7 +207,7 @@ class BoneSet(LinkedList):
 	def find(self, name):
 		"""Find a BoneInfo instance by name, return it if found."""
 		for bi in self:
-			if(bi.name == name):
+			if bi.name == name:
 				return bi
 		return None
 
