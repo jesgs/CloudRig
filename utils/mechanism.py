@@ -234,10 +234,28 @@ def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
 	return find_rig_of_bone(pose_bone.parent)
 
 def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
-	"""Get a continuous connected bone chain where none of the chain elements
-	have a rigify type."""
+	"""Find the chain of bones constituting a rig element that this pose bone belongs to."""
+
+	# We start building a chain with the current bone, prepending bones as we go
+	# UP in the hierarchy, until we find a connected bone with a rigify type.
+	# If this never happens, this bone does not belong to any rig element.
 	cur_pb = pose_bone
-	chain = [cur_pb]
+	chain = []
+	found = False
+	while cur_pb:
+		chain.insert(0, cur_pb)
+		if cur_pb.rigify_type!="":
+			found = True
+			break
+		cur_pb = cur_pb.parent
+
+	if not found:
+		return []
+	
+	# Go down in the hierarchy from the last bone, appending connected bones to the list.
+	# NOTE: If one bone has multiple connected children and neither of them have 
+	# a rigify type, the chain becomes ambiguous. This case is not supported!
+	cur_pb = chain[-1]
 	while cur_pb and len(cur_pb.children)>0:
 		next_bone = None
 		for c in cur_pb.children:
