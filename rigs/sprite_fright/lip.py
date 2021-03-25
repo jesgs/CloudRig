@@ -8,6 +8,8 @@ CLONE-: Another copy with a Copy World Transforms constraint targetting P-, and 
 Then add a Copy Local Location constraint to the tweaked bone, targetting CLONE-.
 
 The idea is that the lip bones should propagate the transformations they get from the lip master control(ie. their direct parent), but NOT the transformations they get from DEF-Head (their indirect parent).
+
+This would be even better if the tweak bones weren't even necessary, and instead this was built into an extension of cloud_face_chain.
 """
 
 class SpriteLipRig(CloudTweakRig):
