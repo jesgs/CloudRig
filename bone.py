@@ -306,6 +306,7 @@ class BoneSet(LinkedList):
 				if 'default' not in prop_info:
 					prop_info['default'] = pose_bone[prop_name]
 				bone_info.custom_props[prop_name] = prop_info
+				prop_info['value'] = pose_bone[prop_name]
 
 		return bone_info
 
@@ -645,7 +646,12 @@ class BoneInfo:
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
+			prop_value = prop['default'] # This must exist!
+			if 'value' in prop:
+				prop_value = prop['value']
+				del prop['value']
 			make_property(pb, prop_name, **prop)
+			pb[prop_name] = prop_value
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:
