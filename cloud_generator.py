@@ -340,7 +340,7 @@ class CloudGenerator(Generator):
 		# Root bone groups
 		self.root_set = BoneSet(self,
 			ui_name = 'Root',
-			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'),
+			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'), # TODO why is this using getattr?
 			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
 			preset = 2,
 			defaults = self.defaults
@@ -676,22 +676,41 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
+	def save_modifiers(self) -> List[bpy.types.Modifier]:
+		"""Save references to a list of modifiers which target our rig, then set that reference to None.
+		This is because some modifiers spam the console and introduce lag when their target bone is missing,
+		and the target bone will be missing until the rig is generated.
+		"""
+		modifiers = []
+		for o in bpy.data.objects:
+			for m in o.modifiers:
+				if hasattr(m, 'object') and m.object==self.obj:
+					modifiers.append(m)
+					m.object = None
+		self.modifiers = modifiers
+		return modifiers
+	
+	def restore_modifiers(self):
+		"""Assign the rig as the target object of all passed modifiers."""
+		for m in self.modifiers:
+			m.object = self.obj
+
 	def save_parenting_info(self) -> dict:
-		obj = self.obj
+		rig = self.obj
 
 		# Get parented objects to restore later
-		children = list(obj.children[:])
+		child_objs = list(rig.children[:])
 		for o in bpy.data.objects:
 			for c in o.constraints:
 				if c.type=='ARMATURE':
 					for tar in c.targets:
-						if tar.target==obj and o not in children:
-							children.append(o)
+						if tar.target==rig and o not in child_objs:
+							child_objs.append(o)
 
 		self.children_data = {}  # {child_object: (parent_bone_name, {constraint_name : constraint_subtarget(s)}}
-		for child in children:
+		for child_ob in child_objs:
 			constraint_bone_targets = {}
-			for c in child.constraints:
+			for c in child_ob.constraints:
 				if hasattr(c, 'subtarget') and c.subtarget!="":
 					constraint_bone_targets[c.name] = c.subtarget
 					c.subtarget = ""
@@ -701,8 +720,8 @@ class CloudGenerator(Generator):
 						subtargets.append(tar.subtarget)
 						tar.subtarget = ""
 					constraint_bone_targets[c.name] = subtargets
-			self.children_data[child] = (child.parent_bone, constraint_bone_targets)
-			child.parent = None
+			self.children_data[child_ob] = (child_ob.parent_bone, constraint_bone_targets)
+			child_ob.parent = None
 
 		return self.children_data
 
@@ -811,6 +830,7 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		self.save_parenting_info()
+		modifiers = self.save_modifiers()
 
 		#------------------------------------------
 		# Copy bones from metarig to obj
@@ -1118,6 +1138,10 @@ class CloudGenerator(Generator):
 		# Restore object parenting
 		if hasattr(self, 'children_data'):
 			self.restore_parenting_info()
+		
+		# Restore modifier targets
+		if hasattr(self, 'modifiers'):
+			self.restore_modifiers()
 
 		self.logger.report_unused_named_layers()
 		self.logger.report_widgets(self.wgt_collection)
