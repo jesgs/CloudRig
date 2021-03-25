@@ -110,12 +110,6 @@ class CloudBaseRig(
 		if self.generator_params.cloudrig_parameters.create_root:
 			self.root_bone = self.generator.root_bone
 
-		# Clear rig object custom properties.
-		# TODO: Why is this not in the generator code???
-		for k in self.obj.data.keys():
-			if k in ['_RNA_UI', 'rig_id']: continue
-			del self.obj.data[k]
-
 		self.update_forced_params()
 
 	def update_forced_params(self):

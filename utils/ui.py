@@ -87,7 +87,7 @@ class CloudUIMixin:
 		return layout
 
 def is_cloud_metarig(rig):
-	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
+	if rig.type=='ARMATURE' and 'cloudrig' not in rig.data:
 		for b in rig.pose.bones:
 			if 'cloud' in b.rigify_type:
 				return True

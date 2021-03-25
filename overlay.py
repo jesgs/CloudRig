@@ -129,7 +129,7 @@ def update_overlay():
 	active_bone = context.active_pose_bone
 	buffer.clear()
 
-	if not (ob and active_bone and ob.type=='ARMATURE' and 'rig_id' not in ob.data and ob.mode in ['POSE']):	# TODO: Ideally, Edit mode would be supported, but it's a pain.
+	if not (ob and active_bone and ob.type=='ARMATURE' and 'cloudrig' not in ob.data and ob.mode in ['POSE']):	# TODO: Ideally, Edit mode would be supported, but it's a pain.
 		return refresh_time
 
 	rig_chain = find_rig_of_bone(active_bone)

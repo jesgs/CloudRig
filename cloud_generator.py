@@ -782,7 +782,7 @@ class CloudGenerator(Generator):
 		self.backup_matrix = obj.matrix_world.copy()
 		obj.matrix_world = Matrix()
 
-		# Keep track of created widgets, so we can add them to Rigify-created Widgets collection at the end.
+		# Collection to keep track of bone widgets
 		self.wgt_collection = self.ensure_widget_collection()
 
 		self.create_root_bones()
@@ -815,6 +815,12 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Copy bones from metarig to obj
 		self.nuke_drivers()
+
+		# Clear rig object custom properties.
+		for k in self.obj.data.keys():
+			if k in ['_RNA_UI']: continue
+			del self.obj.data[k]
+
 		self._Generator__duplicate_rig()
 
 		t.tick("Duplicate rig: ")
@@ -829,8 +835,9 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		# Put the rig_name in the armature custom properties
-		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
-		obj.data["rig_id"] = self.rig_id
+		if self.rigify_compatible:
+			rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
+			obj.data["rig_id"] = self.rig_id
 
 		self.script = None
 		if self.rigify_compatible:
@@ -1086,6 +1093,7 @@ class CloudGenerator(Generator):
 			for c in b.constraints:
 				if c.type=='STRETCH_TO':
 					bone_info = self.find_bone_info(b.name)
+					if not bone_info: continue # This should only happen with non-Cloudrig rigs.
 					con_info = bone_info.get_constraint(c.name)
 					if con_info and 'rest_length' in con_info:
 						c.rest_length = con_info.rest_length
