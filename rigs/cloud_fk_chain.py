@@ -234,6 +234,7 @@ class CloudFKChainRig(CloudChainRig):
 				last_def.parent = self.org_chain[-1]
 
 	def tweak_def_chain(self):
+		return # TODO: This seems to break scale inheritance, not fix it? Why was it ever here?
 		for i, def_bone in enumerate(self.def_chain):
 			fk_control = self.fk_chain[int(i/self.params.CR_chain_segments)]
 			def_bone.inherit_scale = 'FULL'
