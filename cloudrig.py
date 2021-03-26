@@ -871,6 +871,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 		data = rig.data
 
 		for area_name in area_names:
+			if area_name not in data: continue
 			area_dict = data[area_name].to_dict()
 			for row_dict in list(area_dict.values()):
 				for col_dict in list(row_dict.values()):
@@ -884,7 +885,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 					value = prop_bone[prop_id]
 					if type(value) not in (int, float):
 						continue
-					set_custom_property_value(rig, prop_bone.name, prop_id, value, keyflags={'INSERTKEY_NEEDED'})
+					set_custom_property_value(rig, prop_bone.name, prop_id, value, keyflags=get_keying_flags(context))
 
 		return {'FINISHED'}
 
