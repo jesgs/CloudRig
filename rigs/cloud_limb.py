@@ -64,6 +64,16 @@ class CloudLimbRig(CloudIKChainRig):
 	##############################
 	# Override some inherited functionality
 
+	def generate_properties_bone(self) -> BoneInfo:
+		"""Overrides cloud_base.
+		Place the properties bone near the end of the limb, parented to the last ORG bone.
+		"""
+		properties_bone = super().generate_properties_bone()
+		properties_bone.head = self.org_chain[-1].head.copy() + Vector((0, self.scale/1.5, 0))
+		properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
+		properties_bone.parent = self.org_chain[-1]
+		return properties_bone
+
 	def determine_segments(self, org_bone):
 		"""Overrides function from cloud_chain."""
 		segments, bbone_density = super().determine_segments(org_bone)

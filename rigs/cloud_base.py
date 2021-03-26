@@ -153,19 +153,23 @@ class CloudBaseRig(
 			return properties_bone
 		elif self.params.CR_base_props_storage == 'GENERATED':
 			# Create a bone at the base of the rig with a cogwheel shape.
-			org_bone = self.org_chain[0]
-			properties_bone = self.mch_bones.new(
-				name		  = org_bone.name.replace("ORG", "PRP")
-				,source 	  = org_bone
-				,parent		  = org_bone
-				,custom_shape = self.ensure_widget("Cogwheel_Y")
-				,use_custom_shape_bone_size = True
-			)
-			properties_bone.layers = self.meta_base_bone.bone.layers[:]
+			properties_bone = self.generate_properties_bone()
 			# This block should only run once, so change the storage type to no longer be 'GENERATED'.
 			self.params.CR_base_props_storage = 'CUSTOM'
 			self.params.CR_base_props_storage_bone = properties_bone.name
 			return properties_bone
+
+	def generate_properties_bone(self) -> BoneInfo:
+		org_bone = self.org_chain[0]
+		properties_bone = self.mch_bones.new(
+			name		  = org_bone.name.replace("ORG", "PRP")
+			,source 	  = org_bone
+			,parent		  = org_bone
+			,custom_shape = self.ensure_widget("Cogwheel_Y")
+			,use_custom_shape_bone_size = True
+		)
+		properties_bone.layers = self.meta_base_bone.bone.layers[:]
+		return properties_bone
 
 	def ensure_bone_sets(self):
 		self.def_chain = self.ensure_bone_set("Deform Bones")

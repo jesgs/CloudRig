@@ -56,6 +56,21 @@ class CloudLegRig(CloudLimbRig):
 	##############################
 	# Override some inherited functionality
 
+	def generate_properties_bone(self) -> BoneInfo:
+		"""Overrides cloud_fk_chain.
+		Place the properties bone near where the foot IK will be, 
+		parented to the 2nd-to-last ORG bone.
+		"""
+		properties_bone = super().generate_properties_bone()
+		head, tail = self.calc_footroll_headtail(self.org_chain[1], self.org_chain[-1], self.scale)
+		properties_bone.head = head
+		properties_bone.tail = tail
+		properties_bone.length *= 0.6
+		properties_bone.roll = 0
+		properties_bone.custom_shape = self.ensure_widget('Cogwheel')
+		properties_bone.parent = self.org_chain[-2]
+		return properties_bone
+
 	def determine_segments(self, org_bone):
 		"""Overrides."""
 		segments, bbone_density = super().determine_segments(org_bone)
@@ -150,6 +165,27 @@ class CloudLegRig(CloudLimbRig):
 	##############################
 	# End of overrides
 
+	@staticmethod
+	def calc_footroll_headtail(knee: BoneInfo, toe: BoneInfo, scale: float) -> [Vector, Vector]:
+		scalar = knee.bbone_width * scale
+
+		# Project a line along the knee bone, and find the point on that line closest to the toe tail
+		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+		# Find the direction that points from the toe tail towards the intersection point
+		intersect_to_toe = (intersect - toe.tail).normalized()
+
+		# Amount we want to offset the point by, away from the toe
+		shift_from_toe = intersect_to_toe * scalar*8
+		# Amount we want to offset the point by, up along the knee
+		shift_along_knee = (knee.tail - intersect).normalized() * scalar*2
+
+		# Calculate final position by adding the offsets to the intersection point.
+		head = intersect + shift_from_toe + shift_along_knee
+
+		# The tail should point toward the toe bone but stay perpendicular to the knee bone.
+		tail = head + intersect_to_toe * scalar*-4
+		return head, tail
+
 	def make_footroll(self, ik_tgt, ik_chain, org_chain):
 		ik_foot = ik_chain[0]
 
@@ -174,22 +210,9 @@ class CloudLegRig(CloudLimbRig):
 		self.ik_tgt_bone.clear_constraints()
 
 		# Create ROLL control behind the foot
-
-		# To get the position,  project a line out of the knee bone, then find
-		# the point on that line which is closest the toe bone's tail, then
-		# move it away from the toe bone and then back up along the knee bone.
-
-		# The tail should point toward the toe bone but stay perpendicular to the knee bone.
-
 		knee = self.org_chain[1]
-		scalar = knee.bbone_width * self.scale
 		toe = self.org_chain[-1]
-		intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
-		intersect_to_toe = (intersect - toe.tail).normalized()
-		shift_from_toe = intersect_to_toe * scalar * 8
-		shift_along_knee = (knee.tail - intersect).normalized() * scalar * 2
-		head = intersect + shift_from_toe + shift_along_knee
-		tail = head + intersect_to_toe * scalar*4 * -1
+		head, tail = self.calc_footroll_headtail(knee, toe, self.scale)
 
 		roll_ctrl = self.ik_ctrls.new(
 			name		  = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
