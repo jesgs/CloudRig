@@ -82,7 +82,9 @@ class CloudFKChainRig(CloudChainRig):
 			ui_area="misc_settings", row_name="", col_name=""
 		):
 		"""Overrides cloud_base."""
-		super().apply_parent_switching(self.limb_root_bone, prop_bone, prop_name, ui_area, row_name, col_name)
+		if child_bone==None:
+			child_bone = self.limb_root_bone
+		super().apply_parent_switching(child_bone, prop_bone, prop_name, ui_area, row_name, col_name)
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
