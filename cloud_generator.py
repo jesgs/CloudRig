@@ -25,7 +25,7 @@ from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
 from .utils.naming import CloudNameManager
 
-separators = [
+separators = [	# TODO: Maintaining this feature was deemed too much work for the value it brings, which is none. It should be removed entirely, including versioning code.
 	(".", ".", "."),
 	("-", "-", "-"),
 	("_", "_", "_"),
@@ -269,6 +269,14 @@ class CloudGenerator(Generator):
 				print("Rigify compatible generation enabled.")
 				break
 
+	def find_bone_info(self, name):
+		for rig in self.rig_list:
+			if hasattr(rig, "bone_sets"):
+				for bs in rig.bone_sets:
+					exists = bs.find(name)
+					if exists:
+						return exists
+
 	def rigify_assign_layers(self):
 		""" Rigify compatibility function: Assign ORG/MCH/DEF layers, only to non-CloudRig types. """
 		cloudrig_bones = []
@@ -375,16 +383,6 @@ class CloudGenerator(Generator):
 		if len(self.metarig.data.cloudrig_parameters.action_slots) > 0:
 			self.action_helper = self.create_action_helper()
 
-	def create_action_helper(self):
-		action_helper = self.root_set.new(
-			name				= "action_props"
-			,head				= Vector((0, 0, 0))
-			,tail				= Vector((0, self.scale*1, 0))
-			,bbone_width		= 1/20
-		)
-		action_helper.layers = [i==31 for i in range(32)]
-		return action_helper
-
 	def ensure_bone_groups(self):
 		# Wipe any existing bone groups from the target rig.
 		if self.obj.pose:
@@ -403,6 +401,7 @@ class CloudGenerator(Generator):
 
 			bone_set.ensure_bone_group(self.obj, overwrite=True)
 
+	### Widget management
 	def ensure_widget_collection(self):
 		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
 		wgt_collection = self.params.cloudrig_parameters.widget_collection
@@ -445,14 +444,7 @@ class CloudGenerator(Generator):
 		if widget_ob.name in bpy.context.scene.collection.objects:
 			bpy.context.scene.collection.objects.unlink(widget_ob)
 
-	def find_bone_info(self, name):
-		for rig in self.rig_list:
-			if hasattr(rig, "bone_sets"):
-				for bs in rig.bone_sets:
-					exists = bs.find(name)
-					if exists:
-						return exists
-
+	### Action set-up
 	def create_action_constraints(self):
 		# TODO: This gigantic function should be split up! And possibly moved to a separate class that can be inherited or composited by the generator.
 		rig = self.obj
@@ -478,6 +470,17 @@ class CloudGenerator(Generator):
 
 			act_slot.create_action_constraints(self.action_helper.name)
 
+	def create_action_helper(self):
+		action_helper = self.root_set.new(
+			name				= "action_props"
+			,head				= Vector((0, 0, 0))
+			,tail				= Vector((0, self.scale*1, 0))
+			,bbone_width		= 1/20
+		)
+		action_helper.layers = [i==31 for i in range(32)]
+		return action_helper
+
+	### Deform test animation generation
 	def ensure_test_action(self):
 		# Ensure test action exists
 		test_action = self.params.cloudrig_parameters.test_action
@@ -538,6 +541,7 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
+	### Console spam avoidance
 	def save_modifiers(self) -> List[bpy.types.Modifier]:
 		"""Save references to a list of modifiers which target our rig, then set that reference to None.
 		This is because some modifiers spam the console and introduce lag when their target bone is missing,
@@ -609,6 +613,7 @@ class CloudGenerator(Generator):
 				else:
 					c.subtarget = constraint_bone_targets[c_name]
 
+	### Driver management
 	def nuke_drivers(self):
 		# Nuke all drivers on the rig
 		if self.obj.animation_data:
