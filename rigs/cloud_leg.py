@@ -66,7 +66,7 @@ class CloudLegRig(CloudLimbRig):
 		properties_bone.head = head
 		properties_bone.tail = tail
 		properties_bone.length *= 0.6
-		properties_bone.roll = 0
+		properties_bone.roll_type = 'GLOBAL_POS_X'
 		properties_bone.custom_shape = self.ensure_widget('Cogwheel')
 		properties_bone.parent = self.org_chain[-2]
 		return properties_bone
