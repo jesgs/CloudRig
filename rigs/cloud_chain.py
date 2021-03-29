@@ -278,7 +278,7 @@ class CloudChainRig(CloudBaseRig):
 			name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
-			,inherit_scale = 'NONE'
+			# ,inherit_scale = 'NONE'
 		)
 		if not nxt:
 			nxt = str_bone.next
@@ -415,6 +415,7 @@ class CloudChainRig(CloudBaseRig):
 				,bbone_custom_handle_start = str_bone.tangent_helper
 				,hide_select			 = self.mch_disable_select
 				,use_deform				 = True
+				# ,inherit_scale			 = 'NONE'
 			)
 			org_bone.def_bones.append(def_bone)
 

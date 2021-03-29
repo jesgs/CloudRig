@@ -80,21 +80,27 @@ class CloudMechanismMixin:
 		bi = boneinfo
 		armature = self.obj
 
-		scaleinx_var = {
-			'type' : 'TRANSFORMS',
-			'targets' : [{
-				'bone_target' : bi.bbone_custom_handle_start.name,
-				'transform_type' : 'SCALE_X',
-				'transform_space' : 'WORLD_SPACE'
-			}]
-		}
-
-		scaleinx_driver = {
-			'expression' : "var/scale",
-			'prop' : "bbone_scaleinx",
+		scaleoutx_driver = {
+			'expression' : "tanScale/inheritedScale/obScale",
+			'prop' : "bbone_scaleoutx",
 			'variables' : {
-				'var' : scaleinx_var,
-				'scale' : {
+				'tanScale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : bi.bbone_custom_handle_end.name,
+						'transform_type' : 'SCALE_X',
+						'transform_space' : 'WORLD_SPACE'
+					}]
+				},
+				'inheritedScale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : bi.parent.name,
+						'transform_type' : 'SCALE_X',
+						'transform_space' : 'WORLD_SPACE'
+					}]
+				},
+				'obScale' : {
 					'type' : 'TRANSFORMS',
 					'targets' : [{
 						'transform_space' : 'WORLD_SPACE',
@@ -104,27 +110,15 @@ class CloudMechanismMixin:
 			}
 		}
 
-		# Scale In X/Y
-		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_start):
-			bi.drivers.append(scaleinx_driver)
-
-			scaleiny_driver = deepcopy(scaleinx_driver)
-			scaleiny_driver['prop'] = "bbone_scaleiny"
-			scaleiny_var = deepcopy(scaleinx_var)
-			scaleiny_var['targets'][0]['transform_type'] = 'SCALE_Z'
-			scaleiny_driver['variables']['var'] = scaleiny_var
-			bi.drivers.append(scaleiny_driver)
-
+		# Scale In is inherited!
 		# Scale Out X/Y
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
-			scaleoutx_driver = deepcopy(scaleinx_driver)
-			scaleoutx_driver['prop'] = "bbone_scaleoutx"
-			scaleoutx_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
 			bi.drivers.append(scaleoutx_driver)
 
 			scaleouty_driver = deepcopy(scaleoutx_driver)
 			scaleouty_driver['prop'] = "bbone_scaleouty"
-			scaleouty_driver['variables']['var']['targets'][0]['transform_type'] = 'SCALE_Z'
+			scaleouty_driver['variables']['tanScale']['targets'][0]['transform_type'] = 'SCALE_Z'
+			scaleouty_driver['variables']['inheritedScale']['targets'][0]['transform_type'] = 'SCALE_Z'
 			bi.drivers.append(scaleouty_driver)
 
 		### Ease In/Out
@@ -137,11 +131,11 @@ class CloudMechanismMixin:
 			}]
 		}
 		easein_driver = {
-			'expression' : "(var-scale)",
+			'expression' : "(YScale-AvgScale)",
 			'prop' : "bbone_easein",
 			'variables' : {
-				'var' : easein_var,
-				'scale' : {
+				'YScale' : easein_var,
+				'AvgScale' : {
 					'type' : 'TRANSFORMS',
 					'targets' : [{
 						'bone_target' : bi.bbone_custom_handle_start.name,
@@ -160,8 +154,8 @@ class CloudMechanismMixin:
 		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
 			easeout_driver = deepcopy(easein_driver)
 			easeout_driver['prop'] = "bbone_easeout"
-			easeout_driver['variables']['var']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
-			easeout_driver['variables']['scale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
+			easeout_driver['variables']['YScale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
+			easeout_driver['variables']['AvgScale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
 			bi.drivers.append(easeout_driver)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
