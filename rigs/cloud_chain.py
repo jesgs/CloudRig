@@ -312,7 +312,7 @@ class CloudChainRig(CloudBaseRig):
 		)
 		tangent_helper.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
-			,space = 'LOCAL'
+			,space = 'WORLD'
 		)
 
 		if not self.params.CR_chain_smooth_spline:
