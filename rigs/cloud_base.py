@@ -197,7 +197,7 @@ class CloudBaseRig(
 		if not child_bone:
 			child_bone = self.org_chain[0]
 		if not prop_bone:
-			prop_bone = child_bone
+			prop_bone = self.properties_bone
 		if prop_name=="":
 			prop_name="parents_"+child_bone.name
 		if row_name=="":
