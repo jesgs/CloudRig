@@ -905,6 +905,9 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
 
+		# Create Selection Sets
+		create_selection_sets(obj, metarig)
+
 		# Execute custom script
 		script = self.params.cloudrig_parameters.custom_script
 		if script:
@@ -958,9 +961,6 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		self._Generator__assign_widgets()
-
-		# Create Selection Sets
-		create_selection_sets(obj, metarig)
 
 		# Create test animation
 		if self.params.cloudrig_parameters.generate_test_action:
