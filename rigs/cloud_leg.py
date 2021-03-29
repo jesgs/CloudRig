@@ -21,6 +21,8 @@ class CloudLegRig(CloudLimbRig):
 		,'CR_chain_sharp' : True
 	}
 
+	custom_prop_behaviour = 'Store Custom Properties for this rig element in a cogwheel shaped bone behind the foot.'
+
 	required_chain_length = 4
 
 	def initialize(self):
