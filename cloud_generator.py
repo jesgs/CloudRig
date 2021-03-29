@@ -20,7 +20,7 @@ from .utils import mechanism
 from . import widgets as cloud_widgets
 from .versioning import cloud_metarig_version, blender_version
 
-from .actions import ActionSlot, find_slot_by_action
+from .actions import ActionSlot
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
 from .utils.naming import CloudNameManager
@@ -476,149 +476,7 @@ class CloudGenerator(Generator):
 				)
 				continue
 
-			# Getting a list of pose bones that have keyframes on this action
-			keyed_bones_names = act_slot.keyed_bones_names
-
-			control_is_left_side = self.naming.side_is_left(subtarget)
-			do_symmetry = control_is_left_side!=None and act_slot.symmetrical==True
-
-			# Adding action constraints to the bones
-			for bn in keyed_bones_names:
-				pb = self.obj.pose.bones.get(bn)
-				if not pb: continue
-				con_name = "Action_" + action.name
-				constraints = []
-
-				bone_is_left_side = self.naming.side_is_left(pb)
-
-				# If bone name is unflippable...
-				if bone_is_left_side==None:
-					#...but target bone name is flippable, we assume that this keyed_bone is
-					# a center bone, so we split constraint in two.
-					if do_symmetry:
-						c_l = pb.constraints.new(type='ACTION')
-						c_l.name = con_name + ".L"
-						c_l.influence = 0.5
-						constraints.append(c_l)
-						c_r = pb.constraints.new(type='ACTION')
-						c_r.influence = 0.5
-						c_r.name = con_name + ".R"
-						constraints.append(c_r)
-					else:
-						# if target bone name is not flippable or symmetry is disabled, 
-						# add the constraint normally.
-						c = pb.constraints.new(type='ACTION')
-						c.name = con_name
-						constraints.append(c)
-				else:
-					# Constraint name should indicate side
-					c = pb.constraints.new(type='ACTION')
-					if do_symmetry:
-						con_name += ".L" if bone_is_left_side else ".R"
-					c.name = con_name
-					constraints.append(c)
-
-				# Configure Action constraints
-				for c in constraints:
-					# If constraint is not the same side as the control, flip it.
-					if do_symmetry:
-						constraint_is_left_side = self.naming.side_is_left(c)
-						control_is_left_side = self.naming.side_is_left(subtarget)
-						if constraint_is_left_side != control_is_left_side:
-							subtarget = self.naming.flipped_name(subtarget)
-					c.target_space = act_slot.target_space
-					c.transform_channel = act_slot.transform_channel
-					c.target = rig
-					c.subtarget = subtarget
-					c.action = action
-					# TODO: Some of this could be removed if we always use Evaluation Time feature. (Once we break 2.92 backwards comp)
-					c.min = act_slot.trans_min
-					c.max = act_slot.trans_max
-					c.frame_start = act_slot.frame_start
-					c.frame_end = act_slot.frame_end
-					c.mix_mode = 'BEFORE'
-					if c.subtarget != act_slot.subtarget:
-						# Flip min/max in some cases.
-						if c.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
-							max_tmp = c.max
-							c.max = c.min
-							c.min = max_tmp
-
-					# Move constraints to top of the stack in the same order. 
-					# Important that Action constraints are above Armature constraints.
-					pb.constraints.move(len(pb.constraints)-1, 0)
-
-					if act_slot.is_corrective:
-						c.use_eval_time = True
-						fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
-						driver = fcurve.driver
-						trigger_a_slot, i = find_slot_by_action(self.metarig, act_slot.trigger_action_a)
-						trigger_b_slot, i = find_slot_by_action(self.metarig, act_slot.trigger_action_b)
-						trigger_a_con_name = trigger_a_slot.get_constraint_name(pb.name)
-						trigger_b_con_name = trigger_b_slot.get_constraint_name(pb.name)
-
-						relation = ">=" if act_slot.corrective_type=='POSITIVE' else "<="
-						sign = "-" if act_slot.corrective_type=='POSITIVE' else "+"
-						# This expression calculates the correct value for this corrective action's eval_time.
-						driver.expression = f'0.5 if A {relation} 0.5 else 0.5 {sign} (B-0.5) * (A-0.5) *2'
-
-						# For example, let's say you have these two actions:
-						# A = Lips_UpDown.eval_time
-						var_a = driver.variables.new()
-						var_a.name = "A"
-						target_a = var_a.targets[0]
-						target_a.data_path = f'pose.bones["{self.action_helper.name}"]["{trigger_a_con_name}"]'
-						# B = Lips_ThinWide.eval_time
-						var_b = driver.variables.new()
-						var_b.name = "B"
-						target_b = var_b.targets[0]
-						target_b.data_path = f'pose.bones["{self.action_helper.name}"]["{trigger_b_con_name}"]'
-
-						target_a.id = target_b.id = rig
-						continue
-
-					# Set up usage with Evaluation Time feature and a driver instead of old setup
-					if not hasattr(c, 'use_eval_time'):
-						continue
-
-					c.use_eval_time = True
-					# Add driven custom properties to the Action Helper bone that mirror the eval_time of each action.
-					data_paths = [
-						f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time'
-					]
-					if hasattr(self, 'action_helper'):
-						action_helper = rig.pose.bones.get(self.action_helper.name)
-						action_helper[c.name] = 0.5
-						data_paths.append(
-							f'pose.bones["{self.action_helper.name}"]["{c.name}"]'
-						)
-					for data_path in data_paths:
-						exists = rig.animation_data.drivers.find(data_path)
-						if exists:
-							continue
-						fcurve = rig.driver_add(data_path)
-						driver = fcurve.driver
-
-						var_range = c.max - c.min
-						range_mid = c.min + (c.max - c.min)/2
-
-						expression = f'(var - {range_mid}) / {var_range} + 0.5'
-						if range_mid==0:
-							expression = f'var / {var_range} + 0.5'
-
-						# Convert rotation to degrees as promised in the tooltip.
-						if 'ROTATION' in act_slot.transform_channel:
-							expression = expression.replace('var', 'var*180/pi')
-
-						driver.expression = expression
-						var = driver.variables.new()
-						var.type = 'TRANSFORMS'
-						target = var.targets[0]
-						target.id = rig
-						target.bone_target = subtarget
-						target.transform_type = c.transform_channel.replace("ATION", "")
-						target.transform_space = c.target_space + "_SPACE"
-						target.rotation_mode = 'SWING_TWIST_Y'
+			act_slot.create_action_constraints(self.action_helper.name)
 
 	def ensure_test_action(self):
 		# Ensure test action exists
