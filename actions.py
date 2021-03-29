@@ -8,9 +8,9 @@ from .utils.ui import is_cloud_metarig
 # TODO: UI doesn't currently communicate that an action should only be used by a singular ActionSlot.
 # Although, does it have to be? I guess not...
 
-def find_slot_by_action(rig, action):
+def find_slot_by_action(metarig, action):
 	"""Find the CloudRigActionSlot in the rig which targets this action."""
-	cloudrig = rig.data.cloudrig_parameters
+	cloudrig = metarig.data.cloudrig_parameters
 	for i, slot in enumerate(cloudrig.action_slots):
 		if slot.action==action:
 			return slot, i
@@ -288,6 +288,42 @@ class ActionSlot(bpy.types.PropertyGroup):
 			('POSITIVE', 'A < 0.5', "This corrective action's evaluation time changes only when the evaluation time of trigger A is LESS than 0.5")
 		]
 	)
+
+	@property
+	def keyed_bones_names(self) -> [str]:
+		armature = self.id_data
+		keyed_bones = []
+		for fc in self.action.fcurves:
+			# Extracting bone name from fcurve data path
+			if "pose.bones" not in fc.data_path: continue
+			bone_name = fc.data_path.split('["')[1].split('"]')[0]
+
+			if bone_name not in keyed_bones:
+				keyed_bones.append(bone_name)
+
+		return keyed_bones
+
+	def get_constraint_name(self, bone_name:str):
+		# Determine what the name of the constraint created by this Action Slot would be on a given bone.
+		control_is_left_side = naming.side_is_left(self.subtarget)
+		bone_is_left_side = naming.side_is_left(bone_name)
+		do_symmetry = control_is_left_side!=None and self.symmetrical==True
+
+		con_name = "Action_" + self.action.name
+		left_con_name = con_name + ".L"
+		right_con_name = con_name + ".R"
+
+		if do_symmetry:
+			# If Symmetry is enabled but the bone doesn't have a side, it will be split into two constraints, so return a list.
+			if bone_is_left_side==None:
+				return [left_con_name, right_con_name]
+
+			if bone_is_left_side:
+				return left_con_name
+			else:
+				return right_con_name
+		
+		return con_name
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'

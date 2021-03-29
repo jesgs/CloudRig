@@ -49,7 +49,7 @@ class CloudNameManager:
 		return combine_bone_names(names)
 
 	def side_is_left(self, thing) -> Optional[bool]:
-		return name_side_is_left(get_name(thing))
+		return side_is_left(get_name(thing))
 
 	def add_prefix(self, thing, new_prefix) -> str:
 		"""The most common case of making a bone name based on another one is to add a prefix to it."""
@@ -246,7 +246,7 @@ def flip_name(from_name, ignore_base=True, must_change=False) -> str:
 
 	return new_name
 
-def name_side_is_left(name) -> Optional[bool]:
+def side_is_left(name) -> Optional[bool]:
 	"""Identify whether a name belongs to the left or right side or neither."""
 
 	flipped_name = flip_name(name)
@@ -285,6 +285,9 @@ def name_side_is_left(name) -> Optional[bool]:
 	# If no relevant suffix or prefix found, try anywhere.
 	any_left = any([side in name for side in left])
 	any_right = any([side in name for side in right])
+	if not any_left and not any_right:
+		# If neither side found, return None.
+		return None
 	if any_left and not any_right:
 		return True
 	if any_right and not any_left:
