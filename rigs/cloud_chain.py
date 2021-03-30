@@ -417,6 +417,8 @@ class CloudChainRig(CloudBaseRig):
 				,use_deform				 = True
 				# ,inherit_scale			 = 'NONE'
 			)
+			# TODO: Arbitrary property assignments, eeek!
+			def_bone.str_bone = str_bone
 			org_bone.def_bones.append(def_bone)
 
 			if self.params.CR_chain_unlock_deform:
@@ -508,6 +510,87 @@ class CloudChainRig(CloudBaseRig):
 
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
+
+	def make_bbone_scale_drivers(self, def_bone: BoneInfo):
+		str_bone = def_bone.str_bone
+		
+		scaleoutx_driver = {
+			'expression' : "tanScale/inheritedScale/obScale",
+			'prop' : "bbone_scaleoutx",
+			'variables' : {
+				'tanScale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : def_bone.bbone_custom_handle_end.name,
+						'transform_type' : 'SCALE_X',
+						'transform_space' : 'WORLD_SPACE'
+					}]
+				},
+				'inheritedScale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : str_bone.name,	# def_bone.parent is not good enough here because when "Unlock Deform" param is enabled, the parent is the CTR-DEF control, which doesn't give the correct result if used here.
+						'transform_type' : 'SCALE_X',
+						'transform_space' : 'WORLD_SPACE'
+					}]
+				},
+				'obScale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'transform_space' : 'WORLD_SPACE',
+						'transform_type' : 'SCALE_Y',
+					}]
+				}
+			}
+		}
+
+		# Scale In is inherited!
+		# Scale Out X/Y
+		if (def_bone.bbone_handle_type_end == 'TANGENT' and def_bone.bbone_custom_handle_end):
+			def_bone.drivers.append(scaleoutx_driver)
+
+			scaleouty_driver = dict(scaleoutx_driver)
+			scaleouty_driver['prop'] = "bbone_scaleouty"
+			scaleouty_driver['variables']['tanScale']['targets'][0]['transform_type'] = 'SCALE_Z'
+			scaleouty_driver['variables']['inheritedScale']['targets'][0]['transform_type'] = 'SCALE_Z'
+			def_bone.drivers.append(scaleouty_driver)
+
+		### Ease In/Out
+		easein_var = {
+			'type' : 'TRANSFORMS',
+			'targets' : [{
+				'bone_target' : def_bone.bbone_custom_handle_start.name,
+				'transform_type' : 'SCALE_Y',
+				'transform_space' : 'LOCAL_SPACE',
+			}]
+		}
+		easein_driver = {
+			'expression' : "(YScale-AvgScale)",
+			'prop' : "bbone_easein",
+			'variables' : {
+				'YScale' : easein_var,
+				'AvgScale' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : def_bone.bbone_custom_handle_start.name,
+						'transform_space' : 'LOCAL_SPACE',
+						'transform_type' : 'SCALE_AVG',
+					}]
+				}
+			}
+		}
+
+		# Ease In
+		if (def_bone.bbone_handle_type_start == 'TANGENT' and def_bone.bbone_custom_handle_start):
+			def_bone.drivers.append(easein_driver)
+
+		# Ease Out
+		if (def_bone.bbone_handle_type_end == 'TANGENT' and def_bone.bbone_custom_handle_end):
+			easeout_driver = dict(easein_driver)
+			easeout_driver['prop'] = "bbone_easeout"
+			easeout_driver['variables']['YScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
+			easeout_driver['variables']['AvgScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
+			def_bone.drivers.append(easeout_driver)
 
 	def make_shape_key_helper(self, def_bone_1: BoneInfo, def_bone_2: BoneInfo) -> BoneInfo:
 		"""Create SKP and SKH helper bones.

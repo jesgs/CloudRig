@@ -1,6 +1,5 @@
 from typing import Tuple, List, Dict
 import os
-from copy import deepcopy
 
 import bpy
 from mathutils import Vector
@@ -75,88 +74,6 @@ class CloudMechanismMixin:
 	def meta_bone(self, bone_name):
 		""" Find and return a bone in the metarig. """
 		return self.generator.metarig.pose.bones.get(bone_name)
-
-	def make_bbone_scale_drivers(self, boneinfo):
-		bi = boneinfo
-		armature = self.obj
-
-		scaleoutx_driver = {
-			'expression' : "tanScale/inheritedScale/obScale",
-			'prop' : "bbone_scaleoutx",
-			'variables' : {
-				'tanScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : bi.bbone_custom_handle_end.name,
-						'transform_type' : 'SCALE_X',
-						'transform_space' : 'WORLD_SPACE'
-					}]
-				},
-				'inheritedScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : bi.parent.name,
-						'transform_type' : 'SCALE_X',
-						'transform_space' : 'WORLD_SPACE'
-					}]
-				},
-				'obScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'transform_space' : 'WORLD_SPACE',
-						'transform_type' : 'SCALE_Y',
-					}]
-				}
-			}
-		}
-
-		# Scale In is inherited!
-		# Scale Out X/Y
-		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
-			bi.drivers.append(scaleoutx_driver)
-
-			scaleouty_driver = deepcopy(scaleoutx_driver)
-			scaleouty_driver['prop'] = "bbone_scaleouty"
-			scaleouty_driver['variables']['tanScale']['targets'][0]['transform_type'] = 'SCALE_Z'
-			scaleouty_driver['variables']['inheritedScale']['targets'][0]['transform_type'] = 'SCALE_Z'
-			bi.drivers.append(scaleouty_driver)
-
-		### Ease In/Out
-		easein_var = {
-			'type' : 'TRANSFORMS',
-			'targets' : [{
-				'bone_target' : bi.bbone_custom_handle_start.name,
-				'transform_type' : 'SCALE_Y',
-				'transform_space' : 'LOCAL_SPACE',
-			}]
-		}
-		easein_driver = {
-			'expression' : "(YScale-AvgScale)",
-			'prop' : "bbone_easein",
-			'variables' : {
-				'YScale' : easein_var,
-				'AvgScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : bi.bbone_custom_handle_start.name,
-						'transform_space' : 'LOCAL_SPACE',
-						'transform_type' : 'SCALE_AVG',
-					}]
-				}
-			}
-		}
-
-		# Ease In
-		if (bi.bbone_handle_type_start == 'TANGENT' and bi.bbone_custom_handle_start):
-			bi.drivers.append(easein_driver)
-
-		# Ease Out
-		if (bi.bbone_handle_type_end == 'TANGENT' and bi.bbone_custom_handle_end):
-			easeout_driver = deepcopy(easein_driver)
-			easeout_driver['prop'] = "bbone_easeout"
-			easeout_driver['variables']['YScale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
-			easeout_driver['variables']['AvgScale']['targets'][0]['bone_target'] = bi.bbone_custom_handle_end.name
-			bi.drivers.append(easeout_driver)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)
