@@ -1214,7 +1214,7 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
 			return True
 
 	def draw(self, context):
-		rig = active_cloudrig(context) 
+		rig = active_cloudrig(context)
 		if not rig:
 			rig = active_cloud_metarig(context)
 		if not rig: return

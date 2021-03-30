@@ -312,7 +312,7 @@ class CloudRigLogEntry(bpy.types.PropertyGroup):
 	A CollectionProperty of CloudRigLogEntries are added to the armature datablock
 	in cloud_generator.register().
 
-	This CollectionProperty is then populated by CloudLogManager via log() and 
+	This CollectionProperty is then populated by CloudLogManager via log() and
 	log_bug() functions.
 	"""
 
@@ -372,7 +372,7 @@ class CloudRigLogEntry(bpy.types.PropertyGroup):
 	)
 
 class CLOUDRIG_UL_log_entry_slots(bpy.types.UIList):
-	"""CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log, 
+	"""CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log,
 	when the active object is a CloudRig Metarig.
 	"""
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):

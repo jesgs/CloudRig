@@ -322,7 +322,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 				return left_con_name
 			else:
 				return right_con_name
-		
+
 		return con_name
 
 	def create_action_constraints(self, property_bone_name):
@@ -358,7 +358,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 					c_r.name = con_name + ".R"
 					constraints.append(c_r)
 				else:
-					# if target bone name is not flippable or symmetry is disabled, 
+					# if target bone name is not flippable or symmetry is disabled,
 					# add the constraint normally.
 					c = pb.constraints.new(type='ACTION')
 					c.name = con_name
@@ -397,7 +397,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 						c.max = c.min
 						c.min = max_tmp
 
-				# Move constraints to top of the stack in the same order. 
+				# Move constraints to top of the stack in the same order.
 				# Important that Action constraints are above Armature constraints.
 				pb.constraints.move(len(pb.constraints)-1, 0)
 

@@ -450,7 +450,7 @@ class CloudGenerator(Generator):
 		rig = self.obj
 		action_slots = self.metarig.data.cloudrig_parameters.action_slots
 
-		# Iterate over all Action Slots. 
+		# Iterate over all Action Slots.
 		# Reversed because each constraint gets moved to the top of the stack when created.
 		for act_slot in reversed(action_slots):
 			if not act_slot.enabled: continue
@@ -555,7 +555,7 @@ class CloudGenerator(Generator):
 					m.object = None
 		self.modifiers = modifiers
 		return modifiers
-	
+
 	def restore_modifiers(self):
 		"""Assign the rig as the target object of all saved modifiers."""
 		for m in self.modifiers:
@@ -736,8 +736,8 @@ class CloudGenerator(Generator):
 		self.instantiate_rig_tree()
 		# HACK
 		# cloud_tweak rigs should be pushed to the end of the list! This is not too hacky, but:
-		# cloud_chain_anchor should be pushed to before the first cloud_face_chain. 
-		# I don't hate this in concept, this just feels like an awkward way to implement it. 
+		# cloud_chain_anchor should be pushed to before the first cloud_face_chain.
+		# I don't hate this in concept, this just feels like an awkward way to implement it.
 		# It would be nicer if the rig class would know how to sort its instances in the rig list.
 		# Then the generator could call some Rig.sort(cls, rig_list) function to let each rig sort the rig execution order as it wishes.
 		# That way the generator doesn't have to give special treatment to various rig types, which is the hacky part of this.
@@ -1005,7 +1005,7 @@ class CloudGenerator(Generator):
 		# Restore object parenting
 		if hasattr(self, 'children_data'):
 			self.restore_parenting_info()
-		
+
 		# Restore modifier targets
 		if hasattr(self, 'modifiers'):
 			self.restore_modifiers()

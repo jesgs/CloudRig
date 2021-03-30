@@ -3,7 +3,7 @@ import bpy
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
 
-# This operator should only hide/unhide the objects with the eye icon. 
+# This operator should only hide/unhide the objects with the eye icon.
 # If the objects are not visible when the eye icon is disabled, the operator should fail gracefully.
 
 # Also in the case of either switch, match the armature layers.
@@ -48,7 +48,7 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 				if not metarig.visible_get():
 					self.report({'ERROR'}, "Could not make the metarig visible. Make sure it's enabled, and in an enabled collection!")
 					return {'CANCELLED'}
-				
+
 				bpy.ops.object.mode_set(mode='OBJECT')
 				ob.hide_set(True)
 				context.view_layer.objects.active = metarig
@@ -60,7 +60,7 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 				worked = True
 
 				break
-			
+
 			if not worked:
 				self.report({'WARNING'}, "Could not find a metarig that references this rig, so the operator did nothing.")
 				return {'CANCELLED'}
@@ -68,7 +68,7 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 		return {'FINISHED'}
 
 
-		
+
 		objs = context.selected_objects if self.selected_only else bpy.data.objects
 
 		for o in objs:

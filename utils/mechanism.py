@@ -162,9 +162,9 @@ def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
 
 	if not found:
 		return []
-	
+
 	# Go down in the hierarchy from the last bone, appending connected bones to the list.
-	# NOTE: If one bone has multiple connected children and neither of them have 
+	# NOTE: If one bone has multiple connected children and neither of them have
 	# a rigify type, the chain becomes ambiguous. This case is not supported!
 	cur_pb = chain[-1]
 	while cur_pb and len(cur_pb.children)>0:

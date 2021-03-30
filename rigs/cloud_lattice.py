@@ -7,7 +7,7 @@ from ..utils.lattice import ensure_falloff_vgroup
 
 from .cloud_base import CloudBaseRig
 
-# We generate a lattice object with a reasonable resolution, and a smooth falloff of 
+# We generate a lattice object with a reasonable resolution, and a smooth falloff of
 # weights using the utils we have in LatticeMagic addon.
 # (need to bring over, into maybe a utils.lattice module)
 	# Unless the lattice already existed.

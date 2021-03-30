@@ -771,7 +771,7 @@ class ConstraintInfo(dict):
 					if t == metarig:
 						self.targets[i]['target'] = rig
 			return
-		
+
 		split_name = self.name.split("@")
 		subtargets = split_name[1:]
 		self.name = split_name[0]
@@ -813,7 +813,7 @@ class ConstraintInfo(dict):
 			del con_info['targets']
 			del con_info['target']
 
-		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those 
+		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those
 		# tweak bones end up targetting the ORG bone which is not good.
 		if self.is_from_real:
 			if con_type == 'ARMATURE':

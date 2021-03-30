@@ -60,7 +60,7 @@ class CloudLegRig(CloudLimbRig):
 
 	def generate_properties_bone(self) -> BoneInfo:
 		"""Overrides cloud_fk_chain.
-		Place the properties bone near where the foot IK will be, 
+		Place the properties bone near where the foot IK will be,
 		parented to the 2nd-to-last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()

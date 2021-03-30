@@ -109,7 +109,7 @@ class CloudAimRig(CloudBaseRig):
 		# Lock all location and Y scale
 		self.lock_transforms(ctr_bone, loc=True, rot=False, scale=[False, True, False])
 
-		# Scale hack! Don't actually allow scaling the control bone, 
+		# Scale hack! Don't actually allow scaling the control bone,
 		# but send the scaling input into the display bone's scale, so it appears like it is scaling.
 		# This is done because actually scaling the bone would result in scaling the eyeball which is not useful
 		# but this way we can hook up the scale to iris scaling shape keys.
@@ -237,7 +237,7 @@ class CloudAimRig(CloudBaseRig):
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
-		"""Overrides cloud_base to apply the parent switching to the aim target 
+		"""Overrides cloud_base to apply the parent switching to the aim target
 		or group master if it exists."""
 		control_bone = self.group_master
 		if not control_bone:

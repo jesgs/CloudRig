@@ -3,7 +3,7 @@ from .cloud_base import CloudBaseRig
 from ..bone import BoneInfo, BoneSet
 
 """TODO
-We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds it if it isn't already there. 
+We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds it if it isn't already there.
 This means one of our bones will get a .001 in its name...
 """
 
@@ -47,9 +47,9 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.rotation_mode = org_bi.rotation_mode
 
 		if self.params.CR_tweak_shape:
-			# NOTE: It is expected that this won't behave intuitively when 
+			# NOTE: It is expected that this won't behave intuitively when
 			# use_custom_shape_bone_size==True and the size of this bone doesn't match
-			# the size of the tweaked bone. Maybe we should check for this and throw a warning, 
+			# the size of the tweaked bone. Maybe we should check for this and throw a warning,
 			# but it's such a small issue...
 			tweak_bone.custom_shape = org_bi.custom_shape
 			tweak_bone.custom_shape_scale = org_bi.custom_shape_scale

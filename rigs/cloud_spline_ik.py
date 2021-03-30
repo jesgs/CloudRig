@@ -164,19 +164,19 @@ class CloudSplineIKRig(CloudCurveRig):
 				c.relink()
 
 	def configure_bones(self):
-		"""This is a rare case of using a Rigify stage, because we actually 
+		"""This is a rare case of using a Rigify stage, because we actually
 		do want to apply the rest pose of the deform bones, as dictated by
 		the Spline IK constraint."""
 		super().configure_bones()
 		bpy.ops.object.mode_set(mode='POSE')
 		for pb in self.obj.pose.bones:
 			pb.bone.select = False
-		
+
 		for def_bone in self.def_chain:
 			pb = self.obj.pose.bones.get(def_bone.name)
 			if not pb: continue
 			pb.bone.select = True
-		
+
 		bpy.ops.pose.armature_apply(selected=True)
 		bpy.ops.object.mode_set(mode='OBJECT')
 

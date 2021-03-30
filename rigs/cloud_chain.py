@@ -110,7 +110,7 @@ class CloudChainRig(CloudBaseRig):
 		If the constraint name contains 'TAIL', we assume the constraint is meant
 		for the STR bone at the tip or the ORG bone rather than at the head.
 
-		If the constraint type is Armature, create a parent helper bone to prevent 
+		If the constraint type is Armature, create a parent helper bone to prevent
 		the parenting from affecting the local matrix.
 		"""
 		for i, org in enumerate(self.org_chain):
@@ -513,7 +513,7 @@ class CloudChainRig(CloudBaseRig):
 
 	def make_bbone_scale_drivers(self, def_bone: BoneInfo):
 		str_bone = def_bone.str_bone
-		
+
 		scaleoutx_driver = {
 			'expression' : "tanScale/inheritedScale/obScale",
 			'prop' : "bbone_scaleoutx",

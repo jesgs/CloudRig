@@ -457,7 +457,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# 		,space	   = 'WORLD'
 		# 		,subtarget = stretch_bone.name
 		# 		,head_tail = head_tail
-				
+
 		# 	)
 
 		# 	ct_ik_str.drivers.append(dict(ik_stretch_engaged_driver))
