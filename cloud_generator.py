@@ -722,9 +722,9 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		# Put the rig_name in the armature custom properties
-		if self.rigify_compatible:
-			rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
-			obj.data["rig_id"] = self.rig_id
+		# if self.rigify_compatible:	# Adding the rig_id is still useful because it's used to not display metarig UI on generated rigs. Not the biggest fan though. Metarigs should be marked rather than non-metarigs!
+		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
+		obj.data["rig_id"] = self.rig_id
 
 		self.script = None
 		if self.rigify_compatible:
