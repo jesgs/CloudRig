@@ -897,6 +897,18 @@ def get_char_bone(rig):
 		if b.name.startswith("Properties_Character"):
 			return b
 
+def get_text(prop_owner, prop_id, value):
+	""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
+	text = prop_id.replace("_", " ")
+	if "$"+prop_id in prop_owner and type(value)==int:
+		names = prop_owner["$"+prop_id]
+		if value > len(names)-1:
+			print(f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}")
+			return text
+		return text + ": " + names[value]
+	else:
+		return text
+
 def draw_rig_settings(layout, rig, dict_name, label=""):
 	"""
 	dict_name is the name of the custom property dictionary that we expect to find in the rig.
@@ -1078,24 +1090,12 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 		def add_props(prop_owner):
 			props_done = []
 
-			def get_text(prop_id, value):
-				""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
-				text = prop_id.replace("_", " ")
-				if "$"+prop_id in prop_owner and type(value)==int:
-					names = prop_owner["$"+prop_id]
-					if value > len(names)-1:
-						print(f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}")
-						return text
-					return text + ": " + names[value]
-				else:
-					return text
-
 			def add_prop(layout, prop_owner, prop_id):
 				if prop_id in props_done: return
 
 				if type(prop_owner[prop_id]) in [int, float]:
 					layout.prop(prop_owner, '["'+prop_id+'"]', slider=True,
-						text = get_text(prop_id, prop_owner[prop_id])
+						text = get_text(prop_owner, prop_id, prop_owner[prop_id])
 					)
 				elif str(type(prop_owner[prop_id])) == "<class 'IDPropertyArray'>":
 					# Vectors
