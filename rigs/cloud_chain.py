@@ -3,6 +3,7 @@ from ..bone import BoneInfo, BoneSet
 
 from bpy.props import BoolProperty, IntProperty
 from mathutils.geometry import intersect_point_line
+from copy import deepcopy
 
 from .cloud_base import CloudBaseRig
 
@@ -486,7 +487,7 @@ class CloudChainRig(CloudBaseRig):
 					}
 				}
 				def_bone.drivers.append(rollin_driver)
-				rollout_driver = dict(rollin_driver)
+				rollout_driver = deepcopy(rollin_driver)
 				rollout_driver['prop'] = 'bbone_rollout'
 				def_bone.drivers.append(rollout_driver)
 
@@ -515,7 +516,7 @@ class CloudChainRig(CloudBaseRig):
 		str_bone = def_bone.str_bone
 
 		scaleoutx_driver = {
-			'expression' : "tanScale/inheritedScale/obScale",
+			'expression' : "tanScale/inheritedScale",
 			'prop' : "bbone_scaleoutx",
 			'variables' : {
 				'tanScale' : {
@@ -533,13 +534,6 @@ class CloudChainRig(CloudBaseRig):
 						'transform_type' : 'SCALE_X',
 						'transform_space' : 'WORLD_SPACE'
 					}]
-				},
-				'obScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'transform_space' : 'WORLD_SPACE',
-						'transform_type' : 'SCALE_Y',
-					}]
 				}
 			}
 		}
@@ -549,7 +543,7 @@ class CloudChainRig(CloudBaseRig):
 		if (def_bone.bbone_handle_type_end == 'TANGENT' and def_bone.bbone_custom_handle_end):
 			def_bone.drivers.append(scaleoutx_driver)
 
-			scaleouty_driver = dict(scaleoutx_driver)
+			scaleouty_driver = deepcopy(scaleoutx_driver)
 			scaleouty_driver['prop'] = "bbone_scaleouty"
 			scaleouty_driver['variables']['tanScale']['targets'][0]['transform_type'] = 'SCALE_Z'
 			scaleouty_driver['variables']['inheritedScale']['targets'][0]['transform_type'] = 'SCALE_Z'
@@ -586,7 +580,7 @@ class CloudChainRig(CloudBaseRig):
 
 		# Ease Out
 		if (def_bone.bbone_handle_type_end == 'TANGENT' and def_bone.bbone_custom_handle_end):
-			easeout_driver = dict(easein_driver)
+			easeout_driver = deepcopy(easein_driver)
 			easeout_driver['prop'] = "bbone_easeout"
 			easeout_driver['variables']['YScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
 			easeout_driver['variables']['AvgScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
