@@ -103,6 +103,19 @@ def face_rig_tweaks(rig):
 				if c.type=='COPY_TRANSFORMS':
 					pb.constraints.move(i, 0)
 
+	# Parent top of head STR to a custom control
+	bpy.ops.object.mode_set(mode='EDIT')
+	master_control = rig.data.edit_bones.get('MSTR-Head_Top')
+	if master_control:
+		for head_end_name in ['STR-TIP-Head_Top', 'STR-TIP-Head']:
+			head_bone = rig.data.edit_bones.get(head_end_name)
+			if not head_bone: continue
+			print("Parenting head tip to upper head master....")
+			head_bone.parent = master_control
+			break
+
+	bpy.ops.object.mode_set(mode='OBJECT')
+
 def set_custom_property_value(rig, bone_name, prop, value):
 	"Assign the value of a custom property."
 	bone = rig.pose.bones.get(bone_name)
