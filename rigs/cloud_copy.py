@@ -13,6 +13,7 @@ Better yet, to cloud_base!
 
 class CloudCopyRig(CloudBaseRig):
 	"""Copy this bone to the generated rig."""
+	use_custom_props = True
 
 	def initialize(self):
 		super().initialize()
