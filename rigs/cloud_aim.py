@@ -14,6 +14,8 @@ class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
 	use_custom_props = True
+	parent_switch_behaviour = 'The active parent will own the Group Master Look control.'
+	parent_switch_overwrites_root_parent = False
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
