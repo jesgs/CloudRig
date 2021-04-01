@@ -612,7 +612,12 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		if not bone_names:
 			bone_names = self.bone_names
 
-		matrices = [rig.pose.bones.get(bone_name).matrix.copy() for bone_name in bone_names]
+		bones = []
+		for bn in bone_names:
+			pb = rig.pose.bones.get(bn)
+			assert pb, "Bone does not exist: " + bn
+			bones.append(pb)
+		matrices = [bone.matrix.copy() for bone in bones]
 		return matrices
 
 	def after_save_state(self, context, rig):
