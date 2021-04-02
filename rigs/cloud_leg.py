@@ -59,7 +59,7 @@ class CloudLegRig(CloudLimbRig):
 	# Override some inherited functionality
 
 	def generate_properties_bone(self) -> BoneInfo:
-		"""Overrides cloud_fk_chain.
+		"""Overrides cloud_limb.
 		Place the properties bone near where the foot IK will be,
 		parented to the 2nd-to-last ORG bone.
 		"""
@@ -335,6 +335,9 @@ class CloudLegRig(CloudLimbRig):
 			ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')
 			if ci:
 				ci.subtarget = rolly_stretchy.name
+		
+		# Set properties bone display
+		self.properties_bone.custom_shape_transform = roll_ctrl
 
 	def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
 		heel_pivot_name = self.params.CR_leg_heel_bone
