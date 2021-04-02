@@ -3,8 +3,16 @@ from rna_prop_ui import rna_idprop_ui_prop_update
 import sys
 from ...cloudrig import area_names
 
-suffixes = ['.L', '.R']
 sides = {'.L' : 'Left', '.R' : 'Right'}
+suffixes = list(sides.keys())
+
+def set_custom_property_value(rig, bone_name, prop, value):
+	"Assign the value of a custom property."
+	bone = rig.pose.bones.get(bone_name)
+	if not bone: return
+	if not prop in bone: return	# We don't want to create properties here!
+	bone[prop] = value
+	rna_idprop_ui_prop_update(bone, prop)
 
 def load_hair_script(rig):
 	"""Load hair rigging script."""
@@ -116,14 +124,6 @@ def face_rig_tweaks(rig):
 
 	bpy.ops.object.mode_set(mode='OBJECT')
 
-def set_custom_property_value(rig, bone_name, prop, value):
-	"Assign the value of a custom property."
-	bone = rig.pose.bones.get(bone_name)
-	if not bone: return
-	if not prop in bone: return	# We don't want to create properties here!
-	bone[prop] = value
-	rna_idprop_ui_prop_update(bone, prop)
-
 def sprite_post_gen_chores(context, charname:str):
 	"""Automate post-generation chores as much as possible, relying on naming conventions when possible."""
 
@@ -154,7 +154,7 @@ def sprite_post_gen_chores(context, charname:str):
 	# Set arms to FK
 	print("Set arms to FK...")
 	set_custom_property_value(rig, 'PRP-UpperArm.L', 'ik_left_arm', 0.0)
-	set_custom_property_value(rig, 'PRP-UpperArm.L', 'ik_right_arm', 0.0)
+	set_custom_property_value(rig, 'PRP-UpperArm.R', 'ik_right_arm', 0.0)
 
 	print("Adding face settings...")
 	add_ui_data(rig, 'face_settings', 'Chin Resists Jaw', info={
