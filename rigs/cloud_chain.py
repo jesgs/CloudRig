@@ -416,7 +416,7 @@ class CloudChainRig(CloudBaseRig):
 				,bbone_custom_handle_start = str_bone.tangent_helper
 				,hide_select			 = self.mch_disable_select
 				,use_deform				 = True
-				# ,inherit_scale			 = 'NONE'
+				,inherit_scale			 = 'ALIGNED' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
 			)
 			# TODO: Arbitrary property assignments, eeek!
 			def_bone.str_bone = str_bone
