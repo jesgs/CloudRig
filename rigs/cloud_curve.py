@@ -182,6 +182,8 @@ class CloudCurveRig(CloudBaseRig):
 		hook_m = curve_ob.modifiers.new(name=boneinfo.name, type='HOOK')
 		hook_m.vertex_indices_set(indices)
 		hook_m.show_expanded = False
+		hook_m.show_in_editmode = True
+		hook_m.use_apply_on_spline = True
 
 		hook_m.object = self.obj
 		hook_m.subtarget = boneinfo.name
@@ -235,7 +237,9 @@ class CloudCurveRig(CloudBaseRig):
 				self.make_hook_modifier(i, hook_b.left_handle_control, left_handle=True)
 				self.make_hook_modifier(i, hook_b.right_handle_control, right_handle=True)
 
-			# Add radius driver
+			curve_ob.data.twist_mode = 'Z_UP'
+
+			# Add Radius driver
 			data_path = f"splines[0].bezier_points[{i}].radius"
 			curve_ob.data.driver_remove(data_path)
 
@@ -251,6 +255,24 @@ class CloudCurveRig(CloudBaseRig):
 			var_tgt.id = self.obj
 			var_tgt.transform_space = 'WORLD_SPACE'
 			var_tgt.transform_type = 'SCALE_X'
+			var_tgt.bone_target = hooks[i].name
+
+			# Add Tilt driver
+			data_path = f"splines[0].bezier_points[{i}].tilt"
+			curve_ob.data.driver_remove(data_path)
+
+			D = curve_ob.data.driver_add(data_path)
+			driver = D.driver
+
+			driver.expression = "var"
+			my_var = driver.variables.new()
+			my_var.name = "var"
+			my_var.type = 'TRANSFORMS'
+
+			var_tgt = my_var.targets[0]
+			var_tgt.id = self.obj
+			var_tgt.transform_space = 'LOCAL_SPACE'
+			var_tgt.transform_type = 'ROT_Y'
 			var_tgt.bone_target = hooks[i].name
 
 			if self.params.CR_curve_separate_radius:
