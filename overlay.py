@@ -8,7 +8,6 @@ from bpy.app.handlers import persistent
 
 import time
 
-from .cloudrig import active_cloudrig
 from .utils.mechanism import find_rig_of_bone
 from . import rigs
 

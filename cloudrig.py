@@ -24,10 +24,10 @@ from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 script_id = "SCRIPT_ID"
 
 def get_rigs():
-	""" Find all cloudrig armatures in the file. """
+	""" Find all cloudrig armature objects in the file. """
 	return [o for o in bpy.data.objects if o.type=='ARMATURE' and 'cloudrig' in o.data]
 
-def active_cloudrig(context):
+def is_active_cloudrig(context):
 	""" If the active object is a cloudrig, return it. """
 	rig = context.pose_object or context.object
 	if 		rig and \
@@ -36,7 +36,8 @@ def active_cloudrig(context):
 			rig.data['cloudrig'] == script_id:
 		return rig
 
-def active_cloud_metarig(context):
+def is_active_cloud_metarig(context):
+	""" If the active object is a cloud metarig, return it. """
 	rig = context.pose_object or context.object
 	if rig and rig.type=='ARMATURE' and 'cloudrig' not in rig.data:
 		for pb in rig.pose.bones:
@@ -47,12 +48,8 @@ def active_cloud_metarig(context):
 
 
 #######################################
-# Keyframe baking framework from Rigify
-#######################################
-
-###########################
-## Animation curve tools ##
-###########################
+#Keyframe baking framework from Rigify#
+######## Animation curve tools ########
 
 def set_curve_key_interpolation(curves, ipo, key_range=None):
 	"Assign the given interpolation value to all curve keys in range."
@@ -858,8 +855,6 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		mat = self.pole.matrix.copy()
 		mat.translation = pole_loc
 		return mat
-# This list of property names are hard coded identifiers of different areas in the rig UI.
-area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
 
 class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	"""Keyframe all rig settings that are being drawn in the below UI"""
@@ -869,7 +864,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return (active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
+		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
@@ -894,25 +889,86 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-############################################
-############ UI
+
+#######################################
+######### CloudRig UI Panels ##########
+######## Character and Outfit #########
 
 def get_char_bone(rig):
 	for b in rig.pose.bones:
 		if b.name.startswith("Properties_Character"):
 			return b
 
-def get_text(prop_owner, prop_id, value):
-	""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
-	text = prop_id.replace("_", " ")
-	if "$"+prop_id in prop_owner and type(value)==int:
-		names = prop_owner["$"+prop_id]
-		if value > len(names)-1:
-			print(f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}")
-			return text
-		return text + ": " + names[value]
-	else:
-		return text
+class CloudRig_Properties(bpy.types.PropertyGroup):
+	""" PropertyGroup for storing fancy custom properties in. """
+
+	def get_rig(self):
+		""" Find the armature object that is using this instance (self). """
+
+		for rig in get_rigs():
+			if rig.cloud_rig == self:
+				return rig
+
+	def items_outfit(self, context):
+		""" Items callback for outfits EnumProperty.
+			Build and return a list of outfit names based on a bone naming convention.
+			Bones storing an outfit's properties must be named "Properties_Outfit_OutfitName".
+		"""
+		rig = self.get_rig()
+		if not rig: return [(('0', 'Default', 'Default'))]
+
+		outfits = []
+		for b in rig.pose.bones:
+			if b.name.startswith("Properties_Outfit_"):
+				outfits.append(b.name.replace("Properties_Outfit_", ""))
+
+		# Convert the list into what an EnumProperty expects.
+		items = []
+		for i, outfit in enumerate(outfits):
+			items.append((outfit, outfit, outfit, i))	# Identifier, name, description, can all be the outfit name.
+
+		# If no outfits were found, don't return an empty list so the console doesn't spam "'0' matches no enum" warnings.
+		if items==[]:
+			return [(('0', 'Default', 'Default'))]
+
+		return items
+
+	def change_outfit(self, context):
+		""" Update callback of outfits EnumProperty. """
+
+		rig = self.get_rig()
+		if not rig: return
+
+		if self.outfit == '':
+			self.outfit = self.items_outfit(context)[0][0]
+
+		outfit_bone = rig.pose.bones.get("Properties_Outfit_"+self.outfit)
+
+		if outfit_bone:
+			# Reset all settings to default.
+			for key in outfit_bone.keys():
+				value = outfit_bone[key]
+				if type(value) in [float, int]:
+					pass # TODO: Can't seem to reset custom properties to their default, or even so much as read their default!?!?
+
+			# For outfit properties starting with "_", update the corresponding character property.
+			char_bone = get_char_bone(rig)
+			for key in outfit_bone.keys():
+				if key.startswith("_") and key[1:] in char_bone:
+					char_bone[key[1:]] = outfit_bone[key]
+
+		context.evaluated_depsgraph_get().update()
+
+	# TODO: This should be implemented as an operator instead, just like parent switching.
+	outfit: EnumProperty(
+		name	= "Outfit",
+		items	= items_outfit,
+		update	= change_outfit,
+		options	= {"LIBRARY_EDITABLE"} # Make it not animatable.
+	)
+
+# This list of property names are hard coded identifiers of different areas in the rig UI.
+area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
 
 def draw_rig_settings(layout, rig, dict_name, label=""):
 	"""
@@ -987,87 +1043,33 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 							value = json.dumps(value)
 						setattr(operator, param, value)
 
-class CloudRig_Properties(bpy.types.PropertyGroup):
-	""" PropertyGroup for storing fancy custom properties in. """
 
-	def get_rig(self):
-		""" Find the armature object that is using this instance (self). """
+def get_text(prop_owner, prop_id, value):
+	""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
+	text = prop_id.replace("_", " ")
+	if "$"+prop_id in prop_owner and type(value)==int:
+		names = prop_owner["$"+prop_id]
+		if value > len(names)-1:
+			print(f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}")
+			return text
+		return text + ": " + names[value]
+	else:
+		return text
 
-		for rig in get_rigs():
-			if rig.cloud_rig == self:
-				return rig
-
-	def items_outfit(self, context):
-		""" Items callback for outfits EnumProperty.
-			Build and return a list of outfit names based on a bone naming convention.
-			Bones storing an outfit's properties must be named "Properties_Outfit_OutfitName".
-		"""
-		rig = self.get_rig()
-		if not rig: return [(('0', 'Default', 'Default'))]
-
-		outfits = []
-		for b in rig.pose.bones:
-			if b.name.startswith("Properties_Outfit_"):
-				outfits.append(b.name.replace("Properties_Outfit_", ""))
-
-		# Convert the list into what an EnumProperty expects.
-		items = []
-		for i, outfit in enumerate(outfits):
-			items.append((outfit, outfit, outfit, i))	# Identifier, name, description, can all be the outfit name.
-
-		# If no outfits were found, don't return an empty list so the console doesn't spam "'0' matches no enum" warnings.
-		if items==[]:
-			return [(('0', 'Default', 'Default'))]
-
-		return items
-
-	def change_outfit(self, context):
-		""" Update callback of outfits EnumProperty. """
-
-		rig = self.get_rig()
-		if not rig: return
-
-		if self.outfit == '':
-			self.outfit = self.items_outfit(context)[0][0]
-
-		outfit_bone = rig.pose.bones.get("Properties_Outfit_"+self.outfit)
-
-		if outfit_bone:
-			# Reset all settings to default.
-			for key in outfit_bone.keys():
-				value = outfit_bone[key]
-				if type(value) in [float, int]:
-					pass # TODO: Can't seem to reset custom properties to their default, or even so much as read their default!?!?
-
-			# For outfit properties starting with "_", update the corresponding character property.
-			char_bone = get_char_bone(rig)
-			for key in outfit_bone.keys():
-				if key.startswith("_") and key[1:] in char_bone:
-					char_bone[key[1:]] = outfit_bone[key]
-
-		context.evaluated_depsgraph_get().update()
-
-	# TODO: This should be implemented as an operator instead, just like parent switching.
-	outfit: EnumProperty(
-		name	= "Outfit",
-		items	= items_outfit,
-		update	= change_outfit,
-		options	= {"LIBRARY_EDITABLE"} # Make it not animatable.
-	)
-
-class CLOUDRIG_PT_main(bpy.types.Panel):
+class CLOUDRIG_PT_base(bpy.types.Panel):
+	"""Base class for all CloudRig sidebar panels."""
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
 	bl_category = 'CloudRig'
 
 	@classmethod
 	def poll(cls, context):
-		return active_cloudrig(context) is not None
+		return is_active_cloudrig(context) is not None
 
 	def draw(self, context):
 		layout = self.layout
 
-class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_character_" + script_id
 	bl_label = "Character"
 
@@ -1077,7 +1079,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_main):
 			return False
 
 		# Only display this panel if there is either an outfit with options, multiple outfits, or character options.
-		rig = active_cloudrig(context)
+		rig = is_active_cloudrig(context)
 		if not rig: return
 		rig_props = rig.cloud_rig
 		multiple_outfits = len(rig_props.items_outfit(context)) > 1
@@ -1206,32 +1208,32 @@ def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_pr
 			row = layout.row()
 		row.prop(owner, layers_prop, index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
 
-class CLOUDRIG_PT_layers(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_layers_" + script_id
 	bl_label = "Layers"
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig(context) or active_cloud_metarig(context)
+		rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
 		if not rig: return False
 
 		if 'rigify_layers' in rig.data and len(rig.data['rigify_layers'][:]) > 0:
 			return True
 
 	def draw(self, context):
-		rig = active_cloudrig(context)
+		rig = is_active_cloudrig(context)
 		if not rig:
-			rig = active_cloud_metarig(context)
+			rig = is_active_cloud_metarig(context)
 		if not rig: return
 		draw_layers_ui(self.layout, rig)
 
-class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_settings_" + script_id
 	bl_label = "Settings"
 
 	@classmethod
 	def poll(cls, context):
-		rig = active_cloudrig(context)
+		rig = is_active_cloudrig(context)
 		if not rig: return False
 		for area_name in area_names:
 			if area_name in rig.data:
@@ -1239,109 +1241,78 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_main):
 
 	def draw(self, context):
 		layout = self.layout
-		rig = active_cloudrig(context)
+		rig = is_active_cloudrig(context)
 		if not rig: return
 
 		layout.operator(CLOUDRIG_OT_keyframe_all_settings.bl_idname, text='Keyframe All Settings', icon='KEYFRAME_HLT')
 
-class CLOUDRIG_PT_fkik(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
+	"""Base class for sub-panels of the Settings panel."""
+
+	# 'area_name' : "UI Label"
+	# UI Label is optional. Area name should be one of the strings in the area_names list above. 
+	area_names = {}
+
+	@classmethod
+	def poll(cls, context):
+		rig = is_active_cloudrig(context)
+		if not rig: return False
+		for area_name in cls.area_names.keys():
+			if area_name in rig.data:
+				return True
+		return False
+
+	def draw(self, context):
+		layout = self.layout
+		rig = is_active_cloudrig(context)
+		if not rig: return
+
+		area_names = type(self).area_names
+
+		for area_name in area_names.keys():
+			draw_rig_settings(layout, rig, area_name, label=area_names[area_name])
+class CLOUDRIG_PT_fkik(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_fkik_" + script_id
 	bl_label = "FK/IK Switch"
 	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
 
-	@classmethod
-	def poll(cls, context):
-		rig = active_cloudrig(context)
-		return rig and "ik_switches" in rig.data
+	area_names = {'ik_switches' : ""}
 
-	def draw(self, context):
-		layout = self.layout
-		rig = active_cloudrig(context)
-		if not rig: return
-
-		draw_rig_settings(layout, rig, "ik_switches")
-
-class CLOUDRIG_PT_ik(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_ik(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_ik_" + script_id
 	bl_label = "IK Settings"
 	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
 
-	@classmethod
-	def poll(cls, context):
-		rig = active_cloudrig(context)
-		if not rig: return False
-		ik_settings = ['ik_stretches', 'ik_hinges', 'parents', 'ik_pole_follows']
-		for ik_setting in ik_settings:
-			if ik_setting in rig.data:
-				return True
-		return False
+	area_names = {
+		'ik_stretches' : "IK Stretch"
+		,'ik_parents' : "IK Parents"
+		,'ik_hinges' : "IK Hinge"
+		,'ik_pole_follows' : "IK Pole Follow"
+	}
 
-	def draw(self, context):
-		layout = self.layout
-		rig = active_cloudrig(context)
-		if not rig: return
-
-		draw_rig_settings(layout, rig, "ik_stretches", label="IK Stretch")
-		draw_rig_settings(layout, rig, "ik_parents", label="IK Parents")
-		draw_rig_settings(layout, rig, "ik_hinges", label="IK Hinge")
-		draw_rig_settings(layout, rig, "ik_pole_follows", label="IK Pole Follow")
-
-class CLOUDRIG_PT_fk(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_fk(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_fk_" + script_id
 	bl_label = "FK Settings"
 	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
 
-	@classmethod
-	def poll(cls, context):
-		rig = active_cloudrig(context)
-		if not rig: return False
-		fk_settings = ['fk_hinges', 'auto_rubber_hose']
-		for fk_setting in fk_settings:
-			if fk_setting in rig.data:
-				return True
-		return False
+	area_names = {
+		'fk_hinges' : "FK Hinge"
+		,'auto_rubber_hose' : "Auto Rubber Hose"
+	}
 
-	def draw(self, context):
-		layout = self.layout
-		rig = active_cloudrig(context)
-		if not rig: return
-
-		draw_rig_settings(layout, rig, "fk_hinges", label='FK Hinge')
-		draw_rig_settings(layout, rig, "auto_rubber_hose", label='Auto Rubber Hose')
-
-class CLOUDRIG_PT_face(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_face(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_face_" + script_id
 	bl_label = "Face Settings"
 	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
 
-	@classmethod
-	def poll(cls, context):
-		rig = active_cloudrig(context)
-		return rig and "face_settings" in rig.data
+	area_names = {'face_settings' : ""}
 
-	def draw(self, context):
-		layout = self.layout
-		rig = active_cloudrig(context)
-		if not rig: return
-
-		draw_rig_settings(layout, rig, "face_settings", label='')
-
-class CLOUDRIG_PT_misc(CLOUDRIG_PT_main):
+class CLOUDRIG_PT_misc(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_misc_" + script_id
 	bl_label = "Misc"
 	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
 
-	@classmethod
-	def poll(cls, context):
-		rig = active_cloudrig(context)
-		return rig and "misc_settings" in rig.data
-
-	def draw(self, context):
-		layout = self.layout
-		rig = active_cloudrig(context)
-		if not rig: return
-
-		draw_rig_settings(layout, rig, "misc_settings", label='')
+	area_names = {'misc_settings' : ""}
 
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
@@ -1381,4 +1352,6 @@ def unregister():
 if __name__ in ['__main__', 'builtins']:
 	# __name__ is __main__ when the script is executed in the text editor.
 	# __name__ is builtins when the script is executed via exec() in cloud_generator.
+	# This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded. 
+	# In that case __name__ is "rigify.feature_sets.CloudRig.cloudrig"
 	register()
