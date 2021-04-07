@@ -129,10 +129,11 @@ def sprite_post_gen_chores(context, charname:str):
 
 	rig = context.object
 
-	# If any of the rig's children have a particle system, load and attach the hair script.
-	for c in rig.children:
-		if len(c.particle_systems)>0:
-			print("Loading hair particle script for object: " + c.name)
+	# If any object in the file has a particle system, load and attach the hair script.
+	for o in bpy.data.objects:
+		if o.type!='MESH': continue
+		if len(o.particle_systems)>0:
+			print("Loading hair particle script for object: " + o.name)
 			load_hair_script(rig)
 			break
 
