@@ -407,7 +407,6 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 		draw_cloudrig_log(self.layout, obj)
 
 def draw_cloudrig_log(layout, metarig):
-	rig = metarig.data.rigify_target_rig
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
 	active_index = cloudrig.active_log_index
@@ -439,7 +438,7 @@ def draw_cloudrig_log(layout, metarig):
 		row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
 		row.enabled = False
 
-	if rig and log.trouble_bone!="":
+	if log.trouble_bone!="":
 		split = layout.row().split(factor=0.3)
 		split.label(text="Generated Bone:")
 		row = split.row()

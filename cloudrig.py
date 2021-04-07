@@ -10,18 +10,20 @@ different versions of CloudRig to co-exist in the same scene. So each rig uses
 the script that belongs to it, and not another, potentially newer or older version.
 """
 
-import bpy, traceback, json, collections
+import bpy, sys, traceback, json, collections
 from typing import List, Dict
 from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty,
-						EnumProperty, FloatVectorProperty, PointerProperty,
-						CollectionProperty, IntProperty
+						EnumProperty, PointerProperty, IntProperty
 					)
 from mathutils import Vector, Matrix
-from math import radians, acos
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-script_id = "SCRIPT_ID"
+is_cloudrig_installed = 'rigify.feature_sets.CloudRig' in sys.modules	# TODO: Does this work if CloudRig is installed from GitHub, or would it then be CloudRig-master?
+if is_cloudrig_installed:
+	from rigify.feature_sets.CloudRig.troubleshooting import draw_cloudrig_log, CloudLogManager
+
+script_id = "SCRIPT_ID"	# I will definitely forget to put this back to SCRIPT_ID and push it.
 
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """
@@ -45,7 +47,6 @@ def is_active_cloud_metarig(context):
 				return None
 			if 'cloud' in pb.rigify_type:
 				return rig
-
 
 #######################################
 #Keyframe baking framework from Rigify#
@@ -891,8 +892,216 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 
 #######################################
+###### Override Troubleshooting #######
+#######################################
+
+class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
+	"""Delete the Override Resync Leftovers (Warning! Might lose your data!)"""
+	bl_idname = "object.cloudrig_delete_leftovers_" + script_id
+	bl_label = "Delete Override Leftovers"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	@classmethod
+	def poll(cls, context):
+		return 'OVERRIDE_RESYNC_LEFTOVERS' in bpy.data.collections
+
+	def invoke(self, context, event):
+		if context.active_pose_bone and context.active_pose_bone.bone_group:
+			self.bone_group = context.active_pose_bone.bone_group.name
+		
+		if len(context.object.pose.bone_groups) == 0:
+			self.operation = 'NEW'
+		
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
+	
+	def draw(self, context):
+		layout = self.layout
+		col = layout.column()
+		col.alert = True
+		col.row().label(text="This will nuke the OVERRIDE_RESYNC_LEFTOVERS")
+		col.row().label(text="collection and its contents. You could lose data!")
+
+	def execute(self, context):
+		bpy.data.collections.remove(bpy.data.collections['OVERRIDE_RESYNC_LEFTOVERS'])
+		return {'FINISHED'}
+
+class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
+	"""Fix the name of this object. (EXPERIMENTAL)"""
+	# We hijack the Rigify Log for this, why not...
+	bl_idname = "object.cloudrig_fix_obname_" + script_id
+	bl_label = "Fix Object Name"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+	
+	old_name: StringProperty()
+	new_name: StringProperty()
+	is_collection: BoolProperty(default=False, description="Whether the target for renaming is a collection rather than an object")
+
+	def execute(self, context):
+		rig = context.object
+
+		# In all the get() functions here we pass a tuple to make sure we get the LOCAL object based on the name
+		# This is to work around potential clashing names
+		# https://docs.blender.org/api/master/info_gotcha.html#library-collisions
+
+		if not self.is_collection:
+			obj = bpy.data.objects.get((self.old_name, None))
+			occupied = bpy.data.objects.get((self.new_name, None))
+			if occupied:
+				self.report({'ERROR'}, f"Target name {self.new_name} is already taken, cancelling!")
+				return {'CANCELLED'}
+			obj.name = self.new_name
+		else:
+			coll = bpy.data.collections.get((self.old_name, None))
+			occupied = bpy.data.collections.get((self.new_name, None))
+			if occupied:
+				self.report({'ERROR'}, f"Target name {self.new_name} is already taken, cancelling!")
+				return {'CANCELLED'}
+
+		return {'FINISHED'}
+
+#######################################
 ######### CloudRig UI Panels ##########
 ######## Character and Outfit #########
+
+class CLOUDRIG_PT_base(bpy.types.Panel):
+	"""Base class for all CloudRig sidebar panels."""
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'CloudRig'
+
+	@classmethod
+	def poll(cls, context):
+		return is_active_cloudrig(context) is not None
+
+	def draw(self, context):
+		layout = self.layout
+
+class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
+	bl_idname = "CLOUDRIG_PT_override_troubleshooting_" + script_id
+	bl_label = "Troubleshoot Overrides"
+
+	@classmethod
+	def poll(cls, context):
+		if not super().poll(context):
+			return False
+
+		rig = is_active_cloudrig(context)
+		if rig.override_library: return True
+
+	def draw(self, context):
+		layout = self.layout
+		layout = layout.column()
+		layout.use_property_split=True
+		layout.use_property_decorate=False
+
+		# Check if an 'OVERRIDE_RESYNC_LEFTOVERS' collection exists
+		if 'OVERRIDE_RESYNC_LEFTOVERS' in bpy.data.collections:
+			row = layout.row()
+			row.alert=True
+			row.operator(CLOUDRIG_OT_delete_override_leftovers.bl_idname)
+
+		purge = layout.operator('outliner.orphans_purge', text="Purge Unused")
+		purge.do_recursive=True
+		layout.separator()
+
+		rig = context.object
+		layout.prop(rig.override_library.reference, 'library', text="Library: ")
+		layout.prop(rig.override_library, 'reference', text="Linked Object: ")
+		layout.prop(rig, 'name', text="Overridden Object: ", icon='OBJECT_DATAMODE')
+
+		# Find containing overridden collection
+		owner_collection = rig.users_collection[0]
+		while owner_collection.override_library!=None:
+			for c in bpy.data.collections:
+				if owner_collection in c.children[:]:
+					if c.override_library==None:
+						break
+					owner_collection = c
+			break
+
+		def all_collections(collection, col_list):
+			col_list.append(collection)
+			for sub_collection in collection.children:
+				all_collections(sub_collection, col_list)
+
+		layout.prop(owner_collection, 'name', text="Base Collection: ", icon='OUTLINER_COLLECTION')
+
+		# Determine if a number suffix is expected on the objects of this collection, and what it is,
+		# based on if the collection has such a suffix.
+		def has_number_suffix(name):
+			return all([char in "0123456789" for char in name[-3:]]) and name[-4]=="."
+
+		suffix = ""
+		if has_number_suffix(owner_collection.name):
+			suffix = owner_collection.name[-4:]
+		
+		split=layout.split(factor=0.4)
+		split.row()
+		split.row().label(text="Expected suffix: " + suffix)
+
+		for ob in owner_collection.all_objects:
+			if ob.name.startswith("WGT-"):
+				# Bone widgets are handled specially by overrides; They are not overridden, because they don't need to be, but stay linked.
+				# For now let this be handled by naming convention: Bone shapes should start with "WGT-". Otherwise, we could scan through every bone and save a list of widget names to ignore here.
+				continue
+			if (suffix=="" and has_number_suffix(ob.name)) or (suffix!="" and not ob.name.endswith(suffix)):
+				split = layout.split(factor=0.3)
+				split.row().label(text="Wrong suffix: ")
+				split = split.row().split(factor=0.9)
+				split.row().label(text=ob.name, icon='OBJECT_DATAMODE')
+				op = split.row().operator(
+					CLOUDRIG_OT_override_fix_name.bl_idname
+					,text = ""
+					,icon = 'FILE_TEXT'
+				)
+				op.old_name = ob.name
+				op.new_name = ob.override_library.reference.name+suffix
+
+			for m in ob.modifiers:
+				if hasattr(m, 'object') and m.object==None:
+					split = layout.split(factor=0.3)
+					split.row().label(text="Missing modifier target: ")
+					split = split.row().split(factor=0.9)
+					split.row().label(text=ob.name + ": " + m.name, icon='MODIFIER')
+
+			for c in ob.constraints:
+				if c.type=='ARMATURE':
+					pass
+					# TODO: special treatment
+				if hasattr(c, 'target') and c.target==None:
+					split = layout.split(factor=0.3)
+					split.row().label(text="Missing object constraint target: ")
+					split = split.row().split(factor=0.9)
+					split.row().label(text=ob.name + ": " + c.name, icon='CONSTRAINT')
+
+		for pb in rig.pose.bones:
+			for c in pb.constraints:
+				if c.type=='ARMATURE':
+					pass
+					# TODO: special treatment, de-duplication
+				if hasattr(c, 'target') and c.target==None:
+					split = layout.split(factor=0.3)
+					split.row().label(text="Missing bone constraint target: ")
+					split = split.row().split(factor=0.9)
+					split.row().label(text=ob.name + ": " + c.name, icon='CONSTRAINT_BONE')
+
+		all_colls = []
+		all_collections(owner_collection, all_colls)
+		for coll in all_colls:
+			if (suffix=="" and has_number_suffix(coll.name)) or (suffix!="" and not c.name.endswith(suffix)):
+				split = layout.split(factor=0.3)
+				split.row().label(text="Wrong suffix: ")
+				split = split.row().split(factor=0.9)
+				split.row().label(text=coll.name, icon='OUTLINER_COLLECTION')
+				op = split.row().operator(
+					CLOUDRIG_OT_override_fix_name.bl_idname
+					,text = ""
+					,icon = 'FILE_TEXT'
+				)
+				op.old_name = coll.name
+				op.new_name = coll.name[:-4] + suffix
+				op.is_collection = True
 
 def get_char_bone(rig):
 	for b in rig.pose.bones:
@@ -1043,7 +1252,6 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 							value = json.dumps(value)
 						setattr(operator, param, value)
 
-
 def get_text(prop_owner, prop_id, value):
 	""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
 	text = prop_id.replace("_", " ")
@@ -1055,19 +1263,6 @@ def get_text(prop_owner, prop_id, value):
 		return text + ": " + names[value]
 	else:
 		return text
-
-class CLOUDRIG_PT_base(bpy.types.Panel):
-	"""Base class for all CloudRig sidebar panels."""
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'CloudRig'
-
-	@classmethod
-	def poll(cls, context):
-		return is_active_cloudrig(context) is not None
-
-	def draw(self, context):
-		layout = self.layout
 
 class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_character_" + script_id
@@ -1271,6 +1466,7 @@ class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
 
 		for area_name in area_names.keys():
 			draw_rig_settings(layout, rig, area_name, label=area_names[area_name])
+
 class CLOUDRIG_PT_fkik(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_fkik_" + script_id
 	bl_label = "FK/IK Switch"
@@ -1321,6 +1517,10 @@ classes = (
 	,CLOUDRIG_OT_snap_bake
 
 	,CLOUDRIG_OT_keyframe_all_settings
+
+	,CLOUDRIG_OT_delete_override_leftovers
+	,CLOUDRIG_OT_override_fix_name
+	,CLOUDRIG_PT_override_troubleshooting
 
 	,CloudRig_Properties
 

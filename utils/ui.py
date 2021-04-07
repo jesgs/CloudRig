@@ -1,6 +1,6 @@
 import bpy
 import json
-from ..cloudrig import draw_layers_ui
+# from ..cloudrig import draw_layers_ui
 from rigify.ui import rigify_report_exception
 
 class CloudUIMixin:
@@ -53,7 +53,8 @@ class CloudUIMixin:
 
 		if True:
 			layout.use_property_split=False
-			draw_layers_ui(layout, obj, show_hidden_checkbox=False, owner=params, layers_prop = set_info['layer_param'])
+			# draw_layers_ui(layout, obj, show_hidden_checkbox=False, owner=params, layers_prop = set_info['layer_param'])
+			# TODO URGENT: This function call and its import is disabled due to cyclical imports while experimenting with Override Troubleshooting, which should be split off into a separate addon.
 			# TODO: This results in a pretty massive piece of UI. Might be nicer as a UIList, but not sure if possible?
 		else:
 			row = col.row()
