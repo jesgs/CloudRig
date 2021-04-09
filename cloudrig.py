@@ -19,10 +19,6 @@ from bpy.props import (
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-is_cloudrig_installed = 'rigify.feature_sets.CloudRig' in sys.modules	# TODO: Does this work if CloudRig is installed from GitHub, or would it then be CloudRig-master?
-if is_cloudrig_installed:
-	from rigify.feature_sets.CloudRig.troubleshooting import draw_cloudrig_log, CloudLogManager
-
 script_id = "SCRIPT_ID"	# I will definitely forget to put this back to SCRIPT_ID and push it.
 
 def get_rigs():
