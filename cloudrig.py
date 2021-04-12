@@ -1109,7 +1109,7 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 			row = layout.row()
 			row.alert=True
 			row.operator(CLOUDRIG_OT_delete_override_leftovers.bl_idname, icon='TRASH')
-		
+
 		rig = context.object
 		# Find containing overridden collection
 		owner_collection = rig.users_collection[0]

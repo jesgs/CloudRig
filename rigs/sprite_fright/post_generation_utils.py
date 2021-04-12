@@ -210,3 +210,11 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		abs_path = '/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.blend'
 		rel_path = bpy.path.relpath(abs_path)
 		link_script(rig, 'script', rel_path, 'cloudrig.py')
+	
+	# Ensure object data names are correct
+	for o in bpy.data.objects:
+		if not o.data: continue
+		data_name = "Data_"+o.name
+		if o.data.name != data_name:
+			print(f"Renaming obdata: {o.data.name} -> {data_name}")
+			o.data.name = data_name
