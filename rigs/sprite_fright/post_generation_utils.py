@@ -16,12 +16,17 @@ def set_custom_property_value(rig, bone_name, prop, value):
 
 def link_script(rig, prop_name:str, filepath:str, script_name:str):
 	"""Load a text datablock by linking from a blend file, and attach it to the rig."""
-	if script_name in bpy.data.texts:	# If already loaded, reload it.
-		bpy.data.texts.remove(bpy.data.texts[script_name])
-	with bpy.data.libraries.load(filepath, link=True) as (data_from, data_to):
-		data_to.texts = [script_name]
-	text = bpy.data.texts[script_name]
-	rig.data[prop_name] =text
+	if script_name in bpy.data.texts:	# If already loaded, don't reload it.
+		text = bpy.data.texts[script_name]
+		if text.filepath == "":	# If the text file is internal, nuke it.
+			bpy.data.texts.remove(text)
+
+	rel_path = bpy.path.relpath(filepath)
+	if script_name not in bpy.data.texts:
+		with bpy.data.libraries.load(rel_path, link=True) as (data_from, data_to):
+			data_to.texts = [script_name]
+		text = bpy.data.texts[script_name]
+	rig.data[prop_name] = text
 	exec(text.as_string(), {})
 
 def create_selection_sets(context, selset_text: bpy.types.Text):
@@ -186,7 +191,22 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		'prop_id' : 'Teeth Follow Mouth',
 	})
 
+	# Update cloudrig.py on the SpriteFright SVN...
+	# This cannot be done with file linking in a nice way, so we just copy the file each time any of the rigs are generated.
+	# Yes, this is pretty nasty.
 	if shared_script:
-		print("Load shared cloudrig.py")
-		rig.data['cloudrig'] = 'sprite_fright'
-		link_script(rig, 'script', '/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.blend', 'cloudrig.py')
+		print("Update and load shared cloudrig.py")
+		from pathlib import Path
+		cloudrig_path = Path(__file__).parent / "../../cloudrig.py"
+		with open(cloudrig_path) as cloudrig_file:
+			lines = cloudrig_file.readlines()
+
+		script_id = "sprite_fright"
+		with open('/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.py', 'w') as svn_file:
+			for l in lines:
+				svn_file.write(l.replace('"SCRIPT_ID"', f'"{script_id}"'))
+
+		rig.data['cloudrig'] = script_id
+		abs_path = '/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.blend'
+		rel_path = bpy.path.relpath(abs_path)
+		link_script(rig, 'script', rel_path, 'cloudrig.py')
