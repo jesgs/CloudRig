@@ -923,10 +923,10 @@ class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
 		return {'FINISHED'}
 
 class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
-	"""Fix the name of this object. (EXPERIMENTAL)"""
+	"""Try to ensure the name of this object or collection ends with the correct suffix."""
 	# We hijack the Rigify Log for this, why not...
-	bl_idname = "object.cloudrig_fix_obname_" + script_id
-	bl_label = "Fix Object Name"
+	bl_idname = "object.cloudrig_fix_name_" + script_id
+	bl_label = "Fix Name"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 	
 	old_name: StringProperty()
@@ -953,6 +953,7 @@ class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
 			if occupied:
 				self.report({'ERROR'}, f"Target name {self.new_name} is already taken, cancelling!")
 				return {'CANCELLED'}
+			coll.name = self.new_name
 
 		return {'FINISHED'}
 
@@ -1053,6 +1054,7 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 				)
 				op.old_name = ob.name
 				op.new_name = ob.override_library.reference.name+suffix
+				op.is_collection = False
 
 			for m in ob.modifiers:
 				if hasattr(m, 'object') and m.object==None:
@@ -1085,7 +1087,7 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 		all_colls = []
 		all_collections(owner_collection, all_colls)
 		for coll in all_colls:
-			if (suffix=="" and has_number_suffix(coll.name)) or (suffix!="" and not c.name.endswith(suffix)):
+			if (suffix=="" and has_number_suffix(coll.name)) or (suffix!="" and not coll.name.endswith(suffix)):
 				split = layout.split(factor=0.3)
 				split.row().label(text="Wrong suffix: ")
 				split = split.row().split(factor=0.9)
