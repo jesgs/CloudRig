@@ -14,14 +14,15 @@ def set_custom_property_value(rig, bone_name, prop, value):
 	bone[prop] = value
 	rna_idprop_ui_prop_update(bone, prop)
 
-def load_hair_script(rig):
-	"""Load hair rigging script."""
-	if 'rigged_particle_hair.py' in bpy.data.texts:	# If already loaded, reload it.
-		bpy.data.texts.remove(bpy.data.texts['rigged_particle_hair.py'])
-	filepath = "//../../scripts/rigged_particle_hair.blend"
+def link_script(rig, prop_name:str, filepath:str, script_name:str):
+	"""Load a text datablock by linking from a blend file, and attach it to the rig."""
+	if script_name in bpy.data.texts:	# If already loaded, reload it.
+		bpy.data.texts.remove(bpy.data.texts[script_name])
 	with bpy.data.libraries.load(filepath, link=True) as (data_from, data_to):
-		data_to.texts = ["rigged_particle_hair.py"]
-	rig.data['hair_script'] = bpy.data.texts['rigged_particle_hair.py']
+		data_to.texts = [script_name]
+	text = bpy.data.texts[script_name]
+	rig.data[prop_name] =text
+	exec(text.as_string(), {})
 
 def create_selection_sets(context, selset_text: bpy.types.Text):
 	"""Create selection sets."""
@@ -124,7 +125,7 @@ def face_rig_tweaks(rig):
 
 	bpy.ops.object.mode_set(mode='OBJECT')
 
-def sprite_post_gen_chores(context, charname:str):
+def sprite_post_gen_chores(context, charname:str, shared_script=True):
 	"""Automate post-generation chores as much as possible, relying on naming conventions when possible."""
 
 	rig = context.object
@@ -134,7 +135,7 @@ def sprite_post_gen_chores(context, charname:str):
 		if o.type!='MESH': continue
 		if len(o.particle_systems)>0:
 			print("Loading hair particle script for object: " + o.name)
-			load_hair_script(rig)
+			link_script(rig, "hair_script", '//../../scripts/rigged_particle_hair.blend', 'rigged_particle_hair.py')
 			break
 
 	# If there is a text datablock named "charname_selection_sets.py", load selection sets from it.
@@ -184,3 +185,8 @@ def sprite_post_gen_chores(context, charname:str):
 		'prop_bone' : 'PRP-Head',
 		'prop_id' : 'Teeth Follow Mouth',
 	})
+
+	if shared_script:
+		print("Load shared cloudrig.py")
+		rig.data['cloudrig'] = 'sprite_fright'
+		link_script(rig, 'script', '/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.blend', 'cloudrig.py')

@@ -19,7 +19,7 @@ from bpy.props import (
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-script_id = "SCRIPT_ID"	# I will definitely forget to put this back to SCRIPT_ID and push it.
+script_id = "SCRIPT_ID"
 
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """

@@ -908,20 +908,6 @@ class CloudGenerator(Generator):
 		# Create Selection Sets
 		create_selection_sets(obj, metarig)
 
-		# Execute custom script
-		script = self.params.cloudrig_parameters.custom_script
-		if script:
-			try:
-				exec(script.as_string(), {})
-			except Exception as e:
-				traceback_str = traceback.format_exc()
-				entry = self.logger.log(
-					"Post-Generation Script failed."
-					,description=f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
-					,note=str(e)
-				)
-				entry.pretty_stack = traceback_str
-
 		### Load and execute cloudrig.py rig UI script
 		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
 		script_id = bpy.path.basename(bpy.data.filepath).split(".")[0]
@@ -992,6 +978,20 @@ class CloudGenerator(Generator):
 
 		# Make sure Hidden Layers checkbox is saved in the generated rig, so it remains even if the Rigify addon is disabled.
 		self.obj.data.cloudrig_parameters.show_layers_preview_hidden = False
+
+		# Execute custom script
+		script = self.params.cloudrig_parameters.custom_script
+		if script:
+			try:
+				exec(script.as_string(), {})
+			except Exception as e:
+				traceback_str = traceback.format_exc()
+				entry = self.logger.log(
+					"Post-Generation Script failed."
+					,description=f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
+					,note=str(e)
+				)
+				entry.pretty_stack = traceback_str
 
 		self.cleanup()
 		t.tick("The rest: ")
