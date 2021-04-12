@@ -65,7 +65,6 @@ class CloudAimRig(CloudBaseRig):
 			parent = bone.parent
 
 		head = self.find_target_pos(bone)
-		bpy.context.scene.cursor.location = head.copy()
 		tail = head + bone.vector.normalized() * self.scale/5
 
 		target_bone = self.target_ctrl.new(
