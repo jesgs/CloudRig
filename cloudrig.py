@@ -1197,7 +1197,7 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 					split = layout.split(factor=0.3)
 					split.row().label(text="Missing bone constraint target: ")
 					split = split.row().split(factor=0.9)
-					split.row().label(text=ob.name + ": " + c.name, icon='CONSTRAINT_BONE')
+					split.row().label(text=pb.name + ": " + c.name, icon='CONSTRAINT_BONE')
 
 		all_colls = []
 		all_collections(owner_collection, all_colls)
