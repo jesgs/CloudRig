@@ -256,6 +256,8 @@ class CloudFKChainRig(CloudChainRig):
 		# Find existing ORG bones
 		# Add Copy Transforms constraints targetting FK.
 		for i, org_bone in enumerate(self.org_chain):
+			if i==0 and self.params.CR_fk_chain_root:
+				org_bone.parent = self.limb_root_bone
 			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))
 
 			con = org_bone.add_constraint('COPY_TRANSFORMS'
