@@ -191,6 +191,19 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		'prop_id' : 'Teeth Follow Mouth',
 	})
 
+
+	# Populate face DEF layer
+	for pb in rig.pose.bones:
+		if pb.name.startswith('DEF'):
+			face_pb = pb.parent
+			if not face_pb: continue
+			if not face_pb.bone.layers[19] and not face_pb.bone.layers[3] and 'Lip' not in pb.name: continue
+			if 'DEF-Eye.' in pb.name: continue
+			if 'DEF-Eye_Highlight.' in pb.name: continue
+			if 'DEF-Eyebrow' in pb.name: continue
+			# if 'Eye' in pb.name and 'brow' not in pb.name: continue
+			pb.bone.layers[13] = True
+
 	# Update cloudrig.py on the SpriteFright SVN...
 	# This cannot be done with file linking in a nice way, so we just copy the file each time any of the rigs are generated.
 	# Yes, this is pretty nasty.
