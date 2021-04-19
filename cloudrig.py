@@ -921,8 +921,7 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 				float: 0.0,
 			}
 
-			if not self.reset_props: return {'FINISHED'}
-			if '_RNA_UI' in pb.keys():
+			if self.reset_props and '_RNA_UI' in pb.keys():
 				rna_ui = pb['_RNA_UI'].to_dict()
 				for key in rna_ui.keys():
 					if key.startswith("$"): continue
