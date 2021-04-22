@@ -644,6 +644,7 @@ class CloudGenerator(Generator):
 
 		context = self.context
 		metarig = self.metarig
+		metarig.data.pose_position = 'REST'	# TODO: This doesn't seem to help - even now, when the metarig is posed at all, it messes up generation.
 		t = Timer()
 
 		self.collection = context.scene.collection

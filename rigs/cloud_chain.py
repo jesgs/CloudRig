@@ -279,7 +279,7 @@ class CloudChainRig(CloudBaseRig):
 			name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
-			# ,inherit_scale = 'NONE'
+			,inherit_scale = 'ALIGNED'	# So, this went from 'NONE' to 'FULL' and now to this, because on 'FULL' it gave weird results to constraints trying to read the local rotation. I have no idea why.
 		)
 		if not nxt:
 			nxt = str_bone.next
