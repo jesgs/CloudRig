@@ -119,6 +119,7 @@ def driver_from_real(driver: bpy.types.Driver) -> dict:
 				target_info['bone_target'] = t.bone_target
 				target_info['transform_type'] = t.transform_type
 				target_info['transform_space'] = t.transform_space
+				target_info['rotation_mode'] = t.rotation_mode
 			driver_info['variables'][-1]['targets'].append(target_info)
 	return driver_info
 
