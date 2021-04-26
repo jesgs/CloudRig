@@ -190,6 +190,11 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		'prop_bone' : 'PRP-Head',
 		'prop_id' : 'Teeth Follow Mouth',
 	})
+	add_ui_data(rig, 'face_settings', 'Teeth', info={
+		'prop_bone' : 'PRP-Head',
+		'prop_id' : 'Teeth',
+		'texts' : '["Round", "Square", "Sharp"]'
+	})
 
 
 	# Populate face DEF layer
