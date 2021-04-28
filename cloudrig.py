@@ -853,6 +853,58 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		mat.translation = pole_loc
 		return mat
 
+#######################################
+######## Convenience Operators ########
+#######################################
+
+class CLOUDRIG_OT_copy_property(bpy.types.Operator):
+	"""Set the value of a property on all other CloudRig rigs in the scene"""
+	# Currently used for the rig Quality setting, to easily switch all characters to Render or Animation quality.
+	bl_idname = "object.cloudrig_copy_property_" + script_id
+	bl_label = "Set Property value on All CloudRigs"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	prop_bone: StringProperty()
+	prop_id: StringProperty()
+
+	@classmethod
+	def poll(cls, context):
+		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
+
+	def invoke(self, context, event):
+		# Collect and save references to rigs in the scene which have this property somewhere on the rig.
+		# TODO: Add an assert that prop_bone and prop_id are found in context.object.
+		self.rig_bones = {context.object.name : self.prop_bone}
+		for rig in context.scene.objects:
+			if rig.type!='ARMATURE' or 'cloudrig' not in rig.data: continue
+			for pb in rig.pose.bones:
+				if self.prop_id in pb:
+					self.rig_bones[rig.name] = pb.name
+
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
+
+	def draw(self, context):
+		layout = self.layout
+		rig = context.pose_object or context.active_object
+		prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
+
+		layout.label(text=f"{self.prop_id} property will be set to {prop_value} on these bones:")
+		for rigname, bonename in self.rig_bones.items():
+			split = layout.split(factor=0.4)
+			split.label(text=rigname, icon='ARMATURE_DATA')
+			split.label(text=bonename, icon='BONE_DATA')
+
+	def execute(self, context):
+		rig = context.pose_object or context.active_object
+		prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
+
+		for rigname, bonename in self.rig_bones.items():
+			rig = context.scene.objects[rigname]
+			pb = rig.pose.bones[bonename]
+			pb[self.prop_id] = prop_value
+
+		return {'FINISHED'}
 class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	"""Keyframe all rig settings that are being drawn in the below UI"""
 	bl_idname = "pose.cloudrig_keyframe_all_settings_" + script_id
@@ -1348,7 +1400,7 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 			if 'operator' in info:
 				# HACK: We want to add script_id to operator names for when multiple characters are in the same file
 				# But this means having to add it here as well, which is a bit nasty.
-				if info['operator'].startswith("pose.cloudrig"):
+				if info['operator'].startswith('pose.cloudrig') or info['operator'].startswith('object.cloudrig'):
 					info['operator'] += "_"+script_id
 				icon = 'FILE_REFRESH'
 				if 'icon' in info:
@@ -1365,7 +1417,7 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 						setattr(operator, param, value)
 
 def get_text(prop_owner, prop_id, value):
-	""" If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
+	"""If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
 	text = prop_id.replace("_", " ")
 	if "$"+prop_id in prop_owner and type(value)==int:
 		names = prop_owner["$"+prop_id]
@@ -1375,6 +1427,32 @@ def get_text(prop_owner, prop_id, value):
 		return text + ": " + names[value]
 	else:
 		return text
+
+def add_operator(layout, op_info: dict):
+	"""Add an operator button to layout.
+	op_info should include a bl_idname, can include an icon, and operator kwargs.
+	"""
+
+	op_name = op_info['bl_idname']
+	# HACK: We want to add script_id to operator names for when multiple characters are in the same file
+	# But this means having to add it here as well, which is a bit nasty.
+	if op_name.startswith('pose.cloudrig') or op_name.startswith('object.cloudrig'):
+		op_name += "_"+script_id
+
+	icon = 'LAYER_ACTIVE'
+	if 'icon' in op_info:
+		icon = op_info['icon']
+
+	operator = layout.operator(op_name, text="", icon=icon)
+	# Pass on any paramteres to the operator that it will accept.
+	for param in op_info.keys():
+		if param in ['bl_idname', 'icon']: continue
+		if hasattr(operator, param):
+			value = op_info[param]
+			# Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+			if type(value) in [list, dict]:
+				value = json.dumps(value)
+			setattr(operator, param, value)
 
 class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_character_" + script_id
@@ -1405,15 +1483,25 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			props_done = []
 
 			def add_prop(layout, prop_owner, prop_id):
+				row = layout.row()
 				if prop_id in props_done: return
 
 				if type(prop_owner[prop_id]) in [int, float]:
-					layout.prop(prop_owner, '["'+prop_id+'"]', slider=True,
+					row.prop(prop_owner, '["'+prop_id+'"]', slider=True,
 						text = get_text(prop_owner, prop_id, prop_owner[prop_id])
 					)
+					if 'op_'+prop_id in prop_owner or prop_id=='Quality':
+						# HACK: Hard-code behaviour for a property named "Quality", so I don't have to add it on every character manually on Sprite Fright. This needs a more elegant design...
+						if prop_id=='Quality':
+							op_info = {'bl_idname': 'object.cloudrig_copy_property', 'prop_bone':prop_owner.name, 'prop_id':'Quality', 'icon':'WORLD'}
+						else:
+							op_info = prop_owner["op_"+prop_id]
+						if type(op_info)==str:
+							op_info = eval(op_info)
+						add_operator(row, op_info)
 				elif str(type(prop_owner[prop_id])) == "<class 'IDPropertyArray'>":
 					# Vectors
-					layout.prop(prop_owner, '["'+prop_id+'"]', text=prop_id.replace("_", " "))
+					row.prop(prop_owner, '["'+prop_id+'"]', text=prop_id.replace("_", " "))
 
 			# Drawing properties with hierarchy
 			if 'prop_hierarchy' in prop_owner:
@@ -1630,6 +1718,7 @@ classes = (
 	,CLOUDRIG_OT_snap_bake
 
 	,CLOUDRIG_OT_keyframe_all_settings
+	,CLOUDRIG_OT_copy_property
 	,CLOUDRIG_OT_reset_rig
 	,CLOUDRIG_OT_resync_rig
 
