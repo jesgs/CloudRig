@@ -225,7 +225,7 @@ def copy_custom_property(from_owner, to_owner, prop_name):
 		return
 
 	data = rna_ui[prop_name]
-	data['overridable'] = from_owner.is_property_library_overridable(f'["{prop_name}]"')
+	data['overridable'] = from_owner.is_property_overridable_library(f'["{prop_name}]"')
 
 	if not 'default' in data:
 		data['default'] = 1.0
