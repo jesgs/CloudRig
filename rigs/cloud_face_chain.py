@@ -4,7 +4,7 @@ from ..bone import BoneInfo
 from bpy.props import BoolProperty, IntProperty
 from mathutils import Vector
 
-from .cloud_chain import CloudChainRig, CUSTOM_SPACE
+from .cloud_chain import CloudChainRig
 from .cloud_chain_anchor import CloudChainAnchorRig
 
 class CloudFaceChainRig(CloudChainRig):
@@ -45,15 +45,6 @@ class CloudFaceChainRig(CloudChainRig):
 
 		self.create_armature_parents(all_intersection_bones)
 		self.create_armature_parents(all_str_bones)
-		if not CUSTOM_SPACE:
-			for str_bone in all_str_bones:
-				if hasattr(str_bone, 'merged_control'):
-					if str_bone.owner_rig.params.CR_chain_smooth_spline:
-						str_bone.parent = str_bone.merged_control.parent
-					else:
-						str_bone.parent = str_bone.merged_control
-					if hasattr(str_bone, 'local_helper'):
-						str_bone.local_helper.parent = str_bone.parent
 
 	def relink(self):
 		"""Overrides cloud_chain."""
@@ -211,42 +202,6 @@ class CloudFaceChainRig(CloudChainRig):
 			if not str_bone.owner_rig.params.CR_chain_smooth_spline:
 				continue
 
-			if not CUSTOM_SPACE:
-				# Add old-style helpers to propagate rotation from Intersection(STR-I) to STR bones.
-				rig = str_bone.owner_rig
-				intersection_helper = rig.face_mch.new(
-					name = rig.naming.add_prefix(str_bone, "I-H")
-					,source = str_bone
-					,parent = intersection_control
-				)
-
-				local_helper = str_bone.local_helper = rig.face_mch.new(
-					name = rig.naming.add_prefix(str_bone, "I-H-L")
-					,source = str_bone
-					,parent = intersection_control.parent
-				)
-				local_helper.add_constraint('COPY_ROTATION'
-					,subtarget = intersection_helper.name
-					,mix_mode = 'REPLACE'
-					,space = 'WORLD'
-				)
-				local_helper.add_constraint('COPY_LOCATION'
-					,subtarget = intersection_helper.name
-					,space = 'WORLD'
-				)
-
-				str_bone.add_constraint('COPY_ROTATION'
-					,subtarget = local_helper.name
-				)
-				str_bone.add_constraint('COPY_LOCATION'
-					,subtarget = local_helper.name
-				)
-				str_bone.add_constraint('COPY_SCALE'
-					,subtarget = intersection_control.name
-					,space = 'LOCAL'
-				)
-
-				return intersection_control
 			str_bone.tangent_helper.add_constraint('COPY_ROTATION'
 				,subtarget = intersection_control.name
 				,index = 1

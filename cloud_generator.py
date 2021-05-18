@@ -233,6 +233,26 @@ def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
 
 	return text
 
+class ParentingData:
+	def __init__(self, object: bpy.types.Object):
+		self.parent = object.parent
+		self.parent_type = object.parent_type # can be BONE, ARMATURE, OBJECT.
+		self.parent_bone = object.parent_bone # If parent type is BONE, use this as the bone name.
+		self.matrix_parent_inverse = object.matrix_parent_inverse.copy()
+		self.matrix_world = object.matrix_world.copy()
+
+		self.constraint_bone_targets = {}
+		for c in object.constraints:
+			if hasattr(c, 'subtarget') and c.subtarget!="":
+				self.constraint_bone_targets[c.name] = c.subtarget
+				c.subtarget = ""
+			if c.type=='ARMATURE':	# TODO: Hook modifiers.
+				subtargets = []
+				for tar in c.targets:
+					subtargets.append(tar.subtarget)
+					tar.subtarget = ""
+				self.constraint_bone_targets[c.name] = subtargets
+
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
 		super().__init__(context, metarig)
@@ -573,20 +593,9 @@ class CloudGenerator(Generator):
 						if tar.target==rig and o not in child_objs:
 							child_objs.append(o)
 
-		self.children_data = {}  # {child_object: (parent_bone_name, {constraint_name : constraint_subtarget(s)}}
+		self.children_data = {} # {child_object: ParentingData}
 		for child_ob in child_objs:
-			constraint_bone_targets = {}
-			for c in child_ob.constraints:
-				if hasattr(c, 'subtarget') and c.subtarget!="":
-					constraint_bone_targets[c.name] = c.subtarget
-					c.subtarget = ""
-				if c.type=='ARMATURE':	# TODO: Hook modifiers.
-					subtargets = []
-					for tar in c.targets:
-						subtargets.append(tar.subtarget)
-						tar.subtarget = ""
-					constraint_bone_targets[c.name] = subtargets
-			self.children_data[child_ob] = (child_ob.parent_bone, constraint_bone_targets)
+			self.children_data[child_ob] = ParentingData(child_ob)
 			child_ob.parent = None
 
 		return self.children_data
@@ -594,16 +603,13 @@ class CloudGenerator(Generator):
 	def restore_parenting_info(self):
 		obj = self.obj
 		for child, child_data in self.children_data.items():
-			child.parent = obj
+			child.parent = child_data.parent
+			child.parent_type = child_data.parent_type
+			child.parent_bone = child_data.parent_bone
+			child.matrix_parent_inverse = child_data.matrix_parent_inverse.copy()
+			child.matrix_world = child_data.matrix_world.copy()
 
-			parent_bone_name = child_data[0]
-			if parent_bone_name in obj.pose.bones:
-				mat = child.matrix_world.copy()
-				child.parent_type = 'BONE'
-				child.parent_bone = parent_bone_name
-				child.matrix_world = mat
-
-			constraint_bone_targets = child_data[1]
+			constraint_bone_targets = child_data.constraint_bone_targets
 			for c_name in constraint_bone_targets.keys():
 				c = child.constraints[c_name]
 				if c.type=='ARMATURE':
@@ -703,11 +709,6 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Copy bones from metarig to obj
 		self.nuke_drivers()
-
-		# Clear rig object custom properties.
-		for k in self.obj.data.keys():
-			if k in ['_RNA_UI']: continue
-			del self.obj.data[k]
 
 		self._Generator__duplicate_rig()
 
@@ -843,7 +844,7 @@ class CloudGenerator(Generator):
 			# Scale bone shape based on B-Bone scale
 			bi.write_pose_data(pose_bone)
 			if not pose_bone.use_custom_shape_bone_size:
-				pose_bone.custom_shape_scale *= bi.bbone_width * 10 * self.scale
+				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
 			pose_bone.bone.bbone_x = bi.bbone_width * self.scale
 			pose_bone.bone.bbone_z = bi.bbone_width * self.scale
 			pose_bone.bone.envelope_distance = bi.bbone_width * self.scale
