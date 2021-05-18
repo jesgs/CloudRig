@@ -12,8 +12,6 @@ Ideas to improve this:
 Spline IK like controls(the other two types) for bendy bones' handles.
 """
 
-CUSTOM_SPACE = True	# TODO: This is now in master, but this flag should be used for backwards compatibility
-
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 
@@ -334,28 +332,14 @@ class CloudChainRig(CloudBaseRig):
 			,name = "Copy Rotation (Damped Track Helper)"
 			,subtarget = dt.name
 		)
-		if CUSTOM_SPACE:
-			tangent_helper.add_constraint('COPY_ROTATION'
-				,name = "Copy Rotation (User Rotation Reader)"
-				,subtarget = str_bone.name
-				,owner_space = 'CUSTOM'
-				,space_object = self.obj
-				,space_subtarget = str_child_no_scale.name
-			)
-		else:
-			tangent_helper.add_constraint('COPY_ROTATION'
-				,name = "Copy Rotation (User Rotation)"
-				,subtarget = str_bone.name
-			)
-			tangent_helper.add_constraint('COPY_ROTATION'
-				,name = "Copy Rotation (Remove Y)"
-				,use_xyz = [False, True, False]
-				,invert_xyz = [False, True, False]
-				,subtarget = str_bone.name
-			)
+		tangent_helper.add_constraint('COPY_ROTATION'
+			,name = "Copy Rotation (User Rotation Reader)"
+			,subtarget = str_bone.name
+			,owner_space = 'CUSTOM'
+			,space_object = self.obj
+			,space_subtarget = str_child_no_scale.name
+		)
 
-		if not CUSTOM_SPACE:
-			return tangent_helper
 		# TODO: Had to copy paste this code, would be nice to have a proper
 		# utility for copying a bone with its constraints and drivers and whatnot.
 		tangent_clone = self.str_mch.new(
