@@ -815,19 +815,11 @@ class ConstraintInfo(dict):
 		if 'targets' in con_info:
 			subtargets = [t['subtarget'] for t in con_info['targets']]
 
-		# TODO this armature constraint hackaround can be removed once D9092 is in.
-		# This will break backwards compatibility with prior blender versions.
-		targets = None
-		if con_type == 'ARMATURE' and 'targets' in con_info:
-			targets = con_info['targets']
-			del con_info['targets']
-			del con_info['target']
-
 		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those
 		# tweak bones end up targetting the ORG bone which is not good.
 		if self.is_from_real:
 			if con_type == 'ARMATURE':
-				for t in targets:
+				for t in con_info['targets']:
 					if t['subtarget'].startswith('ORG-'):
 						t['subtarget'] = t['subtarget'][4:]
 			elif hasattr(self, 'subtarget') and self.subtarget.startswith('ORG'):
@@ -848,14 +840,6 @@ class ConstraintInfo(dict):
 					return
 
 		con = make_constraint(pose_bone, con_type, **con_info)
-
-		if con_type == 'ARMATURE' and targets:
-			for target_info in targets:
-				target = con.targets.new()
-				target.target = pose_bone.id_data
-				for prop in ['weight', 'target', 'subtarget']:
-					if prop in target_info:
-						setattr(target, prop, target_info[prop])
 
 		# Fix stretch constraints
 		if con_type == 'STRETCH_TO':
