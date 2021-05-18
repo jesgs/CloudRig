@@ -704,11 +704,6 @@ class CloudGenerator(Generator):
 		# Copy bones from metarig to obj
 		self.nuke_drivers()
 
-		# Clear rig object custom properties.
-		for k in self.obj.data.keys():
-			if k in ['_RNA_UI']: continue
-			del self.obj.data[k]
-
 		self._Generator__duplicate_rig()
 
 		t.tick("Duplicate rig: ")
@@ -843,7 +838,7 @@ class CloudGenerator(Generator):
 			# Scale bone shape based on B-Bone scale
 			bi.write_pose_data(pose_bone)
 			if not pose_bone.use_custom_shape_bone_size:
-				pose_bone.custom_shape_scale *= bi.bbone_width * 10 * self.scale
+				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
 			pose_bone.bone.bbone_x = bi.bbone_width * self.scale
 			pose_bone.bone.bbone_z = bi.bbone_width * self.scale
 			pose_bone.bone.envelope_distance = bi.bbone_width * self.scale

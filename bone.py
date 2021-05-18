@@ -64,7 +64,7 @@ pose_bone_properties = {
 
 	,'custom_shape' : None	# bpy.types.Object
 	,'custom_shape_transform' : None # BoneInfo
-	,'custom_shape_scale' : 1.0
+	,'custom_shape_scale_xyz' : (1.0, 1.0, 1.0)
 	,'use_custom_shape_bone_size' : False
 
 	,'rotation_mode' : 'QUATERNION'
@@ -416,6 +416,14 @@ class BoneInfo:
 		self._name = value
 
 	@property
+	def custom_shape_scale(self):
+		return sum(self.custom_shape_scale_xyz)/3
+	
+	@custom_shape_scale.setter
+	def custom_shape_scale(self, value):
+		self.custom_shape_scale_xyz = [value, value, value]
+
+	@property
 	def parent(self):
 		return self._parent
 
@@ -429,7 +437,8 @@ class BoneInfo:
 
 	@property
 	def bbone_width(self):
-		return self.bbone_x
+		"""Return average display size of both axes."""
+		return (self.bbone_x+self.bbone_z)/2
 
 	@bbone_width.setter
 	def bbone_width(self, value):
