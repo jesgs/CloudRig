@@ -373,18 +373,16 @@ class ActionSlot(bpy.types.PropertyGroup):
 
 			# Configure Action constraints
 			for c in constraints:
+				c.use_eval_time = True	# All Action constraints use the amazing new Evaluation Time feature.
 				# If constraint is not the same side as the control, flip it.
 				if do_symmetry:
 					constraint_is_left_side = naming.side_is_left(c.name)
 					control_is_left_side = naming.side_is_left(subtarget)
 					if constraint_is_left_side != control_is_left_side:
 						subtarget = naming.flip_name(subtarget)
-				c.target_space = self.target_space
-				c.transform_channel = self.transform_channel
 				c.target = rig
 				c.subtarget = subtarget
 				c.action = action
-				# TODO: Some of this could be removed if we always use Evaluation Time feature. (Once we break 2.92 backwards comp)
 				c.min = self.trans_min
 				c.max = self.trans_max
 				c.frame_start = self.frame_start
@@ -392,7 +390,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 				c.mix_mode = 'BEFORE'
 				if c.subtarget != self.subtarget:
 					# Flip min/max in some cases.
-					if c.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
+					if self.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
 						max_tmp = c.max
 						c.max = c.min
 						c.min = max_tmp
@@ -402,7 +400,6 @@ class ActionSlot(bpy.types.PropertyGroup):
 				pb.constraints.move(len(pb.constraints)-1, 0)
 
 				if self.is_corrective:
-					c.use_eval_time = True
 					fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
 					driver = fcurve.driver
 					trigger_a_slot, i = find_slot_by_action(metarig_data, self.trigger_action_a)
@@ -430,11 +427,6 @@ class ActionSlot(bpy.types.PropertyGroup):
 					target_a.id = target_b.id = rig
 					continue
 
-				# Set up usage with Evaluation Time feature and a driver instead of old setup
-				if not hasattr(c, 'use_eval_time'):
-					continue
-
-				c.use_eval_time = True
 				# Add driven custom properties to the Action Helper bone that mirror the eval_time of each action.
 				data_paths = [
 					f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time'
@@ -469,8 +461,8 @@ class ActionSlot(bpy.types.PropertyGroup):
 					target = var.targets[0]
 					target.id = rig
 					target.bone_target = subtarget
-					target.transform_type = c.transform_channel.replace("ATION", "")
-					target.transform_space = c.target_space + "_SPACE"
+					target.transform_type = self.transform_channel.replace("ATION", "")
+					target.transform_space = self.target_space + "_SPACE"
 					target.rotation_mode = 'SWING_TWIST_Y'
 
 class CLOUDRIG_PT_actions(bpy.types.Panel):
