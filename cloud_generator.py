@@ -713,6 +713,7 @@ class CloudGenerator(Generator):
 		self._Generator__duplicate_rig()
 
 		t.tick("Duplicate rig: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		# Compatibility pre-rBA25c81824e45b28910cf93
 		# (Pre-2.93 for simplicity)
@@ -759,6 +760,7 @@ class CloudGenerator(Generator):
 				self.rig_list.insert(first_face, rig)
 
 		t.tick("Instantiate rigs: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -784,6 +786,7 @@ class CloudGenerator(Generator):
 		self.invoke_prepare_bones()
 
 		t.tick("Prepare bones: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -810,6 +813,7 @@ class CloudGenerator(Generator):
 		self.invoke_generate_bones()
 
 		t.tick("Generate bones: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -825,6 +829,7 @@ class CloudGenerator(Generator):
 			self._Generator__parent_bones_to_root()
 
 		t.tick("Parent bones: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -856,6 +861,7 @@ class CloudGenerator(Generator):
 		self.create_action_constraints()
 
 		t.tick("Configure bones: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
@@ -873,6 +879,7 @@ class CloudGenerator(Generator):
 					break
 
 		t.tick("Apply bones: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -885,6 +892,7 @@ class CloudGenerator(Generator):
 				c.influence = c.influence
 
 		t.tick("Rig bones: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -944,6 +952,7 @@ class CloudGenerator(Generator):
 					c.subtarget = c.subtarget
 
 		t.tick("Finalize: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -997,6 +1006,7 @@ class CloudGenerator(Generator):
 
 		self.cleanup()
 		t.tick("The rest: ")
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 	def cleanup(self):
 		# Deconfigure
