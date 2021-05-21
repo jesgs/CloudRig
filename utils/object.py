@@ -10,9 +10,12 @@ class EnsureVisible:
 		self.obj_hide_viewport = obj.hide_viewport
 		self.temp_coll = None
 
-		space = bpy.context.area.spaces.active
-		if hasattr(space, 'local_view') and space.local_view:
-			bpy.ops.view3d.localview()
+		# If we are in local view, get out of it. TODO: Might be better to instead move the object into local view, but is that possible?
+		area = bpy.context.area
+		if area: # TODO: This can sometimes be None, I don't know why, and I don't know how to get the active space in that case!
+			space = bpy.context.area.spaces.active
+			if hasattr(space, 'local_view') and space.local_view:
+				bpy.ops.view3d.localview()
 
 		if not obj.visible_get():
 			obj.hide_set(False)
