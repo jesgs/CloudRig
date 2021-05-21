@@ -20,6 +20,10 @@ class CloudCurveRig(CloudBaseRig):
 		self.curve_hooks = self.ensure_bone_set("Curve Hooks")
 		self.curve_handles = self.ensure_bone_set("Curve Handles")
 
+	def apply_custom_root_parent(self, bone=None, parent_name=""):
+		"""Overrides cloud_base."""
+		super().apply_custom_root_parent(self.root_control)
+
 	def initialize_curve_rig(self):
 		curve_ob = self.params.CR_curve_target
 		if not curve_ob:

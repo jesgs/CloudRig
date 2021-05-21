@@ -171,8 +171,11 @@ class CloudAimRig(CloudBaseRig):
 		self.make_def_bone(highlight_ctr, self.aim_def)
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		"""Overrides cloud_base to do nothing."""
-		pass
+		"""Overrides cloud_base."""
+		if self.params.CR_aim_root:
+			super().apply_custom_root_parent(self.root_bone)
+		else:
+			super().apply_custom_root_parent(self.org_chain[0])
 
 	def ensure_group_master(self) -> Optional[BoneInfo]:
 		"""This function will be called by each aim rig, but we want to make sure
