@@ -986,70 +986,6 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-# Utility functions copy-pasted from utils/object.py so they're available on rigs when CloudRig is not present...
-def recursive_search_layer_collection(collName, layerColl=None) -> bpy.types.LayerCollection:
-	# Recursivly transverse layer_collection for a particular name
-	# This is the only way to set active collection as of 14-04-2020.
-	if not layerColl:
-		layerColl = bpy.context.view_layer.layer_collection
-
-	found = None
-	if (layerColl.name == collName):
-		return layerColl
-	for layer in layerColl.children:
-		found = recursive_search_layer_collection(collName, layer)
-		if found:
-			return found
-
-def set_active_collection(collection):
-	layer_collection = recursive_search_layer_collection(collection.name)
-	bpy.context.view_layer.active_layer_collection = layer_collection
-
-
-class CLOUDRIG_OT_resync_rig(bpy.types.Operator):
-	"""Resync Override Hierarchy"""
-	bl_idname = "pose.cloudrig_resync_" + script_id
-	bl_label = "Resync Character"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	coll_name: StringProperty()
-	enforce: BoolProperty(name="Ignore Pointer Overrides", default=True, description="Reset any overrides that were created for datablock pointers, such as the targets of modifiers and constraints, or parenting")
-
-	@classmethod
-	def poll(cls, context):
-		rig = is_active_cloudrig(context)
-		if rig.override_library: return True
-
-	def execute(self, context):
-		# Save state
-		ui_type = context.area.ui_type
-		active_coll_name = context.collection.name
-		active_ob_name = context.object.name
-
-		# Resync
-		resync_coll = bpy.data.collections.get(self.coll_name)
-		set_active_collection(resync_coll)
-
-		context.area.ui_type = 'OUTLINER'
-		if self.enforce:
-			bpy.ops.outliner.id_operation(type='OVERRIDE_LIBRARY_RESYNC_HIERARCHY_ENFORCE')
-		else:
-			bpy.ops.outliner.id_operation(type='OVERRIDE_LIBRARY_RESYNC_HIERARCHY')
-
-		# Reset state
-		context.area.ui_type = ui_type
-
-		active_coll = bpy.data.collections.get(active_coll_name)		
-		if active_coll:
-			set_active_collection(active_coll)
-
-		active_ob = bpy.data.objects.get(active_ob_name, None)
-		if active_ob:
-			context.view_layer.objects.active = active_ob
-
-		return {'FINISHED'}
-
-
 #######################################
 ###### Override Troubleshooting #######
 #######################################
@@ -1171,9 +1107,6 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 						break
 					owner_collection = c
 			break
-
-		# resync = layout.operator(CLOUDRIG_OT_resync_rig.bl_idname, icon='FILE_REFRESH') # TODO: This currently crashes blender.
-		# resync.coll_name = owner_collection.name
 
 		purge = layout.operator('outliner.orphans_purge', text="Purge Unused", icon='ORPHAN_DATA')
 		purge.do_recursive=True
@@ -1720,7 +1653,6 @@ classes = (
 	,CLOUDRIG_OT_keyframe_all_settings
 	,CLOUDRIG_OT_copy_property
 	,CLOUDRIG_OT_reset_rig
-	,CLOUDRIG_OT_resync_rig
 
 	,CLOUDRIG_OT_delete_override_leftovers
 	,CLOUDRIG_OT_override_fix_name
