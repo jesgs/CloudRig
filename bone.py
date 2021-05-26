@@ -832,12 +832,6 @@ class ConstraintInfo(dict):
 					,trouble_bone = subtarget
 					,description = f"Constraint {self.name} on bone {self.bone_info} has non-existent target bone {subtarget}."
 				)
-				if targets:
-					targets[i]['subtarget'] = ""
-				elif 'subtarget' in con_info:
-					con_info['subtarget'] = ""
-				else:
-					return
 
 		con = make_constraint(pose_bone, con_type, **con_info)
 

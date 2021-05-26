@@ -165,6 +165,10 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 	set_custom_property_value(rig, 'PRP-UpperArm.L', 'ik_left_arm', 0.0)
 	set_custom_property_value(rig, 'PRP-UpperArm.R', 'ik_right_arm', 0.0)
 
+	# Set face property defaults
+	set_custom_property_value(rig, 'PRP-Head', 'Teeth Follow Mouth', 1.0)
+	set_custom_property_value(rig, 'PRP-Head', 'Chin Resists Jaw', 0.5)
+
 	print("Adding face settings...")
 	add_ui_data(rig, 'face_settings', 'Chin Resists Jaw', info={
 		'prop_bone' : 'PRP-Head',
