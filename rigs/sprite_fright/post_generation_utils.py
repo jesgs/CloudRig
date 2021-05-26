@@ -6,6 +6,8 @@ from ...cloudrig import area_names
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
 
+sprites_svn = "/home/guest/SpriteFright" if sys.platform.startswith("linux") else "E:/Sprites"
+
 def set_custom_property_value(rig, bone_name, prop, value):
 	"Assign the value of a custom property."
 	bone = rig.pose.bones.get(bone_name)
@@ -220,12 +222,12 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 			lines = cloudrig_file.readlines()
 
 		script_id = "sprite_fright"
-		with open('/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.py', 'w') as svn_file:
+		with open(sprites_svn + '/pro/lib/scripts/cloudrig.py', 'w') as svn_file:
 			for l in lines:
 				svn_file.write(l.replace('"SCRIPT_ID"', f'"{script_id}"'))
 
 		rig.data['cloudrig'] = script_id
-		abs_path = '/home/guest/SVN/SpriteFright/pro/lib/scripts/cloudrig.blend'
+		abs_path = sprites_svn + '/pro/lib/scripts/cloudrig.blend'
 		rel_path = bpy.path.relpath(abs_path)
 		link_script(rig, 'script', rel_path, 'cloudrig.py')
 	
