@@ -916,7 +916,7 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		# Create Selection Sets
-		create_selection_sets(obj, metarig)
+		# create_selection_sets(obj, metarig)	# TODO: Add a toggle to preserve selection sets.
 
 		### Load and execute cloudrig.py rig UI script
 		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
