@@ -6,8 +6,8 @@ You can support this work by subscribing to the [Blender Cloud](https://cloud.bl
 
 # Installation
 
-Download CloudRig for your desired Blender version from the [Releases](https://gitlab.com/blender/CloudRig/-/releases) page.
-Alternatively, if you want bleeding edge and are using the latest [Daily Blender](https://builder.blender.org/download/daily/), you can download the master branch as a zip on the top right.  
+Download CloudRig for your desired Blender version from the [Releases](https://gitlab.com/blender/CloudRig/-/releases) page.  
+If you like to live dangerously and are using the latest [Daily Blender](https://builder.blender.org/download/daily/), get the [bleeding edge CloudRig](https://gitlab.com/blender/CloudRig/-/archive/master/CloudRig-master.zip).
 
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.
