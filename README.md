@@ -6,14 +6,14 @@ You can support this work by subscribing to the [Blender Cloud](https://cloud.bl
 
 # Installation
 
-Download CloudRig for your desired Blender version from the [Releases](https://gitlab.com/blender/CloudRig/-/releases) page.  
-If you like to live dangerously and are using the latest [Daily Blender](https://builder.blender.org/download/daily/), get the [bleeding edge CloudRig](https://gitlab.com/blender/CloudRig/-/archive/master/CloudRig-master.zip).
+Download CloudRig for your desired Blender version from the [**Releases**](https://gitlab.com/blender/CloudRig/-/releases) page.  
 
 In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.
 
 ![](docs/featureset_load.gif)
 
+*If you like to live dangerously and are using the latest [Daily Blender](https://builder.blender.org/download/daily/), you can get the [latest commit of CloudRig](https://gitlab.com/blender/CloudRig/-/archive/master/CloudRig-master.zip) for maximum instability!*
 
 # Using CloudRig
 The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Humans -> Basic Human (Metarig)**.
