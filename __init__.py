@@ -34,15 +34,7 @@ modules = [
 	# gizmo,
 ]
 
-version_to_float = lambda version_tuple: float(str(version_tuple[0]) + "." + str(version_tuple[1]) + str(version_tuple[2]))
-
 def register():
-	blender_version = version_to_float(bpy.app.version)
-	lowest_compatible_version = version_to_float(rigify_info['version'])
-	is_compatible = blender_version >= lowest_compatible_version
-	assert is_compatible, f"Could not register CloudRig!\nThis version of CloudRig requires at least Blender {blender_version}.\nYou can download an older version of CloudRig from the Releases page on CloudRig's GitLab."
-
-
 	from bpy.utils import register_class
 	for m in modules:
 		importlib.reload(m)

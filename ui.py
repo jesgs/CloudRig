@@ -5,9 +5,11 @@ import bpy
 import addon_utils
 
 from rigify import rig_lists
+from rigify import feature_sets
 
 from .cloudrig import draw_layers_ui
 from .utils.ui import draw_label_with_linebreak, is_cloud_metarig
+
 
 # NOTE: STRICTLY NOT ALLOWED TO IMPORT RIG CLASSES! RESULTS IN IMPOSSIBLE TO TROUBLESHOOT ERRORS!
 
@@ -125,6 +127,23 @@ def draw_cloudrig_rigify_buttons(self, context):
 		return
 
 	if obj.mode not in {'POSE', 'OBJECT'}:
+		return
+
+	# Compare Blender version number to current lowest supported
+	# version number. If Blender is too old, provide a link to download
+	# an older version of CloudRig.
+	version_to_float = lambda version_tuple: float(str(version_tuple[0]) + "." + str(version_tuple[1]) + str(version_tuple[2]))
+
+	blender_version = version_to_float(bpy.app.version)
+	cloudrig_module = getattr(feature_sets, __package__.replace("rigify.feature_sets.", ""))
+	lowest_compatible_version = version_to_float(cloudrig_module.rigify_info['blender'])
+	is_compatible = blender_version <= lowest_compatible_version
+
+	if not is_compatible:
+		draw_label_with_linebreak(layout, f"This version of CloudRig requires at least Blender {blender_version}.", alert=True)
+		draw_label_with_linebreak(layout, f"You can download an older version of CloudRig from the Releases page on CloudRig's GitLab:", alert=True)
+		op = layout.operator('wm.url_open', text="Releases", icon='URL')
+		op.url = "https://gitlab.com/blender/CloudRig/-/releases"
 		return
 
 	layout.operator("pose.cloudrig_generate", text="Generate CloudRig")
