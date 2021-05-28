@@ -118,7 +118,7 @@ class CLOUDRIG_PT_overrides(bpy.types.Panel):
 		draw_override_params(layout, 'mch_layers')
 		draw_override_params(layout, 'org_layers')
 
-def draw_cloudrig_rigify_buttons(self, context):
+def draw_cloudrig_rigify_generate(self, context):
 	layout = self.layout
 	obj = context.object
 
@@ -274,8 +274,13 @@ def register():
 		register_class(c)
 
 	# Hijack Rigify panels' draw functions.
-	bpy.types.DATA_PT_rigify_buttons.draw_old = bpy.types.DATA_PT_rigify_buttons.draw
-	bpy.types.DATA_PT_rigify_buttons.draw = draw_cloudrig_rigify_buttons
+	if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
+		rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
+	else:
+		rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
+
+	rigify_generate_ui.draw_old = rigify_generate_ui.draw
+	rigify_generate_ui.draw = draw_cloudrig_rigify_generate
 
 	bpy.types.DATA_PT_rigify_bone_groups.draw_old = bpy.types.DATA_PT_rigify_bone_groups.draw
 	bpy.types.DATA_PT_rigify_bone_groups.draw = draw_cloud_bone_group_options
@@ -289,6 +294,10 @@ def unregister():
 		unregister_class(c)
 
 	# Restore Rigify panels' draw functions.
-	bpy.types.DATA_PT_rigify_buttons.draw = bpy.types.DATA_PT_rigify_buttons.draw_old
+	if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
+		rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
+	else:
+		rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
+	rigify_generate_ui.draw = rigify_generate_ui.draw_old
 	bpy.types.DATA_PT_rigify_bone_groups.draw = bpy.types.DATA_PT_rigify_bone_groups.draw_old
 	bpy.types.DATA_PT_rigify_layer_names.draw = bpy.types.DATA_PT_rigify_layer_names.draw_old
