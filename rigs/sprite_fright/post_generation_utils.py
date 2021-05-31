@@ -6,7 +6,7 @@ from ...cloudrig import area_names
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
 
-sprites_svn = "/home/guest/SpriteFright" if sys.platform.startswith("linux") else "E:/Sprites"
+sprites_svn = "/home/guest/SVN/SpriteFright" if sys.platform.startswith("linux") else "E:/Sprites"
 
 def set_custom_property_value(rig, bone_name, prop, value):
 	"Assign the value of a custom property."
