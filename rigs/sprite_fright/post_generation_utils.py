@@ -1,5 +1,5 @@
 import bpy
-from rna_prop_ui import rna_idprop_ui_prop_update
+from rna_prop_ui import rna_idprop_ui_prop_update, rna_idprop_ui_create
 import sys
 from ...cloudrig import area_names
 
@@ -40,15 +40,23 @@ def create_selection_sets(context, selset_text: bpy.types.Text):
 
 def add_ui_data(rig, 
 	area_identifier="misc_properties", row_name="row", col_name="", 
-	info={'prop_bone' : "Properties", 'prop_id' : "prop"}
+	info={'prop_bone' : "Properties", 'prop_id' : "prop"}, 
+	create=False, default=0, min=0, max=1
 ):
 	assert area_identifier in area_names, f"Area identifier {area_identifier} must be one of {area_names}"
 	assert 'prop_bone' in info and 'prop_id' in info, "UI data entry must have a property bone and property name."
 
+
 	if info['prop_bone'] not in rig.pose.bones:
 		print(f"Property bone not found: {info['prop_bone']}, skipping")
 		return
-	if info['prop_id'] not in rig.pose.bones[info['prop_bone']]:
+
+	prop_bone = rig.pose.bones[info['prop_bone']]
+
+	if create:
+		rna_idprop_ui_create(prop_bone, info['prop_id'], default=default, min=min, max=max, overridable=True)
+
+	if info['prop_id'] not in prop_bone:
 		print(f"Property {info['prop_id']} not in bone: {info['prop_bone']}")
 		return
 
@@ -63,8 +71,19 @@ def add_ui_data(rig,
 	row[col_name] = info
 	print(f"    Added {col_name}")
 
+
 def face_rig_tweaks(rig):
 	"""Automate some tweaks on the face rig."""
+
+	# I didn't set the correct rotation order on these Transformation constraints, 
+	# on every character, so I'd rather just fix it here.
+	for bonename in ['P-STR-Lip_Bottom1', 'P-STR-TIP-Lip_Top2', 'P-STR-Lip_Bottom2', 'P-STR-Lip_Top2']:
+		for suf in suffixes:
+			bone = rig.pose.bones.get(bonename+suf)
+			if not bone or len(bone.constraints) == 0: continue
+			trans_con = bone.constraints[-1]
+			if trans_con.type != 'TRANSFORM': continue
+			trans_con.to_euler_order = 'ZYX'
 
 	# Implement "Face Squash" property if it exists.
 	prp_head = rig.pose.bones.get("PRP-Head")

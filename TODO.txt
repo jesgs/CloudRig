@@ -7,6 +7,8 @@ Priority 0: Requested
             Make sure those properties are overridable but not animatable
             Add those property path changes to the anim curve rename script
 Priority 1: Bugs
+    Parameter registration breaks (see console spam) when disabling and re-enabling the Rigify addon. But after Reload Scripts, it works again. This makes no sense to me.
+    "MCH" and "ORG" default layer names are swapped??
     When changing the UI strings on cloud_fk_chain between two generations, the old data doesn't seem to get purged properly from the fk_chains custom property on the armature data, resulting in console error spam
     When the post-generation script fails, it fails way too silently (Just leaves a warning in the rigify log, but the rig claims to be successfully generated)
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
@@ -56,6 +58,9 @@ Priority 2: New features
         - UI row and column names...?
     cloud_copy
         Should have an enum selector for Custom Property UI areas, so these custom properties can be added to the rig UI without post-gen script.
+    Operator to "push" a constraint on a cloud_copy rig type bone from the generated rig back to the metarig or vice versa. This would be an extension of the "Toggle Rig/Metarig" operator.
+        I would not do this anytime soon; First, get rid of constraint re-targetting. Constraints should just set the subtargets normally. Only issue with this is when they target an ORG bone or a cloud_tweak bone it might fail - we need to avoid bone renaming in rig generation, which is a larger refactor.
+
 Priority 3: Changes that will affect metarigs
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
     Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base (I guess this is done?)
@@ -109,7 +114,11 @@ Priority 6: Rigify compatibility
 Ideas:
 	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
 
+    Maybe stop inheriting parameters from parent classes. Instead, re-define them with a unique name, then set up a getter/setter system so that always the lowest level rig element sets its own parameter as the "actual" one. Eg., in an early stage of generation, create a self.cr_params dictionary where each rig class puts in its own value using super() calls, leaving the lowest level one last.
+        This would make the whole multiple parents/parent switching thing a lot less confusing, and avoid the need for ugly blocks of text in the UI since each rig type could have unique tooltips and UI names.
+
 	Put all Rigify UI in one panel, simply called "Rigify", with the Generate button at the top and everything else in sub-panels.
+        This is a Rigify idea not a CloudRig idea, what is it doing here?
 
 	Add an option to preserve Selection Sets on the generated rig. This way they can be authored in a very simple way.
 		This would take away the option of assigning Selection Sets based on layers.

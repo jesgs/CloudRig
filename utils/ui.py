@@ -1,7 +1,6 @@
 import bpy
 import json
 from ..cloudrig import draw_layers_ui
-from rigify.ui import rigify_report_exception
 
 class CloudUIMixin:
 	forced_params = dict()
