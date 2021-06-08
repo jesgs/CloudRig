@@ -996,18 +996,23 @@ class CloudGenerator(Generator):
 			try:
 				exec(script.as_string(), {})
 			except Exception as e:
+				# We can't know type of exception here since code was written by user.
 				traceback_str = traceback.format_exc()
 				entry = self.logger.log(
 					"Post-Generation Script failed."
 					,description=f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
 					,note=str(e)
 				)
+				entry.name = "Post-Gen Error"	# Bit of a hack to make this error play nicely with the CloudRig Execution Error.
 				entry.pretty_stack = traceback_str
+				# Continue the exception, since a post-generation script execution failure
+				# should be considered a rig generation failure.
+				raise e
 
 		self.cleanup()
 		obj.data.pose_position = 'POSE'
 		t.tick("The rest: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		#bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 	def cleanup(self):
 		# Deconfigure
@@ -1042,6 +1047,11 @@ def generate_rig(context, metarig):
 	except Exception as e:
 		# Cleanup if something goes wrong
 		generator.cleanup()
+
+		if 'Post-Gen Error' in generator.logger:
+			# In this case the post-generation error is already in the log, no need to add the same
+			# error again.
+			raise e
 		# Remove all log entries.
 		generator.logger.clear()
 		# Add a log entry about the error.
