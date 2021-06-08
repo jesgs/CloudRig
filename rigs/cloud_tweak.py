@@ -58,6 +58,8 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
 			tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
 			tweak_bone.show_wire = org_bi.show_wire
+			tweak_bone.custom_shape_translation = org_bi.custom_shape_translation
+			tweak_bone.custom_shape_rotation_euler = org_bi.custom_shape_rotation_euler
 			if org_bi.custom_shape:
 				self.add_to_widget_collection(org_bi.custom_shape)
 

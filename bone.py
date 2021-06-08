@@ -65,6 +65,8 @@ pose_bone_properties = {
 	,'custom_shape' : None	# bpy.types.Object
 	,'custom_shape_transform' : None # BoneInfo
 	,'custom_shape_scale_xyz' : (1.0, 1.0, 1.0)
+	,'custom_shape_translation' : (0.0, 0.0, 0.0)
+	,'custom_shape_rotation_euler' : (0.0, 0.0, 0.0)
 	,'use_custom_shape_bone_size' : False
 
 	,'rotation_mode' : 'QUATERNION'
