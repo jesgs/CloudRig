@@ -182,6 +182,7 @@ class CloudLimbRig(CloudIKChainRig):
 			,to_min_y_rot			= factor
 			,to_max_y_rot			= -factor
 			,from_rotation_mode		= 'SWING_TWIST_Y'
+			# TODO: This 0.5 influence doesn't seem correct while rigging Jay. (Should be 1.0) Odd that it wasn't noticable on any other character?
 			,influence				= 0.5
 		)
 

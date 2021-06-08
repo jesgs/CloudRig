@@ -583,6 +583,8 @@ class CloudGenerator(Generator):
 
 	def save_parenting_info(self) -> dict:
 		rig = self.obj
+		assert rig.data.pose_position == 'REST'
+		self.context.view_layer.update()	# This is absolutely necessary to make sure child object matrices are updated after switching the rig to rest pose!
 
 		# Get parented objects to restore later
 		child_objs = list(rig.children[:])
@@ -664,6 +666,7 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Create/find the rig object and set it up
 		obj = self.create_rig_object()
+		obj.data.pose_position = 'REST'
 		self.nuke_drivers()
 		self.logger.rig = obj
 		self.logger.metarig = metarig
@@ -1002,6 +1005,7 @@ class CloudGenerator(Generator):
 				entry.pretty_stack = traceback_str
 
 		self.cleanup()
+		obj.data.pose_position = 'POSE'
 		t.tick("The rest: ")
 		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
