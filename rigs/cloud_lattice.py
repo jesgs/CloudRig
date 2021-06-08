@@ -105,6 +105,9 @@ class CloudLatticeRig(CloudBaseRig):
 		lattice_ob.parent_bone = root_bone.name
 		lattice_ob.matrix_world = root_bone.matrix
 		lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(root_bone.length, 4)
+		# Leave a custom property for the Generator, so it doesn't reset the 
+		# lattice's matrix to what it was before generation.
+		lattice_ob['matrix_world'] = lattice_ob.matrix_world
 
 		self.lock_transforms(lattice_ob)
 

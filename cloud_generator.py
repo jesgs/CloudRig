@@ -601,13 +601,15 @@ class CloudGenerator(Generator):
 		return self.children_data
 
 	def restore_parenting_info(self):
-		obj = self.obj
 		for child, child_data in self.children_data.items():
 			child.parent = child_data.parent
 			child.parent_type = child_data.parent_type
 			child.parent_bone = child_data.parent_bone
 			child.matrix_parent_inverse = child_data.matrix_parent_inverse.copy()
-			child.matrix_world = child_data.matrix_world.copy()
+			if 'matrix_world' not in child:
+				child.matrix_world = child_data.matrix_world.copy()
+			else:
+				child.matrix_world = Matrix(child['matrix_world'])
 
 			constraint_bone_targets = child_data.constraint_bone_targets
 			for c_name in constraint_bone_targets.keys():
