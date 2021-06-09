@@ -1,3 +1,7 @@
+from typing import List
+from rigify.base_rig import BaseRig
+from .bone import BoneInfo
+
 import bpy
 from mathutils import Vector
 from .utils.maths import project_points_on_plane, scale_points_from_center
@@ -69,7 +73,7 @@ def initiate_widget_generation(name):
 
 	return ob_name
 
-def bezier_widget(rig, coords, bone):
+def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
 
 	bpy.ops.object.mode_set(mode='OBJECT')

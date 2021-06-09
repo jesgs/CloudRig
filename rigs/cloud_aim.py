@@ -73,6 +73,7 @@ class CloudAimRig(CloudBaseRig):
 			,head	= head
 			,tail	= tail
 			,custom_shape = self.ensure_widget("Circle")
+			,use_custom_shape_bone_size = True
 			,parent = parent
 		)
 		dsp_bone = self.create_dsp_bone(target_bone)
