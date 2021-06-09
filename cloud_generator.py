@@ -258,6 +258,8 @@ class CloudGenerator(Generator):
 		super().__init__(context, metarig)
 		self.params = metarig.data	# Generator parameters are stored in rig data.
 
+		metarig.data.pose_position = 'REST'
+		context.view_layer.update() # Needed to make sure we get the correct scale
 		self.scale = max(metarig.dimensions)/10
 
 		self.naming = CloudNameManager(
@@ -359,7 +361,6 @@ class CloudGenerator(Generator):
 			self.collection.objects.link(obj)
 
 		self.params.rigify_target_rig = obj
-		# obj.data.pose_position = 'POSE'
 
 		self.obj = obj
 		return obj
@@ -584,7 +585,6 @@ class CloudGenerator(Generator):
 	def save_parenting_info(self) -> dict:
 		rig = self.obj
 		assert rig.data.pose_position == 'REST'
-		self.context.view_layer.update()	# This is absolutely necessary to make sure child object matrices are updated after switching the rig to rest pose!
 
 		# Get parented objects to restore later
 		child_objs = list(rig.children[:])
@@ -654,7 +654,6 @@ class CloudGenerator(Generator):
 
 		context = self.context
 		metarig = self.metarig
-		metarig.data.pose_position = 'REST'	# TODO: This doesn't seem to help - even now, when the metarig is posed at all, it messes up generation.
 		t = Timer()
 
 		self.collection = context.scene.collection
@@ -667,6 +666,8 @@ class CloudGenerator(Generator):
 		# Create/find the rig object and set it up
 		obj = self.create_rig_object()
 		obj.data.pose_position = 'REST'
+		self.context.view_layer.update()	# This is necessary to make sure child object matrices are updated after switching the rig to rest pose!
+
 		self.nuke_drivers()
 		self.logger.rig = obj
 		self.logger.metarig = metarig
@@ -1010,7 +1011,6 @@ class CloudGenerator(Generator):
 				raise e
 
 		self.cleanup()
-		obj.data.pose_position = 'POSE'
 		t.tick("The rest: ")
 		#bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 

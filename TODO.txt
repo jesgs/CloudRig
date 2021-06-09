@@ -8,16 +8,29 @@ Priority 0: Requested
             Add those property path changes to the anim curve rename script
 Priority 1: Bugs
     Parameter registration breaks (see console spam) when disabling and re-enabling the Rigify addon. But after Reload Scripts, it works again. This makes no sense to me.
-    "MCH" and "ORG" default layer names are swapped??
     When changing the UI strings on cloud_fk_chain between two generations, the old data doesn't seem to get purged properly from the fk_chains custom property on the armature data, resulting in console error spam
-    When the post-generation script fails, it fails way too silently (Just leaves a warning in the rigify log, but the rig claims to be successfully generated)
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         This is just one on the pile of problems with Smooth Spline. This needs AnGavrilov's new BBone features.
     Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
     cloud_fk_chain hinge behaviour breaks by relinking an armature constraint to the FK bone.
-    Generator scale is determined before resetting rig object pose and transforms. Gives wrong result if generated rig is scaled before re-generating.
-        I think I fixed this
     pose.cloudrig_snap_bake seems to fail on Ellie's fannypack, why??
+        Probably because snapping bones with any constraints doesn't work. Can work like this:
+```
+import bpy
+bone = bpy.context.active_pose_bone
+target_matrix = bpy.context.scene.cursor.matrix
+
+quat_bkp = bone.rotation_quaternion.copy()
+scale_bkp = bone.scale.copy()
+
+bone.location = (0, 0, 0)
+bpy.context.view_layer.update()
+bone.matrix = target_matrix - bone.matrix
+
+bone.rotation_quaternion = quat_bkp
+bone.scale = scale_bkp
+```
+        this is terrible, and the view layer update is probably expensive, but should do it.
     cloud_fk_chain parent switching should only be available when Root Control is enabled.
     cloud_lattice doesn't support Root Parent selection?
     cloud_lattice displays a Deform Bones bone set even though it never creates any.
