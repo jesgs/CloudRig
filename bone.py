@@ -1,9 +1,10 @@
 from typing import Dict, List
 
 import bpy
+from idprop.types import IDPropertyArray
 from bpy.props import StringProperty, BoolVectorProperty
 from mathutils import Vector, Matrix
-import copy
+from copy import deepcopy
 from collections import OrderedDict
 
 from .utils.maths import flat
@@ -660,12 +661,16 @@ class BoneInfo:
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
-			prop_value = prop['default'] # This must exist!
+			prop_value = prop['default']
 			if 'value' in prop:
 				prop_value = prop['value']
 				del prop['value']
 			make_property(pb, prop_name, **prop)
-			pb[prop_name] = prop_value
+			if isinstance(prop_value, IDPropertyArray):
+				# Avoid a Blender crash, see CloudRig/-/issues/17
+				pb[prop_name] = prop_value if len(prop_value) > 0 else []
+			else:
+				pb[prop_name] = prop_value
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:
@@ -682,7 +687,7 @@ class BoneInfo:
 		custom_ob_backup = self.custom_object	# This would fail to deepcopy since it's a bpy.types.Object.
 		self.custom_object = None
 
-		my_clone = copy.deepcopy(self)
+		my_clone = deepcopy(self)
 		my_clone.name = self.name + ".001"
 		if new_name:
 			my_clone.name = new_name
