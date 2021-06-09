@@ -1,4 +1,4 @@
-import bpy, os, importlib
+import bpy, importlib
 
 from . import actions
 from . import cloud_generator
@@ -7,18 +7,28 @@ from . import versioning
 from . import manual
 from . import operators
 from . import overlay
-from . import gizmo
 from . import troubleshooting
 from . import parent_switching
 
 rigify_info = {
-	'name': "CloudRig",
-	'author': "Demeter Dzadik",
-	'version': (0, 0, 7),
-	'blender': (3, 0, 0),	# This should be the lowest Blender version that is currently compatible.
-	'description': "Feature set developed by the Blender Animation Studio",
-	'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/",
-	'link': "https://gitlab.com/blender/CloudRig/",
+	'name': "CloudRig"
+	,'author': "Demeter Dzadik"
+	,'version': (0, 0, 7)
+	,'blender': (3, 0, 0)	# This should be the lowest Blender version that is currently compatible.
+	,'description': "Feature set developed by the Blender Animation Studio"
+	,'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/"
+	,'link': "https://gitlab.com/blender/CloudRig/"
+}
+
+
+bl_info = {
+	'name' : "CloudRig is not an Addon!"
+	,'version' : (0, 0, 7)
+	,'blender' : (3, 0, 0)
+	,'description' : "It should be installed as a Feature Set within the Rigify addon"
+	,'location': "Addons->Rigify->Feature Sets->Install Feature Set from File"
+	,'category': 'Rigging'
+	,'doc_url' : "https://gitlab.com/blender/CloudRig/"
 }
 
 modules = [
@@ -35,6 +45,11 @@ modules = [
 ]
 
 def register():
+	import inspect
+	caller_name = inspect.stack()[2].function
+	trying_to_install_as_addon = caller_name == 'execute'
+	assert not trying_to_install_as_addon, "CloudRig is not an addon. Install it as a Feature Set within the Rigify addon."
+
 	from bpy.utils import register_class
 	for m in modules:
 		importlib.reload(m)
