@@ -1048,12 +1048,13 @@ def generate_rig(context, metarig):
 		# Cleanup if something goes wrong
 		generator.cleanup()
 
-		if 'Post-Gen Error' in generator.logger:
-			# In this case the post-generation error is already in the log, no need to add the same
-			# error again.
+		logs = metarig.data.cloudrig_parameters.logs
+		if 'Post-Gen Error' in logs:
+			# In this case the post-generation error is already in the log,
+			# we don't want to clear that and present the user with a bug report button.
 			raise e
 		# Remove all log entries.
-		generator.logger.clear()
+		logs.clear()
 		# Add a log entry about the error.
 		traceback_str = traceback.format_exc()
 		log = generator.logger.log_bug("Execution Error!", op_kwargs={'stack_trace' : traceback_str})

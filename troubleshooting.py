@@ -188,7 +188,7 @@ class CloudLogManager:
 			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
 		return self.log(
 			"(BUG) " + description_short
-			,description = description + "\nPlease report this as a bug."
+			,description = description + "\nThis might be a bug in CloudRig."
 			,icon = icon
 			,operator = operator
 			,**kwargs
