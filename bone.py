@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import bpy
 from bpy.props import StringProperty, BoolVectorProperty
-from mathutils import Vector
+from mathutils import Vector, Matrix
 import copy
 from collections import OrderedDict
 
@@ -385,17 +385,16 @@ class BoneInfo:
 			self.use_envelope_multiply = source.use_envelope_multiply
 			self.head_radius = source.head_radius
 			self.tail_radius = source.tail_radius
-			if type(source)==BoneInfo:
+			if type(source) == BoneInfo:
 				self.bone_group = source.bone_group
 				self.bbone_width = source.bbone_width
-			else:
+				if source.parent:
+					self.parent = source.parent
+			elif type(source) == bpy.types.EditBone:
 				self.bbone_x = source.bbone_x
 				self.bbone_z = source.bbone_z
-			if source.parent:
-				if type(source)==BoneInfo:
-					self.parent = source.parent
-				else:
-					self.parent = source.parent.name
+				if source.parent:
+					self.parent = source.parent.name	# TODO: The correct way to do this would be to load bones either in a hierarchical order, or to loop through them twice. Then we would no longer have to support strings as parents, and always use BoneInfo references.
 
 		# Apply property values from arbitrary keyword arguments if any were passed.
 		for key, value in kwargs.items():
@@ -633,6 +632,9 @@ class BoneInfo:
 			if key=='bone_group':
 				value = armature.pose.bone_groups.get(self.bone_group)
 			setattr(pb, key, value)
+		
+		# Reset pose
+		pb.matrix_basis = Matrix.Identity(4)
 
 		# Bone data
 		b = pb.bone
