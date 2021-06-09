@@ -28,48 +28,50 @@ class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 
 			if i==0:
 				layer.name = "IK"
-			if i==16:
+			elif i==16:
 				layer.name = "IK Secondary"
-			if i==1:
+			elif i==1:
 				layer.name = "FK"
 				layer.row = 2
-			if i==17:
+			elif i==17:
 				layer.name = "FK Secondary"
 				layer.row = 2
-			if i==2:
+			elif i==2:
 				layer.name = "Stretch"
 				layer.row = 3
 
-			if i==3:
+			elif i==3:
 				layer.name = "Face"
 				layer.row = 4
-			if i==19:
+			elif i==19:
 				layer.name = "Face Extras"
 				layer.row = 4
-			if i==20:
+			elif i==20:
 				layer.name = "Face Tweak"
 				layer.row = 4
 
-			if i==5:
+			elif i==5:
 				layer.name = "Fingers"
 				layer.row = 5
 
-			if i==6:
+			elif i==6:
 				layer.name = "Hair"
 				layer.row = 6
-			if i==7:
+			elif i==7:
 				layer.name = "Clothes"
 				layer.row = 7
 
-			if i==29:
+			elif i==29:
 				layer.name = "$DEF"
 				layer.row = 32
-			if i==30:
-				layer.name = "$ORG"
-				layer.row = 32
-			if i==31:
+			elif i==30:
 				layer.name = "$MCH"
 				layer.row = 32
+			elif i==31:
+				layer.name = "$ORG"
+				layer.row = 32
+			else:
+				layer.name = ""
 
 		return {'FINISHED'}
 
