@@ -872,6 +872,9 @@ class CloudGenerator(Generator):
 		# Rigify automatically parents bones that have no parent to the root bone.
 		# This is fine, but we want to undo this when the bone has an Armature constraint, since such bones should never have a parent.
 		# NOTE: This could be done via self.generator.disable_auto_parent(bone_name).
+		# This could also be done as a part of BoneInfo.constraint_add(), with an optional parameter for clarity.
+		# Or simply do it manually every time an armature constraint is added, but that really does feel error prone.
+		# But the error could be notified in the Rigify Log.
 		for eb in obj.data.edit_bones:
 			pb = obj.pose.bones.get(eb.name)
 			for c in pb.constraints:
@@ -887,7 +890,7 @@ class CloudGenerator(Generator):
 
 		self.invoke_rig_bones()
 
-		# Refresh constraints... without this, some armature constraints think they have an error when they don't.
+		# HACK: Refresh constraints... without this, some armature constraints think they have an error when they don't.
 		for pb in obj.pose.bones:
 			for c in pb.constraints:
 				c.influence = c.influence
@@ -945,7 +948,7 @@ class CloudGenerator(Generator):
 
 		self.invoke_finalize()
 
-		# TODO: For some reason when cloud_tweak adds constraints to a bone,
+		# HACK: For some reason when cloud_tweak adds constraints to a bone,
 		# sometimes those constraints can be invalid even though they aren't actually.
 		for pb in obj.pose.bones:
 			for c in pb.constraints:
@@ -974,18 +977,19 @@ class CloudGenerator(Generator):
 		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
 		obj.data['generation_time'] = f"{now.hour}:{now.minute}:{now.second}"
 
-		for b in obj.pose.bones:
-			for c in b.constraints:
+		# HACK: Stretch constraints seem to get incorrect length. TODO: Is this still necessary, now that we ensure rigs are properly reset early on in generation?
+		for pb in obj.pose.bones:
+			for c in pb.constraints:
 				if c.type=='STRETCH_TO':
-					bone_info = self.find_bone_info(b.name)
+					bone_info = self.find_bone_info(pb.name)
 					if not bone_info: continue # This should only happen with non-Cloudrig rigs.
 					con_info = bone_info.get_constraint(c.name)
 					if con_info and 'rest_length' in con_info:
 						c.rest_length = con_info.rest_length
 					else:
-						c.rest_length = 0
+						c.rest_length = pb.length
 
-		# Only leave Force Widget Update enabled until a successful generation.
+		# Only leave Force Widget Update enabled until the next generation. TODO: This is bad UX. Would work better as a pop-up parameter, but we don't want to give a popup to something as commonly used as generation. Maybe Widget updating should just be faster! Then this parameter can go away altogether!
 		self.metarig.data.rigify_force_widget_update = False
 
 		# Make sure Hidden Layers checkbox is saved in the generated rig, so it remains even if the Rigify addon is disabled.

@@ -535,8 +535,9 @@ class BoneInfo:
 		for key in dir(constraint):
 			if "__" in key: continue
 			if key in skip: continue
+			value = getattr(constraint, key)
 
-			if key=='targets' and constraint.type=='ARMATURE':
+			if constraint.type=='ARMATURE' and key == 'targets':
 				kwargs['targets'] = []
 				for t in constraint.targets:
 					kwargs['targets'].append({
@@ -545,8 +546,13 @@ class BoneInfo:
 						'weight' : t.weight
 					})
 				continue
+			elif constraint.type == 'STRETCH_TO' \
+				 and key == 'rest_length' \
+				 and value == 0:
+				 continue
 
-			kwargs[key] = getattr(constraint, key)
+			kwargs[key] = value
+			# HACK: Why is subtarget handled differently than space_subtarget?? Commit message includes "quick fix" so this probably needs a cleanup.
 			if key == 'space_subtarget':
 				kwargs[key] = kwargs[key].replace("ORG-", "")
 
@@ -843,10 +849,6 @@ class ConstraintInfo(dict):
 				)
 
 		con = make_constraint(pose_bone, con_type, **con_info)
-
-		# Fix stretch constraints
-		if con_type == 'STRETCH_TO':
-			con.rest_length = 0
 
 		return con
 
