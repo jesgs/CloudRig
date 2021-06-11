@@ -100,7 +100,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	override_options: BoolProperty(
 		name = "Override Bone Layers"
-		,description = "Instead of allowing rig elements to assign deform/mechanism/org bone layers individually, set it from the generator instead."
+		,description = "Instead of allowing rig elements to assign deform/mechanism/org bone layers individually, set it from the generator instead"
 		,default=False
 	)
 

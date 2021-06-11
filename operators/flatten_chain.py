@@ -4,7 +4,7 @@ from mathutils.geometry import intersect_point_line
 from ..utils.mechanism import get_bone_chain
 
 class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
-	"""Flatten a chain of bones on a plane. Useful for perfect IK chains."""
+	"""Flatten a chain of bones on a plane. Useful for perfect IK chains"""
 
 	bl_idname = "object.cloudrig_flatten_bones"
 	bl_label = "Flatten Bones"
