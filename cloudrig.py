@@ -1022,7 +1022,7 @@ class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
 		return {'FINISHED'}
 
 class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
-	"""Try to ensure the name of this object or collection ends with the correct suffix."""
+	"""Try to ensure the name of this object or collection ends with the correct suffix"""
 	# We hijack the Rigify Log for this, why not...
 	bl_idname = "object.cloudrig_fix_name_" + script_id
 	bl_label = "Fix Name"
