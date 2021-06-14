@@ -1,6 +1,7 @@
 import bpy
 from bpy.app.handlers import persistent
 from .utils.ui import is_cloud_metarig
+from .utils.object import set_enum_property_by_integer
 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
@@ -8,18 +9,12 @@ from .utils.ui import is_cloud_metarig
 cloud_metarig_version = 10
 
 def update_enum_property(owner, old_key, new_key, int_value):
-	# Enum properties are a bit tricky because once their definition is lost, 
-	# their string value is lost and is left with an int.
-	property_group_class_name = type(owner).__name__
-	rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(property_group_class_name)
-	enum_prop = rna_class.bl_rna.properties.get(new_key)
-	if enum_prop:
-		# This will only work for the current version
-		enum_string_value = str(enum_prop.enum_items[int_value]).split('"')[1]
+	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
+	if enum_string_value:
 		print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
-		setattr(owner, new_key, enum_string_value)
 	else:
-		# For other versions, just back it up.
+		# If an enum property's definition is lost, their string value is lost 
+		# and is left with an int. In this case, just back up that int.
 		owner[new_key] = int_value
 
 def rename_parameters(metarig, dictionary):

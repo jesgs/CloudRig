@@ -32,6 +32,7 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 		,default=False
 		,description="Enable additional convenience functionality when generating a single rig: After a successful generation, hide the metarig, unhide the generated rig, and enter the same mode on the generated rig as the current mode"
 	)
+	# TODO: Options to preserve pose and selected/active bones would be a nice bonus both here and in toggle_metarig.
 
 	def execute(self, context):
 		rigs_generated = 0
