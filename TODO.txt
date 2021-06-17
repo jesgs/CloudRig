@@ -1,11 +1,4 @@
 Generating Sprite Fright characters seems extremely crash prone only on windows, eek! (as of May27 2021)
-Priority 0: Requested
-    Make the Spine rig properties bone appear behind the spine.
-    Make the Quality slider non-animatable (I don't think this is possible to do in a decent way)
-        Add a property registration in cloudrig.py? Don't like it...
-        Attach a new text datablock to the rig that registers the properties from the character bone.
-            Make sure those properties are overridable but not animatable
-            Add those property path changes to the anim curve rename script
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
     Parameter registration breaks (see console spam) when disabling and re-enabling the Rigify addon. But after Reload Scripts, it works again. This makes no sense to me.
@@ -124,6 +117,16 @@ Priority 5: UI, UX & documentation
 Priority 6: Rigify compatibility
     When enabled, bone groups assigned in cloud_bone seem to get overwritten.
     Rigify compatibility specific functions should only affect rigify rig types.
+Priority 7: Ideas from Animators that would break backwards comp on Sprite Fright.
+    From Javier: Spine IK control with squash&stretch
+    From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
+        The available parents could be the same as the IK control, plus the IK control itself.
+    From Rik: Make the Spine rig properties bone appear behind the spine.
+    Make the Quality slider non-animatable (I don't think this is possible to do in a decent way)
+        Add a property registration in cloudrig.py? Don't like it...
+        Attach a new text datablock to the rig that registers the properties from the character bone.
+            Make sure those properties are overridable but not animatable
+            Add those property path changes to the anim curve rename script
 
 Ideas:
 	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
