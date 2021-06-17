@@ -28,12 +28,6 @@ from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
 from .utils.naming import CloudNameManager
 
-separators = [	# TODO: Maintaining this feature was deemed too much work for the value it brings, which is none. It should be removed entirely, including versioning code.
-	(".", ".", "."),
-	("-", "-", "-"),
-	("_", "_", "_"),
-]
-
 class CloudRigProperties(bpy.types.PropertyGroup):
 	version: IntProperty(
 		name		 = "CloudRig MetaRig Version"
@@ -86,19 +80,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		name		 = "Selectable Helpers"
 		,description = "Whether helper bones can be selected or not"
 		,default	 = True
-	)
-
-	prefix_separator: EnumProperty(
-		name		 = "Prefix Separator"
-		,description = "Character that separates prefixes in the bone names"
-		,items 		 = separators
-		,default	 = "-"
-	)
-	suffix_separator: EnumProperty(
-		name		 = "Suffix Separator"
-		,description = "Character that separates suffixes in the bone names"
-		,items 		 = separators
-		,default	 = "."
 	)
 
 	override_options: BoolProperty(
@@ -265,11 +246,7 @@ class CloudGenerator(Generator):
 		context.view_layer.update() # Needed to make sure we get the correct scale
 		self.scale = max(metarig.dimensions)/10
 
-		self.naming = CloudNameManager(
-			prefix_separator = self.params.cloudrig_parameters.prefix_separator
-			,suffix_separator = self.params.cloudrig_parameters.suffix_separator)
-		separators_match = self.naming.prefix_separator == self.naming.suffix_separator
-		assert not separators_match, "Prefix and Suffix separators cannot be the same."
+		self.naming = CloudNameManager()
 
 		# List that stores a reference to all BoneInfo instances of all rigs.
 		# IMPORTANT: This should not be a BoneInfo, just a regular list. Otherwise the LinkedList behaviour gets all messed up!
