@@ -1,5 +1,6 @@
 import bpy, importlib
 
+from .utils import ui_list
 from . import actions
 from . import cloud_generator
 from . import ui
@@ -32,6 +33,7 @@ bl_info = {
 }
 
 modules = [
+	utils.ui_list,
 	actions,
 	troubleshooting,
 	cloud_generator, # NOTE: Load order matters, since cloud_generator relies on some types already being registered!

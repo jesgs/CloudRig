@@ -460,7 +460,7 @@ class CloudBaseRig(
 
 		if params.CR_base_parent_switching:
 			draw_label_with_linebreak(parent_box, cls.parent_switch_behaviour, align_split=True)
-			draw_cloudrig_parents(parent_box, context.active_pose_bone)
+			draw_cloudrig_parents(parent_box, context)
 
 		if cls.use_custom_props:
 			cls.draw_custom_prop_params(layout, context, params)
