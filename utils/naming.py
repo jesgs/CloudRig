@@ -8,7 +8,7 @@ class CloudNameManager:
 	anything that has a "name" attribute, or strings directly.
 	"""
 
-	def __init__(self, prefix_separator="_", suffix_separator=".", **kwargs):
+	def __init__(self, prefix_separator="-", suffix_separator=".", **kwargs):
 		self.prefix_separator = prefix_separator
 		self.suffix_separator = suffix_separator
 		super().__init__(**kwargs)
