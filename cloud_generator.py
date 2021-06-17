@@ -1,11 +1,13 @@
+
+from typing import List
+
 import bpy, os
 import traceback
-from typing import List
 from datetime import datetime
 
-import math
 from mathutils import Matrix, Vector
-from bpy.props import BoolProperty, StringProperty, EnumProperty, PointerProperty, BoolVectorProperty, FloatProperty, CollectionProperty, IntProperty
+from bpy.props import (BoolProperty, StringProperty, EnumProperty, 
+			PointerProperty, BoolVectorProperty, CollectionProperty, IntProperty)
 from rna_prop_ui import rna_idprop_ui_prop_get
 
 from rigify.generate import Generator, Timer, select_object
@@ -17,6 +19,7 @@ from rigify.utils.bones import new_bone
 
 from .bone import BoneSet, BoneInfo
 from .utils import mechanism
+from .utils.ui import redraw_viewport
 from . import widgets as cloud_widgets
 from .versioning import cloud_metarig_version
 
@@ -719,7 +722,7 @@ class CloudGenerator(Generator):
 		self._Generator__duplicate_rig()
 
 		t.tick("Duplicate rig: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.map_drivers()
@@ -761,7 +764,7 @@ class CloudGenerator(Generator):
 				self.rig_list.insert(first_face, rig)
 
 		t.tick("Instantiate rigs: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -787,7 +790,7 @@ class CloudGenerator(Generator):
 		self.invoke_prepare_bones()
 
 		t.tick("Prepare bones: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -814,7 +817,7 @@ class CloudGenerator(Generator):
 		self.invoke_generate_bones()
 
 		t.tick("Generate bones: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -830,7 +833,7 @@ class CloudGenerator(Generator):
 			self._Generator__parent_bones_to_root()
 
 		t.tick("Parent bones: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -862,7 +865,7 @@ class CloudGenerator(Generator):
 		self.create_action_constraints()
 
 		t.tick("Configure bones: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
@@ -883,7 +886,7 @@ class CloudGenerator(Generator):
 					break
 
 		t.tick("Apply bones: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -896,7 +899,7 @@ class CloudGenerator(Generator):
 				c.influence = c.influence
 
 		t.tick("Rig bones: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -956,7 +959,7 @@ class CloudGenerator(Generator):
 					c.subtarget = c.subtarget
 
 		t.tick("Finalize: ")
-		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -1016,7 +1019,6 @@ class CloudGenerator(Generator):
 
 		self.cleanup()
 		t.tick("The rest: ")
-		#bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 	def cleanup(self):
 		# Deconfigure

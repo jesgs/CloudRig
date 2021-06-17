@@ -1,4 +1,4 @@
-import bpy
+import bpy, sys, os
 import json
 from ..cloudrig import draw_layers_ui
 
@@ -184,3 +184,16 @@ def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
 	if 'default' not in custom_prop_dict:
 		custom_prop_dict['default'] = 0.0
 	prop_bone.custom_props[prop_id] = custom_prop_dict
+
+class HiddenPrints:
+	def __enter__(self):
+		self._original_stdout = sys.stdout
+		sys.stdout = open(os.devnull, 'w')
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		sys.stdout.close()
+		sys.stdout = self._original_stdout
+
+def redraw_viewport():
+	with HiddenPrints():
+		bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
