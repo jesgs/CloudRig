@@ -166,7 +166,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	active_log_index: IntProperty(min=0)
 
 def create_selection_sets(obj, metarig):
-
 	# Check if selection sets addon is installed
 	if 'bone_selection_groups' not in bpy.context.preferences.addons \
 			and 'bone_selection_sets' not in bpy.context.preferences.addons:
@@ -185,7 +184,6 @@ def create_selection_sets(obj, metarig):
 			if b.bone.layers[i] and b.name not in selset.bone_ids:
 				bone_id = selset.bone_ids.add()
 				bone_id.name = b.name
-
 
 def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
 	"""Load a text file into a text datablock, enable register checkbox and execute it.
@@ -218,24 +216,25 @@ def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
 	return text
 
 class ParentingData:
-	def __init__(self, object: bpy.types.Object):
-		self.parent = object.parent
-		self.parent_type = object.parent_type # can be BONE, ARMATURE, OBJECT.
-		self.parent_bone = object.parent_bone # If parent type is BONE, use this as the bone name.
-		self.matrix_parent_inverse = object.matrix_parent_inverse.copy()
-		self.matrix_world = object.matrix_world.copy()
+	def __init__(self, obj: bpy.types.Object):
+		print("REMOVING PARENTING: " + obj.name)
+		self.parent = obj.parent
+		self.parent_type = obj.parent_type # can be BONE, ARMATURE, OBJECT.
+		self.parent_bone = obj.parent_bone # If parent type is BONE, use this as the bone name.
+		self.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
+		self.matrix_world = obj.matrix_world.copy()
 
-		self.constraint_bone_targets = {}
-		for c in object.constraints:
-			if hasattr(c, 'subtarget') and c.subtarget!="":
-				self.constraint_bone_targets[c.name] = c.subtarget
+		self.bone_constraint_targets = {}
+		for c in obj.constraints:
+			if hasattr(c, 'subtarget') and c.subtarget != "":
+				self.bone_constraint_targets[c.name] = c.subtarget
 				c.subtarget = ""
-			if c.type=='ARMATURE':	# TODO: Hook modifiers.
+			if c.type == 'ARMATURE':
 				subtargets = []
 				for tar in c.targets:
 					subtargets.append(tar.subtarget)
 					tar.subtarget = ""
-				self.constraint_bone_targets[c.name] = subtargets
+				self.bone_constraint_targets[c.name] = subtargets
 
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
@@ -345,6 +344,10 @@ class CloudGenerator(Generator):
 		self.obj = obj
 		return obj
 
+	# TODO: Perhaps instead of letting the generator handle the root bone, 
+	# it should be left up to the user, but we can still provide a cloud_root 
+	# rig type to handle bone set assignments and widgets 
+	# (It would be very similar to cloud_copy but with no deform option)
 	def create_root_bones(self):
 		# Root bone groups
 		self.root_set = BoneSet(self,
@@ -542,16 +545,24 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
-	### Console spam avoidance
+	##############################
+	### Console spam avoidance ###
+	##############################
+	# TODO: This solution to avoid console spamming is not viable. 
+	# There are just too many ways to create references to bones, and trying to account for all of them is just dumb.
+	# Instead, we should generate the rig in a separate, temporary rig, then either join it into the existing object or use
+	# Blender's built-in "replace references" function (which afaik is crash prone) to replace the previous rig with the newly generated one.
+	# This would also mean that failed generations don't destroy the rig, which is pretty good.
+
 	def save_modifiers(self) -> List[bpy.types.Modifier]:
-		"""Save references to a list of modifiers which target our rig, then set that reference to None.
+		"""Save references to a list of modifiers which target our rig, then set that target to None.
 		This is because some modifiers spam the console and introduce lag when their target bone is missing,
 		and the target bone will be missing until the rig is generated.
 		"""
 		modifiers = []
 		for o in bpy.data.objects:
 			for m in o.modifiers:
-				if hasattr(m, 'object') and m.object==self.obj:
+				if hasattr(m, 'object') and m.object == self.obj:
 					modifiers.append(m)
 					m.object = None
 		self.modifiers = modifiers
@@ -570,9 +581,9 @@ class CloudGenerator(Generator):
 		child_objs = list(rig.children[:])
 		for o in bpy.data.objects:
 			for c in o.constraints:
-				if c.type=='ARMATURE':
+				if c.type == 'ARMATURE':
 					for tar in c.targets:
-						if tar.target==rig and o not in child_objs:
+						if tar.target == rig and o not in child_objs:
 							child_objs.append(o)
 
 		self.children_data = {} # {child_object: ParentingData}
@@ -593,15 +604,16 @@ class CloudGenerator(Generator):
 			else:
 				child.matrix_world = Matrix(child['matrix_world'])
 
-			constraint_bone_targets = child_data.constraint_bone_targets
-			for c_name in constraint_bone_targets.keys():
+			bone_constraint_targets = child_data.bone_constraint_targets
+			for c_name in bone_constraint_targets.keys():
 				c = child.constraints[c_name]
-				if c.type=='ARMATURE':
-					subtargets = constraint_bone_targets[c_name]
-					for i, t in enumerate(c.targets):
-						t.subtarget = subtargets[i]
+				if c.type == 'ARMATURE':
+					subtargets = bone_constraint_targets[c_name]
+					for t in c.targets:
+						if t.subtarget in subtargets:
+							t.target = self.obj
 				else:
-					c.subtarget = constraint_bone_targets[c_name]
+					c.subtarget = bone_constraint_targets[c_name]
 
 	### Driver management
 	def nuke_drivers(self):
@@ -689,8 +701,9 @@ class CloudGenerator(Generator):
 		t.tick("Create main WGTS: ")
 
 		#------------------------------------------
+		# Remove some relationships that will be restored later, to avoid console spam.
 		self.save_parenting_info()
-		modifiers = self.save_modifiers()
+		self.save_modifiers()
 
 		#------------------------------------------
 		# Copy bones from metarig to obj
