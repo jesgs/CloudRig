@@ -217,7 +217,6 @@ def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
 
 class ParentingData:
 	def __init__(self, obj: bpy.types.Object):
-		print("REMOVING PARENTING: " + obj.name)
 		self.parent = obj.parent
 		self.parent_type = obj.parent_type # can be BONE, ARMATURE, OBJECT.
 		self.parent_bone = obj.parent_bone # If parent type is BONE, use this as the bone name.
