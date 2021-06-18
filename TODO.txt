@@ -7,24 +7,7 @@ Priority 1: Bugs
         This is just one on the pile of problems with Smooth Spline. This needs AnGavrilov's new BBone features.
     Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
     cloud_fk_chain hinge behaviour breaks by relinking an armature constraint to the FK bone.
-    pose.cloudrig_snap_bake seems to fail on Ellie's fannypack, why??
-        Probably because snapping bones with any constraints doesn't work. Can work like this:
-```
-import bpy
-bone = bpy.context.active_pose_bone
-target_matrix = bpy.context.scene.cursor.matrix
 
-quat_bkp = bone.rotation_quaternion.copy()
-scale_bkp = bone.scale.copy()
-
-bone.location = (0, 0, 0)
-bpy.context.view_layer.update()
-bone.matrix = target_matrix - bone.matrix
-
-bone.rotation_quaternion = quat_bkp
-bone.scale = scale_bkp
-```
-        this is terrible, and the view layer update is probably expensive, but should do it.
     cloud_fk_chain parent switching should only be available when Root Control is enabled.
     cloud_lattice doesn't support Root Parent selection?
     cloud_lattice displays a Deform Bones bone set even though it never creates any.
@@ -67,6 +50,9 @@ Priority 2: New features
         Should have an enum selector for Custom Property UI areas, so these custom properties can be added to the rig UI without post-gen script.
     Operator to "push" a constraint on a cloud_copy rig type bone from the generated rig back to the metarig or vice versa. This would be an extension of the "Toggle Rig/Metarig" operator.
         I would not do this anytime soon; First, get rid of constraint re-targetting. Constraints should just set the subtargets normally. Only issue with this is when they target an ORG bone or a cloud_tweak bone it might fail - we need to avoid bone renaming in rig generation, which is a larger refactor.
+    Automatic IK/FK switching based on bone selection:
+        https://youtu.be/ccbC8JNdXS4?t=755
+        https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
 
 Priority 3: Changes that will affect metarigs
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.

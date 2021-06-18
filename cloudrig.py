@@ -223,10 +223,28 @@ def keyframe_transform_properties(obj, bone_name, keyflags, *, ignore_locks=Fals
 	if not no_scale:
 		keyframe_channels('scale', bone.lock_scale)
 
-def set_transform_from_matrix(obj, bone_name, matrix, *, space='POSE', ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
+def set_transform_from_matrix(obj, bone_name, target_matrix, *, space='POSE', ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
 	"Apply the matrix to the transformation of the bone, taking locked channels, mode and certain constraints into account, and optionally keyframe it."
 	bone = obj.pose.bones[bone_name]
 
+	# Save the old values of the local transforms
+	old_loc = Vector(bone.location)
+	old_rot_euler = Vector(bone.rotation_euler)
+	old_rot_quat = Vector(bone.rotation_quaternion)
+	old_rot_axis = Vector(bone.rotation_axis_angle)
+	old_scale = Vector(bone.scale)
+
+	# Set the bone transforms in pose space in a way that accounts for additive constraints
+	if space != 'POSE':
+		target_matrix = obj.convert_space(pose_bone=bone, matrix=target_matrix, from_space=space, to_space='POSE')
+
+	pose_matrix_pre_constraints = obj.convert_space(pose_bone=bone, matrix=bone.matrix_basis, from_space='LOCAL', to_space='POSE')
+	pose_matrix_post_constraints = bone.matrix
+	constraint_delta = pose_matrix_post_constraints - pose_matrix_pre_constraints
+
+	bone.matrix = target_matrix - constraint_delta
+
+	# Restore locked properties
 	def restore_channels(prop, old_vec, locks, extra_lock):
 		if extra_lock or (not ignore_locks and all(locks)):
 			setattr(bone, prop, old_vec)
@@ -240,23 +258,6 @@ def set_transform_from_matrix(obj, bone_name, matrix, *, space='POSE', ignore_lo
 
 				setattr(bone, prop, new_vec)
 
-	# Save the old values of the properties
-	old_loc = Vector(bone.location)
-	old_rot_euler = Vector(bone.rotation_euler)
-	old_rot_quat = Vector(bone.rotation_quaternion)
-	old_rot_axis = Vector(bone.rotation_axis_angle)
-	old_scale = Vector(bone.scale)
-
-	# Compute and assign the local matrix
-	if space != 'LOCAL':
-		matrix = obj.convert_space(pose_bone=bone, matrix=matrix, from_space=space, to_space='LOCAL')
-
-	# if undo_copy_scale:
-	#	 matrix = undo_copy_scale_constraints(obj, bone, matrix)
-
-	bone.matrix_basis = matrix
-
-	# Restore locked properties
 	restore_channels('location', old_loc, bone.lock_location, no_loc or bone.bone.use_connect)
 
 	if bone.rotation_mode == 'QUATERNION':
@@ -506,6 +507,8 @@ def get_bones(rig, names):
 	""" Return a list of pose bones from a string of bone names in json format. """
 	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
+# TODO: It looks like inheriting operator parameters from non-operator classes actually works?
+# What the hell... should test that again and if so, de-duplicate operator parameters.
 class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 	""" Extend Rigify's keyframe baking with the ability to select the frame range
 		as part of the operator, make baking optional,
@@ -603,6 +606,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		return ret
 
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
+		"""Return the Pose Space matrices of the affected bones so they can be restored later."""
 		if not bone_names:
 			bone_names = self.bone_names
 
@@ -615,9 +619,12 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		return matrices
 
 	def after_save_state(self, context, rig):
-		"""After saving the bone matrices, it's time to set the property value."""
+		"""After saving the bone matrices, it's time to set the property value.
+		It is expected that the rig has drivers which causes this property value
+		change to affect the bones' transforms."""
 		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 		if self.do_bake:
+			# If we want the snapping to affect existing animation, rather than just the current pose.
 			any_curves_on_property = self.bake_get_bone_prop_curves(self.prop_bone, f'["{self.prop_id}"]')
 			if any_curves_on_property:
 				self.bake_replace_custom_prop_keys_constant(
@@ -631,7 +638,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 		context.view_layer.update()
 
 	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
-		# Restore transform matrices
+		"""Restore transform matrices of the affected bones."""
 		for i, bone_name in enumerate(self.bone_names):
 			old_matrix = matrices[i]
 			set_transform_from_matrix(
@@ -905,6 +912,7 @@ class CLOUDRIG_OT_copy_property(bpy.types.Operator):
 			pb[self.prop_id] = prop_value
 
 		return {'FINISHED'}
+
 class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	"""Keyframe all rig settings that are being drawn in the below UI"""
 	bl_idname = "pose.cloudrig_keyframe_all_settings_" + script_id
