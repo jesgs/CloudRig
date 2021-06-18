@@ -231,8 +231,9 @@ class ParentingData:
 			if c.type == 'ARMATURE':
 				subtargets = []
 				for tar in c.targets:
-					subtargets.append(tar.subtarget)
-					tar.subtarget = ""
+					if tar.target == self.parent:
+						subtargets.append(tar.subtarget)
+						tar.target = None
 				self.bone_constraint_targets[c.name] = subtargets
 
 class CloudGenerator(Generator):
