@@ -2,9 +2,8 @@ Generating Sprite Fright characters seems extremely crash prone only on windows,
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
-    When changing the UI strings on cloud_fk_chain between two generations, the old data doesn't seem to get purged properly from the fk_chains custom property on the armature data, resulting in console error spam
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
-        This is just one on the pile of problems with Smooth Spline. This needs AnGavrilov's new BBone features.
+        Hopefully this can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
     Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
     cloud_fk_chain hinge behaviour breaks by relinking an armature constraint to the FK bone.
 

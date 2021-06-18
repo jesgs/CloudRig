@@ -1,6 +1,12 @@
 import bpy, sys, os
 import json
-from ..cloudrig import draw_layers_ui
+from ..cloudrig import draw_layers_ui, area_names
+
+def wipe_ui_data(rig):
+	"""Should be called at the start of rig generation, to make sure we don't preserve any UI data from a previous generation."""
+	for area_name in area_names:
+		if area_name in rig.data:
+			del rig.data[area_name]
 
 class CloudUIMixin:
 	forced_params = dict()
@@ -53,7 +59,6 @@ class CloudUIMixin:
 		if True:
 			layout.use_property_split=False
 			draw_layers_ui(layout, obj, show_hidden_checkbox=False, owner=params, layers_prop = set_info['layer_param'])
-			# TODO URGENT: This function call and its import is disabled due to cyclical imports while experimenting with Override Troubleshooting, which should be split off into a separate addon.
 			# TODO: This results in a pretty massive piece of UI. Might be nicer as a UIList, but not sure if possible?
 		else:
 			row = col.row()
@@ -154,9 +159,7 @@ def draw_dropdown(layout, params, dropdown_param_name, alert=False):
 
 def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
 	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI.
-	ui_area: One of a list of pre-defined strings that the UI script
-				recognizes, that describes a panel or area in the UI.
-				Eg, "fk_hinges", "ik_switches".
+	ui_area: A string matching one of the strings in cloudrig.area_names, which corresponds to an area in the rig UI.
 	row_name: A row in the UI area.
 	col_name: A column within the row.
 	info: The dictionary to store in the rig data.

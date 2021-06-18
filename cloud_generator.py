@@ -19,7 +19,7 @@ from rigify.utils.bones import new_bone
 
 from .bone import BoneSet, BoneInfo
 from .utils import mechanism
-from .utils.ui import redraw_viewport
+from .utils.ui import redraw_viewport, wipe_ui_data
 from . import widgets as cloud_widgets
 from .versioning import cloud_metarig_version
 
@@ -344,10 +344,10 @@ class CloudGenerator(Generator):
 		self.obj = obj
 		return obj
 
-	# TODO: Perhaps instead of letting the generator handle the root bone, 
+	# TODO: Perhaps instead of letting the generator handle the root bone directly, 
 	# it should be left up to the user, but we can still provide a cloud_root 
 	# rig type to handle bone set assignments and widgets 
-	# (It would be very similar to cloud_copy but with no deform option)
+	# (It would be nearly identical to cloud_copy, and I guess by default it might spawn a deform bone)
 	def create_root_bones(self):
 		# Root bone groups
 		self.root_set = BoneSet(self,
@@ -661,6 +661,7 @@ class CloudGenerator(Generator):
 		self.context.view_layer.update()	# This is necessary to make sure child object matrices are updated after switching the rig to rest pose!
 
 		self.nuke_drivers()
+		wipe_ui_data(obj)
 		self.logger.rig = obj
 		self.logger.metarig = metarig
 
