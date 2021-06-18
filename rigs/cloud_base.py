@@ -391,8 +391,6 @@ class CloudBaseRig(
 			,description = "If specified, parent the root of this rig to the chosen bone"
 			,default	 = ""
 		)
-		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
-		params.CR_base_active_parent_slot_index = IntProperty()
 
 		params.CR_base_props_storage = EnumProperty(
 			name		 = "Custom Property Storage"
@@ -407,6 +405,14 @@ class CloudBaseRig(
 			,description = 'Store custom properties in the chosen bone. If empty, will fall back to a bone called "Properties"'
 			,default	 = ""
 		)
+		params.CR_base_active_parent_slot_index = IntProperty()
+
+		# BUG: Currently this causes an error when turning the Rigify addon off and back on, unless running Reload Scripts in between.
+		# It appears as though the error is caused by the ParentSlot class not being registered.
+		# So, I tried ensuring that it is registered, but no difference.
+		# So, could be an issue with the RigifyParameterValidator class, but I looked at that too and didn't see anything wrong.
+		# So, could be a bug in Blender, but then how come other addons that use CollectionProperties don't have this issue?
+		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
 
 		cls.define_bone_sets(params)
 

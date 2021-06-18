@@ -1,7 +1,7 @@
 Generating Sprite Fright characters seems extremely crash prone only on windows, eek! (as of May27 2021)
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
-    Parameter registration breaks (see console spam) when disabling and re-enabling the Rigify addon. But after Reload Scripts, it works again. This makes no sense to me.
+        Won't be relevant after D11606.
     When changing the UI strings on cloud_fk_chain between two generations, the old data doesn't seem to get purged properly from the fk_chains custom property on the armature data, resulting in console error spam
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         This is just one on the pile of problems with Smooth Spline. This needs AnGavrilov's new BBone features.
