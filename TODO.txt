@@ -1,12 +1,3 @@
-WIP: Managed to make Bone Set UIList work, but to consider this work completed, we need to get rid of the current crappy "bone set override" system.
-    - Should instead add a single "Advanced Bone Sets" toggle to cloud_base and draw it near "Show Hidden Layers". (Done)
-    - This way each rig always has its own individual DEF/MCH/ORG layer, but they can be hidden in the UI. (Done)
-    - Then probably need to add some stuff to the UIList filter_items so that these things update in real time (Done)
-    - Also in the UIList, list the names of activated layers next to the bone set name
-    - Also show the colors of the bone group if it exists.
-    - Also a system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
-    - Also a button to copy a single bone set's settings to all selected bones.
-
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
@@ -117,6 +108,9 @@ Priority 7: Ideas from Animators that would break backwards comp on Sprite Frigh
             Add those property path changes to the anim curve rename script
 
 Ideas:
+    A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
+    A button to copy a single bone set's settings to all selected bones.
+
 	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
 
     Maybe stop inheriting parameters from parent classes. Instead, re-define them with a unique name, then set up a getter/setter system so that always the lowest level rig element sets its own parameter as the "actual" one. Eg., in an early stage of generation, create a self.cr_params dictionary where each rig class puts in its own value using super() calls, leaving the lowest level one last.

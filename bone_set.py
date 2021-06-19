@@ -279,22 +279,9 @@ class BoneSetMixin:
 	##############################
 	# UI
 	@classmethod
-	def draw_bone_set_params(cls, layout, params, set_info: dict):
-		col = layout.column()
-		col.use_property_split=True
-		obj = bpy.context.object
-		cloudrig = obj.data.cloudrig_parameters
-		cls.draw_prop_search(col, params, set_info['param'], obj.pose, "bone_groups", new_row=False, text=set_info['name'])
-
-		layout.use_property_split=False
-		draw_layers_ui(layout, obj, show_hidden_checkbox=True, owner=params, layers_prop = set_info['layer_param'])
-
-		layout.separator()
-
-		return layout
-
-	@classmethod
 	def draw_bone_sets_list(cls, layout, params):
+		"""Drawing the Bone Sets section of the Rigify Parameters."""
+
 		# If no bone sets are visible, don't draw anything.
 		any_used = False
 		for bsd in cls.bone_set_defs.values():
@@ -307,7 +294,9 @@ class BoneSetMixin:
 
 		obj = bpy.context.object
 		cloudrig = obj.data.cloudrig_parameters
-		active_idx = bpy.context.active_pose_bone.rigify_parameters.CR_active_bone_set_index
+		active_pb = bpy.context.active_pose_bone
+		rigify_params = active_pb.rigify_parameters
+		active_idx = rigify_params.CR_active_bone_set_index
 
 		if len(cloudrig.ui_bone_sets) == 0 or \
 				active_idx > len(cloudrig.ui_bone_sets) or \
@@ -316,18 +305,43 @@ class BoneSetMixin:
 			return layout
 
 		active_bone_set = cloudrig.ui_bone_sets[active_idx]
-		layout.prop(bpy.context.active_pose_bone.rigify_parameters, 'CR_show_advanced_bone_sets')
 
-		draw_ui_list(
+		list_column = draw_ui_list(
 			layout
 			,bpy.context
 			,class_name = 'CLOUDRIG_UL_bone_set'
 			,list_context_path = 'object.data.cloudrig_parameters.ui_bone_sets'
 			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
 			,insertion_operators = False
+			,move_operators = False
+			,type='GRID' if cloudrig.bone_set_use_grid_layout else 'DEFAULT'
+			,columns=3
 		)
+		eye_icon = 'HIDE_OFF' if rigify_params.CR_show_advanced_bone_sets else 'HIDE_ON'
+		list_column.prop(rigify_params, 'CR_show_advanced_bone_sets', text="", emboss=False, icon=eye_icon)
+		layout_icon = 'MESH_GRID' if cloudrig.bone_set_use_grid_layout else 'COLLAPSEMENU'
+		list_column.prop(cloudrig, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
+
 		set_info = cls.bone_set_defs[active_bone_set.name]
-		cls.draw_bone_set_params(layout, params, set_info)
+		split = layout.row().split(factor=0.8)
+		cls.draw_prop_search(split.row(), params, set_info['param'], obj.pose, "bone_groups", new_row=False, text="Bone Group")
+		bone_group_name = getattr(params, set_info['param'])
+		bone_group = obj.pose.bone_groups.get(bone_group_name)
+		if bone_group:
+			row = split.row(align=True)
+
+			if bone_group.color_set != 'DEFAULT':
+				row.prop(bone_group, 'color_set', text="", icon_only=True)
+				row = row.row(align=True)
+				row.enabled = bone_group.is_custom_color_set
+				row.prop(bone_group.colors, "normal", text="")
+				row.prop(bone_group.colors, "select", text="")
+				row.prop(bone_group.colors, "active", text="")
+			else:
+				row.prop(bone_group, 'color_set', text="", icon='DOWNARROW_HLT')
+
+		layout.use_property_split=False
+		draw_layers_ui(layout, obj, show_hidden_checkbox=True, owner=params, layers_prop = set_info['layer_param'])
 
 		return layout
 
@@ -408,28 +422,24 @@ class UIBoneSet(bpy.types.PropertyGroup):
 	layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
 
 class CLOUDRIG_UL_bone_set(bpy.types.UIList):
+	def draw_filter(self, context, layout):
+		layout.prop(self, 'filter_name', text="")
+	
 	def filter_items(self, context, data, propname):
-		"""Default filtering functionality:
-			- Filter by name
-			- Invert filter
-			- Sort alphabetical by name
-		"""
 		flt_flags = []
 		flt_neworder = []
 		ui_bone_sets = getattr(data, propname)
 
 		helper_funcs = bpy.types.UI_UL_list
 
+		# Always sort alphabetical.
+		flt_neworder = helper_funcs.sort_items_by_name(ui_bone_sets, "name")
+
 		if self.filter_name:
-			flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, ui_bone_sets, "name",
-															reverse=self.use_filter_sort_reverse)
+			flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, ui_bone_sets, "name")
 
 		if not flt_flags:
 			flt_flags = [self.bitflag_filter_item] * len(ui_bone_sets)
-
-		if self.use_filter_invert:
-			for idx, flag in enumerate(flt_flags):
-				flt_flags[idx] = 0 if flag else self.bitflag_filter_item
 
 		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
@@ -453,11 +463,19 @@ class CLOUDRIG_UL_bone_set(bpy.types.UIList):
 
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		ui_bone_set = item
+		rig_data = ui_bone_set.id_data
+		rigify_layers = rig_data.rigify_layers
+		rig = context.object
+		pb = rig.pose.bones.get(ui_bone_set.bone)
+		param_layers = getattr(pb.rigify_parameters, ui_bone_set.layer_param)
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
-			row.label(text = ui_bone_set.name)
+			row.label(text=ui_bone_set.name)
+			layer_names = ", ".join([layer.name for i, layer in enumerate(rigify_layers) if param_layers[i]])
+			row.label(text=layer_names)
 		elif self.layout_type in {'GRID'}:
-			pass
+			layout.alignment = 'CENTER'
+			layout.label(text=ui_bone_set.name)
 
 def register():
 	from bpy.utils import register_class

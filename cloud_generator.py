@@ -109,7 +109,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	show_layers_preview_hidden: BoolProperty(
 		name		 = "Show Hidden Layers"
-		,description = "Include layers whose names start with $ and will be hidden on the rig UI"
+		,description = "Show layers whose names start with $ and will be hidden on the rig UI"
 		,default	 = True
 	)
 
@@ -125,6 +125,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	active_log_index: IntProperty(min=0)
 
 	ui_bone_sets: CollectionProperty(type=UIBoneSet)
+	bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")
 
 def create_selection_sets(obj, metarig):
 	# Check if selection sets addon is installed

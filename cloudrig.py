@@ -1513,7 +1513,7 @@ def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_pr
 	if hasattr(data, 'cloudrig_parameters'):	# If CloudRig is enabled:
 		cloudrig = data.cloudrig_parameters
 		if show_hidden_checkbox:
-			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden")
+			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden Layers")
 		show_hidden = cloudrig.show_layers_preview_hidden
 	else:
 		show_hidden = False
