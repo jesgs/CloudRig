@@ -555,23 +555,31 @@ class CloudGenerator(Generator):
 	# This would also mean that failed generations don't destroy the rig, which is pretty good.
 
 	def save_modifiers(self) -> List[bpy.types.Modifier]:
-		"""Save references to a list of modifiers which target our rig, then set that target to None.
+		"""Save names of modifiers which target our rig, then set that target to None.
 		This is because some modifiers spam the console and introduce lag when their target bone is missing,
 		and the target bone will be missing until the rig is generated.
 		"""
-		modifiers = []
+		modifiers = {}
 		for o in bpy.data.objects:
 			for m in o.modifiers:
 				if hasattr(m, 'object') and m.object == self.obj:
-					modifiers.append(m)
+					if o.name in modifiers:
+						modifiers[o.name].append(m.name)
+					else:
+						modifiers[o.name] = [m.name]
 					m.object = None
 		self.modifiers = modifiers
 		return modifiers
 
 	def restore_modifiers(self):
 		"""Assign the rig as the target object of all saved modifiers."""
-		for m in self.modifiers:
-			m.object = self.obj
+		for ob_name in self.modifiers.keys():
+			ob = bpy.data.objects.get(ob_name)
+			if not ob: continue
+			for m_name in self.modifiers[ob_name]:
+				m = ob.modifiers.get(m_name)
+				if not m: continue
+				m.object = self.obj
 
 	def save_parenting_info(self) -> dict:
 		rig = self.obj

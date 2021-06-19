@@ -1,5 +1,3 @@
-Generating Sprite Fright characters seems extremely crash prone only on windows, eek! (as of May27 2021)
-
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
