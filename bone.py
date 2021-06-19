@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import bpy
 from idprop.types import IDPropertyArray
-from bpy.props import StringProperty, BoolVectorProperty
+from bpy.props import StringProperty, BoolVectorProperty, IntProperty, BoolProperty
 from mathutils import Vector, Matrix
 from copy import deepcopy
 from collections import OrderedDict
@@ -906,7 +906,6 @@ class BoneSetMixin:
 		For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
 		Then the "FK Main" bone set's bone group and bone layer can be customized via the parameters.
 		"""
-
 		group_name = ui_name.replace(" ", "_").lower()
 		if default_group=="":
 			default_group = ui_name
@@ -953,3 +952,62 @@ class BoneSetMixin:
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		cls.bone_set_defs = OrderedDict()
+
+class BoneSetDefinition(bpy.types.PropertyGroup):
+	bone: StringProperty()
+	param_name: StringProperty(description="Name of the Rigify Parameter holding the bone group name")
+	layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
+	enabled: BoolProperty(
+		name = "Enabled", 
+		description = "Whether this bone set is customizable in the UI",
+		default = True
+	)
+
+class CLOUDRIG_UL_bone_set(bpy.types.UIList):
+	def filter_items(self, context, data, propname):
+		"""Default filtering functionality:
+			- Filter by name
+			- Invert filter
+			- Sort alphabetical by name
+		"""
+		flt_flags = []
+		flt_neworder = []
+		bone_set_defs = getattr(data, propname)
+
+		helper_funcs = bpy.types.UI_UL_list
+
+		if self.filter_name:
+			flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, bone_set_defs, "name",
+															reverse=self.use_filter_sort_reverse)
+
+		if not flt_flags:
+			flt_flags = [self.bitflag_filter_item] * len(bone_set_defs)
+
+		if self.use_filter_invert:
+			for idx, flag in enumerate(flt_flags):
+				flt_flags[idx] = 0 if flag else self.bitflag_filter_item
+		
+		for idx, bone_set_def in enumerate(bone_set_defs):
+			if bone_set_def.bone != context.active_pose_bone.name:
+				# Filter bone set definitions not belonging to this bone
+				flt_flags[idx] = 0
+
+		return flt_flags, flt_neworder
+
+	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+		bone_set_def = item
+		if self.layout_type in {'DEFAULT', 'COMPACT'}:
+			row = layout.row()
+			row.label(text=bone_set_def.name)
+		elif self.layout_type in {'GRID'}:
+			pass
+
+def register():
+	from bpy.utils import register_class
+	register_class(BoneSetDefinition)
+	register_class(CLOUDRIG_UL_bone_set)
+
+def unregister():
+	from bpy.utils import unregister_class
+	unregister_class(BoneSetDefinition)
+	unregister_class(CLOUDRIG_UL_bone_set)

@@ -1,6 +1,7 @@
 import bpy, sys, os
 import json
 from ..cloudrig import draw_layers_ui, area_names
+from .ui_list import draw_ui_list
 
 def wipe_ui_data(rig):
 	"""Should be called at the start of rig generation, to make sure we don't preserve any UI data from a previous generation."""
@@ -87,9 +88,17 @@ class CloudUIMixin:
 		cloudrig = obj.data.cloudrig_parameters
 		layout.prop(cloudrig, 'show_layers_preview_hidden')
 
-		for ui_name in cls.bone_set_defs.keys():
-			set_info = cls.bone_set_defs[ui_name]
-			cls.draw_bone_set_params(layout, params, set_info)
+		draw_ui_list(
+			layout
+			,bpy.context
+			,class_name = 'CLOUDRIG_UL_bone_set'
+			,list_context_path = 'object.data.cloudrig_parameters.bone_sets'
+			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
+			,insertion_operators = False
+		)
+		active_bone_set = cloudrig.bone_sets[bpy.context.active_pose_bone.rigify_parameters.CR_active_bone_set_index]
+		set_info = cls.bone_set_defs[active_bone_set.name]
+		cls.draw_bone_set_params(layout, params, set_info)
 
 		return layout
 

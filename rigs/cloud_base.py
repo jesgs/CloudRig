@@ -12,11 +12,13 @@ from ..utils.animation import CloudAnimationMixin
 from ..utils.object import CloudObjectUtilitiesMixin
 
 # The rest
-from bpy.props import BoolProperty, StringProperty, CollectionProperty, PointerProperty, IntProperty, EnumProperty
+from bpy.props import BoolProperty, StringProperty, CollectionProperty, IntProperty, EnumProperty
 from mathutils import Vector
 from enum import Enum
+
 from ..parent_switching import draw_cloudrig_parents, ParentSlot
 from ..utils.ui import draw_label_with_linebreak
+from ..bone import BoneSetDefinition
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0
@@ -413,6 +415,7 @@ class CloudBaseRig(
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
+		params.CR_active_bone_set_index = IntProperty()
 
 		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.default_layers('DEF')], override='DEF')
 		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.default_layers('MCH')], override='MCH')

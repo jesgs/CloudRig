@@ -34,6 +34,7 @@ from . import bone
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
+	bone,
 	utils.ui_list,
 	actions,
 	troubleshooting,

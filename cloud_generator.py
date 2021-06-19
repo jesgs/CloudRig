@@ -17,7 +17,7 @@ from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
 
-from .bone import BoneSet, BoneInfo
+from .bone import BoneSet, BoneInfo, BoneSetDefinition
 from .utils import mechanism
 from .utils.ui import redraw_viewport, wipe_ui_data
 from . import widgets as cloud_widgets
@@ -165,6 +165,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	)
 	active_log_index: IntProperty(min=0)
 
+	bone_sets: CollectionProperty(type=BoneSetDefinition)
+
 def create_selection_sets(obj, metarig):
 	# Check if selection sets addon is installed
 	if 'bone_selection_groups' not in bpy.context.preferences.addons \
@@ -307,6 +309,27 @@ class CloudGenerator(Generator):
 				bone.layers = self.params.cloudrig_parameters.def_layers
 
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
+
+	def update_bone_set_info(self):
+		"""Keep in sync the bone_sets CollectionProperty stored in the generator parameters,
+		with the bone set parameters stored in RigifyParameters. We copy the data from the latter to the former."""
+
+		# Nuke data
+		bone_sets = self.metarig.data.cloudrig_parameters.bone_sets
+		bone_sets.clear()
+		for pb in self.metarig.pose.bones:
+			if pb.rigify_type == '':
+				continue
+			pb.rigify_parameters.CR_active_bone_set_index = 0
+			rig_class = self.find_rig_class(pb.rigify_type)
+			rig_bone_set_defs = rig_class.bone_set_defs
+			for rig_bone_set_name in rig_bone_set_defs.keys():
+				rig_bone_set_def = rig_bone_set_defs[rig_bone_set_name]
+				new_set = bone_sets.add()
+				new_set.name = rig_bone_set_def['name']
+				new_set.bone = pb.name
+				new_set.param_name = rig_bone_set_def['param']
+				new_set.layer_param = rig_bone_set_def['layer_param']
 
 	def create_rig_object(self):
 		scene = self.scene
@@ -1017,6 +1040,7 @@ class CloudGenerator(Generator):
 				raise e
 
 		self.cleanup()
+		self.update_bone_set_info()
 		t.tick("The rest: ")
 
 	def cleanup(self):
