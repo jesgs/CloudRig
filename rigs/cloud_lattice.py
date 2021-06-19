@@ -50,13 +50,11 @@ class CloudLatticeRig(CloudBaseRig):
 
 	def finalize(self):
 		super().finalize()
-		meta_pose_bone = self.generator.metarig.pose.bones.get(self.base_bone[4:])
 		root_pb = self.obj.pose.bones.get(self.root_bone.name)
 		hook_pb = self.obj.pose.bones.get(self.hook_bone.name)
-
 		lattice_ob = self.params.CR_lattice_lattice
 		if not lattice_ob or self.params.CR_lattice_regenerate:
-			meta_pose_bone.rigify_parameters.CR_lattice_lattice = self.create_lattice(root_pb, hook_pb)
+			self.meta_base_bone.rigify_parameters.CR_lattice_lattice = self.create_lattice(root_pb, hook_pb)
 		elif lattice_ob:
 			# Reset Hook inverse matrices
 			for m in lattice_ob.modifiers:
@@ -66,8 +64,8 @@ class CloudLatticeRig(CloudBaseRig):
 	def create_lattice(self, root_bone: bpy.types.PoseBone, hook_bone: bpy.types.PoseBone):
 		# If lattice doesn't exist, create it.
 		lattice_ob = self.params.CR_lattice_lattice
-		new_lattice = lattice_ob == None
-		if new_lattice:
+		lattice_exists = lattice_ob != None
+		if not lattice_exists:
 			lattice_name = hook_bone.name
 			lattice = bpy.data.lattices.new(lattice_name)
 			lattice_ob = bpy.data.objects.new(lattice_name, lattice)

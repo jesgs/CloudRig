@@ -22,12 +22,11 @@ class CloudCopyRig(CloudBaseRig):
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
 		self.do_parenting = True
-		meta_pose_bone = self.generator.metarig.pose.bones.get(self.orgless_name)
-		for c in meta_pose_bone.constraints:
+		for c in self.meta_base_bone.constraints:
 			if c.type in ('CHILD_OF', 'ARMATURE'):
 				self.do_parenting = False
 
-		self.create_deform_bone = meta_pose_bone.bone.use_deform
+		self.create_deform_bone = self.meta_base_bone.bone.use_deform
 
 	def reparent_bone(self, child: BoneInfo):
 		"""Overrides CloudMechanismMixin."""
