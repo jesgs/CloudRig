@@ -1,15 +1,12 @@
 Generating Sprite Fright characters seems extremely crash prone only on windows, eek! (as of May27 2021)
+
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
-        Hopefully this can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
-    Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
-    cloud_fk_chain hinge behaviour breaks by relinking an armature constraint to the FK bone.
+        Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
+        Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
 
-    cloud_fk_chain parent switching should only be available when Root Control is enabled.
-    cloud_lattice doesn't support Root Parent selection?
-    cloud_lattice displays a Deform Bones bone set even though it never creates any.
     cloud_aim ORG bone use_deform is copied from the metarig, but it should always be False!
     cloud_aim Root Parent only works when Create Root is enabled.
     cloud_aim Root bone shouldn't be on the same layer as the control bones since it's not that commonly touched at all. It's pretty much a mechanism bone.
@@ -37,11 +34,10 @@ Priority 2: New features
         - Corrective Smooth scale
         - Cast modifier radius
     Add a warning when object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
-    Add a warning when the rigger has created a bone name starting with "DEF" but it's not deforming. It own't be included in the Whole Character keying set!
+    Add a warning when the rigger has created a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!
     Another text datablock input for Selection Sets, since users can just as easily copy the selection set dictionary into a text datablock and make use of it that way.
     cloud_base features need some treatment for each rig type, see the CloudRig sheet on the Sprite Rigs TODO spreadsheet.
     
-    Active layers on the generated rig shouldn't be the same as the metarig afterall - or maybe it should be an option (sometimes we do enable the deform layer because we want to see it on generation)
     Perhaps some parameters could belong all the way up in CloudBaseRig.
         - Create ORG bones (False by default, can force to True for rigs that need it)
         - UI row and column names...?
@@ -95,8 +91,10 @@ Priority 5: UI, UX & documentation
         Add a rig that is a legitimate example of rigging a face with CloudRig. Sadly Sprite Fright faces are a bit too full of hacks right now.
     Explain the face set-ups on Sintel and Rex metarigs.
     Add operators in the UI somewhere, somehow.
-        Would be nicer to upstream most of these instead.
+        Would be nicer to upstream most of these instead. D11606
     Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon... Not sure if easily possible though since we'd have to hack into the rigify layers propertygroup which I don't want to do.
+    Active layers on the generated rig shouldn't be the same as the metarig afterall - or maybe it should be an option (sometimes we do enable the deform layer because we want to see it on generation)
+        Should be done upstream.
     Using a UIList for BoneSets would be great but I tried and it seemed impossible to do it in a nice enough way.
         Maybe it is possible now? Would it be any different from the parenting UIList?
 Priority 6: Rigify compatibility

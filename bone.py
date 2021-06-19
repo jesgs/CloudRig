@@ -937,12 +937,15 @@ class BoneSetMixin:
 
 		assert override in ['', 'DEF', 'MCH', 'ORG'], "Unsupported bone set override"
 
+		# TODO: Why are we not just creating a class-level BoneSet instance to store here?
+		# Even if that's not a good idea, we could make a BoneSetDefinition class and instance that.
 		cls.bone_set_defs[ui_name] = {
 			'name'			: ui_name
 			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
 			,'param' 	 	: param_name		# Name of the bone group name parameter
 			,'layer_param'	: layer_param_name	# Name of the bone layers parameter
 			,'override'		: override
+			,'enabled'		: True				# In case a rig class wants to hide and not use an inherited bone set.
 		}
 		return ui_name
 

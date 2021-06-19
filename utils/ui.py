@@ -52,6 +52,8 @@ class CloudUIMixin:
 		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return layout
 		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return layout
 
+		if not set_info['enabled']: return layout
+
 		col = layout.column()
 		col.use_property_split=True
 		cls.draw_prop_search(col, params, set_info['param'], obj.pose, "bone_groups", new_row=False, text=set_info['name'])
