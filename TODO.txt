@@ -86,6 +86,7 @@ Priority 4: Code quality
     Bring up to date how we pass armature constraints to make_constraint() (D9092)
         This will break backwards comp though, so should create a tag accordingly.
 Priority 5: UI, UX & documentation
+    Bone Set system changes: Now is a UIList, has an "Advance Bone Sets" toggle, the Override buttons are gone, and the Rigify Bone Groups buttons were moved to the Rigify Buttons panel.
     New param: CR_base_custom_props and custom_props_storage.
     cloud_base params now look completely different, should update any screenshots.
     New param: cloud_ik_chain->CR_ik_chain_at_tip

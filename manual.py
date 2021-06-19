@@ -40,18 +40,12 @@ def cloudrig_manual_map():
 
 		# Organizing Bones
 		("bpy.ops.pose.cloudrig_layer_init", "Organizing-Bones#customizing-bone-layers"),
-		(generator_params_pref+"override_options", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_bone_group", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_layers", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_parent_group", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_parent_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"override_def_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"def_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"override_mch_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"mch_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"override_org_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"org_layers", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"show_layers_preview_hidden", "Organizing-Bones#bone-sets"),
+		(params_pref+"show_bone_sets", "Organizing-Bones#bone-sets"),
 		(params_pref+"show_bone_sets", "Organizing-Bones#bone-sets"),
 		(params_pref+"bg_*", "Organizing-Bones#bone-sets"),
 
