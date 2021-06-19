@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import Operator
+from bpy.types import Operator, UILayout
 from bpy.props import EnumProperty, StringProperty, IntProperty
 
 def get_context_attr(context, data_path):
@@ -113,7 +113,8 @@ def draw_ui_list(
 			,insertion_operators = True
 			,move_operators = True
 			,menu_class_name = ''
-		):
+			,**kwargs
+		) -> UILayout:
 	"""This is intended as a replacement for row.template_list().
 	By changing the requirements of the parameters, we can provide the Add, Remove and Move Up/Down operators
 	without the person implementing the UIList having to worry about that stuff.
@@ -137,6 +138,7 @@ def draw_ui_list(
 		,idx_prop_name
 
 		,rows = 4 if len(my_list) > 0 else 1
+		,**kwargs
 	)
 
 	col = row.column()
@@ -170,6 +172,9 @@ def draw_ui_list(
 		move_down_op.list_context_path = list_context_path
 		move_down_op.active_idx_context_path = active_idx_context_path
 
+	# Return the right-side column.
+	return col
+
 # Below is the implementation of the default behaviours of 
 # UIList built-in functions.
 # These are not used anywhere, they are merely templates you can 
@@ -186,6 +191,9 @@ def filter_items(self, context, data, propname):
 	list_items = getattr(data, propname)
 
 	helper_funcs = bpy.types.UI_UL_list
+
+	if self.use_filter_sort_alpha:
+		flt_neworder = helper_funcs.sort_items_by_name(list_items, "name")
 
 	if self.filter_name:
 		flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, list_items, "name",
@@ -215,7 +223,8 @@ def draw_filter(self, context, layout):
 	row.use_property_split=True
 	row.use_property_decorate=False
 	row.prop(self, 'use_filter_sort_alpha', toggle=True, text="")
-	row.prop(self, 'use_filter_sort_reverse', toggle=True, text="", icon='SORT_ASC')
+	icon = 'SORT_DESC' if self.use_filter_sort_reverse else 'SORT_ASC'
+	row.prop(self, 'use_filter_sort_reverse', toggle=True, text="", icon=icon)
 
 def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 	my_item = item
