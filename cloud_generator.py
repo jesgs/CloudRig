@@ -316,7 +316,7 @@ class CloudGenerator(Generator):
 		# object to generate the rig in.
 
 		metaname = self.metarig.name
-		rig_name = "RIG" + self.naming.prefix_separator + metaname
+		rig_name = "RIG-" + metaname
 		if "META" in metaname:
 			rig_name = metaname.replace("META", "RIG")
 

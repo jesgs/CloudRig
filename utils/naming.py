@@ -1,36 +1,26 @@
 from typing import Tuple, List, Optional
 import re
 
-separators = "-_."
+SEPARATORS = "-_."
+PREFIX_SEPARATOR = "-"
+SUFFIX_SEPARATOR = "."
 
 class CloudNameManager:
 	"""Name management utilities with the convenience of being able to pass in
 	anything that has a "name" attribute, or strings directly.
 	"""
 
-	def __init__(self, prefix_separator="-", suffix_separator=".", **kwargs):
-		self.prefix_separator = prefix_separator
-		self.suffix_separator = suffix_separator
-		super().__init__(**kwargs)
-
 	def get_name(self, thing):
 		return get_name(thing)
-
-	def get_separators(self) -> Tuple[str, str]:
-		return (self.prefix_separator, self.suffix_separator)
 
 	def has_trailing_zeroes(self, thing):
 		return has_trailing_zeroes(thing)
 
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
-		prefix_separator, suffix_separator = self.get_separators()
-		return make_name(prefixes, base, suffixes, prefix_separator, suffix_separator)
+		return make_name(prefixes, base, suffixes)
 
 	def slice_name(self, thing) -> Tuple[ List[str], str, List[str] ]:
-		prefix_separator, suffix_separator = self.get_separators()
-		name = get_name(thing)
-
-		return slice_name(name, prefix_separator, suffix_separator)
+		return slice_name(get_name(thing))
 
 	def strip_trailing_numbers(self, thing) -> Tuple[str, str]:
 		return strip_trailing_numbers(get_name(thing))
@@ -70,24 +60,23 @@ def get_name(thing) -> str:
 		return str(thing)
 
 
-def make_name(prefixes=[], base="", suffixes=[],
-			  prefix_separator="-", suffix_separator=".") -> str:
+def make_name(prefixes=[], base="", suffixes=[]) -> str:
 	"""Make a name from a list of prefixes, a base, and a list of suffixes."""
 	name = ""
 	for pre in prefixes:
 		if pre=="": continue
-		name += pre + prefix_separator
+		name += pre + PREFIX_SEPARATOR
 	name += base
 	for suf in suffixes:
 		if suf=="": continue
-		name += suffix_separator + suf
+		name += SUFFIX_SEPARATOR + suf
 	return name
 
-def slice_name(name, prefix_separator="-", suffix_separator="."):
+def slice_name(name):
 	"""Break up a name into its prefix, base, suffix components."""
-	prefixes = name.split(prefix_separator)[:-1]
-	suffixes = name.split(suffix_separator)[1:]
-	base = name.split(prefix_separator)[-1].split(suffix_separator)[0]
+	prefixes = name.split(PREFIX_SEPARATOR)[:-1]
+	suffixes = name.split(SUFFIX_SEPARATOR)[1:]
+	base = name.split(PREFIX_SEPARATOR)[-1].split(SUFFIX_SEPARATOR)[0]
 	return [prefixes, base, suffixes]
 
 
@@ -191,7 +180,7 @@ def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[st
 			for side in l_copy:
 				if len(side)<4:
 					l.remove(side)
-				for sep in separators:
+				for sep in SEPARATORS:
 					l.append(side+sep)
 					l.append(sep+side)
 
