@@ -10,6 +10,9 @@ class CloudNameManager:
 	anything that has a "name" attribute, or strings directly.
 	"""
 
+	prefix_separator = PREFIX_SEPARATOR
+	suffix_separator = SUFFIX_SEPARATOR
+
 	def get_name(self, thing):
 		return get_name(thing)
 

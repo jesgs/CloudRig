@@ -7,20 +7,6 @@ from ..utils.lattice import ensure_falloff_vgroup
 
 from .cloud_base import CloudBaseRig
 
-# We generate a lattice object with a reasonable resolution, and a smooth falloff of
-# weights using the utils we have in LatticeMagic addon.
-# (need to bring over, into maybe a utils.lattice module)
-	# Unless the lattice already existed.
-
-# Create a root control for the lattice set-up.
-
-# The lattice is object-parented to the generated rig.
-	# Then an Armature constraint is added, targetting the root control.
-	# Unless an armature constraint already existed, because the lattice already existed.
-
-# We create a Hook control, and ensure a Hook modifier on the lattice object, with the generated vertex group, targetting this hook control.
-	# Unless the lattice already existed.
-
 class CloudLatticeRig(CloudBaseRig):
 	"""Create a simple lattice set-up. Lattice modifiers have to be added manually to the objects that should be deformed."""
 
@@ -40,7 +26,8 @@ class CloudLatticeRig(CloudBaseRig):
 		self.hook_bone = self.make_hook_ctrl(self.root_bone)
 
 	def make_root_ctrl(self, org_bi):
-		root_name = org_bi.name.replace("ORG", "ROOT-LTC")
+		name_parts = self.naming.slice_name(org_bi)
+		root_name = self.naming.make_name(['ROOT', 'LTC'], name_parts[1], name_parts[2])
 		root_bone = self.lattice_ctrls.new(
 			name 						= root_name
 			,source 					= org_bi
@@ -81,7 +68,7 @@ class CloudLatticeRig(CloudBaseRig):
 		lattice_ob = self.params.CR_lattice_lattice
 		new_lattice = lattice_ob == None
 		if new_lattice:
-			lattice_name = root_bone.name.replace("ROOT", "LTC")
+			lattice_name = hook_bone.name
 			lattice = bpy.data.lattices.new(lattice_name)
 			lattice_ob = bpy.data.objects.new(lattice_name, lattice)
 			bpy.context.scene.collection.objects.link(lattice_ob)
@@ -126,6 +113,7 @@ class CloudLatticeRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
+		cls.bone_set_defs['Deform Bones']['enabled'] = False
 		cls.define_bone_set(params, "Lattice Controls", preset=3, default_layers=[cls.default_layers('FK_MAIN')])
 
 	@classmethod
