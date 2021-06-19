@@ -5,8 +5,6 @@ Priority 1: Bugs
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
 
-    cloud_aim ORG bone use_deform is copied from the metarig, but it should always be False!
-    cloud_aim Root Parent only works when Create Root is enabled.
     cloud_aim Root bone shouldn't be on the same layer as the control bones since it's not that commonly touched at all. It's pretty much a mechanism bone.
 
     cloud_chain doesn't inherit scale well but I think this is actually one of the many shortcomings of the Spline IK constraint (when Use Curve Radius is enabled).
@@ -78,7 +76,6 @@ Priority 4: Code quality
 
     Bring up to date how we pass armature constraints to make_constraint() (D9092)
         This will break backwards comp though, so should create a tag accordingly.
-    Deprecate reparent_bone() in favor of Root Parent parameter.
 Priority 5: UI, UX & documentation
     New param: CR_base_custom_props and custom_props_storage.
     cloud_base params now look completely different, should update any screenshots.

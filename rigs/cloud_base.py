@@ -297,14 +297,6 @@ class CloudBaseRig(
 		bi = self.org_chain[0]
 		bi.relink()
 
-	def reparent_bone(self, child: BoneInfo):
-		# TODO: This should be deprecated. It's only used by cloud_aim, which should instead rely on apply_custom_root_parent!
-		"""Overriding from CloudMechanismMixin just for an extra sanity check."""
-		parent = super().reparent_bone(child)
-
-		assert parent in self.org_chain, f"Cannot reparent {child}, its parent, {child.parent} was expected to be an ORG bone of rig {self.base_bone}"
-		return parent
-
 	def load_org_bone_infos(self):
 		"""Read ORG bones into BoneInfo instances in self.org_chain."""
 

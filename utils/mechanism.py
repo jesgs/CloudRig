@@ -25,16 +25,6 @@ class CloudMechanismMixin:
 	def get_rigify_chain(pose_bone):
 		return get_rigify_chain(pose_bone)
 
-	def reparent_bone(self, child: BoneInfo):
-		"""Child is expected to be a BoneInfo that is parented to one of this rig's ORG bones.
-
-		Override this when the rig needs to do something special for correct parenting result.
-		"""
-		parent = child.parent
-		assert parent.owner_rig == self, f"Cannot reparent {child}, its parent bone's owner rig was expected to be the rig of {self.base_bone}, not {child.parent}!"
-
-		return parent
-
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
 

@@ -28,10 +28,6 @@ class CloudCopyRig(CloudBaseRig):
 
 		self.create_deform_bone = self.meta_base_bone.bone.use_deform
 
-	def reparent_bone(self, child: BoneInfo):
-		"""Overrides CloudMechanismMixin."""
-		return None
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		bi = self.org_chain[0]

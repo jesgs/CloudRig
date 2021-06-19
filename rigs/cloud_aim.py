@@ -65,7 +65,7 @@ class CloudAimRig(CloudBaseRig):
 			parent = bone.parent
 
 		head = self.find_target_pos(bone)
-		tail = head + bone.vector.normalized() * self.scale/5
+		tail = head + bone.vector.normalized() * bone.length
 
 		target_bone = self.target_ctrl.new(
 			name	= self.org_chain[0].name.replace("ORG", "TGT")
@@ -91,8 +91,6 @@ class CloudAimRig(CloudBaseRig):
 			,hide_select = self.mch_disable_select
 			,parent		 = org_bone
 		)
-		# if self.params.CR_aim_flatten:
-			# aim_bone.flatten()
 		return aim_bone
 
 	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
@@ -151,8 +149,6 @@ class CloudAimRig(CloudBaseRig):
 
 		bone.parent = root_bone
 
-		if self.rigify_parent:
-			self.rigify_parent.reparent_bone(root_bone)
 		return root_bone
 
 	def create_eye_highlight(self, ctr_bone):

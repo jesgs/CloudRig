@@ -54,51 +54,6 @@ class CloudChainRig(CloudBaseRig):
 
 		self.connect_parent_chain_rig()
 
-	def reparent_bone(self, child: BoneInfo):
-		"""Override.
-
-		Children of this rig's ORG bones should be re-parented to the appropriate
-		DEF bone using Armature constraint, if that DEF bone's bbone_segments > 1.
-		"""
-
-		parent = super().reparent_bone(child)
-
-		if child.parent not in self.org_chain:
-			return
-		if len(parent.def_bones)==0:
-			return
-		for c in child.constraint_infos:
-			if c.type=='ARMATURE':
-				return
-
-		# Also note that this function is expected to be called by child rigs,
-		# which means this rig already finished executing, which means we know that
-		# make_def_chain() has run, and ORG bones are aware of their DEF bones.
-
-		# Get ratio of how far along the child bone is on the ORG bone.
-		intersect = intersect_point_line(child.head, parent.head, parent.tail)
-		ratio = intersect[1]
-		def_index = ratio * self.params.CR_chain_segments
-		def_index = int(def_index)
-		def_index = max(0, min(def_index, len(parent.def_bones)-1) )	# Clamp it.
-
-		def_bone = parent.def_bones[def_index]
-
-		if def_bone.bbone_segments == 1:
-			return
-
-		child.parent = def_bone
-		child.add_constraint('ARMATURE'
-			,use_deform_preserve_volume = True
-			,targets = [
-				{
-					"subtarget" : child.parent.name
-				}
-			],
-		)
-
-		return parent
-
 	def relink(self):
 		"""Overrides cloud_base"""
 		self.move_and_relink_constraints()
@@ -237,8 +192,6 @@ class CloudChainRig(CloudBaseRig):
 					,parent		 = str_bone.parent
 					,hide_select = self.mch_disable_select
 				)
-				# if self.rigify_parent:
-				# 	self.rigify_parent.reparent_bone(str_h_bone.parent)
 				str_bone.parent = str_h_bone
 
 				first_str = section[0].name
