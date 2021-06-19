@@ -21,6 +21,7 @@ class CloudAimRig(CloudBaseRig):
 		super().ensure_bone_sets()
 		self.group_mstr_set = self.ensure_bone_set("Aim Group Target Control")
 		self.target_ctrl = self.ensure_bone_set("Aim Target Controls")
+		self.root_ctrl = self.ensure_bone_set("Aim Root Control")
 		self.aim_mch = self.ensure_bone_set("Aim Target Mechanism")
 		if self.params.CR_aim_deform:
 			self.aim_def = self.ensure_bone_set("Aim Deform")
@@ -137,7 +138,7 @@ class CloudAimRig(CloudBaseRig):
 
 	def make_root_bone(self, bone) -> BoneInfo:
 		base_bone = self.org_chain[0]
-		root_bone = self.target_ctrl.new(
+		root_bone = self.root_ctrl.new(
 			name = base_bone.name.replace("ORG", "ROOT")
 			,source = base_bone
 			,parent = base_bone.parent
@@ -262,8 +263,9 @@ class CloudAimRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Aim Group Target Control", preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
+		cls.define_bone_set(params, "Aim Group Target Control",  preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Aim Target Controls", 		 preset=2,	default_layers=[cls.default_layers('FK_MAIN')])
+		cls.define_bone_set(params, "Aim Root Control", 		 preset=2,	default_layers=[cls.default_layers('FK_SECOND')])
 		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.default_layers('MCH')], override='MCH')
 		if params.CR_aim_deform:
 			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.default_layers('DEF')], override='DEF')

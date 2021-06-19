@@ -5,8 +5,6 @@ Priority 1: Bugs
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
 
-    cloud_aim Root bone shouldn't be on the same layer as the control bones since it's not that commonly touched at all. It's pretty much a mechanism bone.
-
     cloud_chain doesn't inherit scale well but I think this is actually one of the many shortcomings of the Spline IK constraint (when Use Curve Radius is enabled).
         There is a driver to propagate scale to the curve radius, but drivers don't have access to Pose Space, so that can't work properly either...
 
@@ -51,6 +49,7 @@ Priority 3: Changes that will affect metarigs
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
     Remove "Lock 2nd FK Y/Z" param from cloud_limb and just relink transform locks.
 Priority 4: Code quality
+    Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
     In cloudrig.py, unify how Character and Rig properties are displayed?
         Character properties support prop_hierarchy, vectors, and labels are defined with a property starting with "$".
         Meanwhile rig properties don't support prop_hierarchy and vectors, and labels are defined with a 'texts' keyword.
