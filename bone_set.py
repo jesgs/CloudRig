@@ -1,0 +1,482 @@
+from typing import Dict
+
+import bpy
+from bpy.props import StringProperty, BoolVectorProperty, BoolProperty
+from mathutils import Vector
+from collections import OrderedDict
+from .utils.ui_list import draw_ui_list
+from .cloudrig import draw_layers_ui
+
+from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
+
+def driver_from_real(driver: bpy.types.Driver) -> dict:
+	"""Return a dictionary describing the driver."""
+	driver_info = {
+		'type' : driver.type
+		,'variables' : []
+	}
+	if driver.type=='SCRIPTED':
+		driver_info['expression'] = driver.expression
+	for var in driver.variables:
+		driver_info['variables'].append({
+			'name' : var.name
+			,'type' : var.type
+			,'targets' : []
+		})
+		for t in var.targets:
+			target_info = {
+				'id' : t.id
+			}
+			if var.type == 'SINGLE_PROP':
+				target_info['id_type'] = t.id_type
+				target_info['data_path'] = t.data_path
+			else:
+				# HACK: drivers targetting existing bones (ie. cloud_copy/tweak bones) need ORG- stripped...
+				if t.bone_target.startswith("ORG-"):
+					t.bone_target = t.bone_target[4:]
+				target_info['bone_target'] = t.bone_target
+				target_info['transform_type'] = t.transform_type
+				target_info['transform_space'] = t.transform_space
+				target_info['rotation_mode'] = t.rotation_mode
+			driver_info['variables'][-1]['targets'].append(target_info)
+	return driver_info
+
+class LinkedList(list):
+	"""Some very basic doubly linked list functionality to help manage chains of bones."""
+	def __init__(self):
+		super().__init__()
+		self.first = self.last = None
+
+	def remove(self, value):
+		super().remove(value)
+		if value.prev:
+			value.prev.next = value.next
+		if value.next:
+			value.next.prev = value.prev
+
+	def append(self, value):
+		if len(self)>0:
+			self[-1].next = value
+			value.prev = self[-1]
+		super().append(value)
+
+class BoneSet(LinkedList):
+	""" Class to create and store lists of BoneInfo instances.
+		Can also assign a bone group and set of layers for the created bones.
+	"""
+
+	presets = [
+		[(0.6039215922355652, 0.0, 0.0), (0.7411764860153198, 0.06666667014360428, 0.06666667014360428), (0.9686275124549866, 0.03921568766236305, 0.03921568766236305)],
+		[(0.9686275124549866, 0.250980406999588, 0.0941176563501358), (0.9647059440612793, 0.4117647409439087, 0.07450980693101883), (0.9803922176361084, 0.6000000238418579, 0.0)],
+		[(0.11764706671237946, 0.5686274766921997, 0.03529411926865578), (0.3490196168422699, 0.7176470756530762, 0.04313725605607033), (0.5137255191802979, 0.9372549653053284, 0.11372549831867218)],
+		[(0.03921568766236305, 0.21176472306251526, 0.5803921818733215), (0.21176472306251526, 0.40392160415649414, 0.874509871006012), (0.3686274588108063, 0.7568628191947937, 0.9372549653053284)],
+		[(0.6627451181411743, 0.16078431904315948, 0.30588236451148987), (0.7568628191947937, 0.2549019753932953, 0.41568630933761597), (0.9411765336990356, 0.364705890417099, 0.5686274766921997)],
+		[(0.26274511218070984, 0.0470588281750679, 0.4705882668495178), (0.3294117748737335, 0.22745099663734436, 0.6392157077789307), (0.529411792755127, 0.3921568989753723, 0.8352941870689392)],
+		[(0.1411764770746231, 0.4705882668495178, 0.3529411852359772), (0.2352941334247589, 0.5843137502670288, 0.4745098352432251), (0.43529415130615234, 0.7137255072593689, 0.6705882549285889)],
+		[(0.29411765933036804, 0.4392157196998596, 0.4862745404243469), (0.41568630933761597, 0.5254902243614197, 0.5686274766921997), (0.6078431606292725, 0.760784387588501, 0.803921639919281)],
+		[(0.9568628072738647, 0.7882353663444519, 0.0470588281750679), (0.9333333969116211, 0.760784387588501, 0.21176472306251526), (0.9529412388801575, 1.0, 0.0)],
+		[(0.11764706671237946, 0.125490203499794, 0.1411764770746231), (0.2823529541492462, 0.2980392277240753, 0.33725491166114807), (1.0, 1.0, 1.0)],
+		[(0.43529415130615234, 0.18431372940540314, 0.41568630933761597), (0.5960784554481506, 0.2705882489681244, 0.7450980544090271), (0.8274510502815247, 0.1882353127002716, 0.8392157554626465)],
+		[(0.4235294461250305, 0.5568627715110779, 0.13333334028720856), (0.49803924560546875, 0.6901960968971252, 0.13333334028720856), (0.7333333492279053, 0.9372549653053284, 0.35686275362968445)],
+		[(0.5529412031173706, 0.5529412031173706, 0.5529412031173706), (0.6901960968971252, 0.6901960968971252, 0.6901960968971252), (0.8705883026123047, 0.8705883026123047, 0.8705883026123047)],
+		[(0.5137255191802979, 0.26274511218070984, 0.14901961386203766), (0.545098066329956, 0.3450980484485626, 0.06666667014360428), (0.7411764860153198, 0.41568630933761597, 0.06666667014360428)],
+		[(0.0313725508749485, 0.19215688109397888, 0.05490196496248245), (0.1098039299249649, 0.26274511218070984, 0.04313725605607033), (0.2039215862751007, 0.38431376218795776, 0.16862745583057404)],
+	]
+
+	def __init__(self, rig, ui_name="Bone Set",
+			bone_group="Group", normal=None, select=None, active=None, preset=-1,
+			layers = [l==0 for l in range(32)],
+			defaults = {}
+		):
+		super().__init__()
+
+		self.rig = rig
+
+		# kwargs that will be passed to new BoneInfo() instances.
+		self.defaults = defaults
+
+		# Name that will be displayed in the Bone Sets UI.
+		self.ui_name = ui_name
+
+		# Layers to assign to newly defined BoneInfos.
+		self.layers = layers
+
+		# Bone Group name to assign to newly defined BoneInfos.
+		self.bone_group = bone_group
+
+		self.color_set = 'CUSTOM'
+		self.normal = [0, 0, 0]
+		self.select = [0, 0, 0]
+		self.active = [0, 0, 0]
+
+		presets = type(self).presets
+
+		if len(presets) > preset > -1:
+			self.normal = presets[preset][0]
+			self.select = presets[preset][1]
+			self.active = presets[preset][2]
+		else:
+			if not normal and not select and not active:
+				self.color_set = 'DEFAULT'
+
+		if normal: self.normal = normal
+		if select: self.select = select
+		if active: self.active = active
+
+	def find(self, name):
+		"""Find a BoneInfo instance by name, return it if found."""
+		for bi in self:
+			if bi.name == name:
+				return bi
+		return None
+
+	def __repr__(self):
+		return f"{self.ui_name}: {super().__repr__()}"
+
+	def new(self, name="Bone", source=None, **kwargs):
+		"""Create and add a new BoneInfo to self."""
+
+		generator = self.rig
+		if hasattr(self.rig, 'generator'):
+			generator = self.rig.generator
+
+		# If a BoneInfo with the passed name already exists, add a warning and do not create a new one.
+		bone_info = generator.find_bone_info(name)
+		if bone_info:
+			generator.logger.log("Redefining bone"
+				,owner_bone = bone_info.bone_set.rig.meta_base_bone.name
+				,trouble_bone = bone_info.name
+				,description = f"Bone called {bone_info.name} was defined twice! If changing its name to something random still results in this error, it may be a bug in CloudRig."
+			)
+			return bone_info
+
+		if 'bone_group' not in kwargs:
+			kwargs['bone_group'] = self.bone_group
+		if 'layers' not in kwargs:
+			kwargs['layers'] = self.layers
+		for key in self.defaults.keys():
+			if key not in kwargs:
+				kwargs[key] = self.defaults[key]
+
+		bone_info = BoneInfo(self, name, source, **kwargs)
+		self.append(bone_info)
+		generator.bone_infos.append(bone_info)
+		bone_info.owner_rig = self.rig
+
+		return bone_info
+
+	def new_from_real(self, rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
+		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
+		# NOTE: Parenting should be done outside of this function. (TODO but maybe shouldn't need to be?)
+		# NOTE: Does not load custom properties.
+
+		pose_bone = rig.pose.bones.get(edit_bone.name)
+		data_bone = pose_bone.bone
+		bone_info = self.new(name=edit_bone.name)
+
+		for key in pose_bone_properties:
+			value = getattr(pose_bone, key)
+			if value in [None, ""]: continue
+			if key=='bone_group':
+				value = value.name
+			setattr(bone_info, key, value)
+		for key in bone_properties:
+			setattr(bone_info, key, getattr(data_bone, key))
+		for key in edit_bone_properties:
+			value = getattr(edit_bone, key)
+			if type(value)==Vector:
+				value = value.copy()
+			setattr(bone_info, key, value)
+
+		#HACK: force use_deform to False for now...
+		bone_info.use_deform = False
+
+		# Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
+		for c in pose_bone.constraints:
+			ci = bone_info.add_constraint_from_real(c)
+			pose_bone.constraints.remove(c)
+
+		# Load drivers
+		if rig.animation_data:
+			driver_map = self.rig.generator.driver_map
+			if bone_info.name in driver_map:
+				for data_path, array_index in driver_map[bone_info.name]:
+					fcurve = rig.animation_data.drivers.find(data_path, index=array_index)
+					driver = fcurve.driver
+					path_from_last = "." + data_path.split('"].')[-1]
+					if path_from_last.endswith('"]'):
+						path_from_last = "[" + path_from_last.split("][")[-1]
+					driver_info = driver_from_real(driver)
+					driver_info['prop'] = path_from_last
+					if 'constraints' in fcurve.data_path:
+						con_name = data_path.split('constraints["')[-1].split('"]')[0]
+						constraint = bone_info.get_constraint(con_name)
+						if constraint:
+							constraint.drivers.append(driver_info)
+					else:
+						bone_info.drivers.append(driver_info)
+					rig.animation_data.drivers.remove(fcurve)
+
+		# Load custom properties
+		if '_RNA_UI' in pose_bone.keys():
+			prop_dict = pose_bone['_RNA_UI'].to_dict()
+			for prop_name in prop_dict:
+				prop_info = prop_dict[prop_name]
+				if 'default' not in prop_info:
+					prop_info['default'] = pose_bone[prop_name]
+				bone_info.custom_props[prop_name] = prop_info
+				prop_info['value'] = pose_bone[prop_name]
+
+		return bone_info
+
+	def ensure_bone_group(self, rig, overwrite=False):
+		""" Create the bone group defined by this bone set on rig. """
+
+		bone_group = rig.pose.bone_groups.get(self.bone_group)
+		if bone_group and not overwrite:
+			return bone_group
+
+		if not bone_group:
+			bone_group = rig.pose.bone_groups.new(name=self.bone_group)
+
+		bone_group.color_set = self.color_set
+		bone_group.colors.normal = self.normal[:]
+		bone_group.colors.select = self.select[:]
+		bone_group.colors.active = self.active[:]
+
+		return bone_group
+
+class BoneSetMixin:
+	bone_set_defs: Dict[str, str] = OrderedDict()
+
+	def ensure_bone_set(self, bone_set_name):
+		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
+		bone_set_defs = type(self).bone_set_defs
+
+		if not bone_set_name in bone_set_defs:
+			msg = f"Error: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set. Report a bug!"
+			self.add_log_bug("Bone Set Error", description=msg)
+			assert False, msg
+
+		bone_set_def = bone_set_defs[bone_set_name]
+
+		bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
+
+		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
+		cloudrig = self.generator_params.cloudrig_parameters
+		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
+			bone_set_def['layers'] = cloudrig.def_layers[:]
+
+		if bone_set_def['override'] == 'MCH' and cloudrig.override_mch_layers:
+			bone_set_def['layers'] = cloudrig.mch_layers[:]
+
+		if bone_set_def['override'] == 'ORG' and cloudrig.override_org_layers:
+			bone_set_def['layers'] = cloudrig.org_layers[:]
+
+		new_set = BoneSet(self,
+			ui_name = bone_set_def['name'],
+			bone_group = getattr(self.params, bone_set_def['param']),
+			layers = bone_set_def['layers'],
+			preset = bone_set_def['preset'],
+			defaults = self.defaults
+		)
+
+		self.generator.bone_sets.append(new_set)
+		self.bone_sets.append(new_set)
+
+		return new_set
+
+    ### UI
+	@classmethod
+	def draw_bone_set_params(cls, layout, params, set_info):
+		obj = bpy.context.object
+		cloudrig = obj.data.cloudrig_parameters
+		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return layout
+		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return layout
+		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return layout
+
+		if not set_info['enabled']: return layout
+
+		col = layout.column()
+		col.use_property_split=True
+		cls.draw_prop_search(col, params, set_info['param'], obj.pose, "bone_groups", new_row=False, text=set_info['name'])
+
+		if True:
+			layout.use_property_split=False
+			draw_layers_ui(layout, obj, show_hidden_checkbox=False, owner=params, layers_prop = set_info['layer_param'])
+		else:
+			row = col.row()
+			row.use_property_split=False
+			cls.draw_prop(row, params, set_info['layer_param'], text="")
+		layout.separator()
+
+		return layout
+
+	@classmethod
+	def draw_bone_sets_params(cls, layout, params):
+		# If all bone sets are overridden, don't draw anything.
+		any_non_overridden = False
+		for bsd in cls.bone_set_defs.values():
+			if 'override' not in bsd or bsd['override']=='':
+				any_non_overridden = True
+				break
+		if not any_non_overridden: return layout
+
+		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
+
+		obj = bpy.context.object
+
+		cloudrig = obj.data.cloudrig_parameters
+
+		active_idx = bpy.context.active_pose_bone.rigify_parameters.CR_active_bone_set_index
+
+		if len(cloudrig.bone_sets) == 0 or \
+				active_idx > len(cloudrig.bone_sets) or \
+				cloudrig.bone_sets[active_idx].name not in cls.bone_set_defs:
+			layout.label(text="Generate the rig to see Bone Set parameters.")
+			return layout
+
+		active_bone_set = cloudrig.bone_sets[active_idx]
+		layout.prop(cloudrig, 'show_layers_preview_hidden')
+
+		draw_ui_list(
+			layout
+			,bpy.context
+			,class_name = 'CLOUDRIG_UL_bone_set'
+			,list_context_path = 'object.data.cloudrig_parameters.bone_sets'
+			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
+			,insertion_operators = False
+		)
+		set_info = cls.bone_set_defs[active_bone_set.name]
+		cls.draw_bone_set_params(layout, params, set_info)
+
+		return layout
+
+	##############################
+	# Parameters
+
+	@classmethod
+	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
+		"""
+		A bone set is a set of rig parameters for choosing a bone group and list of bone layers.
+		This function is responsible for creating those rig parameters, as well as storing them,
+		so they can be referenced easily when implementing the creation of a new bone
+		and assigning its bone group and layers.
+
+		For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
+		Then the "FK Main" bone set's bone group and bone layer can be customized via the parameters.
+		"""
+		group_name = ui_name.replace(" ", "_").lower()
+		if default_group=="":
+			default_group = ui_name
+
+		param_name = "CR_BG_" + group_name.replace(" ", "_")
+		layer_param_name = "CR_BG_LAYERS_" + group_name.replace(" ", "_")
+
+		setattr(
+			params,
+			param_name,
+			StringProperty(
+				default = default_group,
+				description = f"Select what group {ui_name} should be assigned to"
+			)
+		)
+
+		default_layers_bools = [i in default_layers for i in range(32)]
+		setattr(
+			params,
+			layer_param_name,
+			BoolVectorProperty(
+				size = 32,
+				subtype = 'LAYER',
+				description = f"Select what layers {ui_name} should be assigned to",
+				default = default_layers_bools
+			)
+		)
+
+		assert override in ['', 'DEF', 'MCH', 'ORG'], "Unsupported bone set override"
+
+		# TODO: Why are we not just creating a class-level BoneSet instance to store here?
+		# Even if that's not a good idea, we could make a UIBoneSet class and instance that.
+		cls.bone_set_defs[ui_name] = {
+			'name'			: ui_name
+			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
+			,'param' 	 	: param_name		# Name of the bone group name parameter
+			,'layer_param'	: layer_param_name	# Name of the bone layers parameter
+			,'override'		: override
+			,'enabled'		: True				# In case a rig class wants to hide and not use an inherited bone set.
+		}
+		return ui_name
+
+	@classmethod
+	def define_bone_sets(cls, params):
+		"""Create parameters for this rig's bone sets."""
+		cls.bone_set_defs = OrderedDict()
+
+
+##########################
+#### Bone Sets UIList ####
+##########################
+class UIBoneSet(bpy.types.PropertyGroup):
+	"""This BoneSet implementation is used purely for UI drawing."""
+	# The reason we can't use this for the actual Bone Set class used during generation is that 
+	# the properties of the bone set must be defined during registration, and CollectionProperties
+	# are not yet ready at that time. (They only become "real" after registration is complete.)
+	bone: StringProperty()
+	param_name: StringProperty(description="Name of the Rigify Parameter holding the bone group name")
+	layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
+	enabled: BoolProperty(
+		name = "Enabled", 
+		description = "Whether this bone set is customizable in the UI",
+		default = True
+	)
+
+
+class CLOUDRIG_UL_bone_set(bpy.types.UIList):
+	def filter_items(self, context, data, propname):
+		"""Default filtering functionality:
+			- Filter by name
+			- Invert filter
+			- Sort alphabetical by name
+		"""
+		flt_flags = []
+		flt_neworder = []
+		bone_set_defs = getattr(data, propname)
+
+		helper_funcs = bpy.types.UI_UL_list
+
+		if self.filter_name:
+			flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, bone_set_defs, "name",
+															reverse=self.use_filter_sort_reverse)
+
+		if not flt_flags:
+			flt_flags = [self.bitflag_filter_item] * len(bone_set_defs)
+
+		if self.use_filter_invert:
+			for idx, flag in enumerate(flt_flags):
+				flt_flags[idx] = 0 if flag else self.bitflag_filter_item
+		
+		for idx, bone_set_def in enumerate(bone_set_defs):
+			if bone_set_def.bone != context.active_pose_bone.name:
+				# Filter bone set definitions not belonging to this bone
+				flt_flags[idx] = 0
+
+		return flt_flags, flt_neworder
+
+	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+		bone_set_def = item
+		if self.layout_type in {'DEFAULT', 'COMPACT'}:
+			row = layout.row()
+			row.label(text=bone_set_def.name)
+		elif self.layout_type in {'GRID'}:
+			pass
+
+def register():
+	from bpy.utils import register_class
+	register_class(UIBoneSet)
+	register_class(CLOUDRIG_UL_bone_set)
+
+def unregister():
+	from bpy.utils import unregister_class
+	unregister_class(UIBoneSet)
+	unregister_class(CLOUDRIG_UL_bone_set)

@@ -1,5 +1,4 @@
 from ..cloud_fk_chain import CloudFKChainRig
-from ...bone import BoneInfo, BoneSet
 
 class SpriteFingerRig(CloudFKChainRig):
 	"""Slightly modified version of cloud_fk_chain, for rigging the Sprites' fingers."""

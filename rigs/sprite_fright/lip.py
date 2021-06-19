@@ -1,5 +1,4 @@
 from ..cloud_tweak import CloudTweakRig
-from ...bone import BoneInfo, BoneSet
 
 """TODO
 We want the lip tweak bones of Sprite rigs to also create two copies of the bone:

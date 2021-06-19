@@ -1,6 +1,7 @@
 import bpy
-from bpy.props import BoolProperty, StringProperty
-from ..bone import BoneInfo, BoneSet
+from bpy.props import BoolProperty
+from ..bone import BoneInfo
+from ..bone_set import BoneSet
 
 from .cloud_base import CloudBaseRig
 

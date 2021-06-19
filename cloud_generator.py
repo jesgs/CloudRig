@@ -17,7 +17,8 @@ from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
 
-from .bone import BoneSet, BoneInfo, BoneSetDefinition
+from .bone import BoneInfo
+from .bone_set import BoneSet, UIBoneSet
 from .utils import mechanism
 from .utils.ui import redraw_viewport, wipe_ui_data
 from . import widgets as cloud_widgets
@@ -165,7 +166,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	)
 	active_log_index: IntProperty(min=0)
 
-	bone_sets: CollectionProperty(type=BoneSetDefinition)
+	bone_sets: CollectionProperty(type=UIBoneSet)
 
 def create_selection_sets(obj, metarig):
 	# Check if selection sets addon is installed

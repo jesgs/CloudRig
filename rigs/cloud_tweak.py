@@ -1,6 +1,6 @@
 from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
-from ..bone import BoneInfo, BoneSet
+from ..bone_set import BoneSet
 
 """TODO
 We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds it if it isn't already there.

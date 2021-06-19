@@ -5,7 +5,7 @@ from typing import Dict, List
 
 # CloudBaseRig parent classes
 from rigify.base_rig import BaseRig
-from ..bone import BoneSetMixin
+from ..bone_set import BoneSetMixin
 from ..utils.ui import CloudUIMixin
 from ..utils.mechanism import CloudMechanismMixin
 from ..utils.animation import CloudAnimationMixin
@@ -18,7 +18,6 @@ from enum import Enum
 
 from ..parent_switching import draw_cloudrig_parents, ParentSlot
 from ..utils.ui import draw_label_with_linebreak
-from ..bone import BoneSetDefinition
 
 class DefaultLayers(Enum):
 	IK_MAIN = 0

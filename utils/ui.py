@@ -1,7 +1,6 @@
 import bpy, sys, os
 import json
-from ..cloudrig import draw_layers_ui, area_names
-from .ui_list import draw_ui_list
+from ..cloudrig import area_names
 
 def wipe_ui_data(rig):
 	"""Should be called at the start of rig generation, to make sure we don't preserve any UI data from a previous generation."""
@@ -44,63 +43,6 @@ class CloudUIMixin:
 	def draw_dropdown_menu(cls, layout, params, dropdown_param_name, alert=False):
 		layout.separator()
 		return draw_dropdown(layout, params, dropdown_param_name, alert)
-
-	@classmethod
-	def draw_bone_set_params(cls, layout, params, set_info):
-		obj = bpy.context.object
-		cloudrig = obj.data.cloudrig_parameters
-		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return layout
-		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return layout
-		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return layout
-
-		if not set_info['enabled']: return layout
-
-		col = layout.column()
-		col.use_property_split=True
-		cls.draw_prop_search(col, params, set_info['param'], obj.pose, "bone_groups", new_row=False, text=set_info['name'])
-
-		if True:
-			layout.use_property_split=False
-			draw_layers_ui(layout, obj, show_hidden_checkbox=False, owner=params, layers_prop = set_info['layer_param'])
-			# TODO: This results in a pretty massive piece of UI. Might be nicer as a UIList, but not sure if possible?
-		else:
-			row = col.row()
-			row.use_property_split=False
-			cls.draw_prop(row, params, set_info['layer_param'], text="")
-		layout.separator()
-
-		return layout
-
-	@classmethod
-	def draw_bone_sets_params(cls, layout, params):
-		# If all bone sets are overridden, don't draw anything.
-		any_non_overridden = False
-		for bsd in cls.bone_set_defs.values():
-			if 'override' not in bsd or bsd['override']=='':
-				any_non_overridden = True
-				break
-		if not any_non_overridden: return layout
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
-
-		obj = bpy.context.object
-
-		cloudrig = obj.data.cloudrig_parameters
-		layout.prop(cloudrig, 'show_layers_preview_hidden')
-
-		draw_ui_list(
-			layout
-			,bpy.context
-			,class_name = 'CLOUDRIG_UL_bone_set'
-			,list_context_path = 'object.data.cloudrig_parameters.bone_sets'
-			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
-			,insertion_operators = False
-		)
-		active_bone_set = cloudrig.bone_sets[bpy.context.active_pose_bone.rigify_parameters.CR_active_bone_set_index]
-		set_info = cls.bone_set_defs[active_bone_set.name]
-		cls.draw_bone_set_params(layout, params, set_info)
-
-		return layout
 
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'cloudrig' not in rig.data:

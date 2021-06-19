@@ -1,9 +1,4 @@
 from ..cloud_fk_chain import CloudFKChainRig
-from ...bone import BoneInfo, BoneSet
-
-"""TODO
-
-"""
 
 class SpriteFeatherRig(CloudFKChainRig):
 	"""Slightly modified version of cloud_fk_chain, for rigging the Sprite Fright bird's feathers."""

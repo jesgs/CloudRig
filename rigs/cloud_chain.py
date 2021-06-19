@@ -1,5 +1,6 @@
 from typing import Tuple, List
-from ..bone import BoneInfo, BoneSet
+from ..bone import BoneInfo
+from ..bone_set import BoneSet
 
 from bpy.props import BoolProperty, IntProperty
 from mathutils.geometry import intersect_point_line

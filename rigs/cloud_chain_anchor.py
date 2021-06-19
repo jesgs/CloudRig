@@ -1,6 +1,5 @@
 import bpy
-from bpy.props import BoolProperty, StringProperty
-from ..bone import BoneInfo, BoneSet
+from bpy.props import BoolProperty
 
 from .cloud_copy import CloudCopyRig
 from .cloud_base import CloudBaseRig

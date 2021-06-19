@@ -2,7 +2,6 @@ import bpy
 from bpy.props import BoolProperty, PointerProperty
 from mathutils import Matrix
 
-from ..bone import BoneInfo, BoneSet
 from ..utils.lattice import ensure_falloff_vgroup
 
 from .cloud_base import CloudBaseRig

@@ -22,22 +22,22 @@ import bpy, importlib
 
 from .utils import ui_list
 from . import actions
+from . import troubleshooting
+from . import bone_set
 from . import cloud_generator
 from . import ui
 from . import versioning
 from . import manual
 from . import operators
 from . import overlay
-from . import troubleshooting
 from . import parent_switching
-from . import bone
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
-	bone,
 	utils.ui_list,
 	actions,
 	troubleshooting,
+	bone_set,
 	cloud_generator,
 	ui,
 	versioning,
@@ -45,7 +45,6 @@ modules = [
 	operators,
 	overlay,
 	parent_switching,
-	# gizmo,
 ]
 
 def register():
