@@ -110,7 +110,8 @@ def draw_ui_list(
 			,*	# Only keyword arguments from here.
 			,list_context_path = 'object.data.vertex_groups'
 			,active_idx_context_path = 'object.data.vertex_groups.active_index'
-			,operators = True
+			,insertion_operators = True
+			,move_operators = True
 			,menu_class_name = ''
 		):
 	"""This is intended as a replacement for row.template_list().
@@ -139,7 +140,7 @@ def draw_ui_list(
 	)
 
 	col = row.column()
-	if operators:
+	if insertion_operators:
 		add_op = col.operator('ui.list_entry_add', text="", icon='ADD')
 		add_op.list_context_path = list_context_path
 		add_op.active_idx_context_path = active_idx_context_path
@@ -156,7 +157,7 @@ def draw_ui_list(
 		col.menu(menu_class_name, icon='DOWNARROW_HLT', text="")
 		col.separator()
 
-	if operators and len(my_list) > 0:
+	if move_operators and len(my_list) > 0:
 		col = col.column()
 		col.enabled = len(my_list) > 1
 		move_up_op = col.operator('ui.list_entry_move', text="", icon='TRIA_UP')
