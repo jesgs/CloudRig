@@ -6,10 +6,6 @@ Priority 1: Bugs
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
 
-    Various IK related features *probably* currently only work in certain orientations... Need to list them, test them and fix them:
-        - IK/FK snapping
-        - AutoRubberHose control roll angle
-
     Trying to relink a constraint such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
         We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
         I've attempted this, it's stashed, but it is a bit of a disaster. Too much of the current code relies on the Generator->Rig->BoneSet->BoneInfo hierarchy of objects. It's hard to arbitrarily create a floating BoneSet, which is kind of by design.

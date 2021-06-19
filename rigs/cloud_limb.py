@@ -431,7 +431,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 		params.CR_limb_auto_hose = BoolProperty(
 			name		 = "Rubber Hose"
-			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be greater than 1 and Smooth Spline must be enabled"
+			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be >1, Smooth Spline must be enabled and the chain's bone rolls must be similar"
 			,default	 = False
 		)
 		params.CR_limb_auto_hose_control = BoolProperty(
