@@ -12,7 +12,6 @@ Priority 1: Bugs
         I guess the issue is that a Generator doesn't have the same powers as a Rig, which is annoying since always. But there's a million other issues also.
         Instead of trying to think of how the system needs to be different from the current one, we should just think of a new system from scratch, and see what existing code we can re-use.
 Priority 2: New features
-    Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     "(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
     Scale Inheritance and modifiers
         Warn when these modifier values don't have a driver, since they should be hooked up to rig scale (root bone world scale would be easiest, but the closer it is to the nearest relevant parent in the hierarchy the better)
@@ -21,7 +20,6 @@ Priority 2: New features
         - Cast modifier radius
     Add a warning when object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
     Add a warning when the rigger has created a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!
-    Another text datablock input for Selection Sets, since users can just as easily copy the selection set dictionary into a text datablock and make use of it that way.
     cloud_base features need some treatment for each rig type, see the CloudRig sheet on the Sprite Rigs TODO spreadsheet.
 
     Perhaps some parameters could belong all the way up in CloudBaseRig.
@@ -39,8 +37,8 @@ Priority 3: Changes that will affect metarigs
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
     Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base (I guess this is done?)
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
-    Remove "Lock 2nd FK Y/Z" param from cloud_limb and just relink transform locks.
 Priority 4: Code quality
+    Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     Need to eliminate uses of `bpy.context`, although in some cases it might be a Rigify limitation (should be fixed there too, tbh...)
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
     In cloudrig.py, unify how Character and Rig properties are displayed?

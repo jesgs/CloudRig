@@ -115,13 +115,6 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return ik_master
 
-	def make_fk_chain(self):
-		"""Override."""
-		super().make_fk_chain()
-
-		elbow_knee = self.org_chain[1].fk_bone
-		elbow_knee.lock_rotation[1] = elbow_knee.lock_rotation[2] = self.params.CR_limb_lock_yz
-
 	def apply_parent_switching(self,
 			child_bone=None,
 			prop_bone=None, prop_name="",
@@ -454,12 +447,6 @@ class CloudLimbRig(CloudIKChainRig):
 			,default	 = False
 		)
 
-		params.CR_limb_lock_yz = BoolProperty(
-			 name		 = "Lock Elbow/Shin YZ"
-			,description = "Lock Y and Z rotation of the elbow/shin"
-			,default 	 = False
-		)
-
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
@@ -468,7 +455,6 @@ class CloudLimbRig(CloudIKChainRig):
 		if not cls.draw_dropdown_menu(layout, params, "CR_limb_show_settings"): return layout
 
 		cls.draw_prop(layout, params, "CR_limb_double_ik")
-		cls.draw_prop(layout, params, "CR_limb_lock_yz", text=f"Lock 2nd FK Y/Z")
 		row = cls.draw_prop(layout, params, 'CR_limb_auto_hose')
 		row.enabled = params.CR_chain_segments > 1 and params.CR_chain_smooth_spline
 		if row.enabled and params.CR_limb_auto_hose:
