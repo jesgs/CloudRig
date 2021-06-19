@@ -302,7 +302,7 @@ class CloudSpineRig(CloudFKChainRig):
 		cls.define_bone_set(params, "Spine Main Controls",	  preset=2,  default_layers=[cls.default_layers('IK_MAIN')]		)
 		cls.define_bone_set(params, "Spine Parent Controls",  preset=8,  default_layers=[cls.default_layers('IK_MAIN')]		)
 		cls.define_bone_set(params, "Spine IK Secondary",	  preset=10, default_layers=[cls.default_layers('IK_SECOND')]	)
-		cls.define_bone_set(params, "Spine Mechanism",					 default_layers=[cls.default_layers('MCH')], 	  override='MCH')
+		cls.define_bone_set(params, "Spine Mechanism",					 default_layers=[cls.default_layers('MCH')], 	  is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -336,10 +336,13 @@ class CloudSpineRig(CloudFKChainRig):
 		)
 
 	@classmethod
-	def draw_bone_set_params(cls, layout, params, set_info):
-		if (set_info['name'] != "Spine IK Secondary" or params.CR_spine_use_ik) and \
-			(set_info['name'] != "Spine Parent Controls" or params.CR_spine_double):
-			super().draw_bone_set_params(layout, params, set_info)
+	def is_bone_set_used(cls, params, set_info):
+		if set_info['name'] == "Spine IK Secondary":
+			return params.CR_spine_use_ik
+		if set_info['name'] == "Spine Parent Controls":
+			return params.CR_spine_double
+
+		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):

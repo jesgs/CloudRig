@@ -312,7 +312,7 @@ class CloudFKChainRig(CloudChainRig):
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "FK Controls", preset=1, default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "FK Controls Extra", preset=1, default_layers=[cls.default_layers('FK_SECOND')])
-		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "FK Helpers", default_layers=[cls.default_layers('MCH')], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

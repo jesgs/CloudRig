@@ -266,9 +266,9 @@ class CloudAimRig(CloudBaseRig):
 		cls.define_bone_set(params, "Aim Group Target Control",  preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Aim Target Controls", 		 preset=2,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Aim Root Control", 		 preset=2,	default_layers=[cls.default_layers('FK_SECOND')])
-		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.default_layers('MCH')], is_advanced=True)
 		if params.CR_aim_deform:
-			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.default_layers('DEF')], override='DEF')
+			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.default_layers('DEF')], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

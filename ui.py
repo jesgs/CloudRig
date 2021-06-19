@@ -75,51 +75,6 @@ class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-class CLOUDRIG_PT_overrides(bpy.types.Panel):
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = 'data'
-	bl_parent_id = 'DATA_PT_rigify_bone_groups'
-	bl_label = "Override Bone Layers"
-
-	@classmethod
-	def poll(cls, context):
-		obj = context.object
-		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
-
-	def draw(self, context):
-		layout = self.layout
-		layout.use_property_split = True
-		layout.use_property_decorate = False
-		layout = layout.column(align=True)
-
-		obj = context.object
-		cloudrig = obj.data.cloudrig_parameters
-		layout.prop_search(cloudrig, "root_bone_group", context.object.pose, "bone_groups")
-		row = layout.row()
-		row.use_property_split=False
-		row.prop(cloudrig, "root_layers", text="")
-
-		if cloudrig.double_root:
-			layout.prop_search(cloudrig, "root_parent_group", context.object.pose, "bone_groups")
-			row = layout.row()
-			row.use_property_split=False
-			row.prop(cloudrig, "root_parent_layers", text="")
-
-		layout.separator()
-
-		def draw_override_params(layout, param_name):
-			override_param_name = "override_"+param_name
-			layout.prop(cloudrig, override_param_name)
-			if getattr(cloudrig, override_param_name):
-				layout.prop(cloudrig, param_name, text="")
-			layout.separator()
-
-		layout.use_property_split=False
-		draw_override_params(layout, 'def_layers')
-		draw_override_params(layout, 'mch_layers')
-		draw_override_params(layout, 'org_layers')
-
 def draw_cloudrig_rigify_generate(self, context):
 	layout = self.layout
 	obj = context.object
@@ -171,11 +126,23 @@ def draw_cloudrig_generator_settings(self, context):
 	obj = context.object
 	cloudrig = obj.data.cloudrig_parameters
 
+	# Basic Parameters
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(obj.data, "rigify_rig_ui")
 	layout.prop(cloudrig, "custom_script")
 	layout.prop(cloudrig, "widget_collection")
 
+	layout.separator()
+
+	# Bone Group Color Parameters
+	layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
+	if obj.data.rigify_colors_lock:
+		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
+		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
+
+	layout.separator()
+
+	# Test Animation Parameters
 	if metarig_contains_fk_chain(obj):
 		heading = "Generate Action"
 		if cloudrig.test_action:
@@ -186,34 +153,37 @@ def draw_cloudrig_generator_settings(self, context):
 		act_col.prop(cloudrig, 'test_action', text="")
 		act_col.enabled = cloudrig.generate_test_action
 
+	layout.separator()
+
+	### Root Bone Parameters
 	layout.prop(cloudrig, 'create_root')
 	if cloudrig.create_root:
+		layout.prop_search(cloudrig, "root_bone_group", context.object.pose, "bone_groups")
+		row = layout.row()
+		row.use_property_split=False
+		row.prop(cloudrig, "root_layers", text="")
 		layout.prop(cloudrig, 'double_root')
+		if cloudrig.double_root:
+			layout.prop_search(cloudrig, "root_parent_group", context.object.pose, "bone_groups")
+			row = layout.row()
+			row.use_property_split=False
+			row.prop(cloudrig, "root_parent_layers", text="")
 
+	layout.separator()
+
+	# Advanced Parameters
 	layout.prop(cloudrig, 'mechanism_selectable')
 	if cloudrig.mechanism_selectable:
 		layout.prop(cloudrig, 'mechanism_movable')
 
 	layout.prop(obj.data, 'rigify_force_widget_update')
 
-def draw_cloud_bone_group_options(self, context):
-	""" Hijack Rigify's Bone Group panel and replace it with our own. """
-	obj = context.object
-	# If the current rig doesn't have any cloudrig elements, draw Rigify's UI.
-	if not is_cloud_metarig(obj):
-		bpy.types.DATA_PT_rigify_bone_groups.draw_old(self, context)
+@classmethod
+def rigify_bone_groups_poll(cls, context):
+	# If the current rig has any cloudrig elements, don't draw this panel.
+	if is_cloud_metarig(context.object):
 		return
-
-	# Otherwise we draw our own.
-	layout = self.layout
-	layout.use_property_split=True
-	layout.use_property_decorate=False
-	layout = layout.column()
-
-	layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
-	if obj.data.rigify_colors_lock:
-		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
-		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
+	return bpy.types.DATA_PT_rigify_bone_groups.poll_old(context)
 
 def draw_cloud_layer_names(self, context):
 	""" Hijack Rigify's Layer Names panel and replace it with our own. """
@@ -265,9 +235,7 @@ def draw_cloud_layer_names(self, context):
 			row.prop(rigify_layer, "selset", text="", toggle=True, icon=icon)
 
 classes = [
-	CLOUDRIG_OT_layer_init,
-
-	CLOUDRIG_PT_overrides
+	CLOUDRIG_OT_layer_init
 ]
 
 def register():
@@ -284,8 +252,8 @@ def register():
 	rigify_generate_ui.draw_old = rigify_generate_ui.draw
 	rigify_generate_ui.draw = draw_cloudrig_rigify_generate
 
-	bpy.types.DATA_PT_rigify_bone_groups.draw_old = bpy.types.DATA_PT_rigify_bone_groups.draw
-	bpy.types.DATA_PT_rigify_bone_groups.draw = draw_cloud_bone_group_options
+	bpy.types.DATA_PT_rigify_bone_groups.poll_old = bpy.types.DATA_PT_rigify_bone_groups.poll
+	bpy.types.DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
 
 	bpy.types.DATA_PT_rigify_layer_names.draw_old = bpy.types.DATA_PT_rigify_layer_names.draw
 	bpy.types.DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
@@ -301,5 +269,5 @@ def unregister():
 	else:
 		rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
 	rigify_generate_ui.draw = rigify_generate_ui.draw_old
-	bpy.types.DATA_PT_rigify_bone_groups.draw = bpy.types.DATA_PT_rigify_bone_groups.draw_old
+	bpy.types.DATA_PT_rigify_bone_groups.poll = bpy.types.DATA_PT_rigify_bone_groups.poll_old
 	bpy.types.DATA_PT_rigify_layer_names.draw = bpy.types.DATA_PT_rigify_layer_names.draw_old

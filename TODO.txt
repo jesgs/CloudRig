@@ -1,3 +1,12 @@
+WIP: Managed to make Bone Set UIList work, but to consider this work completed, we need to get rid of the current crappy "bone set override" system.
+    - Should instead add a single "Advanced Bone Sets" toggle to cloud_base and draw it near "Show Hidden Layers". (Done)
+    - This way each rig always has its own individual DEF/MCH/ORG layer, but they can be hidden in the UI. (Done)
+    - Then probably need to add some stuff to the UIList filter_items so that these things update in real time (Done)
+    - Also in the UIList, list the names of activated layers next to the bone set name
+    - Also show the colors of the bone group if it exists.
+    - Also a system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
+    - Also a button to copy a single bone set's settings to all selected bones.
+
 Priority 1: Bugs
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
@@ -5,7 +14,7 @@ Priority 1: Bugs
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
 
-    cloud_chain doesn't inherit scale well but I think this is actually one of the many shortcomings of the Spline IK constraint (when Use Curve Radius is enabled).
+    cloud_spline_ik doesn't inherit scale well but I think this is actually one of the many shortcomings of the Spline IK constraint (when Use Curve Radius is enabled).
         There is a driver to propagate scale to the curve radius, but drivers don't have access to Pose Space, so that can't work properly either...
 
     cloud_fk_chain Double First FK: First FK doesn't get parented to the 2nd copy in a simple fk_chain. (maybe it works in cloud_limb etc)
@@ -49,6 +58,7 @@ Priority 3: Changes that will affect metarigs
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
     Remove "Lock 2nd FK Y/Z" param from cloud_limb and just relink transform locks.
 Priority 4: Code quality
+    Need to eliminate uses of `bpy.context`, although in some cases it might be a Rigify limitation (should be fixed there too, tbh...)
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
     In cloudrig.py, unify how Character and Rig properties are displayed?
         Character properties support prop_hierarchy, vectors, and labels are defined with a property starting with "$".

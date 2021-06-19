@@ -110,8 +110,13 @@ class CloudLatticeRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.bone_set_defs['Deform Bones']['enabled'] = False
 		cls.define_bone_set(params, "Lattice Controls", preset=3, default_layers=[cls.default_layers('FK_MAIN')])
+
+	@classmethod
+	def is_bone_set_used(cls, params, set_info):
+		if set_info['name'] == 'Deform Bones':
+			return False
+		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
 	def add_parameters(cls, params):

@@ -602,11 +602,11 @@ class CloudChainRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def draw_bone_set_params(cls, layout, params, set_info):
+	def is_bone_set_used(cls, params, set_info):
 		# We only want to draw this bone set UI if the option for it is enabled.
-		if set_info['name'] in ["Deform Controls", "Deform Helpers"] and not params.CR_chain_unlock_deform:
-			return
-		super().draw_bone_set_params(layout, params, set_info)
+		if set_info['name'] in ["Deform Controls", "Deform Helpers"]:
+			return params.CR_chain_unlock_deform
+		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
 	def define_bone_sets(cls, params):
@@ -614,9 +614,9 @@ class CloudChainRig(CloudBaseRig):
 		super().define_bone_sets(params)
 		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
 		cls.define_bone_set(params, "Deform Controls", preset=5,	default_layers=[cls.default_layers('DEF_CTR')])
-		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], override='MCH')
+		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.default_layers('MCH')], is_advanced=True)
+		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], is_advanced=True)
+		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

@@ -83,12 +83,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = True
 	)
 
-	override_options: BoolProperty(
-		name = "Override Bone Layers"
-		,description = "Instead of allowing rig elements to assign deform/mechanism/org bone layers individually, set it from the generator instead"
-		,default=False
-	)
-
 	root_bone_group: StringProperty(
 		name="Root"
 		,description="Bone Group to assign the root bone to"
@@ -113,42 +107,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		default = [l==0 for l in range(32)]
 	)
 
-	override_def_layers: BoolProperty(
-		name		="Deform"
-		,description="Instead of allowing rig elements to assign deform layers individually, set it from the generator instead"
-		,default	=True
-	)
-	def_layers: BoolVectorProperty(
-		size = 32,
-		subtype = 'LAYER',
-		description = "Select what layers this set of bones should be assigned to",
-		default = [l==29 for l in range(32)]
-	)
-
-	override_mch_layers: BoolProperty(
-		name		="Mechanism"
-		,description="Instead of allowing rig elements to assign mechanism layers individually, set it from the generator instead"
-		,default	=True
-	)
-	mch_layers: BoolVectorProperty(
-		size = 32,
-		subtype = 'LAYER',
-		description = "Select what layers this set of bones should be assigned to",
-		default = [l==30 for l in range(32)]
-	)
-
-	override_org_layers: BoolProperty(
-		name		="Original"
-		,description="Instead of allowing rig elements to assign original bones' layers individually, set it from the generator instead"
-		,default	=True
-	)
-	org_layers: BoolVectorProperty(
-		size = 32,
-		subtype = 'LAYER',
-		description = "Select what layers this set of bones should be assigned to",
-		default = [l==31 for l in range(32)]
-	)
-
 	show_layers_preview_hidden: BoolProperty(
 		name		 = "Show Hidden Layers"
 		,description = "Include layers whose names start with $ and will be hidden on the rig UI"
@@ -166,7 +124,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	)
 	active_log_index: IntProperty(min=0)
 
-	bone_sets: CollectionProperty(type=UIBoneSet)
+	ui_bone_sets: CollectionProperty(type=UIBoneSet)
 
 def create_selection_sets(obj, metarig):
 	# Check if selection sets addon is installed
@@ -311,13 +269,13 @@ class CloudGenerator(Generator):
 
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
 
-	def update_bone_set_info(self):
+	def update_bone_set_ui_info(self):
 		"""Keep in sync the bone_sets CollectionProperty stored in the generator parameters,
 		with the bone set parameters stored in RigifyParameters. We copy the data from the latter to the former."""
 
 		# Nuke data
-		bone_sets = self.metarig.data.cloudrig_parameters.bone_sets
-		bone_sets.clear()
+		ui_bone_sets = self.metarig.data.cloudrig_parameters.ui_bone_sets
+		ui_bone_sets.clear()
 		for pb in self.metarig.pose.bones:
 			if pb.rigify_type == '':
 				continue
@@ -326,11 +284,11 @@ class CloudGenerator(Generator):
 			rig_bone_set_defs = rig_class.bone_set_defs
 			for rig_bone_set_name in rig_bone_set_defs.keys():
 				rig_bone_set_def = rig_bone_set_defs[rig_bone_set_name]
-				new_set = bone_sets.add()
-				new_set.name = rig_bone_set_def['name']
-				new_set.bone = pb.name
-				new_set.param_name = rig_bone_set_def['param']
-				new_set.layer_param = rig_bone_set_def['layer_param']
+				new_ui_set = ui_bone_sets.add()
+				new_ui_set.name = rig_bone_set_def['name']
+				new_ui_set.bone = pb.name
+				new_ui_set.param_name = rig_bone_set_def['param']
+				new_ui_set.layer_param = rig_bone_set_def['layer_param']
 
 	def create_rig_object(self):
 		scene = self.scene
@@ -1041,7 +999,7 @@ class CloudGenerator(Generator):
 				raise e
 
 		self.cleanup()
-		self.update_bone_set_info()
+		self.update_bone_set_ui_info()
 		t.tick("The rest: ")
 
 	def cleanup(self):

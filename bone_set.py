@@ -6,6 +6,7 @@ from mathutils import Vector
 from collections import OrderedDict
 from .utils.ui_list import draw_ui_list
 from .cloudrig import draw_layers_ui
+from .utils.rigify import find_rig_class
 
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
@@ -62,7 +63,7 @@ class LinkedList(list):
 
 class BoneSet(LinkedList):
 	""" Class to create and store lists of BoneInfo instances.
-		Can also assign a bone group and set of layers for the created bones.
+		Also responsible for bone group layer assignment.
 	"""
 
 	presets = [
@@ -262,17 +263,6 @@ class BoneSetMixin:
 
 		bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
 
-		# Handle layer overrides for DEF/MCH/ORG from generator parameters.
-		cloudrig = self.generator_params.cloudrig_parameters
-		if bone_set_def['override'] == 'DEF' and cloudrig.override_def_layers:
-			bone_set_def['layers'] = cloudrig.def_layers[:]
-
-		if bone_set_def['override'] == 'MCH' and cloudrig.override_mch_layers:
-			bone_set_def['layers'] = cloudrig.mch_layers[:]
-
-		if bone_set_def['override'] == 'ORG' and cloudrig.override_org_layers:
-			bone_set_def['layers'] = cloudrig.org_layers[:]
-
 		new_set = BoneSet(self,
 			ui_name = bone_set_def['name'],
 			bone_group = getattr(self.params, bone_set_def['param']),
@@ -286,64 +276,53 @@ class BoneSetMixin:
 
 		return new_set
 
-    ### UI
+	##############################
+	# UI
 	@classmethod
-	def draw_bone_set_params(cls, layout, params, set_info):
-		obj = bpy.context.object
-		cloudrig = obj.data.cloudrig_parameters
-		if set_info['override'] == 'DEF' and cloudrig.override_def_layers: return layout
-		if set_info['override'] == 'MCH' and cloudrig.override_mch_layers: return layout
-		if set_info['override'] == 'ORG' and cloudrig.override_org_layers: return layout
-
-		if not set_info['enabled']: return layout
-
+	def draw_bone_set_params(cls, layout, params, set_info: dict):
 		col = layout.column()
 		col.use_property_split=True
+		obj = bpy.context.object
+		cloudrig = obj.data.cloudrig_parameters
 		cls.draw_prop_search(col, params, set_info['param'], obj.pose, "bone_groups", new_row=False, text=set_info['name'])
 
-		if True:
-			layout.use_property_split=False
-			draw_layers_ui(layout, obj, show_hidden_checkbox=False, owner=params, layers_prop = set_info['layer_param'])
-		else:
-			row = col.row()
-			row.use_property_split=False
-			cls.draw_prop(row, params, set_info['layer_param'], text="")
+		layout.use_property_split=False
+		draw_layers_ui(layout, obj, show_hidden_checkbox=True, owner=params, layers_prop = set_info['layer_param'])
+
 		layout.separator()
 
 		return layout
 
 	@classmethod
-	def draw_bone_sets_params(cls, layout, params):
-		# If all bone sets are overridden, don't draw anything.
-		any_non_overridden = False
+	def draw_bone_sets_list(cls, layout, params):
+		# If no bone sets are visible, don't draw anything.
+		any_used = False
 		for bsd in cls.bone_set_defs.values():
-			if 'override' not in bsd or bsd['override']=='':
-				any_non_overridden = True
+			if cls.is_bone_set_used(params, bsd):
+				any_used = True
 				break
-		if not any_non_overridden: return layout
+		if not any_used: return layout
 
 		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
 
 		obj = bpy.context.object
-
 		cloudrig = obj.data.cloudrig_parameters
-
 		active_idx = bpy.context.active_pose_bone.rigify_parameters.CR_active_bone_set_index
 
-		if len(cloudrig.bone_sets) == 0 or \
-				active_idx > len(cloudrig.bone_sets) or \
-				cloudrig.bone_sets[active_idx].name not in cls.bone_set_defs:
+		if len(cloudrig.ui_bone_sets) == 0 or \
+				active_idx > len(cloudrig.ui_bone_sets) or \
+				cloudrig.ui_bone_sets[active_idx].name not in cls.bone_set_defs:
 			layout.label(text="Generate the rig to see Bone Set parameters.")
 			return layout
 
-		active_bone_set = cloudrig.bone_sets[active_idx]
-		layout.prop(cloudrig, 'show_layers_preview_hidden')
+		active_bone_set = cloudrig.ui_bone_sets[active_idx]
+		layout.prop(bpy.context.active_pose_bone.rigify_parameters, 'CR_show_advanced_bone_sets')
 
 		draw_ui_list(
 			layout
 			,bpy.context
 			,class_name = 'CLOUDRIG_UL_bone_set'
-			,list_context_path = 'object.data.cloudrig_parameters.bone_sets'
+			,list_context_path = 'object.data.cloudrig_parameters.ui_bone_sets'
 			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
 			,insertion_operators = False
 		)
@@ -352,11 +331,16 @@ class BoneSetMixin:
 
 		return layout
 
+	@classmethod
+	def is_bone_set_used(cls, params, set_info):
+		"""Override in child classes to be able to check for unused bone sets based on current parameters."""
+		return True
+
 	##############################
 	# Parameters
 
 	@classmethod
-	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], override="", preset=-1):
+	def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], is_advanced=False, preset=-1):
 		"""
 		A bone set is a set of rig parameters for choosing a bone group and list of bone layers.
 		This function is responsible for creating those rig parameters, as well as storing them,
@@ -394,8 +378,6 @@ class BoneSetMixin:
 			)
 		)
 
-		assert override in ['', 'DEF', 'MCH', 'ORG'], "Unsupported bone set override"
-
 		# TODO: Why are we not just creating a class-level BoneSet instance to store here?
 		# Even if that's not a good idea, we could make a UIBoneSet class and instance that.
 		cls.bone_set_defs[ui_name] = {
@@ -403,8 +385,7 @@ class BoneSetMixin:
 			,'preset'		: preset			# Bone Group color preset to use in case the bone group doesn't already exist.
 			,'param' 	 	: param_name		# Name of the bone group name parameter
 			,'layer_param'	: layer_param_name	# Name of the bone layers parameter
-			,'override'		: override
-			,'enabled'		: True				# In case a rig class wants to hide and not use an inherited bone set.
+			,'is_advanced'	: is_advanced
 		}
 		return ui_name
 
@@ -425,12 +406,6 @@ class UIBoneSet(bpy.types.PropertyGroup):
 	bone: StringProperty()
 	param_name: StringProperty(description="Name of the Rigify Parameter holding the bone group name")
 	layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
-	enabled: BoolProperty(
-		name = "Enabled", 
-		description = "Whether this bone set is customizable in the UI",
-		default = True
-	)
-
 
 class CLOUDRIG_UL_bone_set(bpy.types.UIList):
 	def filter_items(self, context, data, propname):
@@ -441,33 +416,46 @@ class CLOUDRIG_UL_bone_set(bpy.types.UIList):
 		"""
 		flt_flags = []
 		flt_neworder = []
-		bone_set_defs = getattr(data, propname)
+		ui_bone_sets = getattr(data, propname)
 
 		helper_funcs = bpy.types.UI_UL_list
 
 		if self.filter_name:
-			flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, bone_set_defs, "name",
+			flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, ui_bone_sets, "name",
 															reverse=self.use_filter_sort_reverse)
 
 		if not flt_flags:
-			flt_flags = [self.bitflag_filter_item] * len(bone_set_defs)
+			flt_flags = [self.bitflag_filter_item] * len(ui_bone_sets)
 
 		if self.use_filter_invert:
 			for idx, flag in enumerate(flt_flags):
 				flt_flags[idx] = 0 if flag else self.bitflag_filter_item
-		
-		for idx, bone_set_def in enumerate(bone_set_defs):
-			if bone_set_def.bone != context.active_pose_bone.name:
+
+		obj = context.object
+		cloudrig = obj.data.cloudrig_parameters
+		active_pb = context.active_pose_bone
+		rig_class = find_rig_class(active_pb.rigify_type)
+
+		for idx, ui_bone_set in enumerate(ui_bone_sets):
+			if ui_bone_set.bone != context.active_pose_bone.name:
 				# Filter bone set definitions not belonging to this bone
 				flt_flags[idx] = 0
+
+			if ui_bone_set.name not in rig_class.bone_set_defs:
+				flt_flags[idx] = 0
+			else:
+				bone_set_def = rig_class.bone_set_defs[ui_bone_set.name]
+				if not rig_class.is_bone_set_used(active_pb.rigify_parameters, bone_set_def):
+					# Filter bone sets that are not used based on current parameters
+					flt_flags[idx] = 0
 
 		return flt_flags, flt_neworder
 
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-		bone_set_def = item
+		ui_bone_set = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
-			row.label(text=bone_set_def.name)
+			row.label(text = ui_bone_set.name)
 		elif self.layout_type in {'GRID'}:
 			pass
 

@@ -413,12 +413,19 @@ class CloudBaseRig(
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		params.CR_show_bone_sets = BoolProperty(name="Bone Sets")
+		params.CR_show_bone_sets = BoolProperty(name="Bone Sets", description="Reveal Bone Set settings")
+		params.CR_show_advanced_bone_sets = BoolProperty(name="Advanced Bone Sets", description="Reveal bone sets of helper bones")
 		params.CR_active_bone_set_index = IntProperty()
 
-		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.default_layers('DEF')], override='DEF')
-		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.default_layers('MCH')], override='MCH')
-		cls.define_bone_set(params, "Original Bones",	default_layers=[cls.default_layers('ORG')], override='ORG')
+		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.default_layers('DEF')], is_advanced=True)
+		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.default_layers('MCH')], is_advanced=True)
+		cls.define_bone_set(params, "Original Bones",	default_layers=[cls.default_layers('ORG')], is_advanced=True)
+
+	@classmethod
+	def is_bone_set_used(cls, params, set_info):
+		if set_info['is_advanced']:
+			return params.CR_show_advanced_bone_sets
+		return True
 
 	@classmethod
 	def parameters_ui(cls, layout, params):
@@ -426,7 +433,7 @@ class CloudBaseRig(
 
 		layout = cls.draw_cloud_params(layout, bpy.context, params)
 		layout.separator()
-		cls.draw_bone_sets_params(layout, params)
+		cls.draw_bone_sets_list(layout, params)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
