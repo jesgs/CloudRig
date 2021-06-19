@@ -38,6 +38,11 @@ def version_cloud_metarig(metarig):
 	data = metarig.data
 	target_rig = data.rigify_target_rig
 
+	# NOTE on limitations:
+	# The old value is not stored in the file at all if it was left as default, so
+	# there's no way to guarantee correct versioning when changing the default value of a parameter.
+	# So, make really damn sure that default values are correct when first implementing them!
+
 	# Beginning of metarig versioning: 2020-07-22.
 	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig_parameters.version} -> {cloud_metarig_version}")
 	if data.cloudrig_parameters.version < 1:
@@ -228,6 +233,7 @@ def version_cloud_metarig(metarig):
 		# Rename eye highlight parameter to be more generic
 		rename_parameters(metarig, {'CR_aim_highlight' : 'CR_aim_eye_highlight'})
 		rename_parameters(metarig, {'CR_aim_eye_highlight' : 'CR_aim_create_sub_control'})
+		# Changed the default of CR_fk_chain_double_first from True to False.
 
 @persistent
 def update_all_metarigs(dummy):

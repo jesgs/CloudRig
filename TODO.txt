@@ -5,22 +5,17 @@ Priority 1: Bugs
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
 
-    cloud_spline_ik doesn't inherit scale well but I think this is actually one of the many shortcomings of the Spline IK constraint (when Use Curve Radius is enabled).
-        There is a driver to propagate scale to the curve radius, but drivers don't have access to Pose Space, so that can't work properly either...
-
-    cloud_fk_chain Double First FK: First FK doesn't get parented to the 2nd copy in a simple fk_chain. (maybe it works in cloud_limb etc)
-        Also, this option should be OFF by default!!!!! (might be awkward to version this, since we don't want to affect existing metarigs that left it as default)
-
     Various IK related features *probably* currently only work in certain orientations... Need to list them, test them and fix them:
         - IK/FK snapping
         - AutoRubberHose control roll angle
-    
+
     Trying to relink a constraint such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
         We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
         I've attempted this, it's stashed, but it is a bit of a disaster. Too much of the current code relies on the Generator->Rig->BoneSet->BoneInfo hierarchy of objects. It's hard to arbitrarily create a floating BoneSet, which is kind of by design.
         I guess the issue is that a Generator doesn't have the same powers as a Rig, which is annoying since always. But there's a million other issues also.
         Instead of trying to think of how the system needs to be different from the current one, we should just think of a new system from scratch, and see what existing code we can re-use.
 Priority 2: New features
+    Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     "(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
     Scale Inheritance and modifiers
         Warn when these modifier values don't have a driver, since they should be hooked up to rig scale (root bone world scale would be easiest, but the closer it is to the nearest relevant parent in the hierarchy the better)

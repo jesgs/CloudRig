@@ -56,7 +56,8 @@ class CloudFKChainRig(CloudChainRig):
 			self.limb_root_bone = self.fk_chain[0]
 
 		# Default root parenting
-		self.limb_root_bone.parent = self.org_chain[0].parent
+		if self.params.CR_fk_chain_root:
+			self.limb_root_bone.parent = self.org_chain[0].parent
 
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
@@ -343,7 +344,7 @@ class CloudFKChainRig(CloudChainRig):
 		params.CR_fk_chain_double_first = BoolProperty(
 			 name		 = "Double First FK"
 			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
-			,default	 = True
+			,default	 = False
 		)
 
 		params.CR_fk_chain_root = BoolProperty(
