@@ -19,7 +19,7 @@ class CloudAimRig(CloudBaseRig):
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		self.group_mstr_set = self.ensure_bone_set("Aim Group Target Controls")
+		self.group_mstr_set = self.ensure_bone_set("Aim Group Target Control")
 		self.target_ctrl = self.ensure_bone_set("Aim Target Controls")
 		self.aim_mch = self.ensure_bone_set("Aim Target Mechanism")
 		if self.params.CR_aim_deform:
@@ -46,7 +46,7 @@ class CloudAimRig(CloudBaseRig):
 		if self.params.CR_aim_deform:
 			self.make_def_bone(self.ctr_bone, self.aim_def)
 
-		if self.params.CR_aim_eye_highlight:
+		if self.params.CR_aim_create_sub_control:
 			self.create_eye_highlight(self.ctr_bone)
 
 	def find_target_pos(self, bone) -> Vector:
@@ -262,7 +262,7 @@ class CloudAimRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Aim Group Target Controls", preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
+		cls.define_bone_set(params, "Aim Group Target Control", preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Aim Target Controls", 		 preset=2,	default_layers=[cls.default_layers('FK_MAIN')])
 		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.default_layers('MCH')], override='MCH')
 		if params.CR_aim_deform:
@@ -303,7 +303,7 @@ class CloudAimRig(CloudBaseRig):
 			,default	 = False
 			,description = "Create a root bone for this rig"
 		)
-		params.CR_aim_eye_highlight = BoolProperty(
+		params.CR_aim_create_sub_control = BoolProperty(
 			name		 = "Create Sub-Control"
 			,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
 			,default	 = False
@@ -324,7 +324,7 @@ class CloudAimRig(CloudBaseRig):
 		cls.draw_prop(layout, params, "CR_aim_flatten")
 		cls.draw_prop(layout, params, "CR_aim_deform")
 		cls.draw_prop(layout, params, "CR_aim_root")
-		cls.draw_prop(layout, params, "CR_aim_eye_highlight")
+		cls.draw_prop(layout, params, "CR_aim_create_sub_control")
 
 		return layout
 

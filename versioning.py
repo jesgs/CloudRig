@@ -6,7 +6,7 @@ from .utils.object import set_enum_property_by_integer
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 10
+cloud_metarig_version = 11
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -18,9 +18,11 @@ def update_enum_property(owner, old_key, new_key, int_value):
 		owner[new_key] = int_value
 
 def rename_parameters(metarig, dictionary):
+	"""When we change the python name of a parameter, this can be used to find the old data
+	and put it on the property with the new name."""
 	for pb in metarig.pose.bones:
-		if pb.rigify_type=='': continue
-		for old_key in pb.rigify_parameters.keys():
+		if pb.rigify_type == '': continue
+		for old_key in list(pb.rigify_parameters.keys()):
 			if old_key in dictionary:
 				new_key = dictionary[old_key]
 				value = pb.rigify_parameters[old_key]
@@ -184,7 +186,7 @@ def version_cloud_metarig(metarig):
 				pb.rigify_type = 'cloud_aim'
 				print(f"{pb.name} rigify_type: cloud_eye -> {pb.rigify_type}")
 	if data.cloudrig_parameters.version < 8:
-		print(8)
+		print("8:")
 		# Move various parameters and functionality to cloud_base.
 		dictionary = {
 			'CR_copy_parent' : 'CR_base_parent',
@@ -201,7 +203,7 @@ def version_cloud_metarig(metarig):
 					pb.rigify_parameters['CR_base_parent'] = def_name
 					print(f"Convert param {pb.name}: CR_fk_chain_def_parenting -> CR_base_parent ({def_name})")
 	if data.cloudrig_parameters.version < 9:
-		print(9)
+		print("9:")
 		# Rigify now supports CollectionProperty parameters, so we no longer need to store
 		# the parent switching list on bpy.types.Bone.
 		for pb in metarig.pose.bones:
@@ -215,11 +217,17 @@ def version_cloud_metarig(metarig):
 				pb.rigify_parameters.CR_base_active_parent_slot_index = b['active_parent_slot_index']
 				del b['active_parent_slot_index']
 	if data.cloudrig_parameters.version < 10:
-		print(10)
+		print("10:")
+		# Change the experimental Sprite Fright eye rig back to the standard aim rig
 		for pb in metarig.pose.bones:
 			if pb.rigify_type=='sprite_fright.eye':
 				pb.rigify_type = 'cloud_aim'
 				rename_parameters(metarig, {'CR_sprite_eye_highlight' : 'CR_aim_highlight'})
+	if data.cloudrig_parameters.version < 11:
+		print("11:")
+		# Rename eye highlight parameter to be more generic
+		rename_parameters(metarig, {'CR_aim_highlight' : 'CR_aim_eye_highlight'})
+		rename_parameters(metarig, {'CR_aim_eye_highlight' : 'CR_aim_create_sub_control'})
 
 @persistent
 def update_all_metarigs(dummy):
