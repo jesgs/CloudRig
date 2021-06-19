@@ -455,7 +455,8 @@ class CloudChainRig(CloudBaseRig):
 
 		scaleoutx_driver = {
 			'expression' : "tanScale/inheritedScale",
-			'prop' : "bbone_scaleoutx",
+			'prop' : "bbone_scaleout",
+			'index' : 0,
 			'variables' : {
 				'tanScale' : {
 					'type' : 'TRANSFORMS',
@@ -482,7 +483,8 @@ class CloudChainRig(CloudBaseRig):
 			def_bone.drivers.append(scaleoutx_driver)
 
 			scaleouty_driver = deepcopy(scaleoutx_driver)
-			scaleouty_driver['prop'] = "bbone_scaleouty"
+			scaleouty_driver['prop'] = "bbone_scaleout"
+			scaleouty_driver['index'] = 2
 			scaleouty_driver['variables']['tanScale']['targets'][0]['transform_type'] = 'SCALE_Z'
 			scaleouty_driver['variables']['inheritedScale']['targets'][0]['transform_type'] = 'SCALE_Z'
 			def_bone.drivers.append(scaleouty_driver)

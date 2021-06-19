@@ -18,15 +18,13 @@ edit_bone_properties = {
 	,'use_connect' : False
 
 	,'bbone_curveinx' : 0
-	,'bbone_curveiny' : 0
+	,'bbone_curveinz' : 0
 	,'bbone_curveoutx' : 0
-	,'bbone_curveouty' : 0
+	,'bbone_curveoutz' : 0
 	,'bbone_easein' : 1
 	,'bbone_easeout' : 1
-	,'bbone_scaleinx' : 1
-	,'bbone_scaleiny' : 1
-	,'bbone_scaleoutx' : 1
-	,'bbone_scaleouty' : 1
+	,'bbone_scalein' : Vector((1, 1, 1))
+	,'bbone_scaleout' : Vector((1, 1, 1))
 }
 
 bone_properties = {

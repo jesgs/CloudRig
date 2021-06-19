@@ -1,4 +1,5 @@
 Priority 1: Bugs
+    When switching between bones with a rig type, the active bone set index will always be invalid, so we end up seeing some random other bone's bone set info. not good.
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
@@ -26,7 +27,7 @@ Priority 2: New features
     Add a warning when the rigger has created a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!
     Another text datablock input for Selection Sets, since users can just as easily copy the selection set dictionary into a text datablock and make use of it that way.
     cloud_base features need some treatment for each rig type, see the CloudRig sheet on the Sprite Rigs TODO spreadsheet.
-    
+
     Perhaps some parameters could belong all the way up in CloudBaseRig.
         - Create ORG bones (False by default, can force to True for rigs that need it)
         - UI row and column names...?
