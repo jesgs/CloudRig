@@ -36,6 +36,32 @@ class CloudCurveRig(CloudBaseRig):
 		super().create_bone_infos()
 		self.make_curve_controls()
 
+	def apply_parent_switching(self,
+			child_bone=None,
+			prop_bone=None, prop_name="",
+			ui_area="misc_settings", row_name="", col_name=""
+		):
+		super().apply_parent_switching(
+			child_bone = self.root_control
+			,prop_bone = prop_bone
+			,prop_name = prop_name
+			,ui_area = ui_area
+			,row_name = row_name
+			,col_name = col_name
+		)
+
+	def relink(self):
+		"""Override cloud_chain.
+		Move constraints from the ORG to the ROOT bone and relink them.
+		"""
+		org = self.org_chain[0]
+		for c in org.constraint_infos:
+			self.root_control.constraint_infos.append(c)
+			org.constraint_infos.remove(c)
+			for d in c.drivers:
+				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
+			c.relink()
+
 	def make_curve_controls(self):
 		self.make_curve_root_ctrl()
 		self.make_ctrls_for_curve_points()
