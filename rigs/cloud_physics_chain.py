@@ -37,6 +37,20 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			self.make_physics_chain(phys_ob, self.fk_chain)
 		self.constrain_chain_to_phys_ob(phys_ob, self.fk_chain)
 
+	def relink(self):
+		"""Override cloud_fk_chain.
+		Move constraints from ORG to PSX chain and relink them.
+		"""
+		for i, org in enumerate(self.org_chain):
+			for c in org.constraint_infos[:]:
+				if not c.is_from_real: continue
+				to_bone = self.physics_chain[i]
+				to_bone.constraint_infos.append(c)
+				org.constraint_infos.remove(c)
+				for d in c.drivers:
+					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
+				c.relink()
+
 	def ensure_cloth_object(self, bone_chain: List[BoneInfo]):
 		cloth_ob = self.params.CR_physics_chain_object
 		if cloth_ob and not self.params.CR_physics_chain_force_regen:
