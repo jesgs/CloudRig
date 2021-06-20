@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import bpy
 from bpy.props import BoolProperty, FloatProperty, StringProperty
@@ -13,8 +13,10 @@ from ..utils.maths import bounding_box_center, flat
 class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
+	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the Eye Control.'
+
 	use_custom_props = True
-	parent_switch_behaviour = 'The active parent will own the Group Master Look control.'
+	parent_switch_behaviour = 'The active parent will own the Aim Target or the Group Master Target if it exists.'
 	parent_switch_overwrites_root_parent = False
 
 	def ensure_bone_sets(self):
@@ -38,10 +40,10 @@ class CloudAimRig(CloudBaseRig):
 		if self.params.CR_aim_group!="":
 			self.group_master = self.ensure_group_master()
 		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
-		target_bone = self.make_target_control(aim_bone, self.group_master)
+		self.target_bone = self.make_target_control(aim_bone, self.group_master)
 
 		aim_bone.add_constraint('DAMPED_TRACK'
-			,subtarget = target_bone.name
+			,subtarget = self.target_bone.name
 		)
 
 		if self.params.CR_aim_deform:
@@ -168,12 +170,55 @@ class CloudAimRig(CloudBaseRig):
 		highlight_dsp.put(ctr_bone.tail)
 		self.make_def_bone(highlight_ctr, self.aim_def)
 
+	def relink(self):
+		"""Override cloud_base.
+		Move constraints from the ORG to the Eye Control bone and relink them.
+		"""
+		org = self.org_chain[0]
+		for c in org.constraint_infos:
+			self.ctr_bone.constraint_infos.append(c)
+			org.constraint_infos.remove(c)
+			for d in c.drivers:
+				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
+			c.relink()
+
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
 		if self.params.CR_aim_root:
 			super().apply_custom_root_parent(self.aim_root)
 		else:
 			super().apply_custom_root_parent(self.org_chain[0])
+
+	def apply_parent_switching(self,
+			child_bone=None,
+			prop_bone=None, prop_name="",
+			ui_area="misc_settings", row_name="", col_name=""
+		):
+		"""Overrides cloud_base to apply the parent switching to the aim target
+		or group master if it exists."""
+		target_bone = self.group_master
+		if not target_bone and self.find_aim_bones_in_group():
+			target_bone = self.target_bone
+		else:
+			# Ensure parent switching for the group master
+			if self.group_master.parent and self.group_master.parent.name == "P-"+self.group_master.name:
+				# If the parent switching set-up already exists, don't create it again.
+				return
+		super().apply_parent_switching(
+			child_bone = target_bone
+			,prop_bone = self.properties_bone
+			,ui_area = 'face_settings'
+			,col_name = self.params.CR_aim_group + " Parent"
+		)
+
+	def find_aim_bones_in_group(self) -> List[bpy.types.PoseBone]:
+		"""Collect all cloud_aim rigs in this group."""
+		aim_bones = []
+		for rig in self.generator.rig_list:
+			if isinstance(rig, CloudAimRig) and rig.params.CR_aim_group == group_name:
+				aim_bone = self.obj.pose.bones[rig.base_bone]
+				aim_bones.append(aim_bone)
+		return aim_bones
 
 	def ensure_group_master(self) -> Optional[BoneInfo]:
 		"""This function will be called by each aim rig, but we want to make sure
@@ -187,15 +232,15 @@ class CloudAimRig(CloudBaseRig):
 		if existing:
 			return existing
 
-		# Collect all cloud_aim rigs in this group.
-		aim_bones = []
+		aim_bones = self.find_aim_bones_in_group()
+
+		# Find a parent to fall back to, although ideally the rigger specifies
+		# parents using CR_base_parent_switching.
 		first_parent = ""
-		for rig in self.generator.rig_list:
-			if isinstance(rig, CloudAimRig) and rig.params.CR_aim_group == group_name:
-				aim_bone = self.obj.pose.bones[rig.base_bone]
-				aim_bones.append(aim_bone)
-				if aim_bone.parent and first_parent=="":
-					first_parent = aim_bone.parent.name
+		for aim_bone in aim_bones:
+			if aim_bone.parent and first_parent=="":
+				first_parent = aim_bone.parent.name
+				break
 
 		if len(aim_bones) < 2:
 			return None
@@ -233,28 +278,6 @@ class CloudAimRig(CloudBaseRig):
 		group_master.custom_shape_scale = 1/self.scale
 
 		return group_master
-
-	def apply_parent_switching(self,
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
-		):
-		"""Overrides cloud_base to apply the parent switching to the aim target
-		or group master if it exists."""
-		control_bone = self.group_master
-		if not control_bone:
-			control_bone = self.ctr_bone
-		else:
-			# Ensure parent switching for the group master
-			if self.group_master.parent and self.group_master.parent.name == "P-"+self.group_master.name:
-				# If the parent switching set-up already exists, don't create it again.
-				return
-		super().apply_parent_switching(
-			child_bone = control_bone
-			,prop_bone = self.properties_bone
-			,ui_area = 'face_settings'
-			,col_name = self.params.CR_aim_group + " Parent"
-		)
 
 	##############################
 	# Parameters
