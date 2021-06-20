@@ -61,40 +61,38 @@ class CloudSplineIKRig(CloudCurveRig):
 		"""Find or create the Bezier Curve that will be used by the rig."""
 
 		curve_ob = self.params.CR_curve_target
-		if curve_ob:
-			# There is no good way in the python API to delete curve points, so deleting the entire curve is necessary to allow us to generate with fewer controls than a previous generation.
-			bpy.data.objects.remove(curve_ob)	# What's not so cool about this is that if anything in the scene was referencing this curve, that reference gets broken. TODO: This could be avoided with some reshuffling and Object.user_remap().
 
+		curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
+		curve_name += "_" + (self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", ""))
+
+		if curve_ob:
+			# Remove all splines, then add a new one.
+			for spline in curve_ob.data.splines[:]:
+				curve_ob.data.splines.remove(spline)
+			spline = curve_ob.data.splines.new(type='BEZIER')
+		else:
+			# Create and name curve object.
+			curve = bpy.data.curves.new(curve_name, 'CURVE')
+			curve_ob = bpy.data.objects.new(curve_name, curve)
+			bpy.context.scene.collection.objects.link(curve_ob)
+			spline = curve.splines.new(type='BEZIER')
+			self.lock_transforms(curve_ob)
+
+		curve_ob.data.dimensions = '3D'
 		sum_bone_length = sum([b.length for b in self.org_chain])
 		length_unit = sum_bone_length / (self.num_controls-1)
 		handle_length = length_unit * self.params.CR_spline_ik_handle_length
 
-		# Create and name curve object.
-		curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
-		curve_name += "_" + (self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", ""))
-
-		bpy.ops.curve.primitive_bezier_curve_add(radius=0.2, location=(0, 0, 0))
-
-		curve_ob = bpy.context.view_layer.objects.active
-		curve_ob.name = curve_name
-		self.lock_transforms(curve_ob)
-
 		self.meta_base_bone.rigify_parameters.CR_curve_target = self.params.CR_curve_target = curve_ob
 
-		# Place the first and last bezier points to the first and last bone.
-		spline = curve_ob.data.splines[0]
+		# Add the necessary number of curve points to the spline
 		points = spline.bezier_points
-
-		# Add the necessary number of curve points
 		points.add( self.num_controls-len(points) )
 		num_points = len(points)
 
 		# Configure control points...
 		for i in range(0, num_points):
-			curve_ob = bpy.data.objects.get(curve_name)
 			point_along_chain = i * length_unit
-			spline = curve_ob.data.splines[0]
-			points = spline.bezier_points
 			p = points[i]
 
 			# Place control points
@@ -103,11 +101,6 @@ class CloudSplineIKRig(CloudCurveRig):
 			p.co = loc
 			p.handle_right = loc + handle_length * direction
 			p.handle_left  = loc - handle_length * direction
-
-		# Reset selection so Rigify can continue execution.
-		bpy.context.view_layer.objects.active = self.obj
-		self.obj.select_set(True)
-		bpy.ops.object.mode_set(mode='EDIT')
 
 		return curve_ob
 
