@@ -20,7 +20,6 @@ Priority 2: New features
         - Cast modifier radius
     Add a warning when object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
     Add a warning when the rigger has created a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!
-    cloud_base features need some treatment for each rig type, see the CloudRig sheet on the Sprite Rigs TODO spreadsheet.
 
     Perhaps some parameters could belong all the way up in CloudBaseRig.
         - Create ORG bones (False by default, can force to True for rigs that need it)
@@ -40,6 +39,7 @@ Priority 3: Changes that will affect metarigs
 Priority 4: Code quality
     cloud_base should define self.root_bone = self.org_chain[0], then use self.root_bone in relink(), apply_custom_root_parent() and apply_parent_switching(). That way a bunch of sub-classes won't have to override those behaviours, since they will just overrite self.root_bone.
         In the same go, self.root_bone needs to become consistent across rig classes. Some call it self.root_control, some self.limb_root_bone, etc.
+        In the same go, the code in those 3 functions could use a lot of de-duplication.
     Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     Need to eliminate uses of `bpy.context`, although in some cases it might be a Rigify limitation (should be fixed there too, tbh...)
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
@@ -69,6 +69,7 @@ Priority 4: Code quality
     Bring up to date how we pass armature constraints to make_constraint() (D9092)
         This will break backwards comp though, so should create a tag accordingly.
 Priority 5: UI, UX & documentation
+    Everything should now support relink(), apply_custom_root_parent() and apply_parent_switching().
     cloud_limb: Lost its Lock Y/Z param.
     Bone Set system changes: Now is a UIList, has an "Advance Bone Sets" toggle, the Override buttons are gone, and the Rigify Bone Groups buttons were moved to the Rigify Buttons panel.
     New param: CR_base_custom_props and custom_props_storage.
