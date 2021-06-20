@@ -159,6 +159,10 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		# Parent first FK control to first PSX control.
 		self.fk_chain[0].parent = self.physics_chain[0]
 
+		# Set first PSX control as the limb root bone, for correct parent switch
+		# and root parenting behaviours
+		self.limb_root_bone = self.physics_chain[0]
+
 	def constrain_chain_to_phys_ob(self, phys_ob: bpy.types.Object, bone_chain: List[BoneInfo]):
 		# For the moment, let's just slap some constraints on the FK chain.
 		for fk_ctrl in self.fk_chain:
