@@ -8,11 +8,6 @@ from copy import deepcopy
 
 from .cloud_base import CloudBaseRig
 
-"""
-Ideas to improve this:
-Spline IK like controls(the other two types) for bendy bones' handles.
-"""
-
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 

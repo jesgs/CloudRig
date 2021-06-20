@@ -11,6 +11,8 @@ from .cloud_curve import CloudCurveRig
 class CloudSplineIKRig(CloudCurveRig):
 	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
+	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled.'
+
 	forced_params = {
 		# 'CR_curve_target' : None TODO: This shouldn't be user-modifiable, but it also can't be set to None, because we need the curve reference in create_curve_object().
 	}

@@ -53,7 +53,7 @@ class CloudBaseRig(
 	use_custom_props = False	# TODO: Instead of an awkward "feature exists or not" flag like this, we should split these features off into a compositable class, eg. utils.custom_properties->CloudCustomPropertyMixin.
 	custom_prop_behaviour = 'Store Custom Properties for this rig element in a cogwheel shaped bone at the base of the rig.'
 	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name.'
-	parent_switch_behaviour = 'The active parent will own the rig\'s root bone.'
+	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
 
 	def __init__(self, *args, **kwargs):
