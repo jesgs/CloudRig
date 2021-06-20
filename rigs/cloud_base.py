@@ -179,10 +179,11 @@ class CloudBaseRig(
 
 	def prepare_bones(self):
 		self.create_bone_infos()
+		skip_single_parenting = self.parent_switch_overwrites_root_parent and self.params.CR_base_parent_switching
+		if not skip_single_parenting and self.params.CR_base_parent != "":
+			self.apply_custom_root_parent()
 		if self.params.CR_base_parent_switching:
 			self.apply_parent_switching()
-		if self.params.CR_base_parent!="":
-			self.apply_custom_root_parent()
 		if self.params.CR_base_relink:
 			self.relink()
 
