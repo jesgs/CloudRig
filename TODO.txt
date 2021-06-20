@@ -38,6 +38,8 @@ Priority 3: Changes that will affect metarigs
     Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base (I guess this is done?)
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
 Priority 4: Code quality
+    cloud_base should define self.root_bone = self.org_chain[0], then use self.root_bone in relink(), apply_custom_root_parent() and apply_parent_switching(). That way a bunch of sub-classes won't have to override those behaviours, since they will just overrite self.root_bone.
+        In the same go, self.root_bone needs to become consistent across rig classes. Some call it self.root_control, some self.limb_root_bone, etc.
     Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     Need to eliminate uses of `bpy.context`, although in some cases it might be a Rigify limitation (should be fixed there too, tbh...)
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
