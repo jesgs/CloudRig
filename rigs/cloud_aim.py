@@ -246,7 +246,7 @@ class CloudAimRig(CloudBaseRig):
 			control_bone = self.ctr_bone
 		else:
 			# Ensure parent switching for the group master
-			if self.group_master.parent and self.group_master.parent.name == "Parents_"+self.group_master.name:
+			if self.group_master.parent and self.group_master.parent.name == "P-"+self.group_master.name:
 				# If the parent switching set-up already exists, don't create it again.
 				return
 		super().apply_parent_switching(

@@ -209,7 +209,7 @@ class CloudBaseRig(
 		# Create parent bone that will hold the Armature constraint.
 		arm_con_bone = self.create_parent_bone(child_bone, self.mch_bones)
 		arm_con_bone.hide_select = self.mch_disable_select
-		arm_con_bone.name = "Parents_" + child_bone.name
+		arm_con_bone.name = "P-" + child_bone.name
 		arm_con_bone.custom_shape = None
 
 		parent_names, parent_bones = self.collect_parents()
