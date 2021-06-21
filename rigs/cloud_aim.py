@@ -211,7 +211,7 @@ class CloudAimRig(CloudBaseRig):
 			,col_name = self.params.CR_aim_group + " Parent"
 		)
 
-	def find_aim_bones_in_group(self) -> List[bpy.types.PoseBone]:
+	def find_aim_bones_in_group(self, group_name) -> List[bpy.types.PoseBone]:
 		"""Collect all cloud_aim rigs in this group."""
 		aim_bones = []
 		for rig in self.generator.rig_list:
@@ -232,7 +232,7 @@ class CloudAimRig(CloudBaseRig):
 		if existing:
 			return existing
 
-		aim_bones = self.find_aim_bones_in_group()
+		aim_bones = self.find_aim_bones_in_group(group_name)
 
 		# Find a parent to fall back to, although ideally the rigger specifies
 		# parents using CR_base_parent_switching.
