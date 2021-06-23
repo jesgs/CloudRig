@@ -1,4 +1,5 @@
 Priority 1: Bugs
+    Apparently generation fails on Sintel when using the UI button instead of Regen All??
     cloud_fk_chain(probably everything): Parent switching setup thinks that no parents were specified when only 1 parent is specified.
     BoneSets on a rig element don't work until the rig is generated. This is probably an inherent limitation, but maybe at least give a UI warning. Maybe it can be worked around, though.
         I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
@@ -84,16 +85,9 @@ Priority 4: Code quality
     Bring up to date how we pass armature constraints to make_constraint() (D9092)
         This will break backwards comp though, so should create a tag accordingly.
 Priority 5: UI, UX & documentation
-    Version, clean up and test the metarigs.
-        Add a rig that is a legitimate example of rigging a face with CloudRig. Sadly Sprite Fright faces are a bit too full of hacks right now.
-    Explain the face set-ups on Sintel and Rex metarigs.
-    Add operators in the UI somewhere, somehow.
-        Would be nicer to upstream most of these instead. D11606
-    Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon... Not sure if easily possible though since we'd have to hack into the rigify layers propertygroup which I don't want to do.
-    Active layers on the generated rig shouldn't be the same as the metarig afterall - or maybe it should be an option (sometimes we do enable the deform layer because we want to see it on generation)
-        Should be done upstream.
-    Using a UIList for BoneSets would be great but I tried and it seemed impossible to do it in a nice enough way.
-        Maybe it is possible now? Would it be any different from the parenting UIList?
+    Upstream
+        Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon... Not sure if easily possible though since we'd have to hack into the rigify layers propertygroup which I don't want to do.
+        Active layers on the generated rig shouldn't be the same as the metarig afterall - or maybe it should be an option (sometimes we do enable the deform layer because we want to see it on generation)
 Priority 6: Rigify compatibility
     When enabled, bone groups assigned in cloud_bone seem to get overwritten.
     Rigify compatibility specific functions should only affect rigify rig types.
