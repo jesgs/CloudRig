@@ -10,6 +10,8 @@ from .cloud_chain_anchor import CloudChainAnchorRig
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
 
+	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with "TAIL-". If the STR bone is part of an intersection, the constraint is moved to the intersection control instead.'
+
 	def initialize(self):
 		super().initialize()
 

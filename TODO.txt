@@ -1,4 +1,5 @@
 Priority 1: Bugs
+    cloud_fk_chain(probably everything): Parent switching setup thinks that no parents were specified when only 1 parent is specified.
     BoneSets on a rig element don't work until the rig is generated. This is probably an inherent limitation, but maybe at least give a UI warning. Maybe it can be worked around, though.
         I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
@@ -16,6 +17,13 @@ Priority 1: Bugs
         I guess the issue is that a Generator doesn't have the same powers as a Rig, which is annoying since always. But there's a million other issues also.
         Instead of trying to think of how the system needs to be different from the current one, we should just think of a new system from scratch, and see what existing code we can re-use.
 Priority 2: New features
+    Hide some pretty useless Sprite Fright specific rig type settings under some "Advanced" toggle.
+        Pre-req for this is figuring out where feature sets could store and display their preferences.
+        (Maybe in rigify_info we specify the name of the AddonPreferences class, then upstream a patch to display that in the FeatureSets UI?)
+
+        Things I would hide behind this: 
+            Generator: Double Root, Generate Action, Selectable/Movable Helpers, Force Widget Update
+            Rigs: Custom Property Storage
     "(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
     Scale Inheritance and modifiers
         Warn when these modifier values don't have a driver, since they should be hooked up to rig scale (root bone world scale would be easiest, but the closer it is to the nearest relevant parent in the hierarchy the better)
@@ -39,6 +47,7 @@ Priority 2: New features
         https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
 
 Priority 3: Changes that will affect metarigs
+    We should drop the idea that "root" is always available as a parent option. it's just annoying. This will break Sprite Fright rigs and existing animations though.
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
     Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base (I guess this is done?)
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
@@ -75,14 +84,6 @@ Priority 4: Code quality
     Bring up to date how we pass armature constraints to make_constraint() (D9092)
         This will break backwards comp though, so should create a tag accordingly.
 Priority 5: UI, UX & documentation
-    Everything should now support relink(), apply_custom_root_parent() and apply_parent_switching().
-    cloud_limb: Lost its Lock Y/Z param.
-    Bone Set system changes: Now is a UIList, has an "Advance Bone Sets" toggle, the Override buttons are gone, and the Rigify Bone Groups buttons were moved to the Rigify Buttons panel.
-    New param: CR_base_custom_props and custom_props_storage.
-    cloud_base params now look completely different, should update any screenshots.
-    New param: cloud_ik_chain->CR_ik_chain_at_tip
-    Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
-        If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
     Version, clean up and test the metarigs.
         Add a rig that is a legitimate example of rigging a face with CloudRig. Sadly Sprite Fright faces are a bit too full of hacks right now.
     Explain the face set-ups on Sintel and Rex metarigs.
@@ -108,6 +109,14 @@ Priority 7: Ideas from Animators that would break backwards comp on Sprite Frigh
             Add those property path changes to the anim curve rename script
 
 Ideas:
+    Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
+        Eg. "STR-TIP@Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets. 
+            No more weird crazy relinking rules 
+                although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
+        This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
+        Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
+            If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
+
     A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
     A button to copy a single bone set's settings to all selected bones.
 

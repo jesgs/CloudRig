@@ -10,6 +10,7 @@ from .cloud_base import CloudBaseRig
 
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
+	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with "TAIL-".'
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""

@@ -1,4 +1,5 @@
 import bpy
+from bpy.props import BoolProperty
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -15,9 +16,16 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 	bl_label = "Toggle Metarig/Generated rig"
 	bl_options = {'REGISTER', 'UNDO'}
 
+	# TODO: This is implemented, just needs to be hidden behind an if statement.
+	match_layers: BoolProperty(name="Match Layers", default=True, description="Keep the active layer list between armatures when switching between them, as if they shared active layers")
+	# TODO: Implement this. Check if the majority of bones are hidden or un-hidden when switching. Set the majority as the default, then cherrypick bones that should be non-default based on name matching.
+	match_hide: BoolProperty(name="Match Hiding", default=True, description="Try to match bone visibilities when switching between armatures, as if they shared bones.")
+	# TODO: Implement this. For selected bones, find all visible matches in the other rig, and select the bone if there is only one match or if there is an exact match.
+	match_selection: BoolProperty(name="Match Selection", default=True, description="Try to match bone selection when switching between armatures, as if they shared bones. Will also work with non-exact matches, as long as only one close match is found")
+
 	@classmethod
 	def poll(cls, context):
-		return context.object and context.object.type=='ARMATURE'
+		return context.object and context.object.type == 'ARMATURE' and context.object.visible_get()
 
 	def execute(self, context):
 		ob = context.object
