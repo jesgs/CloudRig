@@ -108,7 +108,6 @@ class CloudLatticeRig(CloudBaseRig):
 		resolution = 10
 		# Set resolution
 		lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = 1, 1, 1
-		lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = 2, 2, 2 # Bug workaround.
 		lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = [resolution]*3
 
 		# Create a falloff vertex group

@@ -26,14 +26,14 @@ def get_lattice_vertex_index(lattice: bpy.types.Lattice, xyz: List[int], do_clam
 	return index
 
 def ensure_falloff_vgroup(
-		lattice_ob: bpy.types.Object,
+		lattice_ob: bpy.types.Object, 
 		vg_name="Group", multiplier=1) -> bpy.types.VertexGroup:
 	lattice = lattice_ob.data
 	res_x, res_y, res_z = lattice.points_u, lattice.points_v, lattice.points_w
 
 	vg = lattice_ob.vertex_groups.get(vg_name)
 
-	center = Vector((res_x/2, res_y/2, res_z/2))
+	center = Vector((res_x-1, res_y-1, res_z-1))/2
 	max_res = max(res_x, res_y, res_z)
 
 	if not vg:
@@ -46,6 +46,6 @@ def ensure_falloff_vgroup(
 				coord = Vector((x+2, y+2, z+2))
 				distance_from_center = (coord-center).length
 				influence = 1 - distance_from_center / max_res * 2
-
+				
 				vg.add([index], influence * multiplier, 'REPLACE')
 	return vg
