@@ -447,7 +447,8 @@ class CloudFKChainRig(CloudChainRig):
 	@classmethod
 	def draw_custom_prop_params(cls, layout, context, params):
 		"""Overrides cloud_base."""
-		if not (params.CR_fk_chain_hinge and params.CR_fk_chain_root):
+		if not (params.CR_fk_chain_hinge and params.CR_fk_chain_root) and \
+			not params.CR_base_parent_switching:
 			return
 
 		super().draw_custom_prop_params(layout, context, params)

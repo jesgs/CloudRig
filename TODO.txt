@@ -1,4 +1,8 @@
 Priority 1: Bugs
+    BoneSets on a rig element don't work until the rig is generated. This is probably an inherent limitation, but maybe at least give a UI warning. Maybe it can be worked around, though.
+        I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
+    When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
+        Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
     When switching between bones with a rig type, the active bone set index will always be invalid, so we end up seeing some random other bone's bone set info. not good.
     Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
         Won't be relevant after D11606.
@@ -18,6 +22,8 @@ Priority 2: New features
         - Shrinkwrap distance
         - Corrective Smooth scale
         - Cast modifier radius
+    Add a warning when multiple cloud_lattice rigs reference the same object.
+    Add a warning when an action setup created no constraints (nor custom property) because it had no animation data to work with.
     Add a warning when object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
     Add a warning when the rigger has created a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!
 
