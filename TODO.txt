@@ -3,14 +3,12 @@ Priority 1: Bugs
     cloud_fk_chain(probably everything): Parent switching setup thinks that no parents were specified when only 1 parent is specified.
     BoneSets on a rig element don't work until the rig is generated. This is probably an inherent limitation, but maybe at least give a UI warning. Maybe it can be worked around, though.
         I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
-    When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
-        Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
     When switching between bones with a rig type, the active bone set index will always be invalid, so we end up seeing some random other bone's bone set info. not good.
-    Mirror Rigify Parameters seems to fail from right to left? (noticed trying to mirror Hinge Toggle option on spider leg Leg1_0.R)
-        Won't be relevant after D11606.
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
+    When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
+        Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
 
     Trying to relink a constraint such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
         We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
@@ -46,12 +44,18 @@ Priority 2: New features
     Automatic IK/FK switching based on bone selection:
         https://youtu.be/ccbC8JNdXS4?t=755
         https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
-
 Priority 3: Changes that will affect metarigs
     We should drop the idea that "root" is always available as a parent option. it's just annoying. This will break Sprite Fright rigs and existing animations though.
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
     Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base (I guess this is done?)
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
+    Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
+    Eg. "STR-TIP@Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets. 
+        No more weird crazy relinking rules 
+            although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
+    This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
+    Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
+        If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
     cloud_base should define self.root_bone = self.org_chain[0], then use self.root_bone in relink(), apply_custom_root_parent() and apply_parent_switching(). That way a bunch of sub-classes won't have to override those behaviours, since they will just overrite self.root_bone.
         In the same go, self.root_bone needs to become consistent across rig classes. Some call it self.root_control, some self.limb_root_bone, etc.
@@ -103,24 +107,12 @@ Priority 7: Ideas from Animators that would break backwards comp on Sprite Frigh
             Add those property path changes to the anim curve rename script
 
 Ideas:
-    Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
-        Eg. "STR-TIP@Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets. 
-            No more weird crazy relinking rules 
-                although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
-        This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
-        Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
-            If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
-
     A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
     A button to copy a single bone set's settings to all selected bones.
 
 	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
 
-    Maybe stop inheriting parameters from parent classes. Instead, re-define them with a unique name, then set up a getter/setter system so that always the lowest level rig element sets its own parameter as the "actual" one. Eg., in an early stage of generation, create a self.cr_params dictionary where each rig class puts in its own value using super() calls, leaving the lowest level one last.
-        This would make the whole multiple parents/parent switching thing a lot less confusing, and avoid the need for ugly blocks of text in the UI since each rig type could have unique tooltips and UI names.
-
-	Put all Rigify UI in one panel, simply called "Rigify", with the Generate button at the top and everything else in sub-panels.
-        This is a Rigify idea not a CloudRig idea, what is it doing here?
+    Since the Multiple Parents checkbox does different functionality per rig type, its UI name and description should reflect that (ie. become more generic).
 
 	Add an option to preserve Selection Sets on the generated rig. This way they can be authored in a very simple way.
 		This would take away the option of assigning Selection Sets based on layers.
@@ -128,10 +120,11 @@ Ideas:
 	Layers:
 		Allow saving Layer Presets into a .json file, and loading and applying those layer presets with the Generate CloudRig Layers button - except, that button, along with a Save button, would remain available after the layers have been generated.	
 		Disconnect real armature layers from Rigify layers, so that the rig can always generate with the same active layers instead of always the same ones.
-		This would probably require un-registering and the Rigify Layers propertygroup, and registering out modified version instead, which would have these flags:
+		This would probably require un-registering and the Rigify Layers propertygroup, and registering our modified version instead, which would have these flags:
 		- Layer Enabled
 		- Layer Protected
 		- Layer Visible
+        Better to do this upstream instead.
 	
 	Rigs:
 		Try implementing the full body IK systems from angavrilov?
@@ -148,23 +141,16 @@ Ideas:
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
 
 	UI
-	Dynamic tooltips: This might be possible if we allow rig classes to "re-define" their inherited parameters, and
-		change the way we access parameters: Instead of self.params.CR_file_name_some_param, it would be self.get_param("some_param").
-		This way, the function could return a different param for different classes, with the same name.
-		The mapping of param name to param would have to be stored in the class.
-		This adds extra confusion, but allows for "dynamic" tooltips. Also, for clarity, all params would strictly have to be accessed with self.get_param, and that be documented.
-		We could even nuke the self.params reference. Or, replace it with a @property in some way!
-		Issue is this would have to work on both class level(for drawing code) and instance level(for generation code).
-
 	Customizing bone shapes would be pretty neat.
 		I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
 		I'm thinking a Bone Shapes parameter section underneath Bone Sets.
 		What are the use cases for this currently? Feel like it's not that many. Pretty much FK and STR. Might be better not to overthink this one and just add an enum to cloud_chain between sphere or cube.
 
-	Manage bone rotation modes better - Currently we set everything to an arbitrary rotation mode, I think? We should probably copy the rotation mode from the metarig.
+	Manage bone rotation modes better - Currently we set everything to an arbitrary rotation mode(XYZ) We should probably copy the rotation mode from the metarig... But the damn thing defaults to Quaternion. But some people actually might want Quaternions on their controls.
 		Perhaps all this needs to be is the classic custom property+driver to let anyone change the rotation mode on the fly for bones that could require it. (shoulders, wrists, thighs, feets)
 
 	Bring back BoolProperties? Issue is animating them works badly. (doesn't work) because they rely on the update callback which is not called when changed by a keyframe.
+        Maybe after D9697.
 
 Better metarig design for Sprite Fright Face rigs:
 	Eyebrows - Implements a mix of cloud_copy and cloud_chain?
