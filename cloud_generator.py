@@ -17,7 +17,6 @@ from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
 
-from .bone import BoneInfo
 from .bone_set import BoneSet, UIBoneSet
 from .utils import mechanism
 from .utils.ui import redraw_viewport, wipe_ui_data
@@ -28,6 +27,7 @@ from .actions import ActionSlot
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
 from .utils.naming import CloudNameManager
+from .utils.object import EnsureVisible
 
 class CloudRigProperties(bpy.types.PropertyGroup):
 	version: IntProperty(
@@ -1030,6 +1030,12 @@ class CloudGenerator(Generator):
 
 def generate_rig(context, metarig):
 	""" Generates a rig from a metarig.	"""
+	meta_visible = EnsureVisible(metarig)
+	target_rig = metarig.data.rigify_target_rig
+	rig_visible = None
+	if target_rig:
+		rig_visible = EnsureVisible(target_rig)
+
 	generator = CloudGenerator(context, metarig)
 	try:
 		generator.generate()
@@ -1051,6 +1057,10 @@ def generate_rig(context, metarig):
 
 		# Continue the exception
 		raise e
+
+	meta_visible.restore()
+	if rig_visible:
+		rig_visible.restore()
 
 class CLOUDRIG_OT_generate(bpy.types.Operator):
 	"""Generates a rig from the active metarig armature using the CloudRig generator"""
