@@ -1,7 +1,7 @@
 # Typing
 import bpy
 from ..bone import BoneInfo
-from typing import Dict, List
+from typing import List
 
 # CloudBaseRig parent classes
 from rigify.base_rig import BaseRig
@@ -179,18 +179,18 @@ class CloudBaseRig(
 
 	def prepare_bones(self):
 		self.create_bone_infos()
-		skip_single_parenting = self.parent_switch_overwrites_root_parent and self.params.CR_base_parent_switching
-		if not skip_single_parenting and self.params.CR_base_parent != "":
+		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.CR_base_parent_switching
+		if not skip_root_parenting and self.params.CR_base_parent != "":
 			self.apply_custom_root_parent()
 		if self.params.CR_base_parent_switching:
-			self.apply_parent_switching()
+			self.apply_parent_switching(self.params.CR_base_parent_slots)
 		if self.params.CR_base_relink:
 			self.relink()
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
@@ -213,21 +213,24 @@ class CloudBaseRig(
 		arm_con_bone.name = "P-" + child_bone.name
 		arm_con_bone.custom_shape = None
 
-		parent_names, parent_bones = self.collect_parents()
-		targets = [{'subtarget' : bone_name} for bone_name in parent_bones]
+		parent_ui_names, parent_bone_names = self.sanitize_parent_list(parent_slots)
+		if not parent_ui_names:
+			return
+
+		targets = [{'subtarget' : bone_name} for bone_name in parent_bone_names]
 
 		# Create custom property
 		info = {
 			"prop_bone" : prop_bone,
 			"prop_id" : prop_name,
-			"texts" : parent_names,
+			"texts" : parent_ui_names,
 
 			"operator" : "pose.cloudrig_switch_parent_bake",
 			"icon" : "COLLAPSEMENU",
-			"parent_names" : parent_names,
+			"parent_names" : parent_ui_names,
 			"bones" : [child_bone.name],
 			}
-		self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_names)-1)
+		self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_ui_names)-1)
 
 		# Add armature constraint
 		arm_con = arm_con_bone.add_constraint('ARMATURE',
@@ -249,43 +252,45 @@ class CloudBaseRig(
 				}
 			})
 
-	def collect_parents(self) -> (List[str], List[str]):
+	def sanitize_parent_list(self, parent_slots: List[ParentSlot]) -> (List[str], List[str]):
 		"""Gather parent information and check for issues.
 
 		Returns two lists of equal length, first one is the UI name second is the bone name of each parent.
 		"""
 
-		parent_bones = []
-		parent_names = []
+		parent_bone_names = []
+		parent_ui_names = []
 
-		parent_slots = self.params.CR_base_parent_slots
 		for i, ps in enumerate(parent_slots):
-			if ps.bone=="":
+			if ps.bone == "":
 				self.add_log(
 					"Parent not found"
 					,description=f"Parent slot #{i}: {ps.bone} not specified, skipping."
 				)
 				continue
-			if ps.name=="":
+			if ps.name == "":
 				self.add_log(
 					"Nameless parent"
 					,description = f"Parent slot #{i}: {ps.bone} has no UI name, falling back to the bone's name."
 				)
-				parent_names.append(ps.bone)
+				parent_ui_names.append(ps.bone)
 			else:
-				parent_names.append(ps.name)
-			parent_bones.append(ps.bone)
-		if len(parent_names)==1:
+				parent_ui_names.append(ps.name)
+			parent_bone_names.append(ps.bone)
+
+		if len(parent_ui_names) == 0:
 			self.add_log("No parents found"
 				,description = f"No parents specified for parent switching setup, skipping completely."
 			)
 			return [], []
 
-		if self.generator_params.cloudrig_parameters.create_root and 'root' not in parent_bones:
-			parent_names.insert(0, "Root")
-			parent_bones.insert(0, 'root')
+		# Force the Root to be an available parent for all parent switching setups
+		# TODO: This should be removed after Sprite Fright!
+		if self.generator_params.cloudrig_parameters.create_root and 'root' not in parent_bone_names:
+			parent_ui_names.insert(0, "Root")
+			parent_bone_names.insert(0, 'root')
 
-		return parent_names, parent_bones
+		return parent_ui_names, parent_bone_names
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		if not bone:

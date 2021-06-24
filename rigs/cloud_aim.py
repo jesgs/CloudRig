@@ -189,7 +189,7 @@ class CloudAimRig(CloudBaseRig):
 		else:
 			super().apply_custom_root_parent(self.org_chain[0])
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
@@ -204,8 +204,8 @@ class CloudAimRig(CloudBaseRig):
 			if self.group_master.parent and self.group_master.parent.name == "P-"+self.group_master.name:
 				# If the parent switching set-up already exists, don't create it again.
 				return
-		super().apply_parent_switching(
-			child_bone = target_bone
+		super().apply_parent_switching(parent_slots
+			,child_bone = target_bone
 			,prop_bone = self.properties_bone
 			,ui_area = 'face_settings'
 			,col_name = self.params.CR_aim_group + " Parent"

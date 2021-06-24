@@ -37,13 +37,13 @@ class CloudCurveRig(CloudBaseRig):
 		super().create_bone_infos()
 		self.make_curve_controls()
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
-		super().apply_parent_switching(
-			child_bone = self.root_control
+		super().apply_parent_switching(parent_slots
+			,child_bone = self.root_control
 			,prop_bone = prop_bone
 			,prop_name = prop_name
 			,ui_area = ui_area

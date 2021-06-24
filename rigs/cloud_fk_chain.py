@@ -77,7 +77,7 @@ class CloudFKChainRig(CloudChainRig):
 					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots, 
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
@@ -85,7 +85,7 @@ class CloudFKChainRig(CloudChainRig):
 		"""Overrides cloud_base."""
 		if child_bone==None:
 			child_bone = self.limb_root_bone
-		super().apply_parent_switching(child_bone, prop_bone, prop_name, ui_area, row_name, col_name)
+		super().apply_parent_switching(parent_slots, child_bone, prop_bone, prop_name, ui_area, row_name, col_name)
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""

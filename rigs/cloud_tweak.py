@@ -143,13 +143,13 @@ class CloudTweakRig(CloudBaseRig):
 			return
 		super().apply_custom_root_parent(self.tweak_bone)
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots, 
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
-		super().apply_parent_switching(
-			child_bone = self.tweak_bone
+		super().apply_parent_switching(parent_slots
+			,child_bone = self.tweak_bone
 			,prop_bone = prop_bone
 			,prop_name = prop_name
 			,ui_area = ui_area

@@ -115,17 +115,17 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return ik_master
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots, 
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
 		):
-		"""Overrides cloud_base."""
+		"""Overrides cloud_ik_chain."""
 
 		if self.params.CR_limb_double_ik:
 			child_bone = self.ik_mstr.parent
 
-		super().apply_parent_switching(child_bone=child_bone)
+		super().apply_parent_switching(parent_slots, child_bone=child_bone)
 
 	def setup_ik_pole_parent_switch(self, ik_mstr, ik_parents_prop_name: str):
 		"""Overrides cloud_ik_chain."""

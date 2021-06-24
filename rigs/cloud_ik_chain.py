@@ -486,7 +486,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def apply_parent_switching(self,
+	def apply_parent_switching(self, parent_slots, 
 			child_bone=None,
 			prop_bone=None, prop_name="",
 			ui_area="misc_settings", row_name="", col_name=""
@@ -496,8 +496,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			child_bone = self.ik_mstr
 
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
-		super().apply_parent_switching(
-			child_bone = child_bone
+		super().apply_parent_switching(parent_slots
+			,child_bone = child_bone
 			,prop_bone = self.properties_bone
 			,prop_name = ik_parents_prop_name
 			,ui_area = 'ik_parents'

@@ -1,6 +1,4 @@
 Priority 1: Bugs
-    Apparently generation fails on Sintel when using the UI button instead of Regen All??
-    cloud_fk_chain(probably everything): Parent switching setup thinks that no parents were specified when only 1 parent is specified.
     BoneSets on a rig element don't work until the rig is generated. This is probably an inherent limitation, but maybe at least give a UI warning. Maybe it can be worked around, though.
         I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
     When switching between bones with a rig type, the active bone set index will always be invalid, so we end up seeing some random other bone's bone set info. not good.
