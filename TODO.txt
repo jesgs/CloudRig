@@ -1,6 +1,4 @@
 Priority 1: Bugs
-    BoneSets on a rig element don't work until the rig is generated. This is probably an inherent limitation, but maybe at least give a UI warning. Maybe it can be worked around, though.
-        I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
     When switching between bones with a rig type, the active bone set index will always be invalid, so we end up seeing some random other bone's bone set info. not good.
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
@@ -73,7 +71,9 @@ Priority 4: Code quality
     class BoneSets:
         DEF = BoneSet()
     but idk if that could work.
-
+    I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
+        The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.
+        Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
     It sucks that define_bone_sets() and ensure_bone_sets() are always so far away from each other, and even just the fact that they both have to exist irks me a lot.
         The reason they both have to exist is because we want to assign them to self, but honestly that's probably not even a good thing to do.
         We could instead maybe have a self.bone_sets[] that's automatically populated based on class information on initialize(), and then accessed as strings, eg.

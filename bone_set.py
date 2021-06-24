@@ -322,6 +322,14 @@ class BoneSetMixin:
 		layout_icon = 'MESH_GRID' if cloudrig.bone_set_use_grid_layout else 'COLLAPSEMENU'
 		list_column.prop(cloudrig, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
 
+		if not any(filter(lambda x: x>0, CLOUDRIG_UL_bone_set.flt_flags)):
+			# If there are no items visible in the list
+			layout.label(text="No BoneSet to show. Clear the search filter or re-generate the rig!")
+			return
+		elif not CLOUDRIG_UL_bone_set.flt_flags[params.CR_active_bone_set_index]:
+			# If the active item is not visible
+			return
+
 		set_info = cls.bone_set_defs[active_bone_set.name]
 		split = layout.row().split(factor=0.8)
 		cls.draw_prop_search(split.row(), params, set_info['param'], obj.pose, "bone_groups", new_row=False, text="Bone Group")
@@ -422,6 +430,8 @@ class UIBoneSet(bpy.types.PropertyGroup):
 	layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
 
 class CLOUDRIG_UL_bone_set(bpy.types.UIList):
+	flt_flags = []
+
 	def draw_filter(self, context, layout):
 		layout.prop(self, 'filter_name', text="")
 	
@@ -459,6 +469,7 @@ class CLOUDRIG_UL_bone_set(bpy.types.UIList):
 					# Filter bone sets that are not used based on current parameters
 					flt_flags[idx] = 0
 
+		type(self).flt_flags = flt_flags
 		return flt_flags, flt_neworder
 
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
