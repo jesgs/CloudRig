@@ -363,7 +363,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 		self.keyflags = get_keying_flags(context)
 		self.keyflags_switch = None
 
-		if context.window_manager.rigify_transfer_use_all_keys:
+		if False:#context.window_manager.rigify_transfer_use_all_keys:
 			self.bake_add_curve_frames(self.bake_curve_table.curve_map)
 
 	def execute_scan_curves(self, context, obj):
