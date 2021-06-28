@@ -1,5 +1,4 @@
 Priority 1: Bugs
-    When switching between bones with a rig type, the active bone set index will always be invalid, so we end up seeing some random other bone's bone set info. not good.
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
@@ -53,6 +52,7 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
+    move_and_relink_constraints() in cloud_chain and cloud_face_chain is a bit awkward. (Relinking already implies moving the constraint, we just split it off for inheritance reasons)
     cloud_base should define self.root_bone = self.org_chain[0], then use self.root_bone in relink(), apply_custom_root_parent() and apply_parent_switching(). That way a bunch of sub-classes won't have to override those behaviours, since they will just overrite self.root_bone.
         In the same go, self.root_bone needs to become consistent across rig classes. Some call it self.root_control, some self.limb_root_bone, etc.
         In the same go, the code in those 3 functions could use a lot of de-duplication.

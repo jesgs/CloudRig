@@ -26,10 +26,15 @@ And bam, you have a rig!
 
 You can try moving around the bones in the Metarig in edit mode, and then generating again, to see the rig re-generated to the new proportions.
 
-Using Rigify and CloudRig mostly consists of creating such a metarig yourself, with the proportions and features that suits your character's needs. To learn more on how to do that, check out the [wiki](/../../../-/wikis/Home)!
+Using Rigify and CloudRig mostly consists of creating such a metarig yourself, with the proportions and features that suits your character's needs. To learn more on how to do that, check out the [wiki](/../../../-/wikis/Home)! 
+
+A very brief and outdated video tutorial can be found [here](https://cloud.blender.org/films/settlers/5e834b63dd1fa9d76bf2e7aa/?asset=2577) with more planned towards the end of 2021.
 
 # Report problems
 If you run into weird error messages or have suggestions on how something could be improved, feel free to [open an issue](/../issues/new?issuable_template=Bug).
 
 # Contribute
 Contributions are welcome! You may find some useful notes [here](/../../../-/wikis/Code)
+
+# Show me your work!
+If you use CloudRig in your project, I'd love to hear about it! Seeing people make use of my work, whether it's baby's first animation or some big production, is always a huge motivation and ego boost which I can always use. Chat me up on [blender.chat](https://blender.chat/direct/met) or Discord: Mets#3017!
