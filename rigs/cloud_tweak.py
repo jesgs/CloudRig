@@ -10,7 +10,7 @@ This means one of our bones will get a .001 in its name...
 class CloudTweakRig(CloudBaseRig):
 	"""Tweak a single bone with the same name as this bone in the generated rig."""
 
-	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the tweaked bone.'
+	relinking_behaviour = "Constraints will be moved to the tweaked bone."
 	parent_switch_behaviour = "The active parent will own the tweaked bone."
 
 	def initialize(self):

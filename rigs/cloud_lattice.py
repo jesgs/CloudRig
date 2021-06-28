@@ -9,7 +9,7 @@ from .cloud_base import CloudBaseRig
 class CloudLatticeRig(CloudBaseRig):
 	"""Create a simple lattice set-up. Lattice modifiers have to be added manually to the objects that should be deformed."""
 
-	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the Lattice Root.'
+	relinking_behaviour = "Constraints will be moved to the Lattice Root."
 
 	def initialize(self):
 		super().initialize()

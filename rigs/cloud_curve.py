@@ -9,7 +9,7 @@ def is_curve(self, obj):
 
 class CloudCurveRig(CloudBaseRig):
 	"""Create hook controls for an existing bezier curve."""
-	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the Curve Root.'
+	relinking_behaviour = "Constraints will be moved to the Curve Root."
 
 	def initialize(self):
 		"""Gather and validate data about the rig."""

@@ -10,7 +10,7 @@ class CloudFKChainRig(CloudChainRig):
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	use_custom_props = True
-	relinking_behaviour = 'Metarig constraints can specify a target bone name after an "@" symbol in the constraint name. Constraints will be moved to the FK controls.'
+	relinking_behaviour = "Constraints will be moved to the FK controls."
 
 	has_test_animation = True
 
