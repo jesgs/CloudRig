@@ -295,8 +295,9 @@ class CloudBaseRig(
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		if not bone:
 			bone = self.org_chain[0]
-		if parent_name=="":
+		if parent_name == "":
 			parent_name = self.params.CR_base_parent
+
 		self.bendy_parenting(bone, parent_name)
 
 	def relink(self):

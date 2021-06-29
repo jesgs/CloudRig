@@ -57,6 +57,9 @@ class CloudFKChainRig(CloudChainRig):
 
 		# Default root parenting
 		if self.params.CR_fk_chain_root:
+			if not self.params.CR_fk_chain_hinge:
+				# TODO: This is messy, and could use unit tests to be able to change this code without messing something up.
+				self.fk_chain[0].parent = self.limb_root_bone
 			self.limb_root_bone.parent = self.org_chain[0].parent
 
 		self.attach_org_to_fk()
@@ -89,7 +92,9 @@ class CloudFKChainRig(CloudChainRig):
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		"""Overrides cloud_base."""
-		super().apply_custom_root_parent(self.limb_root_bone)
+		if not bone:
+			bone = self.limb_root_bone
+		super().apply_custom_root_parent(bone, parent_name)
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
