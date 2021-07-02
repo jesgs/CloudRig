@@ -41,7 +41,7 @@ class EnsureVisible:
 
 	def restore(self):
 		"""Restore visibility settings to their original state."""
-		obj = bpy.data.objects.get(self.obj_name)
+		obj = bpy.data.objects.get((self.obj_name, None))
 		if not obj: return
 
 		obj.hide_set(self.obj_hide)

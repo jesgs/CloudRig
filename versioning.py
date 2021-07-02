@@ -133,7 +133,7 @@ def version_cloud_metarig(metarig):
 				while curve_name.startswith(" "):
 					curve_name = curve_name[1:]
 
-				pb.rigify_parameters['CR_curve_target'] = bpy.data.objects.get(curve_name)
+				pb.rigify_parameters['CR_curve_target'] = bpy.data.objects.get((curve_name, None))
 	if data.cloudrig_parameters.version < 5:
 		print("5:")
 		for pb in metarig.pose.bones:

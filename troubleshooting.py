@@ -563,8 +563,8 @@ class CLOUDRIG_OT_Swap_Bone_Shape(bpy.types.Operator):
 
 	def execute(self, context):
 		metarig = context.object
-		old_obj = bpy.data.objects.get(self.old_name)
-		new_obj = bpy.data.objects.get(self.new_name)
+		old_obj = bpy.data.objects.get((self.old_name, None))
+		new_obj = bpy.data.objects.get((self.new_name, None))
 
 		assert old_obj and new_obj, f"Error! One of {self.old_name} or {self.new_name} wasn't found! This should never happen."
 
@@ -615,7 +615,7 @@ class CLOUDRIG_OT_Rename_Object(bpy.types.Operator):
 
 	def execute(self, context):
 		metarig = context.object
-		obj = bpy.data.objects.get(self.old_name)
+		obj = bpy.data.objects.get((self.old_name, None))
 
 		if self.new_name in bpy.data.objects:
 			self.report({'ERROR'}, "That object name is already taken!")
@@ -639,7 +639,7 @@ class CLOUDRIG_OT_Delete_Object(bpy.types.Operator):
 
 	def execute(self, context):
 		metarig = context.object
-		ob = bpy.data.objects.get(self.ob_name)
+		ob = bpy.data.objects.get((self.ob_name, None))
 
 		assert ob, f"Error! {self.ob_name} wasn't found! This should never happen."
 

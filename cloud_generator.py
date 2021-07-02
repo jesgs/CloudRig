@@ -309,8 +309,8 @@ class CloudGenerator(Generator):
 			# Try to find object in scene.
 			obj = scene.objects.get(rig_name)
 		if not obj:
-			# Try to find object in file.
-			obj = bpy.data.objects.get(rig_name)
+			# Try to find object locally in file.
+			obj = bpy.data.objects.get((rig_name, None))
 		if not obj:
 			# Object wasn't found anywhere, so create it.
 			obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
@@ -557,7 +557,7 @@ class CloudGenerator(Generator):
 	def restore_modifiers(self):
 		"""Assign the rig as the target object of all saved modifiers."""
 		for ob_name in self.modifiers.keys():
-			ob = bpy.data.objects.get(ob_name)
+			ob = bpy.data.objects.get((ob_name, None))
 			if not ob: continue
 			for m_name in self.modifiers[ob_name]:
 				m = ob.modifiers.get(m_name)

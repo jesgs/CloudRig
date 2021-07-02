@@ -25,7 +25,7 @@ def load_metarig(metarig_name):
 			if o == metarig_name:
 				data_to.objects.append(o)
 
-	new_metarig = bpy.data.objects.get(available_name)
+	new_metarig = bpy.data.objects.get((available_name, None))
 	if not new_metarig:
 		print("Warning: Failed to load metarig: " + available_name)
 		return
@@ -60,7 +60,7 @@ def load_sample(rig_name):
 
 	assert found, "Sample rig not found in MetaRigs.blend."
 
-	sample_ob = bpy.data.objects.get(sample_name)
+	sample_ob = bpy.data.objects.get((sample_name, None))
 	sample_ob.location = bpy.context.scene.cursor.location
 	bpy.context.scene.collection.objects.link(sample_ob)
 	rig.select_set(True)

@@ -10,6 +10,8 @@ Priority 1: Bugs
         I've attempted this, it's stashed, but it is a bit of a disaster. Too much of the current code relies on the Generator->Rig->BoneSet->BoneInfo hierarchy of objects. It's hard to arbitrarily create a floating BoneSet, which is kind of by design.
         I guess the issue is that a Generator doesn't have the same powers as a Rig, which is annoying since always. But there's a million other issues also.
         Instead of trying to think of how the system needs to be different from the current one, we should just think of a new system from scratch, and see what existing code we can re-use.
+
+        On the other hand, apparently simply selecting the target bone in the generated rig just works... why are we not always just doing that in the first place, instead of the whole "@" bullshit?!? We could even version this!
 Priority 2: New features
     Hide some pretty useless Sprite Fright specific rig type settings under some "Advanced" toggle.
         Pre-req for this is figuring out where feature sets could store and display their preferences.

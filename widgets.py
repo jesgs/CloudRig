@@ -20,9 +20,9 @@ def ensure_widget(name, overwrite=True, collection=None):
 	if not collection:
 		collection = bpy.context.scene.collection
 
-	# Check if it already exists.
+	# Check if it already exists locally.
 	wgt_name = "WGT-"+name
-	wgt_ob = bpy.data.objects.get(wgt_name)
+	wgt_ob = bpy.data.objects.get((wgt_name, None))
 
 
 	if wgt_ob:
@@ -44,7 +44,7 @@ def ensure_widget(name, overwrite=True, collection=None):
 			if o == wgt_name:
 				data_to.objects.append(o)
 
-	new_wgt_ob = bpy.data.objects.get(wgt_name)
+	new_wgt_ob = bpy.data.objects.get((wgt_name, None))
 	if not new_wgt_ob:
 		print("WARNING: Failed to load widget: " + wgt_name)
 		return
@@ -65,8 +65,8 @@ def ensure_widget(name, overwrite=True, collection=None):
 def initiate_widget_generation(name):
 	ob_name = "WGT-" + name
 
-	# If the object exists, delete it.
-	obj = bpy.data.objects.get(ob_name)
+	# If the object exists locally, delete it.
+	obj = bpy.data.objects.get((ob_name, None))
 	if obj:
 		obdata = obj.data
 		bpy.data.objects.remove(obj)
