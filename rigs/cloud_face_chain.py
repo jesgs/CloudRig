@@ -48,37 +48,12 @@ class CloudFaceChainRig(CloudChainRig):
 		self.create_armature_parents(all_intersection_bones)
 		self.create_armature_parents(all_str_bones)
 
-	def relink(self):
-		"""Overrides cloud_chain."""
-		if not self.is_last_chain_rig:
-			return
-
-		for rig in self.chain_rigs:
-			rig.move_and_relink_constraints()
-
-	def move_and_relink_constraints(self):
-		"""Overrides cloud_chain."""
-		for i, org in enumerate(self.org_chain):
-			for c in org.constraint_infos[:]:
-				to_bone = self.main_str_bones[i]
-				if 'TAIL' in c.name:
-					if len(self.main_str_bones) <= i+1:
-						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
-					to_bone = self.main_str_bones[i+1]
-
-				# TODO: This is currently a pretty big copy paste from cloud_chain's relink(), except for the below two lines. Not great!
-				# Probably split off this middle bit into a def get_relink_target(self, index) or so.
-				if hasattr(to_bone, 'merged_control'):
-					to_bone = to_bone.merged_control
-
-				if c.type=='ARMATURE':
-					to_bone = self.create_parent_bone(to_bone, self.mch_bones)
-
-				to_bone.constraint_infos.append(c)
-				org.constraint_infos.remove(c)
-				for d in c.drivers:
-					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
-				c.relink()
+	def get_relink_target(self, str_bone):
+		"""Overrides cloud_chain. Propagate relinked constraints to the intersection
+		control, if this STR bone has one."""
+		if hasattr(str_bone, 'merged_control'):
+			return str_bone.merged_control
+		return super().get_relink_target(str_bone)
 
 	@staticmethod
 	def group_str_bones(chain_rigs):

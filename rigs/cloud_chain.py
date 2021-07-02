@@ -51,12 +51,14 @@ class CloudChainRig(CloudBaseRig):
 
 		self.connect_parent_chain_rig()
 
-	def relink(self):
-		"""Overrides cloud_base"""
-		self.move_and_relink_constraints()
+	def get_relink_target(self, bone):
+		"""Overridden in cloud_face_chain."""
+		return bone
 
-	def move_and_relink_constraints(self):
-		"""Move constraints from ORG bones to main STR bones and relink them.
+	def relink(self):
+		"""Overrides cloud_base.
+
+		Move constraints from ORG bones to main STR bones and relink them.
 
 		If the constraint name contains 'TAIL', we move the constraint
 		to the STR bone at the tip of the ORG bone rather than at the head.
@@ -72,6 +74,8 @@ class CloudChainRig(CloudBaseRig):
 						# TODO: Add a log, don't totally cancel the generation!
 						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
 					to_bone = self.main_str_bones[i+1]
+
+				to_bone = self.get_relink_target(to_bone)
 
 				if c.type=='ARMATURE':
 					# TODO IMPORTANT: This is not running for Ellie's fannypack belt, why??
