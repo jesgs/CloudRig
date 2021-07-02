@@ -1,7 +1,9 @@
 from typing import Dict
 
 import bpy
-from bpy.props import StringProperty, BoolVectorProperty, BoolProperty
+from bpy.props import StringProperty, BoolVectorProperty
+from bpy.types import PropertyGroup, UIList, UI_UL_list
+
 from mathutils import Vector
 from collections import OrderedDict
 from .utils.ui_list import draw_ui_list
@@ -282,7 +284,7 @@ class BoneSetMixin:
 	##############################
 	# UI
 	@classmethod
-	def draw_bone_sets_list(cls, layout, params):
+	def draw_bone_sets_list(cls, layout, context, params):
 		"""Drawing the Bone Sets section of the Rigify Parameters."""
 
 		# If no bone sets are visible, don't draw anything.
@@ -295,9 +297,9 @@ class BoneSetMixin:
 
 		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
 
-		obj = bpy.context.object
+		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
-		active_pb = bpy.context.active_pose_bone
+		active_pb = context.active_pose_bone
 		rigify_params = active_pb.rigify_parameters
 		active_idx = rigify_params.CR_active_bone_set_index
 
@@ -311,7 +313,7 @@ class BoneSetMixin:
 
 		list_column = draw_ui_list(
 			layout
-			,bpy.context
+			,context
 			,class_name = 'CLOUDRIG_UL_bone_set'
 			,list_context_path = 'object.data.cloudrig_parameters.ui_bone_sets'
 			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
@@ -424,7 +426,7 @@ class BoneSetMixin:
 ##########################
 #### Bone Sets UIList ####
 ##########################
-class UIBoneSet(bpy.types.PropertyGroup):
+class UIBoneSet(PropertyGroup):
 	"""This BoneSet implementation is used purely for UI drawing."""
 	# The reason we can't use this for the actual Bone Set class used during generation is that 
 	# the properties of the bone set must be defined during registration, and CollectionProperties
@@ -433,7 +435,7 @@ class UIBoneSet(bpy.types.PropertyGroup):
 	param_name: StringProperty(description="Name of the Rigify Parameter holding the bone group name")
 	layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
 
-class CLOUDRIG_UL_bone_set(bpy.types.UIList):
+class CLOUDRIG_UL_bone_set(UIList):
 	flt_flags = []
 
 	def draw_filter(self, context, layout):
@@ -444,7 +446,7 @@ class CLOUDRIG_UL_bone_set(bpy.types.UIList):
 		flt_neworder = []
 		ui_bone_sets = getattr(data, propname)
 
-		helper_funcs = bpy.types.UI_UL_list
+		helper_funcs = UI_UL_list
 
 		# Always sort alphabetical.
 		flt_neworder = helper_funcs.sort_items_by_name(ui_bone_sets, "name")

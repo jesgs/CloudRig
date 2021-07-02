@@ -54,9 +54,8 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
-    We could reduce the calls to draw_dropdown_menu() by storing the dropdown menu property name on the class, then moving that call to the end of cloud_base.draw_cloud_params.
+    Could do a more central registration process instead of letting every file register itself, we could have a classes_to_register = [] list which are then registered from __init__.
     Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
-    Need to eliminate uses of `bpy.context`, although in some cases it might be a Rigify limitation (should be fixed there too, tbh...)
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
     In cloudrig.py, unify how Character and Rig properties are displayed?
         Character properties support prop_hierarchy, vectors, and labels are defined with a property starting with "$".

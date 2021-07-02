@@ -431,10 +431,11 @@ class CloudBaseRig(
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
+		context = bpy.context	# TODO: Rigify should pass context to parameters_ui.
 
-		layout = cls.draw_cloud_params(layout, bpy.context, params)
+		layout = cls.draw_cloud_params(layout, context, params)
 		layout.separator()
-		cls.draw_bone_sets_list(layout, params)
+		cls.draw_bone_sets_list(layout, context, params)
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):

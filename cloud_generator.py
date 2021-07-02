@@ -127,10 +127,10 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	ui_bone_sets: CollectionProperty(type=UIBoneSet)
 	bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")
 
-def create_selection_sets(obj, metarig):
+def create_selection_sets(obj, metarig, context):
 	# Check if selection sets addon is installed
-	if 'bone_selection_groups' not in bpy.context.preferences.addons \
-			and 'bone_selection_sets' not in bpy.context.preferences.addons:
+	if 'bone_selection_groups' not in context.preferences.addons \
+			and 'bone_selection_sets' not in context.preferences.addons:
 		return
 
 	obj.selection_sets.clear()
@@ -389,7 +389,7 @@ class CloudGenerator(Generator):
 			bone_set.ensure_bone_group(self.obj, overwrite=True)
 
 	### Widget management
-	def ensure_widget_collection(self):
+	def ensure_widget_collection(self, context):
 		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
 		wgt_collection = self.params.cloudrig_parameters.widget_collection
 		if wgt_collection:
@@ -403,7 +403,7 @@ class CloudGenerator(Generator):
 		if not wgt_collection:
 			# Create a Widgets collection within the master collection.
 			wgt_collection = bpy.data.collections.new(coll_name)
-			bpy.context.scene.collection.children.link(wgt_collection)
+			context.scene.collection.children.link(wgt_collection)
 			self.params.cloudrig_parameters.widget_collection = wgt_collection
 			self.metarig.data.cloudrig_parameters.widget_collection = wgt_collection
 
@@ -424,12 +424,13 @@ class CloudGenerator(Generator):
 		return wgt
 
 	def add_to_widget_collection(self, widget_ob):
+		context = self.context
 		if not self.wgt_collection:
 			return
 		if widget_ob.name not in self.wgt_collection.objects:
 			self.wgt_collection.objects.link(widget_ob)
-		if widget_ob.name in bpy.context.scene.collection.objects:
-			bpy.context.scene.collection.objects.unlink(widget_ob)
+		if widget_ob.name in context.scene.collection.objects:
+			context.scene.collection.objects.unlink(widget_ob)
 
 	### Action set-up
 	def create_action_constraints(self):
@@ -632,10 +633,9 @@ class CloudGenerator(Generator):
 					self.driver_map[bone_name] = []
 				self.driver_map[bone_name].append((data_path, fc.array_index))
 
-	def generate(self):
+	def generate(self, context):
 		print("CloudRig Generation begin")
 
-		context = self.context
 		metarig = self.metarig
 		t = Timer()
 
@@ -649,7 +649,7 @@ class CloudGenerator(Generator):
 		# Create/find the rig object and set it up
 		obj = self.create_rig_object()
 		obj.data.pose_position = 'REST'
-		self.context.view_layer.update()	# This is necessary to make sure child object matrices are updated after switching the rig to rest pose!
+		context.view_layer.update()	# This is necessary to make sure child object matrices are updated after switching the rig to rest pose!
 
 		self.nuke_drivers()
 		wipe_ui_data(obj)
@@ -666,7 +666,7 @@ class CloudGenerator(Generator):
 		obj.matrix_world = Matrix()
 
 		# Collection to keep track of bone widgets
-		self.wgt_collection = self.ensure_widget_collection()
+		self.wgt_collection = self.ensure_widget_collection(context)
 
 		self.create_root_bones()
 
@@ -809,7 +809,7 @@ class CloudGenerator(Generator):
 
 		for bi in self.bone_infos:
 			edit_bone = self.obj.data.edit_bones.get(bi.name)
-			bi.write_edit_data(self.obj, edit_bone)
+			bi.write_edit_data(self.obj, edit_bone, context)
 
 		if self.root_bone:
 			self._Generator__parent_bones_to_root()
@@ -905,7 +905,7 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		# Create Selection Sets
-		# create_selection_sets(obj, metarig)	# TODO: Add a toggle to preserve selection sets.
+		# create_selection_sets(obj, metarig, context)	# TODO: Add a toggle to preserve selection sets.
 
 		### Load and execute cloudrig.py rig UI script
 		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
@@ -1038,7 +1038,7 @@ def generate_rig(context, metarig):
 
 	generator = CloudGenerator(context, metarig)
 	try:
-		generator.generate()
+		generator.generate(context)
 	except Exception as e:
 		# Cleanup if something goes wrong
 		generator.cleanup()

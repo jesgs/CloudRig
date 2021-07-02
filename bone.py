@@ -1,4 +1,5 @@
 from typing import List
+from bpy.types import (EditBone, PoseBone, Constraint, Armature, Context, Object)
 
 import bpy
 from idprop.types import IDPropertyArray
@@ -100,7 +101,7 @@ class BoneInfo:
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
-	def __init__(self, bone_set, name="Bone", source: bpy.types.EditBone or BoneInfo = None, **kwargs):
+	def __init__(self, bone_set, name="Bone", source: EditBone or BoneInfo = None, **kwargs):
 		"""
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
@@ -151,7 +152,7 @@ class BoneInfo:
 				self.bbone_width = source.bbone_width
 				if source.parent:
 					self.parent = source.parent
-			elif type(source) == bpy.types.EditBone:
+			elif type(source) == EditBone:
 				self.bbone_x = source.bbone_x
 				self.bbone_z = source.bbone_z
 				if source.parent:
@@ -289,7 +290,7 @@ class BoneInfo:
 
 		return con_info
 
-	def add_constraint_from_real(self, constraint: bpy.types.Constraint):
+	def add_constraint_from_real(self, constraint: Constraint):
 		kwargs = {}
 		skip = ['active', 'bl_rna', 'error_location', 'error_rotation', 'is_proxy_local', 'is_valid', 'rna_type', 'type']
 		for key in dir(constraint):
@@ -336,7 +337,7 @@ class BoneInfo:
 			for d in c.drivers:
 				self.bone_set.rig.relink_driver(d)
 
-	def write_edit_data(self, armature: bpy.types.Armature, edit_bone: bpy.types.EditBone):
+	def write_edit_data(self, armature: Armature, edit_bone: EditBone, context: Context):
 		"""Write relevant data of this BoneInfo into an EditBone."""
 		assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."
 
@@ -366,7 +367,7 @@ class BoneInfo:
 			make_property(eb, prop_name, **prop)
 
 		# Recalculate roll.
-		cursor_backup = bpy.context.scene.cursor.location.copy()
+		cursor_backup = context.scene.cursor.location.copy()
 		if self.roll_type != "":
 			bpy.ops.armature.select_all(action='DESELECT')
 			eb.select = True
@@ -377,13 +378,13 @@ class BoneInfo:
 				else:
 					armature.data.edit_bones.active = active_bone
 			elif self.roll_type == 'CURSOR':
-				bpy.context.scene.cursor.location = self.roll_cursor
+				context.scene.cursor.location = self.roll_cursor
 
 			bpy.ops.armature.calculate_roll(type=self.roll_type)
 			eb.roll += self.roll
-			bpy.context.scene.cursor.location = cursor_backup
+			context.scene.cursor.location = cursor_backup
 
-	def write_pose_data(self, pose_bone: bpy.types.PoseBone):
+	def write_pose_data(self, pose_bone: PoseBone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
 		armature = pose_bone.id_data
 
@@ -467,7 +468,7 @@ class BoneInfo:
 		for b in self.children:
 			b.parent = new_parent
 
-	def get_real(self, rig: bpy.types.Object):
+	def get_real(self, rig: Object):
 		"""If a bone with the name of this BoneInfo exists in the passed rig, return it."""
 		if rig.mode == 'EDIT':
 			return rig.data.edit_bones.get(self.name)

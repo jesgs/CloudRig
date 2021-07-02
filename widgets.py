@@ -8,9 +8,6 @@ from .utils.maths import project_points_on_plane, scale_points_from_center
 import os
 
 def assign_to_collection(obj, collection):
-	if not collection:
-		collection = bpy.context.scene.collection
-
 	if obj.name not in collection.objects:
 		collection.objects.link(obj)
 
@@ -76,6 +73,8 @@ def initiate_widget_generation(name):
 def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
 
+	context = bpy.context
+
 	bpy.ops.object.mode_set(mode='OBJECT')
 	ob_name = initiate_widget_generation(bone.name)
 
@@ -86,7 +85,7 @@ def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 	spline = curve.splines.new('BEZIER')
 	spline.use_cyclic_u = True
 
-	bpy.context.scene.collection.objects.link(obj)
+	context.scene.collection.objects.link(obj)
 
 	if len(coords)<3:
 		# If there are less than 3 coordinates, make some more.
@@ -116,17 +115,17 @@ def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 
 	# Convert to mesh.
 	bpy.ops.object.select_all(action='DESELECT')
-	bpy.context.view_layer.objects.active = obj
+	context.view_layer.objects.active = obj
 	obj.select_set(True)
 	bpy.ops.object.convert(target='MESH')
 
 	# Assign to widget collection.
 	obj.data.name = obj.name
-	bpy.context.scene.collection.objects.unlink(obj)
+	context.scene.collection.objects.unlink(obj)
 	assign_to_collection(obj, rig.generator.wgt_collection)
 
 	# Restore selection and mode.
-	bpy.context.view_layer.objects.active = rig.obj
+	context.view_layer.objects.active = rig.obj
 	rig.obj.select_set(True)
 	bpy.ops.object.mode_set(mode='EDIT')
 

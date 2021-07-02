@@ -414,7 +414,7 @@ class CloudLegRig(CloudLimbRig):
 
 		cls.draw_prop(layout, params, "CR_leg_use_foot_roll")
 		if params.CR_leg_use_foot_roll:
-			cls.draw_prop_search(layout, params, "CR_leg_heel_bone", bpy.context.object.data, "bones", text="Heel Pivot")
+			cls.draw_prop_search(layout, params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
 
 		return layout
 

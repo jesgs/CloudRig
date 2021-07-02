@@ -3,6 +3,8 @@ import os
 
 def load_metarig(metarig_name):
 	"""Append a metarig from MetaRigs.blend."""
+	context = bpy.context # TODO RIGIFY: Should pass context to the metarig create() function.
+	
 	# Delete the metarig object Rigify just created for us in make_metarig_add_execute()
 	bpy.ops.object.mode_set(mode='OBJECT')
 	bpy.ops.object.delete(use_global=True)
@@ -30,17 +32,18 @@ def load_metarig(metarig_name):
 		print("Warning: Failed to load metarig: " + available_name)
 		return
 
-	bpy.context.scene.collection.objects.link(new_metarig)
-	bpy.context.view_layer.objects.active = new_metarig
+	context.scene.collection.objects.link(new_metarig)
+	context.view_layer.objects.active = new_metarig
 	new_metarig.select_set(True)
-	new_metarig.location = bpy.context.scene.cursor.location
+	new_metarig.location = context.scene.cursor.location
 
 def load_sample(rig_name):
 	"""Append a rig sample from MetaRigs.blend, then join it into the currently active armature."""
+	context = bpy.context # TODO RIGIFY: Should pass context
 
 	sample_name = "Sample_"+rig_name
 
-	rig = bpy.context.object
+	rig = context.object
 	bpy.ops.object.mode_set(mode='OBJECT')
 
 	assert sample_name not in bpy.data.objects, "Rig sample exists in the file, delete and purge it!"
@@ -61,11 +64,11 @@ def load_sample(rig_name):
 	assert found, "Sample rig not found in MetaRigs.blend."
 
 	sample_ob = bpy.data.objects.get((sample_name, None))
-	sample_ob.location = bpy.context.scene.cursor.location
-	bpy.context.scene.collection.objects.link(sample_ob)
+	sample_ob.location = context.scene.cursor.location
+	context.scene.collection.objects.link(sample_ob)
 	rig.select_set(True)
 	sample_ob.select_set(True)
-	bpy.context.view_layer.objects.active = rig
+	context.view_layer.objects.active = rig
 	bpy.ops.object.join()
 	bpy.ops.object.mode_set(mode='EDIT')
 

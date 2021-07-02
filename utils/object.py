@@ -10,10 +10,12 @@ class EnsureVisible:
 		self.obj_hide_viewport = obj.hide_viewport
 		self.temp_coll = None
 
+		context = bpy.context
+
 		# If we are in local view, get out of it. TODO: Might be better to instead move the object into local view, but is that possible?
-		area = bpy.context.area
+		area = context.area
 		if area: # TODO: This can sometimes be None, I don't know why, and I don't know how to get the active space in that case!
-			space = bpy.context.area.spaces.active
+			space = context.area.spaces.active
 			if hasattr(space, 'local_view') and space.local_view:
 				bpy.ops.view3d.localview()
 
@@ -23,14 +25,14 @@ class EnsureVisible:
 
 		if not obj.visible_get():
 			# If the object is still not visible, we need to move it to a visible collection. To not break other scripts though, we should restore the active collection afterwards.
-			active_coll = bpy.context.collection
+			active_coll = context.collection
 
 			coll_name = "temp_visible"
 			temp_coll = bpy.data.collections.get(coll_name)
 			if not temp_coll:
 				temp_coll = bpy.data.collections.new(coll_name)
-			if coll_name not in bpy.context.scene.collection.children:
-				bpy.context.scene.collection.children.link(temp_coll)
+			if coll_name not in context.scene.collection.children:
+				context.scene.collection.children.link(temp_coll)
 
 			if obj.name not in temp_coll.objects:
 				temp_coll.objects.link(obj)

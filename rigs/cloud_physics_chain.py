@@ -48,6 +48,8 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 				c.relink()
 
 	def ensure_cloth_object(self, bone_chain: List[BoneInfo]):
+		context = bpy.context
+		
 		cloth_ob = self.params.CR_physics_chain_object
 		if cloth_ob and not self.params.CR_physics_chain_force_regen:
 			return cloth_ob
@@ -56,7 +58,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		if not cloth_ob:
 			# Create physics object.
 			cloth_ob = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
-			bpy.context.scene.collection.objects.link(cloth_ob)
+			context.scene.collection.objects.link(cloth_ob)
 		else:
 			cloth_ob.data = cloth_mesh
 
@@ -119,16 +121,16 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		cloth_mod.settings.vertex_group_mass = pin_name
 
 		bpy.ops.object.mode_set(mode='OBJECT')
-		bpy.context.view_layer.objects.active = cloth_ob
+		context.view_layer.objects.active = cloth_ob
 		cloth_ob.select_set(True)
 		bpy.ops.object.mode_set(mode='EDIT')
-		bpy.context.tool_settings.mesh_select_mode[0] = True
+		context.tool_settings.mesh_select_mode[0] = True
 		bpy.ops.mesh.select_all(action='SELECT')
 		# bpy.ops.mesh.extrude_region()
 		bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value":(0, 0.01, 0)})
 		bpy.ops.object.mode_set(mode='OBJECT')
 
-		bpy.context.view_layer.objects.active = self.obj
+		context.view_layer.objects.active = self.obj
 		bpy.ops.object.mode_set(mode='EDIT')
 		self.params.CR_physics_chain_object = cloth_ob
 		self.meta_base_bone.rigify_parameters.CR_physics_chain_object = cloth_ob
@@ -184,12 +186,13 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 
 	def finalize(self):
 		cloth_ob = self.params.CR_physics_chain_object
+		context = bpy.context
 
 		if self.params.CR_physics_chain_make_ctrl:
 			# Move armature modifier to top of the stack
-			bpy.context.view_layer.objects.active = cloth_ob
+			context.view_layer.objects.active = cloth_ob
 			bpy.ops.object.modifier_move_to_index(modifier='Armature', index=0)
-			bpy.context.view_layer.objects.active = self.obj
+			context.view_layer.objects.active = self.obj
 			cloth_ob.parent = None
 		else:
 			# Parent cloth object.

@@ -391,5 +391,6 @@ def create_sample(obj):
 	# load_sample_by_file() does not deal with additional dependent objects,
 	# so we have to bring the curve object into the scene collection.
 	curve_ob = bpy.data.objects.get(("cloud_curve", None))
-	bpy.context.scene.collection.objects.link(curve_ob)
-	curve_ob.location = bpy.context.scene.cursor.location
+	context = bpy.context
+	context.scene.collection.objects.link(curve_ob)
+	curve_ob.location = context.scene.cursor.location
