@@ -151,7 +151,7 @@ class CloudFaceChainRig(CloudChainRig):
 				b.layers = b.owner_rig.sub_controls.layers[:]
 				if b.parent.name.startswith("STR-I"):
 					# print(f"{b.name} - This should never happen because every STR bone should only be passed to ensure_intersection_control() once!")
-					# TODO: I thought this should never happen, but it dooo
+					# TODO: This does happen! Why??
 					intersection_control = b.parent
 					break
 
@@ -159,12 +159,6 @@ class CloudFaceChainRig(CloudChainRig):
 			combined_name = rig.naming.combine_names(bones)
 			# TODO: This does something funky for combining bones with Cheek and Chin.
 			# Eg., STR-TIP-Chin.L + STR-TIP-Cheek1.L + STR-TIP-Cheek3_2.L = STR-I-Cheek1+eek3_2+in.L
-
-			# If the combined name is too long for a bone name (63 chars), ignore bones until the name is short enough.
-			for i in range(1, len(bones)-1):
-				if len(combined_name) < 60:
-					break
-				combined_name = rig.naming.combine_names(bones[:-i])
 
 			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.

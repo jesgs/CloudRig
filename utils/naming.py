@@ -33,11 +33,8 @@ class CloudNameManager:
 
 	def combine_names(self, things) -> str:
 		names = []
-		for t in things:
-			if hasattr(t, 'name'):
-				names.append(t.name)
-			else:
-				names.append(str(t))
+		for thing in things:
+			names.append(get_name(thing))
 
 		return combine_bone_names(names)
 
@@ -104,70 +101,67 @@ def strip_trailing_numbers(name) -> Tuple[str, str]:
 
 
 def combine_bone_names(names) -> str:
-	"""Combine multiple bone names into one."""
+	"""Combine multiple bone names into one by:
+	- Removing duplicate pre and suffixes
+	- Cancelling out left/right suffixes
+	- Combining name bases separated by "+" while ignoring duplicate matching characters 
+	- Limiting to a max of 59 characters
+	Eg., "Lip_Upper.L" + "Lip_Lower.R" -> "Lip_Upper+Lower")
+	"""
+
+	slices = [slice_name(n) for n in names]
+
+	prefixes = []
+	for slice in slices:
+		for prefix in slice[0]:
+			if prefix not in prefixes:
+				prefixes.append(prefix)
+
+	suffixes = []
+	for slice in slices:
+		for suffix in slice[2]:
+			if suffix not in suffixes:
+				suffixes.append(suffix)
+
+	bases = list(set([s[1] for s in slices]))
+
+	# If matching pairs of side suffixes are in the suffix list, remove both.
+	# For example, if L and R are both present, remove them.
+	for suf in suffixes:
+		flip_suf = flip_name(suf)
+		if flip_suf != suf and flip_suf in suffixes:
+			suffixes.remove(suf)
+			suffixes.remove(flip_suf)
+
 
 	### Combine bases
-	bases_nonunique = [slice_name(n)[1] for n in names]
-	bases = set(bases_nonunique)
-	bases_cropped = list(bases)
-
 	shortest_base = sorted(bases, key=lambda b: len(b))[0]	# Sort by length and pick the first one.
 
 	base_start = ""
 	# Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
 	for i, char in enumerate(shortest_base):
-		matching=True
-		for base in bases:
-			if char!=base[i]:
-				matching=False
-				break
+		matching = all([base[i]==char for base in bases])
 		if matching:
 			base_start += char
-			bases_cropped = [base[1:] for base in bases_cropped]
-			i-=1
+			bases = [base[1:] for base in bases]
+			i -= 1
+			continue
 		else:
 			break
-	final_base = base_start
-	for i, base in enumerate(sorted(bases_cropped)):
-		if base!="":
-			if i!=0:
-				final_base += "+"
-			final_base += base
 
-	def combine_extensions(list_of_extensions: List[List[str]]) -> List[str]:
-		"""Combine a list of suffixes or prefixes by removing duplicates
-		and then removing matching side pairs.
+	# Make sure total name length doesn't exceed 59 characters.
+	while True:
+		pref_len = max(0, sum([len(p) for p in prefixes]) + len(prefixes) - 1)
+		suf_len = max(0, sum([len(s) for s in suffixes]) + len(suffixes) - 1)
+		base_len = len(base_start) + sum([len(base) for base in bases]) + len(bases) - 1
+		tot_name_length = pref_len + suf_len + base_len
+		if tot_name_length < 60:
+			break
+		bases.pop()
 
-		Eg. for the input ["Left", "Left", "Right", "STR", "STR", "I"]
-		return ["STR", "I"].
-		"""
+	combined_name = make_name(prefixes, base_start+"+".join(bases), suffixes)
 
-		# Remove duplicates
-		nonunique = [slice_name(n)[2] for n in names]
-		unique: List[str] = []
-		for extensions in list_of_extensions:
-			for ext in extensions:
-				if ext not in unique:
-					unique.append(ext)
-
-		# If matching pairs of side suffixes are in the suffix list, remove both.
-		# For example, if L and R are both present, remove them.
-		for ext in unique:
-			flip_ext = flip_name(ext)
-			if flip_ext != ext and flip_ext in unique:
-				unique.remove(ext)
-				unique.remove(flip_ext)
-
-		return unique
-
-	### Combine suffixes
-	suffixes = combine_extensions([slice_name(n)[2] for n in names])
-
-	### Combine prefixes
-	prefixes = combine_extensions([slice_name(n)[0] for n in names])
-
-	### Combine and return the result
-	return make_name(prefixes, final_base, suffixes)
+	return combined_name
 
 
 def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[str]]:
