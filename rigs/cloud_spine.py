@@ -6,10 +6,10 @@ from .cloud_base import CloudBaseRig
 
 """TODO
 Re-implement FK-C bones (maybe under a param)
-	Their values would probably have to be dependent on the length of the bone. Ie, a long bone should slide more when it's rotated, compared to a short bone.
-
+	Their values would probably have to be dependent on the length of the bone. 
+	Ie., longer bones slide more when rotated.
 Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone?
-TODO: This errors without an assert when it's just a single bone. Should be supported.
+Errors without an assert when it's just a single bone. Should be supported.
 """
 
 class CloudSpineRig(CloudFKChainRig):
@@ -43,6 +43,8 @@ class CloudSpineRig(CloudFKChainRig):
 		self.ik_prop_name = "ik_" + self.spine_name.lower()
 		self.ik_stretch_name = "ik_stretch_" + self.spine_name.lower()
 
+		self.root_torso = None
+
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
 		self.spine_main			= self.ensure_bone_set("Spine Main Controls")
@@ -50,33 +52,13 @@ class CloudSpineRig(CloudFKChainRig):
 		self.spine_ik_secondary	= self.ensure_bone_set("Spine IK Secondary")
 		self.spine_mch			= self.ensure_bone_set("Spine Mechanism")
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
-
-		if self.params.CR_spine_use_ik:
-			self.make_ik_spine()
-		self.tweak_str_spine()
-
-		if self.params.CR_spine_double:
-			self.create_parent_bone(self.limb_root_bone, self.spine_parent_ctrls)
-
-	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		"""Overrides cloud_base."""
-		if not bone:
-			bone = self.limb_root_bone
-			if self.params.CR_spine_double:
-				bone = bone.parent
-		if parent_name=="":
-			parent_name = self.params.CR_base_parent
-		self.bendy_parenting(bone, parent_name)
-
 	def make_root_bone(self):
 		"""Overrides cloud_fk_chain."""
 
 		# Create Torso Master control
 		limb_root_bone = self.spine_main.new(
 			name 		  = self.naming.make_name(["MSTR"], self.spine_name+"_Torso", [self.side_suffix])
-			,parent		  = self.root_bone
+			,parent		  = self.org_chain[0].parent
 			,source 	  = self.org_chain[0]
 			,head 		  = self.org_chain[0].center
 			,custom_shape = self.ensure_widget("Torso_Master")
@@ -94,10 +76,10 @@ class CloudSpineRig(CloudFKChainRig):
 				,head				= self.org_chain[0].center
 				,custom_shape 		= self.ensure_widget("Hips")
 				,custom_shape_scale	= 0.7
-				,parent				= self.limb_root_bone
+				,parent				= self.root_bone
 		)
 		if self.params.CR_spine_world_align:
-			self.limb_root_bone.flatten()
+			self.root_bone.flatten()
 
 		# Shift FK controls to their center.
 		for fk_bone in self.fk_chain:
@@ -106,7 +88,21 @@ class CloudSpineRig(CloudFKChainRig):
 				fk_bone.prev.tail = fk_bone.head
 
 		# Parent the first one to MSTR-Torso.
-		self.fk_chain[0].parent = self.limb_root_bone
+		self.fk_chain[0].parent = self.root_bone
+
+	def create_bone_infos(self):
+		super().create_bone_infos()
+		# If we want to parent things to the root bone, we use self.root_torso.
+		# However, for CR_spine_double to work, self.root_bone must be the bone 
+		# returned from create_parent_bone().
+		self.root_torso = self.root_bone
+
+		if self.params.CR_spine_use_ik:
+			self.make_ik_spine()
+		self.tweak_str_spine()
+
+		if self.params.CR_spine_double:
+			self.root_bone = self.create_parent_bone(self.root_torso, self.spine_parent_ctrls)
 
 	def make_ik_spine(self):
 		### Create master chest control
@@ -117,7 +113,7 @@ class CloudSpineRig(CloudFKChainRig):
 				,tail 				= self.org_chain[-2].center + Vector((0, 0, self.scale))
 				,custom_shape 		= self.ensure_widget("Chest_Master")
 				,custom_shape_scale = 0.7
-				,parent				= self.limb_root_bone
+				,parent				= self.root_torso
 			)
 
 		if self.params.CR_spine_double:
@@ -154,7 +150,7 @@ class CloudSpineRig(CloudFKChainRig):
 				ik_ctr_bone.parent = self.mstr_chest
 			else:
 				# The rest to the torso root.
-				ik_ctr_bone.parent = self.limb_root_bone
+				ik_ctr_bone.parent = self.root_torso
 			self.ik_ctr_chain.append(ik_ctr_bone)
 
 		### Reverse IK (IK-R) chain. Damped track to IK-CTR of one lower index.
@@ -276,10 +272,11 @@ class CloudSpineRig(CloudFKChainRig):
 				str_bone.parent = self.fk_chain[-2]
 
 	def attach_org_to_fk(self):
-		"""Overrides."""
-
-		# Parent ORG to FK. This is only important because STR- bones are owned by ORG- bones.
-		# We want each FK bone to control the STR- bone of one higher index, eg. FK-Spine0 would control STR-Spine1.
+		"""Overrides cloud_fk_chain.
+		Parent ORG to FK. This is important because STR- bones are owned by ORG- bones.
+		We want each FK bone to control the STR- bone of one higher index, 
+		eg. FK-Spine0 would control STR-Spine1.
+		"""
 		for i, org_bone in enumerate(self.org_chain):
 			if i == 0:
 				# First STR bone should by owned by the hips.

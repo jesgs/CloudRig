@@ -48,19 +48,19 @@ class CloudFKChainRig(CloudChainRig):
 		if self.params.CR_fk_chain_root:
 			# This has to come before make_fk_chain() so inheriting rig classes
 			# that override make_fk_chain() can expect root bone to already exist.
-			self.limb_root_bone = self.make_root_bone()
+			self.root_bone = self.make_root_bone()
 
 		self.make_fk_chain()
 
-		if not hasattr(self, 'limb_root_bone'):
-			self.limb_root_bone = self.fk_chain[0]
+		if self.root_bone == self.org_chain[0]:
+			self.root_bone = self.fk_chain[0]
 
 		# Default root parenting
 		if self.params.CR_fk_chain_root:
 			if not self.params.CR_fk_chain_hinge:
 				# TODO: This is messy, and could use unit tests to be able to change this code without messing something up.
-				self.fk_chain[0].parent = self.limb_root_bone
-			self.limb_root_bone.parent = self.org_chain[0].parent
+				self.fk_chain[0].parent = self.root_bone
+			self.root_bone.parent = self.org_chain[0].parent
 
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
@@ -79,22 +79,6 @@ class CloudFKChainRig(CloudChainRig):
 				for d in c.drivers:
 					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
-
-	def apply_parent_switching(self, parent_slots, 
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
-		):
-		"""Overrides cloud_base."""
-		if child_bone==None:
-			child_bone = self.limb_root_bone
-		super().apply_parent_switching(parent_slots, child_bone, prop_bone, prop_name, ui_area, row_name, col_name)
-
-	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		"""Overrides cloud_base."""
-		if not bone:
-			bone = self.limb_root_bone
-		super().apply_custom_root_parent(bone, parent_name)
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
@@ -144,7 +128,7 @@ class CloudFKChainRig(CloudChainRig):
 				bone		 = hng_child
 				,bone_set	 = self.fk_mch
 				,category	 = self.category
-				,parent_bone = self.limb_root_bone
+				,parent_bone = self.root_bone
 				,hng_name	 = self.base_bone.replace("ORG", "FK-HNG")
 				,prop_bone	 = self.properties_bone
 				,prop_name	 = self.fk_hinge_name
@@ -263,7 +247,7 @@ class CloudFKChainRig(CloudChainRig):
 		# Add Copy Transforms constraints targetting FK.
 		for i, org_bone in enumerate(self.org_chain):
 			if i==0 and self.params.CR_fk_chain_root:
-				org_bone.parent = self.limb_root_bone
+				org_bone.parent = self.root_bone
 			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))
 
 			con = org_bone.add_constraint('COPY_TRANSFORMS'

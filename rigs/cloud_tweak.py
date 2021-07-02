@@ -23,7 +23,7 @@ class CloudTweakRig(CloudBaseRig):
 			orgless_name = self.base_bone.replace("ORG-", "", 1)
 			meta_bone = self.meta_bone(orgless_name)
 
-		self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
+		self.root_bone = self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
 		org_bi = self.org_chain[0]
 
 		if not self.tweak_bone:
@@ -136,26 +136,6 @@ class CloudTweakRig(CloudBaseRig):
 			# Remove actual bpy drivers, as their re-linked version will be created later by the generator.
 			for d in c.drivers:
 				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
-
-	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		"""Overrides cloud_base."""
-		if not self.tweak_bone:
-			return
-		super().apply_custom_root_parent(self.tweak_bone)
-
-	def apply_parent_switching(self, parent_slots, 
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
-		):
-		super().apply_parent_switching(parent_slots
-			,child_bone = self.tweak_bone
-			,prop_bone = prop_bone
-			,prop_name = prop_name
-			,ui_area = ui_area
-			,row_name = row_name
-			,col_name = col_name
-		)
 
 	##############################
 	# Parameters

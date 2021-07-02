@@ -23,40 +23,22 @@ class CloudLatticeRig(CloudBaseRig):
 		super().create_bone_infos()
 		org_bi = self.org_chain[0]
 
-		self.root_bone = self.make_root_ctrl(org_bi)
-		self.hook_bone = self.make_hook_ctrl(self.root_bone)
+		self.lattice_root = self.make_lattice_root_ctrl(org_bi)
+		self.hook_bone = self.make_hook_ctrl(self.lattice_root)
 
 	def relink(self):
 		"""Override cloud_base.
-		Move constraints from the ORG to the ROOT bone and relink them.
+		Move constraints from the ORG to the Lattice Root bone and relink them.
 		"""
 		org = self.org_chain[0]
 		for c in org.constraint_infos:
-			self.root_bone.constraint_infos.append(c)
+			self.lattice_root.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
 			for d in c.drivers:
 				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
 
-	def apply_parent_switching(self, parent_slots, 
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
-		):
-		super().apply_parent_switching(parent_slots
-			,child_bone = self.root_bone
-			,prop_bone = prop_bone
-			,prop_name = prop_name
-			,ui_area = ui_area
-			,row_name = row_name
-			,col_name = col_name
-		)
-
-	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		"""Overrides cloud_base."""
-		super().apply_custom_root_parent(self.root_bone)
-
-	def make_root_ctrl(self, org_bi):
+	def make_lattice_root_ctrl(self, org_bi):
 		name_parts = self.naming.slice_name(org_bi)
 		root_name = self.naming.make_name(['ROOT', 'LTC'], name_parts[1], name_parts[2])
 		root_bone = self.lattice_ctrls.new(

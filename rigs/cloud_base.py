@@ -105,10 +105,9 @@ class CloudBaseRig(
 		parent = self.get_bone(self.base_bone).parent
 		self.bones.parent = parent.name if parent else ""
 
-		# Get a reference to the Root bone from the generator.
+		# Reference to the rig's own root bone which should be filled in during create_bone_infos()
+		# Used for the "Custom Root Parent" feature.
 		self.root_bone = None
-		if self.generator_params.cloudrig_parameters.create_root:
-			self.root_bone = self.generator.root_bone
 
 		self.update_forced_params()
 
@@ -188,6 +187,7 @@ class CloudBaseRig(
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
+		self.root_bone = self.org_chain[0]
 
 	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
@@ -196,7 +196,7 @@ class CloudBaseRig(
 		):
 		"""Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
 		if not child_bone:
-			child_bone = self.org_chain[0]
+			child_bone = self.root_bone
 		if not prop_bone:
 			prop_bone = self.properties_bone
 		if prop_name=="":
@@ -293,7 +293,7 @@ class CloudBaseRig(
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		if not bone:
-			bone = self.org_chain[0]
+			bone = self.root_bone
 		if parent_name == "":
 			parent_name = self.params.CR_base_parent
 
@@ -301,7 +301,7 @@ class CloudBaseRig(
 
 	def relink(self):
 		# Relink the base bone.
-		bi = self.org_chain[0]
+		bi = self.root_bone
 		bi.relink()
 
 	def load_org_bone_infos(self):

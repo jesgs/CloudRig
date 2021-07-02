@@ -195,7 +195,7 @@ class CloudLegRig(CloudLimbRig):
 			name		 = self.org_chain[0].name.replace("ORG", "IK-STR-ROLL")
 			,source		 = self.org_chain[0]
 			,tail		 = self.ik_mstr.head.copy()
-			,parent		 = self.limb_root_bone.name
+			,parent		 = self.root_bone
 			,hide_select = self.mch_disable_select
 		)
 		rolly_stretchy.scale_width(0.4)

@@ -34,7 +34,7 @@ class CloudAimRig(CloudBaseRig):
 		aim_bone = self.make_aim_helper(aim_org)
 
 		if self.params.CR_aim_root:
-			self.aim_root = self.make_root_bone(aim_org)
+			self.root_bone = self.make_root_bone(aim_org)
 		self.group_master = None
 		if self.params.CR_aim_group!="":
 			self.group_master = self.ensure_group_master()
@@ -180,13 +180,6 @@ class CloudAimRig(CloudBaseRig):
 			for d in c.drivers:
 				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
-
-	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		"""Overrides cloud_base."""
-		if self.params.CR_aim_root:
-			super().apply_custom_root_parent(self.aim_root)
-		else:
-			super().apply_custom_root_parent(self.org_chain[0])
 
 	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
