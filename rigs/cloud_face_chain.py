@@ -8,7 +8,7 @@ from .cloud_chain import CloudChainRig
 from .cloud_chain_anchor import CloudChainAnchorRig
 
 class CloudFaceChainRig(CloudChainRig):
-	"""Chain with cartoony squash and stretch controls, with modifications and extra features for face rigs."""
+	"""Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
 	relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone's head, or tail if the constraint name is prefixed with \"TAIL-\". If the STR bone is part of an intersection, the constraint is moved to the STR-I intersection control instead."
 
@@ -25,7 +25,7 @@ class CloudFaceChainRig(CloudChainRig):
 
 	def ensure_bone_sets(self):
 		super().ensure_bone_sets()
-		# This bone set is special in that its .new() function should never be
+		# The sub_controls set is special in that its .new() function should never be
 		# called, and therefore it never creates any bones. However, pre-existing
 		# STR bones who then had a merged control created for them will be assigned
 		# the bone group and layer of this BoneSet.
@@ -128,22 +128,22 @@ class CloudFaceChainRig(CloudChainRig):
 
 	@staticmethod
 	def ensure_intersection_control(bones):
-		""" Ensure that all bones share the same parent control.
+		""" Ensure that all passed bones share the same parent control.
 			If this is not the case, create it and parent them.
 		"""
 
 		rig = bones[0].owner_rig
 
 		intersection_control = None
-		flatten = True
+		have_anchor = False
 		# Search for an anchor rig
-		for anchor_rig in rig.generator.rig_list:
-			if isinstance(anchor_rig, CloudChainAnchorRig):
-				distance = (anchor_rig.org_chain[0].head - bones[0].head).length
-				if distance < 0.000001:
-					intersection_control = anchor_rig.org_chain[0]
-					flatten = False
-					break
+		anchor_rigs = [r for r in rig.generator.rig_list if isinstance(r, CloudChainAnchorRig)]
+		for anchor_rig in anchor_rigs:
+			distance = (anchor_rig.org_chain[0].head - bones[0].head).length
+			if distance < 0.000001:
+				intersection_control = anchor_rig.org_chain[0]
+				have_anchor = True
+				break
 
 		# Check the bones' parents to see if the desired control was already created.
 		if not intersection_control:
@@ -157,8 +157,6 @@ class CloudFaceChainRig(CloudChainRig):
 
 		if not intersection_control:
 			combined_name = rig.naming.combine_names(bones)
-			# TODO: This does something funky for combining bones with Cheek and Chin.
-			# Eg., STR-TIP-Chin.L + STR-TIP-Cheek1.L + STR-TIP-Cheek3_2.L = STR-I-Cheek1+eek3_2+in.L
 
 			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
@@ -177,16 +175,17 @@ class CloudFaceChainRig(CloudChainRig):
 
 		# If bones are in the center, flatten them to make sure they produce a clean curvature.
 		if abs(intersection_control.head.x) < 0.001:
-			if flatten:
-				intersection_control.vector = Vector((0, 0, intersection_control.length))	# TODO: be nicer to make it aligned with whatever axis the rest of the bones are closest to, instead of arbitrarily the up axis.
+			if not have_anchor:
+				intersection_control.vector = Vector((0, 0, intersection_control.length))
 				intersection_control.roll = 0
 			for b in bones:
 				flipped = rig.naming.flipped_name(b)
-				if flipped!=b.name:
+				if flipped != b.name:
 					b.vector = rig.flat_vector(b.vector)
 					if hasattr(b, 'tangent_helper'):
 						b.tangent_helper.vector = rig.flat_vector(b.tangent_helper.vector)
 
+		# Parent the bones
 		for str_bone in bones:
 			if hasattr(str_bone, 'merged_control'):
 				continue

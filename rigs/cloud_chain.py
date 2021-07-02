@@ -58,8 +58,8 @@ class CloudChainRig(CloudBaseRig):
 	def move_and_relink_constraints(self):
 		"""Move constraints from ORG bones to main STR bones and relink them.
 
-		If the constraint name contains 'TAIL', we assume the constraint is meant
-		for the STR bone at the tip or the ORG bone rather than at the head.
+		If the constraint name contains 'TAIL', we move the constraint
+		to the STR bone at the tip of the ORG bone rather than at the head.
 
 		If the constraint type is Armature, create a parent helper bone to prevent
 		the parenting from affecting the local matrix.

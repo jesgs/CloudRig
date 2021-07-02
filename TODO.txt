@@ -54,7 +54,6 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
-    I hate the DefaultLayers enum, would rather it be a module-level dictionary or so.
     move_and_relink_constraints() in cloud_chain and cloud_face_chain is a bit awkward. (Relinking already implies moving the constraint, we just split it off for inheritance reasons)
     cloud_base should define self.root_bone = self.org_chain[0], then use self.root_bone in relink(), apply_custom_root_parent() and apply_parent_switching(). That way a bunch of sub-classes won't have to override those behaviours, since they will just overrite self.root_bone.
         In the same go, self.root_bone needs to become consistent across rig classes. Some call it self.root_control, some self.limb_root_bone, etc.
@@ -82,10 +81,6 @@ Priority 4: Code quality
         We could instead maybe have a self.bone_sets[] that's automatically populated based on class information on initialize(), and then accessed as strings, eg.
         instead of self.def_chain it'd be self.bone_sets['DEF']. We could make our own class BoneSets(dict) if we want to execute custom code on keyword access.
         All of this existed before but was deemed clunky - maybe it wasn't.
-    I also hate the "enum" cls.default_layers. it's basically just an immutable dictionary, it's lame af. Would rather just have a class with mutable class vars, ie.
-    class DefaultLayers:
-        IK = 16
-    and then just import that everywhere. Or cls.DefaultLayers.IK. Can we put a class within a class?
 
     Bring up to date how we pass armature constraints to make_constraint() (D9092)
         This will break backwards comp though, so should create a tag accordingly.
