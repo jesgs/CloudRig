@@ -45,22 +45,15 @@ class CloudSpineRig(CloudFKChainRig):
 
 		self.root_torso = None
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.spine_main			= self.ensure_bone_set("Spine Main Controls")
-		self.spine_parent_ctrls	= self.ensure_bone_set("Spine Parent Controls")
-		self.spine_ik_secondary	= self.ensure_bone_set("Spine IK Secondary")
-		self.spine_mch			= self.ensure_bone_set("Spine Mechanism")
-
 	def make_root_bone(self):
 		"""Overrides cloud_fk_chain."""
 
 		# Create Torso Master control
-		limb_root_bone = self.spine_main.new(
+		limb_root_bone = self.bone_sets['Spine Main Controls'].new(
 			name 		  = self.naming.make_name(["MSTR"], self.spine_name+"_Torso", [self.side_suffix])
-			,parent		  = self.org_chain[0].parent
-			,source 	  = self.org_chain[0]
-			,head 		  = self.org_chain[0].center
+			,parent		  = self.bone_sets['Original Bones'][0].parent
+			,source 	  = self.bone_sets['Original Bones'][0]
+			,head 		  = self.bone_sets['Original Bones'][0].center
 			,custom_shape = self.ensure_widget("Torso_Master")
 		)
 		return limb_root_bone
@@ -70,10 +63,10 @@ class CloudSpineRig(CloudFKChainRig):
 		super().make_fk_chain()
 
 		# Create master hip control
-		self.mstr_hips = self.spine_main.new(
+		self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
 				name				= self.naming.make_name(["MSTR"], self.spine_name+"_Hips", [self.side_suffix])
-				,source				= self.org_chain[0]
-				,head				= self.org_chain[0].center
+				,source				= self.bone_sets['Original Bones'][0]
+				,head				= self.bone_sets['Original Bones'][0].center
 				,custom_shape 		= self.ensure_widget("Hips")
 				,custom_shape_scale	= 0.7
 				,parent				= self.root_bone
@@ -82,13 +75,13 @@ class CloudSpineRig(CloudFKChainRig):
 			self.root_bone.flatten()
 
 		# Shift FK controls to their center.
-		for fk_bone in self.fk_chain:
+		for fk_bone in self.bone_sets['FK Controls']:
 			fk_bone.head = fk_bone.center
 			if fk_bone.prev:
 				fk_bone.prev.tail = fk_bone.head
 
 		# Parent the first one to MSTR-Torso.
-		self.fk_chain[0].parent = self.root_bone
+		self.bone_sets['FK Controls'][0].parent = self.root_bone
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -102,31 +95,31 @@ class CloudSpineRig(CloudFKChainRig):
 		self.tweak_str_spine()
 
 		if self.params.CR_spine_double:
-			self.root_bone = self.create_parent_bone(self.root_torso, self.spine_parent_ctrls)
+			self.root_bone = self.create_parent_bone(self.root_torso, self.bone_sets['Spine Parent Controls'])
 
 	def make_ik_spine(self):
 		### Create master chest control
-		self.mstr_chest = self.spine_main.new(
+		self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
 				name				= f"MSTR-{self.spine_name}_Chest"
-				,source 			= self.org_chain[-2]
-				,head				= self.org_chain[-2].center
-				,tail 				= self.org_chain[-2].center + Vector((0, 0, self.scale))
+				,source 			= self.bone_sets['Original Bones'][-2]
+				,head				= self.bone_sets['Original Bones'][-2].center
+				,tail 				= self.bone_sets['Original Bones'][-2].center + Vector((0, 0, self.scale))
 				,custom_shape 		= self.ensure_widget("Chest_Master")
 				,custom_shape_scale = 0.7
 				,parent				= self.root_torso
 			)
 
 		if self.params.CR_spine_double:
-			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.spine_parent_ctrls)
+			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
 
 		if self.params.CR_spine_world_align:
 			self.mstr_hips.flatten()
 
 		### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
 		self.ik_ctr_chain = []
-		for i, org_bone in enumerate(self.org_chain):
+		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
 			fk_bone = org_bone.fk_bone
-			ik_ctr_bone = self.spine_ik_secondary.new(
+			ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
 				name				= fk_bone.name.replace("FK", "IK-CTR")
 				,source				= fk_bone
 				,custom_shape 		= self.ensure_widget("Oval")
@@ -138,14 +131,14 @@ class CloudSpineRig(CloudFKChainRig):
 					,influence = 0.5
 					,use_xyz   = [False, True, False]
 				)
-			if i == len(self.org_chain)-3:
+			if i == len(self.bone_sets['Original Bones'])-3:
 				ik_ctr_bone.add_constraint('COPY_ROTATION'
 					,subtarget = self.mstr_chest.name
 					,influence = 0.5
 					,use_xyz   = [False, True, False]
 				)
 
-			if i >= len(self.org_chain)-2:
+			if i >= len(self.bone_sets['Original Bones'])-2:
 				# Last two spine controls should be parented to the chest control.
 				ik_ctr_bone.parent = self.mstr_chest
 			else:
@@ -156,10 +149,10 @@ class CloudSpineRig(CloudFKChainRig):
 		### Reverse IK (IK-R) chain. Damped track to IK-CTR of one lower index.
 		next_parent = self.mstr_chest
 		self.ik_r_chain = []
-		for i, org_bone in enumerate(reversed(self.org_chain[1:])):	# We skip the first spine.
+		for i, org_bone in enumerate(reversed(self.bone_sets['Original Bones'][1:])):	# We skip the first spine.
 			fk_bone = org_bone.fk_bone
 			ik_r_name = fk_bone.name.replace("FK", "IK-R")
-			org_bone.ik_r_bone = ik_r_bone = self.spine_mch.new(
+			org_bone.ik_r_bone = ik_r_bone = self.bone_sets['Spine Mechanism'].new(
 				name		 = ik_r_name
 				,source 	 = fk_bone
 				,head		 = fk_bone.head
@@ -170,20 +163,20 @@ class CloudSpineRig(CloudFKChainRig):
 			next_parent = ik_r_bone
 			self.ik_r_chain.append(ik_r_bone)
 			ik_r_bone.add_constraint('DAMPED_TRACK',
-				subtarget = self.ik_ctr_chain[len(self.org_chain)-i-2].name
+				subtarget = self.ik_ctr_chain[len(self.bone_sets['Original Bones'])-i-2].name
 			)
 
 		# IK chain
 		next_parent = self.mstr_hips # First IK bone is parented to MSTR-Hips.
 		self.ik_chain = []
-		for i, org_bone in enumerate(self.org_chain):
+		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
 			fk_bone = org_bone.fk_bone
 			ik_name = fk_bone.name.replace("FK", "IK")
-			ik_bone = self.spine_mch.new(
+			ik_bone = self.bone_sets['Spine Mechanism'].new(
 				name		 = ik_name
 				,source		 = fk_bone
-				,head		 = fk_bone.prev.head if i>0 else self.def_chain[0].head
-				,tail		 = fk_bone.head if i>0 else self.fk_chain[0].head
+				,head		 = fk_bone.prev.head if i>0 else self.bone_sets['Deform Bones'][0].head
+				,tail		 = fk_bone.head if i>0 else self.bone_sets['FK Controls'][0].head
 				,parent		 = next_parent
 				,hide_select = self.mch_disable_select
 			)
@@ -192,7 +185,7 @@ class CloudSpineRig(CloudFKChainRig):
 
 			damped_track_target = None
 			head_tail = 1
-			if i == len(self.org_chain)-1:
+			if i == len(self.bone_sets['Original Bones'])-1:
 				# Special treatment for last IK bone...
 				damped_track_target = self.ik_ctr_chain[-1].name
 				head_tail = 0
@@ -213,7 +206,7 @@ class CloudSpineRig(CloudFKChainRig):
 				)
 
 				# Influence driver
-				influence_unit = 1 / (len(self.org_chain)-1)
+				influence_unit = 1 / (len(self.bone_sets['Original Bones'])-1)
 				influence = influence_unit * i
 
 				str_con.drivers.append({
@@ -237,7 +230,7 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Attach FK to IK
 		for i, ik_bone in enumerate(self.ik_chain[1:]):
-			fk_bone = self.fk_chain[i]
+			fk_bone = self.bone_sets['FK Controls'][i]
 			con_name = "Copy Transforms IK"
 			ct_con = fk_bone.add_constraint('COPY_TRANSFORMS'
 				,space	   = 'WORLD'
@@ -267,9 +260,9 @@ class CloudSpineRig(CloudFKChainRig):
 		""" We need to parent the last non-tip STR control to the 2nd-to-last FK control,
 		otherwise that FK control's rotation disconnects the spine from itself."""
 		# TODO: Why isn't this parenting done in the same place where STR bones get parented normally?
-		for i, str_bone in enumerate(self.str_chain):
-			if i == len(self.str_chain) - 1 - self.params.CR_chain_tip_control:
-				str_bone.parent = self.fk_chain[-2]
+		for i, str_bone in enumerate(self.bone_sets['Stretch Controls']):
+			if i == len(self.bone_sets['Stretch Controls']) - 1 - self.params.CR_chain_tip_control:
+				str_bone.parent = self.bone_sets['FK Controls'][-2]
 
 	def attach_org_to_fk(self):
 		"""Overrides cloud_fk_chain.
@@ -277,29 +270,29 @@ class CloudSpineRig(CloudFKChainRig):
 		We want each FK bone to control the STR- bone of one higher index, 
 		eg. FK-Spine0 would control STR-Spine1.
 		"""
-		for i, org_bone in enumerate(self.org_chain):
+		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
 			if i == 0:
 				# First STR bone should by owned by the hips.
 				org_bone.parent = self.mstr_hips
-			elif i == len(self.org_chain)-1:
-				org_bone.parent = self.fk_chain[-1]
+			elif i == len(self.bone_sets['Original Bones'])-1:
+				org_bone.parent = self.bone_sets['FK Controls'][-1]
 			else:
-				org_bone.parent = self.fk_chain[i-1]
+				org_bone.parent = self.bone_sets['FK Controls'][i-1]
 
 		if self.params.CR_chain_tip_control:
-			self.str_chain[-1].parent = self.fk_chain[-1]
+			self.bone_sets['Stretch Controls'][-1].parent = self.bone_sets['FK Controls'][-1]
 
 	##############################
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
-		super().define_bone_sets(params)
+	def add_bone_set_parameters(cls, params):
+		super().add_bone_set_parameters(params)
 		"""Create parameters for this rig's bone sets."""
-		cls.define_bone_set(params, "Spine Main Controls",	  preset=2,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
-		cls.define_bone_set(params, "Spine Parent Controls",  preset=8,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
-		cls.define_bone_set(params, "Spine IK Secondary",	  preset=10, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
-		cls.define_bone_set(params, "Spine Mechanism",					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, 'Spine Main Controls',	  preset=2,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
+		cls.define_bone_set(params, 'Spine Parent Controls',  preset=8,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
+		cls.define_bone_set(params, 'Spine IK Secondary',	  preset=10, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
+		cls.define_bone_set(params, 'Spine Mechanism',					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

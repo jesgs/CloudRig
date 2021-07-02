@@ -15,13 +15,9 @@ class CloudLatticeRig(CloudBaseRig):
 		super().initialize()
 		self.create_deform_bone = False
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.lattice_ctrls = self.ensure_bone_set("Lattice Controls")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		org_bi = self.org_chain[0]
+		org_bi = self.bone_sets['Original Bones'][0]
 
 		self.lattice_root = self.make_lattice_root_ctrl(org_bi)
 		self.hook_bone = self.make_hook_ctrl(self.lattice_root)
@@ -30,7 +26,7 @@ class CloudLatticeRig(CloudBaseRig):
 		"""Override cloud_base.
 		Move constraints from the ORG to the Lattice Root bone and relink them.
 		"""
-		org = self.org_chain[0]
+		org = self.bone_sets['Original Bones'][0]
 		for c in org.constraint_infos:
 			self.lattice_root.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
@@ -41,7 +37,7 @@ class CloudLatticeRig(CloudBaseRig):
 	def make_lattice_root_ctrl(self, org_bi):
 		name_parts = self.naming.slice_name(org_bi)
 		root_name = self.naming.make_name(['ROOT', 'LTC'], name_parts[1], name_parts[2])
-		root_bone = self.lattice_ctrls.new(
+		root_bone = self.bone_sets['Lattice Controls'].new(
 			name 						= root_name
 			,source 					= org_bi
 			,parent 					= org_bi
@@ -52,7 +48,7 @@ class CloudLatticeRig(CloudBaseRig):
 
 	def make_hook_ctrl(self, root_bone):
 		hook_name = root_bone.name.replace("ROOT-LTC", "LTC")
-		hook_bone = self.lattice_ctrls.new(
+		hook_bone = self.bone_sets['Lattice Controls'].new(
 			name 						= hook_name
 			,source 					= root_bone
 			,parent 					= root_bone
@@ -120,10 +116,10 @@ class CloudLatticeRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Lattice Controls", preset=3, default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Lattice Controls', preset=3, default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
 
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):

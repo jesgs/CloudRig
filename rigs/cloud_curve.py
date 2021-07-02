@@ -16,11 +16,6 @@ class CloudCurveRig(CloudBaseRig):
 		super().initialize()
 		self.initialize_curve_rig()
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.curve_hooks = self.ensure_bone_set("Curve Hooks")
-		self.curve_handles = self.ensure_bone_set("Curve Handles")
-
 	def initialize_curve_rig(self):
 		curve_ob = self.params.CR_curve_target
 		if not curve_ob:
@@ -37,7 +32,7 @@ class CloudCurveRig(CloudBaseRig):
 		"""Override cloud_base.
 		Move constraints from the ORG to the ROOT bone and relink them.
 		"""
-		org = self.org_chain[0]
+		org = self.bone_sets['Original Bones'][0]
 		for c in org.constraint_infos:
 			self.root_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
@@ -50,13 +45,13 @@ class CloudCurveRig(CloudBaseRig):
 		self.make_ctrls_for_curve_points()
 
 	def make_curve_root_ctrl(self):
-		self.root_bone = self.curve_handles.new(
+		self.root_bone = self.bone_sets['Curve Handles'].new(
 			name						= self.base_bone.replace("ORG", "ROOT")
-			,source						= self.org_chain[0]
+			,source						= self.bone_sets['Original Bones'][0]
 			,custom_shape				= self.ensure_widget("Cube")
 			,use_custom_shape_bone_size = True
 		)
-		self.org_chain[0].parent = self.root_bone
+		self.bone_sets['Original Bones'][0].parent = self.root_bone
 
 	def make_ctrls_for_curve_points(self):
 		curve_ob = self.params.CR_curve_target
@@ -87,7 +82,7 @@ class CloudCurveRig(CloudBaseRig):
 		if suffix!="":
 			suffix = self.naming.suffix_separator + suffix
 
-		hook_ctr = self.curve_hooks.new(
+		hook_ctr = self.bone_sets['Curve Hooks'].new(
 			name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"
 			,head						= loc
 			,tail						= loc_left
@@ -103,7 +98,7 @@ class CloudCurveRig(CloudBaseRig):
 			hook_ctr.custom_shape = self.ensure_widget("Circle")
 
 			if self.params.CR_curve_separate_radius:
-				radius_control = self.curve_handles.new(
+				radius_control = self.bone_sets['Curve Handles'].new(
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
 					,parent						= hook_ctr
@@ -116,7 +111,7 @@ class CloudCurveRig(CloudBaseRig):
 				hook_ctr.radius_control = radius_control
 
 			if (i != 0) or cyclic:				# Skip for first hook unless cyclic.
-				handle_left_ctr = self.curve_handles.new(
+				handle_left_ctr = self.bone_sets['Curve Handles'].new(
 					name		  = f"Hook_L_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail		  = loc_left
@@ -127,7 +122,7 @@ class CloudCurveRig(CloudBaseRig):
 				handles.append(handle_left_ctr)
 
 			if (i != self.num_controls-1) or cyclic:	# Skip for last hook unless cyclic.
-				handle_right_ctr = self.curve_handles.new(
+				handle_right_ctr = self.bone_sets['Curve Handles'].new(
 					name 		  = f"Hook_R_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,head 		  = loc
 					,tail 		  = loc_right
@@ -308,11 +303,11 @@ class CloudCurveRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Curve Hooks", preset=0)
-		cls.define_bone_set(params, "Curve Handles", preset=8)
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Curve Hooks', preset=0)
+		cls.define_bone_set(params, 'Curve Handles', preset=8)
 
 	@classmethod
 	def add_parameters(cls, params):

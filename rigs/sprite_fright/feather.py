@@ -18,41 +18,41 @@ class SpriteFeatherRig(CloudFKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.fk_chain[0].custom_shape = self.ensure_widget("Feather")
-		fk_dsp = self.create_dsp_bone(self.fk_chain[0])
+		self.bone_sets['FK Controls'][0].custom_shape = self.ensure_widget("Feather")
+		fk_dsp = self.create_dsp_bone(self.bone_sets['FK Controls'][0])
 		fk_dsp.put(loc=fk_dsp.tail)
 
 		# Create a new bone parented to ORG, and parent the tip control to it.
-		org = self.org_chain[0]
-		bend_ctr = self.fk_extras.new(
+		org = self.bone_sets['Original Bones'][0]
+		bend_ctr = self.bone_sets['FK Controls Extra'].new(
 			name 			= org.name.replace("ORG", "BEND")
 			,source 		= org
 			,parent 		= org
 			,custom_shape 	= self.ensure_widget("Feather")
 		)
-		bend_ctr.bone_group = self.str_chain.bone_group
-		self.str_chain[-1].parent = bend_ctr
+		bend_ctr.bone_group = self.bone_sets['Stretch Controls'].bone_group
+		self.bone_sets['Stretch Controls'][-1].parent = bend_ctr
 
 		bend_dsp = self.create_dsp_bone(bend_ctr)
 		dsp_loc = bend_ctr.head + (bend_ctr.tail-bend_ctr.head)*0.95
 		bend_dsp.put(loc=dsp_loc)
 
 		# Create a visual helper line from the bend to the FK control's display positions.
-		line = self.fk_extras.new(
+		line = self.bone_sets['FK Controls Extra'].new(
 			name	= org.name.replace("ORG", "LINE-BEND")
 			,source = bend_dsp
 			,parent = bend_dsp
 			,custom_shape = self.ensure_widget("Pole_Line")
 			,use_custom_shape_bone_size = True
 		)
-		line.bone_group = self.str_chain.bone_group
+		line.bone_group = self.bone_sets['Stretch Controls'].bone_group
 		line.hide_select = True
 
 		line.tail = fk_dsp.head.copy()
 		line.add_constraint('STRETCH_TO', subtarget=fk_dsp.name)
 
 		# Make the tip control copy partial rotation of the bend control
-		self.str_chain[-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
+		self.bone_sets['Stretch Controls'][-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
 
 	##############################
 	# Parameters

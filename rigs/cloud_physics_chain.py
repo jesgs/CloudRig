@@ -25,26 +25,22 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 	def initialize(self):
 		super().initialize()
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.physics_chain = self.ensure_bone_set("Physics Bones")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		phys_ob = self.ensure_cloth_object(self.fk_chain)
+		phys_ob = self.ensure_cloth_object(self.bone_sets['FK Controls'])
 		if self.params.CR_physics_chain_make_ctrl:
-			self.make_physics_chain(phys_ob, self.fk_chain)
-		self.constrain_chain_to_phys_ob(phys_ob, self.fk_chain)
+			self.make_physics_chain(phys_ob, self.bone_sets['FK Controls'])
+		self.constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
 
 	def relink(self):
 		"""Override cloud_fk_chain.
 		Move constraints from ORG to PSX chain and relink them.
 		"""
-		for i, org in enumerate(self.org_chain):
+		for i, org in enumerate(self.bone_sets['Original Bones']):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
-				to_bone = self.physics_chain[i]
+				to_bone = self.bone_sets['Physics Bones'][i]
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				for d in c.drivers:
@@ -147,7 +143,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		if not next_parent:
 			next_parent = self.root_bone
 		for fk_ctrl in from_chain:
-			phys_ctrl = self.physics_chain.new(
+			phys_ctrl = self.bone_sets['Physics Bones'].new(
 				name = self.phys_name(fk_ctrl)
 				,source = fk_ctrl
 				,custom_shape = fk_ctrl.custom_shape
@@ -157,10 +153,10 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			)
 			next_parent = phys_ctrl
 
-		pin_bone = self.physics_chain.new(
+		pin_bone = self.bone_sets['Physics Bones'].new(
 			name = "PIN-"+self.params.CR_physics_chain_object.name
-			,source = self.physics_chain[0]
-			,parent = self.physics_chain[0]
+			,source = self.bone_sets['Physics Bones'][0]
+			,parent = self.bone_sets['Physics Bones'][0]
 			,use_deform = True
 		)
 		self.set_layers(pin_bone, [type(self).DEFAULT_LAYERS.MCH])
@@ -171,15 +167,15 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			arm_mod.object = self.obj
 
 		# Parent first FK control to first PSX control.
-		self.fk_chain[0].parent = self.physics_chain[0]
+		self.bone_sets['FK Controls'][0].parent = self.bone_sets['Physics Bones'][0]
 
 		# Set first PSX control as the limb root bone, for correct parent switch
 		# and root parenting behaviours
-		self.limb_root_bone = self.physics_chain[0]
+		self.limb_root_bone = self.bone_sets['Physics Bones'][0]
 
 	def constrain_chain_to_phys_ob(self, phys_ob: bpy.types.Object, bone_chain: List[BoneInfo]):
 		# For the moment, let's just slap some constraints on the FK chain.
-		for fk_ctrl in self.fk_chain:
+		for fk_ctrl in self.bone_sets['FK Controls']:
 			fk_ctrl.add_constraint('DAMPED_TRACK'
 				,use_preferred_defaults = False
 				,target = phys_ob
@@ -199,7 +195,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			# Parent cloth object.
 			cloth_ob.parent = self.obj
 			cloth_ob.parent_type = 'BONE'
-			parent = self.org_chain[0].parent
+			parent = self.bone_sets['Original Bones'][0].parent
 			if not parent:
 				parent = self.root_bone
 			cloth_ob.parent_bone = parent.name
@@ -210,10 +206,10 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 	##############################
 	# Parameters
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Physics Bones", preset=3,	default_layers=[28])
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Physics Bones', preset=3,	default_layers=[28])
 
 	@classmethod
 	def add_parameters(cls, params):

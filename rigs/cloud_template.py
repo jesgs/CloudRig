@@ -7,17 +7,13 @@ class CloudTemplateRig(CloudBaseRig):
 	def initialize(self):
 		super().initialize()
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.template_set = self.ensure_bone_set("Template Bones")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		if self.params.CR_template_use_control:
-			self.make_ctr_bone(self.org_chain[0])
+			self.make_ctr_bone(self.bone_sets['Original Bones'][0])
 
 	def make_ctr_bone(self, bone):
-		ctr_bone = self.template_set.new(
+		ctr_bone = self.bone_sets['Template Bones'].new(
 			name = bone.name.replace('ORG', "CTR")
 			,source = bone
 			,custom_shape = self.ensure_widget('Circle')
@@ -29,10 +25,10 @@ class CloudTemplateRig(CloudBaseRig):
 	##############################
 	# Parameters
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Template Bones", preset=1,	default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Template Bones', preset=1,	default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
 
 	@classmethod
 	def add_parameters(cls, params):

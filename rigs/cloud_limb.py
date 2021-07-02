@@ -49,18 +49,14 @@ class CloudLimbRig(CloudIKChainRig):
 		if len(self.bones.org.main) != req_len:
 			self.raise_error(f"Chain must be exactly {req_len} connected bones.")
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.ik_double_ctrls = self.ensure_bone_set("IK Child Controls")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		self.tweak_str_limb()
 		segments = self.params.CR_chain_segments
 		if self.params.CR_limb_auto_hose and segments > 1:
-			upper = self.str_chain[1:segments]
-			lower = self.str_chain[segments+1:segments*2]
-			self.setup_rubber_hose(self.org_chain[1], upper, lower)
+			upper = self.bone_sets['Stretch Controls'][1:segments]
+			lower = self.bone_sets['Stretch Controls'][segments+1:segments*2]
+			self.setup_rubber_hose(self.bone_sets['Original Bones'][1], upper, lower)
 
 	##############################
 	# Override some inherited functionality
@@ -70,9 +66,9 @@ class CloudLimbRig(CloudIKChainRig):
 		Place the properties bone near the end of the limb, parented to the last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()
-		properties_bone.head = self.org_chain[-1].head.copy() + Vector((0, self.scale/1.5, 0))
+		properties_bone.head = self.bone_sets['Original Bones'][-1].head.copy() + Vector((0, self.scale/1.5, 0))
 		properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
-		properties_bone.parent = self.org_chain[-1]
+		properties_bone.parent = self.bone_sets['Original Bones'][-1]
 		return properties_bone
 
 	def determine_segments(self, org_bone):
@@ -80,7 +76,7 @@ class CloudLimbRig(CloudIKChainRig):
 		segments, bbone_density = super().determine_segments(org_bone)
 
 		# Force strictly 1 segment on the toe.
-		if org_bone == self.org_chain[-1]:
+		if org_bone == self.bone_sets['Original Bones'][-1]:
 			if self.params.CR_chain_tip_control:
 				return 1, bbone_density
 			else:
@@ -96,7 +92,7 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.params.CR_limb_double_ik:
 			old_name = self.ik_mstr.name
 			self.ik_mstr.name = self.naming.add_prefix(self.ik_mstr, "C")
-			double_control = self.create_parent_bone(self.ik_mstr, self.ik_double_ctrls)
+			double_control = self.create_parent_bone(self.ik_mstr, self.bone_sets['IK Child Controls'])
 			double_control.name = old_name
 			double_control.layers, self.ik_mstr.layers = self.ik_mstr.layers, double_control.layers
 
@@ -104,7 +100,7 @@ class CloudLimbRig(CloudIKChainRig):
 		for i in range(0, self.params.CR_chain_segments):
 			factor_unit = 0.9 / self.params.CR_chain_segments
 			factor = 0.9 - factor_unit * i
-			self.add_counterrotate_constraint(self.str_chain[i], self.org_chain[0], factor)
+			self.add_counterrotate_constraint(self.bone_sets['Stretch Controls'][i], self.bone_sets['Original Bones'][0], factor)
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""
@@ -219,18 +215,18 @@ class CloudLimbRig(CloudIKChainRig):
 		self.make_rubber_hose_constraints(org_elbow, str_upper, str_lower, prop_name)
 
 	def make_rubber_hose_control(self) -> BoneInfo:
-		org_elbow = self.org_chain[1]
+		org_elbow = self.bone_sets['Original Bones'][1]
 
-		control_bone = self.fk_extras.new(
+		control_bone = self.bone_sets['FK Controls Extra'].new(
 			name = org_elbow.name.replace("ORG", "AutoRubberHose")
 			,source = org_elbow
 			,parent = org_elbow
 			,custom_shape = self.ensure_widget('Double_Arrow')
 		)
 		# Assign to main FK layer and both IK layers also
-		control_bone.set_layers(self.fk_chain.layers, additive=True)
-		control_bone.set_layers(self.ik_ctrls.layers, additive=True)
-		control_bone.set_layers(self.fk_chain.layers, additive=True)
+		control_bone.set_layers(self.bone_sets['FK Controls'].layers, additive=True)
+		control_bone.set_layers(self.bone_sets['IK Controls'].layers, additive=True)
+		control_bone.set_layers(self.bone_sets['FK Controls'].layers, additive=True)
 
 		# Shift it towards the IK pole or where it would be.
 		new_loc = control_bone.head + self.pole_vector.normalized() * org_elbow.bbone_width*self.scale * 6
@@ -265,7 +261,7 @@ class CloudLimbRig(CloudIKChainRig):
 		}
 
 		for i, str_list in enumerate([str_upper, str_lower]):
-			org_bone = self.org_chain[i]
+			org_bone = self.bone_sets['Original Bones'][i]
 			for str_bone in str_list:
 				offset = org_bone.length / 2.5
 
@@ -408,10 +404,10 @@ class CloudLimbRig(CloudIKChainRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "IK Child Controls", preset=8, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'IK Child Controls', preset=8, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
 
 	@classmethod
 	def add_parameters(cls, params):

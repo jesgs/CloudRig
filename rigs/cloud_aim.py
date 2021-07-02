@@ -18,19 +18,10 @@ class CloudAimRig(CloudBaseRig):
 	parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye rigs with a matching string as their Eye Group paramter."
 	parent_switch_overwrites_root_parent = False
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.group_mstr_set = self.ensure_bone_set("Aim Group Target Control")
-		self.target_ctrl = self.ensure_bone_set("Aim Target Controls")
-		self.root_ctrl = self.ensure_bone_set("Aim Root Control")
-		self.aim_mch = self.ensure_bone_set("Aim Target Mechanism")
-		if self.params.CR_aim_deform:
-			self.aim_def = self.ensure_bone_set("Aim Deform")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		aim_org = self.org_chain[0]
+		aim_org = self.bone_sets['Original Bones'][0]
 		aim_bone = self.make_aim_helper(aim_org)
 
 		if self.params.CR_aim_root:
@@ -46,7 +37,7 @@ class CloudAimRig(CloudBaseRig):
 		)
 
 		if self.params.CR_aim_deform:
-			self.make_def_bone(self.ctr_bone, self.aim_def)
+			self.make_def_bone(self.ctr_bone, self.bone_sets['Aim Deform'])
 
 		if self.params.CR_aim_create_sub_control:
 			self.create_eye_highlight(self.ctr_bone)
@@ -69,9 +60,9 @@ class CloudAimRig(CloudBaseRig):
 		head = self.find_target_pos(bone)
 		tail = head + bone.vector.normalized() * bone.length
 
-		target_bone = self.target_ctrl.new(
-			name	= self.org_chain[0].name.replace("ORG", "TGT")
-			,source = self.org_chain[0]
+		target_bone = self.bone_sets['Aim Target Controls'].new(
+			name	= self.bone_sets['Original Bones'][0].name.replace("ORG", "TGT")
+			,source = self.bone_sets['Original Bones'][0]
 			,head	= head
 			,tail	= tail
 			,custom_shape = self.ensure_widget("Circle")
@@ -87,8 +78,8 @@ class CloudAimRig(CloudBaseRig):
 		"""Create an AIM helper for @org_bone targetting @target_bone, while leaving
 		   @org_bone free to rotate.
 		"""
-		aim_bone = self.aim_mch.new(
-			name		 = self.org_chain[0].name.replace("ORG", "AIM")
+		aim_bone = self.bone_sets['Aim Target Mechanism'].new(
+			name		 = self.bone_sets['Original Bones'][0].name.replace("ORG", "AIM")
 			,source		 = org_bone
 			,hide_select = self.mch_disable_select
 			,parent		 = org_bone
@@ -97,7 +88,7 @@ class CloudAimRig(CloudBaseRig):
 
 	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
 		"""Create direct control, with a display bone at the tip of it."""
-		ctr_bone = self.target_ctrl.new(
+		ctr_bone = self.bone_sets['Aim Target Controls'].new(
 			name = self.naming.make_name(["CTR"], *self.naming.slice_name(org_bone.name)[1:])
 			,source = org_bone
 			,parent = org_bone
@@ -138,8 +129,8 @@ class CloudAimRig(CloudBaseRig):
 		return ctr_bone
 
 	def make_root_bone(self, bone) -> BoneInfo:
-		base_bone = self.org_chain[0]
-		root_bone = self.root_ctrl.new(
+		base_bone = self.bone_sets['Original Bones'][0]
+		root_bone = self.bone_sets['Aim Root Control'].new(
 			name = base_bone.name.replace("ORG", "ROOT")
 			,source = base_bone
 			,parent = base_bone.parent
@@ -147,7 +138,7 @@ class CloudAimRig(CloudBaseRig):
 			,custom_shape_scale = 2
 		)
 		root_dsp = self.create_dsp_bone(root_bone)
-		root_dsp.put(self.org_chain[0].tail)
+		root_dsp.put(self.bone_sets['Original Bones'][0].tail)
 
 		bone.parent = root_bone
 
@@ -156,7 +147,7 @@ class CloudAimRig(CloudBaseRig):
 	def create_eye_highlight(self, ctr_bone):
 		name_slices = self.naming.slice_name(ctr_bone)
 		name_slices[1] += "_Highlight"
-		highlight_ctr = self.target_ctrl.new(
+		highlight_ctr = self.bone_sets['Aim Target Controls'].new(
 			name = self.naming.make_name(*name_slices)
 			,source = ctr_bone
 			,parent = ctr_bone
@@ -167,13 +158,13 @@ class CloudAimRig(CloudBaseRig):
 		self.lock_transforms(highlight_ctr, loc=True, rot=False, scale=[False, True, False])
 		highlight_dsp = self.create_dsp_bone(highlight_ctr)
 		highlight_dsp.put(ctr_bone.tail)
-		self.make_def_bone(highlight_ctr, self.aim_def)
+		self.make_def_bone(highlight_ctr, self.bone_sets['Aim Deform'])
 
 	def relink(self):
 		"""Override cloud_base.
 		Move constraints from the ORG to the Eye Control bone and relink them.
 		"""
-		org = self.org_chain[0]
+		org = self.bone_sets['Original Bones'][0]
 		for c in org.constraint_infos:
 			self.ctr_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
@@ -246,7 +237,7 @@ class CloudAimRig(CloudBaseRig):
 
 		# Create a helper bone in the center.
 		group_vec = target_center - aims_center
-		center_bone = self.aim_mch.new(
+		center_bone = self.bone_sets['Aim Target Mechanism'].new(
 			name = "CEN-"+group_name
 			,head = aims_center
 			,tail = aims_center + group_vec.normalized() * self.scale/10
@@ -255,7 +246,7 @@ class CloudAimRig(CloudBaseRig):
 		)
 
 		# Create the master bone.
-		group_master = self.group_mstr_set.new(
+		group_master = self.bone_sets['Aim Group Target Control'].new(
 			name = group_master_name
 			,head = target_center
 			,tail = target_center - group_vec.normalized()*self.scale/10
@@ -275,14 +266,15 @@ class CloudAimRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Aim Group Target Control",  preset=1,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
-		cls.define_bone_set(params, "Aim Target Controls", 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
-		cls.define_bone_set(params, "Aim Root Control", 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
-		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Aim Group Target Control',  preset=1,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		cls.define_bone_set(params, 'Aim Target Controls', 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		cls.define_bone_set(params, 'Aim Root Control', 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
+		cls.define_bone_set(params, 'Aim Target Mechanism',					default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 		if params.CR_aim_deform:
+			# TODO: Does this work? I thought this function only gets called on register, which would mean this does not work.
 			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 
 	@classmethod

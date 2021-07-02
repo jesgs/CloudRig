@@ -16,9 +16,9 @@ class SpriteFingerRig(CloudFKChainRig):
 		super().create_bone_infos()
 
 		# Create curl control
-		curl_ctrl = self.fk_extras.new(
-			name = self.fk_chain[0].name.replace("FK", "CURL")
-			,source = self.fk_chain[0]
+		curl_ctrl = self.bone_sets['FK Controls Extra'].new(
+			name = self.bone_sets['FK Controls'][0].name.replace("FK", "CURL")
+			,source = self.bone_sets['FK Controls'][0]
 			,custom_shape = self.ensure_widget("Finger_Curl")
 		)
 		offset = -self.meta_base_bone.z_axis * self.meta_base_bone.length/2

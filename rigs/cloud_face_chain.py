@@ -23,16 +23,6 @@ class CloudFaceChainRig(CloudChainRig):
 
 		self.is_last_chain_rig = self == self.chain_rigs[-1]
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		# The sub_controls set is special in that its .new() function should never be
-		# called, and therefore it never creates any bones. However, pre-existing
-		# STR bones who then had a merged control created for them will be assigned
-		# the bone group and layer of this BoneSet.
-		self.sub_controls = self.ensure_bone_set("Sub Controls")
-		self.merged_controls = self.ensure_bone_set("Merged Controls")
-		self.face_mch = self.ensure_bone_set("Face Helpers")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
@@ -123,7 +113,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# Check the bones' parents to see if the desired control was already created.
 		if not intersection_control:
 			for b in bones:
-				b.layers = b.owner_rig.sub_controls.layers[:]
+				b.layers = b.owner_rig.bone_sets['Sub Controls'].layers[:]
 				if b.parent.name.startswith("STR-I"):
 					# print(f"{b.name} - This should never happen because every STR bone should only be passed to ensure_intersection_control() once!")
 					# TODO: This does happen! Why??
@@ -141,7 +131,7 @@ class CloudFaceChainRig(CloudChainRig):
 			intersection_control = rig.generator.find_bone_info(bone_name)
 
 			if not intersection_control:
-				intersection_control = rig.merged_controls.new(
+				intersection_control = rig.bone_sets['Merged Controls'].new(
 					name = bone_name
 					,source = bones[0]
 					,custom_shape = rig.ensure_widget('Cube')
@@ -218,12 +208,16 @@ class CloudFaceChainRig(CloudChainRig):
 	##############################
 	# Parameters
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.DEFAULT_LAYERS.MCH])#, is_advanced=True)
-		cls.define_bone_set(params, "Merged Controls",	preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
-		cls.define_bone_set(params, "Face Helpers", 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().add_bone_set_parameters(params)
+		# The sub_controls set is special in that its .new() function should never be
+		# called, and therefore it never creates any bones. However, pre-existing
+		# STR bones who then had a merged control created for them will be assigned
+		# the bone group and layer of this BoneSet.
+		cls.define_bone_set(params, 'Sub Controls', 	preset=1,	default_layers=[cls.DEFAULT_LAYERS.MCH])#, is_advanced=True)
+		cls.define_bone_set(params, 'Merged Controls',	preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
+		cls.define_bone_set(params, 'Face Helpers', 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

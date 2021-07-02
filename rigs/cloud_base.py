@@ -98,7 +98,7 @@ class CloudBaseRig(
 		self.scale = self.generator.scale
 
 		# Prepare Bone Sets
-		self.bone_sets = []	# TODO: This is currently not used, but it may be turned into a dictionary in future.
+		self.bone_sets = dict()
 		self.defaults = dict(self.generator.defaults)
 		self.ensure_bone_sets()
 
@@ -159,8 +159,8 @@ class CloudBaseRig(
 			return properties_bone
 
 	def generate_properties_bone(self) -> BoneInfo:
-		org_bone = self.org_chain[0]
-		properties_bone = self.mch_bones.new(
+		org_bone = self.bone_sets['Original Bones'][0]
+		properties_bone = self.bone_sets['Mechanism Bones'].new(
 			name		  = org_bone.name.replace("ORG", "PRP")
 			,source 	  = org_bone
 			,parent		  = org_bone
@@ -169,11 +169,6 @@ class CloudBaseRig(
 		)
 		properties_bone.layers = self.meta_base_bone.bone.layers[:]
 		return properties_bone
-
-	def ensure_bone_sets(self):
-		self.def_chain = self.ensure_bone_set("Deform Bones")
-		self.mch_bones = self.ensure_bone_set("Mechanism Bones")
-		self.org_chain = self.ensure_bone_set("Original Bones")
 
 	def prepare_bones(self):
 		self.create_bone_infos()
@@ -187,7 +182,7 @@ class CloudBaseRig(
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
-		self.root_bone = self.org_chain[0]
+		self.root_bone = self.bone_sets['Original Bones'][0]
 
 	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
@@ -207,7 +202,7 @@ class CloudBaseRig(
 			col_name = child_bone.name
 
 		# Create parent bone that will hold the Armature constraint.
-		arm_con_bone = self.create_parent_bone(child_bone, self.mch_bones)
+		arm_con_bone = self.create_parent_bone(child_bone, self.bone_sets['Mechanism Bones'])
 		arm_con_bone.hide_select = self.mch_disable_select
 		arm_con_bone.name = "P-" + child_bone.name
 		arm_con_bone.custom_shape = None
@@ -305,7 +300,7 @@ class CloudBaseRig(
 		bi.relink()
 
 	def load_org_bone_infos(self):
-		"""Read ORG bones into BoneInfo instances in self.org_chain."""
+		"""Read ORG bones into BoneInfo instances in self.bone_sets['Original Bones']."""
 
 		for bn in self.bones.org.main:
 			eb = self.get_bone(bn)
@@ -321,8 +316,8 @@ class CloudBaseRig(
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 
-			org_bi = self.org_chain.new_from_real(self.obj, eb)
-			org_bi.layers = self.org_chain.layers[:]
+			org_bi = self.bone_sets['Original Bones'].new_from_real(self.obj, eb)
+			org_bi.layers = self.bone_sets['Original Bones'].layers[:]
 			org_bi.hide_select = self.mch_disable_select
 			org_bi.bbone_width = eb.bbone_x / self.scale
 			if eb.parent:
@@ -413,19 +408,19 @@ class CloudBaseRig(
 		# So, could be a bug in Blender, but then how come other addons that use CollectionProperties don't have this issue?
 		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
 
-		cls.define_bone_sets(params)
+		cls.add_bone_set_parameters(params)
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
+		super().add_bone_set_parameters(params)
 		params.CR_show_bone_sets = BoolProperty(name="Bone Sets", description="Reveal Bone Set settings")
 		params.CR_show_advanced_bone_sets = BoolProperty(name="Advanced Bone Sets", description="Reveal bone sets of helper bones")
 		params.CR_active_bone_set_index = IntProperty()
 
-		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
-		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		cls.define_bone_set(params, "Original Bones",	default_layers=[cls.DEFAULT_LAYERS.ORG], is_advanced=True)
+		cls.define_bone_set(params, 'Deform Bones',		default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
+		cls.define_bone_set(params, 'Mechanism Bones',	default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, 'Original Bones',	default_layers=[cls.DEFAULT_LAYERS.ORG], is_advanced=True)
 
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):

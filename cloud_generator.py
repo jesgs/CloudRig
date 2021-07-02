@@ -235,7 +235,7 @@ class CloudGenerator(Generator):
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
 			if hasattr(rig, "bone_sets"):
-				for bs in rig.bone_sets:
+				for bs in list(rig.bone_sets.values()):
 					exists = bs.find(name)
 					if exists:
 						return exists
@@ -245,7 +245,7 @@ class CloudGenerator(Generator):
 		cloudrig_bones = []
 		for rig in self.rig_list:
 			if "cloud" in str(type(rig)):
-				for bone_set in rig.bone_sets:
+				for bone_set in list(rig.bone_sets.values()):
 					for bone_info in bone_set:
 						cloudrig_bones.append(bone_info.name)
 

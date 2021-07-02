@@ -105,8 +105,6 @@ class Generate_All_Rigify_Rigs(bpy.types.Operator):
 
 		if mode in ['OBJECT', 'EDIT', 'POSE']:
 			bpy.ops.object.mode_set(mode=mode)
-		else:
-			print("HWAT THE FUCK")
 	
 		rig = context.object
 		if active_bone_name in rig.pose.bones:

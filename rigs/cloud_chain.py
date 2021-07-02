@@ -18,36 +18,27 @@ class CloudChainRig(CloudBaseRig):
 
 		self.chain_length = 0
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.str_chain = self.ensure_bone_set("Stretch Controls")
-		self.str_mch = self.ensure_bone_set("Stretch Helpers")
-		self.skh_bones = self.ensure_bone_set("Shape Key Helpers")
-		if self.params.CR_chain_unlock_deform:
-			self.def_ctr = self.ensure_bone_set("Deform Controls")
-			self.def_mch = self.ensure_bone_set("Deform Helpers")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.cyclic = (self.org_chain[-1].tail - self.org_chain[0].head).length < 0.001
+		self.cyclic = (self.bone_sets['Original Bones'][-1].tail - self.bone_sets['Original Bones'][0].head).length < 0.001
 
-		for org in self.org_chain:
+		for org in self.bone_sets['Original Bones']:
 			self.chain_length += org.length
-		self.average_org_length = self.chain_length / len(self.org_chain)
+		self.average_org_length = self.chain_length / len(self.bone_sets['Original Bones'])
 
-		str_sections = self.make_str_chain(self.org_chain)
+		str_sections = self.make_str_chain(self.bone_sets['Original Bones'])
 		if self.params.CR_chain_segments > 1:
 			self.make_str_helpers(str_sections)
 
 		if self.params.CR_chain_smooth_spline:
-			for str_bone in self.str_chain:
+			for str_bone in self.bone_sets['Stretch Controls']:
 				self.set_up_smooth_spline(str_bone)
 		else:
-			for str_bone in self.str_chain:
+			for str_bone in self.bone_sets['Stretch Controls']:
 				str_bone.tangent_helper = self.make_tangent_helper(str_bone)
 
-		self.make_def_chain(self.str_chain)
+		self.make_def_chain(self.bone_sets['Stretch Controls'])
 
 		self.connect_parent_chain_rig()
 
@@ -66,7 +57,7 @@ class CloudChainRig(CloudBaseRig):
 		If the constraint type is Armature, create a parent helper bone to prevent
 		the parenting from affecting the local matrix.
 		"""
-		for i, org in enumerate(self.org_chain):
+		for i, org in enumerate(self.bone_sets['Original Bones']):
 			for c in org.constraint_infos[:]:
 				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
@@ -79,7 +70,7 @@ class CloudChainRig(CloudBaseRig):
 
 				if c.type=='ARMATURE':
 					# TODO IMPORTANT: This is not running for Ellie's fannypack belt, why??
-					to_bone = self.create_parent_bone(to_bone, self.mch_bones)
+					to_bone = self.create_parent_bone(to_bone, self.bone_sets['Mechanism Bones'])
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
@@ -95,7 +86,7 @@ class CloudChainRig(CloudBaseRig):
 			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
 
 		# No segments for last bone of the chain if there is no control for its tail.
-		if org_bone == self.org_chain[-1] and not self.params.CR_chain_tip_control:
+		if org_bone == self.bone_sets['Original Bones'][-1] and not self.params.CR_chain_tip_control:
 			return 1, 1
 
 		return segments, bbone_density
@@ -115,7 +106,7 @@ class CloudChainRig(CloudBaseRig):
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
 					if org_i == 0 and self.cyclic:
-						direction = (org_bone.tail - self.org_chain[-1].head).normalized()
+						direction = (org_bone.tail - self.bone_sets['Original Bones'][-1].head).normalized()
 						str_bone.tail = str_bone.head + direction*str_bone.length
 
 			str_sections.append(str_section)
@@ -123,8 +114,8 @@ class CloudChainRig(CloudBaseRig):
 			# Create STR-TIP control at the end of the chain.
 			if org_i==len(org_chain)-1 and self.params.CR_chain_tip_control:
 				if self.cyclic:
-					self.str_chain[-1].next = self.str_chain[0]
-					self.str_chain[0].prev = self.str_chain[-1]
+					self.bone_sets['Stretch Controls'][-1].next = self.bone_sets['Stretch Controls'][0]
+					self.bone_sets['Stretch Controls'][0].prev = self.bone_sets['Stretch Controls'][-1]
 				else:
 					str_bone = self.make_str_bone(org_bone, i, 1, name=self.naming.add_prefix(str_bone, "TIP"))
 					str_bone.put(org_bone.tail)
@@ -136,8 +127,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# Set first and last control's shapes
 		if not self.cyclic:
-			self.str_chain[0].custom_shape = self.ensure_widget("Hemisphere_Flip")
-			self.str_chain[-1].custom_shape = self.ensure_widget("Hemisphere")
+			self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget("Hemisphere_Flip")
+			self.bone_sets['Stretch Controls'][-1].custom_shape = self.ensure_widget("Hemisphere")
 
 		return str_sections
 
@@ -149,7 +140,7 @@ class CloudChainRig(CloudBaseRig):
 		unit = org_bone.vector / segments
 		if name=="":
 			name = org_bone.name.replace("ORG", "STR")
-		str_bone = self.str_chain.new(
+		str_bone = self.bone_sets['Stretch Controls'].new(
 			name = name
 			,source = org_bone
 			,head = org_bone.head + (unit * seg_i)
@@ -186,7 +177,7 @@ class CloudChainRig(CloudBaseRig):
 					continue
 				main_str_bone.sub_bones.append(str_bone)
 
-				str_h_bone = self.str_mch.new(
+				str_h_bone = self.bone_sets['Stretch Helpers'].new(
 					name 		 = self.naming.add_prefix(str_bone, "H")
 					,source 	 = str_bone
 					,bbone_width = str_bone.bbone_width
@@ -227,7 +218,7 @@ class CloudChainRig(CloudBaseRig):
 						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
-		dt_bone = self.str_mch.new(
+		dt_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "DT")
 			,source = str_bone
 			,parent = str_bone
@@ -256,7 +247,7 @@ class CloudChainRig(CloudBaseRig):
 		return dt_bone
 
 	def make_tangent_helper(self, str_bone):
-		tangent_helper = self.str_mch.new(
+		tangent_helper = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone
@@ -275,7 +266,7 @@ class CloudChainRig(CloudBaseRig):
 
 		dt = str_bone.dt_bone
 
-		str_child_no_scale = self.str_mch.new(
+		str_child_no_scale = self.bone_sets['Stretch Helpers'].new(
 			name = str_bone.name.replace("STR", "STR-NOSCALE")
 			,source = str_bone
 			,parent = str_bone
@@ -296,7 +287,7 @@ class CloudChainRig(CloudBaseRig):
 
 		# TODO: Had to copy paste this code, would be nice to have a proper
 		# utility for copying a bone with its constraints and drivers and whatnot.
-		tangent_clone = self.str_mch.new(
+		tangent_clone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(tangent_helper, "CLONE")
 			,source = str_bone
 			,parent = str_bone
@@ -343,7 +334,7 @@ class CloudChainRig(CloudBaseRig):
 				tail = str_bone.next.head
 
 			def_name = str_bone.name.replace("STR", "DEF")
-			def_bone = self.def_chain.new(
+			def_bone = self.bone_sets['Deform Bones'].new(
 				name					 = def_name
 				,source					 = org_bone
 				,parent					 = str_bone
@@ -361,10 +352,10 @@ class CloudChainRig(CloudBaseRig):
 			org_bone.def_bones.append(def_bone)
 
 			if self.params.CR_chain_unlock_deform:
-				def_bone_control = self.create_parent_bone(def_bone, bone_set=self.def_ctr)
+				def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
 				def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
 				def_bone_control.inherit_scale = 'ALIGNED'
-				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.def_mch)
+				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
 				def_bone_control.head = def_bone_control.center
 				def_bone_control.custom_shape_scale *= 0.7
 				# self.setup_def_bone(def_bone_parent, org_bone, str_bone, str_bone.next)
@@ -375,12 +366,12 @@ class CloudChainRig(CloudBaseRig):
 						,use_bulge_max = not self.params.CR_chain_preserve_volume
 					)
 				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
-				def_bone_control.layers = self.def_ctr.layers[:] # TODO: This should not be necessary!
+				def_bone_control.layers = self.bone_sets['Deform Controls'].layers[:] # TODO: This should not be necessary!
 				def_bone.def_ctr_bone = def_bone_control
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
-		return self.def_chain
+		return self.bone_sets['Deform Bones']
 
 	def setup_def_bone(self, def_bone, org_bone, str_bone, next_str_bone=None):
 		"""Configure BBone setup for def_bone."""
@@ -432,8 +423,8 @@ class CloudChainRig(CloudBaseRig):
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
 			# Last bone of the segment, but not the last bone of the chain.
-			if is_last_of_segment and next_str_bone != self.str_chain[-1] or \
-				next_str_bone not in self.str_chain:	# Catch case of connecting parent chain
+			if is_last_of_segment and next_str_bone != self.bone_sets['Stretch Controls'][-1] or \
+				next_str_bone not in self.bone_sets['Stretch Controls']:	# Catch case of connecting parent chain
 				def_bone.bbone_easeout = 1 - self.params.CR_chain_sharp
 
 		else:
@@ -537,7 +528,7 @@ class CloudChainRig(CloudBaseRig):
 
 		# SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail
 		# of def_bone_1.
-		skp_bone = self.skh_bones.new(
+		skp_bone = self.bone_sets['Shape Key Helpers'].new(
 			name		 = def_bone_1.name.replace("DEF", "SKP")
 			,source		 = def_bone_1
 			,head		 = def_bone_1.tail.copy()
@@ -555,7 +546,7 @@ class CloudChainRig(CloudBaseRig):
 
 		# SKH (Shape Key Helper): This is parented to SKP and Copy Transforms
 		# of the b-bone head of def_bone_2.
-		skh_bone = self.skh_bones.new(
+		skh_bone = self.bone_sets['Shape Key Helpers'].new(
 			name		 = def_bone_1.name.replace("DEF", "SKH")
 			,source		 = def_bone_1
 			,head		 = def_bone_2.head.copy()
@@ -584,7 +575,7 @@ class CloudChainRig(CloudBaseRig):
 		if not isinstance(parent_rig, CloudChainRig): return
 		if parent_rig.params.CR_chain_tip_control: return
 
-		meta_org_bone = self.meta_bone(self.naming.strip_org(self.org_chain[0]))
+		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bone_sets['Original Bones'][0]))
 		if not meta_org_bone.bone.use_connect: return
 
 		parent_rig.params.CR_chain_tip_control = True
@@ -592,13 +583,13 @@ class CloudChainRig(CloudBaseRig):
 		str_bone = parent_rig.str_chain[-1]
 		if parent_rig.params.CR_chain_unlock_deform:
 			def_bone = parent_rig.def_mch[-1]
-		parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.str_chain[0])
+		parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.bone_sets['Stretch Controls'][0])
 		def_bone.parent = str_bone
-		self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
+		self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
-			self.make_shape_key_helper(def_bone, self.def_chain[0])
+			self.make_shape_key_helper(def_bone, self.bone_sets['Deform Bones'][0])
 		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-			self.set_up_smooth_spline(str_bone, nxt=self.str_chain[0])
+			self.set_up_smooth_spline(str_bone, nxt=self.bone_sets['Stretch Controls'][0])
 
 	##############################
 	# Parameters
@@ -611,14 +602,14 @@ class CloudChainRig(CloudBaseRig):
 		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
-		cls.define_bone_set(params, "Deform Controls", preset=5,	default_layers=[cls.DEFAULT_LAYERS.DEF_CTR])
-		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Stretch Controls', preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
+		cls.define_bone_set(params, 'Deform Controls', preset=5,	default_layers=[cls.DEFAULT_LAYERS.DEF_CTR])
+		cls.define_bone_set(params, 'Deform Helpers', 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, 'Stretch Helpers',				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, 'Shape Key Helpers',			default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

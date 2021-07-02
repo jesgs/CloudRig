@@ -54,7 +54,7 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
-    instead of rig types overriding the relink() function they should all have a get_relink_target() function just like recently added to cloud_face_chain.
+    We could reduce the calls to draw_dropdown_menu() by storing the dropdown menu property name on the class, then moving that call to the end of cloud_base.draw_cloud_params.
     Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     Need to eliminate uses of `bpy.context`, although in some cases it might be a Rigify limitation (should be fixed there too, tbh...)
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
@@ -65,22 +65,10 @@ Priority 4: Code quality
     Other satanic variables:
         org_bone.def_bones
 
-    Find better way to define and reference bone sets instead of slapping on new properties in ensure_bone_sets(), that's hard to follow.
-    I guess I wouldn't mind an enum class in each rig's file, like
-    class BoneSets:
-        DEF = BoneSet()
-    but idk if that could work.
     I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
         The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.
         Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
-    It sucks that define_bone_sets() and ensure_bone_sets() are always so far away from each other, and even just the fact that they both have to exist irks me a lot.
-        The reason they both have to exist is because we want to assign them to self, but honestly that's probably not even a good thing to do.
-        We could instead maybe have a self.bone_sets[] that's automatically populated based on class information on initialize(), and then accessed as strings, eg.
-        instead of self.def_chain it'd be self.bone_sets['DEF']. We could make our own class BoneSets(dict) if we want to execute custom code on keyword access.
-        All of this existed before but was deemed clunky - maybe it wasn't.
 
-    Bring up to date how we pass armature constraints to make_constraint() (D9092)
-        This will break backwards comp though, so should create a tag accordingly.
 Priority 5: UI, UX & documentation
     Upstream
         Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon... Not sure if easily possible though since we'd have to hack into the rigify layers propertygroup which I don't want to do.

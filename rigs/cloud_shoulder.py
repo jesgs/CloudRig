@@ -23,7 +23,7 @@ class CloudShoulderRig(CloudFKChainRig):
 		self.prepare_fk_shoulder()
 
 	def prepare_fk_shoulder(self):
-		control = self.fk_chain[0]
+		control = self.bone_sets['FK Controls'][0]
 		control.custom_shape = self.ensure_widget("Clavicle")
 		shoulder_rot = int(self.params.CR_shoulder_up_axis)
 		if shoulder_rot != 0:

@@ -31,7 +31,7 @@ class CloudCopyRig(CloudBaseRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		bi = self.org_chain[0]
+		bi = self.bone_sets['Original Bones'][0]
 
 		# Strip ORG from bone's name (@name.setter takes care of everything)
 		bi.name = self.orgless_name
@@ -62,7 +62,7 @@ class CloudCopyRig(CloudBaseRig):
 
 		if self.create_deform_bone:
 			# Make a copy with DEF- prefix, as our deform bone.
-			def_bone = self.make_def_bone(bi, self.def_chain)
+			def_bone = self.make_def_bone(bi, self.bone_sets['Deform Bones'])
 			def_bone.parent = bi
 
 		# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
@@ -86,9 +86,9 @@ class CloudCopyRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
+		super().add_bone_set_parameters(params)
 
 	@classmethod
 	def add_parameters(cls, params):

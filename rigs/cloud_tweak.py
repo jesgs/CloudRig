@@ -24,7 +24,7 @@ class CloudTweakRig(CloudBaseRig):
 			meta_bone = self.meta_bone(orgless_name)
 
 		self.root_bone = self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
-		org_bi = self.org_chain[0]
+		org_bi = self.bone_sets['Original Bones'][0]
 
 		if not self.tweak_bone:
 			self.add_log("No bone to tweak", trouble_bone=orgless_name, description=f"Could not find a bone called {orgless_name} on the generated rig.")
@@ -115,14 +115,14 @@ class CloudTweakRig(CloudBaseRig):
 			for prop_name in org_bi.custom_props:
 				tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
 
-		org_bi.layers = self.mch_bones.layers[:]
+		org_bi.layers = self.bone_sets['Mechanism Bones'].layers[:]
 
 	def relink(self):
 		# Transfer and relink constraints and their drivers
 		if not self.tweak_bone:
 			return
 
-		org_bi = self.org_chain[0]
+		org_bi = self.bone_sets['Original Bones'][0]
 		if not self.params.CR_tweak_constraints_additive:
 			self.tweak_bone.clear_constraints()
 		for c in org_bi.constraint_infos[:]:

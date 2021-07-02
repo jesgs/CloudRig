@@ -37,12 +37,6 @@ class CloudFKChainRig(CloudChainRig):
 		if not self.params.CR_fk_chain_root:
 			self.params.CR_fk_chain_hinge = False
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.fk_chain = self.ensure_bone_set("FK Controls")
-		self.fk_extras = self.ensure_bone_set("FK Controls Extra")
-		self.fk_mch = self.ensure_bone_set("FK Helpers")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		if self.params.CR_fk_chain_root:
@@ -52,15 +46,15 @@ class CloudFKChainRig(CloudChainRig):
 
 		self.make_fk_chain()
 
-		if self.root_bone == self.org_chain[0]:
-			self.root_bone = self.fk_chain[0]
+		if self.root_bone == self.bone_sets['Original Bones'][0]:
+			self.root_bone = self.bone_sets['FK Controls'][0]
 
 		# Default root parenting
 		if self.params.CR_fk_chain_root:
 			if not self.params.CR_fk_chain_hinge:
 				# TODO: This is messy, and could use unit tests to be able to change this code without messing something up.
-				self.fk_chain[0].parent = self.root_bone
-			self.root_bone.parent = self.org_chain[0].parent
+				self.bone_sets['FK Controls'][0].parent = self.root_bone
+			self.root_bone.parent = self.bone_sets['Original Bones'][0].parent
 
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
@@ -70,10 +64,10 @@ class CloudFKChainRig(CloudChainRig):
 		"""Override cloud_chain.
 		Move constraints from ORG to FK chain and relink them.
 		"""
-		for i, org in enumerate(self.org_chain):
+		for i, org in enumerate(self.bone_sets['Original Bones']):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
-				to_bone = self.fk_chain[i]
+				to_bone = self.bone_sets['FK Controls'][i]
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				for d in c.drivers:
@@ -83,8 +77,8 @@ class CloudFKChainRig(CloudChainRig):
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
-		base_bone = self.org_chain[0]
-		limb_root_bone = self.fk_extras.new(
+		base_bone = self.bone_sets['Original Bones'][0]
+		limb_root_bone = self.bone_sets['FK Controls Extra'].new(
 			name 			= root_name
 			,source 		= base_bone
 			,parent 		= base_bone.parent
@@ -97,9 +91,9 @@ class CloudFKChainRig(CloudChainRig):
 		fk_name = ""
 
 		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
-		for i, org_bone in enumerate(self.org_chain):
+		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
 			fk_name = org_bone.name.replace("ORG", "FK")
-			fk_bone = self.fk_chain.new(
+			fk_bone = self.bone_sets['FK Controls'].new(
 				name				= fk_name
 				,source				= org_bone
 				,custom_shape 		= self.ensure_widget("FK_Limb")
@@ -111,14 +105,14 @@ class CloudFKChainRig(CloudChainRig):
 				hng_child = fk_bone
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
-					fk_parent_bone = self.create_parent_bone(fk_bone, bone_set=self.fk_extras)
+					fk_parent_bone = self.create_parent_bone(fk_bone, bone_set=self.bone_sets['FK Controls Extra'])
 					fk_parent_bone.custom_shape = self.ensure_widget("FK_Limb")
 					if self.params.CR_fk_chain_display_center:
 						self.create_dsp_bone(fk_parent_bone, center=True)
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
-				fk_bone.parent = self.org_chain[i-1].fk_bone
+				fk_bone.parent = self.bone_sets['Original Bones'][i-1].fk_bone
 			if self.params.CR_fk_chain_display_center:
 				self.create_dsp_bone(fk_bone, center=True)
 
@@ -126,7 +120,7 @@ class CloudFKChainRig(CloudChainRig):
 		if self.params.CR_fk_chain_hinge:
 			hng_bone = self.make_hinge_setup(
 				bone		 = hng_child
-				,bone_set	 = self.fk_mch
+				,bone_set	 = self.bone_sets['FK Helpers']
 				,category	 = self.category
 				,parent_bone = self.root_bone
 				,hng_name	 = self.base_bone.replace("ORG", "FK-HNG")
@@ -231,26 +225,25 @@ class CloudFKChainRig(CloudChainRig):
 			# Also, parent this to the ORG bone. This is so that scaling
 			# the last STR control doesn't affect this deform bone.
 			if not self.params.CR_chain_unlock_deform:
-				last_def.parent = self.org_chain[-1]
+				last_def.parent = self.bone_sets['Original Bones'][-1]
 
 	def tweak_def_chain(self):
 		return # TODO: This seems to break scale inheritance, not fix it? Why was it ever here?
-		for i, def_bone in enumerate(self.def_chain):
-			fk_control = self.fk_chain[int(i/self.params.CR_chain_segments)]
+		for i, def_bone in enumerate(self.bone_sets['Deform Bones']):
+			fk_control = self.bone_sets['FK Controls'][int(i/self.params.CR_chain_segments)]
 			def_bone.inherit_scale = 'FULL'
 			for d in def_bone.drivers:
 				if 'bbone_scale' not in d['prop']: continue
 				d['variables']['scale']['targets'][0]['bone_target'] = fk_control.name
 
 	def attach_org_to_fk(self):
-		# Find existing ORG bones
-		# Add Copy Transforms constraints targetting FK.
-		for i, org_bone in enumerate(self.org_chain):
+		"""Make ORG bones Copy Transforms of FK bones."""
+		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
 			if i==0 and self.params.CR_fk_chain_root:
 				org_bone.parent = self.root_bone
 			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))
 
-			con = org_bone.add_constraint('COPY_TRANSFORMS'
+			org_bone.add_constraint('COPY_TRANSFORMS'
 				,space			= 'WORLD'
 				,subtarget		= fk_bone.name
 				,name			= "Copy Transforms FK"
@@ -271,7 +264,7 @@ class CloudFKChainRig(CloudChainRig):
 		# Create FCurves
 		curve_map = self.test_action_create_fcurves(
 			action
-			,self.fk_chain
+			,self.bone_sets['FK Controls']
 			,'rotation_euler'
 		)
 
@@ -297,12 +290,12 @@ class CloudFKChainRig(CloudChainRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "FK Controls", 		 preset=1, default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
-		cls.define_bone_set(params, "FK Controls Extra", preset=1, default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
-		cls.define_bone_set(params, "FK Helpers", 				   default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'FK Controls', 		 preset=1, default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		cls.define_bone_set(params, 'FK Controls Extra', preset=1, default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
+		cls.define_bone_set(params, 'FK Helpers', 				   default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

@@ -35,10 +35,6 @@ class CloudSplineIKRig(CloudCurveRig):
 
 		self.num_controls = len(self.bones.org.main)+1 if self.params.CR_spline_ik_match_hooks else self.params.CR_spline_ik_hooks
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.def_chain = self.ensure_bone_set("Curve Deform Bones")
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		self.make_curve_root_ctrl()
@@ -81,7 +77,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			self.lock_transforms(curve_ob)
 
 		curve_ob.data.dimensions = '3D'
-		sum_bone_length = sum([b.length for b in self.org_chain])
+		sum_bone_length = sum([b.length for b in self.bone_sets['Original Bones']])
 		length_unit = sum_bone_length / (self.num_controls-1)
 		handle_length = length_unit * self.params.CR_spline_ik_handle_length
 
@@ -99,7 +95,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 			# Place control points
 			index = i if self.params.CR_spline_ik_match_hooks else -1
-			loc, direction = self.vector_along_bone_chain(self.org_chain, point_along_chain, index)
+			loc, direction = self.vector_along_bone_chain(self.bone_sets['Original Bones'], point_along_chain, index)
 			p.co = loc
 			p.handle_right = loc + handle_length * direction
 			p.handle_left  = loc - handle_length * direction
@@ -110,7 +106,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		segments = self.params.CR_spline_ik_subdivide
 
 		count_def_bone = 0
-		for org_bone in self.org_chain:
+		for org_bone in self.bone_sets['Original Bones']:
 			for i in range(0, segments):
 				## Create Deform bones
 				def_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", "")
@@ -118,7 +114,7 @@ class CloudSplineIKRig(CloudCurveRig):
 				count_def_bone += 1
 
 				unit = org_bone.vector / segments
-				def_bone = self.def_chain.new(
+				def_bone = self.bone_sets['Curve Deform Bones'].new(
 					name		 = def_name
 					,source		 = org_bone
 					,head		 = org_bone.head + (unit * i)
@@ -129,17 +125,17 @@ class CloudSplineIKRig(CloudCurveRig):
 					,use_deform	 = True
 				)
 
-				if len(self.def_chain) > 1:
-					def_bone.parent = self.def_chain[-2]
+				if len(self.bone_sets['Curve Deform Bones']) > 1:
+					def_bone.parent = self.bone_sets['Curve Deform Bones'][-2]
 				else:
-					def_bone.parent = self.org_chain[0]
+					def_bone.parent = self.bone_sets['Original Bones'][0]
 
 	def add_spline_ik(self):
 		# Add constraint to deform chain
-		self.def_chain[-1].add_constraint('SPLINE_IK'
+		self.bone_sets['Curve Deform Bones'][-1].add_constraint('SPLINE_IK'
 			,target			  = self.params.CR_curve_target
 			,use_curve_radius = True
-			,chain_count	  = len(self.def_chain)
+			,chain_count	  = len(self.bone_sets['Curve Deform Bones'])
 		)
 
 	def relink(self):
@@ -148,10 +144,10 @@ class CloudSplineIKRig(CloudCurveRig):
 		Only works when CR_spline_ik_match_hooks==True. TODO: Indicate this by graying out in the UI!
 		"""
 		if not self.params.CR_spline_ik_match_hooks: return
-		for i, org in enumerate(self.org_chain):
+		for i, org in enumerate(self.bone_sets['Original Bones']):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
-				to_bone = self.curve_hooks[i]
+				to_bone = self.bone_sets['Curve Hooks'][i]
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				for d in c.drivers:
@@ -167,7 +163,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		for pb in self.obj.pose.bones:
 			pb.bone.select = False
 
-		for def_bone in self.def_chain:
+		for def_bone in self.bone_sets['Curve Deform Bones']:
 			pb = self.obj.pose.bones.get(def_bone.name)
 			if not pb: continue
 			pb.bone.select = True
@@ -180,10 +176,10 @@ class CloudSplineIKRig(CloudCurveRig):
 	# Parameters
 
 	@classmethod
-	def define_bone_sets(cls, params):
-		super().define_bone_sets(params)
+	def add_bone_set_parameters(cls, params):
+		super().add_bone_set_parameters(params)
 		"""Create parameters for this rig's bone sets."""
-		cls.define_bone_set(params, "Curve Deform Bones", default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
+		cls.define_bone_set(params, 'Curve Deform Bones', default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

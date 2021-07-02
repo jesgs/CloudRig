@@ -169,7 +169,6 @@ class BoneSet(LinkedList):
 	def new_from_real(self, rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
 		"""Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
 		# NOTE: Parenting should be done outside of this function. (TODO but maybe shouldn't need to be?)
-		# NOTE: Does not load custom properties.
 
 		pose_bone = rig.pose.bones.get(edit_bone.name)
 		data_bone = pose_bone.bone
@@ -272,9 +271,13 @@ class BoneSetMixin:
 		)
 
 		self.generator.bone_sets.append(new_set)
-		self.bone_sets.append(new_set)
 
 		return new_set
+
+	def ensure_bone_sets(self):
+		bone_set_defs = type(self).bone_set_defs
+		for bone_set_name in bone_set_defs.keys():
+			self.bone_sets[bone_set_name] = self.ensure_bone_set(bone_set_name)
 
 	##############################
 	# UI
@@ -412,8 +415,9 @@ class BoneSetMixin:
 		return ui_name
 
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
+		# For correct behaviour on Reload Scripts. (Not sure if needed)
 		cls.bone_set_defs = OrderedDict()
 
 

@@ -10,14 +10,10 @@ class CloudEyelidRig(CloudFaceChainRig):
 	def initialize(self):
 		super().initialize()
 
-	def ensure_bone_sets(self):
-		super().ensure_bone_sets()
-		self.eyelid_mch = self.ensure_bone_set('Eyelid Mechanism')
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.org_chain[0].parent = self.rigify_parent.org_chain[0].parent
+		self.bone_sets['Original Bones'][0].parent = self.rigify_parent.org_chain[0].parent
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
 		if not self.is_last_chain_rig:
@@ -54,7 +50,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 			if rot_ctr:
 				continue
 
-			rot_ctr = self.eyelid_mch.new(
+			rot_ctr = self.bone_sets['Eyelid Mechanism'].new(
 				name = rot_name
 				,source = eye_bone
 				,tail = str_ctr.head.copy()
@@ -68,7 +64,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				,subtarget = eye_bone.name
 				,use_xyz = [True, False, False]
 			)
-			eyelid_width = (self.org_chain[0].head - self.org_chain[-1].tail).length * 0.55
+			eyelid_width = (self.bone_sets['Original Bones'][0].head - self.bone_sets['Original Bones'][-1].tail).length * 0.55
 
 			# Reject the ROT bone tail onto the eye bone Z axis
 			rejection_z = project_vector_on_plane(rot_ctr.vector, parent_rig.meta_base_bone.z_axis)
@@ -105,10 +101,10 @@ class CloudEyelidRig(CloudFaceChainRig):
 	##############################
 	# Parameters
 	@classmethod
-	def define_bone_sets(cls, params):
+	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
-		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Eyelid Mechanism", default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Eyelid Mechanism', default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):
