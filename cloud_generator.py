@@ -127,6 +127,11 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	ui_bone_sets: CollectionProperty(type=UIBoneSet)
 	bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")
 
+def is_cloud_rig_type(rig_type_name: str):
+	return  rig_type_name != "" and \
+			('cloud' in rig_type_name or \
+			'sprite_fright' in rig_type_name)
+
 def create_selection_sets(obj, metarig, context):
 	# Check if selection sets addon is installed
 	if 'bone_selection_groups' not in context.preferences.addons \
@@ -227,7 +232,7 @@ class CloudGenerator(Generator):
 		# Flag for whether there are any non-CloudRig rig types in the metarig.
 		self.rigify_compatible = False
 		for b in metarig.pose.bones:
-			if b.rigify_type!='' and 'cloud' not in b.rigify_type and 'sprite_fright' not in b.rigify_type:
+			if b.rigify_type != '' and not is_cloud_rig_type(b.rigify_type):
 				self.rigify_compatible = True
 				print("Rigify compatible generation enabled.")
 				break
@@ -255,19 +260,7 @@ class CloudGenerator(Generator):
 		# others make non-deforming.
 		for bone in bones:
 			name = bone.name
-
 			bone.use_deform = name.startswith(DEF_PREFIX)
-
-			# Move all the original bones to their layer.
-			if name.startswith(ORG_PREFIX):
-				bone.layers = self.params.cloudrig_parameters.org_layers
-			# Move all the bones with names starting with "MCH-" to their layer.
-			elif name.startswith(MCH_PREFIX):
-				bone.layers = self.params.cloudrig_parameters.mch_layers
-			# Move all the bones with names starting with "DEF-" to their layer.
-			elif name.startswith(DEF_PREFIX):
-				bone.layers = self.params.cloudrig_parameters.def_layers
-
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
 
 	def update_bone_set_ui_info(self):
@@ -278,7 +271,7 @@ class CloudGenerator(Generator):
 		ui_bone_sets = self.metarig.data.cloudrig_parameters.ui_bone_sets
 		ui_bone_sets.clear()
 		for pb in self.metarig.pose.bones:
-			if pb.rigify_type == '':
+			if not is_cloud_rig_type(pb.rigify_type):
 				continue
 			pb.rigify_parameters.CR_active_bone_set_index = 0
 			rig_class = self.find_rig_class(pb.rigify_type)
