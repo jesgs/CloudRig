@@ -253,9 +253,9 @@ class CloudFaceChainRig(CloudChainRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.default_layers('MCH')])#, is_advanced=True)
-		cls.define_bone_set(params, "Merged Controls",	preset=8,	default_layers=[cls.default_layers('STRETCH')])
-		cls.define_bone_set(params, "Face Helpers", 				default_layers=[cls.default_layers('MCH')], is_advanced=True)
+		cls.define_bone_set(params, "Sub Controls", 	preset=1,	default_layers=[cls.DEFAULT_LAYERS.MCH])#, is_advanced=True)
+		cls.define_bone_set(params, "Merged Controls",	preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
+		cls.define_bone_set(params, "Face Helpers", 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

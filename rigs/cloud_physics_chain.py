@@ -163,7 +163,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			,parent = self.physics_chain[0]
 			,use_deform = True
 		)
-		self.set_layers(pin_bone, [type(self).default_layers('MCH')])
+		self.set_layers(pin_bone, [type(self).DEFAULT_LAYERS.MCH])
 
 		# Add Armature modifier on physics object.
 		if phys_ob.modifiers.find('Armature') == -1:

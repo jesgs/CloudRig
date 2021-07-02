@@ -299,10 +299,10 @@ class CloudSpineRig(CloudFKChainRig):
 	def define_bone_sets(cls, params):
 		super().define_bone_sets(params)
 		"""Create parameters for this rig's bone sets."""
-		cls.define_bone_set(params, "Spine Main Controls",	  preset=2,  default_layers=[cls.default_layers('IK_MAIN')]		)
-		cls.define_bone_set(params, "Spine Parent Controls",  preset=8,  default_layers=[cls.default_layers('IK_MAIN')]		)
-		cls.define_bone_set(params, "Spine IK Secondary",	  preset=10, default_layers=[cls.default_layers('IK_SECOND')]	)
-		cls.define_bone_set(params, "Spine Mechanism",					 default_layers=[cls.default_layers('MCH')], 	  is_advanced=True)
+		cls.define_bone_set(params, "Spine Main Controls",	  preset=2,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
+		cls.define_bone_set(params, "Spine Parent Controls",  preset=8,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
+		cls.define_bone_set(params, "Spine IK Secondary",	  preset=10, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
+		cls.define_bone_set(params, "Spine Mechanism",					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

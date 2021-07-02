@@ -610,11 +610,11 @@ class CloudChainRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.default_layers('STRETCH')])
-		cls.define_bone_set(params, "Deform Controls", preset=5,	default_layers=[cls.default_layers('DEF_CTR')])
-		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.default_layers('MCH')], is_advanced=True)
-		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.default_layers('MCH')], is_advanced=True)
-		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.default_layers('MCH')], is_advanced=True)
+		cls.define_bone_set(params, "Stretch Controls", preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
+		cls.define_bone_set(params, "Deform Controls", preset=5,	default_layers=[cls.DEFAULT_LAYERS.DEF_CTR])
+		cls.define_bone_set(params, "Deform Helpers", 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, "Stretch Helpers",				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, "Shape Key Helpers",			default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

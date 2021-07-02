@@ -285,12 +285,12 @@ class CloudAimRig(CloudBaseRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "Aim Group Target Control",  preset=1,	default_layers=[cls.default_layers('FK_MAIN')])
-		cls.define_bone_set(params, "Aim Target Controls", 		 preset=2,	default_layers=[cls.default_layers('FK_MAIN')])
-		cls.define_bone_set(params, "Aim Root Control", 		 preset=2,	default_layers=[cls.default_layers('FK_SECOND')])
-		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.default_layers('MCH')], is_advanced=True)
+		cls.define_bone_set(params, "Aim Group Target Control",  preset=1,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		cls.define_bone_set(params, "Aim Target Controls", 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		cls.define_bone_set(params, "Aim Root Control", 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
+		cls.define_bone_set(params, "Aim Target Mechanism",					default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 		if params.CR_aim_deform:
-			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.default_layers('DEF')], is_advanced=True)
+			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):

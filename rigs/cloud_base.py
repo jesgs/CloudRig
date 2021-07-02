@@ -14,12 +14,11 @@ from ..utils.object import CloudObjectUtilitiesMixin
 # The rest
 from bpy.props import BoolProperty, StringProperty, CollectionProperty, IntProperty, EnumProperty
 from mathutils import Vector
-from enum import Enum
 
 from ..parent_switching import draw_cloudrig_parents, ParentSlot
 from ..utils.ui import draw_label_with_linebreak
 
-class DefaultLayers(Enum):
+class DEFAULT_LAYERS:
 	IK_MAIN = 0
 	IK_SECOND = 16
 	FK_MAIN = 1
@@ -47,7 +46,7 @@ class CloudBaseRig(
 	):
 	"""Base class that all CloudRig rigs should inherit from."""
 
-	default_layers = lambda name: DefaultLayers[name].value
+	DEFAULT_LAYERS = DEFAULT_LAYERS
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	use_custom_props = False	# TODO: Instead of an awkward "feature exists or not" flag like this, we should split these features off into a compositable class, eg. utils.custom_properties->CloudCustomPropertyMixin.
@@ -424,9 +423,9 @@ class CloudBaseRig(
 		params.CR_show_advanced_bone_sets = BoolProperty(name="Advanced Bone Sets", description="Reveal bone sets of helper bones")
 		params.CR_active_bone_set_index = IntProperty()
 
-		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.default_layers('DEF')], is_advanced=True)
-		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.default_layers('MCH')], is_advanced=True)
-		cls.define_bone_set(params, "Original Bones",	default_layers=[cls.default_layers('ORG')], is_advanced=True)
+		cls.define_bone_set(params, "Deform Bones",		default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
+		cls.define_bone_set(params, "Mechanism Bones",	default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, "Original Bones",	default_layers=[cls.DEFAULT_LAYERS.ORG], is_advanced=True)
 
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):

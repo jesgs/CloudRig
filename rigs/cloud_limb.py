@@ -411,7 +411,7 @@ class CloudLimbRig(CloudIKChainRig):
 	def define_bone_sets(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().define_bone_sets(params)
-		cls.define_bone_set(params, "IK Child Controls", preset=8, default_layers=[cls.default_layers('IK_SECOND')])
+		cls.define_bone_set(params, "IK Child Controls", preset=8, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
 
 	@classmethod
 	def add_parameters(cls, params):
