@@ -1081,9 +1081,12 @@ class CLOUDRIG_PT_base(bpy.types.Panel):
 	def draw(self, context):
 		layout = self.layout
 
-class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_override_troubleshooting_" + script_id
-	bl_label = "Troubleshoot Overrides"
+
+def has_number_suffix(name):
+	return all([char in "0123456789" for char in name[-3:]]) and name[-4]=="."
+class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
+	bl_idname = "CLOUDRIG_PT_troubleshoot_overrides_" + script_id
+	bl_label = "Troubleshooting"
 
 	@classmethod
 	def poll(cls, context):
@@ -1093,21 +1096,23 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 		rig = is_active_cloudrig(context)
 		if rig.override_library: return True
 
-	def draw(self, context):
-		layout = self.layout
-		layout = layout.column()
-		layout.use_property_split=True
-		layout.use_property_decorate=False
-
-		# Check if an 'OVERRIDE_RESYNC_LEFTOVERS' collection exists
+	@staticmethod
+	def draw_override_purge(layout):
+		"""Check if an 'OVERRIDE_RESYNC_LEFTOVERS' collection exists and 
+		draw a button to delete it.
+		"""
 		if 'OVERRIDE_RESYNC_LEFTOVERS' in bpy.data.collections:
 			row = layout.row()
 			row.alert=True
 			row.operator(CLOUDRIG_OT_delete_override_leftovers.bl_idname, icon='TRASH')
 
-		rig = context.object
-		# Find containing overridden collection
-		owner_collection = rig.users_collection[0]
+		purge = layout.operator('outliner.orphans_purge', text="Purge Unused", icon='ORPHAN_DATA')
+		purge.do_recursive=True
+
+	@staticmethod
+	def get_override_collection(obj):
+		"""Find first overridden collection that contains obj."""
+		owner_collection = obj.users_collection[0]
 		while owner_collection.override_library!=None:
 			for c in bpy.data.collections:
 				if owner_collection in c.children[:]:
@@ -1115,71 +1120,80 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 						break
 					owner_collection = c
 			break
+		return owner_collection
 
-		purge = layout.operator('outliner.orphans_purge', text="Purge Unused", icon='ORPHAN_DATA')
-		purge.do_recursive=True
-		layout.separator()
+	@staticmethod
+	def draw_troubleshoot_name(layout, thing, *, suffix, is_collection):
+		icon = 'OUTLINER_COLLECTION' if is_collection else 'OBJECT_DATAMODE'
+		if (suffix=="" and has_number_suffix(thing.name)) or (suffix!="" and not thing.name.endswith(suffix)):
+			split = layout.split(factor=0.3)
+			split.row().label(text="Wrong suffix: ")
+			split = split.row().split(factor=0.9)
+			split.row().label(text=thing.name, icon=icon)
+			op = split.row().operator(
+				CLOUDRIG_OT_override_fix_name.bl_idname
+				,text = ""
+				,icon = 'FILE_TEXT'
+			)
+			op.old_name = thing.name
+			op.new_name = thing.name[:-4] + suffix
+			op.is_collection = is_collection
 
+	@staticmethod
+	def draw_troubleshoot_names(layout, things, *, suffix, is_collection):
+		for thing in things:
+			if thing.name.startswith("WGT-"):
+				# Bone widgets are handled specially by overrides; 
+				# They are not overridden, because they don't need to be, but stay linked.
+				# For now let this be handled by naming convention: 
+				# Bone shapes should start with "WGT-". Otherwise, we could scan 
+				# through every bone and save a list of widget names to ignore here.
+				continue
+			CLOUDRIG_PT_troubleshoot_overrides.draw_troubleshoot_name(
+				layout, thing, suffix=suffix, is_collection=is_collection)
+
+	@staticmethod
+	def draw_troubleshoot_object(layout, ob):
+		for m in ob.modifiers:
+			if hasattr(m, 'object') and m.object==None:
+				split = layout.split(factor=0.3)
+				split.row().label(text="Missing modifier target: ")
+				split = split.row().split(factor=0.9)
+				split.row().label(text=ob.name + ": " + m.name, icon='MODIFIER')
+
+		for c in ob.constraints:
+			if c.type=='ARMATURE':
+				pass
+				# TODO: special treatment
+			if hasattr(c, 'target') and c.target==None:
+				split = layout.split(factor=0.3)
+				split.row().label(text="Missing object constraint target: ")
+				split = split.row().split(factor=0.9)
+				split.row().label(text=ob.name + ": " + c.name, icon='CONSTRAINT')
+
+	@staticmethod
+	def draw_collection_info(layout, rig, coll):
 		layout.prop(rig.override_library.reference, 'library', text="Library: ")
 		layout.prop(rig.override_library, 'reference', text="Linked Object: ")
 		layout.prop(rig, 'name', text="Overridden Object: ", icon='OBJECT_DATAMODE')
 
-		def all_collections(collection, col_list):
-			col_list.append(collection)
-			for sub_collection in collection.children:
-				all_collections(sub_collection, col_list)
-
-		layout.prop(owner_collection, 'name', text="Base Collection: ", icon='OUTLINER_COLLECTION')
+		layout.prop(coll, 'name', text="Base Collection: ", icon='OUTLINER_COLLECTION')
 
 		# Determine if a number suffix is expected on the objects of this collection, and what it is,
 		# based on if the collection has such a suffix.
-		def has_number_suffix(name):
-			return all([char in "0123456789" for char in name[-3:]]) and name[-4]=="."
 
 		suffix = ""
-		if has_number_suffix(owner_collection.name):
-			suffix = owner_collection.name[-4:]
+		if has_number_suffix(coll.name):
+			suffix = coll.name[-4:]
 		
 		split=layout.split(factor=0.4)
 		split.row()
 		split.row().label(text="Expected suffix: " + suffix)
 
-		for ob in owner_collection.all_objects:
-			if ob.name.startswith("WGT-"):
-				# Bone widgets are handled specially by overrides; They are not overridden, because they don't need to be, but stay linked.
-				# For now let this be handled by naming convention: Bone shapes should start with "WGT-". Otherwise, we could scan through every bone and save a list of widget names to ignore here.
-				continue
-			if (suffix=="" and has_number_suffix(ob.name)) or (suffix!="" and not ob.name.endswith(suffix)):
-				split = layout.split(factor=0.3)
-				split.row().label(text="Wrong suffix: ")
-				split = split.row().split(factor=0.9)
-				split.row().label(text=ob.name, icon='OBJECT_DATAMODE')
-				op = split.row().operator(
-					CLOUDRIG_OT_override_fix_name.bl_idname
-					,text = ""
-					,icon = 'FILE_TEXT'
-				)
-				op.old_name = ob.name
-				op.new_name = ob.override_library.reference.name+suffix
-				op.is_collection = False
+		return suffix
 
-			for m in ob.modifiers:
-				if hasattr(m, 'object') and m.object==None:
-					split = layout.split(factor=0.3)
-					split.row().label(text="Missing modifier target: ")
-					split = split.row().split(factor=0.9)
-					split.row().label(text=ob.name + ": " + m.name, icon='MODIFIER')
-
-			for c in ob.constraints:
-				if c.type=='ARMATURE':
-					pass
-					# TODO: special treatment
-				if hasattr(c, 'target') and c.target==None:
-					split = layout.split(factor=0.3)
-					split.row().label(text="Missing object constraint target: ")
-					split = split.row().split(factor=0.9)
-					split.row().label(text=ob.name + ": " + c.name, icon='CONSTRAINT')
-
+	@staticmethod
+	def draw_troubleshoot_rig(layout, rig):
 		for pb in rig.pose.bones:
 			for c in pb.constraints:
 				if c.type=='ARMATURE':
@@ -1191,22 +1205,39 @@ class CLOUDRIG_PT_override_troubleshooting(CLOUDRIG_PT_base):
 					split = split.row().split(factor=0.9)
 					split.row().label(text=pb.name + ": " + c.name, icon='CONSTRAINT_BONE')
 
-		all_colls = []
-		all_collections(owner_collection, all_colls)
-		for coll in all_colls:
-			if (suffix=="" and has_number_suffix(coll.name)) or (suffix!="" and not coll.name.endswith(suffix)):
-				split = layout.split(factor=0.3)
-				split.row().label(text="Wrong suffix: ")
-				split = split.row().split(factor=0.9)
-				split.row().label(text=coll.name, icon='OUTLINER_COLLECTION')
-				op = split.row().operator(
-					CLOUDRIG_OT_override_fix_name.bl_idname
-					,text = ""
-					,icon = 'FILE_TEXT'
-				)
-				op.old_name = coll.name
-				op.new_name = coll.name[:-4] + suffix
-				op.is_collection = True
+	@staticmethod
+	def draw_troubleshoot_collections(layout, coll, *, suffix: str):
+		def get_subcollections_recursive(collection, col_list):
+			col_list.append(collection)
+			for sub_collection in collection.children:
+				get_subcollections_recursive(sub_collection, col_list)
+			return col_list
+
+		all_colls = get_subcollections_recursive(coll, [])
+		CLOUDRIG_PT_troubleshoot_overrides.draw_troubleshoot_names(
+			layout, all_colls, suffix=suffix, is_collection=True)
+
+	def draw(self, context):
+		layout = self.layout
+		layout = layout.column()
+		layout.use_property_split=True
+		layout.use_property_decorate=False
+
+		self.draw_override_purge(layout)
+		layout.separator()
+
+		rig = context.object
+		owner_collection = self.get_override_collection(rig)
+
+		suffix = self.draw_collection_info(layout, rig, owner_collection)
+
+		self.draw_troubleshoot_names(
+			layout, owner_collection.all_objects, suffix=suffix, is_collection=False)
+		for ob in owner_collection.all_objects:
+			self.draw_troubleshoot_object(layout, ob)
+
+		self.draw_troubleshoot_rig(layout, rig)
+		self.draw_troubleshoot_collections(layout, owner_collection, suffix=suffix)
 
 def get_char_bone(rig):
 	for b in rig.pose.bones:
@@ -1664,7 +1695,7 @@ classes = (
 
 	,CLOUDRIG_OT_delete_override_leftovers
 	,CLOUDRIG_OT_override_fix_name
-	,CLOUDRIG_PT_override_troubleshooting
+	,CLOUDRIG_PT_troubleshoot_overrides
 
 	,CloudRig_Properties
 
