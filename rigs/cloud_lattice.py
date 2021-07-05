@@ -17,9 +17,7 @@ class CloudLatticeRig(CloudBaseRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		org_bi = self.bone_sets['Original Bones'][0]
-
-		self.lattice_root = self.make_lattice_root_ctrl(org_bi)
+		self.lattice_root = self.make_lattice_root_ctrl(self.root_bone)
 		self.hook_bone = self.make_hook_ctrl(self.lattice_root)
 
 	def relink(self):
@@ -95,7 +93,7 @@ class CloudLatticeRig(CloudBaseRig):
 		lattice_ob.parent = self.obj
 		# Bone-parent lattice to root bone
 		lattice_ob.parent_type = 'BONE'
-		lattice_ob.parent_bone = root_bone.name
+		lattice_ob.parent_bone = self.lattice_root.name
 		lattice_ob.matrix_world = root_bone.matrix
 		lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(root_bone.length, 4)
 		# Leave a custom property for the Generator, so it doesn't reset the 
