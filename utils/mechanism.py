@@ -85,7 +85,7 @@ class CloudMechanismMixin:
 			self.add_log(
 				"Parent not found"
 				,trouble_bone = bone.name
-				,description = f"Target parent bone {parent_name} not found. If this bone does actually exist, you should make sure that this cloud_copy/tweak rig is lower in the parenting hierarchy than the rig that generated the target bone."
+				,description = f'Parent bone "{parent_name}" not found. \nIf this bone does actually exist, you should make sure that this rig ("{self.base_bone[4:]}") is lower in the parenting hierarchy than the rig that generated "{parent_name}".'
 			)
 			# Still try string-based parenting, which is not ideal but ohwell.
 			bone.parent = parent_name
