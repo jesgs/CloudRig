@@ -1,4 +1,8 @@
 Priority 1: Bugs
+    Things that don't work when the CloudRig folder is named something other than CloudRig:
+        - imports from post_gen_utils scripts fail.
+        Could it be worked around by making sure in cloudrig register that rigify.feature_sets.CloudRig either already exists, or if not, we create it as a reference to __module__?
+
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.

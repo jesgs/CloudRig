@@ -18,9 +18,9 @@ bl_info = {
 	,'doc_url' : "https://gitlab.com/blender/CloudRig/"
 }
 
-import bpy, importlib
+import importlib
 
-from .utils import ui_list
+from . import utils
 from . import actions
 from . import troubleshooting
 from . import bone_set
@@ -53,7 +53,6 @@ def register():
 	trying_to_install_as_addon = caller_name == 'execute'
 	assert not trying_to_install_as_addon, "CloudRig is not an addon. Install it as a Feature Set within the Rigify addon."
 
-	from bpy.utils import register_class
 	for m in modules:
 		importlib.reload(m)
 		m.register()
@@ -61,7 +60,6 @@ def register():
 	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
 
 def unregister():
-	from bpy.utils import unregister_class
 	for m in reversed(modules):
 		m.unregister()
 

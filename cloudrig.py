@@ -10,16 +10,16 @@ different versions of CloudRig to co-exist in the same scene. So each rig uses
 the script that belongs to it, and not another, potentially newer or older version.
 """
 
-import bpy, sys, traceback, json, collections
+import bpy, traceback, json, collections
 from typing import List, Dict
 from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty,
 						EnumProperty, PointerProperty, IntProperty
 					)
 from mathutils import Vector, Matrix
-from rna_prop_ui import rna_idprop_ui_prop_get, rna_idprop_quote_path, rna_idprop_ui_prop_update
+from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-script_id = "SCRIPT_ID"
+script_id = "sprite_fright"
 
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """
@@ -1691,6 +1691,31 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_sub_settings):
 
 	area_names = {'misc_settings' : ""}
 
+
+# TEMPORARY HACK: Add a pop-up window when saving absolute paths. 
+# This is done to hunt down a very elusive bug in Blender 3.0 where sometimes 
+# library paths change from relative to absolute.
+from bpy.app.handlers import persistent
+
+def draw_library_warning(self, context):
+	layout = self.layout
+	layout.alert=True
+	layout.label(text="Saved with absolute library paths!")
+	layout.label(text="Click this button and save again before committing:")
+	layout.operator('file.make_paths_relative')
+	layout.label(text="Then report this to Demeter!")
+
+@persistent
+def warn_absolute_path_libs(dummy):
+	abs_libs = []
+	for lib in bpy.data.libraries:
+		if not lib.filepath.startswith("//"):
+			abs_libs.append(lib)
+
+	if len(abs_libs) > 0:
+		bpy.context.window_manager.popup_menu(
+			draw_library_warning, title="ERROR: ABSOLUTE LIBRARY PATHS!", icon='ERROR')
+
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
 	,CLOUDRIG_OT_ikfk_bake
@@ -1722,6 +1747,9 @@ def register():
 	for c in classes:
 		register_class(c)
 
+	if script_id == 'sprite_fright':
+		bpy.app.handlers.save_post.append(warn_absolute_path_libs)
+
 	# We store everything in Object rather than Armature because Armature data cannot be accessed on proxy armatures.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
@@ -1729,6 +1757,9 @@ def unregister():
 	from bpy.utils import unregister_class
 	for c in classes:
 		unregister_class(c)
+
+	if script_id == 'sprite_fright':
+		bpy.app.handlers.save_post.remove(warn_absolute_path_libs)
 
 	del bpy.types.Object.cloud_rig
 
