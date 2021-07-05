@@ -20,6 +20,9 @@ bl_info = {
 
 import importlib
 
+from rigify import feature_sets
+import sys
+
 from . import utils
 from . import actions
 from . import troubleshooting
@@ -58,11 +61,10 @@ def register():
 		m.register()
 
 	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
+	feature_sets.CloudRig = sys.modules[__name__]
 
 def unregister():
 	for m in reversed(modules):
 		m.unregister()
 
-from rigify import feature_set_list
-if not hasattr(feature_set_list, 'call_register_function'):
-	register()
+	del feature_sets.CloudRig
