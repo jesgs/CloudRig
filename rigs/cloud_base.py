@@ -50,7 +50,6 @@ class CloudBaseRig(
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	use_custom_props = False	# TODO: Instead of an awkward "feature exists or not" flag like this, we should split these features off into a compositable class, eg. utils.custom_properties->CloudCustomPropertyMixin.
-	custom_prop_behaviour = "Store Custom Properties for this rig element in a cogwheel shaped bone at the base of the rig."
 	relinking_behaviour = ""
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
@@ -383,10 +382,11 @@ class CloudBaseRig(
 		params.CR_base_props_storage = EnumProperty(
 			name		 = "Custom Property Storage"
 			,items		 = [
-				('DEFAULT', "Default", 'Use a shared bone called "Properties"')
-				,('CUSTOM', "Custom", "Select an existing bone")
-				,('GENERATED', "Generated", "Generate a bone specifically for this rig element. This can be implemented differently by different rig types")
+				('DEFAULT', "Shared", 'Use a shared bone called "Properties"')
+				,('CUSTOM', "Picked", "Select an existing bone")
+				,('GENERATED', "Generated", 'Generate a bone specifically for this rig element, prefixed "PRP-"')
 			]
+			,description = "Where to store the custom properties needed for this rig element"
 		)
 		params.CR_base_props_storage_bone = StringProperty(
 			name		 = "Properties Bone"
@@ -482,5 +482,3 @@ class CloudBaseRig(
 		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
 		if params.CR_base_props_storage == 'CUSTOM':
 			cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
-		elif params.CR_base_props_storage == 'GENERATED':
-			draw_label_with_linebreak(layout, cls.custom_prop_behaviour, align_split=True)
