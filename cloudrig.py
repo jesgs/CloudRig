@@ -1079,14 +1079,14 @@ class CLOUDRIG_PT_base(bpy.types.Panel):
 		return is_active_cloudrig(context) is not None
 
 	def draw(self, context):
-		layout = self.layout
-
+		pass
 
 def has_number_suffix(name):
 	return all([char in "0123456789" for char in name[-3:]]) and name[-4]=="."
+
 class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_troubleshoot_overrides_" + script_id
-	bl_label = "Troubleshooting"
+	bl_label = "Troubleshoot"
 
 	@classmethod
 	def poll(cls, context):
@@ -1173,11 +1173,19 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 
 	@staticmethod
 	def draw_collection_info(layout, rig, coll):
-		layout.prop(rig.override_library.reference, 'library', text="Library: ")
+		lib = rig.override_library.reference.library
+		if not lib.filepath.startswith("//"):
+			row = layout.row()
+			row.alert = True
+			row.prop(rig.override_library.reference, 'library', text="Library", icon='ERROR')
+			row.alert = False
+			row.operator('file.make_paths_relative', icon='CHECKMARK', text="")
+		else:
+			layout.prop(rig.override_library.reference, 'library', text="Library")
 		layout.prop(rig.override_library, 'reference', text="Linked Object: ")
-		layout.prop(rig, 'name', text="Overridden Object: ", icon='OBJECT_DATAMODE')
+		layout.prop(rig, 'name', text="Overridden Object", icon='OBJECT_DATAMODE')
 
-		layout.prop(coll, 'name', text="Base Collection: ", icon='OUTLINER_COLLECTION')
+		layout.prop(coll, 'name', text="Base Collection", icon='OUTLINER_COLLECTION')
 
 		# Determine if a number suffix is expected on the objects of this collection, and what it is,
 		# based on if the collection has such a suffix.
@@ -1219,9 +1227,9 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 
 	def draw(self, context):
 		layout = self.layout
-		layout = layout.column()
-		layout.use_property_split=True
-		layout.use_property_decorate=False
+		col = layout.column()
+		col.use_property_split=True
+		col.use_property_decorate=False
 
 		self.draw_override_purge(layout)
 		layout.separator()
