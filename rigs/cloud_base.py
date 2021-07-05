@@ -177,8 +177,7 @@ class CloudBaseRig(
 			self.apply_custom_root_parent()
 		if self.params.CR_base_parent_switching:
 			self.apply_parent_switching(self.params.CR_base_parent_slots)
-		if self.params.CR_base_relink:
-			self.relink()
+		self.relink()
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
@@ -375,14 +374,9 @@ class CloudBaseRig(
 			,description = "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
 			,default	 = False
 		)
-		params.CR_base_relink = BoolProperty(
-			name		 = "Relink Constraints"
-			,description = "Metarig constraints can specify a target bone name after an \"@\" symbol in the constraint name. Constraints and drivers on this rig will be moved to the primary controls generated for each bone. These can be different for each rig type"
-			,default	 = True
-		)
 		params.CR_base_parent = StringProperty(
 			name		 = "Root Parent"
-			,description = "If specified, parent the root of this rig to the chosen bone"
+			,description = "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
 			,default	 = ""
 		)
 
@@ -438,37 +432,42 @@ class CloudBaseRig(
 		cls.draw_bone_sets_list(layout, context, params)
 
 	@classmethod
+	def draw_parent_param(cls, layout, rig, params):
+		parent_bone = rig.pose.bones.get(params.CR_base_parent)
+		text = "Root Parent: "
+		if parent_bone and parent_bone.bone.bbone_segments > 1:
+			text = "Root Parent (Bendy): "
+		cls.draw_prop_search(layout, params, 'CR_base_parent', rig.pose, 'bones', text=text)
+
+	@classmethod
+	def draw_parenting_params(cls, layout, context, params):
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+		if not rig:
+			draw_label_with_linebreak(layout, "Generate the rig to see parenting parameters.", align_split=True)
+			return
+
+		if cls.parent_switch_overwrites_root_parent:
+			cls.draw_prop(layout, params, "CR_base_parent_switching")
+			if params.CR_base_parent_switching:
+				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
+			else:
+				cls.draw_parent_param(layout, rig, params)
+		else:
+			cls.draw_parent_param(layout, rig, params)
+			cls.draw_prop(layout, params, "CR_base_parent_switching")
+			if params.CR_base_parent_switching:
+				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
+
+	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
 
-		cls.draw_prop(layout, params, "CR_base_relink")
-		if params.CR_base_relink:
-			draw_label_with_linebreak(layout, cls.relinking_behaviour, align_split=True)
-
-		metarig = context.object
-		rig = metarig.data.rigify_target_rig
-
-		if not rig:
-			draw_label_with_linebreak(layout, "Generate the rig to see parenting parameters.", align_split=True)
-			return layout
-
+		cls.draw_parenting_params(layout, context, params)
 		layout.separator()
-		parent_bone = rig.pose.bones.get(params.CR_base_parent)
-		cls.draw_prop(layout, params, "CR_base_parent_switching")
-		if params.CR_base_parent!="" and not parent_bone:
-			cls.draw_prop_search(layout, params, 'CR_base_parent', rig.pose, 'bones', icon='ERROR')
-			draw_label_with_linebreak(layout, "Bone no longer exists in rig!", align_split=True)
-		elif not (cls.parent_switch_overwrites_root_parent and params.CR_base_parent_switching):
-			cls.draw_prop_search(layout, params, 'CR_base_parent', rig.pose, 'bones')
-			if parent_bone and parent_bone.bone.bbone_segments > 1:
-				draw_label_with_linebreak(layout, "Bendy Bone, will use Armature Constraint and create a parent helper bone!", align_split=True)
-
-		if params.CR_base_parent_switching:
-			draw_label_with_linebreak(layout, cls.parent_switch_behaviour, align_split=True)
-			draw_cloudrig_parents(layout, context)
 
 		if cls.use_custom_props:
 			layout.separator()

@@ -73,6 +73,7 @@ Priority 4: Code quality
         Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
 
 Priority 5: UI, UX & documentation
+    We removed the Relink Constraints parameter, but kept the relinking_behaviour strings. Decide what is best, and either update the documentation or remove the strings.
     Upstream
         Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon... Not sure if easily possible though since we'd have to hack into the rigify layers propertygroup which I don't want to do.
         Active layers on the generated rig shouldn't be the same as the metarig afterall - or maybe it should be an option (sometimes we do enable the deform layer because we want to see it on generation)

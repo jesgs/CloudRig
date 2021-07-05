@@ -1,8 +1,7 @@
 import bpy
-from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty, CollectionProperty
-from .utils import naming
-from .utils.ui import is_cloud_metarig
+from bpy.props import StringProperty
 from .utils.ui_list import draw_ui_list
+from .utils.ui import draw_label_with_linebreak
 
 # This whole thing could be part of Rigify.
 
@@ -10,7 +9,6 @@ class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
-		pbone = context.active_pose_bone
 		parent_slot = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
@@ -24,9 +22,8 @@ class ParentSlot(bpy.types.PropertyGroup):
 	name: StringProperty(name="Name", description="Name to display in the UI for this parent option")
 	bone: StringProperty(name="Bone", description="Bone that will be used as the parent")
 
-def draw_cloudrig_parents(layout, context):
-	pbone = context.active_pose_bone
-	active_index = pbone.rigify_parameters.CR_base_active_parent_slot_index
+def draw_cloudrig_parents(layout, context, text=""):
+	draw_label_with_linebreak(layout, text, align_split=True)
 
 	draw_ui_list(
 		layout
