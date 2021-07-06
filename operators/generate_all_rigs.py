@@ -38,7 +38,7 @@ def find_metarigs_in_scene(scene):
 	return metarigs
 
 class Generate_All_Rigify_Rigs(bpy.types.Operator):
-	"""Generate all Rigify rigs in the scene."""
+	"""Generate all Rigify rigs in the scene"""
 	bl_idname = "object.generate_all_rigify_rigs"
 	bl_label = "Generate All Rigify Rigs"
 	bl_options = {'REGISTER', 'UNDO'}
