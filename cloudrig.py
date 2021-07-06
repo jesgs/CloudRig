@@ -1709,7 +1709,8 @@ def draw_library_warning(self, context):
 def warn_absolute_path_libs(dummy):
 	abs_libs = []
 	for lib in bpy.data.libraries:
-		if not lib.filepath.startswith("//"):
+		if len(lib.users_id) > 0 and not lib.filepath.startswith("//"):
+			print(f"This absolute path library has more than 0 users: {lib.filepath}")
 			abs_libs.append(lib)
 
 	if len(abs_libs) > 0:
