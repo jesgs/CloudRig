@@ -58,6 +58,9 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
+    write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo.
+        Alternatively we could pass the generator as an argument.
+        Decide which is better and do it cleanly. Also move the special handling of custom_shape_scale_xyz from generator to wherever we decide the rest will go.
     Could do a more central registration process instead of letting every file register itself, we could have a classes_to_register = [] list which are then registered from __init__.
     Investigate which bone shapes and DSP bones could be removed now that we have bone shape transform customization.
     Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.

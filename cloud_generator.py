@@ -802,7 +802,7 @@ class CloudGenerator(Generator):
 
 		for bi in self.bone_infos:
 			edit_bone = self.obj.data.edit_bones.get(bi.name)
-			bi.write_edit_data(self.obj, edit_bone, context)
+			bi.write_edit_data(self, edit_bone, context)
 
 		if self.root_bone:
 			self._Generator__parent_bones_to_root()
@@ -824,16 +824,11 @@ class CloudGenerator(Generator):
 					,description = f"BoneInfo {bi.name} wasn't created for some reason."
 				)
 				continue
-
+			
 			# Scale bone shape based on B-Bone scale
 			bi.write_pose_data(pose_bone)
 			if not pose_bone.use_custom_shape_bone_size:
 				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
-			pose_bone.bone.bbone_x = bi.bbone_width * self.scale
-			pose_bone.bone.bbone_z = bi.bbone_width * self.scale
-			pose_bone.bone.envelope_distance = bi.bbone_width * self.scale
-			pose_bone.bone.head_radius = bi.bbone_width * self.scale
-			pose_bone.bone.tail_radius = bi.bbone_width * self.scale
 
 		self.invoke_configure_bones()
 
