@@ -20,6 +20,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	parent_switch_behaviour = 'The active parent will own the IK master and pole controls.'
 	parent_switch_overwrites_root_parent = False
+	always_use_custom_props = True
 
 	forced_params = {
 		'CR_fk_chain_root' : True,

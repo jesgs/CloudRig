@@ -9,7 +9,6 @@ class CloudFKChainRig(CloudChainRig):
 	"""FK chain with squash and stretch controls."""
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
-	use_custom_props = True
 	relinking_behaviour = "Constraints will be moved to the FK controls."
 
 	has_test_animation = True
@@ -427,13 +426,14 @@ class CloudFKChainRig(CloudChainRig):
 		return layout
 
 	@classmethod
-	def draw_custom_prop_params(cls, layout, context, params):
+	def is_using_custom_props(cls, context, params):
 		"""Overrides cloud_base."""
+		if super().is_using_custom_props(context, params):
+			return True
+
 		if not (params.CR_fk_chain_hinge and params.CR_fk_chain_root) and \
 			not params.CR_base_parent_switching:
-			return
-
-		super().draw_custom_prop_params(layout, context, params)
+			return False
 
 class Rig(CloudFKChainRig):
 	pass

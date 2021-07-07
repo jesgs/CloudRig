@@ -49,10 +49,10 @@ class CloudBaseRig(
 	DEFAULT_LAYERS = DEFAULT_LAYERS
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
-	use_custom_props = False	# TODO: Instead of an awkward "feature exists or not" flag like this, we should split these features off into a compositable class, eg. utils.custom_properties->CloudCustomPropertyMixin.
 	relinking_behaviour = ""
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
+	always_use_custom_props = False
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -460,6 +460,24 @@ class CloudBaseRig(
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 
 	@classmethod
+	def is_using_custom_props(cls, context, params):
+		"""Determine whether the custom property storage UI should be drawn or not."""
+		# TODO: Instead of an awkward "feature exists or not" flag like this, 
+		# we should split these features off into a compositable class, 
+		# eg. utils.custom_properties->CloudCustomPropertyMixin.
+		if cls.always_use_custom_props:
+			return True
+		return False
+
+	@classmethod
+	def draw_custom_prop_params(cls, layout, context, params):
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
+		if params.CR_base_props_storage == 'CUSTOM':
+			cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
+
+	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
@@ -469,16 +487,8 @@ class CloudBaseRig(
 		cls.draw_parenting_params(layout, context, params)
 		layout.separator()
 
-		if cls.use_custom_props:
+		if cls.is_using_custom_props(context, params):
 			layout.separator()
 			cls.draw_custom_prop_params(layout, context, params)
 
 		return layout
-
-	@classmethod
-	def draw_custom_prop_params(cls, layout, context, params):
-		metarig = context.object
-		rig = metarig.data.rigify_target_rig
-		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
-		if params.CR_base_props_storage == 'CUSTOM':
-			cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
