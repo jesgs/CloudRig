@@ -283,7 +283,7 @@ class BoneInfo:
 		"""
 
 		con_info = ConstraintInfo(self, contype, **kwargs)
-		if index:
+		if index != None:
 			self.constraint_infos.insert(index, con_info)
 		else:
 			self.constraint_infos.append(con_info)

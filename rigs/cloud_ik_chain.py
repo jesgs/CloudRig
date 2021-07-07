@@ -1,6 +1,5 @@
-import bpy
-from typing import List
-from ..bone import BoneInfo
+from bpy.types import PoseBone
+from typing import Tuple
 
 from bpy.props import BoolProperty
 from mathutils import Vector
@@ -46,6 +45,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
+		assert len(self.bone_sets['Original Bones']) > 2, f"ERROR on {self.base_bone}: cloud_ik_chain requires at a chain of least 3 bones!"
 		self.last_org = self.bone_sets['Original Bones'][-1]
 		if self.params.CR_ik_chain_at_tip:
 			self.bone_sets['Original Bones'].new(
@@ -105,7 +105,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			)
 
 		# Set up IK Stretch
-		stretch_bone = self.make_ik_stretch()
+		self.stretch_bone = self.make_ik_stretch()
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name="Sphere"):
 		if bone_name=="":
@@ -122,9 +122,9 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	@staticmethod
 	def calculate_ik_info_static(
-			meta_first: bpy.types.PoseBone,
-			meta_second: bpy.types.PoseBone
-		) -> (float, Vector, Vector):
+			meta_first: PoseBone,
+			meta_second: PoseBone
+		) -> Tuple[float, Vector, Vector]:
 
 		chain_vector = meta_second.tail - meta_first.head
 
@@ -190,6 +190,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,custom_shape		= self.ensure_widget('ArrowHead')
 			,custom_shape_scale	= 0.5
 			,use_custom_shape_bone_size = True
+			,parent = self.ik_mstr
 		)
 
 		pole_line = self.bone_sets['IK Controls'].new(
@@ -418,6 +419,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			if head_tail > 1.0: break
 			if i == 0: continue
 			if i == len(self.main_str_bones)-1 and not self.params.CR_ik_chain_at_tip: continue
+			# Create STR-S helper
 			main_str_helper = self.bone_sets['IK Mechanism'].new(
 				name		 = self.naming.add_prefix(main_str_bone, "S")
 				,source		 = main_str_bone
@@ -425,6 +427,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				,parent		 = main_str_bone.parent
 				,hide_select = self.mch_disable_select
 			)
+			main_str_bone.stretch_helper = main_str_helper
 			main_str_bone.parent = main_str_helper
 
 			con_name = 'CopyLoc_IK_Stretch'
