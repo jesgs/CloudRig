@@ -4,12 +4,13 @@ import bpy
 from bpy.props import StringProperty, BoolVectorProperty
 from bpy.types import PropertyGroup, UIList, UI_UL_list
 
-from mathutils import Vector
+from copy import copy
+from mathutils import Vector, Matrix
 from collections import OrderedDict
+
+from .utils.rigify import find_rig_class
 from .utils.ui_list import draw_ui_list
 from .cloudrig import draw_layers_ui
-from .utils.rigify import find_rig_class
-
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
 def driver_from_real(driver: bpy.types.Driver) -> dict:
@@ -176,19 +177,22 @@ class BoneSet(LinkedList):
 		data_bone = pose_bone.bone
 		bone_info = self.new(name=edit_bone.name)
 
-		for key in pose_bone_properties:
-			value = getattr(pose_bone, key)
-			if value in [None, ""]: continue
-			if key=='bone_group':
-				value = value.name
-			setattr(bone_info, key, value)
-		for key in bone_properties:
-			setattr(bone_info, key, getattr(data_bone, key))
-		for key in edit_bone_properties:
-			value = getattr(edit_bone, key)
-			if type(value)==Vector:
-				value = value.copy()
-			setattr(bone_info, key, value)
+		sources = {
+			pose_bone : pose_bone_properties
+			,data_bone : bone_properties
+			,edit_bone : edit_bone_properties
+		}
+
+		for bone in sources:
+			prop_list = sources[bone]
+			for key in prop_list:
+				value = getattr(bone, key)
+				if value in [None, ""]: continue
+				if key == 'bone_group':
+					value = value.name
+				if type(value) in [Vector, Matrix]:
+					value = value.copy()
+				setattr(bone_info, key, value)
 
 		#HACK: force use_deform to False for now...
 		bone_info.use_deform = False
