@@ -232,15 +232,11 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			if i == 0:
 				# First IK bone special treatment
-				ik_bone.parent = self.root_bone
-				ik_bone.custom_shape = self.ensure_widget("Rectangles")
-				ik_bone.bone_group	  = self.bone_sets['IK Controls'].bone_group
-				ik_bone.use_custom_shape_bone_size = True
-				ik_bone.layers		  = self.bone_sets['IK Controls'].layers[:]
-				dsp = self.create_dsp_bone(ik_bone)
-				dsp.length = self.scale
-				ik_bone.custom_shape_scale = dsp.length / ik_bone.length
-				dsp.add_constraint('STRETCH_TO', subtarget=ik_bone.name, head_tail=1, rest_length=dsp.length)
+				ik_bone.parent 						= self.root_bone
+				ik_bone.custom_shape 				= self.ensure_widget("Rectangles")
+				# ik_bone.use_custom_shape_bone_size  = True
+				ik_bone.bone_group	  				= self.bone_sets['IK Controls'].bone_group
+				ik_bone.layers		  				= self.bone_sets['IK Controls'].layers[:]
 
 			else:
 				ik_bone.parent = ik_chain[-2]
@@ -259,6 +255,8 @@ class CloudIKChainRig(CloudFKChainRig):
 				if self.params.CR_ik_chain_world_aligned:
 					ik_mstr.flatten()
 
+		ik_chain[0].custom_shape_scale_xyz = ik_chain[0].custom_shape_scale_xyz.copy()	# TODO: This shouldn't be needed! Otherwise it seems all bones in this rig use a single vector.
+		ik_chain[0].custom_shape_scale_xyz.y = ik_chain[0].length / (ik_chain[0].bbone_width * 10 * self.scale)	# This is awkward, but it's a drawback of the BBone Display Size==widget size system: We basically want a single value to not use the system here, so we un-multiply it.
 		return ik_chain
 
 	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
