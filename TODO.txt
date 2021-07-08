@@ -45,6 +45,20 @@ Priority 2: New features
     Automatic IK/FK switching based on bone selection:
         https://youtu.be/ccbC8JNdXS4?t=755
         https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
+
+    New bone layer preview UI and management:
+        The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.
+        This also means having to overwrite Blender's built-in operators on the M and Shift+M keys. (TODO)
+
+        Bone layers are stored in rows which are stored in columns, and are not initialized to 32 entries but 0.
+        Each row has a + button to add a new entry to that row, and the bottom of the UI has a + icon to add a new entry in a new column.
+            If we're at the max of 32 layers, we throw a nice error.
+            Each time we add an entry, the layer number assignments are re-initialized so that the named layers correspond to the real ones from top to bottom and left to right
+            Since all interaction is done through operators, each execution of such an operator should update all Bone Set assignments in the metarig.
+        While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
+        Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
+
+
 Priority 3: Changes that will affect metarigs
     We should drop the idea that "root" is always available as a parent option. it's just annoying. This will break Sprite Fright rigs and existing animations though.
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.

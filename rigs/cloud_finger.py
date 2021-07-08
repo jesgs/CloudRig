@@ -27,7 +27,7 @@ class CloudFingerRig(CloudIKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.lock_transforms(self.ik_mstr, loc=False, rot=[False, False, True])
+		last_org = self.bone_sets['Original Bones'][-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
 		# Create a control to drive IK/FK switching
 		toggle_ctrl = self.bone_sets['IK Controls'].new(
@@ -50,7 +50,6 @@ class CloudFingerRig(CloudIKChainRig):
 		toggle_dsp.head += offset
 		toggle_dsp.tail += offset
 		toggle_dsp.roll += radians(90)
-		last_org = self.bone_sets['Original Bones'][-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 		toggle_dsp.parent = last_org
 		toggle_dsp.add_constraint('COPY_LOCATION', subtarget=toggle_ctrl.name)
 
