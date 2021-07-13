@@ -308,7 +308,7 @@ class CloudBaseRig(
 			meta_org = self.generator.metarig.pose.bones.get(meta_org_name)
 
 			if self.naming.has_trailing_zeroes(meta_org):
-				self.add_log("Trailing Zeroes!"
+				self.add_log("Trailing zeroes"
 					,trouble_bone = eb.name
 					,operator = 'object.cloudrig_rename_bone'
 					,op_kwargs = {'old_name' : meta_org_name}

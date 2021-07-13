@@ -82,7 +82,7 @@ def slice_name(name):
 
 def has_trailing_zeroes(thing):
 	name = get_name(thing)
-	regex = "\.[0-9][0-9][0-9]$"
+	regex = "\.[0-9]*$"
 	search = re.search(regex, name)
 	return search != None
 
