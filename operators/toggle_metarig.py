@@ -39,10 +39,14 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 		to_arm.select_set(True)
 		bpy.ops.object.mode_set(mode=org_mode)
 
-
 		if match_layers:
 			to_arm.data.layers = from_arm.data.layers[:]
-		if match_selection:
+
+		# NOTE: This gets really slow when a lot of bones are selected, but the 
+		# intended use case is only for a few selected bones anyways, so it's 
+		# best to just not do anything otherwise.
+		selected = [b for b in from_arm.data.bones if b.select]
+		if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected) < 10:
 			for b in to_arm.data.bones:
 				b.select = False
 
