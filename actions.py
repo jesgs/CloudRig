@@ -484,12 +484,53 @@ def draw_action_slot_properties(layout, action_slot: ActionSlot, target_armature
 	layout.prop(action_slot, 'trans_max')
 	layout.separator()
 
+class CLOUDRIG_OT_copy_actions(bpy.types.Operator):
+	"""Copy action setups to selected objects"""
+	bl_idname = "object.copy_action_slots"
+	bl_label = "Copy Rigify Action Slots"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	@classmethod
+	def poll(cls, context):
+		obj = context.object
+		if len(context.selected_objects) < 2 or \
+			not is_cloud_metarig(context.object) or \
+			len(obj.data.cloudrig_parameters.action_slots) == 0:
+			return False
+
+		for ob in context.selected_objects:
+			if ob.type != 'ARMATURE' or not is_cloud_metarig(ob): 
+				return False
+		
+		return True
+
+	def execute(self, context):
+		from_obj = context.object
+		for to_obj in context.selected_objects:
+			if to_obj == from_obj:
+				continue
+
+			to_slots = to_obj.data.cloudrig_parameters.action_slots
+			to_slots.clear()
+			for action_slot in from_obj.data.cloudrig_parameters.action_slots:
+				new_slot = to_slots.add()
+				for key in dir(action_slot):
+					if "__" in key or key in ["bl_rna"]:
+						continue
+					value = getattr(action_slot, key)
+					if value == getattr(new_slot, key):
+						continue
+					setattr(new_slot, key, value)
+
+		return {'FINISHED'}
+
 classes = [
 	ActionSlot,
 	CLOUDRIG_UL_action_slots,
 	CLOUDRIG_OT_Action_Jump,
 	CLOUDRIG_OT_Action_Create,
 	CLOUDRIG_PT_actions,
+	CLOUDRIG_OT_copy_actions,
 ]
 
 def register():
