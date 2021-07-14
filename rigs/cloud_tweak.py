@@ -55,9 +55,12 @@ class CloudTweakRig(CloudBaseRig):
 			# the size of the tweaked bone. Maybe we should check for this and throw a warning,
 			# but it's such a small issue...
 			tweak_bone.custom_shape = org_bi.custom_shape
-			tweak_bone.custom_shape_scale = org_bi.custom_shape_scale
+			tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
+			if tweak_bone.use_custom_shape_bone_size:
+				scalar = tweak_bone.length / org_bi.length
+				tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz * scalar
 			if not org_bi.use_custom_shape_bone_size:
-				tweak_bone.custom_shape_scale /= tweak_bone.bbone_width * 10 * self.scale
+				tweak_bone.custom_shape_scale_xyz /= tweak_bone.bbone_width * 10 * self.scale
 			tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
 			tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
 			tweak_bone.show_wire = org_bi.show_wire
