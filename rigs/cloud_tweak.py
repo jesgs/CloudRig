@@ -50,10 +50,6 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.rotation_mode = org_bi.rotation_mode
 
 		if self.params.CR_tweak_shape:
-			# NOTE: It is expected that this won't behave intuitively when
-			# use_custom_shape_bone_size==True and the size of this bone doesn't match
-			# the size of the tweaked bone. Maybe we should check for this and throw a warning,
-			# but it's such a small issue...
 			tweak_bone.custom_shape = org_bi.custom_shape
 			tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
 			if tweak_bone.use_custom_shape_bone_size:
