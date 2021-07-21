@@ -1,7 +1,7 @@
 from typing import Dict
 
 import bpy
-from bpy.props import StringProperty, BoolVectorProperty
+from bpy.props import StringProperty, BoolVectorProperty, BoolProperty, IntProperty
 from bpy.types import PropertyGroup, UIList, UI_UL_list
 
 from copy import copy
@@ -427,13 +427,16 @@ class BoneSetMixin:
 		"""Create parameters for this rig's bone sets."""
 		# For correct behaviour on Reload Scripts. (Not sure if needed)
 		cls.bone_set_defs = OrderedDict()
+		params.CR_show_bone_sets = BoolProperty(name="Bone Sets", description="Reveal Bone Set settings")
+		params.CR_show_advanced_bone_sets = BoolProperty(name="Advanced Bone Sets", description="Reveal bone sets of helper bones")
+		params.CR_active_bone_set_index = IntProperty()
 
 
 ##########################
 #### Bone Sets UIList ####
 ##########################
 class UIBoneSet(PropertyGroup):
-	"""This BoneSet implementation is used purely for UI drawing."""
+	"""This class is to bridge the data between Blender's UI and the generator."""
 	# The reason we can't use this for the actual Bone Set class used during generation is that 
 	# the properties of the bone set must be defined during registration, and CollectionProperties
 	# are not yet ready at that time. (They only become "real" after registration is complete.)

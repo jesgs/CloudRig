@@ -10,13 +10,11 @@ from ..utils.ui import CloudUIMixin
 from ..utils.mechanism import CloudMechanismMixin
 from ..utils.animation import CloudAnimationMixin
 from ..utils.object import CloudObjectUtilitiesMixin
+from ..parent_switching import CloudParentSwitchMixin
 
 # The rest
-from bpy.props import BoolProperty, StringProperty, CollectionProperty, IntProperty, EnumProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty
 from mathutils import Vector
-
-from ..parent_switching import draw_cloudrig_parents, ParentSlot
-from ..utils.ui import draw_label_with_linebreak
 
 class DEFAULT_LAYERS:
 	IK_MAIN = 0
@@ -38,6 +36,7 @@ class DEFAULT_LAYERS:
 
 class CloudBaseRig(
 					BaseRig,
+					CloudParentSwitchMixin,
 					CloudMechanismMixin,
 					CloudObjectUtilitiesMixin,
 					CloudUIMixin,
@@ -62,7 +61,9 @@ class CloudBaseRig(
 		return BoneDict(main=[b.name for b in chain])
 
 	def initialize(self):
-		"""Gather and validate data about the rig."""
+		"""First Rigify stage, called by the Generator.
+		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
+		"""
 		super().initialize()
 
 		from .. import cloud_generator
@@ -121,20 +122,20 @@ class CloudBaseRig(
 	@property
 	def properties_bone(self) -> BoneInfo:
 		"""Ensure that a Properties bone exists, and return it."""
-		# This is a @property so that if it's never called(like in the case of very simple rigs), the properties bone is not created.
+		# This is a @property so if it's never called, the properties bone is not created.
 		# https://en.wikipedia.org/wiki/Lazy_initialization
 
 		if self.params.CR_base_props_storage == 'CUSTOM':
 			prop_bone_name = self.params.CR_base_props_storage_bone
 			properties_bone = self.generator.find_bone_info(prop_bone_name)
-			if not properties_bone:
-				self.add_log("Custom Property bone not found"
-					,trouble_bone = prop_bone_name
-					,description = f"Custom Property bone named {prop_bone_name} not found, falling back to default Properties bone. If it exists, make sure it generates before this rig."
-				)
-				self.params.CR_base_props_storage = 'DEFAULT'
-			else:
+			if properties_bone:
 				return properties_bone
+
+			self.add_log("Custom Property bone not found"
+				,trouble_bone = prop_bone_name
+				,description = f"Custom Property bone named {prop_bone_name} not found, falling back to default Properties bone. If it exists, make sure it generates before this rig."
+			)
+			self.params.CR_base_props_storage = 'DEFAULT'
 
 		if self.params.CR_base_props_storage == 'DEFAULT':
 			bone_name = "Properties"
@@ -170,6 +171,9 @@ class CloudBaseRig(
 		return properties_bone
 
 	def prepare_bones(self):
+		"""Second Rigify stage, called by the generator.
+		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
+		"""
 		self.create_bone_infos()
 		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.CR_base_parent_switching
 		if not skip_root_parenting and self.params.CR_base_parent != "":
@@ -179,117 +183,10 @@ class CloudBaseRig(
 		self.relink()
 
 	def create_bone_infos(self):
+		"""Create the BoneInfo instances which will be turned into real bones by 
+		the CloudRig generator."""
 		self.load_org_bone_infos()
 		self.root_bone = self.bones_org[0]
-
-	def apply_parent_switching(self, parent_slots,
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
-		):
-		"""Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
-		if not child_bone:
-			child_bone = self.root_bone
-		if not prop_bone:
-			prop_bone = self.properties_bone
-		if prop_name=="":
-			prop_name="parents_"+child_bone.name
-		if row_name=="":
-			row_name = child_bone.name.split(".")[0]
-		if col_name=="":
-			col_name = child_bone.name
-
-		# Create parent bone that will hold the Armature constraint.
-		arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
-		arm_con_bone.name = "P-" + child_bone.name
-		arm_con_bone.custom_shape = None
-
-		parent_ui_names, parent_bone_names = self.sanitize_parent_list(parent_slots)
-		if not parent_ui_names:
-			return
-
-		targets = [{'subtarget' : bone_name} for bone_name in parent_bone_names]
-
-		# Create custom property
-		info = {
-			"prop_bone" : prop_bone,
-			"prop_id" : prop_name,
-			"texts" : parent_ui_names,
-
-			"operator" : "pose.cloudrig_switch_parent_bake",
-			"icon" : "COLLAPSEMENU",
-			"parent_names" : parent_ui_names,
-			"bones" : [child_bone.name],
-			}
-		self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_ui_names)-1)
-
-		# Add armature constraint
-		arm_con = arm_con_bone.add_constraint('ARMATURE',
-			targets = targets
-		)
-
-		# Add weight drivers
-		for i, t in enumerate(arm_con.targets):
-			arm_con.drivers.append({
-				'prop' : f'targets[{i}].weight',
-				'expression' : f'parent=={i}',
-				'variables' : {
-					'parent' : {
-						'type' : 'SINGLE_PROP',
-						'targets' : [{
-							'data_path' : f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
-						}]
-					}
-				}
-			})
-
-	def sanitize_parent_list(self, parent_slots: List[ParentSlot]) -> (List[str], List[str]):
-		"""Gather parent information and check for issues.
-
-		Returns two lists of equal length, first one is the UI name second is the bone name of each parent.
-		"""
-
-		parent_bone_names = []
-		parent_ui_names = []
-
-		for i, ps in enumerate(parent_slots):
-			if ps.bone == "":
-				self.add_log(
-					"Parent not found"
-					,description=f"Parent slot #{i}: {ps.bone} not specified, skipping."
-				)
-				continue
-			if ps.name == "":
-				self.add_log(
-					"Nameless parent"
-					,description = f"Parent slot #{i}: {ps.bone} has no UI name, falling back to the bone's name."
-				)
-				parent_ui_names.append(ps.bone)
-			else:
-				parent_ui_names.append(ps.name)
-			parent_bone_names.append(ps.bone)
-
-		if len(parent_ui_names) == 0:
-			self.add_log("No parents found"
-				,description = f"No parents specified for parent switching setup, skipping completely."
-			)
-			return [], []
-
-		# Force the Root to be an available parent for all parent switching setups
-		# TODO: This should be removed after Sprite Fright!
-		if self.generator_params.cloudrig_parameters.create_root and 'root' not in parent_bone_names:
-			parent_ui_names.insert(0, "Root")
-			parent_bone_names.insert(0, 'root')
-
-		return parent_ui_names, parent_bone_names
-
-	def apply_custom_root_parent(self, bone=None, parent_name=""):
-		if not bone:
-			bone = self.root_bone
-		if parent_name == "":
-			parent_name = self.params.CR_base_parent
-
-		self.bendy_parenting(bone, parent_name)
 
 	def relink(self):
 		# Relink the base bone.
@@ -366,16 +263,6 @@ class CloudBaseRig(
 			name		 = "Base Settings"
 			,description = "Reveal settings for the cloud_base rig type"
 		)
-		params.CR_base_parent_switching = BoolProperty(
-			name		 = "Parent Switching"
-			,description = "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
-			,default	 = False
-		)
-		params.CR_base_parent = StringProperty(
-			name		 = "Root Parent"
-			,description = "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
-			,default	 = ""
-		)
 
 		params.CR_base_props_storage = EnumProperty(
 			name		 = "Custom Property Storage"
@@ -391,24 +278,14 @@ class CloudBaseRig(
 			,description = 'Store custom properties in the chosen bone. If empty, will fall back to a bone called "Properties"'
 			,default	 = ""
 		)
-		params.CR_base_active_parent_slot_index = IntProperty()
 
-		# BUG: Currently this causes an error when turning the Rigify addon off and back on, unless running Reload Scripts in between.
-		# It appears as though the error is caused by the ParentSlot class not being registered.
-		# So, I tried ensuring that it is registered, but no difference.
-		# So, could be an issue with the RigifyParameterValidator class, but I looked at that too and didn't see anything wrong.
-		# So, could be a bug in Blender, but then how come other addons that use CollectionProperties don't have this issue?
-		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
-
+		cls.add_parent_switch_parameters(params)
 		cls.add_bone_set_parameters(params)
 
 	@classmethod
 	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().add_bone_set_parameters(params)
-		params.CR_show_bone_sets = BoolProperty(name="Bone Sets", description="Reveal Bone Set settings")
-		params.CR_show_advanced_bone_sets = BoolProperty(name="Advanced Bone Sets", description="Reveal bone sets of helper bones")
-		params.CR_active_bone_set_index = IntProperty()
 
 		cls.define_bone_set(params, 'Deform Bones',		default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 		cls.define_bone_set(params, 'Mechanism Bones',	default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
@@ -428,34 +305,6 @@ class CloudBaseRig(
 		layout = cls.draw_cloud_params(layout, context, params)
 		layout.separator()
 		cls.draw_bone_sets_list(layout, context, params)
-
-	@classmethod
-	def draw_parent_param(cls, layout, rig, params):
-		parent_bone = rig.pose.bones.get(params.CR_base_parent)
-		text = "Root Parent: "
-		if parent_bone and parent_bone.bone.bbone_segments > 1:
-			text = "Root Parent (Bendy): "
-		cls.draw_prop_search(layout, params, 'CR_base_parent', rig.pose, 'bones', text=text)
-
-	@classmethod
-	def draw_parenting_params(cls, layout, context, params):
-		metarig = context.object
-		rig = metarig.data.rigify_target_rig
-		if not rig:
-			draw_label_with_linebreak(layout, "Generate the rig to see parenting parameters.", align_split=True)
-			return
-
-		if cls.parent_switch_overwrites_root_parent:
-			cls.draw_prop(layout, params, "CR_base_parent_switching")
-			if params.CR_base_parent_switching:
-				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
-			else:
-				cls.draw_parent_param(layout, rig, params)
-		else:
-			cls.draw_parent_param(layout, rig, params)
-			cls.draw_prop(layout, params, "CR_base_parent_switching")
-			if params.CR_base_parent_switching:
-				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 
 	@classmethod
 	def is_using_custom_props(cls, context, params):
