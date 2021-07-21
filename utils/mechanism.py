@@ -37,7 +37,7 @@ class CloudMechanismMixin:
 	def create_dsp_bone(self, parent, center=False):
 		"""Create a bone to be used as another control's custom_shape_transform."""
 		dsp_name = "DSP-" + parent.name
-		dsp_bone = self.bone_sets['Mechanism Bones'].new(
+		dsp_bone = self.bones_mch.new(
 			name			= dsp_name
 			,source			= parent
 			,bbone_width	= parent.bbone_width*0.5
@@ -94,7 +94,7 @@ class CloudMechanismMixin:
 			# If parent bone has BBone segments, use Armature constraint for parenting.
 			# In this case, we also want to create a parent helper bone to hold that armature constraint.
 			if parent_bone.bbone_segments > 1:
-				parent_helper = self.create_parent_bone(bone, self.bone_sets['Mechanism Bones'])
+				parent_helper = self.create_parent_bone(bone, self.bones_mch)
 				parent_helper.custom_shape = None
 				parent_helper.add_constraint('ARMATURE', index=-len(bone.constraint_infos)
 					,use_deform_preserve_volume = True

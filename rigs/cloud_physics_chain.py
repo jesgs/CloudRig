@@ -37,7 +37,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		"""Override cloud_fk_chain.
 		Move constraints from ORG to PSX chain and relink them.
 		"""
-		for i, org in enumerate(self.bone_sets['Original Bones']):
+		for i, org in enumerate(self.bones_org):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
 				to_bone = self.bone_sets['Physics Bones'][i]
@@ -198,7 +198,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			# Parent cloth object.
 			cloth_ob.parent = self.obj
 			cloth_ob.parent_type = 'BONE'
-			parent = self.bone_sets['Original Bones'][0].parent
+			parent = self.bones_org[0].parent
 			if not parent:
 				parent = self.root_bone
 			cloth_ob.parent_bone = parent.name

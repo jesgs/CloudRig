@@ -45,10 +45,10 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		assert len(self.bone_sets['Original Bones']) > 2, f"ERROR on {self.base_bone}: cloud_ik_chain requires at a chain of least 3 bones!"
-		self.last_org = self.bone_sets['Original Bones'][-1]
+		assert len(self.bones_org) > 2, f"ERROR on {self.base_bone}: cloud_ik_chain requires at a chain of least 3 bones!"
+		self.last_org = self.bones_org[-1]
 		if self.params.CR_ik_chain_at_tip:
-			self.bone_sets['Original Bones'].new(
+			self.bones_org.new(
 				name = "TIP-"+self.last_org.name
 				,source = self.last_org
 				,head = self.last_org.tail.copy()
@@ -85,7 +85,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Create IK Master control
 		self.ik_mstr = self.create_ik_master(
 			self.bone_sets['IK Controls'],
-			self.bone_sets['Original Bones'][self.chain_count],
+			self.bones_org[self.chain_count],
 		)
 
 		self.calculate_ik_info()
@@ -95,7 +95,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			self.pole_ctrl = self.make_pole_control()
 
 		# Create IK Chain
-		self.ik_chain = self.make_ik_chain(self.bone_sets['Original Bones'], self.ik_mstr, self.pole_ctrl)
+		self.ik_chain = self.make_ik_chain(self.bones_org, self.ik_mstr, self.pole_ctrl)
 
 		if self.pole_ctrl:
 			# Add aim constraint to pole display bone
@@ -168,10 +168,10 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def calculate_ik_info(self):
 		""" Calculate pole angle, pole control direction and distance. """
-		meta_first_name = self.bone_sets['Original Bones'][0].name.replace("ORG-", "")
+		meta_first_name = self.bones_org[0].name.replace("ORG-", "")
 		meta_first = self.meta_bone(meta_first_name)
 
-		meta_second_name = self.bone_sets['Original Bones'][1].name.replace("ORG-", "")
+		meta_second_name = self.bones_org[1].name.replace("ORG-", "")
 		meta_second = self.meta_bone(meta_second_name)
 
 		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second)
@@ -196,14 +196,14 @@ class CloudIKChainRig(CloudFKChainRig):
 		pole_line = self.bone_sets['IK Controls'].new(
 			name		  = self.naming.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
 			,source		  = pole_ctrl
-			,tail		  = self.bone_sets['Original Bones'][0].tail.copy()
+			,tail		  = self.bones_org[0].tail.copy()
 			,parent		  = pole_ctrl
 			,hide_select  = True
 			,custom_shape = self.ensure_widget('Line')
 			,use_custom_shape_bone_size	= True
 		)
 		pole_line.add_constraint('STRETCH_TO'
-			,subtarget = self.bone_sets['Original Bones'][0].name
+			,subtarget = self.bones_org[0].name
 			,head_tail = 1
 		)
 		# Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
@@ -298,10 +298,10 @@ class CloudIKChainRig(CloudFKChainRig):
 		Some extra stuff is in attach_org_to_ik. # TODO: Put these things under a parameter, so IK Stretch can be disabled when not needed.
 		"""
 
-		ik_org_bone = self.bone_sets['Original Bones'][self.chain_count]
+		ik_org_bone = self.bones_org[self.chain_count]
 		stretch_bone = self.bone_sets['IK Mechanism'].new(
-			name		 = self.bone_sets['Original Bones'][0].name.replace("ORG", "IK-STR")
-			,source		 = self.bone_sets['Original Bones'][0]
+			name		 = self.bones_org[0].name.replace("ORG", "IK-STR")
+			,source		 = self.bones_org[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.root_bone
 		)
@@ -409,7 +409,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			}
 		}
 
-		cum_length = self.bone_sets['Original Bones'][0].length
+		cum_length = self.bones_org[0].length
 		for i, main_str_bone in enumerate(self.main_str_bones):
 			# How far this bone is along the total chain length
 			head_tail = cum_length/chain_length
@@ -433,14 +433,14 @@ class CloudIKChainRig(CloudFKChainRig):
 				,name			= con_name
 				,head_tail		= head_tail
 			)
-			org_bone = self.bone_sets['Original Bones'][i]
+			org_bone = self.bones_org[i]
 			cum_length += org_bone.length
 
 			copyloc.drivers.append(dict(ik_stretch_engaged_driver))
 
 		# Attach ORG chain to IK Stretch	- This works but provides no benefit, and can result in snapping if the IK Base control is translated.
 		# cum_length = 0
-		# for i, org_bone in enumerate(self.bone_sets['Original Bones']):
+		# for i, org_bone in enumerate(self.bones_org):
 		# 	head_tail = cum_length/chain_length
 		# 	cum_length += org_bone.length
 		# 	# ORG Copy Transforms to IK Stretch bone
@@ -461,7 +461,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Add Copy Transforms constraints to the ORG bones to copy the IK bones.
 		# Put driver on the influence to be able to disable IK.
 
-		for org_bone in self.bone_sets['Original Bones']:
+		for org_bone in self.bones_org:
 			# Copy Transforms to IK bone
 			ik_bone = self.get_bone_info(org_bone.name.replace("ORG", "IK"))
 			ct_ik = org_bone.add_constraint('COPY_TRANSFORMS'
@@ -503,7 +503,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	def setup_ik_pole_parent_switch(self, ik_mstr, ik_parents_prop_name: str):
 		"""Rig the IK Pole control's parent switcher, with an additional "IK Pole Follows" slider."""
 		# Create parent helper bone
-		parent_helper = self.create_parent_bone(self.pole_ctrl, bone_set=self.bone_sets['Mechanism Bones'])
+		parent_helper = self.create_parent_bone(self.pole_ctrl, bone_set=self.bones_mch)
 		parent_helper.custom_shape = None
 
 		# Copy the constraint and drivers from the IK master

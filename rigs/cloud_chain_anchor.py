@@ -13,7 +13,7 @@ class CloudChainAnchorRig(CloudCopyRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		bi = self.bone_sets['Original Bones'][0]
+		bi = self.bones_org[0]
 		meta_bone = self.meta_bone(bi.name)
 
 		if not meta_bone.custom_shape:

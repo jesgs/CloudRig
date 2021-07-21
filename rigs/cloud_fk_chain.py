@@ -45,7 +45,7 @@ class CloudFKChainRig(CloudChainRig):
 
 		self.make_fk_chain()
 
-		if self.root_bone == self.bone_sets['Original Bones'][0]:
+		if self.root_bone == self.bones_org[0]:
 			self.root_bone = self.bone_sets['FK Controls'][0]
 
 		# Default root parenting
@@ -53,7 +53,7 @@ class CloudFKChainRig(CloudChainRig):
 			if not self.params.CR_fk_chain_hinge:
 				# TODO: This is messy, and could use unit tests to be able to change this code without messing something up.
 				self.bone_sets['FK Controls'][0].parent = self.root_bone
-			self.root_bone.parent = self.bone_sets['Original Bones'][0].parent
+			self.root_bone.parent = self.bones_org[0].parent
 
 		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
@@ -63,7 +63,7 @@ class CloudFKChainRig(CloudChainRig):
 		"""Override cloud_chain.
 		Move constraints from ORG to FK chain and relink them.
 		"""
-		for i, org in enumerate(self.bone_sets['Original Bones']):
+		for i, org in enumerate(self.bones_org):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
 				to_bone = self.bone_sets['FK Controls'][i]
@@ -76,7 +76,7 @@ class CloudFKChainRig(CloudChainRig):
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
-		base_bone = self.bone_sets['Original Bones'][0]
+		base_bone = self.bones_org[0]
 		limb_root_bone = self.bone_sets['FK Controls Extra'].new(
 			name 			= root_name
 			,source 		= base_bone
@@ -90,7 +90,7 @@ class CloudFKChainRig(CloudChainRig):
 		fk_name = ""
 
 		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
-		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
+		for i, org_bone in enumerate(self.bones_org):
 			fk_name = org_bone.name.replace("ORG", "FK")
 			fk_bone = self.bone_sets['FK Controls'].new(
 				name				= fk_name
@@ -111,7 +111,7 @@ class CloudFKChainRig(CloudChainRig):
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
-				fk_bone.parent = self.bone_sets['Original Bones'][i-1].fk_bone
+				fk_bone.parent = self.bones_org[i-1].fk_bone
 			if self.params.CR_fk_chain_display_center:
 				self.create_dsp_bone(fk_bone, center=True)
 
@@ -223,11 +223,11 @@ class CloudFKChainRig(CloudChainRig):
 			# Also, parent this to the ORG bone. This is so that scaling
 			# the last STR control doesn't affect this deform bone.
 			if not self.params.CR_chain_unlock_deform:
-				last_def.parent = self.bone_sets['Original Bones'][-1]
+				last_def.parent = self.bones_org[-1]
 
 	def tweak_def_chain(self):
 		return # TODO: This seems to break scale inheritance, not fix it? Why was it ever here?
-		for i, def_bone in enumerate(self.bone_sets['Deform Bones']):
+		for i, def_bone in enumerate(self.bones_def):
 			fk_control = self.bone_sets['FK Controls'][int(i/self.params.CR_chain_segments)]
 			def_bone.inherit_scale = 'FULL'
 			for d in def_bone.drivers:
@@ -236,7 +236,7 @@ class CloudFKChainRig(CloudChainRig):
 
 	def attach_org_to_fk(self):
 		"""Make ORG bones Copy Transforms of FK bones."""
-		for i, org_bone in enumerate(self.bone_sets['Original Bones']):
+		for i, org_bone in enumerate(self.bones_org):
 			if i==0 and self.params.CR_fk_chain_root:
 				org_bone.parent = self.root_bone
 			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))

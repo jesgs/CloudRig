@@ -108,6 +108,11 @@ class CloudBaseRig(
 
 		self.update_forced_params()
 
+		# Quick access to the most important bone sets
+		self.bones_org = self.bone_sets['Original Bones']
+		self.bones_def = self.bone_sets['Deform Bones']
+		self.bones_mch = self.bone_sets['Mechanism Bones']
+
 	def update_forced_params(self):
 		clas = type(self)
 		for param in clas.forced_params.keys():
@@ -156,8 +161,8 @@ class CloudBaseRig(
 			return properties_bone
 
 	def generate_properties_bone(self) -> BoneInfo:
-		org_bone = self.bone_sets['Original Bones'][0]
-		properties_bone = self.bone_sets['Mechanism Bones'].new(
+		org_bone = self.bones_org[0]
+		properties_bone = self.bones_mch.new(
 			name		  = org_bone.name.replace("ORG", "PRP")
 			,source 	  = org_bone
 			,parent		  = org_bone
@@ -178,7 +183,7 @@ class CloudBaseRig(
 
 	def create_bone_infos(self):
 		self.load_org_bone_infos()
-		self.root_bone = self.bone_sets['Original Bones'][0]
+		self.root_bone = self.bones_org[0]
 
 	def apply_parent_switching(self, parent_slots,
 			child_bone=None,
@@ -198,7 +203,7 @@ class CloudBaseRig(
 			col_name = child_bone.name
 
 		# Create parent bone that will hold the Armature constraint.
-		arm_con_bone = self.create_parent_bone(child_bone, self.bone_sets['Mechanism Bones'])
+		arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
 		arm_con_bone.name = "P-" + child_bone.name
 		arm_con_bone.custom_shape = None
 
@@ -295,7 +300,7 @@ class CloudBaseRig(
 		bi.relink()
 
 	def load_org_bone_infos(self):
-		"""Read ORG bones into BoneInfo instances in self.bone_sets['Original Bones']."""
+		"""Read ORG bones into BoneInfo instances in self.bones_org."""
 
 		for bn in self.bones.org.main:
 			eb = self.get_bone(bn)
@@ -311,8 +316,8 @@ class CloudBaseRig(
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 
-			org_bi = self.bone_sets['Original Bones'].new_from_real(self.obj, eb)
-			org_bi.layers = self.bone_sets['Original Bones'].layers[:]
+			org_bi = self.bones_org.new_from_real(self.obj, eb)
+			org_bi.layers = self.bones_org.layers[:]
 			org_bi.bbone_width = eb.bbone_x / self.scale
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)

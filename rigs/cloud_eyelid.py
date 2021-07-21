@@ -13,7 +13,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.bone_sets['Original Bones'][0].parent = self.rigify_parent.org_chain[0].parent
+		self.bones_org[0].parent = self.rigify_parent.org_chain[0].parent
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
 		if not self.is_last_chain_rig:
@@ -64,7 +64,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				,subtarget = eye_bone.name
 				,use_xyz = [True, False, False]
 			)
-			eyelid_width = (self.bone_sets['Original Bones'][0].head - self.bone_sets['Original Bones'][-1].tail).length * 0.55
+			eyelid_width = (self.bones_org[0].head - self.bones_org[-1].tail).length * 0.55
 
 			# Reject the ROT bone tail onto the eye bone Z axis
 			rejection_z = project_vector_on_plane(rot_ctr.vector, parent_rig.meta_base_bone.z_axis)

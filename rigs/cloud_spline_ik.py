@@ -77,7 +77,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			self.lock_transforms(curve_ob)
 
 		curve_ob.data.dimensions = '3D'
-		sum_bone_length = sum([b.length for b in self.bone_sets['Original Bones']])
+		sum_bone_length = sum([b.length for b in self.bones_org])
 		length_unit = sum_bone_length / (self.num_controls-1)
 		handle_length = length_unit * self.params.CR_spline_ik_handle_length
 
@@ -95,7 +95,7 @@ class CloudSplineIKRig(CloudCurveRig):
 
 			# Place control points
 			index = i if self.params.CR_spline_ik_match_hooks else -1
-			loc, direction = self.vector_along_bone_chain(self.bone_sets['Original Bones'], point_along_chain, index)
+			loc, direction = self.vector_along_bone_chain(self.bones_org, point_along_chain, index)
 			p.co = loc
 			p.handle_right = loc + handle_length * direction
 			p.handle_left  = loc - handle_length * direction
@@ -106,7 +106,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		segments = self.params.CR_spline_ik_subdivide
 
 		count_def_bone = 0
-		for org_bone in self.bone_sets['Original Bones']:
+		for org_bone in self.bones_org:
 			for i in range(0, segments):
 				## Create Deform bones
 				def_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", "")
@@ -127,7 +127,7 @@ class CloudSplineIKRig(CloudCurveRig):
 				if len(self.bone_sets['Curve Deform Bones']) > 1:
 					def_bone.parent = self.bone_sets['Curve Deform Bones'][-2]
 				else:
-					def_bone.parent = self.bone_sets['Original Bones'][0]
+					def_bone.parent = self.bones_org[0]
 
 	def add_spline_ik(self):
 		# Add constraint to deform chain
@@ -143,7 +143,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		Only works when CR_spline_ik_match_hooks==True. TODO: Indicate this by graying out in the UI!
 		"""
 		if not self.params.CR_spline_ik_match_hooks: return
-		for i, org in enumerate(self.bone_sets['Original Bones']):
+		for i, org in enumerate(self.bones_org):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
 				to_bone = self.bone_sets['Curve Hooks'][i]

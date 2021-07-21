@@ -24,7 +24,7 @@ class CloudLatticeRig(CloudBaseRig):
 		"""Override cloud_base.
 		Move constraints from the ORG to the Lattice Root bone and relink them.
 		"""
-		org = self.bone_sets['Original Bones'][0]
+		org = self.bones_org[0]
 		for c in org.constraint_infos:
 			self.lattice_root.constraint_infos.append(c)
 			org.constraint_infos.remove(c)

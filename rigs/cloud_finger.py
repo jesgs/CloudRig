@@ -27,7 +27,7 @@ class CloudFingerRig(CloudIKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		last_org = self.bone_sets['Original Bones'][-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
+		last_org = self.bones_org[-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
 		# Create a control to drive IK/FK switching
 		toggle_ctrl = self.bone_sets['IK Controls'].new(

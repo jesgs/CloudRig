@@ -55,7 +55,7 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.params.CR_limb_auto_hose and segments > 1:
 			upper = self.bone_sets['Stretch Controls'][1:segments]
 			lower = self.bone_sets['Stretch Controls'][segments+1:segments*2]
-			self.setup_rubber_hose(self.bone_sets['Original Bones'][1], upper, lower)
+			self.setup_rubber_hose(self.bones_org[1], upper, lower)
 
 	##############################
 	# Override some inherited functionality
@@ -65,9 +65,9 @@ class CloudLimbRig(CloudIKChainRig):
 		Place the properties bone near the end of the limb, parented to the last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()
-		properties_bone.head = self.bone_sets['Original Bones'][-1].head.copy() + Vector((0, self.scale/1.5, 0))
+		properties_bone.head = self.bones_org[-1].head.copy() + Vector((0, self.scale/1.5, 0))
 		properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
-		properties_bone.parent = self.bone_sets['Original Bones'][-1]
+		properties_bone.parent = self.bones_org[-1]
 		return properties_bone
 
 	def determine_segments(self, org_bone):
@@ -75,7 +75,7 @@ class CloudLimbRig(CloudIKChainRig):
 		segments, bbone_density = super().determine_segments(org_bone)
 
 		# Force strictly 1 segment on the toe.
-		if org_bone == self.bone_sets['Original Bones'][-1]:
+		if org_bone == self.bones_org[-1]:
 			if self.params.CR_chain_tip_control:
 				return 1, bbone_density
 			else:
@@ -99,7 +99,7 @@ class CloudLimbRig(CloudIKChainRig):
 		for i in range(0, self.params.CR_chain_segments):
 			factor_unit = 0.9 / self.params.CR_chain_segments
 			factor = 0.9 - factor_unit * i
-			self.add_counterrotate_constraint(self.bone_sets['Stretch Controls'][i], self.bone_sets['Original Bones'][0], factor)
+			self.add_counterrotate_constraint(self.bone_sets['Stretch Controls'][i], self.bones_org[0], factor)
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""
@@ -214,7 +214,7 @@ class CloudLimbRig(CloudIKChainRig):
 		self.make_rubber_hose_constraints(org_elbow, str_upper, str_lower, prop_name)
 
 	def make_rubber_hose_control(self) -> BoneInfo:
-		org_elbow = self.bone_sets['Original Bones'][1]
+		org_elbow = self.bones_org[1]
 
 		control_bone = self.bone_sets['FK Controls Extra'].new(
 			name = org_elbow.name.replace("ORG", "AutoRubberHose")
@@ -260,7 +260,7 @@ class CloudLimbRig(CloudIKChainRig):
 		}
 
 		for i, str_list in enumerate([str_upper, str_lower]):
-			org_bone = self.bone_sets['Original Bones'][i]
+			org_bone = self.bones_org[i]
 			for str_bone in str_list:
 				offset = org_bone.length / 2.5
 

@@ -48,7 +48,7 @@ class CloudLegRig(CloudLimbRig):
 		self.tweak_org_foot()
 
 		# Tweak foot bone's first DEF bone
-		foot_def = self.bone_sets['Deform Bones'][-2]
+		foot_def = self.bones_def[-2]
 		for d in foot_def.drivers:
 			if d['prop']=='bbone_easein':
 				foot_def.drivers.remove(d)
@@ -62,20 +62,20 @@ class CloudLegRig(CloudLimbRig):
 		parented to the 2nd-to-last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()
-		head, tail = self.calc_footroll_headtail(self.bone_sets['Original Bones'][1], self.bone_sets['Original Bones'][-1], self.scale)
+		head, tail = self.calc_footroll_headtail(self.bones_org[1], self.bones_org[-1], self.scale)
 		properties_bone.head = head
 		properties_bone.tail = tail
 		properties_bone.length *= 0.6
 		properties_bone.roll_type = 'GLOBAL_POS_X'
 		properties_bone.custom_shape = self.ensure_widget('Cogwheel')
-		properties_bone.parent = self.bone_sets['Original Bones'][-2]
+		properties_bone.parent = self.bones_org[-2]
 		return properties_bone
 
 	def determine_segments(self, org_bone):
 		"""Overrides."""
 		segments, bbone_density = super().determine_segments(org_bone)
 
-		if org_bone in self.bone_sets['Original Bones'][-2:]:
+		if org_bone in self.bones_org[-2:]:
 			# Force strictly 1 segment on the foot and the toe.
 			return 1, bbone_density
 		else:
@@ -91,7 +91,7 @@ class CloudLegRig(CloudLimbRig):
 
 		# IK Foot setup, including Foot Roll
 		if self.params.CR_leg_use_foot_roll:
-			self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.bone_sets['Original Bones'][-2:])
+			self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.bones_org[-2:])
 
 			# For FK->IK snapping to work properly when the IK control is world-aligned,
 			# we need a world-aligned child of the IK bone.
@@ -113,8 +113,8 @@ class CloudLegRig(CloudLimbRig):
 		# To get the position of the foot bone display helper,
 		# project a line out of the knee bone, then find the point on that line
 		# which is closest the toe bone's tail, lowered to the Z position of the heel bone if there is one and it is lower.
-		knee = self.bone_sets['Original Bones'][1]
-		toe = self.bone_sets['Original Bones'][-1]
+		knee = self.bones_org[1]
+		toe = self.bones_org[-1]
 		shoe_tip = toe.tail.copy()
 		heel_pivot_bone = self.get_heel_pivot_meta_bone()
 		if heel_pivot_bone.tail_local.z < shoe_tip.z:
@@ -155,11 +155,11 @@ class CloudLegRig(CloudLimbRig):
 	def make_fk_chain(self):
 		"""Override."""
 		super().make_fk_chain()
-		self.fk_toe = self.bone_sets['Original Bones'][3].fk_bone
+		self.fk_toe = self.bones_org[3].fk_bone
 
 	def world_align_last_fk(self):
 		"""Override. Make SECOND TO last FK bone world-aligned."""
-		self.make_world_aligned_control(self.bone_sets['Original Bones'][-2].fk_bone)
+		self.make_world_aligned_control(self.bones_org[-2].fk_bone)
 
 	##############################
 	# End of overrides
@@ -189,8 +189,8 @@ class CloudLegRig(CloudLimbRig):
 		ik_foot = ik_chain[0]
 
 		rolly_stretchy = self.bone_sets['IK Mechanism'].new(
-			name		 = self.bone_sets['Original Bones'][0].name.replace("ORG", "IK-STR-ROLL")
-			,source		 = self.bone_sets['Original Bones'][0]
+			name		 = self.bones_org[0].name.replace("ORG", "IK-STR-ROLL")
+			,source		 = self.bones_org[0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.root_bone
 		)
@@ -208,8 +208,8 @@ class CloudLegRig(CloudLimbRig):
 		self.ik_tgt_bone.clear_constraints()
 
 		# Create ROLL control behind the foot
-		knee = self.bone_sets['Original Bones'][1]
-		toe = self.bone_sets['Original Bones'][-1]
+		knee = self.bones_org[1]
+		toe = self.bones_org[-1]
 		head, tail = self.calc_footroll_headtail(knee, toe, self.scale)
 
 		roll_ctrl = self.bone_sets['IK Controls'].new(
@@ -247,7 +247,7 @@ class CloudLegRig(CloudLimbRig):
 
 		heel_pivot = self.bone_sets['IK Mechanism'].new(
 			name		  = "IK-RollBack" + self.naming.suffix_separator + self.side_suffix
-			,bbone_width  = self.bone_sets['Original Bones'][-1].bbone_width
+			,bbone_width  = self.bones_org[-1].bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
 			,roll		  = 0
@@ -336,7 +336,7 @@ class CloudLegRig(CloudLimbRig):
 	def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
 		heel_pivot_name = self.params.CR_leg_heel_bone
 		if heel_pivot_name=="":
-			heel_pivot_name = self.bone_sets['Original Bones'][-2].name.replace("ORG-", "")
+			heel_pivot_name = self.bones_org[-2].name.replace("ORG-", "")
 		heel_pivot_pb = self.meta_bone(heel_pivot_name)
 		assert heel_pivot_pb, f"Could not find HeelPivot bone in the metarig: {heel_pivot_name}."
 
@@ -349,7 +349,7 @@ class CloudLegRig(CloudLimbRig):
 		toe_con = fk_toe.add_constraint('ARMATURE',
 			targets = [
 				{
-					"subtarget" : self.bone_sets['Original Bones'][-2].fk_bone.name	# FK Foot
+					"subtarget" : self.bones_org[-2].fk_bone.name	# FK Foot
 				},
 				{
 					"subtarget" : self.ik_chain[-1].name	# IK Toe
@@ -372,7 +372,7 @@ class CloudLegRig(CloudLimbRig):
 
 	def tweak_org_foot(self):
 		# Delete IK constraint and driver from toe bone. It should always use FK.
-		org_toe = self.bone_sets['Original Bones'][-1]
+		org_toe = self.bones_org[-1]
 		org_toe.constraint_infos.pop()
 		org_toe.drivers = {}
 

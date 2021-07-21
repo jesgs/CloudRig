@@ -21,7 +21,7 @@ class CloudAimRig(CloudBaseRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		aim_org = self.bone_sets['Original Bones'][0]
+		aim_org = self.bones_org[0]
 		aim_bone = self.make_aim_helper(aim_org)
 
 		if self.params.CR_aim_root:
@@ -61,8 +61,8 @@ class CloudAimRig(CloudBaseRig):
 		tail = head + bone.vector.normalized() * bone.length
 
 		target_bone = self.bone_sets['Aim Target Controls'].new(
-			name	= self.bone_sets['Original Bones'][0].name.replace("ORG", "TGT")
-			,source = self.bone_sets['Original Bones'][0]
+			name	= self.bones_org[0].name.replace("ORG", "TGT")
+			,source = self.bones_org[0]
 			,head	= head
 			,tail	= tail
 			,custom_shape = self.ensure_widget("Circle")
@@ -79,7 +79,7 @@ class CloudAimRig(CloudBaseRig):
 		   @org_bone free to rotate.
 		"""
 		aim_bone = self.bone_sets['Aim Target Mechanism'].new(
-			name		 = self.bone_sets['Original Bones'][0].name.replace("ORG", "AIM")
+			name		 = self.bones_org[0].name.replace("ORG", "AIM")
 			,source		 = org_bone
 			,parent		 = org_bone
 		)
@@ -128,7 +128,7 @@ class CloudAimRig(CloudBaseRig):
 		return ctr_bone
 
 	def make_root_bone(self, bone) -> BoneInfo:
-		base_bone = self.bone_sets['Original Bones'][0]
+		base_bone = self.bones_org[0]
 		root_bone = self.bone_sets['Aim Root Control'].new(
 			name = base_bone.name.replace("ORG", "ROOT")
 			,source = base_bone
@@ -137,7 +137,7 @@ class CloudAimRig(CloudBaseRig):
 			,custom_shape_scale = 2
 		)
 		root_dsp = self.create_dsp_bone(root_bone)
-		root_dsp.put(self.bone_sets['Original Bones'][0].tail)
+		root_dsp.put(self.bones_org[0].tail)
 
 		bone.parent = root_bone
 
@@ -163,7 +163,7 @@ class CloudAimRig(CloudBaseRig):
 		"""Override cloud_base.
 		Move constraints from the ORG to the Eye Control bone and relink them.
 		"""
-		org = self.bone_sets['Original Bones'][0]
+		org = self.bones_org[0]
 		for c in org.constraint_infos:
 			self.ctr_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)

@@ -23,7 +23,7 @@ class SpriteFeatherRig(CloudFKChainRig):
 		fk_dsp.put(loc=fk_dsp.tail)
 
 		# Create a new bone parented to ORG, and parent the tip control to it.
-		org = self.bone_sets['Original Bones'][0]
+		org = self.bones_org[0]
 		bend_ctr = self.bone_sets['FK Controls Extra'].new(
 			name 			= org.name.replace("ORG", "BEND")
 			,source 		= org

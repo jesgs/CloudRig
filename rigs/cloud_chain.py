@@ -21,13 +21,13 @@ class CloudChainRig(CloudBaseRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.is_cyclic = (self.bone_sets['Original Bones'][-1].tail - self.bone_sets['Original Bones'][0].head).length < 0.001
+		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001
 
-		for org in self.bone_sets['Original Bones']:
+		for org in self.bones_org:
 			self.chain_length += org.length
-		self.average_org_length = self.chain_length / len(self.bone_sets['Original Bones'])
+		self.average_org_length = self.chain_length / len(self.bones_org)
 
-		str_sections = self.make_str_chain(self.bone_sets['Original Bones'])
+		str_sections = self.make_str_chain(self.bones_org)
 		if self.params.CR_chain_segments > 1:
 			self.make_str_helpers(str_sections)
 
@@ -57,7 +57,7 @@ class CloudChainRig(CloudBaseRig):
 		If the constraint type is Armature, create a parent helper bone to prevent
 		the parenting from affecting the local matrix.
 		"""
-		for i, org in enumerate(self.bone_sets['Original Bones']):
+		for i, org in enumerate(self.bones_org):
 			for c in org.constraint_infos[:]:
 				to_bone = self.main_str_bones[i]
 				if 'TAIL' in c.name:
@@ -70,7 +70,7 @@ class CloudChainRig(CloudBaseRig):
 
 				if c.type=='ARMATURE':
 					# TODO IMPORTANT: This is not running for Ellie's fannypack belt, why??
-					to_bone = self.create_parent_bone(to_bone, self.bone_sets['Mechanism Bones'])
+					to_bone = self.create_parent_bone(to_bone, self.bones_mch)
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
@@ -86,7 +86,7 @@ class CloudChainRig(CloudBaseRig):
 			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
 
 		# No segments for last bone of the chain if there is no control for its tail.
-		if org_bone == self.bone_sets['Original Bones'][-1] and not self.params.CR_chain_tip_control:
+		if org_bone == self.bones_org[-1] and not self.params.CR_chain_tip_control:
 			return 1, 1
 
 		return segments, bbone_density
@@ -106,7 +106,7 @@ class CloudChainRig(CloudBaseRig):
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
 					if org_i == 0 and self.is_cyclic:
-						direction = (org_bone.tail - self.bone_sets['Original Bones'][-1].head).normalized()
+						direction = (org_bone.tail - self.bones_org[-1].head).normalized()
 						str_bone.tail = str_bone.head + direction*str_bone.length
 
 			str_sections.append(str_section)
@@ -333,7 +333,7 @@ class CloudChainRig(CloudBaseRig):
 				tail = str_bone.next.head
 
 			def_name = str_bone.name.replace("STR", "DEF")
-			def_bone = self.bone_sets['Deform Bones'].new(
+			def_bone = self.bones_def.new(
 				name					 = def_name
 				,source					 = org_bone
 				,parent					 = str_bone
@@ -370,7 +370,7 @@ class CloudChainRig(CloudBaseRig):
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
-		return self.bone_sets['Deform Bones']
+		return self.bones_def
 
 	def setup_def_bone(self, def_bone, org_bone, str_bone, next_str_bone=None):
 		"""Configure BBone setup for def_bone."""
@@ -572,7 +572,7 @@ class CloudChainRig(CloudBaseRig):
 		if not isinstance(parent_rig, CloudChainRig): return
 		if parent_rig.params.CR_chain_tip_control: return
 
-		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bone_sets['Original Bones'][0]))
+		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bones_org[0]))
 		if not meta_org_bone.bone.use_connect: return
 
 		parent_rig.params.CR_chain_tip_control = True
@@ -584,7 +584,7 @@ class CloudChainRig(CloudBaseRig):
 		def_bone.parent = str_bone
 		self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
-			self.make_shape_key_helper(def_bone, self.bone_sets['Deform Bones'][0])
+			self.make_shape_key_helper(def_bone, self.bones_def[0])
 		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
 			self.set_up_smooth_spline(str_bone, nxt=self.bone_sets['Stretch Controls'][0])
 

@@ -32,7 +32,7 @@ class CloudCurveRig(CloudBaseRig):
 		"""Override cloud_base.
 		Move constraints from the ORG to the ROOT bone and relink them.
 		"""
-		org = self.bone_sets['Original Bones'][0]
+		org = self.bones_org[0]
 		for c in org.constraint_infos:
 			self.root_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
@@ -47,11 +47,11 @@ class CloudCurveRig(CloudBaseRig):
 	def make_curve_root_ctrl(self):
 		self.root_bone = self.bone_sets['Curve Handles'].new(
 			name						= self.base_bone.replace("ORG", "ROOT")
-			,source						= self.bone_sets['Original Bones'][0]
+			,source						= self.bones_org[0]
 			,custom_shape				= self.ensure_widget("Cube")
 			,use_custom_shape_bone_size = True
 		)
-		self.bone_sets['Original Bones'][0].parent = self.root_bone
+		self.bones_org[0].parent = self.root_bone
 
 	def make_ctrls_for_curve_points(self):
 		curve_ob = self.params.CR_curve_target

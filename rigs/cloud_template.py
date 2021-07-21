@@ -10,7 +10,7 @@ class CloudTemplateRig(CloudBaseRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		if self.params.CR_template_use_control:
-			self.make_ctr_bone(self.bone_sets['Original Bones'][0])
+			self.make_ctr_bone(self.bones_org[0])
 
 	def make_ctr_bone(self, bone):
 		ctr_bone = self.bone_sets['Template Bones'].new(
