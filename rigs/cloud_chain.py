@@ -580,11 +580,11 @@ class CloudChainRig(CloudBaseRig):
 		if not meta_org_bone.bone.use_connect: return
 
 		parent_rig.params.CR_chain_tip_control = True
-		def_bone = parent_rig.def_chain[-1]
-		str_bone = parent_rig.str_chain[-1]
+		def_bone = parent_rig.bone_sets['Deform Bones'][-1]
+		str_bone = parent_rig.bone_sets['Stretch Controls'][-1]
 		if parent_rig.params.CR_chain_unlock_deform:
 			def_bone = parent_rig.def_mch[-1]
-		parent_rig.setup_def_bone(def_bone, parent_rig.org_chain[-1], str_bone, self.bone_sets['Stretch Controls'][0])
+		parent_rig.setup_def_bone(def_bone, parent_rig.bone_sets['Original Bones'][-1], str_bone, self.bone_sets['Stretch Controls'][0])
 		def_bone.parent = str_bone
 		self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
