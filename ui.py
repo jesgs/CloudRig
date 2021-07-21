@@ -128,11 +128,7 @@ def draw_cloudrig_generator_settings(self, context):
 
 	# Basic Parameters
 	layout.prop(obj.data, "rigify_target_rig")
-	layout.prop(obj.data, "rigify_rig_ui")
-	layout.prop(cloudrig, "custom_script")
 	layout.prop(cloudrig, "widget_collection")
-
-	layout.separator()
 
 	# Bone Group Color Parameters
 	layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
@@ -160,6 +156,9 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 
 		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
+
+		layout.prop(obj.data, "rigify_rig_ui")
+		layout.prop(cloudrig, "custom_script")
 
 		# Test Animation Parameters
 		if metarig_contains_fk_chain(obj):
