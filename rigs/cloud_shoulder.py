@@ -14,7 +14,7 @@ class CloudShoulderRig(CloudFKChainRig):
 	def initialize(self):
 		super().initialize()
 		"""Gather and validate data about the rig."""
-		if len(self.bones.org.main)>1:
+		if self.bone_count>1:
 			print(f"""Shoulder rig on {self.base_bone} has a chain of more than a single bone.
 				   The rig only requires one bone, the rest will be unaffected!""")
 

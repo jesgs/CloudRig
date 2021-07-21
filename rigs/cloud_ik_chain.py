@@ -39,7 +39,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Will be passed to the IK constraint's chain_count.
 		# Elements of the rig can use this to avoid having to make assumptions about correlations
 		# between the length of the ORG chain vs how long the IK chain is.
-		self.chain_count = len(self.bones.org.main)-1
+		self.chain_count = self.bone_count-1
 		if self.params.CR_ik_chain_at_tip:
 			self.chain_count += 1
 

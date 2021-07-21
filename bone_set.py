@@ -253,10 +253,11 @@ class BoneSet(LinkedList):
 		return bone_group
 
 class BoneSetMixin:
+	"""Class that provides bone set management to CloudBaseRig."""
 	bone_set_defs: Dict[str, str] = OrderedDict()
 
-	def ensure_bone_set(self, bone_set_name):
-		"""Take a bone set definition stored in the class and create a real BoneSet object for it on self."""
+	def init_bone_set(self, bone_set_name):
+		"""Take a bone set definition stored in the class and create a single BoneSet for it."""
 		bone_set_defs = type(self).bone_set_defs
 
 		if not bone_set_name in bone_set_defs:
@@ -280,10 +281,11 @@ class BoneSetMixin:
 
 		return new_set
 
-	def ensure_bone_sets(self):
+	def init_bone_sets(self):
+		"""Instantiate all bone sets based on the class's bone_set_defs dictionary."""
 		bone_set_defs = type(self).bone_set_defs
 		for bone_set_name in bone_set_defs.keys():
-			self.bone_sets[bone_set_name] = self.ensure_bone_set(bone_set_name)
+			self.bone_sets[bone_set_name] = self.init_bone_set(bone_set_name)
 
 	##############################
 	# UI

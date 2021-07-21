@@ -45,7 +45,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 	def check_correct_chain_length(self):
 		req_len = type(self).required_chain_length
-		if len(self.bones.org.main) != req_len:
+		if self.bone_count != req_len:
 			self.raise_error(f"Chain must be exactly {req_len} connected bones.")
 
 	def create_bone_infos(self):

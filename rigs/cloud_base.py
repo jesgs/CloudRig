@@ -54,26 +54,6 @@ class CloudBaseRig(
 	parent_switch_overwrites_root_parent = True
 	always_use_custom_props = False
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-
-		### Quick access to the generator's name manager
-		self.naming = self.generator.naming
-
-		### Quick access to the generator's log manager
-		self.logger = self.generator.logger
-
-		# Determine Suffix/Prefix
-		self.side_suffix = ""
-		self.side_prefix = ""
-		is_left = self.naming.side_is_left(self.base_bone)
-		if is_left:
-			self.side_suffix = "L"
-			self.side_prefix = "Left"
-		elif is_left==False:
-			self.side_suffix = "R"
-			self.side_prefix = "Right"
-
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main."""
 
@@ -88,38 +68,55 @@ class CloudBaseRig(
 		from .. import cloud_generator
 		assert type(self.generator) == cloud_generator.CloudGenerator, "CloudRig has wrong Generator type. CloudRig requires its own Generator class - You're probably using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate. Perhaps the Generate button is not being replaced even though it should?"
 
+		self.bone_count = len(self.bones.org.main)
+
+		### Quick access to the generator's log manager
+		self.logger = self.generator.logger
+
+		### Quick access to the generator's name manager
+		self.naming = self.generator.naming
+
+		# Determine Suffix/Prefix
+		self.side_suffix = ""
+		self.side_prefix = ""
+		is_left = self.naming.side_is_left(self.base_bone)
+		if is_left:
+			self.side_suffix = "L"
+			self.side_prefix = "Left"
+		elif is_left==False:
+			self.side_suffix = "R"
+			self.side_prefix = "Right"
+
 		self.generator_params = self.generator.metarig.data
+		self.defaults = dict(self.generator.defaults)
 
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
 
 		self.scale = self.generator.scale
 
-		# Prepare Bone Sets
-		self.bone_sets = dict()
-		self.defaults = dict(self.generator.defaults)
-		self.ensure_bone_sets()
-
-		parent = self.get_bone(self.base_bone).parent
-		self.bones.parent = parent.name if parent else ""
-
 		# Reference to the rig's own root bone which should be filled in during create_bone_infos()
 		# Used for the "Custom Root Parent" feature.
 		self.root_bone = None
 
-		self.update_forced_params()
+		self.force_parameters(self.meta_base_bone, self.params)
+
+		# Prepare Bone Sets
+		self.bone_sets = dict()
+		self.init_bone_sets()
 
 		# Quick access to the most important bone sets
 		self.bones_org = self.bone_sets['Original Bones']
 		self.bones_def = self.bone_sets['Deform Bones']
 		self.bones_mch = self.bone_sets['Mechanism Bones']
 
-	def update_forced_params(self):
+	def force_parameters(self, meta_base_bone, params):
+		"""Allows the class to force certain parameter values for its instances."""
 		clas = type(self)
 		for param in clas.forced_params.keys():
 			forced_value = clas.forced_params[param]
 			if forced_value != 'NOFORCE':
-				self.meta_base_bone.rigify_parameters[param] = forced_value
-				setattr(self.params, param, forced_value)
+				meta_base_bone.rigify_parameters[param] = forced_value
+				setattr(params, param, forced_value)
 
 	@property
 	def properties_bone(self) -> BoneInfo:

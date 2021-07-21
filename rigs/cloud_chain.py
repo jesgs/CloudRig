@@ -12,20 +12,20 @@ class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 	relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with \"TAIL-\"."
 
-	def initialize(self):
-		"""Gather and validate data about the rig."""
-		super().initialize()
-
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.is_cyclic = False
 		self.chain_length = 0
-
+		
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
+		# Determine if this is a cyclic chain rig (last bone touches first)
 		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001
 
+		# Calculate total and average bone length
 		for org in self.bones_org:
 			self.chain_length += org.length
-		self.average_org_length = self.chain_length / len(self.bones_org)
 
 		str_sections = self.make_str_chain(self.bones_org)
 		if self.params.CR_chain_segments > 1:
@@ -82,7 +82,8 @@ class CloudChainRig(CloudBaseRig):
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		segments = self.params.CR_chain_segments
 
-		bbone_density = round(org_bone.length/self.average_org_length *
+		average_bone_length = self.chain_length / len(self.bones_org)
+		bbone_density = round(org_bone.length/average_bone_length *
 			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
 
 		# No segments for last bone of the chain if there is no control for its tail.
