@@ -141,17 +141,20 @@ def create_selection_sets(obj, metarig, context):
 				bone_id = selset.bone_ids.add()
 				bone_id.name = b.name
 
-def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
+def load_script(file_path="", file_name="cloudrig.py", search="", replace="", datablock=None):
 	"""Load a text file into a text datablock, enable register checkbox and execute it.
 	Also run an optional search and replace on the file content.
 	"""
 
-	# Check if it already exists
-	text = bpy.data.texts.get(file_name)
-	# If not, create it.
-	if not text:
-		text = bpy.data.texts.new(name=file_name)
-		text.use_fake_user = False
+	if datablock:
+		text = datablock
+	else:
+		# Check if it already exists
+		text = bpy.data.texts.get(file_name)
+		# If not, create it.
+		if not text:
+			text = bpy.data.texts.new(name=file_name)
+			text.use_fake_user = False
 
 	text.clear()
 	text.use_module = True
@@ -898,11 +901,12 @@ class CloudGenerator(Generator):
 			script_id = "cloudrig"
 
 		obj.data['cloudrig'] = script_id
-		obj.data['script'] = load_script(
+		metarig.data.rigify_rig_ui = obj.data['script'] = load_script(
 			file_path = os.path.dirname(os.path.realpath(__file__))
-			,file_name="cloudrig.py"
-			,search="SCRIPT_ID"
-			,replace=script_id
+			,file_name = "cloudrig.py"
+			,search = "SCRIPT_ID"
+			,replace = script_id
+			,datablock = metarig.data.rigify_rig_ui
 		)
 
 		# Armature display settings
