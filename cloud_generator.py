@@ -162,6 +162,7 @@ def load_script(file_path="", file_name="cloudrig.py", search="", replace=""):
 	# If not, create it.
 	if not text:
 		text = bpy.data.texts.new(name=file_name)
+		text.use_fake_user = False
 
 	text.clear()
 	text.use_module = True
