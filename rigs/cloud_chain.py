@@ -21,7 +21,7 @@ class CloudChainRig(CloudBaseRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.cyclic = (self.bone_sets['Original Bones'][-1].tail - self.bone_sets['Original Bones'][0].head).length < 0.001
+		self.is_cyclic = (self.bone_sets['Original Bones'][-1].tail - self.bone_sets['Original Bones'][0].head).length < 0.001
 
 		for org in self.bone_sets['Original Bones']:
 			self.chain_length += org.length
@@ -105,7 +105,7 @@ class CloudChainRig(CloudBaseRig):
 				if i==0:
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
-					if org_i == 0 and self.cyclic:
+					if org_i == 0 and self.is_cyclic:
 						direction = (org_bone.tail - self.bone_sets['Original Bones'][-1].head).normalized()
 						str_bone.tail = str_bone.head + direction*str_bone.length
 
@@ -113,7 +113,7 @@ class CloudChainRig(CloudBaseRig):
 
 			# Create STR-TIP control at the end of the chain.
 			if org_i==len(org_chain)-1 and self.params.CR_chain_tip_control:
-				if self.cyclic:
+				if self.is_cyclic:
 					self.bone_sets['Stretch Controls'][-1].next = self.bone_sets['Stretch Controls'][0]
 					self.bone_sets['Stretch Controls'][0].prev = self.bone_sets['Stretch Controls'][-1]
 				else:
@@ -126,7 +126,7 @@ class CloudChainRig(CloudBaseRig):
 					self.main_str_bones.append(str_bone)
 
 		# Set first and last control's shapes
-		if not self.cyclic:
+		if not self.is_cyclic:
 			self.bone_sets['Stretch Controls'][0].custom_shape = self.bone_sets['Stretch Controls'][-1].custom_shape = self.ensure_widget("Sphere_Half")
 			self.bone_sets['Stretch Controls'][0].custom_shape_scale_xyz.y *= -1
 
@@ -182,7 +182,6 @@ class CloudChainRig(CloudBaseRig):
 					,source 	 = str_bone
 					,bbone_width = str_bone.bbone_width
 					,parent		 = str_bone.parent
-					,hide_select = self.mch_disable_select
 				)
 				str_bone.parent = str_h_bone
 
@@ -322,7 +321,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Create a deform chain stretching from one STR bone to the next"""
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
-			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.cyclic:
+			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.is_cyclic:
 				continue
 
 			org_bone = str_bone.org_parent
@@ -343,7 +342,6 @@ class CloudChainRig(CloudBaseRig):
 				,bbone_handle_type_start = 'TANGENT'
 				,bbone_handle_type_end	 = 'TANGENT'
 				,bbone_custom_handle_start = str_bone.tangent_helper
-				,hide_select			 = self.mch_disable_select
 				,use_deform				 = True
 				,inherit_scale			 = 'ALIGNED' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
 			)
@@ -535,7 +533,6 @@ class CloudChainRig(CloudBaseRig):
 			,head		 = def_bone_1.tail.copy()
 			,tail		 = def_bone_1.tail + def_bone_1.vector
 			,parent		 = def_bone_1
-			,hide_select = self.mch_disable_select
 		)
 		skp_bone.scale_length(0.3)
 		skp_bone.add_constraint('COPY_TRANSFORMS'
@@ -553,7 +550,6 @@ class CloudChainRig(CloudBaseRig):
 			,head		 = def_bone_2.head.copy()
 			,tail		 = def_bone_2.tail.copy()
 			,parent		 = skp_bone
-			,hide_select = self.mch_disable_select
 		)
 		skh_bone.scale_width(2)
 		skh_bone.scale_length(0.4)

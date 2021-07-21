@@ -227,7 +227,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			ik_bone = self.bone_sets['IK Mechanism'].new(
 				name		 = org_bone.name.replace("ORG", "IK")
 				,source		 = org_bone
-				,hide_select = self.mch_disable_select
 			)
 			ik_chain.append(ik_bone)
 
@@ -305,7 +304,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			,source		 = self.bone_sets['Original Bones'][0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.root_bone
-			,hide_select = self.mch_disable_select
 		)
 		stretch_bone.scale_width(0.4)
 
@@ -314,7 +312,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			name		 = ik_org_bone.name.replace("ORG", "IK-STR-TGT")
 			,source		 = ik_org_bone
 			,parent		 = self.ik_mstr
-			,hide_select = self.mch_disable_select
 		)
 
 		chain_length = 0
@@ -425,7 +422,6 @@ class CloudIKChainRig(CloudFKChainRig):
 				,source		 = main_str_bone
 				,bbone_width = 1/10
 				,parent		 = main_str_bone.parent
-				,hide_select = self.mch_disable_select
 			)
 			main_str_bone.stretch_helper = main_str_helper
 			main_str_bone.parent = main_str_helper

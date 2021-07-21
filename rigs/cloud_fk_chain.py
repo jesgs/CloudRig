@@ -166,7 +166,6 @@ class CloudFKChainRig(CloudChainRig):
 		hng_bone = bone_set.new(
 			name			= hng_name
 			,source			= bone
-			,hide_select	= self.mch_disable_select
 		)
 
 		# Hinge Armature constraint

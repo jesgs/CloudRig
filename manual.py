@@ -35,8 +35,6 @@ def cloudrig_manual_map():
 		(generator_params_pref+"custom_script", "Generator-Parameters#custom-script"),
 		(generator_params_pref+"create_root", "Generator-Parameters#create-root"),
 		(generator_params_pref+"double_root", "Generator-Parameters#double-root"),
-		(generator_params_pref+"mechanism_selectable", "Generator-Parameters#selectable-helpers"),
-		(generator_params_pref+"mechanism_movable", "Generator-Parameters#movable-helpers"),
 
 		# Organizing Bones
 		("bpy.ops.pose.cloudrig_layer_init", "Organizing-Bones#customizing-bone-layers"),

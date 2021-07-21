@@ -172,10 +172,6 @@ def draw_cloudrig_generator_settings(self, context):
 	layout.separator()
 
 	# Advanced Parameters
-	layout.prop(cloudrig, 'mechanism_selectable')
-	if cloudrig.mechanism_selectable:
-		layout.prop(cloudrig, 'mechanism_movable')
-
 	layout.prop(obj.data, 'rigify_force_widget_update')
 
 @classmethod

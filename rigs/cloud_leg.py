@@ -101,7 +101,6 @@ class CloudLegRig(CloudLimbRig):
 					,source		 = self.bone_sets['FK Controls'][2]
 					,vector		 = flat(self.bone_sets['FK Controls'][2].vector)
 					,parent		 = self.ik_chain[2]
-					,hide_select = self.mch_disable_select
 				)
 
 		self.make_ik_toe()
@@ -194,7 +193,6 @@ class CloudLegRig(CloudLimbRig):
 			,source		 = self.bone_sets['Original Bones'][0]
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.root_bone
-			,hide_select = self.mch_disable_select
 		)
 		rolly_stretchy.scale_width(0.4)
 		rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
@@ -254,7 +252,6 @@ class CloudLegRig(CloudLimbRig):
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
 			,roll		  = 0
 			,parent		  = roll_master
-			,hide_select  = self.mch_disable_select
 		)
 
 		heel_pivot.add_constraint('TRANSFORM',
@@ -275,7 +272,6 @@ class CloudLegRig(CloudLimbRig):
 				,tail		 = b.head.copy()
 				,roll		 = 0
 				,parent		 = heel_pivot
-				,hide_select = self.mch_disable_select
 			)
 			rik_chain.append(rik_bone)
 			ik_chain[i].parent = rik_bone

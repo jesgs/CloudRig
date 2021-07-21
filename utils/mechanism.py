@@ -43,7 +43,6 @@ class CloudMechanismMixin:
 			,bbone_width	= parent.bbone_width*0.5
 			,custom_shape	= None
 			,parent			= parent
-			,hide_select	= self.mch_disable_select
 		)
 		parent.dsp_bone = dsp_bone
 		if center:

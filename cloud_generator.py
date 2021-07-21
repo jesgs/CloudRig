@@ -72,17 +72,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "Action which will be generated with the keyframes neccessary to test the rig's deformations"
 	)
 
-	mechanism_movable: BoolProperty(
-		name		 = "Movable Helpers"
-		,description = "Whether helper bones can be moved or not"
-		,default	 = True
-	)
-	mechanism_selectable: BoolProperty(
-		name		 = "Selectable Helpers"
-		,description = "Whether helper bones can be selected or not"
-		,default	 = True
-	)
-
 	root_bone_group: StringProperty(
 		name="Root"
 		,description="Bone Group to assign the root bone to"

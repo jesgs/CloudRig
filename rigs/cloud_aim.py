@@ -81,7 +81,6 @@ class CloudAimRig(CloudBaseRig):
 		aim_bone = self.bone_sets['Aim Target Mechanism'].new(
 			name		 = self.bone_sets['Original Bones'][0].name.replace("ORG", "AIM")
 			,source		 = org_bone
-			,hide_select = self.mch_disable_select
 			,parent		 = org_bone
 		)
 		return aim_bone

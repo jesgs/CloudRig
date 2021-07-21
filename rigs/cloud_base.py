@@ -90,8 +90,6 @@ class CloudBaseRig(
 
 		self.generator_params = self.generator.metarig.data
 
-		self.mch_disable_select = not self.generator_params.cloudrig_parameters.mechanism_selectable
-
 		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
 
 		self.scale = self.generator.scale
@@ -201,7 +199,6 @@ class CloudBaseRig(
 
 		# Create parent bone that will hold the Armature constraint.
 		arm_con_bone = self.create_parent_bone(child_bone, self.bone_sets['Mechanism Bones'])
-		arm_con_bone.hide_select = self.mch_disable_select
 		arm_con_bone.name = "P-" + child_bone.name
 		arm_con_bone.custom_shape = None
 
@@ -316,7 +313,6 @@ class CloudBaseRig(
 
 			org_bi = self.bone_sets['Original Bones'].new_from_real(self.obj, eb)
 			org_bi.layers = self.bone_sets['Original Bones'].layers[:]
-			org_bi.hide_select = self.mch_disable_select
 			org_bi.bbone_width = eb.bbone_x / self.scale
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)

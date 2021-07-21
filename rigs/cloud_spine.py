@@ -161,7 +161,6 @@ class CloudSpineRig(CloudFKChainRig):
 				,head		 = fk_bone.head
 				,tail 		 = fk_bone.prev.head
 				,parent		 = next_parent
-				,hide_select = self.mch_disable_select
 			)
 			next_parent = ik_r_bone
 			self.ik_r_chain.append(ik_r_bone)
@@ -181,7 +180,6 @@ class CloudSpineRig(CloudFKChainRig):
 				,head		 = fk_bone.prev.head if i>0 else self.bone_sets['Deform Bones'][0].head
 				,tail		 = fk_bone.head if i>0 else self.bone_sets['FK Controls'][0].head
 				,parent		 = next_parent
-				,hide_select = self.mch_disable_select
 			)
 			self.ik_chain.append(ik_bone)
 			next_parent = ik_bone
