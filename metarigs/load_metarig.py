@@ -18,7 +18,7 @@ def load_metarig(metarig_name):
 	available_name = numbered_name
 
 	# Loading metarig object from file
-	filename = "metarigs/MetaRigs.blend"
+	filename = "MetaRigs.blend"
 	filedir = os.path.dirname(os.path.realpath(__file__))
 	blend_path = os.path.join(filedir, filename)
 
