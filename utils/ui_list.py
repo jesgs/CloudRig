@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import Operator, UILayout
-from bpy.props import EnumProperty, StringProperty, IntProperty
+from bpy.props import EnumProperty, StringProperty
 
 def get_context_attr(context, data_path):
 	return eval("context." + data_path)

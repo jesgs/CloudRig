@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import BoolProperty
-from ..utils.naming import slice_name
+from ..generation.naming import slice_name
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.

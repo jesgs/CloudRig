@@ -5,8 +5,7 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians as rad
 
-from ..utils.maths import flat
-from ..utils.mechanism import get_bone_chain
+from ..rig_features.mechanism import get_bone_chain
 from .cloud_fk_chain import CloudFKChainRig
 
 """Ideas to improve this:
@@ -633,7 +632,7 @@ class CloudIKChainRig(CloudFKChainRig):
 class Rig(CloudIKChainRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

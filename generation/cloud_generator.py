@@ -12,22 +12,22 @@ from rna_prop_ui import rna_idprop_ui_prop_get
 
 from rigify.generate import Generator, Timer, select_object
 from rigify import rig_ui_template
-from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX
+from rigify.utils.naming import DEF_PREFIX
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
 
-from .bone_set import BoneSet, UIBoneSet
-from .utils import mechanism
-from .utils.ui import redraw_viewport, wipe_ui_data
-from . import widgets as cloud_widgets
-from .versioning import cloud_metarig_version
+from ..rig_features.bone_set import BoneSet, UIBoneSet
+from ..rig_features import mechanism
+from ..rig_features.ui import redraw_viewport, wipe_ui_data
+from ..rig_features.widgets import widgets as cloud_widgets
+from ..versioning import cloud_metarig_version
 
 from .actions import ActionSlot
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
-from .utils.naming import CloudNameManager
-from .utils.object import EnsureVisible
+from .naming import CloudNameManager
+from ..rig_features.object import EnsureVisible
 
 class CloudRigProperties(bpy.types.PropertyGroup):
 	version: IntProperty(
@@ -716,9 +716,9 @@ class CloudGenerator(Generator):
 		# It would be nicer if the rig class would know how to sort its instances in the rig list.
 		# Then the generator could call some Rig.sort(cls, rig_list) function to let each rig sort the rig execution order as it wishes.
 		# That way the generator doesn't have to give special treatment to various rig types, which is the hacky part of this.
-		from .rigs.cloud_tweak import CloudTweakRig
-		from .rigs.cloud_chain_anchor import CloudChainAnchorRig
-		from .rigs.cloud_face_chain import CloudFaceChainRig
+		from ..rigs.cloud_tweak import CloudTweakRig
+		from ..rigs.cloud_chain_anchor import CloudChainAnchorRig
+		from ..rigs.cloud_face_chain import CloudFaceChainRig
 		first_face = -1
 		for i, rig in enumerate(self.rig_list[:]):
 			if isinstance(rig, CloudTweakRig) or isinstance(rig, CloudChainAnchorRig):

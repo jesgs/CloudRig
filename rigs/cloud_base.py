@@ -1,15 +1,15 @@
 # Typing
 import bpy
-from ..bone import BoneInfo
+from ..rig_features.bone import BoneInfo
 from typing import List
 
 # CloudBaseRig parent classes
 from rigify.base_rig import BaseRig
-from ..bone_set import BoneSetMixin
-from ..utils.ui import CloudUIMixin
-from ..utils.mechanism import CloudMechanismMixin
-from ..utils.object import CloudObjectUtilitiesMixin
-from ..parent_switching import CloudParentSwitchMixin
+from ..rig_features.bone_set import BoneSetMixin
+from ..rig_features.ui import CloudUIMixin
+from ..rig_features.mechanism import CloudMechanismMixin
+from ..rig_features.object import CloudObjectUtilitiesMixin
+from ..rig_features.parent_switching import CloudParentSwitchMixin
 
 # The rest
 from bpy.props import BoolProperty, StringProperty, EnumProperty

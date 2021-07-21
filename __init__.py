@@ -23,21 +23,21 @@ import importlib
 from rigify import feature_sets
 import sys
 
-from . import utils
-from . import actions
-from . import troubleshooting
-from . import bone_set
-from . import cloud_generator
-from . import ui
+from .utils import ui_list
+from .rig_features import bone_set
+from .rig_features import parent_switching
+from .generation import actions
+from .generation import troubleshooting
+from .generation import cloud_generator
 from . import versioning
 from . import manual
 from . import operators
 from . import overlay
-from . import parent_switching
+from . import ui
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
-	utils.ui_list,
+	ui_list,
 	actions,
 	troubleshooting,
 	bone_set,
@@ -56,12 +56,12 @@ def register():
 	trying_to_install_as_addon = caller_name == 'execute'
 	assert not trying_to_install_as_addon, "CloudRig is not an addon. Install it as a Feature Set within the Rigify addon."
 
+	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
+	feature_sets.CloudRig = sys.modules[__name__]
+
 	for m in modules:
 		importlib.reload(m)
 		m.register()
-
-	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
-	feature_sets.CloudRig = sys.modules[__name__]
 
 def unregister():
 	for m in reversed(modules):

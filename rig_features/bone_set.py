@@ -4,13 +4,12 @@ import bpy
 from bpy.props import StringProperty, BoolVectorProperty, BoolProperty, IntProperty
 from bpy.types import PropertyGroup, UIList, UI_UL_list
 
-from copy import copy
 from mathutils import Vector, Matrix
 from collections import OrderedDict
 
-from .utils.rigify import find_rig_class
-from .utils.ui_list import draw_ui_list
-from .cloudrig import draw_layers_ui
+from ..utils.rigify import find_rig_class
+from ..utils.ui_list import draw_ui_list
+from ..generation.cloudrig import draw_layers_ui
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
 def driver_from_real(driver: bpy.types.Driver) -> dict:

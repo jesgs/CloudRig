@@ -1,10 +1,10 @@
 from typing import List
-from ..bone import BoneInfo
+from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty, StringProperty, IntVectorProperty, BoolVectorProperty, EnumProperty
 
 from .cloud_chain import CloudChainRig
-from ..utils.animation import CloudAnimationMixin
+from ..rig_features.animation import CloudAnimationMixin
 
 class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	"""FK chain with squash and stretch controls."""
@@ -438,7 +438,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 class Rig(CloudFKChainRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

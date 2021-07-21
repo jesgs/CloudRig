@@ -1,8 +1,8 @@
 import bpy
 from bpy.props import BoolProperty
 
-from ..utils.ui import is_cloud_metarig
-from ..utils.object import EnsureVisible
+from ..rig_features.ui import is_cloud_metarig
+from ..rig_features.object import EnsureVisible
 
 def safe_generate(context, metarig):
 	# Generating requires the metarig to be the active object, and the target rig to be visible.

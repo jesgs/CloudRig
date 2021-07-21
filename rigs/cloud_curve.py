@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, StringProperty, PointerProperty
-from mathutils import Vector, Matrix
+from mathutils import Matrix
 
 from .cloud_base import CloudBaseRig
 
@@ -384,7 +384,7 @@ class CloudCurveRig(CloudBaseRig):
 class Rig(CloudCurveRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

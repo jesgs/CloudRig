@@ -13,10 +13,9 @@ import importlib
 
 import traceback
 
-from bpy.props import StringProperty, IntProperty
+from bpy.props import StringProperty
 
-from .utils import naming
-from .utils.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown
+from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown
 
 # This whole thing could be part of Rigify.
 
@@ -72,7 +71,8 @@ def url_prefill_from_cloudrig(stack_trace=""):
 		)
 	)
 
-	CloudRig = importlib.import_module('rigify.feature_sets.'+os.path.basename(os.path.dirname(__file__)))
+	cloudrig_folder_name = os.path.dirname(__file__).split("/")[-2]
+	CloudRig = importlib.import_module('rigify.feature_sets.' + cloudrig_folder_name)
 	cloudrig_version = CloudRig.rigify_info['version']
 	last_modified = cloudrig_last_modified()
 	fh.write(

@@ -6,7 +6,6 @@ from typing import List
 
 from .maths import clamp
 from mathutils import Vector
-from math import sqrt
 
 def get_lattice_vertex_index(lattice: bpy.types.Lattice, xyz: List[int], do_clamp=True) -> int:
 	"""Get the index of a lattice vertex based on its position on the XYZ axes."""

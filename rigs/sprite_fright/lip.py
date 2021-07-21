@@ -39,7 +39,7 @@ class Rig(SpriteLipRig):
 	pass
 
 # For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
-from ...load_metarig import load_sample_by_file
+from ...metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

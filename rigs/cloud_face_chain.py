@@ -1,7 +1,7 @@
 from typing import List
-from ..bone import BoneInfo
+from ..rig_features.bone import BoneInfo
 
-from bpy.props import BoolProperty, IntProperty
+from bpy.props import BoolProperty
 from mathutils import Vector
 
 from .cloud_chain import CloudChainRig
@@ -46,7 +46,7 @@ class CloudFaceChainRig(CloudChainRig):
 		return super().get_relink_target(str_bone)
 
 	@staticmethod
-	def group_str_bones(chain_rigs):
+	def group_str_bones(chain_rigs) -> List[BoneInfo]:
 		"""Gather a list of lists of more than one STR bones that are in the same
 		location as another STR bone from another face_chain rig with
 		CR_face_chain_merge==True.
@@ -248,7 +248,7 @@ class CloudFaceChainRig(CloudChainRig):
 class Rig(CloudFaceChainRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

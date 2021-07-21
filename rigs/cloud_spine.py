@@ -2,7 +2,6 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 
 from .cloud_fk_chain import CloudFKChainRig
-from .cloud_base import CloudBaseRig
 
 """TODO
 Re-implement FK-C bones (maybe under a param)
@@ -351,7 +350,7 @@ class CloudSpineRig(CloudFKChainRig):
 class Rig(CloudSpineRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

@@ -1,6 +1,6 @@
 from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
-from ..bone_set import BoneSet
+from ..rig_features.bone_set import BoneSet
 
 """TODO
 We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds it if it isn't already there.
@@ -218,7 +218,7 @@ class Rig(CloudTweakRig):
 	pass
 
 # For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

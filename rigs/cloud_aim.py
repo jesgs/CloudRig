@@ -4,11 +4,11 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
 
-from ..bone import BoneInfo
+from ..rig_features.bone import BoneInfo
 from .cloud_base import CloudBaseRig
 
-from .. import widgets as cloud_widgets
-from ..utils.maths import bounding_box_center, flat
+from ..rig_features.widgets.widgets import bezier_widget
+from ..utils.maths import bounding_box_center
 
 class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
@@ -255,7 +255,7 @@ class CloudAimRig(CloudBaseRig):
 			,subtarget = center_bone.name
 		)
 
-		group_widget = cloud_widgets.bezier_widget(self, target_positions, group_master)
+		group_widget = bezier_widget(self, target_positions, group_master)
 		group_master.custom_shape = group_widget
 		group_master.custom_shape_scale = 1/self.scale
 
@@ -339,7 +339,7 @@ class CloudAimRig(CloudBaseRig):
 class Rig(CloudAimRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

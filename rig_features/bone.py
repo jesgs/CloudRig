@@ -1,13 +1,13 @@
 from typing import List
-from bpy.types import (EditBone, PoseBone, Constraint, Armature, Context, Object)
+from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
 import bpy
 from idprop.types import IDPropertyArray
 from mathutils import Vector, Matrix
 from copy import deepcopy
 
-from .utils.maths import flat
-from .utils.object import set_layers
+from ..utils.maths import flat
+from ..rig_features.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
 edit_bone_properties = {

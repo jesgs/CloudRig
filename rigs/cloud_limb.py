@@ -1,4 +1,5 @@
 from typing import List
+from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty, EnumProperty
 from mathutils import Vector
@@ -7,7 +8,6 @@ from math import pow
 from copy import deepcopy
 
 from .cloud_ik_chain import CloudIKChainRig
-from ..bone import BoneInfo
 
 class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features such as Auto-Rubberhose for a simple limb like an arm."""
@@ -476,7 +476,7 @@ class CloudLimbRig(CloudIKChainRig):
 class Rig(CloudLimbRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

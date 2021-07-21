@@ -1,9 +1,8 @@
 from typing import Tuple, List
-from ..bone import BoneInfo
-from ..bone_set import BoneSet
+from ..rig_features.bone import BoneInfo
+from ..rig_features.bone_set import BoneSet
 
 from bpy.props import BoolProperty, IntProperty
-from mathutils.geometry import intersect_point_line
 from copy import deepcopy
 
 from .cloud_base import CloudBaseRig
@@ -684,7 +683,7 @@ class CloudChainRig(CloudBaseRig):
 class Rig(CloudChainRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

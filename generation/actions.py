@@ -1,8 +1,8 @@
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
-from .utils import naming
-from .utils.ui import is_cloud_metarig
-from .utils.ui_list import draw_ui_list
+from . import naming
+from ..rig_features.ui import is_cloud_metarig
+from ..utils.ui_list import draw_ui_list
 
 # This whole thing could be part of Rigify.
 

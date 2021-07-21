@@ -1,6 +1,6 @@
 import bpy, sys, os
 import json
-from ..cloudrig import area_names
+from ..generation.cloudrig import area_names
 
 def wipe_ui_data(rig):
 	"""Should be called at the start of rig generation, to make sure we don't preserve any UI data from a previous generation."""

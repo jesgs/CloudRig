@@ -1,4 +1,4 @@
-from typing import List
+from ..rig_features.bone import BoneInfo
 
 import bpy
 from bpy.props import BoolProperty, StringProperty
@@ -9,7 +9,6 @@ from math import pi
 from copy import deepcopy
 
 from .cloud_limb import CloudLimbRig
-from ..bone import BoneInfo
 from ..utils.maths import flat
 
 class CloudLegRig(CloudLimbRig):
@@ -415,7 +414,7 @@ class CloudLegRig(CloudLimbRig):
 class Rig(CloudLegRig):
 	pass
 
-from ..load_metarig import load_sample_by_file
+from ..metarigs.load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

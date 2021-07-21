@@ -1,7 +1,7 @@
 import bpy
 from rna_prop_ui import rna_idprop_ui_prop_update, rna_idprop_ui_create
 import sys
-from ...cloudrig import area_names
+from ...generation.cloudrig import area_names
 
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
@@ -240,7 +240,7 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 	if shared_script:
 		print("Update and load shared cloudrig.py")
 		from pathlib import Path
-		cloudrig_path = Path(__file__).parent / "../../cloudrig.py"
+		cloudrig_path = Path(__file__).parent / "../../generation/cloudrig.py"
 		with open(cloudrig_path) as cloudrig_file:
 			lines = cloudrig_file.readlines()
 

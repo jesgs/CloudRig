@@ -7,8 +7,8 @@ from mathutils import Vector
 from rigify.utils.misc import copy_attributes
 from rigify.utils.mechanism import make_property
 
-from ..bone import BoneInfo
-from ..utils.naming import slice_name, make_name
+from ..rig_features.bone import BoneInfo
+from ..generation.naming import slice_name, make_name
 from ..utils.maths import flat
 
 class CloudMechanismMixin:

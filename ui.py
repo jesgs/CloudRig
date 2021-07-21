@@ -4,11 +4,10 @@
 import bpy
 import addon_utils
 
-from rigify import rig_lists
-from rigify import feature_sets
+from rigify import rig_lists, feature_sets
 
-from .cloudrig import draw_layers_ui
-from .utils.ui import draw_label_with_linebreak, is_cloud_metarig
+from .generation.cloudrig import draw_layers_ui
+from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig
 
 
 # NOTE: STRICTLY NOT ALLOWED TO IMPORT RIG CLASSES! RESULTS IN IMPOSSIBLE TO TROUBLESHOOT ERRORS!

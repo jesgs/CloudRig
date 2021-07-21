@@ -1,14 +1,12 @@
 import bpy
 import gpu
 from gpu_extras.batch import batch_for_shader
-from mathutils import Vector, Matrix
+from mathutils import Matrix
 import bgl
 
 from bpy.app.handlers import persistent
 
-import time
-
-from .utils.mechanism import find_rig_of_bone
+from .rig_features.mechanism import find_rig_of_bone
 from . import rigs
 
 # Dictionary holding previously selected rig's bones.

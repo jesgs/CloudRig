@@ -1,7 +1,7 @@
 # Typing
 import bpy
 from typing import List, Dict
-from ..bone import BoneInfo
+from ..rig_features.bone import BoneInfo
 
 from math import radians as rad
 
