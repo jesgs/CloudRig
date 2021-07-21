@@ -21,7 +21,6 @@ def ensure_widget(name, overwrite=True, collection=None):
 	wgt_name = "WGT-"+name
 	wgt_ob = bpy.data.objects.get((wgt_name, None))
 
-
 	if wgt_ob:
 		assign_to_collection(wgt_ob, collection)
 		if overwrite:

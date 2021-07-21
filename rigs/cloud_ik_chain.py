@@ -186,7 +186,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,head				= self.pole_location
 			,tail				= self.pole_location + self.flat_vector(self.pole_vector) * 0.2
 			,roll				= 0
-			,custom_shape		= self.ensure_widget('ArrowHead')
+			,custom_shape		= self.ensure_widget('Arrow_Head')
 			,custom_shape_scale	= 0.5
 			,use_custom_shape_bone_size = True
 			,parent = self.ik_mstr
