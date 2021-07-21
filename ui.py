@@ -140,39 +140,57 @@ def draw_cloudrig_generator_settings(self, context):
 		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
 		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
 
-	layout.separator()
+class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = 'data'
+	bl_label = "Advanced"
+	bl_parent_id = "DATA_PT_rigify_buttons"
 
-	# Test Animation Parameters
-	if metarig_contains_fk_chain(obj):
-		heading = "Generate Action"
-		if cloudrig.test_action:
-			heading = "Update Action"
-		act_row = layout.row(heading=heading)
-		act_row.prop(cloudrig, 'generate_test_action', text="")
-		act_col = act_row.column()
-		act_col.prop(cloudrig, 'test_action', text="")
-		act_col.enabled = cloudrig.generate_test_action
+	@classmethod
+	def poll(cls, context):
+		obj = context.object
+		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
 
-	layout.separator()
+	def draw(self, context):
+		layout = self.layout
+		layout.use_property_split=True
+		layout.use_property_decorate=False
+		layout = layout.column()
 
-	### Root Bone Parameters
-	layout.prop(cloudrig, 'create_root')
-	if cloudrig.create_root:
-		layout.prop_search(cloudrig, "root_bone_group", context.object.pose, "bone_groups")
-		row = layout.row()
-		row.use_property_split=False
-		row.prop(cloudrig, "root_layers", text="")
-		layout.prop(cloudrig, 'double_root')
-		if cloudrig.double_root:
-			layout.prop_search(cloudrig, "root_parent_group", context.object.pose, "bone_groups")
+		obj = context.object
+		cloudrig = obj.data.cloudrig_parameters
+
+		# Test Animation Parameters
+		if metarig_contains_fk_chain(obj):
+			heading = "Generate Action"
+			if cloudrig.test_action:
+				heading = "Update Action"
+			act_row = layout.row(heading=heading)
+			act_row.prop(cloudrig, 'generate_test_action', text="")
+			act_col = act_row.column()
+			act_col.prop(cloudrig, 'test_action', text="")
+			act_col.enabled = cloudrig.generate_test_action
+
+		layout.separator()
+
+		### Root Bone Parameters
+		layout.prop(cloudrig, 'create_root')
+		if cloudrig.create_root:
+			layout.prop_search(cloudrig, "root_bone_group", context.object.pose, "bone_groups")
 			row = layout.row()
 			row.use_property_split=False
-			row.prop(cloudrig, "root_parent_layers", text="")
+			row.prop(cloudrig, "root_layers", text="")
+			layout.prop(cloudrig, 'double_root')
+			if cloudrig.double_root:
+				layout.prop_search(cloudrig, "root_parent_group", context.object.pose, "bone_groups")
+				row = layout.row()
+				row.use_property_split=False
+				row.prop(cloudrig, "root_parent_layers", text="")
 
-	layout.separator()
+		layout.separator()
 
-	# Advanced Parameters
-	layout.prop(obj.data, 'rigify_force_widget_update')
+		layout.prop(obj.data, 'rigify_force_widget_update')
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):
@@ -231,7 +249,8 @@ def draw_cloud_layer_names(self, context):
 			row.prop(rigify_layer, "selset", text="", toggle=True, icon=icon)
 
 classes = [
-	CLOUDRIG_OT_layer_init
+	CLOUDRIG_OT_layer_init,
+	CLOUDRIG_PT_generator_advanced
 ]
 
 def register():
