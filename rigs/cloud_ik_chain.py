@@ -199,7 +199,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,tail		  = self.bone_sets['Original Bones'][0].tail.copy()
 			,parent		  = pole_ctrl
 			,hide_select  = True
-			,custom_shape = self.ensure_widget('Pole_Line')
+			,custom_shape = self.ensure_widget('Line')
 			,use_custom_shape_bone_size	= True
 		)
 		pole_line.add_constraint('STRETCH_TO'
@@ -234,8 +234,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			if i == 0:
 				# First IK bone special treatment
 				ik_bone.parent 						= self.root_bone
-				ik_bone.custom_shape 				= self.ensure_widget("Rectangles")
-				# ik_bone.use_custom_shape_bone_size  = True
+				ik_bone.custom_shape 				= self.ensure_widget("Squares_2")
+				ik_bone.custom_shape_scale_xyz		= Vector((0.8, 1, 0.8))
 				ik_bone.bone_group	  				= self.bone_sets['IK Controls'].bone_group
 				ik_bone.layers		  				= self.bone_sets['IK Controls'].layers[:]
 

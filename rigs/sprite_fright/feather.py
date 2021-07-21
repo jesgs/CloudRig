@@ -42,7 +42,7 @@ class SpriteFeatherRig(CloudFKChainRig):
 			name	= org.name.replace("ORG", "LINE-BEND")
 			,source = bend_dsp
 			,parent = bend_dsp
-			,custom_shape = self.ensure_widget("Pole_Line")
+			,custom_shape = self.ensure_widget("Line")
 			,use_custom_shape_bone_size = True
 		)
 		line.bone_group = self.bone_sets['Stretch Controls'].bone_group

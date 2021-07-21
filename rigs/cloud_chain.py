@@ -127,8 +127,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# Set first and last control's shapes
 		if not self.cyclic:
-			self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget("Hemisphere_Flip")
-			self.bone_sets['Stretch Controls'][-1].custom_shape = self.ensure_widget("Hemisphere")
+			self.bone_sets['Stretch Controls'][0].custom_shape = self.bone_sets['Stretch Controls'][-1].custom_shape = self.ensure_widget("Sphere_Half")
+			self.bone_sets['Stretch Controls'][0].custom_shape_scale_xyz.y *= -1
 
 		return str_sections
 
@@ -365,7 +365,8 @@ class CloudChainRig(CloudBaseRig):
 						,use_bulge_min = not self.params.CR_chain_preserve_volume
 						,use_bulge_max = not self.params.CR_chain_preserve_volume
 					)
-				def_bone_control.custom_shape = self.ensure_widget('Cube_Flat')
+				def_bone_control.custom_shape = self.ensure_widget('Cube')
+				def_bone_control.custom_shape_scale_xyz.y = 0.1
 				def_bone_control.layers = self.bone_sets['Deform Controls'].layers[:] # TODO: This should not be necessary!
 				def_bone.def_ctr_bone = def_bone_control
 

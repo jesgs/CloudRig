@@ -1,6 +1,4 @@
 Priority 1: Bugs
-    Toggle Rig/Metarig is slow when a lot of bones are selected
-
     When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
         Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
         Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
@@ -60,8 +58,6 @@ Priority 2: New features
             Since all interaction is done through operators, each execution of such an operator should update all Bone Set assignments in the metarig.
         While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
         Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
-
-
 Priority 3: Changes that will affect metarigs
     We should drop the idea that "root" is always available as a parent option. it's just annoying. This will break Sprite Fright rigs and existing animations though.
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
@@ -75,6 +71,7 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
+    We can use Rigify's refresh drivers function instead of our own: rigify.utils.mechanism.refresh_all_drivers
     write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo.
         Alternatively we could pass the generator as an argument.
         Decide which is better and do it cleanly. Also move the special handling of custom_shape_scale_xyz from generator to wherever we decide the rest will go.
@@ -91,7 +88,6 @@ Priority 4: Code quality
     I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
         The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.
         Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
-
 Priority 5: UI, UX & documentation
     We removed the Relink Constraints parameter, but kept the relinking_behaviour strings. Decide what is best, and either update the documentation or remove the strings.
     Upstream

@@ -135,7 +135,7 @@ class CloudLegRig(CloudLimbRig):
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""
 		if shape_name=="":
-			shape_name="Foot_IK"
+			shape_name="Foot"
 		ik_master = super().create_ik_master(bone_set, source_bone, bone_name, shape_name)
 		ik_master.custom_shape_scale = 2.8
 
@@ -222,7 +222,7 @@ class CloudLegRig(CloudLimbRig):
 			,roll_type	  = 'ACTIVE'
 			,roll_bone	  = toe
 			,parent		  = self.ik_mstr
-			,custom_shape = self.ensure_widget('FootRoll')
+			,custom_shape = self.ensure_widget('Roll_Flat')
 			,use_custom_shape_bone_size = True
 		)
 		# Limit Rotation, lock other transforms

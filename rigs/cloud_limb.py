@@ -104,7 +104,7 @@ class CloudLimbRig(CloudIKChainRig):
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""
 		if shape_name=="":
-			shape_name="Hand_IK"
+			shape_name="Hyperbola"
 		ik_master = super().create_ik_master(bone_set, source_bone, bone_name, shape_name)
 		ik_master.custom_shape_scale = 0.8
 
@@ -220,7 +220,7 @@ class CloudLimbRig(CloudIKChainRig):
 			name = org_elbow.name.replace("ORG", "AutoRubberHose")
 			,source = org_elbow
 			,parent = org_elbow
-			,custom_shape = self.ensure_widget('Double_Arrow')
+			,custom_shape = self.ensure_widget('Arrow_Two-way')
 		)
 		# Assign to main FK layer and both IK layers also
 		control_bone.set_layers(self.bone_sets['FK Controls'].layers, additive=True)

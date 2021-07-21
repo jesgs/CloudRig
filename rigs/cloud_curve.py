@@ -116,7 +116,7 @@ class CloudCurveRig(CloudBaseRig):
 					,head 		  = loc
 					,tail		  = loc_left
 					,parent		  = hook_ctr
-					,custom_shape = self.ensure_widget("CurveHandle")
+					,custom_shape = self.ensure_widget("Curve_Handle")
 				)
 				hook_ctr.left_handle_control = handle_left_ctr
 				handles.append(handle_left_ctr)
@@ -127,7 +127,7 @@ class CloudCurveRig(CloudBaseRig):
 					,head 		  = loc
 					,tail 		  = loc_right
 					,parent 	  = hook_ctr
-					,custom_shape = self.ensure_widget("CurveHandle")
+					,custom_shape = self.ensure_widget("Curve_Handle")
 				)
 				hook_ctr.right_handle_control = handle_right_ctr
 				handles.append(handle_right_ctr)
@@ -154,7 +154,7 @@ class CloudCurveRig(CloudBaseRig):
 					handle.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
 
 		else:
-			hook_ctr.custom_shape = self.ensure_widget("CurvePoint")
+			hook_ctr.custom_shape = self.ensure_widget("Curve_Point")
 
 		return hook_ctr
 

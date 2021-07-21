@@ -95,7 +95,7 @@ class CloudFKChainRig(CloudChainRig):
 			fk_bone = self.bone_sets['FK Controls'].new(
 				name				= fk_name
 				,source				= org_bone
-				,custom_shape 		= self.ensure_widget("FK_Limb")
+				,custom_shape 		= self.ensure_widget("Circle_Spiked_2")
 				,parent				= org_bone.parent
 				,inherit_scale		= self.params.CR_fk_chain_inherit_scale
 			)
@@ -105,7 +105,7 @@ class CloudFKChainRig(CloudChainRig):
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
 					fk_parent_bone = self.create_parent_bone(fk_bone, bone_set=self.bone_sets['FK Controls Extra'])
-					fk_parent_bone.custom_shape = self.ensure_widget("FK_Limb")
+					fk_parent_bone.custom_shape = fk_bone.custom_shape
 					if self.params.CR_fk_chain_display_center:
 						self.create_dsp_bone(fk_parent_bone, center=True)
 					hng_child = fk_parent_bone

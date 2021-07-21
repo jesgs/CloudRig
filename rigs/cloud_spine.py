@@ -64,12 +64,12 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Create master hip control
 		self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
-				name				= self.naming.make_name(["MSTR"], self.spine_name+"_Hips", [self.side_suffix])
-				,source				= self.bone_sets['Original Bones'][0]
-				,head				= self.bone_sets['Original Bones'][0].center
-				,custom_shape 		= self.ensure_widget("Hips")
-				,custom_shape_scale	= 0.7
-				,parent				= self.root_bone
+				name					= self.naming.make_name(["MSTR"], self.spine_name+"_Hips", [self.side_suffix])
+				,source					= self.bone_sets['Original Bones'][0]
+				,head					= self.bone_sets['Original Bones'][0].center
+				,custom_shape 			= self.ensure_widget("Hyperbola")
+				,custom_shape_scale_xyz	= Vector((0.8, -0.8, 0.8))
+				,parent					= self.root_bone
 		)
 		if self.params.CR_spine_world_align:
 			self.root_bone.flatten()
@@ -99,14 +99,16 @@ class CloudSpineRig(CloudFKChainRig):
 
 	def make_ik_spine(self):
 		### Create master chest control
+		chest_org = self.bone_sets['Original Bones'][-2]
 		self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
-				name				= f"MSTR-{self.spine_name}_Chest"
-				,source 			= self.bone_sets['Original Bones'][-2]
-				,head				= self.bone_sets['Original Bones'][-2].center
-				,tail 				= self.bone_sets['Original Bones'][-2].center + Vector((0, 0, self.scale))
-				,custom_shape 		= self.ensure_widget("Chest_Master")
-				,custom_shape_scale = 0.7
-				,parent				= self.root_torso
+				name					  = f"MSTR-{self.spine_name}_Chest"
+				,source 				  = chest_org
+				,head					  = chest_org.center
+				,tail 					  = chest_org.center + Vector((0, 0, self.scale))
+				,custom_shape 			  = self.ensure_widget("Hyperbola")
+				,custom_shape_scale_xyz   = Vector((0.8, -1.3, 0.8))
+				,custom_shape_translation = Vector((0, chest_org.length*2, 0))
+				,parent					  = self.root_torso
 			)
 
 		if self.params.CR_spine_double:
@@ -122,7 +124,8 @@ class CloudSpineRig(CloudFKChainRig):
 			ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
 				name				= fk_bone.name.replace("FK", "IK-CTR")
 				,source				= fk_bone
-				,custom_shape 		= self.ensure_widget("Oval")
+				,custom_shape 		= self.ensure_widget('Circle')
+				,custom_shape_scale_xyz = ((1, 1, 0.8))
 			)
 
 			if i == 0:

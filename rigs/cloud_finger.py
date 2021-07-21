@@ -33,7 +33,7 @@ class CloudFingerRig(CloudIKChainRig):
 		toggle_ctrl = self.bone_sets['IK Controls'].new(
 			name		  = self.base_bone.replace("ORG-", "IK-SW-")
 			,source		  = self.bone_sets['FK Controls'][-1]
-			,custom_shape = self.ensure_widget('Double_Arrow')
+			,custom_shape = self.ensure_widget('Arrow_Two-way')
 			,parent		  = self.bone_sets['FK Controls'][-1]
 		)
 		self.lock_transforms(toggle_ctrl, loc=[True, False, True])
