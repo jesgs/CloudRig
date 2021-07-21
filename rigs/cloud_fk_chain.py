@@ -4,8 +4,9 @@ from ..bone import BoneInfo
 from bpy.props import BoolProperty, StringProperty, IntVectorProperty, BoolVectorProperty, EnumProperty
 
 from .cloud_chain import CloudChainRig
+from ..utils.animation import CloudAnimationMixin
 
-class CloudFKChainRig(CloudChainRig):
+class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	"""FK chain with squash and stretch controls."""
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.

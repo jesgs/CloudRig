@@ -6,7 +6,7 @@ from ..bone import BoneInfo
 from math import radians as rad
 
 class CloudAnimationMixin:
-	"""Mixin class for functions to generate actions with animation."""
+	"""Mixin class for rig classes who want to generate actions to test out deformations."""
 
 	def test_action_create_fcurves(self
 		,action: bpy.types.Action

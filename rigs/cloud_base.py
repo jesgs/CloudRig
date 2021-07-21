@@ -8,7 +8,6 @@ from rigify.base_rig import BaseRig
 from ..bone_set import BoneSetMixin
 from ..utils.ui import CloudUIMixin
 from ..utils.mechanism import CloudMechanismMixin
-from ..utils.animation import CloudAnimationMixin
 from ..utils.object import CloudObjectUtilitiesMixin
 from ..parent_switching import CloudParentSwitchMixin
 
@@ -40,7 +39,6 @@ class CloudBaseRig(
 					CloudMechanismMixin,
 					CloudObjectUtilitiesMixin,
 					CloudUIMixin,
-					CloudAnimationMixin,
 					BoneSetMixin
 	):
 	"""Base class that all CloudRig rigs should inherit from."""
