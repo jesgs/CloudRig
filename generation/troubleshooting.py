@@ -1,3 +1,5 @@
+from typing import List
+
 import bpy
 import json
 import webbrowser
@@ -112,9 +114,8 @@ def get_pretty_stack() -> str:
 			after_generator = True
 		if not after_generator:
 			continue
-
-		if 'troubleshooting.py' in frame.filename or frame.name=="add_log":
-			continue
+		if frame.name == "log":
+			break
 
 		short_file = frame.filename
 		if 'scripts' in short_file:
@@ -128,7 +129,8 @@ def get_pretty_stack() -> str:
 	ret = f" {chr(8629)}\n".join(ret)
 	return ret
 
-def get_object_hierarchy_recursive(obj, all_objects=[]):
+# TODO: This should move to rig_features.object
+def get_object_hierarchy_recursive(obj: bpy.types.Object, all_objects=[]):
 	if obj not in all_objects:
 		all_objects.append(obj)
 
@@ -136,6 +138,17 @@ def get_object_hierarchy_recursive(obj, all_objects=[]):
 		get_object_hierarchy_recursive(c, all_objects)
 
 	return all_objects
+
+def get_datablock_type_icon(datablock):
+	"""Return the icon string representing a datablock type"""
+	# It's beautiful.
+	# There's no proper way to get the icon of a datablock, so we use the
+	# RNA definition of the id_type property of the DriverTarget class,
+	# which is an enum with a mapping of each datablock type to its icon.
+	typ = datablock.type
+	if datablock.type == 'SHADER':
+		typ = 'NODETREE'
+	return bpy.types.DriverTarget.bl_rna.properties['id_type'].enum_items[typ].icon
 
 class CloudLogManager:
 	"""Class to manage CloudRigLogEntry CollectionProperty on metarigs.
@@ -154,7 +167,7 @@ class CloudLogManager:
 			,description = "No description."
 			,icon = 'ERROR'
 			,note = ""
-			,note_icon = ''
+			,note_icon = 'NONE'
 			,operator = ''
 			,op_kwargs = {}
 			,op_text = ""
@@ -229,40 +242,36 @@ class CloudLogManager:
 					,note = str(i)
 				)
 
-	def report_invalid_drivers_on_datablock(self, datablock):
+	def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
 		if not datablock: return
 		if not hasattr(datablock, "animation_data"): return
 		if not datablock.animation_data: return
-		try:
-			for d in datablock.animation_data.drivers:
-				d.driver.type = d.driver.type
-				if not d.is_valid:
-					# TODO: This refuses to work. the is_valid flag seems to not get updated until the generate operator is entirely finished.
-					print(d)
-					self.log("Invalid Driver"
-						,description = f"Invalid driver:\nObject:\n {o.name}\nData path:\n {d.data_path}\nIndex: {d.array_index}"
-						,icon = 'DRIVER'
-						,note = o.name
-					)
-		except:
-			# "StructRNA of type Object has been removed", don't know why this happens.
-			pass
+		for fcurve in datablock.animation_data.drivers:
+			driver = fcurve.driver
+			if not driver.is_valid:
+				owner = owner_datablock or datablock
+				self.log("Invalid Driver"
+					,description = f"Invalid driver:\nDatablock: {owner.name}\nData path: {fcurve.data_path}\nIndex: {fcurve.array_index}"
+					,icon = 'DRIVER'
+					,note = owner.name
+					,note_icon = get_datablock_type_icon(datablock)
+				)
 
-	def report_invalid_drivers(self):
-		rig = self.rig
-		objects = get_object_hierarchy_recursive(rig, all_objects=[])
+	def report_invalid_drivers_on_object_hierarchy(self, object: bpy.types.Object):
+		"""Create log entries for invalid drivers of the object or any of its children"""
+		objects = get_object_hierarchy_recursive(object, all_objects=[])
 
 		for o in objects:
 			self.report_invalid_drivers_on_datablock(o)
 			if hasattr(o, "data") and o.data:
-				self.report_invalid_drivers_on_datablock(o.data)
+				self.report_invalid_drivers_on_datablock(o.data, owner_datablock=o)
 			if o.type=='MESH':
-				self.report_invalid_drivers_on_datablock(o.data.shape_keys)
+				self.report_invalid_drivers_on_datablock(o.data.shape_keys, owner_datablock=o)
 
 			for ms in o.material_slots:
 				if ms.material:
 					self.report_invalid_drivers_on_datablock(ms.material)
-					self.report_invalid_drivers_on_datablock(ms.material.node_tree)
+					self.report_invalid_drivers_on_datablock(ms.material.node_tree, owner_datablock=ms.material)
 
 	def report_widgets(self, widget_collection):
 		"""Find and log unused and duplicate widgets."""
@@ -334,7 +343,7 @@ class CloudRigLogEntry(bpy.types.PropertyGroup):
 	note_icon: StringProperty(
 		name = "Note Icon"
 		,description = "Icon for the extra note"
-		,default = ''
+		,default = 'NONE'
 	)
 	trouble_bone: StringProperty(
 		name = "Problem Bone"
@@ -383,7 +392,7 @@ class CLOUDRIG_UL_log_entry_slots(bpy.types.UIList):
 			row = layout.row()
 			row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
 			if log.note!="":
-				row.prop(log, 'note', emboss=False, text="")
+				row.prop(log, 'note', emboss=False, text="", icon=log.note_icon)
 			elif log.owner_bone!="":
 				row.prop(log, 'owner_bone', text="", emboss=False, icon='BONE_DATA')
 

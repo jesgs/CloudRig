@@ -6,7 +6,7 @@ import traceback
 from datetime import datetime
 
 from mathutils import Matrix, Vector
-from bpy.props import (BoolProperty, StringProperty, EnumProperty, 
+from bpy.props import (BoolProperty, StringProperty,
 			PointerProperty, BoolVectorProperty, CollectionProperty, IntProperty)
 from rna_prop_ui import rna_idprop_ui_prop_get
 
@@ -16,6 +16,7 @@ from rigify.utils.naming import DEF_PREFIX
 from rigify.utils.errors import MetarigError
 from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
+from rigify.utils.mechanism import refresh_all_drivers
 
 from ..rig_features.bone_set import BoneSet, UIBoneSet
 from ..rig_features import mechanism
@@ -986,6 +987,12 @@ class CloudGenerator(Generator):
 		t.tick("The rest: ")
 
 	def cleanup(self):
+		"""Clean up after generation has either failed or succeeded.
+		"""
+		# NOTE: Errors arising in this function won't be handled nicely!
+		# They will not be added to the Rigify Log, and some relationships may
+		# fail to restore to their original state.
+		
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.metarig.data.pose_position = 'POSE'
@@ -1007,7 +1014,9 @@ class CloudGenerator(Generator):
 			self.obj.matrix_world = self.backup_matrix
 
 		# Refresh drivers
-		self.logger.report_invalid_drivers()
+		refresh_all_drivers()
+		self.context.view_layer.update()
+		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 
 
 def generate_rig(context, metarig):
