@@ -1,12 +1,12 @@
 # Installing into [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html)
 
-1. Download CloudRig for your desired Blender version from the [**Releases**](https://gitlab.com/blender/CloudRig/-/releases) page*.  
+1. Download CloudRig for your desired Blender version from the [**Releases**](https://gitlab.com/blender/CloudRig/-/releases) page*. 
+*If you want to go experimental and are using the [latest Alpha](https://builder.blender.org/download/daily/) version of Blender, then you should instead download the [latest commit of CloudRig](https://gitlab.com/blender/CloudRig/-/archive/master/CloudRig-master.zip) and hope for the best!*  
 2. In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
 3. In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.
 
 ![](docs/featureset_load.gif)
 
-**: If you like to live dangerously and are using the latest [Daily Blender](https://builder.blender.org/download/daily/), you can get the [latest commit of CloudRig](https://gitlab.com/blender/CloudRig/-/archive/master/CloudRig-master.zip) for maximum instability!*
 
 # What is CloudRig?
 CloudRig is a collection of customizable rig building blocks to extend the Rigify system. This feature set is being developed for and by the Blender Animation Studio, with the guidance of professional animators.
