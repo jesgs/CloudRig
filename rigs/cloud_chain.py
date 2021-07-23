@@ -30,20 +30,27 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_segments > 1:
 			self.make_str_helpers(str_sections)
 
-		if self.params.CR_chain_smooth_spline:
-			for str_bone in self.bone_sets['Stretch Controls']:
-				self.set_up_smooth_spline(str_bone)
-		else:
-			for str_bone in self.bone_sets['Stretch Controls']:
-				str_bone.tangent_helper = self.make_tangent_helper(str_bone)
+		for str_bone in self.bone_sets['Stretch Controls']:
+			# TODO: Creating this helper is only needed when deform bbone_segments > 0.
+			str_bone.tangent_helper = self.make_tangent_helper(str_bone, smooth=self.params.CR_chain_smooth_spline)
 
 		self.make_def_chain(self.bone_sets['Stretch Controls'])
 
 		self.connect_parent_chain_rig()
 
-	def get_relink_target(self, bone):
-		"""Overridden in cloud_face_chain."""
-		return bone
+	def get_relink_target(self, org_i, con) -> BoneInfo:
+		"""Return the bone to which a constraint should be moved to."""
+		org_bone = self.bones_org[org_i]
+		relink_bone = self.main_str_bones[org_i]
+		if 'TAIL' in con.name:
+			if len(self.main_str_bones) <= org_i + 1:
+				# TODO: Add a log, don't totally cancel the generation!
+				self.raise_error(f"Cannot move constraint {con.name} from {org_bone.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
+			relink_bone = self.main_str_bones[org_i + 1]
+
+		if con.type == 'ARMATURE':
+			relink_bone = self.create_parent_bone(relink_bone, self.bones_mch)
+		return relink_bone
 
 	def relink(self):
 		"""Overrides cloud_base.
@@ -58,18 +65,9 @@ class CloudChainRig(CloudBaseRig):
 		"""
 		for i, org in enumerate(self.bones_org):
 			for c in org.constraint_infos[:]:
-				to_bone = self.main_str_bones[i]
-				if 'TAIL' in c.name:
-					if len(self.main_str_bones) <= i+1:
-						# TODO: Add a log, don't totally cancel the generation!
-						self.raise_error(f"Cannot move constraint {c.name} from {org.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
-					to_bone = self.main_str_bones[i+1]
-
-				to_bone = self.get_relink_target(to_bone)
-
-				if c.type=='ARMATURE':
-					# TODO IMPORTANT: This is not running for Ellie's fannypack belt, why??
-					to_bone = self.create_parent_bone(to_bone, self.bones_mch)
+				to_bone = self.get_relink_target(i, c)
+				if not to_bone:
+					continue
 
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
@@ -209,116 +207,72 @@ class CloudChainRig(CloudBaseRig):
 				)
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
 
-	def set_up_smooth_spline(self, str_bone, prev=None, nxt=None):
-		str_bone.dt_bone = self.make_dt_helper(str_bone, prev, nxt)
-		str_bone.tangent_helper = self.make_tangent_helper(str_bone)
-
-	def make_dt_helper(self, str_bone: BoneInfo,
+	def make_tangent_helper(self, str_bone: BoneInfo, smooth=False,
 						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
-		dt_bone = self.bone_sets['Stretch Helpers'].new(
-			name = self.naming.add_prefix(str_bone, "DT")
-			,source = str_bone
-			,parent = str_bone
-			,inherit_scale = 'ALIGNED'	# So, this went from 'NONE' to 'FULL' and now to this, because on 'FULL' it gave weird results to constraints trying to read the local rotation. I have no idea why.
-		)
-		if not nxt:
-			nxt = str_bone.next
-		if not prev:
-			prev = str_bone.prev
-
-		if nxt:
-			pos_con = dt_bone.add_constraint('DAMPED_TRACK'
-				,name = "Damped Track +Y"
-				,subtarget = nxt.name
-				,track_axis='TRACK_Y'
-			)
-		if prev:
-			neg_con = dt_bone.add_constraint('DAMPED_TRACK'
-				,name = "Damped Track -Y"
-				,subtarget = prev.name
-				,track_axis='TRACK_NEGATIVE_Y'
-			)
-			if nxt:
-				neg_con.influence = 0.5
-
-		return dt_bone
-
-	def make_tangent_helper(self, str_bone):
-		tangent_helper = self.bone_sets['Stretch Helpers'].new(
+		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone
-			,inherit_scale = 'NONE'	# This is important for rubber hose functionality.
-			,overwrite = True
+			,inherit_scale = 'NONE'
 		)
-		tangent_helper.add_constraint('COPY_SCALE'
+
+		if smooth:
+			# TODO: It would probably be easier instead to always inherit the STR bone's rotation, and
+			# then stack the DT bone's rotation on top with LOCAL_OWNER_ORIENT.
+			handle_bone.parent = str_bone.parent
+
+			if not nxt:
+				nxt = str_bone.next
+			if not prev:
+				prev = str_bone.prev
+			damped_track_helper = self.bone_sets['Stretch Helpers'].new(
+				name = self.naming.add_prefix(str_bone, "DT")
+				,source = str_bone
+				,parent = str_bone.parent
+			,inherit_scale = 'ALIGNED'	# TODO: Revisit this -> So, this went from 'NONE' to 'FULL' and now to this, because on 'FULL' it gave weird results to constraints trying to read the local rotation. I have no idea why.
+			)
+			str_bone.damped_track_helper = damped_track_helper # HACK: Satanic reference for cloud_face_chain.
+			handle_bone.parent = damped_track_helper
+
+			damped_track_helper.add_constraint('COPY_LOCATION'
+				,name = "Copy Location (of STR)"
+				,subtarget = str_bone.name
+				,space = 'WORLD'
+			)
+
+			if nxt:
+				damped_track_helper.add_constraint('DAMPED_TRACK'
+					,name = "Damped Track +Y"
+					,subtarget = nxt.name
+					,track_axis='TRACK_Y'
+				)
+			if prev:
+				track_prev_con = damped_track_helper.add_constraint('DAMPED_TRACK'
+					,name = "Damped Track -Y"
+					,subtarget = prev.name
+					,track_axis='TRACK_NEGATIVE_Y'
+				)
+				if nxt:
+					track_prev_con.influence = 0.5
+
+			handle_bone.add_constraint('COPY_ROTATION'
+				,name = "Copy Rotation (of STR)"
+				,subtarget = str_bone.name
+				,target_space = 'LOCAL_OWNER_ORIENT'
+			)
+
+		handle_bone.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
 			,space = 'WORLD'
 		)
 
-		if not self.params.CR_chain_smooth_spline:
-			return tangent_helper
-
-		assert hasattr(str_bone, 'dt_bone'), f"make_tangent_helper() called for str_bone {str_bone} without calling make_dt_helper() first, while Smooth Chain param is True."
-
-		dt = str_bone.dt_bone
-
-		str_child_no_scale = self.bone_sets['Stretch Helpers'].new(
-			name = str_bone.name.replace("STR", "STR-NOSCALE")
-			,source = str_bone
-			,parent = str_bone
-			,inherit_scale = 'NONE'
-		)
-
-		tangent_helper.add_constraint('COPY_ROTATION'
-			,name = "Copy Rotation (Damped Track Helper)"
-			,subtarget = dt.name
-		)
-		tangent_helper.add_constraint('COPY_ROTATION'
-			,name = "Copy Rotation (User Rotation Reader)"
-			,subtarget = str_bone.name
-			,owner_space = 'CUSTOM'
-			,space_object = self.obj
-			,space_subtarget = str_child_no_scale.name
-		)
-
-		# TODO: Had to copy paste this code, would be nice to have a proper
-		# utility for copying a bone with its constraints and drivers and whatnot.
-		tangent_clone = self.bone_sets['Stretch Helpers'].new(
-			name = self.naming.add_prefix(tangent_helper, "CLONE")
-			,source = str_bone
-			,parent = str_bone
-			,inherit_scale = 'NONE'
-		)
-		tangent_clone.add_constraint('COPY_ROTATION'
-			,name = "Copy Rotation (Damped Track Helper)"
-			,subtarget = dt.name
-		)
-		tangent_clone.add_constraint('COPY_ROTATION'
-			,name = "Copy Rotation (User Rotation Reader)"
-			,subtarget = str_bone.name
-			,owner_space = 'CUSTOM'
-			,space_object = self.obj
-			,space_subtarget = str_child_no_scale.name
-		)
-
-		tangent_helper.add_constraint('COPY_ROTATION'
-			,subtarget = tangent_clone.name
-			,use_xyz = [False, True, False]
-			,invert_xyz = [False, True, False]
-			,owner_space = 'CUSTOM'
-			,space_object = self.obj
-			,space_subtarget = tangent_clone.name
-		)
-
-		str_bone.tangent_clone = tangent_clone
-
-		return tangent_helper
+		return handle_bone
 
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Create a deform chain stretching from one STR bone to the next"""
+		next_parent = str_chain[0]
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
 			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.is_cyclic:
@@ -334,17 +288,21 @@ class CloudChainRig(CloudBaseRig):
 
 			def_name = str_bone.name.replace("STR", "DEF")
 			def_bone = self.bones_def.new(
-				name					 = def_name
-				,source					 = org_bone
-				,parent					 = str_bone
-				,head					 = str_bone.head
-				,tail					 = tail
-				,bbone_handle_type_start = 'TANGENT'
-				,bbone_handle_type_end	 = 'TANGENT'
-				,bbone_custom_handle_start = str_bone.tangent_helper
-				,use_deform				 = True
-				,inherit_scale			 = 'ALIGNED' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
+				name						  = def_name
+				,source						  = org_bone
+				,parent						  = next_parent
+				,head						  = str_bone.head
+				,tail						  = tail
+				,bbone_handle_type_start	  = 'TANGENT'
+				,bbone_handle_type_end		  = 'TANGENT'
+				,bbone_custom_handle_start	  = str_bone.tangent_helper
+				,bbone_handle_use_scale_start = [True, False, True]
+				,bbone_handle_use_scale_end	  = [True, False, True]
+				,use_deform					  = True
+				,inherit_scale				  = 'ALIGNED' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
 			)
+			next_parent = def_bone
+
 			# TODO: Arbitrary property assignments, eeek!
 			def_bone.str_bone = str_bone
 			org_bone.def_bones.append(def_bone)
@@ -354,9 +312,11 @@ class CloudChainRig(CloudBaseRig):
 				def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
 				def_bone_control.inherit_scale = 'ALIGNED'
 				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
+				def_bone_parent.parent = str_bone.parent
+				def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
 				def_bone_control.head = def_bone_control.center
 				def_bone_control.custom_shape_scale *= 0.7
-				# self.setup_def_bone(def_bone_parent, org_bone, str_bone, str_bone.next)
+	
 				if str_bone.next:
 					def_bone_parent.add_constraint('STRETCH_TO'
 						,subtarget = str_bone.next.name
@@ -435,49 +395,12 @@ class CloudChainRig(CloudBaseRig):
 		if def_bone.bbone_segments > 1:
 			# if not self.params.CR_chain_unlock_deform:
 			# 	def_bone.inherit_scale = 'NONE'
-			self.make_bbone_scale_drivers(def_bone)
-
+			self.make_bbone_ease_drivers(def_bone)
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
 
-	def make_bbone_scale_drivers(self, def_bone: BoneInfo):
-		str_bone = def_bone.str_bone
+	def make_bbone_ease_drivers(self, def_bone: BoneInfo):
 
-		scaleoutx_driver = {
-			'expression' : "tanScale/inheritedScale",
-			'prop' : "bbone_scaleout",
-			'index' : 0,
-			'variables' : {
-				'tanScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : def_bone.bbone_custom_handle_end.name,
-						'transform_type' : 'SCALE_X',
-						'transform_space' : 'WORLD_SPACE'
-					}]
-				},
-				'inheritedScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : str_bone.name,	# def_bone.parent is not good enough here because when "Unlock Deform" param is enabled, the parent is the CTR-DEF control, which doesn't give the correct result if used here.
-						'transform_type' : 'SCALE_X',
-						'transform_space' : 'WORLD_SPACE'
-					}]
-				}
-			}
-		}
-
-		# Scale In is inherited!
-		# Scale Out X/Y
-		if (def_bone.bbone_handle_type_end == 'TANGENT' and def_bone.bbone_custom_handle_end):
-			def_bone.drivers.append(scaleoutx_driver)
-
-			scaleouty_driver = deepcopy(scaleoutx_driver)
-			scaleouty_driver['prop'] = "bbone_scaleout"
-			scaleouty_driver['index'] = 2
-			scaleouty_driver['variables']['tanScale']['targets'][0]['transform_type'] = 'SCALE_Z'
-			scaleouty_driver['variables']['inheritedScale']['targets'][0]['transform_type'] = 'SCALE_Z'
-			def_bone.drivers.append(scaleouty_driver)
 
 		### Ease In/Out
 		easein_var = {
@@ -586,7 +509,7 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
 			self.make_shape_key_helper(def_bone, self.bones_def[0])
 		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-			self.set_up_smooth_spline(str_bone, nxt=self.bone_sets['Stretch Controls'][0])
+			self.make_tangent_helper(str_bone, nxt=self.bone_sets['Stretch Controls'][0])
 
 	##############################
 	# Parameters

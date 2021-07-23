@@ -44,6 +44,10 @@ bone_properties = {
 	,'bbone_handle_type_end' : 'AUTO'
 	,'bbone_custom_handle_start': None	# BoneInfo
 	,'bbone_custom_handle_end': None	# BoneInfo
+	,'bbone_handle_use_scale_start': [False, False, False]
+	,'bbone_handle_use_scale_end': [False, False, False]
+	,'bbone_handle_use_ease_start': False
+	,'bbone_handle_use_ease_end': False
 
 	,'envelope_distance' : 0.25
 	,'envelope_weight' : 1.0
@@ -356,6 +360,7 @@ class BoneInfo:
 		eb = edit_bone
 
 		for key in edit_bone_properties:
+			key = key.replace("edit_", "")	# Allows bbone properties to specify if they are only for edit bone version
 			setattr(eb, key, self.__dict__[key])
 		eb.use_connect = False	# NOTE: Without this, ORG- bones' Copy Transforms constraints can't work properly.
 
@@ -402,6 +407,7 @@ class BoneInfo:
 		# Pose bone data
 		pb = pose_bone
 		for key in pose_bone_properties:
+			key = key.replace("pose_", "")	# Allows bbone properties to specify if they are only for pose bone version
 			value = self.__dict__[key]
 			if value in [None, ""]: continue
 			if key=='custom_shape_transform':

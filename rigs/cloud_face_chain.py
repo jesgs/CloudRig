@@ -7,6 +7,82 @@ from mathutils import Vector
 from .cloud_chain import CloudChainRig
 from .cloud_chain_anchor import CloudChainAnchorRig
 
+MERGE_THRESHOLD = 0.000001
+
+def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo):
+	for str_bone in cluster:
+		str_bone.parent = intersection
+
+		str_bone.merged_control = intersection
+
+		str_bone.tangent_helper.add_constraint('COPY_ROTATION'
+			,name = "Copy Rotation (of STR-I)"
+			,subtarget = intersection.name
+			,index = -1
+			,target_space = 'LOCAL_OWNER_ORIENT'
+		)
+
+def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
+	"""Gather a list of lists of more than one STR bones that are in the same
+	location as another STR bone from another face_chain rig with
+	CR_face_chain_merge==True.
+	"""
+
+	clusters = []
+	bones_in_a_cluster = []
+
+	all_str_bones = []
+	for rig in chain_rigs:
+		if not rig.params.CR_face_chain_merge: continue
+		all_str_bones.extend(rig.main_str_bones)
+
+	for str_bone in all_str_bones:
+		if str_bone in bones_in_a_cluster: continue
+		cluster = [str_bone]
+		for other_str in all_str_bones:
+			if other_str in bones_in_a_cluster: continue
+			if str_bone == other_str: continue
+			if (str_bone.head - other_str.head).length < MERGE_THRESHOLD:
+				cluster.append(other_str)
+		if len(cluster) > 1:
+			clusters.append(cluster)
+		bones_in_a_cluster.extend(cluster)
+
+	return clusters
+
+# TODO: This code is a nightmare.
+def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anchor=False):
+	# If bones are in the center, flatten them to make sure they produce a clean curvature.
+	# This is important for things like the teeth or the lips, which are one rig
+	# element on each side that meet in the center, and are expected to make a coherent curve.
+
+	rig = cluster[0].owner_rig
+
+	if not is_anchor:
+		intersection.vector = Vector((0, 0, intersection.length))
+		intersection.roll = 0
+
+	for b in cluster:
+		b.flatten()
+		if hasattr(b, 'tangent_helper'):
+			b.tangent_helper.vector = rig.flat_vector(b.tangent_helper.vector)
+		if b.owner_rig.params.CR_chain_smooth_spline:
+			b.damped_track_helper.flatten()
+
+			flipped_name = rig.naming.flipped_name(b)
+			if flipped_name == b.name:
+				continue
+			opposite_bone = b.owner_rig.generator.find_bone_info(flipped_name)
+			if not opposite_bone:
+				continue
+			if opposite_bone.owner_rig.params.CR_chain_smooth_spline:
+				b.damped_track_helper.add_constraint('DAMPED_TRACK'
+					,name = "Damped Track +Y"
+					,subtarget = opposite_bone.damped_track_helper.constraint_infos[1].subtarget
+					,track_axis='TRACK_Y'
+					,influence = 0.5
+				)
+
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
@@ -15,7 +91,7 @@ class CloudFaceChainRig(CloudChainRig):
 	def initialize(self):
 		super().initialize()
 
-		# Gather all cloud_face_chain rigs from the generator, including self.
+		# Check the generator rig list to see if we are the last chain rig that will be generated.
 		self.chain_rigs = []
 		for rig in self.generator.rig_list:
 			if isinstance(rig, type(self)):
@@ -32,96 +108,43 @@ class CloudFaceChainRig(CloudChainRig):
 
 		# This is all code that needs to create or interact with intersection controls.
 
-		all_str_bones = self.group_str_bones(self.chain_rigs)
-		all_intersection_bones = self.ensure_intersection_controls(all_str_bones)
+		str_bone_clusters = get_bone_clusters(self.chain_rigs)
+		intersection_bones = []
 
-		self.create_armature_parents(all_intersection_bones)
-		self.create_armature_parents(all_str_bones)
+		for cluster in str_bone_clusters:
+			intersection_bones.append(self.ensure_intersection_for_cluster(cluster))
 
-	def get_relink_target(self, str_bone):
-		"""Overrides cloud_chain. Propagate relinked constraints to the intersection
-		control, if this STR bone has one."""
-		if hasattr(str_bone, 'merged_control'):
-			return str_bone.merged_control
-		return super().get_relink_target(str_bone)
+		self.relink_armature_constraints(intersection_bones)
 
-	@staticmethod
-	def group_str_bones(chain_rigs) -> List[BoneInfo]:
-		"""Gather a list of lists of more than one STR bones that are in the same
-		location as another STR bone from another face_chain rig with
-		CR_face_chain_merge==True.
-		"""
-		merge_threshold = 0.000001
-		sets_to_merge = {}
-
-		all_str_bones = []
-		for rig in chain_rigs:
-			if not rig.params.CR_face_chain_merge: continue
-			all_str_bones.extend(rig.main_str_bones)
-
-		for str_bone in all_str_bones:
-			for other_str in all_str_bones:
-				if str_bone == other_str: continue
-				if (str_bone.head - other_str.head).length < merge_threshold:
-					if hasattr(str_bone, 'group') and other_str not in str_bone.group:
-						str_bone.group.append(other_str)
-						other_str.group = str_bone.group
-					elif hasattr(other_str, 'group') and str_bone not in other_str.group:
-						other_str.group.append(str_bone)
-						str_bone.group = other_str.group
-					else:
-						str_bone.group = other_str.group = [str_bone, other_str]
-
-		return all_str_bones
+	def get_relink_target(self, org_i, con):
+		"""Overrides cloud_chain. Don't create parent helpers for Armature constraints here."""
+		if con.type == 'ARMATURE':
+			if con.name.startswith('TAIL-'):
+				return self.bone_sets['Stretch Controls'][org_i+1]
+			return self.bone_sets['Stretch Controls'][org_i]
+		return super().get_relink_target(org_i, con)
 
 	@staticmethod
-	def ensure_intersection_controls(all_str_bones):
-		# For each main STR control in this rig
-		#   For each main STR control in every other rig
-		#	   If the two are in the same position
-		#		   Ensure a parent control
-		#		   Move both to the layers of the Sub Controls bone set.
-
-		intersection_controls = []
-		for str_bone in all_str_bones:
-			if hasattr(str_bone, 'group'):
-				intersection_control = str_bone.owner_rig.ensure_intersection_control(str_bone.group)
-				if intersection_control not in intersection_controls:
-					intersection_controls.append(intersection_control)
-
-		return intersection_controls
-
-	@staticmethod
-	def ensure_intersection_control(bones):
-		""" Ensure that all passed bones share the same parent control.
-			If this is not the case, create it and parent them.
+	def ensure_intersection_for_cluster(cluster: List[BoneInfo]) -> BoneInfo:
+		""" Try to find a CloudChainAnchorRig to parent the cluster to.
+			If it doesn't exist, create one.
 		"""
 
-		rig = bones[0].owner_rig
+		rig = cluster[0].owner_rig
 
 		intersection_control = None
 		have_anchor = False
 		# Search for an anchor rig
 		anchor_rigs = [r for r in rig.generator.rig_list if isinstance(r, CloudChainAnchorRig)]
 		for anchor_rig in anchor_rigs:
-			distance = (anchor_rig.org_chain[0].head - bones[0].head).length
+			distance = (anchor_rig.org_chain[0].head - cluster[0].head).length
 			if distance < 0.000001:
 				intersection_control = anchor_rig.org_chain[0]
 				have_anchor = True
 				break
 
-		# Check the bones' parents to see if the desired control was already created.
 		if not intersection_control:
-			for b in bones:
-				b.layers = b.owner_rig.bone_sets['Sub Controls'].layers[:]
-				if b.parent.name.startswith("STR-I"):
-					# print(f"{b.name} - This should never happen because every STR bone should only be passed to ensure_intersection_control() once!")
-					# TODO: This does happen! Why??
-					intersection_control = b.parent
-					break
-
-		if not intersection_control:
-			combined_name = rig.naming.combine_names(bones)
+			combined_name = rig.naming.combine_names(cluster)
 
 			slices = rig.naming.slice_name(combined_name)
 			# Discard prefixes, put STR-I.
@@ -133,77 +156,36 @@ class CloudFaceChainRig(CloudChainRig):
 			if not intersection_control:
 				intersection_control = rig.bone_sets['Merged Controls'].new(
 					name = bone_name
-					,source = bones[0]
+					,source = cluster[0]
 					,custom_shape = rig.ensure_widget('Cube')
-					,custom_shape_scale = bones[0].custom_shape_scale
+					,custom_shape_scale = cluster[0].custom_shape_scale
 				)
 
-		# If bones are in the center, flatten them to make sure they produce a clean curvature.
 		if abs(intersection_control.head.x) < 0.001:
-			if not have_anchor:
-				intersection_control.vector = Vector((0, 0, intersection_control.length))
-				intersection_control.roll = 0
-			for b in bones:
-				flipped = rig.naming.flipped_name(b)
-				if flipped != b.name:
-					b.vector = rig.flat_vector(b.vector)
-					if hasattr(b, 'tangent_helper'):
-						b.tangent_helper.vector = rig.flat_vector(b.tangent_helper.vector)
+			do_centered_cluster(cluster, intersection_control, have_anchor)
 
 		# Parent the bones
-		for str_bone in bones:
-			if hasattr(str_bone, 'merged_control'):
-				continue
+		parent_cluster_to_intersection(cluster, intersection_control)
 
-			str_bone.parent = intersection_control
-
-			str_bone.merged_control = intersection_control
-
-			if not str_bone.owner_rig.params.CR_chain_smooth_spline:
-				continue
-
-			str_bone.tangent_helper.add_constraint('COPY_ROTATION'
-				,subtarget = intersection_control.name
-				,index = 1
-				,owner_space = 'CUSTOM'
-				,space_object = rig.obj
-				,space_subtarget = intersection_control.name
-			)
-
-			str_bone.tangent_clone.add_constraint('COPY_ROTATION'
-				,index = 1
-				,subtarget = intersection_control.name
-				,owner_space = 'CUSTOM'
-				,space_object = rig.obj
-				,space_subtarget = intersection_control.name
-			)
-
+		intersection_control.str_bones = cluster
 		return intersection_control
 
 	@staticmethod
-	def create_armature_parents(all_str_bones):
-		"""For Main STR Controls and Intersection controls that now have an Armature
-		constraint, create a parent bone and move the armature constraint to that.
+	def relink_armature_constraints(intersection_bones):
+		"""For each STR control owned by an intersection, relink Armature
+		constraints to a parent of the intersection.
 		"""
-
-		# Armature constraints turn parenting into local matrix, which
-		# messes up DT helper bones that rely on that local rotation.
-		# So if Smooth Spline param is enabled and we are relinking an
-		# armature constraint, make a separate bone for it.
-
 		# TODO: This runs in a bunch of cases when it's not needed, like when all intersecting rigs have 0 bbone segments or Smooth Spline off.
-		for str_bone in all_str_bones:
-			# if isinstance(str_bone.owner_rig, CloudChainAnchorRig):
-			# 	continue
-			for c in str_bone.constraint_infos:
-				# str_bone = str_bone.parent # TODO: If cloud_chain.CUSTOM_SPACE = True, maybe this needs to be uncommented??
-				if c.type=='ARMATURE' and not hasattr(str_bone, 'arm_parent'):
-					str_bone.arm_parent = str_bone.owner_rig.create_parent_bone(str_bone, str_bone.owner_rig.parent_switch_bones)
 
-					str_bone.arm_parent.constraint_infos.append(c)
-				else:
-					str_bone.constraint_infos.append(c)
-				str_bone.constraint_infos.remove(c)
+		for intersection in intersection_bones:
+			for str_bone in intersection.str_bones:
+				for c in str_bone.constraint_infos:
+					if c.type != 'ARMATURE':
+						continue
+					parent = str_bone.owner_rig.create_parent_bone(str_bone, str_bone.owner_rig.bones_mch)
+
+					parent.constraint_infos.append(c)
+					str_bone.constraint_infos.remove(c)
 
 	##############################
 	# Parameters
