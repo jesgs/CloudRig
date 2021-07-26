@@ -179,8 +179,6 @@ class CloudLimbRig(CloudIKChainRig):
 			str_lower controls, driven by org_elbow. (Also meant for legs)
 		"""
 
-		# TODO: These functions are too huge and do a lot of things, split, split, split them up!
-
 		# Create UI property
 		prop_name = "auto_rubber_hose_" + self.limb_name_props
 		info = {
@@ -244,13 +242,20 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 
 		dsp_bone = self.create_dsp_bone(control_bone)
-		dsp_bone.parent = self.main_str_bones[1].tangent_helper	# Ugly hardcoding...
+		dsp_bone.add_constraint('ARMATURE'
+			,use_deform_preserve_volume = True
+			,targets = [
+				{"subtarget" : self.bones_def[self.params.CR_chain_segments-1].name}
+				,{"subtarget" : self.bones_def[self.params.CR_chain_segments].name}
+			]
+		)
 		dsp_bone.inherit_scale = 'AVERAGE'
 		dsp_bone.add_constraint('COPY_SCALE', subtarget=control_bone.name, )
 
 		return control_bone
 
 	def make_rubber_hose_constraints(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo], prop_name: str):
+		# TODO: This function is too big!
 		driver_influence = {
 			'prop' : 'influence'
 			,'expression' : 'var'
@@ -355,7 +360,7 @@ class CloudLimbRig(CloudIKChainRig):
 				if not self.params.CR_limb_auto_hose_type=='ELBOW_IN':
 					return
 
-				# TODO: This only works when FK Elbow is rotated on its local X axis, but Z should also work!
+				### Additional constraints for alternate, "Long" rubberhose type
 				# Translation constraint
 				trans_con = main_str.add_constraint('TRANSFORM'
 					,name = "Transformation (Rubber Hose Elbow Translate)"

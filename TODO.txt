@@ -1,7 +1,4 @@
 Priority 1: Bugs
-    When using autorubberhose(or I guess smooth spline) and scaling things up from the root, it's a disaster.
-        Changing BBone easing by scaling STR bones on local Y doesn't seem to work when Smooth Spline param is enabled...
-        Hopefully these can be fixed after D9870 but I worry that it will be hard to stay backward compatible.
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
         Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
 
@@ -13,6 +10,8 @@ Priority 1: Bugs
 
         On the other hand, apparently simply selecting the target bone in the generated rig just works... why are we not always just doing that in the first place, instead of the whole "@" bullshit?!? We could even version this!
 Priority 2: New features
+    cloud_finger IK setup should at least have the option to be consistent with other rig elements, and have its IK/FK switch in the rig UI rather than in the 3D viewport.
+        Also, the IK finger setups could be parented to the FK control when the arm is set to FK, but this is pretty tricky since a child rig (the finger) will end up having to make quite some assumptions about its parent rig being a cloud_ik_chain instance, potentially.
     Hide some pretty useless Sprite Fright specific rig type settings under some "Advanced" toggle.
         Pre-req for this is figuring out where feature sets could store and display their preferences.
         (Maybe in rigify_info we specify the name of the AddonPreferences class, then upstream a patch to display that in the FeatureSets UI?)
@@ -71,7 +70,6 @@ Priority 3: Changes that will affect metarigs
     Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
         If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
-    We can use Rigify's refresh drivers function instead of our own: rigify.utils.mechanism.refresh_all_drivers
     write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo.
         Alternatively we could pass the generator as an argument.
         Decide which is better and do it cleanly. Also move the special handling of custom_shape_scale_xyz from generator to wherever we decide the rest will go.

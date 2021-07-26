@@ -13,7 +13,7 @@ def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneIn
 	for str_bone in cluster:
 		str_bone.parent = intersection
 
-		str_bone.merged_control = intersection
+		str_bone.intersection_ctrl = intersection
 
 		str_bone.tangent_helper.add_constraint('COPY_ROTATION'
 			,name = "Copy Rotation (of STR-I)"
@@ -67,8 +67,6 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 		if hasattr(b, 'tangent_helper'):
 			b.tangent_helper.vector = rig.flat_vector(b.tangent_helper.vector)
 		if b.owner_rig.params.CR_chain_smooth_spline:
-			b.damped_track_helper.flatten()
-
 			flipped_name = rig.naming.flipped_name(b)
 			if flipped_name == b.name:
 				continue
@@ -76,9 +74,9 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 			if not opposite_bone:
 				continue
 			if opposite_bone.owner_rig.params.CR_chain_smooth_spline:
-				b.damped_track_helper.add_constraint('DAMPED_TRACK'
-					,name = "Damped Track +Y"
-					,subtarget = opposite_bone.damped_track_helper.constraint_infos[1].subtarget
+				b.tangent_helper.add_constraint('DAMPED_TRACK', index=2
+					,name = "Damped Track Next"
+					,subtarget = opposite_bone.tangent_helper.constraint_infos[1].subtarget
 					,track_axis='TRACK_Y'
 					,influence = 0.5
 				)
@@ -117,11 +115,15 @@ class CloudFaceChainRig(CloudChainRig):
 		self.relink_armature_constraints(intersection_bones)
 
 	def get_relink_target(self, org_i, con):
-		"""Overrides cloud_chain. Don't create parent helpers for Armature constraints here."""
+		"""Overrides cloud_chain. Don't create parent helpers for Armature 
+		constraints if the str bone has an intersection owner."""
 		if con.type == 'ARMATURE':
-			if con.name.startswith('TAIL-'):
-				return self.bone_sets['Stretch Controls'][org_i+1]
-			return self.bone_sets['Stretch Controls'][org_i]
+			if not con.name.startswith('TAIL-'):
+				str_bone = self.bone_sets['Stretch Controls'][org_i]
+			else:
+				str_bone = self.bone_sets['Stretch Controls'][org_i+1]
+			if hasattr(str_bone, 'intersection_ctrl'):
+				return str_bone
 		return super().get_relink_target(org_i, con)
 
 	@staticmethod
@@ -175,7 +177,6 @@ class CloudFaceChainRig(CloudChainRig):
 		"""For each STR control owned by an intersection, relink Armature
 		constraints to a parent of the intersection.
 		"""
-		# TODO: This runs in a bunch of cases when it's not needed, like when all intersecting rigs have 0 bbone segments or Smooth Spline off.
 
 		for intersection in intersection_bones:
 			for str_bone in intersection.str_bones:

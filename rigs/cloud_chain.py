@@ -214,54 +214,36 @@ class CloudChainRig(CloudBaseRig):
 		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
-			,parent = str_bone
+			,parent = str_bone.parent
 			,inherit_scale = 'NONE'
 		)
 
 		if smooth:
-			# TODO: It would probably be easier instead to always inherit the STR bone's rotation, and
-			# then stack the DT bone's rotation on top with LOCAL_OWNER_ORIENT.
-			handle_bone.parent = str_bone.parent
-
 			if not nxt:
-				nxt = str_bone.next
+				nxt = str_bone.next or str_bone
 			if not prev:
-				prev = str_bone.prev
-			damped_track_helper = self.bone_sets['Stretch Helpers'].new(
-				name = self.naming.add_prefix(str_bone, "DT")
-				,source = str_bone
-				,parent = str_bone.parent
-			,inherit_scale = 'ALIGNED'	# TODO: Revisit this -> So, this went from 'NONE' to 'FULL' and now to this, because on 'FULL' it gave weird results to constraints trying to read the local rotation. I have no idea why.
-			)
-			str_bone.damped_track_helper = damped_track_helper # HACK: Satanic reference for cloud_face_chain.
-			handle_bone.parent = damped_track_helper
-
-			damped_track_helper.add_constraint('COPY_LOCATION'
-				,name = "Copy Location (of STR)"
-				,subtarget = str_bone.name
-				,space = 'WORLD'
-			)
+				prev = str_bone.prev or str_bone
 
 			if nxt:
-				damped_track_helper.add_constraint('DAMPED_TRACK'
-					,name = "Damped Track +Y"
+				handle_bone.add_constraint('DAMPED_TRACK'
+					,name = "Damped Track Next"
 					,subtarget = nxt.name
 					,track_axis='TRACK_Y'
 				)
 			if prev:
-				track_prev_con = damped_track_helper.add_constraint('DAMPED_TRACK'
-					,name = "Damped Track -Y"
+				handle_bone.add_constraint('COPY_LOCATION', index=0
+					,name = "Copy Location Prev"
 					,subtarget = prev.name
-					,track_axis='TRACK_NEGATIVE_Y'
+					,space = 'WORLD'
 				)
-				if nxt:
-					track_prev_con.influence = 0.5
 
-			handle_bone.add_constraint('COPY_ROTATION'
-				,name = "Copy Rotation (of STR)"
+			handle_bone.add_constraint('COPY_TRANSFORMS'
+				,name = "Copy User Rotation"
 				,subtarget = str_bone.name
 				,target_space = 'LOCAL_OWNER_ORIENT'
 			)
+		else:
+			handle_bone.parent = str_bone
 
 		handle_bone.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
@@ -299,7 +281,7 @@ class CloudChainRig(CloudBaseRig):
 				,bbone_handle_use_scale_start = [True, False, True]
 				,bbone_handle_use_scale_end	  = [True, False, True]
 				,use_deform					  = True
-				,inherit_scale				  = 'ALIGNED' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
+				,inherit_scale				  = 'NONE' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
 			)
 			next_parent = def_bone
 
@@ -311,6 +293,11 @@ class CloudChainRig(CloudBaseRig):
 				def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
 				def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
 				def_bone_control.inherit_scale = 'ALIGNED'
+				def_bone.add_constraint('COPY_SCALE'
+					,subtarget = def_bone_control.name
+					,space = 'WORLD'
+					,use_xyz = [False, True, False]
+				)
 				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
 				def_bone_parent.parent = str_bone.parent
 				def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
@@ -393,9 +380,9 @@ class CloudChainRig(CloudBaseRig):
 
 		# B-Bone scale drivers
 		if def_bone.bbone_segments > 1:
-			# if not self.params.CR_chain_unlock_deform:
-			# 	def_bone.inherit_scale = 'NONE'
 			self.make_bbone_ease_drivers(def_bone)
+		else:
+			def_bone.inherit_scale = 'ALIGNED'
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
 
