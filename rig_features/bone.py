@@ -273,6 +273,10 @@ class BoneInfo:
 		rounded = round(deg/90)*90
 		self.roll = pi/180*rounded
 
+	def display_centered(self):
+		"""Display custom widget at the center of the bone."""
+		self.custom_shape_translation.y = self.length / 2
+
 	def get_constraint(self, name):
 		for ci in self.constraint_infos:
 			if ci.name == name:

@@ -29,27 +29,11 @@ class CloudMechanismMixin:
 		return self.generator.ensure_widget(name)
 
 	def create_parent_bone(self, child, bone_set=None):
-		# TODO: This should be consistent with create_dsp_bone(), probably by implementing that function like this.
-		# That is, move the code to a static function that does not require self.
-		parent = create_parent_bone(self.generator, child, bone_set)
-		return parent
+		return create_parent_bone(child, bone_set)
 
-	def create_dsp_bone(self, parent, center=False):
-		"""Create a bone to be used as another control's custom_shape_transform."""
-		dsp_name = "DSP-" + parent.name
-		dsp_bone = self.bones_mch.new(
-			name			= dsp_name
-			,source			= parent
-			,bbone_width	= parent.bbone_width*0.5
-			,custom_shape	= None
-			,parent			= parent
-		)
-		parent.dsp_bone = dsp_bone
-		if center:
-			dsp_bone.put(parent.center, scale_length=0.3, scale_width=1.5)
-		parent.custom_shape_transform = dsp_bone
-		return dsp_bone
-
+	def create_dsp_bone(self, parent):
+		return create_dsp_bone(parent, self.bones_mch)
+	
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
 		def_bone = bone_set.new(
@@ -205,6 +189,20 @@ def create_parent_bone(generator, child, bone_set=None):
 
 	child.parent = parent_bone
 	return parent_bone
+
+def create_dsp_bone(parent, bone_set):
+	"""Create a bone to be used as another control's custom_shape_transform."""
+	dsp_name = "DSP-" + parent.name
+	dsp_bone = bone_set.new(
+		name			= dsp_name
+		,source			= parent
+		,bbone_width	= parent.bbone_width*0.5
+		,custom_shape	= None
+		,parent			= parent
+	)
+	parent.dsp_bone = dsp_bone
+	parent.custom_shape_transform = dsp_bone
+	return dsp_bone
 
 def copy_custom_property(from_owner, to_owner, prop_name):
 	rna_ui = from_owner['_RNA_UI'].to_dict()

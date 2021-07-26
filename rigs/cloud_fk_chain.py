@@ -108,13 +108,13 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 					fk_parent_bone = self.create_parent_bone(fk_bone, bone_set=self.bone_sets['FK Controls Extra'])
 					fk_parent_bone.custom_shape = fk_bone.custom_shape
 					if self.params.CR_fk_chain_display_center:
-						self.create_dsp_bone(fk_parent_bone, center=True)
+						fk_parent_bone.display_centered()
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
 				fk_bone.parent = self.bones_org[i-1].fk_bone
 			if self.params.CR_fk_chain_display_center:
-				self.create_dsp_bone(fk_bone, center=True)
+				fk_bone.display_centered()
 
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:
