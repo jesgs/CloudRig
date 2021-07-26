@@ -1,5 +1,4 @@
-from typing import Tuple, List, Dict
-import os
+from typing import Tuple, List
 
 import bpy
 from mathutils import Vector
@@ -9,7 +8,6 @@ from rigify.utils.mechanism import make_property
 
 from ..rig_features.bone import BoneInfo
 from ..generation.naming import slice_name, make_name
-from ..utils.maths import flat
 
 class CloudMechanismMixin:
 	"""Mixin class for rigging functions, using mostly the BoneInfo class."""
@@ -54,11 +52,11 @@ class CloudMechanismMixin:
 	def relink_driver(self, driver_info):
 		relink_driver(self.generator.metarig, self.obj, driver_info)
 
-	def transfer_relink_drivers(self, from_thing, to_thing):
-		# Transfer and relink bone drivers
-		for d in from_thing.drivers[:]:
-			to_thing.drivers.append(d)
-			from_thing.drivers.remove(d)
+	def transfer_relink_drivers(self, from_bone: BoneInfo, to_bone: BoneInfo):
+		"""Transfer and relink drivers from one bone to another."""
+		for d in from_bone.drivers[:]:
+			to_bone.drivers.append(d)
+			from_bone.drivers.remove(d)
 			self.relink_driver(d)
 
 	def bendy_parenting(self, bone, parent_name):
@@ -89,15 +87,13 @@ class CloudMechanismMixin:
 					]
 				)
 
-	@staticmethod
-	def flat_vector(vec):
-		return flat(vec)
-
 def relink_driver(metarig, rig, driver_info):
 	"""Adjust drivers read from the metarig according to some conventions:
 
-	An empty target object or the metarig as the target object will be replaced with the generated rig.
-	Variable names with @ in them will be split by the @, and the part after the @ will be the target bone name.
+	An empty target object or the metarig as the target object will be replaced 
+	with the generated rig.
+	Variable names with @ in them will be split by the @, and the part after the 
+	@ will be the target bone name.
 	"""
 	for var_info in driver_info['variables']:
 		if type(var_info)==tuple: break
@@ -156,7 +152,7 @@ def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
 		cur_pb = next_bone
 	return chain
 
-def get_bone_chain(rig, start_bone):
+def get_bone_chain(start_bone):
 	bones = [start_bone]
 	if type(start_bone) == bpy.types.PoseBone:
 		bones = [start_bone.bone]
@@ -171,7 +167,7 @@ def get_bone_chain(rig, start_bone):
 				break
 	return bones
 
-def create_parent_bone(generator, child, bone_set=None):
+def create_parent_bone(child, bone_set=None):
 	"""Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
 	sliced = slice_name(child.name)
 	sliced[0].append("P")

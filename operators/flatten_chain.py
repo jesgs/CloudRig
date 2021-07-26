@@ -43,8 +43,8 @@ class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 		if self.start_bone!="":
 			start_bone = context.object.pose.bones.get(self.start_bone)
 			if self.chain_length == -1:
-				self.chain_length = len(get_bone_chain(context.object, start_bone))
-			bones = get_bone_chain(context.object, start_bone.bone)[:2]
+				self.chain_length = len(get_bone_chain(start_bone))
+			bones = get_bone_chain(start_bone.bone)[:2]
 			if len(bones) > 1:
 				chain_start = bones[0].head_local
 				chain_end = bones[-1].tail_local
@@ -98,7 +98,7 @@ class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 			if not start_bone:
 				self.report({'ERROR'}, "A start bone must be specified!")
 				return {'CANCELLED'}
-		bones = get_bone_chain(rig, start_bone)[:self.chain_length]
+		bones = get_bone_chain(start_bone)[:self.chain_length]
 
 		if len(bones) < 2:
 			return {'CANCELLED'}

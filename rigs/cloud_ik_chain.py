@@ -6,6 +6,7 @@ from mathutils import Vector
 from math import radians as rad
 
 from ..rig_features.mechanism import get_bone_chain
+from ..utils.maths import flat
 from .cloud_fk_chain import CloudFKChainRig
 
 """Ideas to improve this:
@@ -184,7 +185,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			name				= self.naming.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
 			,bbone_width		= 0.1
 			,head				= self.pole_location
-			,tail				= self.pole_location + self.flat_vector(self.pole_vector) * 0.2
+			,tail				= self.pole_location + flat(self.pole_vector) * 0.2
 			,roll				= 0
 			,custom_shape		= self.ensure_widget('Arrow_Head')
 			,custom_shape_scale	= 0.5
@@ -613,7 +614,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		op = layout.operator('object.cloudrig_flatten_bones')
 		op.use_selected = False
 		op.start_bone = context.active_pose_bone.name
-		op.chain_length = len(get_bone_chain(context.object, context.active_pose_bone) ) - 1
+		op.chain_length = len(get_bone_chain(context.active_pose_bone) ) - 1
 		op.skip_popup = True
 
 		return layout

@@ -65,7 +65,7 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 	for b in cluster:
 		b.flatten()
 		if hasattr(b, 'tangent_helper'):
-			b.tangent_helper.vector = rig.flat_vector(b.tangent_helper.vector)
+			b.tangent_helper.flatten()
 		if b.owner_rig.params.CR_chain_smooth_spline:
 			flipped_name = rig.naming.flipped_name(b)
 			if flipped_name == b.name:
