@@ -95,7 +95,6 @@ pose_bone_properties = {
 	,'ik_max_z' : 0
 }
 
-
 class BoneInfo:
 	"""
 	The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone
@@ -104,6 +103,13 @@ class BoneInfo:
 	This class does not concern itself with posing the bone, only creating and
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
+
+	def init_variables(self, var_dict):
+		for key in var_dict.keys():
+			value = var_dict[key]
+			if type(value) in [Vector, Matrix]:
+				value = value.copy()
+			setattr(self, key, value)
 
 	def __init__(self, bone_set, name="Bone", source: EditBone or BoneInfo = None, **kwargs):
 		"""
@@ -123,19 +129,12 @@ class BoneInfo:
 		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		self._name = name
-		### Edit Bone properties
-		for key in edit_bone_properties.keys():
-			setattr(self, key, edit_bone_properties[key])
 		self._parent = None
 		self.children: List[BoneInfo] = []
 
-		### Bone properties
-		for key in bone_properties.keys():
-			setattr(self, key, bone_properties[key])
-
-		### Pose Bone properties
-		for key in pose_bone_properties.keys():
-			setattr(self, key, pose_bone_properties[key])
+		self.init_variables(edit_bone_properties)
+		self.init_variables(bone_properties)
+		self.init_variables(pose_bone_properties)
 
 		# Recalculate Roll
 		self.roll_type = "" # This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
