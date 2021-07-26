@@ -1,6 +1,6 @@
 from bpy.props import BoolProperty, EnumProperty
 
-from math import pi
+from math import pi, radians
 
 from .cloud_fk_chain import CloudFKChainRig
 
@@ -25,10 +25,9 @@ class CloudShoulderRig(CloudFKChainRig):
 	def prepare_fk_shoulder(self):
 		control = self.bone_sets['FK Controls'][0]
 		control.custom_shape = self.ensure_widget("Clavicle")
-		shoulder_rot = int(self.params.CR_shoulder_up_axis)
-		if shoulder_rot != 0:
-			dsp_bone = self.create_dsp_bone(control, center=False)
-			dsp_bone.roll += pi/2*shoulder_rot
+		shoulder_rot = radians ( int(self.params.CR_shoulder_up_axis) * 90 )
+
+		control.custom_shape_rotation_euler.y = shoulder_rot
 
 		parent = self.get_bone(self.base_bone).parent
 		if parent:
