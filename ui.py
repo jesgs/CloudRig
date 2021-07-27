@@ -232,7 +232,7 @@ def draw_cloud_layer_names(self, context):
 			row.label(text=text)
 
 		row = col_layer.row(align=True)
-		col_number.label(text=str(i+1) + '.')
+		col_number.label(text=str(i) + '.')
 		rigify_layer = arm.rigify_layers[i]
 		icon = 'RESTRICT_VIEW_OFF' if arm.layers[i] else 'RESTRICT_VIEW_ON'
 		row.prop(arm, "layers", index=i, text="", toggle=True, icon=icon)
