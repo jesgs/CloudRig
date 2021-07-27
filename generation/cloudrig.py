@@ -10,8 +10,8 @@ different versions of CloudRig to co-exist in the same scene. So each rig uses
 the script that belongs to it, and not another, potentially newer or older version.
 """
 
-import bpy, traceback, json, collections
 from typing import List, Dict
+import bpy, traceback, json, collections
 from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty,
 						EnumProperty, PointerProperty, IntProperty
@@ -45,8 +45,8 @@ def is_active_cloud_metarig(context):
 				return rig
 
 #######################################
-#Keyframe baking framework from Rigify#
-######## Animation curve tools ########
+###### Keyframe baking framework ######
+###### from Rigify ####################
 
 def set_curve_key_interpolation(curves, ipo, key_range=None):
 	"Assign the given interpolation value to all curve keys in range."
@@ -500,7 +500,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 		return range, range_raw
 
 #######################################
-########### Keyframe baking ###########
+##### Keyframe Baking Operators #######
 #######################################
 
 def get_bones(rig, names):
@@ -1064,10 +1064,6 @@ class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-#######################################
-######### CloudRig UI Panels ##########
-######## Character and Outfit #########
-
 class CLOUDRIG_PT_base(bpy.types.Panel):
 	"""Base class for all CloudRig sidebar panels."""
 	bl_space_type = 'VIEW_3D'
@@ -1247,13 +1243,17 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 		self.draw_troubleshoot_rig(layout, rig)
 		self.draw_troubleshoot_collections(layout, owner_collection, suffix=suffix)
 
+#######################################
+####### Character/Rig Settings ########
+#######################################
+
 def get_char_bone(rig):
 	for b in rig.pose.bones:
 		if b.name.startswith("Properties_Character"):
 			return b
 
 class CloudRig_Properties(bpy.types.PropertyGroup):
-	""" PropertyGroup for storing fancy custom properties in. """
+	"""PropertyGroup for special custom properties that rely on callback functions."""
 
 	def get_rig(self):
 		""" Find the armature object that is using this instance (self). """
@@ -1540,68 +1540,6 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
-def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_prop='layers'):
-	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
-	# This should be able to run even if the Rigify addon is disabled.
-
-	data = rig.data
-	if not owner:
-		owner = data
-
-	# Hidden layers will only work if CloudRig is enabled.
-	if hasattr(data, 'cloudrig_parameters'):	# If CloudRig is enabled:
-		cloudrig = data.cloudrig_parameters
-		if show_hidden_checkbox:
-			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden Layers")
-		show_hidden = cloudrig.show_layers_preview_hidden
-	else:
-		show_hidden = False
-
-	if 'rigify_layers' not in data:
-		row = layout.row()
-		row.alert=True
-		row.label(text="Create Rigify layer data in the Rigify Layer Names panel.")
-		return
-	layer_data = data['rigify_layers']
-	rigify_layers = [dict(l) for l in layer_data]
-
-	for i, l in enumerate(rigify_layers):
-		# When the Rigify addon is not enabled, finding the original index after sorting is impossible, so just store it.
-		l['index'] = i
-		if 'row' not in l:
-			l['row'] = 1
-
-	sorted_layers = sorted(rigify_layers, key=lambda l: l['row'])
-	sorted_layers = [l for l in sorted_layers if 'name' in l and l['name']!=" "]
-	current_row_index = 0
-	for rigify_layer in sorted_layers:
-		if rigify_layer['name'] in ["", " "]: continue
-		if rigify_layer['name'].startswith("$") and not show_hidden: continue
-
-		if rigify_layer['row'] > current_row_index:
-			current_row_index = rigify_layer['row']
-			row = layout.row()
-		row.prop(owner, layers_prop, index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
-
-class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_layers_" + script_id
-	bl_label = "Layers"
-
-	@classmethod
-	def poll(cls, context):
-		rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
-		if not rig: return False
-
-		if 'rigify_layers' in rig.data and len(rig.data['rigify_layers'][:]) > 0:
-			return True
-
-	def draw(self, context):
-		rig = is_active_cloudrig(context)
-		if not rig:
-			rig = is_active_cloud_metarig(context)
-		if not rig: return
-		draw_layers_ui(self.layout, rig)
-
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_settings_" + script_id
 	bl_label = "Settings"
@@ -1691,6 +1629,71 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_sub_settings):
 
 	area_names = {'misc_settings' : ""}
 
+#######################################
+############# Rig Layers ##############
+#######################################
+
+def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_prop='layers'):
+	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
+	# This should be able to run even if the Rigify addon is disabled.
+
+	data = rig.data
+	if not owner:
+		owner = data
+
+	# Hidden layers will only work if CloudRig is enabled.
+	if hasattr(data, 'cloudrig_parameters'):	# If CloudRig is enabled:
+		cloudrig = data.cloudrig_parameters
+		if show_hidden_checkbox:
+			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden Layers")
+		show_hidden = cloudrig.show_layers_preview_hidden
+	else:
+		show_hidden = False
+
+	if 'rigify_layers' not in data:
+		row = layout.row()
+		row.alert=True
+		row.label(text="Create Rigify layer data in the Rigify Layer Names panel.")
+		return
+	layer_data = data['rigify_layers']
+	rigify_layers = [dict(l) for l in layer_data]
+
+	for i, l in enumerate(rigify_layers):
+		# When the Rigify addon is not enabled, finding the original index after sorting is impossible, so just store it.
+		l['index'] = i
+		if 'row' not in l:
+			l['row'] = 1
+
+	sorted_layers = sorted(rigify_layers, key=lambda l: l['row'])
+	sorted_layers = [l for l in sorted_layers if 'name' in l and l['name']!=" "]
+	current_row_index = 0
+	for rigify_layer in sorted_layers:
+		if rigify_layer['name'] in ["", " "]: continue
+		if rigify_layer['name'].startswith("$") and not show_hidden: continue
+
+		if rigify_layer['row'] > current_row_index:
+			current_row_index = rigify_layer['row']
+			row = layout.row()
+		row.prop(owner, layers_prop, index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
+
+class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
+	bl_idname = "CLOUDRIG_PT_layers_" + script_id
+	bl_label = "Layers"
+
+	@classmethod
+	def poll(cls, context):
+		rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
+		if not rig: return False
+
+		if 'rigify_layers' in rig.data and len(rig.data['rigify_layers'][:]) > 0:
+			return True
+
+	def draw(self, context):
+		rig = is_active_cloudrig(context)
+		if not rig:
+			rig = is_active_cloud_metarig(context)
+		if not rig: return
+		draw_layers_ui(self.layout, rig, show_hidden_checkbox = True)
 
 class CLOUDRIG_OT_layer_select(bpy.types.Operator):
 	"""Select active layers for this armature using the named Rigify layers."""
@@ -1768,6 +1771,10 @@ def register_hotkeys():
 	if opname not in km.keymap_items:
 		kmi = km.keymap_items.new(opname, 'M', 'PRESS', shift=True)
 
+
+#######################################
+############# TEMP HACK ###############
+# Add a pop-up window when saving absolute paths. 
 # This is done to hunt down a very elusive bug in Blender 3.0 where sometimes 
 # library paths change from relative to absolute.
 from bpy.app.handlers import persistent
@@ -1791,6 +1798,10 @@ def warn_absolute_path_libs(dummy):
 	if len(abs_libs) > 0:
 		bpy.context.window_manager.popup_menu(
 			draw_library_warning, title="ERROR: ABSOLUTE LIBRARY PATHS!", icon='ERROR')
+
+#######################################
+############## Register ###############
+#######################################
 
 classes = (
 	CLOUDRIG_OT_switch_parent_bake
