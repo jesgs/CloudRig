@@ -19,7 +19,7 @@ from bpy.props import (
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-script_id = "sprite_fright"
+script_id = "SCRIPT_ID"
 
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """
@@ -1692,7 +1692,82 @@ class CLOUDRIG_PT_misc(CLOUDRIG_PT_sub_settings):
 	area_names = {'misc_settings' : ""}
 
 
-# TEMPORARY HACK: Add a pop-up window when saving absolute paths. 
+class CLOUDRIG_OT_layer_select(bpy.types.Operator):
+	"""Select active layers for this armature using the named Rigify layers."""
+	bl_idname = "pose.cloudrig_select_layers"
+	bl_label = "Select Armature Layers"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	@classmethod
+	def poll(cls, context):
+		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
+
+	def invoke(self, context, event):
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
+
+	def draw(self, context):
+		draw_layers_ui(self.layout, context.object, show_hidden_checkbox=True)
+
+	def execute(self, context):
+		return {'FINISHED'}
+
+#######################################
+############## Hotkeys ################
+#######################################
+
+class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
+	bl_idname = "CLOUDRIG_PT_hotkeys"
+	bl_label = "Hotkeys"
+
+	@staticmethod
+	def draw_kmi(display_keymaps, kc, km, kmi, layout, level):
+		"""A simplified version of the function in rna_keymap_ui."""
+		
+		map_type = kmi.map_type
+
+		col = layout.column()
+
+		split = col.split()
+
+		# header bar
+		row = split.row(align=True)
+		row.prop(kmi, "active", text="", emboss=False)
+		row.label(text=kmi.name)
+
+		row = split.row()
+		row.enabled = kmi.active
+		row.prop(kmi, "map_type", text="")
+		if map_type in ['KEYBOARD', 'MOUSE', 'NDOF']:
+			row.prop(kmi, "type", text="", full_event=True)
+		elif map_type == 'TWEAK':
+			subrow = row.row()
+			subrow.prop(kmi, "type", text="")
+			subrow.prop(kmi, "value", text="")
+		elif map_type == 'TIMER':
+			row.prop(kmi, "type", text="")
+		else:
+			row.label()
+
+	def draw(self, context):
+		layout = self.layout
+
+		kc = context.window_manager.keyconfigs.active
+		km = kc.keymaps['Pose']
+		for kmi in km.keymap_items:
+			if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
+				col = layout.column()
+				col.context_pointer_set("keymap", km)
+				self.draw_kmi([], kc, km, kmi, col, 0)
+
+def register_hotkeys():
+	wm = bpy.context.window_manager
+	km = wm.keyconfigs.active.keymaps.get('Pose')
+
+	opname = CLOUDRIG_OT_layer_select.bl_idname
+	if opname not in km.keymap_items:
+		kmi = km.keymap_items.new(opname, 'M', 'PRESS', shift=True)
+
 # This is done to hunt down a very elusive bug in Blender 3.0 where sometimes 
 # library paths change from relative to absolute.
 from bpy.app.handlers import persistent
@@ -1735,12 +1810,15 @@ classes = (
 
 	,CLOUDRIG_PT_character
 	,CLOUDRIG_PT_layers
+	,CLOUDRIG_OT_layer_select
 	,CLOUDRIG_PT_settings
 	,CLOUDRIG_PT_fkik
 	,CLOUDRIG_PT_ik
 	,CLOUDRIG_PT_fk
 	,CLOUDRIG_PT_face
 	,CLOUDRIG_PT_misc
+
+	,CLOUDRIG_PT_hotkeys
 )
 
 def register():
@@ -1751,13 +1829,28 @@ def register():
 	if script_id == 'sprite_fright':
 		bpy.app.handlers.save_post.append(warn_absolute_path_libs)
 
-	# We store everything in Object rather than Armature because Armature data cannot be accessed on proxy armatures.
+	# Add shortcuts to the keymap.
+	register_hotkeys()
+
+	# We store outfit properties in Object rather than Armature because Armature 
+	# data cannot be accessed on proxy armatures.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
 def unregister():
+	"""Since this file runs from the Blender Text Editor, unregister() is never 
+	called afaik. So this is only here for show.
+	"""
+
 	from bpy.utils import unregister_class
 	for c in classes:
 		unregister_class(c)
+
+	# Clear shortcuts from the keymap.
+	wm = bpy.context.window_manager
+	km = wm.keyconfigs.active.keymaps.get('Pose')
+	for kmi in km.keymap_items:
+		if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
+			km.keymap_items.remove(kmi)
 
 	if script_id == 'sprite_fright':
 		bpy.app.handlers.save_post.remove(warn_absolute_path_libs)
