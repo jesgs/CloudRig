@@ -193,6 +193,28 @@ class CloudGenerator(Generator):
 		# Check if Selection Sets addon is enabled
 		self.do_sel_sets = addon_utils.check('bone_selection_sets')[1]
 
+	@staticmethod
+	def cloudrig_reorder_rigs(rig_list):
+		"""Some rig types need special treatment in regards to where they are in 
+		the rig generation order."""
+		from ..rigs.cloud_tweak import CloudTweakRig
+		from ..rigs.cloud_chain_anchor import CloudChainAnchorRig
+		from ..rigs.cloud_face_chain import CloudFaceChainRig
+
+		first_face = -1
+		for i, rig in enumerate(rig_list[:]):
+			if isinstance(rig, CloudTweakRig) or isinstance(rig, CloudChainAnchorRig):
+				# cloud_tweak rigs should be generated last.
+				rig_list.remove(rig)
+				rig_list.append(rig)
+			if isinstance(rig, CloudFaceChainRig) and first_face==-1:
+				first_face = i
+		for rig in rig_list[:]:
+			if isinstance(rig, CloudChainAnchorRig):
+				# cloud_chain_anchor pushed before the first cloud_face_chain.
+				rig_list.remove(rig)
+				rig_list.insert(first_face, rig)
+
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
 			if hasattr(rig, "bone_sets"):
@@ -254,7 +276,7 @@ class CloudGenerator(Generator):
 			self.collection.objects.link(obj)
 
 		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
-		# TODO UPSTREAM: Metarigs should be marked rather than non-metarigs!
+		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
 		obj.data["rig_id"] = self.rig_id
 
@@ -272,12 +294,12 @@ class CloudGenerator(Generator):
 
 	def create_root_bones(self):
 		# Root bone groups
-		self.root_set = BoneSet(self,
-			ui_name = 'Root',
-			bone_group = getattr(self.params.cloudrig_parameters, 'root_bone_group'), # TODO why is this using getattr?
-			layers = getattr(self.params.cloudrig_parameters, 'root_layers')[:],
-			preset = 2,
-			defaults = self.defaults
+		self.root_set = BoneSet(self
+			,ui_name = 'Root'
+			,bone_group = self.params.cloudrig_parameters.root_bone_group
+			,layers = self.params.cloudrig_parameters.root_layers[:]
+			,preset = 2
+			,defaults = self.defaults
 		)
 		self.bone_sets.append(self.root_set)
 
@@ -303,7 +325,6 @@ class CloudGenerator(Generator):
 			)
 			self.bone_sets.append(self.root_parent_set)
 			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
-			self.root_parent.bone_group = 'Root Parent'	# TODO: this shouldn't be needed!
 
 		# If the Metarig has any Action Slots, create an Action Property Helper bone.
 		if len(self.metarig.data.cloudrig_parameters.action_slots) > 0:
@@ -329,32 +350,32 @@ class CloudGenerator(Generator):
 
 	### Widget management
 	def ensure_widget_collection(self, context):
-		""" Find or create the collection where rig widgets should be stored. """ # TODO: Rigify compatibility.
-		wgt_collection = self.params.cloudrig_parameters.widget_collection
-		if wgt_collection:
-			return wgt_collection
+		"""Find or create the collection where rig widgets should be stored."""
+		widget_collection = self.params.cloudrig_parameters.widget_collection
+		if widget_collection:
+			return widget_collection
 
 		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").lower()
 
 		# Try finding the widgets collection anywhere.
-		wgt_collection = bpy.data.collections.get(coll_name)
+		widget_collection = bpy.data.collections.get(coll_name)
 
-		if not wgt_collection:
+		if not widget_collection:
 			# Create a Widgets collection within the master collection.
-			wgt_collection = bpy.data.collections.new(coll_name)
-			context.scene.collection.children.link(wgt_collection)
-			self.params.cloudrig_parameters.widget_collection = wgt_collection
-			self.metarig.data.cloudrig_parameters.widget_collection = wgt_collection
+			widget_collection = bpy.data.collections.new(coll_name)
+			context.scene.collection.children.link(widget_collection)
+			self.params.cloudrig_parameters.widget_collection = widget_collection
+			self.metarig.data.cloudrig_parameters.widget_collection = widget_collection
 
-		wgt_collection.hide_viewport=True
-		wgt_collection.hide_render=True
-		return wgt_collection
+		widget_collection.hide_viewport = True
+		widget_collection.hide_render = True
+		return widget_collection
 
 	def ensure_widget(self, widget_name):
 		wgt = cloud_widgets.ensure_widget(
 			widget_name
 			,overwrite = self.params.rigify_force_widget_update
-			,collection = self.wgt_collection
+			,collection = self.widget_collection
 		)
 		if not wgt:
 			self.logger.log_bug("Failed to create widget"
@@ -364,10 +385,10 @@ class CloudGenerator(Generator):
 
 	def add_to_widget_collection(self, widget_ob):
 		context = self.context
-		if not self.wgt_collection:
+		if not self.widget_collection:
 			return
-		if widget_ob.name not in self.wgt_collection.objects:
-			self.wgt_collection.objects.link(widget_ob)
+		if widget_ob.name not in self.widget_collection.objects:
+			self.widget_collection.objects.link(widget_ob)
 		if widget_ob.name in context.scene.collection.objects:
 			context.scene.collection.objects.unlink(widget_ob)
 
@@ -550,7 +571,7 @@ class CloudGenerator(Generator):
 		self.defaults['rig'] = obj
 
 		# Collection to keep track of bone widgets
-		self.wgt_collection = self.ensure_widget_collection(context)
+		self.widget_collection = self.ensure_widget_collection(context)
 
 		# Rename metarig data
 		self.metarig.data.name = "Data_" + self.metarig.name
@@ -582,27 +603,7 @@ class CloudGenerator(Generator):
 
 		self.create_root_bones()
 		self.instantiate_rig_tree()
-		# HACK
-		# cloud_tweak rigs should be pushed to the end of the list! This is not too hacky, but:
-		# cloud_chain_anchor should be pushed to before the first cloud_face_chain.
-		# I don't hate this in concept, this just feels like an awkward way to implement it.
-		# It would be nicer if the rig class would know how to sort its instances in the rig list.
-		# Then the generator could call some Rig.sort(cls, rig_list) function to let each rig sort the rig execution order as it wishes.
-		# That way the generator doesn't have to give special treatment to various rig types, which is the hacky part of this.
-		from ..rigs.cloud_tweak import CloudTweakRig
-		from ..rigs.cloud_chain_anchor import CloudChainAnchorRig
-		from ..rigs.cloud_face_chain import CloudFaceChainRig
-		first_face = -1
-		for i, rig in enumerate(self.rig_list[:]):
-			if isinstance(rig, CloudTweakRig) or isinstance(rig, CloudChainAnchorRig):
-				self.rig_list.remove(rig)
-				self.rig_list.append(rig)
-			if isinstance(rig, CloudFaceChainRig) and first_face==-1:
-				first_face = i
-		for rig in self.rig_list[:]:
-			if isinstance(rig, CloudChainAnchorRig):
-				self.rig_list.remove(rig)
-				self.rig_list.insert(first_face, rig)
+		self.cloudrig_reorder_rigs(self.rig_list)
 
 		t.tick("Instantiate rigs: ")
 		redraw_viewport()
@@ -799,7 +800,7 @@ class CloudGenerator(Generator):
 					break
 
 		# Only leave Force Widget Update enabled until the next generation.
-		# TODO: This is bad UX. Would work better as a pop-up parameter, but we 
+		# XXX: This is bad UX. Would work better as a pop-up parameter, but we 
 		# don't want to give a popup to something as commonly used as generation. 
 		# Maybe Widget updating should just be faster! Then this parameter can go away altogether!
 		self.metarig.data.rigify_force_widget_update = False
@@ -819,10 +820,10 @@ class CloudGenerator(Generator):
 				traceback_str = traceback.format_exc()
 				entry = self.logger.log(
 					"Post-Generation Script failed."
-					,description=f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
-					,note=str(e)
+					,description = f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
+					,note = str(e)
 				)
-				entry.name = "Post-Gen Error"	# Bit of a hack to make this error play nicely with the CloudRig Execution Error.
+				entry.name = "Post-Gen Error"	# Specific name to make this error play nicely with the CloudRig Execution Error.
 				entry.pretty_stack = traceback_str
 				# Continue the exception, since a post-generation script execution failure
 				# should be considered a rig generation failure.
@@ -844,7 +845,7 @@ class CloudGenerator(Generator):
 		self.obj.data.pose_position = 'POSE'
 
 		self.logger.report_unused_named_layers()
-		self.logger.report_widgets(self.wgt_collection)
+		self.logger.report_widgets(self.widget_collection)
 
 		# Refresh drivers
 		refresh_all_drivers()

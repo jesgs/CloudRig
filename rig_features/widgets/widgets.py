@@ -121,7 +121,7 @@ def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 	# Assign to widget collection.
 	obj.data.name = obj.name
 	context.scene.collection.objects.unlink(obj)
-	assign_to_collection(obj, rig.generator.wgt_collection)
+	assign_to_collection(obj, rig.generator.widget_collection)
 
 	# Restore selection and mode.
 	context.view_layer.objects.active = rig.obj
