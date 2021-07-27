@@ -555,6 +555,7 @@ class ConstraintInfo(dict):
 		if self.type == 'STRETCH_TO':
 			self.use_bulge_min = True
 			self.use_bulge_max = True
+			self.rest_length = self.bone_info.length
 		elif self.type in ['COPY_LOCATION', 'COPY_SCALE']:
 			self.use_offset = self.space != 'WORLD'
 		elif self.type == 'COPY_ROTATION':

@@ -1,8 +1,8 @@
 
-from typing import List
+from typing import List, Dict, Tuple
 
-import bpy, os
-import traceback
+import bpy, os, addon_utils, traceback
+from bone_selection_sets import from_json, to_json
 from datetime import datetime
 
 from mathutils import Matrix, Vector
@@ -122,26 +122,6 @@ def is_cloud_rig_type(rig_type_name: str):
 			('cloud' in rig_type_name or \
 			'sprite_fright' in rig_type_name)
 
-def create_selection_sets(obj, metarig, context):
-	# Check if selection sets addon is installed
-	if 'bone_selection_groups' not in context.preferences.addons \
-			and 'bone_selection_sets' not in context.preferences.addons:
-		return
-
-	obj.selection_sets.clear()
-
-	for i, name in enumerate(metarig.data.rigify_layers.keys()):
-		if name == '' or not metarig.data.rigify_layers[i].selset:
-			continue
-
-		selset = obj.selection_sets.add()
-		selset.name = name
-
-		for b in obj.pose.bones:
-			if b.bone.layers[i] and b.name not in selset.bone_ids:
-				bone_id = selset.bone_ids.add()
-				bone_id.name = b.name
-
 def load_script(file_path="", file_name="cloudrig.py", search="", replace="", datablock=None):
 	"""Load a text file into a text datablock, enable register checkbox and execute it.
 	Also run an optional search and replace on the file content.
@@ -176,27 +156,6 @@ def load_script(file_path="", file_name="cloudrig.py", search="", replace="", da
 
 	return text
 
-class ParentingData:
-	def __init__(self, obj: bpy.types.Object):
-		self.parent = obj.parent
-		self.parent_type = obj.parent_type # can be BONE, ARMATURE, OBJECT.
-		self.parent_bone = obj.parent_bone # If parent type is BONE, use this as the bone name.
-		self.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
-		self.matrix_world = obj.matrix_world.copy()
-
-		self.bone_constraint_targets = {}
-		for c in obj.constraints:
-			if hasattr(c, 'subtarget') and c.subtarget != "":
-				self.bone_constraint_targets[c.name] = c.subtarget
-				c.subtarget = ""
-			if c.type == 'ARMATURE':
-				subtargets = []
-				for tar in c.targets:
-					if tar.target == self.parent:
-						subtargets.append(tar.subtarget)
-						tar.target = None
-				self.bone_constraint_targets[c.name] = subtargets
-
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
 		super().__init__(context, metarig)
@@ -230,6 +189,9 @@ class CloudGenerator(Generator):
 				self.rigify_compatible = True
 				print("Rigify compatible generation enabled.")
 				break
+		
+		# Check if Selection Sets addon is enabled
+		self.do_sel_sets = addon_utils.check('bone_selection_sets')[1]
 
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
@@ -258,8 +220,9 @@ class CloudGenerator(Generator):
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
 
 	def update_bone_set_ui_info(self):
-		"""Keep in sync the bone_sets CollectionProperty stored in the generator parameters,
-		with the bone set parameters stored in RigifyParameters. We copy the data from the latter to the former."""
+		"""Keep in sync the bone_sets CollectionProperty stored in the generator 
+		parameters, with the bone set parameters stored in RigifyParameters. 
+		We copy the data from the latter to the former."""
 
 		# Nuke data
 		ui_bone_sets = self.metarig.data.cloudrig_parameters.ui_bone_sets
@@ -279,45 +242,34 @@ class CloudGenerator(Generator):
 				new_ui_set.layer_param = rig_bone_set_def['layer_param']
 
 	def create_rig_object(self):
-		scene = self.scene
-
-		# Check if the generated rig already exists, so we can
-		# regenerate in the same object.  If not, create a new
-		# object to generate the rig in.
+		"""Create the rig object that will replace the previous generation result."""
 
 		metaname = self.metarig.name
-		rig_name = "RIG-" + metaname
-		if "META" in metaname:
-			rig_name = metaname.replace("META", "RIG")
-
-		# Try to find object from the generator parameter.
-		obj = self.params.rigify_target_rig
-		if not obj:
-			# Try to find object in scene.
-			obj = scene.objects.get(rig_name)
-		if not obj:
-			# Try to find object locally in file.
-			obj = bpy.data.objects.get((rig_name, None))
-		if not obj:
-			# Object wasn't found anywhere, so create it.
-			obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
-
-		assert obj, "Failed to find or create object!"
+		rig_name = "TEMP-" + metaname.replace("META", "RIG")
+		obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
 		obj.data.name = "Data_" + obj.name
 
 		# Ensure rig is in the metarig's collection.
 		if obj.name not in self.collection.objects:
 			self.collection.objects.link(obj)
 
-		self.params.rigify_target_rig = obj
+		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
+		# TODO UPSTREAM: Metarigs should be marked rather than non-metarigs!
+		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
+		obj.data["rig_id"] = self.rig_id
 
-		self.obj = obj
+		# Timestamp
+		today = datetime.today()
+		now = datetime.now()
+		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
+		obj.data['generation_time'] = f"{now.hour}:{now.minute}:{now.second}"
+
+		# Make sure Hidden Layers checkbox is saved in the generated rig, so it 
+		# remains even if the Rigify addon is disabled.
+		obj.data.cloudrig_parameters.show_layers_preview_hidden = False
+
 		return obj
 
-	# TODO: Perhaps instead of letting the generator handle the root bone directly, 
-	# it should be left up to the user, but we can still provide a cloud_root 
-	# rig type to handle bone set assignments and widgets 
-	# (It would be nearly identical to cloud_copy, and I guess by default it might spawn a deform bone)
 	def create_root_bones(self):
 		# Root bone groups
 		self.root_set = BoneSet(self,
@@ -421,7 +373,6 @@ class CloudGenerator(Generator):
 
 	### Action set-up
 	def create_action_constraints(self):
-		# TODO: This gigantic function should be split up! And possibly moved to a separate class that can be inherited or composited by the generator.
 		rig = self.obj
 		action_slots = self.metarig.data.cloudrig_parameters.action_slots
 
@@ -516,109 +467,60 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
-	##############################
-	### Console spam avoidance ###
-	##############################
-	# TODO: This solution to avoid console spamming is not viable. 
-	# There are just too many ways to create references to bones, and trying to account for all of them is just dumb.
-	# Instead, we should generate the rig in a separate, temporary rig, then either join it into the existing object or use
-	# Blender's built-in "replace references" function (which afaik is crash prone) to replace the previous rig with the newly generated one.
-	# This would also mean that failed generations don't destroy the rig, which is pretty good.
-
-	def save_modifiers(self) -> List[bpy.types.Modifier]:
-		"""Save names of modifiers which target our rig, then set that target to None.
-		This is because some modifiers spam the console and introduce lag when their target bone is missing,
-		and the target bone will be missing until the rig is generated.
-		"""
-		modifiers = {}
-		for o in bpy.data.objects:
-			for m in o.modifiers:
-				if hasattr(m, 'object') and m.object == self.obj:
-					if o.name in modifiers:
-						modifiers[o.name].append(m.name)
-					else:
-						modifiers[o.name] = [m.name]
-					m.object = None
-		self.modifiers = modifiers
-		return modifiers
-
-	def restore_modifiers(self):
-		"""Assign the rig as the target object of all saved modifiers."""
-		for ob_name in self.modifiers.keys():
-			ob = bpy.data.objects.get((ob_name, None))
-			if not ob: continue
-			for m_name in self.modifiers[ob_name]:
-				m = ob.modifiers.get(m_name)
-				if not m: continue
-				m.object = self.obj
-
-	def save_parenting_info(self) -> dict:
-		rig = self.obj
-		assert rig.data.pose_position == 'REST'
-
-		# Get parented objects to restore later
-		child_objs = list(rig.children[:])
-		for o in bpy.data.objects:
-			for c in o.constraints:
-				if c.type == 'ARMATURE':
-					for tar in c.targets:
-						if tar.target == rig and o not in child_objs:
-							child_objs.append(o)
-
-		self.children_data = {} # {child_object: ParentingData}
-		for child_ob in child_objs:
-			self.children_data[child_ob] = ParentingData(child_ob)
-			child_ob.parent = None
-
-		return self.children_data
-
-	def restore_parenting_info(self):
-		for child, child_data in self.children_data.items():
-			child.parent = child_data.parent
-			child.parent_type = child_data.parent_type
-			child.parent_bone = child_data.parent_bone
-			child.matrix_parent_inverse = child_data.matrix_parent_inverse.copy()
-			if 'matrix_world' not in child:
-				child.matrix_world = child_data.matrix_world.copy()
-			else:
-				child.matrix_world = Matrix(child['matrix_world'])
-
-			bone_constraint_targets = child_data.bone_constraint_targets
-			for c_name in bone_constraint_targets.keys():
-				c = child.constraints[c_name]
-				if c.type == 'ARMATURE':
-					subtargets = bone_constraint_targets[c_name]
-					for t in c.targets:
-						if t.subtarget in subtargets:
-							t.target = self.obj
-				else:
-					c.subtarget = bone_constraint_targets[c_name]
-
-	### Driver management
-	def nuke_drivers(self):
-		# Nuke all drivers on the rig
-		if self.obj.animation_data:
-			datablocks = [self.obj, self.obj.data]
-			for db in datablocks:
-				if not hasattr(db.animation_data, 'drivers'): continue
-				if not db.animation_data: continue
-
-				for d in db.animation_data.drivers[:]:
-					db.animation_data.drivers.remove(d)
-
-	def map_drivers(self):
+	def map_drivers(self) -> Dict[str, Tuple[str, int]]:
 		"""Create a dictionary matching bone names to full data paths of drivers that belong to those bones."""
 		# This is for optimization, so we don't have to loop through every driver for every bone when relinking drivers.
-		self.driver_map = {}
+		driver_map = {}
 		if not self.obj.animation_data:
 			return
 		for fc in self.obj.animation_data.drivers:
 			data_path = fc.data_path
 			if "pose.bones" in data_path:
 				bone_name = data_path.split('pose.bones["')[1].split('"]')[0]
-				if bone_name not in self.driver_map:
-					self.driver_map[bone_name] = []
-				self.driver_map[bone_name].append((data_path, fc.array_index))
+				if bone_name not in driver_map:
+					driver_map[bone_name] = []
+				driver_map[bone_name].append((data_path, fc.array_index))
+		return driver_map
+
+	def preserve_rig_data(self, old_rig, new_rig):
+		"""Preserve useful user-inputted information from the previous rig,
+		then delete it and re-map all pointers to it to the new rig."""
+
+		# Save selection sets
+		if self.do_sel_sets:
+			self.context.view_layer.objects.active = old_rig
+			for selset in old_rig.selection_sets:
+				selset.is_selected = True
+			selsets = to_json(self.context)
+
+		# Remove old rig from all of its collections.
+		for coll in old_rig.users_collection:
+			coll.objects.unlink(old_rig)
+
+		# Swap all references pointing at the old rig to the new rig
+		old_rig.id_data.user_remap(new_rig)
+		old_name = old_rig.name
+
+		# Preserve transform matrix of previous rig.
+		new_rig.matrix_world = old_rig.matrix_world.copy()
+
+		# Preserve assigned action of previous rig.
+		if old_rig.animation_data and old_rig.animation_data.action:
+			new_rig.animation_data.action = old_rig.animation_data.action
+
+		# Delete the old rig
+		bpy.data.objects.remove(old_rig)
+
+		# Preserve object name of previous rig.
+		new_rig.name = old_name
+
+		# Select and make active the new rig
+		new_rig.select_set(True)
+		self.context.view_layer.objects.active = new_rig
+
+		# Preserve selection sets of previous rig.
+		if self.do_sel_sets:
+			from_json(self.context, selsets)
 
 	def generate(self, context):
 		print("CloudRig Generation begin")
@@ -634,12 +536,11 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		# Create/find the rig object and set it up
-		obj = self.create_rig_object()
+		old_rig = self.params.rigify_target_rig
+		self.obj = obj = self.create_rig_object()
 		obj.data.pose_position = 'REST'
 		context.view_layer.update()	# This is necessary to make sure child object matrices are updated after switching the rig to rest pose!
 
-		self.nuke_drivers()
-		wipe_ui_data(obj)
 		self.logger.rig = obj
 		self.logger.metarig = metarig
 
@@ -648,28 +549,11 @@ class CloudGenerator(Generator):
 
 		self.defaults['rig'] = obj
 
-		# Ensure it's transforms are cleared.
-		self.backup_matrix = obj.matrix_world.copy()
-		obj.matrix_world = Matrix()
-
 		# Collection to keep track of bone widgets
 		self.wgt_collection = self.ensure_widget_collection(context)
 
-		self.create_root_bones()
-
-		# Rename metarig data (TODO: parameter)
+		# Rename metarig data
 		self.metarig.data.name = "Data_" + self.metarig.name
-
-		# Enable all armature layers during generation. This is to make sure if you try to set a bone as active, it won't fail silently.
-		obj.data.layers = [True]*32
-
-		# Make sure X-Mirror editing is disabled, always!!
-		obj.data.use_mirror_x = False
-
-		# Get rid of anim data in case the rig already existed
-
-		# obj.animation_data_clear()
-		# obj.data.animation_data_clear()
 
 		select_object(context, obj, deselect_all=True)
 
@@ -680,27 +564,14 @@ class CloudGenerator(Generator):
 		t.tick("Create main WGTS: ")
 
 		#------------------------------------------
-		# Remove some relationships that will be restored later, to avoid console spam.
-		self.save_parenting_info()
-		self.save_modifiers()
-
-		#------------------------------------------
-		# Copy bones from metarig to obj
-		self.nuke_drivers()
-
+		# Join a clone of the metarig into the generated rig.
 		self._Generator__duplicate_rig()
 
-		t.tick("Duplicate rig: ")
+		# t.tick("Duplicate rig: ")
 		redraw_viewport()
 
 		bpy.ops.object.mode_set(mode='OBJECT')
-		self.map_drivers()
-
-		#------------------------------------------
-		# Put the rig_name in the armature custom properties
-		# if self.rigify_compatible:	# Adding the rig_id is still useful because it's used to not display metarig UI on generated rigs. Not the biggest fan though. Metarigs should be marked rather than non-metarigs!
-		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
-		obj.data["rig_id"] = self.rig_id
+		self.driver_map = self.map_drivers()
 
 		self.script = None
 		if self.rigify_compatible:
@@ -709,6 +580,7 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
 
+		self.create_root_bones()
 		self.instantiate_rig_tree()
 		# HACK
 		# cloud_tweak rigs should be pushed to the end of the list! This is not too hacky, but:
@@ -769,11 +641,13 @@ class CloudGenerator(Generator):
 		if self.params.cloudrig_parameters.create_root:
 			self._Generator__create_root_bone()
 
+		# Create real bones from all BoneInfos. No bone data is written here beside the name.
 		for bi in self.bone_infos:
-			if bi.name in self.obj.data.edit_bones:
-				# print(f"Warning: Bone {bi.name} already exists, skipping. This should never happen!") #TODO: This happens for ORG bones now that we load into BoneInfo objects.
+			if bi.name in obj.data.edit_bones:
+				# This happens for ORG bones that we load into BoneInfo objects,
+				# since they already get created by __duplicate_rig()
 				continue
-			new_name = new_bone(self.obj, bi.name)
+			new_name = new_bone(obj, bi.name)
 			if new_name != bi.name:
 				self.logger.log(
 					"Bone naming failed"
@@ -795,7 +669,7 @@ class CloudGenerator(Generator):
 		self.invoke_parent_bones()
 
 		for bi in self.bone_infos:
-			edit_bone = self.obj.data.edit_bones.get(bi.name)
+			edit_bone = obj.data.edit_bones.get(bi.name)
 			bi.write_edit_data(self, edit_bone, context)
 
 		if self.root_bone:
@@ -857,11 +731,6 @@ class CloudGenerator(Generator):
 
 		self.invoke_rig_bones()
 
-		# HACK: Refresh constraints... without this, some armature constraints think they have an error when they don't.
-		for pb in obj.pose.bones:
-			for c in pb.constraints:
-				c.influence = c.influence
-
 		t.tick("Rig bones: ")
 		redraw_viewport()
 
@@ -885,9 +754,6 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
-
-		# Create Selection Sets
-		# create_selection_sets(obj, metarig, context)	# TODO: Add a toggle to preserve selection sets.
 
 		### Load and execute cloudrig.py rig UI script
 		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
@@ -916,13 +782,6 @@ class CloudGenerator(Generator):
 
 		self.invoke_finalize()
 
-		# HACK: For some reason when cloud_tweak adds constraints to a bone,
-		# sometimes those constraints can be invalid even though they aren't actually.
-		for pb in obj.pose.bones:
-			for c in pb.constraints:
-				if hasattr(c, 'subtarget'):
-					c.subtarget = c.subtarget
-
 		t.tick("Finalize: ")
 		redraw_viewport()
 
@@ -939,29 +798,16 @@ class CloudGenerator(Generator):
 					self.create_test_animation(action)
 					break
 
-		# Troubleshooting
-		today = datetime.today()
-		now = datetime.now()
-		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
-		obj.data['generation_time'] = f"{now.hour}:{now.minute}:{now.second}"
-
-		# HACK: Stretch constraints seem to get incorrect length. TODO: Is this still necessary, now that we ensure rigs are properly reset early on in generation?
-		for pb in obj.pose.bones:
-			for c in pb.constraints:
-				if c.type=='STRETCH_TO':
-					bone_info = self.find_bone_info(pb.name)
-					if not bone_info: continue # This should only happen with non-Cloudrig rigs.
-					con_info = bone_info.get_constraint(c.name)
-					if con_info and 'rest_length' in con_info:
-						c.rest_length = con_info.rest_length
-					else:
-						c.rest_length = pb.length
-
-		# Only leave Force Widget Update enabled until the next generation. TODO: This is bad UX. Would work better as a pop-up parameter, but we don't want to give a popup to something as commonly used as generation. Maybe Widget updating should just be faster! Then this parameter can go away altogether!
+		# Only leave Force Widget Update enabled until the next generation.
+		# TODO: This is bad UX. Would work better as a pop-up parameter, but we 
+		# don't want to give a popup to something as commonly used as generation. 
+		# Maybe Widget updating should just be faster! Then this parameter can go away altogether!
 		self.metarig.data.rigify_force_widget_update = False
 
-		# Make sure Hidden Layers checkbox is saved in the generated rig, so it remains even if the Rigify addon is disabled.
-		self.obj.data.cloudrig_parameters.show_layers_preview_hidden = False
+		if old_rig:
+			self.preserve_rig_data(old_rig, obj)
+
+		self.params.rigify_target_rig = obj
 
 		# Execute custom script
 		script = self.params.cloudrig_parameters.custom_script
@@ -987,31 +833,18 @@ class CloudGenerator(Generator):
 		t.tick("The rest: ")
 
 	def cleanup(self):
-		"""Clean up after generation has either failed or succeeded.
-		"""
-		# NOTE: Errors arising in this function won't be handled nicely!
-		# They will not be added to the Rigify Log, and some relationships may
-		# fail to restore to their original state.
+		"""Clean up after generation has either failed or succeeded."""
+		# NOTE: Errors raised in this function won't be handled nicely!
+		# It will not be added to the Rigify Log, and relationships won't be 
+		# fully restored to their original states.
 		
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.metarig.data.pose_position = 'POSE'
 		self.obj.data.pose_position = 'POSE'
 
-		# Restore object parenting
-		if hasattr(self, 'children_data'):
-			self.restore_parenting_info()
-
-		# Restore modifier targets
-		if hasattr(self, 'modifiers'):
-			self.restore_modifiers()
-
 		self.logger.report_unused_named_layers()
 		self.logger.report_widgets(self.wgt_collection)
-
-		# Restore rig object matrix to what it was before generation.
-		if hasattr(self, 'backup_matrix'):
-			self.obj.matrix_world = self.backup_matrix
 
 		# Refresh drivers
 		refresh_all_drivers()

@@ -38,7 +38,7 @@ Priority 2: New features
     cloud_copy
         Should have an enum selector for Custom Property UI areas, so these custom properties can be added to the rig UI without post-gen script.
     Operator to "push" a constraint on a cloud_copy rig type bone from the generated rig back to the metarig or vice versa. This would be an extension of the "Toggle Rig/Metarig" operator.
-        I would not do this anytime soon; First, get rid of constraint re-targetting. Constraints should just set the subtargets normally. Only issue with this is when they target an ORG bone or a cloud_tweak bone it might fail - we need to avoid bone renaming in rig generation, which is a larger refactor.
+        I would not do this anytime soon; First, get rid of constraint re-targetting.
     Automatic IK/FK switching based on bone selection:
         https://youtu.be/ccbC8JNdXS4?t=755
         https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
@@ -48,7 +48,9 @@ Priority 2: New features
 
     New bone layer preview UI and management:
         The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.
-        This also means having to overwrite Blender's built-in operators on the M and Shift+M keys. (TODO)
+        This also means having to overwrite Blender's built-in operators on the M and Shift+M keys.
+            I tried adding this, but it seems a bit janky. I can't get it to save modifications to the keymap.
+            I'm currently storing things in the "active" keymap which doesn't overwrite the default Shift+M. Storing it in the "addons" keymap might work though.
 
         Bone layers are stored in rows which are stored in columns, and are not initialized to 32 entries but 0.
         Each row has a + button to add a new entry to that row, and the bottom of the UI has a + icon to add a new entry in a new column.
