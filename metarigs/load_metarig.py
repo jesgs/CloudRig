@@ -1,6 +1,10 @@
 import bpy
 import os
 
+BLEND_FILE_NAME = "MetaRigs.blend"
+CURRENT_FOLDER = os.path.dirname(os.path.realpath(__file__))
+BLEND_FILE_PATH = os.path.join(CURRENT_FOLDER, BLEND_FILE_NAME)
+
 def load_metarig(metarig_name):
 	"""Append a metarig from MetaRigs.blend."""
 	context = bpy.context # TODO RIGIFY: Should pass context to the metarig create() function.
@@ -18,11 +22,7 @@ def load_metarig(metarig_name):
 	available_name = numbered_name
 
 	# Loading metarig object from file
-	filename = "MetaRigs.blend"
-	filedir = os.path.dirname(os.path.realpath(__file__))
-	blend_path = os.path.join(filedir, filename)
-
-	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+	with bpy.data.libraries.load(BLEND_FILE_PATH) as (data_from, data_to):
 		for o in data_from.objects:
 			if o == metarig_name:
 				data_to.objects.append(o)
@@ -49,12 +49,8 @@ def load_sample(rig_name):
 	assert sample_name not in bpy.data.objects, "Rig sample exists in the file, delete and purge it!"
 
 	# Loading rig sample object from file
-	filename = "metarigs/MetaRigs.blend"
-	filedir = os.path.dirname(os.path.realpath(__file__))
-	blend_path = os.path.join(filedir, filename)
-
 	found = False
-	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+	with bpy.data.libraries.load(BLEND_FILE_PATH) as (data_from, data_to):
 		for o in data_from.objects:
 			if o == sample_name:
 				data_to.objects.append(o)
