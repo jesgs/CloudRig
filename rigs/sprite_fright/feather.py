@@ -18,9 +18,9 @@ class SpriteFeatherRig(CloudFKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.bone_sets['FK Controls'][0].custom_shape = self.ensure_widget("Feather")
-		fk_dsp = self.create_dsp_bone(self.bone_sets['FK Controls'][0])
-		fk_dsp.put(loc=fk_dsp.tail)
+		first_fk = self.bone_sets['FK Controls'][0]
+		first_fk.custom_shape = self.ensure_widget("Feather")
+		first_fk.custom_shape_along_length = 1
 
 		# Create a new bone parented to ORG, and parent the tip control to it.
 		org = self.bones_org[0]
@@ -32,24 +32,23 @@ class SpriteFeatherRig(CloudFKChainRig):
 		)
 		bend_ctr.bone_group = self.bone_sets['Stretch Controls'].bone_group
 		self.bone_sets['Stretch Controls'][-1].parent = bend_ctr
-
-		bend_dsp = self.create_dsp_bone(bend_ctr)
-		dsp_loc = bend_ctr.head + (bend_ctr.tail-bend_ctr.head)*0.95
-		bend_dsp.put(loc=dsp_loc)
+		bend_ctr.custom_shape_along_length = 0.95
 
 		# Create a visual helper line from the bend to the FK control's display positions.
 		line = self.bone_sets['FK Controls Extra'].new(
 			name	= org.name.replace("ORG", "LINE-BEND")
-			,source = bend_dsp
-			,parent = bend_dsp
+			,source = bend_ctr
+			,parent = bend_ctr
+			,head	= bend_ctr.head + bend_ctr.vector * 0.95
+			,tail	= bend_ctr.tail
 			,custom_shape = self.ensure_widget("Line")
 			,use_custom_shape_bone_size = True
 		)
 		line.bone_group = self.bone_sets['Stretch Controls'].bone_group
+		line.bbone_width *= 0.2
 		line.hide_select = True
 
-		line.tail = fk_dsp.head.copy()
-		line.add_constraint('STRETCH_TO', subtarget=fk_dsp.name)
+		line.add_constraint('STRETCH_TO', subtarget=first_fk.name, head_tail=1)
 
 		# Make the tip control copy partial rotation of the bend control
 		self.bone_sets['Stretch Controls'][-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)

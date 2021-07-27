@@ -273,9 +273,17 @@ class BoneInfo:
 		rounded = round(deg/90)*90
 		self.roll = pi/180*rounded
 
-	def display_centered(self):
-		"""Display custom widget at the center of the bone."""
-		self.custom_shape_translation.y = self.length / 2
+	@property
+	def custom_shape_along_length(self):
+		"""Get custom widget display position as a factor along the bone's length."""
+		if self.custom_shape_translation.y < 0.00001:
+			return 0
+		return self.length / self.custom_shape_translation.y
+
+	@custom_shape_along_length.setter
+	def custom_shape_along_length(self, value):
+		"""Set custom widget display position as a factor along the bone's length."""
+		self.custom_shape_translation.y = self.length * value
 
 	def get_constraint(self, name):
 		for ci in self.constraint_infos:

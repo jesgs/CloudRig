@@ -44,12 +44,9 @@ class CloudFingerRig(CloudIKChainRig):
 		)
 
 		# Make it display nicely
+		toggle_ctrl.custom_shape_translation = self.pole_vector.normalized() * -toggle_ctrl.length/2	# TODO: This is only correct for 1/4 possible finger orientations. Either enforce that one or support all of them.
+		toggle_ctrl.custom_shape_rotation_euler.y -= radians(90)
 		toggle_dsp = self.create_dsp_bone(toggle_ctrl)
-		offset = self.pole_vector.normalized() * toggle_ctrl.length/2
-		#toggle_dsp.put(toggle_dsp.head+offset) # TODO: Why doesn't this work here??
-		toggle_dsp.head += offset
-		toggle_dsp.tail += offset
-		toggle_dsp.roll += radians(90)
 		toggle_dsp.parent = last_org
 		toggle_dsp.add_constraint('COPY_LOCATION', subtarget=toggle_ctrl.name)
 

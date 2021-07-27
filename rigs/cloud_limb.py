@@ -249,8 +249,7 @@ class CloudLimbRig(CloudIKChainRig):
 				,{"subtarget" : self.bones_def[self.params.CR_chain_segments].name}
 			]
 		)
-		dsp_bone.inherit_scale = 'AVERAGE'
-		dsp_bone.add_constraint('COPY_SCALE', subtarget=control_bone.name, )
+		dsp_bone.add_constraint('COPY_SCALE', subtarget=control_bone.name)
 
 		return control_bone
 

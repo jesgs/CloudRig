@@ -22,13 +22,19 @@ class CloudAimRig(CloudBaseRig):
 		super().create_bone_infos()
 
 		aim_org = self.bones_org[0]
-		aim_bone = self.make_aim_helper(aim_org)
+		aim_bone = self.bone_sets['Aim Target Mechanism'].new(
+			name		 = self.bones_org[0].name.replace("ORG", "AIM")
+			,source		 = aim_org
+			,parent		 = aim_org
+		)
 
 		if self.params.CR_aim_root:
 			self.root_bone = self.make_root_bone(aim_org)
+
 		self.group_master = None
 		if self.params.CR_aim_group!="":
 			self.group_master = self.ensure_group_master()
+
 		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
 		self.target_bone = self.make_target_control(aim_bone, self.group_master)
 
@@ -73,17 +79,6 @@ class CloudAimRig(CloudBaseRig):
 		dsp_bone.add_constraint('DAMPED_TRACK', subtarget=bone.name, track_axis='TRACK_NEGATIVE_Y')
 
 		return target_bone
-
-	def make_aim_helper(self, org_bone) -> BoneInfo:
-		"""Create an AIM helper for @org_bone targetting @target_bone, while leaving
-		   @org_bone free to rotate.
-		"""
-		aim_bone = self.bone_sets['Aim Target Mechanism'].new(
-			name		 = self.bones_org[0].name.replace("ORG", "AIM")
-			,source		 = org_bone
-			,parent		 = org_bone
-		)
-		return aim_bone
 
 	def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
 		"""Create direct control, with a display bone at the tip of it."""
@@ -135,9 +130,8 @@ class CloudAimRig(CloudBaseRig):
 			,parent = base_bone.parent
 			,custom_shape = self.ensure_widget('Square')
 			,custom_shape_scale = 2
+			,custom_shape_along_length = 1
 		)
-		root_dsp = self.create_dsp_bone(root_bone)
-		root_dsp.put(self.bones_org[0].tail)
 
 		bone.parent = root_bone
 
@@ -153,10 +147,9 @@ class CloudAimRig(CloudBaseRig):
 			,custom_shape = self.ensure_widget("Circle")
 			,length = ctr_bone.length/5
 			,custom_shape_scale = ctr_bone.custom_shape_scale/3
+			,custom_shape_along_length = 1
 		)
 		self.lock_transforms(highlight_ctr, loc=True, rot=False, scale=[False, True, False])
-		highlight_dsp = self.create_dsp_bone(highlight_ctr)
-		highlight_dsp.put(ctr_bone.tail)
 		self.make_def_bone(highlight_ctr, self.bone_sets['Aim Deform'])
 
 	def relink(self):

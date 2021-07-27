@@ -94,27 +94,25 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		for i, org_bone in enumerate(self.bones_org):
 			fk_name = org_bone.name.replace("ORG", "FK")
 			fk_bone = self.bone_sets['FK Controls'].new(
-				name				= fk_name
-				,source				= org_bone
-				,custom_shape 		= self.ensure_widget("Circle_Spiked_2")
-				,parent				= org_bone.parent
-				,inherit_scale		= self.params.CR_fk_chain_inherit_scale
+				name						= fk_name
+				,source						= org_bone
+				,custom_shape 				= self.ensure_widget("Circle_Spiked_2")
+				,parent						= org_bone.parent
+				,inherit_scale				= self.params.CR_fk_chain_inherit_scale
+				,custom_shape_along_length  = self.params.CR_fk_chain_display_center / 2
 			)
 			org_bone.fk_bone = fk_bone
 			if i == 0:
 				hng_child = fk_bone
 				if self.params.CR_fk_chain_double_first:
 					# Make a parent for the first control.
-					fk_parent_bone = self.create_parent_bone(fk_bone, bone_set=self.bone_sets['FK Controls Extra'])
+					fk_parent_bone = self.create_parent_bone(fk_bone ,bone_set=self.bone_sets['FK Controls Extra'])
 					fk_parent_bone.custom_shape = fk_bone.custom_shape
-					if self.params.CR_fk_chain_display_center:
-						fk_parent_bone.display_centered()
+					fk_parent_bone.custom_shape_along_length = self.params.CR_fk_chain_display_center / 2
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
 				fk_bone.parent = self.bones_org[i-1].fk_bone
-			if self.params.CR_fk_chain_display_center:
-				fk_bone.display_centered()
 
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:

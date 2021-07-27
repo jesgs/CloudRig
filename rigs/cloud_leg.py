@@ -111,7 +111,8 @@ class CloudLegRig(CloudLimbRig):
 
 		# To get the position of the foot bone display helper,
 		# project a line out of the knee bone, then find the point on that line
-		# which is closest the toe bone's tail, lowered to the Z position of the heel bone if there is one and it is lower.
+		# which is closest the toe bone's tail, lowered to the Z position of the
+		# heel bone if there is one and it is lower.
 		knee = self.bones_org[1]
 		toe = self.bones_org[-1]
 		shoe_tip = toe.tail.copy()

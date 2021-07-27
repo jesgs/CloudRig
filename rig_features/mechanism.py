@@ -196,7 +196,6 @@ def create_dsp_bone(parent, bone_set):
 		,custom_shape	= None
 		,parent			= parent
 	)
-	parent.dsp_bone = dsp_bone
 	parent.custom_shape_transform = dsp_bone
 	return dsp_bone
 

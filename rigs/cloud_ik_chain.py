@@ -98,8 +98,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.ik_chain = self.make_ik_chain(self.bones_org, self.ik_mstr, self.pole_ctrl)
 
 		if self.pole_ctrl:
-			# Add aim constraint to pole display bone
-			self.pole_ctrl.dsp_bone.add_constraint('DAMPED_TRACK',
+			# Create a display helper that aims the pole target at the IK chain
+			dsp_bone = self.create_dsp_bone(self.pole_ctrl)
+			dsp_bone.add_constraint('DAMPED_TRACK',
 				subtarget  = self.ik_chain[1].name,
 				track_axis = 'TRACK_NEGATIVE_Y'
 			)
@@ -192,6 +193,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,use_custom_shape_bone_size = True
 			,parent = self.ik_mstr
 		)
+		self.lock_transforms(pole_ctrl, loc=False)
 
 		pole_line = self.bone_sets['IK Controls'].new(
 			name		  = self.naming.make_name(["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix])
@@ -217,7 +219,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			}]
 		})
 
-		self.create_dsp_bone(pole_ctrl)
 		return pole_ctrl
 
 	def make_ik_chain(self, org_chain, ik_mstr, pole_target=None, ik_pole_direction=0):
@@ -453,7 +454,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		# 	)
 
 		# 	ct_ik_str.drivers.append(dict(ik_stretch_engaged_driver))
-
 
 	def attach_org_to_ik(self):
 		# Note: Runs after attach_org_to_fk().
