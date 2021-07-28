@@ -318,6 +318,8 @@ class CloudBaseRig(
 	def draw_custom_prop_params(cls, layout, context, params):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
+
+		layout.separator()
 		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
 		if params.CR_base_props_storage == 'CUSTOM':
 			cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
@@ -330,10 +332,8 @@ class CloudBaseRig(
 		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
 
 		cls.draw_parenting_params(layout, context, params)
-		layout.separator()
 
 		if cls.is_using_custom_props(context, params):
-			layout.separator()
 			cls.draw_custom_prop_params(layout, context, params)
 
 		return layout

@@ -1,6 +1,3 @@
-# This module shouldn't need to be imported anywhere else.
-# Such things would belong in CloudRig/utils/ui.py.
-
 import bpy
 import addon_utils
 
@@ -8,9 +5,6 @@ from rigify import rig_lists, feature_sets
 
 from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig
-
-
-# NOTE: STRICTLY NOT ALLOWED TO IMPORT RIG CLASSES! RESULTS IN IMPOSSIBLE TO TROUBLESHOOT ERRORS!
 
 class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
@@ -74,20 +68,11 @@ class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-def draw_cloudrig_rigify_generate(self, context):
-	layout = self.layout
-	obj = context.object
-
-	if not is_cloud_metarig(context.object) or obj.mode=='EDIT':
-		self.draw_old(context)
-		return
-
-	if obj.mode not in {'POSE', 'OBJECT'}:
-		return
-
-	# Compare Blender version number to current lowest supported
-	# version number. If Blender is too old, provide a link to download
-	# an older version of CloudRig.
+def draw_version_check(layout) -> bool:
+	""" Compare Blender version number to current lowest supported
+		version number. If Blender is too old, draw a link to download
+		an older version of CloudRig.
+	"""
 	version_to_float = lambda version_tuple: float(str(version_tuple[0]) + "." + str(version_tuple[1]) + str(version_tuple[2]))
 
 	blender_version = version_to_float(bpy.app.version)
@@ -100,27 +85,27 @@ def draw_cloudrig_rigify_generate(self, context):
 		draw_label_with_linebreak(layout, f"You can download an older version of CloudRig from the Releases page on CloudRig's GitLab:", alert=True)
 		op = layout.operator('wm.url_open', text="Releases", icon='URL')
 		op.url = "https://gitlab.com/blender/CloudRig/-/releases"
-		return
 
-	layout.operator("pose.cloudrig_generate", text="Generate CloudRig")
+	return is_compatible
 
-	draw_cloudrig_generator_settings(self, context)
-
-def metarig_contains_fk_chain(metarig):
-	"""Return whether or not a metarig contains an FK rig. Used to determine
-	whether animation generation checkbox should appear or not."""
-	for pb in metarig.pose.bones:
-		if pb.rigify_type!='':
-			rig_module = rig_lists.rigs[pb.rigify_type]["module"].Rig
-			# This is a bit nasty but importing CloudFKCHainRig and using issubclass() breaks parameter registering (don't ask me why!)
-			if 'cloud_fk_chain' in str(rig_module.mro()):
-				return True
-
-def draw_cloudrig_generator_settings(self, context):
+def draw_cloudrig_rigify_generate(self, context):
 	layout = self.layout
 	layout.use_property_split=True
 	layout.use_property_decorate=False
-	layout = layout.column()
+	obj = context.object
+
+	if not is_cloud_metarig(context.object) or obj.mode=='EDIT':
+		self.draw_old(context)
+		return
+
+	if obj.mode not in {'POSE', 'OBJECT'}:
+		return
+
+	if not draw_version_check(layout):
+		return
+
+	layout.operator("pose.cloudrig_generate", text="Generate CloudRig")
+	layout.separator()
 
 	obj = context.object
 	cloudrig = obj.data.cloudrig_parameters
@@ -134,6 +119,16 @@ def draw_cloudrig_generator_settings(self, context):
 	if obj.data.rigify_colors_lock:
 		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
 		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
+
+def metarig_contains_fk_chain(metarig):
+	"""Return whether or not a metarig contains an FK rig. Used to determine
+	whether animation generation checkbox should appear or not."""
+	for pb in metarig.pose.bones:
+		if pb.rigify_type!='':
+			rig_module = rig_lists.rigs[pb.rigify_type]["module"].Rig
+			# This is a bit nasty but importing CloudFKCHainRig and using issubclass() breaks parameter registering (don't ask me why!)
+			if 'cloud_fk_chain' in str(rig_module.mro()):
+				return True
 
 class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
@@ -158,6 +153,8 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 
 		layout.prop(obj.data, "rigify_rig_ui")
 		layout.prop(cloudrig, "custom_script")
+
+		layout.prop(cloudrig, 'advanced_mode')
 
 		# Test Animation Parameters
 		if metarig_contains_fk_chain(obj):
@@ -208,8 +205,6 @@ def draw_cloud_layer_names(self, context):
 	arm = obj.data
 	cloudrig = arm.cloudrig_parameters
 	layout = self.layout
-	draw_label_with_linebreak(layout, "Organize Layers panel layout. Layers without a name and layers beginning with $ will not be shown.")
-	draw_label_with_linebreak(layout, "In the generated rig, the same layers will be active and protected as on the metarig.")
 
 	# Ensure that the layers exist
 	if len(arm.rigify_layers) != len(arm.layers):

@@ -1,12 +1,5 @@
 import bpy, sys, os
 import json
-from ..generation.cloudrig import area_names
-
-def wipe_ui_data(rig):
-	"""Should be called at the start of rig generation, to make sure we don't preserve any UI data from a previous generation."""
-	for area_name in area_names:
-		if area_name in rig.data:
-			del rig.data[area_name]
 
 class CloudUIMixin:
 	forced_params = dict()

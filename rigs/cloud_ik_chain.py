@@ -17,7 +17,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	"""IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
-	parent_switch_behaviour = 'The active parent will own the IK master and pole controls.'
+	parent_switch_behaviour = 'The active parent will own the IK-MSTR and IK-POLE controls.'
 	parent_switch_overwrites_root_parent = False
 	always_use_custom_props = True
 

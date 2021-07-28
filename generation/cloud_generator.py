@@ -20,7 +20,7 @@ from rigify.utils.mechanism import refresh_all_drivers
 
 from ..rig_features.bone_set import BoneSet, UIBoneSet
 from ..rig_features import mechanism
-from ..rig_features.ui import redraw_viewport, wipe_ui_data
+from ..rig_features.ui import redraw_viewport
 from ..rig_features.widgets import widgets as cloud_widgets
 from ..versioning import cloud_metarig_version
 
@@ -36,11 +36,12 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "For internal use only"
 		,default	 = -1
 	)
-	options: BoolProperty(
-		name		 = "CloudRig Settings"
-		,description = "Show CloudRig Settings"
+	advanced_mode: BoolProperty(
+		name		 = "Advanced Rig Settings"
+		,description = "Enable some less frequently used settings on various rig types"
 		,default	 = False
 	)
+
 	create_root: BoolProperty(
 		name		 = "Create Root"
 		,description = "Create the root control"
@@ -51,6 +52,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "Create two root controls"
 		,default	 = False
 	)
+
 	custom_script: PointerProperty(
 		name		 = "Post-Generation Script"
 		,type		 = bpy.types.Text
