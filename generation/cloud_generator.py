@@ -257,7 +257,7 @@ class CloudGenerator(Generator):
 		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
-		obj.data["rig_id"] = self.rig_id
+		obj.data["rig_id"] = 'cloudrig'
 
 		# Timestamp
 		today = datetime.today()
@@ -736,23 +736,9 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		### Load and execute cloudrig.py rig UI script
-		# The script should have a unique identifier that links it to the rigs that were generated in this file - The .blend filename should be sufficient.
-		script_id = bpy.path.basename(bpy.data.filepath).split(".")[0]
-		# Since this script_id will be used in bl_idnames, let's sanitize it so Blender doesn't complain about invalid bl_idnames.
-		# Only keep alphabetical characters and convert them to lowercase.
-		script_id = ''.join(e for e in script_id if e.isalpha()).lower()
-
-		if script_id=="":
-			# Default in case the file hasn't been saved yet.
-			# Falling back to this could result in an older version of the rig trying to use a newer version of the rig UI script or vice versa, so it should be avoided.
-			script_id = "cloudrig"
-
-		obj.data['cloudrig'] = script_id
-		metarig.data.rigify_rig_ui = obj.data['script'] = load_script(
+		metarig.data.rigify_rig_ui = obj.data.rigify_rig_ui = load_script(
 			file_path = os.path.dirname(os.path.realpath(__file__))
 			,file_name = "cloudrig.py"
-			,search = "SCRIPT_ID"
-			,replace = script_id
 			,datablock = metarig.data.rigify_rig_ui
 		)
 

@@ -4,10 +4,8 @@ rig is generated with the CloudRig feature set.
 It's responsible for drawing rig UI and operators such as IK/FK snapping and
 keyframe baking.
 
-The only change made during rig generation is replacing SCRIPT_ID with the name
-of the blend file. This is used to allow multiple characters generated with
-different versions of CloudRig to co-exist in the same scene. So each rig uses
-the script that belongs to it, and not another, potentially newer or older version.
+Only one instance of this script is required to run in a scene, regardless of how
+many CloudRig characters are in the scene.
 """
 
 from typing import List, Dict
@@ -19,25 +17,23 @@ from bpy.props import (
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-script_id = "SCRIPT_ID"
-
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """
-	return [o for o in bpy.data.objects if o.type=='ARMATURE' and 'cloudrig' in o.data]
+	return [o for o in bpy.data.objects if o.type=='ARMATURE' and 'rig_id' in o.data and o.data['rig_id'] == 'cloudrig']
 
 def is_active_cloudrig(context):
 	""" If the active object is a cloudrig, return it. """
 	rig = context.pose_object or context.object
 	if 		rig and \
 			rig.type == 'ARMATURE' and \
-			'cloudrig' in rig.data and \
-			rig.data['cloudrig'] == script_id:
+			'rig_id' in rig.data and \
+			rig.data['rig_id'] == 'cloudrig':
 		return rig
 
 def is_active_cloud_metarig(context):
 	""" If the active object is a cloud metarig, return it. """
 	rig = context.pose_object or context.object
-	if rig and rig.type=='ARMATURE' and 'cloudrig' not in rig.data:
+	if rig and rig.type=='ARMATURE' and 'rig_id' not in rig.data:
 		for pb in rig.pose.bones:
 			if not hasattr(pb, 'rigify_type'):
 				return None
@@ -316,7 +312,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 
 	@classmethod
 	def poll(cls, context):
-		return context.mode=='POSE'#find_action(context.active_object) is not None
+		return context.mode=='POSE'
 
 	def invoke(self, context, event):
 		self.init_invoke(context)
@@ -561,7 +557,7 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 
 class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 	""" Toggle a custom property while ensuring that some bones stay in place. """
-	bl_idname = "pose.cloudrig_snap_bake_" + script_id
+	bl_idname = "pose.cloudrig_snap_bake"
 	bl_label = "Snap And Bake Bones"
 
 	def draw(self, context):
@@ -648,7 +644,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 
 class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 	"""Extend CLOUDRIG_OT_snap_bake with a parent selector."""
-	bl_idname = "pose.cloudrig_switch_parent_bake_" + script_id
+	bl_idname = "pose.cloudrig_switch_parent_bake"
 	bl_label = "Apply Switch Parent To Keyframes"
 	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -706,7 +702,7 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 		to another (equal length) list of bones.
 	"""
 
-	bl_idname = "pose.cloudrig_snap_mapped_bake_" + script_id
+	bl_idname = "pose.cloudrig_snap_mapped_bake"
 	bl_label = "Snap And Bake Bones (Mapped)"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -776,7 +772,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 		for the IK elbow.
 	"""
 
-	bl_idname = "pose.cloudrig_toggle_ikfk_bake_" + script_id
+	bl_idname = "pose.cloudrig_toggle_ikfk_bake"
 	bl_label = "Toggle And Bake IK/FK"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -867,7 +863,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 class CLOUDRIG_OT_copy_property(bpy.types.Operator):
 	"""Set the value of a property on all other CloudRig rigs in the scene"""
 	# Currently used for the rig Quality setting, to easily switch all characters to Render or Animation quality.
-	bl_idname = "object.cloudrig_copy_property_" + script_id
+	bl_idname = "object.cloudrig_copy_property"
 	bl_label = "Set Property value on All CloudRigs"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -915,7 +911,7 @@ class CLOUDRIG_OT_copy_property(bpy.types.Operator):
 
 class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	"""Keyframe all rig settings that are being drawn in the below UI"""
-	bl_idname = "pose.cloudrig_keyframe_all_settings_" + script_id
+	bl_idname = "pose.cloudrig_keyframe_all_settings"
 	bl_label = "Keyframe CloudRig Settings"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -948,7 +944,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 	"""Reset all bone transforms and custom properties to their default values"""
-	bl_idname = "pose.cloudrig_reset_" + script_id
+	bl_idname = "pose.cloudrig_reset"
 	bl_label = "Reset Rig"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -1000,7 +996,7 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
 class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
 	"""Delete the Override Resync Leftovers (Warning! Might lose your data!)"""
-	bl_idname = "object.cloudrig_delete_leftovers_" + script_id
+	bl_idname = "object.cloudrig_delete_leftovers"
 	bl_label = "Delete Override Leftovers"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -1032,7 +1028,7 @@ class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
 class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
 	"""Try to ensure the name of this object or collection ends with the correct suffix"""
 	# We hijack the Rigify Log for this, why not...
-	bl_idname = "object.cloudrig_fix_name_" + script_id
+	bl_idname = "object.cloudrig_fix_name"
 	bl_label = "Fix Name"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 	
@@ -1081,7 +1077,7 @@ def has_number_suffix(name):
 	return all([char in "0123456789" for char in name[-3:]]) and name[-4]=="."
 
 class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_troubleshoot_overrides_" + script_id
+	bl_idname = "CLOUDRIG_PT_troubleshoot_overrides"
 	bl_label = "Troubleshoot"
 
 	@classmethod
@@ -1378,10 +1374,6 @@ def draw_rig_settings(layout, rig, dict_name, label=""):
 
 			# Draw an operator if provided.
 			if 'operator' in info:
-				# HACK: We want to add script_id to operator names for when multiple characters are in the same file
-				# But this means having to add it here as well, which is a bit nasty.
-				if info['operator'].startswith('pose.cloudrig') or info['operator'].startswith('object.cloudrig'):
-					info['operator'] += "_"+script_id
 				icon = 'FILE_REFRESH'
 				if 'icon' in info:
 					icon = info['icon']
@@ -1413,17 +1405,11 @@ def add_operator(layout, op_info: dict):
 	op_info should include a bl_idname, can include an icon, and operator kwargs.
 	"""
 
-	op_name = op_info['bl_idname']
-	# HACK: We want to add script_id to operator names for when multiple characters are in the same file
-	# But this means having to add it here as well, which is a bit nasty.
-	if op_name.startswith('pose.cloudrig') or op_name.startswith('object.cloudrig'):
-		op_name += "_"+script_id
-
 	icon = 'LAYER_ACTIVE'
 	if 'icon' in op_info:
 		icon = op_info['icon']
 
-	operator = layout.operator(op_name, text="", icon=icon)
+	operator = layout.operator(op_info['bl_idname'], text="", icon=icon)
 	# Pass on any paramteres to the operator that it will accept.
 	for param in op_info.keys():
 		if param in ['bl_idname', 'icon']: continue
@@ -1435,7 +1421,7 @@ def add_operator(layout, op_info: dict):
 			setattr(operator, param, value)
 
 class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_character_" + script_id
+	bl_idname = "CLOUDRIG_PT_character"
 	bl_label = "Character"
 
 	@classmethod
@@ -1541,7 +1527,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			add_props(outfit_properties_bone)
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_settings_" + script_id
+	bl_idname = "CLOUDRIG_PT_settings"
 	bl_label = "Settings"
 
 	@classmethod
@@ -1587,16 +1573,16 @@ class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
 			draw_rig_settings(layout, rig, area_name, label=area_names[area_name])
 
 class CLOUDRIG_PT_fkik(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_fkik_" + script_id
+	bl_idname = "CLOUDRIG_PT_fkik"
 	bl_label = "FK/IK Switch"
-	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
+	bl_parent_id = "CLOUDRIG_PT_settings"
 
 	area_names = {'ik_switches' : ""}
 
 class CLOUDRIG_PT_ik(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_ik_" + script_id
+	bl_idname = "CLOUDRIG_PT_ik"
 	bl_label = "IK Settings"
-	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
+	bl_parent_id = "CLOUDRIG_PT_settings"
 
 	area_names = {
 		'ik_stretches' : "IK Stretch"
@@ -1606,9 +1592,9 @@ class CLOUDRIG_PT_ik(CLOUDRIG_PT_sub_settings):
 	}
 
 class CLOUDRIG_PT_fk(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_fk_" + script_id
+	bl_idname = "CLOUDRIG_PT_fk"
 	bl_label = "FK Settings"
-	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
+	bl_parent_id = "CLOUDRIG_PT_settings"
 
 	area_names = {
 		'fk_hinges' : "FK Hinge"
@@ -1616,16 +1602,16 @@ class CLOUDRIG_PT_fk(CLOUDRIG_PT_sub_settings):
 	}
 
 class CLOUDRIG_PT_face(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_face_" + script_id
+	bl_idname = "CLOUDRIG_PT_face"
 	bl_label = "Face Settings"
-	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
+	bl_parent_id = "CLOUDRIG_PT_settings"
 
 	area_names = {'face_settings' : ""}
 
 class CLOUDRIG_PT_misc(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_misc_" + script_id
+	bl_idname = "CLOUDRIG_PT_misc"
 	bl_label = "Misc"
-	bl_parent_id = "CLOUDRIG_PT_settings_" + script_id
+	bl_parent_id = "CLOUDRIG_PT_settings"
 
 	area_names = {'misc_settings' : ""}
 
@@ -1677,7 +1663,7 @@ def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_pr
 		row.prop(owner, layers_prop, index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
 
 class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_layers_" + script_id
+	bl_idname = "CLOUDRIG_PT_layers"
 	bl_label = "Layers"
 
 	@classmethod
@@ -1843,8 +1829,7 @@ def register():
 	# Add shortcuts to the keymap.
 	register_hotkeys()
 
-	# We store outfit properties in Object rather than Armature because Armature 
-	# data cannot be accessed on proxy armatures.
+	# Store outfit properties in Object because it can be accessed on Proxies.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
 def unregister():
@@ -1855,16 +1840,6 @@ def unregister():
 	from bpy.utils import unregister_class
 	for c in classes:
 		unregister_class(c)
-
-	# Clear shortcuts from the keymap.
-	wm = bpy.context.window_manager
-	km = wm.keyconfigs.active.keymaps.get('Pose')
-	for kmi in km.keymap_items:
-		if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
-			km.keymap_items.remove(kmi)
-
-	if script_id == 'sprite_fright':
-		bpy.app.handlers.save_post.remove(warn_absolute_path_libs)
 
 	del bpy.types.Object.cloud_rig
 

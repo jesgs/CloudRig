@@ -244,15 +244,16 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		with open(cloudrig_path) as cloudrig_file:
 			lines = cloudrig_file.readlines()
 
-		script_id = "sprite_fright"
 		with open(sprites_svn + '/pro/lib/scripts/cloudrig.py', 'w') as svn_file:
 			for l in lines:
-				svn_file.write(l.replace('"SCRIPT_ID"', f'"{script_id}"'))
+				svn_file.write(l)
 
-		rig.data['cloudrig'] = script_id
 		abs_path = sprites_svn + '/pro/lib/scripts/cloudrig.blend'
 		rel_path = bpy.path.relpath(abs_path)
 		link_script(rig, 'script', rel_path, 'cloudrig.py')
+
+		# Also attach the library absolute path warning script
+		link_script(rig, 'script', rel_path, 'warn_absolute_library.py')
 	
 	# Ensure object data names are correct
 	for o in bpy.data.objects:
