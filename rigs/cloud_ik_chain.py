@@ -112,7 +112,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		if bone_name=="":
 			bone_name = source_bone.name.replace("ORG", "IK-MSTR")
 
-		ik_master = self.bone_sets['IK Controls'].new(
+		ik_master = bone_set.new(
 			name		  = bone_name
 			,source		  = source_bone
 			,custom_shape = self.ensure_widget(shape_name)
@@ -481,7 +481,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	def apply_parent_switching(self, parent_slots, 
 			child_bone=None,
 			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
+			ui_area="", row_name="", col_name=""
 		):
 		"""Overrides cloud_base."""
 		if not child_bone:
@@ -490,17 +490,17 @@ class CloudIKChainRig(CloudFKChainRig):
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
 		super().apply_parent_switching(parent_slots
 			,child_bone = child_bone
-			,prop_bone = self.properties_bone
-			,prop_name = ik_parents_prop_name
-			,ui_area = 'ik_parents'
-			,row_name = self.category
-			,col_name = self.limb_ui_name
+			,prop_bone = prop_bone or self.properties_bone
+			,prop_name = prop_name or ik_parents_prop_name
+			,ui_area = ui_area or 'ik_parents'
+			,row_name = row_name or self.category
+			,col_name = col_name or self.limb_ui_name
 		)
 
 		if self.params.CR_ik_chain_use_pole:
-			self.setup_ik_pole_parent_switch(self.ik_mstr, ik_parents_prop_name)
+			self.setup_ik_pole_parent_switch(self.ik_mstr)
 
-	def setup_ik_pole_parent_switch(self, ik_mstr, ik_parents_prop_name: str):
+	def setup_ik_pole_parent_switch(self, ik_mstr):
 		"""Rig the IK Pole control's parent switcher, with an additional "IK Pole Follows" slider."""
 		# Create parent helper bone
 		parent_helper = self.create_parent_bone(self.pole_ctrl, bone_set=self.bones_mch)
@@ -523,7 +523,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		}
 		self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=0.0)
 
-		# TODO This will fail when the IK chain is at the rig's root and therefore only has one parent and no parent switching setup and no armature constraint!
+		if not self.params.CR_base_parent_switching:
+			return
 		# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
 		arm_con_info.targets.append({
 			"subtarget" : self.ik_mstr.name
