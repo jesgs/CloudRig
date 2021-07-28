@@ -5,6 +5,10 @@ from math import radians
 class CloudFingerRig(CloudIKChainRig):
 	"""An IK chain tailored for fingers."""
 
+	forced_params = {
+		'CR_ik_chain_at_tip' : True,
+	}
+
 	def initialize(self):
 		super().initialize()
 
@@ -22,6 +26,10 @@ class CloudFingerRig(CloudIKChainRig):
 
 	def setup_ik_pole_parent_switch(self, ik_mstr):
 		# We don't want IK pole parent switching for finger rigs.
+		pass
+
+	def world_align_last_fk(self):
+		# Don't world align last FK, only IK.
 		pass
 
 	def create_bone_infos(self):
@@ -114,9 +122,7 @@ class CloudFingerRig(CloudIKChainRig):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
 
-		if not cls.draw_dropdown_menu(layout, params, 'CR_finger_show_settings'): return layout
-
-		# cls.draw_prop(layout, params, 'CR_template_use_control')
+		# if not cls.draw_dropdown_menu(layout, params, 'CR_finger_show_settings'): return layout
 
 		return layout
 
