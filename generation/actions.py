@@ -236,12 +236,11 @@ class ActionSlot(bpy.types.PropertyGroup):
 
 		return con_name
 
-	def create_action_constraints(self, property_bone_name):
+	def create_action_constraints(self, rig, property_bone_name):
 		control_is_left_side = naming.side_is_left(self.subtarget)
 		do_symmetry = control_is_left_side!=None and self.symmetrical==True
 
 		metarig_data = self.id_data
-		rig = metarig_data.rigify_target_rig
 
 		action = self.action
 		subtarget = self.subtarget
