@@ -16,7 +16,7 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 	"""Switch the active object between the generated rig and the metarig"""
 
 	bl_idname = "object.cloudrig_toggle_metarig"
-	bl_label = "Toggle Metarig/Generated rig"
+	bl_label = "Toggle Meta/Generated Rig"
 	bl_options = {'REGISTER', 'UNDO'}
 
 	match_layers: BoolProperty(name="Match Layers", default=True, description="Keep the active layer list between armatures when switching between them, as if they shared active layers")

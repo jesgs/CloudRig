@@ -40,13 +40,13 @@ def find_metarigs_in_scene(scene):
 class Generate_All_Rigify_Rigs(bpy.types.Operator):
 	"""Generate all Rigify rigs in the scene"""
 	bl_idname = "object.generate_all_rigify_rigs"
-	bl_label = "Generate All Rigify Rigs"
+	bl_label = "Generate All"
 	bl_options = {'REGISTER', 'UNDO'}
 
 	focus_generated: BoolProperty(
-		name="Focus Generated"
-		,default=False
-		,description="After successfully generating a single rig, hide the metarig, unhide the generated rig, enter the same mode as the current mode, and match bone selection states where possible"
+		name = "Focus Generated"
+		,default = True
+		,description = "After successfully generating a single rig, hide the metarig, unhide the generated rig, enter the same mode as the current mode, and match bone selection states where possible"
 	)
 
 	def execute(self, context):

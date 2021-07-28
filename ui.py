@@ -123,6 +123,8 @@ def draw_rigify_header(self, context):
 		return self.draw_old(context)
 
 	layout.operator('pose.cloudrig_generate', text="Generate")
+	layout.operator('object.generate_all_rigify_rigs')
+	layout.operator('object.cloudrig_toggle_metarig')
 	
 	if context.mode == 'EDIT_ARMATURE' and not is_beginner_mode(context):
 		layout.separator()
