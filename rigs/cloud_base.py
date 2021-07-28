@@ -258,7 +258,7 @@ class CloudBaseRig(
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
 		params.CR_base_show_settings = BoolProperty(
-			name		 = "Base Settings"
+			name		 = "Parenting"
 			,description = "Reveal settings for the cloud_base rig type"
 		)
 

@@ -101,30 +101,7 @@ class CloudFingerRig(CloudIKChainRig):
 		)
 
 	##############################
-	# Parameters
-	@classmethod
-	def add_bone_set_parameters(cls, params):
-		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_finger_show_settings = BoolProperty(
-			name		 = "Finger Settings"
-			,description = "Reveal settings for the cloud_finger rig type"
-		)
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		# if not cls.draw_dropdown_menu(layout, params, 'CR_finger_show_settings'): return layout
-
-		return layout
+	# No parameters for this rig type yet.
 
 class Rig(CloudFingerRig):
 	pass

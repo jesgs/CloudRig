@@ -273,7 +273,7 @@ class CloudAimRig(CloudBaseRig):
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
-		params.CR_aim_show_settings = BoolProperty(name="Aim Settings")
+		params.CR_aim_show_settings = BoolProperty(name="Aim Target")
 
 		params.CR_aim_group = StringProperty(
 			name		 = "Aim Group"

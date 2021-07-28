@@ -145,7 +145,7 @@ class CloudTweakRig(CloudBaseRig):
 		super().add_parameters(params)
 
 		params.CR_tweak_show_settings = BoolProperty(
-			name		 = "Tweak Settings"
+			name		 = "Tweak Bone"
 			,description = "Reveal settings for the cloud_tweak rig type"
 		)
 

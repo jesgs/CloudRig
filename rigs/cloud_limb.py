@@ -441,7 +441,7 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 
 		params.CR_limb_double_ik = BoolProperty(
-			 name		 = "Double IK Master"
+			 name		 = "Duplicate IK Master"
 			,description = "The IK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
 			,default	 = False
 		)

@@ -207,10 +207,6 @@ class CloudFaceChainRig(CloudChainRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_face_chain_show_settings = BoolProperty(
-			name		 = "Face Chain Settings"
-			,description = "Reveal settings for the cloud_face_chain rig type"
-		)
 		params.CR_face_chain_merge = BoolProperty(
 			name		 = "Merge Controls"
 			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
@@ -218,11 +214,9 @@ class CloudFaceChainRig(CloudChainRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_stretch_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_face_chain_show_settings"): return layout
+		layout = super().draw_stretch_params(layout, context, params)
 
 		cls.draw_prop(layout, params, "CR_face_chain_merge")
 

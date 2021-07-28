@@ -523,9 +523,13 @@ class CloudChainRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_chain_show_settings = BoolProperty(
-			name		 = "Chain Settings"
-			,description = "Reveal settings for the cloud_chain rig type"
+		params.CR_chain_bendy_settings = BoolProperty(
+			name		 = "Bendy Bones"
+			,description = "Reveal Bendy Bone behaviour related settings"
+		)
+		params.CR_chain_stretch_settings = BoolProperty(
+			name		 = "Stretch Controls"
+			,description = "Reveal Stretch Control behaviour related settings"
 		)
 		params.CR_chain_segments = IntProperty(
 			 name		 = "Deform Segments"
@@ -542,12 +546,12 @@ class CloudChainRig(CloudBaseRig):
 			,max		 = 32
 		)
 		params.CR_chain_unlock_deform = BoolProperty(
-			 name		 = "Direct Deform Controls"
+			 name		 = "Create Deform Controls"
 			,description = "Create CTR-DEF controls that allow Deform bones to be controlled directly"
 			,default	 = False
 		)
 		params.CR_chain_shape_key_helpers = BoolProperty(
-			 name		 = "Shape Key Helpers"
+			 name		 = "Create Shape Key Helpers"
 			,description = "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
 		)
 		params.CR_chain_sharp = BoolProperty(
@@ -576,21 +580,26 @@ class CloudChainRig(CloudBaseRig):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_chain_show_settings"): return layout
+		if cls.draw_dropdown_menu(layout, params, "CR_chain_bendy_settings"):
+			cls.draw_prop(layout, params, "CR_chain_bbone_density")
+			cls.draw_prop(layout, params, "CR_chain_sharp")
+			cls.draw_prop(layout, params, "CR_chain_smooth_spline")
 
+		if cls.draw_dropdown_menu(layout, params, "CR_chain_stretch_settings"):
+			cls.draw_stretch_params(layout, context, params)
+
+		return layout
+	
+	@classmethod
+	def draw_stretch_params(cls, layout, context, params):
 		cls.draw_prop(layout, params, "CR_chain_segments")
-		cls.draw_prop(layout, params, "CR_chain_bbone_density")
-		cls.draw_prop(layout, params, "CR_chain_sharp")
-		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
 		cls.draw_prop(layout, params, "CR_chain_tip_control")
 
-		if not cls.is_advanced_mode(context):
-			return layout
-
-		cls.draw_prop(layout, params, "CR_chain_unlock_deform")
-		cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
-		cls.draw_prop(layout, params, "CR_chain_preserve_volume")
-
+		if cls.is_advanced_mode(context):
+			cls.draw_prop(layout, params, "CR_chain_unlock_deform")
+			cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
+			cls.draw_prop(layout, params, "CR_chain_preserve_volume")
+		
 		return layout
 
 class Rig(CloudChainRig):

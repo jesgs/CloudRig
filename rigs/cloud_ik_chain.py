@@ -581,12 +581,12 @@ class CloudIKChainRig(CloudFKChainRig):
 			,description = "Reveal settings for the cloud_ik_chain rig type"
 		)
 		params.CR_ik_chain_at_tip = BoolProperty(
-			name		 = "At Tail"
+			name		 = "Full Length"
 			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
 			,default	 = False
 		)
 		params.CR_ik_chain_world_aligned = BoolProperty(
-			 name		 = "World Aligned Control"
+			 name		 = "World Aligned IK Master"
 			,description = "Ankle/Wrist IK/FK controls are aligned with world axes"
 			,default	 = False
 		)

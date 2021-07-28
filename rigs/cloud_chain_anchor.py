@@ -22,33 +22,7 @@ class CloudChainAnchorRig(CloudCopyRig):
 			pass # TODO: Add default bone group? Perhaps even add a whole Anchor BoneSet just for this?
 
 	##############################
-	# Parameters
-
-	@classmethod
-	def add_bone_set_parameters(cls, params):
-		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup"""
-		super().add_parameters(params)
-
-		params.CR_anchor_show_settings = BoolProperty(
-			name		 = "Anchor Settings"
-			,description = "Reveal settings for the cloud_chain_anchor rig type"
-		)
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
-		layout = CloudBaseRig.draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_anchor_show_settings'): return layout
-
-		layout.label(text="No parameters for this rig type.")
-
-		return layout
+	# No parameters for this rig type.
 
 class Rig(CloudChainAnchorRig):
 	pass

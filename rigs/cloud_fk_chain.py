@@ -321,19 +321,19 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,default	 = True
 		)
 		params.CR_fk_chain_double_first = BoolProperty(
-			 name		 = "Double First FK"
+			 name		 = "Duplicate First FK"
 			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
 			,default	 = False
 		)
 
 		params.CR_fk_chain_root = BoolProperty(
-			name		 = "Root Control"
+			name		 = "Create Root"
 			,description = "Create a root control"
 			,default	 = False
 		)
 		params.CR_fk_chain_hinge = BoolProperty(
 			name		 = "Hinge Toggle"
-			,description = "Set up a hinge toggle"
+			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root"
 			,default	 = True
 		)
 
@@ -343,7 +343,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,default 	 = False
 		)
 		params.CR_fk_chain_limb_name = StringProperty(
-			name		 = "Custom Limb"
+			name		 = "UI Row"
 			,default	 = "Arm"
 			,description = """This name should NOT include a side indicator such as ".L" or ".R", as that will be determined by the bone's name. There can be exactly two limbs with the same name(a left and a right one)"""
 		)
@@ -353,7 +353,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,default	 = False
 		)
 		params.CR_fk_chain_category_name = StringProperty(
-			name		 = "Custom Category"
+			name		 = "UI Column"
 			,default	 = "arms"
 			,description = "Limbs in the same category will have their settings displayed in the same column"
 		)
@@ -409,13 +409,13 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		if not cls.is_advanced_mode(context):
 			return layout
 
-		category_row = layout.row(align=True, heading="UI Category")
+		category_row = layout.row(align=True, heading="UI Column")
 		cls.draw_prop(category_row, params, 'CR_fk_chain_use_category_name', new_row=False, text="")
 		col = category_row.column()
 		cls.draw_prop(col, params, 'CR_fk_chain_category_name', new_row=False, text="")
 		col.enabled = params.CR_fk_chain_use_category_name
 
-		limb_row = layout.row(align=True, heading="Limb UI Name")
+		limb_row = layout.row(align=True, heading="UI Row")
 		cls.draw_prop(limb_row, params, 'CR_fk_chain_use_limb_name', new_row=False, text="")
 		col = limb_row.column()
 		cls.draw_prop(col, params, 'CR_fk_chain_limb_name', new_row=False, text="")

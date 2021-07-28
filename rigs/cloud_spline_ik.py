@@ -180,7 +180,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK Settings")
+		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK")
 		params.CR_spline_ik_match_hooks = BoolProperty(
 			 name		 = "Match Controls to Bones"
 			,description = "Hook controls will be created at each bone, instead of being equally distributed across the length of the chain"
