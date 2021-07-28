@@ -384,8 +384,11 @@ class BoneInfo:
 
 		if self.parent:
 			eb.parent = armature.data.edit_bones.get(str(self.parent))
-			if eb.parent==None:
-				self.bone_set.rig.add_log("Bone failed to parent", trouble_bone=self.name, description=f"Failed to find parent {self.parent}. It's also possible that parenting failed because the parent bone is a child of this bone.")
+			if not eb.parent:
+				self.bone_set.rig.add_log("Parent not found"
+					,trouble_bone=self.name
+					,description=f'Parent bone "{self.parent}" does not exist or is a child of this bone.'
+				)
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props_edit.items():
