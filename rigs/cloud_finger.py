@@ -3,7 +3,7 @@ from .cloud_ik_chain import CloudIKChainRig
 from math import radians
 
 class CloudFingerRig(CloudIKChainRig):
-	"""Prototype finger rig, use at own risk!"""
+	"""An IK chain tailored for fingers."""
 
 	def initialize(self):
 		super().initialize()
@@ -20,8 +20,8 @@ class CloudFingerRig(CloudIKChainRig):
 			custom_prop_dict['default'] = 1.0
 		prop_bone.custom_props[prop_id] = custom_prop_dict
 
-	# HACK to avoid IK pole parent switching from being set up unnecessarily
-	def setup_ik_pole_parent_switch(self, ik_mstr, ik_parents_prop_name: str):
+	def setup_ik_pole_parent_switch(self, ik_mstr):
+		# We don't want IK pole parent switching for finger rigs.
 		pass
 
 	def create_bone_infos(self):
