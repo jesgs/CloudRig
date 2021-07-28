@@ -3,8 +3,9 @@ import addon_utils
 
 from rigify import rig_lists, feature_sets
 
+
 from .generation.cloudrig import draw_layers_ui
-from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig
+from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_beginner_mode
 
 class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
@@ -114,6 +115,21 @@ def draw_cloudrig_rigify_generate(self, context):
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(cloudrig, "widget_collection")
 	layout.prop(cloudrig, 'beginner_mode')
+
+def draw_rigify_header(self, context):
+	layout = self.layout
+
+	if not is_cloud_metarig(context.object):
+		return self.draw_old(context)
+
+	layout.operator('pose.cloudrig_generate', text="Generate")
+	
+	if context.mode == 'EDIT_ARMATURE' and not is_beginner_mode(context):
+		layout.separator()
+		layout.operator('armature.metarig_sample_add')
+		layout.separator()
+		layout.operator('armature.rigify_encode_metarig', text="Encode Metarig")
+		layout.operator('armature.rigify_encode_metarig_sample', text="Encode Metarig Sample")
 
 def metarig_contains_fk_chain(metarig):
 	"""Return whether or not a metarig contains an FK rig. Used to determine
@@ -259,6 +275,9 @@ def register():
 	bpy.types.DATA_PT_rigify_layer_names.draw_old = bpy.types.DATA_PT_rigify_layer_names.draw
 	bpy.types.DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
 
+	bpy.types.VIEW3D_MT_rigify.draw_old = bpy.types.VIEW3D_MT_rigify.draw
+	bpy.types.VIEW3D_MT_rigify.draw = draw_rigify_header
+
 def unregister():
 	from bpy.utils import unregister_class
 	for c in reversed(classes):
@@ -272,3 +291,4 @@ def unregister():
 	rigify_generate_ui.draw = rigify_generate_ui.draw_old
 	bpy.types.DATA_PT_rigify_bone_groups.poll = bpy.types.DATA_PT_rigify_bone_groups.poll_old
 	bpy.types.DATA_PT_rigify_layer_names.draw = bpy.types.DATA_PT_rigify_layer_names.draw_old
+	bpy.types.VIEW3D_MT_rigify.draw = bpy.types.VIEW3D_MT_rigify.draw_old

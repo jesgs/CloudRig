@@ -117,10 +117,6 @@ class CloudBaseRig(
 				meta_base_bone.rigify_parameters[param] = forced_value
 				setattr(params, param, forced_value)
 
-	@staticmethod
-	def is_beginner_mode(context):
-		return context.object.data.cloudrig_parameters.beginner_mode
-
 	@property
 	def properties_bone(self) -> BoneInfo:
 		"""Ensure that a Properties bone exists, and return it."""

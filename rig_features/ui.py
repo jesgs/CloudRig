@@ -7,6 +7,10 @@ class CloudUIMixin:
 	def add_ui_data(self, ui_area, row_name, col_name, info, **custom_property_dict):
 		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, **custom_property_dict)
 
+	@staticmethod
+	def is_beginner_mode(context):
+		return is_beginner_mode(context)
+
 	@classmethod
 	def draw_prop(cls, layout, prop_owner, prop_name, new_row=True, **kwargs):
 		row = draw_prop(layout, prop_owner, prop_name, new_row, **kwargs)
@@ -36,6 +40,11 @@ class CloudUIMixin:
 	def draw_dropdown_menu(cls, layout, params, dropdown_param_name, alert=False):
 		layout.separator()
 		return draw_dropdown(layout, params, dropdown_param_name, alert)
+
+def is_beginner_mode(context):
+	if not is_cloud_metarig(context.object):
+		return False
+	return context.object.data.cloudrig_parameters.beginner_mode
 
 def is_cloud_metarig(rig):
 	if rig.type=='ARMATURE' and 'cloudrig' not in rig.data:
