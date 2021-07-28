@@ -113,12 +113,7 @@ def draw_cloudrig_rigify_generate(self, context):
 	# Basic Parameters
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(cloudrig, "widget_collection")
-
-	# Bone Group Color Parameters
-	layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
-	if obj.data.rigify_colors_lock:
-		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
-		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
+	layout.prop(cloudrig, 'beginner_mode')
 
 def metarig_contains_fk_chain(metarig):
 	"""Return whether or not a metarig contains an FK rig. Used to determine
@@ -151,11 +146,19 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
 
-		layout.prop(cloudrig, 'advanced_mode')
-		layout.separator()
-		layout.prop(obj.data, "rigify_rig_ui")
-		layout.prop(cloudrig, "custom_script")
+		# Bone Group Color Parameters
+		layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
+		if obj.data.rigify_colors_lock:
+			layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
+			layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
 
+		layout.separator()
+		### Root Bone Parameters
+		layout.prop(cloudrig, 'create_root')
+		if cloudrig.create_root and not cloudrig.beginner_mode:
+				layout.prop(cloudrig, 'double_root')
+
+		layout.separator()
 		# Test Animation Parameters
 		if metarig_contains_fk_chain(obj):
 			heading = "Generate Action"
@@ -168,24 +171,14 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 			act_col.enabled = cloudrig.generate_test_action
 
 		layout.separator()
+		layout.prop(obj.data, 'rigify_force_widget_update')
 
-		### Root Bone Parameters
-		layout.prop(cloudrig, 'create_root')
-		if cloudrig.create_root:
-			layout.prop_search(cloudrig, "root_bone_group", context.object.pose, "bone_groups")
-			row = layout.row()
-			row.use_property_split=False
-			row.prop(cloudrig, "root_layers", text="")
-			layout.prop(cloudrig, 'double_root')
-			if cloudrig.double_root:
-				layout.prop_search(cloudrig, "root_parent_group", context.object.pose, "bone_groups")
-				row = layout.row()
-				row.use_property_split=False
-				row.prop(cloudrig, "root_parent_layers", text="")
+		if cloudrig.beginner_mode:
+			return
 
 		layout.separator()
-
-		layout.prop(obj.data, 'rigify_force_widget_update')
+		layout.prop(obj.data, "rigify_rig_ui")
+		layout.prop(cloudrig, "custom_script")
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):

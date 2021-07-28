@@ -36,20 +36,20 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "For internal use only"
 		,default	 = -1
 	)
-	advanced_mode: BoolProperty(
-		name		 = "Advanced Mode"
-		,description = "Enable advanced rig type parameters"
-		,default	 = False
+	beginner_mode: BoolProperty(
+		name		 = "Beginner Mode"
+		,description = "Hide some advanced generator and rig type parameters. Recommended for new users"
+		,default	 = True
 	)
 
 	create_root: BoolProperty(
 		name		 = "Create Root"
-		,description = "Create the root control"
+		,description = "Create a default root control"
 		,default	 = True
 	)
 	double_root: BoolProperty(
 		name		 = "Double Root"
-		,description = "Create two root controls"
+		,description = "Create two default root controls"
 		,default	 = False
 	)
 
@@ -73,30 +73,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		name		 = "Test Action"
 		,type		 = bpy.types.Action
 		,description = "Action which will be generated with the keyframes neccessary to test the rig's deformations"
-	)
-
-	root_bone_group: StringProperty(
-		name="Root"
-		,description="Bone Group to assign the root bone to"
-		,default="Root"
-	)
-	root_layers: BoolVectorProperty(
-		size = 32,
-		subtype = 'LAYER',
-		description = "Layers to assign the root bone to",
-		default = [l==0 for l in range(32)]
-	)
-
-	root_parent_group: StringProperty(
-		name="Root Parent"
-		,description="Bone Group to assign the second root bone to"
-		,default="Root Parent"
-	)
-	root_parent_layers: BoolVectorProperty(
-		size = 32,
-		subtype = 'LAYER',
-		description = "Layers to assign the the second root bone to",
-		default = [l==0 for l in range(32)]
 	)
 
 	show_layers_preview_hidden: BoolProperty(

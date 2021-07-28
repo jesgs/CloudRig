@@ -406,7 +406,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
 				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
 
-		if not cls.is_advanced_mode(context):
+		if cls.is_beginner_mode(context):
 			return layout
 
 		category_row = layout.row(align=True, heading="UI Category")

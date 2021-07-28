@@ -118,8 +118,8 @@ class CloudBaseRig(
 				setattr(params, param, forced_value)
 
 	@staticmethod
-	def is_advanced_mode(context):
-		return context.object.data.cloudrig_parameters.advanced_mode
+	def is_beginner_mode(context):
+		return context.object.data.cloudrig_parameters.beginner_mode
 
 	@property
 	def properties_bone(self) -> BoneInfo:
@@ -323,8 +323,7 @@ class CloudBaseRig(
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
 
-		cloudrig = metarig.data.cloudrig_parameters
-		if not cloudrig.advanced_mode:
+		if cls.is_beginner_mode(context):
 			return
 
 		layout.separator()
