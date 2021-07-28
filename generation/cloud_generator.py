@@ -79,6 +79,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		name		 = "Show Hidden Layers"
 		,description = "Show layers whose names start with $ and will be hidden on the rig UI"
 		,default	 = True
+		,override	 = {'LIBRARY_OVERRIDABLE'}
 	)
 
 	action_slots: CollectionProperty(type=ActionSlot)
