@@ -93,26 +93,28 @@ def draw_cloudrig_rigify_generate(self, context):
 	layout = self.layout
 	layout.use_property_split=True
 	layout.use_property_decorate=False
-	obj = context.object
+	metarig = context.object
 
-	if not is_cloud_metarig(context.object) or obj.mode=='EDIT':
+	if not is_cloud_metarig(metarig) or metarig.mode=='EDIT':
 		self.draw_old(context)
 		return
 
-	if obj.mode not in {'POSE', 'OBJECT'}:
+	if metarig.mode not in {'POSE', 'OBJECT'}:
 		return
 
 	if not draw_version_check(layout):
 		return
 
-	layout.operator("pose.cloudrig_generate", text="Generate CloudRig")
+	text = "Generate CloudRig"
+	if metarig.data.rigify_target_rig:
+		text = "Re-Generate CloudRig"
+	layout.operator("pose.cloudrig_generate", text=text)
 	layout.separator()
 
-	obj = context.object
-	cloudrig = obj.data.cloudrig_parameters
+	cloudrig = metarig.data.cloudrig_parameters
 
 	# Basic Parameters
-	layout.prop(obj.data, "rigify_target_rig")
+	layout.prop(metarig.data, "rigify_target_rig")
 	layout.prop(cloudrig, "widget_collection")
 
 def draw_rigify_header(self, context):

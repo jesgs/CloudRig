@@ -1,8 +1,5 @@
 fsiddi ideas:
-    - Consider flipping back "Beginner Mode" to "Advanced Mode" and putting it under the Advanced drop-down
-    
     - In Rigify Type panel, do a dirty check for the rig parameters (save their state on generation then compare) and when dirty, give a prompt to re-generate
-    - Just like in D11356, change the "Generate CloudRig" text to "Re-Generate CloudRig"
     - Consider removing the double spacing between entries in the Advanced drop-down
     - Change "Chain Settings" to "Bendy Bone Behaviour"
     - Change "Leg Settings" to "Foot Roll"
