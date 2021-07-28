@@ -271,11 +271,11 @@ class CloudGenerator(Generator):
 		return obj
 
 	def create_root_bones(self):
-		# Root bone groups
+		# Bone Set used for the Root, default Properties, and Action Properties bones.
 		self.root_set = BoneSet(self
 			,ui_name = 'Root'
-			,bone_group = self.params.cloudrig_parameters.root_bone_group
-			,layers = self.params.cloudrig_parameters.root_layers[:]
+			,bone_group = "Generator"
+			,layers = [i==0 for i in range(32)]
 			,preset = 2
 			,defaults = self.defaults
 		)
@@ -294,19 +294,15 @@ class CloudGenerator(Generator):
 			)
 
 		if self.params.cloudrig_parameters.double_root:
-			self.root_parent_set = BoneSet(self,
-				ui_name = 'Root',
-				bone_group = getattr(self.params.cloudrig_parameters, 'root_parent_group'),
-				layers = getattr(self.params.cloudrig_parameters, 'root_parent_layers')[:],
-				preset = 8,
-				defaults = self.defaults
+			self.root_parent_set = BoneSet(self
+				,ui_name = 'Root'
+				,bone_group = "Root Parent"
+				,layers = [i==0 for i in range(32)]
+				,preset = 8
+				,defaults = self.defaults
 			)
 			self.bone_sets.append(self.root_parent_set)
 			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
-
-		# If the Metarig has any Action Slots, create an Action Property Helper bone.
-		if len(self.metarig.data.cloudrig_parameters.action_slots) > 0:
-			self.action_helper = self.create_action_helper()
 
 	def ensure_bone_groups(self):
 		# Wipe any existing bone groups from the target rig.
@@ -395,7 +391,8 @@ class CloudGenerator(Generator):
 
 			act_slot.create_action_constraints(self.action_helper.name)
 
-	def create_action_helper(self):
+	@property
+	def action_helper(self):
 		action_helper = self.root_set.new(
 			name				= "action_props"
 			,head				= Vector((0, 0, 0))
