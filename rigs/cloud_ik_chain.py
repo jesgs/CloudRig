@@ -612,7 +612,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
 		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
 		
-		if cls.is_beginner_mode(context):
+		if not cls.is_advanced_mode(context):
 			return layout
 		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 

@@ -244,8 +244,8 @@ def version_cloud_metarig(metarig):
 	if data.cloudrig_parameters.version < 12:
 		print("12:")
 		# Advanced settings used to always be visible before this.
-		print("Disable Beginner Mode")
-		data.cloudrig_parameters.beginner_mode = False
+		print("Enable Advanced Mode")
+		data.cloudrig_parameters.advanced_mode = True
 		preserve_old_default(metarig, ['cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_ik_chain_world_aligned', True)
 		preserve_old_default(metarig, ['cloud_fk_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_fk_chain_display_center', False)
 

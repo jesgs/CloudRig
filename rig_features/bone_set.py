@@ -292,7 +292,7 @@ class BoneSetMixin:
 	def draw_bone_sets_list(cls, layout, context, params):
 		"""Drawing the Bone Sets section of the Rigify Parameters."""
 
-		if cls.is_beginner_mode(context):
+		if not cls.is_advanced_mode(context):
 			return layout
 
 		# If no bone sets are visible, don't draw anything.

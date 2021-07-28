@@ -17,7 +17,7 @@ import traceback
 
 from bpy.props import StringProperty
 
-from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown
+from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown, is_advanced_mode
 
 # This whole thing could be part of Rigify.
 
@@ -417,9 +417,10 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 
 	def draw(self, context):
 		obj = context.object
-		draw_cloudrig_log(self.layout, obj)
+		draw_cloudrig_log(self.layout, context)
 
-def draw_cloudrig_log(layout, metarig):
+def draw_cloudrig_log(layout, context):
+	metarig = context.object
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
 	active_index = cloudrig.active_log_index
@@ -475,10 +476,10 @@ def draw_cloudrig_log(layout, metarig):
 		for key in kwargs.keys():
 			setattr(op, key, kwargs[key])
 
-	layout.separator()
-
-	if draw_dropdown(layout, cloudrig, 'log_show_stack_trace'):
-		col = draw_label_with_linebreak(layout, log.pretty_stack, alert=True)
+	if is_advanced_mode(context):
+		layout.separator()
+		if draw_dropdown(layout, cloudrig, 'log_show_stack_trace'):
+			col = draw_label_with_linebreak(layout, log.pretty_stack, alert=True)
 
 ########################################
 ######### Quick-Fix Operators ##########

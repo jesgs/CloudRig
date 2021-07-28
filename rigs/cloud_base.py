@@ -319,7 +319,7 @@ class CloudBaseRig(
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
 
-		if cls.is_beginner_mode(context):
+		if not cls.is_advanced_mode(context):
 			return
 
 		layout.separator()

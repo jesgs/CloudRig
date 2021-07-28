@@ -1,3 +1,19 @@
+fsiddi ideas:
+    - Consider flipping back "Beginner Mode" to "Advanced Mode" and putting it under the Advanced drop-down
+    
+    - In Rigify Type panel, do a dirty check for the rig parameters (save their state on generation then compare) and when dirty, give a prompt to re-generate
+    - Just like in D11356, change the "Generate CloudRig" text to "Re-Generate CloudRig"
+    - Consider removing the double spacing between entries in the Advanced drop-down
+    - Change "Chain Settings" to "Bendy Bone Behaviour"
+    - Change "Leg Settings" to "Foot Roll"
+    - Change "Base Settings" to "Parenting"
+
+    - Probably change "At Tail" to something better, and "Double IK Master" to "Duplicate IK Master" and also "Double Root" to "Duplicate Root"
+
+    - I wonder if the limb UI category name parameters are really necessary? IIRC we just use it to make sure rig settings go in the same row, but we could just do that by saving the name of the bone without its suffix, since without the suffix the bone names match on left/right.
+
+    - Maybe change "Bone Sets" to "Bone Organization"
+
 Priority 1: Bugs
     Flatten Chain operator wasn't working properly so I disabled it from the UI.
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
@@ -11,6 +27,10 @@ Priority 1: Bugs
 
         On the other hand, apparently simply selecting the target bone in the generated rig just works... why are we not always just doing that in the first place, instead of the whole "@" bullshit?!? We could even version this!
 Priority 2: New features
+    Actions:
+        Remove the Corrective Range feature (or at least hide it for now, since Sprite Frigt rigs need it)
+        Split up actions into rotation/not rotation or beg for 
+
     Register shortcuts for the Generate All/Toggle Metarig/Select Armature Layers operators
         Make an Assign Armature Layers operator. Make sure both work in edit mode too and that they overwrite the default.
     cloud_finger IK setup should at least have the option to be consistent with other rig elements, and have its IK/FK switch in the rig UI rather than in the 3D viewport.

@@ -5,7 +5,7 @@ from rigify import rig_lists, feature_sets
 
 
 from .generation.cloudrig import draw_layers_ui
-from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_beginner_mode
+from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
 
 class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 	"""Initialize armature rigify layers"""
@@ -114,7 +114,6 @@ def draw_cloudrig_rigify_generate(self, context):
 	# Basic Parameters
 	layout.prop(obj.data, "rigify_target_rig")
 	layout.prop(cloudrig, "widget_collection")
-	layout.prop(cloudrig, 'beginner_mode')
 
 def draw_rigify_header(self, context):
 	layout = self.layout
@@ -126,7 +125,7 @@ def draw_rigify_header(self, context):
 	layout.operator('object.generate_all_rigify_rigs')
 	layout.operator('object.cloudrig_toggle_metarig')
 	
-	if context.mode == 'EDIT_ARMATURE' and not is_beginner_mode(context):
+	if context.mode == 'EDIT_ARMATURE' and is_advanced_mode(context):
 		layout.separator()
 		layout.operator('armature.metarig_sample_add')
 		layout.separator()
@@ -164,19 +163,22 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
 
+		layout.prop(cloudrig, 'advanced_mode')
+		layout.separator()
+
 		# Bone Group Color Parameters
 		layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
 		if obj.data.rigify_colors_lock:
 			layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
 			layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
+			layout.separator()
 
-		layout.separator()
 		### Root Bone Parameters
 		layout.prop(cloudrig, 'create_root')
-		if cloudrig.create_root and not cloudrig.beginner_mode:
+		if cloudrig.create_root and cloudrig.advanced_mode:
 				layout.prop(cloudrig, 'double_root')
+				layout.separator()
 
-		layout.separator()
 		# Test Animation Parameters
 		if metarig_contains_fk_chain(obj):
 			heading = "Generate Action"
@@ -188,13 +190,11 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 			act_col.prop(cloudrig, 'test_action', text="")
 			act_col.enabled = cloudrig.generate_test_action
 
-		layout.separator()
 		layout.prop(obj.data, 'rigify_force_widget_update')
 
-		if cloudrig.beginner_mode:
+		if not cloudrig.advanced_mode:
 			return
 
-		layout.separator()
 		layout.prop(obj.data, "rigify_rig_ui")
 		layout.prop(cloudrig, "custom_script")
 

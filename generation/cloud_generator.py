@@ -36,10 +36,10 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "For internal use only"
 		,default	 = -1
 	)
-	beginner_mode: BoolProperty(
-		name		 = "Beginner Mode"
-		,description = "Hide some advanced generator and rig type parameters. Recommended for new users"
-		,default	 = True
+	advanced_mode: BoolProperty(
+		name		 = "Advanced Mode"
+		,description = "Show more advanced generator and rig type parameters"
+		,default	 = False
 	)
 
 	create_root: BoolProperty(

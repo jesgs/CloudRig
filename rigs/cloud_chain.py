@@ -584,7 +584,7 @@ class CloudChainRig(CloudBaseRig):
 		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
 		cls.draw_prop(layout, params, "CR_chain_tip_control")
 
-		if cls.is_beginner_mode(context):
+		if not cls.is_advanced_mode(context):
 			return layout
 
 		cls.draw_prop(layout, params, "CR_chain_unlock_deform")
