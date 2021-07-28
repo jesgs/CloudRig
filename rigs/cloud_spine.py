@@ -8,7 +8,6 @@ Re-implement FK-C bones (maybe under a param)
 	Their values would probably have to be dependent on the length of the bone. 
 	Ie., longer bones slide more when rotated.
 Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone?
-Errors without an assert when it's just a single bone. Should be supported.
 """
 
 class CloudSpineRig(CloudFKChainRig):
@@ -27,8 +26,10 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		if self.params.CR_spine_use_ik:
-			assert self.bone_count > 2, "Spine with IK must consist of at least 3 connected bones."
+		if self.params.CR_spine_use_ik and not self.bone_count > 2:
+			self.raise_error("Spine with IK must consist of a chain of at least 3 connected bones!")
+		if not self.bone_count > 1:
+			self.raise_error("Spine rig must consist of a chain of at least 2 connected bones!")
 
 		# UI Strings and Custom Property names
 		self.category = self.naming.strip_org(self.base_bone)

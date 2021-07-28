@@ -37,7 +37,7 @@ def poll_trigger_action(self, action):
 class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
 	"""Create new Action"""
 	# This is needed because bpy.ops.action.new() has a poll function that blocks
-	# the operator unless it's drawn in an animation UI panel, which is dumb.
+	# the operator unless it's drawn in an animation UI panel.
 
 	bl_idname = "object.cloudrig_action_create"
 	bl_label = "New"
@@ -48,10 +48,6 @@ class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
 		rig = context.object
 		cloudrig = rig.data.cloudrig_parameters
 		action_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
-		if action_slot.action:
-			# This could be an assert, it should never happen.
-			self.report({'ERROR'}, "Action slot already has an action!")
-			return {'CANCELLED'}
 		action_slot.action = a
 		return {'FINISHED'}
 

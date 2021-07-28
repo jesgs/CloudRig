@@ -238,7 +238,7 @@ class BoneInfo:
 
 	@length.setter
 	def length(self, value):
-		assert value > 0, "Length cannot be 0!"
+		assert value > 0, f"{self.name}: Bone length cannot be 0!"
 		self.tail = self.head + self.vector.normalized() * value
 
 	@property

@@ -45,7 +45,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		assert len(self.bones_org) > 2, f"ERROR on {self.base_bone}: cloud_ik_chain requires at a chain of least 3 bones!"
+		if not len(self.bones_org) > 1:
+			self.raise_error(f"ERROR on {self.base_bone}: cloud_ik_chain requires a chain of at least 2 bones!")
 		self.last_org = self.bones_org[-1]
 		if self.params.CR_ik_chain_at_tip:
 			self.bones_org.new(
@@ -612,11 +613,14 @@ class CloudIKChainRig(CloudFKChainRig):
 		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
 
-		op = layout.operator('object.cloudrig_flatten_bones')
-		op.use_selected = False
-		op.start_bone = context.active_pose_bone.name
-		op.chain_length = len(get_bone_chain(context.active_pose_bone) ) - 1
-		op.skip_popup = True
+		# TODO: This operator should work by picking 3 points on the bone chain, 
+		# then aligning all points of the bone chain to that plane.
+
+		# op = layout.operator('object.cloudrig_flatten_bones')
+		# op.use_selected = False
+		# op.start_bone = context.active_pose_bone.name
+		# op.chain_length = len(get_bone_chain(context.active_pose_bone) ) - 1
+		# op.skip_popup = True
 
 		return layout
 

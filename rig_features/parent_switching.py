@@ -130,7 +130,7 @@ class CloudParentSwitchMixin:
 			return [], []
 
 		# Force the Root to be an available parent for all parent switching setups
-		# TODO: This should be removed after Sprite Fright!
+		# TODO: This should be removed and versioned!
 		if self.generator_params.cloudrig_parameters.create_root and 'root' not in parent_bone_names:
 			parent_ui_names.insert(0, "Root")
 			parent_bone_names.insert(0, 'root')
@@ -159,8 +159,9 @@ class CloudParentSwitchMixin:
 		)
 		params.CR_base_active_parent_slot_index = IntProperty()
 
-		# NOTE: Currently this causes an error when turning the Rigify addon off and back on, unless running Reload Scripts in between.
-		# I suspect this is because of the whole ParameterValidator shennanigans, but I couldn't figure out a fix.
+		# XXX: Currently this causes an error when turning the Rigify addon off 
+		# and back on, unless running Reload Scripts in between. I suspect this 
+		# is because of ParameterValidator shennanigans, but I couldn't fix.
 		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
 
 	@classmethod

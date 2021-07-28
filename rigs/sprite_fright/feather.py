@@ -12,8 +12,8 @@ class SpriteFeatherRig(CloudFKChainRig):
 	def initialize(self):
 		super().initialize()
 
-		if self.params.CR_spine_use_ik:
-			assert self.bone_count==1, "Feather rig must consist of exactly 1 bone."
+		if self.bone_count != 1:
+			self.raise_error("Feather rig must consist of exactly 1 bone.")
 
 	def create_bone_infos(self):
 		super().create_bone_infos()

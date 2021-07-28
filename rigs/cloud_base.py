@@ -65,7 +65,7 @@ class CloudBaseRig(
 		super().initialize()
 
 		from .. import cloud_generator
-		assert type(self.generator) == cloud_generator.CloudGenerator, "CloudRig has wrong Generator type. CloudRig requires its own Generator class - You're probably using bpy.ops.rigify_generate instead of bpy.ops.cloudrig_generate. Perhaps the Generate button is not being replaced even though it should?"
+		assert type(self.generator) == cloud_generator.CloudGenerator, "CloudRig rig type initialized without CloudGenerator. This is a bug!"
 
 		self.bone_count = len(self.bones.org.main)
 
