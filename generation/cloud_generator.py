@@ -269,9 +269,9 @@ class CloudGenerator(Generator):
 		"""Create the rig object that will replace the previous generation result."""
 
 		metaname = self.metarig.name
-		rig_name = "TEMP-" + metaname.replace("META", "RIG")
+		rig_name = "GENERATING-" + metaname.replace("META", "RIG")
 		obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
-		obj.data.name = "Data_" + obj.name
+		obj.data.name = "Data_" + metaname.replace("META", "RIG")
 
 		# Ensure rig is in the metarig's collection.
 		if obj.name not in self.collection.objects:
@@ -809,6 +809,8 @@ class CloudGenerator(Generator):
 
 		if old_rig:
 			self.preserve_rig_data(old_rig, obj)
+		else:
+			obj.name = obj.name.replace("GENERATING-", "")
 
 		self.params.rigify_target_rig = obj
 
