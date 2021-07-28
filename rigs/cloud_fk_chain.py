@@ -318,7 +318,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		params.CR_fk_chain_display_center = BoolProperty(
 			 name		 = "Display FK in center"
 			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
-			,default	 = False
+			,default	 = True
 		)
 		params.CR_fk_chain_double_first = BoolProperty(
 			 name		 = "Double First FK"
@@ -392,6 +392,23 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 		if not cls.draw_dropdown_menu(layout, params, "CR_fk_chain_show_settings"): return layout
 
+		cls.draw_prop(layout, params, 'CR_fk_chain_root')
+		cls.draw_hinge_param(layout, params)
+
+		if context.object.data.cloudrig_parameters.generate_test_action:
+			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
+			if params.CR_fk_chain_test_animation_generate:
+				row = layout.row()
+				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
+				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
+				row = layout.row(heading="Rotation Axes", align=True)
+				row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
+				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
+				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
+
+		if not cls.is_advanced_mode(context):
+			return layout
+
 		category_row = layout.row(align=True, heading="UI Category")
 		cls.draw_prop(category_row, params, 'CR_fk_chain_use_category_name', new_row=False, text="")
 		col = category_row.column()
@@ -407,19 +424,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		cls.draw_prop(layout, params, 'CR_fk_chain_inherit_scale')
 		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
-		cls.draw_prop(layout, params, 'CR_fk_chain_root')
-		cls.draw_hinge_param(layout, params)
-
-		if context.object.data.cloudrig_parameters.generate_test_action:
-			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
-			if params.CR_fk_chain_test_animation_generate:
-				row = layout.row()
-				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
-				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
-				row = layout.row(heading="Rotation Axes", align=True)
-				row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
-				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
-				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
 
 		return layout
 

@@ -588,7 +588,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		params.CR_ik_chain_world_aligned = BoolProperty(
 			 name		 = "World Aligned Control"
 			,description = "Ankle/Wrist IK/FK controls are aligned with world axes"
-			,default	 = True
+			,default	 = False
 		)
 		params.CR_ik_chain_use_pole = BoolProperty(
 			name 		 = "Use Pole Target"
@@ -610,8 +610,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		if not cls.draw_dropdown_menu(layout, params, "CR_ik_chain_show_settings"): return layout
 
 		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
-		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
+		
+		if not cls.is_advanced_mode(context):
+			return layout
+		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
 		# TODO: This operator should work by picking 3 points on the bone chain, 
 		# then aligning all points of the bone chain to that plane.

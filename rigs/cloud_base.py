@@ -117,6 +117,10 @@ class CloudBaseRig(
 				meta_base_bone.rigify_parameters[param] = forced_value
 				setattr(params, param, forced_value)
 
+	@staticmethod
+	def is_advanced_mode(context):
+		return context.object.data.cloudrig_parameters.advanced_mode
+
 	@property
 	def properties_bone(self) -> BoneInfo:
 		"""Ensure that a Properties bone exists, and return it."""
@@ -318,6 +322,10 @@ class CloudBaseRig(
 	def draw_custom_prop_params(cls, layout, context, params):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
+
+		cloudrig = metarig.data.cloudrig_parameters
+		if not cloudrig.advanced_mode:
+			return
 
 		layout.separator()
 		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)

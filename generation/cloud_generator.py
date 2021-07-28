@@ -37,8 +37,8 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,default	 = -1
 	)
 	advanced_mode: BoolProperty(
-		name		 = "Advanced Rig Settings"
-		,description = "Enable some less frequently used settings on various rig types"
+		name		 = "Advanced Mode"
+		,description = "Enable advanced rig type parameters"
 		,default	 = False
 	)
 

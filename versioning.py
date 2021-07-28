@@ -6,7 +6,7 @@ from .rig_features.object import set_enum_property_by_integer
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 11
+cloud_metarig_version = 12
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -31,6 +31,14 @@ def rename_parameters(metarig, dictionary):
 					setattr(pb.rigify_parameters, new_key, value)
 				except:
 					update_enum_property(pb.rigify_parameters, old_key, new_key, value)
+
+def preserve_old_default(metarig, rigify_types, param_name, old_default):
+	for pb in metarig.pose.bones:
+		if pb.rigify_type not in rigify_types:
+			continue
+		if param_name not in pb.rigify_parameters:
+			setattr(pb.rigify_parameters, param_name, old_default)
+			print(f"Preserve old default value: {pb.name} -> {param_name} = {old_default}")
 
 def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of
@@ -233,6 +241,13 @@ def version_cloud_metarig(metarig):
 		rename_parameters(metarig, {'CR_aim_highlight' : 'CR_aim_eye_highlight'})
 		rename_parameters(metarig, {'CR_aim_eye_highlight' : 'CR_aim_create_sub_control'})
 		# Changed the default of CR_fk_chain_double_first from True to False.
+	if data.cloudrig_parameters.version < 12:
+		print("12:")
+		# Advanced settings used to always be visible before this.
+		print("Enabled Advanced Mode")
+		data.cloudrig_parameters.advanced_mode = True
+		preserve_old_default(metarig, ['cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_ik_chain_world_aligned', True)
+		preserve_old_default(metarig, ['cloud_fk_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_fk_chain_display_center', False)
 
 @persistent
 def update_all_metarigs(dummy):

@@ -580,12 +580,15 @@ class CloudChainRig(CloudBaseRig):
 
 		cls.draw_prop(layout, params, "CR_chain_segments")
 		cls.draw_prop(layout, params, "CR_chain_bbone_density")
-		cls.draw_prop(layout, params, "CR_chain_unlock_deform")
-
-		cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
 		cls.draw_prop(layout, params, "CR_chain_sharp")
 		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
 		cls.draw_prop(layout, params, "CR_chain_tip_control")
+
+		if not cls.is_advanced_mode(context):
+			return layout
+
+		cls.draw_prop(layout, params, "CR_chain_unlock_deform")
+		cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
 		cls.draw_prop(layout, params, "CR_chain_preserve_volume")
 
 		return layout

@@ -12,13 +12,7 @@ Priority 1: Bugs
 Priority 2: New features
     cloud_finger IK setup should at least have the option to be consistent with other rig elements, and have its IK/FK switch in the rig UI rather than in the 3D viewport.
         Also, the IK finger setups could be parented to the FK control when the arm is set to FK, but this is pretty tricky since a child rig (the finger) will end up having to make quite some assumptions about its parent rig being a cloud_ik_chain instance, potentially.
-    Hide some pretty useless Sprite Fright specific rig type settings under some "Advanced" toggle.
-        Pre-req for this is figuring out where feature sets could store and display their preferences.
-        (Maybe in rigify_info we specify the name of the AddonPreferences class, then upstream a patch to display that in the FeatureSets UI?)
 
-        Things I would hide behind this: 
-            Generator: Double Root, Generate Action, Selectable/Movable Helpers, Force Widget Update
-            Rigs: Custom Property Storage
     "(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
     Scale Inheritance and modifiers
         Warn when these modifier values don't have a driver, since they should be hooked up to rig scale (root bone world scale would be easiest, but the closer it is to the nearest relevant parent in the hierarchy the better)

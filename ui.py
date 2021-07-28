@@ -151,10 +151,10 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
 
+		layout.prop(cloudrig, 'advanced_mode')
+		layout.separator()
 		layout.prop(obj.data, "rigify_rig_ui")
 		layout.prop(cloudrig, "custom_script")
-
-		layout.prop(cloudrig, 'advanced_mode')
 
 		# Test Animation Parameters
 		if metarig_contains_fk_chain(obj):
