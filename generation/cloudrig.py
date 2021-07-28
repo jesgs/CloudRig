@@ -1709,10 +1709,15 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_hotkeys"
 	bl_label = "Hotkeys"
 
+	@classmethod
+	def poll(cls, context):
+		rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
+		return rig is not None
+
 	@staticmethod
-	def draw_kmi(display_keymaps, kc, km, kmi, layout, level):
-		"""A simplified version of the function in rna_keymap_ui."""
-		
+	def draw_kmi(kmi, layout):
+		"""A simplified version of draw_kmi from rna_keymap_ui.py."""
+
 		map_type = kmi.map_type
 
 		col = layout.column()
@@ -1738,52 +1743,39 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 		else:
 			row.label()
 
+		if (not kmi.is_user_defined) and kmi.is_user_modified:
+			row.operator("preferences.keyitem_restore", text="", icon='BACK').item_id = kmi.id
+		else:
+			row.operator(
+				"preferences.keyitem_remove",
+				text="",
+				icon=('TRACKING_CLEAR_BACKWARDS' if kmi.is_user_defined else 'X')
+			).item_id = kmi.id
+
 	def draw(self, context):
 		layout = self.layout
 
-		kc = context.window_manager.keyconfigs.active
-		km = kc.keymaps['Pose']
-		for kmi in km.keymap_items:
-			if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
-				col = layout.column()
-				col.context_pointer_set("keymap", km)
-				self.draw_kmi([], kc, km, kmi, col, 0)
+		for kc in context.window_manager.keyconfigs:
+			for km in kc.keymaps:
+				for kmi in km.keymap_items:
+					if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
+						col = layout.column()
+						col.context_pointer_set("keymap", km)
+						self.draw_kmi(kmi, col)
 
-def register_hotkeys():
+cloudrig_keymaps = []
+
+def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', op_kwargs={}):
+	return
 	wm = bpy.context.window_manager
-	km = wm.keyconfigs.active.keymaps.get('Pose')
+	keymaps = wm.keyconfigs.addon.keymaps
 
-	opname = CLOUDRIG_OT_layer_select.bl_idname
-	if opname not in km.keymap_items:
-		kmi = km.keymap_items.new(opname, 'M', 'PRESS', shift=True)
-
-
-#######################################
-############# TEMP HACK ###############
-# Add a pop-up window when saving absolute paths. 
-# This is done to hunt down a very elusive bug in Blender 3.0 where sometimes 
-# library paths change from relative to absolute.
-from bpy.app.handlers import persistent
-
-def draw_library_warning(self, context):
-	layout = self.layout
-	layout.alert=True
-	layout.label(text="Saved with absolute library paths!")
-	layout.label(text="Click this button and save again before committing:")
-	layout.operator('file.make_paths_relative')
-	layout.label(text="Then report this to Demeter!")
-
-@persistent
-def warn_absolute_path_libs(dummy):
-	abs_libs = []
-	for lib in bpy.data.libraries:
-		if len(lib.users_id) > 0 and not lib.filepath.startswith("//"):
-			print(f"This absolute path library has more than 0 users: {lib.filepath}")
-			abs_libs.append(lib)
-
-	if len(abs_libs) > 0:
-		bpy.context.window_manager.popup_menu(
-			draw_library_warning, title="ERROR: ABSOLUTE LIBRARY PATHS!", icon='ERROR')
+	km = keymaps.new(key_cat)
+	kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
+	cloudrig_keymaps.append((km, kmi))
+	for key in op_kwargs:
+		value = op_kwargs[key]
+		setattr(kmi.properties, key, value)
 
 #######################################
 ############## Register ###############
@@ -1823,11 +1815,11 @@ def register():
 	for c in classes:
 		register_class(c)
 
-	if script_id == 'sprite_fright':
-		bpy.app.handlers.save_post.append(warn_absolute_path_libs)
-
-	# Add shortcuts to the keymap.
-	register_hotkeys()
+	# Add Layer Select hotkey.
+	register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
+		,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
+		,key_cat = 'Pose'
+	)
 
 	# Store outfit properties in Object because it can be accessed on Proxies.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
