@@ -3,6 +3,7 @@ from bpy.props import BoolProperty
 
 from ..rig_features.ui import is_cloud_metarig
 from ..rig_features.object import EnsureVisible
+from ..generation.cloudrig import register_hotkey
 
 def safe_generate(context, metarig):
 	# Generating requires the metarig to be the active object, and the target rig to be visible.
@@ -125,6 +126,9 @@ class Generate_All_Rigify_Rigs(bpy.types.Operator):
 def register():
 	from bpy.utils import register_class
 	register_class(Generate_All_Rigify_Rigs)
+
+	register_hotkey(Generate_All_Rigify_Rigs.bl_idname, {'type': "R", 'value': "PRESS", 'ctrl': True, 'alt': True}, key_cat="Object Mode")
+
 
 def unregister():
 	from bpy.utils import unregister_class

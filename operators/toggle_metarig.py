@@ -1,6 +1,7 @@
 import bpy
 from bpy.props import BoolProperty
 from ..generation.naming import slice_name
+from ..generation.cloudrig import register_hotkey
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -15,7 +16,7 @@ PREFIX_PRIORITY = ['FK', 'IK', 'DEF', 'STR', 'ORG']
 class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 	"""Switch the active object between the generated rig and the metarig"""
 
-	bl_idname = "object.cloudrig_toggle_metarig"
+	bl_idname = "object.cloudrig_metarig_toggle"
 	bl_label = "Toggle Meta/Generated Rig"
 	bl_options = {'REGISTER', 'UNDO'}
 
@@ -108,6 +109,8 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 def register():
 	from bpy.utils import register_class
 	register_class(CLOUDRIG_OT_MetarigToggle)
+
+	register_hotkey(CLOUDRIG_OT_MetarigToggle.bl_idname, {'type': "T", 'value': "PRESS", 'shift': True}, key_cat="Object Mode")
 
 def unregister():
 	from bpy.utils import unregister_class

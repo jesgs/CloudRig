@@ -1745,34 +1745,30 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 
 		if (not kmi.is_user_defined) and kmi.is_user_modified:
 			row.operator("preferences.keyitem_restore", text="", icon='BACK').item_id = kmi.id
-		else:
-			row.operator(
-				"preferences.keyitem_remove",
-				text="",
-				icon=('TRACKING_CLEAR_BACKWARDS' if kmi.is_user_defined else 'X')
-			).item_id = kmi.id
 
 	def draw(self, context):
 		layout = self.layout
+		kc = context.window_manager.keyconfigs.user
+		# NOTE: It's very important that we do NOT expose any UI pointing at 
+		# keyconfigs.addons. Messing with that copy of the hotkeys after registration 
+		# results in ghost hotkeys and very hard to troubleshoot issues.
 
-		for kc in context.window_manager.keyconfigs:
-			for km in kc.keymaps:
-				for kmi in km.keymap_items:
-					if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
-						col = layout.column()
-						col.context_pointer_set("keymap", km)
-						self.draw_kmi(kmi, col)
-
-cloudrig_keymaps = []
+		for km in kc.keymaps:
+			for kmi in km.keymap_items:
+				if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
+					col = layout.column()
+					col.context_pointer_set("keymap", km)
+					self.draw_kmi(kmi, col)
 
 def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', op_kwargs={}):
-	return
 	wm = bpy.context.window_manager
 	keymaps = wm.keyconfigs.addon.keymaps
 
-	km = keymaps.new(key_cat)
-	kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
-	cloudrig_keymaps.append((km, kmi))
+	km = keymaps.get(key_cat)
+	if not km:
+		km = keymaps.new(key_cat)
+	if bl_idname not in km.keymap_items:
+		kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
 	for key in op_kwargs:
 		value = op_kwargs[key]
 		setattr(kmi.properties, key, value)
