@@ -320,7 +320,7 @@ class CloudCurveRig(CloudBaseRig):
 		# An actual symmetrical curve shape is not enforced, but expected.
 
 		params.CR_curve_show_settings = BoolProperty(
-			name		 = "Curve Rig"
+			name		 = "Curve"
 			,description = "Reveal settings for the cloud_curve rig type"
 		)
 		params.CR_curve_hook_name = StringProperty(

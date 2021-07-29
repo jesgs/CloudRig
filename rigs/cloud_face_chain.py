@@ -74,12 +74,7 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 			if not opposite_bone:
 				continue
 			if opposite_bone.owner_rig.params.CR_chain_smooth_spline:
-				b.tangent_helper.add_constraint('DAMPED_TRACK', index=2
-					,name = "Damped Track Next"
-					,subtarget = opposite_bone.tangent_helper.constraint_infos[1].subtarget
-					,track_axis='TRACK_Y'
-					,influence = 0.5
-				)
+				b.tangent_helper.constraint_infos[1].subtarget = opposite_bone.tangent_helper.constraint_infos[0].subtarget
 
 class CloudFaceChainRig(CloudChainRig):
 	"""Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
@@ -214,9 +209,11 @@ class CloudFaceChainRig(CloudChainRig):
 		)
 
 	@classmethod
-	def draw_stretch_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_stretch_params(layout, context, params)
+		layout = super().draw_control_params(layout, context, params)
+		if not layout:
+			return
 
 		cls.draw_prop(layout, params, "CR_face_chain_merge")
 

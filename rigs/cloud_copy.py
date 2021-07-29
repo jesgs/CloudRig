@@ -95,7 +95,7 @@ class CloudCopyRig(CloudBaseRig):
 		super().add_parameters(params)
 
 		params.CR_copy_show_settings = BoolProperty(
-			name		 = "Copy Bone"
+			name		 = "Copy"
 			,description = "Reveal settings for the cloud_copy rig type"
 		)
 

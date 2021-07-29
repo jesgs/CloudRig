@@ -257,9 +257,21 @@ class CloudBaseRig(
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
-		params.CR_base_show_settings = BoolProperty(
+		params.CR_settings_parenting = BoolProperty(
 			name		 = "Parenting"
-			,description = "Reveal settings for the cloud_base rig type"
+			,description = "Reveal parenting settings"
+		)
+		params.CR_settings_appearance = BoolProperty(
+			name		 = "Appearance"
+			,description = "Reveal appearance settings"
+		)
+		params.CR_settings_misc = BoolProperty(
+			name		 = "Misc"
+			,description = "Reveal miscellaneous settings"
+		)
+		params.CR_settings_control = BoolProperty(
+			name		 = "Controls"
+			,description = "Reveal settings to do with creation and behaviour of rig controls"
 		)
 
 		params.CR_base_props_storage = EnumProperty(
@@ -298,7 +310,7 @@ class CloudBaseRig(
 	@classmethod
 	def parameters_ui(cls, layout, params):
 		"""Create the ui for the rig parameters."""
-		context = bpy.context	# TODO: Rigify should pass context to parameters_ui.
+		context = bpy.context	# TODO UPSTREAM: Rigify should pass context to parameters_ui.
 
 		layout = cls.draw_cloud_params(layout, context, params)
 		layout.separator()
@@ -315,28 +327,31 @@ class CloudBaseRig(
 		return False
 
 	@classmethod
-	def draw_custom_prop_params(cls, layout, context, params):
-		metarig = context.object
-		rig = metarig.data.rigify_target_rig
+	def draw_appearance_params(cls, layout, context, params):
+		return cls.draw_dropdown_menu(layout, params, 'CR_settings_appearance')
 
-		if not cls.is_advanced_mode(context):
-			return
+	@classmethod
+	def draw_misc_params(cls, layout, context, params):
+		if cls.is_advanced_mode(context) and cls.is_using_custom_props(context, params):
+			dropdown = cls.draw_dropdown_menu(layout, params, 'CR_settings_misc')
+			if not dropdown:
+				return
+			metarig = context.object
+			rig = metarig.data.rigify_target_rig
 
-		layout.separator()
-		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
-		if params.CR_base_props_storage == 'CUSTOM':
-			cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
+			layout.separator()
+			cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
+			if params.CR_base_props_storage == 'CUSTOM':
+				cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
+		return layout
 
 	@classmethod
 	def draw_cloud_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		layout = super().draw_cloud_params(layout, context, params)
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_base_show_settings"): return layout
-
 		cls.draw_parenting_params(layout, context, params)
-
-		if cls.is_using_custom_props(context, params):
-			cls.draw_custom_prop_params(layout, context, params)
+		cls.draw_appearance_params(layout, context, params)
+		cls.draw_misc_params(layout, context, params)
 
 		return layout

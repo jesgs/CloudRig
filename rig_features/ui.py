@@ -8,14 +8,20 @@ class CloudUIMixin:
 		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, **custom_property_dict)
 
 	@staticmethod
+	def draw_control_label(layout, text=""):
+		split = layout.split(factor=0.4)
+		split.row()
+		split.label(text=text+":")
+
+	@staticmethod
 	def is_advanced_mode(context):
 		return is_advanced_mode(context)
 
 	@classmethod
 	def draw_prop(cls, layout, prop_owner, prop_name, new_row=True, **kwargs):
-		row = draw_prop(layout, prop_owner, prop_name, new_row, **kwargs)
 		if prop_name in cls.forced_params.keys():
-			row.enabled = False
+			return layout
+		row = draw_prop(layout, prop_owner, prop_name, new_row, **kwargs)
 		return row
 
 	@classmethod
@@ -85,9 +91,9 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 			col.label(text=line)
 	return col
 
-def draw_prop(layout, prop_owner, prop_name, new_row=True, **kwargs):
+def draw_prop(layout, prop_owner, prop_name, new_row=True, text="", **kwargs):
 	if new_row:
-		layout = layout.row()
+		layout = layout.row(align=True)
 	layout.prop(prop_owner, prop_name, **kwargs)
 	return layout
 

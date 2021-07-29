@@ -581,7 +581,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,description = "Reveal settings for the cloud_ik_chain rig type"
 		)
 		params.CR_ik_chain_at_tip = BoolProperty(
-			name		 = "Full Length"
+			name		 = "IK At Tail"
 			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
 			,default	 = False
 		)
@@ -591,7 +591,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,default	 = False
 		)
 		params.CR_ik_chain_use_pole = BoolProperty(
-			name 		 = "Use Pole Target"
+			name 		 = "Create IK Pole"
 			,description = "If disabled, you can control the rotation of the IK chain by simply rotating its first bone, rather than with an IK pole control"
 			,default	 = True
 		)
@@ -599,15 +599,13 @@ class CloudIKChainRig(CloudFKChainRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def draw_hinge_param(cls, layout, params):
-		cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_ik_chain_show_settings"): return layout
+		layout = super().draw_control_params(layout, context, params)
+		if not layout:
+			return
+		layout.separator()
+		cls.draw_control_label(layout, "IK")
 
 		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
 		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")

@@ -131,7 +131,7 @@ class CloudLatticeRig(CloudBaseRig):
 		super().add_parameters(params)
 
 		params.CR_lattice_show_settings = BoolProperty(
-			name		 = "Lattice Settings"
+			name		 = "Lattice"
 			,description = "Reveal settings for the cloud_lattice rig type"
 		)
 

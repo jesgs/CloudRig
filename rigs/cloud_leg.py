@@ -401,15 +401,17 @@ class CloudLegRig(CloudLimbRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_leg_show_settings"): return layout
+		layout = super().draw_control_params(layout, context, params)
+		if not layout:
+			return
 
 		cls.draw_prop(layout, params, "CR_leg_use_foot_roll")
 		if params.CR_leg_use_foot_roll:
-			cls.draw_prop_search(layout, params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
+			split = layout.split(factor=0.1)
+			split.row()
+			cls.draw_prop_search(split.row(), params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
 
 		return layout
 

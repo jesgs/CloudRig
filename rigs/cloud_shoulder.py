@@ -41,9 +41,8 @@ class CloudShoulderRig(CloudFKChainRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_shoulder_show_settings = BoolProperty(name="Shoulder Settings")
 		params.CR_shoulder_up_axis = EnumProperty(
-			name = "Up Axis"
+			name = "Shoulder Up Axis"
 			,description = "Rotate the bone shape to align with this axis of the bone"
 			,items = [
 				("0", '+Z', "Do not rotate the bone shape", 0),
@@ -54,12 +53,13 @@ class CloudShoulderRig(CloudFKChainRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_appearance_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
+		layout = super().draw_appearance_params(layout, context, params)
+		if not layout:
+			return
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_shoulder_show_settings"): return layout
-
+		layout.separator()
 		cls.draw_prop(layout, params, 'CR_shoulder_up_axis')
 
 		return layout

@@ -427,7 +427,7 @@ class CloudLimbRig(CloudIKChainRig):
 			,default	 = False
 		)
 		params.CR_limb_auto_hose_control = BoolProperty(
-			name		 = "Control Bone"
+			name		 = "With Control"
 			,description = "Instead of controlling the Auto Rubber Hose property from the rig UI, create a control bone on the FK Extras layer"
 			,default	 = False
 		)
@@ -447,22 +447,26 @@ class CloudLimbRig(CloudIKChainRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_limb_show_settings"): return layout
+		layout = super().draw_control_params(layout, context, params)
+		if not layout:
+			return
 
 		cls.draw_prop(layout, params, "CR_limb_double_ik")
+
+		layout.separator()
+		cls.draw_control_label(layout, "Limb")
+
 		row = cls.draw_prop(layout, params, 'CR_limb_auto_hose')
 		row.enabled = params.CR_chain_segments > 1 and params.CR_chain_smooth_spline
 		if row.enabled and params.CR_limb_auto_hose:
-			split = layout.split(factor=0.05)
+			split = layout.split(factor=0.1)
 			split.row()
 			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_control')
-			split = layout.split(factor=0.05)
+			split = layout.split(factor=0.1)
 			split.row()
-			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_type')
+			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_type', expand=True)
 
 		return layout
 

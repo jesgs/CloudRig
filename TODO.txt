@@ -1,19 +1,18 @@
 fsiddi ideas:
     - In Rigify Type panel, do a dirty check for the rig parameters (save their state on generation then compare) and when dirty, give a prompt to re-generate
-    - Change "Chain Settings" to "Bendy Bone Behaviour"
     - Change "Leg Settings" to "Foot Roll"
-    - Change "Base Settings" to "Parenting"
 
     - Try turning the drop-downs from boolean hack into real subpanels. I don't remember why we couldn't do it. Maybe we can.
         - Perhaps instead of parameters being organized by implementation class, they could be better organized by "rigging concept". "Parenting" and "Bendy Bones" and "FK Settings" and "IK Settings" already exist and feel okay. We could now also add "Display Settings", "UI Settings", merge "Limb Settings" and "Leg Settings" into "Stretch Controls" and "IK Settings" respectively.
         - Forced parameters should not be drawn at all.
-    - Probably change "At Tail" to something better, and "Double IK Master" to "Duplicate IK Master" and also "Double Root" to "Duplicate Root"
+            - I did this but now something like cloud_spine looks pretty stupid with Advanced Mode off. This needs more brain power thrown at it, and probably more of the above ideas implemented first.
 
     - I wonder if the limb UI category name parameters are really necessary? IIRC we just use it to make sure rig settings go in the same row, but we could just do that by saving the name of the bone without its suffix, since without the suffix the bone names match on left/right.
 
     - Maybe change "Bone Sets" to "Bone Organization"
 
 Priority 1: Bugs
+    Hotkeys only work in object mode
     Flatten Chain operator wasn't working properly so I disabled it from the UI.
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
         Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.

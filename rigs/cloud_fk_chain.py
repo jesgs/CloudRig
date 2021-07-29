@@ -298,8 +298,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
-		params.CR_fk_chain_show_settings = BoolProperty(
-			name="FK Settings"
+		params.CR_fk_chain_show_anim_settings = BoolProperty(
+			name="Animation"
 			,description = "Reveal settings for the cloud_fk_chain rig type"
 		)
 		# We are re-defining this instead of using the bone's own `inherit_scale` property because we want the default to be 'ALIGNED' instead of 'FULL'.
@@ -332,7 +332,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,default	 = False
 		)
 		params.CR_fk_chain_hinge = BoolProperty(
-			name		 = "Hinge Toggle"
+			name		 = "Hinge"
 			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root"
 			,default	 = True
 		)
@@ -381,33 +381,10 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		super().add_parameters(params)
 
 	@classmethod
-	def draw_hinge_param(cls, layout, params):
-		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
-		row.enabled = params.CR_fk_chain_root
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_fk_chain_show_settings"): return layout
-
-		cls.draw_prop(layout, params, 'CR_fk_chain_root')
-		cls.draw_hinge_param(layout, params)
-
-		if context.object.data.cloudrig_parameters.generate_test_action:
-			cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
-			if params.CR_fk_chain_test_animation_generate:
-				row = layout.row()
-				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
-				row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
-				row = layout.row(heading="Rotation Axes", align=True)
-				row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
-				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
-				row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
-
-		if not cls.is_advanced_mode(context):
-			return layout
+	def draw_appearance_params(cls, layout, context, params):
+		if not super().draw_appearance_params(layout, context, params):
+			return
+		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 
 		category_row = layout.row(align=True, heading="UI Column")
 		cls.draw_prop(category_row, params, 'CR_fk_chain_use_category_name', new_row=False, text="")
@@ -420,10 +397,49 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		col = limb_row.column()
 		cls.draw_prop(col, params, 'CR_fk_chain_limb_name', new_row=False, text="")
 		col.enabled = params.CR_fk_chain_use_limb_name
+		return layout
 
+	@classmethod
+	def draw_control_params(cls, layout, context, params):
+		layout = super().draw_control_params(layout, context, params)
+		if not layout:
+			return
+		layout.separator()
+		cls.draw_control_label(layout, "FK")
+
+		cls.draw_prop(layout, params, 'CR_fk_chain_root')
+		row = cls.draw_prop(layout, params, 'CR_fk_chain_hinge')
+		row.enabled = params.CR_fk_chain_root or 'CR_fk_chain_root' in cls.forced_params
+
+		if not cls.is_advanced_mode(context):
+			return layout
 		cls.draw_prop(layout, params, 'CR_fk_chain_inherit_scale')
-		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
+
+		return layout
+
+	@classmethod
+	def draw_anim_params(cls, layout, context, params):
+		if not cls.draw_dropdown_menu(layout, params, "CR_fk_chain_show_anim_settings"): 
+			return
+
+		cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
+		if params.CR_fk_chain_test_animation_generate:
+			row = layout.row()
+			row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
+			row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
+			row = layout.row(heading="Rotation Axes", align=True)
+			row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
+			row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
+			row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
+
+	@classmethod
+	def draw_cloud_params(cls, layout, context, params):
+		"""Create the ui for the rig parameters."""
+		layout = super().draw_cloud_params(layout, context, params)
+		
+		if context.object.data.cloudrig_parameters.generate_test_action:
+			cls.draw_anim_params(layout, context, params)
 
 		return layout
 

@@ -220,7 +220,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		super().add_parameters(params)
 
 		params.CR_physics_chain_show_settings = BoolProperty(
-			name		 = "Physics Settings"
+			name		 = "Physics"
 			,description = "Reveal settings for the cloud_physics_chain rig type"
 		)
 		params.CR_physics_chain_object = PointerProperty(

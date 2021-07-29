@@ -73,6 +73,7 @@ class CloudSpineRig(CloudFKChainRig):
 		)
 		if self.params.CR_spine_world_align:
 			self.root_bone.flatten()
+			self.mstr_hips.flatten()
 
 		# Shift FK controls to their center.
 		for fk_bone in self.bone_sets['FK Controls']:
@@ -112,10 +113,7 @@ class CloudSpineRig(CloudFKChainRig):
 			)
 
 		if self.params.CR_spine_double:
-			double_mstr_chest = self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
-
-		if self.params.CR_spine_world_align:
-			self.mstr_hips.flatten()
+			self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
 
 		### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
 		self.ik_ctr_chain = []
@@ -300,28 +298,18 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_spine_show_settings = BoolProperty(
-			name		 = "Spine Settings"
-			,description = "Reveal settings for the cloud_spine rig type"
-		)
-		params.CR_spine_offset_fk = BoolProperty(	# TODO: Implement this.
-			name		 = "Offset FK Bones"
-			,description = "FK Bones will be placed at the halfway points of original bones. Thanks to Bendy Bones, this can result in smoother deformation, but also some volume loss"
-			,default	 = True
-		)
-
 		params.CR_spine_world_align = BoolProperty(
 			name		 = "World-Align Controls"
-			,description = "Flatten the torso and hips to align with the closest world axis"	# TODO: This makes sense to have for the torso, but flattening the hips only when IK is enabled seems pretty random.
+			,description = "Flatten the torso and hips to align with the closest world axis"
 			,default	 = True
 		)
 		params.CR_spine_use_ik = BoolProperty(
-			name		 = "Create IK Setup"
+			name		 = "Create IK Spine"
 			,description = "If disabled, this spine rig will only have FK controls"
 			,default	 = True
 		)
 		params.CR_spine_double = BoolProperty(
-			name		 = "Double Controls"
+			name		 = "Duplicate Controls"
 			,description = "Make duplicates of the main spine controls"
 			,default	 = True
 		)
@@ -336,12 +324,14 @@ class CloudSpineRig(CloudFKChainRig):
 		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
+		layout = super().draw_control_params(layout, context, params)
+		if not layout:
+			return
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_spine_show_settings"): return layout
-
+		layout.separator()
+		cls.draw_control_label(layout, "Spine")
 		cls.draw_prop(layout, params, "CR_spine_use_ik")
 		cls.draw_prop(layout, params, "CR_spine_double")
 		cls.draw_prop(layout, params, "CR_spine_world_align")

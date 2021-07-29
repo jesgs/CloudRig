@@ -101,7 +101,7 @@ class CloudFingerRig(CloudIKChainRig):
 		)
 
 	##############################
-	# No parameters for this rig type yet.
+	# No parameters for this rig type.
 
 class Rig(CloudFingerRig):
 	pass
