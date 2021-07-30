@@ -127,8 +127,11 @@ def register():
 	from bpy.utils import register_class
 	register_class(Generate_All_Rigify_Rigs)
 
-	register_hotkey(Generate_All_Rigify_Rigs.bl_idname, {'type': "R", 'value': "PRESS", 'ctrl': True, 'alt': True}, key_cat="Object Mode")
-
+	register_hotkey(Generate_All_Rigify_Rigs.bl_idname
+		,hotkey_kwargs = {'type': "R", 'value': "PRESS", 'ctrl': True, 'alt': True}
+		,key_cat = "3D View"
+		,space_type = 'VIEW_3D'
+	)
 
 def unregister():
 	from bpy.utils import unregister_class

@@ -1689,7 +1689,7 @@ class CLOUDRIG_OT_layer_select(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
+		return is_active_cloudrig(context) or is_active_cloud_metarig(context)
 
 	def invoke(self, context, event):
 		wm = context.window_manager
@@ -1715,35 +1715,25 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 		return rig is not None
 
 	@staticmethod
-	def draw_kmi(kmi, layout):
+	def draw_kmi(km, kmi, layout):
 		"""A simplified version of draw_kmi from rna_keymap_ui.py."""
 
 		map_type = kmi.map_type
 
 		col = layout.column()
 
-		split = col.split()
+		split = col.split(factor=0.7)
 
 		# header bar
 		row = split.row(align=True)
 		row.prop(kmi, "active", text="", emboss=False)
-		row.label(text=kmi.name)
+		row.label(text=km.name+": " + kmi.name)
 
-		row = split.row()
+		row = split.row(align=True)
 		row.enabled = kmi.active
-		row.prop(kmi, "map_type", text="")
-		if map_type in ['KEYBOARD', 'MOUSE', 'NDOF']:
-			row.prop(kmi, "type", text="", full_event=True)
-		elif map_type == 'TWEAK':
-			subrow = row.row()
-			subrow.prop(kmi, "type", text="")
-			subrow.prop(kmi, "value", text="")
-		elif map_type == 'TIMER':
-			row.prop(kmi, "type", text="")
-		else:
-			row.label()
+		row.prop(kmi, "type", text="", full_event=True)
 
-		if (not kmi.is_user_defined) and kmi.is_user_modified:
+		if kmi.is_user_modified:
 			row.operator("preferences.keyitem_restore", text="", icon='BACK').item_id = kmi.id
 
 	def draw(self, context):
@@ -1758,15 +1748,15 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 				if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
 					col = layout.column()
 					col.context_pointer_set("keymap", km)
-					self.draw_kmi(kmi, col)
+					self.draw_kmi(km, kmi, col)
 
-def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', op_kwargs={}):
+def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}):
 	wm = bpy.context.window_manager
 	keymaps = wm.keyconfigs.addon.keymaps
 
 	km = keymaps.get(key_cat)
 	if not km:
-		km = keymaps.new(key_cat)
+		km = keymaps.new(name=key_cat, space_type=space_type)
 	if bl_idname not in km.keymap_items:
 		kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
 	for key in op_kwargs:
@@ -1811,12 +1801,6 @@ def register():
 	for c in classes:
 		register_class(c)
 
-	# Add Layer Select hotkey.
-	register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-		,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-		,key_cat = 'Pose'
-	)
-
 	# Store outfit properties in Object because it can be accessed on Proxies.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
@@ -1837,3 +1821,14 @@ if __name__ in ['__main__', 'builtins']:
 	# This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded. 
 	# In that case __name__ is "rigify.feature_sets.CloudRig.cloudrig"
 	register()
+
+# Ensure hotkeys, whether loaded as an addon or part of a rig.
+register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
+	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
+	,key_cat = 'Pose'
+	,space_type = 'VIEW_3D'
+)
+register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
+	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
+	,key_cat = 'Armature'
+)
