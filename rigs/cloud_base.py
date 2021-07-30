@@ -313,7 +313,6 @@ class CloudBaseRig(
 		context = bpy.context	# TODO UPSTREAM: Rigify should pass context to parameters_ui.
 
 		layout = cls.draw_cloud_params(layout, context, params)
-		layout.separator()
 		cls.draw_bone_sets_list(layout, context, params)
 
 	@classmethod
