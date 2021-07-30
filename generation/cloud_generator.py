@@ -66,7 +66,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	generate_test_action: BoolProperty(
 		name		 = "Generate Test Action"
-		,description = "Whether to create/update the deform test action or not"
+		,description = "Whether to create/update the deform test action or not. Enabling this enables the Animation parameter category on FK chain rigs"
 		,default	 = True
 	)
 	test_action: PointerProperty(
@@ -242,7 +242,7 @@ class CloudGenerator(Generator):
 				new_ui_set.param_name = rig_bone_set_def['param']
 				new_ui_set.layer_param = rig_bone_set_def['layer_param']
 
-	def create_rig_object(self):
+	def create_rig_object(self) -> bpy.types.Object:
 		"""Create the rig object that will replace the previous generation result."""
 
 		metaname = self.metarig.name
@@ -250,9 +250,8 @@ class CloudGenerator(Generator):
 		obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
 		obj.data.name = "Data_" + metaname.replace("META", "RIG")
 
-		# Ensure rig is in the metarig's collection.
-		if obj.name not in self.collection.objects:
-			self.collection.objects.link(obj)
+		# Ensure rig is visible while generating.
+		self.context.scene.collection.objects.link(obj)
 
 		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
@@ -493,9 +492,11 @@ class CloudGenerator(Generator):
 				selset.is_selected = True
 			selsets = to_json(self.context)
 
-		# Remove old rig from all of its collections.
+		# Remove old rig from all of its collections, and link the new rig to them.
+		self.context.scene.collection.objects.unlink(new_rig)
 		for coll in old_rig.users_collection:
 			coll.objects.unlink(old_rig)
+			coll.objects.link(new_rig)
 
 		# Swap all references pointing at the old rig to the new rig
 		old_rig.id_data.user_remap(new_rig)
