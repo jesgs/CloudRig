@@ -31,14 +31,7 @@ class CloudSpineRig(CloudFKChainRig):
 		if not self.bone_count > 1:
 			self.raise_error("Spine rig must consist of a chain of at least 2 connected bones!")
 
-		# UI Strings and Custom Property names
-		self.category = self.naming.strip_org(self.base_bone)
-		if self.params.CR_fk_chain_use_category_name:
-			self.category = self.params.CR_fk_chain_category_name
-
-		self.spine_name = "Spine"
-		if self.params.CR_fk_chain_use_limb_name:
-			self.spine_name = self.params.CR_fk_chain_limb_name.replace(" ", "_")
+		self.spine_name = self.naming.slice_name(self.base_bone)[1]
 
 		self.ik_prop_name = "ik_" + self.spine_name.lower()
 		self.ik_stretch_name = "ik_stretch_" + self.spine_name.lower()
@@ -247,13 +240,13 @@ class CloudSpineRig(CloudFKChainRig):
 			"prop_bone"		: self.properties_bone,
 			"prop_id" 		: self.ik_stretch_name,
 		}
-		self.add_ui_data("ik_stretches", self.category, self.spine_name, info, default=1.0)
+		self.add_ui_data("ik_stretches", self.limb_name, self.spine_name, info, default=1.0)
 
 		info = {
 			"prop_bone"		: self.properties_bone,
 			"prop_id"		: self.ik_prop_name,
 		}
-		self.add_ui_data("ik_switches", self.category, self.spine_name, info, default=0.0)
+		self.add_ui_data("ik_switches", self.limb_name, self.spine_name, info, default=0.0)
 
 	def tweak_str_spine(self):
 		""" We need to parent the last non-tip STR control to the 2nd-to-last FK control,

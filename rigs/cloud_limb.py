@@ -27,21 +27,10 @@ class CloudLimbRig(CloudIKChainRig):
 		if not self.params.CR_chain_smooth_spline:
 			self.params.CR_limb_auto_hose = False
 
-		# UI Strings and Custom Property names
-		self.limb_name = "Arm"
-		if self.params.CR_fk_chain_use_limb_name:
-			self.limb_name = self.params.CR_fk_chain_limb_name
-
-		self.limb_ui_name = self.side_prefix + " " + self.limb_name
-
 		# IK values
 		self.ik_pole_direction = 1
 
 		self.check_correct_chain_length()
-
-		self.category = "arms"
-		if self.params.CR_fk_chain_use_category_name:
-			self.category = self.params.CR_fk_chain_category_name
 
 	def check_correct_chain_length(self):
 		req_len = type(self).required_chain_length
@@ -207,7 +196,7 @@ class CloudLimbRig(CloudIKChainRig):
 			})
 		else:
 			# Don't create a control bone, instead just add a slider in the UI.
-			self.add_ui_data("auto_rubber_hose", self.category, self.limb_ui_name, info)
+			self.add_ui_data("auto_rubber_hose", self.limb_name, self.limb_ui_name, info)
 
 		self.make_rubber_hose_constraints(org_elbow, str_upper, str_lower, prop_name)
 

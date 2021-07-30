@@ -26,21 +26,12 @@ class CloudLegRig(CloudLimbRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		# UI Strings and Custom Property names
-
-		if self.limb_name == "Arm":
-			self.limb_name = "Leg"
-
 		# IK values
 		self.ik_pole_direction = -1
 
 		self.ik_pole_offset = 5
 		self.pole_side = -1
 		self.chain_count -= 1
-
-		self.category = "legs"
-		if self.params.CR_fk_chain_use_category_name:
-			self.category = self.params.CR_fk_chain_category_name
 
 	def create_bone_infos(self):
 		super().create_bone_infos()

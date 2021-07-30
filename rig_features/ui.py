@@ -91,7 +91,7 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 			col.label(text=line)
 	return col
 
-def draw_prop(layout, prop_owner, prop_name, new_row=True, text="", **kwargs):
+def draw_prop(layout, prop_owner, prop_name, new_row=True, **kwargs):
 	if new_row:
 		layout = layout.row(align=True)
 	layout.prop(prop_owner, prop_name, **kwargs)

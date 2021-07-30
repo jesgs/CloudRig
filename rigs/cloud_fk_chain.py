@@ -18,17 +18,16 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		self.category = self.naming.slice_name(self.base_bone)[1]
-		if self.params.CR_fk_chain_use_category_name:
-			self.category = self.params.CR_fk_chain_category_name
+		self.limb_name = self.naming.slice_name(self.base_bone)[1]
+		
+		# TODO SPRITEFRIGHT: This can be removed after Sprite Fright.
+		if "arm" in self.limb_name.lower():
+			self.limb_name = "Arm"
+		if "thigh" in self.limb_name.lower():
+			self.limb_name = "Leg"
 
-		self.limb_name = self.category
-		if self.params.CR_fk_chain_use_limb_name:
-			self.limb_name = self.params.CR_fk_chain_limb_name								# Name used for naming bones. Should not contain a side identifier like .L/.R.
-
-		# Name used for UI related things. Should contain the side identifier.
 		self.limb_ui_name = self.limb_name
-		if self.side_prefix!="":
+		if self.side_prefix != "":
 			self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
 
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
@@ -119,7 +118,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			hng_bone = self.make_hinge_setup(
 				bone		 = hng_child
 				,bone_set	 = self.bone_sets['FK Helpers']
-				,category	 = self.category
+				,category	 = self.limb_name
 				,parent_bone = self.root_bone
 				,hng_name	 = self.base_bone.replace("ORG", "FK-HNG")
 				,prop_bone	 = self.properties_bone
@@ -337,27 +336,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,default	 = True
 		)
 
-		params.CR_fk_chain_use_limb_name = BoolProperty(
-			 name		 = "Custom Limb Name"
-			,description = "Specify a name for this limb. Settings for limbs with the same name will be displayed on the same row in the rig UI. If not enabled, use the name of the base bone, without pre and suffixes"
-			,default 	 = False
-		)
-		params.CR_fk_chain_limb_name = StringProperty(
-			name		 = "UI Row"
-			,default	 = "Arm"
-			,description = """This name should NOT include a side indicator such as ".L" or ".R", as that will be determined by the bone's name. There can be exactly two limbs with the same name(a left and a right one)"""
-		)
-		params.CR_fk_chain_use_category_name = BoolProperty(
-			 name		 = "Custom Category Name"
-			,description = "Specify a category for this limb. If not enabled, use the name of the base bone, without pre and suffixes"
-			,default	 = False
-		)
-		params.CR_fk_chain_category_name = StringProperty(
-			name		 = "UI Column"
-			,default	 = "arms"
-			,description = "Limbs in the same category will have their settings displayed in the same column"
-		)
-
 		params.CR_fk_chain_test_animation_generate = BoolProperty(
 			 name		 = "Generate Test Animation"
 			,description = "Include this rig element in the test animation"
@@ -386,17 +364,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			return
 		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
 
-		category_row = layout.row(align=True, heading="UI Column")
-		cls.draw_prop(category_row, params, 'CR_fk_chain_use_category_name', new_row=False, text="")
-		col = category_row.column()
-		cls.draw_prop(col, params, 'CR_fk_chain_category_name', new_row=False, text="")
-		col.enabled = params.CR_fk_chain_use_category_name
-
-		limb_row = layout.row(align=True, heading="UI Row")
-		cls.draw_prop(limb_row, params, 'CR_fk_chain_use_limb_name', new_row=False, text="")
-		col = limb_row.column()
-		cls.draw_prop(col, params, 'CR_fk_chain_limb_name', new_row=False, text="")
-		col.enabled = params.CR_fk_chain_use_limb_name
 		return layout
 
 	@classmethod

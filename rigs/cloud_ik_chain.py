@@ -60,7 +60,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.make_ik_setup()
 		# Add IK/FK Snapping to the UI.
 		ui_data = self.create_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
-		self.add_ui_data("ik_switches", self.category, self.limb_ui_name, ui_data, default=1.0)
+		self.add_ui_data("ik_switches", self.limb_name, self.limb_ui_name, ui_data, default=1.0)
 		self.attach_org_to_ik()
 
 	def world_align_last_fk(self):
@@ -350,7 +350,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			"prop_bone"			: self.properties_bone,
 			"prop_id" 			: self.ik_stretch_name,
 		}
-		self.add_ui_data("ik_stretches", self.category, self.limb_ui_name, info, default=1.0)
+		self.add_ui_data("ik_stretches", self.limb_name, self.limb_ui_name, info, default=1.0)
 
 		# Last IK bone should copy location of the tail of the stretchy bone.
 		self.ik_tgt_bone = self.ik_chain[self.chain_count]
@@ -494,7 +494,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,prop_bone = prop_bone or self.properties_bone
 			,prop_name = prop_name or ik_parents_prop_name
 			,ui_area = ui_area or 'ik_parents'
-			,row_name = row_name or self.category
+			,row_name = row_name or self.limb_name
 			,col_name = col_name or self.limb_ui_name
 		)
 
@@ -522,7 +522,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			"bones" : [self.pole_ctrl.name],
 			"select_bones" : True
 		}
-		self.add_ui_data("ik_pole_follows", self.category, self.limb_ui_name, info, default=0.0)
+		self.add_ui_data("ik_pole_follows", self.limb_name, self.limb_ui_name, info, default=0.0)
 
 		if not self.params.CR_base_parent_switching:
 			return
