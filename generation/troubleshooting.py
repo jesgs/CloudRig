@@ -73,7 +73,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 		)
 	)
 
-	cloudrig_folder_name = os.path.dirname(__file__).split("/")[-2]
+	cloudrig_folder_name = os.path.dirname(__file__).split(os.sep)[-2]
 	CloudRig = importlib.import_module('rigify.feature_sets.' + cloudrig_folder_name)
 	cloudrig_version = CloudRig.rigify_info['version']
 	last_modified = cloudrig_last_modified()
