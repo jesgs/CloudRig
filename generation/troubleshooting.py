@@ -416,8 +416,61 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
 
 	def draw(self, context):
-		obj = context.object
-		draw_cloudrig_log(self.layout, context)
+		metarig = context.object
+		cloudrig = metarig.data.cloudrig_parameters
+		logs = cloudrig.logs
+		active_index = cloudrig.active_log_index
+
+		row = layout.row()
+
+		row.template_list(
+			'CLOUDRIG_UL_log_entry_slots',
+			'',
+			cloudrig,
+			'logs',
+			cloudrig,
+			'active_log_index',
+		)
+
+		if len(logs)==0:
+			return
+
+		log = logs[active_index]
+
+		layout.use_property_split = False
+
+		# It is optional for the log entry to provide a bone from the metarig, in case
+		# the log entry relates to a rigify type.
+		if log.owner_bone!="":
+			split = layout.row().split(factor=0.3)
+			split.label(text="Rig Element:")
+			row = split.row()
+			row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
+			row.enabled = False
+
+		if log.trouble_bone!="":
+			split = layout.row().split(factor=0.3)
+			split.label(text="Generated Bone:")
+			row = split.row()
+			row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
+			row.enabled = False
+
+		desc = log.description_short
+		if log.description!="":
+			desc = log.description
+		draw_label_with_linebreak(layout, desc)
+
+		if log.operator!='':
+			row = layout.row()
+			split = row.split(factor=0.2)
+			split.label(text="Quick Fix:")
+			if log.op_text:
+				op = split.operator(log.operator, text=log.op_text)
+			else:
+				op = split.operator(log.operator)
+			kwargs = json.loads(log.op_kwargs)
+			for key in kwargs.keys():
+				setattr(op, key, kwargs[key])
 
 class CLOUDRIG_PT_stack_trace(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
@@ -435,63 +488,6 @@ class CLOUDRIG_PT_stack_trace(bpy.types.Panel):
 		active_index = cloudrig.active_log_index
 		log = logs[active_index]
 		draw_label_with_linebreak(self.layout, log.pretty_stack, alert=True)
-
-def draw_cloudrig_log(layout, context):
-	metarig = context.object
-	cloudrig = metarig.data.cloudrig_parameters
-	logs = cloudrig.logs
-	active_index = cloudrig.active_log_index
-
-	row = layout.row()
-
-	row.template_list(
-		'CLOUDRIG_UL_log_entry_slots',
-		'',
-		cloudrig,
-		'logs',
-		cloudrig,
-		'active_log_index',
-	)
-
-	if len(logs)==0:
-		return
-
-	log = logs[active_index]
-
-	layout.use_property_split = False
-
-	# It is optional for the log entry to provide a bone from the metarig, in case
-	# the log entry relates to a rigify type.
-	if log.owner_bone!="":
-		split = layout.row().split(factor=0.3)
-		split.label(text="Rig Element:")
-		row = split.row()
-		row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
-		row.enabled = False
-
-	if log.trouble_bone!="":
-		split = layout.row().split(factor=0.3)
-		split.label(text="Generated Bone:")
-		row = split.row()
-		row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
-		row.enabled = False
-
-	desc = log.description_short
-	if log.description!="":
-		desc = log.description
-	draw_label_with_linebreak(layout, desc)
-
-	if log.operator!='':
-		row = layout.row()
-		split = row.split(factor=0.2)
-		split.label(text="Quick Fix:")
-		if log.op_text:
-			op = split.operator(log.operator, text=log.op_text)
-		else:
-			op = split.operator(log.operator)
-		kwargs = json.loads(log.op_kwargs)
-		for key in kwargs.keys():
-			setattr(op, key, kwargs[key])
 
 ########################################
 ######### Quick-Fix Operators ##########
