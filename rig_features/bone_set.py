@@ -291,20 +291,6 @@ class BoneSetMixin:
 	@classmethod
 	def draw_bone_sets_list(cls, layout, context, params):
 		"""Drawing the Bone Sets section of the Rigify Parameters."""
-
-		if not cls.is_advanced_mode(context):
-			return layout
-
-		# If no bone sets are visible, don't draw anything.
-		any_used = False
-		for bsd in cls.bone_set_defs.values():
-			if cls.is_bone_set_used(params, bsd):
-				any_used = True
-				break
-		if not any_used: return layout
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_show_bone_sets'): return layout
-
 		obj = context.object
 		cloudrig = obj.data.cloudrig_parameters
 		active_pb = context.active_pose_bone
@@ -315,7 +301,7 @@ class BoneSetMixin:
 				active_idx > len(cloudrig.ui_bone_sets) or \
 				cloudrig.ui_bone_sets[active_idx].name not in cls.bone_set_defs:
 			layout.label(text="Generate the rig to see Bone Set parameters.")
-			return layout
+			return
 
 		active_bone_set = cloudrig.ui_bone_sets[active_idx]
 
@@ -363,8 +349,6 @@ class BoneSetMixin:
 
 		layout.use_property_split=False
 		draw_layers_ui(layout, obj, show_hidden_checkbox=True, owner=params, layers_prop = set_info['layer_param'])
-
-		return layout
 
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):

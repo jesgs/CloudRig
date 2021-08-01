@@ -211,13 +211,8 @@ class CloudFaceChainRig(CloudChainRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_control_params(layout, context, params)
-		if not layout:
-			return
-
+		super().draw_control_params(layout, context, params)
 		cls.draw_prop(layout, params, "CR_face_chain_merge")
-
-		return layout
 
 class Rig(CloudFaceChainRig):
 	pass

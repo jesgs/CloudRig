@@ -17,7 +17,7 @@ import traceback
 
 from bpy.props import StringProperty
 
-from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, draw_dropdown, is_advanced_mode
+from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
 
 # This whole thing could be part of Rigify.
 
@@ -419,6 +419,23 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 		obj = context.object
 		draw_cloudrig_log(self.layout, context)
 
+class CLOUDRIG_PT_stack_trace(bpy.types.Panel):
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_parent_id = 'CLOUDRIG_PT_log'
+	bl_label = "Python Stack Trace"
+
+	@classmethod
+	def poll(cls, context):
+		return is_advanced_mode(context)
+
+	def draw(self, context):
+		cloudrig = context.object.data.cloudrig_parameters
+		logs = cloudrig.logs
+		active_index = cloudrig.active_log_index
+		log = logs[active_index]
+		draw_label_with_linebreak(self.layout, log.pretty_stack, alert=True)
+
 def draw_cloudrig_log(layout, context):
 	metarig = context.object
 	cloudrig = metarig.data.cloudrig_parameters
@@ -475,11 +492,6 @@ def draw_cloudrig_log(layout, context):
 		kwargs = json.loads(log.op_kwargs)
 		for key in kwargs.keys():
 			setattr(op, key, kwargs[key])
-
-	if is_advanced_mode(context):
-		layout.separator()
-		if draw_dropdown(layout, cloudrig, 'log_show_stack_trace'):
-			col = draw_label_with_linebreak(layout, log.pretty_stack, alert=True)
 
 ########################################
 ######### Quick-Fix Operators ##########
@@ -680,6 +692,7 @@ classes = [
 	CLOUDRIG_UL_log_entry_slots,
 	CloudRigLogEntry,
 	CLOUDRIG_PT_log,
+	CLOUDRIG_PT_stack_trace,
 
 	CLOUDRIG_OT_Change_Rotation_Mode,
 	CLOUDRIG_OT_Report_Bug,

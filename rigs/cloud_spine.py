@@ -319,17 +319,13 @@ class CloudSpineRig(CloudFKChainRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_control_params(layout, context, params)
-		if not layout:
-			return
+		super().draw_control_params(layout, context, params)
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spine")
 		cls.draw_prop(layout, params, "CR_spine_use_ik")
 		cls.draw_prop(layout, params, "CR_spine_double")
 		cls.draw_prop(layout, params, "CR_spine_world_align")
-
-		return layout
 
 class Rig(CloudSpineRig):
 	pass

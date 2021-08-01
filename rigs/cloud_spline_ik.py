@@ -210,20 +210,16 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
-		"""Overrides."""
-		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings"):
-			return layout
-
+		"""Overrides cloud_curve to not have an error when there is no target curve."""
 		cls.draw_prop(layout, params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
+		super().draw_control_params(layout, context, params)
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_spline_ik_show_settings"):
-			return layout
-
+		layout.separator()
+		cls.draw_control_label(layout, "Spline")
 		cls.draw_prop(layout, params, "CR_spline_ik_subdivide")
 		cls.draw_prop(layout, params, "CR_spline_ik_handle_length")
 
@@ -234,8 +230,6 @@ class CloudSplineIKRig(CloudCurveRig):
 		cls.draw_prop(layout, params, "CR_spline_ik_match_hooks")
 		if not params.CR_spline_ik_match_hooks:
 			cls.draw_prop(layout, params, "CR_spline_ik_hooks")
-
-		return layout
 
 class Rig(CloudSplineIKRig):
 	pass

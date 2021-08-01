@@ -34,6 +34,7 @@ from . import manual
 from . import operators
 from . import overlay
 from . import ui
+from . import ui_rig_types
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
@@ -48,6 +49,7 @@ modules = [
 	operators,
 	overlay,
 	parent_switching,
+	ui_rig_types,
 ]
 
 def register():

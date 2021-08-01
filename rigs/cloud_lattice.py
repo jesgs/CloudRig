@@ -130,11 +130,6 @@ class CloudLatticeRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup"""
 		super().add_parameters(params)
 
-		params.CR_lattice_show_settings = BoolProperty(
-			name		 = "Lattice"
-			,description = "Reveal settings for the cloud_lattice rig type"
-		)
-
 		params.CR_lattice_lattice = PointerProperty(
 			type		 = bpy.types.Object
 			,name		 = "Lattice"
@@ -147,16 +142,10 @@ class CloudLatticeRig(CloudBaseRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_lattice_show_settings'): return layout
-
 		cls.draw_prop(layout, params, "CR_lattice_lattice")
 		cls.draw_prop(layout, params, "CR_lattice_regenerate")
-
-		return layout
 
 class Rig(CloudLatticeRig):
 	pass

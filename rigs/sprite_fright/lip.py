@@ -21,19 +21,7 @@ class SpriteLipRig(CloudTweakRig):
 		super().create_bone_infos()
 
 	##############################
-	# Parameters
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		return layout
+	# No parameters for this rig type.
 
 class Rig(SpriteLipRig):
 	pass

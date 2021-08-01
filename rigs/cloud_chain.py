@@ -523,10 +523,6 @@ class CloudChainRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_chain_bendy_settings = BoolProperty(
-			name		 = "Bendy Bones"
-			,description = "Reveal Bendy Bone behaviour related settings"
-		)
 		params.CR_chain_segments = IntProperty(
 			 name		 = "Segments"
 			,description = "Number of deform bones per section"
@@ -572,34 +568,20 @@ class CloudChainRig(CloudBaseRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		cls.draw_bendy_params(layout, context, params)
-		cls.draw_control_params(layout, context, params)
-
-		return layout
-
-	@classmethod
 	def draw_bendy_params(cls, layout, context, params):
-		if cls.draw_dropdown_menu(layout, params, "CR_chain_bendy_settings"):
-			cls.draw_prop(layout, params, "CR_chain_bbone_density")
-			cls.draw_prop(layout, params, "CR_chain_sharp")
-			cls.draw_prop(layout, params, "CR_chain_smooth_spline")
-			if cls.is_advanced_mode(context):
-				cls.draw_prop(layout, params, "CR_chain_preserve_volume")
-				cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
-				cls.draw_prop(layout, params, "CR_chain_unlock_deform")
+		cls.draw_prop(layout, params, "CR_chain_bbone_density")
+		cls.draw_prop(layout, params, "CR_chain_sharp")
+		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
+		if cls.is_advanced_mode(context):
+			cls.draw_prop(layout, params, "CR_chain_preserve_volume")
+			cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
+			cls.draw_prop(layout, params, "CR_chain_unlock_deform")
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
-		dropdown = cls.draw_dropdown_menu(layout, params, "CR_settings_control")
-		if dropdown:
-			cls.draw_control_label(layout, "Stretch")
-			cls.draw_prop(layout, params, "CR_chain_segments", text="Stretch Segments")
-			cls.draw_prop(layout, params, "CR_chain_tip_control", text = "Tip Control")
-			return layout
+		cls.draw_control_label(layout, "Stretch")
+		cls.draw_prop(layout, params, "CR_chain_segments", text="Stretch Segments")
+		cls.draw_prop(layout, params, "CR_chain_tip_control", text = "Tip Control")
 
 class Rig(CloudChainRig):
 	pass

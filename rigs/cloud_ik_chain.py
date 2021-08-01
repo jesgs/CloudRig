@@ -576,10 +576,6 @@ class CloudIKChainRig(CloudFKChainRig):
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
-		params.CR_ik_chain_show_settings = BoolProperty(
-			name		 = "IK Settings"
-			,description = "Reveal settings for the cloud_ik_chain rig type"
-		)
 		params.CR_ik_chain_at_tip = BoolProperty(
 			name		 = "IK At Tail"
 			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
@@ -601,9 +597,8 @@ class CloudIKChainRig(CloudFKChainRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_control_params(layout, context, params)
-		if not layout:
-			return
+		super().draw_control_params(layout, context, params)
+
 		layout.separator()
 		cls.draw_control_label(layout, "IK")
 
@@ -611,7 +606,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
 		
 		if not cls.is_advanced_mode(context):
-			return layout
+			return
 		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
 		# TODO: This operator should work by picking 3 points on the bone chain, 
@@ -622,8 +617,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		# op.start_bone = context.active_pose_bone.name
 		# op.chain_length = len(get_bone_chain(context.active_pose_bone) ) - 1
 		# op.skip_popup = True
-
-		return layout
 
 	##############################
 	# Overlay

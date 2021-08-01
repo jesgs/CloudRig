@@ -85,32 +85,10 @@ class CloudCopyRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
-		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup"""
-		super().add_parameters(params)
-
-		params.CR_copy_show_settings = BoolProperty(
-			name		 = "Copy"
-			,description = "Reveal settings for the cloud_copy rig type"
-		)
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_copy_show_settings'): return layout
-
-		pb = bpy.context.active_pose_bone
-
+		pb = context.active_pose_bone
 		layout.prop(pb.bone, 'use_deform', text="Create Deform Bone")
-
-		return layout
 
 class Rig(CloudCopyRig):
 	pass

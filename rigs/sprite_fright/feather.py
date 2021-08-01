@@ -54,19 +54,7 @@ class SpriteFeatherRig(CloudFKChainRig):
 		self.bone_sets['Stretch Controls'][-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
 
 	##############################
-	# Parameters
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		return layout
+	# No parameters for this rig type.
 
 class Rig(SpriteFeatherRig):
 	pass

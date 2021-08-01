@@ -31,22 +31,6 @@ class CloudUIMixin:
 			row.enabled = False
 		return row
 
-	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
-		doc = cls.__doc__ or cls.__bases__[0].__doc__
-		if doc:
-			draw_label_with_linebreak(layout, doc)
-
-		layout.use_property_split = True
-		layout.use_property_decorate = False
-		col = layout.column()
-		return col
-
-	@classmethod
-	def draw_dropdown_menu(cls, layout, params, dropdown_param_name, alert=False):
-		layout.separator()
-		return draw_dropdown(layout, params, dropdown_param_name, alert)
-
 def is_advanced_mode(context):
 	if not is_cloud_metarig(context.object):
 		return False
@@ -102,21 +86,6 @@ def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, 
 		layout = layout.row()
 	layout.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
 	return layout
-
-def draw_dropdown(layout, params, dropdown_param_name, alert=False):
-	is_dropdown_open = getattr(params, dropdown_param_name)
-
-	icon = 'TRIA_DOWN' if is_dropdown_open else 'TRIA_RIGHT'
-	row = layout.row()
-	row.use_property_split=False
-	row.alignment = 'LEFT'
-	row.prop(params, dropdown_param_name, toggle=True, emboss=False, icon=icon)
-	if alert:
-		row.prop(params, dropdown_param_name, text="", toggle=True, emboss=False, icon='ERROR')
-	row.scale_y = 0.8
-	if is_dropdown_open:
-		return layout
-	return None
 
 def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
 	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI.

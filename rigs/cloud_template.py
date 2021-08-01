@@ -35,10 +35,6 @@ class CloudTemplateRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_template_show_settings = BoolProperty(
-			name		 = "Template Settings"
-			,description = "Reveal settings for the cloud_template rig type"
-		)
 		params.CR_template_use_control = BoolProperty(
 			name		 = "Make Control"
 			,description = "Create a Control bone"
@@ -46,15 +42,11 @@ class CloudTemplateRig(CloudBaseRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_template_show_settings'): return layout
+		super().draw_control_params(layout, context, params)
 
 		cls.draw_prop(layout, params, 'CR_template_use_control')
-
-		return layout
 
 # Uncomment the next two lines to make this rig show up in Blender.
 # class Rig(CloudTemplateRig):

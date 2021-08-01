@@ -319,10 +319,6 @@ class CloudCurveRig(CloudBaseRig):
 		# one side so mirror posing works as expected.
 		# An actual symmetrical curve shape is not enforced, but expected.
 
-		params.CR_curve_show_settings = BoolProperty(
-			name		 = "Curve"
-			,description = "Reveal settings for the cloud_curve rig type"
-		)
 		params.CR_curve_hook_name = StringProperty(
 			 name		 = "Custom Name"
 			,description = "Used in the naming of created bones and objects. If empty, use the base bone's name"
@@ -357,30 +353,23 @@ class CloudCurveRig(CloudBaseRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
+		"""Since this rig requires a curve object, draw with alert=True otherwise."""
 		curve_ob = params.CR_curve_target
 		bad_curve = curve_ob==None or curve_ob.type!='CURVE'
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_curve_show_settings", alert=bad_curve): return layout
 
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
 		cls.draw_prop(layout, params, 'CR_curve_target', icon=icon)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
 		cls.curve_selector_ui(layout, params)
-
-		if not params.CR_curve_show_settings: return layout
 
 		cls.draw_prop(layout, params, "CR_curve_hook_name")
 		cls.draw_prop(layout, params, "CR_curve_controls_for_handles")
 		if params.CR_curve_controls_for_handles:
 			cls.draw_prop(layout, params, "CR_curve_rotatable_handles")
 			cls.draw_prop(layout, params, "CR_curve_separate_radius")
-
-		return layout
 
 class Rig(CloudCurveRig):
 	pass

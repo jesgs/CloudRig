@@ -4,10 +4,6 @@ For weekly
     - CloudRig UI reshuffle
     - Rigged torches, pickle, sausage, rope
 
-fsiddi ideas:
-    - In Rigify Type panel, do a dirty check for the rig parameters (save their state on generation then compare) and when dirty, give a prompt to re-generate
-    - Try turning the drop-downs from boolean hack into real subpanels. I don't remember why we couldn't do it. Maybe we can.
-
 Priority 1: Bugs
     Flatten Chain operator wasn't working properly so I disabled it from the UI.
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.

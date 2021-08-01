@@ -214,10 +214,6 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_physics_chain_show_settings = BoolProperty(
-			name		 = "Physics"
-			,description = "Reveal settings for the cloud_physics_chain rig type"
-		)
 		params.CR_physics_chain_object = PointerProperty(
 			type		 = bpy.types.Object
 			,name		 = "Cloth Object"
@@ -254,11 +250,12 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
+		super().draw_control_params(layout, context, params)
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_physics_chain_show_settings"): return layout
+		layout.separator()
+		cls.draw_control_label(layout, "Physics")
 
 		cls.draw_prop(layout, params, 'CR_physics_chain_object')
 		if params.CR_physics_chain_object:
@@ -268,11 +265,8 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			cls.draw_prop(layout, params, 'CR_physics_chain_pin_falloff')
 			if params.CR_physics_chain_pin_falloff != 'NONE':
 				cls.draw_prop(layout, params, 'CR_physics_chain_pin_falloff_offset')
-		layout.separator()
 
 		cls.draw_prop(layout, params, 'CR_physics_chain_make_ctrl')
-
-		return layout
 
 class Rig(CloudPhysicsChainRig):
 	pass

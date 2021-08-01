@@ -180,9 +180,6 @@ class CloudParentSwitchMixin:
 			draw_label_with_linebreak(layout, "Generate the rig to see parenting parameters.", align_split=True)
 			return
 
-		if not cls.draw_dropdown_menu(layout, params, "CR_settings_parenting"): 
-			return
-
 		if cls.parent_switch_overwrites_root_parent:
 			cls.draw_prop(layout, params, "CR_base_parent_switching")
 			if params.CR_base_parent_switching:
@@ -194,8 +191,6 @@ class CloudParentSwitchMixin:
 			cls.draw_prop(layout, params, "CR_base_parent_switching")
 			if params.CR_base_parent_switching:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
-
-		return layout
 
 classes = [
 	ParentSlot,

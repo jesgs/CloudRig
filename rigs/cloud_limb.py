@@ -406,10 +406,6 @@ class CloudLimbRig(CloudIKChainRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_limb_show_settings = BoolProperty(
-			name		 = "Limb Settings"
-			,description = "Reveal settings for the cloud_limb rig type"
-		)
 		params.CR_limb_auto_hose = BoolProperty(
 			name		 = "Rubber Hose"
 			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be >1, Smooth Spline must be enabled and the chain's bone rolls must be similar"
@@ -438,9 +434,7 @@ class CloudLimbRig(CloudIKChainRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_control_params(layout, context, params)
-		if not layout:
-			return
+		super().draw_control_params(layout, context, params)
 
 		cls.draw_prop(layout, params, "CR_limb_double_ik")
 
@@ -456,8 +450,6 @@ class CloudLimbRig(CloudIKChainRig):
 			split = layout.split(factor=0.1)
 			split.row()
 			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_type', expand=True)
-
-		return layout
 
 	##############################
 	# Overlay

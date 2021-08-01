@@ -273,8 +273,6 @@ class CloudAimRig(CloudBaseRig):
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
-		params.CR_aim_show_settings = BoolProperty(name="Aim Target")
-
 		params.CR_aim_group = StringProperty(
 			name		 = "Aim Group"
 			,default	 = "Eyes"
@@ -312,22 +310,14 @@ class CloudAimRig(CloudBaseRig):
 		super().add_parameters(params)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, "CR_aim_show_settings"): return layout
-
-		ob = bpy.context.object
-
 		cls.draw_prop(layout, params, "CR_aim_group")
 		cls.draw_prop(layout, params, "CR_aim_target_distance")
 		cls.draw_prop(layout, params, "CR_aim_flatten")
 		cls.draw_prop(layout, params, "CR_aim_deform")
 		cls.draw_prop(layout, params, "CR_aim_root")
 		cls.draw_prop(layout, params, "CR_aim_create_sub_control")
-
-		return layout
 
 class Rig(CloudAimRig):
 	pass

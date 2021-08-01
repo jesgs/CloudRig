@@ -42,7 +42,7 @@ class CloudShoulderRig(CloudFKChainRig):
 		super().add_parameters(params)
 
 		params.CR_shoulder_up_axis = EnumProperty(
-			name = "Shoulder Up Axis"
+			name = "Widget Up Axis"
 			,description = "Rotate the bone shape to align with this axis of the bone"
 			,items = [
 				("0", '+Z', "Do not rotate the bone shape", 0),
@@ -55,14 +55,9 @@ class CloudShoulderRig(CloudFKChainRig):
 	@classmethod
 	def draw_appearance_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_appearance_params(layout, context, params)
-		if not layout:
-			return
+		super().draw_appearance_params(layout, context, params)
 
-		layout.separator()
 		cls.draw_prop(layout, params, 'CR_shoulder_up_axis')
-
-		return layout
 
 class Rig(CloudShoulderRig):
 	pass

@@ -144,11 +144,6 @@ class CloudTweakRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_tweak_show_settings = BoolProperty(
-			name		 = "Tweak"
-			,description = "Reveal settings for the cloud_tweak rig type"
-		)
-
 		params.CR_tweak_constraints_additive = BoolProperty(
 			name="Additive Constraints"
 			,description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead"
@@ -196,23 +191,19 @@ class CloudTweakRig(CloudBaseRig):
 		)
 
 	@classmethod
-	def draw_cloud_params(cls, layout, context, params):
+	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		layout = super().draw_cloud_params(layout, context, params)
-
-		if not cls.draw_dropdown_menu(layout, params, 'CR_tweak_show_settings'): return layout
-
-		layout.prop(params, "CR_tweak_constraints_additive")
-		layout.prop(params, "CR_tweak_transforms")
-		layout.prop(params, "CR_tweak_locks")
-		layout.prop(params, "CR_tweak_rot_mode")
-		layout.prop(params, "CR_tweak_shape")
-		layout.prop(params, "CR_tweak_group")
-		layout.prop(params, "CR_tweak_layers")
-		layout.prop(params, "CR_tweak_ik_settings")
-		layout.prop(params, "CR_tweak_bbone_props")
-
-		return layout
+		
+		cls.draw_control_label(layout, "Tweak")
+		cls.draw_prop(layout, params, "CR_tweak_constraints_additive")
+		cls.draw_prop(layout, params, "CR_tweak_transforms")
+		cls.draw_prop(layout, params, "CR_tweak_locks")
+		cls.draw_prop(layout, params, "CR_tweak_rot_mode")
+		cls.draw_prop(layout, params, "CR_tweak_shape")
+		cls.draw_prop(layout, params, "CR_tweak_group")
+		cls.draw_prop(layout, params, "CR_tweak_layers")
+		cls.draw_prop(layout, params, "CR_tweak_ik_settings")
+		cls.draw_prop(layout, params, "CR_tweak_bbone_props")
 
 class Rig(CloudTweakRig):
 	pass
