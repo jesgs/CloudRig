@@ -1,7 +1,7 @@
 import bpy
 import os
 
-BLEND_FILE_NAME = "MetaRigs.blend"
+BLEND_FILE_NAME = "metarigs/MetaRigs.blend"
 CURRENT_FOLDER = os.path.dirname(os.path.realpath(__file__))
 BLEND_FILE_PATH = os.path.join(CURRENT_FOLDER, BLEND_FILE_NAME)
 
