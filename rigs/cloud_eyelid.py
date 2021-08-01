@@ -13,7 +13,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		self.bones_org[0].parent = self.rigify_parent.org_chain[0].parent
+		self.bones_org[0].parent = self.rigify_parent.bones_org[0].parent
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
 		if not self.is_last_chain_rig:
@@ -44,7 +44,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				main_controls.append(str_ctr)
 
 		for str_ctr in main_controls:
-			eye_bone = parent_rig.org_chain[0]
+			eye_bone = parent_rig.bones_org[0]
 			rot_name = self.naming.make_name(["ROT"], *self.naming.slice_name(str_ctr)[1:])
 			rot_ctr = self.generator.find_bone_info(rot_name)
 			if rot_ctr:
@@ -54,7 +54,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				name = rot_name
 				,source = eye_bone
 				,tail = str_ctr.head.copy()
-				,parent = parent_rig.org_chain[0].parent
+				,parent = parent_rig.bones_org[0].parent
 				,roll_type = 'ACTIVE'
 				,roll_bone = eye_bone
 				,roll = 0

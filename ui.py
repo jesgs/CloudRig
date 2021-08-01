@@ -1,8 +1,7 @@
 import bpy
 import addon_utils
 
-from rigify import rig_lists, feature_sets
-
+from rigify import rig_lists, feature_sets, feature_set_list
 
 from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
@@ -254,6 +253,85 @@ def draw_cloud_layer_names(self, context):
 			icon = 'RADIOBUT_ON' if rigify_layer.selset else 'RADIOBUT_OFF'
 			row.prop(rigify_layer, "selset", text="", toggle=True, icon=icon)
 
+cloudrig_typelist = [
+	'cloud_chain'
+	,'	cloud_face_chain'
+	,'		cloud_eyelid'
+	,'	cloud_fk_chain'
+	,'		cloud_spine'
+	,'		cloud_shoulder'
+	,'		cloud_ik_chain'
+	,'			cloud_limb'
+	,'				cloud_leg'
+	,'		cloud_physics_chain'
+	,'cloud_curve'
+	,'	cloud_spline_ik'
+	,'cloud_lattice'
+	,'cloud_aim'
+	,'cloud_copy'
+	,'	cloud_chain_anchor'
+	,'cloud_tweak'
+]
+
+def build_type_list(context, rigify_types):
+	rigify_types.clear()
+	feature_set = context.object.data.active_feature_set
+
+	for r in sorted(rig_lists.rigs):
+		if (feature_set in ('all', rig_lists.rigs[r]['feature_set'])
+				or len(feature_set_list.get_installed_list()) == 0
+				):
+			if 'cloud_' in r:
+				continue
+			a = rigify_types.add()
+			a.name = r
+
+	# Add CloudRig types separately in hierarchy order with indentation
+	if feature_set in ('all', 'CloudRig'):
+		for r in cloudrig_typelist:
+			a = rigify_types.add()
+			a.name = r.replace("\t", "      ")
+
+def draw_rigify_types(self, context):
+	id_store = context.window_manager
+	bone = context.active_pose_bone
+	rig_name = str(context.active_pose_bone.rigify_type).replace(" ", "")
+
+	if 'cloud_' not in rig_name:
+		return self.draw_old(context)
+
+	layout = self.layout
+
+	# Build types list
+	build_type_list(context, id_store.rigify_types)
+
+	# Rig type field
+	if len(feature_set_list.get_installed_list()) > 0:
+		row = layout.row()
+		row.prop(context.object.data, "active_feature_set")
+	row = layout.row()
+	row.prop_search(bone, "rigify_type", id_store, "rigify_types", text="Rig type")
+
+	# Rig type parameters / Rig type non-exist alert
+	if rig_name != "":
+		try:
+			rig = rig_lists.rigs[rig_name]['module']
+		except (ImportError, AttributeError, KeyError):
+			row = layout.row()
+			box = row.box()
+			box.label(text="ERROR: type \"%s\" does not exist!" % rig_name, icon='ERROR')
+		else:
+			if hasattr(rig.Rig, 'parameters_ui'):
+				rig = rig.Rig
+			try:
+				rig.parameters_ui
+			except AttributeError:
+				col = layout.column()
+				col.label(text="No options")
+			else:
+				col = layout.column()
+				rig.parameters_ui(layout, bone.rigify_parameters)
+
 classes = [
 	CLOUDRIG_OT_layer_init,
 	CLOUDRIG_PT_generator_advanced
@@ -282,6 +360,9 @@ def register():
 	bpy.types.VIEW3D_MT_rigify.draw_old = bpy.types.VIEW3D_MT_rigify.draw
 	bpy.types.VIEW3D_MT_rigify.draw = draw_rigify_header
 
+	bpy.types.BONE_PT_rigify_buttons.draw_old = bpy.types.BONE_PT_rigify_buttons.draw
+	bpy.types.BONE_PT_rigify_buttons.draw = draw_rigify_types
+
 def unregister():
 	from bpy.utils import unregister_class
 	for c in reversed(classes):
@@ -296,3 +377,4 @@ def unregister():
 	bpy.types.DATA_PT_rigify_bone_groups.poll = bpy.types.DATA_PT_rigify_bone_groups.poll_old
 	bpy.types.DATA_PT_rigify_layer_names.draw = bpy.types.DATA_PT_rigify_layer_names.draw_old
 	bpy.types.VIEW3D_MT_rigify.draw = bpy.types.VIEW3D_MT_rigify.draw_old
+	bpy.types.BONE_PT_rigify_buttons.draw = bpy.types.BONE_PT_rigify_buttons.draw_old

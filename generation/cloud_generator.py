@@ -22,6 +22,7 @@ from ..rig_features.bone_set import BoneSet, UIBoneSet
 from ..rig_features import mechanism
 from ..rig_features.ui import redraw_viewport
 from ..rig_features.widgets import widgets as cloud_widgets
+from ..utils.rigify import find_rig_class
 from ..versioning import cloud_metarig_version
 
 from .actions import ActionSlot
@@ -232,7 +233,7 @@ class CloudGenerator(Generator):
 			if not is_cloud_rig_type(pb.rigify_type):
 				continue
 			pb.rigify_parameters.CR_active_bone_set_index = 0
-			rig_class = self.find_rig_class(pb.rigify_type)
+			rig_class = find_rig_class(pb.rigify_type)
 			rig_bone_set_defs = rig_class.bone_set_defs
 			for rig_bone_set_name in rig_bone_set_defs.keys():
 				rig_bone_set_def = rig_bone_set_defs[rig_bone_set_name]

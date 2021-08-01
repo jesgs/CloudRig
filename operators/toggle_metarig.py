@@ -110,7 +110,6 @@ def register():
 	from bpy.utils import register_class
 	register_class(CLOUDRIG_OT_MetarigToggle)
 
-	print("helloOOoooOOOO???")
 	register_hotkey(CLOUDRIG_OT_MetarigToggle.bl_idname
 		,hotkey_kwargs = {'type': "T", 'value': "PRESS", 'shift': True}
 		,key_cat = "3D View"
