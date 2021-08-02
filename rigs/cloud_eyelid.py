@@ -35,11 +35,10 @@ class CloudEyelidRig(CloudFaceChainRig):
 		sticky_prop_name = "sticky_eyelids_" + parent_rig.params.CR_aim_group.lower().replace(" ", "_")
 		self.create_sticky_property(parent_rig, sticky_prop_name)
 
-		# TODO: Maybe cloud_face_chain should to a better job of keeping track of this thing.
 		main_controls = []
 		for str_ctr in self.main_str_bones:
-			if hasattr(str_ctr, 'merged_control'):
-				str_ctr = str_ctr.merged_control
+			if hasattr(str_ctr, 'intersection_ctrl'):
+				str_ctr = str_ctr.intersection_ctrl
 			if str_ctr not in main_controls:
 				main_controls.append(str_ctr)
 

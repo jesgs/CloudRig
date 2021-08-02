@@ -55,7 +55,7 @@ def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anchor=False):
 	# If bones are in the center, flatten them to make sure they produce a clean curvature.
 	# This is important for things like the teeth or the lips, which are one rig
-	# element on each side that meet in the center, and are expected to make a coherent curve.
+	# element on each side that meet in the center, and are expected to make a smooth curve.
 
 	rig = cluster[0].owner_rig
 
@@ -106,7 +106,7 @@ class CloudFaceChainRig(CloudChainRig):
 		intersection_bones = []
 
 		for cluster in str_bone_clusters:
-			intersection_bones.append(self.ensure_intersection_for_cluster(cluster))
+			intersection_bones.append(self.create_intersection_for_cluster(cluster))
 
 	def relink(self, last_chain_done=False):
 		if last_chain_done:
@@ -134,7 +134,7 @@ class CloudFaceChainRig(CloudChainRig):
 		return relink_bone
 
 	@staticmethod
-	def ensure_intersection_for_cluster(cluster: List[BoneInfo]) -> BoneInfo:
+	def create_intersection_for_cluster(cluster: List[BoneInfo]) -> BoneInfo:
 		""" Try to find a CloudChainAnchorRig to parent the cluster to.
 			If it doesn't exist, create one.
 		"""
@@ -159,16 +159,12 @@ class CloudFaceChainRig(CloudChainRig):
 			# Discard prefixes, put STR-I.
 			bone_name = rig.naming.make_name(["STR", "I"], slices[1], slices[2])
 
-			# Check again if it exists - TODO this shouldn't be necessary, it should be caught above with the parent check. Although checking doesn't hurt. But if it already existed, add a bug log.
-			intersection_control = rig.generator.find_bone_info(bone_name)
-
-			if not intersection_control:
-				intersection_control = rig.bone_sets['Merged Controls'].new(
-					name = bone_name
-					,source = cluster[0]
-					,custom_shape = rig.ensure_widget('Cube')
-					,custom_shape_scale = cluster[0].custom_shape_scale
-				)
+			intersection_control = rig.bone_sets['Merged Controls'].new(
+				name = bone_name
+				,source = cluster[0]
+				,custom_shape = rig.ensure_widget('Cube')
+				,custom_shape_scale = 0.5
+			)
 
 		if abs(intersection_control.head.x) < 0.001:
 			do_centered_cluster(cluster, intersection_control, have_anchor)
@@ -178,7 +174,6 @@ class CloudFaceChainRig(CloudChainRig):
 
 		intersection_control.str_bones = cluster
 		return intersection_control
-
 
 	##############################
 	# Parameters
