@@ -12,6 +12,7 @@ MERGE_THRESHOLD = 0.000001
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo):
 	for str_bone in cluster:
 		str_bone.parent = intersection
+		str_bone.tangent_helper.parent = intersection.parent
 
 		str_bone.intersection_ctrl = intersection
 
