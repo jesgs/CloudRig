@@ -1682,7 +1682,7 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
 		draw_layers_ui(self.layout, rig, show_hidden_checkbox = True)
 
 class CLOUDRIG_OT_layer_select(bpy.types.Operator):
-	"""Select active layers for this armature using the named Rigify layers."""
+	"""Select active layers for this armature using the named Rigify layers"""
 	bl_idname = "pose.cloudrig_select_layers"
 	bl_label = "Select Armature Layers"
 	bl_options = {'REGISTER', 'UNDO'}

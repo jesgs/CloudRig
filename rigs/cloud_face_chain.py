@@ -107,19 +107,30 @@ class CloudFaceChainRig(CloudChainRig):
 		for cluster in str_bone_clusters:
 			intersection_bones.append(self.ensure_intersection_for_cluster(cluster))
 
-		self.relink_armature_constraints(intersection_bones)
+	def relink(self, last_chain_done=False):
+		if last_chain_done:
+			super().relink()
+			return
+		elif not self.is_last_chain_rig:
+			return
+
+		for rig in self.chain_rigs:
+			rig.relink(last_chain_done = True)
 
 	def get_relink_target(self, org_i, con):
-		"""Overrides cloud_chain. Don't create parent helpers for Armature 
-		constraints if the str bone has an intersection owner."""
-		if con.type == 'ARMATURE':
-			if not con.name.startswith('TAIL-'):
-				str_bone = self.bone_sets['Stretch Controls'][org_i]
-			else:
-				str_bone = self.bone_sets['Stretch Controls'][org_i+1]
-			if hasattr(str_bone, 'intersection_ctrl'):
-				return str_bone
-		return super().get_relink_target(org_i, con)
+		"""Overrides cloud_chain. Only work when called by the last chain rig."""
+
+		if con.name.startswith('TAIL-'):
+			relink_bone = self.bone_sets['Stretch Controls'][org_i+1]
+		else:
+			relink_bone = self.bone_sets['Stretch Controls'][org_i]
+		if hasattr(relink_bone, 'intersection_ctrl'):
+			relink_bone = relink_bone.intersection_ctrl
+
+		if con.type == 'ARMATURE' and not hasattr(relink_bone, "parent_helper"):
+			relink_bone = relink_bone.parent_helper = self.create_parent_bone(relink_bone, self.bones_mch)
+
+		return relink_bone
 
 	@staticmethod
 	def ensure_intersection_for_cluster(cluster: List[BoneInfo]) -> BoneInfo:
@@ -167,21 +178,6 @@ class CloudFaceChainRig(CloudChainRig):
 		intersection_control.str_bones = cluster
 		return intersection_control
 
-	@staticmethod
-	def relink_armature_constraints(intersection_bones):
-		"""For each STR control owned by an intersection, relink Armature
-		constraints to a parent of the intersection.
-		"""
-
-		for intersection in intersection_bones:
-			for str_bone in intersection.str_bones:
-				for c in str_bone.constraint_infos:
-					if c.type != 'ARMATURE':
-						continue
-					parent = str_bone.owner_rig.create_parent_bone(str_bone, str_bone.owner_rig.bones_mch)
-
-					parent.constraint_infos.append(c)
-					str_bone.constraint_infos.remove(c)
 
 	##############################
 	# Parameters
