@@ -396,7 +396,7 @@ class CLOUDRIG_UL_log_entry_slots(bpy.types.UIList):
 			row = layout.row()
 			row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
 			if log.note!="":
-				row.prop(log, 'note', emboss=False, text="", icon=log.note_icon)
+				row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
 			elif log.owner_bone!="":
 				row.prop(log, 'owner_bone', text="", emboss=False, icon='BONE_DATA')
 
@@ -420,7 +420,7 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 		cloudrig = metarig.data.cloudrig_parameters
 		logs = cloudrig.logs
 		active_index = cloudrig.active_log_index
-
+		layout = self.layout
 		row = layout.row()
 
 		row.template_list(
