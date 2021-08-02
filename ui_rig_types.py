@@ -13,9 +13,13 @@ class CloudParamSubPanel(bpy.types.Panel):
 	def poll(cls, context):
 		pb = context.active_pose_bone
 		rig_class = find_rig_class(pb.rigify_type)
+		if not rig_class:
+			return False
+		if not hasattr(rig_class, cls.draw_function_name):
+			return False
 		if cls.advanced_only and not rig_class.is_advanced_mode(context):
 			return False
-		return rig_class and hasattr(rig_class, cls.draw_function_name)
+		return True
 
 	def draw(self, context):
 		layout = self.layout
