@@ -1,3 +1,4 @@
+from typing import List
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
 from . import naming
@@ -214,7 +215,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 
 		return keyed_bones
 
-	def get_constraint_name(self, bone_name:str):
+	def get_constraint_name(self, bone_name:str) -> str or List[str]:
 		# Determine what the name of the constraint created by this Action Slot would be on a given bone.
 		control_is_left_side = naming.side_is_left(self.subtarget)
 		bone_is_left_side = naming.side_is_left(bone_name)
@@ -310,13 +311,17 @@ class ActionSlot(bpy.types.PropertyGroup):
 				pb.constraints.move(len(pb.constraints)-1, 0)
 
 				if self.is_corrective:
-					fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
-					driver = fcurve.driver
 					trigger_a_slot, i = find_slot_by_action(metarig_data, self.trigger_action_a)
 					trigger_b_slot, i = find_slot_by_action(metarig_data, self.trigger_action_b)
 					trigger_a_con_name = trigger_a_slot.get_constraint_name(pb.name)
 					trigger_b_con_name = trigger_b_slot.get_constraint_name(pb.name)
+					if type(trigger_a_con_name)==list:
+						# TODO: Action setup system currently does not support splitting corrective actions to left/right parts
+						# (This is completely doable, I just don't have time right now)
+						return
 
+					fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
+					driver = fcurve.driver
 					relation = ">=" if self.corrective_type=='POSITIVE' else "<="
 					sign = "-" if self.corrective_type=='POSITIVE' else "+"
 					# This expression calculates the correct value for this corrective action's eval_time.

@@ -1,4 +1,14 @@
 Priority 1: Bugs
+    SINTEL METARIG
+        I wonder if we could get rid of shoulder bbone twist
+        Face has many issues:
+            - STR-I rotation is doubled on `STR-TAN-UpperCheek3.L` because it's inheriting rotation from STR-UpperCheek3.L. It should be parented to the ORG bone, not sure what's going on here.
+            - Lip action seems to trigger too early
+            - Constraints don't seem to propagate to STR-I
+            - Nostril STR-I isn't getting created
+            - Would be nice to use anchor bones with proper names instead of relying on STR-I names.
+
+
     Flatten Chain operator wasn't working properly so I disabled it from the UI.
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
         Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
