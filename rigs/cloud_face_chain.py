@@ -11,12 +11,15 @@ MERGE_THRESHOLD = 0.000001
 
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo):
 	for str_bone in cluster:
+		rig = str_bone.owner_rig
 		str_bone.parent = intersection
 		str_bone.intersection_ctrl = intersection
-		if str_bone.owner_rig.params.CR_chain_smooth_spline:
+		if rig.params.CR_chain_smooth_spline:
 			str_bone.tangent_helper.constraint_infos[-2].subtarget = intersection.name
 			str_bone.tangent_helper.constraint_infos[-2].name = "Copy STR-I Transforms"
 			str_bone.tangent_helper.parent = intersection
+		str_bone.bone_group = rig.bone_sets['Sub Controls'].bone_group
+		str_bone.layers = rig.bone_sets['Sub Controls'].layers[:]
 
 def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 	"""Gather a list of lists of more than one STR bones that are in the same
@@ -46,7 +49,6 @@ def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 
 	return clusters
 
-# TODO: This code is a nightmare.
 def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anchor=False):
 	# If bones are in the center, flatten them to make sure they produce a clean curvature.
 	# This is important for things like the teeth or the lips, which are one rig
@@ -172,7 +174,7 @@ class CloudFaceChainRig(CloudChainRig):
 			# Discard prefixes, put STR-I.
 			bone_name = rig.naming.make_name(["STR", "I"], slices[1], slices[2])
 
-			intersection_control = rig.bone_sets['Merged Controls'].new(
+			intersection_control = rig.bone_sets['Intersection Controls'].new(
 				name = bone_name
 				,source = cluster[0]
 				,custom_shape = rig.ensure_widget('Cube')
@@ -199,8 +201,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# STR bones who then had a merged control created for them will be assigned
 		# the bone group and layer of this BoneSet.
 		cls.define_bone_set(params, 'Sub Controls', 	preset=1,	default_layers=[cls.DEFAULT_LAYERS.MCH])#, is_advanced=True)
-		cls.define_bone_set(params, 'Merged Controls',	preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
-		cls.define_bone_set(params, 'Face Helpers', 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set(params, 'Intersection Controls',	preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
 
 	@classmethod
 	def add_parameters(cls, params):
@@ -209,7 +210,7 @@ class CloudFaceChainRig(CloudChainRig):
 
 		params.CR_face_chain_merge = BoolProperty(
 			name		 = "Merge Controls"
-			,description = "If any controls of this rig overlap with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
+			,description = "If any controls of this rig intersect with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
 			,default	 = True
 		)
 
