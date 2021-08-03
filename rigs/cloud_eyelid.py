@@ -43,7 +43,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				main_controls.append(str_ctr)
 
 		for str_ctr in main_controls:
-			eye_bone = parent_rig.bones_org[0]
+			eye_bone = parent_rig.ctr_bone
 			rot_name = self.naming.make_name(["ROT"], *self.naming.slice_name(str_ctr)[1:])
 			rot_ctr = self.generator.find_bone_info(rot_name)
 			if rot_ctr:
