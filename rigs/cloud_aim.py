@@ -13,7 +13,7 @@ from ..utils.maths import bounding_box_center
 class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
-	relinking_behaviour = "Constraints will be moved to the Eye Control."
+	relinking_behaviour = "Constraints will be moved to the Eye Root Control."
 	always_use_custom_props = True
 	parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye rigs with a matching string as their Eye Group paramter."
 	parent_switch_overwrites_root_parent = False
@@ -157,8 +157,11 @@ class CloudAimRig(CloudBaseRig):
 		Move constraints from the ORG to the Eye Control bone and relink them.
 		"""
 		org = self.bones_org[0]
+		if org == self.root_bone:
+			org.relink()
+			return
 		for c in org.constraint_infos:
-			self.ctr_bone.constraint_infos.append(c)
+			self.root_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
 			for d in c.drivers:
 				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
