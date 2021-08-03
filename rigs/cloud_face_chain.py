@@ -12,16 +12,11 @@ MERGE_THRESHOLD = 0.000001
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo):
 	for str_bone in cluster:
 		str_bone.parent = intersection
-		str_bone.tangent_helper.parent = intersection.parent
-
 		str_bone.intersection_ctrl = intersection
-
-		str_bone.tangent_helper.add_constraint('COPY_ROTATION'
-			,name = "Copy Rotation (of STR-I)"
-			,subtarget = intersection.name
-			,index = -1
-			,target_space = 'LOCAL_OWNER_ORIENT'
-		)
+		if str_bone.owner_rig.params.CR_chain_smooth_spline:
+			str_bone.tangent_helper.constraint_infos[-2].subtarget = intersection.name
+			str_bone.tangent_helper.constraint_infos[-2].name = "Copy STR-I Transforms"
+			str_bone.tangent_helper.parent = intersection
 
 def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 	"""Gather a list of lists of more than one STR bones that are in the same
@@ -93,6 +88,20 @@ class CloudFaceChainRig(CloudChainRig):
 
 		self.is_last_chain_rig = self == self.chain_rigs[-1]
 
+	def prepare_bones(self):
+		super().prepare_bones()
+
+		### Following code is only run ONCE by the LAST face_chain_rig.
+		if not self.is_last_chain_rig:
+			return
+
+		# This is ugly, but any STR controls with the Smooth Spline param need 
+		# their tangent_helper to be parented to the intersection control's parent.
+		for intersection in self.intersection_bones:
+			for str_bone in intersection.str_bones:
+				if str_bone.owner_rig.params.CR_chain_smooth_spline:
+					str_bone.tangent_helper.parent = intersection.parent
+
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
@@ -103,12 +112,13 @@ class CloudFaceChainRig(CloudChainRig):
 		# This is all code that needs to create or interact with intersection controls.
 
 		str_bone_clusters = get_bone_clusters(self.chain_rigs)
-		intersection_bones = []
+		self.intersection_bones = []
 
 		for cluster in str_bone_clusters:
-			intersection_bones.append(self.create_intersection_for_cluster(cluster))
+			self.intersection_bones.append(self.create_intersection_for_cluster(cluster))
 
 	def relink(self, last_chain_done=False):
+		# Only relink all cloud_face_chain rigs when the last one is generating.
 		if last_chain_done:
 			super().relink()
 			return
@@ -119,12 +129,15 @@ class CloudFaceChainRig(CloudChainRig):
 			rig.relink(last_chain_done = True)
 
 	def get_relink_target(self, org_i, con):
-		"""Overrides cloud_chain. Only work when called by the last chain rig."""
+		"""Overrides cloud_chain. Only work when called by the last chain rig.
+		Relink target should become the intersection control if there is one.
+		"""
 
 		if con.name.startswith('TAIL-'):
 			relink_bone = self.bone_sets['Stretch Controls'][org_i+1]
 		else:
 			relink_bone = self.bone_sets['Stretch Controls'][org_i]
+
 		if hasattr(relink_bone, 'intersection_ctrl'):
 			relink_bone = relink_bone.intersection_ctrl
 

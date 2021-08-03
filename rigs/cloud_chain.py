@@ -214,8 +214,8 @@ class CloudChainRig(CloudBaseRig):
 		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
-			,parent = str_bone.parent
 			,inherit_scale = 'NONE'
+			,parent = str_bone
 		)
 
 		if smooth:
@@ -238,12 +238,10 @@ class CloudChainRig(CloudBaseRig):
 				)
 
 			handle_bone.add_constraint('COPY_TRANSFORMS'
-				,name = "Copy User Rotation"
+				,name = "Copy STR Transforms"
 				,subtarget = str_bone.name
 				,target_space = 'LOCAL_OWNER_ORIENT'
 			)
-		else:
-			handle_bone.parent = str_bone
 
 		handle_bone.add_constraint('COPY_SCALE'
 			,subtarget = str_bone.name
@@ -281,7 +279,6 @@ class CloudChainRig(CloudBaseRig):
 				,bbone_handle_use_scale_start = [True, False, True]
 				,bbone_handle_use_scale_end	  = [True, False, True]
 				,use_deform					  = True
-				,inherit_scale				  = 'NONE' # Y scale on the bone's axis is overwritten by the Stretch constraint. Aligned mode gives better results for areas like the foot, where the chain isn't straight.
 			)
 			next_parent = def_bone
 
@@ -380,15 +377,15 @@ class CloudChainRig(CloudBaseRig):
 
 		# B-Bone scale drivers
 		if def_bone.bbone_segments > 1:
+			def_bone.inherit_scale = 'NONE'
 			self.make_bbone_ease_drivers(def_bone)
 		else:
 			def_bone.inherit_scale = 'ALIGNED'
+
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
 
 	def make_bbone_ease_drivers(self, def_bone: BoneInfo):
-
-
 		### Ease In/Out
 		easein_var = {
 			'type' : 'TRANSFORMS',
@@ -486,17 +483,16 @@ class CloudChainRig(CloudBaseRig):
 		if not meta_org_bone.bone.use_connect: return
 
 		parent_rig.params.CR_chain_tip_control = True
-		def_bone = parent_rig.bone_sets['Deform Bones'][-1]
-		str_bone = parent_rig.bone_sets['Stretch Controls'][-1]
-		if parent_rig.params.CR_chain_unlock_deform:
-			def_bone = parent_rig.def_mch[-1]
-		parent_rig.setup_def_bone(def_bone, parent_rig.bone_sets['Original Bones'][-1], str_bone, self.bone_sets['Stretch Controls'][0])
-		def_bone.parent = str_bone
+		last_def = parent_rig.bones_def[-1]
+		last_str = parent_rig.bone_sets['Stretch Controls'][-1]
+		last_org = parent_rig.bones_org[-1]
+		parent_rig.setup_def_bone(last_def, last_org, last_str, self.bone_sets['Stretch Controls'][0])
+		last_def.parent = last_str
 		self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
-			self.make_shape_key_helper(def_bone, self.bones_def[0])
+			self.make_shape_key_helper(last_def, self.bones_def[0])
 		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-			self.make_tangent_helper(str_bone, nxt=self.bone_sets['Stretch Controls'][0])
+			self.make_tangent_helper(last_str, nxt=self.bone_sets['Stretch Controls'][0])
 
 	##############################
 	# Parameters
