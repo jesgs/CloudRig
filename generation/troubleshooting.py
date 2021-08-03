@@ -480,7 +480,9 @@ class CLOUDRIG_PT_stack_trace(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return is_advanced_mode(context)
+		cloudrig = context.object.data.cloudrig_parameters
+		logs = cloudrig.logs
+		return len(logs) > 0 and is_advanced_mode(context)
 
 	def draw(self, context):
 		cloudrig = context.object.data.cloudrig_parameters
