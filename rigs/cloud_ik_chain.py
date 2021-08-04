@@ -46,7 +46,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		if not len(self.bones_org) > 1:
-			self.raise_error(f"ERROR on {self.base_bone}: cloud_ik_chain requires a chain of at least 2 bones!")
+			self.raise_error(f"Must be a chain of at least 2 bones!")
 		self.last_org = self.bones_org[-1]
 		if self.params.CR_ik_chain_at_tip:
 			self.bones_org.new(

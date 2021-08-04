@@ -242,9 +242,14 @@ class CloudGenerator(Generator):
 		"""Create the rig object that will replace the previous generation result."""
 
 		metaname = self.metarig.name
-		rig_name = "GENERATING-" + metaname.replace("META", "RIG")
+		final_name = metaname.replace("META", "RIG")
+		if 'META' not in metaname:
+			final_name = "RIG-" + metaname
+
+		rig_name = "GENERATING-" + final_name
+
 		obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
-		obj.data.name = "Data_" + metaname.replace("META", "RIG")
+		obj.data.name = "Data_" + final_name
 
 		# Ensure rig is visible while generating.
 		self.context.scene.collection.objects.link(obj)
@@ -252,6 +257,7 @@ class CloudGenerator(Generator):
 		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
+		# TODO: This probably prevents cross-compatibility between CloudRig and Rigify rig UIs
 		obj.data["rig_id"] = 'cloudrig'
 
 		# Timestamp
@@ -329,7 +335,7 @@ class CloudGenerator(Generator):
 		if widget_collection:
 			return widget_collection
 
-		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").lower()
+		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").replace("GENERATING-", "").lower()
 
 		# Try finding the widgets collection anywhere.
 		widget_collection = bpy.data.collections.get(coll_name)
@@ -827,6 +833,8 @@ def generate_rig(context, metarig):
 	except Exception as e:
 		# Cleanup if something goes wrong
 		generator.cleanup()
+		generator.obj.name = "FAILED-" + generator.obj.name
+		generator.obj.name = generator.obj.name.replace("GENERATING-", "")
 
 		logs = metarig.data.cloudrig_parameters.logs
 		if 'Post-Gen Error' in logs:
