@@ -604,19 +604,13 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
 		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
-		
-		if not cls.is_advanced_mode(context):
-			return
-		cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
-		# TODO: This operator should work by picking 3 points on the bone chain, 
-		# then aligning all points of the bone chain to that plane.
+		if cls.is_advanced_mode(context):
+			cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
 
-		# op = layout.operator('object.cloudrig_flatten_bones')
-		# op.use_selected = False
-		# op.start_bone = context.active_pose_bone.name
-		# op.chain_length = len(get_bone_chain(context.active_pose_bone) ) - 1
-		# op.skip_popup = True
+		split = layout.split(factor=0.4)
+		split.row()
+		split.row().operator('armature.flatten_chain')
 
 	##############################
 	# Overlay

@@ -1,130 +1,52 @@
 import bpy
-from bpy.props import BoolProperty, IntProperty, StringProperty, EnumProperty
-from mathutils.geometry import intersect_point_line
+from mathutils.geometry import intersect_line_plane
 from ..rig_features.mechanism import get_bone_chain
 
 class CLOUDRIG_OT_FlattenChain(bpy.types.Operator):
 	"""Flatten a chain of bones on a plane. Useful for perfect IK chains"""
 
-	bl_idname = "object.cloudrig_flatten_bones"
-	bl_label = "Flatten Bones"
+	bl_idname = "armature.flatten_chain"
+	bl_label = "Flatten Bone Chain"
 	bl_options = {'REGISTER', 'UNDO'}
-
-	use_selected: BoolProperty(name="Selected Bones", default=True)
-
-	start_bone: StringProperty(name="Start bone")
-	chain_length: IntProperty(name="Chain Length", default=-1)
-
-	axis: EnumProperty(name="Axis",
-		items = [
-			('X', 'X', 'X'),
-			('-X', '-X', '-X'),
-			('Y', 'Y', 'Y'),
-			('-Y', '-Y', '-Y'),
-			('Z', 'Z', 'Z'),
-			('-Z', '-Z', '-Z'),
-		],
-		default = 'Y'
-	)
-
-	skip_popup: BoolProperty(name="Skip Popup", description="Just rely on automatic settings", default=False)
 
 	@classmethod
 	def poll(cls, context):
 		return context.object and context.object.type=='ARMATURE' and context.object.mode=='POSE'
 
-	def invoke(self, context, event):
-		if len(context.selected_pose_bones) < 2:
-			self.use_selected = False
-			if context.active_pose_bone:
-				self.start_bone = context.active_pose_bone.name
-
-		# Determine a default flattening axis based on the first two bones
-		if self.start_bone!="":
-			start_bone = context.object.pose.bones.get(self.start_bone)
-			if self.chain_length == -1:
-				self.chain_length = len(get_bone_chain(start_bone))
-			bones = get_bone_chain(start_bone.bone)[:2]
-			if len(bones) > 1:
-				chain_start = bones[0].head_local
-				chain_end = bones[-1].tail_local
-				line = (chain_start, chain_end)
-
-				intersect = intersect_point_line(bones[1].head_local, chain_start, chain_end)[0]
-				difference = bones[1].head_local - intersect
-				inverse = []
-
-				for i, co in enumerate(difference):
-					difference[i] = abs(co)
-					inverse.append(co < 0)
-
-				if max(difference) == difference[0]:
-					self.axis = 'X'
-					if inverse[0]:
-						self.axis = '-X'
-				if max(difference) == difference[1]:
-					self.axis = 'Y'
-					if inverse[1]:
-						self.axis = '-Y'
-				if max(difference) == difference[2]:
-					self.axis = 'Z'
-					if inverse[2]:
-						self.axis = '-Z'
-
-		if self.skip_popup:
-			return self.execute(context)
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
-
-	def draw(self, context):
-		layout = self.layout
-		layout.use_property_split = True
-		layout.prop(self, 'use_selected')
-		if not self.use_selected:
-			layout.prop_search(self, 'start_bone', context.object.pose, 'bones')
-			layout.prop(self, 'chain_length')
-		layout.prop(self, 'axis')
-
 	def execute(self, context):
-		org_mode = context.mode
+		# Enter edit mode
+		org_mode = context.object.mode
 		bpy.ops.object.mode_set(mode='EDIT')
-
-		rig = context.object
-
-		bones = context.selected_editable_bones
-		start_bone = context.active_bone
-		if not self.use_selected:
-			start_bone = rig.data.edit_bones.get(self.start_bone)
-			if not start_bone:
-				self.report({'ERROR'}, "A start bone must be specified!")
-				return {'CANCELLED'}
-		bones = get_bone_chain(start_bone)[:self.chain_length]
-
-		if len(bones) < 2:
-			return {'CANCELLED'}
-
-		chain_start = bones[0].head
-		chain_end = bones[-1].tail
-		line = (chain_start, chain_end)
-
 		bpy.ops.armature.select_all(action='DESELECT')
 
-		bones[0].select=True
-		for b in bones[1:]:
-			b.select=True
-			intersect = intersect_point_line(b.head, chain_start, chain_end)[0]
-			if 'X' not in self.axis:
-				b.head.x = intersect.x
-			if 'Y' not in self.axis:
-				b.head.y = intersect.y
-			if 'Z' not in self.axis:
-				b.head.z = intersect.z
+		# Find the bone chain that we will be operating on
+		start_bone = context.active_bone
+		chain = get_bone_chain(start_bone)
 
-		roll_type = "GLOBAL_POS_" + self.axis[-1]
-		if not self.axis.startswith("-"):
-			roll_type = roll_type.replace("POS_", "NEG_")
+		# We need 3 points to define a plane. 2 of these are the head of the first and the tail of the last bone.
+		plane_points = [chain[0].head, chain[-1].tail]
+		# Let's pick the 3rd point based on whether the first or last bone is longer.
+		if chain[0].length > chain[-1].length:
+			plane_points.append(chain[0].tail)
+		else:
+			plane_points.append(chain[-1].head)
 
-		bpy.ops.armature.calculate_roll(type=roll_type)
+		# Find the normal of this plane by finding two non-parallel vectors that lie on the plane
+		# and taking their cross product.
+		vec1 = plane_points[0] - plane_points[1]
+		vec2 = plane_points[1] - plane_points[2]
+		plane_normal = vec1.cross(vec2)
+
+		# Now let's flatten each point in the chain onto our plane.
+		for edit_bone in chain:
+			for vec in [edit_bone.head, edit_bone.tail]:
+				# Find the line that connects this vector to its closest point on the plane
+				line = [vec - plane_normal, vec + plane_normal]
+				# Blender gives us a nice function for intersecting a line with a plane
+				intersect = intersect_line_plane(line[0], line[1], plane_points[0], plane_normal)
+
+				# Set the vector to the resulting point
+				vec.xyz = intersect[:]
 
 		bpy.ops.object.mode_set(mode=org_mode)
 		return { 'FINISHED' }

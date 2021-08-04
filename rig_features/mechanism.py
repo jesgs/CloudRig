@@ -109,7 +109,7 @@ def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
 
 	return find_rig_of_bone(pose_bone.parent)
 
-def get_rigify_chain(pose_bone) -> List[bpy.types.PoseBone]:
+def get_rigify_chain(pose_bone) -> List[bpy.types.Bone]:
 	"""Find the chain of bones constituting a rig element that this pose bone belongs to."""
 
 	# We start building a chain with the current bone, prepending bones as we go
