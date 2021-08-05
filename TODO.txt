@@ -14,7 +14,6 @@ Priority 2: New features
         Remove the Corrective Range feature (or at least hide it for now, since Sprite Frigt rigs need it)
         Split up actions into rotation/not rotation or beg for 
 
-    Make an Assign Armature Layers operator. Make sure both work in edit mode too and that they overwrite the default.
     cloud_finger IK setup should at least have the option to be consistent with other rig elements, and have its IK/FK switch in the rig UI rather than in the 3D viewport.
         Also, the IK finger setups could be parented to the FK control when the arm is set to FK, but this is pretty tricky since a child rig (the finger) will end up having to make quite some assumptions about its parent rig being a cloud_ik_chain instance, potentially.
 
