@@ -548,7 +548,6 @@ class CloudGenerator(Generator):
 		old_rig = self.params.rigify_target_rig
 		self.obj = obj = self.create_rig_object()
 		obj.data.pose_position = 'REST'
-		context.view_layer.update()	# This is necessary to make sure child object matrices are updated after switching the rig to rest pose!
 
 		self.logger.rig = obj
 		self.logger.metarig = metarig

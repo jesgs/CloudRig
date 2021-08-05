@@ -18,17 +18,18 @@ class CloudTweakRig(CloudBaseRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		meta_bone = self.meta_bone(self.base_bone)
-		if not meta_bone:
-			orgless_name = self.base_bone.replace("ORG-", "", 1)
-			meta_bone = self.meta_bone(orgless_name)
+		orgless_name = self.base_bone.replace("ORG-", "", 1)
+		meta_bone = self.meta_bone(orgless_name)
 
-		self.root_bone = self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
+		self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
+
 		org_bi = self.bones_org[0]
 
 		if not self.tweak_bone:
 			self.add_log("No bone to tweak", trouble_bone=orgless_name, description=f"Could not find a bone called {orgless_name} on the generated rig.")
 			return
+
+		self.root_bone = self.tweak_bone	# Allow parenting parameters to work
 
 		if self.params.CR_tweak_transforms:
 			tweak_bone.head = org_bi.head.copy()
