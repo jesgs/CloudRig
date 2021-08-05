@@ -21,8 +21,6 @@ def safe_generate(context, metarig):
 	else:
 		bpy.ops.pose.rigify_generate()
 
-	bpy.ops.object.cloudrig_refresh_drivers(selected_only=False)
-
 	meta_visible.restore()
 	if rig_visible:
 		rig_visible.restore()
