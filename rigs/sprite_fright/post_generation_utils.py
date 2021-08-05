@@ -31,13 +31,6 @@ def link_script(rig, prop_name:str, filepath:str, script_name:str):
 	rig.data[prop_name] = text
 	exec(text.as_string(), {})
 
-def create_selection_sets(context, selset_text: bpy.types.Text):
-	"""Create selection sets."""
-	selection_set_dict = eval(selset_text.as_string())
-	from bone_selection_sets import from_json
-	import json
-	from_json(context, json.dumps(selection_set_dict))
-
 def add_ui_data(rig, 
 	area_identifier="misc_properties", row_name="row", col_name="", 
 	info={'prop_bone' : "Properties", 'prop_id' : "prop"}, 
@@ -69,8 +62,7 @@ def add_ui_data(rig,
 	if col_name=="":
 		col_name = row_name
 	row[col_name] = info
-	print(f"    Added {col_name}")
-
+	# print(f"    Added {col_name}")
 
 def face_rig_tweaks(rig):
 	"""Automate some tweaks on the face rig."""
@@ -88,11 +80,11 @@ def face_rig_tweaks(rig):
 	# Implement "Face Squash" property if it exists.
 	prp_head = rig.pose.bones.get("PRP-Head")
 	if prp_head and 'Face Squash' in prp_head:
-		print("Implement 'Face Squash'...")
+		# print("Implement 'Face Squash'...")
 		for bn in ['DEF-Head_Top', 'DEF-Head', 'MSTR-H-Head_Bottom']:
 			pb = rig.pose.bones.get(bn)
 			if not pb: continue
-			print("    " + pb.name)
+			# print("    " + pb.name)
 			for prop_name in ['use_bulge_min', 'use_bulge_max']:
 				pb.constraints[0].driver_remove(prop_name)
 				d = pb.constraints[0].driver_add(prop_name).driver
@@ -112,12 +104,12 @@ def face_rig_tweaks(rig):
 		}
 		add_ui_data(rig, 'face_settings', 'LipHeadJaw', f'{sides[suf]} Corner Top/Bot', ui_data)
 
-		print("Disable Action constraints on lip corners when they are pinching...")
+		# print("Disable Action constraints on lip corners when they are pinching...")
 		for bn in ['P-STR-TIP-Lip_Top2', 'P-STR-Lip_Bottom2']:
 			bone_name = bn + suf
 			pb = rig.pose.bones.get(bone_name)
 			if not pb: continue
-			print("    " + pb.name)
+			# print("    " + pb.name)
 			for c in pb.constraints:
 				if c.type!='ACTION':
 					continue
@@ -128,12 +120,12 @@ def face_rig_tweaks(rig):
 				var.targets[0].id = rig
 				var.targets[0].data_path = f'pose.bones["CTR-LipCorner{suf}"]["Sharp"]'
 
-		print("Move Copy Transforms constraints on the lips to the top of the constraint stack...")
+		# print("Move Copy Transforms constraints on the lips to the top of the constraint stack...")
 		for bn in ['STR-Lip_Top2', 'STR-TIP-Lip_Top2', 'STR-Lip_Bottom2', 'STR-Lip_Bottom1']:
 			bone_name = bn + suf
 			pb = rig.pose.bones.get(bone_name)
 			if not pb: continue
-			print("    " + pb.name)
+			# print("    " + pb.name)
 			for i, c in enumerate(pb.constraints):
 				if c.type=='COPY_TRANSFORMS':
 					pb.constraints.move(i, 0)
@@ -145,7 +137,7 @@ def face_rig_tweaks(rig):
 		for head_end_name in ['STR-TIP-Head_Top', 'STR-TIP-Head']:
 			head_bone = rig.data.edit_bones.get(head_end_name)
 			if not head_bone: continue
-			print("Parenting head tip to upper head master....")
+			# print("Parenting head tip to upper head master....")
 			head_bone.parent = master_control
 			break
 
@@ -160,27 +152,18 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 	for o in bpy.data.objects:
 		if o.type!='MESH': continue
 		if len(o.particle_systems)>0:
-			print("Loading hair particle script for object: " + o.name)
 			link_script(rig, "hair_script", '//../../scripts/rigged_particle_hair.blend', 'rigged_particle_hair.py')
 			break
-
-	# If there is a text datablock named "charname_selection_sets.py", load selection sets from it.
-	selset_text = bpy.data.texts.get(charname.lower()+"_selection_sets.py")
-	if selset_text:
-		print("Creating selection sets: " + selset_text.name)
-		create_selection_sets(context, selset_text)
 
 	# If there is a text datablock named "charname_rename_curves.py", attach it to the rig.
 	rename_text = bpy.data.texts.get(charname.lower()+"_rename_curves.py")
 	if rename_text:
-		print("Attaching curve renaming script: " + rename_text.name)
 		rig.data['rename_script'] = rename_text
 
 	# Head Squash
 	face_rig_tweaks(rig)
 
 	# Set arms to FK
-	print("Set arms to FK...")
 	set_custom_property_value(rig, 'PRP-UpperArm.L', 'ik_left_arm', 0.0)
 	set_custom_property_value(rig, 'PRP-UpperArm.R', 'ik_right_arm', 0.0)
 
@@ -188,7 +171,6 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 	set_custom_property_value(rig, 'PRP-Head', 'Teeth Follow Mouth', 1.0)
 	set_custom_property_value(rig, 'PRP-Head', 'Chin Resists Jaw', 0.5)
 
-	print("Adding face settings...")
 	add_ui_data(rig, 'face_settings', 'Chin Resists Jaw', info={
 		'prop_bone' : 'PRP-Head',
 		'prop_id' : 'Chin Resists Jaw',
@@ -238,7 +220,6 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 	# This cannot be done with file linking in a nice way, so we just copy the file each time any of the rigs are generated.
 	# Yes, this is pretty nasty.
 	if shared_script:
-		print("Update and load shared cloudrig.py")
 		from pathlib import Path
 		cloudrig_path = Path(__file__).parent / "../../generation/cloudrig.py"
 		with open(cloudrig_path) as cloudrig_file:
@@ -260,5 +241,4 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		if not o.data: continue
 		data_name = "Data_"+o.name
 		if o.data.name != data_name:
-			print(f"Renaming obdata: {o.data.name} -> {data_name}")
 			o.data.name = data_name
