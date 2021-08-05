@@ -221,9 +221,11 @@ class CloudGenerator(Generator):
 		parameters, with the bone set parameters stored in RigifyParameters. 
 		We copy the data from the latter to the former."""
 
-		# Nuke data
+		# Nuke UI bone sets
 		ui_bone_sets = self.metarig.data.cloudrig_parameters.ui_bone_sets
 		ui_bone_sets.clear()
+
+		# Re-initialize UI bone sets
 		for pb in self.metarig.pose.bones:
 			if not is_cloud_rig_type(pb.rigify_type):
 				continue
@@ -511,6 +513,10 @@ class CloudGenerator(Generator):
 		if old_rig.animation_data and old_rig.animation_data.action:
 			new_rig.animation_data.action = old_rig.animation_data.action
 
+		# Preserve Armature display settings
+		new_rig.display_type = old_rig.display_type
+		new_rig.data.display_type = old_rig.data.display_type
+
 		# Delete the old rig
 		bpy.data.objects.remove(old_rig)
 
@@ -525,8 +531,10 @@ class CloudGenerator(Generator):
 		if self.do_sel_sets:
 			from_json(self.context, selsets)
 
+
 	def generate(self, context):
 		print("CloudRig Generation begin")
+		bpy.ops.object.mode_set(mode='OBJECT')
 
 		metarig = self.metarig
 		t = Timer()
@@ -534,8 +542,6 @@ class CloudGenerator(Generator):
 		self.collection = context.scene.collection
 		if len(self.metarig.users_collection) > 0:
 			self.collection = self.metarig.users_collection[0]
-
-		bpy.ops.object.mode_set(mode='OBJECT')
 
 		#------------------------------------------
 		# Create/find the rig object and set it up
@@ -558,46 +564,11 @@ class CloudGenerator(Generator):
 		# Rename metarig data
 		self.metarig.data.name = "Data_" + self.metarig.name
 
-		select_object(context, obj, deselect_all=True)
-
-		#------------------------------------------
-		# Create Group widget
-		# self._Generator__create_widget_group("WGTS_" + obj.name)
-
-		t.tick("Create main WGTS: ")
-
 		#------------------------------------------
 		# Join a clone of the metarig into the generated rig.
-		self._Generator__duplicate_rig()
-
-		# t.tick("Duplicate rig: ")
-		redraw_viewport()
-
-		bpy.ops.object.mode_set(mode='OBJECT')
-		self.driver_map = self.map_drivers()
-
-		self.script = None
-		if self.rigify_compatible:
-			self.script = rig_ui_template.ScriptGenerator(self)
-
-		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
-
-		self.create_root_bones()
-		self.instantiate_rig_tree()
-		self.cloudrig_reorder_rigs(self.rig_list)
-
-		t.tick("Instantiate rigs: ")
-		redraw_viewport()
-
-		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
-
-		self.invoke_initialize()
-
-		t.tick("Initialize rigs: ")
-
-		# Copy Rigify Layers from metarig to target rig
+		select_object(context, obj, deselect_all=True)
+		self._Generator__duplicate_rig()	# TODO: This takes 2 seconds, for some reason the armature join operator is really slow. Either get it fixed upstream or avoid joining armatures.
+		# Copy Rigify Layers from metarig to target rig - TODO: Doesn't Rigify already have code for this??
 		for i in range(len(obj.data.rigify_layers), len(self.metarig.data.rigify_layers)):
 			obj.data.rigify_layers.add()
 		for i, rig_layer in enumerate(self.metarig.data.rigify_layers):
@@ -608,17 +579,34 @@ class CloudGenerator(Generator):
 			target.selset = source.selset
 			target.group = source.group
 
+		t.tick("Duplicate rig: ")
+
+		redraw_viewport()
+
+		self.driver_map = self.map_drivers()
+
+		self.script = None
+		if self.rigify_compatible:
+			self.script = rig_ui_template.ScriptGenerator(self)
+
+		#------------------------------------------
+		self.create_root_bones()
+		self.instantiate_rig_tree()
+		self.cloudrig_reorder_rigs(self.rig_list)
+
+		#------------------------------------------
+		self.invoke_initialize()
+
+		t.tick("Initialize rigs: ")
+
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
 
 		self.invoke_prepare_bones()
 
 		t.tick("Prepare bones: ")
-		redraw_viewport()
 
 		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
-		bpy.ops.object.mode_set(mode='EDIT')
 
 		self.root_bone = None
 		if self.params.cloudrig_parameters.create_root:
@@ -643,11 +631,8 @@ class CloudGenerator(Generator):
 		self.invoke_generate_bones()
 
 		t.tick("Generate bones: ")
-		redraw_viewport()
 
 		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
-		bpy.ops.object.mode_set(mode='EDIT')
 
 		self.invoke_parent_bones()
 
@@ -658,7 +643,7 @@ class CloudGenerator(Generator):
 		if self.root_bone:
 			self._Generator__parent_bones_to_root()
 
-		t.tick("Parent bones: ")
+		t.tick("Write Edit Data: ")
 		redraw_viewport()
 
 		#------------------------------------------
@@ -683,10 +668,12 @@ class CloudGenerator(Generator):
 
 		self.invoke_configure_bones()
 
+		t.tick("Write Pose Data: ")
+		redraw_viewport()
+
 		self.create_action_constraints()
 
-		t.tick("Configure bones: ")
-		redraw_viewport()
+		t.tick("Action Constraints: ")
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
@@ -710,18 +697,15 @@ class CloudGenerator(Generator):
 
 		self.invoke_rig_bones()
 
-		t.tick("Rig bones: ")
 		redraw_viewport()
 
 		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
 
 		if self.rigify_compatible:
 			self.invoke_generate_widgets()
 			t.tick("Generate widgets: ")
 
 		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
 
 		obj.data.layers = self.metarig.data.layers[:]
 		obj.data.layers_protected = self.metarig.data.layers_protected[:]
@@ -729,10 +713,8 @@ class CloudGenerator(Generator):
 
 		if self.rigify_compatible:
 			self.rigify_assign_layers()
-			t.tick("Assign layers: ")
 
 		#------------------------------------------
-		bpy.ops.object.mode_set(mode='OBJECT')
 
 		### Load and execute cloudrig.py rig UI script
 		metarig.data.rigify_rig_ui = obj.data.rigify_rig_ui = load_script(
@@ -740,10 +722,6 @@ class CloudGenerator(Generator):
 			,file_name = "cloudrig.py"
 			,datablock = metarig.data.rigify_rig_ui
 		)
-
-		# Armature display settings
-		obj.display_type = self.metarig.display_type
-		obj.data.display_type = self.metarig.data.display_type
 
 		self.invoke_finalize()
 
@@ -766,7 +744,6 @@ class CloudGenerator(Generator):
 		# Only leave Force Widget Update enabled until the next generation.
 		# XXX: This is bad UX. Would work better as a pop-up parameter, but we 
 		# don't want to give a popup to something as commonly used as generation. 
-		# Maybe Widget updating should just be faster! Then this parameter can go away altogether!
 		self.metarig.data.rigify_force_widget_update = False
 
 		if old_rig:
@@ -795,16 +772,14 @@ class CloudGenerator(Generator):
 				# should be considered a rig generation failure.
 				raise e
 
+		t.tick("The rest: ")
 		self.cleanup()
 		self.update_bone_set_ui_info()
-		t.tick("The rest: ")
+		t.tick("Cleanup: ")
 
 	def cleanup(self):
 		"""Clean up after generation has either failed or succeeded."""
-		# NOTE: Errors raised in this function won't be handled nicely!
-		# It will not be added to the Rigify Log, and relationships won't be 
-		# fully restored to their original states.
-		
+
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.metarig.data.pose_position = 'POSE'

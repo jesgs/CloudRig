@@ -10,12 +10,13 @@ from ..utils.maths import flat
 from ..rig_features.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
+# These values should match Blender's defaults, otherwise they won't be written.
 edit_bone_properties = {
 	'head' : Vector((0, 0, 0))
 	,'tail' : Vector((0, 0, 1))
 	,'roll' : 0
 	,'head_radius' : 0.1
-	,'tail_radius' : 0.1
+	,'tail_radius' : 0.05
 	,'use_connect' : False
 
 	,'bbone_curveinx' : 0
@@ -69,7 +70,7 @@ pose_bone_properties = {
 	,'custom_shape_scale_xyz' : Vector((1.0, 1.0, 1.0))
 	,'custom_shape_translation' : Vector((0.0, 0.0, 0.0))
 	,'custom_shape_rotation_euler' : Vector((0.0, 0.0, 0.0))
-	,'use_custom_shape_bone_size' : False
+	,'use_custom_shape_bone_size' : True
 
 	,'rotation_mode' : 'QUATERNION'
 	,'lock_location' : [False, False, False]
@@ -135,6 +136,7 @@ class BoneInfo:
 		self.init_variables(edit_bone_properties)
 		self.init_variables(bone_properties)
 		self.init_variables(pose_bone_properties)
+		self.use_custom_shape_bone_size = False
 
 		# Recalculate Roll
 		self.roll_type = "" # This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
@@ -372,7 +374,12 @@ class BoneInfo:
 
 		for key in edit_bone_properties:
 			key = key.replace("edit_", "")	# Allows bbone properties to specify if they are only for edit bone version
-			setattr(eb, key, self.__dict__[key])
+			value = self.__dict__[key]
+			default_value = edit_bone_properties[key]
+			if value == default_value:
+			 	# For performance, don't write default values.
+				continue
+			setattr(eb, key, value)
 		eb.use_connect = False	# NOTE: Without this, ORG- bones' Copy Transforms constraints can't work properly.
 
 		scale = generator.scale
@@ -423,10 +430,14 @@ class BoneInfo:
 		for key in pose_bone_properties:
 			key = key.replace("pose_", "")	# Allows bbone properties to specify if they are only for pose bone version
 			value = self.__dict__[key]
+			default_value = pose_bone_properties[key]
+			if value == default_value:
+			 	# For performance, don't write default values.
+				continue
 			if value in [None, ""]: continue
-			if key=='custom_shape_transform':
+			if key == 'custom_shape_transform':
 				value = armature.pose.bones.get(value.name)
-			if key=='bone_group':
+			if key == 'bone_group':
 				value = armature.pose.bone_groups.get(self.bone_group)
 			setattr(pb, key, value)
 		
