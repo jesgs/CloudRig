@@ -157,12 +157,17 @@ class CloudSplineIKRig(CloudCurveRig):
 		"""Apply the rest pose of the deform bones, as dictated by
 		the Spline IK constraint."""
 		super().configure_bones()
-		bpy.ops.object.mode_set(mode='POSE')
-		for pb in self.obj.pose.bones:
-			pb.bone.select = bool(self.bone_sets['Curve Deform Bones'].find(pb.name))
 
 		self.obj.data.pose_position = 'POSE'
-		bpy.ops.pose.armature_apply(selected=True)
+		bpy.ops.object.mode_set(mode='EDIT')
+
+		for def_bi in self.bone_sets['Curve Deform Bones']:
+			eb = self.obj.data.edit_bones.get(def_bi.name)
+			if not eb:
+				continue
+			pb = self.obj.pose.bones.get(def_bi.name)
+			eb.head = pb.matrix.to_translation()
+
 		self.obj.data.pose_position = 'REST'
 		bpy.ops.object.mode_set(mode='OBJECT')
 
