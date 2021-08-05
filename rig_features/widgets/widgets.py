@@ -58,25 +58,22 @@ def ensure_widget(name, overwrite=True, collection=None):
 
 	return wgt_ob
 
-def initiate_widget_generation(name):
-	ob_name = "WGT-" + name
-
-	# If the object exists locally, delete it.
-	obj = bpy.data.objects.get((ob_name, None))
-	if obj:
-		obdata = obj.data
-		bpy.data.objects.remove(obj)
-
-	return ob_name
 
 def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
 
+	# If the object already exists and we aren't forcing a widget update, return existing.
+	ob_name = "WGT-" + bone.name
+	existing = bpy.data.objects.get((ob_name, None))
+	if existing:
+		if not rig.generator.metarig.data.rigify_force_widget_update:
+			return existing
+		else:
+			# If the object exists locally, delete it.
+			bpy.data.objects.remove(existing)
+
 	context = bpy.context
-
 	bpy.ops.object.mode_set(mode='OBJECT')
-	ob_name = initiate_widget_generation(bone.name)
-
 	curve = bpy.data.curves.new(ob_name, 'CURVE')
 	curve.dimensions = '3D'
 	obj = bpy.data.objects.new(ob_name, curve)
