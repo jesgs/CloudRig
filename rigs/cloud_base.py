@@ -10,6 +10,7 @@ from ..rig_features.ui import CloudUIMixin
 from ..rig_features.mechanism import CloudMechanismMixin
 from ..rig_features.object import CloudObjectUtilitiesMixin
 from ..rig_features.parent_switching import CloudParentSwitchMixin
+from ..rig_features.performance_profiling import CloudPerformanceProfilerMixin
 
 # The rest
 from bpy.props import BoolProperty, StringProperty, EnumProperty
@@ -38,8 +39,9 @@ class CloudBaseRig(
 					CloudParentSwitchMixin,
 					CloudMechanismMixin,
 					CloudObjectUtilitiesMixin,
+					CloudPerformanceProfilerMixin,
 					CloudUIMixin,
-					BoneSetMixin
+					BoneSetMixin,
 	):
 	"""Base class that all CloudRig rigs should inherit from."""
 
@@ -107,6 +109,8 @@ class CloudBaseRig(
 		self.bones_org = self.bone_sets['Original Bones']
 		self.bones_def = self.bone_sets['Deform Bones']
 		self.bones_mch = self.bone_sets['Mechanism Bones']
+
+		self.init_timer()
 
 	def force_parameters(self, meta_base_bone, params):
 		"""Allows the class to force certain parameter values for its instances."""
