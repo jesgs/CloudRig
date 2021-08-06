@@ -153,6 +153,8 @@ class BoneInfo:
 			self.head_radius = source.head_radius
 			self.tail_radius = source.tail_radius
 			if type(source) == BoneInfo:
+				self.roll_type = source.roll_type
+				self.roll_bone = source.roll_bone
 				self.bone_group = source.bone_group
 				self.bbone_width = source.bbone_width
 				if source.parent:
@@ -412,6 +414,7 @@ class BoneInfo:
 					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
 					armature.data.edit_bones.active = active_bone
+					self.roll = 0
 			elif self.roll_type == 'CURSOR':
 				context.scene.cursor.location = self.roll_cursor
 
@@ -632,9 +635,12 @@ class ConstraintInfo(dict):
 
 		subtargets = []
 		if 'subtarget' in con_info:
-			subtargets = [con_info['subtarget']]
+			subtargets = [str(con_info['subtarget'])]
+			con_info['subtarget'] = str(con_info['subtarget'])
 		if 'targets' in con_info:
-			subtargets = [t['subtarget'] for t in con_info['targets']]
+			for t in con_info['targets']:
+				t['subtarget'] = str(t['subtarget'])
+				subtargets = [str(t['subtarget']) for t in con_info['targets']]
 
 		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those
 		# tweak bones end up targetting the ORG bone which is not good.
