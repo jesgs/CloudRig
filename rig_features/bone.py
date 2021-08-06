@@ -155,6 +155,7 @@ class BoneInfo:
 			if type(source) == BoneInfo:
 				self.roll_type = source.roll_type
 				self.roll_bone = source.roll_bone
+				self.roll = source.roll
 				self.bone_group = source.bone_group
 				self.bbone_width = source.bbone_width
 				if source.parent:
@@ -414,10 +415,11 @@ class BoneInfo:
 					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
 					armature.data.edit_bones.active = active_bone
-					self.roll = 0
 			elif self.roll_type == 'CURSOR':
 				context.scene.cursor.location = self.roll_cursor
 
+			# XXX PERFORMANCE: This is incredibly slow...
+			# And it runs way too many times for cloud_chain rigs with >1 segments, because of the align_in/out helper bones.
 			bpy.ops.armature.calculate_roll(type=self.roll_type)
 			eb.roll += self.roll
 			context.scene.cursor.location = cursor_backup

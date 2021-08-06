@@ -150,6 +150,7 @@ class CloudChainRig(CloudBaseRig):
 			,length = org_bone.length / segments / 2
 			,roll_type = 'ACTIVE'
 			,roll_bone = org_bone.name
+			,roll = 0
 			,custom_shape = self.ensure_widget("Sphere")
 			,custom_shape_scale = 0.4
 			,parent = org_bone
@@ -160,19 +161,17 @@ class CloudChainRig(CloudBaseRig):
 			# If it's a main_str_bone
 			str_bone.align_in = self.bone_sets['Mechanism Bones'].new(
 				name = name.replace("STR", "STR-RI")
-				,source = str_bone
+				,source = org_bone.prev
 				,parent = str_bone
 				,head = str_bone.head
 				,tail = str_bone.head + org_bone.prev.vector * str_bone.length
-				,roll_bone = org_bone.prev.name
 			)
 			str_bone.align_out = self.bone_sets['Mechanism Bones'].new(
 				name = name.replace("STR", "STR-RO")
-				,source = str_bone
+				,source = org_bone
 				,parent = str_bone
 				,head = str_bone.head
 				,tail = str_bone.head + org_bone.vector * str_bone.length
-				,roll_bone = org_bone.name
 			)
 
 		str_bone.org_parent = org_bone

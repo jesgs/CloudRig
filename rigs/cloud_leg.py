@@ -57,6 +57,7 @@ class CloudLegRig(CloudLimbRig):
 		properties_bone.tail = tail
 		properties_bone.length *= 0.6
 		properties_bone.roll_type = 'GLOBAL_POS_X'
+		properties_bone.roll = 0
 		properties_bone.custom_shape = self.ensure_widget('Cogwheel')
 		properties_bone.parent = self.bones_org[-2]
 		return properties_bone
@@ -98,7 +99,7 @@ class CloudLegRig(CloudLimbRig):
 	def create_foot_dsp(self, bone):
 		"""Create display helper for the foot IK control."""
 		dsp_bone = self.create_dsp_bone(bone)
-		direction = 1 if self.side_suffix=='L' else -1
+		direction = -1 if self.side_suffix=='L' else 1
 
 		# To get the position of the foot bone display helper,
 		# project a line out of the knee bone, then find the point on that line
@@ -118,7 +119,7 @@ class CloudLegRig(CloudLimbRig):
 		dsp_bone.length = 0.1 * self.scale
 		dsp_bone.roll_type = 'ACTIVE'
 		dsp_bone.roll_bone = toe
-		dsp_bone.roll = rad(-90) * direction
+		dsp_bone.roll = rad(90) * direction
 
 		return dsp_bone
 
@@ -210,6 +211,7 @@ class CloudLegRig(CloudLimbRig):
 			,tail		  = tail
 			,roll_type	  = 'ACTIVE'
 			,roll_bone	  = toe
+			,roll		  = 0
 			,parent		  = self.ik_mstr
 			,custom_shape = self.ensure_widget('Roll_Flat')
 			,use_custom_shape_bone_size = True
