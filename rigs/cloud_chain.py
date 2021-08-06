@@ -7,6 +7,10 @@ from copy import deepcopy
 
 from .cloud_base import CloudBaseRig
 
+"""TODO
+Main and Sub STR controls should be treated totally separately from each other, even having separate bone sets.
+"""
+
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 	relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with \"TAIL-\"."
@@ -100,7 +104,7 @@ class CloudChainRig(CloudBaseRig):
 			for i in range(segments):
 				str_bone = self.make_str_bone(org_bone, i, segments)
 				str_section.append(str_bone)
-				if i==0:
+				if i == 0:
 					str_bone.custom_shape_scale *= 1.3
 					self.main_str_bones.append(str_bone)
 					if org_i == 0 and self.is_cyclic:
@@ -110,7 +114,7 @@ class CloudChainRig(CloudBaseRig):
 			str_sections.append(str_section)
 
 			# Create STR-TIP control at the end of the chain.
-			if org_i==len(org_chain)-1 and self.params.CR_chain_tip_control:
+			if org_i == len(org_chain)-1 and self.params.CR_chain_tip_control:
 				if self.is_cyclic:
 					self.bone_sets['Stretch Controls'][-1].next = self.bone_sets['Stretch Controls'][0]
 					self.bone_sets['Stretch Controls'][0].prev = self.bone_sets['Stretch Controls'][-1]
@@ -133,7 +137,7 @@ class CloudChainRig(CloudBaseRig):
 	def make_str_bone(self, org_bone: BoneInfo, seg_i: int, segments: int, name="") -> BoneInfo:
 		"""Create an STR control."""
 		direction = org_bone.vector
-		if seg_i==0 and org_bone.prev:
+		if seg_i == 0 and org_bone.prev:
 			direction = org_bone.tail - org_bone.prev.head
 		unit = org_bone.vector / segments
 		if name=="":
@@ -144,11 +148,32 @@ class CloudChainRig(CloudBaseRig):
 			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
 			,length = org_bone.length / segments / 2
-			,roll = org_bone.roll
+			,roll_type = 'ACTIVE'
+			,roll_bone = org_bone.name
 			,custom_shape = self.ensure_widget("Sphere")
 			,custom_shape_scale = 0.4
 			,parent = org_bone
 		)
+		str_bone.align_in = str_bone
+		str_bone.align_out = str_bone
+		if seg_i == 0 and self.params.CR_chain_segments > 1 and org_bone.prev:
+			# If it's a main_str_bone
+			str_bone.align_in = self.bone_sets['Mechanism Bones'].new(
+				name = name.replace("STR", "STR-RI")
+				,source = str_bone
+				,parent = str_bone
+				,head = str_bone.head
+				,tail = str_bone.head + org_bone.prev.vector * str_bone.length
+				,roll_bone = org_bone.prev.name
+			)
+			str_bone.align_out = self.bone_sets['Mechanism Bones'].new(
+				name = name.replace("STR", "STR-RO")
+				,source = str_bone
+				,parent = str_bone
+				,head = str_bone.head
+				,tail = str_bone.head + org_bone.vector * str_bone.length
+				,roll_bone = org_bone.name
+			)
 
 		str_bone.org_parent = org_bone
 
@@ -162,29 +187,30 @@ class CloudChainRig(CloudBaseRig):
 		"""Create STR-H bones that keep STR controls between two main STR controls."""
 		main_str_bone = None
 		for sec_i, section in enumerate(str_sections):
-			if self.params.CR_chain_tip_control and section==str_sections[-1]:
+			if self.params.CR_chain_tip_control and section == str_sections[-1]:
 				# If there is a tip control, the last section will be just that tip control, so do nothing.
 				continue
 			for i, str_bone in enumerate(section):
-				# If this STR bone is not the first in its section
-				# Create an STR-H parent helper for it, which will hold some constraints
-				# that keep this bone between the first and last STR bone of the section.
 				if i==0:
 					main_str_bone = str_bone
 					main_str_bone.sub_bones = []
 					continue
+
+				# If this STR bone is not the first in its section
+				# Create an STR-H parent helper for it, which will hold some constraints
+				# that keep this bone between the first and last STR bone of the section.
 				main_str_bone.sub_bones.append(str_bone)
 
 				str_h_bone = self.bone_sets['Stretch Helpers'].new(
-					name 		 = self.naming.add_prefix(str_bone, "H")
+					name 		 = self.naming.add_prefix(str_bone.name, "H")
 					,source 	 = str_bone
 					,bbone_width = str_bone.bbone_width
 					,parent		 = str_bone.parent
 				)
 				str_bone.parent = str_h_bone
 
-				first_str = section[0].name
-				last_str = str_sections[sec_i+1][0].name
+				first_str = section[0]
+				last_str = str_sections[sec_i+1][0]
 				influence_unit = 1 / len(section)
 				influence = i * influence_unit
 				str_h_bone.add_constraint('COPY_LOCATION'
@@ -198,11 +224,11 @@ class CloudChainRig(CloudBaseRig):
 
 				str_h_bone.add_constraint('COPY_ROTATION'
 					,space		= 'WORLD'
-					,subtarget	= first_str
+					,subtarget	= first_str.align_out
 				)
 				str_h_bone.add_constraint('COPY_ROTATION'
 					,space		= 'WORLD'
-					,subtarget	= last_str
+					,subtarget	= last_str.align_in
 					,influence	= influence
 				)
 				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
