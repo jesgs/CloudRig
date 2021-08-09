@@ -148,16 +148,16 @@ class CloudChainRig(CloudBaseRig):
 			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
 			,length = org_bone.length / segments / 2
-			,roll_type = 'ACTIVE'
-			,roll_bone = org_bone.name
-			,roll = 0
 			,custom_shape = self.ensure_widget("Sphere")
 			,custom_shape_scale = 0.4
 			,parent = org_bone
 		)
 		str_bone.align_in = str_bone
 		str_bone.align_out = str_bone
-		if seg_i == 0 and self.params.CR_chain_segments > 1 and org_bone.prev:
+		if seg_i == 0 and self.params.CR_chain_segments > 1 and org_bone.prev and self.params.CR_chain_align_roll:
+			str_bone.roll_type = 'ACTIVE'
+			str_bone.roll_bone = org_bone.name
+			str_bone.roll = 0
 			# If it's a main_str_bone
 			str_bone.align_in = self.bone_sets['Mechanism Bones'].new(
 				name = name.replace("STR", "STR-RI")
@@ -576,6 +576,13 @@ class CloudChainRig(CloudBaseRig):
 			 name		 = "Smooth Spline"
 			,description = "B-Bone Splines affect their neighbours for smoother curves. Works best when Deform Segments is 1, but that is not a requirement"
 			,default	 = False
+		)
+
+		# This parameter is not exposed, and only exists for backwards compatibility currently.
+		params.CR_chain_align_roll = BoolProperty(
+			 name		 = "Align Roll"
+			,description = "Re-calculate the bone roll of STR controls based on the ORG bones"
+			,default	 = True
 		)
 		params.CR_chain_tip_control = BoolProperty(
 			 name		 = "At Tail"
