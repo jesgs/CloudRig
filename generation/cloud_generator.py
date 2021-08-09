@@ -68,7 +68,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	generate_test_action: BoolProperty(
 		name		 = "Generate Test Action"
 		,description = "Whether to create/update the deform test action or not. Enabling this enables the Animation parameter category on FK chain rigs"
-		,default	 = True
+		,default	 = False
 	)
 	test_action: PointerProperty(
 		name		 = "Test Action"
@@ -259,10 +259,11 @@ class CloudGenerator(Generator):
 		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
 		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
-		# TODO: This probably prevents cross-compatibility between CloudRig and Rigify rig UIs
-		obj.data["rig_id"] = 'cloudrig'
+		obj.data['rig_id'] = self.rig_id
+		# Mark rig for cloudrig.py compatibility checks
+		obj.data['cloudrig'] = 1
 
-		# Timestamp
+		# Save generation timestamp to a custom property
 		today = datetime.today()
 		now = datetime.now()
 		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
@@ -271,6 +272,12 @@ class CloudGenerator(Generator):
 		# Make sure Hidden Layers checkbox is saved in the generated rig, so it 
 		# remains even if the Rigify addon is disabled.
 		obj.data.cloudrig_parameters.show_layers_preview_hidden = False
+
+		# Copy viewport display settings from the metarig.
+		obj.data.display_type = self.metarig.data.display_type
+		obj.data.show_names = self.metarig.data.show_names
+		obj.show_in_front = self.metarig.show_in_front
+		obj.data.show_axes = self.metarig.data.show_axes
 
 		return obj
 

@@ -17,23 +17,27 @@ from bpy.props import (
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
+def is_cloudrig(obj):
+	"""Return whether obj is marked as being compatible with this script file."""
+	return obj.type=='ARMATURE' and (
+			('rig_id' in obj.data and obj.data['rig_id'] == 'cloudrig') or \
+			('cloudrig' in obj.data)
+		)
+
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """
-	return [o for o in bpy.data.objects if o.type=='ARMATURE' and 'rig_id' in o.data and o.data['rig_id'] == 'cloudrig']
+	return [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloudrig(o)]
 
 def is_active_cloudrig(context):
 	""" If the active object is a cloudrig, return it. """
 	rig = context.pose_object or context.object
-	if 		rig and \
-			rig.type == 'ARMATURE' and \
-			'rig_id' in rig.data and \
-			rig.data['rig_id'] == 'cloudrig':
+	if rig and is_cloudrig(rig):
 		return rig
 
 def is_active_cloud_metarig(context):
 	""" If the active object is a cloud metarig, return it. """
 	rig = context.pose_object or context.object
-	if rig and rig.type=='ARMATURE' and 'rig_id' not in rig.data:
+	if rig and rig.type=='ARMATURE' and not is_cloudrig(rig):
 		for pb in rig.pose.bones:
 			if not hasattr(pb, 'rigify_type'):
 				return None
