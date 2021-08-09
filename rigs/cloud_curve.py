@@ -84,11 +84,14 @@ class CloudCurveRig(CloudBaseRig):
 
 		hook_ctr = self.bone_sets['Curve Hooks'].new(
 			name						= f"Hook_{hook_name}_{str(i).zfill(2)}{suffix}"
+			,source						= self.bones_org[0]
+			,use_custom_shape_bone_size	= False
 			,head						= loc
 			,tail						= loc_left
-			,parent						= self.base_bone
-			,use_custom_shape_bone_size	= True
+			,parent						= self.bones_org[0]
 		)
+		# Turn parenting-induced transforms to local space with an Armature constraint.
+		hook_ctr.add_constraint('ARMATURE', targets=[{'subtarget' : hook_ctr.parent}])
 
 		hook_ctr.left_handle_control = None
 		hook_ctr.right_handle_control = None
@@ -101,9 +104,9 @@ class CloudCurveRig(CloudBaseRig):
 				radius_control = self.bone_sets['Curve Handles'].new(
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
+					,use_custom_shape_bone_size	= False
 					,parent						= hook_ctr
 					,custom_shape				= self.ensure_widget("Circle")
-					,use_custom_shape_bone_size	= True
 				)
 				radius_control.length *= 0.8
 				self.lock_transforms(radius_control, loc=True, rot=True, scale=[False, True, False])
@@ -113,10 +116,12 @@ class CloudCurveRig(CloudBaseRig):
 			if (i != 0) or cyclic:				# Skip for first hook unless cyclic.
 				handle_left_ctr = self.bone_sets['Curve Handles'].new(
 					name		  = f"Hook_L_{hook_name}_{str(i).zfill(2)}{suffix}"
+					,source		  = hook_ctr
 					,head 		  = loc
 					,tail		  = loc_left
 					,parent		  = hook_ctr
 					,custom_shape = self.ensure_widget("Curve_Handle")
+					,use_custom_shape_bone_size	= False
 				)
 				hook_ctr.left_handle_control = handle_left_ctr
 				handles.append(handle_left_ctr)
@@ -124,10 +129,12 @@ class CloudCurveRig(CloudBaseRig):
 			if (i != self.num_controls-1) or cyclic:	# Skip for last hook unless cyclic.
 				handle_right_ctr = self.bone_sets['Curve Handles'].new(
 					name 		  = f"Hook_R_{hook_name}_{str(i).zfill(2)}{suffix}"
+					,source						= hook_ctr
 					,head 		  = loc
 					,tail 		  = loc_right
 					,parent 	  = hook_ctr
 					,custom_shape = self.ensure_widget("Curve_Handle")
+					,use_custom_shape_bone_size	= False
 				)
 				hook_ctr.right_handle_control = handle_right_ctr
 				handles.append(handle_right_ctr)
@@ -273,7 +280,7 @@ class CloudCurveRig(CloudBaseRig):
 			D = curve_ob.data.driver_add(data_path)
 			driver = D.driver
 
-			driver.expression = "var"
+			driver.expression = "-var"
 			my_var = driver.variables.new()
 			my_var.name = "var"
 			my_var.type = 'TRANSFORMS'
@@ -282,6 +289,7 @@ class CloudCurveRig(CloudBaseRig):
 			var_tgt.id = self.obj
 			var_tgt.transform_space = 'LOCAL_SPACE'
 			var_tgt.transform_type = 'ROT_Y'
+			var_tgt.rotation_mode = 'SWING_TWIST_Y'
 			var_tgt.bone_target = hooks[i].name
 
 			if self.params.CR_curve_separate_radius:
