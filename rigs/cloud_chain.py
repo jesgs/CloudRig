@@ -251,9 +251,9 @@ class CloudChainRig(CloudBaseRig):
 
 			if nxt:
 				handle_bone.add_constraint('DAMPED_TRACK'
-					,name = "Damped Track Next"
-					,subtarget = nxt.name
-					,track_axis='TRACK_Y'
+					,name		= "Damped Track Next"
+					,subtarget	= nxt.name
+					,track_axis	= 'TRACK_Y'
 				)
 			if prev:
 				handle_bone.add_constraint('COPY_LOCATION', index=0
@@ -277,7 +277,6 @@ class CloudChainRig(CloudBaseRig):
 
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Create a deform chain stretching from one STR bone to the next"""
-		next_parent = str_chain[0]
 		for str_i, str_bone in enumerate(str_chain):
 			# Skip the tip control
 			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.is_cyclic:
@@ -295,7 +294,7 @@ class CloudChainRig(CloudBaseRig):
 			def_bone = self.bones_def.new(
 				name						  = def_name
 				,source						  = org_bone
-				,parent						  = next_parent
+				,parent						  = str_bone
 				,head						  = str_bone.head
 				,tail						  = tail
 				,bbone_handle_type_start	  = 'TANGENT'
@@ -305,7 +304,6 @@ class CloudChainRig(CloudBaseRig):
 				,bbone_handle_use_scale_end	  = [True, False, True]
 				,use_deform					  = True
 			)
-			next_parent = def_bone
 
 			# TODO: Arbitrary property assignments, eeek!
 			def_bone.str_bone = str_bone
