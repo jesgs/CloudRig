@@ -1,6 +1,8 @@
 Make STR bones inherit average scale
 
 Priority 1: Bugs
+    cloud_chain: I think scale propagation is broken when Preserve Volume is enabled.
+        See fix in post_generation_utils -> handle.constraints[0].mute = True
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
         Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
 

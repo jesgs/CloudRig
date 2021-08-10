@@ -94,6 +94,13 @@ def face_rig_tweaks(rig):
 				var.targets[0].id = rig
 				var.targets[0].data_path = f'pose.bones["PRP-Head"]["Face Squash"]'
 
+			# Fix scale propagation when Preserve Volume is enabled (so volume min/max is disabled)
+			pb.bone.inherit_scale = 'FULL'
+			for handle in [pb.bbone_custom_handle_start, pb.bbone_custom_handle_end]:
+				handle.constraints[0].mute = True
+				handle.bone.inherit_scale = 'FULL'
+
+
 	for suf in suffixes:
 		# Add lip corner parent shifting to the UI
 		ui_data = {

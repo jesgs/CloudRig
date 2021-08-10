@@ -27,7 +27,7 @@ class CLOUDRIG_OT_layer_select(bpy.types.Operator):
 		return wm.invoke_props_dialog(self)
 
 	def draw(self, context):
-		draw_layers_ui(self.layout, context.object, show_hidden_checkbox=True, owner=self)
+		draw_layers_ui(self.layout, context.pose_object, show_hidden_checkbox=True, owner=self)
 
 	def execute(self, context):
 		return {'FINISHED'}
