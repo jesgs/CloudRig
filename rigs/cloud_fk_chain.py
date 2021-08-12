@@ -378,15 +378,16 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 	@classmethod
 	def draw_anim_params(cls, layout, context, params):
-		cls.draw_prop(layout, params, 'CR_fk_chain_test_animation_generate')
-		if params.CR_fk_chain_test_animation_generate:
-			row = layout.row()
-			row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
-			row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
-			row = layout.row(heading="Rotation Axes", align=True)
-			row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
-			row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
-			row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
+		col = layout.column()
+		col.enabled = params.CR_fk_chain_test_animation_generate
+
+		row = col.row()
+		row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
+		row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
+		row = col.row(heading="Rotation Axes", align=True)
+		row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
+		row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
+		row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
 
 	@classmethod
 	def is_using_custom_props(cls, context, params):
