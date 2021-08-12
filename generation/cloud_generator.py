@@ -615,7 +615,9 @@ class CloudGenerator(Generator):
 
 		# Preserve Armature display settings
 		new_rig.display_type = old_rig.display_type
+		new_rig.show_in_front = old_rig.show_in_front
 		new_rig.data.display_type = old_rig.data.display_type
+		new_rig.data.show_axes = old_rig.data.show_axes
 
 		# Delete the old rig
 		bpy.data.objects.remove(old_rig)
