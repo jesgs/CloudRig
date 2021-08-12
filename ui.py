@@ -1,12 +1,16 @@
+from bpy.types import (Operator, UILayout, Object, Panel,
+		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
+		BONE_PT_rigify_buttons)
 import bpy
 import addon_utils
 
 from rigify import rig_lists, feature_sets, feature_set_list
+from rigify.ui import build_type_list
 
 from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
 
-class CLOUDRIG_OT_layer_init(bpy.types.Operator):
+class CLOUDRIG_OT_layer_init(Operator):
 	"""Initialize armature rigify layers"""
 
 	bl_idname = "pose.cloudrig_layer_init"
@@ -68,7 +72,7 @@ class CLOUDRIG_OT_layer_init(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-def draw_version_check(layout) -> bool:
+def draw_version_check(layout: UILayout) -> bool:
 	""" Compare Blender version number to current lowest supported
 		version number. If Blender is too old, draw a link to download
 		an older version of CloudRig.
@@ -133,7 +137,7 @@ def draw_rigify_header(self, context):
 		layout.operator('armature.rigify_encode_metarig', text="Encode Metarig")
 		layout.operator('armature.rigify_encode_metarig_sample', text="Encode Metarig Sample")
 
-def metarig_contains_fk_chain(metarig):
+def metarig_contains_fk_chain(metarig: Object) -> bool:
 	"""Return whether or not a metarig contains an FK rig. Used to determine
 	whether animation generation checkbox should appear or not."""
 	for pb in metarig.pose.bones:
@@ -142,8 +146,9 @@ def metarig_contains_fk_chain(metarig):
 			# This is a bit nasty but importing CloudFKCHainRig and using issubclass() breaks parameter registering (don't ask me why!)
 			if 'cloud_fk_chain' in str(rig_module.mro()):
 				return True
+	return False
 
-class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
+class CLOUDRIG_PT_generator_advanced(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
@@ -201,9 +206,11 @@ class CLOUDRIG_PT_generator_advanced(bpy.types.Panel):
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):
-	# If the current rig has any cloudrig elements, don't draw this panel.
+	# If the current rig has only cloudrig elements, don't draw this panel.
 	if is_cloud_metarig(context.object):
-		return
+		for b in context.object.pose.bones:
+			if b.rigify_type != "" and 'cloud' not in b.rigify_type:
+				return True
 	return bpy.types.DATA_PT_rigify_bone_groups.poll_old(context)
 
 def draw_cloud_layer_names(self, context):
@@ -252,45 +259,6 @@ def draw_cloud_layer_names(self, context):
 		if addon_utils.check('bone_selection_sets')[1]:
 			icon = 'RADIOBUT_ON' if rigify_layer.selset else 'RADIOBUT_OFF'
 			row.prop(rigify_layer, "selset", text="", toggle=True, icon=icon)
-
-cloudrig_typelist = [
-	'cloud_chain'
-	,'	cloud_face_chain'
-	,'		cloud_eyelid'
-	,'	cloud_fk_chain'
-	,'		cloud_spine'
-	,'		cloud_shoulder'
-	,'		cloud_ik_chain'
-	,'			cloud_limb'
-	,'				cloud_leg'
-	,'		cloud_physics_chain'
-	,'cloud_curve'
-	,'	cloud_spline_ik'
-	,'cloud_lattice'
-	,'cloud_aim'
-	,'cloud_copy'
-	,'	cloud_chain_anchor'
-	,'cloud_tweak'
-]
-
-def build_type_list(context, rigify_types):
-	rigify_types.clear()
-	feature_set = context.object.data.active_feature_set
-
-	for r in sorted(rig_lists.rigs):
-		if (feature_set in ('all', rig_lists.rigs[r]['feature_set'])
-				or len(feature_set_list.get_installed_list()) == 0
-				):
-			if 'cloud_' in r:
-				continue
-			a = rigify_types.add()
-			a.name = r
-
-	# Add CloudRig types separately in hierarchy order with indentation
-	if feature_set in ('all', 'CloudRig'):
-		for r in cloudrig_typelist:
-			a = rigify_types.add()
-			a.name = r.replace("\t", "      ")
 
 def draw_rigify_types(self, context):
 	id_store = context.window_manager
@@ -351,17 +319,17 @@ def register():
 	rigify_generate_ui.draw_old = rigify_generate_ui.draw
 	rigify_generate_ui.draw = draw_cloudrig_rigify_generate
 
-	bpy.types.DATA_PT_rigify_bone_groups.poll_old = bpy.types.DATA_PT_rigify_bone_groups.poll
-	bpy.types.DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
+	DATA_PT_rigify_bone_groups.poll_old = DATA_PT_rigify_bone_groups.poll
+	DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
 
-	bpy.types.DATA_PT_rigify_layer_names.draw_old = bpy.types.DATA_PT_rigify_layer_names.draw
-	bpy.types.DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
+	DATA_PT_rigify_layer_names.draw_old = DATA_PT_rigify_layer_names.draw
+	DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
 
-	bpy.types.VIEW3D_MT_rigify.draw_old = bpy.types.VIEW3D_MT_rigify.draw
-	bpy.types.VIEW3D_MT_rigify.draw = draw_rigify_header
+	VIEW3D_MT_rigify.draw_old = VIEW3D_MT_rigify.draw
+	VIEW3D_MT_rigify.draw = draw_rigify_header
 
-	bpy.types.BONE_PT_rigify_buttons.draw_old = bpy.types.BONE_PT_rigify_buttons.draw
-	bpy.types.BONE_PT_rigify_buttons.draw = draw_rigify_types
+	BONE_PT_rigify_buttons.draw_old = BONE_PT_rigify_buttons.draw
+	BONE_PT_rigify_buttons.draw = draw_rigify_types
 
 def unregister():
 	from bpy.utils import unregister_class
@@ -374,7 +342,7 @@ def unregister():
 	else:
 		rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
 	rigify_generate_ui.draw = rigify_generate_ui.draw_old
-	bpy.types.DATA_PT_rigify_bone_groups.poll = bpy.types.DATA_PT_rigify_bone_groups.poll_old
-	bpy.types.DATA_PT_rigify_layer_names.draw = bpy.types.DATA_PT_rigify_layer_names.draw_old
-	bpy.types.VIEW3D_MT_rigify.draw = bpy.types.VIEW3D_MT_rigify.draw_old
-	bpy.types.BONE_PT_rigify_buttons.draw = bpy.types.BONE_PT_rigify_buttons.draw_old
+	DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
+	DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
+	VIEW3D_MT_rigify.draw = VIEW3D_MT_rigify.draw_old
+	BONE_PT_rigify_buttons.draw = BONE_PT_rigify_buttons.draw_old
