@@ -215,8 +215,9 @@ class CloudSplineIKRig(CloudCurveRig):
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
-		"""Overrides cloud_curve to not have an error when there is no target curve."""
-		cls.draw_prop(layout, params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
+		"""Overrides cloud_curve to disable the curve selection."""
+		row = cls.draw_prop(layout.row(), params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
+		row.enabled = False
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

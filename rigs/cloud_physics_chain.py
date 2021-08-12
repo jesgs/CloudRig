@@ -244,7 +244,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			,max		 = 10.0
 		)
 		params.CR_physics_chain_make_ctrl = BoolProperty(
-			name		 = "Make Control Chain"
+			name		 = "Create Physics Controls"
 			,description = "Create a control chain that can control the physics mesh using an Armature modifier"
 			,default	 = True
 		)
@@ -258,8 +258,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 		cls.draw_control_label(layout, "Physics")
 
 		cls.draw_prop(layout, params, 'CR_physics_chain_object')
-		if params.CR_physics_chain_object:
-			cls.draw_prop(layout, params, 'CR_physics_chain_force_regen')
+		cls.draw_prop(layout, params, 'CR_physics_chain_force_regen')
 
 		if not params.CR_physics_chain_object or params.CR_physics_chain_force_regen:
 			cls.draw_prop(layout, params, 'CR_physics_chain_pin_falloff')

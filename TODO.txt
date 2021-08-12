@@ -3,6 +3,13 @@ Make STR bones inherit average scale
 Priority 1: Bugs
     cloud_chain: I think scale propagation is broken when Preserve Volume is enabled.
         See fix in post_generation_utils -> handle.constraints[0].mute = True
+
+
+	- Troubleshooting UI freaks out when rig is in an anim output collection?
+		Not entirely sure how, but it was happening on Simon's side
+	- When a Rigify rig is merged into the generated rig, the widgets get "GENERATED" in their names.
+		This needs to be fixed upstream. It needs the idea of not removing the old rig until the new one is fully generated.
+
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
         Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
 
