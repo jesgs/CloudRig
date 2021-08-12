@@ -526,7 +526,7 @@ class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
 	"""Report a bug on the CloudRig repository"""
 
 	bl_idname = "wm.cloudrig_report_bug"
-	bl_label = "Report CloudRig Bug"
+	bl_label = "Report Bug (Requires GitLab Account)"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	stack_trace: StringProperty()

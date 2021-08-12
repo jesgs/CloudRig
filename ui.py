@@ -129,13 +129,14 @@ def draw_rigify_header(self, context):
 	layout.operator('pose.cloudrig_generate', text="Generate")
 	layout.operator('object.generate_all_rigify_rigs')
 	layout.operator('object.cloudrig_toggle_metarig')
-	
-	if context.mode == 'EDIT_ARMATURE' and is_advanced_mode(context):
+
+	if context.mode == 'EDIT_ARMATURE':
 		layout.separator()
 		layout.operator('armature.metarig_sample_add')
-		layout.separator()
-		layout.operator('armature.rigify_encode_metarig', text="Encode Metarig")
-		layout.operator('armature.rigify_encode_metarig_sample', text="Encode Metarig Sample")
+		if is_advanced_mode(context):
+			layout.separator()
+			layout.operator('armature.rigify_encode_metarig', text="Encode Metarig")
+			layout.operator('armature.rigify_encode_metarig_sample', text="Encode Metarig Sample")
 
 def metarig_contains_fk_chain(metarig: Object) -> bool:
 	"""Return whether or not a metarig contains an FK rig. Used to determine
