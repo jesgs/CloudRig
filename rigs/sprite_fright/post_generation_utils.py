@@ -97,6 +97,8 @@ def face_rig_tweaks(rig):
 			# Fix scale propagation when Preserve Volume is enabled (so volume min/max is disabled)
 			pb.bone.inherit_scale = 'FULL'
 			for handle in [pb.bbone_custom_handle_start, pb.bbone_custom_handle_end]:
+				if not handle:
+					continue
 				handle.constraints[0].mute = True
 				handle.bone.inherit_scale = 'FULL'
 

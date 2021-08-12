@@ -97,7 +97,7 @@ def is_cloud_rig_type(rig_type_name: str):
 			('cloud' in rig_type_name or \
 			'sprite_fright' in rig_type_name)
 
-def load_script(file_path="", file_name="cloudrig.py", search="", replace="", datablock=None):
+def load_script(file_path="", file_name="cloudrig.py", datablock=None) -> bpy.types.Text:
 	"""Load a text file into a text datablock, enable register checkbox and execute it.
 	Also run an optional search and replace on the file content.
 	"""
@@ -119,10 +119,7 @@ def load_script(file_path="", file_name="cloudrig.py", search="", replace="", da
 		file_path = os.path.dirname(os.path.realpath(__file__))
 
 	readfile = open(os.path.join(file_path, file_name), 'r')
-
 	for line in readfile:
-		if search!="" and replace!="" and search in line:
-			line = line.replace(search, replace)
 		text.write(line)
 	readfile.close()
 
@@ -240,10 +237,10 @@ class CloudGenerator(Generator):
 				new_ui_set.param_name = rig_bone_set_def['param']
 				new_ui_set.layer_param = rig_bone_set_def['layer_param']
 
-	def create_rig_object(self) -> bpy.types.Object:
+	def create_rig_object(self, metarig) -> bpy.types.Object:
 		"""Create the rig object that will replace the previous generation result."""
 
-		metaname = self.metarig.name
+		metaname = metarig.name
 		final_name = metaname.replace("META", "RIG")
 		if 'META' not in metaname:
 			final_name = "RIG-" + metaname
@@ -274,10 +271,16 @@ class CloudGenerator(Generator):
 		obj.data.cloudrig_parameters.show_layers_preview_hidden = False
 
 		# Copy viewport display settings from the metarig.
-		obj.data.display_type = self.metarig.data.display_type
-		obj.data.show_names = self.metarig.data.show_names
-		obj.show_in_front = self.metarig.show_in_front
-		obj.data.show_axes = self.metarig.data.show_axes
+		obj.data.display_type = metarig.data.display_type
+		obj.data.show_names = metarig.data.show_names
+		obj.show_in_front = metarig.show_in_front
+		obj.data.show_axes = metarig.data.show_axes
+
+		# Copy layers from the metarig.
+		obj.data.layers = metarig.data.layers[:]
+		obj.data.layers_protected = metarig.data.layers_protected[:]
+
+		obj.data.pose_position = 'REST'
 
 		return obj
 
@@ -436,7 +439,7 @@ class CloudGenerator(Generator):
 
 		return test_action
 
-	def create_test_animation(self, action):
+	def create_test_animation(self):
 		"""Generate deformation test animation.
 
 		In order to generate the test animation, we need to call add_test_animation() on rigs
@@ -449,6 +452,17 @@ class CloudGenerator(Generator):
 
 		Symmetrical rigs should animate at the same time, and with the Y and Z axis rotations flipped.
 		"""
+
+		if not self.params.cloudrig_parameters.generate_test_action:
+			return
+		for rig in self.rig_list:
+			if hasattr(rig.params, 'CR_fk_chain_test_animation_generate') and rig.params.CR_fk_chain_test_animation_generate:
+				found = True
+				break
+		if not found:
+			return
+
+		action = self.ensure_test_action()
 
 		rigs_anim_order = []
 		def get_rig_children(rig):
@@ -477,9 +491,88 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
+	def duplicate_rig(self):
+		"""Join a clone of the metarig into the generated rig."""
+		select_object(self.context, self.obj, deselect_all=True)
+		self._Generator__duplicate_rig()	# TODO: This takes 2 seconds, for some reason the armature join operator is really slow. Either get it fixed upstream or avoid joining armatures.
+
+		# Copy Rigify Layers from metarig to target rig - TODO: Doesn't Rigify already have code for this??
+		for i in range(len(self.obj.data.rigify_layers), len(self.metarig.data.rigify_layers)):
+			self.obj.data.rigify_layers.add()
+		for i, rig_layer in enumerate(self.metarig.data.rigify_layers):
+			target = self.obj.data.rigify_layers[i]
+			source = self.metarig.data.rigify_layers[i]
+			target.name = source.name
+			target.row = source.row
+			target.selset = source.selset
+			target.group = source.group
+
+	def invoke_generate_bones(self):
+		"""Create real bones from all BoneInfos. 
+		No bone data is written yet beside the name."""
+		for bi in self.bone_infos:
+			if bi.name in self.obj.data.edit_bones:
+				# This happens for ORG bones that we load into BoneInfo objects,
+				# since they already get created by __duplicate_rig()
+				continue
+			new_name = new_bone(self.obj, bi.name)
+			if new_name != bi.name:
+				self.logger.log(
+					"Bone Name Clash"
+					,trouble_bone = bi.name
+					,description = f'Bone name "{bi.name}" was already taken, fell back to "{new_name}" instead. This is a bug unless your bone names are around 60 characters long.'
+				)
+				bi.name = new_name
+			self.bone_owners[new_name] = None
+		
+		super().invoke_generate_bones()
+
+	def invoke_parent_bones(self):
+		super().invoke_parent_bones()
+
+		# Write edit bone data for BoneInfos.
+		for bi in self.bone_infos:
+			edit_bone = self.obj.data.edit_bones.get(bi.name)
+			bi.write_edit_data(self, edit_bone, self.context)
+
+		# Parent parent-less bones to the root bone, if there is one.
+		if self.root_bone:
+			self.root_bone = self.root_bone.name
+			self._Generator__parent_bones_to_root()
+
+	def invoke_configure_bones(self):
+		for bi in self.bone_infos:
+			pose_bone = self.obj.pose.bones.get(bi.name)
+			if not pose_bone:
+				self.logger.log("Bone creation failed"
+					,owner_bone = bi.owner_rig.base_bone
+					,trouble_bone = bi.name
+					,description = f"BoneInfo {bi.name} wasn't created for some reason."
+				)
+				continue
+
+			# Scale bone shape based on B-Bone scale
+			bi.write_pose_data(pose_bone)
+			if not pose_bone.use_custom_shape_bone_size:
+				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
+		
+		super().invoke_configure_bones()
+
+	def invoke_apply_bones(self):
+		super().invoke_apply_bones()
+
+		# Rigify automatically parents bones that have no parent to the root bone.
+		# We want to undo this when the bone has an Armature constraint.
+		for eb in self.obj.data.edit_bones:
+			pb = self.obj.pose.bones.get(eb.name)
+			for c in pb.constraints:
+				if c.type=='ARMATURE':
+					eb.parent = None
+					break
+
 	def map_drivers(self) -> Dict[str, Tuple[str, int]]:
-		"""Create a dictionary matching bone names to full data paths of drivers that belong to those bones."""
-		# This is for optimization, so we don't have to loop through every driver for every bone when relinking drivers.
+		"""Create a dictionary matching bone names to full data paths of drivers 
+		that belong to those bones. This is to speed up loading drivers into BoneInfos."""
 		driver_map = {}
 		if not self.obj.animation_data:
 			return
@@ -492,7 +585,7 @@ class CloudGenerator(Generator):
 				driver_map[bone_name].append((data_path, fc.array_index))
 		return driver_map
 
-	def preserve_rig_data(self, old_rig, new_rig):
+	def replace_old_with_new_rig(self, old_rig, new_rig):
 		"""Preserve useful user-inputted information from the previous rig,
 		then delete it and re-map all pointers to it to the new rig."""
 
@@ -538,6 +631,44 @@ class CloudGenerator(Generator):
 		if self.do_sel_sets:
 			from_json(self.context, selsets)
 
+	def execute_custom_script(self):
+		"""Execute a text datablock to be executed after rig generation."""
+		script = self.params.cloudrig_parameters.custom_script
+		if not script:
+			return
+		try:
+			exec(script.as_string(), {})
+		except Exception as e:
+			traceback_str = traceback.format_exc()
+			entry = self.logger.log(
+				"Post-Generation Script failed."
+				,description = f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
+				,note = str(e)
+			)
+			entry.name = "Post-Gen Error"
+			entry.pretty_stack = traceback_str
+			# Continue the exception, since a post-generation script execution failure
+			# should be considered a rig generation failure.
+			raise e
+
+	def ensure_cloudrig_ui(self, metarig, rig):
+		"""Load and execute cloudrig.py rig UI script."""
+		if self.rigify_compatible:
+			if not 'cloudrig_ui' in metarig.data:
+				metarig.data['cloudrig_ui'] = ""
+			if not 'cloudrig_ui' in rig.data:
+				rig.data['cloudrig_ui'] = ""
+			metarig.data['cloudrig_ui'] = rig.data['cloudrig_ui'] = load_script(
+				file_path = os.path.dirname(os.path.realpath(__file__))
+				,file_name = "cloudrig.py"
+				,datablock = metarig.data['cloudrig_ui']
+			)
+		else:
+			metarig.data.rigify_rig_ui = rig.data.rigify_rig_ui = load_script(
+				file_path = os.path.dirname(os.path.realpath(__file__))
+				,file_name = "cloudrig.py"
+				,datablock = metarig.data.rigify_rig_ui
+			)
 
 	def generate(self, context):
 		print("CloudRig Generation begin")
@@ -546,6 +677,7 @@ class CloudGenerator(Generator):
 		metarig = self.metarig
 		t = Timer()
 
+		# self.collection is only used for Rigify compatibility.
 		self.collection = context.scene.collection
 		if len(self.metarig.users_collection) > 0:
 			self.collection = self.metarig.users_collection[0]
@@ -553,40 +685,24 @@ class CloudGenerator(Generator):
 		#------------------------------------------
 		# Create/find the rig object and set it up
 		old_rig = self.params.rigify_target_rig
-		self.obj = obj = self.create_rig_object()
-		obj.data.pose_position = 'REST'
+		self.obj = obj = self.create_rig_object(metarig)
 
 		self.logger.rig = obj
 		self.logger.metarig = metarig
 
-		# Update metarig version
-		metarig.data.cloudrig_parameters.version = cloud_metarig_version
-
 		self.defaults['rig'] = obj
 
-		# Collection to keep track of bone widgets
+		# Rename metarig data
+		metarig.data.name = "Data_" + self.metarig.name
+		# Update metarig version
+		self.params.cloudrig_parameters.version = cloud_metarig_version
+
+		# Collection to store bone widgets
 		self.widget_collection = self.ensure_widget_collection(context)
 
-		# Rename metarig data
-		self.metarig.data.name = "Data_" + self.metarig.name
-
 		#------------------------------------------
-		# Join a clone of the metarig into the generated rig.
-		select_object(context, obj, deselect_all=True)
-		self._Generator__duplicate_rig()	# TODO: This takes 2 seconds, for some reason the armature join operator is really slow. Either get it fixed upstream or avoid joining armatures.
-		# Copy Rigify Layers from metarig to target rig - TODO: Doesn't Rigify already have code for this??
-		for i in range(len(obj.data.rigify_layers), len(self.metarig.data.rigify_layers)):
-			obj.data.rigify_layers.add()
-		for i, rig_layer in enumerate(self.metarig.data.rigify_layers):
-			target = obj.data.rigify_layers[i]
-			source = self.metarig.data.rigify_layers[i]
-			target.name = source.name
-			target.row = source.row
-			target.selset = source.selset
-			target.group = source.group
-
+		self.duplicate_rig()
 		t.tick("Duplicate rig: ")
-
 		redraw_viewport()
 
 		self.driver_map = self.map_drivers()
@@ -596,59 +712,30 @@ class CloudGenerator(Generator):
 			self.script = rig_ui_template.ScriptGenerator(self)
 
 		#------------------------------------------
-		self.create_root_bones()
 		self.instantiate_rig_tree()
 		self.cloudrig_reorder_rigs(self.rig_list)
 
 		#------------------------------------------
 		self.invoke_initialize()
-
 		t.tick("Initialize rigs: ")
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
+		self.root_bone = None
+		self.create_root_bones()
+		if self.rigify_compatible :
+			self._Generator__create_root_bone()
 
+		#------------------------------------------
 		self.invoke_prepare_bones()
-
 		t.tick("Prepare bones: ")
 
 		#------------------------------------------
-
-		self.root_bone = None
-		if self.params.cloudrig_parameters.create_root:
-			self._Generator__create_root_bone()
-
-		# Create real bones from all BoneInfos. No bone data is written here beside the name.
-		for bi in self.bone_infos:
-			if bi.name in obj.data.edit_bones:
-				# This happens for ORG bones that we load into BoneInfo objects,
-				# since they already get created by __duplicate_rig()
-				continue
-			new_name = new_bone(obj, bi.name)
-			if new_name != bi.name:
-				self.logger.log(
-					"Bone naming failed"
-					,trouble_bone = bi.name
-					,description = f"Bone name {bi.name} ended up being {new_name}. This is a bug unless your bone names were close to 63 characters long to begin with."
-				)
-				bi.name = new_name
-			self.bone_owners[new_name] = None
-
 		self.invoke_generate_bones()
-
 		t.tick("Generate bones: ")
 
 		#------------------------------------------
-
 		self.invoke_parent_bones()
-
-		for bi in self.bone_infos:
-			edit_bone = obj.data.edit_bones.get(bi.name)
-			bi.write_edit_data(self, edit_bone, context)
-
-		if self.root_bone:
-			self._Generator__parent_bones_to_root()
-
 		t.tick("Write Edit Data: ")
 		redraw_viewport()
 
@@ -656,78 +743,38 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 		self.ensure_bone_groups()
-
-		for bi in self.bone_infos:
-			pose_bone = obj.pose.bones.get(bi.name)
-			if not pose_bone:
-				self.logger.log("Bone creation failed"
-					,owner_bone = bi.owner_rig.base_bone
-					,trouble_bone = bi.name
-					,description = f"BoneInfo {bi.name} wasn't created for some reason."
-				)
-				continue
-			
-			# Scale bone shape based on B-Bone scale
-			bi.write_pose_data(pose_bone)
-			if not pose_bone.use_custom_shape_bone_size:
-				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
-
 		self.invoke_configure_bones()
-
 		t.tick("Write Pose Data: ")
 		redraw_viewport()
 
 		self.create_action_constraints()
-
 		t.tick("Action Constraints: ")
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
 
 		self.invoke_apply_bones()
-
-		# Rigify automatically parents bones that have no parent to the root bone.
-		# We want to undo this when the bone has an Armature constraint.
-		for eb in obj.data.edit_bones:
-			pb = obj.pose.bones.get(eb.name)
-			for c in pb.constraints:
-				if c.type=='ARMATURE':
-					eb.parent = None
-					break
-
 		t.tick("Apply bones: ")
 		redraw_viewport()
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='OBJECT')
-
 		self.invoke_rig_bones()
-
 		redraw_viewport()
 
 		#------------------------------------------
-
 		if self.rigify_compatible:
 			self.invoke_generate_widgets()
 			t.tick("Generate widgets: ")
 
 		#------------------------------------------
-
-		obj.data.layers = self.metarig.data.layers[:]
-		obj.data.layers_protected = self.metarig.data.layers_protected[:]
 		self._Generator__restore_driver_vars()
 
 		if self.rigify_compatible:
 			self.rigify_assign_layers()
 
 		#------------------------------------------
-
-		### Load and execute cloudrig.py rig UI script
-		metarig.data.rigify_rig_ui = obj.data.rigify_rig_ui = load_script(
-			file_path = os.path.dirname(os.path.realpath(__file__))
-			,file_name = "cloudrig.py"
-			,datablock = metarig.data.rigify_rig_ui
-		)
+		self.ensure_cloudrig_ui(metarig, obj)
 
 		self.invoke_finalize()
 
@@ -739,44 +786,19 @@ class CloudGenerator(Generator):
 
 		self._Generator__assign_widgets()
 
-		# Create test animation
-		if self.params.cloudrig_parameters.generate_test_action:
-			for rig in self.rig_list:
-				if hasattr(rig.params, 'CR_fk_chain_test_animation_generate') and rig.params.CR_fk_chain_test_animation_generate:
-					action = self.ensure_test_action()
-					self.create_test_animation(action)
-					break
+		self.create_test_animation()
 
 		# Only leave Force Widget Update enabled until the next generation.
-		# XXX: This is bad UX. Would work better as a pop-up parameter, but we 
-		# don't want to give a popup to something as commonly used as generation. 
-		self.metarig.data.rigify_force_widget_update = False
+		self.params.rigify_force_widget_update = False
+
 
 		if old_rig:
-			self.preserve_rig_data(old_rig, obj)
+			self.replace_old_with_new_rig(old_rig, obj)
 		else:
 			obj.name = obj.name.replace("GENERATING-", "")
 
 		self.params.rigify_target_rig = obj
-
-		# Execute custom script
-		script = self.params.cloudrig_parameters.custom_script
-		if script:
-			try:
-				exec(script.as_string(), {})
-			except Exception as e:
-				# We can't know type of exception here since code was written by user.
-				traceback_str = traceback.format_exc()
-				entry = self.logger.log(
-					"Post-Generation Script failed."
-					,description = f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
-					,note = str(e)
-				)
-				entry.name = "Post-Gen Error"	# Specific name to make this error play nicely with the CloudRig Execution Error.
-				entry.pretty_stack = traceback_str
-				# Continue the exception, since a post-generation script execution failure
-				# should be considered a rig generation failure.
-				raise e
+		self.execute_custom_script()
 
 		t.tick("The rest: ")
 		self.cleanup()
@@ -798,7 +820,6 @@ class CloudGenerator(Generator):
 		refresh_all_drivers()
 		self.context.view_layer.update()
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
-
 
 def generate_rig(context, metarig):
 	""" Generates a rig from a metarig.	"""
