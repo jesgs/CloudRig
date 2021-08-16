@@ -268,10 +268,13 @@ class CloudChainRig(CloudBaseRig):
 				,target_space = 'LOCAL_OWNER_ORIENT'
 			)
 
-		handle_bone.add_constraint('COPY_SCALE'
-			,subtarget = str_bone.name
-			,space = 'WORLD'
-		)
+		if self.params.CR_chain_preserve_volume:
+			handle_bone.inherit_scale = 'ALIGNED'
+		else:
+			handle_bone.add_constraint('COPY_SCALE'
+				,subtarget = str_bone.name
+				,space = 'WORLD'
+			)
 
 		return handle_bone
 
@@ -400,7 +403,8 @@ class CloudChainRig(CloudBaseRig):
 
 		# B-Bone scale drivers
 		if def_bone.bbone_segments > 1:
-			def_bone.inherit_scale = 'NONE'
+			if not self.params.CR_chain_preserve_volume:
+				def_bone.inherit_scale = 'NONE'
 			self.make_bbone_ease_drivers(def_bone)
 		else:
 			def_bone.inherit_scale = 'ALIGNED'
