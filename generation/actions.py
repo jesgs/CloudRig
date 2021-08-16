@@ -298,7 +298,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 				c.max = self.trans_max
 				c.frame_start = self.frame_start
 				c.frame_end = self.frame_end
-				c.mix_mode = 'BEFORE'
+				c.mix_mode = 'BEFORE_SPLIT'
 				if c.subtarget != self.subtarget:
 					# Flip min/max in some cases.
 					if self.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
