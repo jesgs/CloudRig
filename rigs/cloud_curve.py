@@ -90,8 +90,6 @@ class CloudCurveRig(CloudBaseRig):
 			,tail						= loc_left
 			,parent						= self.bones_org[0]
 		)
-		# Turn parenting-induced transforms to local space with an Armature constraint.
-		hook_ctr.add_constraint('ARMATURE', targets=[{'subtarget' : hook_ctr.parent}])
 
 		hook_ctr.left_handle_control = None
 		hook_ctr.right_handle_control = None

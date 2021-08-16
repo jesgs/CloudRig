@@ -89,15 +89,11 @@ Priority 4: Code quality
         The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.
         Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
 Priority 5: UI, UX & documentation
-    The entire re-organization of the rig and generator parameters UI.
     We removed the Relink Constraints parameter, but kept the relinking_behaviour strings. Decide what is best, and either update the documentation or remove the strings.
-    We removed cloud_fk_chain UI category/name parameters.
     Upstream
-        Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon... Not sure if easily possible though since we'd have to hack into the rigify layers propertygroup which I don't want to do.
-        Active layers on the generated rig shouldn't be the same as the metarig afterall - or maybe it should be an option (sometimes we do enable the deform layer because we want to see it on generation)
+        Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon.
 Priority 6: Rigify compatibility
     When enabled, bone groups assigned in cloud_bone seem to get overwritten.
-    Rigify compatibility specific functions should only affect rigify rig types.
 Priority 7: Ideas from Animators that would break backwards comp on Sprite Fright.
     From Javier: Spine IK control with squash&stretch
     From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
