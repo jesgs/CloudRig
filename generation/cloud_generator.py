@@ -245,7 +245,7 @@ class CloudGenerator(Generator):
 		if 'META' not in metaname:
 			final_name = "RIG-" + metaname
 
-		rig_name = "GENERATING-" + final_name
+		rig_name = "NEW-" + final_name
 
 		obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
 		obj.data.name = "Data_" + final_name
@@ -347,7 +347,7 @@ class CloudGenerator(Generator):
 		if widget_collection:
 			return widget_collection
 
-		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").replace("GENERATING-", "").lower()
+		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").replace("NEW-", "").lower()
 
 		# Try finding the widgets collection anywhere.
 		widget_collection = bpy.data.collections.get(coll_name)
@@ -797,7 +797,7 @@ class CloudGenerator(Generator):
 		if old_rig:
 			self.replace_old_with_new_rig(old_rig, obj)
 		else:
-			obj.name = obj.name.replace("GENERATING-", "")
+			obj.name = obj.name.replace("NEW-", "")
 
 		self.params.rigify_target_rig = obj
 		self.execute_custom_script()
@@ -838,7 +838,7 @@ def generate_rig(context, metarig):
 		# Cleanup if something goes wrong
 		generator.cleanup()
 		generator.obj.name = "FAILED-" + generator.obj.name
-		generator.obj.name = generator.obj.name.replace("GENERATING-", "")
+		generator.obj.name = generator.obj.name.replace("NEW-", "")
 
 		logs = metarig.data.cloudrig_parameters.logs
 		if 'Post-Gen Error' in logs:
