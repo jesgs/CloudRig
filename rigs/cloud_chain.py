@@ -360,16 +360,17 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
 			def_bone.bbone_segments = 2
 
-		if def_bone.bbone_segments > 1:
-			def_bone.bbone_handle_type_start	  = 'TANGENT'
-			def_bone.bbone_handle_type_end		  = 'TANGENT'
-			def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
-			def_bone.bbone_handle_use_scale_start = [True, False, True]
-			def_bone.bbone_handle_use_scale_end	  = [True, False, True]
-
 		if not next_str_bone:
 			next_str_bone = str_bone.next
 		if next_str_bone:
+			if def_bone.bbone_segments > 1:
+				def_bone.bbone_handle_type_start	  = 'TANGENT'
+				def_bone.bbone_handle_type_end		  = 'TANGENT'
+				def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
+				def_bone.bbone_handle_use_scale_start = [True, False, True]
+				def_bone.bbone_handle_use_scale_end	  = [True, False, True]
+				def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
+
 			if not self.params.CR_chain_unlock_deform:
 				def_bone.add_constraint('STRETCH_TO'
 					,subtarget = next_str_bone.name
@@ -377,7 +378,6 @@ class CloudChainRig(CloudBaseRig):
 					,use_bulge_max = not self.params.CR_chain_preserve_volume
 				)
 			elif def_bone.bbone_segments > 1:
-				def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 				# Add drivers to BBone Roll so that rotating CTR-DEF controls on
 				# local Y axis gives the results an animator might expect.
 				rollin_driver = {
