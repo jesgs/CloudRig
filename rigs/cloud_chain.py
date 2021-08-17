@@ -19,7 +19,7 @@ class CloudChainRig(CloudBaseRig):
 		super().__init__(*args, **kwargs)
 		self.is_cyclic = False
 		self.chain_length = 0
-		
+
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
@@ -34,9 +34,9 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_segments > 1:
 			self.make_str_helpers(str_sections)
 
-		for str_bone in self.bone_sets['Stretch Controls']:
-			# TODO: Creating this helper is only needed when deform bbone_segments > 0.
-			str_bone.tangent_helper = self.make_tangent_helper(str_bone, smooth=self.params.CR_chain_smooth_spline)
+		if self.params.CR_chain_bbone_density > 0:
+			for str_bone in self.bone_sets['Stretch Controls']:
+				str_bone.tangent_helper = self.make_tangent_helper(str_bone, smooth=self.params.CR_chain_smooth_spline)
 
 		self.make_def_chain(self.bone_sets['Stretch Controls'])
 
@@ -280,7 +280,7 @@ class CloudChainRig(CloudBaseRig):
 
 	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Create a deform chain stretching from one STR bone to the next"""
-		for str_i, str_bone in enumerate(str_chain):
+		for str_bone in str_chain:
 			# Skip the tip control
 			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.is_cyclic:
 				continue
@@ -300,11 +300,6 @@ class CloudChainRig(CloudBaseRig):
 				,parent						  = str_bone
 				,head						  = str_bone.head
 				,tail						  = tail
-				,bbone_handle_type_start	  = 'TANGENT'
-				,bbone_handle_type_end		  = 'TANGENT'
-				,bbone_custom_handle_start	  = str_bone.tangent_helper
-				,bbone_handle_use_scale_start = [True, False, True]
-				,bbone_handle_use_scale_end	  = [True, False, True]
 				,use_deform					  = True
 			)
 
@@ -313,37 +308,45 @@ class CloudChainRig(CloudBaseRig):
 			org_bone.def_bones.append(def_bone)
 
 			if self.params.CR_chain_unlock_deform:
-				def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
-				def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
-				def_bone_control.inherit_scale = 'ALIGNED'
-				def_bone.add_constraint('COPY_SCALE'
-					,subtarget = def_bone_control.name
-					,space = 'WORLD'
-					,use_xyz = [False, True, False]
-				)
-				def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
-				def_bone_parent.parent = str_bone.parent
-				def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
-				def_bone_control.head = def_bone_control.center
-				def_bone_control.custom_shape_scale *= 0.7
-	
-				if str_bone.next:
-					def_bone_parent.add_constraint('STRETCH_TO'
-						,subtarget = str_bone.next.name
-						,use_bulge_min = not self.params.CR_chain_preserve_volume
-						,use_bulge_max = not self.params.CR_chain_preserve_volume
-					)
-				def_bone_control.custom_shape = self.ensure_widget('Cube')
-				def_bone_control.custom_shape_scale_xyz.y = 0.1
-				def_bone_control.layers = self.bone_sets['Deform Controls'].layers[:] # TODO: This should not be necessary!
-				def_bone.def_ctr_bone = def_bone_control
+				self.make_def_control(str_bone, def_bone)
 
 			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
 
 		return self.bones_def
 
+	def make_def_control(self, str_bone: BoneInfo, def_bone: BoneInfo) -> BoneInfo:
+		def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
+		def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
+		def_bone_control.inherit_scale = 'ALIGNED'
+		def_bone.add_constraint('COPY_SCALE'
+			,subtarget = def_bone_control.name
+			,space = 'WORLD'
+			,use_xyz = [False, True, False]
+		)
+		def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
+		def_bone_parent.parent = str_bone.parent
+		def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
+		def_bone_control.head = def_bone_control.center
+		def_bone_control.custom_shape_scale *= 0.7
+
+		if str_bone.next:
+			def_bone_parent.add_constraint('STRETCH_TO'
+				,subtarget = str_bone.next.name
+				,use_bulge_min = not self.params.CR_chain_preserve_volume
+				,use_bulge_max = not self.params.CR_chain_preserve_volume
+			)
+		def_bone_control.custom_shape = self.ensure_widget('Cube')
+		def_bone_control.custom_shape_scale_xyz.y = 0.1
+		def_bone_control.layers = self.bone_sets['Deform Controls'].layers[:] # TODO: This should not be necessary!
+		def_bone.def_ctr_bone = def_bone_control
+
+		return def_bone_control
+
 	def setup_def_bone(self, def_bone, org_bone, str_bone, next_str_bone=None):
 		"""Configure BBone setup for def_bone."""
+		# TODO: Code-wise this is pretty terrible, with a lot of checking and setting def_bone.bbone_segments.
+		# Instead, this should be split up into two functions: A general deform bone set-up, and a bendy-bone specific set-up.
+		# It might also make sense to create tangent helpers here rather than earlier.
 
 		segments, bbone_density = self.determine_segments(org_bone)
 
@@ -357,17 +360,24 @@ class CloudChainRig(CloudBaseRig):
 		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
 			def_bone.bbone_segments = 2
 
+		if def_bone.bbone_segments > 1:
+			def_bone.bbone_handle_type_start	  = 'TANGENT'
+			def_bone.bbone_handle_type_end		  = 'TANGENT'
+			def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
+			def_bone.bbone_handle_use_scale_start = [True, False, True]
+			def_bone.bbone_handle_use_scale_end	  = [True, False, True]
+
 		if not next_str_bone:
 			next_str_bone = str_bone.next
 		if next_str_bone:
-			def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 			if not self.params.CR_chain_unlock_deform:
 				def_bone.add_constraint('STRETCH_TO'
 					,subtarget = next_str_bone.name
 					,use_bulge_min = not self.params.CR_chain_preserve_volume
 					,use_bulge_max = not self.params.CR_chain_preserve_volume
 				)
-			else:
+			elif def_bone.bbone_segments > 1:
+				def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 				# Add drivers to BBone Roll so that rotating CTR-DEF controls on
 				# local Y axis gives the results an animator might expect.
 				rollin_driver = {
