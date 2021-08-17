@@ -1,4 +1,3 @@
-import bpy
 from bpy.props import BoolProperty
 from ..rig_features.bone_set import BoneSet
 
@@ -65,7 +64,9 @@ class CloudCopyRig(CloudBaseRig):
 			def_bone.parent = bi
 
 		# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
+		# Alternatively, this could be moved to a later generation stage so we don't have to rely on BoneInfo.
 		meta_bg = meta_bone.bone_group
+		new_set = None
 		if meta_bg:
 			bg_name = meta_bg.name
 
@@ -81,14 +82,41 @@ class CloudCopyRig(CloudBaseRig):
 			self.generator.bone_sets.append(new_set)
 			bi.bone_group = bg_name
 
+		if self.params.CR_copy_custom_pivot:
+			self.root_bone = self.create_custom_pivot(bi, new_set)
+
+	def create_custom_pivot(self, boneinfo, bone_set=None):
+		if not bone_set:
+			bone_set = boneinfo.bone_set
+		pivot = self.create_parent_bone(boneinfo, bone_set)
+		pivot.name = pivot.name.replace("P-", "PVT-")
+		boneinfo.add_constraint('COPY_LOCATION', subtarget=pivot, invert_xyz = [True, True, True])
+		pivot.custom_shape = self.ensure_widget('Axes_6')
+		pivot.layers = boneinfo.layers[:]
+		pivot.bone_group = boneinfo.bone_group
+		return pivot
+
 	##############################
 	# Parameters
+
+	@classmethod
+	def add_parameters(cls, params):
+		"""Add rig parameters to the RigifyParameters PropertyGroup."""
+		super().add_parameters(params)
+
+		params.CR_copy_custom_pivot = BoolProperty(
+			name		 = "Create Custom Pivot"
+			,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
+			,default	 = False
+		)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		pb = context.active_pose_bone
 		layout.prop(pb.bone, 'use_deform', text="Create Deform Bone")
+		cls.draw_prop(layout, params, 'CR_copy_custom_pivot')
+		
 
 class Rig(CloudCopyRig):
 	pass

@@ -176,15 +176,16 @@ class BoneInfo:
 
 	@name.setter
 	def name(self, value):
+		new_name = value
 		rig = self.bone_set.rig
 		rig_ob = rig.obj
 		bone = rig_ob.data.bones.get(self._name)
 		if bone:
 			generator = rig.generator
 			del generator.bone_owners[self._name]
-			generator.bone_owners[value] = rig
-			bone.name = value
-		self._name = value
+			generator.bone_owners[new_name] = rig
+			bone.name = new_name
+		self._name = new_name
 
 	@property
 	def custom_shape_scale(self):
