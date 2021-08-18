@@ -507,15 +507,9 @@ def get_bones(rig, names):
 	""" Return a list of pose bones from a string of bone names in json format. """
 	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
-# TODO: It looks like inheriting operator parameters from non-operator classes actually works?
-# What the hell... should test that again and if so, de-duplicate operator parameters.
-class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
-	""" Extend Rigify's keyframe baking with the ability to select the frame range
-		as part of the operator, make baking optional,
-		and add the ability to affect more than a single bone.
-	"""
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
+class Params_SnapBase:
+	"""A non-Operator class must be used to properly inherit operator parameters as annotations.
+	Not sure why."""
 	do_bake: BoolProperty(
 		name="Bake Keyframes in Range",
 		options={'SKIP_SAVE'},
@@ -530,6 +524,13 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 	prop_id:	  StringProperty(name="Property")
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
 	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+
+class CloudRigSnapBakeMixin(Params_SnapBase, RigifyBakeKeyframesMixin):
+	""" Extend Rigify's keyframe baking with the ability to select the frame range
+		as part of the operator, make baking optional,
+		and add the ability to affect more than a single bone.
+	"""
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	@classmethod
 	def poll(cls, context):
@@ -559,7 +560,7 @@ class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
 			for b in bones:
 				b.bone.select = True
 
-class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
+class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Operator):
 	""" Toggle a custom property while ensuring that some bones stay in place. """
 	bl_idname = "pose.cloudrig_snap_bake"
 	bl_label = "Snap And Bake Bones"
@@ -646,28 +647,12 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
 			)
 
-class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
+class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase):
 	"""Extend CLOUDRIG_OT_snap_bake with a parent selector."""
 	bl_idname = "pose.cloudrig_switch_parent_bake"
 	bl_label = "Apply Switch Parent To Keyframes"
 	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# TODO: For some reason operator property definitions don't get inherited...???
-	do_bake: BoolProperty(
-		name="Bake Keyframes in Range",
-		options={'SKIP_SAVE'},
-		description="Bake keyframes for the affected bones and remove keyframes from the switched property",
-		default=False
-	)
-	frame_start: IntProperty(name="Start Frame")
-	frame_end: IntProperty(name="End Frame")
-
-	bones:		  StringProperty(name="Control Bones")
-	prop_bone:	  StringProperty(name="Property Bone")
-	prop_id:	  StringProperty(name="Property")
-	select_bones: BoolProperty(name="Select Affected Bones", default=True)
-	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
 
 	parent_names: StringProperty(name="Parent Names")
 
@@ -701,7 +686,16 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 			)
 		context.view_layer.update()
 
-class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
+class Params_SnapMapped:
+	"""A non-Operator class must be used to properly inherit operator parameters as annotations.
+	Not sure why."""
+	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
+	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
+
+	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
+	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
+
+class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Params_SnapMapped):
 	""" Extend CLOUDRIG_OT_snap_bake with the ability to snap a list of bones
 		to another (equal length) list of bones.
 	"""
@@ -710,31 +704,6 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 	bl_label = "Snap And Bake Bones (Mapped)"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# TODO: For some reason operator property definitions don't get inherited...???
-	do_bake: BoolProperty(
-		name="Bake Keyframes in Range",
-		options={'SKIP_SAVE'},
-		description="Bake keyframes for the affected bones and remove keyframes from the switched property",
-		default=False
-	)
-	frame_start: IntProperty(name="Start Frame")
-	frame_end: IntProperty(name="End Frame")
-
-	prop_bone:	  StringProperty(name="Property Bone")
-	prop_id:	  StringProperty(name="Property")
-	select_bones: BoolProperty(name="Select Affected Bones", default=True)
-	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-
-	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
-	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
-
-	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
-	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
-
-	# In save_frame_state, we save the states of the bones we're mapping to, and in apply_frame_state, we apply those states to the bones we're mapping from.
-	# That should be the only tricky part I think... but I'm probably wrong.
-	# For initial testing, use this for IK/FK switching (ignore pole target)
 
 	def init_invoke(self, context):
 		rig = context.pose_object or context.active_object
@@ -771,7 +740,7 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 			)
 			context.evaluated_depsgraph_get().update()	# This matters!!!!
 
-class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
+class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake, Params_SnapBase, Params_SnapMapped):
 	""" This should extend CLOUDRIG_OT_snap_mapped_bake with special treatment
 		for the IK elbow.
 	"""
@@ -780,27 +749,6 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 	bl_label = "Toggle And Bake IK/FK"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# TODO: For some reason operator property definitions don't get inherited...???
-	do_bake: BoolProperty(
-		name="Bake Keyframes in Range",
-		options={'SKIP_SAVE'},
-		description="Bake keyframes for the affected bones and remove keyframes from the switched property",
-		default=False
-	)
-	frame_start: IntProperty(name="Start Frame")
-	frame_end: IntProperty(name="End Frame")
-
-	prop_bone:	  StringProperty(name="Property Bone")
-	prop_id:	  StringProperty(name="Property")
-	select_bones: BoolProperty(name="Select Affected Bones", default=True)
-	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-
-	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
-	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
-
-	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
-	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
 
 	ik_pole:	StringProperty()
 	fk_first:	StringProperty()
@@ -1320,8 +1268,6 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
 		options	= {"LIBRARY_EDITABLE"} # Make it not animatable.
 	)
 
-# This list of property names are hard coded identifiers of different areas in the rig UI.
-area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
 
 def draw_rig_settings(layout, rig, dict_name, label=""):
 	"""
@@ -1530,6 +1476,9 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
+# This list of property names are hard coded identifiers of different areas in the rig UI.
+area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
+
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_settings"
 	bl_label = "Settings"
@@ -1576,6 +1525,9 @@ class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
 		for area_name in area_names.keys():
 			draw_rig_settings(layout, rig, area_name, label=area_names[area_name])
 
+# TODO: It might be cool to dynamically define and register these classes, so 
+# that the "area names" don't have to be hard-coded, and some characters could 
+# have a less crowded "Misc" section.
 class CLOUDRIG_PT_fkik(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_fkik"
 	bl_label = "FK/IK Switch"
@@ -1767,6 +1719,17 @@ def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='E
 		value = op_kwargs[key]
 		setattr(kmi.properties, key, value)
 
+# Ensure hotkeys, whether loaded as an addon or part of a rig.
+register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
+	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
+	,key_cat = 'Pose'
+	,space_type = 'VIEW_3D'
+)
+register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
+	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
+	,key_cat = 'Armature'
+)
+
 #######################################
 ############## Register ###############
 #######################################
@@ -1825,14 +1788,3 @@ if __name__ in ['__main__', 'builtins']:
 	# This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded. 
 	# In that case __name__ is "rigify.feature_sets.CloudRig.cloudrig"
 	register()
-
-# Ensure hotkeys, whether loaded as an addon or part of a rig.
-register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-	,key_cat = 'Pose'
-	,space_type = 'VIEW_3D'
-)
-register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-	,key_cat = 'Armature'
-)
