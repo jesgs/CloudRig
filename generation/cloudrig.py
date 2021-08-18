@@ -518,6 +518,11 @@ class Params_SnapBase:
 	)
 	frame_start: IntProperty(name="Start Frame")
 	frame_end: IntProperty(name="End Frame")
+	bake_every_frame: BoolProperty(
+		name		 = "Bake Every Frame"
+		,description = "Insert a keyframe on every frame of the affected bones, rather than only frames which are keyframed on the source bones. Results in a more accurate bake, but takes longer and is harder to edit afterwards"
+		,default	 = True
+	)
 
 	bones:		  StringProperty(name="Control Bones")
 	prop_bone:	  StringProperty(name="Property Bone")
@@ -550,7 +555,10 @@ class CloudRigSnapBakeMixin(Params_SnapBase, RigifyBakeKeyframesMixin):
 
 	def execute_scan_curves(self, context, obj):
 		"Register frames to be baked, and return curves that should be cleared."
-		self.bake_add_bone_frames(self.bone_names)
+		if self.bake_every_frame:
+			self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
+		else:
+			self.bake_add_bone_frames(self.bone_names)
 		return None
 
 	def set_selection(self, context, bones):
@@ -565,20 +573,28 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 	bl_idname = "pose.cloudrig_snap_bake"
 	bl_label = "Snap And Bake Bones"
 
-	def draw(self, context):
-		# TODO: Display name of the property bone and property whose keyframes will be cleared.
-		layout = self.layout
-
-		self.layout.prop(self, 'do_bake')
-		time_row = layout.row(align=True)
-		if self.do_bake:
-			time_row.prop(self, 'frame_start')
-			time_row.prop(self, 'frame_end')
-
+	def draw_affected_bones(self, layout, context):
 		bone_column = layout.column(align=True)
 		bone_column.label(text="Affected bones:")
 		for b in self.bone_names:
-			bone_column.label(text=" "*10 + b)
+			bone_column.label(text=f"{' '*10} {b}")
+		# bone_column.label(text=f"Affected property:")
+		# bone_column.label(text=f'    pose.bones["{self.prop_bone}"]["{self.prop_id}"]')
+
+	def draw(self, context):
+		layout = self.layout
+
+		self.layout.prop(self, 'do_bake')
+		split = layout.split(factor=0.1)
+		split.row()
+		col = split.column()
+		if self.do_bake:
+			time_row = col.row(align=True)
+			time_row.prop(self, 'frame_start')
+			time_row.prop(self, 'frame_end')
+			col.row().prop(self, 'bake_every_frame')
+		
+		self.draw_affected_bones(layout, context)
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
@@ -662,19 +678,17 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase):
 		return items
 
 	selected: EnumProperty(
-		name='Selected Parent',
-		items=parent_items
+		name = "Selected Parent",
+		items = parent_items
 	)
 
 	def draw(self, context):
-		layout = self.layout
-
 		self.layout.prop(self, 'selected', text='')
 		super().draw(context)
 
 	def after_save_state(self, context, rig):
 		"""After saving the bone matrices, it's time to set the property value."""
-		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+		# value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 		if self.do_bake:
 			self.bake_replace_custom_prop_keys_constant(
 				self.prop_bone, self.prop_id, int(self.selected)
@@ -717,6 +731,12 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Param
 		self.bones = json.dumps(bone_names)
 		super().init_invoke(context)	# This creates self.bone_names based on self.bones.
 
+	def draw_affected_bones(self, layout, context):
+		bone_column = layout.column(align=True)
+		bone_column.label(text="Snapped bones:")
+		for from_bone, to_bone in self.bone_map:
+			bone_column.label(text=f"{' '*10} {from_bone} -> {to_bone}")
+
 	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
 		if not bone_names:
 			bone_names = [t[1] for t in self.bone_map]
@@ -724,10 +744,14 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Param
 
 	def execute_scan_curves(self, context, obj):
 		"Register frames to be baked, and return curves that should be cleared."
-		bone_names = [t[1] for t in self.bone_map]
-		self.bake_add_bone_frames(bone_names)
-		bone_names = [t[0] for t in self.bone_map]
-		self.bake_add_bone_frames(bone_names)
+
+		if self.bake_every_frame:
+			self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
+		else:
+			bone_names = [t[1] for t in self.bone_map]
+			self.bake_add_bone_frames(bone_names)
+			bone_names = [t[0] for t in self.bone_map]
+			self.bake_add_bone_frames(bone_names)
 		return None
 
 	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
