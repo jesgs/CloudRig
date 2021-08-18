@@ -270,8 +270,10 @@ class CloudGenerator(Generator):
 		# remains even if the Rigify addon is disabled.
 		obj.data.cloudrig_parameters.show_layers_preview_hidden = False
 
+		# By default, use B-Bone display type since it's the most useful
+		obj.data.display_type = 'BBONE'
+
 		# Copy viewport display settings from the metarig.
-		obj.data.display_type = metarig.data.display_type
 		obj.data.show_names = metarig.data.show_names
 		obj.show_in_front = metarig.show_in_front
 		obj.data.show_axes = metarig.data.show_axes
