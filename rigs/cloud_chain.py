@@ -9,6 +9,9 @@ from .cloud_base import CloudBaseRig
 
 """TODO
 Main and Sub STR controls should be treated totally separately from each other, even having separate bone sets.
+Might make sense to remove the Tip Control parameter. We only use it for arm rigs, 
+	and it's not really important for that case anymore, since we can just use DEF parenting on the fingers.
+	It's also important for connect_parent_chain_rig, but that could be handled differently.
 """
 
 class CloudChainRig(CloudBaseRig):
@@ -152,13 +155,19 @@ class CloudChainRig(CloudBaseRig):
 			,custom_shape_scale = 0.4
 			,parent = org_bone
 		)
+
+		# Create alignment helpers, to make sure the bendy bones don't flip out 
+		# when the chain has a zig-zaggy shape, and the STR-H bones try to copy
+		# rotations from the STR bones.
+		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
 		str_bone.align_in = str_bone
 		str_bone.align_out = str_bone
-		if seg_i == 0 and self.params.CR_chain_segments > 1 and org_bone.prev and self.params.CR_chain_align_roll:
+		if seg_i == 0 and self.params.CR_chain_segments > 1 and \
+				org_bone.prev and self.params.CR_chain_align_roll:
+			# If it's a main_str_bone
 			str_bone.roll_type = 'ACTIVE'
 			str_bone.roll_bone = org_bone.name
 			str_bone.roll = 0
-			# If it's a main_str_bone
 			str_bone.align_in = self.bone_sets['Mechanism Bones'].new(
 				name = name.replace("STR", "STR-RI")
 				,source = org_bone.prev
@@ -401,14 +410,13 @@ class CloudChainRig(CloudBaseRig):
 
 			is_last_of_segment = next_str_bone in self.main_str_bones
 
-			# Last bone of the segment, but not the last bone of the chain.
-			if is_last_of_segment and next_str_bone != self.bone_sets['Stretch Controls'][-1] or \
-				next_str_bone not in self.bone_sets['Stretch Controls']:	# Catch case of connecting parent chain
+			# Last bone of the segment should have an EaseOut of 0 when Sharp Sections is enabled.
+			if is_last_of_segment or next_str_bone not in self.bone_sets['Stretch Controls']:	# Catch case of connecting parent chain
 				def_bone.bbone_easeout = 1 - self.params.CR_chain_sharp
 
 		else:
 			# This only happens if this is the last deform bone and CR_chain_tip_control==False.
-			# In this case it shouldn't be a bendy bone, so set deform segments to 1.
+			# In this case it shouldn't be a bendy bone, so set bbone segments to 1.
 			def_bone.bbone_segments = 1
 
 		# B-Bone scale drivers
@@ -525,7 +533,7 @@ class CloudChainRig(CloudBaseRig):
 		last_org = parent_rig.bones_org[-1]
 		parent_rig.setup_def_bone(last_def, last_org, last_str, self.bone_sets['Stretch Controls'][0])
 		last_def.parent = last_str
-		self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
+		last_str.custom_shape = self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
 			self.make_shape_key_helper(last_def, self.bones_def[0])
 		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
@@ -557,8 +565,8 @@ class CloudChainRig(CloudBaseRig):
 		super().add_parameters(params)
 
 		params.CR_chain_segments = IntProperty(
-			 name		 = "Segments"
-			,description = "Number of deform bones per section"
+			 name		 = "Stretch Segments"
+			,description = "Number of bendy bones to create for each original bone"
 			,default	 = 2
 			,min		 = 1
 			,max		 = 9
@@ -586,7 +594,7 @@ class CloudChainRig(CloudBaseRig):
 		)
 		params.CR_chain_smooth_spline = BoolProperty(
 			 name		 = "Smooth Spline"
-			,description = "B-Bone Splines affect their neighbours for smoother curves. Works best when Deform Segments is 1, but that is not a requirement"
+			,description = "B-Bone Splines affect their neighbours for smoother curves"
 			,default	 = False
 		)
 
@@ -597,7 +605,7 @@ class CloudChainRig(CloudBaseRig):
 			,default	 = True
 		)
 		params.CR_chain_tip_control = BoolProperty(
-			 name		 = "At Tail"
+			 name		 = "Tip Control"
 			,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one"
 			,default	 = True
 		)
@@ -609,19 +617,21 @@ class CloudChainRig(CloudBaseRig):
 
 	@classmethod
 	def draw_bendy_params(cls, layout, context, params):
-		cls.draw_prop(layout, params, "CR_chain_bbone_density")
-		cls.draw_prop(layout, params, "CR_chain_sharp")
-		cls.draw_prop(layout, params, "CR_chain_smooth_spline")
+		cls.draw_prop(layout, params, 'CR_chain_bbone_density')
+		sharp = cls.draw_prop(layout, params, 'CR_chain_sharp')
+		smooth = cls.draw_prop(layout, params, 'CR_chain_smooth_spline')
+		sharp.enabled = smooth.enabled = params.CR_chain_bbone_density > 0
+
 		if cls.is_advanced_mode(context):
-			cls.draw_prop(layout, params, "CR_chain_preserve_volume")
-			cls.draw_prop(layout, params, "CR_chain_shape_key_helpers")
-			cls.draw_prop(layout, params, "CR_chain_unlock_deform")
+			cls.draw_prop(layout, params, 'CR_chain_preserve_volume')
+			cls.draw_prop(layout, params, 'CR_chain_shape_key_helpers')
+			cls.draw_prop(layout, params, 'CR_chain_unlock_deform')
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		cls.draw_control_label(layout, "Stretch")
-		cls.draw_prop(layout, params, "CR_chain_segments", text="Stretch Segments")
-		cls.draw_prop(layout, params, "CR_chain_tip_control", text = "Tip Control")
+		cls.draw_prop(layout, params, 'CR_chain_segments')
+		cls.draw_prop(layout, params, 'CR_chain_tip_control')
 
 class Rig(CloudChainRig):
 	pass
