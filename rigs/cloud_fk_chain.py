@@ -39,23 +39,14 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		if self.params.CR_fk_chain_root:
-			# This has to come before make_fk_chain() so inheriting rig classes
-			# that override make_fk_chain() can expect root bone to already exist.
 			self.root_bone = self.make_root_bone()
 
-		self.make_fk_chain()
+		fk_chain = self.make_fk_chain(self.bones_org)
+		self.attach_org_to_fk(self.bones_org, fk_chain)
 
 		if self.root_bone == self.bones_org[0]:
 			self.root_bone = self.bone_sets['FK Controls'][0]
 
-		# Default root parenting
-		if self.params.CR_fk_chain_root:
-			if not self.params.CR_fk_chain_hinge:
-				# TODO: This is messy, and could use unit tests to be able to change this code without messing something up.
-				self.bone_sets['FK Controls'][0].parent = self.root_bone
-			self.root_bone.parent = self.bones_org[0].parent
-
-		self.attach_org_to_fk()
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
 
@@ -86,11 +77,11 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		)
 		return limb_root_bone
 
-	def make_fk_chain(self):
+	def make_fk_chain(self, org_chain) -> List[BoneInfo]:
 		fk_name = ""
 
 		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
-		for i, org_bone in enumerate(self.bones_org):
+		for i, org_bone in enumerate(org_chain):
 			fk_name = org_bone.name.replace("ORG", "FK")
 			fk_bone = self.bone_sets['FK Controls'].new(
 				name						= fk_name
@@ -111,7 +102,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 					hng_child = fk_parent_bone
 			if i > 0:
 				# Parent FK bone to previous FK bone.
-				fk_bone.parent = self.bones_org[i-1].fk_bone
+				fk_bone.parent = org_chain[i-1].fk_bone
 
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:
@@ -125,10 +116,12 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 				,prop_name	 = self.fk_hinge_name
 				,limb_name	 = self.limb_ui_name
 			)
+		
+		return self.bone_sets['FK Controls']
 
 	def make_hinge_setup(self, bone, category, *,
 		prop_bone, prop_name, default_value=0.0,
-		parent_bone=None, head_tail=0,
+		parent_bone=None, 
 		hng_name=None, limb_name=None, bone_set=None
 	):
 		""" Create a hinge toggle for a bone.
@@ -193,11 +186,14 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			]
 		})
 
-		# Hinge Copy Location constraint
+		# Hinge Copy Location & Scale constraints
 		hng_bone.add_constraint('COPY_LOCATION'
 			,space = 'WORLD'
 			,subtarget	   = str(parent_bone)
-			,head_tail	   = head_tail
+		)
+		hng_bone.add_constraint('COPY_SCALE'
+			,space = 'WORLD'
+			,subtarget	   = str(parent_bone)
 		)
 
 		# Parenting
@@ -232,13 +228,9 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 				if 'bbone_scale' not in d['prop']: continue
 				d['variables']['scale']['targets'][0]['bone_target'] = fk_control.name
 
-	def attach_org_to_fk(self):
+	def attach_org_to_fk(self, org_bones, fk_bones):
 		"""Make ORG bones Copy Transforms of FK bones."""
-		for i, org_bone in enumerate(self.bones_org):
-			if i==0 and self.params.CR_fk_chain_root:
-				org_bone.parent = self.root_bone
-			fk_bone = self.get_bone_info(org_bone.name.replace("ORG", "FK"))
-
+		for org_bone, fk_bone in zip(org_bones, fk_bones):
 			org_bone.add_constraint('COPY_TRANSFORMS'
 				,space			= 'WORLD'
 				,subtarget		= fk_bone.name
