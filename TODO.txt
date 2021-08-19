@@ -4,9 +4,6 @@ Improve UX when there are no Rigify Layers:
 	- Generating the rig should cause default rigify layers to be created on the metarig.
 	- Draw even less of the Bone Organization panel when there are no Rigify Layers.
 
-Make STR bones inherit average scale
-	This really seems important in order to allow FK bones to be scaled non-uniformally and have a semblance of reasonable behaviour.
-
 Priority 1: Bugs
 	- Troubleshooting UI freaks out when rig is in an anim output collection?
 		Not entirely sure how, but it was happening on Simon's side

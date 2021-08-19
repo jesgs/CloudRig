@@ -153,6 +153,7 @@ class CloudChainRig(CloudBaseRig):
 			,length = org_bone.length / segments / 2
 			,custom_shape_scale = 0.4
 			,parent = org_bone
+			,inherit_scale = 'AVERAGE'
 		)
 		if seg_i > 0 and  seg_i < segments:
 			str_bone.custom_shape = self.ensure_widget("Sphere")
