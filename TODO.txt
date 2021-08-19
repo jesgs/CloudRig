@@ -95,6 +95,9 @@ Priority 5: UI, UX & documentation
 Priority 6: Rigify compatibility
     When enabled, bone groups assigned in cloud_bone seem to get overwritten.
 Priority 7: Ideas from Animators that would break backwards comp on Sprite Fright.
+    Bunch of operators are probably missing from manual mapping.
+    Might also be cool to add manual mapping into cloudrig.py so it works for animators
+        Then we could add a page to the manual that's specific to the rig UI and targeted at animators rather than riggers.
     From Javier: Spine IK control with squash&stretch
     From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
         The available parents could be the same as the IK control, plus the IK control itself.

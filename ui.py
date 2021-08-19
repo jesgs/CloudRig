@@ -10,67 +10,6 @@ from rigify.ui import build_type_list
 from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
 
-class CLOUDRIG_OT_layer_init(Operator):
-	"""Initialize armature rigify layers"""
-
-	bl_idname = "pose.cloudrig_layer_init"
-	bl_label = "Add Rigify Layers (CloudRig)"
-	bl_options = {'UNDO', 'INTERNAL'}
-
-	def execute(self, context):
-		obj = context.object
-		arm = obj.data
-		for i in range(len(arm.rigify_layers), len(arm.layers)):
-			layer = arm.rigify_layers.add()
-
-			if i==0:
-				layer.name = "IK"
-			elif i==16:
-				layer.name = "IK Secondary"
-			elif i==1:
-				layer.name = "FK"
-				layer.row = 2
-			elif i==17:
-				layer.name = "FK Secondary"
-				layer.row = 2
-			elif i==2:
-				layer.name = "Stretch"
-				layer.row = 3
-
-			elif i==3:
-				layer.name = "Face"
-				layer.row = 4
-			elif i==19:
-				layer.name = "Face Extras"
-				layer.row = 4
-			elif i==20:
-				layer.name = "Face Tweak"
-				layer.row = 4
-
-			elif i==5:
-				layer.name = "Fingers"
-				layer.row = 5
-
-			elif i==6:
-				layer.name = "Hair"
-				layer.row = 6
-			elif i==7:
-				layer.name = "Clothes"
-				layer.row = 7
-
-			elif i==29:
-				layer.name = "$DEF"
-				layer.row = 32
-			elif i==30:
-				layer.name = "$MCH"
-				layer.row = 32
-			elif i==31:
-				layer.name = "$ORG"
-				layer.row = 32
-			else:
-				layer.name = ""
-
-		return {'FINISHED'}
 
 def draw_version_check(layout: UILayout) -> bool:
 	""" Compare Blender version number to current lowest supported
@@ -309,7 +248,6 @@ def draw_rigify_types(self, context):
 				rig.parameters_ui(layout, bone.rigify_parameters)
 
 classes = [
-	CLOUDRIG_OT_layer_init,
 	CLOUDRIG_PT_generator_advanced
 ]
 
