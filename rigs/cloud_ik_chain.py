@@ -109,6 +109,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Set up IK Stretch
 		self.stretch_bone = self.make_ik_stretch()
 
+		if self.params.CR_ik_chain_use_pole:
+			self.setup_ik_pole_follow_slider(self.pole_ctrl, self.ik_mstr, self.stretch_bone)
+
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name="Sphere"):
 		if bone_name=="":
 			bone_name = source_bone.name.replace("ORG", "IK-MSTR")
@@ -192,7 +195,6 @@ class CloudIKChainRig(CloudFKChainRig):
 			,custom_shape		= self.ensure_widget('Arrow_Head')
 			,custom_shape_scale	= 0.5
 			,use_custom_shape_bone_size = True
-			,parent = self.ik_mstr
 		)
 		self.lock_transforms(pole_ctrl, loc=False)
 
@@ -440,22 +442,6 @@ class CloudIKChainRig(CloudFKChainRig):
 
 			copyloc.drivers.append(dict(ik_stretch_engaged_driver))
 
-		# Attach ORG chain to IK Stretch	- This works but provides no benefit, and can result in snapping if the IK Base control is translated.
-		# cum_length = 0
-		# for i, org_bone in enumerate(self.bones_org):
-		# 	head_tail = cum_length/chain_length
-		# 	cum_length += org_bone.length
-		# 	# ORG Copy Transforms to IK Stretch bone
-		# 	ct_ik_str = org_bone.add_constraint('COPY_TRANSFORMS'
-		# 		,name	   = "Copy Transforms IK Stretch"
-		# 		,space	   = 'WORLD'
-		# 		,subtarget = stretch_bone.name
-		# 		,head_tail = head_tail
-
-		# 	)
-
-		# 	ct_ik_str.drivers.append(dict(ik_stretch_engaged_driver))
-
 	def attach_org_to_ik(self):
 		# Note: Runs after attach_org_to_fk().
 
@@ -499,58 +485,89 @@ class CloudIKChainRig(CloudFKChainRig):
 		)
 
 		if self.params.CR_ik_chain_use_pole:
-			self.setup_ik_pole_parent_switch(self.ik_mstr)
+			self.setup_ik_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
 
-	def setup_ik_pole_parent_switch(self, ik_mstr):
-		"""Rig the IK Pole control's parent switcher, with an additional "IK Pole Follows" slider."""
+	def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone):
 		# Create parent helper bone
-		parent_helper = self.create_parent_bone(self.pole_ctrl, bone_set=self.bones_mch)
+		parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
 		parent_helper.custom_shape = None
+		ik_pole.inherit_scale = 'AVERAGE'
 
-		# Copy the constraint and drivers from the IK master
-		arm_con_info = parent_helper.add_constraint('ARMATURE', use_deform_preserve_volume=True)
-		arm_con_info.targets = [dict(d) for d in ik_mstr.parent.constraint_infos[0].targets]
-		arm_con_info.drivers = [dict(d) for d in ik_mstr.parent.constraint_infos[0].drivers]
+		arm_con = parent_helper.add_constraint('ARMATURE'
+			,use_deform_preserve_volume = True
+			,targets = [
+				{'subtarget' : 'root'}	# TODO: This won't work when Create Root is disabled!
+				,{'subtarget' : stretch_bone}
+			]
+		)
+
+		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
+		# Add driver to the new constraint target.
+		driver1 = {
+			'prop' : 'targets[0].weight',
+			'expression' : '1-follow',
+			'variables' : {
+				'follow' : {
+					'type' : 'SINGLE_PROP',
+					'targets' : [{
+						'data_path' : f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
+					}]
+				}
+			}
+		}
+		driver2 = dict(driver1)
+		driver2['prop'] = 'targets[1].weight'
+		driver2['expression'] = 'follow'
+		arm_con.drivers.append(driver1)
+		arm_con.drivers.append(driver2)
+
+		# Let Stretch Helper copy rotation of IK master, for nice controlling of the IK Pole.
+		stretch_bone.add_constraint('COPY_ROTATION', index=0
+			,subtarget = ik_mstr
+		)
 
 		# Add IK Pole Follows option to the UI.
-		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
 		info = {
 			"prop_bone" : self.properties_bone,
 			"prop_id"	: ik_pole_follow_name,
 
 			"operator" : "pose.cloudrig_snap_bake",
-			"bones" : [self.pole_ctrl.name],
+			"bones" : [ik_pole.name],
 			"select_bones" : True
 		}
 		self.add_ui_data("ik_pole_follows", self.limb_name, self.limb_ui_name, info, default=0.0)
 
-		if not self.params.CR_base_parent_switching:
-			return
-		# Get the armature constraint from the IK pole's parent, and add the IK master as a new target.
-		arm_con_info.targets.append({
-			"subtarget" : self.ik_mstr.name
-		})
+	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
+		"""Tweak the IK Pole control's constraint to support parent switching."""
 
-		# Add driver to the new constraint target.
-		target_idx = len(arm_con_info.targets)-1
-		arm_con_info.drivers.append({
-			'prop' : f'targets[{target_idx}].weight',
-			'expression' : 'follow',
-			'variables' : {}	# Variable is created in the for loop below.
-		})
+		parent = ik_pole.parent
 
+		# Copy the constraint and drivers from the IK master
+		arm_con_info = parent.constraint_infos[0]
+
+		arm_con_info.drivers[0] = ik_mstr.parent.constraint_infos[0].drivers[0].copy()
+		for target, driver in zip(ik_mstr.parent.constraint_infos[0].targets[1:], ik_mstr.parent.constraint_infos[0].drivers[1:]):
+			arm_con_info.targets.append(target)
+			driver = driver.copy()
+			driver['prop'] = f'targets[{len(arm_con_info.targets)-1}].weight'
+			arm_con_info.drivers.append(driver)
+		
+		# arm_con_info.drivers.extend(ik_mstr.parent.constraint_infos[0].drivers)
+
+		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
 		# Tweak each driver on the IK pole parent.
 		for i, d in enumerate(arm_con_info.drivers):
-			if i != len(arm_con_info.drivers)-1:
+			if i != 1:
 				d['expression'] = f"({d['expression']}) - follow"
 
-			# Add "follow" variable.
-			d['variables']['follow'] = {
-				'type' : 'SINGLE_PROP',
-				'targets' : [{
-					'data_path' : f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
-				}]
-			}
+				# Add "follow" variable.
+				d['variables']['follow'] = {
+					'type' : 'SINGLE_PROP',
+					'targets' : [{
+						'data_path' : f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
+					}]
+				}
+
 
 	def add_test_animation(self, action, start_frame=1, flip_xyz=[False, False, False]) -> int:
 		"""Add animation curves to the action to test this rig.
