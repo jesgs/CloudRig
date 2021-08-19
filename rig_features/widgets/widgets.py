@@ -59,7 +59,7 @@ def ensure_widget(name, overwrite=True, collection=None):
 	return wgt_ob
 
 
-def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
+def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo, scale=1.3):
 	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
 
 	# If the object already exists and we aren't forcing a widget update, return existing.
@@ -96,7 +96,7 @@ def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo):
 	coords = project_points_on_plane(coords, bone.vector)
 
 	# Expand the points
-	coords = scale_points_from_center(coords, 1.3)
+	coords = scale_points_from_center(coords, scale)
 
 	# Create and place the spline points.
 	spline.bezier_points.add(len(coords)-1)

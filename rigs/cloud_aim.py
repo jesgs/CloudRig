@@ -174,7 +174,7 @@ class CloudAimRig(CloudBaseRig):
 		"""Overrides cloud_base to apply the parent switching to the aim target
 		or group master if it exists."""
 		target_bone = self.group_master
-		if not target_bone and self.find_aim_bones_in_group():
+		if not target_bone:
 			target_bone = self.target_bone
 		else:
 			# Ensure parent switching for the group master
@@ -189,7 +189,7 @@ class CloudAimRig(CloudBaseRig):
 		)
 
 	def find_aim_bones_in_group(self, group_name) -> List[bpy.types.PoseBone]:
-		"""Collect all cloud_aim rigs in this group."""
+		"""Return a list of all cloud_aim rigs with a matching Aim Group."""
 		aim_bones = []
 		for rig in self.generator.rig_list:
 			if isinstance(rig, CloudAimRig) and rig.params.CR_aim_group == group_name:
@@ -250,7 +250,10 @@ class CloudAimRig(CloudBaseRig):
 			,subtarget = center_bone.name
 		)
 
-		group_widget = bezier_widget(self, target_positions, group_master)
+		# Average bone length + some clamping and scaling
+		scale = max(1, sum([b.length for b in aim_bones])/len(aim_bones)) * 1.5
+
+		group_widget = bezier_widget(self, target_positions, group_master, scale=scale)
 		group_master.custom_shape = group_widget
 		group_master.custom_shape_scale = 1/self.scale
 
