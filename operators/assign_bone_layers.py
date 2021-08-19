@@ -37,7 +37,7 @@ class CLOUDRIG_OT_layer_assign(Operator):
 		return {'FINISHED'}
 
 
-def create_default_cloudrig_layers(armature: Armature):
+def init_cloudrig_layers(armature: Armature):
 	for i in range(len(armature.rigify_layers), len(armature.layers)):
 		layer = armature.rigify_layers.add()
 
@@ -99,7 +99,7 @@ class CLOUDRIG_OT_layer_init(Operator):
 	def execute(self, context):
 		armature = context.object.data
 
-		create_default_cloudrig_layers(armature)
+		init_cloudrig_layers(armature)
 
 		return {'FINISHED'}
 

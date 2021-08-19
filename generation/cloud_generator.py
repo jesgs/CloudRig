@@ -25,6 +25,8 @@ from ..rig_features.widgets import widgets as cloud_widgets
 from ..utils.rigify import find_rig_class
 from ..versioning import cloud_metarig_version
 
+from ..operators.assign_bone_layers import init_cloudrig_layers
+
 from .actions import ActionSlot
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 
@@ -704,6 +706,10 @@ class CloudGenerator(Generator):
 		# Collection to store bone widgets
 		self.widget_collection = self.ensure_widget_collection(context)
 
+		# Ensure rigify layers are initialized.
+		if len(metarig.data.rigify_layers) < 32:
+			init_cloudrig_layers(metarig.data)
+
 		#------------------------------------------
 		self.duplicate_rig()
 		t.tick("Duplicate rig: ")
@@ -794,7 +800,6 @@ class CloudGenerator(Generator):
 
 		# Only leave Force Widget Update enabled until the next generation.
 		self.params.rigify_force_widget_update = False
-
 
 		if old_rig:
 			self.replace_old_with_new_rig(old_rig, obj)
