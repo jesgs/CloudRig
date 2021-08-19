@@ -385,6 +385,7 @@ class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
 	bl_label = "Rigify Actions"
+	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod
 	def poll(cls, context):

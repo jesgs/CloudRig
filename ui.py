@@ -130,6 +130,12 @@ def draw_rigify_header(self, context):
 	layout.operator('object.generate_all_rigify_rigs')
 	layout.operator('object.cloudrig_toggle_metarig')
 
+	if context.mode == 'POSE':
+		layout.operator('pose.rigify_copy_parameters',
+						icon='DUPLICATE', text="Copy Parameters to Selected")
+		layout.operator('pose.rigify_mirror_parameters',
+						icon='MOD_MIRROR', text="Mirror Parameters")
+
 	if context.mode == 'EDIT_ARMATURE':
 		layout.separator()
 		layout.operator('armature.metarig_sample_add')
@@ -155,6 +161,7 @@ class CLOUDRIG_PT_generator_advanced(Panel):
 	bl_context = 'data'
 	bl_label = "Advanced"
 	bl_parent_id = "DATA_PT_rigify_buttons"
+	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod
 	def poll(cls, context):

@@ -409,6 +409,7 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
 	bl_label = "Rigify Log"
+	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod
 	def poll(cls, context):
