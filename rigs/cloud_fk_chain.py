@@ -395,9 +395,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		if super().is_using_custom_props(context, params):
 			return True
 
-		if not (params.CR_fk_chain_hinge and params.CR_fk_chain_root) and \
-			not params.CR_base_parent_switching:
-			return False
+		if params.CR_fk_chain_hinge and params.CR_fk_chain_root:
+			return True
 
 class Rig(CloudFKChainRig):
 	pass

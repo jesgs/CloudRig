@@ -306,6 +306,8 @@ class CloudBaseRig(
 		# eg. utils.custom_properties->CloudCustomPropertyMixin.
 		if cls.always_use_custom_props:
 			return True
+		if params.CR_base_parent_switching:
+			return True
 		return False
 
 	@classmethod

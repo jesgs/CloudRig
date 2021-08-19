@@ -14,7 +14,6 @@ class CloudAimRig(CloudBaseRig):
 	"""Create aim target controls for a single bone."""
 
 	relinking_behaviour = "Constraints will be moved to the Eye Root Control."
-	always_use_custom_props = True
 	parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye rigs with a matching string as their Eye Group paramter."
 	parent_switch_overwrites_root_parent = False
 
