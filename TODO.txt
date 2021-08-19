@@ -1,4 +1,18 @@
+cloud_aim Custom Properties panel is displayed even when there's no parent switching.
+
+cloud_fk_chain Custom Properties panel is NOT displayed even when there IS parent switching! Or FK Hinge!
+cloud_fk_chain FK Hinge parameter should only be available when the rig has a root bone, otherwise it doesn't make sense. (and currently, it fails)
+
+Should improve tooltip for 'Duplicate First FK': 'Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid interpolation issues like gimbal locking.'
+
+Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
+
+Improve UX when there are no Rigify Layers:
+	- Generating the rig should cause default rigify layers to be created on the metarig.
+	- Draw even less of the Bone Organization panel when there are no Rigify Layers.
+
 Make STR bones inherit average scale
+	This really seems important in order to allow FK bones to be scaled non-uniformally and have a semblance of reasonable behaviour.
 
 Priority 1: Bugs
 	- Troubleshooting UI freaks out when rig is in an anim output collection?

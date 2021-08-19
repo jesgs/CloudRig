@@ -13,7 +13,7 @@ from rigify.utils.mechanism import make_constraint, make_driver, make_property
 # These values should match Blender's defaults, otherwise they won't be written.
 edit_bone_properties = {
 	'head' : Vector((0, 0, 0))
-	,'tail' : Vector((0, 0, 0))
+	,'tail' : Vector((0, 1, 0))
 	,'roll' : 0
 	,'head_radius' : 0.1
 	,'tail_radius' : 0.05
