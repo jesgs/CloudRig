@@ -378,7 +378,9 @@ class CloudChainRig(CloudBaseRig):
 				def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
 				def_bone.bbone_handle_use_scale_start = [True, False, True]
 				def_bone.bbone_handle_use_scale_end	  = [True, False, True]
-				def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
+				if hasattr(next_str_bone, 'tangent_helper'):
+					# This can be false when connecting to a parent chain rig.
+					def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 
 			if not self.params.CR_chain_unlock_deform:
 				def_bone.add_constraint('STRETCH_TO'
