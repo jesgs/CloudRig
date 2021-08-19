@@ -300,7 +300,9 @@ class BoneSetMixin:
 		if len(cloudrig.ui_bone_sets) == 0 or \
 				active_idx > len(cloudrig.ui_bone_sets) or \
 				cloudrig.ui_bone_sets[active_idx].name not in cls.bone_set_defs:
-			layout.label(text="Generate the rig to see Bone Set parameters.")
+			split = layout.split(factor=0.1)
+			split.row()
+			split.label(text="Generate the rig to see Bone Set parameters.")
 			return
 
 		active_bone_set = cloudrig.ui_bone_sets[active_idx]

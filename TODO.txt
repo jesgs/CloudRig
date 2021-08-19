@@ -1,10 +1,5 @@
-Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
-
-Improve UX when there are no Rigify Layers:
-	- Generating the rig should cause default rigify layers to be created on the metarig.
-	- Draw even less of the Bone Organization panel when there are no Rigify Layers.
-
 Priority 1: Bugs
+    - Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 	- Troubleshooting UI freaks out when rig is in an anim output collection?
 		Not entirely sure how, but it was happening on Simon's side
 	- When a Rigify rig is merged into the generated rig, the widgets get "GENERATED" in their names.
