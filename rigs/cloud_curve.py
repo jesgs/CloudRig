@@ -89,6 +89,7 @@ class CloudCurveRig(CloudBaseRig):
 			,head						= loc
 			,tail						= loc_left
 			,parent						= self.bones_org[0]
+			,rotation_mode				= 'YZX'
 		)
 
 		hook_ctr.left_handle_control = None
@@ -251,8 +252,6 @@ class CloudCurveRig(CloudBaseRig):
 				self.make_hook_modifier(i, hook_b.left_handle_control, left_handle=True)
 				self.make_hook_modifier(i, hook_b.right_handle_control, right_handle=True)
 
-			curve_ob.data.twist_mode = 'MINIMUM'
-
 			# Add Radius driver
 			data_path = f"splines[0].bezier_points[{i}].radius"
 			curve_ob.data.driver_remove(data_path)
@@ -287,7 +286,7 @@ class CloudCurveRig(CloudBaseRig):
 			var_tgt.id = self.obj
 			var_tgt.transform_space = 'LOCAL_SPACE'
 			var_tgt.transform_type = 'ROT_Y'
-			var_tgt.rotation_mode = 'XZY'
+			var_tgt.rotation_mode = hook_b.rotation_mode
 			var_tgt.bone_target = hooks[i].name
 
 			if self.params.CR_curve_separate_radius:

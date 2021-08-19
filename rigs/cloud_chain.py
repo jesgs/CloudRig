@@ -151,10 +151,11 @@ class CloudChainRig(CloudBaseRig):
 			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
 			,length = org_bone.length / segments / 2
-			,custom_shape = self.ensure_widget("Sphere")
 			,custom_shape_scale = 0.4
 			,parent = org_bone
 		)
+		if seg_i > 0 and  seg_i < segments:
+			str_bone.custom_shape = self.ensure_widget("Sphere")
 
 		# Create alignment helpers, to make sure the bendy bones don't flip out 
 		# when the chain has a zig-zaggy shape, and the STR-H bones try to copy
