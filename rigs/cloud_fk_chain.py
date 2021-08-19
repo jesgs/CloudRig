@@ -19,7 +19,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		super().initialize()
 
 		self.limb_name = self.naming.slice_name(self.base_bone)[1]
-		
+
 		# TODO SPRITEFRIGHT: This can be removed after Sprite Fright.
 		if "arm" in self.limb_name.lower():
 			self.limb_name = "Arm"
@@ -33,7 +33,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
 		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
-		if not self.params.CR_fk_chain_root:
+		if not (self.params.CR_fk_chain_root and self.generator_params.cloudrig_parameters.create_root):
 			self.params.CR_fk_chain_hinge = False
 
 	def create_bone_infos(self):
@@ -116,7 +116,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 				,prop_name	 = self.fk_hinge_name
 				,limb_name	 = self.limb_ui_name
 			)
-		
+
 		return self.bone_sets['FK Controls']
 
 	def make_hinge_setup(self, bone, category, *,
@@ -309,7 +309,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		)
 		params.CR_fk_chain_double_first = BoolProperty(
 			 name		 = "Duplicate First FK"
-			,description = "The first FK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
+			,description = "Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid gimbal locking"
 			,default	 = False
 		)
 
@@ -320,7 +320,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		)
 		params.CR_fk_chain_hinge = BoolProperty(
 			name		 = "Hinge"
-			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root"
+			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this."
 			,default	 = True
 		)
 
@@ -356,12 +356,14 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	def draw_control_params(cls, layout, context, params):
 		super().draw_control_params(layout, context, params)
 
+		cloudrig = context.object.data.cloudrig_parameters
+
 		layout.separator()
 		cls.draw_control_label(layout, "FK")
 
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
 		row = cls.draw_prop(layout.row(), params, 'CR_fk_chain_hinge')
-		row.enabled = params.CR_fk_chain_root
+		row.enabled = params.CR_fk_chain_root and cloudrig.create_root
 
 		if not cls.is_advanced_mode(context):
 			return
@@ -387,7 +389,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		if super().is_using_custom_props(context, params):
 			return True
 
-		if params.CR_fk_chain_hinge and params.CR_fk_chain_root:
+		cloudrig = context.object.data.cloudrig_parameters
+		if params.CR_fk_chain_hinge and params.CR_fk_chain_root and cloudrig.create_root:
 			return True
 
 class Rig(CloudFKChainRig):
