@@ -67,15 +67,16 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
 		root_name = self.base_bone.replace("ORG", "ROOT")
-		base_bone = self.bones_org[0]
-		limb_root_bone = self.bone_sets['FK Controls Extra'].new(
+		org_bone = self.bones_org[0]
+		root_bone = self.bone_sets['FK Controls Extra'].new(
 			name 			= root_name
-			,source 		= base_bone
-			,parent 		= base_bone.parent
+			,source 		= org_bone
+			,parent 		= org_bone.parent
 			,custom_shape 	= self.ensure_widget("Cube")
 			,inherit_scale	= self.params.CR_fk_chain_inherit_scale
 		)
-		return limb_root_bone
+		org_bone.parent = root_bone
+		return root_bone
 
 	def make_fk_chain(self, org_chain) -> List[BoneInfo]:
 		fk_name = ""
