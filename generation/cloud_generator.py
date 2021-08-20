@@ -806,13 +806,14 @@ class CloudGenerator(Generator):
 		# Only leave Force Widget Update enabled until the next generation.
 		self.params.rigify_force_widget_update = False
 
+		self.execute_custom_script()
+
 		if old_rig:
 			self.replace_old_with_new_rig(old_rig, obj)
 		else:
 			obj.name = obj.name.replace("NEW-", "")
 
 		self.params.rigify_target_rig = obj
-		self.execute_custom_script()
 
 		t.tick("The rest: ")
 		self.cleanup()

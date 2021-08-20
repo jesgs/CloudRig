@@ -62,7 +62,6 @@ def add_ui_data(rig,
 	if col_name=="":
 		col_name = row_name
 	row[col_name] = info
-	# print(f"    Added {col_name}")
 
 def face_rig_tweaks(rig):
 	"""Automate some tweaks on the face rig."""
@@ -143,7 +142,7 @@ def face_rig_tweaks(rig):
 
 	bpy.ops.object.mode_set(mode='OBJECT')
 
-def sprite_post_gen_chores(context, charname:str, shared_script=True):
+def sprite_post_gen_chores(context, charname="", shared_script=True):
 	"""Automate post-generation chores as much as possible, relying on naming conventions when possible."""
 
 	rig = context.object
@@ -155,10 +154,10 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 			link_script(rig, "hair_script", '//../../scripts/rigged_particle_hair.blend', 'rigged_particle_hair.py')
 			break
 
-	# If there is a text datablock named "charname_rename_curves.py", attach it to the rig.
-	rename_text = bpy.data.texts.get(charname.lower()+"_rename_curves.py")
-	if rename_text:
-		rig.data['rename_script'] = rename_text
+	# If there is a text datablock ending in "_rename_curves.py", attach it to the rig.
+	for text in bpy.data.texts:
+		if text.name.endswith("_rename_curves.py"):
+			rig.data['rename_script'] = text
 
 	# Head Squash
 	face_rig_tweaks(rig)
@@ -202,7 +201,6 @@ def sprite_post_gen_chores(context, charname:str, shared_script=True):
 		'prop_id' : 'Teeth',
 		'texts' : '["Round", "Square", "Sharp"]'
 	})
-
 
 	# Populate face DEF layer
 	for pb in rig.pose.bones:
