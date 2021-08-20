@@ -2,7 +2,7 @@ from typing import List
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
 from . import naming
-from ..rig_features.ui import is_cloud_metarig
+from ..rig_features.ui import is_cloud_metarig, is_advanced_mode
 from ..utils.ui_list import draw_ui_list
 
 # This whole thing could be part of Rigify.
@@ -424,7 +424,10 @@ def draw_cloudrig_actions(layout, context):
 	layout.use_property_decorate=False
 	layout.prop(active_slot, 'is_corrective')
 	if active_slot.is_corrective:
-		layout.prop(active_slot, 'corrective_type')
+		if is_advanced_mode(context):
+			# TODO: This option is confusing and difficult to use and should be 
+			# removed after Sprite Fright.
+			layout.prop(active_slot, 'corrective_type')
 		layout.prop(active_slot, 'frame_start', text="Frame Start")
 		layout.prop(active_slot, 'frame_end', text="End")
 		layout.separator()
