@@ -5,6 +5,7 @@ class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_parent_id = "BONE_PT_rigify_buttons"
+	bl_options = {'DEFAULT_CLOSED'}
 
 	draw_function_name = "draw_parenting_params"
 	advanced_only = False
@@ -39,6 +40,7 @@ class CLOUDRIG_PT_params_parenting(CloudParamSubPanel):
 class CLOUDRIG_PT_params_controls(CloudParamSubPanel):
 	bl_label = "Controls"
 	draw_function_name = "draw_control_params"
+	bl_options = set()
 
 class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
 	bl_label = "Test Animation"
@@ -59,6 +61,7 @@ class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
 class CLOUDRIG_PT_params_bendy(CloudParamSubPanel):
 	bl_label = "Bendy Bones"
 	draw_function_name = "draw_bendy_params"
+	bl_options = set()
 
 class CLOUDRIG_PT_params_appearance(CloudParamSubPanel):
 	bl_label = "Appearance"
