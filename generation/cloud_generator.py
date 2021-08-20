@@ -688,6 +688,11 @@ class CloudGenerator(Generator):
 		if len(self.metarig.users_collection) > 0:
 			self.collection = self.metarig.users_collection[0]
 
+		# If the previous generation failed, delete the failed rig.
+		if 'failed_rig' in metarig and metarig['failed_rig']:
+			bpy.data.objects.remove(metarig['failed_rig'])
+			del metarig['failed_rig']
+
 		#------------------------------------------
 		# Create/find the rig object and set it up
 		old_rig = self.params.rigify_target_rig
@@ -846,6 +851,7 @@ def generate_rig(context, metarig):
 		generator.cleanup()
 		generator.obj.name = "FAILED-" + generator.obj.name
 		generator.obj.name = generator.obj.name.replace("NEW-", "")
+		metarig['failed_rig'] = generator.obj
 
 		logs = metarig.data.cloudrig_parameters.logs
 		if 'Post-Gen Error' in logs:
