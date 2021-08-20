@@ -143,8 +143,6 @@ def combine_bone_names(names) -> str:
 		matching = all([base[i]==char for base in bases])
 		if matching:
 			base_start += char
-			bases = [base[1:] for base in bases]
-			i -= 1
 			continue
 		else:
 			break
@@ -158,6 +156,8 @@ def combine_bone_names(names) -> str:
 		if tot_name_length < 60:
 			break
 		bases.pop()
+
+	bases = [base[len(base_start):] for base in bases]
 
 	combined_name = make_name(prefixes, base_start+"+".join(bases), suffixes)
 
