@@ -145,12 +145,13 @@ class CloudChainRig(CloudBaseRig):
 			,parent = org_bone
 			,inherit_scale = 'AVERAGE'
 		)
+
 		# Bone shapes:
 		if not self.is_cyclic and org_i == 0 and seg_i == 0:
 			# First bone of the chain
 			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
 			str_bone.custom_shape_scale_xyz.y *= -1
-		elif not self.is_cyclic and org_i == len(self.bones_org)-1 and seg_i == segments:
+		elif not self.is_cyclic and org_i == len(self.bones_org)-1 and seg_i == segments-1:
 			# Last bone of the chain
 			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
 		else:
