@@ -16,10 +16,6 @@ Priority 1: Bugs
 
         On the other hand, apparently simply selecting the target bone in the generated rig just works... why are we not always just doing that in the first place, instead of the whole "@" bullshit?!? We could even version this!
 Priority 2: New features
-    Actions:
-        Use new Action constraint blending mode feature!
-        Remove the Corrective Range feature (or at least hide it behind "Advanced Mode", since Sprite Frigt rigs need it)
-
     cloud_finger IK setup should at least have the option to be consistent with other rig elements, and have its IK/FK switch in the rig UI rather than in the 3D viewport.
         Also, the IK finger setups could be parented to the FK control when the arm is set to FK, but this is pretty tricky since a child rig (the finger) will end up having to make quite some assumptions about its parent rig being a cloud_ik_chain instance, potentially.
 

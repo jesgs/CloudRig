@@ -24,7 +24,7 @@ class CloudFingerRig(CloudIKChainRig):
 			custom_prop_dict['default'] = 1.0
 		prop_bone.custom_props[prop_id] = custom_prop_dict
 
-	def setup_ik_pole_parent_switch(self, ik_mstr):
+	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		# We don't want IK pole parent switching for finger rigs.
 		pass
 

@@ -1,3 +1,4 @@
+from typing import List
 from ..rig_features.bone import BoneInfo
 
 import bpy
@@ -144,10 +145,11 @@ class CloudLegRig(CloudLimbRig):
 
 		return ui_data
 
-	def make_fk_chain(self):
+	def make_fk_chain(self, org_chain) -> List[BoneInfo]:
 		"""Override."""
-		super().make_fk_chain()
-		self.fk_toe = self.bones_org[3].fk_bone
+		fk_chain = super().make_fk_chain(org_chain)
+		self.fk_toe = org_chain[3].fk_bone
+		return fk_chain
 
 	def world_align_last_fk(self):
 		"""Override. Make SECOND TO last FK bone world-aligned."""

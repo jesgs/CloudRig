@@ -1,3 +1,6 @@
+from typing import List
+from ..rig_features.bone import BoneInfo
+
 from bpy.props import BoolProperty
 from mathutils import Vector
 
@@ -51,15 +54,15 @@ class CloudSpineRig(CloudFKChainRig):
 		)
 		return limb_root_bone
 
-	def make_fk_chain(self):
+	def make_fk_chain(self, org_chain) -> List[BoneInfo]:
 		"""Overrides cloud_fk_chain."""
-		super().make_fk_chain()
+		fk_chain = super().make_fk_chain(org_chain)
 
 		# Create master hip control
 		self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
 				name					= self.naming.make_name(["MSTR"], self.spine_name+"_Hips", [self.side_suffix])
-				,source					= self.bones_org[0]
-				,head					= self.bones_org[0].center
+				,source					= org_chain[0]
+				,head					= org_chain[0].center
 				,custom_shape 			= self.ensure_widget("Hyperbola")
 				,custom_shape_scale_xyz	= Vector((0.8, -0.8, 0.8))
 				,parent					= self.root_bone
@@ -76,6 +79,8 @@ class CloudSpineRig(CloudFKChainRig):
 
 		# Parent the first one to MSTR-Torso.
 		self.bone_sets['FK Controls'][0].parent = self.root_bone
+
+		return fk_chain
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -256,23 +261,24 @@ class CloudSpineRig(CloudFKChainRig):
 			if i == len(self.bone_sets['Stretch Controls']) - 1 - self.params.CR_chain_tip_control:
 				str_bone.parent = self.bone_sets['FK Controls'][-2]
 
-	def attach_org_to_fk(self):
+	def attach_org_to_fk(self, org_bones, fk_bones):
 		"""Overrides cloud_fk_chain.
 		Parent ORG to FK. This is important because STR- bones are owned by ORG- bones.
 		We want each FK bone to control the STR- bone of one higher index, 
 		eg. FK-Spine0 would control STR-Spine1.
 		"""
-		for i, org_bone in enumerate(self.bones_org):
+		fk_bones = self.bone_sets['FK Controls']	# TODO: Why does it error without this?
+		for i, org_bone in enumerate(org_bones):
 			if i == 0:
 				# First STR bone should by owned by the hips.
 				org_bone.parent = self.mstr_hips
-			elif i == len(self.bones_org)-1:
-				org_bone.parent = self.bone_sets['FK Controls'][-1]
+			elif i == len(org_bones)-1:
+				org_bone.parent = fk_bones[-1]
 			else:
-				org_bone.parent = self.bone_sets['FK Controls'][i-1]
+				org_bone.parent = fk_bones[i-1]
 
 		if self.params.CR_chain_tip_control:
-			self.bone_sets['Stretch Controls'][-1].parent = self.bone_sets['FK Controls'][-1]
+			self.bone_sets['Stretch Controls'][-1].parent = fk_bones[-1]
 
 	##############################
 	# Parameters
