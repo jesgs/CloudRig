@@ -116,11 +116,13 @@ class CloudChainRig(CloudBaseRig):
 					self.bone_sets['Stretch Controls'][-1].next = self.bone_sets['Stretch Controls'][0]
 					self.bone_sets['Stretch Controls'][0].prev = self.bone_sets['Stretch Controls'][-1]
 				else:
-					str_bone = self.make_str_bone(org_i, i, 1, name=self.naming.add_prefix(str_bone, "TIP"))
+					str_bone = self.make_str_bone(org_i, 0, 1, name=self.naming.add_prefix(str_bone, "TIP"))
+					str_bone.custom_shape = self.ensure_widget('Sphere_Half')
+					str_bone.custom_shape_scale_xyz *= 1.3
+					str_bone.custom_shape_scale_xyz.y *= -1
 					str_bone.put(org_bone.tail)
 					str_bone.vector = org_bone.vector
 					str_bone.length = str_bone.prev.length
-					str_bone.custom_shape_scale_xyz *= 1.3
 					str_sections.append([str_bone])
 					self.main_str_bones.append(str_bone)
 
@@ -141,18 +143,12 @@ class CloudChainRig(CloudBaseRig):
 			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
 			,length = org_bone.length / segments / 2
-			,custom_shape_scale = 0.4
+			,custom_shape_scale = -0.4
 			,parent = org_bone
 			,inherit_scale = 'AVERAGE'
 		)
 
-		# Bone shapes:
 		if not self.is_cyclic and org_i == 0 and seg_i == 0:
-			# First bone of the chain
-			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
-			str_bone.custom_shape_scale_xyz.y *= -1
-		elif not self.is_cyclic and org_i == len(self.bones_org)-1 and seg_i == segments-1:
-			# Last bone of the chain
 			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
 		else:
 			str_bone.custom_shape = self.ensure_widget("Sphere")
@@ -193,7 +189,7 @@ class CloudChainRig(CloudBaseRig):
 
 		str_bone.org_parent = org_bone
 
-		if segments>1:
+		if segments > 1:
 			sliced = self.naming.slice_name(str_bone.name)
 			str_bone.name = self.naming.make_name(sliced[0], f"{sliced[1]}{seg_i+1}", sliced[2])
 		str_bone.bbone_width *= 1.2
