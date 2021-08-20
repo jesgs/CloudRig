@@ -105,14 +105,8 @@ class CloudChainRig(CloudBaseRig):
 
 			str_section = []
 			for i in range(segments):
-				str_bone = self.make_str_bone(org_bone, i, segments)
+				str_bone = self.make_str_bone(org_i, i, segments)
 				str_section.append(str_bone)
-				if i == 0:
-					str_bone.custom_shape_scale *= 1.3
-					self.main_str_bones.append(str_bone)
-					if org_i == 0 and self.is_cyclic:
-						direction = (org_bone.tail - self.bones_org[-1].head).normalized()
-						str_bone.tail = str_bone.head + direction*str_bone.length
 
 			str_sections.append(str_section)
 
@@ -122,23 +116,19 @@ class CloudChainRig(CloudBaseRig):
 					self.bone_sets['Stretch Controls'][-1].next = self.bone_sets['Stretch Controls'][0]
 					self.bone_sets['Stretch Controls'][0].prev = self.bone_sets['Stretch Controls'][-1]
 				else:
-					str_bone = self.make_str_bone(org_bone, i, 1, name=self.naming.add_prefix(str_bone, "TIP"))
+					str_bone = self.make_str_bone(org_i, i, 1, name=self.naming.add_prefix(str_bone, "TIP"))
 					str_bone.put(org_bone.tail)
 					str_bone.vector = org_bone.vector
 					str_bone.length = str_bone.prev.length
-					str_bone.custom_shape_scale *= 1.3
+					str_bone.custom_shape_scale_xyz *= 1.3
 					str_sections.append([str_bone])
 					self.main_str_bones.append(str_bone)
 
-		# Set first and last control's shapes
-		if not self.is_cyclic:
-			self.bone_sets['Stretch Controls'][0].custom_shape = self.bone_sets['Stretch Controls'][-1].custom_shape = self.ensure_widget("Sphere_Half")
-			self.bone_sets['Stretch Controls'][0].custom_shape_scale_xyz.y *= -1
-
 		return str_sections
 
-	def make_str_bone(self, org_bone: BoneInfo, seg_i: int, segments: int, name="") -> BoneInfo:
+	def make_str_bone(self, org_i: int, seg_i: int, segments: int, name="") -> BoneInfo:
 		"""Create an STR control."""
+		org_bone = self.bones_org[org_i]
 		direction = org_bone.vector
 		if seg_i == 0 and org_bone.prev:
 			direction = org_bone.tail - org_bone.prev.head
@@ -155,8 +145,23 @@ class CloudChainRig(CloudBaseRig):
 			,parent = org_bone
 			,inherit_scale = 'AVERAGE'
 		)
-		if seg_i > 0 and  seg_i < segments:
+		# Bone shapes:
+		if not self.is_cyclic and org_i == 0 and seg_i == 0:
+			# First bone of the chain
+			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
+			str_bone.custom_shape_scale_xyz.y *= -1
+		elif not self.is_cyclic and org_i == len(self.bones_org)-1 and seg_i == segments:
+			# Last bone of the chain
+			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
+		else:
 			str_bone.custom_shape = self.ensure_widget("Sphere")
+
+		if seg_i == 0:
+			str_bone.custom_shape_scale_xyz *= 1.3
+			self.main_str_bones.append(str_bone)
+			if org_i == 0 and self.is_cyclic:
+				direction = (org_bone.tail - self.bones_org[-1].head).normalized()
+				str_bone.tail = str_bone.head + direction*str_bone.length
 
 		# Create alignment helpers, to make sure the bendy bones don't flip out 
 		# when the chain has a zig-zaggy shape, and the STR-H bones try to copy
@@ -338,7 +343,7 @@ class CloudChainRig(CloudBaseRig):
 		def_bone_parent.parent = str_bone.parent
 		def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
 		def_bone_control.head = def_bone_control.center
-		def_bone_control.custom_shape_scale *= 0.7
+		def_bone_control.custom_shape_scale_xyz *= 0.7
 
 		if str_bone.next:
 			def_bone_parent.add_constraint('STRETCH_TO'

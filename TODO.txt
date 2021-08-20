@@ -16,6 +16,12 @@ Priority 1: Bugs
 
         On the other hand, apparently simply selecting the target bone in the generated rig just works... why are we not always just doing that in the first place, instead of the whole "@" bullshit?!? We could even version this!
 Priority 2: New features
+    Actions
+        Add an "Edit Action" button that resets the pose, sets the timeline start/end range, the current frame to the End Frame, reveals and selects the relevant bones
+        Then a button to leave this action editing mode and set everything back to the previous state.
+            This could even come with its own workspace, to ensure that the user has an Action Editor UI panel.
+                But nah, if the user is advanced enough, they could edit their action without even seeing their keyframes.
+
     cloud_finger IK setup should at least have the option to be consistent with other rig elements, and have its IK/FK switch in the rig UI rather than in the 3D viewport.
         Also, the IK finger setups could be parented to the FK control when the arm is set to FK, but this is pretty tricky since a child rig (the finger) will end up having to make quite some assumptions about its parent rig being a cloud_ik_chain instance, potentially.
 
@@ -26,6 +32,7 @@ Priority 2: New features
         - Corrective Smooth scale
         - Cast modifier radius
     Add a warning when:
+    - An action setup doesn't have a center keyframe, or the center keyframe is not the default pose.
     - Bone group isn't used by any bones
     - multiple cloud_lattice rigs reference the same object.
     - an action setup created no constraints (nor custom property) because it had no animation data to work with.
