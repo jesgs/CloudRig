@@ -497,7 +497,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,use_deform_preserve_volume = True
 			,targets = [
 				{'subtarget' : 'root'}	# TODO: This won't work when Create Root is disabled!
-				,{'subtarget' : stretch_bone}
+				,{'subtarget' : ik_mstr}	# TODO: This could be stretch_bone but that breaks Sprite Fright animations and doesn't work well in some cases.
 			]
 		)
 
