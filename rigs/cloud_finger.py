@@ -3,7 +3,7 @@ from .cloud_ik_chain import CloudIKChainRig
 from math import radians
 
 class CloudFingerRig(CloudIKChainRig):
-	"""An IK chain tailored for fingers."""
+	"""An IK chain tailored for fingers. The finger bending axis should be +X."""
 
 	forced_params = {
 		'CR_ik_chain_at_tip' : True,
@@ -12,17 +12,21 @@ class CloudFingerRig(CloudIKChainRig):
 	def initialize(self):
 		super().initialize()
 
-	#HACK: To avoid spamming the Sprite Fright rig UI's with 10x3 more IK/FK sliders.
-	# Need to think of a legit solution. Context-sensitive rig UI would solve it.
 	def add_ui_data(self, ui_area, row_name, col_name, info, **custom_prop_dict):
-		# Create custom property.
-		prop_bone = info['prop_bone']
 		prop_id = info['prop_id']
-		if 'default' not in custom_prop_dict:
-			custom_prop_dict['default'] = 0.0
-		if prop_id.startswith("ik_pole_follow"):
+
+		if prop_id.startswith("ik_stretch"):
+			# Don't draw this in the UI, just leave it always on.
+			ui_area = 'UNUSED'
+		elif prop_id.startswith("ik_pole_follow"):
+			# Same here
 			custom_prop_dict['default'] = 1.0
-		prop_bone.custom_props[prop_id] = custom_prop_dict
+			ui_area = 'UNUSED'
+		elif not prop_id.startswith("ik_parents_") and self.params.CR_finger_use_bone_ik_switcher:
+			# Don't add IK/FK slider to UI if we're using a control switcher.
+			ui_area = 'UNUSED'
+
+		super().add_ui_data(ui_area, row_name, col_name, info, **custom_prop_dict)
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		# We don't want IK pole parent switching for finger rigs.
@@ -34,10 +38,19 @@ class CloudFingerRig(CloudIKChainRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-
 		last_org = self.bones_org[-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
-		# Create a control to drive IK/FK switching
+		if self.params.CR_finger_use_bone_ik_switcher:
+			self.create_ik_switcher_control(last_org)
+
+		if self.params.CR_ik_chain_use_pole:
+			# Parent the pole target to the stretch bone
+			self.pole_ctrl.parent = self.stretch_bone
+	
+		self.create_x_rotation_setup(last_org)
+
+	def create_ik_switcher_control(self, last_org):
+		"""Create a control to drive IK/FK switching."""
 		toggle_ctrl = self.bone_sets['IK Controls'].new(
 			name		  = self.base_bone.replace("ORG-", "IK-SW-")
 			,source		  = self.bone_sets['FK Controls'][-1]
@@ -52,7 +65,7 @@ class CloudFingerRig(CloudIKChainRig):
 		)
 
 		# Make it display nicely
-		toggle_ctrl.custom_shape_translation = self.pole_vector.normalized() * -toggle_ctrl.length/2	# TODO: This is only correct for 1/4 possible finger orientations. Either enforce that one or support all of them.
+		toggle_ctrl.custom_shape_translation = self.pole_vector.normalized() * -toggle_ctrl.length / 2
 		toggle_ctrl.custom_shape_rotation_euler.y -= radians(90)
 		toggle_dsp = self.create_dsp_bone(toggle_ctrl)
 		toggle_dsp.parent = last_org
@@ -74,15 +87,8 @@ class CloudFingerRig(CloudIKChainRig):
 			}
 		})
 
-		# Parent the pole target to the stretch bone
-		if self.params.CR_ik_chain_use_pole:
-			self.pole_ctrl.parent = self.stretch_bone
-			self.stretch_bone.add_constraint('COPY_ROTATION', 0
-				,subtarget	= self.ik_mstr.name
-				,use_xyz	= [False, True, False]
-			)
-
-		# Create a helper for X rotation
+	def create_x_rotation_setup(self, last_org):
+		"""Create a helper for X rotation."""
 		x_rot_helper = self.bone_sets['IK Mechanism'].new(
 			name		= last_org.name.replace("ORG", "XROT")
 			,source		= last_org
@@ -90,19 +96,45 @@ class CloudFingerRig(CloudIKChainRig):
 			,head		= last_org.tail
 			,tail		= last_org.head
 		)
-
-		# Parent stretch helper of last main STR bone
-		for main_str_bone in self.main_str_bones[-(1+self.params.CR_ik_chain_at_tip):]:
-			main_str_bone.stretch_helper.parent = x_rot_helper
-		x_rot_helper.add_constraint('COPY_ROTATION'
+		copyrot = x_rot_helper.add_constraint('COPY_ROTATION'
+			,name = "Copy Inverse X Rotation"
 			,subtarget = self.ik_mstr.name
 			,use_xyz = [True, False, False]
 			,invert_xyz = [True, False, False]
 		)
+		copyrot.drivers.append({
+			'prop' : 'influence'
+			,'variables' : [
+				(self.properties_bone.name, self.ikfk_name)
+			]
+		})
+
+		# Parent stretch helper of last main STR bone (including tip control if it exists)
+		for main_str_bone in self.main_str_bones[-(2+self.params.CR_ik_chain_at_tip):]:
+			main_str_bone.stretch_helper.parent = x_rot_helper
 
 	##############################
-	# No parameters for this rig type.
+	# Parameters
 
+	@classmethod
+	def add_parameters(cls, params):
+		params.CR_finger_use_bone_ik_switcher = BoolProperty(
+			 name		 = "Create IK Switch Control"
+			,description = "Instead of controlling IK/FK switching of this finger from the rig UI, create a control that can be moved to switch to IK mode"
+			,default	 = True
+		)
+
+		super().add_parameters(params)
+
+
+	@classmethod
+	def draw_control_params(cls, layout, context, params):
+		super().draw_control_params(layout, context, params)
+
+		layout.separator()
+		cls.draw_control_label(layout, "Finger")
+
+		cls.draw_prop(layout, params, 'CR_finger_use_bone_ik_switcher')
 class Rig(CloudFingerRig):
 	pass
 
