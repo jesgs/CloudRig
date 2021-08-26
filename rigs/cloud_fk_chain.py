@@ -220,15 +220,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			if not self.params.CR_chain_unlock_deform:
 				last_def.parent = self.bones_org[-1]
 
-	def tweak_def_chain(self):
-		return # TODO: This seems to break scale inheritance, not fix it? Why was it ever here?
-		for i, def_bone in enumerate(self.bones_def):
-			fk_control = self.bone_sets['FK Controls'][int(i/self.params.CR_chain_segments)]
-			def_bone.inherit_scale = 'FULL'
-			for d in def_bone.drivers:
-				if 'bbone_scale' not in d['prop']: continue
-				d['variables']['scale']['targets'][0]['bone_target'] = fk_control.name
-
 	def attach_org_to_fk(self, org_bones, fk_bones):
 		"""Make ORG bones Copy Transforms of FK bones."""
 		for org_bone, fk_bone in zip(org_bones, fk_bones):
@@ -321,7 +312,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		)
 		params.CR_fk_chain_hinge = BoolProperty(
 			name		 = "Hinge"
-			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this."
+			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this"
 			,default	 = True
 		)
 

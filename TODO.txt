@@ -1,8 +1,13 @@
+cloud_fk_chain totally shits the bed when Stretch Segments > 1...
+cloud_fk_chain animation generation doesn't reset the action before updating it.
+Scaling of the root bone is affected by the scale of the metarig.
+
+
 Priority 1: Bugs
     - Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 	- Troubleshooting UI freaks out when rig is in an anim output collection?
 		Not entirely sure how, but it was happening on Simon's side
-	- When a Rigify rig is merged into the generated rig, the widgets get "GENERATED" in their names.
+	- When a Rigify rig is merged into the generated rig, the widgets get "NEW" in their names.
 		This needs to be fixed upstream. It needs the idea of not removing the old rig until the new one is fully generated.
 
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.

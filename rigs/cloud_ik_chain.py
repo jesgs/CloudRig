@@ -455,7 +455,6 @@ class CloudIKChainRig(CloudFKChainRig):
 				,space		  = 'WORLD'
 				,subtarget	  = ik_bone.name
 				,name		  = "Copy Transforms IK"
-				# ,index		  = 1 # In case IK Stretch is enabled, this constraint needs to be inserted before the Copy Transforms IK Stretch constraint!
 			)
 
 			ct_ik.drivers.append({
