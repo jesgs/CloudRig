@@ -1,7 +1,3 @@
-cloud_fk_chain totally shits the bed when Stretch Segments > 1...
-cloud_fk_chain animation generation doesn't reset the action before updating it.
-Scaling of the root bone is affected by the scale of the metarig.
-
 
 Priority 1: Bugs
     - Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
@@ -130,7 +126,10 @@ Ideas:
 		- Layer Protected
 		- Layer Visible
         Better to do this upstream instead.
-	
+
+    cloudrig.py:
+        Import stuff from cloudrig code, then at generation time to some shennanigans to replace the imports with the actual code that they're importing? Is this worth the headache? The only benefit is better code organization.
+
 	Rigs:
 		Try implementing the full body IK systems from angavrilov?
 

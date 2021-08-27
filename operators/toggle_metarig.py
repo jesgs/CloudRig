@@ -86,6 +86,7 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 
 	def execute(self, context):
 		ob = context.object
+		metarig = None
 
 		if ob.data.rigify_target_rig:
 			# If the active object is a metarig, switch to the generated rig.
@@ -94,11 +95,15 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 			return self.switch_rig_focus(context, metarig, rig, self.match_layers, self.match_selection)
 
 		# Otherwise, try to find a metarig that references this rig
-		for metarig in bpy.data.objects:
-			if metarig.type != 'ARMATURE': continue
-			if metarig.data.rigify_target_rig == ob:
+		
+		if ob.name.startswith('FAILED-RIG-'):
+			metarig = context.scene.objects.get(ob.name.replace('FAILED-RIG-', ""))
+
+		for o in bpy.data.objects:
+			if o.type != 'ARMATURE': continue
+			if o.data.rigify_target_rig == ob:
+				metarig = o
 				break
-			metarig = None
 		if not metarig:
 			self.report({'ERROR'}, "No metarig found for this rig.")
 			return {'CANCELLED'}

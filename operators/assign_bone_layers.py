@@ -1,4 +1,3 @@
-import bpy
 from bpy.types import Operator, Armature
 from bpy.props import BoolVectorProperty
 from ..generation.cloudrig import (is_active_cloudrig, is_active_cloud_metarig, 

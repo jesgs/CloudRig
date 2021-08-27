@@ -194,7 +194,7 @@ class CloudLogManager:
 
 	def log_bug(self
 		,description_short
-		,description = "Something went terribly wrong!"
+		,description = "Execution error occurred. To see the Stack Trace here, enable Advanced Mode."
 		,icon = 'URL'
 		,operator = 'wm.cloudrig_report_bug'
 		,**kwargs
