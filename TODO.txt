@@ -8,13 +8,11 @@ Priority 1: Bugs
     When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
         Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
 
-    Trying to relink a constraint such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
+    Trying to relink a constraint (either with @ or by properly selecting subtarget in the constraint) such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
         We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
         I've attempted this, it's stashed, but it is a bit of a disaster. Too much of the current code relies on the Generator->Rig->BoneSet->BoneInfo hierarchy of objects. It's hard to arbitrarily create a floating BoneSet, which is kind of by design.
         I guess the issue is that a Generator doesn't have the same powers as a Rig, which is annoying since always. But there's a million other issues also.
         Instead of trying to think of how the system needs to be different from the current one, we should just think of a new system from scratch, and see what existing code we can re-use.
-
-        On the other hand, apparently simply selecting the target bone in the generated rig just works... why are we not always just doing that in the first place, instead of the whole "@" bullshit?!? We could even version this!
 Priority 2: New features
     Actions
         Add an "Edit Action" button that resets the pose, sets the timeline start/end range, the current frame to the End Frame, reveals and selects the relevant bones
@@ -59,17 +57,14 @@ Priority 2: New features
         While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
         Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
 Priority 3: Changes that will affect metarigs
-    We should drop the idea that "root" is always available as a parent option. it's just annoying. This will break Sprite Fright rigs and existing animations though.
     Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
     Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base (I guess this is done?)
     Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
     Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
-    Eg. "STR-TIP@Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets. 
-        No more weird crazy relinking rules 
-            although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
+        Eg. "STR-TIP@Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets. 
+            No more weird crazy relinking rules 
+                although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
     This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
-    Relink Constraints never really needs to be disabled. I know we had a philosophy before of "Add useless checkboxes so we can have useful tooltips" but I think that doesn't have to apply to cloud_base, because then the functionality can just be front and center on the wiki.
-        If we keep the checkbox, it should also disable relinking on cloud_tweak and cloud_bone (and be documented as such, ie. it doesn't have to be mentioned explicitly)
 Priority 4: Code quality
     write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo.
         Alternatively we could pass the generator as an argument.
@@ -87,6 +82,8 @@ Priority 4: Code quality
         The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.
         Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
 Priority 5: UI, UX & documentation
+    cloud_finger now has a parameter.
+    Constraint relinking now works fine without the @ thing.
     We removed the Relink Constraints parameter, but kept the relinking_behaviour strings. Decide what is best, and either update the documentation or remove the strings.
     Upstream
         Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon.

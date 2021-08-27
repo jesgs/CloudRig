@@ -249,10 +249,28 @@ def version_cloud_metarig(metarig):
 		preserve_old_default(metarig, ['cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_ik_chain_world_aligned', True)
 		preserve_old_default(metarig, ['cloud_fk_chain', 'cloud_physics_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_fk_chain_display_center', False)
 	if data.cloudrig_parameters.version < 13:
+		print("13:")
 		# Cloud chain crab compatibility...
 		preserve_old_default(metarig, ['cloud_chain', 'cloud_face_chain'], 'CR_chain_align_roll', False)
 	if data.cloudrig_parameters.version < 14:
+		print("14:")
+		# Changed the default value of CR_chain_segments from 2 to 1.
 		preserve_old_default(metarig, ['cloud_chain', 'cloud_fk_chain', 'cloud_physics_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_chain_segments', 2)
+
+		# Root bone is no longer forced as a parent option for parent switching.
+		if data.cloudrig_parameters.create_root:
+			for pb in metarig.pose.bones:
+				if pb.rigify_parameters.CR_base_parent_switching:
+					root_specified = False
+					for parent_slot in pb.rigify_parameters.CR_base_parent_slots:
+						if parent_slot.bone == 'root':
+							root_specified = True
+					if not root_specified:
+						root_slot = pb.rigify_parameters.CR_base_parent_slots.add()
+						root_slot.name = 'Root'
+						root_slot.bone = 'root'
+						pb.rigify_parameters.CR_base_parent_slots.move(len(pb.rigify_parameters.CR_base_parent_slots)-1, 0)
+						print("Added 'root' as a parent option for parent switching on: " + pb.name)
 
 @persistent
 def update_all_metarigs(dummy):

@@ -129,12 +129,6 @@ class CloudParentSwitchMixin:
 			)
 			return [], []
 
-		# Force the Root to be an available parent for all parent switching setups
-		# TODO: This should be removed and versioned!
-		if self.generator_params.cloudrig_parameters.create_root and 'root' not in parent_bone_names:
-			parent_ui_names.insert(0, "Root")
-			parent_bone_names.insert(0, 'root')
-
 		return parent_ui_names, parent_bone_names
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
