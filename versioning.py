@@ -6,7 +6,7 @@ from .rig_features.object import set_enum_property_by_integer
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 13
+cloud_metarig_version = 14
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -247,10 +247,12 @@ def version_cloud_metarig(metarig):
 		print("Enable Advanced Mode")
 		data.cloudrig_parameters.advanced_mode = True
 		preserve_old_default(metarig, ['cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_ik_chain_world_aligned', True)
-		preserve_old_default(metarig, ['cloud_fk_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_fk_chain_display_center', False)
+		preserve_old_default(metarig, ['cloud_fk_chain', 'cloud_physics_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_fk_chain_display_center', False)
 	if data.cloudrig_parameters.version < 13:
 		# Cloud chain crab compatibility...
 		preserve_old_default(metarig, ['cloud_chain', 'cloud_face_chain'], 'CR_chain_align_roll', False)
+	if data.cloudrig_parameters.version < 14:
+		preserve_old_default(metarig, ['cloud_chain', 'cloud_fk_chain', 'cloud_physics_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_chain_segments', 2)
 
 @persistent
 def update_all_metarigs(dummy):

@@ -573,7 +573,7 @@ class CloudChainRig(CloudBaseRig):
 		params.CR_chain_segments = IntProperty(
 			 name		 = "Stretch Segments"
 			,description = "Number of bendy bones to create for each original bone"
-			,default	 = 2
+			,default	 = 1
 			,min		 = 1
 			,max		 = 9
 		)
