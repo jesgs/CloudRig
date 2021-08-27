@@ -6,8 +6,8 @@ from bone_selection_sets import from_json, to_json
 from datetime import datetime
 
 from mathutils import Matrix, Vector
-from bpy.props import (BoolProperty, StringProperty,
-			PointerProperty, BoolVectorProperty, CollectionProperty, IntProperty)
+from bpy.props import (BoolProperty,
+			PointerProperty, CollectionProperty, IntProperty)
 from rna_prop_ui import rna_idprop_ui_prop_get
 
 from rigify.generate import Generator, Timer, select_object
@@ -136,6 +136,9 @@ class CloudGenerator(Generator):
 		self.params = metarig.data	# Generator parameters are stored in rig data.
 
 		metarig.data.pose_position = 'REST'
+		metarig['matrix_bkp'] = metarig.matrix_world.copy()
+		metarig.matrix_world = Matrix.Identity()
+
 		context.view_layer.update() # Needed to make sure we get the correct scale
 		self.scale = max(metarig.dimensions)/10
 
@@ -826,6 +829,9 @@ class CloudGenerator(Generator):
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.metarig.data.pose_position = 'POSE'
+		if 'matrix_bkp' in self.metarig:
+			self.metarig.matrix_world = self.metarig['matrix_bkp']
+			del self.metarig['matrix_bkp']
 		self.obj.data.pose_position = 'POSE'
 
 		self.logger.report_unused_named_layers()
