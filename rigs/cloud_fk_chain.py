@@ -58,6 +58,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
 				to_bone = self.bone_sets['FK Controls'][i]
+				if i==0 and self.params.CR_fk_chain_double_first:
+					to_bone = to_bone.parent
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
 				for d in c.drivers:
