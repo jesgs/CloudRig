@@ -195,23 +195,6 @@ def create_dsp_bone(parent, bone_set):
 	parent.custom_shape_transform = dsp_bone
 	return dsp_bone
 
-def copy_custom_property(from_owner, to_owner, prop_name):
-	rna_ui = from_owner['_RNA_UI'].to_dict()
-
-	if prop_name not in rna_ui:
-		print(f"Warning: Custom property {prop_name} not found on {from_owner}, failed to copy.")
-		return
-
-	data = rna_ui[prop_name]
-	data['overridable'] = from_owner.is_property_overridable_library(f'["{prop_name}"]')
-
-	if not 'default' in data:
-		data['default'] = 1.0
-	if not 'description' in data:
-		data['description'] = ""
-
-	make_property(to_owner, prop_name, **data)
-
 def copy_driver(from_fcurve, obj, data_path=None, index=None):
 	if not data_path:
 		data_path = from_fcurve.data_path

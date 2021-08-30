@@ -948,21 +948,16 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 				pb.rotation_quaternion = ((1, 0, 0, 0))
 				pb.scale = ((1, 1, 1))
 
-			defaults = {
-				int : 0,
-				float: 0.0,
-			}
-
-			if self.reset_props and '_RNA_UI' in pb.keys():
-				rna_ui = pb['_RNA_UI'].to_dict()
-				for key in rna_ui.keys():
+			if self.reset_props and len(pb.keys()) > 0:
+				# Reset custom property values to their default value
+				for key in pb.keys():
 					if key.startswith("$"): continue
-					if 'default' in rna_ui[key]:
-						pb[key] = rna_ui[key]['default']
-					elif type(pb[key]) in defaults.keys():
-						pb[key] = defaults[type(pb[key])]
-					elif type(pb[key])!=str:
-						print(f"Cannot figure a default for custom property {key} of type {type(pb[key])} on bone {pb.name}, would be best to assign a default value manually.")
+
+					ui_data = pb.id_properties_ui(key)
+					if not ui_data: continue
+
+					if type(pb[key] not in (float, int)): continue
+					pb[key] = ui_data.default
 
 		return {'FINISHED'}
 

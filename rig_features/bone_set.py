@@ -3,6 +3,7 @@ from typing import Dict
 import bpy
 from bpy.props import StringProperty, BoolVectorProperty, BoolProperty, IntProperty
 from bpy.types import PropertyGroup, UIList, UI_UL_list
+from rna_prop_ui import rna_idprop_has_properties
 
 from mathutils import Vector, Matrix
 from collections import OrderedDict
@@ -222,15 +223,17 @@ class BoneSet(LinkedList):
 						bone_info.drivers.append(driver_info)
 					rig.animation_data.drivers.remove(fcurve)
 
-		# Load custom properties
-		if '_RNA_UI' in pose_bone.keys():
-			prop_dict = pose_bone['_RNA_UI'].to_dict()
-			for prop_name in prop_dict:
-				prop_info = prop_dict[prop_name]
-				if 'default' not in prop_info:
-					prop_info['default'] = pose_bone[prop_name]
-				bone_info.custom_props[prop_name] = prop_info
-				prop_info['value'] = pose_bone[prop_name]
+		# Load custom property definition dictionaries
+		if rna_idprop_has_properties(pose_bone):
+			rna_properties = {prop.identifier for prop in pose_bone.bl_rna.properties if prop.is_runtime}
+			for prop_name in pose_bone.keys():
+				if prop_name in rna_properties: 
+					# We don't want to reset addon-defined properties.
+					continue
+				if prop_name.startswith("_") or prop_name.startswith("$"): continue
+				ui_data = pose_bone.id_properties_ui(prop_name)
+				bone_info.custom_props[prop_name] = ui_data.as_dict()
+				bone_info.custom_props[prop_name]['value'] = pose_bone[prop_name]
 
 		return bone_info
 

@@ -8,7 +8,6 @@ from datetime import datetime
 from mathutils import Matrix, Vector
 from bpy.props import (BoolProperty,
 			PointerProperty, CollectionProperty, IntProperty)
-from rna_prop_ui import rna_idprop_ui_prop_get
 
 from rigify.generate import Generator, Timer, select_object
 from rigify import rig_ui_template
@@ -260,7 +259,6 @@ class CloudGenerator(Generator):
 
 		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
-		rna_idprop_ui_prop_get(obj.data, "rig_id", create=True)
 		obj.data['rig_id'] = self.rig_id
 		# Mark rig for cloudrig.py compatibility checks
 		obj.data['cloudrig'] = 1
