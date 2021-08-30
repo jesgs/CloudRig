@@ -873,7 +873,10 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 	def execute(self, context):
 		obj = context.object
 		metarig = is_single_cloud_metarig(context)
-		if is_active_cloudrig(context):
+		if not metarig:
+			metarig = is_active_cloud_metarig(context)
+
+		if not metarig and is_active_cloudrig(context):
 			# Find the metarig referencing this rig
 			for o in context.scene.objects:
 				if o.type == 'ARMATURE' and o.data.rigify_target_rig == obj:
