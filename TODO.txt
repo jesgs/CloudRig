@@ -1,3 +1,5 @@
+cloud_ik_chain parent switching setup is wrong on the IK pole (has a root bone as a target when it is not specified)
+
 Priority 1: Bugs
     - Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 	- Troubleshooting UI freaks out when rig is in an anim output collection?

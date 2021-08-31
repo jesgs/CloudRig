@@ -2,9 +2,9 @@ from typing import List
 from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
 import bpy
-from idprop.types import IDPropertyArray
 from mathutils import Vector, Matrix
 from copy import deepcopy
+from rna_prop_ui import rna_idprop_ui_create
 
 from ..utils.maths import flat
 from ..rig_features.object import set_layers
@@ -482,12 +482,22 @@ class BoneInfo:
 			if 'value' in prop:
 				prop_value = prop['value']
 				del prop['value']
-			make_property(pb, prop_name, **prop)
-			if isinstance(prop_value, IDPropertyArray):
-				# Avoid a Blender crash, see CloudRig/-/issues/17
-				pb[prop_name] = prop_value if len(prop_value) > 0 else []
-			else:
-				pb[prop_name] = prop_value
+			if 'precision' in prop:
+				# TODO: Remove once fixed, I only reported this to Hans in DMs.
+				prop['precision'] = 3
+			if 'min' not in prop:
+				prop['min'] = 0.0
+			if 'max' not in prop:
+				prop['max'] = 1.0
+			if 'step' in prop:
+				del prop['step']
+			if 'precision' in prop:
+				del prop['precision']
+
+			print(prop_name, prop)
+			rna_idprop_ui_create(pb, prop_name, **prop)
+			# TODO: If the property value isn't the same as its default, set it.
+			# Can't do this currently because of T91084.
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:

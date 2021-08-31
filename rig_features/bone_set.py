@@ -231,9 +231,13 @@ class BoneSet(LinkedList):
 					# We don't want to reset addon-defined properties.
 					continue
 				if prop_name.startswith("_") or prop_name.startswith("$"): continue
-				ui_data = pose_bone.id_properties_ui(prop_name)
-				bone_info.custom_props[prop_name] = ui_data.as_dict()
-				bone_info.custom_props[prop_name]['value'] = pose_bone[prop_name]
+				try:
+					ui_data = pose_bone.id_properties_ui(prop_name)
+					bone_info.custom_props[prop_name] = ui_data.as_dict()
+					bone_info.custom_props[prop_name]['value'] = pose_bone[prop_name]
+				except TypeError:
+					# TODO: This can hopefully be removed after T91054
+					pass
 
 		return bone_info
 
