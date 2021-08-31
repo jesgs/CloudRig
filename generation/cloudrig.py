@@ -1496,6 +1496,43 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			layout.prop(rig_props, 'outfit')
 			add_props(outfit_properties_bone)
 
+class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
+	def draw(self, context):
+		layout = self.layout
+		rig = is_active_cloudrig(context)
+		if not rig: return
+		layout.label(text=self.bl_idname)
+
+custom_panels = []
+
+def ensure_custom_panel(name, parent_id):
+	if hasattr(bpy.types, name):
+		return
+
+	new_panel = type(
+		"CLOUDRIG_PT_custom_"+name
+		,(CLOUDRIG_PT_custom_panel,)
+		,{'bl_idname': "CLOUDRIG_PT_custom_"+name.lower().replace(" ", ""), 'bl_label': name, 'bl_parent_id': parent_id}
+	)
+
+	bpy.utils.register_class(new_panel)
+	global custom_panels
+	custom_panels.append(new_panel)
+	print("Registered custom panel: ")
+	print(new_panel.bl_idname)
+
+def ensure_custom_panels(scene, depsgraph):
+	rig = is_active_cloudrig(bpy.context)
+	if not rig:
+		return
+	if 'custom_panels' not in rig.data:
+		return
+	custom_panels = rig.data['custom_panels'].to_dict()
+	# We expect a dictionary of {"Panel Name" : "parent_id"}
+	for panel_name in custom_panels:
+		ensure_custom_panel(panel_name, custom_panels[panel_name])
+
+
 # This list of property names are hard coded identifiers of different areas in the rig UI.
 area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
 
@@ -1791,6 +1828,8 @@ def register():
 	# Store outfit properties in Object because it can be accessed on Proxies.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
+	bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
+
 def unregister():
 	"""Since this file runs from the Blender Text Editor, unregister() is never 
 	called afaik. So this is only here for show.
@@ -1799,8 +1838,14 @@ def unregister():
 	from bpy.utils import unregister_class
 	for c in classes:
 		unregister_class(c)
+	
+	global custom_panels
+	for c in custom_panels:
+		unregister_class(c)
 
 	del bpy.types.Object.cloud_rig
+
+	bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
 if __name__ in ['__main__', 'builtins']:
 	# __name__ is __main__ when the script is executed in the text editor.
