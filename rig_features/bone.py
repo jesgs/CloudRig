@@ -479,25 +479,36 @@ class BoneInfo:
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
 			prop_value = prop['default']
+			# 	ui_data = pb.id_properties_ui(prop_name)
 			if 'value' in prop:
 				prop_value = prop['value']
 				del prop['value']
-			if 'precision' in prop:
-				# TODO: Remove once fixed, I only reported this to Hans in DMs.
-				prop['precision'] = 3
-			if 'min' not in prop:
-				prop['min'] = 0.0
-			if 'max' not in prop:
-				prop['max'] = 1.0
+			# Some of the loaded values are not supported by rna_idprop_ui_create(). TODO: Maybe add better support for these when Blender also does (eg. if they are editable through the UI rather than only Python)
 			if 'step' in prop:
 				del prop['step']
 			if 'precision' in prop:
 				del prop['precision']
 
-			print(prop_name, prop)
-			rna_idprop_ui_create(pb, prop_name, **prop)
-			# TODO: If the property value isn't the same as its default, set it.
-			# Can't do this currently because of T91084.
+			if type(prop_value) == int:
+				if 'min' in prop:
+					prop['min'] = int(prop['min'])
+				else:
+					prop['min'] = 0
+				if 'max' in prop:
+					prop['max'] = int(prop['max'])
+				else:
+					prop['max'] = 1
+
+			# print(prop_name, prop)
+			try:
+				rna_idprop_ui_create(pb, prop_name, **prop)
+			except TypeError as e:
+				# import traceback
+				# traceback.print_exc()
+				# This should only happen with python Dictionaries, let's just ignore them for now.
+				pass
+
+			pb[prop_name] = prop_value
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:

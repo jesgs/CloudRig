@@ -232,12 +232,14 @@ class BoneSet(LinkedList):
 					continue
 				if prop_name.startswith("_") or prop_name.startswith("$"): continue
 				try:
-					ui_data = pose_bone.id_properties_ui(prop_name)
-					bone_info.custom_props[prop_name] = ui_data.as_dict()
-					bone_info.custom_props[prop_name]['value'] = pose_bone[prop_name]
+					prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
 				except TypeError:
-					# TODO: This can hopefully be removed after T91054
+					# This should only happen with python Dictionaries, let's just ignore them for now.
+					prop_data = {'default': pose_bone[prop_name]}
 					pass
+				prop_data['value'] = pose_bone[prop_name]
+				prop_data['overridable'] = pose_bone.is_property_overridable_library(f'["{prop_name}"]')
+				bone_info.custom_props[prop_name] = prop_data
 
 		return bone_info
 
