@@ -30,7 +30,7 @@ from .actions import ActionSlot
 from ..operators.assign_bone_layers import init_cloudrig_layers
 from ..versioning import cloud_metarig_version
 from ..utils.rigify import find_rig_class
-from .cloudrig import register_hotkey, is_active_cloud_metarig, is_active_cloudrig
+from .cloudrig import register_hotkey, is_active_cloud_metarig, is_active_cloudrig, ensure_custom_panels
 
 class CloudRigProperties(bpy.types.PropertyGroup):
 	version: IntProperty(
@@ -815,6 +815,8 @@ class CloudGenerator(Generator):
 			obj.name = obj.name.replace("NEW-", "")
 
 		self.params.rigify_target_rig = obj
+
+		ensure_custom_panels(None, None)
 
 		t.tick("The rest: ")
 		self.cleanup()

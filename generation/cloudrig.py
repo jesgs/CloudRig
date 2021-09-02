@@ -1293,33 +1293,36 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
 	)
 
 
-def draw_rig_settings(layout, rig, dict_name, label=""):
+def draw_rig_settings_per_label(layout, rig, main_dict):
+	"""Each top-level dictionary within the main dictionary defines a panel.
+	Each panel is split into sub-sections via labels.
 	"""
-	dict_name is the name of the custom property dictionary that we expect to find in the rig.
-	Everything stored in a single dictionary is drawn in one call of this function.
-	These dictionaries are created during rig generation.
+	for label_name in main_dict.keys():
+		if label_name == 'parent_id':
+			continue
+		if label_name != "":
+			layout.label(text=label_name)
+		if label_name == 'NODRAW':
+			continue
+		draw_rig_settings(layout, rig, main_dict[label_name])
 
-	For an example dictionary, select an existing CloudRig, and put this in the PyConsole:
-	>>> import json
-	>>> print(json.dumps(C.object.data['ik_stretches'].to_dict(), indent=4))
+def draw_rig_settings(layout, rig, main_dict):
+	"""
+	main_dict: Dictionary containing the UI data, created during rig generation.
+	The top-level represents rows, and each row can contain any number of slider definitions.
 
-	Parameters expected to be found in the dictionary:
+	A slider definition must have the following keywords:
 		prop_bone: Name of the pose bone that holds the custom property.
-		prop_id: Name of the custom property on aforementioned bone. This is the property that gets drawn in the UI as a slider.
+		prop_id: Name of the custom property on the bone, to be drawn as a slider.
 
-	Further optional parameters:
+	Optional keywords:
 		texts: List of strings to display alongside an integer property slider.
 		operator: Specify an operator to draw next to the slider.
 		icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
-		Any other arbitrary parameters will be passed on to the operator as kwargs.
+
+		Any further arguments will be passed on to the operator button as keyword arguments.
 	"""
 
-	if dict_name not in rig.data: return
-
-	if label != "":
-		layout.label(text=label)
-
-	main_dict = rig.data[dict_name].to_dict()
 	# Each top-level dictionary within the main dictionary defines a row.
 	for row_name in main_dict.keys():
 		row = layout.row()
@@ -1501,18 +1504,34 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			add_props(outfit_properties_bone)
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
-	def draw(self, context):
-		layout = self.layout
+	"""Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()."""
+	bl_parent_id = "CLOUDRIG_PT_settings"
+	bl_options = {'DEFAULT_CLOSED'}
+
+	@classmethod
+	def poll(cls, context):
 		rig = is_active_cloudrig(context)
 		if not rig: return
-		layout.label(text=self.bl_idname)
+		if 'ui_data' not in rig.data: return
+		ui_data = rig.data['ui_data'].to_dict()
+
+		if cls.bl_label in ui_data:
+			return True
+
+	def draw(self, context):
+		rig = is_active_cloudrig(context)
+		ui_data = rig.data['ui_data'].to_dict()
+		main_dict = ui_data[self.bl_label]		# bl_label is set in ensure_custom_panel().
+
+		draw_rig_settings_per_label(self.layout, rig, main_dict)
 
 custom_panels = []
 
-def ensure_custom_panel(name, parent_id):
+def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
 	if hasattr(bpy.types, name):
 		return
 
+	# Dynamically create a new class, so it can be registered as a sub-panel.
 	new_panel = type(
 		"CLOUDRIG_PT_custom_"+name
 		,(CLOUDRIG_PT_custom_panel,)
@@ -1520,22 +1539,30 @@ def ensure_custom_panel(name, parent_id):
 	)
 
 	bpy.utils.register_class(new_panel)
+
+	# Save a reference so it can be un-registered, even though unregister() is never called.
 	global custom_panels
 	custom_panels.append(new_panel)
-	print("Registered custom panel: ")
-	print(new_panel.bl_idname)
 
 def ensure_custom_panels(scene, depsgraph):
 	rig = is_active_cloudrig(bpy.context)
 	if not rig:
 		return
-	if 'custom_panels' not in rig.data:
+	if 'ui_data' not in rig.data:
 		return
-	custom_panels = rig.data['custom_panels'].to_dict()
-	# We expect a dictionary of {"Panel Name" : "parent_id"}
-	for panel_name in custom_panels:
-		ensure_custom_panel(panel_name, custom_panels[panel_name])
+	custom_panels = rig.data['ui_data'].to_dict()
+	
+	# We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
+	for panel_name in custom_panels.keys():
+		parent_id = "CLOUDRIG_PT_settings"
+		if 'parent_id' in custom_panels[panel_name]:
+			parent_id = custom_panels[panel_name]['parent_id']
+		ensure_custom_panel(panel_name, parent_id)
 
+#####################################
+#### LEGACY UI ######################
+#### TODO: Remove after Sprites. ####
+#####################################
 
 # This list of property names are hard coded identifiers of different areas in the rig UI.
 area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
@@ -1548,6 +1575,8 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 	def poll(cls, context):
 		rig = is_active_cloudrig(context)
 		if not rig: return False
+		if 'ui_data' in rig.data:
+			return True
 		for area_name in area_names:
 			if area_name in rig.data:
 				return True
@@ -1584,11 +1613,15 @@ class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
 		area_names = type(self).area_names
 
 		for area_name in area_names.keys():
-			draw_rig_settings(layout, rig, area_name, label=area_names[area_name])
+			if area_name not in rig.data: continue
 
-# TODO: It might be cool to dynamically define and register these classes, so 
-# that the "area names" don't have to be hard-coded, and some characters could 
-# have a less crowded "Misc" section.
+			label=area_names[area_name]
+			if label != "":
+				layout.label(text=label)
+
+			main_dict = rig.data[area_name].to_dict()
+			draw_rig_settings(layout, rig, main_dict)
+
 class CLOUDRIG_PT_fkik(CLOUDRIG_PT_sub_settings):
 	bl_idname = "CLOUDRIG_PT_fkik"
 	bl_label = "FK/IK Switch"
@@ -1832,6 +1865,7 @@ def register():
 	# Store outfit properties in Object because it can be accessed on Proxies.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
+	bpy.app.handlers.load_post.append(ensure_custom_panels)
 	bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
 
 def unregister():
@@ -1849,6 +1883,7 @@ def unregister():
 
 	del bpy.types.Object.cloud_rig
 
+	bpy.app.handlers.load_post.remove(ensure_custom_panels)
 	bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
 if __name__ in ['__main__', 'builtins']:

@@ -1,7 +1,7 @@
 from typing import List
 from ..rig_features.bone import BoneInfo
 
-from bpy.props import BoolProperty, StringProperty, IntVectorProperty, BoolVectorProperty, EnumProperty
+from bpy.props import BoolProperty, IntVectorProperty, BoolVectorProperty, EnumProperty
 
 from .cloud_chain import CloudChainRig
 from ..rig_features.animation import CloudAnimationMixin
@@ -49,6 +49,22 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
+
+	def apply_parent_switching(self, parent_slots, *, 
+			child_bone=None, prop_bone=None, prop_name="",
+			panel_name="FK", row_name="", label_name="Parent Switching", entry_name=""
+		):
+		"""Overrides cloud_base."""
+
+		super().apply_parent_switching(parent_slots
+			,child_bone = child_bone
+			,prop_bone = prop_bone or self.properties_bone
+			,prop_name = prop_name
+			,panel_name = panel_name
+			,row_name = row_name
+			,label_name = label_name
+			,entry_name = entry_name
+		)
 
 	def relink(self):
 		"""Override cloud_chain.
@@ -154,7 +170,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		}
 
 		# Store UI info
-		self.add_ui_data("fk_hinges", category, limb_name, info, default=default_value)
+		self.add_ui_data("FK", category, info, label_name="Hinge", entry_name=limb_name, default=default_value)
 
 		# Create Hinge helper bone
 		hng_bone = bone_set.new(

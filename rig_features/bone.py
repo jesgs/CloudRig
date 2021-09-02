@@ -509,6 +509,7 @@ class BoneInfo:
 				pass
 
 			pb[prop_name] = prop_value
+			pb.property_overridable_library_set(f'["{prop_name}"]', True)
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:

@@ -58,9 +58,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		if self.params.CR_ik_chain_world_aligned:
 			self.world_align_last_fk()
 		self.make_ik_setup()
+
 		# Add IK/FK Snapping to the UI.
 		ui_data = self.create_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
-		self.add_ui_data("ik_switches", self.limb_name, self.limb_ui_name, ui_data, default=1.0)
+		self.add_ui_data("IK", self.limb_name, ui_data, label_name="FK/IK Switch", entry_name=self.limb_ui_name, default=1.0)
+
 		self.attach_org_to_ik()
 
 	def world_align_last_fk(self):
@@ -264,6 +266,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		return ik_chain
 
 	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+		"""Store UI data for FK/IK switching and snapping."""
+		
 		# List of bone tuples to snap (from, to).
 		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
 		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
@@ -352,7 +356,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			"prop_bone"			: self.properties_bone,
 			"prop_id" 			: self.ik_stretch_name,
 		}
-		self.add_ui_data("ik_stretches", self.limb_name, self.limb_ui_name, info, default=1.0)
+		self.add_ui_data("IK", self.limb_name, info, label_name="IK Stretch", entry_name=self.limb_ui_name, default=1.0)
 
 		# Last IK bone should copy location of the tail of the stretchy bone.
 		self.ik_tgt_bone = self.ik_chain[self.chain_count]
@@ -464,23 +468,21 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def apply_parent_switching(self, parent_slots, 
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="", row_name="", col_name=""
+	def apply_parent_switching(self, parent_slots, *, 
+			child_bone=None, prop_bone=None, prop_name="",
+			panel_name="IK", row_name="", label_name="Parent Switching", entry_name=""
 		):
-		"""Overrides cloud_base."""
-		if not child_bone:
-			child_bone = self.ik_mstr
+		"""Overrides cloud_fk_chain."""
 
 		ik_parents_prop_name = "ik_parents_" + self.limb_name_props
 		super().apply_parent_switching(parent_slots
-			,child_bone = child_bone
+			,child_bone = child_bone or self.ik_mstr
 			,prop_bone = prop_bone or self.properties_bone
 			,prop_name = prop_name or ik_parents_prop_name
-			,ui_area = ui_area or 'ik_parents'
+			,panel_name = panel_name
 			,row_name = row_name or self.limb_name
-			,col_name = col_name or self.limb_ui_name
+			,label_name = label_name
+			,entry_name = entry_name or self.limb_ui_name
 		)
 
 		if self.params.CR_ik_chain_use_pole:
@@ -534,7 +536,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			"bones" : [ik_pole.name],
 			"select_bones" : True
 		}
-		self.add_ui_data("ik_pole_follows", self.limb_name, self.limb_ui_name, info, default=0.0)
+		self.add_ui_data("IK", self.limb_name, info, label_name="IK Pole Follow", entry_name=self.limb_ui_name, default=0.0)
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		"""Tweak the IK Pole control's constraint to support parent switching."""

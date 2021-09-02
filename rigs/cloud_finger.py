@@ -12,21 +12,22 @@ class CloudFingerRig(CloudIKChainRig):
 	def initialize(self):
 		super().initialize()
 
-	def add_ui_data(self, ui_area, row_name, col_name, info, **custom_prop_dict):
+	def add_ui_data(self, panel_name, row_name, info, entry_name="", label_name="", **custom_prop_dict):
 		prop_id = info['prop_id']
 
-		if prop_id.startswith("ik_stretch"):
-			# Don't draw this in the UI, just leave it always on.
-			ui_area = 'UNUSED'
-		elif prop_id.startswith("ik_pole_follow"):
-			# Same here
+		panel_name = "Finger IK"
+		if prop_id.startswith("ik_pole_follow"):
 			custom_prop_dict['default'] = 1.0
-			ui_area = 'UNUSED'
 		elif not prop_id.startswith("ik_parents_") and self.params.CR_finger_use_bone_ik_switcher:
 			# Don't add IK/FK slider to UI if we're using a control switcher.
-			ui_area = 'UNUSED'
+			panel_name = 'NODRAW'
 
-		super().add_ui_data(ui_area, row_name, col_name, info, **custom_prop_dict)
+		super().add_ui_data(panel_name, row_name, info
+			,label_name = label_name
+			,entry_name = entry_name
+			,parent_id = 'CLOUDRIG_PT_custom_ik'
+			,**custom_prop_dict
+		)
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		# We don't want IK pole parent switching for finger rigs.

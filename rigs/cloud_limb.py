@@ -99,17 +99,24 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return ik_master
 
-	def apply_parent_switching(self, parent_slots, 
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
+	def apply_parent_switching(self, parent_slots, *, 
+			child_bone=None, prop_bone=None, prop_name="",
+			panel_name="IK", row_name="", label_name="Parent Switching", entry_name=""
 		):
 		"""Overrides cloud_ik_chain."""
 
 		if self.params.CR_limb_double_ik:
 			child_bone = self.ik_mstr.parent
 
-		super().apply_parent_switching(parent_slots, child_bone=child_bone)
+		super().apply_parent_switching(parent_slots, 
+			child_bone = child_bone
+			,prop_bone = prop_bone
+			,prop_name = prop_name
+			,panel_name = panel_name
+			,row_name = row_name
+			,label_name = label_name
+			,entry_name = entry_name
+		)
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		"""Overrides cloud_ik_chain."""
@@ -196,7 +203,7 @@ class CloudLimbRig(CloudIKChainRig):
 			})
 		else:
 			# Don't create a control bone, instead just add a slider in the UI.
-			self.add_ui_data("auto_rubber_hose", self.limb_name, self.limb_ui_name, info)
+			self.add_ui_data("Auto Rubber Hose", self.limb_name, info, entry_name=self.limb_ui_name)
 
 		self.make_rubber_hose_constraints(org_elbow, str_upper, str_lower, prop_name)
 

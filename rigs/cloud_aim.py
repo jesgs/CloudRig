@@ -165,10 +165,9 @@ class CloudAimRig(CloudBaseRig):
 				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
 
-	def apply_parent_switching(self, parent_slots,
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
+	def apply_parent_switching(self, parent_slots, *, 
+			child_bone=None, prop_bone=None, prop_name="",
+			panel_name="Face", row_name="", label_name="", entry_name=""
 		):
 		"""Overrides cloud_base to apply the parent switching to the aim target
 		or group master if it exists."""
@@ -180,11 +179,15 @@ class CloudAimRig(CloudBaseRig):
 			if self.group_master.parent and self.group_master.parent.name == "P-"+self.group_master.name:
 				# If the parent switching set-up already exists, don't create it again.
 				return
+
 		super().apply_parent_switching(parent_slots
-			,child_bone = target_bone
-			,prop_bone = self.properties_bone
-			,ui_area = 'face_settings'
-			,col_name = self.params.CR_aim_group + " Parent"
+			,child_bone = child_bone or target_bone
+			,prop_bone = prop_bone or self.properties_bone
+			,prop_name = prop_name
+			,panel_name = panel_name
+			,label_name = label_name or "Aim Target Parent"
+			,row_name = row_name
+			,entry_name = entry_name or self.params.CR_aim_group + " Parent"
 		)
 
 	def find_aim_bones_in_group(self, group_name) -> List[bpy.types.PoseBone]:

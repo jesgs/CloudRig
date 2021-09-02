@@ -1,11 +1,17 @@
+from .bone import BoneInfo
+
 import bpy, sys, os
 import json
 
 class CloudUIMixin:
 	forced_params = dict()
 
-	def add_ui_data(self, ui_area, row_name, col_name, info, **custom_property_dict):
-		add_ui_data(self.obj, ui_area, row_name, col_name.replace("_", " "), info, **custom_property_dict)
+	def add_ui_data(self, panel_name, row_name, info, *, label_name="", entry_name="", **custom_prop_dict):
+		if panel_name=="":
+			print("What is this shit?")
+			import traceback
+			traceback.print_stack()
+		add_ui_data(self.obj, panel_name, row_name, info, entry_name, label_name, **custom_prop_dict)
 
 	@staticmethod
 	def draw_control_label(layout, text=""):
@@ -87,36 +93,64 @@ def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, 
 	layout.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
 	return layout
 
-def add_ui_data(obj, ui_area, row_name, col_name, info, **custom_prop_dict):
+def add_ui_data(obj, panel_name, row_name, info, entry_name="", label_name="", parent_id="", **custom_prop_dict):
 	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI.
-	ui_area: A string matching one of the strings in cloudrig.area_names, which corresponds to an area in the rig UI.
-	row_name: A row in the UI area.
-	col_name: A column within the row.
+	panel_name: Name of the collapsible sub-panel that the property should be drawn in
+	row_name: Properties with the same row_name will be drawn in the same row.
+	entry_name: Name of the property to display in the UI, if not the same as the property name.
 	info: The dictionary to store in the rig data.
+	label_name: 
 	"""
 
 	assert ('prop_bone' in info) and ('prop_id' in info), f'Expected an info dict with at least "prop_bone" and "prop_id" keys. Instead got: {info}'
+
+	if entry_name == "":
+		entry_name = info['prop_id'].replace("_", " ").title()
 
 	for key in info.keys():
 		value = info[key]
 		if type(value) in (list, dict):
 			info[key] = json.dumps(value)
 
-	if ui_area not in obj.data:
-		obj.data[ui_area] = {}
+	# Read existing CloudRig UI data
+	ui_data = {}
+	if 'ui_data' in obj.data:
+		ui_data = obj.data['ui_data'].to_dict()
 
-	if row_name not in obj.data[ui_area]:
-		obj.data[ui_area][row_name] = {}
+	if panel_name not in ui_data:
+		ui_data[panel_name] = {}
+	if parent_id != "":
+		ui_data[panel_name]['parent_id'] = parent_id
+
+	if label_name not in ui_data[panel_name]:
+		ui_data[panel_name][label_name] = {}
+	if row_name not in ui_data[panel_name][label_name]:
+		ui_data[panel_name][label_name][row_name] = {}
+	if entry_name not in ui_data[panel_name][label_name][row_name]:
+		ui_data[panel_name][label_name][row_name][entry_name] = {}
 
 	prop_bone = info['prop_bone']
-	info['prop_bone'] = prop_bone.name
-	obj.data[ui_area][row_name][col_name] = info
+	if type(prop_bone) != str:
+		info['prop_bone'] = prop_bone.name
+	else:
+		prop_bone = obj.pose.bones.get(prop_bone)
+		assert prop_bone, "Properties bone doesn't exist: " + info['prop_bone']
+
+	ui_data[panel_name][label_name][row_name][entry_name] = info
+
+	# Update CloudRig UI data with the changes
+	obj.data['ui_data'] = ui_data
 
 	# Create custom property.
 	prop_id = info['prop_id']
 	if 'default' not in custom_prop_dict:
 		custom_prop_dict['default'] = 0.0
-	prop_bone.custom_props[prop_id] = custom_prop_dict
+	if type(prop_bone) == BoneInfo:
+		prop_bone.custom_props[prop_id] = custom_prop_dict
+	else:
+		prop_bone[prop_id] = custom_prop_dict['default']
+		prop_bone.id_properties_ui(prop_id).update(**custom_prop_dict)
+		prop_bone.property_overridable_library_set(f'["{prop_id}"]', True)
 
 class HiddenPrints:
 	def __enter__(self):

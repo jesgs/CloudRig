@@ -36,22 +36,21 @@ def draw_cloudrig_parents(layout, context, text=""):
 
 class CloudParentSwitchMixin:
 	"""Class that provides parent switching parameters to CloudBaseRig."""
-	def apply_parent_switching(self, parent_slots,
-			child_bone=None,
-			prop_bone=None, prop_name="",
-			ui_area="misc_settings", row_name="", col_name=""
+	def apply_parent_switching(self, parent_slots, *,
+			child_bone=None, prop_bone=None, prop_name="",
+			panel_name="Space Switch", row_name="", label_name="", entry_name=""
 		):
 		"""Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
 		if not child_bone:
 			child_bone = self.root_bone
 		if not prop_bone:
 			prop_bone = self.properties_bone
-		if prop_name=="":
+		if prop_name == "":
 			prop_name="parents_"+child_bone.name
-		if row_name=="":
+		if row_name == "":
 			row_name = child_bone.name.split(".")[0]
-		if col_name=="":
-			col_name = child_bone.name
+		if entry_name == "":
+			entry_name = child_bone.name
 
 		# Create parent bone that will hold the Armature constraint.
 		arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
@@ -80,7 +79,12 @@ class CloudParentSwitchMixin:
 			# For some rigs, it might make sense to only supply 1 parent,
 			# eg. for cloud_ik_chain, since there the parent swithcing setup
 			# relates to the IK master and pole target rather than the root bone.
-			self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_ui_names)-1)
+			self.add_ui_data(panel_name, row_name, info
+				,label_name = label_name
+				,entry_name = entry_name
+				,default = 0
+				,max = len(parent_ui_names)-1
+			)
 
 		# Add armature constraint
 		arm_con = arm_con_bone.add_constraint('ARMATURE',

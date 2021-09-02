@@ -95,7 +95,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 			'prop_bone' : eye_rig.properties_bone,
 			'prop_id' : sticky_prop_name
 		}
-		self.add_ui_data('face_settings', eye_rig.params.CR_aim_group, "Sticky", info, default=0.1)
+		self.add_ui_data('Face', eye_rig.params.CR_aim_group, info, default=0.1)
 
 	##############################
 	# Parameters
