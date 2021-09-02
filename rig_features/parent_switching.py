@@ -75,7 +75,12 @@ class CloudParentSwitchMixin:
 			"parent_names" : parent_ui_names,
 			"bones" : [child_bone.name],
 			}
-		self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_ui_names)-1)
+		if len(parent_bone_names) > 1:
+			# Only add UI slider if there's more than 1 parent option.
+			# For some rigs, it might make sense to only supply 1 parent,
+			# eg. for cloud_ik_chain, since there the parent swithcing setup
+			# relates to the IK master and pole target rather than the root bone.
+			self.add_ui_data(ui_area, row_name, col_name, info, default=0, max=len(parent_ui_names)-1)
 
 		# Add armature constraint
 		arm_con = arm_con_bone.add_constraint('ARMATURE',
