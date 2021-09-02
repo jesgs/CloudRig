@@ -7,10 +7,6 @@ class CloudUIMixin:
 	forced_params = dict()
 
 	def add_ui_data(self, panel_name, row_name, info, *, label_name="", entry_name="", **custom_prop_dict):
-		if panel_name=="":
-			print("What is this shit?")
-			import traceback
-			traceback.print_stack()
 		add_ui_data(self.obj, panel_name, row_name, info, entry_name, label_name, **custom_prop_dict)
 
 	@staticmethod

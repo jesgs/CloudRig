@@ -1300,10 +1300,10 @@ def draw_rig_settings_per_label(layout, rig, main_dict):
 	for label_name in main_dict.keys():
 		if label_name == 'parent_id':
 			continue
-		if label_name != "":
-			layout.label(text=label_name)
 		if label_name == 'NODRAW':
 			continue
+		if label_name != "":
+			layout.label(text=label_name)
 		draw_rig_settings(layout, rig, main_dict[label_name])
 
 def draw_rig_settings(layout, rig, main_dict):

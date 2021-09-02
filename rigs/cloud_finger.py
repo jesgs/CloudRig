@@ -12,15 +12,13 @@ class CloudFingerRig(CloudIKChainRig):
 	def initialize(self):
 		super().initialize()
 
-	def add_ui_data(self, panel_name, row_name, info, entry_name="", label_name="", **custom_prop_dict):
-		prop_id = info['prop_id']
-
+	def add_ui_data(self, panel_name, row_name, info, label_name="", entry_name="", **custom_prop_dict):
 		panel_name = "Finger IK"
-		if prop_id.startswith("ik_pole_follow"):
+		if label_name == "IK Pole Follow":
 			custom_prop_dict['default'] = 1.0
-		elif not prop_id.startswith("ik_parents_") and self.params.CR_finger_use_bone_ik_switcher:
-			# Don't add IK/FK slider to UI if we're using a control switcher.
-			panel_name = 'NODRAW'
+		elif label_name == "FK/IK Switch" and self.params.CR_finger_use_bone_ik_switcher:
+			# Don't add IK/FK switch to UI if we're using a control as the switcher.
+			label_name = 'NODRAW'
 
 		super().add_ui_data(panel_name, row_name, info
 			,label_name = label_name
