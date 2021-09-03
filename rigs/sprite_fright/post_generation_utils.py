@@ -69,7 +69,11 @@ def face_rig_tweaks(rig):
 			'operator' : 'pose.cloudrig_snap_bake',
 			'bones' : [f'CTR-LipCorner{suf}'],
 		}
-		add_ui_data(rig, "Face", 'LipHeadJaw', ui_data, entry_name=f'{sides[suf]} Corner Top/Bot')
+		add_ui_data(rig, "Face", 'LipHeadJaw'
+			,info = ui_data
+			,label_name = "Mouth"
+			,entry_name = f'{sides[suf]} Corner Top/Bot'
+		)
 
 		# print("Disable Action constraints on lip corners when they are pinching...")
 		for bn in ['P-STR-TIP-Lip_Top2', 'P-STR-Lip_Bottom2']:
@@ -140,12 +144,10 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 	set_custom_property_value(rig, 'PRP-Head', 'Teeth Follow Mouth', 1.0)
 	set_custom_property_value(rig, 'PRP-Head', 'Chin Resists Jaw', 0.5)
 
-	add_ui_data(rig, "Face", 'Chin Resists Jaw'
+	add_ui_data(rig, "Face", 'FaceSquash'
 		,info = {
 			'prop_bone' : 'PRP-Head',
-			'prop_id' : 'Chin Resists Jaw',
-			'operator' : 'pose.cloudrig_snap_bake',
-			'bones' : ['Chin_Main'],
+			'prop_id' : 'Face Squash',
 		}
 	)
 	add_ui_data(rig, "Face", 'BrowsDetach'
@@ -168,18 +170,21 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 		,label_name = "Eyebrows"
 		,entry_name = 'Right Brow Detach'
 	)
-	add_ui_data(rig, "Face", 'FaceSquash'
+	add_ui_data(rig, "Face", 'Chin Resists Jaw'
 		,info = {
 			'prop_bone' : 'PRP-Head',
-			'prop_id' : 'Face Squash',
+			'prop_id' : 'Chin Resists Jaw',
+			'operator' : 'pose.cloudrig_snap_bake',
+			'bones' : ['Chin_Main'],
 		}
+		,label_name = "Mouth"
 	)
 	add_ui_data(rig, "Face", 'TeethFollowMouth'
 		,info = {
 			'prop_bone' : 'PRP-Head',
 			'prop_id' : 'Teeth Follow Mouth',
 		}
-		,label_name = "Teeth"
+		,label_name = "Mouth"
 	)
 	add_ui_data(rig, "Face", 'Teeth'
 		,info = {
@@ -187,7 +192,7 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 			'prop_id' : 'Teeth',
 			'texts' : '["Round", "Square", "Sharp"]'
 		}
-		,label_name = "Teeth"
+		,label_name = "Mouth"
 	)
 
 	# Populate face DEF layer
