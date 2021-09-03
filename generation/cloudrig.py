@@ -1297,14 +1297,19 @@ def draw_rig_settings_per_label(layout, rig, main_dict):
 	"""Each top-level dictionary within the main dictionary defines a panel.
 	Each panel is split into sub-sections via labels.
 	"""
+	top = layout.column()
 	for label_name in main_dict.keys():
+		ui = layout
 		if label_name == 'parent_id':
 			continue
 		if label_name == 'NODRAW':
 			continue
 		if label_name != "":
 			layout.label(text=label_name)
-		draw_rig_settings(layout, rig, main_dict[label_name])
+		else:
+			# Label-less properties should be at the top of the sub-panel.
+			ui = top
+		draw_rig_settings(ui, rig, main_dict[label_name])
 
 def draw_rig_settings(layout, rig, main_dict):
 	"""
