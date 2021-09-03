@@ -91,6 +91,9 @@ class CloudParentSwitchMixin:
 			targets = targets
 		)
 
+		if len(parent_bone_names) == 1:
+			return
+
 		# Add weight drivers
 		for i, t in enumerate(arm_con.targets):
 			arm_con.drivers.append({
