@@ -145,6 +145,10 @@ def add_ui_data(obj, panel_name, row_name, info, entry_name="", label_name="", p
 		prop_bone.custom_props[prop_id] = custom_prop_dict
 	else:
 		prop_bone[prop_id] = custom_prop_dict['default']
+		if 'min' not in custom_prop_dict:
+			custom_prop_dict['min'] = 0
+		if 'max' not in custom_prop_dict:
+			custom_prop_dict['max'] = 1
 		prop_bone.id_properties_ui(prop_id).update(**custom_prop_dict)
 		prop_bone.property_overridable_library_set(f'["{prop_id}"]', True)
 

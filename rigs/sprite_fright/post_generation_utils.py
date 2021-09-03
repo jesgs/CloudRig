@@ -1,7 +1,7 @@
 import bpy
 from rna_prop_ui import rna_idprop_ui_prop_update
 from ...rig_features.ui import add_ui_data
-import sys
+import sys, os
 
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
@@ -118,8 +118,10 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 	# If any object in the file has a particle system, load and attach the hair script.
 	for o in bpy.data.objects:
 		if o.type!='MESH': continue
-		if len(o.particle_systems)>0:
-			link_script(rig, "hair_script", '//../../scripts/rigged_particle_hair.blend', 'rigged_particle_hair.py')
+		if len(o.particle_systems) > 0:
+			hair_blend = '//../../scripts/rigged_particle_hair.blend'
+			if os.path.isfile(bpy.path.abspath(hair_blend)):
+				link_script(rig, "hair_script", hair_blend, 'rigged_particle_hair.py')
 			break
 
 	# If there is a text datablock ending in "_rename_curves.py", attach it to the rig.
