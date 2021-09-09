@@ -551,7 +551,8 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		# Copy the constraint and drivers from the IK master
 		arm_con_info = parent.constraint_infos[0]
-
+		if not ik_mstr.parent or len(ik_mstr.parent.constraint_infos) == 0 or len(ik_mstr.parent.constraint_infos[0].drivers) == 0:
+			return
 		arm_con_info.drivers[0] = ik_mstr.parent.constraint_infos[0].drivers[0].copy()
 		for target, driver in zip(ik_mstr.parent.constraint_infos[0].targets[1:], ik_mstr.parent.constraint_infos[0].drivers[1:]):
 			arm_con_info.targets.append(target)
