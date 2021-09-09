@@ -61,7 +61,13 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		# Add IK/FK Snapping to the UI.
 		ui_data = self.create_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
-		self.add_ui_data("IK", self.limb_name, ui_data, label_name="FK/IK Switch", entry_name=self.limb_ui_name, default=1.0)
+		self.add_ui_data(
+			panel_name		= "FK/IK Switch"
+			,row_name		= self.limb_name
+			,info			= ui_data
+			,entry_name		= self.limb_ui_name
+			,default		= 1.0
+		)
 
 		self.attach_org_to_ik()
 

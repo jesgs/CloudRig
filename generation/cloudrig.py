@@ -9,7 +9,7 @@ many CloudRig characters are in the scene.
 """
 
 from typing import List, Dict
-import bpy, traceback, json, collections
+import bpy, traceback, json, collections, re
 from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty,
 						EnumProperty, PointerProperty, IntProperty
@@ -969,6 +969,7 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
 #######################################
 ###### Override Troubleshooting #######
+##### TODO: Remove after Sprites. #####
 #######################################
 
 class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
@@ -1218,7 +1219,7 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 		self.draw_troubleshoot_collections(layout, owner_collection, suffix=suffix)
 
 #######################################
-####### Character/Rig Settings ########
+############### Rig UI ################
 #######################################
 
 def get_char_bone(rig):
@@ -1538,11 +1539,14 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
 	if hasattr(bpy.types, name):
 		return
 
+	# Make sure name is alphanumeric
+	sane_name = re.sub(r'\W+', '', name)
+
 	# Dynamically create a new class, so it can be registered as a sub-panel.
 	new_panel = type(
-		"CLOUDRIG_PT_custom_"+name
+		"CLOUDRIG_PT_custom_" + sane_name
 		,(CLOUDRIG_PT_custom_panel,)
-		,{'bl_idname': "CLOUDRIG_PT_custom_"+name.lower().replace(" ", ""), 'bl_label': name, 'bl_parent_id': parent_id}
+		,{'bl_idname': "CLOUDRIG_PT_custom_"+sane_name.lower().replace(" ", ""), 'bl_label': name, 'bl_parent_id': parent_id}
 	)
 
 	bpy.utils.register_class(new_panel)

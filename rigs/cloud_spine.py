@@ -251,7 +251,7 @@ class CloudSpineRig(CloudFKChainRig):
 			"prop_bone"		: self.properties_bone,
 			"prop_id"		: self.ik_prop_name,
 		}
-		self.add_ui_data("IK", self.limb_name, info, label_name="FK/IK Switch", entry_name=self.spine_name, default=0.0)
+		self.add_ui_data("FK/IK Switch", self.limb_name, info, entry_name=self.spine_name, default=0.0)
 
 	def tweak_str_spine(self):
 		""" We need to parent the last non-tip STR control to the 2nd-to-last FK control,
