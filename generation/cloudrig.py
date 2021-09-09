@@ -956,12 +956,14 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 					try:
 						ui_data = pb.id_properties_ui(key)
 						if not ui_data: continue
+						ui_data = ui_data.as_dict()
+						if not 'default' in ui_data: continue
 					except TypeError:
 						# Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
 						pass
 
-					if type(pb[key] not in (float, int)): continue
-					pb[key] = ui_data.default
+					if type(pb[key]) not in (float, int): continue
+					pb[key] = ui_data['default']
 
 		return {'FINISHED'}
 
