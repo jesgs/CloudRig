@@ -5,7 +5,6 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians as rad
 
-from ..rig_features.mechanism import get_bone_chain
 from ..utils.maths import flat
 from .cloud_fk_chain import CloudFKChainRig
 
@@ -60,7 +59,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.make_ik_setup()
 
 		# Add IK/FK Snapping to the UI.
-		ui_data = self.create_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
+		ui_data = self.create_fkik_switch_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
 		self.add_ui_data(
 			panel_name		= "FK/IK Switch"
 			,row_name		= self.limb_name
@@ -130,6 +129,11 @@ class CloudIKChainRig(CloudFKChainRig):
 			,custom_shape = self.ensure_widget(shape_name)
 			,parent		  = None
 		)
+
+		if not self.generator_params.cloudrig_parameters.create_root:
+			# If there's no rig root bone, parent the IK master to the element's root.
+			# Although ideally, rigs with IK chains in them should really have a root bone.
+			ik_master.parent = self.bones_org[0].parent
 
 		return ik_master
 
@@ -202,6 +206,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,roll				= 0
 			,custom_shape		= self.ensure_widget('Arrow_Head')
 			,custom_shape_scale	= 0.5
+			,inherit_scale		= 'AVERAGE'
 			,use_custom_shape_bone_size = True
 		)
 		self.lock_transforms(pole_ctrl, loc=False)
@@ -271,7 +276,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		ik_chain[0].custom_shape_scale_xyz.y = ik_chain[0].length / (ik_chain[0].bbone_width * 10 * self.scale)	# This is awkward, but it's a drawback of the BBone Display Size==widget size system: We basically want a single value to not use the system here, so we un-multiply it.
 		return ik_chain
 
-	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+	def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Store UI data for FK/IK switching and snapping."""
 		
 		# List of bone tuples to snap (from, to).
@@ -498,12 +503,19 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Create parent helper bone
 		parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
 		parent_helper.custom_shape = None
-		ik_pole.inherit_scale = 'AVERAGE'
+
+		parent_ui_names, parent_bone_names = self.sanitize_parent_list(self.params.CR_base_parent_slots)
+		if self.params.CR_base_parent_switching and len(parent_bone_names) > 0:
+			first_parent = parent_bone_names[0]
+		elif self.generator_params.cloudrig_parameters.create_root:
+			first_parent = 'root'
+		else:
+			first_parent = self.bones_org[0].parent
 
 		arm_con = parent_helper.add_constraint('ARMATURE'
 			,use_deform_preserve_volume = True
 			,targets = [
-				{'subtarget' : 'root'}	# TODO: This won't work when Create Root is disabled!
+				{'subtarget' : first_parent}
 				,{'subtarget' : ik_mstr}	# TODO: This could be stretch_bone but that breaks Sprite Fright animations and doesn't work well in some cases.
 			]
 		)
