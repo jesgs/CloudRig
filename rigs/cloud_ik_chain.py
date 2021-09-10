@@ -1,8 +1,8 @@
-from bpy.types import PoseBone
+from bpy.types import PoseBone, GizmoGroup
 from typing import Tuple
 
-from bpy.props import BoolProperty
-from mathutils import Vector
+from bpy.props import BoolProperty, FloatProperty
+from mathutils import Vector, Matrix, Euler
 from math import radians as rad
 
 from ..utils.maths import flat
@@ -194,7 +194,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second)
 		self.pole_angle = pole_angle
 		self.pole_vector = pole_vector
-		self.pole_location = pole_location
+		self.pole_location = pole_location + self.pole_vector * self.params.CR_GZ_ik_chain_pole_distance * self.scale
 
 	def make_pole_control(self):
 		# Create IK Pole Control
@@ -629,6 +629,14 @@ class CloudIKChainRig(CloudFKChainRig):
 			,default	 = True
 		)
 
+		# Gizmo Parameters
+		params.CR_GZ_ik_chain_pole_distance = FloatProperty(
+			name		 = "Pole Distance"
+			,default	 = 1.0
+			,min		 = -10.0
+			,max		 = 10.0
+		)
+
 		super().add_parameters(params)
 
 	@classmethod
@@ -639,26 +647,107 @@ class CloudIKChainRig(CloudFKChainRig):
 		layout.separator()
 		cls.draw_control_label(layout, "IK")
 
-		cls.draw_prop(layout, params, "CR_ik_chain_use_pole")
-		cls.draw_prop(layout, params, "CR_ik_chain_at_tip")
+		cls.draw_prop(layout, params, 'CR_ik_chain_use_pole')
+		if cls.is_advanced_mode(context) and params.CR_ik_chain_use_pole:
+			cls.draw_prop(layout, params, 'CR_GZ_ik_chain_pole_distance')
+		cls.draw_prop(layout, params, 'CR_ik_chain_at_tip')
 
 		if cls.is_advanced_mode(context):
-			cls.draw_prop(layout, params, "CR_ik_chain_world_aligned")
+			cls.draw_prop(layout, params, 'CR_ik_chain_world_aligned')
 
 		split = layout.split(factor=0.4)
 		split.row()
 		split.row().operator('armature.flatten_chain')
 
-	##############################
-	# Overlay
+########################################
+################ GIZMOS ################
+########################################
+
+class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
+	bl_idname = "OBJECT_GGT_cloudrig_ik_pole_distance"
+	bl_label = "IK Pole Distance"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'WINDOW'
+	bl_options = {'3D', 'PERSISTENT'}
+
+	@staticmethod
+	def get_active_pbone(context):
+		"""Return the PoseBone of the active bone, even if in edit mode."""
+		ob = context.object
+		active_b = context.active_bone
+		if active_b:
+			return ob.pose.bones.get(active_b.name)
+
+	@staticmethod
+	def get_active_edit_or_pose_bone(context):
+		"""Return the EditBone if in edit mode, otherwise PoseBone."""
+		if context.active_pose_bone:
+			return context.active_pose_bone
+		else:
+			return context.active_bone
+
 	@classmethod
-	def draw_overlay(cls, context, buffer) -> list((Vector, Vector)):
-		active_pb = context.active_pose_bone
-		chain = cls.get_rigify_chain(active_pb)
+	def poll(cls, context):
+		ob = context.object
+		active_pb = cls.get_active_pbone(context)
+		return ob and ob.type == 'ARMATURE' and ob.mode != 'OBJECT' \
+			 and active_pb and active_pb.rigify_type in ('cloud_ik_chain', 'cloud_limb', 'cloud_leg') \
+				 and active_pb.rigify_parameters.CR_ik_chain_use_pole
 
-		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(chain[0], chain[1])
+	def get_matrix(self, context):
+		ob = context.object
+		active_b = self.get_active_edit_or_pose_bone(context)
+		active_pb = self.get_active_pbone(context)
+		chain = CloudIKChainRig.get_rigify_chain(active_pb)
+		if context.mode == 'EDIT_ARMATURE':
+			chain = [context.object.data.edit_bones.get(b.name) for b in chain]
 
-		buffer.draw_line_3d(chain[1].head, pole_location)
+		# XXX: These values don't account for object transforms (not important imo)
+		pole_angle, pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1])
+
+		bone_mat = ob.matrix_world @ active_b.matrix
+		loc, rot, scale = bone_mat.to_translation(), bone_mat.to_euler(), bone_mat.to_scale()
+
+		bone_vector = active_b.vector.copy()
+		bone_vector.rotate(ob.rotation_euler)
+
+		# Offset the gizmo location along the length of the bone, by the length of the bone
+		# (This accounts for object scale also)
+		loc += bone_vector.normalized() * scale.y * active_b.length
+
+		# To create a Rotation that "points at" a Vector, we can use to_track_quat().
+		rot = pole_vector.to_track_quat('Z', 'Y')
+
+		# The final Matrix where the gizmo can be displayed.
+		final_mat = Matrix.LocRotScale(loc, rot, scale)
+
+		return final_mat
+
+	def setup(self, context):
+		"""Runs only once, when poll() returns True for the first time."""
+		active_pb = self.get_active_pbone(context)
+
+		gz = self.gizmos.new("GIZMO_GT_arrow_3d")
+		gz.use_draw_scale = False			# Let the gizmo change visual scale according to the camera zoom level.
+
+		gz.draw_style = 'NORMAL'
+
+		gz.color = 1.0, 0.5, 0.0
+		gz.alpha = 0.5
+
+		gz.color_highlight = 1.0, 0.5, 1.0
+		gz.alpha_highlight = 0.5
+
+		# Hook up the gizmo's 'offset' property to the ik pole distance.
+		gz.target_set_prop('offset', active_pb.rigify_parameters, 'CR_GZ_ik_chain_pole_distance')
+		gz.matrix_basis = self.get_matrix(context)
+		self.ik_distance_gizmo = gz
+
+	def refresh(self, context):
+		"""Runs in all subsequent times when poll() returns True."""
+		ob = context.object
+		gz = self.ik_distance_gizmo
+		gz.matrix_basis = self.get_matrix(context)
 
 class Rig(CloudIKChainRig):
 	pass

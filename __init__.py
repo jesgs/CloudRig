@@ -32,7 +32,6 @@ from .generation import cloud_generator
 from . import versioning
 from . import manual
 from . import operators
-from . import overlay
 from . import ui
 from . import ui_rig_types
 
@@ -47,7 +46,6 @@ modules = [
 	versioning,
 	manual,
 	operators,
-	overlay,
 	parent_switching,
 	ui_rig_types,
 ]
@@ -61,6 +59,9 @@ def register():
 	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
 	feature_sets.CloudRig = sys.modules[__name__]
 
+	from .rigs.cloud_ik_chain import CLOUDRIG_GG_ik_pole_distance
+	import bpy
+	bpy.utils.register_class(CLOUDRIG_GG_ik_pole_distance)
 	for m in modules:
 		importlib.reload(m)
 		m.register()
