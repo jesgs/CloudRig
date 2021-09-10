@@ -687,7 +687,7 @@ def remove_active_log(metarig):
 	cloudrig.logs.remove(active_index)
 	cloudrig.active_log_index = to_index
 
-classes = [
+registry = [
 	CLOUDRIG_UL_log_entry_slots,
 	CloudRigLogEntry,
 	CLOUDRIG_PT_log,
@@ -701,13 +701,3 @@ classes = [
 	CLOUDRIG_OT_Rename_Object,
 	CLOUDRIG_OT_Delete_Object
 ]
-
-def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
-def unregister():
-	from bpy.utils import unregister_class
-	for c in reversed(classes):
-		unregister_class(c)

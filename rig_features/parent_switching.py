@@ -198,17 +198,7 @@ class CloudParentSwitchMixin:
 			if params.CR_base_parent_switching:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 
-classes = [
+registry = [
 	ParentSlot,
 	CLOUDRIG_UL_parent_slots,
 ]
-
-def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
-def unregister():
-	from bpy.utils import unregister_class
-	for c in reversed(classes):
-		unregister_class(c)

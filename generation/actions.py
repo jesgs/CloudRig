@@ -528,7 +528,7 @@ class CLOUDRIG_OT_copy_actions(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-classes = [
+registry = [
 	ActionSlot,
 	CLOUDRIG_UL_action_slots,
 	CLOUDRIG_OT_Action_Jump,
@@ -536,13 +536,3 @@ classes = [
 	CLOUDRIG_PT_actions,
 	CLOUDRIG_OT_copy_actions,
 ]
-
-def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
-def unregister():
-	from bpy.utils import unregister_class
-	for c in reversed(classes):
-		unregister_class(c)

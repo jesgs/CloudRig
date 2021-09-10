@@ -992,17 +992,13 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 			bone.hide = hide_bones[bone_name]
 
 
-classes = [
+registry = [
 	CloudRigProperties,
 
 	CLOUDRIG_OT_generate,
 ]
 
 def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
 	register_hotkey(CLOUDRIG_OT_generate.bl_idname
 		,hotkey_kwargs = {'type': "R", 'value': "PRESS", 'ctrl': True, 'alt': True}
 		,key_cat = "3D View"
@@ -1012,7 +1008,4 @@ def register():
 	bpy.types.Armature.cloudrig_parameters = PointerProperty(type=CloudRigProperties)
 
 def unregister():
-	from bpy.utils import unregister_class
-	for c in classes:
-		unregister_class(c)
 	del bpy.types.Armature.cloudrig_parameters

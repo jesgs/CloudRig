@@ -247,15 +247,11 @@ def draw_rigify_types(self, context):
 				col = layout.column()
 				rig.parameters_ui(layout, bone.rigify_parameters)
 
-classes = [
+registry = [
 	CLOUDRIG_PT_generator_advanced
 ]
 
 def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
 	# Hijack Rigify panels' draw functions.
 	if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
 		rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
@@ -278,10 +274,6 @@ def register():
 	BONE_PT_rigify_buttons.draw = draw_rigify_types
 
 def unregister():
-	from bpy.utils import unregister_class
-	for c in reversed(classes):
-		unregister_class(c)
-
 	# Restore Rigify panels' draw functions.
 	if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
 		rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons

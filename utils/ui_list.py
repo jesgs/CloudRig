@@ -233,18 +233,8 @@ def draw_item(self, context, layout, data, item, icon, active_data, active_propn
 	elif self.layout_type in {'GRID'}:
 		pass
 
-classes = [
+registry = [
 	UILIST_OT_Entry_Remove,
 	UILIST_OT_Entry_Add,
 	UILIST_OT_Entry_Move,
 ]
-
-def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
-def unregister():
-	from bpy.utils import unregister_class
-	for c in reversed(classes):
-		unregister_class(c)

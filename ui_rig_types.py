@@ -101,7 +101,7 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
 				break
 		return any_used
 
-classes = [
+registry = [
 	CLOUDRIG_PT_params_parenting
 	,CLOUDRIG_PT_params_controls
 	,CLOUDRIG_PT_params_anim
@@ -110,13 +110,3 @@ classes = [
 	,CLOUDRIG_PT_params_custom_properties
 	,CLOUDRIG_PT_params_bone_sets
 ]
-
-def register():
-	from bpy.utils import register_class
-	for c in classes:
-		register_class(c)
-
-def unregister():
-	from bpy.utils import unregister_class
-	for c in classes:
-		unregister_class(c)

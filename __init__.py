@@ -19,6 +19,7 @@ bl_info = {
 }
 
 import importlib
+from bpy.utils import register_class, unregister_class
 
 from rigify import feature_sets
 import sys
@@ -34,6 +35,7 @@ from . import manual
 from . import operators
 from . import ui
 from . import ui_rig_types
+from . import rigs
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
@@ -48,6 +50,7 @@ modules = [
 	operators,
 	parent_switching,
 	ui_rig_types,
+	rigs
 ]
 
 def register():
@@ -59,15 +62,20 @@ def register():
 	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
 	feature_sets.CloudRig = sys.modules[__name__]
 
-	from .rigs.cloud_ik_chain import CLOUDRIG_GG_ik_pole_distance
-	import bpy
-	bpy.utils.register_class(CLOUDRIG_GG_ik_pole_distance)
 	for m in modules:
 		importlib.reload(m)
-		m.register()
+		if hasattr(m, 'registry'):
+			for c in m.registry:
+				register_class(c)
+		if hasattr(m, 'register'):
+			m.register()
 
 def unregister():
 	for m in reversed(modules):
-		m.unregister()
+		if hasattr(m, 'unregister'):
+			m.unregister()
+		if hasattr(m, 'registry'):
+			for c in m.registry:
+				unregister_class(c)
 
 	del feature_sets.CloudRig
