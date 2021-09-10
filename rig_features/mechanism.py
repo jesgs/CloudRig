@@ -4,7 +4,6 @@ import bpy
 from mathutils import Vector
 
 from rigify.utils.misc import copy_attributes
-from rigify.utils.mechanism import make_property
 
 from ..rig_features.bone import BoneInfo
 from ..generation.naming import slice_name, make_name
@@ -22,6 +21,10 @@ class CloudMechanismMixin:
 	@staticmethod
 	def get_rigify_chain(pose_bone):
 		return get_rigify_chain(pose_bone)
+	
+	@staticmethod
+	def get_object_scalar(obj):
+		return get_object_scalar(obj)
 
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
@@ -82,6 +85,12 @@ class CloudMechanismMixin:
 						}
 					]
 				)
+
+def get_object_scalar(obj):
+	"""Return a value that can be used all across CloudRig for calculating sizes
+	and distances in a rig-size-agnostic way.
+	obj is usually the Metarig."""
+	return max(obj.dimensions) / 10
 
 def relink_driver(metarig, rig, driver_info):
 	"""Adjust drivers read from the metarig according to some conventions:

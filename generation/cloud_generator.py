@@ -22,6 +22,7 @@ from ..rig_features.widgets import widgets as cloud_widgets
 from ..rig_features.bone_set import BoneSet, UIBoneSet
 from ..rig_features.object import EnsureVisible
 from ..rig_features import mechanism
+from ..rig_features.mechanism import get_object_scalar
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
@@ -139,7 +140,7 @@ class CloudGenerator(Generator):
 		metarig.matrix_world = Matrix.Identity(4)
 
 		context.view_layer.update() # Needed to make sure we get the correct scale
-		self.scale = max(metarig.dimensions)/10
+		self.scale = get_object_scalar(metarig)
 
 		self.naming = CloudNameManager()
 
