@@ -136,7 +136,9 @@ class CloudGenerator(Generator):
 		self.params = metarig.data	# Generator parameters are stored in rig data.
 
 		metarig.data.pose_position = 'REST'
-		metarig['matrix_bkp'] = metarig.matrix_world.copy()
+		metarig['loc_bkp'] = metarig.matrix_world.to_translation()
+		metarig['rot_bkp'] = metarig.matrix_world.to_euler()
+		metarig['scale_bkp'] = metarig.matrix_world.to_scale()
 		metarig.matrix_world = Matrix.Identity(4)
 
 		context.view_layer.update() # Needed to make sure we get the correct scale
@@ -830,9 +832,13 @@ class CloudGenerator(Generator):
 		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.metarig.data.pose_position = 'POSE'
-		if 'matrix_bkp' in self.metarig:
-			self.metarig.matrix_world = self.metarig['matrix_bkp']
-			del self.metarig['matrix_bkp']
+		if 'loc_bkp' in self.metarig:
+			self.metarig.location = self.metarig['loc_bkp'].to_list()
+			self.metarig.rotation_euler = self.metarig['rot_bkp'].to_list()
+			self.metarig.scale = self.metarig['scale_bkp'].to_list()
+			del self.metarig['loc_bkp']
+			del self.metarig['rot_bkp']
+			del self.metarig['scale_bkp']
 		self.obj.data.pose_position = 'POSE'
 
 		self.logger.report_unused_named_layers()
