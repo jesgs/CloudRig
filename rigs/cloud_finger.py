@@ -7,6 +7,7 @@ class CloudFingerRig(CloudIKChainRig):
 
 	forced_params = {
 		'CR_ik_chain_at_tip' : True,
+		'CR_chain_tip_control' : True,
 	}
 
 	def initialize(self):
@@ -90,23 +91,31 @@ class CloudFingerRig(CloudIKChainRig):
 		"""Create a helper for X rotation."""
 		x_rot_helper = self.bone_sets['IK Mechanism'].new(
 			name		= last_org.name.replace("ORG", "XROT")
-			,source		= last_org
+			,source		= self.ik_mstr
 			,parent		= last_org
-			,head		= last_org.tail
-			,tail		= last_org.head
 		)
 		copyrot = x_rot_helper.add_constraint('COPY_ROTATION'
-			,name = "Copy Inverse X Rotation"
+			,name = "Copy X Rotation"
 			,subtarget = self.ik_mstr.name
 			,use_xyz = [True, False, False]
-			,invert_xyz = [True, False, False]
 		)
-		copyrot.drivers.append({
+		ik_driver = {
 			'prop' : 'influence'
 			,'variables' : [
 				(self.properties_bone.name, self.ikfk_name)
 			]
-		})
+		}
+		copyrot.drivers.append(ik_driver.copy())
+
+		# Counter-rotate 2nd to last main STR bone
+		counter_rot = self.main_str_bones[-3].add_constraint('COPY_ROTATION' # TODO: Why is this on index -3 instead of -2??
+			,name = "Counter X Rotation"
+			,subtarget = self.ik_mstr.name
+			,use_xyz = [True, False, False]
+			,invert_xyz = [True, False, False]
+			,influence = 0.5
+		)
+		counter_rot.drivers.append(ik_driver.copy())
 
 		# Parent stretch helper of last main STR bone (including tip control if it exists)
 		for main_str_bone in self.main_str_bones[-(2+self.params.CR_ik_chain_at_tip):]:
