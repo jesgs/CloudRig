@@ -152,7 +152,7 @@ class BoneSet(LinkedList):
 				,trouble_bone = bone_info.name
 				,description = f'Bone called "{bone_info.name}"" was defined twice! Make sure your bone names are unique and do not have trailing zeroes!'
 			)
-			return bone_info
+			raise Exception("Re-defining bone: " + bone_info.name + "\nMake sure your bones are named and numbered uniquely and sequentially")
 
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group
