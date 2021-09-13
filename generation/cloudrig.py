@@ -1538,6 +1538,8 @@ custom_panels = []
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
 	if hasattr(bpy.types, name):
 		return
+	if not hasattr(bpy.types, parent_id):
+		parent_id  = "CLOUDRIG_PT_settings"
 
 	# Make sure name is alphanumeric
 	sane_name = re.sub(r'\W+', '', name)
