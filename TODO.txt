@@ -76,7 +76,9 @@ Priority 4: Code quality
         Meanwhile rig properties don't support prop_hierarchy and vectors, and labels are defined with a 'texts' keyword.
     Uses of the variable `org_parent` are currently satanic. Should either be avoided, or made uniform, so all BoneInfo instances have an `org_parent` or have a dictionary that keeps track of that relationship. (latter is better I think, can probably be used in other cases)
     Other satanic variables:
-        org_bone.def_bones
+        def_bone.str_bone
+        str_bone.tangent_helper
+        main_start.sub_bones
 
     I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
         The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.

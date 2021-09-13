@@ -7,13 +7,6 @@ from copy import deepcopy
 
 from .cloud_base import CloudBaseRig
 
-"""TODO
-Main and Sub STR controls should be treated totally separately from each other, even having separate bone sets.
-Might make sense to remove the Tip Control parameter. We only use it for arm rigs, 
-	and it's not really important for that case anymore, since we can just use DEF parenting on the fingers.
-	It's also important for connect_parent_chain_rig, but that could be handled differently.
-"""
-
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
 	relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with \"TAIL-\"."
@@ -23,27 +16,72 @@ class CloudChainRig(CloudBaseRig):
 		self.is_cyclic = False
 		self.chain_length = 0
 
+		# Other rigs may want to access some bones, so we store them.
+		self.main_str_bones: List[BoneInfo]
+		self.str_chain: List[BoneInfo]
+		self.tangent_helpers: List[BoneInfo]
+
 	def create_bone_infos(self):
 		super().create_bone_infos()
-
 		# Determine if this is a cyclic chain rig (last bone touches first)
-		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001
+		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001 and not self.params.CR_chain_tip_control
+		if self.is_cyclic:
+			self.bones_org[0].prev = self.bones_org[-1]
+			self.bones_org[-1].next = self.bones_org[0]
 
 		# Calculate total and average bone length
 		for org in self.bones_org:
 			self.chain_length += org.length
 
-		str_sections = self.make_str_chain(self.bones_org)
-		if self.params.CR_chain_segments > 1:
-			self.make_str_helpers(str_sections)
+		# Create Main STR controls
+		self.main_str_bones = self.make_main_str_bones(self.bones_org)
 
+		# Create Sub STR controls, in-between the Main ones.
+		# They are organized into a list of (main, [sub1, sub2...]) tuples.
+		str_sections = self.make_sub_str_sections(self.main_str_bones, self.bones_org)
+
+		# Build a straight chain of STR bones that contains both main and sub
+		# bones in order.
+		self.str_chain = self.sort_str_sections_into_chain(str_sections, self.is_cyclic)
+
+		self.tangent_helpers = []
 		if self.params.CR_chain_bbone_density > 0:
-			for str_bone in self.bone_sets['Stretch Controls']:
-				str_bone.tangent_helper = self.make_tangent_helper(str_bone, smooth=self.params.CR_chain_smooth_spline)
+			# Create tangent helpers that will control bendy bone curvature
+			self.tangent_helpers = self.make_tangent_helpers(self.str_chain)
 
-		self.make_def_chain(self.bone_sets['Stretch Controls'])
+		self.make_def_chain(
+			str_chain = self.str_chain
+			,tangent_helpers = self.tangent_helpers
+			,preserve_volume = self.params.CR_chain_preserve_volume
+			,create_ctr_def_ctrls = self.params.CR_chain_unlock_deform
+		)
 
 		self.connect_parent_chain_rig()
+
+	def sort_str_sections_into_chain(self
+			,str_sections: List[Tuple[BoneInfo, List[BoneInfo]]]
+			,is_cyclic: bool
+		) -> List[BoneInfo]:
+		"""Sort the main and sub STR bones into a chain, so each one knows 
+		which one comes before and after it."""
+		str_chain = []
+		for section in str_sections:
+			str_chain.append(section[0])
+			str_chain.extend(section[1])
+
+		str_chain[0].prev = None
+		prev = str_chain[0]
+		for str_bone in str_chain[1:]:
+			prev.next = str_bone
+			str_bone.prev = prev
+			str_bone.next = str_bone	# Only affects last STR.
+			prev = str_bone
+
+		if is_cyclic:
+			str_chain[-1].next = str_chain[0]
+			str_chain[0].prev = str_chain[-1]
+
+		return str_chain
 
 	def get_relink_target(self, org_i, con) -> BoneInfo:
 		"""Return the bone to which a constraint should be moved to."""
@@ -82,199 +120,259 @@ class CloudChainRig(CloudBaseRig):
 					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
 
-	def determine_segments(self, org_bone: BoneInfo) -> Tuple[int, int]:
-		"""Determine how many deform and b-bone segments should be in a section of the chain."""
+	def make_main_str_bones(self, org_chain: BoneSet) -> List[BoneInfo]:
+		"""Create the main stretch controls:
+		One for each ORG bone, plus optionally one more at the end of the chain."""
+		main_str_bones = []
+		if self.params.CR_chain_tip_control:
+			# Temporarily create an extra ORG BoneInfo.
+			last_org = org_chain[-1]
+			extra_org = org_chain.new(
+				name = last_org.name.replace("ORG", "ORG-TIP")
+				,source = last_org
+				,parent = last_org
+			)
+			extra_org.put(last_org.tail)
+			if self.is_cyclic:
+				self.org_chain[0].prev = extra_org
+
+		for i, org_bone in enumerate(org_chain):
+			main_str_bone = self.make_main_str_bone(org_bone, i)
+			main_str_bones.append(main_str_bone)
+		
+		if self.params.CR_chain_tip_control:
+			extra_org = org_chain[-1]
+			org_chain.remove(extra_org)
+			del extra_org
+
+		return main_str_bones
+
+	def make_main_str_bone(self
+			,org_bone: BoneInfo
+			,org_i: int
+		) -> BoneInfo:
+		"""Create and return a main STR control."""
 		segments = self.params.CR_chain_segments
-
-		average_bone_length = self.chain_length / len(self.bones_org)
-		bbone_density = round(org_bone.length/average_bone_length *
-			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
-
-		# No segments for last bone of the chain if there is no control for its tail.
-		if org_bone == self.bones_org[-1] and not self.params.CR_chain_tip_control:
-			return 1, 1
-
-		return segments, bbone_density
-
-	def make_str_chain(self, org_chain: BoneSet) -> List[List[BoneInfo]]:
-		"""Create all STR controls for this chain."""
-		self.main_str_bones: List[BoneInfo] = []
-		str_sections = []
-		for org_i, org_bone in enumerate(org_chain):
-			segments, bbone_density = self.determine_segments(org_bone)
-
-			str_section = []
-			for i in range(segments):
-				str_bone = self.make_str_bone(org_i, i, segments)
-				str_section.append(str_bone)
-
-			str_sections.append(str_section)
-
-			# Create STR-TIP control at the end of the chain.
-			if org_i == len(org_chain)-1 and self.params.CR_chain_tip_control:
-				if self.is_cyclic:
-					self.bone_sets['Stretch Controls'][-1].next = self.bone_sets['Stretch Controls'][0]
-					self.bone_sets['Stretch Controls'][0].prev = self.bone_sets['Stretch Controls'][-1]
-				else:
-					str_bone = self.make_str_bone(org_i, 0, 1, name=self.naming.add_prefix(str_bone, "TIP"))
-					str_bone.custom_shape = self.ensure_widget('Sphere_Half')
-					str_bone.custom_shape_scale_xyz *= 1.3
-					str_bone.custom_shape_scale_xyz.y *= -1
-					str_bone.put(org_bone.tail)
-					str_bone.vector = org_bone.vector
-					str_bone.length = str_bone.prev.length
-					str_sections.append([str_bone])
-					self.main_str_bones.append(str_bone)
-
-		return str_sections
-
-	def make_str_bone(self, org_i: int, seg_i: int, segments: int, name="") -> BoneInfo:
-		"""Create an STR control."""
-		org_bone = self.bones_org[org_i]
 		direction = org_bone.vector
-		if seg_i == 0 and org_bone.prev:
+		if org_bone.prev:
+			# Rotate the bone halfway towards the previous one TODO: This shouldn't happen for the last STR bone?
 			direction = org_bone.tail - org_bone.prev.head
-		unit = org_bone.vector / segments
-		if name=="":
-			name = org_bone.name.replace("ORG", "STR")
-		str_bone = self.bone_sets['Stretch Controls'].new(
-			name = name
+		if org_i == 0 and self.is_cyclic:
+			direction = (org_bone.tail - self.bones_org[-1].head).normalized()
+
+		str_name = org_bone.name.replace("ORG", "STR")
+		main_str = self.bone_sets['Stretch Controls'].new(
+			name = str_name
 			,source = org_bone
-			,head = org_bone.head + (unit * seg_i)
 			,vector = direction
 			,length = org_bone.length / segments / 2
-			,custom_shape_scale = -0.4
+			,custom_shape_scale = -0.6
 			,parent = org_bone
 			,inherit_scale = 'AVERAGE'
 		)
 
-		if not self.is_cyclic and org_i == 0 and seg_i == 0:
-			str_bone.custom_shape = self.ensure_widget('Sphere_Half')
+		if not self.is_cyclic and org_i == 0:
+			main_str.custom_shape = self.ensure_widget('Sphere_Half')
 		else:
-			str_bone.custom_shape = self.ensure_widget("Sphere")
-
-		if seg_i == 0:
-			str_bone.custom_shape_scale_xyz *= 1.3
-			self.main_str_bones.append(str_bone)
-			if org_i == 0 and self.is_cyclic:
-				direction = (org_bone.tail - self.bones_org[-1].head).normalized()
-				str_bone.tail = str_bone.head + direction*str_bone.length
+			main_str.custom_shape = self.ensure_widget("Sphere")
 
 		# Create alignment helpers, to make sure the bendy bones don't flip out 
 		# when the chain has a zig-zaggy shape, and the STR-H bones try to copy
 		# rotations from the STR bones.
 		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
-		str_bone.align_in = str_bone
-		str_bone.align_out = str_bone
-		if seg_i == 0 and self.params.CR_chain_segments > 1 and \
+		main_str.align_in = main_str
+		main_str.align_out = main_str
+		if self.params.CR_chain_segments > 1 and \
 				org_bone.prev and self.params.CR_chain_align_roll:
-			# If it's a main_str_bone
-			str_bone.roll_type = 'ACTIVE'
-			str_bone.roll_bone = org_bone.name
-			str_bone.roll = 0
-			str_bone.align_in = self.bone_sets['Mechanism Bones'].new(
-				name = name.replace("STR", "STR-RI")
+			main_str.roll_type = 'ACTIVE'		# TODO: Setting bone rolls like this is expensive because we rely on bpy.ops.
+			main_str.roll_bone = org_bone.name
+			main_str.roll = 0
+			main_str.align_in = self.bone_sets['Mechanism Bones'].new(
+				name = str_name.replace("STR", "STR-RI")
 				,source = org_bone.prev
-				,parent = str_bone
-				,head = str_bone.head
-				,tail = str_bone.head + org_bone.prev.vector * str_bone.length
+				,parent = main_str
+				,head = main_str.head
+				,tail = main_str.head + org_bone.prev.vector * main_str.length
 			)
-			str_bone.align_out = self.bone_sets['Mechanism Bones'].new(
-				name = name.replace("STR", "STR-RO")
+			main_str.align_out = self.bone_sets['Mechanism Bones'].new(
+				name = str_name.replace("STR", "STR-RO")
 				,source = org_bone
-				,parent = str_bone
-				,head = str_bone.head
-				,tail = str_bone.head + org_bone.vector * str_bone.length
+				,parent = main_str
+				,head = main_str.head
+				,tail = main_str.head + org_bone.vector * main_str.length
 			)
 
-		str_bone.org_parent = org_bone
+		return main_str
 
-		if segments > 1:
-			sliced = self.naming.slice_name(str_bone.name)
-			str_bone.name = self.naming.make_name(sliced[0], f"{sliced[1]}{seg_i+1}", sliced[2])
-		str_bone.bbone_width *= 1.2
-		return str_bone
+	def make_sub_str_sections(self
+			,main_str_bones: List[BoneInfo]
+			,org_chain: BoneSet
+		) -> List[Tuple[BoneInfo, List[BoneInfo]]]:
+		"""Create sub-STR controls inbetween the main ones.
+		Return a list of (main STR, [sub STRs]) tuples.
+		"""
 
-	def make_str_helpers(self, str_sections: List[List[BoneInfo]]):
+		# Storage for sections of sub-STR bones. This is a list of tuples where
+		# the first element is a main STR bone, and the 2nd element is a list of its sub-STR bones.
+		sections = [[main_str, []] for main_str in main_str_bones]
+
+		num_sections = len(main_str_bones)-1
+		if self.is_cyclic:
+			num_sections += 1
+
+		for idx in range(num_sections):
+			org_bone = org_chain[idx]
+			main_start = main_str_bones[idx]
+
+			end_idx = idx + 1
+			if idx == len(main_str_bones)-1 and self.is_cyclic:
+				# The end STR of the last section of a cyclic chain is the first STR.
+				end_idx = 0
+			main_end = main_str_bones[end_idx]
+
+			section = self.make_sub_str_section(org_bone, main_start, main_end)
+			sections[idx][1] = section
+			main_start.sub_bones = section
+
+		return sections
+
+	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
+		"""Child classes may want to override this."""
+		return self.params.CR_chain_segments
+
+	def make_sub_str_section(self
+			,org_bone: BoneInfo
+			,main_start: BoneInfo
+			,main_end: BoneInfo
+		) -> List[BoneInfo]:
+		"""Create sub-STR controls using two others as anchor points."""
+
+		num_segments = self.get_num_segments_of_section(org_bone)
+
+		section = []
+		for idx in range(num_segments-1):
+			section.append(self.make_sub_str_bone(org_bone, main_start, main_end, num_segments, idx+1))
+		return section
+
+	def make_sub_str_bone(self
+			,org_bone: BoneInfo
+			,main_start: BoneInfo
+			,main_end: BoneInfo
+			,num_segments: int
+			,index: int
+		) -> BoneInfo:
+		# Add the index after the base name
+		sliced = self.naming.slice_name(main_start.name)
+		sub_str_name = self.naming.make_name(sliced[0], f"{sliced[1]}{index+1}", sliced[2])
+
+		vector = main_end.head - main_start.head
+		unit = vector / num_segments
+
+		sub_str = self.bone_sets['Stretch Controls'].new(
+			name = sub_str_name
+			,source = org_bone
+			,parent = org_bone
+			,head = main_start.head + (unit * index)
+			,length = vector.length / num_segments / 2
+			,custom_shape = self.ensure_widget("Sphere")
+			,custom_shape_scale = -0.4
+			,inherit_scale = 'AVERAGE'
+		)
+		sub_str.parent = self.make_sub_str_helper(
+			sub_str, main_start, main_end, num_segments, index
+		)
+
+		# TODO: Remove these useless refs
+		sub_str.align_in = sub_str
+		sub_str.align_out = sub_str
+
+		return sub_str
+
+	def make_sub_str_helper(self
+			,sub_str: BoneInfo
+			,main_start: BoneInfo
+			,main_end: BoneInfo
+			,num_segments: int
+			,index: int
+		) -> BoneInfo:
 		"""Create STR-H bones that keep STR controls between two main STR controls."""
-		main_str_bone = None
-		for sec_i, section in enumerate(str_sections):
-			if self.params.CR_chain_tip_control and section == str_sections[-1]:
-				# If there is a tip control, the last section will be just that tip control, so do nothing.
-				continue
-			for i, str_bone in enumerate(section):
-				if i==0:
-					main_str_bone = str_bone
-					main_str_bone.sub_bones = []
-					continue
+		str_h_bone = self.bone_sets['Stretch Helpers'].new(
+			name 		 = self.naming.add_prefix(sub_str.name, "H")
+			,source 	 = sub_str
+			,bbone_width = sub_str.bbone_width
+			,parent		 = sub_str.parent
+		)
+		sub_str.parent = str_h_bone
 
-				# If this STR bone is not the first in its section
-				# Create an STR-H parent helper for it, which will hold some constraints
-				# that keep this bone between the first and last STR bone of the section.
-				main_str_bone.sub_bones.append(str_bone)
+		influence_unit = 1 / num_segments
+		influence = index * influence_unit
+		str_h_bone.add_constraint('COPY_LOCATION'
+			,space		= 'WORLD'
+			,subtarget	= main_start
+		)
+		str_h_bone.add_constraint('COPY_LOCATION'
+			,space		= 'WORLD'
+			,subtarget	= main_end
+			,influence	= influence
+		)
+		str_h_bone.add_constraint('COPY_ROTATION'
+			,space		= 'WORLD'
+			,subtarget	= main_start.align_out
+		)
+		str_h_bone.add_constraint('COPY_ROTATION'
+			,space		= 'WORLD'
+			,subtarget	= main_end.align_in
+			,influence	= influence
+		)
+		str_h_bone.add_constraint('DAMPED_TRACK', subtarget=main_end)
 
-				str_h_bone = self.bone_sets['Stretch Helpers'].new(
-					name 		 = self.naming.add_prefix(str_bone.name, "H")
-					,source 	 = str_bone
-					,bbone_width = str_bone.bbone_width
-					,parent		 = str_bone.parent
-				)
-				str_bone.parent = str_h_bone
+		return str_h_bone
 
-				first_str = section[0]
-				last_str = str_sections[sec_i+1][0]
-				influence_unit = 1 / len(section)
-				influence = i * influence_unit
-				str_h_bone.add_constraint('COPY_LOCATION'
-					,space		= 'WORLD'
-					,subtarget	= first_str
-				)
-				str_h_bone.add_constraint('COPY_LOCATION'
-					,space		= 'WORLD'
-					,subtarget	= last_str
-					,influence	= influence)
+	def make_tangent_helpers(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+		"""Create tangent helpers for each STR bone."""
+		tangent_helpers = []
 
-				str_h_bone.add_constraint('COPY_ROTATION'
-					,space		= 'WORLD'
-					,subtarget	= first_str.align_out
-				)
-				str_h_bone.add_constraint('COPY_ROTATION'
-					,space		= 'WORLD'
-					,subtarget	= last_str.align_in
-					,influence	= influence
-				)
-				str_h_bone.add_constraint('DAMPED_TRACK', subtarget=last_str)
+		for i, str_bone in enumerate(str_chain):
+			str_bone.tangent_helper = self.make_tangent_helper(		# TODO: remove satanic reference if at all possible (probably won't be possible in cloud_face_chain though)
+				str_bone = str_bone
+				,prev_str = str_bone.prev or str_bone
+				,next_str = str_bone.next or str_bone
+				,smooth = self.params.CR_chain_smooth_spline
+			)
+			tangent_helpers.append(str_bone.tangent_helper)
 
-	def make_tangent_helper(self, str_bone: BoneInfo, smooth=False,
-						prev: BoneInfo = None, nxt: BoneInfo = None) -> BoneInfo:
+		return tangent_helpers
+
+	def make_tangent_helper(self
+			,str_bone: BoneInfo
+			,prev_str: BoneInfo = None
+			,next_str: BoneInfo = None
+			,smooth = False,
+		) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
+		org_bone = str_bone.source
 		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
-			,inherit_scale = 'NONE'
 			,parent = str_bone
+			,inherit_scale = 'NONE'
 		)
 
 		if smooth:
-			if not nxt:
-				nxt = str_bone.next or str_bone
-			if not prev:
-				prev = str_bone.prev or str_bone
+			assert prev_str and next_str, "Previous and next STR can only be None if smooth=False. Otherwise, pass str_bone."
+			handle_bone.add_constraint('DAMPED_TRACK'
+				,name		= "Damped Track Next"
+				,subtarget	= next_str.name
+				,track_axis	= 'TRACK_Y'
+			)
+			handle_bone.add_constraint('COPY_LOCATION', index=0
+				,name = "Copy Location Prev"
+				,subtarget = prev_str.name
+				,space = 'WORLD'
+			)
 
-			if nxt:
-				handle_bone.add_constraint('DAMPED_TRACK'
-					,name		= "Damped Track Next"
-					,subtarget	= nxt.name
-					,track_axis	= 'TRACK_Y'
-				)
-			if prev:
-				handle_bone.add_constraint('COPY_LOCATION', index=0
-					,name = "Copy Location Prev"
-					,subtarget = prev.name
-					,space = 'WORLD'
-				)
-
+			handle_bone.parent = org_bone
 			handle_bone.add_constraint('COPY_TRANSFORMS'
 				,name = "Copy STR Transforms"
 				,subtarget = str_bone.name
@@ -291,150 +389,125 @@ class CloudChainRig(CloudBaseRig):
 
 		return handle_bone
 
-	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
-		"""Create a deform chain stretching from one STR bone to the next"""
-		for str_bone in str_chain:
-			# Skip the tip control
-			if str_bone == str_chain[-1] and self.params.CR_chain_tip_control and not self.is_cyclic:
+	def make_def_chain(self
+			,str_chain: List[BoneInfo]
+			,tangent_helpers: List[BoneInfo]
+			,preserve_volume: bool
+			,create_ctr_def_ctrls: bool
+		) -> List[BoneInfo]:
+		"""Create a deform chain stretching from one STR bone to the next.
+		"""
+
+		assert len(tangent_helpers) in [0, len(str_chain)], "tangent_helpers should be either empty or equal length as str_chain, depending on Smooth Spline param."
+
+		# For each STR control, create a deform bone between it and the next one.
+		for i, str_bone in enumerate(str_chain):
+			if i == len(str_chain) - 1 and self.params.CR_chain_tip_control:
+				# Don't create the last one when it's the tip control.
 				continue
 
-			org_bone = str_bone.org_parent
-			if not hasattr(org_bone, 'def_bones'):
-				org_bone.def_bones = []
-
-			tail = org_bone.tail
-			if str_bone.next:
+			if not str_bone.next:
+				# This happens when tip_control=False.
+				tail = str_bone.source.tail
+			else:
 				tail = str_bone.next.head
+			org_bone = str_bone.source
 
 			def_name = str_bone.name.replace("STR", "DEF")
 			def_bone = self.bones_def.new(
-				name						  = def_name
-				,source						  = org_bone
-				,parent						  = str_bone
-				,head						  = str_bone.head
-				,tail						  = tail
-				,use_deform					  = True
+				name		= def_name
+				,source		= org_bone
+				,parent		= str_bone
+				,head		= str_bone.head
+				,tail		= tail
+				,use_deform	= True
 			)
 
-			# TODO: Arbitrary property assignments, eeek!
-			def_bone.str_bone = str_bone
-			org_bone.def_bones.append(def_bone)
+			if i == len(str_chain) - 1 and not self.is_cyclic:
+				# Don't set up the last one unless we're a cyclic rig, since it has no next STR.
+				def_bone.tail = org_bone.tail
+				def_bone.inherit_scale = 'ALIGNED'		# TODO: In FK chain rigs, this last lonely deform bone should be parented to FK for good scaling behaviour.
+				continue
 
-			if self.params.CR_chain_unlock_deform:
+			if create_ctr_def_ctrls:
 				self.make_def_control(str_bone, def_bone)
 
-			self.setup_def_bone(def_bone, org_bone, str_bone, str_bone.next)
+			self.setup_deform_bone(
+				def_bone = def_bone
+				,org_bone = org_bone
+				,str_bone = str_bone
+				,next_str_bone = str_bone.next
+				,preserve_volume = preserve_volume
+			)
 
 		return self.bones_def
 
-	def make_def_control(self, str_bone: BoneInfo, def_bone: BoneInfo) -> BoneInfo:
-		def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
-		def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
-		def_bone_control.inherit_scale = 'ALIGNED'
-		def_bone.add_constraint('COPY_SCALE'
-			,subtarget = def_bone_control.name
-			,space = 'WORLD'
-			,use_xyz = [False, True, False]
-		)
-		def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
-		def_bone_parent.parent = str_bone.parent
-		def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
-		def_bone_control.head = def_bone_control.center
-		def_bone_control.custom_shape_scale_xyz *= 0.7
-
-		if str_bone.next:
-			def_bone_parent.add_constraint('STRETCH_TO'
-				,subtarget = str_bone.next.name
-				,use_bulge_min = not self.params.CR_chain_preserve_volume
-				,use_bulge_max = not self.params.CR_chain_preserve_volume
-			)
-		def_bone_control.custom_shape = self.ensure_widget('Cube')
-		def_bone_control.custom_shape_scale_xyz.y = 0.1
-		def_bone_control.layers = self.bone_sets['Deform Controls'].layers[:] # TODO: This should not be necessary!
-		def_bone.def_ctr_bone = def_bone_control
-
-		return def_bone_control
-
-	def setup_def_bone(self, def_bone, org_bone, str_bone, next_str_bone=None):
+	def setup_deform_bone(self
+			,def_bone: BoneInfo
+			,org_bone: BoneInfo
+			,str_bone: BoneInfo
+			,next_str_bone: BoneInfo
+			,preserve_volume: bool
+		):
 		"""Configure BBone setup for def_bone."""
-		# TODO: Code-wise this is pretty terrible, with a lot of checking and setting def_bone.bbone_segments.
-		# Instead, this should be split up into two functions: A general deform bone set-up, and a bendy-bone specific set-up.
-		# It might also make sense to create tangent helpers here rather than earlier.
 
-		segments, bbone_density = self.determine_segments(org_bone)
+		# Stretch to next STR bone.
+		if not self.params.CR_chain_unlock_deform:
+			def_bone.add_constraint('STRETCH_TO'
+				,subtarget = next_str_bone
+				,use_bulge_min = not preserve_volume
+				,use_bulge_max = not preserve_volume
+			)
 
-		# If def_bone is the first bone of the segment, but not the first bone of the chain.
-		if str_bone in self.main_str_bones:
-			def_bone.bbone_easein = 1 - self.params.CR_chain_sharp
-
-		def_bone.bbone_segments = bbone_density/(org_bone.length/def_bone.length)
+		# Set BBone Segments according to BBone Density param.
+		def_bone.bbone_segments = self.determine_num_bbone_segments(org_bone, def_bone)
 		# If bbone_density is >0, force at least 2 bbone_segments.
 		# Otherwise it's not a bendy bone.
 		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
 			def_bone.bbone_segments = 2
+		elif self.params.CR_chain_bbone_density == 0:
+			# If we don't have bendy bones then we're done.
+			return
 
-		if not next_str_bone:
-			next_str_bone = str_bone.next
-		if next_str_bone:
-			if def_bone.bbone_segments > 1:
-				def_bone.bbone_handle_type_start	  = 'TANGENT'
-				def_bone.bbone_handle_type_end		  = 'TANGENT'
-				def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
-				def_bone.bbone_handle_use_scale_start = [True, False, True]
-				def_bone.bbone_handle_use_scale_end	  = [True, False, True]
-				if hasattr(next_str_bone, 'tangent_helper'):
-					# This can be false when connecting to a parent chain rig.
-					def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
+		# Set initial ease according to Sharp Sections param.
+		if self.params.CR_chain_sharp:
+			if str_bone in self.main_str_bones:
+				def_bone.bbone_easein = 0
+			if str_bone.next in self.main_str_bones:
+				def_bone.bbone_easeout = 0
 
-			if not self.params.CR_chain_unlock_deform:
-				def_bone.add_constraint('STRETCH_TO'
-					,subtarget = next_str_bone.name
-					,use_bulge_min = not self.params.CR_chain_preserve_volume
-					,use_bulge_max = not self.params.CR_chain_preserve_volume
-				)
-			elif def_bone.bbone_segments > 1:
-				# Add drivers to BBone Roll so that rotating CTR-DEF controls on
-				# local Y axis gives the results an animator might expect.
-				rollin_driver = {
-					'prop' : 'bbone_rollin',
-					'variables' : {
-						'var' : {
-							'type' : 'TRANSFORMS',
-							'targets' : [{
-								'bone_target' : def_bone.def_ctr_bone.name,
-								'transform_space' : 'LOCAL_SPACE',
-								'rotation_mode' : 'SWING_TWIST_Y',
-								'transform_type' : 'ROT_Y',
-							}]
-						}
-					}
-				}
-				def_bone.drivers.append(rollin_driver)
-				rollout_driver = deepcopy(rollin_driver)
-				rollout_driver['prop'] = 'bbone_rollout'
-				def_bone.drivers.append(rollout_driver)
+		def_bone.bbone_handle_type_start	  = 'TANGENT'
+		def_bone.bbone_handle_type_end		  = 'TANGENT'
+		def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
+		def_bone.bbone_handle_use_scale_start = [True, False, True]
+		def_bone.bbone_handle_use_scale_end	  = [True, False, True]
+		if hasattr(next_str_bone, 'tangent_helper'):
+			# This can be False when connecting to a parent chain rig that has Smooth Spline=False.
+			def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 
-			is_last_of_segment = next_str_bone in self.main_str_bones
-
-			# Last bone of the segment should have an EaseOut of 0 when Sharp Sections is enabled.
-			if is_last_of_segment or next_str_bone not in self.bone_sets['Stretch Controls']:	# Catch case of connecting parent chain
-				def_bone.bbone_easeout = 1 - self.params.CR_chain_sharp
-
-		else:
-			# This only happens if this is the last deform bone and CR_chain_tip_control==False.
-			# In this case it shouldn't be a bendy bone, so set bbone segments to 1.
-			def_bone.bbone_segments = 1
-
-		# B-Bone scale drivers
-		if def_bone.bbone_segments > 1:
-			if not self.params.CR_chain_preserve_volume:
-				def_bone.inherit_scale = 'NONE'
-			self.make_bbone_ease_drivers(def_bone)
-		else:
-			def_bone.inherit_scale = 'ALIGNED'
+		# B-Bone ease drivers
+		if not preserve_volume:
+			def_bone.inherit_scale = 'NONE'
+		self.make_bbone_ease_drivers(def_bone)
 
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
+
+	def determine_num_bbone_segments(self
+			,org_bone: BoneInfo
+			,def_bone: BoneInfo
+		) -> int:
+		"""Determine how many deform and b-bone segments should be in a section of the chain."""
+		average_bone_length = self.chain_length / len(self.bones_org)	# TODO: This might be wrong now because we add a bone to bones_org when tip control is enabled...
+		bbone_density = round(org_bone.length/average_bone_length *
+			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
+
+		bbone_segments = int( bbone_density / (org_bone.length / def_bone.length) )
+		if self.params.CR_chain_bbone_density > 0:
+			# Force at least 2 bbone_segments, otherwise it's not a bendy bone.
+			bbone_segments = max(bbone_segments, 2)
+
+		return bbone_segments
 
 	def make_bbone_ease_drivers(self, def_bone: BoneInfo):
 		### Ease In/Out
@@ -463,24 +536,83 @@ class CloudChainRig(CloudBaseRig):
 		}
 
 		# Ease In
-		if (def_bone.bbone_handle_type_start == 'TANGENT' and def_bone.bbone_custom_handle_start):
+		if def_bone.bbone_handle_type_start == 'TANGENT':
 			def_bone.drivers.append(easein_driver)
 
 		# Ease Out
-		if (def_bone.bbone_handle_type_end == 'TANGENT' and def_bone.bbone_custom_handle_end):
+		if def_bone.bbone_handle_type_end == 'TANGENT' and \
+				def_bone.bbone_custom_handle_end:
 			easeout_driver = deepcopy(easein_driver)
 			easeout_driver['prop'] = "bbone_easeout"
 			easeout_driver['variables']['YScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
 			easeout_driver['variables']['AvgScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
 			def_bone.drivers.append(easeout_driver)
 
-	def make_shape_key_helper(self, def_bone_1: BoneInfo, def_bone_2: BoneInfo) -> BoneInfo:
-		"""Create SKP and SKH helper bones.
+	def make_def_control(self
+			,str_bone: BoneInfo
+			,def_bone: BoneInfo
+		) -> BoneInfo:
+		"""Create CTR-DEF controls that can be used to nudge deform bones 
+		completely independently from their neighbours.
+		"""
+		def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
+		def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
+		def_bone_control.inherit_scale = 'ALIGNED'
+		def_bone.add_constraint('COPY_SCALE'
+			,subtarget = def_bone_control.name
+			,space = 'WORLD'
+			,use_xyz = [False, True, False]
+		)
+		def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
+		def_bone_parent.parent = str_bone.parent
+		def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
+		def_bone_control.head = def_bone_control.center
+		def_bone_control.custom_shape_scale_xyz *= 0.7
+
+		if str_bone.next:
+			def_bone_parent.add_constraint('STRETCH_TO'
+				,subtarget = str_bone.next.name
+				,use_bulge_min = not self.params.CR_chain_preserve_volume
+				,use_bulge_max = not self.params.CR_chain_preserve_volume
+			)
+		def_bone_control.custom_shape = self.ensure_widget('Cube')
+		def_bone_control.custom_shape_scale_xyz.y = 0.1
+		def_bone_control.layers = self.bone_sets['Deform Controls'].layers[:] # TODO: This should not be necessary!
+
+		# Add drivers to BBone Roll so that rotating CTR-DEF controls on
+		# local Y axis gives the results an animator might expect.
+		rollin_driver = {
+			'prop' : 'bbone_rollin',
+			'variables' : {
+				'var' : {
+					'type' : 'TRANSFORMS',
+					'targets' : [{
+						'bone_target' : def_bone_control.name,
+						'transform_space' : 'LOCAL_SPACE',
+						'rotation_mode' : 'SWING_TWIST_Y',
+						'transform_type' : 'ROT_Y',
+					}]
+				}
+			}
+		}
+		def_bone.drivers.append(rollin_driver)
+		rollout_driver = deepcopy(rollin_driver)
+		rollout_driver['prop'] = 'bbone_rollout'
+		def_bone.drivers.append(rollout_driver)
+
+		return def_bone_control
+
+	def make_shape_key_helper(self
+			,def_bone_1: BoneInfo
+			,def_bone_2: BoneInfo
+		) -> BoneInfo:
+		"""
+		Create SKP and SKH helper bones.
 
 		Reading the local rotation of SKH
-		should give us the rotation which we can use to activate corrective
-		shape keys, since it will always represent the true rotational
-		difference between the end of def_bone_1 and the start of def_bone_2.
+		gives us the rotation that we can use to activate corrective
+		shape keys. It will be the rotational difference between the 
+		end of def_bone_1 and the start of def_bone_2.
 		"""
 
 		# SKP (Shape Key Helper Parent): Copy Transforms of the b-bone tail
@@ -522,28 +654,38 @@ class CloudChainRig(CloudBaseRig):
 	def connect_parent_chain_rig(self):
 		"""Connect two separate but connected cloud_chain rigs.
 
-		If the parent rig is a connected chain rig with cap_control=False,
+		If the parent rig is a connected chain rig with tip_control=False,
 		make the last DEF bone of that rig stretch to this rig's first STR.
 		"""
 
+		# Check if we can connect into the parent rig
 		parent_rig = self.rigify_parent
 		if not isinstance(parent_rig, CloudChainRig): return
 		if parent_rig.params.CR_chain_tip_control: return
-
 		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bones_org[0]))
 		if not meta_org_bone.bone.use_connect: return
 
 		parent_rig.params.CR_chain_tip_control = True
 		last_def = parent_rig.bones_def[-1]
-		last_str = parent_rig.bone_sets['Stretch Controls'][-1]
+		last_str = parent_rig.str_chain[-1]
 		last_org = parent_rig.bones_org[-1]
-		parent_rig.setup_def_bone(last_def, last_org, last_str, self.bone_sets['Stretch Controls'][0])
-		last_def.parent = last_str
-		last_str.custom_shape = self.bone_sets['Stretch Controls'][0].custom_shape = self.ensure_widget('Sphere')
+		parent_rig.setup_deform_bone(
+			def_bone = last_def
+			,org_bone = last_org
+			,str_bone = last_str
+			,next_str_bone = self.str_chain[0]
+			,preserve_volume = parent_rig.params.CR_chain_preserve_volume
+		)
+		last_str.next = self.str_chain[0]
+		last_str.custom_shape = self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
 			self.make_shape_key_helper(last_def, self.bones_def[0])
-		if self.params.CR_chain_smooth_spline or parent_rig.params.CR_chain_smooth_spline:
-			self.make_tangent_helper(last_str, nxt=self.bone_sets['Stretch Controls'][0])
+		if self.params.CR_chain_smooth_spline:
+			self.tangent_helpers[0].constraint_infos[0].subtarget = parent_rig.str_chain[-1]
+		if parent_rig.params.CR_chain_smooth_spline:
+			parent_rig.tangent_helpers[-1].constraint_infos[1].subtarget = self.str_chain[0]
+		if parent_rig.params.CR_chain_unlock_deform:
+			parent_rig.make_def_control(last_str, last_def)
 
 	##############################
 	# Parameters
@@ -570,7 +712,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_chain_segments = IntProperty(
+		params.CR_chain_segments = IntProperty(	# TODO: It would be more intuitive to rename this to "Sub-Controls" and set default to 0, change code logic accordingly, and do metarig versioning.
 			 name		 = "Stretch Segments"
 			,description = "Number of bendy bones to create for each original bone"
 			,default	 = 1
@@ -612,7 +754,7 @@ class CloudChainRig(CloudBaseRig):
 		)
 		params.CR_chain_tip_control = BoolProperty(
 			 name		 = "Tip Control"
-			,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one"
+			,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one, or to make this chain loop into itself"
 			,default	 = True
 		)
 		params.CR_chain_preserve_volume = BoolProperty(

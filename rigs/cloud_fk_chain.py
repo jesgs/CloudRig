@@ -19,13 +19,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		super().initialize()
 
 		self.limb_name = self.naming.slice_name(self.base_bone)[1]
-
-		# TODO SPRITEFRIGHT: This can be removed after Sprite Fright.
-		if "arm" in self.limb_name.lower():
-			self.limb_name = "Arm"
-		if "thigh" in self.limb_name.lower():
-			self.limb_name = "Leg"
-
 		self.limb_ui_name = self.limb_name
 		if self.side_prefix != "":
 			self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
@@ -38,6 +31,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
+
 		if self.params.CR_fk_chain_root:
 			self.root_bone = self.make_root_bone()
 
@@ -219,9 +213,14 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		bone.parent = hng_bone
 		return hng_bone
 
-	def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+	def make_def_chain(self
+			,str_chain: List[BoneInfo]
+			,tangent_helpers: List[BoneInfo]
+			,preserve_volume: bool
+			,create_ctr_def_ctrls: bool
+		) -> List[BoneInfo]:
 		"""Extend cloud_chain by tweaking some bbone values."""
-		def_chain = super().make_def_chain(str_chain)
+		def_chain = super().make_def_chain(str_chain, tangent_helpers, preserve_volume, create_ctr_def_ctrls)
 
 		last_def = def_chain[-1]
 		if last_def == def_chain[0]:

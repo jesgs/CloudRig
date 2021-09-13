@@ -59,18 +59,11 @@ class CloudLimbRig(CloudIKChainRig):
 		properties_bone.parent = self.bones_org[-1]
 		return properties_bone
 
-	def determine_segments(self, org_bone):
-		"""Overrides function from cloud_chain."""
-		segments, bbone_density = super().determine_segments(org_bone)
-
-		# Force strictly 1 segment on the toe.
+	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
+		"""Override cloud_chain, force 1 segment on the wrist."""
 		if org_bone == self.bones_org[-1]:
-			if self.params.CR_chain_tip_control:
-				return 1, bbone_density
-			else:
-				return 1, 1
-
-		return segments, bbone_density
+			return 1
+		return self.params.CR_chain_segments
 
 	def make_ik_setup(self):
 		"""Override."""
@@ -145,10 +138,9 @@ class CloudLimbRig(CloudIKChainRig):
 	# End of overrides
 
 	def tweak_str_limb(self):
-		# We want to make some changes to the STR chain to make it behave more limb-like.
+		# Make changes to the STR chain to make it behave more like a limb.
 
 		# Disable first Copy Rotation constraint on the upperarm
-		# TODO: Why did we do this?
 		if self.params.CR_chain_segments > 1:
 			for b in self.main_str_bones[0].sub_bones:
 				str_h_bone = b.parent

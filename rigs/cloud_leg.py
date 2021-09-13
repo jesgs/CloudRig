@@ -63,15 +63,11 @@ class CloudLegRig(CloudLimbRig):
 		properties_bone.parent = self.bones_org[-2]
 		return properties_bone
 
-	def determine_segments(self, org_bone):
-		"""Overrides."""
-		segments, bbone_density = super().determine_segments(org_bone)
-
+	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
+		"""Override cloud_leg, force 1 segment on the foot and toe."""
 		if org_bone in self.bones_org[-2:]:
-			# Force strictly 1 segment on the foot and the toe.
-			return 1, bbone_density
-		else:
-			return segments, bbone_density
+			return 1
+		return self.params.CR_chain_segments
 
 	def make_ik_setup(self):
 		"""Override."""
