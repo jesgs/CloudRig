@@ -143,6 +143,8 @@ class BoneInfo:
 		self.roll_bone = None # If roll_type=='ACTIVE', use this as the active bone. This is a BoneInfo instance or a string.
 		self.roll_cursor = Vector() # If roll_type=='CURSOR', use this as the cursor location.
 
+		self._source = self
+
 		if source:
 			self.head = source.head.copy()
 			self.tail = source.tail.copy()
@@ -153,6 +155,7 @@ class BoneInfo:
 			self.head_radius = source.head_radius
 			self.tail_radius = source.tail_radius
 			if type(source) == BoneInfo:
+				self._source = source
 				self.roll_type = source.roll_type
 				self.roll_bone = source.roll_bone
 				self.roll = source.roll
@@ -186,6 +189,16 @@ class BoneInfo:
 			generator.bone_owners[new_name] = rig
 			bone.name = new_name
 		self._name = new_name
+
+	@property
+	def source(self):
+		"""The source is the ORG bone that this BoneInfo was copied from, or
+		this BoneInfo itself.
+		"""
+		# Recursively get the source of each bone until getting to what should be an ORG bone.
+		if self._source == self:
+			return self
+		return self._source.source
 
 	@property
 	def custom_shape_scale(self):
