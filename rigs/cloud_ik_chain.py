@@ -147,7 +147,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 		chain_vector = meta_second.tail - meta_first.head
 
-		first_tail = meta_first.tail
+		first_tail = meta_second.head
 		last_tail = meta_second.tail
 
 		# Calculate the distances of the four points to the tail of the last bone.
@@ -158,7 +158,9 @@ class CloudIKChainRig(CloudFKChainRig):
 		z_pos_distance = ((first_tail+meta_first.z_axis) - last_tail).length
 		z_neg_distance = ((first_tail-meta_first.z_axis) - last_tail).length
 
-		# Store those distances in a dictionary where they are matched with a tuple describing (the main axis of rotation, IK constraint pole_angle), that should be used, when that distance is the lowest.
+		# Store those distances in a dictionary where they are matched with a 
+		# tuple describing (the main axis of rotation, IK constraint pole_angle), 
+		# that should be used, when that distance is the lowest.
 		axis_dict = {
 			x_pos_distance : ("-Z", 180),
 			x_neg_distance : ("+Z", 0),
@@ -166,7 +168,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			z_neg_distance : ("-X", 90)
 		}
 
-		lowest_distance = axis_dict[min(list(axis_dict.keys()))]	# Find the tuple to use by picking the one corresponding to the lowest distance.
+		# Find the tuple to use by picking the one corresponding to the lowest distance.
+		lowest_distance = axis_dict[min(list(axis_dict.keys()))]
 		rotation_axis = lowest_distance[0]
 		pole_angle = rad(lowest_distance[1])
 
@@ -177,12 +180,14 @@ class CloudIKChainRig(CloudFKChainRig):
 		if rotation_axis[1] == "Z":
 			perpendicular_axis = meta_first.z_axis
 
-		# Find the vector that is perpendicular to a plane defined by the chain vector and the main rotation axis.
-		pole_vector = chain_vector.cross(perpendicular_axis).normalized() * vector_flipper * chain_vector.length
+		# Find a direction that is perpendicular to a plane defined by the chain vector and the main rotation axis.
+		pole_direction = chain_vector.cross(perpendicular_axis).normalized()
 
-		# Apply the scalar coming from the size of the rig. If the rig is bigger,
-		# the IK handle should be further away.
-		pole_vector *= scale
+		# Flip it if the main rotation axis is negative.
+		direction_with_flip = pole_direction * vector_flipper
+
+		# Give it a length which is the distance between the start and end of the chain.
+		pole_vector = direction_with_flip * chain_vector.length
 
 		# We want the pole control to be offset from the first bone's tail by that vector.
 		pole_location = first_tail + pole_vector
@@ -209,6 +214,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,bbone_width		= 0.1
 			,head				= self.pole_location
 			,tail				= self.pole_location + flat(self.pole_vector) * 0.2
+			,length				= self.scale
 			,roll				= 0
 			,custom_shape		= self.ensure_widget('Arrow_Head')
 			,custom_shape_scale	= 0.5
@@ -696,9 +702,15 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 			return False
 		ob = context.object
 		active_pb = get_active_pbone(context)
-		return ob and ob.type == 'ARMATURE' and ob.mode != 'OBJECT' \
-			 and active_pb and active_pb.rigify_type in ('cloud_ik_chain', 'cloud_limb', 'cloud_leg') \
-				 and active_pb.rigify_parameters.CR_ik_chain_use_pole
+		if not active_pb:
+			return False
+		chain = cls.get_bone_chain(context)
+		if len(chain) < 2:
+			return False
+		valid_ob = ob and ob.type == 'ARMATURE' and ob.mode != 'OBJECT'
+		valid_pb = active_pb.rigify_type in ('cloud_ik_chain', 'cloud_limb', 'cloud_leg') and active_pb.rigify_parameters.CR_ik_chain_use_pole
+		return valid_ob and valid_pb
+				 
 
 	@staticmethod
 	def get_bone_chain(context):
@@ -714,32 +726,26 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 	def get_matrix(self, context):
 		metarig = context.object
 		active_b = get_active_edit_or_pose_bone(context)
-		active_pb = get_active_pbone(context)
 		chain = self.get_bone_chain(context)
 
-		pole_angle, pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(metarig))
-
-		bone_mat = metarig.matrix_world @ active_b.matrix
-		loc, rot, scale = bone_mat.to_translation(), bone_mat.to_euler(), bone_mat.to_scale()
-
-		bone_vector = active_b.vector.copy()
-		bone_vector.rotate(metarig.rotation_euler)
-
-		# Offset the gizmo location to the first child bone.
-		# We actually want the tail of the first bone, but this should be the 
-		# same, and this still works even if there's crazy stuff like skewing.
-		loc += chain[1].matrix.to_translation()
+		_pole_angle, pole_vector, _pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(metarig))
 
 		# To create a Rotation that "points at" a Vector, we can use to_track_quat().
 		rot = pole_vector.to_track_quat('Z', 'Y')
 
-		# The final Matrix where the gizmo can be displayed.
-		final_mat = Matrix.LocRotScale(loc, rot, scale)
+		# Set the gizmo location to the first child bone. Counter-move by the distance.
+		loc = chain[1].head.copy()# - pole_vector.normalized()*distance
 
-		return final_mat
+		# The pose-space matrix where the gizmo can be displayed.
+		# XXX: SCALE MUST ALWAYS BE 1, OR CLICK&DRAG INTERACTION IS WRONG.
+		pose_mat = Matrix.LocRotScale(loc, rot, Vector((1, 1, 1)))
 
-	@staticmethod
-	def get_offset_matrix(context):
+		# Convert to world space (XXX Again, this means if object is scaled, gizmo interaction is bad)
+		world_mat = metarig.matrix_world @ pose_mat
+
+		return world_mat
+
+	def get_offset_matrix(self, context):
 		"""Not yet sure what the offset matrix is supposed to be used for, but
 		I can see that its values apply to the gizmo AFTER the matrix_basis,
 		which seems handy."""
@@ -747,12 +753,16 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		chain = CloudIKChainRig.get_rigify_chain(active_pb)
 		if context.mode == 'EDIT_ARMATURE':
 			chain = [context.object.data.edit_bones.get(b.name) for b in chain]
-		pole_angle, pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(context.object))
+		_pole_angle, _pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(context.object))
+		
+		active_pb = get_active_pbone(context)
+		distance = active_pb.rigify_parameters.CR_GZ_ik_chain_pole_distance
+
 		loc = Vector((0, 0, 0))
-		loc.z = pole_vector.length
-		loc.z -= 1.25	# 1.25 is the length of the default arrow gizmo shape
 		rot = Euler(Vector((0, 0, 0)))
-		scale = Vector((1, 1, 1))
+		scalar = (pole_location - chain[1].head).length
+		scale = Vector([scalar] * 3) * 0.8
+
 		return Matrix.LocRotScale(loc, rot, scale)
 
 	def setup(self, context):
@@ -772,8 +782,9 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 
 		# Hook up the gizmo's 'offset' property to the ik pole distance.
 		gz.target_set_prop('offset', active_pb.rigify_parameters, 'CR_GZ_ik_chain_pole_distance')
-		gz.matrix_basis = self.get_matrix(context)
-		gz.matrix_offset = self.get_offset_matrix(context)
+
+		gz.matrix_basis = Matrix.Identity((4))
+		gz.matrix_offset = Matrix.Identity((4))
 		self.ik_distance_gizmo = gz
 
 	def refresh(self, context):
