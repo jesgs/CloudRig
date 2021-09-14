@@ -205,6 +205,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second, self.scale)
 		self.pole_angle = pole_angle
 		self.pole_vector = pole_vector
+
 		self.pole_location = pole_location + self.pole_vector.normalized() * self.params.CR_GZ_ik_chain_pole_distance
 
 	def make_pole_control(self):
@@ -644,9 +645,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Gizmo Parameters
 		params.CR_GZ_ik_chain_pole_distance = FloatProperty(
 			name		 = "Pole Distance"
-			,default	 = 1.0
-			,min		 = -10.0
-			,max		 = 10.0
+			,description = "An additive offset to the IK pole distance"
+			,default	 = 0.0
 		)
 
 		super().add_parameters(params)
@@ -754,9 +754,9 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		if context.mode == 'EDIT_ARMATURE':
 			chain = [context.object.data.edit_bones.get(b.name) for b in chain]
 		_pole_angle, _pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(context.object))
-		
-		active_pb = get_active_pbone(context)
-		distance = active_pb.rigify_parameters.CR_GZ_ik_chain_pole_distance
+
+		# active_pb = get_active_pbone(context)
+		# distance = active_pb.rigify_parameters.CR_GZ_ik_chain_pole_distance
 
 		loc = Vector((0, 0, 0))
 		rot = Euler(Vector((0, 0, 0)))
@@ -790,7 +790,11 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 	def refresh(self, context):
 		"""Runs in all subsequent times when poll() returns True."""
 		ob = context.object
+		active_pb = get_active_pbone(context)
+
 		gz = self.ik_distance_gizmo
+		gz.target_set_prop('offset', active_pb.rigify_parameters, 'CR_GZ_ik_chain_pole_distance')
+
 		gz.matrix_basis = self.get_matrix(context)
 		gz.matrix_offset = self.get_offset_matrix(context)
 
