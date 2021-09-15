@@ -81,7 +81,7 @@ class CloudLimbRig(CloudIKChainRig):
 		for i in range(0, self.params.CR_chain_segments):
 			factor_unit = 0.9 / self.params.CR_chain_segments
 			factor = 0.9 - factor_unit * i
-			self.add_counterrotate_constraint(self.bone_sets['Stretch Controls'][i], self.bones_org[0], factor)
+			self.add_counterrotate_constraint(self.str_chain[i], self.bones_org[0], factor)
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""

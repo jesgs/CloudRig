@@ -136,9 +136,9 @@ class CloudFaceChainRig(CloudChainRig):
 		"""
 
 		if con.name.startswith('TAIL-'):
-			relink_bone = self.bone_sets['Stretch Controls'][org_i+1]
+			relink_bone = self.main_str_bones[org_i+1]
 		else:
-			relink_bone = self.bone_sets['Stretch Controls'][org_i]
+			relink_bone = self.main_str_bones[org_i]
 
 		if hasattr(relink_bone, 'intersection_ctrl'):
 			relink_bone = relink_bone.intersection_ctrl

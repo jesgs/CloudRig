@@ -30,8 +30,7 @@ class SpriteFeatherRig(CloudFKChainRig):
 			,parent 		= org
 			,custom_shape 	= self.ensure_widget("Feather")
 		)
-		bend_ctr.bone_group = self.bone_sets['Stretch Controls'].bone_group
-		self.bone_sets['Stretch Controls'][-1].parent = bend_ctr
+		self.main_str_bones[-1].parent = bend_ctr
 		bend_ctr.custom_shape_along_length = 0.95
 
 		# Create a visual helper line from the bend to the FK control's display positions.
@@ -44,14 +43,14 @@ class SpriteFeatherRig(CloudFKChainRig):
 			,custom_shape = self.ensure_widget("Line")
 			,use_custom_shape_bone_size = True
 		)
-		line.bone_group = self.bone_sets['Stretch Controls'].bone_group
+		bend_ctr.bone_group = line.bone_group = self.bone_sets['Stretch Controls'].bone_group
 		line.bbone_width *= 0.2
 		line.hide_select = True
 
 		line.add_constraint('STRETCH_TO', subtarget=first_fk.name, head_tail=1)
 
 		# Make the tip control copy partial rotation of the bend control
-		self.bone_sets['Stretch Controls'][-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
+		self.main_str_bones[-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
 
 	##############################
 	# No parameters for this rig type.

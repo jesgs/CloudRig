@@ -257,8 +257,8 @@ class CloudSpineRig(CloudFKChainRig):
 		""" We need to parent the last non-tip STR control to the 2nd-to-last FK control,
 		otherwise that FK control's rotation disconnects the spine from itself."""
 		# TODO: Why isn't this parenting done in the same place where STR bones get parented normally?
-		for i, str_bone in enumerate(self.bone_sets['Stretch Controls']):
-			if i == len(self.bone_sets['Stretch Controls']) - 1 - self.params.CR_chain_tip_control:
+		for i, str_bone in enumerate(self.main_str_bones):
+			if i == len(self.main_str_bones) - 1 - self.params.CR_chain_tip_control:
 				str_bone.parent = self.bone_sets['FK Controls'][-2]
 
 	def attach_org_to_fk(self, org_bones, fk_bones):
@@ -278,7 +278,7 @@ class CloudSpineRig(CloudFKChainRig):
 				org_bone.parent = fk_bones[i-1]
 
 		if self.params.CR_chain_tip_control:
-			self.bone_sets['Stretch Controls'][-1].parent = fk_bones[-1]
+			self.main_str_bones[-1].parent = fk_bones[-1]
 
 	##############################
 	# Parameters
