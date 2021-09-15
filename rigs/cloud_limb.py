@@ -77,11 +77,7 @@ class CloudLimbRig(CloudIKChainRig):
 			double_control.name = old_name
 			double_control.layers, self.ik_mstr.layers = self.ik_mstr.layers, double_control.layers
 
-		# Counter-Rotate setup for the first section of STR bones.
-		for i in range(0, self.params.CR_chain_segments):
-			factor_unit = 0.9 / self.params.CR_chain_segments
-			factor = 0.9 - factor_unit * i
-			self.add_counterrotate_constraint(self.str_chain[i], self.bones_org[0], factor)
+		self.add_counterrotate_constraints(self.str_chain[:self.params.CR_chain_segments])
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""
@@ -146,21 +142,22 @@ class CloudLimbRig(CloudIKChainRig):
 				str_h_bone = b.parent
 				str_h_bone.constraint_infos[2].mute = True
 
-	def add_counterrotate_constraint(self, str_bone, org_bone, factor):
-		str_bone.add_constraint('TRANSFORM'
-			,name					= "Transformation (Counter-Rotate)"
-			,subtarget				= org_bone.name
-			,map_from				= 'ROTATION'
-			,map_to					= 'ROTATION'
-			,use_motion_extrapolate = True
-			,from_min_y_rot			= -1
-			,from_max_y_rot			= 1
-			,to_min_y_rot			= factor
-			,to_max_y_rot			= -factor
-			,from_rotation_mode		= 'SWING_TWIST_Y'
-			# TODO: This 0.5 influence doesn't seem correct while rigging Jay. (Should be 1.0) Odd that it wasn't noticable on any other character?
-			,influence				= 0.5
-		)
+	def add_counterrotate_constraints(self ,str_chain: List[BoneInfo]):
+		"""Counter-Rotate setup for the first section of STR bones.
+		This is done because, eg., when twisting the wrist, we want that twist
+		to fade out gradually towards the elbow.
+		"""
+		for i in range(0, len(str_chain)):
+			factor_unit = 0.9 / len(str_chain)
+			factor = 0.9 - factor_unit * i
+			str_bone = str_chain[i]
+			str_bone.add_constraint('COPY_ROTATION'
+				,name		= "Copy Rotation (Counter-Rotate)"
+				,use_xyz	= [False, True, False]
+				,invert_xyz	= [False, True, False]
+				,subtarget	= str_bone.source.name
+				,influence	= factor
+			)
 
 	def setup_rubber_hose(self
 			,org_upper: BoneInfo
