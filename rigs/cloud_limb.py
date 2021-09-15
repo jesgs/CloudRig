@@ -42,9 +42,9 @@ class CloudLimbRig(CloudIKChainRig):
 		self.tweak_str_limb()
 		segments = self.params.CR_chain_segments
 		if self.params.CR_limb_auto_hose and segments > 1:
-			upper = self.bone_sets['Stretch Controls'][1:segments]
-			lower = self.bone_sets['Stretch Controls'][segments+1:segments*2]
-			self.setup_rubber_hose(self.bones_org[1], upper, lower)
+			upper_section = self.main_str_bones[0].sub_bones
+			lower_section = self.main_str_bones[1].sub_bones
+			self.setup_rubber_hose(self.bones_org[0], self.bones_org[1], upper_section, lower_section)
 
 	##############################
 	# Override some inherited functionality
@@ -162,9 +162,15 @@ class CloudLimbRig(CloudIKChainRig):
 			,influence				= 0.5
 		)
 
-	def setup_rubber_hose(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo]):
-		""" Add translating Transformation constraints to str_upper and
-			str_lower controls, driven by org_elbow. (Also meant for legs)
+	def setup_rubber_hose(self
+			,org_upper: BoneInfo
+			,org_lower: BoneInfo
+			,str_upper_section: List[BoneInfo]
+			,str_lower_section: List[BoneInfo]
+		):
+		""" Add translating Transformation constraints to str_upper_section and
+			str_lower_section controls, driven by org_lower, which would be the 
+			elbow or the knee.
 		"""
 
 		# Create UI property
@@ -177,7 +183,7 @@ class CloudLimbRig(CloudIKChainRig):
 		control_bone = None
 		if self.params.CR_limb_auto_hose_control:
 			# Create control bone
-			control_bone = self.make_rubber_hose_control()
+			control_bone = self.make_rubber_hose_control(org_lower)
 			self.properties_bone.custom_props[prop_name] = {'default' : 0.0}
 			self.properties_bone.drivers.append({
 				'prop' : f'["{prop_name}"]'
@@ -197,15 +203,18 @@ class CloudLimbRig(CloudIKChainRig):
 			# Don't create a control bone, instead just add a slider in the UI.
 			self.add_ui_data("Auto Rubber Hose", self.limb_name, info, entry_name=self.limb_ui_name)
 
-		self.make_rubber_hose_constraints(org_elbow, str_upper, str_lower, prop_name)
+		self.make_rubber_hose_constraints(
+			org_upper, org_lower
+			,str_upper_section, str_lower_section
+			,prop_name
+			,hose_type = self.params.CR_limb_auto_hose_type
+		)
 
-	def make_rubber_hose_control(self) -> BoneInfo:
-		org_elbow = self.bones_org[1]
-
+	def make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
 		control_bone = self.bone_sets['FK Controls Extra'].new(
-			name = org_elbow.name.replace("ORG", "AutoRubberHose")
-			,source = org_elbow
-			,parent = org_elbow
+			name = org_lower.name.replace("ORG", "AutoRubberHose")
+			,source = org_lower
+			,parent = org_lower
 			,custom_shape = self.ensure_widget('Arrow_Two-way')
 		)
 		# Assign to main FK layer and both IK layers also
@@ -214,12 +223,12 @@ class CloudLimbRig(CloudIKChainRig):
 		control_bone.set_layers(self.bone_sets['FK Controls'].layers, additive=True)
 
 		# Shift it towards the IK pole or where it would be.
-		new_loc = control_bone.head + self.pole_vector.normalized() * org_elbow.bbone_width*self.scale * 6
+		new_loc = control_bone.head + self.pole_vector.normalized() * org_lower.bbone_width*self.scale * 6
 		control_bone.head = new_loc
-		control_bone.vector = org_elbow.vector * 0.3
+		control_bone.vector = org_lower.vector * 0.3
 		control_bone.custom_shape_scale = 0.4
 		control_bone.roll_type = 'ACTIVE'
-		control_bone.roll_bone = org_elbow
+		control_bone.roll_bone = org_lower
 		control_bone.roll = rad(90)
 		self.lock_transforms(control_bone, scale=[True, False, True])
 		control_bone.add_constraint('LIMIT_SCALE'
@@ -241,7 +250,14 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return control_bone
 
-	def make_rubber_hose_constraints(self, org_elbow: BoneInfo, str_upper: List[BoneInfo], str_lower: List[BoneInfo], prop_name: str):
+	def make_rubber_hose_constraints(self
+			,org_upper: BoneInfo
+			,org_lower: BoneInfo
+			,str_upper_section: List[BoneInfo]
+			,str_lower_section: List[BoneInfo]
+			,prop_name: str
+			,hose_type: str
+	):
 		# TODO: This function is too big!
 		driver_influence = {
 			'prop' : 'influence'
@@ -251,8 +267,8 @@ class CloudLimbRig(CloudIKChainRig):
 			]
 		}
 
-		for i, str_list in enumerate([str_upper, str_lower]):
-			org_bone = self.bones_org[i]
+		for i, str_list in enumerate([str_upper_section, str_lower_section]):
+			org_bone = [org_upper, org_lower][i]
 			for str_bone in str_list:
 				offset = org_bone.length / 2.5
 
@@ -265,7 +281,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 				trans_con = str_bone.add_constraint('TRANSFORM'
 					,name = "Transformation (Rubber Hose STR)"
-					,subtarget = org_elbow.name
+					,subtarget = org_lower.name
 					,map_from = 'ROTATION'
 					,map_to_x_from = 'Z'
 					,map_to_z_from = 'X'
@@ -273,7 +289,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 				# Influence driver
 				driver = deepcopy(driver_influence)
-				if self.params.CR_limb_auto_hose_type=='ELBOW_IN':
+				if hose_type == 'ELBOW_IN':
 					# For the alternate auto hose type, the shifting just needs to be reduced by half.
 					driver['expression'] += "/2"
 
@@ -287,7 +303,7 @@ class CloudLimbRig(CloudIKChainRig):
 						{
 							'type' : 'TRANSFORMS'
 							,'targets' : [{
-								'bone_target' : org_elbow.name
+								'bone_target' : org_lower.name
 								,'transform_space' : 'LOCAL_SPACE'
 								,'transform_type' : 'ROT_Z'
 								,'rotation_mode' : 'SWING_TWIST_Y'
@@ -306,12 +322,12 @@ class CloudLimbRig(CloudIKChainRig):
 
 			# Scale the main STR bone on local Y to get a smooth curve
 			# in spite of Sharp Sections parameter being enabled.
-			if i==1:
+			if i == 1:
 				main_str = str_list[0].prev
 				# Scale constraint
 				scale_con = main_str.add_constraint('TRANSFORM'
 					,name = "Transformation (Rubber Hose Elbow Scale)"
-					,subtarget = org_elbow.name
+					,subtarget = org_lower.name
 					,map_to = 'SCALE'
 				)
 
@@ -326,7 +342,7 @@ class CloudLimbRig(CloudIKChainRig):
 						'rot_x' : {
 							'type' : 'TRANSFORMS'
 							,'targets' : [{
-								'bone_target' : org_elbow.name
+								'bone_target' : org_lower.name
 								,'transform_space' : 'LOCAL_SPACE'
 								,'transform_type' : 'ROT_X'
 								,'rotation_mode' : 'SWING_TWIST_Y'
@@ -335,7 +351,7 @@ class CloudLimbRig(CloudIKChainRig):
 						,'rot_z' : {
 							'type' : 'TRANSFORMS'
 							,'targets' : [{
-								'bone_target' : org_elbow.name
+								'bone_target' : org_lower.name
 								,'transform_space' : 'LOCAL_SPACE'
 								,'transform_type' : 'ROT_Z'
 								,'rotation_mode' : 'SWING_TWIST_Y'
@@ -344,14 +360,14 @@ class CloudLimbRig(CloudIKChainRig):
 					}
 				})
 
-				if not self.params.CR_limb_auto_hose_type=='ELBOW_IN':
+				if not hose_type=='ELBOW_IN':
 					return
 
 				### Additional constraints for alternate, "Long" rubberhose type
 				# Translation constraint
 				trans_con = main_str.add_constraint('TRANSFORM'
 					,name = "Transformation (Rubber Hose Elbow Translate)"
-					,subtarget = org_elbow.name
+					,subtarget = org_lower.name
 				)
 
 				# Influence driver
@@ -361,7 +377,7 @@ class CloudLimbRig(CloudIKChainRig):
 				var_x = {
 					'type' : 'TRANSFORMS'
 					,'targets' : [{
-						'bone_target' : org_elbow.name
+						'bone_target' : org_lower.name
 						,'transform_space' : 'LOCAL_SPACE'
 						,'transform_type' : 'ROT_X'
 						,'rotation_mode' : 'SWING_TWIST_Y'
@@ -371,7 +387,7 @@ class CloudLimbRig(CloudIKChainRig):
 				var_z['targets'][0]['transform_type'] = 'ROT_Z'
 				driver_to_min_y = {
 					'prop' : 'to_min_y'
-					,'expression' : f"(abs(x + z)/pi) * {org_elbow.length/4}"
+					,'expression' : f"(abs(x + z)/pi) * {org_lower.length/4}"
 					,'variables' :
 						{
 							'x' : var_x,
@@ -383,12 +399,12 @@ class CloudLimbRig(CloudIKChainRig):
 
 				driver_to_min_z = deepcopy(driver_to_min_y)
 				driver_to_min_z['prop'] = 'to_min_z'
-				driver_to_min_z['expression'] = f"(x/pi) * {org_elbow.length/4}"
+				driver_to_min_z['expression'] = f"(x/pi) * {org_lower.length/4}"
 				trans_con.drivers.append(driver_to_min_z)
 
 				driver_to_min_x = deepcopy(driver_to_min_y)
 				driver_to_min_x['prop'] = 'to_min_x'
-				driver_to_min_x['expression'] = f"(-z/pi) * {org_elbow.length/4}"
+				driver_to_min_x['expression'] = f"(-z/pi) * {org_lower.length/4}"
 				trans_con.drivers.append(driver_to_min_x)
 
 	##############################
@@ -407,7 +423,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 		params.CR_limb_auto_hose = BoolProperty(
 			name		 = "Rubber Hose"
-			,description = "Set up an Auto Rubber Hose setting which when enabled will attempt to automatically add curvature to limbs as they are bent. Chain Segments parameter must be >1, Smooth Spline must be enabled and the chain's bone rolls must be similar"
+			,description = "Add an Auto Rubber Hose setting which can be enabled to automatically add curvature to limbs as they bend. Stretch Segments parameter must be >1 and Smooth Spline must be enabled"
 			,default	 = False
 		)
 		params.CR_limb_auto_hose_control = BoolProperty(
