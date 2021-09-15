@@ -230,14 +230,22 @@ class BoneSet(LinkedList):
 				if prop_name in rna_properties: 
 					# We don't want to reset addon-defined properties.
 					continue
-				if prop_name.startswith("_") or prop_name.startswith("$"): continue
+				if prop_name[0] in "_$": continue
 				try:
 					prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
 				except TypeError:
-					# This should only happen with python Dictionaries, let's just ignore them for now.
+					# This should only happen with python dictionaries, let's just ignore them for now.
 					prop_data = {'default': pose_bone[prop_name]}
-					pass
-				prop_data['value'] = pose_bone[prop_name]
+				
+				value = pose_bone[prop_name]
+				if hasattr(value, 'to_list'):
+					value = value.to_list()
+					prop_data['default'] = value
+				elif hasattr(value, 'to_dict'):
+					value = value.to_dict()
+					prop_data['default'] = value
+
+				prop_data['value'] = value
 				prop_data['overridable'] = pose_bone.is_property_overridable_library(f'["{prop_name}"]')
 				bone_info.custom_props[prop_name] = prop_data
 

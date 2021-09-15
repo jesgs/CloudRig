@@ -1,5 +1,5 @@
-from bpy.props import BoolProperty
-from ..rig_features.bone_set import BoneSet
+from bpy.props import BoolProperty, StringProperty
+from ..rig_features.bone_set import BoneInfo, BoneSet
 
 from .cloud_base import CloudBaseRig
 
@@ -13,6 +13,11 @@ Better yet, to cloud_base!
 class CloudCopyRig(CloudBaseRig):
 	"""Copy this bone to the generated rig."""
 	always_use_custom_props = True
+
+	forced_params = {
+		'CR_base_props_storage' : 'CUSTOM'
+		,'CR_base_props_storage_bone' : ""
+	}
 
 	def initialize(self):
 		super().initialize()
@@ -84,6 +89,11 @@ class CloudCopyRig(CloudBaseRig):
 
 		if self.params.CR_copy_custom_pivot:
 			self.root_bone = self.create_custom_pivot(bi, new_set)
+		
+		self.add_ui_data_of_bone(bi
+			,self.params.CR_copy_property_ui_subpanel
+			,self.params.CR_copy_property_ui_label
+		)
 
 	def create_custom_pivot(self, boneinfo, bone_set=None):
 		if not bone_set:
@@ -95,6 +105,47 @@ class CloudCopyRig(CloudBaseRig):
 		pivot.layers = boneinfo.layers[:]
 		pivot.bone_group = boneinfo.bone_group
 		return pivot
+
+	def add_ui_data_of_bone(self, bone: BoneInfo, panel_name: str, label_name=""):
+		"""Add the UI data of a single BoneInfo's custom props to the rig's UI data.
+		Properties of the bone will go under a single same sub-panel and label.
+		This will be displayed in the Sidebar->CloudRig->Settings.
+		"""
+		for prop_name, prop in bone.custom_props.items():
+			prop_value = prop['default']
+
+			# For the row names, we want each property to have its own row, 
+			# but matching properties from opposite side bones should be in 
+			# the same row.
+			base_name = self.naming.slice_name(bone.name)[1]
+			row_name = base_name + "_" + prop_name
+
+			entry_name = prop_name
+			flipped_name = self.naming.flipped_name(bone)
+			opposite_bone = self.generator.metarig.data.bones.get(flipped_name)
+			if flipped_name != bone.name and opposite_bone:
+				# We also want to make sure the "entry name" is unique.
+				# (User should NOT add a side indicator to the property name!)
+				entry_name = self.side_prefix + " " + prop_name
+			
+			info = {
+				'prop_bone' : bone.name,
+				'prop_id' : prop_name,
+			}
+
+			if "$"+prop_name in self.meta_base_bone:
+				# Rigger can specify strings for integer properties with a
+				# property whose name starts with $. This property is expected 
+				# to be a list of strings, where the first strings matches with the value 0.
+				# Negative integers are not supported for this.
+				info['texts'] = self.meta_base_bone["$"+prop_name]
+
+			self.add_ui_data(panel_name, row_name
+				,info = info
+				,default = prop_value
+				,entry_name = entry_name
+				,label_name = label_name
+			)
 
 	##############################
 	# Parameters
@@ -109,6 +160,14 @@ class CloudCopyRig(CloudBaseRig):
 			,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
 			,default	 = False
 		)
+		params.CR_copy_property_ui_subpanel = StringProperty(
+			name		 = "UI Sub-panel"
+			,description = "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
+		)
+		params.CR_copy_property_ui_label = StringProperty(
+			name		 = "UI Label"
+			,description = "Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel"
+		)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
@@ -116,7 +175,15 @@ class CloudCopyRig(CloudBaseRig):
 		pb = context.active_pose_bone
 		layout.prop(pb.bone, 'use_deform', text="Create Deform Bone")
 		cls.draw_prop(layout, params, 'CR_copy_custom_pivot')
-		
+
+	@classmethod
+	def draw_custom_prop_params(cls, layout, context, params):
+		layout = super().draw_custom_prop_params(layout, context, params)
+		layout.separator()
+
+		cls.draw_prop(layout, params, 'CR_copy_property_ui_subpanel')
+		cls.draw_prop(layout, params, 'CR_copy_property_ui_label')
+		return layout
 
 class Rig(CloudCopyRig):
 	pass
