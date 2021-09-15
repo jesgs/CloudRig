@@ -351,7 +351,6 @@ class CloudChainRig(CloudBaseRig):
 		) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
 		to aim at the previous and next STR bones."""
-		org_bone = str_bone.source
 		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
@@ -372,7 +371,9 @@ class CloudChainRig(CloudBaseRig):
 				,space = 'WORLD'
 			)
 
-			handle_bone.parent = org_bone
+			# For main STR bones the parent is the ORG bone, 
+			# for sub STR bones it's the STR-H bone.
+			handle_bone.parent = str_bone.parent
 			handle_bone.add_constraint('COPY_TRANSFORMS'
 				,name = "Copy STR Transforms"
 				,subtarget = str_bone.name
