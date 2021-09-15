@@ -371,7 +371,7 @@ class BoneInfo:
 			for d in c.drivers:
 				self.bone_set.rig.relink_driver(d)
 
-	def write_edit_data(self, generator, edit_bone: EditBone, context: Context):
+	def write_edit_data(self, generator, eb: EditBone, context: Context):
 		"""Write relevant data of this BoneInfo into an EditBone."""
 		# TODO: The fact that type annotating the generator would require a cyclic dependency suggests that this code belongs in the generator!
 		armature = generator.obj
@@ -387,8 +387,6 @@ class BoneInfo:
 			self.tail = self.head+Vector((0, 0.1, 0))
 
 		### Edit Bone properties
-		eb = edit_bone
-
 		for key in edit_bone_properties:
 			key = key.replace("edit_", "")	# Allows bbone properties to specify if they are only for edit bone version
 			value = self.__dict__[key]
@@ -492,7 +490,6 @@ class BoneInfo:
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
 			prop_value = prop['default']
-			# 	ui_data = pb.id_properties_ui(prop_name)
 			if 'value' in prop:
 				prop_value = prop['value']
 				del prop['value']

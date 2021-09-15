@@ -369,9 +369,12 @@ class BoneSetMixin:
 		layout.use_property_split=False
 		draw_layers_ui(layout, obj, show_hidden_checkbox=True, owner=params, layers_prop = set_info['layer_param'])
 
+
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):
 		"""Override in child classes to be able to check for unused bone sets based on current parameters."""
+		if set_info['is_advanced']:
+			return params.CR_show_advanced_bone_sets
 		return True
 
 	##############################

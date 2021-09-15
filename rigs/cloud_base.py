@@ -215,9 +215,6 @@ class CloudBaseRig(
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent
 
-			# TODO: arbitrary property assignment, should be avoided!
-			org_bi.meta_bone = meta_org
-
 	def add_log(self
 			,description_short
 			,**kwargs
@@ -283,12 +280,6 @@ class CloudBaseRig(
 		cls.define_bone_set(params, 'Deform Bones',		default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 		cls.define_bone_set(params, 'Mechanism Bones',	default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 		cls.define_bone_set(params, 'Original Bones',	default_layers=[cls.DEFAULT_LAYERS.ORG], is_advanced=True)
-
-	@classmethod
-	def is_bone_set_used(cls, params, set_info):
-		if set_info['is_advanced']:
-			return params.CR_show_advanced_bone_sets
-		return True
 
 	@classmethod
 	def parameters_ui(cls, layout, params):

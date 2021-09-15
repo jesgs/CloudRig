@@ -1,3 +1,6 @@
+
+from typing import Dict, Any
+
 from .bone import BoneInfo
 
 import bpy, sys, os
@@ -89,14 +92,16 @@ def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, 
 	layout.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
 	return layout
 
-def add_ui_data(obj, panel_name, row_name, info, entry_name="", label_name="", parent_id="", **custom_prop_dict):
-	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI.
-	panel_name: Name of the collapsible sub-panel that the property should be drawn in
-	row_name: Properties with the same row_name will be drawn in the same row.
-	entry_name: Name of the property to display in the UI, if not the same as the property name.
-	info: The dictionary to store in the rig data.
-	label_name: 
-	"""
+def add_ui_data(obj
+		,panel_name: str		# Name of the sub-panel that the property should be drawn in. These are created dynamically, so this can be anything.
+		,row_name: str			# For drawing multiple properties in one row. TODO: Should be optional param?
+		,info : Dict[str, Any]	# The dictionary to store in the rig data. See cloudrig.py -> draw_rig_settings()
+		,entry_name = ""		# Name of the property to display in the UI. Defaults to the property name.
+		,label_name = ""		# Allows organizing properties within sub-panels by labels.
+		,parent_id = ""			# Allows creating nested sub-panels. TODO: Seems a bit wrong to have this here.
+		,**custom_prop_dict		# Properties of the custom property to be created. TODO: In cloud_copy we want to call this function without re-creating the custom property.
+	):
+	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI."""
 
 	assert ('prop_bone' in info) and ('prop_id' in info), f'Expected an info dict with at least "prop_bone" and "prop_id" keys. Instead got: {info}'
 
