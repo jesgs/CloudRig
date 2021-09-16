@@ -108,7 +108,7 @@ class CloudFingerRig(CloudIKChainRig):
 		copyrot.drivers.append(ik_driver.copy())
 
 		# Counter-rotate 2nd to last main STR bone
-		counter_rot = self.main_str_bones[-3].add_constraint('COPY_ROTATION' # TODO: Why is this on index -3 instead of -2??
+		counter_rot = self.main_str_bones[-2].add_constraint('COPY_ROTATION' # TODO: Why is this on index -3 instead of -2??
 			,name = "Counter X Rotation"
 			,subtarget = self.ik_mstr.name
 			,use_xyz = [True, False, False]
@@ -118,7 +118,7 @@ class CloudFingerRig(CloudIKChainRig):
 		counter_rot.drivers.append(ik_driver.copy())
 
 		# Parent stretch helper of last main STR bone (including tip control if it exists)
-		for main_str_bone in self.main_str_bones[-(2+self.params.CR_ik_chain_at_tip):]:
+		for main_str_bone in self.main_str_bones[-(1+self.params.CR_ik_chain_at_tip):]:
 			main_str_bone.stretch_helper.parent = x_rot_helper
 
 	##############################
