@@ -60,6 +60,7 @@ def ensure_widget(name, overwrite=True, collection=None):
 
 
 def bezier_widget(rig: BaseRig, coords: List[Vector], bone: BoneInfo, scale=1.3):
+	"""UNUSED. This works poorly when two eye bones are facing upwards."""
 	"""Create a bezier curve widget where coords is a list of Vectors that the curve should be near."""
 
 	# If the object already exists and we aren't forcing a widget update, return existing.

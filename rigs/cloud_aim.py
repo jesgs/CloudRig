@@ -31,7 +31,7 @@ class CloudAimRig(CloudBaseRig):
 			self.root_bone = self.make_root_bone(aim_org)
 
 		self.group_master = None
-		if self.params.CR_aim_group!="":
+		if self.params.CR_aim_group != "":
 			self.group_master = self.ensure_group_master()
 
 		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
@@ -47,7 +47,7 @@ class CloudAimRig(CloudBaseRig):
 		if self.params.CR_aim_create_sub_control:
 			self.create_eye_highlight(self.ctr_bone)
 
-	def find_target_pos(self, bone) -> Vector:
+	def find_target_pos(self, bone: BoneInfo) -> Vector:
 		"""Find location of where the target bone should be for an aim bone."""
 		if self.params.CR_aim_flatten:
 			direction = bone.vector.normalized()
@@ -57,13 +57,13 @@ class CloudAimRig(CloudBaseRig):
 		else:
 			return bone.tail + bone.vector.normalized() * self.params.CR_aim_target_distance * self.scale
 
-	def make_target_control(self, bone, parent=None) -> BoneInfo:
-		"""Set up target control for a bone"""
+	def make_target_control(self, bone: BoneInfo, parent: BoneInfo=None) -> BoneInfo:
+		"""Set up target control for a bone."""
 		if not parent:
 			parent = bone.parent
 
 		head = self.find_target_pos(bone)
-		tail = head + bone.vector.normalized() * bone.length
+		tail = head + bone.vector
 
 		target_bone = self.bone_sets['Aim Target Controls'].new(
 			name	= self.bones_org[0].name.replace("ORG", "TGT")
@@ -71,7 +71,6 @@ class CloudAimRig(CloudBaseRig):
 			,head	= head
 			,tail	= tail
 			,custom_shape = self.ensure_widget("Circle")
-			,use_custom_shape_bone_size = True
 			,parent = parent
 		)
 		dsp_bone = self.create_dsp_bone(target_bone)
@@ -235,29 +234,34 @@ class CloudAimRig(CloudBaseRig):
 		group_vec = target_center - aims_center
 		center_bone = self.bone_sets['Aim Target Mechanism'].new(
 			name = "CEN-"+group_name
+			,source = self.bones_org[0]
 			,head = aims_center
-			,tail = aims_center + group_vec.normalized() * self.scale/10
+			,tail = aims_center + group_vec.normalized() * self.scale
 			,bbone_width = 0.1
 			,parent = self.generator.find_bone_info(first_parent)
 		)
 
+		max_dist = 0
+		for i, target_pos in enumerate(target_positions[1:]):
+			prev = target_positions[i]
+			dist = (target_pos - prev).length
+			if dist > max_dist:
+				max_dist = dist
+
 		# Create the master bone.
 		group_master = self.bone_sets['Aim Group Target Control'].new(
 			name = group_master_name
+			,source = self.bones_org[0]
 			,head = target_center
-			,tail = target_center - group_vec.normalized()*self.scale/10
-			,bbone_width = 0.1
+			,tail = target_center + group_vec.normalized() * self.scale
+			,custom_shape = self.ensure_widget('Circle')
+			,use_custom_shape_bone_size = True
+			,custom_shape_scale = (max_dist / self.scale) * 2
 		)
 		group_master.add_constraint('DAMPED_TRACK'
 			,subtarget = center_bone.name
+			,track_axis = 'TRACK_NEGATIVE_Y'
 		)
-
-		# Average bone length + some clamping and scaling
-		scale = max(1, sum([b.length for b in aim_bones])/len(aim_bones)) * 1.5
-
-		group_widget = bezier_widget(self, target_positions, group_master, scale=scale)
-		group_master.custom_shape = group_widget
-		group_master.custom_shape_scale = 1/self.scale
 
 		return group_master
 

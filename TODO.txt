@@ -1,11 +1,12 @@
+Generating with rubber hose is not working
+Cloud chain anchor is not working
+Adding samples of cloud tweak, cloud copy and cloud finger is not working 
+
 cloud_limb
 	Footroll only works when the legs are vertical and bend towards +X axis
 		Actually it works for any bending axis, only the rotation of the ROLL bone and the IK masters is wrong.
 	Properties bone gets created at the heel even when it's the universal one.
 	Implement a gizmo to place the heel pivot, is way cooler.
-	
-	The Transformation (Counter-Rotate) constraint on STR-Knee wrongly has 0.5 influence (influence is already halved by the from/to numbers)
-	Same constraint on STR-Thigh is also odd. Has weird numbers when they could just be -1 and 1. Influence should be... I'm not too sure, would have to see it on a character, but probably 0.5 or more.
 
 Priority 1: Bugs
     - Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
