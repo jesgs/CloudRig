@@ -1,5 +1,3 @@
-Generating with rubber hose is not working
-Cloud chain anchor is not working
 Adding samples of cloud tweak, cloud copy and cloud finger is not working 
 
 cloud_limb

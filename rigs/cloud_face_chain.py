@@ -161,9 +161,9 @@ class CloudFaceChainRig(CloudChainRig):
 		# Search for an anchor rig
 		anchor_rigs = [r for r in rig.generator.rig_list if isinstance(r, CloudChainAnchorRig)]
 		for anchor_rig in anchor_rigs:
-			distance = (anchor_rig.org_chain[0].head - cluster[0].head).length
+			distance = (anchor_rig.bones_org[0].head - cluster[0].head).length
 			if distance < 0.000001:
-				intersection_control = anchor_rig.org_chain[0]
+				intersection_control = anchor_rig.bones_org[0]
 				have_anchor = True
 				break
 
