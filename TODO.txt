@@ -1,5 +1,3 @@
-Adding samples of cloud tweak, cloud copy and cloud finger is not working 
-
 cloud_limb
 	Footroll only works when the legs are vertical and bend towards +X axis
 		Actually it works for any bending axis, only the rotation of the ROLL bone and the IK masters is wrong.
