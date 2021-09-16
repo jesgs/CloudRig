@@ -90,10 +90,11 @@ class CloudCopyRig(CloudBaseRig):
 		if self.params.CR_copy_custom_pivot:
 			self.root_bone = self.create_custom_pivot(bi, new_set)
 		
-		self.add_ui_data_of_bone(bi
-			,self.params.CR_copy_property_ui_subpanel
-			,self.params.CR_copy_property_ui_label
-		)
+		if self.params.CR_copy_property_ui_subpanel:
+			self.add_ui_data_of_bone(bi
+				,self.params.CR_copy_property_ui_subpanel
+				,self.params.CR_copy_property_ui_label
+			)
 
 	def create_custom_pivot(self, boneinfo, bone_set=None):
 		if not bone_set:
