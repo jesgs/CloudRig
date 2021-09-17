@@ -241,7 +241,9 @@ class CloudLegRig(CloudLimbRig):
 			,bbone_width  = self.bones_org[-1].bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
-			,roll		  = 0
+			,roll		  = pi
+			,roll_type	  = 'ACTIVE'
+			,roll_bone	  = self.bones_org[-1]
 			,parent		  = roll_master
 		)
 
@@ -261,7 +263,9 @@ class CloudLegRig(CloudLimbRig):
 				,source		 = b
 				,head		 = b.tail.copy()
 				,tail		 = b.head.copy()
-				,roll		 = 0
+				,roll		 = pi
+				,roll_type	 = 'ACTIVE'
+				,roll_bone	 = b
 				,parent		 = heel_pivot
 			)
 			rik_chain.append(rik_bone)
