@@ -54,9 +54,10 @@ class CloudLimbRig(CloudIKChainRig):
 		Place the properties bone near the end of the limb, parented to the last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()
-		properties_bone.head = self.bones_org[-1].head.copy() + Vector((0, self.scale/1.5, 0))
-		properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
-		properties_bone.parent = self.bones_org[-1]
+		if self.params.CR_base_props_storage == 'GENERATED':
+			properties_bone.head = self.bones_org[-1].head.copy() + Vector((0, self.scale/1.5, 0))
+			properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
+			properties_bone.parent = self.bones_org[-1]
 		return properties_bone
 
 	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:

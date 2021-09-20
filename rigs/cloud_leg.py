@@ -326,7 +326,8 @@ class CloudLegRig(CloudLimbRig):
 				ci.subtarget = rolly_stretchy.name
 		
 		# Set properties bone display
-		self.properties_bone.custom_shape_transform = roll_ctrl
+		if self.params.CR_base_props_storage == 'GENERATED':
+			self.properties_bone.custom_shape_transform = roll_ctrl
 
 	def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
 		heel_pivot_name = self.params.CR_leg_heel_bone
