@@ -161,6 +161,9 @@ class CloudChainRig(CloudBaseRig):
 			direction = (org_bone.tail - self.bones_org[-1].head).normalized()
 
 		str_name = org_bone.name.replace("ORG", "STR")
+		sliced = self.naming.slice_name(str_name)
+		sliced[1] += "1"	# For legacy reasons, main STR controls aren't indicated in the best way.  TODO: Maybe break backwards comp on this before 3.0 release, as it's gonna be the last chance to do it with minimal damage.
+		str_name = self.naming.make_name(*sliced)
 		main_str = self.bone_sets['Stretch Controls'].new(
 			name = str_name
 			,source = org_bone
