@@ -585,24 +585,41 @@ class CloudChainRig(CloudBaseRig):
 
 		# Add drivers to BBone Roll so that rotating CTR-DEF controls on
 		# local Y axis gives the results an animator might expect.
-		rollin_driver = {
-			'prop' : 'bbone_rollin',
-			'variables' : {
-				'var' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : def_bone_control.name,
-						'transform_space' : 'LOCAL_SPACE',
-						'rotation_mode' : 'SWING_TWIST_Y',
-						'transform_type' : 'ROT_Y',
-					}]
+		for rna_prop in ['bbone_rollin', 'bbone_rollout']:
+			roll_driver = {
+				'prop' : rna_prop,
+				'variables' : {
+					'var' : {
+						'type' : 'TRANSFORMS',
+						'targets' : [{
+							'bone_target' : def_bone_control.name,
+							'transform_space' : 'LOCAL_SPACE',
+							'rotation_mode' : 'SWING_TWIST_Y',
+							'transform_type' : 'ROT_Y',
+						}]
+					}
 				}
 			}
-		}
-		def_bone.drivers.append(rollin_driver)
-		rollout_driver = deepcopy(rollin_driver)
-		rollout_driver['prop'] = 'bbone_rollout'
-		def_bone.drivers.append(rollout_driver)
+			def_bone.drivers.append(roll_driver)
+
+		# Add drivers to BBone Scale so that scaling CTR-DEF controls works
+		for i, transform in [(0, 'SCALE_X'), (2, 'SCALE_Z')]:
+			for rna_prop in ['bbone_scalein', 'bbone_scaleout']:
+				def_bone.drivers.append({
+						'prop' : rna_prop,
+						'index' : i,
+						'variables' : {
+							'var' : {
+								'type' : 'TRANSFORMS',
+								'targets' : [{
+									'bone_target' : def_bone_control.name,
+									'transform_type' : transform,
+									'transform_space' : 'LOCAL_SPACE'
+								}]
+							}
+						}
+					}
+				)
 
 		return def_bone_control
 

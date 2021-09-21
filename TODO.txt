@@ -1,6 +1,9 @@
 cloud_limb
-	Properties bone gets created at the heel even when it's the universal one.
 	Implement a gizmo to place the heel pivot, is way cooler.
+
+Feature request:
+	- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
+    - Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
 
 Priority 1: Bugs
     - Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
