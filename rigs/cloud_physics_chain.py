@@ -44,7 +44,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 
 	def ensure_cloth_object(self, bone_chain: List[BoneInfo]):
 		context = bpy.context
-		
+
 		cloth_ob = self.params.CR_physics_chain_object
 		if cloth_ob and not self.params.CR_physics_chain_force_regen:
 			return cloth_ob

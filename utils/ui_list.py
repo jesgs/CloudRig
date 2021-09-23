@@ -12,8 +12,8 @@ def set_context_attr(context, data_path, value):
 class GenericUIListOperator(Operator):
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Sadly operators don't seem to inherit parameters, so this 
-    # has no use beside being the source of copy-pasting.
+	# Sadly operators don't seem to inherit parameters, so this
+	# has no use beside being the source of copy-pasting.
 	list_context_path: StringProperty()
 	active_idx_context_path: StringProperty()
 
@@ -175,9 +175,9 @@ def draw_ui_list(
 	# Return the right-side column.
 	return col
 
-# Below is the implementation of the default behaviours of 
+# Below is the implementation of the default behaviours of
 # UIList built-in functions.
-# These are not used anywhere, they are merely templates you can 
+# These are not used anywhere, they are merely templates you can
 # copy-paste to start coding your custom behaviours in your UIList class.
 
 def filter_items(self, context, data, propname):
@@ -218,7 +218,7 @@ def draw_filter(self, context, layout):
 
 	row.prop(self, 'filter_name', text="")
 	row.prop(self, 'use_filter_invert', toggle=True, text="", icon='ARROW_LEFTRIGHT')
-	
+
 	row = main_row.row(align=True)
 	row.use_property_split=True
 	row.use_property_decorate=False

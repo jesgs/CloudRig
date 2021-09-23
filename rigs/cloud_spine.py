@@ -8,7 +8,7 @@ from .cloud_fk_chain import CloudFKChainRig
 
 """TODO
 Re-implement FK-C bones (maybe under a param)
-	Their values would probably have to be dependent on the length of the bone. 
+	Their values would probably have to be dependent on the length of the bone.
 	Ie., longer bones slide more when rotated.
 Bug: IK-CTR-Chest flies away when moving the chest master far, needs a DSP- bone?
 """
@@ -85,7 +85,7 @@ class CloudSpineRig(CloudFKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		# If we want to parent things to the root bone, we use self.root_torso.
-		# However, for CR_spine_double to work, self.root_bone must be the bone 
+		# However, for CR_spine_double to work, self.root_bone must be the bone
 		# returned from create_parent_bone().
 		self.root_torso = self.root_bone
 
@@ -264,7 +264,7 @@ class CloudSpineRig(CloudFKChainRig):
 	def attach_org_to_fk(self, org_bones, fk_bones):
 		"""Overrides cloud_fk_chain.
 		Parent ORG to FK. This is important because STR- bones are owned by ORG- bones.
-		We want each FK bone to control the STR- bone of one higher index, 
+		We want each FK bone to control the STR- bone of one higher index,
 		eg. FK-Spine0 would control STR-Spine1.
 		"""
 		fk_bones = self.bone_sets['FK Controls']	# TODO: Why does it error without this?

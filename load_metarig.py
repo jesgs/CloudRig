@@ -8,7 +8,7 @@ BLEND_FILE_PATH = os.path.join(CURRENT_FOLDER, BLEND_FILE_NAME)
 def load_metarig(metarig_name):
 	"""Append a metarig from MetaRigs.blend."""
 	context = bpy.context # TODO RIGIFY: Should pass context to the metarig create() function.
-	
+
 	# Delete the metarig object Rigify just created for us in make_metarig_add_execute()
 	bpy.ops.object.mode_set(mode='OBJECT')
 	bpy.ops.object.delete(use_global=True)

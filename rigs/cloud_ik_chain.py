@@ -158,8 +158,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		z_pos_distance = ((first_tail+meta_first.z_axis) - last_tail).length
 		z_neg_distance = ((first_tail-meta_first.z_axis) - last_tail).length
 
-		# Store those distances in a dictionary where they are matched with a 
-		# tuple describing (the main axis of rotation, IK constraint pole_angle), 
+		# Store those distances in a dictionary where they are matched with a
+		# tuple describing (the main axis of rotation, IK constraint pole_angle),
 		# that should be used, when that distance is the lowest.
 		axis_dict = {
 			x_pos_distance : ("-Z", 180),
@@ -291,7 +291,7 @@ class CloudIKChainRig(CloudFKChainRig):
 
 	def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Store UI data for FK/IK switching and snapping."""
-		
+
 		# List of bone tuples to snap (from, to).
 		map_on = []									# Which bone will be snapped to which when the custom property is set to 1.
 		map_off = [] 								# Which bone will be snapped to which when the custom property is set to 0.
@@ -492,7 +492,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				]
 			})
 
-	def apply_parent_switching(self, parent_slots, *, 
+	def apply_parent_switching(self, parent_slots, *,
 			child_bone=None, prop_bone=None, prop_name="",
 			panel_name="IK", row_name="", label_name="Parent Switching", entry_name=""
 		):
@@ -584,7 +584,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			driver = driver.copy()
 			driver['prop'] = f'targets[{len(arm_con_info.targets)-1}].weight'
 			arm_con_info.drivers.append(driver)
-		
+
 		# arm_con_info.drivers.extend(ik_mstr.parent.constraint_infos[0].drivers)
 
 		ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
@@ -710,7 +710,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		valid_ob = ob and ob.type == 'ARMATURE' and ob.mode != 'OBJECT'
 		valid_pb = active_pb.rigify_type in ('cloud_ik_chain', 'cloud_limb', 'cloud_leg') and active_pb.rigify_parameters.CR_ik_chain_use_pole
 		return valid_ob and valid_pb
-				 
+
 
 	@staticmethod
 	def get_bone_chain(context):

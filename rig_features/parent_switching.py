@@ -111,7 +111,7 @@ class CloudParentSwitchMixin:
 
 	def sanitize_parent_list(self, parent_slots: List[ParentSlot]) -> Tuple[List[str], List[str]]:
 		"""Gather parent information and check for issues.
-		Returns two lists of equal length, first one is the UI name second is 
+		Returns two lists of equal length, first one is the UI name second is
 		the bone name of each parent.
 		"""
 
@@ -165,8 +165,8 @@ class CloudParentSwitchMixin:
 		)
 		params.CR_base_active_parent_slot_index = IntProperty()
 
-		# XXX: Currently this causes an error when turning the Rigify addon off 
-		# and back on, unless running Reload Scripts in between. I suspect this 
+		# XXX: Currently this causes an error when turning the Rigify addon off
+		# and back on, unless running Reload Scripts in between. I suspect this
 		# is because of ParameterValidator shennanigans, but I couldn't fix.
 		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
 

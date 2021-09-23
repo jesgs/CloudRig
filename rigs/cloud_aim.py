@@ -164,7 +164,7 @@ class CloudAimRig(CloudBaseRig):
 				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
 
-	def apply_parent_switching(self, parent_slots, *, 
+	def apply_parent_switching(self, parent_slots, *,
 			child_bone=None, prop_bone=None, prop_name="",
 			panel_name="Face", row_name="", label_name="", entry_name=""
 		):

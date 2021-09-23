@@ -44,7 +44,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		if self.params.CR_chain_preserve_volume:
 			self.tweak_def_chain()
 
-	def apply_parent_switching(self, parent_slots, *, 
+	def apply_parent_switching(self, parent_slots, *,
 			child_bone=None, prop_bone=None, prop_name="",
 			panel_name="FK", row_name="", label_name="Parent Switching", entry_name=""
 		):
@@ -134,7 +134,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 	def make_hinge_setup(self, bone, category, *,
 		prop_bone, prop_name, default_value=0.0,
-		parent_bone=None, 
+		parent_bone=None,
 		hng_name=None, limb_name=None, bone_set=None
 	):
 		""" Create a hinge toggle for a bone.

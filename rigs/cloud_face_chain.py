@@ -97,7 +97,7 @@ class CloudFaceChainRig(CloudChainRig):
 		if not self.is_last_chain_rig:
 			return
 
-		# This is ugly, but any STR controls with the Smooth Spline param need 
+		# This is ugly, but any STR controls with the Smooth Spline param need
 		# their tangent_helper to be parented to the intersection control's parent.
 		for intersection in self.intersection_bones:
 			for str_bone in intersection.str_bones:

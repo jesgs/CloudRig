@@ -43,8 +43,8 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 		if match_layers:
 			to_arm.data.layers = from_arm.data.layers[:]
 
-		# NOTE: This gets really slow when a lot of bones are selected, but the 
-		# intended use case is only for a few selected bones anyways, so it's 
+		# NOTE: This gets really slow when a lot of bones are selected, but the
+		# intended use case is only for a few selected bones anyways, so it's
 		# best to just not do anything otherwise.
 		selected = [b for b in from_arm.data.bones if b.select]
 		if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected) < 10:
@@ -57,8 +57,8 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 				if to_active:
 					to_arm.data.bones.active = to_active
 
-			# TODO: For behaviour that would be both smarter and better, 
-			# we should store the bone name mapping on the metarig 
+			# TODO: For behaviour that would be both smarter and better,
+			# we should store the bone name mapping on the metarig
 			# (which meta bone generated which bones).
 			selected_names = [b.name for b in from_arm.data.bones if b.select]
 			for bonename in selected_names:
@@ -95,7 +95,7 @@ class CLOUDRIG_OT_MetarigToggle(bpy.types.Operator):
 			return self.switch_rig_focus(context, metarig, rig, self.match_layers, self.match_selection)
 
 		# Otherwise, try to find a metarig that references this rig
-		
+
 		if ob.name.startswith('FAILED-RIG-'):
 			metarig = context.scene.objects.get(ob.name.replace('FAILED-RIG-', ""))
 

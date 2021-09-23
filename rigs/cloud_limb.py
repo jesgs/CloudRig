@@ -89,7 +89,7 @@ class CloudLimbRig(CloudIKChainRig):
 
 		return ik_master
 
-	def apply_parent_switching(self, parent_slots, *, 
+	def apply_parent_switching(self, parent_slots, *,
 			child_bone=None, prop_bone=None, prop_name="",
 			panel_name="IK", row_name="", label_name="Parent Switching", entry_name=""
 		):
@@ -98,7 +98,7 @@ class CloudLimbRig(CloudIKChainRig):
 		if self.params.CR_limb_double_ik:
 			child_bone = self.ik_mstr.parent
 
-		super().apply_parent_switching(parent_slots, 
+		super().apply_parent_switching(parent_slots,
 			child_bone = child_bone
 			,prop_bone = prop_bone
 			,prop_name = prop_name
@@ -167,7 +167,7 @@ class CloudLimbRig(CloudIKChainRig):
 			,str_lower_section: List[BoneInfo]
 		):
 		""" Add translating Transformation constraints to str_upper_section and
-			str_lower_section controls, driven by org_lower, which would be the 
+			str_lower_section controls, driven by org_lower, which would be the
 			elbow or the knee.
 		"""
 

@@ -181,7 +181,7 @@ class CloudBaseRig(
 		self.relink()
 
 	def create_bone_infos(self):
-		"""Create the BoneInfo instances which will be turned into real bones by 
+		"""Create the BoneInfo instances which will be turned into real bones by
 		the CloudRig generator."""
 		self.load_org_bone_infos()
 		self.root_bone = self.bones_org[0]
@@ -283,7 +283,7 @@ class CloudBaseRig(
 
 	@classmethod
 	def parameters_ui(cls, layout, params):
-		"""This function from the Rigify API is not used, because we 
+		"""This function from the Rigify API is not used, because we
 		organize all CloudRig rig type parameters into sub-panels,
 		registered in ui_rig_types.py.
 		"""
@@ -292,8 +292,8 @@ class CloudBaseRig(
 	@classmethod
 	def is_using_custom_props(cls, context, params):
 		"""Determine whether the custom property storage UI should be drawn or not."""
-		# TODO: Instead of an awkward "feature exists or not" flag like this, 
-		# we should split these features off into a compositable class, 
+		# TODO: Instead of an awkward "feature exists or not" flag like this,
+		# we should split these features off into a compositable class,
 		# eg. utils.custom_properties->CloudCustomPropertyMixin.
 		if cls.always_use_custom_props:
 			return True

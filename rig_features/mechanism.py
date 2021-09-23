@@ -21,7 +21,7 @@ class CloudMechanismMixin:
 	@staticmethod
 	def get_rigify_chain(pose_bone):
 		return get_rigify_chain(pose_bone)
-	
+
 	@staticmethod
 	def get_object_scalar(obj):
 		return get_object_scalar(obj)
@@ -34,7 +34,7 @@ class CloudMechanismMixin:
 
 	def create_dsp_bone(self, parent):
 		return create_dsp_bone(parent, self.bones_mch)
-	
+
 	def make_def_bone(self, bone, bone_set):
 		"""Make a DEF- bone parented to bone."""
 		def_bone = bone_set.new(
@@ -95,9 +95,9 @@ def get_object_scalar(obj):
 def relink_driver(metarig, rig, driver_info):
 	"""Adjust drivers read from the metarig according to some conventions:
 
-	An empty target object or the metarig as the target object will be replaced 
+	An empty target object or the metarig as the target object will be replaced
 	with the generated rig.
-	Variable names with @ in them will be split by the @, and the part after the 
+	Variable names with @ in them will be split by the @, and the part after the
 	@ will be the target bone name.
 	"""
 	for var_info in driver_info['variables']:

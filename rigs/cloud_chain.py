@@ -62,7 +62,7 @@ class CloudChainRig(CloudBaseRig):
 			,str_sections: List[Tuple[BoneInfo, List[BoneInfo]]]
 			,is_cyclic: bool
 		) -> List[BoneInfo]:
-		"""Sort the main and sub STR bones into a chain, so each one knows 
+		"""Sort the main and sub STR bones into a chain, so each one knows
 		which one comes before and after it."""
 		str_chain = []
 		for section in str_sections:
@@ -139,7 +139,7 @@ class CloudChainRig(CloudBaseRig):
 		for i, org_bone in enumerate(org_chain):
 			main_str_bone = self.make_main_str_bone(org_bone, i)
 			main_str_bones.append(main_str_bone)
-		
+
 		if self.params.CR_chain_tip_control:
 			extra_org = org_chain[-1]
 			org_chain.remove(extra_org)
@@ -179,7 +179,7 @@ class CloudChainRig(CloudBaseRig):
 		else:
 			main_str.custom_shape = self.ensure_widget("Sphere")
 
-		# Create alignment helpers, to make sure the bendy bones don't flip out 
+		# Create alignment helpers, to make sure the bendy bones don't flip out
 		# when the chain has a zig-zaggy shape, and the STR-H bones try to copy
 		# rotations from the STR bones.
 		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
@@ -374,7 +374,7 @@ class CloudChainRig(CloudBaseRig):
 				,space = 'WORLD'
 			)
 
-			# For main STR bones the parent is the ORG bone, 
+			# For main STR bones the parent is the ORG bone,
 			# for sub STR bones it's the STR-H bone.
 			handle_bone.parent = str_bone.parent
 			handle_bone.add_constraint('COPY_TRANSFORMS'
@@ -556,7 +556,7 @@ class CloudChainRig(CloudBaseRig):
 			,str_bone: BoneInfo
 			,def_bone: BoneInfo
 		) -> BoneInfo:
-		"""Create CTR-DEF controls that can be used to nudge deform bones 
+		"""Create CTR-DEF controls that can be used to nudge deform bones
 		completely independently from their neighbours.
 		"""
 		def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
@@ -632,7 +632,7 @@ class CloudChainRig(CloudBaseRig):
 
 		Reading the local rotation of SKH
 		gives us the rotation that we can use to activate corrective
-		shape keys. It will be the rotational difference between the 
+		shape keys. It will be the rotational difference between the
 		end of def_bone_1 and the start of def_bone_2.
 		"""
 

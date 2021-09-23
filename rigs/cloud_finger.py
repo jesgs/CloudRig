@@ -46,7 +46,7 @@ class CloudFingerRig(CloudIKChainRig):
 		if self.params.CR_ik_chain_use_pole:
 			# Parent the pole target to the stretch bone
 			self.pole_ctrl.parent = self.stretch_bone
-	
+
 		self.create_x_rotation_setup(last_org)
 
 	def create_ik_switcher_control(self, last_org):

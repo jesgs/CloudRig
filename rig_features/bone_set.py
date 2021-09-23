@@ -227,7 +227,7 @@ class BoneSet(LinkedList):
 		if rna_idprop_has_properties(pose_bone):
 			rna_properties = {prop.identifier for prop in pose_bone.bl_rna.properties if prop.is_runtime}
 			for prop_name in pose_bone.keys():
-				if prop_name in rna_properties: 
+				if prop_name in rna_properties:
 					# We don't want to reset addon-defined properties.
 					continue
 				if prop_name[0] in "_$": continue
@@ -236,7 +236,7 @@ class BoneSet(LinkedList):
 				except TypeError:
 					# This should only happen with python dictionaries, let's just ignore them for now.
 					prop_data = {'default': pose_bone[prop_name]}
-				
+
 				value = pose_bone[prop_name]
 				if hasattr(value, 'to_list'):
 					value = value.to_list()
@@ -444,7 +444,7 @@ class BoneSetMixin:
 ##########################
 class UIBoneSet(PropertyGroup):
 	"""This class is to bridge the data between Blender's UI and the generator."""
-	# The reason we can't use this for the actual Bone Set class used during generation is that 
+	# The reason we can't use this for the actual Bone Set class used during generation is that
 	# the properties of the bone set must be defined during registration, and CollectionProperties
 	# are not yet ready at that time. (They only become "real" after registration is complete.)
 	bone: StringProperty()
@@ -456,7 +456,7 @@ class CLOUDRIG_UL_bone_set(UIList):
 
 	def draw_filter(self, context, layout):
 		layout.prop(self, 'filter_name', text="")
-	
+
 	def filter_items(self, context, data, propname):
 		flt_flags = []
 		flt_neworder = []

@@ -34,7 +34,7 @@ def link_script(rig, prop_name:str, filepath:str, script_name:str):
 def face_rig_tweaks(rig):
 	"""Automate some tweaks on the face rig."""
 
-	# I didn't set the correct rotation order on these Transformation constraints, 
+	# I didn't set the correct rotation order on these Transformation constraints,
 	# on every character, so I'd rather just fix it here.
 	for bonename in ['P-STR-Lip_Bottom1', 'P-STR-TIP-Lip_Top2', 'P-STR-Lip_Bottom2', 'P-STR-Lip_Top2']:
 		for suf in suffixes:
@@ -226,7 +226,7 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 
 		# Also attach the library absolute path warning script
 		link_script(rig, 'script', rel_path, 'warn_absolute_library.py')
-	
+
 	# Ensure object data names are correct
 	for o in bpy.data.objects:
 		if not o.data: continue

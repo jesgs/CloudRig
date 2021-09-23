@@ -89,7 +89,7 @@ class CloudCopyRig(CloudBaseRig):
 
 		if self.params.CR_copy_custom_pivot:
 			self.root_bone = self.create_custom_pivot(bi, new_set)
-		
+
 		if self.params.CR_copy_property_ui_subpanel:
 			self.add_ui_data_of_bone(bi
 				,self.params.CR_copy_property_ui_subpanel
@@ -115,8 +115,8 @@ class CloudCopyRig(CloudBaseRig):
 		for prop_name, prop in bone.custom_props.items():
 			prop_value = prop['default']
 
-			# For the row names, we want each property to have its own row, 
-			# but matching properties from opposite side bones should be in 
+			# For the row names, we want each property to have its own row,
+			# but matching properties from opposite side bones should be in
 			# the same row.
 			base_name = self.naming.slice_name(bone.name)[1]
 			row_name = base_name + "_" + prop_name
@@ -128,7 +128,7 @@ class CloudCopyRig(CloudBaseRig):
 				# We also want to make sure the "entry name" is unique.
 				# (User should NOT add a side indicator to the property name!)
 				entry_name = self.side_prefix + " " + prop_name
-			
+
 			info = {
 				'prop_bone' : bone.name,
 				'prop_id' : prop_name,
@@ -136,7 +136,7 @@ class CloudCopyRig(CloudBaseRig):
 
 			if "$"+prop_name in self.meta_base_bone:
 				# Rigger can specify strings for integer properties with a
-				# property whose name starts with $. This property is expected 
+				# property whose name starts with $. This property is expected
 				# to be a list of strings, where the first strings matches with the value 0.
 				# Negative integers are not supported for this.
 				info['texts'] = self.meta_base_bone["$"+prop_name]

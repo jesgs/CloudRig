@@ -5,7 +5,7 @@ from . import assign_bone_layers
 
 modules = [
 	mirror_rigify,
-    flatten_chain,
+	flatten_chain,
 	toggle_metarig,
 	assign_bone_layers
 ]

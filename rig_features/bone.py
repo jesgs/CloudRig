@@ -203,7 +203,7 @@ class BoneInfo:
 	@property
 	def custom_shape_scale(self):
 		return sum(self.custom_shape_scale_xyz)/3
-	
+
 	@custom_shape_scale.setter
 	def custom_shape_scale(self, value):
 		self.custom_shape_scale_xyz = Vector((value, value, value))
@@ -457,7 +457,7 @@ class BoneInfo:
 			if key == 'bone_group':
 				value = armature.pose.bone_groups.get(self.bone_group)
 			setattr(pb, key, value)
-		
+
 		# Reset pose
 		pb.matrix_basis = Matrix.Identity(4)
 

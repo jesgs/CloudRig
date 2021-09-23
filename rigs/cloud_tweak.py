@@ -194,7 +194,7 @@ class CloudTweakRig(CloudBaseRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		
+
 		cls.draw_control_label(layout, "Tweak")
 		cls.draw_prop(layout, params, "CR_tweak_constraints_additive")
 		cls.draw_prop(layout, params, "CR_tweak_transforms")

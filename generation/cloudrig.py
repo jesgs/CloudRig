@@ -593,7 +593,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 			time_row.prop(self, 'frame_start')
 			time_row.prop(self, 'frame_end')
 			col.row().prop(self, 'bake_every_frame')
-		
+
 		self.draw_affected_bones(layout, context)
 
 	def execute(self, context):
@@ -985,13 +985,13 @@ class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
 	def invoke(self, context, event):
 		if context.active_pose_bone and context.active_pose_bone.bone_group:
 			self.bone_group = context.active_pose_bone.bone_group.name
-		
+
 		if len(context.object.pose.bone_groups) == 0:
 			self.operation = 'NEW'
-		
+
 		wm = context.window_manager
 		return wm.invoke_props_dialog(self)
-	
+
 	def draw(self, context):
 		layout = self.layout
 		col = layout.column()
@@ -1009,7 +1009,7 @@ class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
 	bl_idname = "object.cloudrig_fix_name"
 	bl_label = "Fix Name"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-	
+
 	old_name: StringProperty()
 	new_name: StringProperty()
 	is_collection: BoolProperty(default=False, description="Whether the target for renaming is a collection rather than an object")
@@ -1069,7 +1069,7 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 
 	@staticmethod
 	def draw_override_purge(layout):
-		"""Check if an 'OVERRIDE_RESYNC_LEFTOVERS' collection exists and 
+		"""Check if an 'OVERRIDE_RESYNC_LEFTOVERS' collection exists and
 		draw a button to delete it.
 		"""
 		if 'OVERRIDE_RESYNC_LEFTOVERS' in bpy.data.collections:
@@ -1114,10 +1114,10 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 	def draw_troubleshoot_names(layout, things, *, suffix, is_collection):
 		for thing in things:
 			if thing.name.startswith("WGT-"):
-				# Bone widgets are handled specially by overrides; 
+				# Bone widgets are handled specially by overrides;
 				# They are not overridden, because they don't need to be, but stay linked.
-				# For now let this be handled by naming convention: 
-				# Bone shapes should start with "WGT-". Otherwise, we could scan 
+				# For now let this be handled by naming convention:
+				# Bone shapes should start with "WGT-". Otherwise, we could scan
 				# through every bone and save a list of widget names to ignore here.
 				continue
 			CLOUDRIG_PT_troubleshoot_overrides.draw_troubleshoot_name(
@@ -1164,7 +1164,7 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 		suffix = ""
 		if has_number_suffix(coll.name):
 			suffix = coll.name[-4:]
-		
+
 		split=layout.split(factor=0.4)
 		split.row()
 		split.row().label(text="Expected suffix: " + suffix)
@@ -1564,7 +1564,7 @@ def ensure_custom_panels(scene, depsgraph):
 	if 'ui_data' not in rig.data:
 		return
 	custom_panels = rig.data['ui_data'].to_dict()
-	
+
 	# We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
 	for panel_name in custom_panels.keys():
 		parent_id = "CLOUDRIG_PT_settings"
@@ -1606,7 +1606,7 @@ class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
 	"""Base class for sub-panels of the Settings panel."""
 
 	# 'area_name' : "UI Label"
-	# UI Label is optional. Area name should be one of the strings in the area_names list above. 
+	# UI Label is optional. Area name should be one of the strings in the area_names list above.
 	area_names = {}
 
 	@classmethod
@@ -1802,8 +1802,8 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 	def draw(self, context):
 		layout = self.layout
 		kc = context.window_manager.keyconfigs.user
-		# NOTE: It's very important that we do NOT expose any UI pointing at 
-		# keyconfigs.addons. Messing with that copy of the hotkeys after registration 
+		# NOTE: It's very important that we do NOT expose any UI pointing at
+		# keyconfigs.addons. Messing with that copy of the hotkeys after registration
 		# results in ghost hotkeys and very hard to troubleshoot issues.
 
 		for km in kc.keymaps:
@@ -1882,14 +1882,14 @@ def register():
 	bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
 
 def unregister():
-	"""Since this file runs from the Blender Text Editor, unregister() is never 
+	"""Since this file runs from the Blender Text Editor, unregister() is never
 	called afaik. So this is only here for show.
 	"""
 
 	from bpy.utils import unregister_class
 	for c in classes:
 		unregister_class(c)
-	
+
 	global custom_panels
 	for c in custom_panels:
 		unregister_class(c)
@@ -1902,6 +1902,6 @@ def unregister():
 if __name__ in ['__main__', 'builtins']:
 	# __name__ is __main__ when the script is executed in the text editor.
 	# __name__ is builtins when the script is executed via exec() in cloud_generator.
-	# This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded. 
+	# This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded.
 	# In that case __name__ is "rigify.feature_sets.CloudRig.cloudrig"
 	register()

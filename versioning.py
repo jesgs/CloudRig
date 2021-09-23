@@ -13,7 +13,7 @@ def update_enum_property(owner, old_key, new_key, int_value):
 	if enum_string_value:
 		print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
 	else:
-		# If an enum property's definition is lost, their string value is lost 
+		# If an enum property's definition is lost, their string value is lost
 		# and is left with an int. In this case, just back up that int.
 		owner[new_key] = int_value
 

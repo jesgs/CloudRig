@@ -115,7 +115,7 @@ def set_layers(obj, layerlist, additive=False):
 	obj.layers = layers[:]
 
 def set_enum_property_by_integer(owner:bpy.types.ID, key:str, int_value) -> str or False:
-	"""Attempt setting an EnumProperty by its integer value. 
+	"""Attempt setting an EnumProperty by its integer value.
 	This can only work if that EnumProperty is registered in the current running instance of Blender.
 	On success, return name of the enum value, otherwise, return False.
 	"""

@@ -168,13 +168,13 @@ class CloudGenerator(Generator):
 				self.rigify_compatible = True
 				print("Rigify compatible generation enabled.")
 				break
-		
+
 		# Check if Selection Sets addon is enabled
 		self.do_sel_sets = addon_utils.check('bone_selection_sets')[1]
 
 	@staticmethod
 	def cloudrig_reorder_rigs(rig_list):
-		"""Some rig types need special treatment in regards to where they are in 
+		"""Some rig types need special treatment in regards to where they are in
 		the rig generation order."""
 		from ..rigs.cloud_tweak import CloudTweakRig
 		from ..rigs.cloud_chain_anchor import CloudChainAnchorRig
@@ -221,8 +221,8 @@ class CloudGenerator(Generator):
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
 
 	def update_bone_set_ui_info(self):
-		"""Keep in sync the bone_sets CollectionProperty stored in the generator 
-		parameters, with the bone set parameters stored in RigifyParameters. 
+		"""Keep in sync the bone_sets CollectionProperty stored in the generator
+		parameters, with the bone set parameters stored in RigifyParameters.
 		We copy the data from the latter to the former."""
 
 		# Nuke UI bone sets
@@ -260,7 +260,7 @@ class CloudGenerator(Generator):
 		# Ensure rig is visible while generating.
 		self.context.scene.collection.objects.link(obj)
 
-		# Adding the rig_id necessary to not display metarig UI on generated rigs. 
+		# Adding the rig_id necessary to not display metarig UI on generated rigs.
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
 		obj.data['rig_id'] = self.rig_id
 		# Mark rig for cloudrig.py compatibility checks
@@ -272,7 +272,7 @@ class CloudGenerator(Generator):
 		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
 		obj.data['generation_time'] = f"{now.hour}:{now.minute}:{now.second}"
 
-		# Make sure Hidden Layers checkbox is saved in the generated rig, so it 
+		# Make sure Hidden Layers checkbox is saved in the generated rig, so it
 		# remains even if the Rigify addon is disabled.
 		obj.data.cloudrig_parameters.show_layers_preview_hidden = False
 
@@ -520,7 +520,7 @@ class CloudGenerator(Generator):
 			target.group = source.group
 
 	def invoke_generate_bones(self):
-		"""Create real bones from all BoneInfos. 
+		"""Create real bones from all BoneInfos.
 		No bone data is written yet beside the name."""
 		for bi in self.bone_infos:
 			if bi.name in self.obj.data.edit_bones:
@@ -536,7 +536,7 @@ class CloudGenerator(Generator):
 				)
 				bi.name = new_name
 			self.bone_owners[new_name] = None
-		
+
 		super().invoke_generate_bones()
 
 	def invoke_parent_bones(self):
@@ -567,7 +567,7 @@ class CloudGenerator(Generator):
 			bi.write_pose_data(pose_bone)
 			if not pose_bone.use_custom_shape_bone_size:
 				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
-		
+
 		super().invoke_configure_bones()
 
 	def invoke_apply_bones(self):
@@ -583,7 +583,7 @@ class CloudGenerator(Generator):
 					break
 
 	def map_drivers(self) -> Dict[str, Tuple[str, int]]:
-		"""Create a dictionary matching bone names to full data paths of drivers 
+		"""Create a dictionary matching bone names to full data paths of drivers
 		that belong to those bones. This is to speed up loading drivers into BoneInfos."""
 		driver_map = {}
 		if not self.obj.animation_data:
@@ -917,7 +917,7 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 
 		# Generate, without halting execution on failure
 		rig = self.generate_rig(context, metarig)
-		
+
 		if not rig:
 			return {'FINISHED'}
 
@@ -985,11 +985,11 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 
 		if mode in ['OBJECT', 'EDIT', 'POSE']:
 			bpy.ops.object.mode_set(mode=mode)
-	
+
 		rig = context.object
 		if active_bone_name in rig.pose.bones:
 			rig.data.bones.active = rig.data.bones[active_bone_name]
-		
+
 		for bone_name in selected_bone_names:
 			if bone_name in rig.data.bones:
 				rig.data.bones[bone_name].select = True

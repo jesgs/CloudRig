@@ -50,7 +50,7 @@ def project_points_on_plane (
 		points: List[Vector]
 		,projection_axis: Vector
 	) -> List[Vector]:
-	"""Return points that are flattened onto a plane. 
+	"""Return points that are flattened onto a plane.
 	projection_axis is the plane's normal, and the plane's depth is the
 	average depth of the points along this axis."""
 

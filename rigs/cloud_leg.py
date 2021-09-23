@@ -324,7 +324,7 @@ class CloudLegRig(CloudLimbRig):
 			ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')
 			if ci:
 				ci.subtarget = rolly_stretchy.name
-		
+
 		# Set properties bone display
 		if self.params.CR_base_props_storage == 'GENERATED':
 			self.properties_bone.custom_shape_transform = roll_ctrl

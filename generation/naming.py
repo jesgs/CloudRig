@@ -104,7 +104,7 @@ def combine_bone_names(names) -> str:
 	"""Combine multiple bone names into one by:
 	- Removing duplicate pre and suffixes
 	- Cancelling out left/right suffixes
-	- Combining name bases separated by "+" while ignoring duplicate matching characters 
+	- Combining name bases separated by "+" while ignoring duplicate matching characters
 	- Limiting to a max of 59 characters
 	Eg., "Lip_Upper.L" + "Lip_Lower.R" -> "Lip_Upper+Lower")
 	"""

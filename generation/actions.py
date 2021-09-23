@@ -425,7 +425,7 @@ def draw_cloudrig_actions(layout, context):
 	layout.prop(active_slot, 'is_corrective')
 	if active_slot.is_corrective:
 		if is_advanced_mode(context):
-			# TODO: This option is confusing and difficult to use and should be 
+			# TODO: This option is confusing and difficult to use and should be
 			# removed after Sprite Fright.
 			layout.prop(active_slot, 'corrective_type')
 		layout.prop(active_slot, 'frame_start', text="Frame Start")
@@ -503,9 +503,9 @@ class CLOUDRIG_OT_copy_actions(bpy.types.Operator):
 			return False
 
 		for ob in context.selected_objects:
-			if ob.type != 'ARMATURE' or not is_cloud_metarig(ob): 
+			if ob.type != 'ARMATURE' or not is_cloud_metarig(ob):
 				return False
-		
+
 		return True
 
 	def execute(self, context):
