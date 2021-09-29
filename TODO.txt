@@ -1,10 +1,8 @@
 cloud_copy
-    Create Deform should be a proper param instead of using blender's Deform checkbox.
+	Create Deform should be a proper param instead of using blender's Deform checkbox.
 cloud_leg
 	Implement a gizmo to place the heel pivot, is way cooler.
 	Until then, the rig sample has the heelpivot unspecified, even though the bone is included.
-cloud_finger
-	UI is not drawn when there's no other IK chain in the rig that creates the IK subpanel
 
 cloud_aim
 	Default layer for controls is nonsensical, should be Face for the aim stuff and Face Extras for the eye root.
@@ -20,23 +18,18 @@ GIZMOS DESIGN
 		Gizmo Consists of:
 		- Gizmo Shape Object
 		- Face Map Name (optional)
-		- Color, highlight color
-		- Draw Style (Lines/Faces)
+		- Color, highlight color		( Can be initialized based on bone group )
+		- Draw Style (Points/Lines/Faces)
 		- Is Hover Only checkbox
 
 		- Interacting the gizmo will select the relevant bone. Click&Drag will function as normal
 		- Holding Shift will add it to the selection.
 
-    Face Maps
-        - They need to be authored manually, but we include some tools:
-            - Convert weights of selected bones to Face Maps
-        - Bone gizmo information is automatically mapped to objects at generation time.
-            Requirements: Object is a child of the rig, and one bone name only corresponds to one face map on one object.
-        - Currently we use the preset face map drawing function, which is a bit limited. Might want to re-implement in future.
+		- There could be a slider to change the "passive" opacity of all gizmos.
+		- Gizmos need the bone to be visible to be functional, so bones that use gizmos should use an empty Custom Shape Object.
 
-		This can be set in the UI, and CloudRig will also auto-register hotkeys to the 1, 2, 3 keys, which can be disabled.
-	- By default, controls are only visible on mouse hover, unless holding a modifier key, eg. Alt.
-		This can be changed with a widget opacity slider in the rig UI.
+	Face Maps
+		- They do not seem to provide any benefit compared to vertex groups. PizMo has code to use vertex group instead of face map, which I think will be superior.
 
 Feature request:
 	- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.

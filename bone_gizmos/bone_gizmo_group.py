@@ -12,7 +12,7 @@ class CloudGizmoGroup(GizmoGroup):
 		'3D'				# Lets Gizmos use the 'draw_select' function to draw into a selection pass.
 		,'PERSISTENT'
 		,'SHOW_MODAL_ALL'	# TODO what is this
-		,'DEPTH_3D'
+		# ,'DEPTH_3D'		# Provides occlusion but results in Z-fighting when using the face map preset function.
 		,'SELECT'			# I thought this would make Gizmo.select do something but doesn't seem that way
 		,'SCALE'			# This makes all gizmos' scale relative to the world rather than the camera, so we don't need to set use_draw_scale on each Gizmo. (And that option does nothing because of this one)
 	}
@@ -34,8 +34,10 @@ class CloudGizmoGroup(GizmoGroup):
 		"""Add a gizmo to this GizmoGroup based on user-defined properties."""
 		gizmo_props = pose_bone.cloudrig_gizmo
 
+		if not gizmo_props.enabled:
+			return
 		gizmo = self.gizmos.new('GIZMO_GT_cloudrig_bone')
-		gizmo.props = pose_bone.cloudrig_gizmo
+		gizmo.props = gizmo_props
 		gizmo.bone_name = pose_bone.name
 
 		# self.refresh_gizmo(context, pose_bone, gizmo_props)

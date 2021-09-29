@@ -41,7 +41,8 @@ class MoveBoneGizmo(Gizmo):
 		"""Whether any gizmo logic should be executed or not. This function is not
 		from the API! Call and override this function liberally to prevent logic execution.
 		"""
-		return self.get_pose_bone(context) and self.props.shape_object and self.props.enabled
+		pb = self.get_pose_bone(context)
+		return pb and not pb.bone.hide and self.props.shape_object and self.props.enabled
 
 	def ensure_custom_shape(self, context):
 		if hasattr(self, "custom_shape"):
