@@ -3,9 +3,6 @@ cloud_copy
 cloud_leg
 	Implement a gizmo to place the heel pivot, is way cooler.
 	Until then, the rig sample has the heelpivot unspecified, even though the bone is included.
-cloud_curve
-    Separate radius control check box creates bones to control the radius but the controls don't change the radius at all
-    the radius controls are overlapping with the curve controls
 cloud_finger
 	UI is not drawn when there's no other IK chain in the rig that creates the IK subpanel
 

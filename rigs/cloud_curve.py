@@ -104,6 +104,7 @@ class CloudCurveRig(CloudBaseRig):
 					name						= f"Hook_Radius_{hook_name}_{str(i).zfill(2)}{suffix}"
 					,source						= hook_ctr
 					,use_custom_shape_bone_size	= False
+					,custom_shape_scale			= 0.8
 					,parent						= hook_ctr
 					,custom_shape				= self.ensure_widget("Circle")
 				)
@@ -270,6 +271,9 @@ class CloudCurveRig(CloudBaseRig):
 			var_tgt.transform_type = 'SCALE_X'
 			var_tgt.bone_target = hooks[i].name
 
+			if self.params.CR_curve_separate_radius:
+				var_tgt.bone_target = hooks[i].radius_control.name
+
 			# Add Tilt driver
 			data_path = f"splines[0].bezier_points[{i}].tilt"
 			curve_ob.data.driver_remove(data_path)
@@ -288,9 +292,6 @@ class CloudCurveRig(CloudBaseRig):
 			var_tgt.transform_type = 'ROT_Y'
 			var_tgt.rotation_mode = hook_b.rotation_mode
 			var_tgt.bone_target = hooks[i].name
-
-			if self.params.CR_curve_separate_radius:
-				var_tgt.bone_target = hooks[i].radius_control.name
 
 		# Restore modifier visibility on curve object
 		for m in curve_ob.modifiers:
