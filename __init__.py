@@ -30,6 +30,7 @@ from .rig_features import parent_switching
 from .generation import actions
 from .generation import troubleshooting
 from .generation import cloud_generator
+from . import bone_gizmos
 from . import versioning
 from . import manual
 from . import operators
@@ -39,6 +40,7 @@ from . import rigs
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
+	bone_gizmos,
 	ui_list,
 	actions,
 	troubleshooting,

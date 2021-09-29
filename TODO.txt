@@ -18,24 +18,28 @@ cloud_aim
 GIZMOS DESIGN
 	- Each rig type can define the gizmo data of each of the bones that it creates.
 	- Existing bone widget system could be turned into gizmos maybe.
-	- Vertex groups should be possible to be turned into face maps and used for gizmos, including using the same face map for multiple bones, on different layers.
-		- This may be expensive at generation time.
-		- In case we don't want to use the same vertices for deformation and for gizmo drawing, we can use a naming convention for additional vertex groups specifically for gizmos. (eg. GIZ-DEF-Wrist.L)
-		- Would this mean that bones need to store references to objects? That's not super ideal, but probably yes. Would this work when CloudRig is not installed?
 
-	- Gizmo data is stored per-bone.
-		- One bone can have multiple gizmos, eg. to split rotation and translation interactions.
-		- Some of these gizmos might be "always available" others only when the bone is selected.
-		- Interacting the gizmo will select the relevant bone.
-	- Shift+Clicking should allow preserving the previous selection, but I'm not sure if this is possible with current API. GizmoGroups do seem to have a keymap, so maybe using that could work.
+	- Gizmo data is stored per-bone. There is one gizmo per bone.
+		Gizmo Consists of:
+		- Gizmo Shape Object
+		- Face Map Name (optional)
+		- Color, highlight color
+		- Draw Style (Lines/Faces)
+		- Is Hover Only checkbox
 
-	- Three layers of controls.
+		- Interacting the gizmo will select the relevant bone. Click&Drag will function as normal
+		- Holding Shift will add it to the selection.
+
+    Face Maps
+        - They need to be authored manually, but we include some tools:
+            - Convert weights of selected bones to Face Maps
+        - Bone gizmo information is automatically mapped to objects at generation time.
+            Requirements: Object is a child of the rig, and one bone name only corresponds to one face map on one object.
+        - Currently we use the preset face map drawing function, which is a bit limited. Might want to re-implement in future.
+
 		This can be set in the UI, and CloudRig will also auto-register hotkeys to the 1, 2, 3 keys, which can be disabled.
 	- By default, controls are only visible on mouse hover, unless holding a modifier key, eg. Alt.
 		This can be changed with a widget opacity slider in the rig UI.
-
-	Initial target:
-		- Gizmos for the eyeball rotation, eyebrow translation, mouth corner pullers. No rotations, no scaling.
 
 Feature request:
 	- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
@@ -81,8 +85,6 @@ Priority 2: New features
 
 	Perhaps some parameters could belong all the way up in CloudBaseRig.
 		- Create ORG bones (False by default, can force to True for rigs that need it)
-	cloud_copy
-		Should have a string input for Custom Property UI areas, so these custom properties can be added to the rig UI without post-gen script.
 	Automatic IK/FK switching based on bone selection:
 		https://youtu.be/ccbC8JNdXS4?t=755
 		https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
