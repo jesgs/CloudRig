@@ -351,6 +351,10 @@ class CloudGenerator(Generator):
 	### Widget management
 	def ensure_widget_collection(self, context):
 		"""Find or create the collection where rig widgets should be stored."""
+		
+		# Rigify compatibility...
+		self.new_widget_table ={}
+		
 		widget_collection = self.params.cloudrig_parameters.widget_collection
 		if widget_collection:
 			return widget_collection
