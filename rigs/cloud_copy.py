@@ -23,6 +23,7 @@ class CloudCopyRig(CloudBaseRig):
 		super().initialize()
 
 		self.orgless_name = self.base_bone.replace("ORG-", "")
+		self.params.CR_base_props_storage_bone = self.orgless_name
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
 		self.do_parenting = True
