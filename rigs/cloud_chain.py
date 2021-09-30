@@ -162,7 +162,11 @@ class CloudChainRig(CloudBaseRig):
 
 		str_name = org_bone.name.replace("ORG", "STR")
 		sliced = self.naming.slice_name(str_name)
-		sliced[1] += "1"	# For legacy reasons, main STR controls aren't indicated in the best way.  TODO: Maybe break backwards comp on this before 3.0 release, as it's gonna be the last chance to do it with minimal damage.
+
+		# Add a 1 at the end unless there's only 1 segment.
+		num_segments = self.get_num_segments_of_section(org_bone)
+		if num_segments > 1:
+			sliced[1] += "1"
 		str_name = self.naming.make_name(*sliced)
 		main_str = self.bone_sets['Stretch Controls'].new(
 			name = str_name
@@ -241,6 +245,8 @@ class CloudChainRig(CloudBaseRig):
 
 	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
 		"""Child classes may want to override this."""
+		if org_bone == self.bones_org[-1] and not self.params.CR_chain_tip_control:
+			return 1
 		return self.params.CR_chain_segments
 
 	def make_sub_str_section(self
@@ -266,7 +272,8 @@ class CloudChainRig(CloudBaseRig):
 		) -> BoneInfo:
 		# Add the index after the base name
 		sliced = self.naming.slice_name(main_start.name)
-		sub_str_name = self.naming.make_name(sliced[0], f"{sliced[1]}{index+1}", sliced[2])
+		base_name = sliced[1][:-1] + str(index+1)
+		sub_str_name = self.naming.make_name(sliced[0], base_name, sliced[2])
 
 		vector = main_end.head - main_start.head
 		unit = vector / num_segments

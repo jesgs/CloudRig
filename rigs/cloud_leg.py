@@ -65,7 +65,7 @@ class CloudLegRig(CloudLimbRig):
 
 	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
 		"""Override cloud_leg, force 1 segment on the foot and toe."""
-		if org_bone in self.bones_org[-2:]:
+		if org_bone in self.bones_org[2:]:
 			return 1
 		return self.params.CR_chain_segments
 
