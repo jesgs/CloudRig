@@ -265,7 +265,9 @@ class MeshShape3D(BasicShape):
 	def tris_from_mesh(self, obj, vertex_groups=[], weight_threshold=0.2):
 		self._obj = obj
 
-		mesh = self._obj.data
+		depsgraph = bpy.context.evaluated_depsgraph_get()
+		eval_ob = self._obj.evaluated_get(depsgraph)
+		mesh = eval_ob.data
 		mesh.calc_loop_triangles()
 
 		self._indices = []

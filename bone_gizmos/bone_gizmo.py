@@ -43,18 +43,22 @@ class MoveBoneGizmo(Gizmo):
 	def setup(self):
 		"""Called by Blender when the Gizmo is created."""
 		self.target_set_operator("transform.translate")
+		self.last_bone_matrix = Matrix.Identity(4)
 
 	def poll(self, context):
 		"""Whether any gizmo logic should be executed or not. This function is not
 		from the API! Call this manually to prevent logic execution.
 		"""
-		pb = self.get_pose_bone()
-		return pb and not pb.bone.hide and self.props.shape_object and self.props.enabled
+		pb = self.get_pose_bone(context)
+		bone_visible = pb and not pb.bone.hide and any(bl and al for bl, al in zip(pb.bone.layers[:], pb.id_data.data.layers[:]))
+		return self.props.shape_object and self.props.enabled and bone_visible
 
-	def refresh_shape(self):
+	def refresh_shape(self, context):
 		"""This is an expensive function, so it should be called carefully:
 		Only when geometry change is expected, and not on every viewport update
 		(So not on generic mouse moves or viewport panning)."""
+		if not self.poll(context):
+			return
 		props = self.props
 		if self.is_using_vgroup():
 			self.set_shape_vertex_group(props.shape_object, props.vertex_group_name)
@@ -63,10 +67,13 @@ class MoveBoneGizmo(Gizmo):
 			pass
 		else:
 			self.set_shape_entire_object()
-		self.last_bone_matrix = self.get_bone_matrix()
+		self.last_bone_matrix = self.get_bone_matrix(context)
 
-	def set_shape_vertex_group(self, obj, v_grp: str, weight_threshold=0.2, widget_scale=1.01):
+	def set_shape_vertex_group(self, obj, v_grp: str, weight_threshold=0.2, widget_scale=1.05):
 		meshshape = MeshShape3D(obj, scale=widget_scale, vertex_groups=[v_grp], weight_threshold=weight_threshold)
+		if len(meshshape._indices) < 3:
+			# Nothing to draw
+			return
 		# TODO: Supporting Edge drawing would be nice, but currently the order of the vertices is wrong.
 		self.custom_shape = self.new_custom_shape('TRIS', meshshape.vertices)
 
@@ -100,6 +107,13 @@ class MoveBoneGizmo(Gizmo):
 		if face_map and self.props.use_face_map:
 			self.draw_preset_facemap(self.props.shape_object, face_map.index, select_id=select_id or 0)
 		else:
+			if not hasattr(self, 'custom_shape'):
+				self.refresh_shape(context)
+			if not hasattr(self, 'custom_shape'):
+				# In case refresh_shape failed, just don't draw anything.
+				# This can happen if the specified vertex group is empty.
+				return
+
 			self.draw_custom_shape(self.custom_shape, select_id=select_id)
 
 	def draw_shared(self, context, select_id=None):
@@ -123,10 +137,10 @@ class MoveBoneGizmo(Gizmo):
 			return
 		if self.use_draw_hover and not self.is_highlight:
 			return
-		if self.get_bone_matrix() != self.last_bone_matrix:
+		if self.get_bone_matrix(context) != self.last_bone_matrix:
 			self.gizmo_group.refresh_all_gizmos(context)
 
-		pb = self.get_pose_bone()
+		pb = self.get_pose_bone(context)
 		if pb.bone.select and not self.select:
 			# If the bone just got selected, swap the colors.
 			self.color_backup = self.color.copy()
@@ -158,12 +172,12 @@ class MoveBoneGizmo(Gizmo):
 		props = self.props
 		return props.use_face_map and props.face_map_name in props.shape_object.face_maps
 
-	def get_pose_bone(self):
-		arm_ob = bpy.context.object
+	def get_pose_bone(self, context):
+		arm_ob = context.object
 		return arm_ob.pose.bones.get(self.bone_name)
 
-	def get_bone_matrix(self):
-		pb = self.get_pose_bone()
+	def get_bone_matrix(self, context):
+		pb = self.get_pose_bone(context)
 		if not pb:
 			return
 		return pb.matrix.copy()
@@ -176,7 +190,7 @@ class MoveBoneGizmo(Gizmo):
 			self.matrix_offset = Matrix.Identity(4)
 			return
 
-		pb = self.get_pose_bone()
+		pb = self.get_pose_bone(context)
 		assert arm_ob and pb, "update_offset_matrix shouldn't be called until a valid armature and pose bone are specified."
 
 		ob_mat = arm_ob.matrix_world
@@ -188,7 +202,7 @@ class MoveBoneGizmo(Gizmo):
 		if not event.shift:
 			for pb in armature.pose.bones:
 				pb.bone.select = False
-		pb = self.get_pose_bone()
+		pb = self.get_pose_bone(context)
 		pb.bone.select = True
 		armature.data.bones.active = pb.bone
 		return {'RUNNING_MODAL'}

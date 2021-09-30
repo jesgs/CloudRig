@@ -150,6 +150,7 @@ class CLOUDRIG_PT_generator_advanced(Panel):
 
 		layout.prop(obj.data, "rigify_rig_ui")
 		layout.prop(cloudrig, "custom_script")
+		layout.prop(cloudrig, "auto_setup_gizmos")
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):

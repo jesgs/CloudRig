@@ -1,3 +1,5 @@
+cloud_finger
+	IK pole target size seems to get smaller the closer the master is to the root? I'm guessing it's just using rig scale, but mabye it should use chain length instead.
 cloud_copy
 	Create Deform should be a proper param instead of using blender's Deform checkbox.
 cloud_leg
@@ -9,26 +11,12 @@ cloud_aim
 		This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 		Not to mention, the eye target distance should be determined by a gizmo! :(
 
-GIZMOS DESIGN
-	- Each rig type can define the gizmo data of each of the bones that it creates.
-	- Existing bone widget system could be turned into gizmos maybe.
-
-	- Gizmo data is stored per-bone. There is one gizmo per bone.
-		Gizmo Consists of:
-		- Gizmo Shape Object
-		- Face Map Name (optional)
-		- Color, highlight color		( Can be initialized based on bone group )
-		- Draw Style (Points/Lines/Faces)
-		- Is Hover Only checkbox
-
-		- Interacting the gizmo will select the relevant bone. Click&Drag will function as normal
-		- Holding Shift will add it to the selection.
-
-		- There could be a slider to change the "passive" opacity of all gizmos.
-		- Gizmos need the bone to be visible to be functional, so bones that use gizmos should use an empty Custom Shape Object.
-
-	Face Maps
-		- They do not seem to provide any benefit compared to vertex groups. PizMo has code to use vertex group instead of face map, which I think will be superior.
+GIZMOS
+	- Changing gizmo properties is incredibly slow due to all gizmos being re-created when anything is modified. This can probably be avoided.
+		- Same for the end of gizmo interactions, there's a big lag spike.
+	- Allow gizmos to remain visible while interacted (Need support from C side)
+	- Assign a default interaction mode that happens when click&dragging (since for FK, rotation makes more sense than translation)
+	- Come up with a nice way to customize gizmos at a granular level. Trying to guess the shapes and vertex groups automatically is useful but only gets you halfway.
 
 Feature request:
 	- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.

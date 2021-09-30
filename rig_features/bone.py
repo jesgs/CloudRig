@@ -119,15 +119,16 @@ class BoneInfo:
 		"""
 
 		self.bone_set = bone_set
-		self.owner_rig = None	# This should be set after creating the instance!
-		self.next = self.prev = None	# for LinkedList behaviour.
+		self.owner_rig = None			# This should be set after creating the instance!
+		self.next = self.prev = None	# For LinkedList behaviour.
+		self.gizmo_vgroup = ""			# For CloudRig Gizmos
 
-		self.custom_props = {}	# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
+		self.custom_props = {}			# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
 		self.custom_props_edit = {}
-		self.drivers = []		# List of dictionaries that will be passed to Rigify's make_driver().
-		self.drivers_data = []	# Same but for data bone properties.
+		self.drivers = []				# List of dictionaries that will be passed to Rigify's make_driver().
+		self.drivers_data = []			# Same but for data bone properties.
 
-		self.constraint_infos = [] # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
+		self.constraint_infos = []		# List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		self._name = name
 		self._parent = None
@@ -139,9 +140,9 @@ class BoneInfo:
 		self.use_custom_shape_bone_size = False
 
 		# Recalculate Roll
-		self.roll_type = "" # This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
-		self.roll_bone = None # If roll_type=='ACTIVE', use this as the active bone. This is a BoneInfo instance or a string.
-		self.roll_cursor = Vector() # If roll_type=='CURSOR', use this as the cursor location.
+		self.roll_type = ""				# This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
+		self.roll_bone = None			# If roll_type=='ACTIVE', use this as the active bone. This is a BoneInfo instance or a string.
+		self.roll_cursor = Vector()		# If roll_type=='CURSOR', use this as the cursor location.
 
 		self._source = self
 

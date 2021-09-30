@@ -41,7 +41,7 @@ class CloudGizmoGroup(GizmoGroup):
 		gizmo.props = gizmo_props
 		gizmo.gizmo_group = self
 		gizmo.bone_name = pose_bone.name
-		gizmo.refresh_shape()
+		gizmo.refresh_shape(context)
 
 		# self.refresh_gizmo(context, pose_bone, gizmo_props)
 		self.set_gizmo_properties(gizmo, pose_bone, gizmo_props)
@@ -63,7 +63,8 @@ class CloudGizmoGroup(GizmoGroup):
 		Currently this is only necessary for gizmos which use vertex group masking.
 		Keeping this performant is important."""
 		for gizmo in self.widgets.values():
-			gizmo.refresh_shape()
+			if gizmo:
+				gizmo.refresh_shape(context)
 
 	def refresh(self, context):
 		"""TODO: When is this called?"""

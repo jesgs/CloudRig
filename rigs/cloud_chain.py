@@ -20,9 +20,12 @@ class CloudChainRig(CloudBaseRig):
 		self.main_str_bones: List[BoneInfo]
 		self.str_chain: List[BoneInfo]
 		self.tangent_helpers: List[BoneInfo]
+		self.def_bones_of_org: Dict[BoneInfo, List[BoneInfo]]
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
+		self.def_bones_of_org = {org : [] for org in self.bones_org}
+		
 		# Determine if this is a cyclic chain rig (last bone touches first)
 		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001 and not self.params.CR_chain_tip_control
 		if self.is_cyclic:
@@ -433,6 +436,7 @@ class CloudChainRig(CloudBaseRig):
 				,tail		= tail
 				,use_deform	= True
 			)
+			self.def_bones_of_org[org_bone].append(def_bone)
 
 			if i == len(str_chain) - 1 and not self.is_cyclic:
 				# Don't set up the last one unless we're a cyclic rig, since it has no next STR.

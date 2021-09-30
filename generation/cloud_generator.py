@@ -1,13 +1,12 @@
-
 from typing import List, Dict, Tuple
 
 import bpy, os, addon_utils, traceback
+from bpy.types import Object
+from mathutils import Matrix, Vector
+from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty
+
 from bone_selection_sets import from_json, to_json
 from datetime import datetime
-
-from mathutils import Matrix, Vector
-from bpy.props import (BoolProperty,
-			PointerProperty, CollectionProperty, IntProperty)
 
 from rigify.generate import Generator, Timer, select_object
 from rigify import rig_ui_template
@@ -85,6 +84,12 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,override	 = {'LIBRARY_OVERRIDABLE'}
 	)
 
+	auto_setup_gizmos: BoolProperty(
+		name		 = "Auto Setup Gizmos (EXPERIMENTAL)"
+		,description = "Play around with the initial gizmo implementation. It's pretty slow and unwieldy atm, and only creates gizmos for FK bones"
+		,default	 = False
+	)
+
 	action_slots: CollectionProperty(type=ActionSlot)
 	active_action_slot_index: IntProperty(min=0)
 
@@ -147,7 +152,7 @@ class CloudGenerator(Generator):
 		self.naming = CloudNameManager()
 
 		# List that stores a reference to all BoneInfo instances of all rigs.
-		# IMPORTANT: This should not be a BoneInfo, just a regular list. Otherwise the LinkedList behaviour gets all messed up!
+		# IMPORTANT: This should not be a BoneSet, just a regular list. Otherwise the LinkedList behaviour gets all messed up!
 		# Each BoneInfo should only exist in a single BoneSet!
 		self.bone_infos = []
 		# List that stores a reference to all BoneSets of all rigs.
@@ -582,6 +587,63 @@ class CloudGenerator(Generator):
 					eb.parent = None
 					break
 
+	@staticmethod
+	def map_vgroups_to_most_significant_object(
+			group_names: List[str]
+			,objects: List[Object]
+			) -> Dict[str, Object]:
+		"""Create a dictionary, mapping each vertex group name to the object 
+		which has the vertex group with the most vertices in it.
+		This is expected to be pretty damn slow.
+		"""
+		objects = [o for o in objects if o.type == 'MESH' and o.visible_get()]
+
+		vgroup_map = {}
+		# For each object, go through each of its vertex groups.
+		for ob in objects:
+			group_lookup = {g.index: g.name for g in ob.vertex_groups}
+			vgroup_datas = {name: [] for name in group_lookup.values() if name in group_names}
+			for v in ob.data.vertices:
+				for g in v.groups:
+					group_name = group_lookup[g.group]
+					if g.weight > 0.1 and group_name in group_names:
+						vgroup_datas[group_name].append(v.index)
+			
+			for vg_name, vg_verts in vgroup_datas.items():
+				if (vg_name not in vgroup_map) or ( vgroup_map[vg_name][1] < len(vg_verts) ):
+					vgroup_map[vg_name] = (ob, len(vg_verts))
+
+		return {vg_name : tup[0] for vg_name, tup in vgroup_map.items()}
+
+	def auto_initialize_gizmos(self):
+		"""Enable and set up custom gizmos for those bones whose BoneInfo 
+		contains the neccessary data.
+		This is not done on a per-bone basis due to performance.
+		"""
+		rig = self.metarig.data.rigify_target_rig
+		object_candidates = rig.children[:]
+
+		vgroup_names = set([bi.gizmo_vgroup for bi in self.bone_infos if bi.gizmo_vgroup != ""])
+
+		vgroup_map = self.map_vgroups_to_most_significant_object(vgroup_names, object_candidates)
+
+		pbones = self.obj.pose.bones
+		bone_infos = self.bone_infos
+		for bi in bone_infos:
+			vg_name = bi.gizmo_vgroup
+			if vg_name not in vgroup_map:
+				continue
+			pb = pbones.get(bi.name)
+			assert pb
+
+			gizmo_props = pb.cloudrig_gizmo
+			gizmo_props.enabled = True
+			gizmo_props.shape_object = vgroup_map[vg_name]
+			gizmo_props.vertex_group_name = vg_name
+			if pb.bone_group:
+				gizmo_props.color = list(pb.bone_group.colors.normal) + [0.03]
+				gizmo_props.color_highlight = list(pb.bone_group.colors.active) + [0.1]
+
 	def map_drivers(self) -> Dict[str, Tuple[str, int]]:
 		"""Create a dictionary matching bone names to full data paths of drivers
 		that belong to those bones. This is to speed up loading drivers into BoneInfos."""
@@ -813,6 +875,9 @@ class CloudGenerator(Generator):
 
 		# Only leave Force Widget Update enabled until the next generation.
 		self.params.rigify_force_widget_update = False
+
+		if self.params.cloudrig_parameters.auto_setup_gizmos:
+			self.auto_initialize_gizmos()
 
 		self.execute_custom_script()
 
