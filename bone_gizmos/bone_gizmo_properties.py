@@ -27,6 +27,16 @@ class CloudGizmoProperties(PropertyGroup):
 		,description = "Face Map to use as shape for this gizmo"
 		,update		 = update_gizmos
 	)
+	vertex_group_name: StringProperty(
+		name		 = "Vertex Group"
+		,description = "Vertex Group to use as shape for this gizmo"
+		,update		 = update_gizmos
+	)
+	use_face_map: BoolProperty(
+		name		 = "Mesh Mask Type"
+		,description = "Toggle between using Face Maps or Vertex Groups as the mesh masking data"	# Currently it seems face maps are just worse vertex groups, but maybe they are faster, or maybe it's good to have them separated.
+		,update		 = update_gizmos
+	)
 
 	draw_style: EnumProperty(
 		name		 = "Style"

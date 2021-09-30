@@ -1,6 +1,7 @@
 import bpy
 from typing import Dict, Tuple, List
 from bpy.types import GizmoGroup, Object, PoseBone
+from bpy.app.handlers import persistent
 
 class CloudGizmoGroup(GizmoGroup):
 	"""This single GizmoGroup manages all CloudRig gizmos for all rigs."""	# TODO: Currently this will have issues when there are two rigs with similar bone names. Rig object names should be included when identifying widgets.
@@ -12,7 +13,7 @@ class CloudGizmoGroup(GizmoGroup):
 		'3D'				# Lets Gizmos use the 'draw_select' function to draw into a selection pass.
 		,'PERSISTENT'
 		,'SHOW_MODAL_ALL'	# TODO what is this
-		# ,'DEPTH_3D'		# Provides occlusion but results in Z-fighting when using the face map preset function.
+		,'DEPTH_3D'			# Provides occlusion but results in Z-fighting when using the face map preset function.
 		,'SELECT'			# I thought this would make Gizmo.select do something but doesn't seem that way
 		,'SCALE'			# This makes all gizmos' scale relative to the world rather than the camera, so we don't need to set use_draw_scale on each Gizmo. (And that option does nothing because of this one)
 	}
@@ -38,7 +39,9 @@ class CloudGizmoGroup(GizmoGroup):
 			return
 		gizmo = self.gizmos.new('GIZMO_GT_cloudrig_bone')
 		gizmo.props = gizmo_props
+		gizmo.gizmo_group = self
 		gizmo.bone_name = pose_bone.name
+		gizmo.refresh_shape()
 
 		# self.refresh_gizmo(context, pose_bone, gizmo_props)
 		self.set_gizmo_properties(gizmo, pose_bone, gizmo_props)
@@ -54,8 +57,16 @@ class CloudGizmoGroup(GizmoGroup):
 		gizmo.color_highlight = gizmo_props.color_highlight[:3]
 		gizmo.alpha_highlight = gizmo_props.color_highlight[3]
 
+	def refresh_all_gizmos(self, context):
+		"""Re-calculate custom_shape of all gizmos. 
+		Currently this is called by individual gizmos, whenever their bone is moved.
+		Currently this is only necessary for gizmos which use vertex group masking.
+		Keeping this performant is important."""
+		for gizmo in self.widgets.values():
+			gizmo.refresh_shape()
+
 	def refresh(self, context):
-		"""Called by Blender on what seem to be gizmo property changes and interaction."""
+		"""TODO: When is this called?"""
 		pass
 
 classes = (
@@ -66,6 +77,14 @@ classes = (
 # a gizmo property changes. TODO: Maybe this is not necessary, but it probably is though.
 _register, _unregister = bpy.utils.register_classes_factory(classes)
 
+@persistent
+def update_gizmos(self, context):
+	if context == None:
+		context = bpy.context
+	unregister()
+	if context.scene.cloud_gizmos_enabled:
+		_register()
+
 def register():
 	_register()
 	bpy.app.handlers.undo_post.append(update_gizmos)
@@ -75,13 +94,3 @@ def unregister():
 		_unregister()
 	except RuntimeError:
 		pass
-
-from bpy.app.handlers import persistent
-
-@persistent
-def update_gizmos(self, context):
-	if context == None:
-		context = bpy.context
-	unregister()
-	if context.scene.cloud_gizmos_enabled:
-		_register()

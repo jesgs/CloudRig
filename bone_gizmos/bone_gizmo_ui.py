@@ -37,15 +37,25 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 		style_col.row().prop(props, 'draw_style', expand=True)
 		if props.draw_style == 'LINES':
 			style_col.prop(props, 'line_width')
-		if props.shape_object and props.face_map_name and props.face_map_name in props.shape_object.face_maps:
+		if props.shape_object and \
+				(
+					(props.use_face_map and props.face_map_name in props.shape_object.face_maps) or \
+					(not props.use_face_map and props.vertex_group_name in props.shape_object.vertex_groups)
+				):
 			style_col.enabled = False
 		layout.prop(props, 'color')
 		layout.prop(props, 'color_highlight')
 
 		layout.prop(props, 'shape_object')
 		if props.shape_object:
-			layout.prop_search(props, 'face_map_name', props.shape_object, 'face_maps')
-
+			row = layout.row(align=True)
+			if props.use_face_map:
+				row.prop_search(props, 'face_map_name', props.shape_object, 'face_maps', icon='FACE_MAPS')
+				icon = 'FACE_MAPS'
+			else:
+				row.prop_search(props, 'vertex_group_name', props.shape_object, 'vertex_groups')
+				icon = 'GROUP_VERTEX'
+			row.prop(props, 'use_face_map', text="", emboss=False, icon=icon)
 
 def VIEW3D_MT_cloudrig_gizmo_global_enable(self, context):
 	col = self.layout.column()
