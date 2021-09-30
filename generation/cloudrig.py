@@ -1536,19 +1536,20 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
 custom_panels = []
 
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
-	if hasattr(bpy.types, name):
+	# Make sure name is alphanumeric
+	sane_name = re.sub(r'\W+', '', name)
+	full_name = "CLOUDRIG_PT_custom_"+sane_name.lower().replace(" ", "")
+
+	if hasattr(bpy.types, full_name):
 		return
 	if not hasattr(bpy.types, parent_id):
 		parent_id  = "CLOUDRIG_PT_settings"
 
-	# Make sure name is alphanumeric
-	sane_name = re.sub(r'\W+', '', name)
-
 	# Dynamically create a new class, so it can be registered as a sub-panel.
 	new_panel = type(
-		"CLOUDRIG_PT_custom_" + sane_name
+		full_name
 		,(CLOUDRIG_PT_custom_panel,)
-		,{'bl_idname': "CLOUDRIG_PT_custom_"+sane_name.lower().replace(" ", ""), 'bl_label': name, 'bl_parent_id': parent_id}
+		,{'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id}
 	)
 
 	bpy.utils.register_class(new_panel)
