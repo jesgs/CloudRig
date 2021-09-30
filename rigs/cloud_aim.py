@@ -269,16 +269,21 @@ class CloudAimRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
+	def is_bone_set_used(cls, params, set_info):
+		if set_info['name'] == 'Aim Deform':
+			return params.CR_aim_deform
+
+		return super().is_bone_set_used(params, set_info)
+
+	@classmethod
 	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Aim Group Target Control',  preset=1,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
-		cls.define_bone_set(params, 'Aim Target Controls', 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
-		cls.define_bone_set(params, 'Aim Root Control', 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
+		cls.define_bone_set(params, 'Aim Group Target Control',  preset=1,	default_layers=[cls.DEFAULT_LAYERS.FACE_MAIN])
+		cls.define_bone_set(params, 'Aim Target Controls', 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FACE_MAIN])
+		cls.define_bone_set(params, 'Aim Root Control', 		 preset=2,	default_layers=[cls.DEFAULT_LAYERS.FACE_SECOND])
 		cls.define_bone_set(params, 'Aim Target Mechanism',					default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		if params.CR_aim_deform:
-			# TODO: Does this work? I thought this function only gets called on register, which would mean this does not work.
-			cls.define_bone_set(params, "Aim Deform",						default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
+		cls.define_bone_set(params, 'Aim Deform',							default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 
 	@classmethod
 	def add_parameters(cls, params):
