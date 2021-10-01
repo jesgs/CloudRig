@@ -104,6 +104,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 				,inherit_scale				= self.params.CR_fk_chain_inherit_scale
 				,custom_shape_along_length	= self.params.CR_fk_chain_display_center / 2
 				,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
+				,gizmo_operator				= 'transform.rotate'
 			)
 			org_bone.fk_bone = fk_bone
 			if i == 0:

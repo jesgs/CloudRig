@@ -15,6 +15,17 @@ class CloudGizmoProperties(PropertyGroup):
 		,update		 = update_gizmos
 	)
 
+	operator: EnumProperty(
+		name		 = "Operator"
+		,description = "Operator to use when click and dragging on the gizmo"
+		,items		 = [
+			('transform.translate', "Translate", "Translate")
+			,('transform.rotate', "Rotate", "Rotate")
+			,('transform.scale', "Scale", "Scale")
+		]
+		,default	 = 'transform.translate'
+	)
+
 	shape_object: PointerProperty(
 		name		 = "Shape"
 		,type		 = Object
@@ -81,6 +92,7 @@ class CloudGizmoProperties(PropertyGroup):
 		,update		 = update_gizmos
 	)
 
+	# This is made redundant by the ability to set the color to fully transparent.
 	use_draw_hover: BoolProperty(
 		name		 = "Hover Only"
 		,description = "Draw the gizmo only when it is being mouse hovered"

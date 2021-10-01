@@ -640,6 +640,7 @@ class CloudGenerator(Generator):
 			gizmo_props.enabled = True
 			gizmo_props.shape_object = vgroup_map[vg_name]
 			gizmo_props.vertex_group_name = vg_name
+			gizmo_props.operator = bi.gizmo_operator
 			if pb.bone_group:
 				gizmo_props.color = list(pb.bone_group.colors.normal) + [0.03]
 				gizmo_props.color_highlight = list(pb.bone_group.colors.active) + [0.1]

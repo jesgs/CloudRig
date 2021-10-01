@@ -122,6 +122,7 @@ class BoneInfo:
 		self.owner_rig = None			# This should be set after creating the instance!
 		self.next = self.prev = None	# For LinkedList behaviour.
 		self.gizmo_vgroup = ""			# For CloudRig Gizmos
+		self.gizmo_operator = 'transform.translate'
 
 		self.custom_props = {}			# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
 		self.custom_props_edit = {}

@@ -225,7 +225,7 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 		link_script(rig, 'script', rel_path, 'cloudrig.py')
 
 		# Also attach the library absolute path warning script
-		link_script(rig, 'script', rel_path, 'warn_absolute_library.py')
+		link_script(rig, 'warn_abs_lib', rel_path, 'warn_absolute_library.py')
 
 	# Ensure object data names are correct
 	for o in bpy.data.objects:
