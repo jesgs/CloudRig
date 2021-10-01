@@ -233,7 +233,6 @@ class Sphere(BasicShape):
 
 		return verts
 
-
 class MeshShape3D(BasicShape):
 
 	def __init__(self, mesh, scale=1.0, vertex_groups=None, weight_threshold=0.2):
@@ -242,17 +241,13 @@ class MeshShape3D(BasicShape):
 		self.scale_factor = scale
 		self.tris_from_mesh(mesh, vertex_groups=vertex_groups, weight_threshold=weight_threshold)
 
-	@property
-	def vertices(self):
-		if not self._obj:
-			return []
+	def get_vertices(self, eval_mesh):
+		"""Return positions of the vertices of the already stored indicies."""
 
-		dg = bpy.context.evaluated_depsgraph_get()
-		ob = self._obj.evaluated_get(dg)
-		mesh = ob.to_mesh()
-		mesh.calc_loop_triangles()
+		return [eval_mesh.vertices[i].co for i in self._indices]
 
-		verts = np.array([mesh.vertices[i].co for i in self._indices], 'f')
+		# Unfortunately this scaling has a massive performance impact.
+		verts = np.array([eval_mesh.vertices[i].co for i in self._indices], 'f')
 
 		# scale
 		average = np.average(verts, axis=0)

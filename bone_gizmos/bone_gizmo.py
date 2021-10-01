@@ -1,5 +1,5 @@
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 from bpy.types import Gizmo, Object
 import numpy as np
 import gpu
@@ -25,25 +25,48 @@ class MoveBoneGizmo(Gizmo):
 	__slots__ = (
 		# This __slots__ thing allows us to use arbitrary Python variable 
 		# assignments on instances of this gizmo.
-		"bone_name",	# Name of the bone that owns this gizmo.
-		"props",		# instance of CloudGizmoProperties that's stored on the bone that owns this gizmo.
+		"bone_name"			# Name of the bone that owns this gizmo.
+		,"props"			# Instance of CloudGizmoProperties that's stored on the bone that owns this gizmo.
 
-		# Extra attribtues used for insteraction
-		"custom_shape",
-		"init_mouse",
-		"init_value",
+		,"custom_shape"
+		,"meshshape"
 
-		"color_backup",
-		"alpha_backup",
+		,"color_backup"
+		,"alpha_backup"
 
-		"gizmo_group",
-		"last_bone_matrix"	# To keep the gizmo shape in sync without re-calculating it every re-draw, we compare the bone matrix to its previous state. Modifiers and other bones could also change the underlying mesh though, so this is still TODO.
+		,"gizmo_group"
 	)
 
 	def setup(self):
 		"""Called by Blender when the Gizmo is created."""
-		self.target_set_operator("transform.translate")
-		self.last_bone_matrix = Matrix.Identity(4)
+		self.meshshape = None
+		self.custom_shape = None
+
+	def init_shape(self, context):
+		"""Should be called by the GizmoGroup, after it assigns the neccessary 
+		custom properties to properly initialize this Gizmo."""
+		props = self.props
+
+		if not self.poll(context):
+			return
+
+		if self.is_using_vgroup():
+			self.load_shape_vertex_group(props.shape_object, props.vertex_group_name)
+		elif self.is_using_facemap():
+			# We use the built-in function to draw face maps, so we don't need to do any extra processing.
+			pass
+		else:
+			self.load_shape_entire_object()
+
+	def init_properties(self):
+		props = self.props
+		self.line_width = self.line_width
+
+		self.color = props.color[:3]
+		self.alpha = props.color[3]
+
+		self.color_highlight = props.color_highlight[:3]
+		self.alpha_highlight = props.color_highlight[3]
 
 	def poll(self, context):
 		"""Whether any gizmo logic should be executed or not. This function is not
@@ -51,33 +74,31 @@ class MoveBoneGizmo(Gizmo):
 		"""
 		pb = self.get_pose_bone(context)
 		bone_visible = pb and not pb.bone.hide and any(bl and al for bl, al in zip(pb.bone.layers[:], pb.id_data.data.layers[:]))
+
 		return self.props.shape_object and self.props.enabled and bone_visible
 
-	def refresh_shape(self, context):
-		"""This is an expensive function, so it should be called carefully:
-		Only when geometry change is expected, and not on every viewport update
-		(So not on generic mouse moves or viewport panning)."""
-		if not self.poll(context):
-			return
-		props = self.props
-		if self.is_using_vgroup():
-			self.set_shape_vertex_group(props.shape_object, props.vertex_group_name)
-		elif self.is_using_facemap():
-			# We use the built-in function to draw face maps, so we don't need to do any extra processing.
-			pass
-		else:
-			self.set_shape_entire_object()
-		self.last_bone_matrix = self.get_bone_matrix(context)
+	def load_shape_vertex_group(self, obj, v_grp: str, weight_threshold=0.2, widget_scale=1.05):
+		"""Update the vertex indicies that the gizmo shape corresponds to when using
+		vertex group masking.
+		This is very expensive, should only be called on initial Gizmo creation, 
+		manual updates, and changing of	gizmo display object or mask group.
+		"""
+		self.meshshape = MeshShape3D(obj, scale=widget_scale, vertex_groups=[v_grp], weight_threshold=weight_threshold)
 
-	def set_shape_vertex_group(self, obj, v_grp: str, weight_threshold=0.2, widget_scale=1.05):
-		meshshape = MeshShape3D(obj, scale=widget_scale, vertex_groups=[v_grp], weight_threshold=weight_threshold)
-		if len(meshshape._indices) < 3:
-			# Nothing to draw
+	def refresh_shape_vgroup(self, context, eval_mesh):
+		"""Update the custom shape based on the stored vertex indices."""
+		if not self.meshshape:
+			self.init_shape(context)
+		if len(self.meshshape._indices) < 3:
 			return
-		# TODO: Supporting Edge drawing would be nice, but currently the order of the vertices is wrong.
-		self.custom_shape = self.new_custom_shape('TRIS', meshshape.vertices)
+		self.custom_shape = self.new_custom_shape('TRIS', self.meshshape.get_vertices(eval_mesh))
+		return True
 
-	def set_shape_entire_object(self):
+	def load_shape_entire_object(self):
+		"""Update the custom shape to an entire object. This is somewhat expensive,
+		should only be called when Gizmo display object is changed or mask
+		facemap/vgroup is cleared.
+		"""
 		mesh = self.props.shape_object.data
 		vertices = np.zeros((len(mesh.vertices), 3), 'f')
 		mesh.vertices.foreach_get("co", vertices.ravel())
@@ -106,22 +127,18 @@ class MoveBoneGizmo(Gizmo):
 		face_map = self.props.shape_object.face_maps.get(self.props.face_map_name)
 		if face_map and self.props.use_face_map:
 			self.draw_preset_facemap(self.props.shape_object, face_map.index, select_id=select_id or 0)
-		else:
-			if not hasattr(self, 'custom_shape'):
-				self.refresh_shape(context)
-			if not hasattr(self, 'custom_shape'):
-				# In case refresh_shape failed, just don't draw anything.
-				# This can happen if the specified vertex group is empty.
-				return
-
+		elif self.custom_shape:
 			self.draw_custom_shape(self.custom_shape, select_id=select_id)
+		else:
+			# This can happen if the specified vertex group is empty.
+			return
 
 	def draw_shared(self, context, select_id=None):
 		if not self.poll(context):
 			return
 		if not self.props.shape_object:
 			return
-		self.update_offset_matrix(context)
+		self.update_basis_and_offset_matrix(context)
 
 		gpu.state.line_width_set(self.line_width)
 		gpu.state.blend_set('MULTIPLY')
@@ -137,8 +154,6 @@ class MoveBoneGizmo(Gizmo):
 			return
 		if self.use_draw_hover and not self.is_highlight:
 			return
-		if self.get_bone_matrix(context) != self.last_bone_matrix:
-			self.gizmo_group.refresh_all_gizmos(context)
 
 		pb = self.get_pose_bone(context)
 		if pb.bone.select and not self.select:
@@ -178,24 +193,21 @@ class MoveBoneGizmo(Gizmo):
 
 	def get_bone_matrix(self, context):
 		pb = self.get_pose_bone(context)
-		if not pb:
-			return
 		return pb.matrix.copy()
 
-	def update_offset_matrix(self, context):
-		arm_ob = context.object
-
-		if self.is_using_vgroup():
-			self.matrix_basis = self.props.shape_object.matrix_world
-			self.matrix_offset = Matrix.Identity(4)
-			return
-
+	def update_basis_and_offset_matrix(self, context):
 		pb = self.get_pose_bone(context)
-		assert arm_ob and pb, "update_offset_matrix shouldn't be called until a valid armature and pose bone are specified."
+		self.matrix_basis = self.props.shape_object.matrix_world
 
-		ob_mat = arm_ob.matrix_world
-		self.matrix_basis = ob_mat @ pb.bone.matrix_local
-		self.matrix_offset = pb.matrix_basis
+		if not self.is_using_facemap() and not self.is_using_vgroup():
+			rest_matrix = pb.bone.matrix_local.copy()
+			pose_matrix = pb.matrix.copy()
+
+			delta_mat = pose_matrix @ rest_matrix.inverted()
+
+			self.matrix_offset = delta_mat
+		else:
+			self.matrix_offset = Matrix.Identity(4)
 
 	def invoke(self, context, event):
 		armature = context.object

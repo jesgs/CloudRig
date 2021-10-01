@@ -28,8 +28,9 @@ class CloudGizmoGroup(GizmoGroup):
 		so between calls to this, all gizmos should first be destroyed."""
 		self.widgets = {}
 		for pose_bone in context.object.pose.bones:
-			gizmo = self.create_gizmo(context, pose_bone)
-			self.widgets[pose_bone.name] = gizmo
+			if pose_bone.cloudrig_gizmo.enabled:
+				gizmo = self.create_gizmo(context, pose_bone)
+				self.widgets[pose_bone.name] = gizmo
 
 	def create_gizmo(self, context, pose_bone):
 		"""Add a gizmo to this GizmoGroup based on user-defined properties."""
@@ -39,36 +40,35 @@ class CloudGizmoGroup(GizmoGroup):
 			return
 		gizmo = self.gizmos.new('GIZMO_GT_cloudrig_bone')
 		gizmo.props = gizmo_props
+		gizmo.target_set_operator(gizmo_props.operator)
 		gizmo.gizmo_group = self
 		gizmo.bone_name = pose_bone.name
-		gizmo.refresh_shape(context)
-
-		# self.refresh_gizmo(context, pose_bone, gizmo_props)
-		self.set_gizmo_properties(gizmo, pose_bone, gizmo_props)
+		gizmo.init_shape(context)
+		gizmo.init_properties()
 
 		return gizmo
 
-	def set_gizmo_properties(self, gizmo, pose_bone, gizmo_props):
-		gizmo.line_width = gizmo_props.line_width
-
-		gizmo.color = gizmo_props.color[:3]
-		gizmo.alpha = gizmo_props.color[3]
-
-		gizmo.color_highlight = gizmo_props.color_highlight[:3]
-		gizmo.alpha_highlight = gizmo_props.color_highlight[3]
-
-	def refresh_all_gizmos(self, context):
-		"""Re-calculate custom_shape of all gizmos. 
-		Currently this is called by individual gizmos, whenever their bone is moved.
-		Currently this is only necessary for gizmos which use vertex group masking.
-		Keeping this performant is important."""
-		for gizmo in self.widgets.values():
-			if gizmo:
-				gizmo.refresh_shape(context)
-
 	def refresh(self, context):
-		"""TODO: When is this called?"""
-		pass
+		"""This is a Gizmo API function, called by Blender on what seems to be
+		depsgraph updates and frame changes.
+		Refresh all visible gizmos that use vertex group masking.
+		This should be done whenever a bone position changes.
+		This should be kept performant!
+		"""
+		dg = bpy.context.evaluated_depsgraph_get()
+		eval_meshes = {}
+
+		for bonename, gizmo in self.widgets.items():
+			if not gizmo or not gizmo.is_using_vgroup() or not gizmo.poll(context):
+				continue
+
+			obj = gizmo.props.shape_object
+			if obj.name in eval_meshes:
+				eval_mesh = eval_meshes[obj.name]
+			else:
+				eval_meshes[obj.name] = eval_mesh = obj.evaluated_get(dg).to_mesh()
+				eval_mesh.calc_loop_triangles()
+			gizmo.refresh_shape_vgroup(context, eval_mesh)
 
 classes = (
 	CloudGizmoGroup,
@@ -80,6 +80,9 @@ _register, _unregister = bpy.utils.register_classes_factory(classes)
 
 @persistent
 def update_gizmos(self, context):
+	"""This should be called whenever a gizmo setting is modified by user, to make
+	sure that those settings changes actually apply to the relevant gizmo."""
+	# TODO: This is obviously incredibly slow.
 	if context == None:
 		context = bpy.context
 	unregister()
