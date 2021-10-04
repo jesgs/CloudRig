@@ -214,8 +214,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			name				= self.naming.make_name(["IK", "POLE"], self.limb_name, [self.side_suffix])
 			,bbone_width		= 0.1
 			,head				= self.pole_location
-			,tail				= self.pole_location + flat(self.pole_vector) * 0.2
-			,length				= self.scale
+			,tail				= self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2
 			,roll				= 0
 			,custom_shape		= self.ensure_widget('Arrow_Head')
 			,custom_shape_scale	= 0.5
@@ -601,7 +600,6 @@ class CloudIKChainRig(CloudFKChainRig):
 					}]
 				}
 
-
 	def add_test_animation(self, action, start_frame=1, flip_xyz=[False, False, False]) -> int:
 		"""Add animation curves to the action to test this rig.
 
@@ -675,7 +673,6 @@ class CloudIKChainRig(CloudFKChainRig):
 ################ GIZMOS ################
 ########################################
 
-
 def get_active_pbone(context):
 	"""Return the PoseBone of the active bone, even if in edit mode."""
 	ob = context.object
@@ -689,6 +686,7 @@ def get_active_edit_or_pose_bone(context):
 		return context.active_pose_bone
 	else:
 		return context.active_bone
+
 class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 	bl_idname = "OBJECT_GGT_cloudrig_ik_pole_distance"
 	bl_label = "IK Pole Distance"
