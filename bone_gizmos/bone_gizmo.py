@@ -16,7 +16,7 @@ class MoveBoneGizmo(Gizmo):
 	we can't hide the mouse cursor, etc. Minor sacrifices.
 	"""
 
-	bl_idname = "GIZMO_GT_cloudrig_bone"
+	bl_idname = "GIZMO_GT_bone_gizmo"
 	# The id must be "offset"
 	bl_target_properties = (
 		{"id": "offset", "type": 'FLOAT', "array_length": 3},
@@ -26,7 +26,7 @@ class MoveBoneGizmo(Gizmo):
 		# This __slots__ thing allows us to use arbitrary Python variable 
 		# assignments on instances of this gizmo.
 		"bone_name"			# Name of the bone that owns this gizmo.
-		,"props"			# Instance of CloudGizmoProperties that's stored on the bone that owns this gizmo.
+		,"props"			# Instance of BoneGizmoProperties that's stored on the bone that owns this gizmo.
 
 		,"custom_shape"
 		,"meshshape"

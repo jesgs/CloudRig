@@ -636,7 +636,7 @@ class CloudGenerator(Generator):
 			pb = pbones.get(bi.name)
 			assert pb
 
-			gizmo_props = pb.cloudrig_gizmo
+			gizmo_props = pb.bone_gizmo
 			gizmo_props.enabled = True
 			gizmo_props.shape_object = vgroup_map[vg_name]
 			gizmo_props.vertex_group_name = vg_name

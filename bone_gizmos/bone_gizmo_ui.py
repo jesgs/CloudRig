@@ -1,6 +1,6 @@
 from bpy.types import Panel, VIEW3D_PT_gizmo_display
 
-class CLOUDRIG_PT_bone_gizmo_settings(Panel):
+class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 	"""Panel to draw gizmo settings for the active bone."""
 	bl_label = "Custom Gizmo"
 	bl_idname = "BONE_PT_CustomGizmo"
@@ -15,14 +15,14 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 		return ob.type == 'ARMATURE' and pb
 
 	def draw_header(self, context):
-		props = context.active_pose_bone.cloudrig_gizmo
+		props = context.active_pose_bone.bone_gizmo
 		layout = self.layout
 		layout.prop(props, 'enabled', text="")
 
 	def draw(self, context):
-		overlay_enabled = context.scene.cloud_gizmos_enabled
+		overlay_enabled = context.scene.bone_gizmos_enabled
 		pb = context.active_pose_bone
-		props = pb.cloudrig_gizmo
+		props = pb.bone_gizmo
 		layout = self.layout
 		layout.use_property_split = True
 		layout.use_property_decorate = False
@@ -30,7 +30,7 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 
 		if not overlay_enabled:
 			layout.alert = True
-			layout.label(text="CloudRig Gizmos are disabled in the Viewport Gizmos settings in the 3D View header.")
+			layout.label(text="Bone Gizmos are disabled in the Viewport Gizmos settings in the 3D View header.")
 			return
 		layout.enabled = props.enabled and overlay_enabled
 
@@ -79,17 +79,17 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 				icon = 'GROUP_VERTEX'
 			row.prop(props, 'use_face_map', text="", emboss=False, icon=icon)
 
-def VIEW3D_MT_cloudrig_gizmo_global_enable(self, context):
+def VIEW3D_MT_bone_gizmo_global_enable(self, context):
 	col = self.layout.column()
-	col.label(text="CloudRig")
-	col.prop(context.scene, 'cloud_gizmos_enabled')
+	col.label(text="Bone Gizmos")
+	col.prop(context.scene, 'bone_gizmos_enabled')
 
 registry = [
-	CLOUDRIG_PT_bone_gizmo_settings,
+	BONEGIZMO_PT_bone_gizmo_settings,
 ]
 
 def register():
-	VIEW3D_PT_gizmo_display.prepend(VIEW3D_MT_cloudrig_gizmo_global_enable)
+	VIEW3D_PT_gizmo_display.prepend(VIEW3D_MT_bone_gizmo_global_enable)
 
 def unregister():
-	VIEW3D_PT_gizmo_display.remove(VIEW3D_MT_cloudrig_gizmo_global_enable)
+	VIEW3D_PT_gizmo_display.remove(VIEW3D_MT_bone_gizmo_global_enable)

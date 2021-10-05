@@ -5,7 +5,7 @@ from bpy.props import (
 	FloatVectorProperty, StringProperty, EnumProperty,
 )
 
-class CloudGizmoProperties(PropertyGroup):
+class BoneGizmoProperties(PropertyGroup):
 	enabled: BoolProperty(
 		name		 = "Enable Gizmo"
 		,description = "Attach a custom gizmo to this bone"
@@ -128,7 +128,7 @@ class CloudGizmoProperties(PropertyGroup):
 	)
 
 classes = (
-	CloudGizmoProperties,
+	BoneGizmoProperties,
 )
 register_cls, unregister_cls = bpy.utils.register_classes_factory(classes)
 
@@ -136,11 +136,11 @@ register_cls, unregister_cls = bpy.utils.register_classes_factory(classes)
 def register():
 	register_cls()
 
-	bpy.types.PoseBone.cloudrig_gizmo = PointerProperty(type=CloudGizmoProperties)
+	bpy.types.PoseBone.bone_gizmo = PointerProperty(type=BoneGizmoProperties)
 
-	Scene.cloud_gizmos_enabled = BoolProperty(
-		name		 = "CloudRig Gizmos"
-		,description = "Globally deactivate CloudRig gizmos"
+	Scene.bone_gizmos_enabled = BoolProperty(
+		name		 = "Bone Gizmos"
+		,description = "Globally toggle bone gizmos"
 		,default	 = True
 	)
 
@@ -148,5 +148,5 @@ def register():
 def unregister():
 	unregister_cls()
 
-	del bpy.types.PoseBone.cloudrig_gizmo
-	del Scene.cloud_gizmos_enabled
+	del bpy.types.PoseBone.bone_gizmo
+	del Scene.bone_gizmos_enabled

@@ -5,10 +5,10 @@ from bpy.app.handlers import persistent
 
 gizmos = object()
 
-class CloudGizmoGroup(GizmoGroup):
-	"""This single GizmoGroup manages all CloudRig gizmos for all rigs."""	# TODO: Currently this will have issues when there are two rigs with similar bone names. Rig object names should be included when identifying widgets.
-	bl_idname = "OBJECT_GGT_cloudrig_gizmo"
-	bl_label = "CloudRig Gizmos"
+class BoneGizmoGroup(GizmoGroup):
+	"""This single GizmoGroup manages all bone gizmos for all rigs."""	# TODO: Currently this will have issues when there are two rigs with similar bone names. Rig object names should be included when identifying widgets.
+	bl_idname = "OBJECT_GGT_bone_gizmo"
+	bl_label = "Bone Gizmos"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'WINDOW'
 	bl_options = {
@@ -22,7 +22,7 @@ class CloudGizmoGroup(GizmoGroup):
 
 	@classmethod
 	def poll(cls, context):
-		return context.scene.cloud_gizmos_enabled and context.object \
+		return context.scene.bone_gizmos_enabled and context.object \
 			and context.object.type == 'ARMATURE' and context.object.mode=='POSE'
 
 	def setup(self, context):
@@ -31,7 +31,7 @@ class CloudGizmoGroup(GizmoGroup):
 		print("Setup")
 		self.widgets = {}
 		for pose_bone in context.object.pose.bones:
-			if pose_bone.cloudrig_gizmo.enabled:
+			if pose_bone.bone_gizmo.enabled:
 				gizmo = self.create_gizmo(context, pose_bone)
 				self.widgets[pose_bone.name] = gizmo
 				self.refresh_single_gizmo(self.widgets, pose_bone.name)
@@ -40,7 +40,7 @@ class CloudGizmoGroup(GizmoGroup):
 	def refresh_single_gizmo(widgets, bone_name):
 		context = bpy.context
 		pose_bone = context.active_pose_bone
-		gizmo_props = pose_bone.cloudrig_gizmo
+		gizmo_props = pose_bone.bone_gizmo
 		gizmo = widgets[bone_name]
 		
 		if gizmo_props.operator != 'None':
@@ -59,11 +59,11 @@ class CloudGizmoGroup(GizmoGroup):
 
 	def create_gizmo(self, context, pose_bone) -> Gizmo:
 		"""Add a gizmo to this GizmoGroup based on user-defined properties."""
-		gizmo_props = pose_bone.cloudrig_gizmo
+		gizmo_props = pose_bone.bone_gizmo
 
 		if not gizmo_props.enabled:
 			return
-		gizmo = self.gizmos.new('GIZMO_GT_cloudrig_bone')
+		gizmo = self.gizmos.new('GIZMO_GT_bone_gizmo')
 		gizmo.bone_name = pose_bone.name
 		gizmo.props = gizmo_props
 		gizmo.gizmo_group = self
@@ -100,5 +100,5 @@ class CloudGizmoGroup(GizmoGroup):
 			gizmo.refresh_shape_vgroup(context, eval_mesh)
 
 registry = [
-	CloudGizmoGroup,
+	BoneGizmoGroup,
 ]
