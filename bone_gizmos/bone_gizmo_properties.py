@@ -5,27 +5,35 @@ from bpy.props import (
 	FloatVectorProperty, StringProperty, EnumProperty,
 )
 
-from .bone_gizmo_group import update_gizmos
-
 class CloudGizmoProperties(PropertyGroup):
 	enabled: BoolProperty(
 		name		 = "Enable Gizmo"
 		,description = "Attach a custom gizmo to this bone"
 		,default	 = False
-		,update		 = update_gizmos
 	)
 
 	operator: EnumProperty(
 		name		 = "Operator"
 		,description = "Operator to use when click and dragging on the gizmo"
 		,items		 = [
-			('None', "None", "Only select the bone on click & drag")
+			('None', "None", "Only select the bone on click & drag, ignoring the dragging")
 			,('transform.translate', "Translate", "Translate the bone on click & drag")
 			,('transform.rotate', "Rotate", "Rotate the bone on click & drag")
 			,('transform.resize', "Scale", "Scale the bone on click & drag")
 		]
 		,default	 = 'transform.translate'
-		,update		 = update_gizmos
+	)
+	rotation_mode: EnumProperty(
+		name		 = "Rotation Mode"
+		,description = "How the bone should rotate on initial click & drag interaction"
+		,items		 = [
+			('VIEW', "View", "Viewing angle dependent rotation,  same as pressing R or using the outer white ring of the rotation gizmo")
+			,('TRACKBALL', "Trackball", "Trackball-type rotation, could be useful for eyes")
+			,('X', "X", "Rotate along local X axis")
+			,('Y', "Y", "Rotate along local Y axis")
+			,('Z', "Z", "Rotate along local Z axis")
+		]
+		,default	 = 'VIEW'
 	)
 
 	shape_object: PointerProperty(
@@ -33,22 +41,18 @@ class CloudGizmoProperties(PropertyGroup):
 		,type		 = Object
 		,description = "Object to use as shape for this gizmo"
 		,poll		 = lambda self, object: object.type == 'MESH'
-		,update		 = update_gizmos
 	)
 	face_map_name: StringProperty(
 		name		 = "Face Map"
 		,description = "Face Map to use as shape for this gizmo"
-		,update		 = update_gizmos
 	)
 	vertex_group_name: StringProperty(
 		name		 = "Vertex Group"
 		,description = "Vertex Group to use as shape for this gizmo"
-		,update		 = update_gizmos
 	)
 	use_face_map: BoolProperty(
 		name		 = "Mesh Mask Type"
 		,description = "Toggle between using Face Maps or Vertex Groups as the mesh masking data"	# Currently it seems face maps are just worse vertex groups, but maybe they are faster, or maybe it's good to have them separated.
-		,update		 = update_gizmos
 	)
 
 	draw_style: EnumProperty(
@@ -60,14 +64,12 @@ class CloudGizmoProperties(PropertyGroup):
 			,('TRIS', "Tris", "Tris")
 		]
 		,default	 = 'LINES'
-		,update		 = update_gizmos
 	)
 
 
 	use_bone_group_color: BoolProperty(
 		name		 = "Use Bone Group Color"
 		,description = "Use the bone group color for this Gizmo, rather than the unique colors"
-		,update		 = update_gizmos
 		,default	 = True
 	)
 	color: FloatVectorProperty(
@@ -78,7 +80,6 @@ class CloudGizmoProperties(PropertyGroup):
 		,min		 = 0.0
 		,max		 = 1.0
 		,default	 = (1.0, 0.05, 0.38, 0.5)
-		,update		 = update_gizmos
 	)
 
 	color_highlight: FloatVectorProperty(
@@ -89,7 +90,6 @@ class CloudGizmoProperties(PropertyGroup):
 		,min		 = 0.0
 		,max		 = 1.0
 		,default	 = (1.0, 0.5, 1.0, 0.5)
-		,update		 = update_gizmos
 	)
 
 	line_width: IntProperty(
@@ -98,7 +98,6 @@ class CloudGizmoProperties(PropertyGroup):
 		,min		 = 1
 		,max		 = 10
 		,default	 = 1
-		,update		 = update_gizmos
 	)
 
 	# This is made redundant by the ability to set the color to fully transparent.
@@ -106,7 +105,6 @@ class CloudGizmoProperties(PropertyGroup):
 		name		 = "Hover Only"
 		,description = "Draw the gizmo only when it is being mouse hovered"
 		,default	 = False
-		,update		 = update_gizmos
 	)
 
 	# These functionalities sadly don't work when the gizmo uses target_set_operator,
@@ -115,21 +113,18 @@ class CloudGizmoProperties(PropertyGroup):
 		name		 = "Draw During Interact"
 		,description = "Draw the gizmo during interaction"
 		,default	 = True
-		,update		 = update_gizmos
 	)
 
 	use_draw_value: BoolProperty(
 		name		 = "Draw Interact Value"
 		,description = "Draw values in the top-left corner of the viewport during interaction"
 		,default	 = True
-		,update		 = update_gizmos
 	)
 
 	use_draw_cursor: BoolProperty(
 		name		 = "Draw Interact Mouse"
 		,description = "Draw the mouse cursor during interaction"
 		,default	 = True
-		,update		 = update_gizmos
 	)
 
 classes = (
@@ -147,7 +142,6 @@ def register():
 		name		 = "CloudRig Gizmos"
 		,description = "Globally deactivate CloudRig gizmos"
 		,default	 = True
-		,update		 = update_gizmos
 	)
 
 

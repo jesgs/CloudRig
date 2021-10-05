@@ -1,7 +1,9 @@
 import bpy
 from typing import Dict, Tuple, List
-from bpy.types import GizmoGroup, Object, PoseBone
+from bpy.types import GizmoGroup, Gizmo, Object, PoseBone
 from bpy.app.handlers import persistent
+
+gizmos = object()
 
 class CloudGizmoGroup(GizmoGroup):
 	"""This single GizmoGroup manages all CloudRig gizmos for all rigs."""	# TODO: Currently this will have issues when there are two rigs with similar bone names. Rig object names should be included when identifying widgets.
@@ -26,13 +28,36 @@ class CloudGizmoGroup(GizmoGroup):
 	def setup(self, context):
 		"""Executed by Blender or by gizmo updates. We create all gizmos here,
 		so between calls to this, all gizmos should first be destroyed."""
+		print("Setup")
 		self.widgets = {}
 		for pose_bone in context.object.pose.bones:
 			if pose_bone.cloudrig_gizmo.enabled:
 				gizmo = self.create_gizmo(context, pose_bone)
 				self.widgets[pose_bone.name] = gizmo
+				self.refresh_single_gizmo(self.widgets, pose_bone.name)
 
-	def create_gizmo(self, context, pose_bone):
+	@staticmethod
+	def refresh_single_gizmo(widgets, bone_name):
+		context = bpy.context
+		pose_bone = context.active_pose_bone
+		gizmo_props = pose_bone.cloudrig_gizmo
+		gizmo = widgets[bone_name]
+		
+		if gizmo_props.operator != 'None':
+			op_name = gizmo_props.operator
+			if op_name == 'transform.rotate' and gizmo_props.rotation_mode == 'TRACKBALL':
+				op_name = 'transform.trackball'
+
+			op = gizmo.target_set_operator(op_name)
+
+			if gizmo_props.rotation_mode in 'XYZ':
+				op.orient_type = 'LOCAL'
+				op.orient_axis = gizmo_props.rotation_mode
+				op.constraint_axis = [axis == gizmo_props.rotation_mode for axis in 'XYZ']
+		gizmo.init_shape(context)
+		gizmo.init_properties()
+
+	def create_gizmo(self, context, pose_bone) -> Gizmo:
 		"""Add a gizmo to this GizmoGroup based on user-defined properties."""
 		gizmo_props = pose_bone.cloudrig_gizmo
 
@@ -41,11 +66,14 @@ class CloudGizmoGroup(GizmoGroup):
 		gizmo = self.gizmos.new('GIZMO_GT_cloudrig_bone')
 		gizmo.bone_name = pose_bone.name
 		gizmo.props = gizmo_props
-		if gizmo_props.operator != 'None':
-			gizmo.target_set_operator(gizmo_props.operator)
 		gizmo.gizmo_group = self
-		gizmo.init_shape(context)
-		gizmo.init_properties()
+
+		bpy.msgbus.subscribe_rna(
+			key		= gizmo_props
+			,owner	= gizmos
+			,args	= (self.widgets, gizmo.bone_name)
+			,notify	= self.refresh_single_gizmo
+		)
 
 		return gizmo
 
@@ -71,31 +99,6 @@ class CloudGizmoGroup(GizmoGroup):
 				eval_mesh.calc_loop_triangles()
 			gizmo.refresh_shape_vgroup(context, eval_mesh)
 
-classes = (
+registry = [
 	CloudGizmoGroup,
-)
-
-# To ensure that things update properly, we re-register the GizmoGroup whenever
-# a gizmo property changes. TODO: Maybe this is not necessary, but it probably is though.
-_register, _unregister = bpy.utils.register_classes_factory(classes)
-
-@persistent
-def update_gizmos(self, context):
-	"""This should be called whenever a gizmo setting is modified by user, to make
-	sure that those settings changes actually apply to the relevant gizmo."""
-	# TODO: This is obviously incredibly slow.
-	if context == None:
-		context = bpy.context
-	unregister()
-	if context.scene.cloud_gizmos_enabled:
-		_register()
-
-def register():
-	_register()
-	bpy.app.handlers.undo_post.append(update_gizmos)
-
-def unregister():
-	try:
-		_unregister()
-	except RuntimeError:
-		pass
+]

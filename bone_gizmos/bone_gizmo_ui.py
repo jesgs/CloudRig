@@ -66,6 +66,8 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 			toggle_col.prop(props, 'use_bone_group_color', text="", icon='GROUP_BONE')
 
 		layout.row().prop(props, 'operator', expand=True)
+		if props.operator == 'transform.rotate':
+			layout.row().prop(props, 'rotation_mode', expand=True)
 		layout.prop(props, 'shape_object')
 		if props.shape_object:
 			row = layout.row(align=True)
