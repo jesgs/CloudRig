@@ -21,7 +21,8 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 
 	def draw(self, context):
 		overlay_enabled = context.scene.cloud_gizmos_enabled
-		props = context.active_pose_bone.cloudrig_gizmo
+		pb = context.active_pose_bone
+		props = pb.cloudrig_gizmo
 		layout = self.layout
 		layout.use_property_split = True
 		layout.use_property_decorate = False
@@ -43,8 +44,26 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 					(not props.use_face_map and props.vertex_group_name in props.shape_object.vertex_groups)
 				):
 			style_col.enabled = False
-		layout.prop(props, 'color')
-		layout.prop(props, 'color_highlight')
+
+		bg = pb.bone_group
+		usable_bg_col = bg and bg.color_set != 'DEFAULT'
+		color_split = layout.split(factor=0.4)
+		label_row = color_split.row()
+		label_row.alignment = 'RIGHT'
+		label_row.label(text="Color")
+		color_row = color_split.row(align=True)
+		color_col = color_row.column()
+		sub_row = color_col.row(align=True)
+		if usable_bg_col and props.use_bone_group_color:
+			sub_row.prop(bg.colors, 'normal', text="")
+			sub_row.prop(bg.colors, 'select', text="")
+		else:
+			sub_row.prop(props, 'color', text="")
+			sub_row.prop(props, 'color_highlight', text="")
+			sub_row.enabled = not props.use_bone_group_color
+		if usable_bg_col:
+			toggle_col = color_row.column()
+			toggle_col.prop(props, 'use_bone_group_color', text="", icon='GROUP_BONE')
 
 		layout.row().prop(props, 'operator', expand=True)
 		layout.prop(props, 'shape_object')

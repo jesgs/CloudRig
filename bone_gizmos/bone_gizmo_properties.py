@@ -63,6 +63,13 @@ class CloudGizmoProperties(PropertyGroup):
 		,update		 = update_gizmos
 	)
 
+
+	use_bone_group_color: BoolProperty(
+		name		 = "Use Bone Group Color"
+		,description = "Use the bone group color for this Gizmo, rather than the unique colors"
+		,update		 = update_gizmos
+		,default	 = True
+	)
 	color: FloatVectorProperty(
 		name		 = "Color"
 		,description = "Color of the gizmo"

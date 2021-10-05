@@ -61,12 +61,22 @@ class MoveBoneGizmo(Gizmo):
 	def init_properties(self):
 		props = self.props
 		self.line_width = self.line_width
+		self.init_colors()
 
-		self.color = props.color[:3]
-		self.alpha = props.color[3]
+	def init_colors(self):
+		props = self.props
+		if self.is_using_bone_group_colors():
+			pb = self.get_pose_bone()
+			self.color = pb.bone_group.colors.normal[:]
+			self.color_highlight = pb.bone_group.colors.select[:]
+			self.alpha = 0.2
+			self.alpha_highlight = 0.4
+		else:
+			self.color = props.color[:3]
+			self.alpha = props.color[3]
 
-		self.color_highlight = props.color_highlight[:3]
-		self.alpha_highlight = props.color_highlight[3]
+			self.color_highlight = props.color_highlight[:3]
+			self.alpha_highlight = props.color_highlight[3]
 
 	def poll(self, context):
 		"""Whether any gizmo logic should be executed or not. This function is not
@@ -187,7 +197,14 @@ class MoveBoneGizmo(Gizmo):
 		props = self.props
 		return props.use_face_map and props.face_map_name in props.shape_object.face_maps
 
-	def get_pose_bone(self, context):
+	def is_using_bone_group_colors(self):
+		pb = self.get_pose_bone()
+		props = self.props
+		return pb and pb.bone_group and pb.bone_group.color_set != 'DEFAULT' and props.use_bone_group_color
+
+	def get_pose_bone(self, context=None):
+		if not context:
+			context = bpy.context
 		arm_ob = context.object
 		return arm_ob.pose.bones.get(self.bone_name)
 
