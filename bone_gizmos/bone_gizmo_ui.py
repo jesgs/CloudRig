@@ -46,6 +46,7 @@ class CLOUDRIG_PT_bone_gizmo_settings(Panel):
 		layout.prop(props, 'color')
 		layout.prop(props, 'color_highlight')
 
+		layout.row().prop(props, 'operator', expand=True)
 		layout.prop(props, 'shape_object')
 		if props.shape_object:
 			row = layout.row(align=True)

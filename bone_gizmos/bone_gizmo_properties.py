@@ -19,11 +19,13 @@ class CloudGizmoProperties(PropertyGroup):
 		name		 = "Operator"
 		,description = "Operator to use when click and dragging on the gizmo"
 		,items		 = [
-			('transform.translate', "Translate", "Translate")
-			,('transform.rotate', "Rotate", "Rotate")
-			,('transform.scale', "Scale", "Scale")
+			('None', "None", "Only select the bone on click & drag")
+			,('transform.translate', "Translate", "Translate the bone on click & drag")
+			,('transform.rotate', "Rotate", "Rotate the bone on click & drag")
+			,('transform.resize', "Scale", "Scale the bone on click & drag")
 		]
 		,default	 = 'transform.translate'
+		,update		 = update_gizmos
 	)
 
 	shape_object: PointerProperty(

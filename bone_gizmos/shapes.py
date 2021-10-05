@@ -246,14 +246,14 @@ class MeshShape3D(BasicShape):
 
 		return [eval_mesh.vertices[i].co for i in self._indices]
 
-		# Unfortunately this scaling has a massive performance impact.
-		verts = np.array([eval_mesh.vertices[i].co for i in self._indices], 'f')
+		verts = [eval_mesh.vertices[i].co for i in self._indices]
+		# verts = np.array([eval_mesh.vertices[i].co for i in self._indices], 'f')
 
-		# scale
-		average = np.average(verts, axis=0)
-		verts -= average
-		verts *= self.scale_factor
-		verts += average
+		# Unfortunately this scaling has a massive performance impact.
+		# average = np.average(verts, axis=0)
+		# verts -= average
+		# verts *= self.scale_factor
+		# verts += average
 
 		return verts
 

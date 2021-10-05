@@ -181,7 +181,7 @@ class MoveBoneGizmo(Gizmo):
 
 	def is_using_vgroup(self):
 		props = self.props
-		return not props.use_face_map and props.vertex_group_name in props.shape_object.vertex_groups
+		return not props.use_face_map and props.shape_object and props.vertex_group_name in props.shape_object.vertex_groups
 
 	def is_using_facemap(self):
 		props = self.props
