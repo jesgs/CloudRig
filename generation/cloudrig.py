@@ -321,10 +321,16 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 	def invoke(self, context, event):
 		self.init_invoke(context)
 
+		self.invoked = True
 		if hasattr(self, 'draw'):
 			return context.window_manager.invoke_props_dialog(self)
 		else:
 			return context.window_manager.invoke_confirm(self, event)
+
+	def init_execute(self, context):
+		if not hasattr(self, 'invoked'):
+			# Ensure init_invoke has run, even if the operator is called from Python.
+			self.init_invoke(context)
 
 	def execute(self, context):
 		self.init_execute(context)
