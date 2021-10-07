@@ -129,9 +129,9 @@ class CloudLegRig(CloudLimbRig):
 
 		return ik_master
 
-	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+	def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Override."""
-		ui_data = super().create_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
+		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 		# Toe is not relevant for IK/FK switching.
 		ui_data['map_off'] = ui_data['map_off'][:-1]
 		if self.params.CR_ik_chain_world_aligned and self.params.CR_leg_use_foot_roll:

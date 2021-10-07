@@ -116,9 +116,9 @@ class CloudLimbRig(CloudIKChainRig):
 
 		super().setup_ik_pole_parent_switch(ik_pole, ik_mstr)
 
-	def create_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+	def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
 		"""Override."""
-		ui_data = super().create_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
+		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
 		if self.params.CR_limb_double_ik:
 			ui_data['hide_off'].append(ik_mstr.parent.name)
