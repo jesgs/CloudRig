@@ -639,7 +639,7 @@ class CloudGenerator(Generator):
 			assert pb
 
 			gizmo_props = pb.bone_gizmo
-			gizmo_props.enabled = True
+			pb.enable_bone_gizmo = True
 			gizmo_props.shape_object = vgroup_map[vg_name]
 			gizmo_props.vertex_group_name = vg_name
 			gizmo_props.operator = bi.gizmo_operator
@@ -683,6 +683,7 @@ class CloudGenerator(Generator):
 				if from_params:
 					param_dict = from_params.to_dict()
 				new_pb['bone_gizmo'] = from_params
+				new_pb.enable_bone_gizmo = old_pb.enable_bone_gizmo
 
 		# Remove old rig from all of its collections, and link the new rig to them.
 		self.context.scene.collection.objects.unlink(new_rig)
