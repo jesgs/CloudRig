@@ -174,6 +174,8 @@ class CloudGenerator(Generator):
 				print("Rigify compatible generation enabled.")
 				break
 
+		self.use_gizmos = addon_utils.check('bone_selection_sets')[1]
+
 		# Check if Selection Sets addon is enabled
 		self.do_sel_sets = addon_utils.check('bone_selection_sets')[1]
 
@@ -642,8 +644,8 @@ class CloudGenerator(Generator):
 			gizmo_props.vertex_group_name = vg_name
 			gizmo_props.operator = bi.gizmo_operator
 			if pb.bone_group:
-				gizmo_props.color = list(pb.bone_group.colors.normal) + [0.03]
-				gizmo_props.color_highlight = list(pb.bone_group.colors.active) + [0.1]
+				gizmo_props.color = pb.bone_group.colors.normal[:]
+				gizmo_props.color_highlight = pb.bone_group.colors.active[:]
 
 	def map_drivers(self) -> Dict[str, Tuple[str, int]]:
 		"""Create a dictionary matching bone names to full data paths of drivers
@@ -670,6 +672,17 @@ class CloudGenerator(Generator):
 			for selset in old_rig.selection_sets:
 				selset.is_selected = True
 			selsets = to_json(self.context)
+
+		# Save Custom Gizmo settings
+		if self.use_gizmos:
+			for old_pb in old_rig.pose.bones:
+				new_pb = new_rig.pose.bones.get(old_pb.name)
+				if not new_pb: continue
+
+				from_params = old_pb.get('bone_gizmo')
+				if from_params:
+					param_dict = from_params.to_dict()
+				new_pb['bone_gizmo'] = from_params
 
 		# Remove old rig from all of its collections, and link the new rig to them.
 		self.context.scene.collection.objects.unlink(new_rig)
@@ -877,7 +890,7 @@ class CloudGenerator(Generator):
 		# Only leave Force Widget Update enabled until the next generation.
 		self.params.rigify_force_widget_update = False
 
-		if self.params.cloudrig_parameters.auto_setup_gizmos:
+		if self.params.cloudrig_parameters.auto_setup_gizmos and self.use_gizmos:
 			self.auto_initialize_gizmos()
 
 		self.execute_custom_script()

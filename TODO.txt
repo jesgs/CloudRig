@@ -1,5 +1,3 @@
-cloud_finger
-	IK pole target size seems to get smaller the closer the master is to the root? I'm guessing it's just using rig scale, but mabye it should use chain length instead.
 cloud_copy
 	Create Deform should be a proper param instead of using blender's Deform checkbox.
 cloud_leg
@@ -12,15 +10,10 @@ cloud_aim
 		Not to mention, the eye target distance should be determined by a gizmo! :(
 
 GIZMOS
-	- Changing gizmo properties is incredibly slow due to all gizmos being re-created when anything is modified. This can probably be avoided.
-		- Same for the end of gizmo interactions, there's a big lag spike.
-	- Allow gizmos to remain visible while interacted (Need support from C side)
-	- Assign a default interaction mode that happens when click&dragging (since for FK, rotation makes more sense than translation)
-	- Come up with a nice way to customize gizmos at a granular level. Trying to guess the shapes and vertex groups automatically is useful but only gets you halfway.
+	- Gizmo opacity should be affected by mouse pointer near-ness (but the issue is the bone position is all we have access to, and it might not be close enough?)
+		If we could project all the points into 2D screen space and blend based on distance of the nearest point then we're fine, but that will be incredibly slow in Python.
 
-Feature request:
-	- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
-	- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
+	- Come up with a nice way to customize gizmos at a granular level (In the context of CloudRig). Trying to guess the shapes and vertex groups automatically is useful but only gets you halfway.
 
 Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
@@ -40,6 +33,9 @@ Priority 1: Bugs
 			Enter edit mode on the duplicate
 			Begin generating rigs (Rigs can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
+	Feature request:
+		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
+		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
 	Actions
 		Add an "Edit Action" button that resets the pose, sets the timeline start/end range, the current frame to the End Frame, reveals and selects the relevant bones
 		Then a button to leave this action editing mode and set everything back to the previous state.
