@@ -18,8 +18,6 @@ GIZMOS
 Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
-	When translating the FK bones in a limb then snapping the IK to it, the first IK bone can sometimes end up getting scaled.
-		Not sure how important this is, since IK snapping is not supposed to work correctly after translating FK bones anyways, but still, the scaling is unexpected.
 
 	- Troubleshooting UI freaks out when rig is in an anim output collection?
 		Not entirely sure how, but it was happening on Simon's side

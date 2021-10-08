@@ -8,7 +8,7 @@ Only one instance of this script is required to run in a scene, regardless of ho
 many CloudRig characters are in the scene.
 """
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import bpy, traceback, json, collections, re
 from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty,
@@ -376,7 +376,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 		"Override to register frames to be baked, and return curves that should be cleared."
 		raise NotImplementedError()
 
-	def bake_save_state(self, context) -> Dict[int, List[Matrix]]:
+	def bake_save_state(self, context) -> Dict[int, Tuple[List[Matrix], List[Vector]]]:
 		"Scans frames and collects data for baking before changing anything."
 		rig = self.bake_rig
 		scene = context.scene
@@ -399,7 +399,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 		"Override to execute code one time before the bake apply frame scan."
 		pass
 
-	def bake_apply_state(self, context, save_state: Dict[int, List[Matrix]]):
+	def bake_apply_state(self, context, save_state: Dict[int, Tuple[List[Matrix], List[Vector]]]):
 		"Scans frames and applies the baking operation."
 		rig = self.bake_rig
 		scene = context.scene
@@ -615,9 +615,9 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 			self.bake_init(context)
 
 			try:
-				matrices = self.save_frame_state(context, rig)
+				frame_state = self.save_frame_state(context, rig)
 				self.after_save_state(context, rig)
-				self.apply_frame_state(context, rig, matrices)
+				self.apply_frame_state(context, rig, frame_state)
 
 			except Exception as e:
 				traceback.print_exc()
@@ -628,18 +628,20 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 
 		return ret
 
-	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
+	def save_frame_state(self, context, rig, bone_names=None) -> Tuple[List[Matrix], List[Vector]]:
 		"""Return the Pose Space matrices of the affected bones so they can be restored later."""
 		if not bone_names:
 			bone_names = self.bone_names
 
-		bones = []
+		matrices = []
+		scales = []
 		for bn in bone_names:
 			pb = rig.pose.bones.get(bn)
 			assert pb, "Bone does not exist: " + bn
-			bones.append(pb)
-		matrices = [bone.matrix.copy() for bone in bones]
-		return matrices
+			matrices.append(pb.matrix.copy())
+			scales.append(pb.scale.copy())
+
+		return matrices, scales
 
 	def after_save_state(self, context, rig):
 		"""After saving the bone matrices, it's time to set the property value.
@@ -659,15 +661,6 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 				keyflags=self.keyflags_switch
 			)
 		context.view_layer.update()
-
-	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
-		"""Restore transform matrices of the affected bones."""
-		for i, bone_name in enumerate(self.bone_names):
-			old_matrix = matrices[i]
-			set_transform_from_matrix(
-				rig, bone_name, old_matrix, keyflags=self.keyflags,
-				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-			)
 
 class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase):
 	"""Extend CLOUDRIG_OT_snap_bake with a parent selector."""
@@ -760,14 +753,21 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Param
 			self.bake_add_bone_frames(bone_names)
 		return None
 
-	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
-		# Slap the transform matrices of the map_from bones to the map_to bones
+	def apply_frame_state(self, context, rig, save_state: Tuple[List[Matrix], List[Vector]]):
+		"""Set the transform matrices of the map_from bones to the map_to bones"""
+		matrices, scales = save_state
 		for i, bone_name in enumerate(self.bone_names):
 			old_matrix = matrices[i]
 			set_transform_from_matrix(
-				rig, bone_name, old_matrix, space='WORLD', keyflags=self.keyflags,
+				rig, bone_name, old_matrix, # space='WORLD'
+				keyflags=self.keyflags,
 				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
 			)
+			pb = rig.pose.bones.get(bone_name)
+			# For some reason, reading and writing the matrix can result in 
+			# significant changes to local scale, even when nothing is scaled.
+			# So, just keep a copy of the local scale and restore it after applying the matrix.
+			pb.scale = scales[i]
 			context.evaluated_depsgraph_get().update()	# This matters!!!!
 
 class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake, Params_SnapBase, Params_SnapMapped):
@@ -797,22 +797,13 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake, Params_SnapBase, Param
 			self.bone_names.append(self.pole.name)
 			self.bones = json.dumps(self.bone_names)
 
-	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
-		matrices = super().save_frame_state(context, rig)
+	def save_frame_state(self, context, rig, bone_names=None) -> Tuple[List[Matrix], List[Vector]]:
+		matrices, scales = super().save_frame_state(context, rig)
 		if self.is_pole:
 			matrices.append(self.get_pole_target_matrix())
+			scales.append(rig.pose.bones.get(self.ik_pole).scale)
 
-		return matrices
-
-	def apply_frame_state(self, context, rig, matrices: List[Matrix]):
-		# Restore transform matrices
-		for i, bone_name in enumerate(self.bone_names):
-			old_matrix = matrices[i]
-			set_transform_from_matrix(
-				rig, bone_name, old_matrix, keyflags=self.keyflags,
-				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-			)
-			context.evaluated_depsgraph_get().update()
+		return matrices, scales
 
 	def get_pole_target_matrix(self):
 		""" Find the matrix where the IK pole should be. """
