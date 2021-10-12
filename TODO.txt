@@ -1,3 +1,9 @@
+Log
+	I thought when we make the Post-Gen script failed error, we nuke all others? We should!
+	Still can't Shift+T to toggle from failed rig to metarig...
+	Stack Trace panel should always be displayed when the active error is a fatal generation error.
+	It seems that self.report_error() doesn't create a log entry.
+
 cloud_copy
 	Create Deform should be a proper param instead of using blender's Deform checkbox.
 cloud_leg
@@ -10,9 +16,6 @@ cloud_aim
 		Not to mention, the eye target distance should be determined by a gizmo! :(
 
 GIZMOS
-	- Gizmo opacity should be affected by mouse pointer near-ness (but the issue is the bone position is all we have access to, and it might not be close enough?)
-		If we could project all the points into 2D screen space and blend based on distance of the nearest point then we're fine, but that will be incredibly slow in Python.
-
 	- Come up with a nice way to customize gizmos at a granular level (In the context of CloudRig). Trying to guess the shapes and vertex groups automatically is useful but only gets you halfway.
 
 Priority 1: Bugs
