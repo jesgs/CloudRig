@@ -41,9 +41,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		if self.root_bone == self.bones_org[0]:
 			self.root_bone = self.bone_sets['FK Controls'][0]
 
-		if self.params.CR_chain_preserve_volume:
-			self.tweak_def_chain()
-
 	def apply_parent_switching(self, parent_slots, *,
 			child_bone=None, prop_bone=None, prop_name="",
 			panel_name="FK", row_name="", label_name="Parent Switching", entry_name=""
