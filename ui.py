@@ -205,10 +205,6 @@ def draw_cloud_layer_names(self, context):
 		row.prop(rigify_layer, "name", text="")
 		row.prop(rigify_layer, "row", text="UI Row")
 
-		if addon_utils.check('bone_selection_sets')[1]:
-			icon = 'RADIOBUT_ON' if rigify_layer.selset else 'RADIOBUT_OFF'
-			row.prop(rigify_layer, "selset", text="", toggle=True, icon=icon)
-
 def draw_rigify_types(self, context):
 	id_store = context.window_manager
 	bone = context.active_pose_bone
