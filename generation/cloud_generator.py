@@ -174,10 +174,10 @@ class CloudGenerator(Generator):
 				print("Rigify compatible generation enabled.")
 				break
 
-		self.use_gizmos = addon_utils.check('bone_selection_sets')[1]
+		self.use_gizmos = check_addon(context, 'bone_gizmos')
 
 		# Check if Selection Sets addon is enabled
-		self.do_sel_sets = addon_utils.check('bone_selection_sets')[1]
+		self.do_sel_sets = check_addon(context, 'bone_selection_sets')
 
 	@staticmethod
 	def cloudrig_reorder_rigs(rig_list):
@@ -933,6 +933,13 @@ class CloudGenerator(Generator):
 		self.context.view_layer.update()
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 
+def check_addon(context, addon_name) -> bool:
+	"""Same as addon_utils.check() but account for workspace-specific disabling.
+	Return whether an addon is enabled in this context.
+	"""
+	if addon_name in context.workspace.owner_ids:	# Not sure why this is called owner_ids, but it seems to contain a list of enabled addons in this workspace.
+		return addon_utils.check(addon_name)[1]
+	return False
 
 def is_single_cloud_metarig(context):
 	"""If there is only one CloudRig metarig in the scene, return it."""
