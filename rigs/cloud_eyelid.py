@@ -1,5 +1,5 @@
 from bpy.props import BoolProperty
-from .cloud_face_chain import CloudFaceChainRig
+from .cloud_face_chain import Rig as CloudFaceChainRig	# It is important to import it this way due to type comparisons with isinstance()!
 from .cloud_aim import CloudAimRig
 
 from ..utils.maths import project_vector_on_plane
