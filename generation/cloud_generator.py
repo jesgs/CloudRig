@@ -1,6 +1,6 @@
 from typing import List, Dict, Tuple
 
-import bpy, os, traceback
+import bpy, sys, os, traceback
 from bpy.types import Object
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty
@@ -12,7 +12,6 @@ from rigify.generate import Generator, Timer, select_object
 from rigify import rig_ui_template
 from rigify.utils.naming import DEF_PREFIX
 from rigify.utils.errors import MetarigError
-from rigify.ui import rigify_report_exception
 from rigify.utils.bones import new_bone
 from rigify.utils.mechanism import refresh_all_drivers
 
@@ -730,19 +729,14 @@ class CloudGenerator(Generator):
 		try:
 			exec(script.as_string(), {})
 		except Exception as e:
-			traceback_str = traceback.format_exc()
-			logs = self.metarig.data.cloudrig_parameters.logs
-			logs.clear()
-			entry = self.logger.log(
+			traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
+			entry = self.logger.log_error(
 				"Post-Generation Script failed."
 				,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
 				,note		 = str(e)
+				,popup_text	 = traceback_str
+				,pretty_stack = traceback_str
 			)
-			entry.name = "(Fatal) Post-Gen Error"
-			entry.pretty_stack = traceback_str
-			# Continue the exception, since a post-generation script execution failure
-			# should be considered a rig generation failure.
-			raise e
 
 	def ensure_cloudrig_ui(self, metarig, rig):
 		"""Load and execute cloudrig.py rig UI script."""
@@ -908,14 +902,14 @@ class CloudGenerator(Generator):
 		ensure_custom_panels(None, None)
 
 		t.tick("The rest: ")
-		self.cleanup()
+		self.restore_rig_states()
+		self.log_minor_issues()
 		self.update_bone_set_ui_info()
 		t.tick("Cleanup: ")
 
-	def cleanup(self):
-		"""Clean up after generation has either failed or succeeded."""
+	def restore_rig_states(self):
+		"""Restore transforms after generation has either failed or succeeded."""
 
-		# Deconfigure
 		bpy.ops.object.mode_set(mode='OBJECT')
 		self.metarig.data.pose_position = 'POSE'
 		if 'loc_bkp' in self.metarig:
@@ -927,12 +921,13 @@ class CloudGenerator(Generator):
 			del self.metarig['scale_bkp']
 		self.obj.data.pose_position = 'POSE'
 
-		self.logger.report_unused_named_layers()
-		self.logger.report_widgets(self.widget_collection)
-
 		# Refresh drivers
 		refresh_all_drivers()
 		self.context.view_layer.update()
+
+	def log_minor_issues(self):
+		self.logger.report_unused_named_layers()
+		self.logger.report_widgets(self.widget_collection)
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 
 
@@ -1014,6 +1009,17 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 
 		return {'FINISHED'}
 
+	def report_exception(self, exception):
+		# find the module name where the error happened
+		# hint, this is the metarig type!
+		_exc_type, _exc_value, exc_traceback = sys.exc_info()
+		fn = traceback.extract_tb(exc_traceback)[-1][0]
+		fn = os.path.basename(fn)
+		fn = os.path.splitext(fn)[0]
+		message = [exception.message]
+
+		self.report({'ERROR'}, '\n'.join(message))
+
 	def generate_rig(self, context, metarig):
 		""" Generates a rig from a metarig.	"""
 		meta_visible = EnsureVisible(metarig)
@@ -1027,26 +1033,14 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 			generator.generate(context)
 		except Exception as e:
 			# Cleanup if something goes wrong
-			generator.cleanup()
+			generator.restore_rig_states()
 			generator.obj.name = "FAILED-" + generator.obj.name
 			generator.obj.name = generator.obj.name.replace("NEW-", "")
 			metarig['failed_rig'] = generator.obj
 			if isinstance(e, MetarigError):
 				traceback.print_exc()
-				rigify_report_exception(self, e)
+				self.report_exception(e)
 				return
-
-			logs = metarig.data.cloudrig_parameters.logs
-			if '(Fatal) Post-Gen Error' in logs:
-				# In this case the post-generation error is already in the log,
-				# we don't want to clear that and present the user with a bug report button.
-				raise e
-			# Remove all log entries.
-			logs.clear()
-			# Add a log entry about the error.
-			traceback_str = traceback.format_exc()
-			log = generator.logger.log_bug("Execution Error!", op_kwargs={'stack_trace' : traceback_str})
-			log.pretty_stack = traceback_str
 
 			# Continue the exception
 			raise e

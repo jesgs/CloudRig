@@ -1,26 +1,35 @@
 from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-
-import bpy
-import json
-import webbrowser
-import os
-
-import time
-
-import struct
-import platform
-import urllib.parse
-import io
-import importlib
-
-import traceback
-
 from bpy.props import StringProperty
+
+import bpy, os, traceback
+import json, webbrowser, time
+import struct, platform, io, urllib.parse, importlib
 
 from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
 
+from rigify.utils.errors import MetarigError
+
 # This whole thing could be part of Rigify.
+
+"""
+About generation errors: Fatal errors can happen in 3 distinct ways:
+- Generic execution error: This is a bug, should never happen and should be reported on GitLab.
+	- Raised by: Interpreter
+	- Caught in: generate_rig()
+	- User gets a stack trace in both the pop-up and the Rigify Log; The latter also provides a Report Bug button.
+- Post-generation script error: This is a bug in the code written by the user.
+	- Raised by: Interpreter
+	- Caught in: execute_custom_script()
+	- User gets a stack trace of only their script, both in the pop-up and the Rigify Log.
+- Metarig Error: This is a mistake in the MetaRig's bone setup.
+	- Raised by: self.raise_error() -> logger.log_error()
+	- Caught in: generate_rig()
+	- User gets no stack trace unless they look at the Rigify Log with Advanced Mode enabled.
+
+Common to all 3 types:
+	- Since these are fatal errors, any other rig errors are removed from the Rigify Log.
+"""
 
 """
 Possible warnings to implement:
@@ -32,6 +41,7 @@ Some things are expensive to test so maybe should be checked outside of generati
 	- Symmetrically named rigs have asymmetrical transformations
 	- Symmetrically named rigs have asymmmetrical constraints
 """
+
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.
@@ -115,7 +125,7 @@ def get_pretty_stack() -> str:
 			after_generator = True
 		if not after_generator:
 			continue
-		if frame.name == "log":
+		if frame.name in ("log", "log_error", "log_bug"):
 			break
 
 		short_file = frame.filename
@@ -166,7 +176,8 @@ class CloudLogManager:
 		self.rig = rig
 
 	def log(self
-			,description_short
+			,description_short: str
+			,*
 			,owner_bone = ""
 			,trouble_bone = ""
 			,description = "No description."
@@ -194,16 +205,18 @@ class CloudLogManager:
 		return entry
 
 	def log_bug(self
-		,description_short
-		,description = "Execution error occurred."
-		,icon = 'URL'
-		,operator = 'wm.cloudrig_report_bug'
-		,**kwargs
-	):
+			,description_short: str
+			,*
+			,description = "Execution error occurred."
+			,icon = 'URL'
+			,operator = 'wm.cloudrig_report_bug'
+			,**kwargs
+		):
 		"""This should be used over asserts, especially when something small goes wrong that shouldn't halt generation."""
 		if 'op_kwargs' not in kwargs:
 			kwargs['op_kwargs'] = {}
 			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
+		self.clear()
 		return self.log(
 			"(Fatal) " + description_short
 			,description = description + "\nThis might be a bug in CloudRig."
@@ -211,6 +224,36 @@ class CloudLogManager:
 			,operator = operator
 			,**kwargs
 		)
+
+	def log_error(self
+			,description_short: str
+			,popup_text = ""
+			,pretty_stack = ""
+			,clear_logs = True
+			,*
+			,description = ""
+			,**kwargs
+		):
+		"""This should be used by self.raise_error()."""
+		if clear_logs:
+			self.clear()
+		entry = self.log(
+			"(Fatal) " + description_short
+			,description = description or description_short
+			,**kwargs
+		)
+
+		if pretty_stack:
+			entry.pretty_stack = pretty_stack
+
+		message = description or description_short
+		if 'owner_bone' in kwargs:
+			owner_bone = kwargs['owner_bone']
+			message = f'"{owner_bone}": {message}'
+		
+		message += "\n" + popup_text
+
+		raise MetarigError(message)
 
 	def clear(self):
 		cloudrig = self.metarig.data.cloudrig_parameters

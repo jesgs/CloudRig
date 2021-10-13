@@ -230,6 +230,18 @@ class CloudBaseRig(
 		kwargs['owner_bone'] = self.meta_base_bone.name
 		self.generator.logger.log_bug(description_short ,**kwargs)
 
+	def raise_error(self
+			,description_short = "Metarig Error"
+			,description = ""
+		):
+		"""Overrides BaseRig from Rigify."""
+
+		self.generator.logger.log_error(
+			description_short
+			,description = description
+			,owner_bone = self.meta_base_bone.name
+		)
+
 	# TODO these functions probably belong to the generator and should be called get_ instead of find_.
 	def find_symmetry_rig(self) -> BaseRig:
 		"""Find another rig in the generator with the opposite name for self.base_bone."""

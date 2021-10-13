@@ -147,12 +147,12 @@ class BoneSet(LinkedList):
 		# If a BoneInfo with the passed name already exists, add a warning and do not create a new one.
 		bone_info = generator.find_bone_info(name)
 		if bone_info:
-			generator.logger.log("Re-defined bone!"
+			generator.logger.log_error("Re-defined bone!"
 				,owner_bone   = bone_info.bone_set.rig.meta_base_bone.name
 				,trouble_bone = bone_info.name
 				,description  = f'Bone name "{bone_info.name}" was used twice! Make sure your bone names are unique and do not have trailing zeroes!'
+				,clear_logs	  = False
 			)
-			raise Exception("Re-defining bone: " + bone_info.name + "\nMake sure your bones are named and numbered uniquely and sequentially")
 
 		if 'bone_group' not in kwargs:
 			kwargs['bone_group'] = self.bone_group

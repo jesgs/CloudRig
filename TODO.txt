@@ -1,9 +1,3 @@
-Log
-	I thought when we make the Post-Gen script failed error, we nuke all others? We should!
-	Still can't Shift+T to toggle from failed rig to metarig...
-	Stack Trace panel should always be displayed when the active error is a fatal generation error.
-	It seems that self.report_error() doesn't create a log entry.
-
 cloud_copy
 	Create Deform should be a proper param instead of using blender's Deform checkbox.
 cloud_leg
