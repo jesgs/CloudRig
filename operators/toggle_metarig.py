@@ -138,14 +138,14 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 		bone_is_visible = lambda b: not b.hide and any([b.layers[i] == armature.layers[i]==True for i in range(32)])
 		names_match = lambda a, b: a in b or b in a
 
-		if bone_name in to_arm.data.bones and bone_is_visible(armature, bone_name):
+		if bone_name in armature.bones and bone_is_visible(bone_name):
 			# If we have an exact match and it's visible, return it.
 			# (Just for optimization)
 			return armature.bones[bone_name]
 
 		matches = [
-			b.name for b in to_arm.data.bones
-			if bone_is_visible(to_arm.data, b) and names_match(b.name, bone_name)
+			b.name for b in armature.bones
+			if bone_is_visible(b) and names_match(b.name, bone_name)
 		]
 		if len(matches) == 1:
 			# If there is only one match and it's visible return it.
