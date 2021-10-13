@@ -1,4 +1,5 @@
 from typing import List
+from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
 
 import bpy
 import json
@@ -130,7 +131,7 @@ def get_pretty_stack() -> str:
 	return ret
 
 # TODO: This should move to rig_features.object
-def get_object_hierarchy_recursive(obj: bpy.types.Object, all_objects=[]):
+def get_object_hierarchy_recursive(obj: Object, all_objects=[]):
 	if obj not in all_objects:
 		all_objects.append(obj)
 
@@ -261,7 +262,7 @@ class CloudLogManager:
 					,note_icon = get_datablock_type_icon(datablock)
 				)
 
-	def report_invalid_drivers_on_object_hierarchy(self, object: bpy.types.Object):
+	def report_invalid_drivers_on_object_hierarchy(self, object: Object):
 		"""Create log entries for invalid drivers of the object or any of its children"""
 		objects = get_object_hierarchy_recursive(object, all_objects=[])
 
@@ -319,7 +320,7 @@ class CloudLogManager:
 						,op_kwargs = {'old_name' : widget.name, 'new_name' : unprefixed}
 					)
 
-class CloudRigLogEntry(bpy.types.PropertyGroup):
+class CloudRigLogEntry(PropertyGroup):
 	"""Container for storing information about a single metarig warning/error.
 
 	A CollectionProperty of CloudRigLogEntries are added to the armature datablock
@@ -384,7 +385,7 @@ class CloudRigLogEntry(bpy.types.PropertyGroup):
 		,default=''
 	)
 
-class CLOUDRIG_UL_log_entry_slots(bpy.types.UIList):
+class CLOUDRIG_UL_log_entry_slots(UIList):
 	"""CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log,
 	when the active object is a CloudRig Metarig.
 	"""
@@ -404,7 +405,7 @@ class CLOUDRIG_UL_log_entry_slots(bpy.types.UIList):
 			layout.alignment = 'CENTER'
 			layout.label(text="", icon_value=icon)
 
-class CLOUDRIG_PT_log(bpy.types.Panel):
+class CLOUDRIG_PT_log(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
@@ -473,7 +474,7 @@ class CLOUDRIG_PT_log(bpy.types.Panel):
 			for key in kwargs.keys():
 				setattr(op, key, kwargs[key])
 
-class CLOUDRIG_PT_stack_trace(bpy.types.Panel):
+class CLOUDRIG_PT_stack_trace(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_parent_id = 'CLOUDRIG_PT_log'
@@ -495,7 +496,7 @@ class CLOUDRIG_PT_stack_trace(bpy.types.Panel):
 ########################################
 ######### Quick-Fix Operators ##########
 ########################################
-class CLOUDRIG_OT_Change_Rotation_Mode(bpy.types.Operator):
+class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
 	"""Change rotation mode of a bone"""
 
 	bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
@@ -523,7 +524,7 @@ class CLOUDRIG_OT_Change_Rotation_Mode(bpy.types.Operator):
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 
-class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
+class CLOUDRIG_OT_Report_Bug(Operator):
 	"""Report a bug on the CloudRig repository"""
 
 	bl_idname = "wm.cloudrig_report_bug"
@@ -537,7 +538,7 @@ class CLOUDRIG_OT_Report_Bug(bpy.types.Operator):
 
 		return { 'FINISHED' }
 
-class CLOUDRIG_OT_Rename_Bone(bpy.types.Operator):
+class CLOUDRIG_OT_Rename_Bone(Operator):
 	"""Rename a bone"""
 
 	bl_idname = "object.cloudrig_rename_bone"
@@ -575,7 +576,7 @@ class CLOUDRIG_OT_Rename_Bone(bpy.types.Operator):
 			remove_active_log(metarig)
 		return { 'FINISHED' }
 
-class CLOUDRIG_OT_Swap_Bone_Shape(bpy.types.Operator):
+class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
 	"""Redirect custom bone shape references from one object to another"""
 
 	bl_idname = "object.cloudrig_swap_bone_shape"
@@ -613,7 +614,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(bpy.types.Operator):
 		self.report({'INFO'}, f"Successfully replaced all references of {self.old_name}(now deleted) to {self.new_name}.")
 		return { 'FINISHED' }
 
-class CLOUDRIG_OT_Rename_Object(bpy.types.Operator):
+class CLOUDRIG_OT_Rename_Object(Operator):
 	"""Rename an object"""
 
 	bl_idname = "object.cloudrig_rename_object"
@@ -652,7 +653,7 @@ class CLOUDRIG_OT_Rename_Object(bpy.types.Operator):
 			remove_active_log(metarig)
 		return { 'FINISHED' }
 
-class CLOUDRIG_OT_Delete_Object(bpy.types.Operator):
+class CLOUDRIG_OT_Delete_Object(Operator):
 	"""Delete an object"""
 
 	bl_idname = "object.cloudrig_delete_object"
@@ -674,7 +675,7 @@ class CLOUDRIG_OT_Delete_Object(bpy.types.Operator):
 		self.report({'INFO'}, f"Successfully deleted {self.ob_name}.")
 		return { 'FINISHED' }
 
-def remove_active_log(metarig):
+def remove_active_log(metarig: Object):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
 
