@@ -222,7 +222,7 @@ class CloudCurveRig(CloudBaseRig):
 		curve_visible = self.ensure_visible(curve_ob)
 
 		if not curve_ob.visible_get():
-			self.raise_error(f"Curve {curve_ob.name} could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?")
+			self.raise_error(f'Curve "{curve_ob.name}" could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?')
 
 		spline = curve_ob.data.splines[0]
 		points = spline.bezier_points

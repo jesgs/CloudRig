@@ -30,7 +30,7 @@ class CloudSpineRig(CloudFKChainRig):
 		super().initialize()
 
 		if self.params.CR_spine_use_ik and not self.bone_count > 2:
-			self.raise_error("Spine with IK must consist of a chain of at least 3 connected bones!")
+			self.raise_error("Spine rig with IK must consist of a chain of at least 3 connected bones!")
 		if not self.bone_count > 1:
 			self.raise_error("Spine rig must consist of a chain of at least 2 connected bones!")
 

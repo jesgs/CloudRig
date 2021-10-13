@@ -93,7 +93,7 @@ class CloudChainRig(CloudBaseRig):
 		if 'TAIL' in con.name:
 			if len(self.main_str_bones) <= org_i + 1:
 				# TODO: Add a log, don't totally cancel the generation!
-				self.raise_error(f"Cannot move constraint {con.name} from {org_bone.name} to final STR bone since it doesn't exist! Make sure Final Control param is enabled!")
+				self.raise_error(f'Cannot move constraint "{con.name}" from "{org_bone.name}" to final STR bone since it does not exist! Make sure "Final Control" param is enabled!')
 			relink_bone = self.main_str_bones[org_i + 1]
 
 		if con.type == 'ARMATURE':
