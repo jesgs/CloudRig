@@ -120,7 +120,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 				bone.select = True
 
 	def deselect_all_bones(self, armature: Armature):
-		for b in to_arm.data.bones:
+		for b in armature.data.bones:
 			b.select = False
 
 	def match_active_bone(self, from_arm: Object, to_arm: Object):
