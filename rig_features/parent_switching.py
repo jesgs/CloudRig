@@ -122,13 +122,13 @@ class CloudParentSwitchMixin:
 			if ps.bone == "":
 				self.add_log(
 					"Parent not found"
-					,description=f"Parent slot #{i}: {ps.bone} not specified, skipping."
+					,description = f'Parent slot #{i}: "{ps.bone}" not specified, skipping.'
 				)
 				continue
 			if ps.name == "":
 				self.add_log(
 					"Nameless parent"
-					,description = f"Parent slot #{i}: {ps.bone} has no UI name, falling back to the bone's name."
+					,description = f'Parent slot #{i}: "{ps.bone}" has no UI name, falling back to the name of the bone.'
 				)
 				parent_ui_names.append(ps.bone)
 			else:

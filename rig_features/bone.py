@@ -652,7 +652,7 @@ class ConstraintInfo(dict):
 				self.bone_info.owner_rig.add_log(
 					"Relinking failed",
 					trouble_bone = self.bone_info.name,
-					description=f"Failed to relink constraint due to too many targets in constraint {self.name}.\n Remove unneeded targets from the Armature constraint!"
+					description  = f'Failed to relink constraint due to too many targets in constraint "{self.name}".\n Remove unneeded targets from the Armature constraint!'
 				)
 				return
 
@@ -692,9 +692,9 @@ class ConstraintInfo(dict):
 		for i, subtarget in enumerate(subtargets):
 			if subtarget not in pose_bone.id_data.data.bones:
 				self.bone_info.owner_rig.add_log("Invalid constraint target!"
-					,owner_bone = self.bone_info.name
+					,owner_bone   = self.bone_info.name
 					,trouble_bone = subtarget
-					,description = f"Constraint {self.name} on bone {self.bone_info} has non-existent target bone {subtarget}."
+					,description  = f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget}.'
 				)
 
 		con = make_constraint(pose_bone, con_type, **con_info)

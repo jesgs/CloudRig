@@ -26,7 +26,10 @@ class CloudTweakRig(CloudBaseRig):
 		org_bi = self.bones_org[0]
 
 		if not self.tweak_bone:
-			self.add_log("No bone to tweak", trouble_bone=orgless_name, description=f"Could not find a bone called {orgless_name} on the generated rig.")
+			self.add_log("No bone to tweak"
+				,trouble_bone = orgless_name
+				,description  = f'Could not find a bone called "{orgless_name}" on the generated rig.'
+			)
 			return
 
 		self.root_bone = self.tweak_bone	# Allow parenting parameters to work

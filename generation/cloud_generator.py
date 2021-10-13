@@ -422,7 +422,7 @@ class CloudGenerator(Generator):
 			if subtarget not in rig.pose.bones and not act_slot.is_corrective:
 				self.logger.log("Invalid Control Bone for Action"
 					,trouble_bone = subtarget
-					,description = f"Control Bone {subtarget} doesn't exist in the generated rig for Action Slot {action.name}"
+					,description = f'Control Bone "{subtarget}"" does not exist in the generated rig for Action Slot "{action.name}"'
 				)
 				continue
 
@@ -564,9 +564,9 @@ class CloudGenerator(Generator):
 			pose_bone = self.obj.pose.bones.get(bi.name)
 			if not pose_bone:
 				self.logger.log("Bone creation failed"
-					,owner_bone = bi.owner_rig.base_bone
+					,owner_bone   = bi.owner_rig.base_bone
 					,trouble_bone = bi.name
-					,description = f"BoneInfo {bi.name} wasn't created for some reason."
+					,description  = f'BoneInfo "{bi.name}" was not created for some reason.'
 				)
 				continue
 
@@ -735,10 +735,10 @@ class CloudGenerator(Generator):
 			logs.clear()
 			entry = self.logger.log(
 				"Post-Generation Script failed."
-				,description = f"Execution of post-generation script in text datablock {script.name} failed, see stack trace below."
-				,note = str(e)
+				,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
+				,note		 = str(e)
 			)
-			entry.name = "Post-Gen Error"
+			entry.name = "(Fatal) Post-Gen Error"
 			entry.pretty_stack = traceback_str
 			# Continue the exception, since a post-generation script execution failure
 			# should be considered a rig generation failure.
@@ -1037,7 +1037,7 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 				return
 
 			logs = metarig.data.cloudrig_parameters.logs
-			if 'Post-Gen Error' in logs:
+			if '(Fatal) Post-Gen Error' in logs:
 				# In this case the post-generation error is already in the log,
 				# we don't want to clear that and present the user with a bug report button.
 				raise e

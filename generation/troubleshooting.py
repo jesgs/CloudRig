@@ -195,7 +195,7 @@ class CloudLogManager:
 
 	def log_bug(self
 		,description_short
-		,description = "Execution error occurred. To see the Stack Trace here, enable Advanced Mode."
+		,description = "Execution error occurred."
 		,icon = 'URL'
 		,operator = 'wm.cloudrig_report_bug'
 		,**kwargs
@@ -205,7 +205,7 @@ class CloudLogManager:
 			kwargs['op_kwargs'] = {}
 			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
 		return self.log(
-			"(BUG) " + description_short
+			"(Fatal) " + description_short
 			,description = description + "\nThis might be a bug in CloudRig."
 			,icon = icon
 			,operator = operator
@@ -231,9 +231,9 @@ class CloudLogManager:
 		for i, rigify_layer in enumerate(rigify_layers):
 			if rigify_layer.name!="" and not rigify_layer.name.startswith("$") and not used_layers[i]:
 				self.log("Layer named but empty"
-					,description = f"Named Rigify Layer {rigify_layer.name} has no bones assigned so it should be removed or some bones assigned to it."
-					,icon = 'LAYER_USED'
-					,note = f"{rigify_layer.name} ({i})"
+					,description = f'Named Rigify Layer "{rigify_layer.name}" has no bones assigned so it should be removed or some bones assigned to it.'
+					,icon		 = 'LAYER_USED'
+					,note		 = f"{rigify_layer.name} ({i})"
 				)
 
 		for i in range(32):
@@ -256,10 +256,10 @@ class CloudLogManager:
 			if not driver.is_valid:
 				owner = owner_datablock or datablock
 				self.log("Invalid Driver"
-					,description = f"Invalid driver:\nDatablock: {owner.name}\nData path: {fcurve.data_path}\nIndex: {fcurve.array_index}"
-					,icon = 'DRIVER'
-					,note = owner.name
-					,note_icon = get_datablock_type_icon(datablock)
+					,description = f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}'
+					,icon		 = 'DRIVER'
+					,note		 = owner.name
+					,note_icon	 = get_datablock_type_icon(datablock)
 				)
 
 	def report_invalid_drivers_on_object_hierarchy(self, object: Object):
@@ -297,7 +297,7 @@ class CloudLogManager:
 				self.log("Unused widget"
 					,note = widget.name
 					,icon = 'X'
-					,description = f"Widget {widget.name} is not used by any bones."
+					,description = f"Widget '{widget.name}' is not used by any bones."
 					,operator = CLOUDRIG_OT_Delete_Object.bl_idname
 					,op_kwargs = {'ob_name' : widget.name}
 				)
@@ -305,19 +305,19 @@ class CloudLogManager:
 			if unprefixed != widget.name:
 				if unprefixed in bpy.data.objects:
 					self.log("Duplicate widget"
-						,note = widget.name
-						,icon = 'DUPLICATE'
-						,description = f"There exists a widget called {unprefixed}, that should be used instead of {widget.name}."
-						,operator = CLOUDRIG_OT_Swap_Bone_Shape.bl_idname
-						,op_kwargs = {'old_name' : widget.name, 'new_name' : unprefixed}
+						,note		 = widget.name
+						,icon		 = 'DUPLICATE'
+						,description = f"There exists a widget called '{unprefixed}', that should be used instead of '{widget.name}'."
+						,operator	 = CLOUDRIG_OT_Swap_Bone_Shape.bl_idname
+						,op_kwargs	 = {'old_name' : widget.name, 'new_name' : unprefixed}
 					)
 				else:
 					self.log("Widget with number suffix"
-						,note = widget.name
-						,icon = 'FILE_TEXT'
-						,description = f"This widget's {widget.name[-4:]} suffix isn't necessary."
-						,operator = CLOUDRIG_OT_Rename_Object.bl_idname
-						,op_kwargs = {'old_name' : widget.name, 'new_name' : unprefixed}
+						,note		 = widget.name
+						,icon		 = 'FILE_TEXT'
+						,description = f"The '{widget.name[-4:]}' suffix in the name of this widget is not necessary."
+						,operator	 = CLOUDRIG_OT_Rename_Object.bl_idname
+						,op_kwargs	 = {'old_name' : widget.name, 'new_name' : unprefixed}
 					)
 
 class CloudRigLogEntry(PropertyGroup):
@@ -484,7 +484,8 @@ class CLOUDRIG_PT_stack_trace(Panel):
 	def poll(cls, context):
 		cloudrig = context.object.data.cloudrig_parameters
 		logs = cloudrig.logs
-		return len(logs) > 0 and is_advanced_mode(context)
+		is_fatal_error = len(logs) == 1 and "Fatal" in logs[0].name	# Always display stack trace of fatal errors, even without Advanced Mode.
+		return len(logs) > 0 and is_advanced_mode(context) or is_fatal_error
 
 	def draw(self, context):
 		cloudrig = context.object.data.cloudrig_parameters

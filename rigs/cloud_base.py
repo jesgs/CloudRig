@@ -131,7 +131,7 @@ class CloudBaseRig(
 
 			self.add_log("Custom Property bone not found"
 				,trouble_bone = prop_bone_name
-				,description = f"Custom Property bone named {prop_bone_name} not found, falling back to default Properties bone. If it exists, make sure it generates before this rig."
+				,description  = f'Custom Property bone named "{prop_bone_name}" not found, falling back to default Properties bone. If it exists, make sure it generates before this rig.'
 			)
 			self.params.CR_base_props_storage = 'DEFAULT'
 
@@ -204,6 +204,7 @@ class CloudBaseRig(
 			if self.naming.has_trailing_zeroes(meta_org):
 				self.add_log("Trailing zeroes"
 					,trouble_bone = eb.name
+					,description = "Trailing zeroes in the metarig can cause bone name clashes and should be avoided."
 					,operator = 'object.cloudrig_rename_bone'
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
