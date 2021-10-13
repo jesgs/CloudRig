@@ -1,5 +1,5 @@
 import bpy
-from .utils.rigify import find_rig_class
+from .utils.misc import find_rig_class
 
 class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'

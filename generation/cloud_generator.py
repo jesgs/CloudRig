@@ -1,6 +1,6 @@
 from typing import List, Dict, Tuple
 
-import bpy, os, addon_utils, traceback
+import bpy, os, traceback
 from bpy.types import Object
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty
@@ -29,7 +29,7 @@ from .actions import ActionSlot
 
 from ..operators.assign_bone_layers import init_cloudrig_layers
 from ..versioning import cloud_metarig_version
-from ..utils.rigify import find_rig_class
+from ..utils.misc import find_rig_class, check_addon
 from .cloudrig import register_hotkey, is_active_cloud_metarig, is_active_cloudrig, ensure_custom_panels
 
 class CloudRigProperties(bpy.types.PropertyGroup):
@@ -933,13 +933,6 @@ class CloudGenerator(Generator):
 		self.context.view_layer.update()
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 
-def check_addon(context, addon_name) -> bool:
-	"""Same as addon_utils.check() but account for workspace-specific disabling.
-	Return whether an addon is enabled in this context.
-	"""
-	if addon_name in context.workspace.owner_ids:	# Not sure why this is called owner_ids, but it seems to contain a list of enabled addons in this workspace.
-		return addon_utils.check(addon_name)[1]
-	return False
 
 def is_single_cloud_metarig(context):
 	"""If there is only one CloudRig metarig in the scene, return it."""

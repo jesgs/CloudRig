@@ -2,14 +2,13 @@ from bpy.types import (Operator, UILayout, Object, Panel,
 		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
 		BONE_PT_rigify_buttons)
 import bpy
-import addon_utils
 
 from rigify import rig_lists, feature_sets, feature_set_list
 from rigify.ui import build_type_list
 
 from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
-
+from .utils.misc import check_addon
 
 def draw_version_check(layout: UILayout) -> bool:
 	""" Compare Blender version number to current lowest supported
@@ -150,8 +149,9 @@ class CLOUDRIG_PT_generator_advanced(Panel):
 
 		layout.prop(obj.data, "rigify_rig_ui")
 		layout.prop(cloudrig, "custom_script")
-		if addon_utils.check('BoneGizmos')[1]:
+		if check_addon(context, 'bone_gizmos'):
 			layout.prop(cloudrig, "auto_setup_gizmos")
+
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):
