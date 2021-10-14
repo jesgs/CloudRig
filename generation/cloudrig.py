@@ -1891,6 +1891,9 @@ classes = (
 def register():
 	from bpy.utils import register_class
 	for c in classes:
+		if c.__name__ == 'CLOUDRIG_PT_settings' and hasattr(bpy.types, 'CLOUDRIG_PT_settings'):
+			# Don't re-register Settings panel, or sub-panels become top-level...
+			continue
 		register_class(c)
 
 	# Store outfit properties in Object because it can be accessed on Proxies.
