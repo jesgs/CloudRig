@@ -167,7 +167,7 @@ def get_bone_chain(start_bone):
 		has_connected_children = False
 		for c in bones[-1].children:
 			if c.use_connect:
-				bones.append(bones[-1].children[0])
+				bones.append(c)
 				has_connected_children = True
 				break
 	return bones

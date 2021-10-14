@@ -8,6 +8,7 @@ from math import radians as rad
 from ..utils.maths import flat
 from .cloud_fk_chain import CloudFKChainRig
 from ..generation.cloudrig import is_active_cloud_metarig
+from ..operators.flatten_chain import is_chain_flat
 
 """Ideas to improve this:
 Allow disabling IK stretch functionality.
@@ -49,6 +50,15 @@ class CloudIKChainRig(CloudFKChainRig):
 		super().create_bone_infos()
 		if not len(self.bones_org) > 1:
 			self.raise_error(f"Must be a chain of at least 2 bones!")
+
+		if not is_chain_flat(self.bones_org):
+			self.add_log(
+				"IK chain is not flat"
+				,description = f'For correct IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls recalculated along a consistent axis (eg. Global X).'
+				,operator = 'armature.flatten_chain'
+				,op_kwargs = {'remove_log' : True, 'start_bone' : self.meta_base_bone.name}
+			)
+
 		self.last_org = self.bones_org[-1]
 		if self.params.CR_ik_chain_at_tip:
 			self.bones_org.new(
@@ -743,7 +753,6 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		valid_ob = ob and ob.type == 'ARMATURE' and ob.mode != 'OBJECT'
 		valid_pb = active_pb.rigify_type in ('cloud_ik_chain', 'cloud_limb', 'cloud_leg') and active_pb.rigify_parameters.CR_ik_chain_use_pole
 		return valid_ob and valid_pb
-
 
 	@staticmethod
 	def get_bone_chain(context):
