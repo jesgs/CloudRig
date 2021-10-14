@@ -149,7 +149,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 		]
 		if len(matches) == 1:
 			# If there is only one match and it's visible return it.
-			return armature.bones[bone_name]
+			return armature.bones[matches[0]]
 		else:
 			for prefix in PREFIX_PRIORITY:
 				for match in matches:
