@@ -85,7 +85,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	auto_setup_gizmos: BoolProperty(
 		name		 = "Auto Setup Gizmos (EXPERIMENTAL)"
-		,description = "Play around with the initial gizmo implementation. It's pretty slow and unwieldy atm, and only creates gizmos for FK bones"
+		,description = "Experiment with the initial BoneGizmo addon integration"
 		,default	 = False
 	)
 
