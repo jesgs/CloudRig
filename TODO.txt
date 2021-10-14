@@ -2,15 +2,11 @@ cloud_copy
 	Create Deform should be a proper param instead of using blender's Deform checkbox.
 cloud_leg
 	Implement a gizmo to place the heel pivot, is way cooler.
-	Until then, the rig sample has the heelpivot unspecified, even though the bone is included.
 
 cloud_aim
 	Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 		This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 		Not to mention, the eye target distance should be determined by a gizmo! :(
-
-GIZMOS
-	- Come up with a nice way to customize gizmos at a granular level (In the context of CloudRig). Trying to guess the shapes and vertex groups automatically is useful but only gets you halfway.
 
 Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
@@ -100,7 +96,6 @@ Priority 4: Code quality
 			- Be initialized on Register
 				No they couldn't be...
 Priority 5: UI, UX & documentation
-	Currently the entire Bone Sets panel is hidden under Advanced, so the per-bone-set is_advanced flag is no longer useful.
 	Sintel metarig should use anchors for the face intersections, to be less terrible.
 	Bunch of operators are probably missing from manual mapping.
 	Might also be cool to add manual mapping into cloudrig.py so it works for animators
