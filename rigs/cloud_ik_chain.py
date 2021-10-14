@@ -42,6 +42,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.chain_count = self.bone_count-1
 		if self.params.CR_ik_chain_at_tip:
 			self.chain_count += 1
+		
+		self.ik_controls = []	# Used for creating Gizmo Interaction Data.
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -60,11 +62,11 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.make_ik_setup()
 
 		# Add IK/FK Snapping to the UI.
-		ui_data = self.create_fkik_switch_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
+		self.ui_data = self.create_fkik_switch_ui_data(self.bone_sets['FK Controls'], self.ik_chain, self.ik_mstr, self.pole_ctrl)
 		self.add_ui_data(
 			panel_name		= "FK/IK Switch"
 			,row_name		= self.limb_name
-			,info			= ui_data
+			,info			= self.ui_data
 			,entry_name		= self.limb_ui_name
 			,default		= 1.0
 		)
@@ -135,6 +137,8 @@ class CloudIKChainRig(CloudFKChainRig):
 			# If there's no rig root bone, parent the IK master to the element's root.
 			# Although ideally, rigs with IK chains in them should really have a root bone.
 			ik_master.parent = self.bones_org[0].parent
+
+		self.ik_controls.append(ik_master)
 
 		return ik_master
 
@@ -221,6 +225,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,inherit_scale		= 'AVERAGE'
 			,use_custom_shape_bone_size = True
 		)
+		self.ik_controls.append(pole_ctrl)
 		self.lock_transforms(pole_ctrl, loc=False)
 
 		pole_line = self.bone_sets['IK Controls'].new(
@@ -266,6 +271,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				ik_bone.custom_shape_scale_xyz		= Vector((0.8, 1, 0.8))
 				ik_bone.bone_group	  				= self.bone_sets['IK Controls'].bone_group
 				ik_bone.layers		  				= self.bone_sets['IK Controls'].layers[:]
+				self.ik_controls.append(ik_bone)
 
 			else:
 				ik_bone.parent = ik_chain[-2]
@@ -608,6 +614,35 @@ class CloudIKChainRig(CloudFKChainRig):
 		last_frame = super().add_test_animation(action, start_frame, flip_xyz)
 		self.disable_property_until_frame(action, last_frame, self.ikfk_name)
 		return last_frame
+
+	def add_gizmo_interactions(self):
+		"""Overrides cloud_base."""
+		if 'operator' not in self.ui_data:
+			return
+		op_kwargs = self.ui_data.copy()
+		op_name = op_kwargs.pop('operator')
+		op_kwargs['prop_value'] = 0
+		op_kwargs['select_bones'] = False
+		fk_names = [fk.name for fk in self.bone_sets['FK Controls']]
+		op_kwargs['bones'] = fk_names
+		# When FK is interacted, switch to FK and snap IK to FK.
+		self.add_gizmo_interaction(
+			bone_names = fk_names
+			,operator = op_name
+			,op_kwargs = op_kwargs
+		)
+
+		# When IK is interacted, switch to IK and snap FK to IK.
+		op_kwargs = op_kwargs.copy()
+		op_kwargs['prop_value'] = 1
+		ik_names = [ik.name for ik in self.ik_controls]
+		op_kwargs['bones'] = ik_names
+		bone_names = [self.ik_mstr.name]
+		self.add_gizmo_interaction(
+			bone_names = ik_names
+			,operator = op_name
+			,op_kwargs = op_kwargs
+		)
 
 	##############################
 	# Parameters

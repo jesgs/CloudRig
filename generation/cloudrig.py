@@ -332,9 +332,16 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 			# Ensure init_invoke has run, even if the operator is called from Python.
 			self.init_invoke(context)
 
+	def prop_value_matches(self):
+		prop_value = get_custom_property_value(self.bake_rig, self.prop_bone, self.prop_id)
+		return self.prop_value == prop_value
+
 	def execute(self, context):
 		self.init_execute(context)
 		self.bake_init(context)
+
+		if self.prop_value_matches():
+			return {'CANCELLED'}
 
 		curves = self.execute_scan_curves(context, self.bake_rig)
 
@@ -533,6 +540,8 @@ class Params_SnapBase:
 	bones:		  StringProperty(name="Control Bones")
 	prop_bone:	  StringProperty(name="Property Bone")
 	prop_id:	  StringProperty(name="Property")
+	prop_value:   IntProperty(name="Property Value", description="If the property value is already set to this, the operator will do nothing.", default=-1)
+
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
 	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
 
@@ -603,6 +612,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 		self.draw_affected_bones(layout, context)
 
 	def execute(self, context):
+
 		rig = context.pose_object or context.active_object
 		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
 		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
@@ -613,6 +623,9 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 		else:
 			self.init_execute(context)
 			self.bake_init(context)
+
+			if self.prop_value_matches():
+				return {'CANCELLED'}
 
 			try:
 				frame_state = self.save_frame_state(context, rig)

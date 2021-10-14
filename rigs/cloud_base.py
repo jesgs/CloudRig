@@ -1,7 +1,7 @@
 # Typing
 import bpy
 from ..rig_features.bone import BoneInfo
-from typing import List
+from typing import List, Dict
 
 # CloudBaseRig parent classes
 from rigify.base_rig import BaseRig
@@ -179,6 +179,7 @@ class CloudBaseRig(
 		if self.params.CR_base_parent_switching:
 			self.apply_parent_switching(self.params.CR_base_parent_slots)
 		self.relink()
+		self.add_gizmo_interactions()
 
 	def create_bone_infos(self):
 		"""Create the BoneInfo instances which will be turned into real bones by
@@ -215,6 +216,40 @@ class CloudBaseRig(
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent
+
+	def add_gizmo_interaction(
+			self
+			,bone_names: List[str]
+			,operator: str
+			,op_kwargs: Dict
+		):
+		"""Store some data for the BoneGizmos addon
+		https://developer.blender.org/diffusion/BSTS/browse/master/bone-gizmos/
+		Whenever any of this list of bone names are interacted with through that addon,
+		execute an operator with the given arguments.
+		Useful eg., for automatic IK/FK switching based on what bone is being touched.
+		"""
+		if 'gizmo_interactions' not in self.obj.data:
+			self.obj.data['gizmo_interactions'] = {}
+		
+		gizmo_dict = self.obj.data['gizmo_interactions'].to_dict()
+		if operator not in gizmo_dict:
+			op_data = gizmo_dict[operator] = []
+
+		for key, value in op_kwargs.items():
+			if type(value) == list:
+				op_kwargs[key] = str(op_kwargs[key])
+
+		op_data = gizmo_dict[operator]
+		op_data.append((bone_names, op_kwargs))
+
+		self.obj.data['gizmo_interactions'] = gizmo_dict
+
+	def add_gizmo_interactions(self):
+		"""CloudRig types can override this to store information about what
+		operator should be executed when certain bones are interacted with.
+		"""
+		pass
 
 	def add_log(self
 			,description_short
