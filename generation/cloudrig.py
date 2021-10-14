@@ -959,10 +959,14 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 				pb.scale = ((1, 1, 1))
 
 			if self.reset_props and len(pb.keys()) > 0:
+				rna_properties = [prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime]
+
 				# Reset custom property values to their default value
 				for key in pb.keys():
 					if key.startswith("$"): continue
+					if key in rna_properties: continue	# Addon defined property.
 
+					ui_data = None
 					try:
 						ui_data = pb.id_properties_ui(key)
 						if not ui_data: continue
@@ -972,8 +976,11 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 						# Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
 						pass
 
+					if not ui_data: continue
+
 					if type(pb[key]) not in (float, int): continue
 					pb[key] = ui_data['default']
+					print("Reset " + key)
 
 		return {'FINISHED'}
 
