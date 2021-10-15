@@ -728,6 +728,27 @@ class CLOUDRIG_OT_Delete_Object(Operator):
 		self.report({'INFO'}, f"Successfully deleted {self.ob_name}.")
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Clear_Pointer(Operator):
+	"""Set a datablock pointer parameter to None"""
+
+	bl_idname = "object.cloudrig_clear_pointer_param"
+	bl_label = "Clear Pointer Parameter"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	bone_name: StringProperty()
+	param_name: StringProperty()
+
+	def execute(self, context):
+		metarig = context.object
+		bone = metarig.pose.bones.get(self.bone_name)
+		old_ref = getattr(bone.rigify_parameters, self.param_name)
+		setattr(bone.rigify_parameters, self.param_name, None)
+
+		self.report({'INFO'}, f"Successfully cleared reference to {old_ref.name} on {bone.name}.")
+		remove_active_log(metarig)
+		return { 'FINISHED' }
+
 def remove_active_log(metarig: Object):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -753,5 +774,7 @@ registry = [
 	CLOUDRIG_OT_Swap_Bone_Shape,
 
 	CLOUDRIG_OT_Rename_Object,
-	CLOUDRIG_OT_Delete_Object
+	CLOUDRIG_OT_Delete_Object,
+
+	CLOUDRIG_OT_Clear_Pointer
 ]

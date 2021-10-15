@@ -14,6 +14,7 @@ class CloudLatticeRig(CloudBaseRig):
 	def initialize(self):
 		super().initialize()
 		self.create_deform_bone = False
+		self.test_lattice_already_used()
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -109,6 +110,20 @@ class CloudLatticeRig(CloudBaseRig):
 		hook_mod.subtarget = hook_bone.name
 
 		return lattice_ob
+
+	def test_lattice_already_used(self) -> bool:
+		"""Test if the target lattice object is already being used by 
+		another cloud_lattice rig."""
+
+		for rig in self.generator.rig_list:
+			if isinstance(rig, type(self)):
+				if rig == self:
+					return
+				if rig.params.CR_lattice_lattice == self.params.CR_lattice_lattice:
+					self.raise_error("Lattice shared by rigs",
+						operator = 'object.cloudrig_clear_pointer_param',
+						op_kwargs = {'bone_name': self.meta_base_bone.name, 'param_name': 'CR_lattice_lattice'}
+					)
 
 	##############################
 	# Parameters

@@ -268,13 +268,15 @@ class CloudBaseRig(
 	def raise_error(self
 			,description_short = "Metarig Error"
 			,description = ""
+			,**kwargs
 		):
-		"""Overrides BaseRig from Rigify."""
+		"""Overrides BaseRig from Rigify, to raise errors using the Rigify Log panel."""
 
 		self.generator.logger.log_error(
 			description_short
 			,description = description
 			,owner_bone = self.meta_base_bone.name
+			,**kwargs
 		)
 
 	# TODO these functions probably belong to the generator and should be called get_ instead of find_.
