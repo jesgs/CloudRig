@@ -289,8 +289,10 @@ class CloudLogManager:
 			if used_layers[i] and rigify_layers[i].name=="":
 				self.log("Layer used but not named"
 					,description = f"Layer {i} has bones on it, but it does not have a Rigify Layer Name, therefore it won't display in the Layers panel."
-					,icon = 'LAYER_ACTIVE'
-					,note = str(i)
+					,icon		 = 'LAYER_ACTIVE'
+					,note		 = str(i)
+					,operator	 = 'object.cloudrig_rename_layer'
+					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : ""}
 				)
 
 	def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
@@ -526,11 +528,11 @@ class CLOUDRIG_PT_log(Panel):
 			op.target_bone = log.trouble_bone
 
 		desc = log.description_short
-		if log.description!="":
+		if log.description != "":
 			desc = log.description
 		draw_label_with_linebreak(layout, desc)
 
-		if log.operator!='':
+		if log.operator != '':
 			row = layout.row()
 			split = row.split(factor=0.2)
 			split.label(text="Quick Fix:")
@@ -784,7 +786,17 @@ class CLOUDRIG_OT_Rename_Rigify_Layer(Operator):
 
 	# Should be provided by the UI.
 	layer_idx: IntProperty()
-	layer_name: StringProperty()
+	layer_name: StringProperty(name="Layer Name")
+
+	def invoke(self, context, event):
+		if self.layer_name == '':
+			wm = context.window_manager
+			return wm.invoke_props_dialog(self)
+
+		return self.execute(context)
+
+	def draw(self, context):
+		self.layout.prop(self, 'layer_name')
 
 	def execute(self, context):
 		metarig = context.object
