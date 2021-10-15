@@ -180,12 +180,14 @@ def create_parent_bone(child, bone_set=None):
 	if bone_set==None:
 		bone_set = child.bone_set
 	parent_bone = bone_set.new(
-		name				= parent_name
-		,source				= child
-		,custom_shape		= child.custom_shape
-		,custom_shape_scale = child.custom_shape_scale * 1.2
-		,use_custom_shape_bone_size = child.use_custom_shape_bone_size
-		,parent 			= child.parent
+		name						 = parent_name
+		,source						 = child
+		,parent						 = child.parent
+		,custom_shape				 = child.custom_shape
+		,custom_shape_scale_xyz		 = child.custom_shape_scale_xyz * 1.2
+		,custom_shape_translation	 = child.custom_shape_translation
+		,use_custom_shape_bone_size  = child.use_custom_shape_bone_size
+		,custom_shape_rotation_euler = child.custom_shape_rotation_euler
 	)
 
 	child.parent = parent_bone
