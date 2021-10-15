@@ -42,7 +42,6 @@ Priority 2: New features
 	Add a warning when:
 	- An action setup doesn't have a center keyframe, or the center keyframe is not the default pose.
 	- Bone group isn't used by any bones
-	- multiple cloud_lattice rigs reference the same object.
 	- an action setup created no constraints (nor custom property) because it had no animation data to work with.
 	- object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
 	- There's a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!

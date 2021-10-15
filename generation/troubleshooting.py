@@ -638,7 +638,9 @@ class CLOUDRIG_OT_Rename_Bone(Operator):
 		if self.new_name in metarig.data.bones:
 			self.report({'ERROR'}, "That bone name is already taken!")
 			return {'CANCELLED'}
-		assert bone, f"Error! Old bone {self.old_name} not found or not provided! This should never happen."
+		if not bone:
+			self.report({'ERROR'}, f'Old bone "{self.old_name}" not found or not provided!')
+			return {'CANCELLED'}
 
 		bone.name = self.new_name
 		if bone.name == self.new_name:
@@ -661,7 +663,9 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
 		old_obj = bpy.data.objects.get((self.old_name, None))
 		new_obj = bpy.data.objects.get((self.new_name, None))
 
-		assert old_obj and new_obj, f"Error! One of {self.old_name} or {self.new_name} wasn't found! This should never happen."
+		if not old_obj and new_obj:
+			self.report({'ERROR'}, f'Error! One of "{self.old_name}" or "{self.new_name}" was not found!')
+			return {'CANCELLED'}
 
 		rigs = [metarig]
 
@@ -680,8 +684,8 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
 			widget_collection.objects.link(new_obj)
 
 		remove_active_log(metarig)
-		self.report({'INFO'}, f"Successfully replaced all references of {self.old_name}(now deleted) to {self.new_name}.")
-		return { 'FINISHED' }
+		self.report({'INFO'}, f'Replaced all references of "{self.old_name}" to "{self.new_name}".')
+		return {'FINISHED'}
 
 class CLOUDRIG_OT_Rename_Object(Operator):
 	"""Rename an object"""
@@ -715,7 +719,10 @@ class CLOUDRIG_OT_Rename_Object(Operator):
 		if self.new_name in bpy.data.objects:
 			self.report({'ERROR'}, "That object name is already taken!")
 			return {'CANCELLED'}
-		assert obj, f"Error! Old object {self.old_name} not found or not provided! This should never happen."
+
+		if not obj:
+			self.report({'ERROR'}, f'Error! Old object "{self.old_name}" not found or not provided!')
+			return {'CANCELLED'}
 
 		obj.name = self.new_name
 		if obj.name == self.new_name:
@@ -736,12 +743,15 @@ class CLOUDRIG_OT_Delete_Object(Operator):
 		metarig = context.object
 		ob = bpy.data.objects.get((self.ob_name, None))
 
-		assert ob, f"Error! {self.ob_name} wasn't found! This should never happen."
+		remove_active_log(metarig)
+
+		if not ob:
+			self.report({'WARNING'}, f'"{self.ob_name}" not found! It must have already been deleted.')
+			return {'FINISHED'}
 
 		bpy.data.objects.remove(ob)
 
-		remove_active_log(metarig)
-		self.report({'INFO'}, f"Successfully deleted {self.ob_name}.")
+		self.report({'INFO'}, f'Deleted "{self.ob_name}".')
 		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Clear_Pointer(Operator):
@@ -761,6 +771,9 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
 		old_ref = getattr(bone.rigify_parameters, self.param_name)
 		setattr(bone.rigify_parameters, self.param_name, None)
 
+		self.report({'INFO'}, f'Cleared reference to "{old_ref.name}" on "{bone.name}".')
+		remove_active_log(metarig)
+		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Rename_Rigify_Layer(Operator):
 	"""Rename a Rigify Layer"""
