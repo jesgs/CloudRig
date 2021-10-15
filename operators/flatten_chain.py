@@ -89,10 +89,6 @@ class CLOUDRIG_OT_FlattenChain(Operator):
 
 		return { 'FINISHED' }
 
-def register():
-	from bpy.utils import register_class
-	register_class(CLOUDRIG_OT_FlattenChain)
-
-def unregister():
-	from bpy.utils import unregister_class
-	unregister_class(CLOUDRIG_OT_FlattenChain)
+registry = [
+	CLOUDRIG_OT_FlattenChain
+]

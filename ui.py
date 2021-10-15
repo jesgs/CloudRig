@@ -65,14 +65,7 @@ def draw_rigify_header(self, context):
 		return self.draw_old(context)
 
 	layout.operator('pose.cloudrig_generate', text="Generate")
-	layout.operator('object.generate_all_rigify_rigs')
-	layout.operator('object.cloudrig_toggle_metarig')
-
-	if context.mode == 'POSE':
-		layout.operator('pose.rigify_copy_parameters',
-						icon='DUPLICATE', text="Copy Parameters to Selected")
-		layout.operator('pose.rigify_mirror_parameters',
-						icon='MOD_MIRROR', text="Mirror Parameters")
+	layout.operator('object.cloudrig_metarig_toggle')
 
 	if context.mode == 'EDIT_ARMATURE':
 		layout.separator()

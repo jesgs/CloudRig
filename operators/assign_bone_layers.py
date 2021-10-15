@@ -102,11 +102,12 @@ class CLOUDRIG_OT_layer_init(Operator):
 
 		return {'FINISHED'}
 
-def register():
-	from bpy.utils import register_class
-	register_class(CLOUDRIG_OT_layer_assign)
-	register_class(CLOUDRIG_OT_layer_init)
+registry = [
+	CLOUDRIG_OT_layer_assign
+	,CLOUDRIG_OT_layer_init
+]
 
+def register():
 	register_hotkey(CLOUDRIG_OT_layer_assign.bl_idname
 		,hotkey_kwargs = {'type': "M", 'value': "PRESS"}
 		,key_cat = "Pose"
@@ -116,8 +117,3 @@ def register():
 		,hotkey_kwargs = {'type': 'M', 'value': 'PRESS'}
 		,key_cat = 'Armature'
 	)
-
-def unregister():
-	from bpy.utils import unregister_class
-	unregister_class(CLOUDRIG_OT_layer_assign)
-	unregister_class(CLOUDRIG_OT_layer_init)

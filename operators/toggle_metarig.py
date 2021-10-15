@@ -157,16 +157,13 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 					if prefix in prefixes:
 						return armature.bones[match]
 
-def register():
-	from bpy.utils import register_class
-	register_class(CLOUDRIG_OT_MetarigToggle)
+registry = [
+	CLOUDRIG_OT_MetarigToggle
+]
 
+def register():
 	register_hotkey(CLOUDRIG_OT_MetarigToggle.bl_idname
 		,hotkey_kwargs = {'type': "T", 'value': "PRESS", 'shift': True}
 		,key_cat = "3D View"
 		,space_type = "VIEW_3D"
 	)
-
-def unregister():
-	from bpy.utils import unregister_class
-	unregister_class(CLOUDRIG_OT_MetarigToggle)

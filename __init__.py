@@ -53,6 +53,23 @@ modules = [
 	rigs
 ]
 
+def register_unregister_modules(modules: [], register: bool):
+	register_func = register_class if register else unregister_class
+
+	for m in modules:
+		importlib.reload(m)
+		if hasattr(m, 'registry'):
+			for c in m.registry:
+				register_func(c)
+
+		if hasattr(m, 'modules'):
+			register_unregister_modules(m.modules, register)
+
+		if register and hasattr(m, 'register'):
+			m.register()
+		elif hasattr(m, 'unregister'):
+			m.unregister()
+
 def register():
 	import inspect
 	caller_name = inspect.stack()[2].function
@@ -62,20 +79,9 @@ def register():
 	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
 	feature_sets.CloudRig = sys.modules[__name__]
 
-	for m in modules:
-		importlib.reload(m)
-		if hasattr(m, 'registry'):
-			for c in m.registry:
-				register_class(c)
-		if hasattr(m, 'register'):
-			m.register()
+	register_unregister_modules(modules, True)
 
 def unregister():
-	for m in reversed(modules):
-		if hasattr(m, 'unregister'):
-			m.unregister()
-		if hasattr(m, 'registry'):
-			for c in m.registry:
-				unregister_class(c)
+	register_unregister_modules(modules, False)
 
 	del feature_sets.CloudRig

@@ -9,11 +9,3 @@ modules = [
 	toggle_metarig,
 	assign_bone_layers
 ]
-
-def register():
-	for m in modules:
-		m.register()
-
-def unregister():
-	for m in reversed(modules):
-		m.unregister()

@@ -48,7 +48,7 @@ def copy_rigify_params(from_bone: PoseBone, to_bone: PoseBone, x_mirror=False):
 class MirrorRigifyParameters(Operator):
     """Mirror Rigify type and parameters of selected bones to the opposite side. Names should end in L/R"""
 
-    bl_idname = "pose.cloudrig_mirror"
+    bl_idname = "pose.rigify_mirror_parameters"
     bl_label = "Mirror Rigify Parameters"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -88,7 +88,7 @@ class MirrorRigifyParameters(Operator):
 class CopyRigifyParameters(Operator):
     """Copy Rigify type and parameters from active to selected bones"""
 
-    bl_idname = "pose.cloudrig_copy"
+    bl_idname = "pose.rigify_copy_parameters"
     bl_label = "Copy Rigify Parameters to Selected"
     bl_options = {'REGISTER', 'UNDO'}
 
