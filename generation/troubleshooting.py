@@ -298,11 +298,24 @@ class CloudLogManager:
 			driver = fcurve.driver
 			if not driver.is_valid:
 				owner = owner_datablock or datablock
+
+				owner_bone = ""
+				trouble_bone = ""
+				if 'pose.bones' in fcurve.data_path:
+					bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
+					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.data.rigify_target_rig == self.rig:
+						owner_bone = bone_name
+					elif datablock == self.rig:
+						trouble_bone = bone_name
+
 				self.log("Invalid Driver"
-					,description = f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}'
-					,icon		 = 'DRIVER'
-					,note		 = owner.name
-					,note_icon	 = get_datablock_type_icon(datablock)
+					,description  = f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}'
+					,icon		  = 'DRIVER'
+					,note		  = owner.name
+					,note_icon	  = get_datablock_type_icon(datablock)
+					,owner_bone	  = owner_bone
+					,trouble_bone = trouble_bone
+					,operator	  = 'screen.drivers_editor_show'
 				)
 
 	def report_invalid_drivers_on_object_hierarchy(self, object: Object):
