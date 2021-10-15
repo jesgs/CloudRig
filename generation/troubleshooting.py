@@ -1,6 +1,6 @@
 from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-from bpy.props import StringProperty
+from bpy.props import StringProperty, IntProperty
 
 import bpy, os, traceback
 import json, webbrowser, time
@@ -277,6 +277,9 @@ class CloudLogManager:
 					,description = f'Named Rigify Layer "{rigify_layer.name}" has no bones assigned so it should be removed or some bones assigned to it.'
 					,icon		 = 'LAYER_USED'
 					,note		 = f"{rigify_layer.name} ({i})"
+					,operator	 = 'object.cloudrig_rename_layer'
+					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : "$" + rigify_layer.name}
+					,op_text	 = "Mark Layer as Hidden"
 				)
 
 		for i in range(32):
@@ -758,7 +761,25 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
 		old_ref = getattr(bone.rigify_parameters, self.param_name)
 		setattr(bone.rigify_parameters, self.param_name, None)
 
-		self.report({'INFO'}, f"Successfully cleared reference to {old_ref.name} on {bone.name}.")
+
+class CLOUDRIG_OT_Rename_Rigify_Layer(Operator):
+	"""Rename a Rigify Layer"""
+
+	bl_idname = "object.cloudrig_rename_layer"
+	bl_label = "Rename Rigify Layer"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	layer_idx: IntProperty()
+	layer_name: StringProperty()
+
+	def execute(self, context):
+		metarig = context.object
+
+		old_name = metarig.data.rigify_layers[self.layer_idx].name
+		metarig.data.rigify_layers[self.layer_idx].name = self.layer_name
+
+		self.report({'INFO'}, f'Renamed layer from "{old_name}" to "{self.layer_name}".')
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 
@@ -789,5 +810,6 @@ registry = [
 	CLOUDRIG_OT_Rename_Object,
 	CLOUDRIG_OT_Delete_Object,
 
-	CLOUDRIG_OT_Clear_Pointer
+	CLOUDRIG_OT_Clear_Pointer,
+	CLOUDRIG_OT_Rename_Rigify_Layer
 ]
