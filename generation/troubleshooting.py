@@ -439,9 +439,9 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
 			row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
-			if log.note!="":
+			if log.note != "":
 				row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
-			elif log.owner_bone!="":
+			elif log.owner_bone != "":
 				row.prop(log, 'owner_bone', text="", emboss=False, icon='BONE_DATA')
 
 		elif self.layout_type in {'GRID'}:
@@ -486,19 +486,28 @@ class CLOUDRIG_PT_log(Panel):
 
 		# It is optional for the log entry to provide a bone from the metarig, in case
 		# the log entry relates to a rigify type.
-		if log.owner_bone!="":
+		if log.owner_bone != "":
 			split = layout.row().split(factor=0.3)
 			split.label(text="Rig Element:")
-			row = split.row()
+			main_row = split.column().row(align=True)
+			row = main_row.row(align=True)
 			row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
 			row.enabled = False
+			row = main_row.row(align=True)
+			op = row.operator('ui.jump_to_target', text="", icon='LOOP_FORWARDS')
+			op.target_bone = log.owner_bone
 
-		if log.trouble_bone!="":
+		if log.trouble_bone != "":
 			split = layout.row().split(factor=0.3)
 			split.label(text="Generated Bone:")
-			row = split.row()
+			main_row = split.column().row(align=True)
+			row = main_row.row(align=True)
 			row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
 			row.enabled = False
+			row = main_row.row(align=True)
+			op = row.operator('ui.jump_to_target', text="", icon='LOOP_FORWARDS')
+			op.use_target_rig = True
+			op.target_bone = log.trouble_bone
 
 		desc = log.description_short
 		if log.description!="":
