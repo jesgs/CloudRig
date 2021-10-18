@@ -425,7 +425,7 @@ class CloudGenerator(Generator):
 				)
 				continue
 
-			act_slot.create_action_constraints(rig, self.action_helper.name)
+			act_slot.setup_constraints_on_rig(rig, self.action_helper.name)
 
 	def create_action_helper(self, bone_set):
 		action_helper = bone_set.new(

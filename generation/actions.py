@@ -1,14 +1,12 @@
 from typing import List
 import bpy
-from bpy.props import EnumProperty, IntProperty, BoolProperty, StringProperty, FloatProperty, PointerProperty
+from bpy.props import (EnumProperty, IntProperty, BoolProperty, 
+					StringProperty, FloatProperty, PointerProperty)
+from bpy.types import (Operator, UIList, PropertyGroup, Panel, 
+					Armature, Action, Object, PoseBone, Constraint)
 from . import naming
 from ..rig_features.ui import is_cloud_metarig, is_advanced_mode
 from ..utils.ui_list import draw_ui_list
-
-# This whole thing could be part of Rigify.
-
-# TODO: UI doesn't currently communicate that an action should only be used by a singular ActionSlot.
-# Could add Log warnings for when Corrective actions are underneath their triggers, since that shouldn't work as expected, I think?
 
 def find_slot_by_action(metarig_data, action):
 	"""Find the CloudRigActionSlot in the rig which targets this action."""
@@ -35,7 +33,7 @@ def poll_trigger_action(self, action):
 
 	return False
 
-class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
+class CLOUDRIG_OT_Action_Create(Operator):
 	"""Create new Action"""
 	# This is needed because bpy.ops.action.new() has a poll function that blocks
 	# the operator unless it's drawn in an animation UI panel.
@@ -52,7 +50,7 @@ class CLOUDRIG_OT_Action_Create(bpy.types.Operator):
 		action_slot.action = a
 		return {'FINISHED'}
 
-class CLOUDRIG_OT_Action_Jump(bpy.types.Operator):
+class CLOUDRIG_OT_Action_Jump(Operator):
 	"""Set Active Action Slot Index"""
 
 	bl_idname = "object.cloudrig_action_jump"
@@ -68,7 +66,7 @@ class CLOUDRIG_OT_Action_Jump(bpy.types.Operator):
 
 		return { 'FINISHED' }
 
-class CLOUDRIG_UL_action_slots(bpy.types.UIList):
+class CLOUDRIG_UL_action_slots(UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		rig = context.object
 		cloudrig = data
@@ -117,7 +115,7 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 			layout.alignment = 'CENTER'
 			layout.label(text="", icon_value=icon)
 
-class ActionSlot(bpy.types.PropertyGroup):
+class ActionSlot(PropertyGroup):
 	enabled: BoolProperty(
 		name="Enabled"
 		,description = "Create constraints for this action on the generated rig"
@@ -128,7 +126,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 		,description = "Apply the same setup but mirrored to the opposite side control, shown in parentheses. Bones will only be affected by the control with the same side (eg., .L bones will only be affected by the .L control). Bones without a side in their name (so no .L or .R) will be affected by both controls with 0.5 influence each"
 		,default=True
 	)
-	action: PointerProperty(name="Action", type=bpy.types.Action)
+	action: PointerProperty(name="Action", type=Action)
 	subtarget: StringProperty(name="Control Bone", description="Select a bone on the generated rig which will drive this action")
 
 	transform_channel: EnumProperty(name="Transform Channel",
@@ -192,13 +190,13 @@ class ActionSlot(bpy.types.PropertyGroup):
 	trigger_action_a: PointerProperty(
 		name = "Trigger A"
 		,description = "Action whose activation will trigger the corrective action"
-		,type = bpy.types.Action
+		,type = Action
 		,poll = poll_trigger_action
 	)
 	trigger_action_b: PointerProperty(
 		name="Trigger B"
 		,description = "Action whose activation will trigger the corrective action"
-		,type = bpy.types.Action
+		,type = Action
 		,poll = poll_trigger_action
 	)
 	show_action_a: BoolProperty(name="Show Settings")
@@ -229,7 +227,12 @@ class ActionSlot(bpy.types.PropertyGroup):
 
 		return keyed_bones
 
-	def get_constraint_name(self, bone_name:str) -> str or List[str]:
+	@property
+	def do_symmetry(self) -> bool:
+		control_is_left_side = naming.side_is_left(self.subtarget)
+		return control_is_left_side != None and self.symmetrical == True
+
+	def get_constraint_name(self, bone_name: str) -> str or List[str]:
 		# Determine what the name of the constraint created by this Action Slot would be on a given bone.
 		control_is_left_side = naming.side_is_left(self.subtarget)
 		bone_is_left_side = naming.side_is_left(bone_name)
@@ -251,149 +254,161 @@ class ActionSlot(bpy.types.PropertyGroup):
 
 		return con_name
 
-	def create_action_constraints(self, rig, property_bone_name):
-		# TODO: Split this monstrosity up!!!!
-		control_is_left_side = naming.side_is_left(self.subtarget)
-		do_symmetry = control_is_left_side!=None and self.symmetrical==True
-
-		metarig_data = self.id_data
-
-		action = self.action
-		subtarget = self.subtarget
-
+	def setup_constraints_on_rig(self, rig: Object, property_bone_name: str):
 		# Iterate through bone names affected by the assigned action
 		for bn in self.keyed_bones_names:
-			pb = rig.pose.bones.get(bn)
-			if not pb: continue
-			con_name = "Action_" + action.name
-			constraints = []
+			self.setup_constraints_of_bone(rig, bn, property_bone_name)
 
-			bone_is_left_side = naming.side_is_left(pb.name)
+	def setup_constraints_of_bone(self, rig: Object, bn: str, property_bone_name: str):
+		pb = rig.pose.bones.get(bn)
+		if not pb: return
+		constraints = self.create_constraints_of_bone(rig, pb)
 
-			# If bone name is unflippable...
-			if bone_is_left_side==None:
-				#...but target bone name is flippable, we assume that this keyed_bone is
-				# a center bone, so we split constraint in two.
-				if do_symmetry:
-					c_l = pb.constraints.new(type='ACTION')
-					c_l.name = con_name + ".L"
-					c_l.influence = 0.5
-					constraints.append(c_l)
-					c_r = pb.constraints.new(type='ACTION')
-					c_r.influence = 0.5
-					c_r.name = con_name + ".R"
-					constraints.append(c_r)
-				else:
-					# if target bone name is not flippable or symmetry is disabled,
-					# add the constraint normally.
-					c = pb.constraints.new(type='ACTION')
-					c.name = con_name
-					constraints.append(c)
+		# Configure Action constraints
+		for c in constraints:
+			self.configure_constraint(rig, pb, c, property_bone_name)
+
+	def configure_constraint(self, rig: Object, pb: PoseBone, c: Constraint, property_bone_name: str):
+		subtarget = self.subtarget
+		if self.do_symmetry:
+			constraint_is_left_side = naming.side_is_left(c.name)
+			control_is_left_side = naming.side_is_left(subtarget)
+			if constraint_is_left_side != control_is_left_side:
+				subtarget = naming.flip_name(subtarget)
+
+		self.initial_configure_constraint(rig, c, subtarget)
+
+		# Move constraints to top of the stack in the same order.
+		# Important that Action constraints are above Armature constraints.
+		pb.constraints.move(len(pb.constraints)-1, 0)
+
+		if self.is_corrective:
+			self.configure_corrective_constraint(rig, pb, c, property_bone_name)
+			return
+
+		# Add driven custom properties to the Action Helper bone that mirror the eval_time of each action.
+		data_paths = [
+			f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time'
+		]
+		property_storage = rig.pose.bones.get(property_bone_name)
+		assert property_storage, f"Error: Action property storage bone {property_bone_name} not found!"
+		property_storage[c.name] = 0.5
+		data_paths.append(
+			f'pose.bones["{property_bone_name}"]["{c.name}"]'
+		)
+		for data_path in data_paths:
+			self.create_driver(rig, c, data_path, subtarget)
+
+	def initial_configure_constraint(self, rig: Object, c: Constraint, subtarget: str):
+		action = self.action
+		c.use_eval_time = True	# All Action constraints use the amazing new Evaluation Time feature.
+		# If constraint is not the same side as the control, flip it.
+		c.target = rig
+		c.subtarget = subtarget
+		c.action = action
+		c.min = self.trans_min
+		c.max = self.trans_max
+		c.frame_start = self.frame_start
+		c.frame_end = self.frame_end
+		c.mix_mode = 'BEFORE_SPLIT'
+		if c.subtarget != self.subtarget:
+			# Flip min/max in some cases.
+			if self.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
+				c.min, c.max = c.max, c.min
+
+	def create_driver(self, rig: Object, c: Constraint, data_path: str, subtarget: str):
+		exists = rig.animation_data.drivers.find(data_path)
+		if exists:
+			return
+		fcurve = rig.driver_add(data_path)
+		driver = fcurve.driver
+
+		var_range = c.max - c.min
+		range_mid = c.min + (c.max - c.min)/2
+
+		expression = f'(var - {range_mid}) / {var_range} + 0.5'
+		if range_mid == 0:
+			expression = f'var / {var_range} + 0.5'
+
+		# Convert rotation to degrees as promised in the tooltip.
+		if 'ROTATION' in self.transform_channel:
+			expression = expression.replace('var', 'var*180/pi')
+
+		driver.expression = expression
+		var = driver.variables.new()
+		var.type = 'TRANSFORMS'
+		target = var.targets[0]
+		target.id = rig
+		target.bone_target = subtarget
+		target.transform_type = self.transform_channel.replace("ATION", "")
+		target.transform_space = self.target_space + "_SPACE"
+		target.rotation_mode = 'SWING_TWIST_Y'
+
+	def configure_corrective_constraint(self, rig: Object, pb: PoseBone, c: Constraint, property_bone_name: str):
+		metarig_data = self.id_data
+		trigger_a_slot, i = find_slot_by_action(metarig_data, self.trigger_action_a)
+		trigger_b_slot, i = find_slot_by_action(metarig_data, self.trigger_action_b)
+		trigger_a_con_name = trigger_a_slot.get_constraint_name(pb.name)
+		trigger_b_con_name = trigger_b_slot.get_constraint_name(pb.name)
+		if type(trigger_a_con_name) == list:
+			# TODO: Action setup system currently does not support splitting corrective actions to left/right parts
+			# (This is completely doable, I just don't have time right now)
+			return
+
+		fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
+		driver = fcurve.driver
+		relation = ">=" if self.corrective_type=='POSITIVE' else "<="
+		sign = "-" if self.corrective_type=='POSITIVE' else "+"
+		# This expression calculates the correct value for this corrective action's eval_time.
+		driver.expression = f'0.5 if A {relation} 0.5 else 0.5 {sign} (B-0.5) * (A-0.5) *2'
+
+		# For example, let's say you have these two actions:
+		# A = Lips_UpDown.eval_time
+		var_a = driver.variables.new()
+		var_a.name = "A"
+		target_a = var_a.targets[0]
+		target_a.data_path = f'pose.bones["{property_bone_name}"]["{trigger_a_con_name}"]'
+		# B = Lips_ThinWide.eval_time
+		var_b = driver.variables.new()
+		var_b.name = "B"
+		target_b = var_b.targets[0]
+		target_b.data_path = f'pose.bones["{property_bone_name}"]["{trigger_b_con_name}"]'
+
+		target_a.id = target_b.id = rig
+
+	def create_constraints_of_bone(self, rig, pb: PoseBone) -> List[Constraint]:
+		con_name = "Action_" + self.action.name
+		bone_is_left_side = naming.side_is_left(pb.name)
+
+		constraints = []
+		# If bone name is unflippable...
+		if bone_is_left_side==None:
+			#...but target bone name is flippable, we assume that this keyed_bone is
+			# a center bone, so we split constraint in two.
+			if self.do_symmetry:
+				c_l = pb.constraints.new(type='ACTION')
+				c_l.name = con_name + ".L"
+				c_l.influence = 0.5
+				constraints.append(c_l)
+				c_r = pb.constraints.new(type='ACTION')
+				c_r.influence = 0.5
+				c_r.name = con_name + ".R"
+				constraints.append(c_r)
 			else:
-				# Constraint name should indicate side
+				# if target bone name is not flippable or symmetry is disabled,
+				# add the constraint normally.
 				c = pb.constraints.new(type='ACTION')
-				if do_symmetry:
-					con_name += ".L" if bone_is_left_side else ".R"
 				c.name = con_name
 				constraints.append(c)
+		else:
+			# Constraint name should indicate side
+			c = pb.constraints.new(type='ACTION')
+			if self.do_symmetry:
+				con_name += ".L" if bone_is_left_side else ".R"
+			c.name = con_name
+			constraints.append(c)
 
-			# Configure Action constraints
-			for c in constraints:
-				c.use_eval_time = True	# All Action constraints use the amazing new Evaluation Time feature.
-				# If constraint is not the same side as the control, flip it.
-				if do_symmetry:
-					constraint_is_left_side = naming.side_is_left(c.name)
-					control_is_left_side = naming.side_is_left(subtarget)
-					if constraint_is_left_side != control_is_left_side:
-						subtarget = naming.flip_name(subtarget)
-				c.target = rig
-				c.subtarget = subtarget
-				c.action = action
-				c.min = self.trans_min
-				c.max = self.trans_max
-				c.frame_start = self.frame_start
-				c.frame_end = self.frame_end
-				c.mix_mode = 'BEFORE_SPLIT'
-				if c.subtarget != self.subtarget:
-					# Flip min/max in some cases.
-					if self.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
-						max_tmp = c.max
-						c.max = c.min
-						c.min = max_tmp
-
-				# Move constraints to top of the stack in the same order.
-				# Important that Action constraints are above Armature constraints.
-				pb.constraints.move(len(pb.constraints)-1, 0)
-
-				if self.is_corrective:
-					trigger_a_slot, i = find_slot_by_action(metarig_data, self.trigger_action_a)
-					trigger_b_slot, i = find_slot_by_action(metarig_data, self.trigger_action_b)
-					trigger_a_con_name = trigger_a_slot.get_constraint_name(pb.name)
-					trigger_b_con_name = trigger_b_slot.get_constraint_name(pb.name)
-					if type(trigger_a_con_name)==list:
-						# TODO: Action setup system currently does not support splitting corrective actions to left/right parts
-						# (This is completely doable, I just don't have time right now)
-						return
-
-					fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
-					driver = fcurve.driver
-					relation = ">=" if self.corrective_type=='POSITIVE' else "<="
-					sign = "-" if self.corrective_type=='POSITIVE' else "+"
-					# This expression calculates the correct value for this corrective action's eval_time.
-					driver.expression = f'0.5 if A {relation} 0.5 else 0.5 {sign} (B-0.5) * (A-0.5) *2'
-
-					# For example, let's say you have these two actions:
-					# A = Lips_UpDown.eval_time
-					var_a = driver.variables.new()
-					var_a.name = "A"
-					target_a = var_a.targets[0]
-					target_a.data_path = f'pose.bones["{property_bone_name}"]["{trigger_a_con_name}"]'
-					# B = Lips_ThinWide.eval_time
-					var_b = driver.variables.new()
-					var_b.name = "B"
-					target_b = var_b.targets[0]
-					target_b.data_path = f'pose.bones["{property_bone_name}"]["{trigger_b_con_name}"]'
-
-					target_a.id = target_b.id = rig
-					continue
-
-				# Add driven custom properties to the Action Helper bone that mirror the eval_time of each action.
-				data_paths = [
-					f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time'
-				]
-				property_storage = rig.pose.bones.get(property_bone_name)
-				assert property_storage, f"Error: Action property storage bone {property_bone_name} not found!"
-				property_storage[c.name] = 0.5
-				data_paths.append(
-					f'pose.bones["{property_bone_name}"]["{c.name}"]'
-				)
-				for data_path in data_paths:
-					exists = rig.animation_data.drivers.find(data_path)
-					if exists:
-						continue
-					fcurve = rig.driver_add(data_path)
-					driver = fcurve.driver
-
-					var_range = c.max - c.min
-					range_mid = c.min + (c.max - c.min)/2
-
-					expression = f'(var - {range_mid}) / {var_range} + 0.5'
-					if range_mid==0:
-						expression = f'var / {var_range} + 0.5'
-
-					# Convert rotation to degrees as promised in the tooltip.
-					if 'ROTATION' in self.transform_channel:
-						expression = expression.replace('var', 'var*180/pi')
-
-					driver.expression = expression
-					var = driver.variables.new()
-					var.type = 'TRANSFORMS'
-					target = var.targets[0]
-					target.id = rig
-					target.bone_target = subtarget
-					target.transform_type = self.transform_channel.replace("ATION", "")
-					target.transform_space = self.target_space + "_SPACE"
-					target.rotation_mode = 'SWING_TWIST_Y'
+		return constraints
 
 	############################################
 	############### UI drawing #################
@@ -430,7 +445,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 		if show:
 			trigger_slot.draw_ui(col, metarig.data.rigify_target_rig.data)
 
-	def draw_ui(self, layout, target_armature: bpy.types.Armature):
+	def draw_ui(self, layout, target_armature: Armature):
 		row = layout.row()
 		subtarget_exists = self.subtarget in target_armature.bones
 		icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
@@ -503,7 +518,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 			# Then just apply that factor to lerp from frame_start to frame_end.
 			return self.frame_start + frame_range * factor
 
-class CLOUDRIG_PT_actions(bpy.types.Panel):
+class CLOUDRIG_PT_actions(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
@@ -555,7 +570,7 @@ class CLOUDRIG_PT_actions(bpy.types.Panel):
 
 		active_slot.draw_ui(layout, metarig.data.rigify_target_rig.data)
 
-class CLOUDRIG_OT_copy_actions(bpy.types.Operator):
+class CLOUDRIG_OT_copy_actions(Operator):
 	"""Copy action setups to selected objects"""
 	bl_idname = "object.copy_action_slots"
 	bl_label = "Copy Rigify Action Slots"
