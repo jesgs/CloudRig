@@ -205,6 +205,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 	show_action_b: BoolProperty(name="Show Settings")
 	corrective_type: EnumProperty(
 		name = "Corrective Range"
+		,description = "DEPRECATED. DO NOT USE" #TODO: REMOVE THIS.
 		,items = [
 			('NEGATIVE', 'A > 0.5', "This corrective action's evaluation time changes only when the evaluation time of trigger A is GREATER than 0.5"),
 			('POSITIVE', 'A < 0.5', "This corrective action's evaluation time changes only when the evaluation time of trigger A is LESS than 0.5")
@@ -248,6 +249,7 @@ class ActionSlot(bpy.types.PropertyGroup):
 		return con_name
 
 	def create_action_constraints(self, rig, property_bone_name):
+		# TODO: Split this monstrosity up!!!!
 		control_is_left_side = naming.side_is_left(self.subtarget)
 		do_symmetry = control_is_left_side!=None and self.symmetrical==True
 
@@ -390,6 +392,37 @@ class ActionSlot(bpy.types.PropertyGroup):
 					target.transform_space = self.target_space + "_SPACE"
 					target.rotation_mode = 'SWING_TWIST_Y'
 
+	def get_default_frame(self) -> float:
+		""" Based on the transform channel, frame range and transform range,
+			we can calculate which frame within the action should have the keyframe
+			which has the default pose.
+			This is the frame which will be read when the transformation is at its default
+			(so 1.0 for scale and 0.0 for loc/rot)
+		"""
+		frame_range = self.frame_end - self.frame_start
+		transform_range = self.trans_max - self.trans_min
+
+		if self.trans_min > 0:
+			return self.frame_start
+		elif self.trans_max < 0:
+			return self.frame_end
+		else:
+			# We want to find out what factor we need when lerping 
+			# from trans_min to trans_max in order to get the default value
+			# (1.0 for scale, 0.0 for rot/loc).
+			if 'SCALE' in self.transform_channel:
+				# Factor to lerp from trans_min to 1.0 is the ratio between
+				# the distance of trans_min from 1 and the total transform range.
+				factor = abs(1 - self.trans_min) / transform_range
+			else:
+				# Factor to lerp from trans_min to 0.0 is the ratio between the
+				# distance of trans_min from 0 and the total transform range.
+				factor = abs(self.trans_min) / transform_range
+
+			# Then just apply that factor to lerp from frame_start to frame_end.
+			return self.frame_start + frame_range * factor
+
+
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
@@ -421,7 +454,7 @@ def draw_cloudrig_actions(layout, context):
 		,active_idx_context_path = 'object.data.cloudrig_parameters.active_action_slot_index'
 	)
 
-	if len(action_slots)==0:
+	if len(action_slots) == 0:
 		return
 	active_slot = action_slots[active_index]
 
@@ -434,10 +467,10 @@ def draw_cloudrig_actions(layout, context):
 	layout.use_property_decorate=False
 	layout.prop(active_slot, 'is_corrective')
 	if active_slot.is_corrective:
-		if is_advanced_mode(context):
+		# if is_advanced_mode(context):
 			# TODO: This option is confusing and difficult to use and should be
 			# removed after Sprite Fright.
-			layout.prop(active_slot, 'corrective_type')
+			# layout.prop(active_slot, 'corrective_type')
 		layout.prop(active_slot, 'frame_start', text="Frame Start")
 		layout.prop(active_slot, 'frame_end', text="End")
 		layout.separator()
@@ -450,6 +483,8 @@ def draw_cloudrig_actions(layout, context):
 				col = layout.column()
 				col.enabled = False
 				trigger_slot, slot_index = find_slot_by_action(metarig.data, trigger)
+				if not trigger_slot:
+					return
 				show_prop_name = 'show_action_' + trigger_prop[-1]
 				show = getattr(active_slot, show_prop_name)
 				icon = 'HIDE_OFF' if show else 'HIDE_ON'
@@ -490,6 +525,16 @@ def draw_action_slot_properties(layout, action_slot: ActionSlot, target_armature
 	if not subtarget_exists: return
 	layout.prop(action_slot, 'frame_start', text="Frame Start")
 	layout.prop(action_slot, 'frame_end', text="End")
+	split = layout.split(factor=0.4)
+	heading = split.row()
+	heading.alignment = 'RIGHT'
+	heading.label(text="Default Frame:")
+	default_frame = action_slot.get_default_frame()
+	if default_frame % 1 == 0:
+		text = str(int(default_frame))
+	else:
+		text = str(round(default_frame, 2)) + " (Should be a whole number!)"
+	split.label(text=text)
 
 	layout.prop(action_slot, 'target_space', text="Target Space")
 	layout.prop(action_slot, 'transform_channel', text="Transform Channel")

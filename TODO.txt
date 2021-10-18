@@ -38,8 +38,6 @@ Priority 2: New features
 		- Corrective Smooth scale
 		- Cast modifier radius
 	Add a warning when:
-	- An action setup doesn't have a center keyframe, or the center keyframe is not the default pose.
-	- an action setup created no constraints (nor custom property) because it had no animation data to work with.
 	- object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
 
 	Perhaps some parameters could belong all the way up in CloudBaseRig.
