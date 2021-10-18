@@ -118,6 +118,14 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 			layout.label(text="", icon_value=icon)
 
 class ActionSlot(bpy.types.PropertyGroup):
+	def enforce_min(self, context):
+		if self.frame_start > self.frame_end:
+			self.frame_end = self.frame_start
+
+	def enforce_max(self, context):
+		if self.frame_end < self.frame_start:
+			self.frame_start = self.frame_end
+	
 	enabled: BoolProperty(
 		name="Enabled"
 		,description = "Create constraints for this action on the generated rig"
@@ -158,11 +166,13 @@ class ActionSlot(bpy.types.PropertyGroup):
 	frame_start: IntProperty(
 		name		 = "Start Frame"
 		,description = "First frame of the action's timeline"
+		,update		 = enforce_min
 	)
 	frame_end: IntProperty(
 		name		 = "End Frame"
 		,default	 = 2
 		,description = "Last frame of the action's timeline"
+		,update		 = enforce_max
 	)
 	trans_min: FloatProperty(
 		name		 = "Min"
