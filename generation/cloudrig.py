@@ -903,28 +903,34 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
+		return (is_active_cloudrig(context) is not None) and \
+			(context.pose_object or context.active_object) and \
+			'ui_data' in context.object.data
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
 		data = rig.data
 
-		for area_name in area_names:
-			if area_name not in data: continue
-			area_dict = data[area_name].to_dict()
-			for row_dict in list(area_dict.values()):
-				for col_dict in list(row_dict.values()):
-					assert 'prop_bone' in col_dict and 'prop_id' in col_dict, "Rig UI info entry must have prop_bone and prop_id."
-					prop_bone_name = col_dict['prop_bone']
-					prop_id = col_dict['prop_id']
+		ui_data = data['ui_data'].to_dict()
 
-					prop_bone = rig.pose.bones.get(prop_bone_name)
-					assert prop_bone, f"Property bone non-existent: {prop_bone_name}"
+		for subpanel, label_dicts in ui_data.items():
+			for label_name, row_dicts in label_dicts.items():
+				if type(row_dicts) == str:
+					# TODO: For some reason, cloud_ik_finger seems to put a string "CLOUDRIG_PT_custom_ik" here, which is the sub-panel that has a sub-panel.
+					continue
+				for row_name, col_dicts in row_dicts.items():
+					for col_name, col_dict in col_dicts.items():
+						assert 'prop_bone' in col_dict and 'prop_id' in col_dict, "Rig UI info entry must have prop_bone and prop_id."
+						prop_bone_name = col_dict['prop_bone']
+						prop_id = col_dict['prop_id']
 
-					value = prop_bone[prop_id]
-					if type(value) not in (int, float):
-						continue
-					set_custom_property_value(rig, prop_bone.name, prop_id, value, keyflags=get_keying_flags(context))
+						prop_bone = rig.pose.bones.get(prop_bone_name)
+						assert prop_bone, f"Property bone non-existent: {prop_bone_name}"
+
+						value = prop_bone[prop_id]
+						if type(value) not in (int, float):
+							continue
+						set_custom_property_value(rig, prop_bone.name, prop_id, value, keyflags=get_keying_flags(context))
 
 		return {'FINISHED'}
 
@@ -980,7 +986,6 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
 					if type(pb[key]) not in (float, int): continue
 					pb[key] = ui_data['default']
-					print("Reset " + key)
 
 		return {'FINISHED'}
 
