@@ -1,6 +1,6 @@
 from bpy.props import BoolProperty
 from .cloud_face_chain import Rig as CloudFaceChainRig	# It is important to import it this way due to type comparisons with isinstance()!
-from .cloud_aim import CloudAimRig
+from .cloud_aim import Rig as CloudAimRig
 
 from ..utils.maths import project_vector_on_plane
 
@@ -8,11 +8,15 @@ class CloudEyelidRig(CloudFaceChainRig):
 	"""Extends cloud_face_chain with eyelid functionality. This rig's parent bone must have the cloud_aim rig type!"""
 
 	def initialize(self):
+		if not self.rigify_parent or type(self.rigify_parent) != CloudAimRig:
+			self.raise_error("Must have a cloud_aim parent bone!")
+
 		super().initialize()
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
+		# TODO: Why is this line here? Looks... suspicious.
 		self.bones_org[0].parent = self.rigify_parent.bones_org[0].parent
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
@@ -20,12 +24,13 @@ class CloudEyelidRig(CloudFaceChainRig):
 			return
 
 		for rig in self.chain_rigs:
-			if not rig.params.CR_face_chain_merge: continue
 			if not type(rig) == type(self): continue
 			rig.make_sticky_eyelid()
 
 	def make_sticky_eyelid(self):
-		"""Create ROT helper bones between the aim bone's base and the main STR controls of the eyelid"""
+		"""Create ROT helper bones between the aim bone's base and the 
+		main STR controls of the eyelid. Since this needs to account for
+		intersection controls, it must be called from execute_final_face_chain()."""
 
 		# Parent rig must be a cloud_aim type rig!
 		parent_rig = self.rigify_parent

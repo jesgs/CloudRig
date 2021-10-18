@@ -85,7 +85,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# Check the generator rig list to see if we are the last chain rig that will be generated.
 		self.chain_rigs = []
 		for rig in self.generator.rig_list:
-			if isinstance(rig, type(self)):
+			if isinstance(rig, CloudFaceChainRig):
 				self.chain_rigs.append(rig)
 
 		self.is_last_chain_rig = self == self.chain_rigs[-1]
