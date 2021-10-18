@@ -477,6 +477,14 @@ class BoneInfo:
 
 			setattr(b, key, value)
 
+		if b.name.startswith("DEF") and not b.use_deform:
+			self.bone_set.rig.add_log("Non-deforming DEF bone"
+				,trouble_bone = self.name
+				,description = f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. This bone will not be keyframed by the "Whole Character" keying set!'
+				,operator = 'object.cloudrig_rename_bone'
+				,op_kwargs = {'old_name': b.name}
+			)
+
 		def fixed_path(data_path):
 			if not data_path.startswith("[") and not data_path.startswith("."):
 				return "." + data_path
