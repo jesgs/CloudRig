@@ -930,7 +930,7 @@ class CloudGenerator(Generator):
 		self.logger.report_widgets(self.widget_collection)
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
-
+		self.logger.report_unused_bone_groups()
 
 def is_single_cloud_metarig(context):
 	"""If there is only one CloudRig metarig in the scene, return it."""

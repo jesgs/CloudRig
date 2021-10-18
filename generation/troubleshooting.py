@@ -172,6 +172,7 @@ class CloudLogManager:
 	"""
 
 	def __init__(self, metarig, rig=None):
+		# Storing references to datablocks could be dangerous, be careful!
 		self.metarig = metarig
 		self.rig = rig
 
@@ -293,6 +294,21 @@ class CloudLogManager:
 					,note		 = str(i)
 					,operator	 = 'object.cloudrig_rename_layer'
 					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : ""}
+				)
+
+	def report_unused_bone_groups(self):
+		"""Unused bone groups simply won't get created on the generated rig,
+		so all we need to do here is compare the bone groups of the generated rig
+		to those of the metarig.
+		"""
+		for bg in self.metarig.pose.bone_groups:
+			if bg.name not in self.rig.pose.bone_groups:
+				self.log("Unused Bone Group"
+					,description = f'Bone Group "{bg.name}" is never used.'
+					,icon		 = 'GROUP_BONE'
+					,note		 = bg.name
+					,operator	 = 'object.cloudrig_remove_bone_group'
+					,op_kwargs	 = {'bg_name' : bg.name}
 				)
 
 	def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
@@ -808,6 +824,29 @@ class CLOUDRIG_OT_Rename_Rigify_Layer(Operator):
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Remove_Bone_Group(Operator):
+	"""Remove a Bone Group"""
+
+	bl_idname = "object.cloudrig_remove_bone_group"
+	bl_label = "Remove Bone Group"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	bg_name: StringProperty(name="Group Name")
+
+	def execute(self, context):
+		metarig = context.object
+
+		bg = metarig.pose.bone_groups.get(self.bg_name)
+		if not bg:
+			self.report({'ERROR'}, f'Bone Group "{self.bg_name}" was already removed.')
+		else:
+			metarig.pose.bone_groups.remove(bg)
+			self.report({'INFO'}, f'Removed Bone Group "{self.bg_name}".')
+
+		remove_active_log(metarig)
+		return { 'FINISHED' }
+
 def remove_active_log(metarig: Object):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -836,5 +875,6 @@ registry = [
 	CLOUDRIG_OT_Delete_Object,
 
 	CLOUDRIG_OT_Clear_Pointer,
-	CLOUDRIG_OT_Rename_Rigify_Layer
+	CLOUDRIG_OT_Rename_Rigify_Layer,
+	CLOUDRIG_OT_Remove_Bone_Group
 ]

@@ -14,10 +14,6 @@ Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
 
-	- Troubleshooting UI freaks out when rig is in an anim output collection?
-		Not entirely sure how, but it was happening on Simon's side
-		Troubleshooting UI should be removed anyways.
-
 	Trying to relink a constraint (either with @ or by properly selecting subtarget in the constraint) such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
 		We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
 		Generation should go like this:
@@ -43,7 +39,6 @@ Priority 2: New features
 		- Cast modifier radius
 	Add a warning when:
 	- An action setup doesn't have a center keyframe, or the center keyframe is not the default pose.
-	- Bone group isn't used by any bones
 	- an action setup created no constraints (nor custom property) because it had no animation data to work with.
 	- object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
 	- There's a bone name starting with "DEF" but it's not deforming. It won't be included in the Whole Character keying set!
