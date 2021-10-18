@@ -1595,14 +1595,6 @@ def ensure_custom_panels(scene, depsgraph):
 			parent_id = custom_panels[panel_name]['parent_id']
 		ensure_custom_panel(panel_name, parent_id)
 
-#####################################
-#### LEGACY UI ######################
-#### TODO: Remove after Sprites. ####
-#####################################
-
-# This list of property names are hard coded identifiers of different areas in the rig UI.
-area_names = ['face_settings', 'fk_hinges', 'ik_parents', 'ik_pole_follows', 'ik_stretches', 'ik_switches', 'misc_settings']
-
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_settings"
 	bl_label = "Settings"
@@ -1624,82 +1616,6 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
 		layout.operator(CLOUDRIG_OT_keyframe_all_settings.bl_idname, text='Keyframe All Settings', icon='KEYFRAME_HLT')
 		layout.operator(CLOUDRIG_OT_reset_rig.bl_idname, text='Reset Rig', icon='LOOP_BACK')
-
-class CLOUDRIG_PT_sub_settings(CLOUDRIG_PT_base):
-	"""Base class for sub-panels of the Settings panel."""
-
-	# 'area_name' : "UI Label"
-	# UI Label is optional. Area name should be one of the strings in the area_names list above.
-	area_names = {}
-
-	@classmethod
-	def poll(cls, context):
-		rig = is_active_cloudrig(context)
-		if not rig: return False
-		for area_name in cls.area_names.keys():
-			if area_name in rig.data:
-				return True
-		return False
-
-	def draw(self, context):
-		layout = self.layout
-		rig = is_active_cloudrig(context)
-		if not rig: return
-
-		area_names = type(self).area_names
-
-		for area_name in area_names.keys():
-			if area_name not in rig.data: continue
-
-			label=area_names[area_name]
-			if label != "":
-				layout.label(text=label)
-
-			main_dict = rig.data[area_name].to_dict()
-			draw_rig_settings(layout, rig, main_dict)
-
-class CLOUDRIG_PT_fkik(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_fkik"
-	bl_label = "FK/IK Switch"
-	bl_parent_id = "CLOUDRIG_PT_settings"
-
-	area_names = {'ik_switches' : ""}
-
-class CLOUDRIG_PT_ik(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_ik"
-	bl_label = "IK Settings"
-	bl_parent_id = "CLOUDRIG_PT_settings"
-
-	area_names = {
-		'ik_stretches' : "IK Stretch"
-		,'ik_parents' : "IK Parents"
-		,'ik_hinges' : "IK Hinge"
-		,'ik_pole_follows' : "IK Pole Follow"
-	}
-
-class CLOUDRIG_PT_fk(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_fk"
-	bl_label = "FK Settings"
-	bl_parent_id = "CLOUDRIG_PT_settings"
-
-	area_names = {
-		'fk_hinges' : "FK Hinge"
-		,'auto_rubber_hose' : "Auto Rubber Hose"
-	}
-
-class CLOUDRIG_PT_face(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_face"
-	bl_label = "Face Settings"
-	bl_parent_id = "CLOUDRIG_PT_settings"
-
-	area_names = {'face_settings' : ""}
-
-class CLOUDRIG_PT_misc(CLOUDRIG_PT_sub_settings):
-	bl_idname = "CLOUDRIG_PT_misc"
-	bl_label = "Misc"
-	bl_parent_id = "CLOUDRIG_PT_settings"
-
-	area_names = {'misc_settings' : ""}
 
 #######################################
 ############# Rig Layers ##############
@@ -1884,11 +1800,6 @@ classes = (
 	,CLOUDRIG_PT_layers
 	,CLOUDRIG_OT_layer_select
 	,CLOUDRIG_PT_settings
-	,CLOUDRIG_PT_fkik
-	,CLOUDRIG_PT_ik
-	,CLOUDRIG_PT_fk
-	,CLOUDRIG_PT_face
-	,CLOUDRIG_PT_misc
 
 	,CLOUDRIG_PT_hotkeys
 )
