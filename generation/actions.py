@@ -118,14 +118,6 @@ class CLOUDRIG_UL_action_slots(bpy.types.UIList):
 			layout.label(text="", icon_value=icon)
 
 class ActionSlot(bpy.types.PropertyGroup):
-	def enforce_min(self, context):
-		if self.frame_start > self.frame_end:
-			self.frame_end = self.frame_start
-
-	def enforce_max(self, context):
-		if self.frame_end < self.frame_start:
-			self.frame_start = self.frame_end
-	
 	enabled: BoolProperty(
 		name="Enabled"
 		,description = "Create constraints for this action on the generated rig"
@@ -163,17 +155,25 @@ class ActionSlot(bpy.types.PropertyGroup):
 		default="LOCAL"
 	)
 
+	def update_frame_start(self, context):
+		if self.frame_start > self.frame_end:
+			self.frame_end = self.frame_start
 	frame_start: IntProperty(
 		name		 = "Start Frame"
 		,description = "First frame of the action's timeline"
-		,update		 = enforce_min
+		,update		 = update_frame_start
 	)
+
+	def update_frame_end(self, context):
+		if self.frame_end < self.frame_start:
+			self.frame_start = self.frame_end
 	frame_end: IntProperty(
 		name		 = "End Frame"
 		,default	 = 2
 		,description = "Last frame of the action's timeline"
-		,update		 = enforce_max
+		,update		 = update_frame_end
 	)
+
 	trans_min: FloatProperty(
 		name		 = "Min"
 		,default	 = -0.05
@@ -212,6 +212,9 @@ class ActionSlot(bpy.types.PropertyGroup):
 		]
 	)
 
+	############################################
+	######### Action Constraint Setup ##########
+	############################################
 	@property
 	def keyed_bones_names(self) -> [str]:
 		"""Return a list of bone names that have keyframes in the Action of this Slot."""
@@ -392,6 +395,84 @@ class ActionSlot(bpy.types.PropertyGroup):
 					target.transform_space = self.target_space + "_SPACE"
 					target.rotation_mode = 'SWING_TWIST_Y'
 
+	############################################
+	############### UI drawing #################
+	############################################
+	def draw_ui_corrective(self, layout):
+		# if is_advanced_mode(context):
+			# TODO: This option is confusing and difficult to use and should be
+			# removed after Sprite Fright.
+			# layout.prop(self, 'corrective_type')
+		layout.prop(self, 'frame_start', text="Frame Start")
+		layout.prop(self, 'frame_end', text="End")
+		layout.separator()
+		for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
+			self.draw_ui_trigger(layout)
+
+	def draw_ui_trigger(self, layout):
+		trigger = getattr(self, trigger_prop)
+		icon = 'ACTION' if self.trigger_action_a else 'ERROR'
+		row = layout.row()
+		row.prop(self, trigger_prop, icon=icon)
+		if not trigger:
+			return
+		col = layout.column()
+		col.enabled = False
+		trigger_slot, slot_index = find_slot_by_action(metarig.data, trigger)
+		if not trigger_slot:
+			return
+		show_prop_name = 'show_action_' + trigger_prop[-1]
+		show = getattr(self, show_prop_name)
+		icon = 'HIDE_OFF' if show else 'HIDE_ON'
+		row.prop(self, show_prop_name, icon=icon, text="")
+		op = row.operator(CLOUDRIG_OT_Action_Jump.bl_idname, text="", icon='LOOP_FORWARDS')
+		op.to_index = slot_index
+		if show:
+			trigger_slot.draw_ui(col, metarig.data.rigify_target_rig.data)
+
+	def draw_ui(self, layout, target_armature: bpy.types.Armature):
+		row = layout.row()
+		subtarget_exists = self.subtarget in target_armature.bones
+		icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
+
+		row.prop_search(self, 'subtarget', target_armature, 'bones', icon=icon)
+		row.alert = not subtarget_exists
+
+		flipped_subtarget = naming.flip_name(self.subtarget)
+		flipped_subtarget_exists = flipped_subtarget in target_armature.bones
+		if subtarget_exists and flipped_subtarget != self.subtarget:
+			row = layout.row()
+			row.use_property_split=True
+			text = f"Symmetrical ({flipped_subtarget})"
+			if not flipped_subtarget_exists:
+				text = text[:-1] + " not found!)"
+			row.prop(self, 'symmetrical', text=text)
+			row.enabled = flipped_subtarget_exists
+
+		if not subtarget_exists: return
+		layout.prop(self, 'frame_start', text="Frame Start")
+		layout.prop(self, 'frame_end', text="End")
+		self.draw_default_frame(layout)
+
+		layout.prop(self, 'target_space', text="Target Space")
+		layout.prop(self, 'transform_channel', text="Transform Channel")
+
+		layout.prop(self, 'trans_min')
+		layout.prop(self, 'trans_max')
+		layout.separator()
+
+	def draw_default_frame(self, layout):
+		split = layout.split(factor=0.4)
+		heading = split.row()
+		heading.alignment = 'RIGHT'
+		heading.label(text="Default Frame:")
+		default_frame = self.get_default_frame()
+		if default_frame % 1 == 0:
+			text = str(int(default_frame))
+		else:
+			text = str(round(default_frame, 2)) + " (Should be a whole number!)"
+		split.label(text=text)
+
 	def get_default_frame(self) -> float:
 		""" Based on the transform channel, frame range and transform range,
 			we can calculate which frame within the action should have the keyframe
@@ -422,7 +503,6 @@ class ActionSlot(bpy.types.PropertyGroup):
 			# Then just apply that factor to lerp from frame_start to frame_end.
 			return self.frame_start + frame_range * factor
 
-
 class CLOUDRIG_PT_actions(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
@@ -436,112 +516,44 @@ class CLOUDRIG_PT_actions(bpy.types.Panel):
 		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
 
 	def draw(self, context):
-		draw_cloudrig_actions(self.layout, context)
+		metarig = context.object
+		cloudrig = metarig.data.cloudrig_parameters
+		action_slots = cloudrig.action_slots
+		active_index = cloudrig.active_action_slot_index
 
-def draw_cloudrig_actions(layout, context):
-	metarig = context.object
-	cloudrig = metarig.data.cloudrig_parameters
-	action_slots = cloudrig.action_slots
-	active_index = cloudrig.active_action_slot_index
+		layout = self.layout
+		layout.use_property_split=True
+		layout.use_property_decorate=False
 
-	row = layout.row()
+		draw_ui_list(
+			layout
+			,context
+			,class_name = 'CLOUDRIG_UL_action_slots'
+			,list_context_path = 'object.data.cloudrig_parameters.action_slots'
+			,active_idx_context_path = 'object.data.cloudrig_parameters.active_action_slot_index'
+		)
 
-	draw_ui_list(
-		layout
-		,context
-		,class_name = 'CLOUDRIG_UL_action_slots'
-		,list_context_path = 'object.data.cloudrig_parameters.action_slots'
-		,active_idx_context_path = 'object.data.cloudrig_parameters.active_action_slot_index'
-	)
+		if len(action_slots) == 0:
+			return
+		active_slot = action_slots[active_index]
 
-	if len(action_slots) == 0:
-		return
-	active_slot = action_slots[active_index]
+		layout.template_ID(active_slot, 'action', new='object.cloudrig_action_create')
+		if not active_slot.action:
+			return
 
-	layout.template_ID(active_slot, 'action', new='object.cloudrig_action_create')
-	if not active_slot.action:
-		return
+		layout = layout.column()
+		layout.prop(active_slot, 'is_corrective')
+		if active_slot.is_corrective:
+			self.draw_corrective_slot(active_slot)
+			return
 
-	layout = layout.column()
-	layout.use_property_split=True
-	layout.use_property_decorate=False
-	layout.prop(active_slot, 'is_corrective')
-	if active_slot.is_corrective:
-		# if is_advanced_mode(context):
-			# TODO: This option is confusing and difficult to use and should be
-			# removed after Sprite Fright.
-			# layout.prop(active_slot, 'corrective_type')
-		layout.prop(active_slot, 'frame_start', text="Frame Start")
-		layout.prop(active_slot, 'frame_end', text="End")
-		layout.separator()
-		for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
-			trigger = getattr(active_slot, trigger_prop)
-			icon = 'ACTION' if active_slot.trigger_action_a else 'ERROR'
+		if not metarig.data.rigify_target_rig:
 			row = layout.row()
-			row.prop(active_slot, trigger_prop, icon=icon)
-			if trigger:
-				col = layout.column()
-				col.enabled = False
-				trigger_slot, slot_index = find_slot_by_action(metarig.data, trigger)
-				if not trigger_slot:
-					return
-				show_prop_name = 'show_action_' + trigger_prop[-1]
-				show = getattr(active_slot, show_prop_name)
-				icon = 'HIDE_OFF' if show else 'HIDE_ON'
-				row.prop(active_slot, show_prop_name, icon=icon, text="")
-				op = row.operator(CLOUDRIG_OT_Action_Jump.bl_idname, text="", icon='LOOP_FORWARDS')
-				op.to_index = slot_index
-				if show:
-					draw_action_slot_properties(col, trigger_slot, metarig.data.rigify_target_rig.data)
-		return
+			row.alert=True
+			row.label(text="Generate the rig to select a control bone for this action.")
+			return
 
-	if not metarig.data.rigify_target_rig:
-		row = layout.row()
-		row.alert=True
-		row.label(text="Generate the rig to select a control bone for this action.")
-		return
-
-	draw_action_slot_properties(layout, active_slot, metarig.data.rigify_target_rig.data)
-
-def draw_action_slot_properties(layout, action_slot: ActionSlot, target_armature: bpy.types.Armature):
-	row = layout.row()
-	subtarget_exists = action_slot.subtarget in target_armature.bones
-	icon = 'BONE_DATA' if subtarget_exists else 'ERROR'
-
-	row.prop_search(action_slot, 'subtarget', target_armature, 'bones', icon=icon)
-	row.alert = not subtarget_exists
-
-	flipped_subtarget = naming.flip_name(action_slot.subtarget)
-	flipped_subtarget_exists = flipped_subtarget in target_armature.bones
-	if subtarget_exists and flipped_subtarget != action_slot.subtarget:
-		row = layout.row()
-		row.use_property_split=True
-		text = f"Symmetrical ({flipped_subtarget})"
-		if not flipped_subtarget_exists:
-			text = text[:-1] + " not found!)"
-		row.prop(action_slot, 'symmetrical', text=text)
-		row.enabled = flipped_subtarget_exists
-
-	if not subtarget_exists: return
-	layout.prop(action_slot, 'frame_start', text="Frame Start")
-	layout.prop(action_slot, 'frame_end', text="End")
-	split = layout.split(factor=0.4)
-	heading = split.row()
-	heading.alignment = 'RIGHT'
-	heading.label(text="Default Frame:")
-	default_frame = action_slot.get_default_frame()
-	if default_frame % 1 == 0:
-		text = str(int(default_frame))
-	else:
-		text = str(round(default_frame, 2)) + " (Should be a whole number!)"
-	split.label(text=text)
-
-	layout.prop(action_slot, 'target_space', text="Target Space")
-	layout.prop(action_slot, 'transform_channel', text="Transform Channel")
-
-	layout.prop(action_slot, 'trans_min')
-	layout.prop(action_slot, 'trans_max')
-	layout.separator()
+		active_slot.draw_ui(layout, metarig.data.rigify_target_rig.data)
 
 class CLOUDRIG_OT_copy_actions(bpy.types.Operator):
 	"""Copy action setups to selected objects"""
