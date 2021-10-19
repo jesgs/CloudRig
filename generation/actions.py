@@ -413,7 +413,7 @@ class ActionSlot(PropertyGroup):
 	############################################
 	############### UI drawing #################
 	############################################
-	def draw_ui_corrective(self, layout):
+	def draw_ui_corrective(self, layout, context):
 		# if is_advanced_mode(context):
 			# TODO: This option is confusing and difficult to use and should be
 			# removed after Sprite Fright.
@@ -422,16 +422,17 @@ class ActionSlot(PropertyGroup):
 		layout.prop(self, 'frame_end', text="End")
 		layout.separator()
 		for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
-			self.draw_ui_trigger(layout)
+			self.draw_ui_trigger(layout, context, trigger_prop)
 
-	def draw_ui_trigger(self, layout):
+	def draw_ui_trigger(self, layout, context, trigger_prop: str):
+		metarig = context.object
 		trigger = getattr(self, trigger_prop)
 		icon = 'ACTION' if self.trigger_action_a else 'ERROR'
 		row = layout.row()
 		row.prop(self, trigger_prop, icon=icon)
 		if not trigger:
 			return
-		col = layout.column()
+		col = layout.column(align=True)
 		col.enabled = False
 		trigger_slot, slot_index = find_slot_by_action(metarig.data, trigger)
 		if not trigger_slot:
@@ -444,6 +445,7 @@ class ActionSlot(PropertyGroup):
 		op.to_index = slot_index
 		if show:
 			trigger_slot.draw_ui(col, metarig.data.rigify_target_rig.data)
+			col.separator()
 
 	def draw_ui(self, layout, target_armature: Armature):
 		row = layout.row()
@@ -568,7 +570,7 @@ class CLOUDRIG_PT_actions(Panel):
 		layout = layout.column()
 		layout.prop(active_slot, 'is_corrective')
 		if active_slot.is_corrective:
-			self.draw_corrective_slot(active_slot)
+			active_slot.draw_ui_corrective(layout, context)
 			return
 
 		if not metarig.data.rigify_target_rig:
