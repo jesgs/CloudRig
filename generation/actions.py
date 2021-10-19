@@ -469,26 +469,41 @@ class ActionSlot(PropertyGroup):
 		if not subtarget_exists: return
 		layout.prop(self, 'frame_start', text="Frame Start")
 		layout.prop(self, 'frame_end', text="End")
-		self.draw_default_frame(layout)
 
 		layout.prop(self, 'target_space', text="Target Space")
 		layout.prop(self, 'transform_channel', text="Transform Channel")
 
 		layout.prop(self, 'trans_min')
 		layout.prop(self, 'trans_max')
-		layout.separator()
+		self.draw_status(layout)
 
-	def draw_default_frame(self, layout):
+	def draw_status(self, layout):
+		"""There are a lot of ways to create incorrect Action setups, so give 
+		the user a warning in those cases.
+		"""
 		split = layout.split(factor=0.4)
 		heading = split.row()
 		heading.alignment = 'RIGHT'
-		heading.label(text="Default Frame:")
+		heading.label(text="Status:")
+
+		if self.trans_min == self.trans_max:
+			col = split.column(align=True)
+			col.alert = True
+			col.label(text="Min and max value are the same!")
+			col.label(text=f"Will be stuck reading frame {self.frame_start}!")
+			return
+		if self.frame_start == self.frame_end:
+			col = split.column(align=True)
+			col.alert = True
+			col.label(text="Start and end frame cannot be the same!")
+
 		default_frame = self.get_default_frame()
-		if default_frame % 1 == 0:
-			text = str(int(default_frame))
+		mod = default_frame % 1
+		if mod == 0 or 1-mod < 0.01:
+			split.label(text=f"Default Frame: {round(default_frame)}")
 		else:
-			text = str(round(default_frame, 2)) + " (Should be a whole number!)"
-		split.label(text=text)
+			split.alert=True
+			split.label(text=f"Default Frame: {round(default_frame, 2)} (Should be a whole number!)")
 
 	def get_default_frame(self) -> float:
 		""" Based on the transform channel, frame range and transform range,
