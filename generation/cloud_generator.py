@@ -1,6 +1,6 @@
 from typing import List, Dict, Tuple
 
-import bpy, sys, os, traceback
+import bpy, sys, os, traceback, time
 from bpy.types import Object
 from mathutils import Matrix, Vector
 from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty
@@ -8,7 +8,7 @@ from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProp
 from bone_selection_sets import from_json, to_json
 from datetime import datetime
 
-from rigify.generate import Generator, Timer, select_object
+from rigify.generate import Generator, select_object
 from rigify import rig_ui_template
 from rigify.utils.naming import DEF_PREFIX
 from rigify.utils.errors import MetarigError
@@ -133,6 +133,20 @@ def load_script(file_path="", file_name="cloudrig.py", datablock=None) -> bpy.ty
 	exec(text.as_string(), {})
 
 	return text
+
+
+class Timer:
+	def __init__(self):
+		self.start_time = self.last_time = time.time()
+
+	def tick(self, string):
+		t = time.time()
+		print(string + "%.3f" % (t - self.last_time))
+		self.last_time = t
+	
+	def total(self, string="Total: "):
+		t = time.time()
+		print(string + "%.3f" %(t - self.start_time))
 
 class CloudGenerator(Generator):
 	def __init__(self, context, metarig):
@@ -905,7 +919,8 @@ class CloudGenerator(Generator):
 		self.restore_rig_states()
 		self.log_minor_issues()
 		self.update_bone_set_ui_info()
-		t.tick("Cleanup: ")
+		t.tick("Cleanup & Troubleshoot: ")
+		t.total()
 
 	def restore_rig_states(self):
 		"""Restore transforms after generation has either failed or succeeded."""
@@ -931,6 +946,7 @@ class CloudGenerator(Generator):
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 		self.logger.report_unused_bone_groups()
+		self.logger.report_actions()
 
 def is_single_cloud_metarig(context):
 	"""If there is only one CloudRig metarig in the scene, return it."""

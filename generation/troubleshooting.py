@@ -1,6 +1,6 @@
 from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-from bpy.props import StringProperty, IntProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty
 
 import bpy, os, traceback
 import json, webbrowser, time
@@ -374,7 +374,7 @@ class CloudLogManager:
 				self.log("Unused widget"
 					,note = widget.name
 					,icon = 'X'
-					,description = f"Widget '{widget.name}' is not used by any bones."
+					,description = f'Widget "{widget.name}" is not used by any bones.'
 					,operator = CLOUDRIG_OT_Delete_Object.bl_idname
 					,op_kwargs = {'ob_name' : widget.name}
 				)
@@ -384,7 +384,7 @@ class CloudLogManager:
 					self.log("Duplicate widget"
 						,note		 = widget.name
 						,icon		 = 'DUPLICATE'
-						,description = f"There exists a widget called '{unprefixed}', that should be used instead of '{widget.name}'."
+						,description = f'There exists a widget called "{unprefixed}", that should be used instead of "{widget.name}".'
 						,operator	 = CLOUDRIG_OT_Swap_Bone_Shape.bl_idname
 						,op_kwargs	 = {'old_name' : widget.name, 'new_name' : unprefixed}
 					)
@@ -392,10 +392,88 @@ class CloudLogManager:
 					self.log("Widget with number suffix"
 						,note		 = widget.name
 						,icon		 = 'FILE_TEXT'
-						,description = f"The '{widget.name[-4:]}' suffix in the name of this widget is not necessary."
+						,description = f'The "{widget.name[-4:]}" suffix in the name of this widget is not necessary.'
 						,operator	 = CLOUDRIG_OT_Rename_Object.bl_idname
 						,op_kwargs	 = {'old_name' : widget.name, 'new_name' : unprefixed}
 					)
+
+	def report_actions(self):
+		"""Test that action ranges are even numbers and the default pose frame 
+		has a keyframe and the keyframe has default transform values.
+		"""
+
+		action_slots = self.metarig.data.cloudrig_parameters.action_slots
+		for i, action_slot in enumerate(action_slots):
+			if not action_slot.enabled: continue
+			action = action_slot.action
+			if not action:
+				# This is not really worth a log entry imo, because it does no harm,
+				# and is treated by all code as if the action slot was simply disabled.
+				continue
+			if action_slot.trans_min == action_slot.trans_max:
+				self.log("Action has no transform range"
+					,note		 = action_slot.action.name
+					,icon		 = 'ACTION'
+					,description = f'Action slot "{action_slot.action.name}" has no transformation range. This will cause the action to always be in the same state!'
+					,operator	 = CLOUDRIG_OT_Edit_Action_Slot.bl_idname
+					,op_kwargs	 = {'action_slot_idx' : i}
+				)
+			if action_slot.frame_start == action_slot.frame_end:
+				self.log("Action has no frame range"
+					,note		 = action_slot.action.name
+					,icon		 = 'ACTION'
+					,description = f'Action slot "{action_slot.action.name}" has no frame range. This will cause the action to always be in the same state!'
+					,operator	 = CLOUDRIG_OT_Edit_Action_Slot.bl_idname
+					,op_kwargs	 = {'action_slot_idx' : i}
+				)
+
+			default_frame = int(action_slot.get_default_frame())
+			if not action_slot.is_default_frame_integer():
+				self.log("Action default frame must be whole"
+					,note		 = action_slot.action.name
+					,icon		 = 'ACTION'
+					,description = f'Action "{action_slot.action.name}" has a default frame of {default_frame}. The input parameters of the Action Slot should be tweaked such that the "Default Frame" value is a whole number. On that frame, there should be a keyframe of all affected bones in the default position. Otherwise, the rig will be deformed in its default pose.'
+					,operator	 = CLOUDRIG_OT_Edit_Action_Slot.bl_idname
+					,op_kwargs	 = {'action_slot_idx' : i}
+				)
+
+			# Scan curves for issues (this not as expensive as I expected)
+			wrong_curves = []			# Curves which do not have a keyframe on the default frame with their default value
+			single_point_curves = []	# Curves which only have one keyframe
+			for fcurve in action.fcurves:
+				transform = fcurve.data_path.split(".")[-1]
+				if transform not in ['location', 'rotation_euler', 'scale']:
+					continue
+				if len(fcurve.keyframe_points) < 2:
+					single_point_curves.append(fcurve)
+					continue
+
+				default_value = 1.0 if transform=='scale' else 0.0
+				has_default_key = False
+				for kp in fcurve.keyframe_points:
+					if kp.co[0] == default_frame and kp.co[1] == default_value:
+						has_default_key = True
+						break
+
+				if not has_default_key:
+					wrong_curves.append(fcurve)
+			
+			if single_point_curves:
+				self.log("Action with 1-key curves"
+					,note		 = action_slot.action.name
+					,icon		 = 'ACTION'
+					,description = f'Action slot "{action_slot.action.name}" has {len(single_point_curves)} curves with only a single keyframe. These curves will be ignored by the action set-up!'
+					,operator	 = CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname
+					,op_kwargs	 = {'action_slot_idx' : i}
+				)
+			if wrong_curves:
+				self.log("Action affects rest pose"
+					,note		 = action_slot.action.name
+					,icon		 = 'ACTION'
+					,description = f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that aren\'t keyframed to their default values on the action\'s default frame, which is frame {default_frame}.'
+					,operator	 = 'object.cloudrig_jump_to_action'
+					,op_kwargs	 = {'action_slot_idx' : i}
+				)
 
 class CloudRigLogEntry(PropertyGroup):
 	"""Container for storing information about a single metarig warning/error.
@@ -847,6 +925,60 @@ class CLOUDRIG_OT_Remove_Bone_Group(Operator):
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 
+class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
+	"""Remove curves with only one keyframe"""
+
+	bl_idname = "object.cloudrig_clear_single_keyframes"
+	bl_label = "Remove Single Keyframes"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	action_slot_idx: IntProperty(name="Action Slot Index")
+
+	def execute(self, context):
+		metarig = context.object
+		action_slots = metarig.data.cloudrig_parameters.action_slots
+		action_slot = action_slots[self.action_slot_idx]
+
+		curves_removed = 0
+		for fcurve in action_slot.action.fcurves[:]:
+			if len(fcurve.keyframe_points) < 2:
+				action_slot.action.fcurves.remove(fcurve)
+				curves_removed += 1
+
+		self.report({'INFO'}, f'Removed {curves_removed} curves.')
+		remove_active_log(metarig)
+		return { 'FINISHED' }
+
+class CLOUDRIG_OT_Edit_Action_Slot(Operator):
+	"""Directly edit an action slot in a pop-up panel"""
+
+	bl_idname = "object.cloudrig_edit_action_slot_popup"
+	bl_label = "Edit Action Slot"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	action_slot_idx: IntProperty(name="Action Slot Index")
+
+	def invoke(self, context, event):
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
+
+	def draw(self, context):
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+
+		action_slots = metarig.data.cloudrig_parameters.action_slots
+		action_slot = action_slots[self.action_slot_idx]
+
+		layout = self.layout
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		action_slot.draw_ui(layout, rig.data)
+	
+	def execute(self, context):
+		return {'FINISHED'}
+
 def remove_active_log(metarig: Object):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -861,20 +993,23 @@ def remove_active_log(metarig: Object):
 	cloudrig.active_log_index = to_index
 
 registry = [
-	CLOUDRIG_UL_log_entry_slots,
-	CloudRigLogEntry,
-	CLOUDRIG_PT_log,
-	CLOUDRIG_PT_stack_trace,
+	CLOUDRIG_UL_log_entry_slots
+	,CloudRigLogEntry
+	,CLOUDRIG_PT_log
+	,CLOUDRIG_PT_stack_trace
 
-	CLOUDRIG_OT_Change_Rotation_Mode,
-	CLOUDRIG_OT_Report_Bug,
-	CLOUDRIG_OT_Rename_Bone,
-	CLOUDRIG_OT_Swap_Bone_Shape,
+	,CLOUDRIG_OT_Change_Rotation_Mode
+	,CLOUDRIG_OT_Report_Bug
+	,CLOUDRIG_OT_Rename_Bone
 
-	CLOUDRIG_OT_Rename_Object,
-	CLOUDRIG_OT_Delete_Object,
+	,CLOUDRIG_OT_Swap_Bone_Shape
+	,CLOUDRIG_OT_Rename_Object
+	,CLOUDRIG_OT_Delete_Object
 
-	CLOUDRIG_OT_Clear_Pointer,
-	CLOUDRIG_OT_Rename_Rigify_Layer,
-	CLOUDRIG_OT_Remove_Bone_Group
+	,CLOUDRIG_OT_Clear_Pointer
+	,CLOUDRIG_OT_Rename_Rigify_Layer
+	,CLOUDRIG_OT_Remove_Bone_Group
+
+	,CLOUDRIG_OT_Clear_Single_Keyframes
+	,CLOUDRIG_OT_Edit_Action_Slot
 ]
