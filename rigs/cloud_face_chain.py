@@ -104,6 +104,13 @@ class CloudFaceChainRig(CloudChainRig):
 				if str_bone.owner_rig.params.CR_chain_smooth_spline:
 					str_bone.tangent_helper.parent = intersection.parent
 
+		# HACK: We can't ensure that the last chain rig to be executed is a cloud_eyelid,
+		# so we just have to make this class aware of its descendant, which is
+		# possibly the worst thing I've ever coded.
+		for chain_rig in self.chain_rigs:
+			if type(chain_rig) != type(self):
+				chain_rig.make_sticky_eyelid()
+
 	def create_bone_infos(self):
 		super().create_bone_infos()
 

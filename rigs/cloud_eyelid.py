@@ -19,14 +19,6 @@ class CloudEyelidRig(CloudFaceChainRig):
 		# TODO: Why is this line here? Looks... suspicious.
 		self.bones_org[0].parent = self.rigify_parent.bones_org[0].parent
 
-		### Following code is only run ONCE by the LAST face_chain_rig.
-		if not self.is_last_chain_rig:
-			return
-
-		for rig in self.chain_rigs:
-			if not type(rig) == type(self): continue
-			rig.make_sticky_eyelid()
-
 	def make_sticky_eyelid(self):
 		"""Create ROT helper bones between the aim bone's base and the 
 		main STR controls of the eyelid. Since this needs to account for
