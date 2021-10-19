@@ -25,11 +25,6 @@ Priority 2: New features
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
 		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
-	Actions
-		Add an "Edit Action" button that resets the pose, sets the timeline start/end range, the current frame to the End Frame, reveals and selects the relevant bones
-		Then a button to leave this action editing mode and set everything back to the previous state.
-			This could even come with its own workspace, to ensure that the user has an Action Editor UI panel.
-				But nah, if the user is advanced enough, they could edit their action without even seeing their keyframes.
 
 	"(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
 	Scale Inheritance and modifiers
@@ -37,14 +32,9 @@ Priority 2: New features
 		- Shrinkwrap distance
 		- Corrective Smooth scale
 		- Cast modifier radius
-	Add a warning when:
-	- object or datablock names have .00x endings (this could cause a lot of clutter though in cases when it should be ignored)
 
 	Perhaps some parameters could belong all the way up in CloudBaseRig.
 		- Create ORG bones (False by default, can force to True for rigs that need it)
-	Automatic IK/FK switching based on bone selection:
-		https://youtu.be/ccbC8JNdXS4?t=755
-		https://github.com/Jim-Kroovy/Mr-Mannequins-Tools
 
 	New bone layer preview UI and management:
 		The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.

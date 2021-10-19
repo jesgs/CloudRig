@@ -33,45 +33,16 @@ def poll_trigger_action(self, action):
 
 	return False
 
-class CLOUDRIG_OT_Action_Create(Operator):
-	"""Create new Action"""
-	# This is needed because bpy.ops.action.new() has a poll function that blocks
-	# the operator unless it's drawn in an animation UI panel.
-
-	bl_idname = "object.cloudrig_action_create"
-	bl_label = "New"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	def execute(self, context):
-		a = bpy.data.actions.new(name="Action")
-		rig = context.object
-		cloudrig = rig.data.cloudrig_parameters
-		action_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
-		action_slot.action = a
-		return {'FINISHED'}
-
-class CLOUDRIG_OT_Action_Jump(Operator):
-	"""Set Active Action Slot Index"""
-
-	bl_idname = "object.cloudrig_action_jump"
-	bl_label = "Jump to Action Slot"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	to_index: IntProperty()
-
-	def execute(self, context):
-		cloudrig = context.object.data.cloudrig_parameters
-		action_slots = cloudrig.action_slots
-		cloudrig.active_action_slot_index = self.to_index
-
-		return { 'FINISHED' }
-
 class CLOUDRIG_UL_action_slots(UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		rig = context.object
 		cloudrig = data
-		active_action = cloudrig.action_slots[cloudrig.active_action_slot_index]
+		action_slots = cloudrig.action_slots
+		active_action = action_slots[cloudrig.active_action_slot_index]
 		action_slot = item
+		for idx, slot in enumerate(action_slots):
+			if action_slot==slot:
+				break
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			if action_slot.action:
 				row = layout.row()
@@ -108,6 +79,8 @@ class CLOUDRIG_UL_action_slots(UIList):
 
 				icon = 'CHECKBOX_HLT' if action_slot.enabled else 'CHECKBOX_DEHLT'
 				row.enabled = action_slot.enabled
+				op = layout.operator(CLOUDRIG_OT_Jump_To_Action.bl_idname, text="", icon='LOOP_FORWARDS')
+				op.action_slot_idx = idx
 				layout.prop(action_slot, 'enabled', text="", icon=icon, emboss=False)
 			else:
 				layout.label(text="", translate=False, icon='ACTION')
@@ -441,7 +414,7 @@ class ActionSlot(PropertyGroup):
 		show = getattr(self, show_prop_name)
 		icon = 'HIDE_OFF' if show else 'HIDE_ON'
 		row.prop(self, show_prop_name, icon=icon, text="")
-		op = row.operator(CLOUDRIG_OT_Action_Jump.bl_idname, text="", icon='LOOP_FORWARDS')
+		op = row.operator(CLOUDRIG_OT_Jump_To_Action_Slot.bl_idname, text="", icon='LOOP_FORWARDS')
 		op.to_index = slot_index
 		if show:
 			trigger_slot.draw_ui(col, metarig.data.rigify_target_rig.data)
@@ -498,8 +471,7 @@ class ActionSlot(PropertyGroup):
 			col.label(text="Start and end frame cannot be the same!")
 
 		default_frame = self.get_default_frame()
-		mod = default_frame % 1
-		if mod == 0 or 1-mod < 0.01:
+		if self.is_default_frame_integer():
 			split.label(text=f"Default Frame: {round(default_frame)}")
 		else:
 			split.alert=True
@@ -543,6 +515,11 @@ class ActionSlot(PropertyGroup):
 				# In this case we have a negative factor, so we should
 				# lerp from the end towards the start instead.
 				return self.frame_end + frame_range * factor
+
+	def is_default_frame_integer(self) -> bool:
+		default_frame = self.get_default_frame()
+		mod = default_frame % 1
+		return (mod == 0 or 1-mod < 0.01)
 
 class CLOUDRIG_PT_actions(Panel):
 	bl_space_type = 'PROPERTIES'
@@ -596,7 +573,7 @@ class CLOUDRIG_PT_actions(Panel):
 
 		active_slot.draw_ui(layout, metarig.data.rigify_target_rig.data)
 
-class CLOUDRIG_OT_copy_actions(Operator):
+class CLOUDRIG_OT_Copy_Action_Slots(Operator):
 	"""Copy action setups to selected objects"""
 	bl_idname = "object.copy_action_slots"
 	bl_label = "Copy Rigify Action Slots"
@@ -636,11 +613,110 @@ class CLOUDRIG_OT_copy_actions(Operator):
 
 		return {'FINISHED'}
 
+class CLOUDRIG_OT_Action_Create(Operator):
+	"""Create new Action"""
+	# This is needed because bpy.ops.action.new() has a poll function that blocks
+	# the operator unless it's drawn in an animation UI panel.
+
+	bl_idname = "object.cloudrig_action_create"
+	bl_label = "New"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	def execute(self, context):
+		a = bpy.data.actions.new(name="Action")
+		rig = context.object
+		cloudrig = rig.data.cloudrig_parameters
+		action_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
+		action_slot.action = a
+		return {'FINISHED'}
+
+class CLOUDRIG_OT_Jump_To_Action_Slot(Operator):
+	"""Set Active Action Slot Index"""
+
+	bl_idname = "object.cloudrig_jump_to_action_slot"
+	bl_label = "Jump to Action Slot"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	to_index: IntProperty()
+
+	def execute(self, context):
+		cloudrig = context.object.data.cloudrig_parameters
+		action_slots = cloudrig.action_slots
+		cloudrig.active_action_slot_index = self.to_index
+
+		return { 'FINISHED' }
+
+
+def reveal_bone(bone, select=True):
+	"""bone can be edit/pose/data bone. 
+	This function should work regardless of selection or visibility states"""
+	if type(bone)==bpy.types.PoseBone:
+		bone = bone.bone
+	armature = bone.id_data
+	enabled_layers = [i for i in range(32) if armature.layers[i]]
+
+	# If none of this bone's layers are enabled, enable the first one.
+	bone_layers = [i for i in range(32) if bone.layers[i]]
+	if not any([i in enabled_layers for i in bone_layers]):
+		armature.layers[bone_layers[0]] = True
+	
+	bone.hide = False
+
+	if select:
+		bone.select = True
+
+class CLOUDRIG_OT_Jump_To_Action(Operator):
+	"""Jump to editing an action"""
+
+	bl_idname = "object.cloudrig_jump_to_action"
+	bl_label = "Jump To Action"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	# Should be provided by the UI.
+	action_slot_idx: IntProperty(name="Action Slot Index")
+	focus_bones: BoolProperty(name="Focus Bones"
+		,description = "Hide all bones except the ones that contribute to this action"
+		,default	 = True
+	)
+
+	def execute(self, context):
+		metarig = context.object
+		rig = metarig.data.rigify_target_rig
+
+		bpy.ops.object.cloudrig_metarig_toggle()
+		bpy.ops.object.mode_set(mode='POSE')
+
+		action_slots = metarig.data.cloudrig_parameters.action_slots
+		metarig.data.cloudrig_parameters.active_action_slot_index = self.action_slot_idx
+		action_slot = action_slots[self.action_slot_idx]
+		action = action_slot.action
+		rig.animation_data.action = action
+
+		context.scene.frame_start = action_slot.frame_start
+		context.scene.frame_end = action_slot.frame_end
+		context.scene.frame_current = round(action_slot.get_default_frame())
+
+		if self.focus_bones:
+			# Deselect and hide all bones
+			for b in rig.data.bones:
+				b.select = False
+				b.hide = True
+
+			for fcurve in action.fcurves:
+				if 'pose.bones' not in fcurve.data_path: continue
+				bone_name = fcurve.data_path.split('pose.bones["')[-1].split('"]')[0]
+				b = rig.data.bones.get(bone_name)
+				if not b: continue
+				reveal_bone(b)
+
+		return { 'FINISHED' }
+
 registry = [
 	ActionSlot,
 	CLOUDRIG_UL_action_slots,
-	CLOUDRIG_OT_Action_Jump,
-	CLOUDRIG_OT_Action_Create,
 	CLOUDRIG_PT_actions,
-	CLOUDRIG_OT_copy_actions,
+	CLOUDRIG_OT_Copy_Action_Slots,
+	CLOUDRIG_OT_Action_Create,
+	CLOUDRIG_OT_Jump_To_Action_Slot,
+	CLOUDRIG_OT_Jump_To_Action,
 ]
