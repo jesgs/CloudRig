@@ -498,25 +498,34 @@ class ActionSlot(PropertyGroup):
 		frame_range = self.frame_end - self.frame_start
 		transform_range = self.trans_max - self.trans_min
 
-		if self.trans_min > 0:
+		# The default transformation value for rotation and location is 0, but for scale it's 1.
+		def_val = 0.0
+		if 'SCALE' in self.transform_channel:
+			def_val = 1.0
+
+		if self.trans_min > def_val and self.trans_max > def_val:
+			# If both values are positive, the default frame must be the FIRST frame.
+			# (Because that's what's being read when the transform is at 0.0)
 			return self.frame_start
-		elif self.trans_max < 0:
+		elif self.trans_min < def_val and self.trans_max < def_val:
+			# If both values are negative, the default frame must be the LAST frame.
+			# (Because that's what's being read when the transform is at 0.0)
 			return self.frame_end
 		else:
-			# We want to find out what factor we need when lerping 
-			# from trans_min to trans_max in order to get the default value
-			# (1.0 for scale, 0.0 for rot/loc).
-			if 'SCALE' in self.transform_channel:
-				# Factor to lerp from trans_min to 1.0 is the ratio between
-				# the distance of trans_min from 1 and the total transform range.
-				factor = abs(1 - self.trans_min) / transform_range
-			else:
-				# Factor to lerp from trans_min to 0.0 is the ratio between the
-				# distance of trans_min from 0 and the total transform range.
-				factor = abs(self.trans_min) / transform_range
+			# We want to find out what factor we need to lerp from the lowest value
+			# to the default value.
+			lowest_val = min(self.trans_min, self.trans_max)
+			# Factor to lerp from lowest_val to def_val is the ratio between
+			# their difference and the total transform range.
+			factor = (def_val - lowest_val) / transform_range
 
-			# Then just apply that factor to lerp from frame_start to frame_end.
-			return self.frame_start + frame_range * factor
+			if self.trans_max > self.trans_min:
+				# Use factor to lerp from frame_start to frame_end.
+				return self.frame_start + frame_range * factor
+			else:
+				# In this case we have a negative factor, so we should
+				# lerp from the end towards the start instead.
+				return self.frame_end + frame_range * factor
 
 class CLOUDRIG_PT_actions(Panel):
 	bl_space_type = 'PROPERTIES'
