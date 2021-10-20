@@ -27,7 +27,9 @@ class CloudTweakRig(CloudBaseRig):
 
 		if not self.tweak_bone:
 			self.add_log("No bone to tweak"
-				,description  = f'Could not find a bone called "{orgless_name}" on the generated rig.'
+				,description = f'Could not find a bone called "{orgless_name}" on the generated rig.'
+				,operator	 = 'object.cloudrig_rename_bone'
+				,op_kwargs	 = {'old_name': orgless_name}
 			)
 			return
 
