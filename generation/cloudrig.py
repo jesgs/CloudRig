@@ -1601,13 +1601,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
 	@classmethod
 	def poll(cls, context):
-		rig = is_active_cloudrig(context)
-		if not rig: return False
-		if 'ui_data' in rig.data:
-			return True
-		for area_name in area_names:
-			if area_name in rig.data:
-				return True
+		return is_active_cloudrig(context)
 
 	def draw(self, context):
 		layout = self.layout
