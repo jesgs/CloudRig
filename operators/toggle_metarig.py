@@ -70,7 +70,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 			if o.data.rigify_target_rig == rig:
 				return o
 
-	def switch_rig_focus(self, context, 
+	def switch_rig_focus(self, context,
 			from_arm: Object,
 			to_arm: Object,
 			match_layers = True,
@@ -91,7 +91,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 		if match_layers:
 			to_arm.data.layers = from_arm.data.layers[:]
 
-		# When switching between the metarig and the generated rig, 
+		# When switching between the metarig and the generated rig,
 		# match the bone selection as much as possible, unless a lot of bones are selected.
 		selected = [b for b in from_arm.data.bones if b.select]
 		if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected) < 10:
@@ -111,7 +111,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
 		# If an exact match is found, use that. This is rare, since most bones get prefixes during generation (FK-, DEF-, etc).
 
-		# If multiple matches are found, one is chosen based on its prefix 
+		# If multiple matches are found, one is chosen based on its prefix
 		# (higher priority prefix wins).
 		selected_names = [b.name for b in from_arm.data.bones if b.select]
 		for bone_name in selected_names:
@@ -131,7 +131,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 			if to_active:
 				to_arm.data.bones.active = to_active
 
-	def get_visible_bone_with_similar_name(self, 
+	def get_visible_bone_with_similar_name(self,
 			armature: Armature,
 			bone_name: str
 		) -> Bone:

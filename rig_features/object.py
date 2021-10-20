@@ -1,4 +1,5 @@
 import bpy
+from bpy.types import ID, Object, LayerCollection
 
 class EnsureVisible:
 	"""Ensure an object is visible, then reset it to how it was before."""
@@ -98,7 +99,7 @@ def set_layers(obj, layerlist, additive=False):
 
 	obj.layers = layers[:]
 
-def set_enum_property_by_integer(owner:bpy.types.ID, key:str, int_value) -> str or False:
+def set_enum_property_by_integer(owner: ID, key:str, int_value) -> str or False:
 	"""Attempt setting an EnumProperty by its integer value.
 	This can only work if that EnumProperty is registered in the current running instance of Blender.
 	On success, return name of the enum value, otherwise, return False.
@@ -113,7 +114,7 @@ def set_enum_property_by_integer(owner:bpy.types.ID, key:str, int_value) -> str 
 		return enum_string_value
 	return False
 
-def recursive_search_layer_collection(collName, layerColl=None) -> bpy.types.LayerCollection:
+def recursive_search_layer_collection(collName, layerColl=None) -> LayerCollection:
 	# Recursivly transverse layer_collection for a particular name
 	# This is the only way to set active collection as of 14-04-2020.
 	if not layerColl:
@@ -126,6 +127,15 @@ def recursive_search_layer_collection(collName, layerColl=None) -> bpy.types.Lay
 		found = recursive_search_layer_collection(collName, layer)
 		if found:
 			return found
+
+def get_object_hierarchy_recursive(obj: Object, all_objects=[]):
+	if obj not in all_objects:
+		all_objects.append(obj)
+
+	for c in obj.children:
+		get_object_hierarchy_recursive(c, all_objects)
+
+	return all_objects
 
 def set_active_collection(collection):
 	layer_collection = recursive_search_layer_collection(collection.name)

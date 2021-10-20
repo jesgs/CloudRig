@@ -16,11 +16,15 @@ class CloudEyelidRig(CloudFaceChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		# TODO: Why is this line here? Looks... suspicious.
+		# Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
+		# but we obviously don't want to parent the eyelid to the eyeball,
+		# parent it to the parent of the eyeball.
+		# This is rather cosmetic since these ORG bones don't do anything anyways.
+		# TODO: unneccessary ORG bones should just be deleted...
 		self.bones_org[0].parent = self.rigify_parent.bones_org[0].parent
 
 	def make_sticky_eyelid(self):
-		"""Create ROT helper bones between the aim bone's base and the 
+		"""Create ROT helper bones between the aim bone's base and the
 		main STR controls of the eyelid. Since this needs to account for
 		intersection controls, it must be called from execute_final_face_chain()."""
 

@@ -777,7 +777,7 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Param
 				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
 			)
 			pb = rig.pose.bones.get(bone_name)
-			# For some reason, reading and writing the matrix can result in 
+			# For some reason, reading and writing the matrix can result in
 			# significant changes to local scale, even when nothing is scaled.
 			# So, just keep a copy of the local scale and restore it after applying the matrix.
 			pb.scale = scales[i]

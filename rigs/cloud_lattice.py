@@ -112,7 +112,7 @@ class CloudLatticeRig(CloudBaseRig):
 		return lattice_ob
 
 	def test_lattice_already_used(self) -> bool:
-		"""Test if the target lattice object is already being used by 
+		"""Test if the target lattice object is already being used by
 		another cloud_lattice rig."""
 
 		for rig in self.generator.rig_list:

@@ -1,8 +1,8 @@
 from typing import List
 import bpy
-from bpy.props import (EnumProperty, IntProperty, BoolProperty, 
+from bpy.props import (EnumProperty, IntProperty, BoolProperty,
 					StringProperty, FloatProperty, PointerProperty)
-from bpy.types import (Operator, UIList, PropertyGroup, Panel, 
+from bpy.types import (Operator, UIList, PropertyGroup, Panel,
 					Armature, Action, Object, PoseBone, Constraint)
 from . import naming
 from ..rig_features.ui import is_cloud_metarig, is_advanced_mode
@@ -451,7 +451,7 @@ class ActionSlot(PropertyGroup):
 		self.draw_status(layout)
 
 	def draw_status(self, layout):
-		"""There are a lot of ways to create incorrect Action setups, so give 
+		"""There are a lot of ways to create incorrect Action setups, so give
 		the user a warning in those cases.
 		"""
 		split = layout.split(factor=0.4)
@@ -648,7 +648,7 @@ class CLOUDRIG_OT_Jump_To_Action_Slot(Operator):
 
 
 def reveal_bone(bone, select=True):
-	"""bone can be edit/pose/data bone. 
+	"""bone can be edit/pose/data bone.
 	This function should work regardless of selection or visibility states"""
 	if type(bone)==bpy.types.PoseBone:
 		bone = bone.bone
@@ -659,7 +659,7 @@ def reveal_bone(bone, select=True):
 	bone_layers = [i for i in range(32) if bone.layers[i]]
 	if not any([i in enabled_layers for i in bone_layers]):
 		armature.layers[bone_layers[0]] = True
-	
+
 	bone.hide = False
 
 	if select:

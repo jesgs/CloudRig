@@ -14,6 +14,7 @@ from rigify.utils.naming import DEF_PREFIX
 from rigify.utils.errors import MetarigError
 from rigify.utils.bones import new_bone
 from rigify.utils.mechanism import refresh_all_drivers
+from rigify.base_rig import BaseRig
 
 from ..rig_features.ui import redraw_viewport, is_cloud_metarig
 from ..rig_features.widgets import widgets as cloud_widgets
@@ -143,7 +144,7 @@ class Timer:
 		t = time.time()
 		print(string + "%.3f" % (t - self.last_time))
 		self.last_time = t
-	
+
 	def total(self, string="Total: "):
 		t = time.time()
 		print(string + "%.3f" %(t - self.start_time))
@@ -371,10 +372,10 @@ class CloudGenerator(Generator):
 	### Widget management
 	def ensure_widget_collection(self, context):
 		"""Find or create the collection where rig widgets should be stored."""
-		
+
 		# Rigify compatibility...
 		self.new_widget_table ={}
-		
+
 		widget_collection = self.params.cloudrig_parameters.widget_collection
 		if widget_collection:
 			return widget_collection
@@ -471,6 +472,22 @@ class CloudGenerator(Generator):
 
 		return test_action
 
+	def get_symmetry_rig(self, rig: BaseRig) -> BaseRig:
+		"""Find another rig in the generator with the opposite name for rig.base_bone."""
+		flipped_name = self.naming.flipped_name(rig.base_bone)
+		if flipped_name == rig.base_bone: return
+
+		for other_rig in self.rig_list:
+			if other_rig.base_bone == flipped_name:
+				return other_rig
+
+	def get_rig_children(rig: BaseRig):
+		children = []
+		for r in self.rig_list:
+			if r.rigify_parent == rig:
+				children.append(r)
+		return children
+
 	def create_test_animation(self):
 		"""Generate deformation test animation.
 
@@ -497,12 +514,6 @@ class CloudGenerator(Generator):
 		action = self.ensure_test_action()
 
 		rigs_anim_order = []
-		def get_rig_children(rig):
-			children = []
-			for r in self.rig_list:
-				if r.rigify_parent == rig:
-					children.append(r)
-			return children
 
 		def add_rig_hierarchy_to_animation_order(rig):
 			if hasattr(type(rig), 'has_test_animation') and type(rig).has_test_animation:
@@ -515,7 +526,7 @@ class CloudGenerator(Generator):
 
 		start_frame = 1
 		for rig in rigs_anim_order:
-			symm_rig = rig.find_symmetry_rig()
+			symm_rig = self.get_symmetry_rig(rig)
 			symm_new_start_frame = 1
 			new_start_frame = rig.add_test_animation(action, start_frame)
 			if symm_rig:
@@ -607,7 +618,7 @@ class CloudGenerator(Generator):
 			group_names: List[str]
 			,objects: List[Object]
 			) -> Dict[str, Object]:
-		"""Create a dictionary, mapping each vertex group name to the object 
+		"""Create a dictionary, mapping each vertex group name to the object
 		which has the vertex group with the most vertices in it.
 		This is expected to be pretty damn slow.
 		"""
@@ -623,7 +634,7 @@ class CloudGenerator(Generator):
 					group_name = group_lookup[g.group]
 					if g.weight > 0.1 and group_name in group_names:
 						vgroup_datas[group_name].append(v.index)
-			
+
 			for vg_name, vg_verts in vgroup_datas.items():
 				if (vg_name not in vgroup_map) or ( vgroup_map[vg_name][1] < len(vg_verts) ):
 					vgroup_map[vg_name] = (ob, len(vg_verts))
@@ -631,7 +642,7 @@ class CloudGenerator(Generator):
 		return {vg_name : tup[0] for vg_name, tup in vgroup_map.items()}
 
 	def auto_initialize_gizmos(self):
-		"""Enable and set up custom gizmos for those bones whose BoneInfo 
+		"""Enable and set up custom gizmos for those bones whose BoneInfo
 		contains the neccessary data.
 		This is not done on a per-bone basis due to performance.
 		"""

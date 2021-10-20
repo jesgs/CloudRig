@@ -231,7 +231,7 @@ class CloudBaseRig(
 		"""
 		if 'gizmo_interactions' not in self.obj.data:
 			self.obj.data['gizmo_interactions'] = {}
-		
+
 		gizmo_dict = self.obj.data['gizmo_interactions'].to_dict()
 		if operator not in gizmo_dict:
 			op_data = gizmo_dict[operator] = []
@@ -278,24 +278,6 @@ class CloudBaseRig(
 			,owner_bone = self.meta_base_bone.name
 			,**kwargs
 		)
-
-	# TODO these functions probably belong to the generator and should be called get_ instead of find_.
-	def find_symmetry_rig(self) -> BaseRig:
-		"""Find another rig in the generator with the opposite name for self.base_bone."""
-		flipped_name = self.naming.flipped_name(self.base_bone)
-		if flipped_name == self.base_bone: return
-
-		for rig in self.generator.rig_list:
-			if rig.base_bone == flipped_name:
-				return rig
-
-	def find_sibling_rigs(self) -> List[BaseRig]:
-		siblings = []
-		for rig in self.generator.rig_list:
-			if rig.rigify_parent == self.rigify_parent:
-				siblings.append(rig)
-
-		return siblings
 
 	##############################
 	# Parameters

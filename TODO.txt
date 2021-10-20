@@ -1,10 +1,3 @@
-cloud_copy
-	Create Deform should be a proper param instead of using blender's Deform checkbox.
-cloud_aim
-	Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
-		This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
-		Not to mention, the eye target distance should be determined by a gizmo! :(
-
 Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
@@ -33,6 +26,11 @@ Priority 2: New features
 
 	cloud_leg
 		Implement a gizmo to place the heel pivot, is way cooler.
+	cloud_aim
+		Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
+			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
+			Not to mention, the eye target distance should be determined by a gizmo! :(
+
 
 	New bone layer preview UI and management:
 		The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.

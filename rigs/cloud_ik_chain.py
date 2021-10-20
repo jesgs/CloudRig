@@ -43,7 +43,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.chain_count = self.bone_count-1
 		if self.params.CR_ik_chain_at_tip:
 			self.chain_count += 1
-		
+
 		self.ik_controls = []	# Used for creating Gizmo Interaction Data.
 
 	def create_bone_infos(self):

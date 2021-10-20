@@ -7,6 +7,7 @@ import json, webbrowser, time
 import struct, platform, io, urllib.parse, importlib
 
 from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
+from ..rig_features.object import get_object_hierarchy_recursive
 
 from rigify.utils.errors import MetarigError
 
@@ -32,16 +33,11 @@ Common to all 3 types:
 """
 
 """
-Possible warnings to implement:
-	- IK Chain is not flat - IK Chains should be flat along a plane for perfect IK/FK snapping and predictable bending direction. Instant Fix: Flatten Chain.
-Some things are expensive to test so maybe should be checked outside of generation:
+TODO: Symmetry warnings:
 	- Symmetrical action setup's transform curves are actually asymmetrical
-	- Action setup for curves whose value never changes
 	- Symmetrically named rig owners have asymetrical children in the chain
-	- Symmetrically named rigs have asymmetrical transformations
-	- Symmetrically named rigs have asymmmetrical constraints
+	- Symmetrically named and transformed rigs have asymmetrical constraints
 """
-
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.
@@ -139,16 +135,6 @@ def get_pretty_stack() -> str:
 
 	ret = f" {chr(8629)}\n".join(ret)
 	return ret
-
-# TODO: This should move to rig_features.object
-def get_object_hierarchy_recursive(obj: Object, all_objects=[]):
-	if obj not in all_objects:
-		all_objects.append(obj)
-
-	for c in obj.children:
-		get_object_hierarchy_recursive(c, all_objects)
-
-	return all_objects
 
 def get_datablock_type_icon(datablock):
 	"""Return the icon string representing a datablock type"""
@@ -251,7 +237,7 @@ class CloudLogManager:
 		if 'owner_bone' in kwargs:
 			owner_bone = kwargs['owner_bone']
 			message = f'"{owner_bone}": {message}'
-		
+
 		message += "\n" + popup_text
 
 		raise MetarigError(message)
@@ -398,7 +384,7 @@ class CloudLogManager:
 					)
 
 	def report_actions(self):
-		"""Test that action ranges are even numbers and the default pose frame 
+		"""Test that action ranges are even numbers and the default pose frame
 		has a keyframe and the keyframe has default transform values.
 		"""
 
@@ -457,7 +443,7 @@ class CloudLogManager:
 
 				if not has_default_key:
 					wrong_curves.append(fcurve)
-			
+
 			if single_point_curves:
 				self.log("Action with 1-key curves"
 					,note		 = action_slot.action.name
@@ -975,7 +961,7 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 		layout.use_property_split = True
 		layout.use_property_decorate = False
 		action_slot.draw_ui(layout, rig.data)
-	
+
 	def execute(self, context):
 		return {'FINISHED'}
 

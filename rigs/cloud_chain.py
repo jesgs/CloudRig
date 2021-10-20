@@ -25,7 +25,7 @@ class CloudChainRig(CloudBaseRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		self.def_bones_of_org = {org : [] for org in self.bones_org}
-		
+
 		# Determine if this is a cyclic chain rig (last bone touches first)
 		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001 and not self.params.CR_chain_tip_control
 		if self.is_cyclic:
