@@ -1,10 +1,5 @@
 cloud_copy
 	Create Deform should be a proper param instead of using blender's Deform checkbox.
-cloud_leg
-	Implement a gizmo to place the heel pivot, is way cooler.
-cloud_finger
-	Shouldn't draw finger IK/FK slider in the UI when they are driven by a bone.
-		Especially because they will be keyframed by the Keyframe All operator.
 cloud_aim
 	Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 		This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
@@ -35,6 +30,9 @@ Priority 2: New features
 
 	Perhaps some parameters could belong all the way up in CloudBaseRig.
 		- Create ORG bones (False by default, can force to True for rigs that need it)
+
+	cloud_leg
+		Implement a gizmo to place the heel pivot, is way cooler.
 
 	New bone layer preview UI and management:
 		The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.

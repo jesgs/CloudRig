@@ -915,6 +915,8 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
 		for subpanel, label_dicts in ui_data.items():
 			for label_name, row_dicts in label_dicts.items():
+				if label_name == 'NODRAW':
+					continue
 				if type(row_dicts) == str:
 					# TODO: For some reason, cloud_ik_finger seems to put a string "CLOUDRIG_PT_custom_ik" here, which is the sub-panel that has a sub-panel.
 					continue

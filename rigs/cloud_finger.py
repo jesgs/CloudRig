@@ -14,12 +14,13 @@ class CloudFingerRig(CloudIKChainRig):
 		super().initialize()
 
 	def add_ui_data(self, panel_name, row_name, info, label_name="", entry_name="", **custom_prop_dict):
+		if panel_name == 'FK/IK Switch' and self.params.CR_finger_use_bone_ik_switcher:
+			# Don't add FK/IK switch to the UI if it is being driven.
+			label_name = 'NODRAW'
+
 		panel_name = "Finger IK"
 		if label_name == "IK Pole Follow":
 			custom_prop_dict['default'] = 1.0
-		elif label_name == "FK/IK Switch" and self.params.CR_finger_use_bone_ik_switcher:
-			# Don't add IK/FK switch to UI if we're using a control as the switcher.
-			label_name = 'NODRAW'
 
 		super().add_ui_data(panel_name, row_name, info
 			,label_name = label_name
@@ -27,6 +28,12 @@ class CloudFingerRig(CloudIKChainRig):
 			,parent_id = 'CLOUDRIG_PT_custom_ik'
 			,**custom_prop_dict
 		)
+
+	def add_gizmo_interactions(self):
+		if self.params.CR_finger_use_bone_ik_switcher:
+			# Bone IK switcher is not compatible with auto-IK/FK switching...
+			return
+		super().add_gizmo_interaction()
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		# We don't want IK pole parent switching for finger rigs.
