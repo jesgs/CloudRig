@@ -277,6 +277,9 @@ def version_cloud_metarig(metarig):
 			if pb.rigify_type == 'cloud_copy':
 				pb.rigify_parameters.CR_copy_create_deform = pb.bone.use_deform
 				print('Use "CR_copy_create_deform" instead of "use_deform": ' + pb.name)
+			if pb.rigify_type == 'sprite_fright.feather':
+				pb.rigify_type = 'cloud_feather'
+				print('Changed type from "sprite_fright.feather" to "cloud_feather": ' + pb.name)
 
 @persistent
 def update_all_metarigs(dummy):

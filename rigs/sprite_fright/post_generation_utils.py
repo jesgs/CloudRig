@@ -69,6 +69,7 @@ def face_rig_tweaks(rig):
 			'operator' : 'pose.cloudrig_snap_bake',
 			'bones' : [f'CTR-LipCorner{suf}'],
 		}
+		if ui_data['prop_bone'] not in rig.pose.bones: continue
 		add_ui_data(rig, "Face", 'LipHeadJaw'
 			,info = ui_data
 			,label_name = "Mouth"
@@ -144,56 +145,50 @@ def sprite_post_gen_chores(context, charname="", shared_script=True):
 	set_custom_property_value(rig, 'PRP-Head', 'Teeth Follow Mouth', 1.0)
 	set_custom_property_value(rig, 'PRP-Head', 'Chin Resists Jaw', 0.5)
 
-	add_ui_data(rig, "Face", 'FaceSquash'
-		,info = {
-			'prop_bone' : 'PRP-Head',
-			'prop_id' : 'Face Squash',
-		}
-	)
-	add_ui_data(rig, "Face", 'BrowsDetach'
-		,info = {
-			'prop_bone' : 'MSTR-Eyebrow_Detached.L',
-			'prop_id' : 'detach',
-			'operator' : 'pose.cloudrig_snap_bake',
-			'bones' : ['Eyebrow1.L', 'Eyebrow3.L', 'Eyebrow4.L', 'Eyebrow5.L'],
-		}
-		,label_name = "Eyebrows"
-		,entry_name = 'Left Brow Detach'
-	)
-	add_ui_data(rig, "Face", 'BrowsDetach'
-		,info = {
-			'prop_bone' : 'MSTR-Eyebrow_Detached.R',
-			'prop_id' : 'detach',
-			'operator' : 'pose.cloudrig_snap_bake',
-			'bones' : ['Eyebrow1.R', 'Eyebrow3.R', 'Eyebrow4.R', 'Eyebrow5.R'],
-		}
-		,label_name = "Eyebrows"
-		,entry_name = 'Right Brow Detach'
-	)
-	add_ui_data(rig, "Face", 'Chin Resists Jaw'
-		,info = {
-			'prop_bone' : 'PRP-Head',
-			'prop_id' : 'Chin Resists Jaw',
-			'operator' : 'pose.cloudrig_snap_bake',
-			'bones' : ['Chin_Main'],
-		}
-		,label_name = "Mouth"
-	)
-	add_ui_data(rig, "Face", 'TeethFollowMouth'
-		,info = {
-			'prop_bone' : 'PRP-Head',
-			'prop_id' : 'Teeth Follow Mouth',
-		}
-		,label_name = "Mouth"
-	)
-	add_ui_data(rig, "Face", 'Teeth'
-		,info = {
-			'prop_bone' : 'PRP-Head',
-			'prop_id' : 'Teeth',
-			'texts' : '["Round", "Square", "Sharp"]'
-		}
-		,label_name = "Mouth"
-	)
+	if 'PRP-Head' in rig.pose.bones:
+		add_ui_data(rig, "Face", 'FaceSquash'
+			,info = {
+				'prop_bone' : 'PRP-Head',
+				'prop_id' : 'Face Squash',
+			}
+		)
+		add_ui_data(rig, "Face", 'Chin Resists Jaw'
+			,info = {
+				'prop_bone' : 'PRP-Head',
+				'prop_id' : 'Chin Resists Jaw',
+				'operator' : 'pose.cloudrig_snap_bake',
+				'bones' : ['Chin_Main'],
+			}
+			,label_name = "Mouth"
+		)
+		add_ui_data(rig, "Face", 'TeethFollowMouth'
+			,info = {
+				'prop_bone' : 'PRP-Head',
+				'prop_id' : 'Teeth Follow Mouth',
+			}
+			,label_name = "Mouth"
+		)
+		add_ui_data(rig, "Face", 'Teeth'
+			,info = {
+				'prop_bone' : 'PRP-Head',
+				'prop_id' : 'Teeth',
+				'texts' : '["Round", "Square", "Sharp"]'
+			}
+			,label_name = "Mouth"
+		)
+	for side, suf in sides.items():
+		bone_name = f'MSTR-Eyebrow_Detached{suf}'
+		if bone_name not in rig.pose.bones: continue
+		add_ui_data(rig, "Face", 'BrowsDetach'
+			,info = {
+				'prop_bone' : bone_name,
+				'prop_id' : 'detach',
+				'operator' : 'pose.cloudrig_snap_bake',
+				'bones' : [f'Eyebrow1{suf}', f'Eyebrow3{suf}', f'Eyebrow4{suf}', f'Eyebrow5{suf}'],
+			}
+			,label_name = "Eyebrows"
+			,entry_name = f'{side} Brow Detach'
+		)
 
 	# Populate face DEF layer
 	for pb in rig.pose.bones:

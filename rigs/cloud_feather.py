@@ -1,7 +1,7 @@
-from ..cloud_fk_chain import CloudFKChainRig
+from .cloud_fk_chain import CloudFKChainRig
 
-class SpriteFeatherRig(CloudFKChainRig):
-	"""Slightly modified version of cloud_fk_chain, for rigging the Sprite Fright bird's feathers."""
+class CloudFeatherRig(CloudFKChainRig):
+	"""Single-bone rig for a simple feather."""
 
 	forced_params = {
 		'CR_chain_segments' : 1
@@ -55,11 +55,11 @@ class SpriteFeatherRig(CloudFKChainRig):
 	##############################
 	# No parameters for this rig type.
 
-class Rig(SpriteFeatherRig):
+class Rig(CloudFeatherRig):
 	pass
 
 # For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
-from ...load_metarig import load_sample_by_file
+from ..load_metarig import load_sample_by_file
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

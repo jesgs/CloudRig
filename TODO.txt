@@ -42,8 +42,6 @@ Priority 2: New features
 		While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
 		Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
 Priority 3: Changes that will affect metarigs
-	Make cloud_aim an extension of cloud_copy if possible, instead of cloud_base.
-	Move Create Root parameter from cloud_aim/cloud_fk_chain/cloud_curve to cloud_base?
 	Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
 	Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
 		Eg. "STR-TIP=Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets.
@@ -64,16 +62,8 @@ Priority 4: Code quality
 			def_bone.str_bone
 			str_bone.tangent_helper
 			main_start.sub_bones
-		This makes the code confusing to read, the main sufferer of this being cloud_face_chain. (which we haven't even tested since the cloud_chain rewrite, oof)
+		This makes the code confusing to read, the main sufferer of this being cloud_face_chain, which should be re-written using the Rigify nodecluster API anyways...
 
-	I wonder if instead of having a UIBoneSet instance for every bone set of every rig element, we could just have an instance for every bone set of every rig class. They would still have to be initialized at some point other than registration though.
-		The small issue that's caused by the way things are right now is that after re-generation, the active bone set index of all bones is reset to 0, which usually lands on nothing.
-		Also, the bigger issue, is that when freshly assigning a rigify type to a bone, its bone sets are not customizable until next generation. (Although there is a UI message for this so it could be worse)
-
-		I wonder if it would be possible to define another CollectionProperty of PropertyGroups next to rigify_parameters, called rigify_bone_organizers or so (come up with the final name for "Bone Sets"), which could then:
-			- Exist on each bone
-			- Be initialized on Register
-				No they couldn't be...
 Priority 5: UI, UX & documentation
 	Sintel metarig should use anchors for the face intersections, to be less terrible.
 	Bunch of operators are probably missing from manual mapping.
@@ -138,24 +128,6 @@ Ideas:
 		Maybe after D9697.
 
 Better metarig design for Sprite Fright Face rigs:
-	Eyebrows - Implements a mix of cloud_copy and cloud_chain?
-		- Placed in the same manner as a cloud_chain, but instead of creating a string of bones that actually attach to each other with Stretch To constraints, they just live on their own.
-		- Features like Detachable eyebrows and DT helper bones are still done via relinking.
-		- Damped Track constraints should create a helper parent bone when relinking. (should possibly be the case for other rigs too)
 	Mouth
 		This would create the Jaw, the Master Mouth and the "Fake Jaw"(Master Mouth mechanism) that the lower lip can be parented to.
 		Tricky bit is that the Master Mouth usually wants to be in a different position than the Jaw.
-
-	Dynamic parenting??
-		Still not entirely sure if it can be useful, but feels like it would have to be.
-		The idea is to put drivers on Armature constraint bone influences, to dynamically change the parent of a bone based on the movement of some other bone.
-
-		The dynamic parenting shouldn't start until the control is moved by a certain amount, let's call this amount "TransMin"
-		And it should be fully parented over at TransMax
-		The maximum parenting amount: "Init"
-
-		Driver on new parent:
-		min(1, (var-TransMin) / (TransMax-TransMin)) * Init
-
-		Driver on original parent:
-		Init - max(0, min(1, (var-TransMin) / (TransMax-TransMin)) * Init)
