@@ -1,19 +1,17 @@
 # Typing
 import bpy
-from ..rig_features.bone import BoneInfo
-from typing import List, Dict
+from typing import Dict
 
 # CloudBaseRig parent classes
+from ..generation.troubleshooting import LoggerMixin
 from rigify.base_rig import BaseRig
 from ..rig_features.bone_set import BoneSetMixin
+from ..rig_features.bone_gizmos import BoneGizmoMixin
 from ..rig_features.ui import CloudUIMixin
 from ..rig_features.mechanism import CloudMechanismMixin
 from ..rig_features.object import CloudObjectUtilitiesMixin
 from ..rig_features.parent_switching import CloudParentSwitchMixin
-
-# The rest
-from bpy.props import BoolProperty, StringProperty, EnumProperty
-from mathutils import Vector
+from ..rig_features.custom_properties import CloudCustomPropertiesMixin
 
 class DEFAULT_LAYERS:
 	IK_MAIN = 0
@@ -34,12 +32,15 @@ class DEFAULT_LAYERS:
 	FACE_TWEAK = 20
 
 class CloudBaseRig(
+					LoggerMixin,
 					BaseRig,
 					CloudParentSwitchMixin,
 					CloudMechanismMixin,
 					CloudObjectUtilitiesMixin,
+					CloudCustomPropertiesMixin,
 					CloudUIMixin,
 					BoneSetMixin,
+					BoneGizmoMixin,
 	):
 	"""Base class that all CloudRig rigs should inherit from."""
 
@@ -49,7 +50,6 @@ class CloudBaseRig(
 	relinking_behaviour = ""
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
-	always_use_custom_props = False
 
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main."""
@@ -117,57 +117,6 @@ class CloudBaseRig(
 				meta_base_bone.rigify_parameters[param] = forced_value
 				setattr(params, param, forced_value)
 
-	@property
-	def properties_bone(self) -> BoneInfo:
-		"""Ensure that a Properties bone exists, and return it."""
-		# This is a @property so if it's never called, the properties bone is not created.
-		# https://en.wikipedia.org/wiki/Lazy_initialization
-
-		if self.params.CR_base_props_storage == 'CUSTOM':
-			prop_bone_name = self.params.CR_base_props_storage_bone
-			properties_bone = self.generator.find_bone_info(prop_bone_name)
-			if properties_bone:
-				return properties_bone
-
-			self.add_log("Custom Property bone not found"
-				,trouble_bone = prop_bone_name
-				,description  = f'Custom Property bone named "{prop_bone_name}" not found, falling back to default Properties bone. If it exists, make sure it generates before this rig.'
-			)
-			self.params.CR_base_props_storage = 'DEFAULT'
-
-		if self.params.CR_base_props_storage == 'DEFAULT':
-			bone_name = "Properties"
-			properties_bone = self.generator.find_bone_info(bone_name)
-			if not properties_bone:
-				properties_bone = self.generator.root_set.new(
-					name		  = bone_name
-					,head		  = Vector((0, self.scale*2, 0))
-					,tail		  = Vector((0, self.scale*2, self.scale*2))
-					,bbone_width  = 1/8
-					,custom_shape = self.ensure_widget("Cogwheel_Y")
-					,use_custom_shape_bone_size = True
-				)
-			return properties_bone
-		elif self.params.CR_base_props_storage == 'GENERATED':
-			# Create a bone at the base of the rig with a cogwheel shape.
-			properties_bone = self.generate_properties_bone()
-			# This block should only run once, so change the storage type to no longer be 'GENERATED'.
-			self.params.CR_base_props_storage = 'CUSTOM'
-			self.params.CR_base_props_storage_bone = properties_bone.name
-			return properties_bone
-
-	def generate_properties_bone(self) -> BoneInfo:
-		org_bone = self.bones_org[0]
-		properties_bone = self.bones_mch.new(
-			name		  = org_bone.name.replace("ORG", "PRP")
-			,source 	  = org_bone
-			,parent		  = org_bone
-			,custom_shape = self.ensure_widget("Cogwheel_Y")
-			,use_custom_shape_bone_size = True
-		)
-		properties_bone.layers = self.meta_base_bone.bone.layers[:]
-		return properties_bone
-
 	def prepare_bones(self):
 		"""Second Rigify stage, called by the generator.
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
@@ -217,90 +166,13 @@ class CloudBaseRig(
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent
 
-	def add_gizmo_interaction(
-			self
-			,bone_names: List[str]
-			,operator: str
-			,op_kwargs: Dict
-		):
-		"""Store some data for the BoneGizmos addon
-		https://developer.blender.org/diffusion/BSTS/browse/master/bone-gizmos/
-		Whenever any of this list of bone names are interacted with through that addon,
-		execute an operator with the given arguments.
-		Useful eg., for automatic IK/FK switching based on what bone is being touched.
-		"""
-		if 'gizmo_interactions' not in self.obj.data:
-			self.obj.data['gizmo_interactions'] = {}
-
-		gizmo_dict = self.obj.data['gizmo_interactions'].to_dict()
-		if operator not in gizmo_dict:
-			op_data = gizmo_dict[operator] = []
-
-		for key, value in op_kwargs.items():
-			if type(value) == list:
-				op_kwargs[key] = str(op_kwargs[key])
-
-		op_data = gizmo_dict[operator]
-		op_data.append((bone_names, op_kwargs))
-
-		self.obj.data['gizmo_interactions'] = gizmo_dict
-
-	def add_gizmo_interactions(self):
-		"""CloudRig types can override this to store information about what
-		operator should be executed when certain bones are interacted with.
-		"""
-		pass
-
-	def add_log(self
-			,description_short
-			,**kwargs
-		):
-		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log(description_short ,**kwargs)
-
-	def add_log_bug(self
-			,description_short
-			,**kwargs
-		):
-		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log_bug(description_short ,**kwargs)
-
-	def raise_error(self
-			,description_short = "Metarig Error"
-			,description = ""
-			,**kwargs
-		):
-		"""Overrides BaseRig from Rigify, to raise errors using the Rigify Log panel."""
-
-		self.generator.logger.log_error(
-			description_short
-			,description = description
-			,owner_bone = self.meta_base_bone.name
-			,**kwargs
-		)
-
 	##############################
 	# Parameters
 
 	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-
-		params.CR_base_props_storage = EnumProperty(
-			name		 = "Custom Property Storage"
-			,items		 = [
-				('DEFAULT', "Shared", 'Use a shared bone called "Properties"')
-				,('CUSTOM', "Picked", "Select an existing bone")
-				,('GENERATED', "Generated", 'Generate a bone specifically for this rig element, prefixed "PRP-"')
-			]
-			,description = "Where to store the custom properties needed for this rig element"
-		)
-		params.CR_base_props_storage_bone = StringProperty(
-			name		 = "Properties Bone"
-			,description = 'Store custom properties in the chosen bone. If empty, will fall back to a bone called "Properties"'
-			,default	 = ""
-		)
-
+		cls.add_custom_property_parameters(params)
 		cls.add_parent_switch_parameters(params)
 		cls.add_bone_set_parameters(params)
 
@@ -321,24 +193,3 @@ class CloudBaseRig(
 		"""
 		pass
 
-	@classmethod
-	def is_using_custom_props(cls, context, params):
-		"""Determine whether the custom property storage UI should be drawn or not."""
-		# TODO: Instead of an awkward "feature exists or not" flag like this,
-		# we should split these features off into a compositable class,
-		# eg. utils.custom_properties->CloudCustomPropertyMixin.
-		if cls.always_use_custom_props:
-			return True
-		if params.CR_base_parent_switching:
-			return True
-		return False
-
-	@classmethod
-	def draw_custom_prop_params(cls, layout, context, params):
-		metarig = context.object
-		rig = metarig.data.rigify_target_rig
-
-		cls.draw_prop(layout, params, "CR_base_props_storage", expand=True)
-		if params.CR_base_props_storage == 'CUSTOM':
-			cls.draw_prop_search(layout, params, 'CR_base_props_storage_bone', rig.pose, 'bones')
-		return layout

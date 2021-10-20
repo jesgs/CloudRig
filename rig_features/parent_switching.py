@@ -35,6 +35,9 @@ def draw_cloudrig_parents(layout, context, text=""):
 	)
 
 class CloudParentSwitchMixin:
+	parent_switch_behaviour = "The active parent will own the rig's root bone."
+	parent_switch_overwrites_root_parent = True
+
 	"""Class that provides parent switching parameters to CloudBaseRig."""
 	def apply_parent_switching(self, parent_slots, *,
 			child_bone=None, prop_bone=None, prop_name="",

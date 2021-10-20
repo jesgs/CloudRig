@@ -1,6 +1,6 @@
 from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-from bpy.props import StringProperty, IntProperty, BoolProperty
+from bpy.props import StringProperty, IntProperty
 
 import bpy, os, traceback
 import json, webbrowser, time
@@ -38,6 +38,41 @@ TODO: Symmetry warnings:
 	- Symmetrically named rig owners have asymetrical children in the chain
 	- Symmetrically named and transformed rigs have asymmetrical constraints
 """
+
+class LoggerMixin:
+	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
+	This class should come BEFORE BaseRig in the inheritance order.
+	"""
+
+	def add_log(self
+			,description_short
+			,**kwargs
+		):
+		kwargs['owner_bone'] = self.meta_base_bone.name
+		self.generator.logger.log(description_short ,**kwargs)
+
+	def add_log_bug(self
+			,description_short
+			,**kwargs
+		):
+		kwargs['owner_bone'] = self.meta_base_bone.name
+		self.generator.logger.log_bug(description_short ,**kwargs)
+
+	def raise_error(self
+			,description_short = "Metarig Error"
+			,description = ""
+			,**kwargs
+		):
+		"""Overrides BaseRig from Rigify, to raise errors using the Rigify Log panel.
+		This means that this class should come SOONER in the inheritance order.
+		"""
+
+		self.generator.logger.log_error(
+			description_short
+			,description = description
+			,owner_bone = self.meta_base_bone.name
+			,**kwargs
+		)
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.

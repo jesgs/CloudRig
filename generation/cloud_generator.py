@@ -601,7 +601,8 @@ class CloudGenerator(Generator):
 
 		# Parent parent-less bones to the root bone, if there is one.
 		if self.root_bone:
-			self.root_bone = self.root_bone.name
+			if not self.rigify_compatible:
+				self.root_bone = self.root_bone.name
 			self._Generator__parent_bones_to_root()
 
 	def invoke_configure_bones(self):
