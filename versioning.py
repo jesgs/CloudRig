@@ -280,6 +280,11 @@ def version_cloud_metarig(metarig):
 			if pb.rigify_type == 'sprite_fright.feather':
 				pb.rigify_type = 'cloud_feather'
 				print('Changed type from "sprite_fright.feather" to "cloud_feather": ' + pb.name)
+		rigify_layers = metarig.data.rigify_layers
+		for i, rigify_layer in enumerate(rigify_layers):
+			# Address an old bug where layers would be initialized with a spacebar as the name.
+			if rigify_layer.name == " ":
+				rigify_layer.name = ""
 
 @persistent
 def update_all_metarigs(dummy):
