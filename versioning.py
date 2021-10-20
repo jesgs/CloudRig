@@ -6,7 +6,7 @@ from .rig_features.object import set_enum_property_by_integer
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 14
+cloud_metarig_version = 15
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -54,8 +54,8 @@ def version_cloud_metarig(metarig):
 	# Beginning of metarig versioning: 2020-07-22.
 	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig_parameters.version} -> {cloud_metarig_version}")
 	if data.cloudrig_parameters.version < 1:
+		# Version 0 is the metarigs of CoffeeRun, and those won't be compatible with later CloudRig.
 		pass
-		# TODO: Assume that version 0.0 is the metarigs in CoffeeRun crowd.blend, and try to make them work with current CloudRig.
 	if data.cloudrig_parameters.version < 2:
 		print("2:")
 		dictionary = {
@@ -271,6 +271,12 @@ def version_cloud_metarig(metarig):
 						root_slot.bone = 'root'
 						pb.rigify_parameters.CR_base_parent_slots.move(len(pb.rigify_parameters.CR_base_parent_slots)-1, 0)
 						print("Added 'root' as a parent option for parent switching on: " + pb.name)
+	if data.cloudrig_parameters.version < 15:
+		print("15:")
+		for pb in metarig.pose.bones:
+			if pb.rigify_type == 'cloud_copy':
+				pb.rigify_parameters.CR_copy_create_deform = pb.bone.use_deform
+				print('Use "CR_copy_create_deform" instead of "use_deform": ' + pb.name)
 
 @persistent
 def update_all_metarigs(dummy):

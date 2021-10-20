@@ -31,8 +31,6 @@ class CloudCopyRig(CloudBaseRig):
 			if c.type in ('CHILD_OF', 'ARMATURE'):
 				self.do_parenting = False
 
-		self.create_deform_bone = self.meta_base_bone.bone.use_deform
-
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		bi = self.bones_org[0]
@@ -64,7 +62,7 @@ class CloudCopyRig(CloudBaseRig):
 			)
 			bi.rotation_mode = 'XYZ'
 
-		if self.create_deform_bone:
+		if self.params.CR_copy_create_deform:
 			# Make a copy with DEF- prefix, as our deform bone.
 			def_bone = self.make_def_bone(bi, self.bones_def)
 			def_bone.parent = bi
@@ -157,6 +155,11 @@ class CloudCopyRig(CloudBaseRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
+		params.CR_copy_create_deform = BoolProperty(
+			name		 = "Create Deform"
+			,description = 'Create a deforming child bone for this bone, prefixed with "DEF-"'
+			,default	 = False
+		)
 		params.CR_copy_custom_pivot = BoolProperty(
 			name		 = "Create Custom Pivot"
 			,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
@@ -174,9 +177,8 @@ class CloudCopyRig(CloudBaseRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		pb = context.active_pose_bone
-		layout.prop(pb.bone, 'use_deform', text="Create Deform Bone")
 		cls.draw_prop(layout, params, 'CR_copy_custom_pivot')
+		cls.draw_prop(layout, params, 'CR_copy_create_deform')
 
 	@classmethod
 	def draw_custom_prop_params(cls, layout, context, params):
