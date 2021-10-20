@@ -10,7 +10,8 @@ from datetime import datetime
 
 from rigify.generate import Generator, select_object
 from rigify import rig_ui_template
-from rigify.utils.naming import DEF_PREFIX
+from rigify.utils.layers import ORG_LAYER, MCH_LAYER, DEF_LAYER, ROOT_LAYER
+from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX, ROOT_NAME
 from rigify.utils.errors import MetarigError
 from rigify.utils.bones import new_bone
 from rigify.utils.mechanism import refresh_all_drivers
@@ -232,13 +233,33 @@ class CloudGenerator(Generator):
 					for bone_info in bone_set:
 						cloudrig_bones.append(bone_info.name)
 
-		bones = [b for b in self.obj.data.bones if b.name not in cloudrig_bones]
+		pbones = [pb for pb in self.obj.pose.bones if pb.name not in cloudrig_bones]
 
 		# Every bone that has a name starting with "DEF-" make deforming.  All the
 		# others make non-deforming.
-		for bone in bones:
+		for pbone in pbones:
+			bone = pbone.bone
 			name = bone.name
+			layers = None
+
 			bone.use_deform = name.startswith(DEF_PREFIX)
+
+			# Move all the original bones to their layer.
+			if name.startswith(ORG_PREFIX):
+				layers = ORG_LAYER
+			# Move all the bones with names starting with "MCH-" to their layer.
+			elif name.startswith(MCH_PREFIX):
+				layers = MCH_LAYER
+			# Move all the bones with names starting with "DEF-" to their layer.
+			elif name.startswith(DEF_PREFIX):
+				layers = DEF_LAYER
+
+			if layers is not None:
+				bone.layers = layers
+
+				# Remove custom shapes from non-control bones
+				pbone.custom_shape = None
+
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
 
 	def update_bone_set_ui_info(self):
@@ -580,7 +601,6 @@ class CloudGenerator(Generator):
 
 		# Parent parent-less bones to the root bone, if there is one.
 		if self.root_bone:
-			self.root_bone = self.root_bone.name
 			self._Generator__parent_bones_to_root()
 
 	def invoke_configure_bones(self):
@@ -766,6 +786,9 @@ class CloudGenerator(Generator):
 	def ensure_cloudrig_ui(self, metarig, rig):
 		"""Load and execute cloudrig.py rig UI script."""
 		if self.rigify_compatible:
+			# We need to have both cloudrig.py and rigify's rig_ui.py, so
+			# let rigify use the proper script field, and put cloudrig.py
+			# in a custom property.
 			if not 'cloudrig_ui' in metarig.data:
 				metarig.data['cloudrig_ui'] = ""
 			if not 'cloudrig_ui' in rig.data:
