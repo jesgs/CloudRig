@@ -54,6 +54,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 			# Create physics object.
 			cloth_ob = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
 			context.scene.collection.objects.link(cloth_ob)
+			cloth_ob.parent = self.obj
 		else:
 			cloth_ob.data = cloth_mesh
 
@@ -137,8 +138,6 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 	def make_physics_chain(self, phys_ob, from_chain):
 		# Make a chain of bones to control the physics object.
 		next_parent = from_chain[0].parent
-		if not next_parent:
-			next_parent = self.root_bone
 		for fk_ctrl in from_chain:
 			phys_ctrl = self.bone_sets['Physics Bones'].new(
 				name = self.phys_name(fk_ctrl)
