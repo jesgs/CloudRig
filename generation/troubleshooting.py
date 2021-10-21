@@ -1,6 +1,6 @@
 from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-from bpy.props import StringProperty, IntProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty
 
 import bpy, os, traceback
 import json, webbrowser, time
@@ -627,7 +627,8 @@ class CLOUDRIG_PT_log(Panel):
 			row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
 			row.enabled = False
 			row = main_row.row(align=True)
-			op = row.operator('ui.jump_to_target', text="", icon='LOOP_FORWARDS')
+			op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
+			op.use_target_rig = False
 			op.target_bone = log.owner_bone
 
 		if log.trouble_bone != "":
@@ -638,7 +639,7 @@ class CLOUDRIG_PT_log(Panel):
 			row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
 			row.enabled = False
 			row = main_row.row(align=True)
-			op = row.operator('ui.jump_to_target', text="", icon='LOOP_FORWARDS')
+			op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
 			op.use_target_rig = True
 			op.target_bone = log.trouble_bone
 
@@ -678,6 +679,49 @@ class CLOUDRIG_PT_stack_trace(Panel):
 		active_index = cloudrig.active_log_index
 		log = logs[active_index]
 		draw_label_with_linebreak(self.layout, log.pretty_stack, alert=True)
+
+class CLOUDRIG_OT_Jump_To_Bone(Operator):
+	"""Change context to make a bone visible and active in the metarig or generated rig."""
+
+	bl_idname = "ui.jump_to_target"
+	bl_label = "Jump to Target"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	use_target_rig: BoolProperty(
+		name		 = "Jump to Target Rig"
+		,description = "Toggle to the generated rig before focusing bone"
+		,default	 = False
+		)
+	target_bone: StringProperty(
+		name		 = "Target Bone"
+		,description = "Use a specific bone as the beginning of the chain, rather than the active bone"
+	)
+
+	def execute(self, context):
+		rig = context.object
+
+		if self.use_target_rig:
+			rig = rig.data.rigify_target_rig
+			bpy.ops.object.cloudrig_metarig_toggle()
+
+		bpy.ops.object.mode_set(mode='POSE')
+
+		bone = rig.data.bones.get(self.target_bone)
+		assert bone, f'Bone "{self.target_bone}" not in armature "{rig.name}".'
+
+		bpy.ops.pose.select_all(action='DESELECT')
+		bone.hide = False
+		bone.select = True
+		bone_is_visible = any([bone.layers[i] == rig.data.layers[i]==True for i in range(32)])
+		if not bone_is_visible:
+			for i, l in enumerate(bone.layers):
+				if l:
+					rig.data.layers[i] = True
+					break
+
+		rig.data.bones.active = bone
+
+		return { 'FINISHED' }
 
 ########################################
 ######### Quick-Fix Operators ##########
@@ -1000,6 +1044,7 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 	def execute(self, context):
 		return {'FINISHED'}
 
+
 def remove_active_log(metarig: Object):
 	cloudrig = metarig.data.cloudrig_parameters
 	logs = cloudrig.logs
@@ -1018,6 +1063,8 @@ registry = [
 	,CloudRigLogEntry
 	,CLOUDRIG_PT_log
 	,CLOUDRIG_PT_stack_trace
+
+	,CLOUDRIG_OT_Jump_To_Bone
 
 	,CLOUDRIG_OT_Change_Rotation_Mode
 	,CLOUDRIG_OT_Report_Bug

@@ -1,4 +1,7 @@
 Priority 1: Bugs
+	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
+	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
+
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
 
