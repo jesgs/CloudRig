@@ -2,7 +2,7 @@ from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
 from bpy.props import StringProperty, IntProperty, BoolProperty
 
-import bpy, os, traceback
+import bpy, os, traceback, sys
 import json, webbrowser, time
 import struct, platform, io, urllib.parse, importlib
 
@@ -148,17 +148,33 @@ def url_prefill_from_cloudrig(stack_trace=""):
 	)
 
 def get_pretty_stack() -> str:
-	ret = []
-	stack = traceback.extract_stack()
+	"""Make a pretty looking string out of the current execution stack,
+	or the exception stack if this is called from a stack which is handling an exception.
+	(Python is cool in that way - We can tell when this function is being called by
+	a stack which originated in a try/except block!)
+	"""
+	ret = ""
+
+	exc_type, exc_value, tb = sys.exc_info()
+	if exc_value:
+		# If the stack we're currently on is handling an exception, 
+		# use the stack of that exception instead of our stack
+		stack = traceback.extract_tb(exc_value.__traceback__)
+	else:
+		stack = traceback.extract_stack()
+
+	lines = []
 	after_generator = False
 	for i, frame in enumerate(stack):
 		if 'generator' in frame.filename:
 			after_generator = True
 		if not after_generator:
 			continue
-		if frame.name in ("log", "log_error", "log_bug"):
+		if frame.name in ("log", "add_log", "log_error", "log_bug"):
 			break
 
+		# Shorten the file name; All files are in blender's "scripts" folder, so
+		# that part of the path contains no useful information, just clutter.
 		short_file = frame.filename
 		if 'scripts' in short_file:
 			short_file = frame.filename.split("scripts")[1]
@@ -166,9 +182,12 @@ def get_pretty_stack() -> str:
 		if i>0 and frame.filename == stack[i-1].filename:
 			short_file = " " * int(len(frame.filename)/2)
 
-		ret.append(f"{short_file} -> {frame.name} -> line {frame.lineno}")
+		lines.append(f"{short_file} -> {frame.name} -> line {frame.lineno}")
 
-	ret = f" {chr(8629)}\n".join(ret)
+	ret += f" {chr(8629)}\n".join(lines)
+	ret += f":\n          {frame.line}\n"
+	if exc_value:
+		ret += f"{exc_type.__name__}: {exc_value}"
 	return ret
 
 def get_datablock_type_icon(datablock):
@@ -229,23 +248,26 @@ class CloudLogManager:
 	def log_bug(self
 			,description_short: str
 			,*
-			,description = "Execution error occurred."
+			,description: str
 			,icon = 'URL'
 			,operator = 'wm.cloudrig_report_bug'
 			,**kwargs
 		):
-		"""This should be used over asserts, especially when something small goes wrong that shouldn't halt generation."""
+		"""This should be used over asserts, especially when something small goes 
+		wrong that shouldn't halt generation.
+		"""
 		if 'op_kwargs' not in kwargs:
 			kwargs['op_kwargs'] = {}
 			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
 		self.clear()
 		return self.log(
 			"(Fatal) " + description_short
-			,description = description + "\nThis might be a bug in CloudRig."
-			,icon = icon
-			,operator = operator
+			,description = description
+			,icon		 = icon
+			,operator	 = operator
 			,**kwargs
 		)
+		 
 
 	def log_error(self
 			,description_short: str
@@ -665,6 +687,7 @@ class CLOUDRIG_PT_stack_trace(Panel):
 	bl_region_type = 'WINDOW'
 	bl_parent_id = 'CLOUDRIG_PT_log'
 	bl_label = "Python Stack Trace"
+	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod
 	def poll(cls, context):

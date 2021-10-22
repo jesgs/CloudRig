@@ -1,3 +1,7 @@
+Bug report button doesn't fill in the correct stack trace (We will need to split up get_pretty_stack_trace() into two functions, so it can do string->string prettyfying.)
+Add a warning when the metarig was posed before generating.
+It would be nice if metarigs could be in orchatedral, 
+
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.

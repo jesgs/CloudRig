@@ -136,7 +136,6 @@ def load_script(file_path="", file_name="cloudrig.py", datablock=None) -> bpy.ty
 
 	return text
 
-
 class Timer:
 	def __init__(self):
 		self.start_time = self.last_time = time.time()
@@ -1063,8 +1062,6 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 		return {'FINISHED'}
 
 	def report_exception(self, exception):
-		# find the module name where the error happened
-		# hint, this is the metarig type!
 		_exc_type, _exc_value, exc_traceback = sys.exc_info()
 		fn = traceback.extract_tb(exc_traceback)[-1][0]
 		fn = os.path.basename(fn)
@@ -1074,7 +1071,7 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 		self.report({'ERROR'}, '\n'.join(message))
 
 	def generate_rig(self, context, metarig):
-		""" Generates a rig from a metarig.	"""
+		"""Generates a rig from a metarig."""
 		meta_visible = EnsureVisible(metarig)
 		target_rig = metarig.data.rigify_target_rig
 		rig_visible = None
@@ -1084,26 +1081,37 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 		generator = CloudGenerator(context, metarig)
 		try:
 			generator.generate(context)
-		except Exception as e:
+		except Exception as exc:
 			# Cleanup if something goes wrong
 			generator.restore_rig_states()
 			generator.obj.name = "FAILED-" + generator.obj.name
 			generator.obj.name = generator.obj.name.replace("NEW-", "")
 			metarig['failed_rig'] = generator.obj
-			if isinstance(e, MetarigError):
+			if isinstance(exc, MetarigError):
 				traceback.print_exc()
 				self.report_exception(e)
 				return
 
+			entry = generator.logger.log_bug(
+				"Execution Failed!"
+				,description = f'Execution failed unexpectedly. This should never happen!'
+				,icon		 = 'URL'
+				,operator	 = 'wm.cloudrig_report_bug'
+				,note		 = str(exc)
+			)
+
 			# Continue the exception
-			raise e
+			raise exc
 
 		meta_visible.restore()
 		if rig_visible:
 			rig_visible.restore()
 		return target_rig
 
-	def restore_state(self, context, metarig, mode, active_bone_name="", selected_bone_names="", hide_bones={}, layers=[]):
+	def restore_state(self, context, metarig, mode, 
+			active_bone_name="", selected_bone_names="", 
+			hide_bones={}, layers=[]
+		):
 		"""Restore state for convenience."""
 		metarig.hide_set(True)
 		rig = metarig.data.rigify_target_rig
@@ -1130,7 +1138,6 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 			bone = rig.data.bones.get(bone_name)
 			if not bone: continue
 			bone.hide = hide_bones[bone_name]
-
 
 registry = [
 	CloudRigProperties,
