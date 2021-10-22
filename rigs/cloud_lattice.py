@@ -119,7 +119,7 @@ class CloudLatticeRig(CloudBaseRig):
 			if isinstance(rig, type(self)):
 				if rig == self:
 					return
-				if rig.params.CR_lattice_lattice == self.params.CR_lattice_lattice:
+				if rig.params.CR_lattice_lattice == self.params.CR_lattice_lattice and self.params.CR_lattice_lattice != None:
 					self.raise_error("Lattice shared by rigs",
 						operator = 'object.cloudrig_clear_pointer_param',
 						op_kwargs = {'bone_name': self.meta_base_bone.name, 'param_name': 'CR_lattice_lattice'}
