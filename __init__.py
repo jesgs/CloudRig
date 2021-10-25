@@ -82,6 +82,7 @@ def register():
 	register_unregister_modules(modules, True)
 
 def unregister():
+	return	# TODO: Currently, Rigify seems to somehow unregister our stuff before we do...
 	register_unregister_modules(modules, False)
 
 	del feature_sets.CloudRig
