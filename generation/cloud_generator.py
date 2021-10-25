@@ -410,7 +410,6 @@ class CloudGenerator(Generator):
 			widget_collection = bpy.data.collections.new(coll_name)
 			context.scene.collection.children.link(widget_collection)
 			self.params.cloudrig_parameters.widget_collection = widget_collection
-			self.metarig.data.cloudrig_parameters.widget_collection = widget_collection
 
 		widget_collection.hide_viewport = True
 		widget_collection.hide_render = True

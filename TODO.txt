@@ -1,6 +1,5 @@
-Bug report button doesn't fill in the correct stack trace (We will need to split up get_pretty_stack_trace() into two functions, so it can do string->string prettyfying.)
 Add a warning when the metarig was posed before generating.
-It would be nice if metarigs could be in orchatedral, 
+Use data.rigify_finalize_script instead of data.cloudrig_parameters.custom_script, and see if we can add versioning.
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
@@ -17,6 +16,7 @@ Priority 1: Bugs
 			Enter edit mode on the duplicate
 			Begin generating rigs (Rigs can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
+	It would be nice if metarigs could be in orchatedral, after we implement gizmos for setting widget sizes.
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
 		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
@@ -37,7 +37,6 @@ Priority 2: New features
 		Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 			Not to mention, the eye target distance should be determined by a gizmo! :(
-
 
 	New bone layer preview UI and management:
 		The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.
