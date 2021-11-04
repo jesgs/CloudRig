@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import bpy
 from bpy.props import (EnumProperty, IntProperty, BoolProperty,
 					StringProperty, FloatProperty, PointerProperty)
@@ -8,12 +8,6 @@ from . import naming
 from ..rig_features.ui import is_cloud_metarig, is_advanced_mode
 from ..utils.ui_list import draw_ui_list
 
-def find_slot_by_action(metarig_data, action):
-	"""Find the CloudRigActionSlot in the rig which targets this action."""
-	cloudrig = metarig_data.cloudrig_parameters
-	for i, slot in enumerate(cloudrig.action_slots):
-		if slot.action==action:
-			return slot, i
 
 def poll_trigger_action(self, action):
 	"""Whether an action can be used as a corrective action's trigger or not."""
@@ -321,6 +315,8 @@ class ActionSlot(PropertyGroup):
 		metarig_data = self.id_data
 		trigger_a_slot, i = find_slot_by_action(metarig_data, self.trigger_action_a)
 		trigger_b_slot, i = find_slot_by_action(metarig_data, self.trigger_action_b)
+		if not trigger_a_slot or not trigger_b_slot: 
+			return
 		trigger_a_con_name = trigger_a_slot.get_constraint_name(pb.name)
 		trigger_b_con_name = trigger_b_slot.get_constraint_name(pb.name)
 		if type(trigger_a_con_name) == list:
@@ -520,6 +516,14 @@ class ActionSlot(PropertyGroup):
 		default_frame = self.get_default_frame()
 		mod = default_frame % 1
 		return (mod == 0 or 1-mod < 0.01)
+
+def find_slot_by_action(metarig_data, action) -> Tuple[ActionSlot, int]:
+	"""Find the CloudRigActionSlot in the rig which targets this action."""
+	cloudrig = metarig_data.cloudrig_parameters
+	for i, slot in enumerate(cloudrig.action_slots):
+		if slot.action==action:
+			return slot, i
+	return None, -1
 
 class CLOUDRIG_PT_actions(Panel):
 	bl_space_type = 'PROPERTIES'
