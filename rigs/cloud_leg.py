@@ -130,10 +130,12 @@ class CloudLegRig(CloudLimbRig):
 		return ik_master
 
 	def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
-		"""Override."""
-		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
+		"""Overrides cloud_limb."""
 		# Toe is not relevant for IK/FK switching.
-		ui_data['map_off'] = ui_data['map_off'][:-1]
+		fk_chain = fk_chain[:-1]
+
+		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
+
 		if self.params.CR_ik_chain_world_aligned and self.params.CR_leg_use_foot_roll:
 			# In the case of world aligned IK control + footroll, we must
 			# snap the FK foot to a specialized helper bone rather than any IK bone.
@@ -142,13 +144,15 @@ class CloudLegRig(CloudLimbRig):
 		return ui_data
 
 	def make_fk_chain(self, org_chain) -> List[BoneInfo]:
-		"""Override."""
+		"""Overrides cloud_fk_chain."""
 		fk_chain = super().make_fk_chain(org_chain)
 		self.fk_toe = org_chain[3].fk_bone
 		return fk_chain
 
 	def world_align_last_fk(self):
-		"""Override. Make SECOND TO last FK bone world-aligned."""
+		"""Overrides cloud_ik_chain.
+		Make SECOND TO last FK bone world-aligned.
+		"""
 		self.make_world_aligned_control(self.bones_org[-2].fk_bone)
 
 	##############################

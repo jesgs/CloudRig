@@ -1088,7 +1088,7 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 			metarig['failed_rig'] = generator.obj
 			if isinstance(exc, MetarigError):
 				traceback.print_exc()
-				self.report_exception(e)
+				self.report_exception(exc)
 				return
 
 			entry = generator.logger.log_bug(
