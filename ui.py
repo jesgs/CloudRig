@@ -58,6 +58,7 @@ def draw_cloudrig_rigify_generate(self, context):
 	layout.prop(metarig.data, "rigify_target_rig")
 	layout.prop(cloudrig, "widget_collection")
 
+from rigify.operators.copy_mirror_parameters import draw_copy_mirror_ops
 def draw_rigify_header(self, context):
 	layout = self.layout
 
@@ -66,6 +67,9 @@ def draw_rigify_header(self, context):
 
 	layout.operator('pose.cloudrig_generate', text="Generate")
 	layout.operator('object.cloudrig_metarig_toggle')
+	
+	if context.mode == 'POSE':
+		draw_copy_mirror_ops(self, context)
 
 	if context.mode == 'EDIT_ARMATURE':
 		layout.separator()
