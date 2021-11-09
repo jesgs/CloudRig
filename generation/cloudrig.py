@@ -285,7 +285,7 @@ def set_transform_from_matrix(obj, bone_name, target_matrix, *, space='POSE', ig
 def get_custom_property_value(rig, bone_name, prop_id):
 	prop_bone = rig.pose.bones.get(bone_name)
 	assert prop_bone, f"Bone snapping failed: Properties bone {bone_name} not found.)"
-	assert prop_id in prop_bone, f"Bone snapping failed: Bone {bone_name} has no property {bone_id}"
+	assert prop_id in prop_bone, f"Bone snapping failed: Bone {bone_name} has no property {prop_id}"
 	return prop_bone[prop_id]
 
 def set_custom_property_value(obj, bone_name, prop, value, *, keyflags=None):
@@ -520,9 +520,14 @@ def get_bones(rig, names):
 	""" Return a list of pose bones from a string of bone names in json format. """
 	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
-class Params_SnapBase:
-	"""A non-Operator class must be used to properly inherit operator parameters as annotations.
-	Not sure why."""
+
+class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
+	""" Extend Rigify's keyframe baking with the ability to select the frame range
+		as part of the operator, make baking optional,
+		and add the ability to affect more than a single bone.
+	"""
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
 	do_bake: BoolProperty(
 		name="Bake Keyframes in Range",
 		options={'SKIP_SAVE'},
@@ -544,13 +549,6 @@ class Params_SnapBase:
 
 	select_bones: BoolProperty(name="Select Affected Bones", default=True)
 	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
-
-class CloudRigSnapBakeMixin(Params_SnapBase, RigifyBakeKeyframesMixin):
-	""" Extend Rigify's keyframe baking with the ability to select the frame range
-		as part of the operator, make baking optional,
-		and add the ability to affect more than a single bone.
-	"""
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	@classmethod
 	def poll(cls, context):
@@ -583,7 +581,7 @@ class CloudRigSnapBakeMixin(Params_SnapBase, RigifyBakeKeyframesMixin):
 			for b in bones:
 				b.bone.select = True
 
-class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Operator):
+class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
 	""" Toggle a custom property while ensuring that some bones stay in place. """
 	bl_idname = "pose.cloudrig_snap_bake"
 	bl_label = "Snap And Bake Bones"
@@ -675,7 +673,24 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, Params_SnapBase, bpy.types.Op
 			)
 		context.view_layer.update()
 
-class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase):
+	def apply_frame_state(self, context, rig, save_state: Tuple[List[Matrix], List[Vector]]):
+		"""Set the transform matrices of the bones to their saved state."""
+		matrices, scales = save_state
+		for i, bone_name in enumerate(self.bone_names):
+			old_matrix = matrices[i]
+			set_transform_from_matrix(
+				rig, bone_name, old_matrix, # space='WORLD'
+				keyflags=self.keyflags,
+				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
+			)
+			pb = rig.pose.bones.get(bone_name)
+			# For some reason, reading and writing the matrix can result in
+			# significant changes to local scale, even when nothing is scaled.
+			# So, just keep a copy of the local scale and restore it after applying the matrix.
+			pb.scale = scales[i]
+			context.evaluated_depsgraph_get().update()	# This matters!!!!
+
+class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
 	"""Extend CLOUDRIG_OT_snap_bake with a parent selector."""
 	bl_idname = "pose.cloudrig_switch_parent_bake"
 	bl_label = "Apply Switch Parent To Keyframes"
@@ -712,16 +727,7 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase):
 			)
 		context.view_layer.update()
 
-class Params_SnapMapped:
-	"""A non-Operator class must be used to properly inherit operator parameters as annotations.
-	Not sure why."""
-	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
-	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
-
-	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
-	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
-
-class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Params_SnapMapped):
+class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
 	""" Extend CLOUDRIG_OT_snap_bake with the ability to snap a list of bones
 		to another (equal length) list of bones.
 	"""
@@ -730,6 +736,12 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Param
 	bl_label = "Snap And Bake Bones (Mapped)"
 	bl_description = "Toggle a custom property and snap some bones to some other bones"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
+	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
+
+	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
+	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
 
 	def init_invoke(self, context):
 		rig = context.pose_object or context.active_object
@@ -766,27 +778,8 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake, Params_SnapBase, Param
 			self.bake_add_bone_frames(bone_names)
 		return None
 
-	def apply_frame_state(self, context, rig, save_state: Tuple[List[Matrix], List[Vector]]):
-		"""Set the transform matrices of the map_from bones to the map_to bones"""
-		matrices, scales = save_state
-		for i, bone_name in enumerate(self.bone_names):
-			old_matrix = matrices[i]
-			set_transform_from_matrix(
-				rig, bone_name, old_matrix, # space='WORLD'
-				keyflags=self.keyflags,
-				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-			)
-			pb = rig.pose.bones.get(bone_name)
-			# For some reason, reading and writing the matrix can result in
-			# significant changes to local scale, even when nothing is scaled.
-			# So, just keep a copy of the local scale and restore it after applying the matrix.
-			pb.scale = scales[i]
-			context.evaluated_depsgraph_get().update()	# This matters!!!!
-
-class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake, Params_SnapBase, Params_SnapMapped):
-	""" This should extend CLOUDRIG_OT_snap_mapped_bake with special treatment
-		for the IK elbow.
-	"""
+class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
+	"""Extends CLOUDRIG_OT_snap_mapped_bake with special treatment for the IK elbow."""
 
 	bl_idname = "pose.cloudrig_toggle_ikfk_bake"
 	bl_label = "Toggle And Bake IK/FK"
