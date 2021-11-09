@@ -20,10 +20,10 @@ def draw_version_check(layout: UILayout) -> bool:
 	blender_version = version_to_float(bpy.app.version)
 	cloudrig_module = getattr(feature_sets, __package__.replace("rigify.feature_sets.", ""))
 	lowest_compatible_version = version_to_float(cloudrig_module.rigify_info['blender'])
-	is_compatible = blender_version <= lowest_compatible_version
+	is_compatible = blender_version >= lowest_compatible_version
 
 	if not is_compatible:
-		draw_label_with_linebreak(layout, f"This version of CloudRig requires at least Blender {blender_version}.", alert=True)
+		draw_label_with_linebreak(layout, f"This version of CloudRig requires at least Blender {lowest_compatible_version}.", alert=True)
 		draw_label_with_linebreak(layout, f"You can download an older version of CloudRig from the Releases page on CloudRig's GitLab:", alert=True)
 		op = layout.operator('wm.url_open', text="Releases", icon='URL')
 		op.url = "https://gitlab.com/blender/CloudRig/-/releases"
