@@ -2,6 +2,11 @@ from bpy.props import BoolProperty
 from .cloud_ik_chain import CloudIKChainRig
 from math import radians
 
+"""TODO:
+- Figure out if it would be possible to avoid snapping when IK stretching is engaged. 
+- When IK Stretch is disabled, there's still an uneven stretching.
+"""
+
 class CloudFingerRig(CloudIKChainRig):
 	"""An IK chain tailored for fingers. The finger bending axis should be +X."""
 
@@ -10,17 +15,17 @@ class CloudFingerRig(CloudIKChainRig):
 		'CR_chain_tip_control' : True,
 	}
 
+	required_chain_length = 3
+
 	def initialize(self):
 		super().initialize()
 
-	def add_ui_data(self, panel_name, row_name, info, label_name="", entry_name="", **custom_prop_dict):
-		if panel_name == 'FK/IK Switch' and self.params.CR_finger_use_bone_ik_switcher:
-			# Don't add FK/IK switch to the UI if it is being driven.
-			label_name = 'NODRAW'
+		self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 
+	def add_ui_data(self, panel_name, row_name, info, label_name="", entry_name="", **custom_prop_dict):
 		panel_name = "Finger IK"
 		if label_name == "IK Pole Follow":
-			custom_prop_dict['default'] = 1.0
+			return
 
 		super().add_ui_data(panel_name, row_name, info
 			,label_name = label_name
@@ -28,12 +33,6 @@ class CloudFingerRig(CloudIKChainRig):
 			,parent_id = 'CLOUDRIG_PT_custom_ik'
 			,**custom_prop_dict
 		)
-
-	def add_gizmo_interactions(self):
-		if self.params.CR_finger_use_bone_ik_switcher:
-			# Bone IK switcher is not compatible with auto-IK/FK switching...
-			return
-		super().add_gizmo_interaction()
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		# We don't want IK pole parent switching for finger rigs.
@@ -47,98 +46,86 @@ class CloudFingerRig(CloudIKChainRig):
 		super().create_bone_infos()
 		last_org = self.bones_org[-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
-		if self.params.CR_finger_use_bone_ik_switcher:
-			self.create_ik_switcher_control(last_org)
-
 		if self.params.CR_ik_chain_use_pole:
 			# Parent the pole target to the stretch bone
 			self.pole_ctrl.parent = self.stretch_bone
+		
+		self.create_two_bone_ik_chain(self.bones_org[:-1], self.ik_mstr, self.pole_ctrl)
+	
+	def create_two_bone_ik_chain(self, org_chain, ik_mstr, pole_target, ik_pole_direction=0):
+		"""We create an additional IK chain (besides what's inherited from cloud_ik_chain)
+		for the 2-length IK behaviour.
+		"""
 
-		self.create_x_rotation_setup(last_org)
+		# We need a bone that copies only the location of the IK master.
+		last_org = org_chain[-1]
 
-	def create_ik_switcher_control(self, last_org):
-		"""Create a control to drive IK/FK switching."""
-		toggle_ctrl = self.bone_sets['IK Controls'].new(
-			name		  = self.base_bone.replace("ORG-", "IK-SW-")
-			,source		  = self.bone_sets['FK Controls'][-1]
-			,custom_shape = self.ensure_widget('Arrow_Two-way')
-			,parent		  = self.bone_sets['FK Controls'][-1]
+		ik2_chain = []
+		for i, org_bone in enumerate(org_chain):
+			ik2_bone = self.bone_sets['IK Mechanism'].new(
+				name		 = org_bone.name.replace("ORG", "IK2")
+				,source		 = org_bone
+				,parent		 = ik2_chain[-1] if ik2_chain else self.root_bone
+			)
+			ik2_chain.append(ik2_bone)
+			# Change ORG bone copy transform targets from IK to IK2.
+			org_bone.constraint_infos[-1].subtarget = ik2_bone
+
+		ik2_dt = self.bone_sets['IK Mechanism'].new(
+			name		 = org_bone.name.replace("ORG", "IK2-DT")
+			,source		 = self.ik_mstr
+			,parent		 = self.ik_mstr
 		)
-		self.lock_transforms(toggle_ctrl, loc=[True, False, True])
-		toggle_ctrl.add_constraint('LIMIT_LOCATION'
-			,use_min_y = True
-			,use_max_y = True
-			,max_y = toggle_ctrl.length
+		dt_con = ik2_dt.add_constraint('DAMPED_TRACK'
+			,subtarget	= self.ik_chain[-2]
+			,track_axis	= 'TRACK_NEGATIVE_Y'
 		)
 
-		# Make it display nicely
-		toggle_ctrl.custom_shape_translation = self.pole_vector.normalized() * -toggle_ctrl.length / 2
-		toggle_ctrl.custom_shape_rotation_euler.y -= radians(90)
-		toggle_dsp = self.create_dsp_bone(toggle_ctrl)
-		toggle_dsp.parent = last_org
-		toggle_dsp.add_constraint('COPY_LOCATION', subtarget=toggle_ctrl.name)
-
-		# Hook up the IK/FK switch property to the control with a driver
-		self.properties_bone.drivers.append({
-			'prop' : f'["{self.ikfk_name}"]',
-			'expression' : f'var / {toggle_ctrl.length}',
-			'variables' : {
-				'var' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : toggle_ctrl.name
-						,'transform_type' : 'LOC_Y'
-						,'transform_space' : 'LOCAL_SPACE'
-					}]
-				}
-			}
-		})
-
-	def create_x_rotation_setup(self, last_org):
-		"""Create a helper for X rotation."""
-		x_rot_helper = self.bone_sets['IK Mechanism'].new(
-			name		= last_org.name.replace("ORG", "XROT")
-			,source		= self.ik_mstr
-			,parent		= last_org
+		ik2_rot = self.bone_sets['IK Mechanism'].new(
+			name		 = org_bone.name.replace("ORG", "IK2-ROT")
+			,source		 = self.ik_mstr
+			,parent		 = ik2_dt
 		)
-		copyrot = x_rot_helper.add_constraint('COPY_ROTATION'
-			,name = "Copy X Rotation"
-			,subtarget = self.ik_mstr.name
-			,use_xyz = [True, False, False]
+		copyrot_con = ik2_rot.add_constraint('COPY_ROTATION'
+			,subtarget = self.ik_mstr
 		)
-		ik_driver = {
+
+		last_ik2 = ik2_chain[-1]
+		# Add the IK constraint to the previous bone, targetting this one.
+		last_ik2.parent.add_constraint('IK',
+			pole_target		= self.obj,
+			pole_subtarget	= pole_target.name,
+			pole_angle		= self.pole_angle,
+			subtarget		= last_ik2,
+			chain_count		= 2
+		)
+		last_ik2.parent = ik2_rot
+
+		# Add UI data for switching between the two IK types
+		info = {
+			"prop_bone"			: self.properties_bone,
+			"prop_id" 			: self.full_length_ik_name,
+		}
+		self.add_ui_data("IK", self.limb_name, info, label_name="Full IK", entry_name=self.limb_ui_name, default=1.0)
+
+		# Add driver to switch between the two IK types
+		driver = {
 			'prop' : 'influence'
+			,'expression' : "var"
 			,'variables' : [
-				(self.properties_bone.name, self.ikfk_name)
+				(self.properties_bone.name, self.full_length_ik_name)
 			]
 		}
-		copyrot.drivers.append(ik_driver.copy())
+		copyrot_con.drivers.append(driver.copy())
+		dt_con.drivers.append(driver)
 
-		# Counter-rotate 2nd to last main STR bone
-		counter_rot = self.main_str_bones[-2].add_constraint('COPY_ROTATION' # TODO: Why is this on index -3 instead of -2??
-			,name = "Counter X Rotation"
-			,subtarget = self.ik_mstr.name
-			,use_xyz = [True, False, False]
-			,invert_xyz = [True, False, False]
-			,influence = 0.5
-		)
-		counter_rot.drivers.append(ik_driver.copy())
-
-		# Parent stretch helper of last main STR bone (including tip control if it exists)
-		for main_str_bone in self.main_str_bones[-(1+self.params.CR_ik_chain_at_tip):]:
-			main_str_bone.stretch_helper.parent = x_rot_helper
+		return ik2_chain
 
 	##############################
 	# Parameters
 
 	@classmethod
 	def add_parameters(cls, params):
-		params.CR_finger_use_bone_ik_switcher = BoolProperty(
-			 name		 = "Create IK Switch Control"
-			,description = "Instead of controlling IK/FK switching of this finger from the rig UI, create a control that can be moved to switch to IK mode"
-			,default	 = True
-		)
-
 		super().add_parameters(params)
 
 
@@ -149,7 +136,6 @@ class CloudFingerRig(CloudIKChainRig):
 		layout.separator()
 		cls.draw_control_label(layout, "Finger")
 
-		cls.draw_prop(layout, params, 'CR_finger_use_bone_ik_switcher')
 class Rig(CloudFingerRig):
 	pass
 
