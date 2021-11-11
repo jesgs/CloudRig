@@ -739,6 +739,8 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 	bl_region_type = 'WINDOW'
 	bl_options = {'3D', 'PERSISTENT'}
 
+	rig_types = ('cloud_ik_chain', 'cloud_limb', 'cloud_leg', 'cloud_finger')
+
 	@classmethod
 	def poll(cls, context):
 		if not is_active_cloud_metarig(context):
@@ -751,7 +753,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		if len(chain) < 2:
 			return False
 		valid_ob = ob and ob.type == 'ARMATURE' and ob.mode != 'OBJECT'
-		valid_pb = active_pb.rigify_type in ('cloud_ik_chain', 'cloud_limb', 'cloud_leg') and active_pb.rigify_parameters.CR_ik_chain_use_pole
+		valid_pb = active_pb.rigify_type in cls.rig_types and active_pb.rigify_parameters.CR_ik_chain_use_pole
 		return valid_ob and valid_pb
 
 	@staticmethod

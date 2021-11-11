@@ -1,3 +1,5 @@
+from typing import List
+from ..rig_features.bone import BoneInfo
 from bpy.props import BoolProperty
 from .cloud_ik_chain import CloudIKChainRig
 from math import radians
@@ -13,6 +15,9 @@ class CloudFingerRig(CloudIKChainRig):
 	forced_params = {
 		'CR_ik_chain_at_tip' : True,
 		'CR_chain_tip_control' : True,
+		'CR_fk_chain_root' : True,
+		'CR_fk_chain_double_first' : False,
+
 	}
 
 	required_chain_length = 3
@@ -23,6 +28,9 @@ class CloudFingerRig(CloudIKChainRig):
 		self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 
 	def add_ui_data(self, panel_name, row_name, info, label_name="", entry_name="", **custom_prop_dict):
+		if panel_name == "FK/IK Switch":
+			custom_prop_dict['default'] = 0.0
+
 		panel_name = "Finger IK"
 		if label_name == "IK Pole Follow":
 			return
@@ -46,13 +54,21 @@ class CloudFingerRig(CloudIKChainRig):
 		super().create_bone_infos()
 		last_org = self.bones_org[-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
+		self.ik_mstr.parent = self.root_bone
+
 		if self.params.CR_ik_chain_use_pole:
 			# Parent the pole target to the stretch bone
 			self.pole_ctrl.parent = self.stretch_bone
 		
-		self.create_two_bone_ik_chain(self.bones_org[:-1], self.ik_mstr, self.pole_ctrl)
+		self.create_two_bone_ik_chain(self.bones_org[:-1], self.ik_chain, self.ik_mstr, self.pole_ctrl)
 	
-	def create_two_bone_ik_chain(self, org_chain, ik_mstr, pole_target, ik_pole_direction=0):
+	def create_two_bone_ik_chain(self, 
+			org_chain: List[BoneInfo]
+			,ik_chain: List[BoneInfo]
+			,ik_mstr: BoneInfo
+			,pole_target: BoneInfo
+			,ik_pole_direction = 0
+		) -> List[BoneInfo]:
 		"""We create an additional IK chain (besides what's inherited from cloud_ik_chain)
 		for the 2-length IK behaviour.
 		"""
@@ -77,7 +93,7 @@ class CloudFingerRig(CloudIKChainRig):
 			,parent		 = self.ik_mstr
 		)
 		dt_con = ik2_dt.add_constraint('DAMPED_TRACK'
-			,subtarget	= self.ik_chain[-2]
+			,subtarget	= ik_chain[-2]
 			,track_axis	= 'TRACK_NEGATIVE_Y'
 		)
 
@@ -120,21 +136,6 @@ class CloudFingerRig(CloudIKChainRig):
 		dt_con.drivers.append(driver)
 
 		return ik2_chain
-
-	##############################
-	# Parameters
-
-	@classmethod
-	def add_parameters(cls, params):
-		super().add_parameters(params)
-
-
-	@classmethod
-	def draw_control_params(cls, layout, context, params):
-		super().draw_control_params(layout, context, params)
-
-		layout.separator()
-		cls.draw_control_label(layout, "Finger")
 
 class Rig(CloudFingerRig):
 	pass
