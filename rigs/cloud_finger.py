@@ -4,11 +4,6 @@ from bpy.props import BoolProperty
 from .cloud_ik_chain import CloudIKChainRig
 from math import radians
 
-"""TODO:
-- Figure out if it would be possible to avoid snapping when IK stretching is engaged. 
-- When IK Stretch is disabled, there's still an uneven stretching.
-"""
-
 class CloudFingerRig(CloudIKChainRig):
 	"""An IK chain tailored for fingers. The finger bending axis should be +X."""
 
@@ -17,7 +12,6 @@ class CloudFingerRig(CloudIKChainRig):
 		'CR_chain_tip_control' : True,
 		'CR_fk_chain_root' : True,
 		'CR_fk_chain_double_first' : False,
-
 	}
 
 	required_chain_length = 3
@@ -90,7 +84,7 @@ class CloudFingerRig(CloudIKChainRig):
 		ik2_dt = self.bone_sets['IK Mechanism'].new(
 			name		 = org_bone.name.replace("ORG", "IK2-DT")
 			,source		 = self.ik_mstr
-			,parent		 = self.ik_mstr
+			,parent		 = self.ik_tgt_bone
 		)
 		dt_con = ik2_dt.add_constraint('DAMPED_TRACK'
 			,subtarget	= ik_chain[-2]
