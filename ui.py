@@ -58,7 +58,6 @@ def draw_cloudrig_rigify_generate(self, context):
 	layout.prop(metarig.data, "rigify_target_rig")
 	layout.prop(cloudrig, "widget_collection")
 
-from rigify.operators.copy_mirror_parameters import draw_copy_mirror_ops
 def draw_rigify_header(self, context):
 	layout = self.layout
 
@@ -67,9 +66,14 @@ def draw_rigify_header(self, context):
 
 	layout.operator('pose.cloudrig_generate', text="Generate")
 	layout.operator('object.cloudrig_metarig_toggle')
-	
+
 	if context.mode == 'POSE':
-		draw_copy_mirror_ops(self, context)
+		try:
+			from rigify.operators.copy_mirror_parameters import draw_copy_mirror_ops
+			draw_copy_mirror_ops(self, context)
+		except ImportError:
+			# TODO: Remove this try/except once we're in Blender 3.1
+			pass
 
 	if context.mode == 'EDIT_ARMATURE':
 		layout.separator()
