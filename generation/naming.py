@@ -4,7 +4,7 @@ import re
 SEPARATORS = "-_."
 PREFIX_SEPARATOR = "-"
 SUFFIX_SEPARATOR = "."
-SIDE_INDICATORS = ["L", "Left", "left", "LEFT", "R", "Right", "right", "RIGHT"]
+SIDE_INDICATORS = ["L", "l", "Left", "left", "LEFT", "R", "r", "Right", "right", "RIGHT"]
 
 class CloudNameManager:
 	"""Name management utilities with the convenience of being able to pass in
@@ -19,6 +19,12 @@ class CloudNameManager:
 
 	def has_trailing_zeroes(self, thing):
 		return has_trailing_zeroes(thing)
+
+	def has_wrong_separator(self, thing):
+		return has_wrong_separator(thing)
+
+	def side_is_suffix(self, thing):
+		return side_is_suffix(thing)
 
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
 		return make_name(prefixes, base, suffixes)
@@ -60,7 +66,6 @@ def get_name(thing) -> str:
 	else:
 		return str(thing)
 
-
 def make_name(prefixes=[], base="", suffixes=[]) -> str:
 	"""Make a name from a list of prefixes, a base, and a list of suffixes."""
 	name = ""
@@ -83,15 +88,40 @@ def slice_name(name):
 		suffix = name.split("_")[-1]
 		if suffix in SIDE_INDICATORS:
 			suffixes = [suffix]
-			base = base.replace(suffix, "")
+			base = base.replace("_"+suffix, "")
 	return [prefixes, base, suffixes]
 
-
-def has_trailing_zeroes(thing):
+def has_trailing_zeroes(thing) -> bool:
 	name = get_name(thing)
 	regex = "\.[0-9]*$"
 	search = re.search(regex, name)
 	return search != None
+
+def has_wrong_separator(thing) -> bool:
+	name = get_name(thing)
+
+	for separator in ".-_":
+		if separator not in name:
+			continue
+		split = name.split(separator)
+		for s in split:
+			if s in SIDE_INDICATORS:
+				if separator != ".":
+					return True
+	return False
+
+def side_is_suffix(thing) -> bool:
+	"""Return True when the name of a thing either does not contain a side indicator,
+	or the side indicator is at the end of the name."""
+	name = get_name(thing)
+
+	for separator in ".-_":
+		if separator not in name:
+			continue
+		split = name.split(separator)
+		if split[-1] in SIDE_INDICATORS:
+			return True
+	return False
 
 def strip_trailing_numbers(name) -> Tuple[str, str]:
 	if "." in name:
@@ -105,7 +135,6 @@ def strip_trailing_numbers(name) -> Tuple[str, str]:
 			return before_last_period, "."+after_last_period
 
 	return name, ""
-
 
 def combine_bone_names(names) -> str:
 	"""Combine multiple bone names into one by:
@@ -169,7 +198,6 @@ def combine_bone_names(names) -> str:
 	combined_name = make_name(prefixes, base_start+"+".join(bases), suffixes)
 
 	return combined_name
-
 
 def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[str]]:
 	left = 				['left',  'Left',  'LEFT', 	'l', 	'L',]
