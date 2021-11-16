@@ -1,5 +1,3 @@
-cloud_shoulder: When it has bendy segments and an arm is connected, enabling Sharp Sections doesn't make it sharp.
-	Probably a mistake in connect_parent_chain_rig sending the wrong rig's param to some function.
 Generate Action is broken.
 
 Add a warning when the metarig was posed before generating.

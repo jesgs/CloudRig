@@ -708,6 +708,12 @@ class CloudChainRig(CloudBaseRig):
 			,next_str_bone = self.str_chain[0]
 			,preserve_volume = parent_rig.params.CR_chain_preserve_volume
 		)
+		
+		# Set bbone ease according to parent rig's Sharp Sections param.
+		if parent_rig.params.CR_chain_sharp:
+			parent_rig.bone_sets['Deform Bones'][-1].bbone_easeout = 0
+			self.bone_sets['Deform Bones'][0].bbone_easein = 0
+
 		last_str.next = self.str_chain[0]
 		last_str.custom_shape = self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
 		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
