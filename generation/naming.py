@@ -1,7 +1,7 @@
 from typing import Tuple, List, Optional
 import re
 
-SEPARATORS = "-_."
+SEPARATORS = "._-"
 PREFIX_SEPARATOR = "-"
 SUFFIX_SEPARATOR = "."
 SIDE_INDICATORS = ["L", "l", "Left", "left", "LEFT", "R", "r", "Right", "right", "RIGHT"]
@@ -115,13 +115,15 @@ def side_is_suffix(thing) -> bool:
 	or the side indicator is at the end of the name."""
 	name = get_name(thing)
 
-	for separator in ".-_":
+	for separator in SEPARATORS:
 		if separator not in name:
 			continue
 		split = name.split(separator)
-		if split[-1] in SIDE_INDICATORS:
-			return True
-	return False
+		for s in split:
+			if s in SIDE_INDICATORS and s != split[-1]:
+				return False
+
+	return True
 
 def strip_trailing_numbers(name) -> Tuple[str, str]:
 	if "." in name:
