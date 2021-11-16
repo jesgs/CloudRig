@@ -500,7 +500,7 @@ class CloudGenerator(Generator):
 			if other_rig.base_bone == flipped_name:
 				return other_rig
 
-	def get_rig_children(rig: BaseRig):
+	def get_rig_children(self, rig: BaseRig):
 		children = []
 		for r in self.rig_list:
 			if r.rigify_parent == rig:
@@ -537,7 +537,7 @@ class CloudGenerator(Generator):
 		def add_rig_hierarchy_to_animation_order(rig):
 			if hasattr(type(rig), 'has_test_animation') and type(rig).has_test_animation:
 				rigs_anim_order.append(rig)
-			for child_rig in get_rig_children(rig):
+			for child_rig in self.get_rig_children(rig):
 				add_rig_hierarchy_to_animation_order(child_rig)
 
 		for root_rig in self.root_rigs:

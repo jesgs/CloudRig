@@ -1,5 +1,3 @@
-Generate Action is broken.
-
 Add a warning when the metarig was posed before generating.
 Use data.rigify_finalize_script instead of data.cloudrig_parameters.custom_script, and see if we can add versioning.
 
