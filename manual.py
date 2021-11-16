@@ -32,7 +32,6 @@ def cloudrig_manual_map():
 	url_map.extend([
 		# Generator Parameters
 		("bpy.ops.pose.cloudrig_generate", "Generator-Parameters"),
-		(generator_params_pref+"custom_script", "Generator-Parameters#custom-script"),
 		(generator_params_pref+"create_root", "Generator-Parameters#create-root"),
 		(generator_params_pref+"double_root", "Generator-Parameters#double-root"),
 

@@ -148,10 +148,10 @@ class CLOUDRIG_PT_generator_advanced(Panel):
 		if not cloudrig.advanced_mode:
 			return
 
-		layout.prop(obj.data, "rigify_rig_ui")
-		layout.prop(cloudrig, "custom_script")
+		layout.prop(obj.data, 'rigify_rig_ui')
+		layout.prop(obj.data, 'rigify_finalize_script')
 		if check_addon(context, 'bone_gizmos'):
-			layout.prop(cloudrig, "auto_setup_gizmos")
+			layout.prop(cloudrig, 'auto_setup_gizmos')
 
 
 @classmethod

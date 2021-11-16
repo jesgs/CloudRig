@@ -6,7 +6,7 @@ from .rig_features.object import set_enum_property_by_integer
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 15
+cloud_metarig_version = 16
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -285,6 +285,12 @@ def version_cloud_metarig(metarig):
 			# Address an old bug where layers would be initialized with a spacebar as the name.
 			if rigify_layer.name == " ":
 				rigify_layer.name = ""
+	if data.cloudrig_parameters.version < 16:
+		print("16:")
+		if hasattr(metarig.data.cloudrig_parameters, 'custom_script'):
+			metarig.data.rigify_finalize_script = metarig.data.cloudrig_parameters['custom_script']
+			del metarig.data.cloudrig_parameters['custom_script']
+			print("Set finalize script to Rigify property instead of the old CloudRig property.")
 
 @persistent
 def update_all_metarigs(dummy):

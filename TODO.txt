@@ -1,5 +1,4 @@
 Add a warning when the metarig was posed before generating.
-Use data.rigify_finalize_script instead of data.cloudrig_parameters.custom_script, and see if we can add versioning.
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.

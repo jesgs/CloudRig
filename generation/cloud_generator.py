@@ -768,7 +768,7 @@ class CloudGenerator(Generator):
 
 	def execute_custom_script(self):
 		"""Execute a text datablock to be executed after rig generation."""
-		script = self.params.cloudrig_parameters.custom_script
+		script = self.params.rigify_finalize_script
 		if not script:
 			return
 		try:
