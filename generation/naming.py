@@ -4,6 +4,7 @@ import re
 SEPARATORS = "-_."
 PREFIX_SEPARATOR = "-"
 SUFFIX_SEPARATOR = "."
+SIDE_INDICATORS = ["L", "Left", "left", "LEFT", "R", "Right", "right", "RIGHT"]
 
 class CloudNameManager:
 	"""Name management utilities with the convenience of being able to pass in
@@ -77,6 +78,12 @@ def slice_name(name):
 	prefixes = name.split(PREFIX_SEPARATOR)[:-1]
 	suffixes = name.split(SUFFIX_SEPARATOR)[1:]
 	base = name.split(PREFIX_SEPARATOR)[-1].split(SUFFIX_SEPARATOR)[0]
+	if not suffixes and "_" in base:
+		# Support underscore as a suffix separator, only for side indicators.
+		suffix = name.split("_")[-1]
+		if suffix in SIDE_INDICATORS:
+			suffixes = [suffix]
+			base = base.replace(suffix, "")
 	return [prefixes, base, suffixes]
 
 

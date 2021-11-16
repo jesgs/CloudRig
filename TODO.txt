@@ -2,9 +2,6 @@ cloud_shoulder: When it has bendy segments and an arm is connected, enabling Sha
 	Probably a mistake in connect_parent_chain_rig sending the wrong rig's param to some function.
 Generate Action is broken.
 
-Apparently the IK->FK snapping is totally broken right now.
-
-Implement new cloud_finger based on Desktop/ik_finger_experiments.
 Add a warning when the metarig was posed before generating.
 Use data.rigify_finalize_script instead of data.cloudrig_parameters.custom_script, and see if we can add versioning.
 
