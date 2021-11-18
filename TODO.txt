@@ -1,4 +1,5 @@
 Add a warning when the metarig was posed before generating.
+Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.

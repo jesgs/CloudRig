@@ -9,12 +9,15 @@ from .cloud_chain_anchor import CloudChainAnchorRig
 
 MERGE_THRESHOLD = 0.000001
 
+def has_tangent_helpers(rig) -> bool:
+	return rig.params.CR_chain_smooth_spline and rig.params.CR_chain_bbone_density > 0
+
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo):
 	for str_bone in cluster:
 		rig = str_bone.owner_rig
 		str_bone.parent = intersection
 		str_bone.intersection_ctrl = intersection
-		if rig.params.CR_chain_smooth_spline:
+		if has_tangent_helpers(rig):
 			str_bone.tangent_helper.constraint_infos[-2].subtarget = intersection.name
 			str_bone.tangent_helper.constraint_infos[-2].name = "Copy STR-I Transforms"
 			str_bone.tangent_helper.parent = intersection
@@ -62,7 +65,7 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 
 	for b in cluster:
 		b.flatten()
-		if hasattr(b, 'tangent_helper'):
+		if has_tangent_helpers(b.owner_rig):
 			b.tangent_helper.flatten()
 		if b.owner_rig.params.CR_chain_smooth_spline:
 			flipped_name = rig.naming.flipped_name(b)
@@ -71,7 +74,11 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 			opposite_bone = b.owner_rig.generator.find_bone_info(flipped_name)
 			if not opposite_bone:
 				continue
-			if opposite_bone.owner_rig.params.CR_chain_smooth_spline:
+			if has_tangent_helpers(opposite_bone.owner_rig):
+				# Make the Damped Track constraint of the opposite TAN- bone aim 
+				# at this STR bone's Damped Track target.
+				# This gets us a smooth curve across the two chains.
+				# (This is also what would happen if it was just one longer smooth chain)
 				b.tangent_helper.constraint_infos[1].subtarget = opposite_bone.tangent_helper.constraint_infos[0].subtarget
 
 class CloudFaceChainRig(CloudChainRig):
@@ -101,7 +108,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# their tangent_helper to be parented to the intersection control's parent.
 		for intersection in self.intersection_bones:
 			for str_bone in intersection.str_bones:
-				if str_bone.owner_rig.params.CR_chain_smooth_spline:
+				if has_tangent_helpers(str_bone.owner_rig):
 					str_bone.tangent_helper.parent = intersection.parent
 
 		# HACK: We can't ensure that the last chain rig to be executed is a cloud_eyelid,
