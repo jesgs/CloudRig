@@ -131,9 +131,9 @@ def add_ui_data(obj
 		ui_data[panel_name][label_name][row_name][entry_name] = {}
 
 	prop_bone = info['prop_bone']
-	if type(prop_bone) != str:
+	if type(prop_bone) == BoneInfo:
 		info['prop_bone'] = prop_bone.name
-	else:
+	elif type(prop_bone) == str:
 		prop_bone = obj.pose.bones.get(prop_bone)
 		assert prop_bone, "Properties bone doesn't exist: " + info['prop_bone']
 
@@ -146,14 +146,18 @@ def add_ui_data(obj
 	prop_id = info['prop_id']
 	if 'default' not in custom_prop_dict:
 		custom_prop_dict['default'] = 0.0
+	if 'min' not in custom_prop_dict:
+		custom_prop_dict['min'] = 0
+	if 'max' not in custom_prop_dict:
+		custom_prop_dict['max'] = 1
+
 	if type(prop_bone) == BoneInfo:
 		prop_bone.custom_props[prop_id] = custom_prop_dict
 	else:
+		if prop_id in prop_bone:
+			# If the property already exists, don't update it.
+			return
 		prop_bone[prop_id] = custom_prop_dict['default']
-		if 'min' not in custom_prop_dict:
-			custom_prop_dict['min'] = 0
-		if 'max' not in custom_prop_dict:
-			custom_prop_dict['max'] = 1
 		prop_bone.id_properties_ui(prop_id).update(**custom_prop_dict)
 		prop_bone.property_overridable_library_set(f'["{prop_id}"]', True)
 
