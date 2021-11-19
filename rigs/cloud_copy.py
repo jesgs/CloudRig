@@ -83,6 +83,7 @@ class CloudCopyRig(CloudBaseRig):
 				,select = meta_bg.colors.select[:]
 				,defaults = self.defaults
 			)
+			new_set.color_set = meta_bg.color_set
 			self.generator.bone_sets.append(new_set)
 			bi.bone_group = bg_name
 
