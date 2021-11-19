@@ -35,9 +35,6 @@ def driver_from_real(driver: bpy.types.Driver) -> dict:
 				target_info['id_type'] = t.id_type
 				target_info['data_path'] = t.data_path
 			else:
-				# HACK: drivers targetting existing bones (ie. cloud_copy/tweak bones) need ORG- stripped...
-				if t.bone_target.startswith("ORG-"):
-					t.bone_target = t.bone_target[4:]
 				target_info['bone_target'] = t.bone_target
 				target_info['transform_type'] = t.transform_type
 				target_info['transform_space'] = t.transform_space
@@ -216,9 +213,9 @@ class BoneSet(LinkedList):
 					driver_info['prop'] = path_from_last
 					if 'constraints' in fcurve.data_path:
 						con_name = data_path.split('constraints["')[-1].split('"]')[0]
-						constraint = bone_info.get_constraint(con_name)
-						if constraint:
-							constraint.drivers.append(driver_info)
+						constraint_info = bone_info.get_constraint(con_name)
+						if constraint_info:
+							constraint_info.drivers.append(driver_info)
 					else:
 						bone_info.drivers.append(driver_info)
 					rig.animation_data.drivers.remove(fcurve)
