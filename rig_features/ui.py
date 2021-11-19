@@ -102,6 +102,15 @@ def add_ui_data(obj
 		,**custom_prop_dict		# Properties of the custom property to be created. TODO: In cloud_copy we want to call this function without re-creating the custom property.
 	):
 	"""Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI."""
+	# TODO: This function is a bit convoluted because it accepts both BoneInfo and a str as the target bone,
+	# and uses a PoseBone when it gets an str.
+	# This is handy so that UI data and properties can be added both before and after generation,
+	# but it might make more sense to make this two separate functions; Maybe one should be in
+	# the BoneInfo class, and the other in rig_features/custom_properties.
+
+	# Also, it not only adds UI data but also creates the custom property.
+	# Although this is handy because when adding UI data we also always want to create a property,
+	# it would still make sense to split into two functions and just always call both of them.
 
 	assert ('prop_bone' in info) and ('prop_id' in info), f'Expected an info dict with at least "prop_bone" and "prop_id" keys. Instead got: {info}'
 
@@ -152,6 +161,8 @@ def add_ui_data(obj
 		custom_prop_dict['max'] = 1
 
 	if type(prop_bone) == BoneInfo:
+		if 'overridable' not in custom_prop_dict:
+			custom_prop_dict['overridable'] = True
 		prop_bone.custom_props[prop_id] = custom_prop_dict
 	else:
 		if prop_id in prop_bone:
