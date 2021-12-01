@@ -660,8 +660,9 @@ class ConstraintInfo(dict):
 		""" Create a constraint based on this ConstraintInfo on a given pose bone. """
 		con_type = self.type
 		con_info = self.__dict__.copy()
-		for key in ['type', 'bone_info', 'drivers', 'is_from_real']:
-			del con_info[key]
+		for key in ['type', 'bone_info', 'drivers', 'is_from_real', 'is_override_data']:
+			if key in con_info:
+				del con_info[key]
 
 		subtargets = []
 		if 'subtarget' in con_info:
