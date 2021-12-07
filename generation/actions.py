@@ -280,8 +280,10 @@ class ActionSlot(PropertyGroup):
 		c.mix_mode = 'BEFORE_SPLIT'
 		if c.subtarget != self.subtarget:
 			# Flip min/max in some cases.
-			if self.transform_channel in ['ROTATION_Z', 'LOCATION_X']:
+			if self.transform_channel in ['LOCATION_X']:
 				c.min, c.max = c.max, c.min
+			if self.transform_channel in ['ROTATION_Z', 'ROTATION_Y']:
+				c.min, c.max = -c.min, -c.max
 
 	def create_driver(self, rig: Object, c: Constraint, data_path: str, subtarget: str):
 		exists = rig.animation_data.drivers.find(data_path)
