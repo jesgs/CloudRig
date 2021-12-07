@@ -35,8 +35,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		if self.params.CR_fk_chain_root:
 			self.root_bone = self.make_root_bone()
 
-		fk_chain = self.make_fk_chain(self.bones_org)
-		self.attach_org_to_fk(self.bones_org, fk_chain)
+		self.fk_chain = self.make_fk_chain(self.bones_org)
+		self.attach_org_to_fk(self.bones_org, self.fk_chain)
 
 		if self.root_bone == self.bones_org[0]:
 			self.root_bone = self.bone_sets['FK Controls'][0]
@@ -92,18 +92,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 		hng_child = None	# For keeping track of which bone will need to be parented to the Hinge helper bone.
 		for i, org_bone in enumerate(org_chain):
-			fk_name = org_bone.name.replace("ORG", "FK")
-			fk_bone = self.bone_sets['FK Controls'].new(
-				name						= fk_name
-				,source						= org_bone
-				,custom_shape 				= self.ensure_widget("Circle_Spiked_2")
-				,parent						= org_bone.parent
-				,inherit_scale				= self.params.CR_fk_chain_inherit_scale
-				,custom_shape_along_length	= self.params.CR_fk_chain_display_center / 2
-				,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
-				,gizmo_operator				= 'transform.rotate'
-			)
-			org_bone.fk_bone = fk_bone
+			fk_bone = self.make_fk_bone(org_bone)
 			if i == 0:
 				hng_child = fk_bone
 				if self.params.CR_fk_chain_double_first:
@@ -112,9 +101,6 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 					fk_parent_bone.custom_shape = fk_bone.custom_shape
 					fk_parent_bone.custom_shape_along_length = self.params.CR_fk_chain_display_center / 2
 					hng_child = fk_parent_bone
-			if i > 0:
-				# Parent FK bone to previous FK bone.
-				fk_bone.parent = org_chain[i-1].fk_bone
 
 		# Create Hinge helper
 		if self.params.CR_fk_chain_hinge:
@@ -130,6 +116,26 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			)
 
 		return self.bone_sets['FK Controls']
+
+	def make_fk_bone(self, org_bone) -> BoneInfo:
+		fk_name = org_bone.name.replace("ORG", "FK")
+		fk_bone = self.bone_sets['FK Controls'].new(
+			name						= fk_name
+			,source						= org_bone
+			,custom_shape 				= self.ensure_widget("Circle_Spiked_2")
+			,inherit_scale				= self.params.CR_fk_chain_inherit_scale
+			,custom_shape_along_length	= self.params.CR_fk_chain_display_center / 2
+			,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
+			,gizmo_operator				= 'transform.rotate'
+		)
+		org_bone.fk_bone = fk_bone
+		# Parent FK bone to previous FK bone.
+		if org_bone.prev:
+			fk_bone.parent = org_bone.prev.fk_bone
+		else:
+			# Parent first FK to the root.
+			fk_bone.parent = org_bone.parent
+		return fk_bone
 
 	def make_hinge_setup(self, bone, category, *,
 		prop_bone, prop_name, default_value=0.0,
