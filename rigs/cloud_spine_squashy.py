@@ -178,10 +178,17 @@ class CloudSquashySpineRig(CloudFKChainRig):
 			]
 		)
 
-		# Create a parent helper for the 2nd to last STR bone which will do some counter-rotating for us.
+		# Create a parent helper for the 2nd to last STR bone for counter-rotation.
 		str_bone = self.main_str_bones[-2]
-		parent_helper = self.create_parent_bone(str_bone, bone_set=self.bone_sets['Spine Mechanism'])
-		
+		copy_rot_helper = self.create_parent_bone(str_bone, bone_set=self.bone_sets['Spine Mechanism'])
+		con_rot_counter = copy_rot_helper.add_constraint('COPY_ROTATION'
+			,subtarget = self.mstr_chest
+			,use_xyz = [True, False, True]
+			,invert_xyz = [True, False, True]
+			,influence = 0.5
+		)
+
+		parent_helper = self.create_parent_bone(copy_rot_helper, bone_set=self.bone_sets['Spine Mechanism'])
 		# Parent 2nd to last STR to Torso when Squash is enabled
 		arm_con2 = parent_helper.add_constraint('ARMATURE'
 			,targets = [
@@ -205,12 +212,6 @@ class CloudSquashySpineRig(CloudFKChainRig):
 				,'variables' : [(self.properties_bone.name, self.squashy_name)]
 			})
 
-		con_rot_counter = parent_helper.add_constraint('COPY_ROTATION'
-			,subtarget = self.mstr_chest
-			,use_xyz = [True, False, True]
-			,invert_xyz = [True, False, True]
-			,influence = 0.5
-		)
 		con_trans_fwd = str_bone.add_constraint('TRANSFORM'
 			,name = "Transform (Bend Fwd)"
 			,subtarget		= self.mstr_chest
