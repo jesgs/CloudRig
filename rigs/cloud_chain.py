@@ -128,7 +128,7 @@ class CloudChainRig(CloudBaseRig):
 		One for each ORG bone, plus optionally one more at the end of the chain."""
 		main_str_bones = []
 		if self.params.CR_chain_tip_control:
-			# Temporarily create an extra ORG BoneInfo.
+			# Temporarily create an extra ORG BoneInfo. TODO: I swear this is not so temporary?
 			last_org = org_chain[-1]
 			extra_org = org_chain.new(
 				name = last_org.name.replace("ORG", "ORG-TIP")

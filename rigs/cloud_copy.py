@@ -3,13 +3,6 @@ from ..rig_features.bone_set import BoneInfo, BoneSet
 
 from .cloud_base import CloudBaseRig
 
-"""TODO
-cloud_aim could maybe inherit from this?
-
-Could also move parent switching mechanism and root bone from cloud_aim to here instead.
-Better yet, to cloud_base!
-"""
-
 class CloudCopyRig(CloudBaseRig):
 	"""Copy this bone to the generated rig."""
 	always_use_custom_props = True
