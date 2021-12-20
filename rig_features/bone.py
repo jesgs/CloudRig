@@ -266,6 +266,10 @@ class BoneInfo:
 	def center(self):
 		return self.head + self.vector/2
 
+	def reverse(self):
+		"""Flip the head and the tail.""" # NOTE: What to do with roll, if there is one?
+		self.head, self.tail = self.tail, self.head
+
 	def set_layers(self, layerlist, additive=False):
 		set_layers(self, layerlist, additive)
 

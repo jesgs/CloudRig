@@ -102,7 +102,7 @@ class CloudCopyRig(CloudBaseRig):
 
 	def add_ui_data_of_bone(self, bone: BoneInfo, panel_name: str, label_name=""):
 		"""Add the UI data of a single BoneInfo's custom props to the rig's UI data.
-		Properties of the bone will go under a single same sub-panel and label.
+		Properties of the bone will be displayed under the provided sub-panel and label.
 		This will be displayed in the Sidebar->CloudRig->Settings.
 		"""
 		for prop_name, prop in bone.custom_props.items():
