@@ -21,11 +21,16 @@ class CloudFingerRig(CloudIKChainRig):
 
 		self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 
+	def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone):
+		"""Overwrite cloud_ik_chain."""
+		ik_pole.parent = ik_mstr
+		pass
+
 	def add_ui_data(self, panel_name, row_name, info, label_name="", entry_name="", **custom_prop_dict):
 		if panel_name == "FK/IK Switch":
 			custom_prop_dict['default'] = 0.0
 
-		panel_name = "Finger IK"
+		panel_name = "Fingers"
 		if label_name == "IK Pole Follow":
 			return
 
