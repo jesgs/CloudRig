@@ -285,7 +285,7 @@ class CloudGenerator(Generator):
 				new_ui_set.param_name = rig_bone_set_def['param']
 				new_ui_set.layer_param = rig_bone_set_def['layer_param']
 
-	def create_rig_object(self, metarig) -> bpy.types.Object:
+	def create_rig_object(self, context, metarig) -> bpy.types.Object:
 		"""Create the rig object that will replace the previous generation result."""
 
 		metaname = metarig.name
@@ -295,11 +295,22 @@ class CloudGenerator(Generator):
 
 		rig_name = "NEW-" + final_name
 
-		obj = bpy.data.objects.new(rig_name, bpy.data.armatures.new(rig_name))
+		select_object(context, metarig, deselect_all=True)
+		bpy.ops.object.duplicate()
+		obj = context.object
+		for b in obj.data.bones:
+			b.name = "ORG-"+b.name
+		# self._Generator__rename_org_bones(obj)
 		obj.data.name = "Data_" + final_name
 
 		# Ensure rig is visible while generating.
-		self.context.scene.collection.objects.link(obj)
+		if obj.name not in context.scene.collection.objects:
+			context.scene.collection.objects.link(obj)
+
+		# Remove all custom properties
+		for db in [obj, obj.data]:
+			for key, value in list(db.items()):
+				del db[key]
 
 		# Adding the rig_id necessary to not display metarig UI on generated rigs.
 		# XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
@@ -328,6 +339,13 @@ class CloudGenerator(Generator):
 		# Copy layers from the metarig.
 		obj.data.layers = metarig.data.layers[:]
 		obj.data.layers_protected = metarig.data.layers_protected[:]
+		for i, l in enumerate(metarig.data.rigify_layers):
+			if len(obj.data.rigify_layers) <= i:
+				new_l = obj.data.rigify_layers.add()
+			else:
+				new_l = obj.data.rigify_layers[i]
+			new_l.name = l.name
+			new_l.row = l.row
 
 		obj.data.pose_position = 'REST'
 
@@ -552,22 +570,6 @@ class CloudGenerator(Generator):
 				symm_new_start_frame = symm_rig.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
-
-	def duplicate_rig(self):
-		"""Join a clone of the metarig into the generated rig."""
-		select_object(self.context, self.obj, deselect_all=True)
-		self._Generator__duplicate_rig()	# TODO: This takes 2 seconds, for some reason the armature join operator is really slow. Either get it fixed upstream or avoid joining armatures.
-
-		# Copy Rigify Layers from metarig to target rig - TODO: Doesn't Rigify already have code for this??
-		for i in range(len(self.obj.data.rigify_layers), len(self.metarig.data.rigify_layers)):
-			self.obj.data.rigify_layers.add()
-		for i, rig_layer in enumerate(self.metarig.data.rigify_layers):
-			target = self.obj.data.rigify_layers[i]
-			source = self.metarig.data.rigify_layers[i]
-			target.name = source.name
-			target.row = source.row
-			target.selset = source.selset
-			target.group = source.group
 
 	def invoke_generate_bones(self):
 		"""Create real bones from all BoneInfos.
@@ -823,30 +825,30 @@ class CloudGenerator(Generator):
 			del metarig['failed_rig']
 
 		#------------------------------------------
-		# Create/find the rig object and set it up
-		old_rig = self.params.rigify_target_rig
-		self.obj = obj = self.create_rig_object(metarig)
-
-		self.logger.rig = obj
-		self.logger.metarig = metarig
-
-		self.defaults['rig'] = obj
 
 		# Rename metarig data
 		metarig.data.name = "Data_" + self.metarig.name
 		# Update metarig version
 		self.params.cloudrig_parameters.version = cloud_metarig_version
 
-		# Collection to store bone widgets
-		self.widget_collection = self.ensure_widget_collection(context)
-
 		# Ensure rigify layers are initialized.
 		if len(metarig.data.rigify_layers) < 32:
 			init_cloudrig_layers(metarig.data)
 
 		#------------------------------------------
-		self.duplicate_rig()
-		t.tick("Duplicate rig: ")
+
+		# Create/find the rig object and set it up
+		old_rig = self.params.rigify_target_rig
+		self.obj = obj = self.create_rig_object(context, metarig)
+
+		self.logger.rig = obj
+		self.logger.metarig = metarig
+
+		self.defaults['rig'] = obj
+
+		# Collection to store bone widgets
+		self.widget_collection = self.ensure_widget_collection(context)
+
 		redraw_viewport()
 
 		self.driver_map = self.map_drivers()
