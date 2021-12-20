@@ -94,12 +94,16 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
 				return True
 	return False
 
+advanced_panel_parent = "DATA_PT_rigify_buttons"
+if not hasattr(bpy.types, advanced_panel_parent):
+	advanced_panel_parent = "DATA_PT_rigify_generate"
+
 class CLOUDRIG_PT_generator_advanced(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
 	bl_label = "Advanced"
-	bl_parent_id = "DATA_PT_rigify_buttons"
+	bl_parent_id = advanced_panel_parent
 	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod
@@ -250,13 +254,14 @@ registry = [
 	CLOUDRIG_PT_generator_advanced
 ]
 
+# Restore Rigify panels' draw functions.
+if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
+	rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
+else:
+	rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
+
 def register():
 	# Hijack Rigify panels' draw functions.
-	if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
-		rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
-	else:
-		rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
-
 	rigify_generate_ui.draw_old = rigify_generate_ui.draw
 	rigify_generate_ui.draw = draw_cloudrig_rigify_generate
 
@@ -273,11 +278,6 @@ def register():
 	BONE_PT_rigify_buttons.draw = draw_rigify_types
 
 def unregister():
-	# Restore Rigify panels' draw functions.
-	if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
-		rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
-	else:
-		rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
 	rigify_generate_ui.draw = rigify_generate_ui.draw_old
 	DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
 	DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
