@@ -213,7 +213,7 @@ def draw_cloud_layer_names(self, context):
 def draw_rigify_types(self, context):
 	id_store = context.window_manager
 	bone = context.active_pose_bone
-	rig_name = str(context.active_pose_bone.rigify_type).replace(" ", "")
+	rig_name = context.active_pose_bone.rigify_type
 
 	if 'cloud_' not in rig_name:
 		return self.draw_old(context)
@@ -224,7 +224,8 @@ def draw_rigify_types(self, context):
 	build_type_list(context, id_store.rigify_types)
 
 	# Rig type field
-	if len(feature_set_list.get_installed_list()) > 0:
+	get_feature_list_func = feature_set_list.get_installed_modules_names if hasattr(feature_set_list, "get_installed_modules_names") else feature_set_list.get_installed_list	# TODO: Remove after 3.0 compatibility drop
+	if len(get_feature_list_func()) > 0:
 		row = layout.row()
 		row.prop(context.object.data, "active_feature_set")
 	row = layout.row()

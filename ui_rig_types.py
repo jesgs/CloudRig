@@ -14,7 +14,7 @@ class CloudParamSubPanel(bpy.types.Panel):
 	def poll(cls, context):
 		pb = context.active_pose_bone
 		rig_class = find_rig_class(pb.rigify_type)
-		if not rig_class:
+		if not rig_class or not pb:
 			return False
 		if not hasattr(rig_class, cls.draw_function_name):
 			return False
