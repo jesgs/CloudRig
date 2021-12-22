@@ -88,7 +88,7 @@ class CloudJawRig(CloudCopyRig):
 		jaw_bi.parent = lower_face_squasher
 		mouth_bi.parent = lower_face_squasher
 
-		self.setup_teeth_follow_mouth(jaw_bi, )
+		self.setup_teeth_follow_mouth(jaw_bi, lower_face_bi, mouth_bi, lower_jaw)
 
 	def make_lower_jaw(self, jaw_bi, mouth_bi) -> BoneInfo:
 		lower_jaw = self.bone_sets['Mechanism Bones'].new(
@@ -99,6 +99,7 @@ class CloudJawRig(CloudCopyRig):
 		lower_jaw.add_constraint('COPY_TRANSFORMS'
 			,subtarget = jaw_bi
 		)
+		return lower_jaw
 
 	def create_face_squasher(self, face_squash_bi, lower_face_bi, jaw_bi) -> BoneInfo:
 		lower_face_squasher = self.bone_sets['Jaw Controls'].new(
@@ -127,34 +128,47 @@ class CloudJawRig(CloudCopyRig):
 
 		return lower_face_squasher
 
-	def setup_teeth_follow_mouth(self, jaw_bi, lower_face_bi, mouth_bi):
+	def setup_teeth_follow_mouth(self, jaw_bi, lower_face_bi, mouth_bi, lower_jaw):
 		# Set up Teeth Follow Mouth toggle
 		info = {
 			'prop_bone' : jaw_bi
 			,'prop_id' : 'teeth_follow_mouth'
 		}
 		self.add_ui_data("Face", "Teeth Follow Mouth", info, default=1.0)
-		teeth_top_root = self.generator.find_bone_info(self.params.CR_jaw_teeth_upper_bone)
-		teeth_top_root.parent = mouth_bi
-		arm_con = teeth_top_root.add_constraint('ARMATURE'
+		teeth_upper_root = self.generator.find_bone_info(self.params.CR_jaw_teeth_upper_bone)
+		teeth_lower_root = self.generator.find_bone_info(self.params.CR_jaw_teeth_lower_bone)
+		teeth = [teeth_upper_root, teeth_lower_root]
+		arm_con = teeth_upper_root.add_constraint('ARMATURE'
 			,targets = [
 				{
-					"subtarget" : lower_face_bi.parent.name # This is usually DEF-Head
+					"subtarget" : lower_face_bi.parent # This is usually DEF-Head
 				},
 				{
-					"subtarget" : mouth_bi.name
+					"subtarget" : mouth_bi
 				}
 			]
 		)
-		arm_con.drivers.append({
-			'prop' : 'targets[0].weight'
-			,'variables' : [(jaw_bi.name, 'teeth_follow_mouth')]
-			,'expression' : '1-var'
-		})
-		arm_con.drivers.append({
-			'prop' : 'targets[1].weight'
-			,'variables' : [(jaw_bi.name, 'teeth_follow_mouth')]
-		})
+		arm_con = teeth_lower_root.add_constraint('ARMATURE'
+			,targets = [
+				{
+					"subtarget" : jaw_bi # This is usually DEF-Head
+				},
+				{
+					"subtarget" : lower_jaw
+				}
+			]
+		)
+		for teeth_root in teeth:
+			arm_con = teeth_root.constraint_infos[0]
+			arm_con.drivers.append({
+				'prop' : 'targets[0].weight'
+				,'variables' : [(jaw_bi.name, 'teeth_follow_mouth')]
+				,'expression' : '1-var'
+			})
+			arm_con.drivers.append({
+				'prop' : 'targets[1].weight'
+				,'variables' : [(jaw_bi.name, 'teeth_follow_mouth')]
+			})
 
 	##############################
 	# Parameters
