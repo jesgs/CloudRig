@@ -183,6 +183,13 @@ class CloudCopyRig(CloudBaseRig):
 		cls.draw_prop(layout, params, 'CR_copy_property_ui_label')
 		return layout
 
+	@classmethod
+	def is_bone_set_used(cls, params, set_info):
+		if set_info['name'] == 'Deform Bones':
+			return params.CR_copy_create_deform
+
+		return super().is_bone_set_used(params, set_info)
+
 class Rig(CloudCopyRig):
 	pass
 
