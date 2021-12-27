@@ -89,7 +89,7 @@ class CloudBaseRig(
 		self.generator_params = self.generator.metarig.data
 		self.defaults = dict(self.generator.defaults)
 
-		self.meta_base_bone = self.generator.metarig.pose.bones.get(self.base_bone.replace("ORG-", ""))
+		self.meta_base_bone = self.meta_bone(self.base_bone.replace("ORG-", ""))
 
 		self.scale = self.generator.scale
 
@@ -149,7 +149,7 @@ class CloudBaseRig(
 			eb.use_connect = False
 
 			meta_org_name = eb.name[4:]
-			meta_org = self.generator.metarig.pose.bones.get(meta_org_name)
+			meta_org = self.meta_bone(meta_org_name)
 
 			if self.naming.has_trailing_zeroes(meta_org):
 				self.add_log("Trailing zeroes"
