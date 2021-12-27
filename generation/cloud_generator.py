@@ -304,10 +304,6 @@ class CloudGenerator(Generator):
 		# self._Generator__rename_org_bones(obj)
 		obj.data.name = "Data_" + final_name
 
-		# Ensure rig is visible while generating.
-		if obj.name not in context.scene.collection.objects:
-			context.scene.collection.objects.link(obj)
-
 		# Remove all custom properties
 		for db in [obj, obj.data]:
 			for key, value in list(db.items()):
@@ -711,7 +707,7 @@ class CloudGenerator(Generator):
 
 	def replace_old_with_new_rig(self, old_rig, new_rig):
 		"""Preserve useful user-inputted information from the previous rig,
-		then delete it and re-map all pointers to it to the new rig."""
+		then delete it and remap users to the new rig."""
 
 		# Save selection sets
 		if self.do_sel_sets:
@@ -733,7 +729,8 @@ class CloudGenerator(Generator):
 				new_pb.enable_bone_gizmo = old_pb.enable_bone_gizmo
 
 		# Remove old rig from all of its collections, and link the new rig to them.
-		self.context.scene.collection.objects.unlink(new_rig)
+		for coll in new_rig.users_collection:
+			coll.objects.unlink(new_rig)
 		for coll in old_rig.users_collection:
 			coll.objects.unlink(old_rig)
 			coll.objects.link(new_rig)
