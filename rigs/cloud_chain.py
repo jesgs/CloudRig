@@ -72,13 +72,12 @@ class CloudChainRig(CloudBaseRig):
 			str_chain.append(section[0])
 			str_chain.extend(section[1])
 
+		for i, str_bone in enumerate(str_chain[1:]):
+			str_chain[i].next = str_bone
+			str_bone.prev = str_chain[i]
+
 		str_chain[0].prev = None
-		prev = str_chain[0]
-		for str_bone in str_chain[1:]:
-			prev.next = str_bone
-			str_bone.prev = prev
-			str_bone.next = str_bone	# Only affects last STR.
-			prev = str_bone
+		str_chain[-1].next = None
 
 		if is_cyclic:
 			str_chain[-1].next = str_chain[0]
@@ -192,8 +191,7 @@ class CloudChainRig(CloudBaseRig):
 		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
 		main_str.align_in = main_str
 		main_str.align_out = main_str
-		if self.params.CR_chain_segments > 1 and \
-				org_bone.prev and self.params.CR_chain_align_roll:
+		if org_bone.prev and self.params.CR_chain_align_roll:
 			main_str.roll_type = 'ACTIVE'		# TODO: Setting bone rolls like this is expensive because we rely on bpy.ops.
 			main_str.roll_bone = org_bone.name
 			main_str.roll = 0
@@ -367,8 +365,7 @@ class CloudChainRig(CloudBaseRig):
 		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
-			,parent = str_bone
-			,inherit_scale = 'NONE'
+			,parent = str_bone.parent	# For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
 		)
 
 		if smooth:
@@ -384,19 +381,13 @@ class CloudChainRig(CloudBaseRig):
 				,space = 'WORLD'
 			)
 
-			# For main STR bones the parent is the ORG bone,
-			# for sub STR bones it's the STR-H bone.
-			handle_bone.parent = str_bone.parent
 			handle_bone.add_constraint('COPY_TRANSFORMS'
 				,name = "Copy STR Transforms"
 				,subtarget = str_bone.name
 				,target_space = 'LOCAL_OWNER_ORIENT'
 			)
-
-		if self.params.CR_chain_preserve_volume:
-			handle_bone.inherit_scale = 'ALIGNED'
 		else:
-			handle_bone.add_constraint('COPY_SCALE'
+			handle_bone.add_constraint('COPY_TRANSFORMS'
 				,subtarget = str_bone.name
 				,space = 'WORLD'
 			)
@@ -451,7 +442,6 @@ class CloudChainRig(CloudBaseRig):
 				def_bone = def_bone
 				,org_bone = org_bone
 				,str_bone = str_bone
-				,next_str_bone = str_bone.next
 				,preserve_volume = preserve_volume
 			)
 
@@ -461,13 +451,18 @@ class CloudChainRig(CloudBaseRig):
 			,def_bone: BoneInfo
 			,org_bone: BoneInfo
 			,str_bone: BoneInfo
-			,next_str_bone: BoneInfo
 			,preserve_volume: bool
 		):
 		"""Configure BBone setup for def_bone."""
 
+		next_str_bone = str_bone.next
+
 		# Stretch to next STR bone.
 		if not self.params.CR_chain_unlock_deform:
+			def_bone.add_constraint('COPY_SCALE'
+				,subtarget = org_bone
+				,space = 'WORLD'
+			)
 			def_bone.add_constraint('STRETCH_TO'
 				,subtarget = next_str_bone
 				,use_bulge_min = not preserve_volume
@@ -476,6 +471,7 @@ class CloudChainRig(CloudBaseRig):
 
 		# Set BBone Segments according to BBone Density param.
 		def_bone.bbone_segments = self.determine_num_bbone_segments(org_bone, def_bone)
+
 		# If bbone_density is >0, force at least 2 bbone_segments.
 		# Otherwise it's not a bendy bone.
 		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
@@ -491,19 +487,38 @@ class CloudChainRig(CloudBaseRig):
 			if str_bone.next in self.main_str_bones:
 				def_bone.bbone_easeout = 0
 
+			# Since the built-in easing is multiplicative, and if Sharp Sections is enabled,
+			# our ease value is 0, it would always remain 0.
+			# So we let the STR bone local Y scale drive the ease value.
+			for str_b, prop in zip([str_bone, str_bone.next], ['bbone_easein', 'bbone_easeout']):
+				def_bone.drivers.append({
+					'prop' : prop
+					,'expression' : "var-1"
+					,'variables' : {
+						'var' : {
+							'type' : 'TRANSFORMS',
+							'targets' : [{
+								'bone_target' : str_b.name,
+								'transform_space' : 'LOCAL_SPACE',
+								'transform_type' : 'SCALE_Y',
+							}]
+						}
+					}
+				})
+		
+		def_bone.inherit_scale = 'NONE'
+		# B-Bone ease
 		def_bone.bbone_handle_type_start	  = 'TANGENT'
 		def_bone.bbone_handle_type_end		  = 'TANGENT'
 		def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
 		def_bone.bbone_handle_use_scale_start = [True, False, True]
 		def_bone.bbone_handle_use_scale_end	  = [True, False, True]
+		def_bone.bbone_handle_use_ease_start = True
+		def_bone.bbone_handle_use_ease_end = True
+
 		if hasattr(next_str_bone, 'tangent_helper'):
 			# This can be False when connecting to a parent chain rig that has Smooth Spline=False.
 			def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
-
-		# B-Bone ease drivers
-		if not preserve_volume:
-			def_bone.inherit_scale = 'NONE'
-		self.make_bbone_ease_drivers(def_bone)
 
 		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
@@ -523,45 +538,6 @@ class CloudChainRig(CloudBaseRig):
 			bbone_segments = max(bbone_segments, 2)
 
 		return bbone_segments
-
-	def make_bbone_ease_drivers(self, def_bone: BoneInfo):
-		### Ease In/Out
-		easein_var = {
-			'type' : 'TRANSFORMS',
-			'targets' : [{
-				'bone_target' : def_bone.bbone_custom_handle_start.name,
-				'transform_type' : 'SCALE_Y',
-				'transform_space' : 'LOCAL_SPACE',
-			}]
-		}
-		easein_driver = {
-			'expression' : "(YScale-AvgScale)",
-			'prop' : "bbone_easein",
-			'variables' : {
-				'YScale' : easein_var,
-				'AvgScale' : {
-					'type' : 'TRANSFORMS',
-					'targets' : [{
-						'bone_target' : def_bone.bbone_custom_handle_start.name,
-						'transform_space' : 'LOCAL_SPACE',
-						'transform_type' : 'SCALE_AVG',
-					}]
-				}
-			}
-		}
-
-		# Ease In
-		if def_bone.bbone_handle_type_start == 'TANGENT':
-			def_bone.drivers.append(easein_driver)
-
-		# Ease Out
-		if def_bone.bbone_handle_type_end == 'TANGENT' and \
-				def_bone.bbone_custom_handle_end:
-			easeout_driver = deepcopy(easein_driver)
-			easeout_driver['prop'] = "bbone_easeout"
-			easeout_driver['variables']['YScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
-			easeout_driver['variables']['AvgScale']['targets'][0]['bone_target'] = def_bone.bbone_custom_handle_end.name
-			def_bone.drivers.append(easeout_driver)
 
 	def make_def_control(self
 			,str_bone: BoneInfo
@@ -705,7 +681,6 @@ class CloudChainRig(CloudBaseRig):
 			def_bone = last_def
 			,org_bone = last_org
 			,str_bone = last_str
-			,next_str_bone = self.str_chain[0]
 			,preserve_volume = parent_rig.params.CR_chain_preserve_volume
 		)
 		
@@ -810,6 +785,7 @@ class CloudChainRig(CloudBaseRig):
 
 		if cls.is_advanced_mode(context):
 			cls.draw_prop(layout, params, 'CR_chain_preserve_volume')
+			cls.draw_prop(layout, params, 'CR_chain_align_roll')
 			cls.draw_prop(layout, params, 'CR_chain_shape_key_helpers')
 			cls.draw_prop(layout, params, 'CR_chain_unlock_deform')
 

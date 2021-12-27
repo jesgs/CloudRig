@@ -18,8 +18,8 @@ def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneIn
 		str_bone.parent = intersection
 		str_bone.intersection_ctrl = intersection
 		if has_tangent_helpers(rig):
-			str_bone.tangent_helper.constraint_infos[-2].subtarget = intersection.name
-			str_bone.tangent_helper.constraint_infos[-2].name = "Copy STR-I Transforms"
+			str_bone.tangent_helper.constraint_infos[-1].subtarget = intersection.name
+			str_bone.tangent_helper.constraint_infos[-1].name = "Copy STR-I Transforms"
 			str_bone.tangent_helper.parent = intersection
 		str_bone.bone_group = rig.bone_sets['Sub Controls'].bone_group
 		str_bone.layers = rig.bone_sets['Sub Controls'].layers[:]
