@@ -298,7 +298,7 @@ class CloudGenerator(Generator):
 		select_object(context, metarig, deselect_all=True)
 		bpy.ops.object.duplicate()
 		obj = context.view_layer.objects.active	# NOTE: Oddly, this is different from context.object.
-		obj.name = final_name
+		obj.name = rig_name
 		for b in obj.data.bones:
 			b.name = "ORG-"+b.name
 		# self._Generator__rename_org_bones(obj)
@@ -744,6 +744,8 @@ class CloudGenerator(Generator):
 
 		# Preserve assigned action of previous rig.
 		if old_rig.animation_data and old_rig.animation_data.action:
+			if not new_rig.animation_data:
+				new_rig.animation_data_create()
 			new_rig.animation_data.action = old_rig.animation_data.action
 
 		# Preserve Armature display settings
