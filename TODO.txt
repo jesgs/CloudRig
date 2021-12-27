@@ -1,6 +1,9 @@
 Add a warning when the metarig was posed before generating.
 Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
 
+I think we should refactor bone creation and set-up such that each function call is somewhat responsible for a rig parameter.
+	I think it would make the code feel a lot more intuitive to both read and write, but it might have its own complications.
+
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.

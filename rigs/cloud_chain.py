@@ -785,7 +785,6 @@ class CloudChainRig(CloudBaseRig):
 
 		if cls.is_advanced_mode(context):
 			cls.draw_prop(layout, params, 'CR_chain_preserve_volume')
-			cls.draw_prop(layout, params, 'CR_chain_align_roll')
 			cls.draw_prop(layout, params, 'CR_chain_shape_key_helpers')
 			cls.draw_prop(layout, params, 'CR_chain_unlock_deform')
 
