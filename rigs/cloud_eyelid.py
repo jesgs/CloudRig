@@ -22,6 +22,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 		# This is rather cosmetic since these ORG bones don't do anything anyways.
 		# TODO: unneccessary ORG bones should just be deleted...
 		self.bones_org[0].parent = self.rigify_parent.bones_org[0].parent
+		self.make_sticky_eyelid()
 
 	def make_sticky_eyelid(self):
 		"""Create ROT helper bones between the aim bone's base and the
