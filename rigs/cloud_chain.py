@@ -452,10 +452,12 @@ class CloudChainRig(CloudBaseRig):
 			,org_bone: BoneInfo
 			,str_bone: BoneInfo
 			,preserve_volume: bool
+			,next_str_bone: BoneInfo = None
 		):
 		"""Configure BBone setup for def_bone."""
 
-		next_str_bone = str_bone.next
+		if not next_str_bone:
+			next_str_bone = str_bone.next
 
 		# Stretch to next STR bone.
 		if not self.params.CR_chain_unlock_deform:
@@ -491,6 +493,9 @@ class CloudChainRig(CloudBaseRig):
 			# our ease value is 0, it would always remain 0.
 			# So we let the STR bone local Y scale drive the ease value.
 			for str_b, prop in zip([str_bone, str_bone.next], ['bbone_easein', 'bbone_easeout']):
+				if not str_b:
+					# This happens when Tip Control param is off so there's no str_bone.next.
+					continue
 				def_bone.drivers.append({
 					'prop' : prop
 					,'expression' : "var-1"
@@ -681,6 +686,7 @@ class CloudChainRig(CloudBaseRig):
 			def_bone = last_def
 			,org_bone = last_org
 			,str_bone = last_str
+			,next_str_bone = self.str_chain[0]
 			,preserve_volume = parent_rig.params.CR_chain_preserve_volume
 		)
 		
