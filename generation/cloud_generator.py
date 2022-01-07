@@ -319,7 +319,7 @@ class CloudGenerator(Generator):
 		today = datetime.today()
 		now = datetime.now()
 		obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
-		obj.data['generation_time'] = f"{now.hour}:{now.minute}:{now.second}"
+		obj.data['generation_time'] = f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
 
 		# Make sure Hidden Layers checkbox is saved in the generated rig, so it
 		# remains even if the Rigify addon is disabled.
@@ -475,6 +475,12 @@ class CloudGenerator(Generator):
 				continue
 
 			act_slot.setup_constraints_on_rig(rig, self.action_helper.name)
+	
+	def create_action_shape_key_drivers(self):
+		rig = self.obj
+		action_slots = self.metarig.data.cloudrig_parameters.action_slots
+		for act_slot in action_slots:
+			act_slot.setup_drivers_on_shape_keys(rig)
 
 	def create_action_helper(self, bone_set):
 		action_helper = bone_set.new(
@@ -946,6 +952,8 @@ class CloudGenerator(Generator):
 			self.replace_old_with_new_rig(old_rig, obj)
 		else:
 			obj.name = obj.name.replace("NEW-", "")
+		
+		self.create_action_shape_key_drivers()
 
 		self.params.rigify_target_rig = obj
 

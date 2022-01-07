@@ -3,9 +3,11 @@ import bpy
 from bpy.props import (EnumProperty, IntProperty, BoolProperty,
 					StringProperty, FloatProperty, PointerProperty)
 from bpy.types import (Operator, UIList, PropertyGroup, Panel,
-					Armature, Action, Object, PoseBone, Constraint)
+					Armature, Action, Object, PoseBone, Constraint,
+					ShapeKey)
 from . import naming
 from ..rig_features.ui import is_cloud_metarig, is_advanced_mode
+from ..rig_features.object import get_object_hierarchy_recursive
 from ..utils.ui_list import draw_ui_list
 
 
@@ -221,6 +223,27 @@ class ActionSlot(PropertyGroup):
 
 		return con_name
 
+	def is_opposite(self, name: str) -> bool:
+		"""Return whether the passed name is on the opposite side compared to the passed name."""
+		name_is_left_side = naming.side_is_left(name)
+		control_is_left_side = naming.side_is_left(self.subtarget)
+		return name_is_left_side != control_is_left_side
+
+	def get_min_max(self, name: str) -> Tuple[float, float]:
+		if self.is_opposite(name):
+			# Flip min/max in some cases.
+			if self.transform_channel in ['LOCATION_X']:
+				return self.trans_max, self.trans_min
+			if self.transform_channel in ['ROTATION_Z', 'ROTATION_Y']:
+				return -self.trans_min, -self.trans_max
+		return self.trans_min, self.trans_max
+
+	def get_matching_side_control_name(self, name: str) -> str:
+		"""Return the control bone with the left/right side matching the passed name."""
+		if self.do_symmetry and self.is_opposite(name):
+			return naming.flip_name(self.subtarget)
+		return self.subtarget
+
 	def setup_constraints_on_rig(self, rig: Object, property_bone_name: str):
 		# Iterate through bone names affected by the assigned action
 		for bn in self.keyed_bones_names:
@@ -236,12 +259,7 @@ class ActionSlot(PropertyGroup):
 			self.configure_constraint(rig, pb, c, property_bone_name)
 
 	def configure_constraint(self, rig: Object, pb: PoseBone, c: Constraint, property_bone_name: str):
-		subtarget = self.subtarget
-		if self.do_symmetry:
-			constraint_is_left_side = naming.side_is_left(c.name)
-			control_is_left_side = naming.side_is_left(subtarget)
-			if constraint_is_left_side != control_is_left_side:
-				subtarget = naming.flip_name(subtarget)
+		subtarget = self.get_matching_side_control_name(c.name)
 
 		self.initial_configure_constraint(rig, c, subtarget)
 
@@ -264,7 +282,7 @@ class ActionSlot(PropertyGroup):
 			f'pose.bones["{property_bone_name}"]["{c.name}"]'
 		)
 		for data_path in data_paths:
-			self.create_driver(rig, c, data_path, subtarget)
+			self.create_action_eval_driver(rig, data_path, subtarget, c)
 
 	def initial_configure_constraint(self, rig: Object, c: Constraint, subtarget: str):
 		action = self.action
@@ -273,31 +291,28 @@ class ActionSlot(PropertyGroup):
 		c.target = rig
 		c.subtarget = subtarget
 		c.action = action
-		c.min = self.trans_min
-		c.max = self.trans_max
+		trans_min, trans_max = self.get_min_max(subtarget)
+		c.min = trans_min
+		c.max = trans_max
 		c.frame_start = self.frame_start
 		c.frame_end = self.frame_end
 		c.mix_mode = 'BEFORE_SPLIT'
-		if c.subtarget != self.subtarget:
-			# Flip min/max in some cases.
-			if self.transform_channel in ['LOCATION_X']:
-				c.min, c.max = c.max, c.min
-			if self.transform_channel in ['ROTATION_Z', 'ROTATION_Y']:
-				c.min, c.max = -c.min, -c.max
 
-	def create_driver(self, rig: Object, c: Constraint, data_path: str, subtarget: str):
+	def create_action_eval_driver(self, rig: Object, data_path: str, subtarget: str, c):
 		exists = rig.animation_data.drivers.find(data_path)
 		if exists:
 			return
 		fcurve = rig.driver_add(data_path)
 		driver = fcurve.driver
 
-		var_range = c.max - c.min
-		range_mid = c.min + (c.max - c.min)/2
+		trans_min, trans_max = self.get_min_max(subtarget)
+		trans_range = round(trans_max - trans_min, 2)
+		range_mid = round(trans_min + (trans_max - trans_min)/2, 2)
 
-		expression = f'(var - {range_mid}) / {var_range} + 0.5'
-		if range_mid == 0:
-			expression = f'var / {var_range} + 0.5'
+		expression = f'(var - {round(self.trans_min, 2)}) / {trans_range}'
+
+		if range_mid == 0.0:
+			expression = f'var / {trans_range} + 0.5'
 
 		# Convert rotation to degrees as promised in the tooltip.
 		if 'ROTATION' in self.transform_channel:
@@ -309,6 +324,58 @@ class ActionSlot(PropertyGroup):
 		target = var.targets[0]
 		target.id = rig
 		target.bone_target = subtarget
+		target.transform_type = self.transform_channel.replace("ATION", "")
+		target.transform_space = self.target_space + "_SPACE"
+		target.rotation_mode = 'SWING_TWIST_Y'
+
+	def setup_drivers_on_shape_keys(self, rig: Object):
+		# Find child mesh objects of the rig, to drive shape keys
+		all_obs = get_object_hierarchy_recursive(rig, all_objects=[])
+		for o in all_obs:
+			if not o.type=='MESH' or not o.data.shape_keys:
+				continue
+			mesh = o.data
+			if len(o.data.shape_keys.key_blocks) < 2:
+				continue
+			mesh.shape_keys.name = mesh.name
+			for key_block in mesh.shape_keys.key_blocks[1:]:
+				if key_block.name+".L" in mesh.shape_keys.key_blocks or \
+					key_block.name+".R" in mesh.shape_keys.key_blocks:
+					continue
+				if self.action.name in [key_block.name, key_block.name[:-2]]:
+					# If a shape key's name matches the action's name, create a 
+					# driver on it, matching the action drivers.
+					self.create_shape_key_driver(
+						key_block = key_block
+						,rig = rig
+					)
+
+	def create_shape_key_driver(self
+			,key_block: ShapeKey
+			,rig: Object
+		):
+		data_path = 'value'
+		key_block.driver_remove(data_path)
+
+		fcurve = key_block.driver_add(data_path)
+		driver = fcurve.driver
+
+		trans_min, trans_max = self.get_min_max(key_block.name)
+
+		trans_range = round(trans_max - trans_min, 2)
+
+		expression = f'(var - {round(self.trans_min, 2)}) / {trans_range}'
+
+		# Convert rotation to degrees as promised in the tooltip.
+		if 'ROTATION' in self.transform_channel:
+			expression = expression.replace('var', 'var*180/pi')
+
+		driver.expression = expression
+		var = driver.variables.new()
+		var.type = 'TRANSFORMS'
+		target = var.targets[0]
+		target.id = rig
+		target.bone_target = self.get_matching_side_control_name(key_block.name)
 		target.transform_type = self.transform_channel.replace("ATION", "")
 		target.transform_space = self.target_space + "_SPACE"
 		target.rotation_mode = 'SWING_TWIST_Y'
