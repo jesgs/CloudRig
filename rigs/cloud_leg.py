@@ -262,7 +262,7 @@ class CloudLegRig(CloudLimbRig):
 		# Create reverse bones
 		rik_chain = []
 		for i, b in reversed(list(enumerate(org_chain))):
-			rik_bone = self.bone_sets['IK Mechanism'].new(
+			rik_bone = self.bone_sets['Foot Reverse IK Controls'].new(
 				name		 = b.name.replace("ORG", "RIK")
 				,source		 = b
 				,head		 = b.tail.copy()
@@ -271,6 +271,7 @@ class CloudLegRig(CloudLimbRig):
 				,roll_type	 = 'ACTIVE'
 				,roll_bone	 = b
 				,parent		 = heel_pivot
+				,custom_shape = self.ensure_widget("Circle_Spiked_2")
 			)
 			rik_chain.append(rik_bone)
 			ik_chain[i].parent = rik_bone
@@ -379,6 +380,19 @@ class CloudLegRig(CloudLimbRig):
 
 	##############################
 	# Parameters
+
+	@classmethod
+	def is_bone_set_used(cls, params, set_info):
+		if set_info['name'] == 'Foot Reverse IK Controls':
+			return params.CR_leg_use_foot_roll
+
+		return super().is_bone_set_used(params, set_info)
+
+	@classmethod
+	def add_bone_set_parameters(cls, params):
+		"""Create parameters for this rig's bone sets."""
+		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Foot Reverse IK Controls', preset=2, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
 
 	@classmethod
 	def add_parameters(cls, params):
