@@ -1348,12 +1348,16 @@ def draw_rig_settings(layout, rig, main_dict):
 		Any further arguments will be passed on to the operator button as keyword arguments.
 	"""
 
+	# Sort the rows alphabetically, just so "Arm" always comes before "Leg".
+	# Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
+	# consistent and predictable.
+	row_datas = [(row_name, main_dict[row_name]) for row_name in sorted(main_dict.keys())]
+
 	# Each top-level dictionary within the main dictionary defines a row.
-	for row_name in main_dict.keys():
+	for row_name, row_entries in row_datas:
 		row = layout.row()
 		# Each second-level dictionary within that defines a slider (and operator, if given).
 		# If there is more than one, they will be drawn next to each other, since they're in the same row.
-		row_entries = main_dict[row_name]
 		for entry_name in row_entries.keys():
 			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
 			assert 'prop_bone' in info and 'prop_id' in info, f"Limb definition lacks properties bone or prop ID: {row_name}, {info}"
