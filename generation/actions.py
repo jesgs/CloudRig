@@ -2,7 +2,7 @@ from typing import List, Tuple
 import bpy
 from bpy.props import (EnumProperty, IntProperty, BoolProperty,
 					StringProperty, FloatProperty, PointerProperty)
-from bpy.types import (Operator, UIList, PropertyGroup, Panel,
+from bpy.types import (ID, Operator, UIList, PropertyGroup, Panel,
 					Armature, Action, Object, PoseBone, Constraint,
 					ShapeKey)
 from . import naming
@@ -268,7 +268,14 @@ class ActionSlot(PropertyGroup):
 		pb.constraints.move(len(pb.constraints)-1, 0)
 
 		if self.is_corrective:
-			self.configure_corrective_constraint(rig, pb, c, property_bone_name)
+			data_path = f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time'
+			self.add_corrective_driver(
+				driver_owner = rig, 
+				rig = rig, 
+				data_path = data_path, 
+				property_bone_name = property_bone_name, 
+				bone_or_shapekey_name = pb.name
+			)
 			return
 
 		# Add driven custom properties to the Action Helper bone that mirror the eval_time of each action.
@@ -309,11 +316,11 @@ class ActionSlot(PropertyGroup):
 		trans_range = round(trans_max - trans_min, 2)
 		range_mid = round(trans_min + (trans_max - trans_min)/2, 2)
 
-		expression = f'(var - {round(self.trans_min, 2)}) / {trans_range}'
+		expression = f'max(0, (var - {round(self.trans_min, 2)}) / {trans_range} )'
 
 		if range_mid == 0.0:
-			expression = f'var / {trans_range} + 0.5'
-
+			# TODO: It's not clear why this is necessary, but without it, Snow's right eyelid twist goes nuts...
+			expression = f'max(0, var / {trans_range} + 0.5)'
 		# Convert rotation to degrees as promised in the tooltip.
 		if 'ROTATION' in self.transform_channel:
 			expression = expression.replace('var', 'var*180/pi')
@@ -328,7 +335,7 @@ class ActionSlot(PropertyGroup):
 		target.transform_space = self.target_space + "_SPACE"
 		target.rotation_mode = 'SWING_TWIST_Y'
 
-	def setup_drivers_on_shape_keys(self, rig: Object):
+	def setup_drivers_on_shape_keys(self, rig: Object, property_bone_name: str):
 		# Find child mesh objects of the rig, to drive shape keys
 		all_obs = get_object_hierarchy_recursive(rig, all_objects=[])
 		for o in all_obs:
@@ -345,6 +352,16 @@ class ActionSlot(PropertyGroup):
 				if self.action.name in [key_block.name, key_block.name[:-2]]:
 					# If a shape key's name matches the action's name, create a 
 					# driver on it, matching the action drivers.
+					if self.is_corrective:
+						self.add_corrective_driver(
+							driver_owner = key_block,
+							rig = rig,
+							data_path = 'value', 
+							property_bone_name = property_bone_name, 
+							bone_or_shapekey_name = key_block.name
+
+						)
+						continue
 					self.create_shape_key_driver(
 						key_block = key_block
 						,rig = rig
@@ -380,25 +397,24 @@ class ActionSlot(PropertyGroup):
 		target.transform_space = self.target_space + "_SPACE"
 		target.rotation_mode = 'SWING_TWIST_Y'
 
-	def configure_corrective_constraint(self, rig: Object, pb: PoseBone, c: Constraint, property_bone_name: str):
+	def add_corrective_driver(self, driver_owner: ID, rig: Object, data_path: str, property_bone_name: str, bone_or_shapekey_name: str):
 		metarig_data = self.id_data
 		trigger_a_slot, i = find_slot_by_action(metarig_data, self.trigger_action_a)
 		trigger_b_slot, i = find_slot_by_action(metarig_data, self.trigger_action_b)
 		if not trigger_a_slot or not trigger_b_slot: 
 			return
-		trigger_a_con_name = trigger_a_slot.get_constraint_name(pb.name)
-		trigger_b_con_name = trigger_b_slot.get_constraint_name(pb.name)
+		trigger_a_con_name = trigger_a_slot.get_constraint_name(bone_or_shapekey_name)
+		trigger_b_con_name = trigger_b_slot.get_constraint_name(bone_or_shapekey_name)
+
 		if type(trigger_a_con_name) == list:
 			# TODO: Action setup system currently does not support splitting corrective actions to left/right parts
 			# (This is completely doable, I just don't have time right now)
 			return
 
-		fcurve = rig.driver_add(f'pose.bones["{pb.name}"].constraints["{c.name}"].eval_time')
+		driver_owner.driver_remove(data_path)
+		fcurve = driver_owner.driver_add(data_path)
 		driver = fcurve.driver
-		relation = ">=" if self.corrective_type=='POSITIVE' else "<="
-		sign = "-" if self.corrective_type=='POSITIVE' else "+"
-		# This expression calculates the correct value for this corrective action's eval_time.
-		driver.expression = f'0.5 if A {relation} 0.5 else 0.5 {sign} (B-0.5) * (A-0.5) *2'
+		driver.expression = "A*B"
 
 		# For example, let's say you have these two actions:
 		# A = Lips_UpDown.eval_time

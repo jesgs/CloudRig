@@ -480,7 +480,7 @@ class CloudGenerator(Generator):
 		rig = self.obj
 		action_slots = self.metarig.data.cloudrig_parameters.action_slots
 		for act_slot in action_slots:
-			act_slot.setup_drivers_on_shape_keys(rig)
+			act_slot.setup_drivers_on_shape_keys(rig, self.action_helper.name)
 
 	def create_action_helper(self, bone_set):
 		action_helper = bone_set.new(
