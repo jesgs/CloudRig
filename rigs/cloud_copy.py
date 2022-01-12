@@ -63,11 +63,10 @@ class CloudCopyRig(CloudBaseRig):
 		# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
 		# Alternatively, this could be moved to a later generation stage so we don't have to rely on BoneInfo.
 		meta_bg = meta_bone.bone_group
-		new_set = None
 		if meta_bg:
 			bg_name = meta_bg.name
 
-			new_set = BoneSet(self,
+			my_bone_set = BoneSet(self,
 				ui_name = bg_name
 				,bone_group = bg_name
 				,layers = meta_bone.bone.layers[:]
@@ -76,18 +75,36 @@ class CloudCopyRig(CloudBaseRig):
 				,select = meta_bg.colors.select[:]
 				,defaults = self.defaults
 			)
-			new_set.color_set = meta_bg.color_set
-			self.generator.bone_sets.append(new_set)
+			my_bone_set.color_set = meta_bg.color_set
 			bi.bone_group = bg_name
+		else:
+			my_bone_set = BoneSet(self,
+				ui_name = 'Default'
+				,bone_group = 'Default'
+				,layers = meta_bone.bone.layers[:]
+				,defaults = self.defaults
+			)
+		self.generator.bone_sets.append(my_bone_set)
 
-		if self.params.CR_copy_custom_pivot:
-			self.root_bone = self.create_custom_pivot(bi, new_set)
 
 		if self.params.CR_copy_property_ui_subpanel:
 			self.add_ui_data_of_bone(bi
 				,self.params.CR_copy_property_ui_subpanel
 				,self.params.CR_copy_property_ui_label
 			)
+
+		self.root_bone = bi
+		if self.params.CR_copy_custom_pivot:
+			self.root_bone = self.create_custom_pivot(bi, my_bone_set)
+
+		if self.params.CR_copy_ensure_free:
+			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...
+				,bone_set = self.bone_sets['Mechanism Bones']
+				,parent_name = "CON-" + bi.name
+			)
+			constrained_parent.constraint_infos = bi.constraint_infos	# ...but we always take the constraints from the bone, not from the custom pivot!
+			bi.constraint_infos = []
+			self.root_bone = constrained_parent
 
 	def create_custom_pivot(self, boneinfo, bone_set=None):
 		if not bone_set:
@@ -159,6 +176,11 @@ class CloudCopyRig(CloudBaseRig):
 			,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
 			,default	 = False
 		)
+		params.CR_copy_ensure_free = BoolProperty(
+			name		 = "Ensure Free Transformation"
+			,description = "Create a parent which will have ALL constraints that this bone would have"
+			,default	 = False
+		)
 		params.CR_copy_property_ui_subpanel = StringProperty(
 			name		 = "UI Sub-panel"
 			,description = "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
@@ -172,6 +194,7 @@ class CloudCopyRig(CloudBaseRig):
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		cls.draw_prop(layout, params, 'CR_copy_custom_pivot')
+		cls.draw_prop(layout, params, 'CR_copy_ensure_free')
 		cls.draw_prop(layout, params, 'CR_copy_create_deform')
 
 	@classmethod
