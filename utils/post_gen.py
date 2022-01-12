@@ -17,6 +17,15 @@ def set_custom_property_value(rig, bone_name, prop, value):
 	bone[prop] = value
 	rna_idprop_ui_prop_update(bone, prop)
 
+def set_custom_property_default(rig, bone_name, prop, value):
+	"""Assign the value of a custom property as the default and current values."""
+	bone = rig.pose.bones.get(bone_name)
+	if not bone: return
+	if not prop in bone: return	# We don't want to create properties here!
+	ui_props = bone.id_properties_ui(prop)
+	ui_props.update(default=value)
+	set_custom_property_value(rig, bone_name, prop, value)
+
 def link_script(rig, prop_name: str, filepath: str, script_name: str):
 	"""Load a text datablock by linking from a blend file, and attach it to the rig."""
 	if script_name in bpy.data.texts:	# If already loaded, don't reload it.

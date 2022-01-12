@@ -1,3 +1,5 @@
+Check out ebo.align_roll() instead of bpy.ops.armature.calculate_roll().
+
 Add a warning when the metarig was posed before generating.
 Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
 
