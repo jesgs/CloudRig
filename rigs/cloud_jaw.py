@@ -78,10 +78,18 @@ class CloudJawRig(CloudCopyRig):
 
 		jaw_bi = self.bones_org[0]
 		lower_face_bi = self.generator.find_bone_info(self.params.CR_jaw_lower_face_bone)
+		if not lower_face_bi:
+			self.raise_error("Lower Face Bone not found!")
 		face_squash_bi = self.generator.find_bone_info(self.params.CR_jaw_squash_bone)
+		if not face_squash_bi:
+			self.raise_error("Squash Bone not found!")
 		lower_face_squasher = self.create_face_squasher(face_squash_bi, lower_face_bi, jaw_bi)
 		chin_bi = self.generator.find_bone_info(self.params.CR_jaw_chin_bone)
+		if not chin_bi:
+			self.raise_error("Chin Bone not found!")
 		mouth_bi = self.generator.find_bone_info(self.params.CR_jaw_mouth_bone)
+		if not chin_bi:
+			self.raise_error("Mouth Master Bone not found!")
 
 		lower_jaw = self.make_lower_jaw(jaw_bi, mouth_bi)
 
@@ -136,7 +144,11 @@ class CloudJawRig(CloudCopyRig):
 		}
 		self.add_ui_data("Face", "Teeth Follow Mouth", info, default=1.0)
 		teeth_upper_root = self.generator.find_bone_info(self.params.CR_jaw_teeth_upper_bone)
+		if not teeth_upper_root:
+			self.raise_error("Upper Teeth not found!")
 		teeth_lower_root = self.generator.find_bone_info(self.params.CR_jaw_teeth_lower_bone)
+		if not teeth_lower_root:
+			self.raise_error("Lower Teeth not found!")
 		teeth = [teeth_upper_root, teeth_lower_root]
 		arm_con = teeth_upper_root.add_constraint('ARMATURE'
 			,targets = [
