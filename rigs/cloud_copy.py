@@ -86,7 +86,6 @@ class CloudCopyRig(CloudBaseRig):
 			)
 		self.generator.bone_sets.append(my_bone_set)
 
-
 		if self.params.CR_copy_property_ui_subpanel:
 			self.add_ui_data_of_bone(bi
 				,self.params.CR_copy_property_ui_subpanel

@@ -226,7 +226,7 @@ class CloudLimbRig(CloudIKChainRig):
 		control_bone.head = new_loc
 		control_bone.vector = org_lower.vector * 0.3
 		control_bone.custom_shape_scale = 0.4
-		control_bone.roll_type = 'ACTIVE'
+		control_bone.roll_type = 'ALIGN'
 		control_bone.roll_bone = org_lower
 		control_bone.roll = rad(90)
 		self.lock_transforms(control_bone, scale=[True, False, True])

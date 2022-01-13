@@ -57,7 +57,8 @@ class CloudLegRig(CloudLimbRig):
 		properties_bone.head = head
 		properties_bone.tail = tail
 		properties_bone.length *= 0.6
-		properties_bone.roll_type = 'GLOBAL_POS_X'
+		properties_bone.roll_type = 'ALIGN'
+		properties_bone.roll_bone = self.bones_org[-2]
 		properties_bone.roll = 0
 		properties_bone.custom_shape = self.ensure_widget('Cogwheel')
 		properties_bone.parent = self.bones_org[-2]
@@ -114,7 +115,7 @@ class CloudLegRig(CloudLimbRig):
 		dsp_bone.tail = shoe_tip
 		dsp_bone.head.z = dsp_bone.tail.z
 		dsp_bone.length = 0.1 * self.scale
-		dsp_bone.roll_type = 'ACTIVE'
+		dsp_bone.roll_type = 'ALIGN'
 		dsp_bone.roll_bone = toe
 		dsp_bone.roll = rad(90) * direction
 
@@ -211,7 +212,7 @@ class CloudLegRig(CloudLimbRig):
 			,bbone_width  = 1/18
 			,head		  = head
 			,tail		  = tail
-			,roll_type	  = 'ACTIVE'
+			,roll_type	  = 'ALIGN'
 			,roll_bone	  = toe
 			,roll		  = 0
 			,parent		  = self.ik_mstr
@@ -246,7 +247,7 @@ class CloudLegRig(CloudLimbRig):
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
 			,roll		  = pi
-			,roll_type	  = 'ACTIVE'
+			,roll_type	  = 'ALIGN'
 			,roll_bone	  = self.bones_org[-1]
 			,parent		  = roll_master
 		)
@@ -268,7 +269,7 @@ class CloudLegRig(CloudLimbRig):
 				,head		 = b.tail.copy()
 				,tail		 = b.head.copy()
 				,roll		 = pi
-				,roll_type	 = 'ACTIVE'
+				,roll_type	 = 'ALIGN'
 				,roll_bone	 = b
 				,parent		 = heel_pivot
 				,custom_shape = self.ensure_widget("Circle_Spiked_2")

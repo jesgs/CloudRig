@@ -192,7 +192,7 @@ class CloudChainRig(CloudBaseRig):
 		main_str.align_in = main_str
 		main_str.align_out = main_str
 		if org_bone.prev and self.params.CR_chain_align_roll:
-			main_str.roll_type = 'ACTIVE'		# TODO: Setting bone rolls like this is expensive because we rely on bpy.ops.
+			main_str.roll_type = 'ALIGN'
 			main_str.roll_bone = org_bone.name
 			main_str.roll = 0
 			main_str.align_in = self.bone_sets['Mechanism Bones'].new(

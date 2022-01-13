@@ -56,7 +56,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 				,source = eye_bone
 				,tail = str_ctr.head.copy()
 				,parent = parent_rig.bones_org[0].parent
-				,roll_type = 'ACTIVE'
+				,roll_type = 'ALIGN'
 				,roll_bone = eye_bone
 				,roll = 0
 			)

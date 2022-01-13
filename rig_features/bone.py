@@ -9,6 +9,7 @@ from rna_prop_ui import rna_idprop_ui_create
 from ..utils.maths import flat
 from ..rig_features.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
+from rigify.utils.bones import align_bone_roll
 
 # These values should match Blender's defaults, otherwise they won't be written.
 edit_bone_properties = {
@@ -141,9 +142,10 @@ class BoneInfo:
 		self.use_custom_shape_bone_size = False
 
 		# Recalculate Roll
+		# TODO: Refactor this so that roll_type is gone, and just the existence of roll_bone or roll_vector indicates what should be done.
 		self.roll_type = ""				# This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
-		self.roll_bone = None			# If roll_type=='ACTIVE', use this as the active bone. This is a BoneInfo instance or a string.
-		self.roll_cursor = Vector()		# If roll_type=='CURSOR', use this as the cursor location.
+		self.roll_bone = None			# If roll_type=='ALIGN', use this as the bone to align with. This is a BoneInfo instance or a string. This is equivalent to the "Active Bone" alignment in Blender.
+		self.roll_vector = Vector()		# If roll_type=='VECTOR', use this as the vector that the Z axis should point towards. This is equivalent to "Align to Cursor" in Blender.
 
 		self._source = self
 
@@ -423,24 +425,17 @@ class BoneInfo:
 			make_property(eb, prop_name, **prop)
 
 		# Recalculate roll.
-		cursor_backup = context.scene.cursor.location.copy()
 		if self.roll_type != "":
-			bpy.ops.armature.select_all(action='DESELECT')
-			eb.select = True
-			if self.roll_type == 'ACTIVE':
-				active_bone = armature.data.edit_bones.get(str(self.roll_bone))
-				if not active_bone:
+			if self.roll_type == 'ALIGN':
+				align_bone = armature.data.edit_bones.get(str(self.roll_bone))
+				if not align_bone:
 					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
-					armature.data.edit_bones.active = active_bone
-			elif self.roll_type == 'CURSOR':
-				context.scene.cursor.location = self.roll_cursor
+					align_bone_roll(self.owner_rig.obj, eb.name, align_bone.name)
+			elif self.roll_type == 'VECTOR':
+				align_bone_z_axis(self.owner_rig.obj, eb.name, self.roll_vector)
 
-			# XXX PERFORMANCE: This is incredibly slow...
-			# And it runs way too many times for cloud_chain rigs with >1 segments, because of the align_in/out helper bones.
-			bpy.ops.armature.calculate_roll(type=self.roll_type)
 			eb.roll += self.roll
-			context.scene.cursor.location = cursor_backup
 
 	def write_pose_data(self, pose_bone: PoseBone):
 		"""Write relevant data of this BoneInfo into a PoseBone."""
