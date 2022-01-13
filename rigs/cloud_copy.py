@@ -100,8 +100,8 @@ class CloudCopyRig(CloudBaseRig):
 		if self.params.CR_copy_ensure_free:
 			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...
 				,bone_set = self.bone_sets['Mechanism Bones']
-				,parent_name = "CON-" + bi.name
 			)
+			constrained_parent.name = "CON-" + bi.name
 			constrained_parent.constraint_infos = bi.constraint_infos	# ...but we always take the constraints from the bone, not from the custom pivot!
 			bi.constraint_infos = []
 			self.root_bone = constrained_parent
