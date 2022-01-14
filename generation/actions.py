@@ -183,7 +183,7 @@ class ActionSlot(PropertyGroup):
 	######### Action Constraint Setup ##########
 	############################################
 	@property
-	def keyed_bones_names(self) -> [str]:
+	def keyed_bones_names(self) -> List[str]:
 		"""Return a list of bone names that have keyframes in the Action of this Slot."""
 		keyed_bones = []
 		for fc in self.action.fcurves:
@@ -247,10 +247,16 @@ class ActionSlot(PropertyGroup):
 	def setup_constraints_on_rig(self, rig: Object, property_bone_name: str):
 		# Iterate through bone names affected by the assigned action
 		for bn in self.keyed_bones_names:
+			subtarget = self.get_matching_side_control_name(bn)
+			if subtarget == bn:
+				# If the action has keyframes for the control bone,
+				# don't create that constraint, since it would be a dep cycle.
+				return
 			self.setup_constraints_of_bone(rig, bn, property_bone_name)
 
 	def setup_constraints_of_bone(self, rig: Object, bn: str, property_bone_name: str):
 		pb = rig.pose.bones.get(bn)
+
 		if not pb: return
 		constraints = self.create_constraints_of_bone(rig, pb)
 
@@ -565,6 +571,10 @@ class ActionSlot(PropertyGroup):
 			This is the frame which will be read when the transformation is at its default
 			(so 1.0 for scale and 0.0 for loc/rot)
 		"""
+		if self.is_corrective:
+			# This case is pretty easy...
+			return self.frame_start
+
 		frame_range = self.frame_end - self.frame_start
 		transform_range = self.trans_max - self.trans_min
 
