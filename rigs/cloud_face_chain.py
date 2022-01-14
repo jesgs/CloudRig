@@ -8,16 +8,17 @@ from .cloud_chain import CloudChainRig
 from .cloud_chain_anchor import CloudChainAnchorRig
 
 MERGE_THRESHOLD = 0.000001
+# TODO: Center merging probably doesn't work without an anchor, or when Smooth Spline is on. Need tests!
 
 def has_tangent_helpers(rig) -> bool:
-	return rig.params.CR_chain_smooth_spline and rig.params.CR_chain_bbone_density > 0
+	return rig.params.CR_chain_bbone_density > 0
 
-def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo):
+def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo, have_anchor: bool):
 	for str_bone in cluster:
 		rig = str_bone.owner_rig
 		str_bone.parent = intersection
 		str_bone.intersection_ctrl = intersection
-		if has_tangent_helpers(rig):
+		if has_tangent_helpers(rig) and not have_anchor:
 			str_bone.tangent_helper.constraint_infos[-1].subtarget = intersection.name
 			str_bone.tangent_helper.constraint_infos[-1].name = "Copy STR-I Transforms"
 			str_bone.tangent_helper.parent = intersection
@@ -199,7 +200,7 @@ class CloudFaceChainRig(CloudChainRig):
 			do_centered_cluster(cluster, intersection_control, have_anchor)
 
 		# Parent the bones
-		parent_cluster_to_intersection(cluster, intersection_control)
+		parent_cluster_to_intersection(cluster, intersection_control, have_anchor)
 
 		intersection_control.str_bones = cluster
 		return intersection_control
