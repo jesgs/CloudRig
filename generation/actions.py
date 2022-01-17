@@ -251,7 +251,7 @@ class ActionSlot(PropertyGroup):
 			if subtarget == bn:
 				# If the action has keyframes for the control bone,
 				# don't create that constraint, since it would be a dep cycle.
-				return
+				continue
 			self.setup_constraints_of_bone(rig, bn, property_bone_name)
 
 	def setup_constraints_of_bone(self, rig: Object, bn: str, property_bone_name: str):
