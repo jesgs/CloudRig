@@ -101,8 +101,10 @@ class CloudCopyRig(CloudBaseRig):
 				,bone_set = self.bone_sets['Mechanism Bones']
 			)
 			constrained_parent.name = "CON-" + bi.name
-			constrained_parent.constraint_infos = bi.constraint_infos	# ...but we always take the constraints from the bone, not from the custom pivot!
-			bi.constraint_infos = []
+			for con_info in bi.constraint_infos:
+				if 'LIMIT' not in con_info['type']:
+					constrained_parent.constraint_infos.append(con_info) # ...but we always take the constraints from the bone, not from the custom pivot!
+					bi.constraint_infos.remove(con_info)
 			self.root_bone = constrained_parent
 
 	def create_custom_pivot(self, boneinfo, bone_set=None):
@@ -177,7 +179,7 @@ class CloudCopyRig(CloudBaseRig):
 		)
 		params.CR_copy_ensure_free = BoolProperty(
 			name		 = "Ensure Free Transformation"
-			,description = "Create a parent which will have ALL constraints that this bone would have"
+			,description = "Create a parent which will have all non-Limit constraints that this bone would have"
 			,default	 = False
 		)
 		params.CR_copy_property_ui_subpanel = StringProperty(
