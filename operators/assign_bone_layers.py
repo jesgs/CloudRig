@@ -30,7 +30,10 @@ class CLOUDRIG_OT_layer_assign(Operator):
 		return wm.invoke_props_dialog(self)
 
 	def draw(self, context):
-		draw_layers_ui(self.layout, context.pose_object, show_hidden_checkbox=True, owner=self)
+		rig = context.pose_object
+		if not rig:
+			rig = context.object
+		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True, owner=self)
 
 	def execute(self, context):
 		return {'FINISHED'}
