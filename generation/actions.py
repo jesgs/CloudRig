@@ -319,10 +319,10 @@ class ActionSlot(PropertyGroup):
 		driver = fcurve.driver
 
 		trans_min, trans_max = self.get_min_max(subtarget)
-		trans_range = round(trans_max - trans_min, 2)
-		range_mid = round(trans_min + (trans_max - trans_min)/2, 2)
+		trans_range = round(trans_max - trans_min, 3)
+		range_mid = round(trans_min + (trans_max - trans_min)/2, 3)
 
-		expression = f'max(0, (var - {round(self.trans_min, 2)}) / {trans_range} )'
+		expression = f'max(0, (var - {round(self.trans_min, 3)}) / {trans_range} )'
 
 		if range_mid == 0.0:
 			# TODO: It's not clear why this is necessary, but without it, Snow's right eyelid twist goes nuts...
@@ -385,9 +385,9 @@ class ActionSlot(PropertyGroup):
 
 		trans_min, trans_max = self.get_min_max(key_block.name)
 
-		trans_range = round(trans_max - trans_min, 2)
+		trans_range = round(trans_max - trans_min, 3)
 
-		expression = f'(var - {round(self.trans_min, 2)}) / {trans_range}'
+		expression = f'(var - {round(self.trans_min, 3)}) / {trans_range}'
 
 		# Convert rotation to degrees as promised in the tooltip.
 		if 'ROTATION' in self.transform_channel:
