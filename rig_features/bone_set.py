@@ -507,12 +507,7 @@ class CLOUDRIG_UL_bone_set(UIList):
 			layout.alignment = 'CENTER'
 			layout.label(text=ui_bone_set.name)
 
-def register():
-	from bpy.utils import register_class
-	register_class(UIBoneSet)
-	register_class(CLOUDRIG_UL_bone_set)
-
-def unregister():
-	from bpy.utils import unregister_class
-	unregister_class(UIBoneSet)
-	unregister_class(CLOUDRIG_UL_bone_set)
+registry = [
+	UIBoneSet
+	,CLOUDRIG_UL_bone_set
+]

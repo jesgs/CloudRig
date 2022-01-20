@@ -18,6 +18,7 @@ bl_info = {
 	,'doc_url' : "https://gitlab.com/blender/CloudRig/"
 }
 
+from typing import List
 import importlib
 from bpy.utils import register_class, unregister_class
 
@@ -53,11 +54,12 @@ modules = [
 	rigs
 ]
 
-def register_unregister_modules(modules: [], register: bool):
+def register_unregister_modules(modules: List, register: bool):
 	register_func = register_class if register else unregister_class
 
 	for m in modules:
-		importlib.reload(m)
+		if register:
+			importlib.reload(m)
 		if hasattr(m, 'registry'):
 			for c in m.registry:
 				register_func(c)
@@ -82,7 +84,5 @@ def register():
 	register_unregister_modules(modules, True)
 
 def unregister():
-	return	# TODO: Currently, Rigify seems to somehow unregister our stuff before we do...
 	register_unregister_modules(modules, False)
-
 	del feature_sets.CloudRig
