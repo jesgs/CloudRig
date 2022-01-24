@@ -153,23 +153,27 @@ def add_ui_data(obj
 
 	# Create custom property.
 	prop_id = info['prop_id']
-	if 'default' not in custom_prop_dict:
-		custom_prop_dict['default'] = 0.0
-	if 'min' not in custom_prop_dict:
-		custom_prop_dict['min'] = 0
-	if 'max' not in custom_prop_dict:
-		custom_prop_dict['max'] = 1
+	make_custom_property(prop_bone, prop_id, **custom_prop_dict)
+
+def make_custom_property(prop_bone, prop_id, **kwargs):
+	if 'default' not in kwargs:
+		kwargs['default'] = 0.0
+	if 'min' not in kwargs:
+		kwargs['min'] = 0
+	if 'max' not in kwargs:
+		kwargs['max'] = 1
 
 	if type(prop_bone) == BoneInfo:
-		if 'overridable' not in custom_prop_dict:
-			custom_prop_dict['overridable'] = True
-		prop_bone.custom_props[prop_id] = custom_prop_dict
+		# Let this function work for BoneInfo objects during the generation process.
+		if 'overridable' not in kwargs:
+			kwargs['overridable'] = True
+		prop_bone.custom_props[prop_id] = kwargs
 	else:
 		if prop_id in prop_bone:
 			# If the property already exists, don't update it.
 			return
-		prop_bone[prop_id] = custom_prop_dict['default']
-		prop_bone.id_properties_ui(prop_id).update(**custom_prop_dict)
+		prop_bone[prop_id] = kwargs['default']
+		prop_bone.id_properties_ui(prop_id).update(**kwargs)
 		prop_bone.property_overridable_library_set(f'["{prop_id}"]', True)
 
 class HiddenPrints:

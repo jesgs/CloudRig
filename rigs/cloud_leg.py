@@ -1,4 +1,5 @@
 from typing import List
+
 from ..rig_features.bone import BoneInfo
 
 import bpy
@@ -11,6 +12,7 @@ from copy import deepcopy
 
 from .cloud_limb import CloudLimbRig
 from ..utils.maths import flat
+from ..rig_features.ui import make_custom_property
 
 class CloudLegRig(CloudLimbRig):
 	"""Limb rig with extra features for legs, such as foot roll."""
@@ -278,21 +280,29 @@ class CloudLegRig(CloudLimbRig):
 			ik_chain[i].parent = rik_bone
 
 			if i == 1:
-				rik_bone.add_constraint('TRANSFORM'
+				# Toe bone's roll
+				toe_roll_con = rik_bone.add_constraint('TRANSFORM'
 					,subtarget		= roll_ctrl.name
 					,map_from		= 'ROTATION'
 					,map_to			= 'ROTATION'
 					,from_min_x_rot	= rad(90)
 					,from_max_x_rot	= rad(166)
 					,to_min_x_rot   = rad(0)
-					,to_max_x_rot   = rad(169)
+					,to_max_x_rot   = rad(-169)
 					,from_min_z_rot	= rad(-60)
 					,from_max_z_rot	= rad(60)
-					,to_min_z_rot   = rad(10)
-					,to_max_z_rot   = rad(-10)
+					,to_min_z_rot   = rad(-10)
+					,to_max_z_rot   = rad(10)
 				)
+				toe_roll_prop_name = "Toe Roll Threshold"
+				make_custom_property(roll_ctrl, toe_roll_prop_name, default=rad(90), min=0, max=rad(180))
+				toe_roll_con.drivers.append({
+					'prop' : 'from_min_x_rot'
+					,'variables' : [(roll_ctrl.name, toe_roll_prop_name)]
+				})
 
 			if i == 0:
+				# Foot bone's roll
 				rik_bone.add_constraint('COPY_LOCATION'
 					,space			= 'WORLD'
 					,target			= self.obj
@@ -308,11 +318,11 @@ class CloudLegRig(CloudLimbRig):
 					,from_min_x_rot = rad(0)
 					,from_max_x_rot = rad(135)
 					,to_min_x_rot   = rad(0)
-					,to_max_x_rot   = rad(118)
+					,to_max_x_rot   = rad(-118)
 					,from_min_z_rot = rad(-45)
 					,from_max_z_rot = rad(45)
-					,to_min_z_rot   = rad(25)
-					,to_max_z_rot   = rad(-25)
+					,to_min_z_rot   = rad(-25)
+					,to_max_z_rot   = rad(25)
 				)
 				rik_bone.add_constraint('TRANSFORM'
 					,name = "Transformation CounterRoll"
@@ -322,7 +332,7 @@ class CloudLegRig(CloudLimbRig):
 					,from_min_x_rot = rad(90)
 					,from_max_x_rot = rad(135)
 					,to_min_x_rot   = rad(0)
-					,to_max_x_rot   = rad(-31.8)
+					,to_max_x_rot   = rad(31.8)
 				)
 
 		# Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
