@@ -111,10 +111,11 @@ class CloudJawRig(CloudCopyRig):
 
 	def create_face_squasher(self, face_squash_bi, lower_face_bi, jaw_bi) -> BoneInfo:
 		lower_face_squasher = self.bone_sets['Jaw Controls'].new(
-			name = "SQ-" + lower_face_bi.name
+			name = "SQ-" + face_squash_bi.name
 			,source = face_squash_bi
 			,roll = face_squash_bi.roll	# TODO: I don't think this matters.
 			,parent = lower_face_bi
+			,custom_shape = self.ensure_widget('Curve_Handle')
 		)
 		lower_face_squasher.reverse()
 		stretch_con = lower_face_squasher.add_constraint('STRETCH_TO'
