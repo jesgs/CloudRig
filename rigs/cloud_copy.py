@@ -102,7 +102,7 @@ class CloudCopyRig(CloudBaseRig):
 			)
 			constrained_parent.name = "CON-" + bi.name
 			for con_info in reversed(bi.constraint_infos):
-				if 'LIMIT' not in con_info['type']:
+				if 'KEEP' not in con_info['name']:
 					constrained_parent.constraint_infos.append(con_info) # ...but we always take the constraints from the bone, not from the custom pivot!
 					bi.constraint_infos.remove(con_info)
 			self.root_bone = constrained_parent
