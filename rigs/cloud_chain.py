@@ -191,7 +191,7 @@ class CloudChainRig(CloudBaseRig):
 		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
 		main_str.align_in = main_str
 		main_str.align_out = main_str
-		if org_bone.prev and self.params.CR_chain_align_roll:
+		if org_bone.prev and self.params.CR_chain_align_roll and not self.params.CR_chain_sharp:
 			main_str.roll_type = 'ALIGN'
 			main_str.roll_bone = org_bone.name
 			main_str.roll = 0
