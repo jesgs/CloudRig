@@ -99,6 +99,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,source		= bone
 			,parent		= bone
 		)
+		bone.custom_shape_transform = fk_child_bone
 
 		bone.flatten()
 
