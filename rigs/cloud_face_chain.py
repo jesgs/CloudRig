@@ -11,7 +11,7 @@ MERGE_THRESHOLD = 0.000001
 # TODO: Center merging probably doesn't work without an anchor, or when Smooth Spline is on. Need tests!
 
 def has_tangent_helpers(rig) -> bool:
-	return rig.params.CR_chain_bbone_density > 0
+	return rig.params.CR_chain_smooth_spline and rig.params.CR_chain_bbone_density > 0
 
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo, have_anchor: bool):
 	for str_bone in cluster:
