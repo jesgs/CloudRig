@@ -230,6 +230,8 @@ class CloudJawRig(CloudCopyRig):
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 
+		layout.label(text="The cloud_jaw rig type is still in experimental stage.")
+		layout.label(text="Compatibility will break, don't use for anything serious!")
 		cls.draw_prop_search(layout.row(), params, "CR_jaw_lower_face_bone", context.object.data, "bones")
 		cls.draw_prop_search(layout.row(), params, "CR_jaw_squash_bone", context.object.data, "bones")
 		cls.draw_prop_search(layout.row(), params, "CR_jaw_chin_bone", context.object.data, "bones")
