@@ -158,8 +158,12 @@ class CloudFaceChainRig(CloudChainRig):
 		if hasattr(relink_bone, 'intersection_ctrl'):
 			relink_bone = relink_bone.intersection_ctrl
 
-		if con.type == 'ARMATURE' and not hasattr(relink_bone, "parent_helper"):
-			relink_bone = relink_bone.parent_helper = self.create_parent_bone(relink_bone, self.bones_mch)
+		if con.type == 'ARMATURE':
+			if not hasattr(relink_bone, "parent_helper"):
+				relink_bone = relink_bone.parent_helper = self.create_parent_bone(relink_bone, self.bones_mch)
+			else:
+				relink_bone = relink_bone.parent_helper
+				print("SKIPPED " + relink_bone.parent_helper.name)
 
 		return relink_bone
 

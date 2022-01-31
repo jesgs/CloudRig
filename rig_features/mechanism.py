@@ -191,6 +191,7 @@ def create_parent_bone(child, bone_set=None):
 	)
 
 	child.parent = parent_bone
+	child.parent_helper = parent_bone
 	return parent_bone
 
 def create_dsp_bone(parent, bone_set):
