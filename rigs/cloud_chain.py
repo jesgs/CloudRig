@@ -387,10 +387,11 @@ class CloudChainRig(CloudBaseRig):
 				,target_space = 'LOCAL_OWNER_ORIENT'
 			)
 		else:
-			handle_bone.add_constraint('COPY_TRANSFORMS'
-				,subtarget = str_bone.name
-				,space = 'WORLD'
-			)
+			handle_bone.parent = str_bone
+			# handle_bone.add_constraint('COPY_TRANSFORMS'
+			# 	,subtarget = str_bone.name
+			# 	,space = 'WORLD'
+			# )
 
 		return handle_bone
 
