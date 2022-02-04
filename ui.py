@@ -97,9 +97,16 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
 				return True
 	return False
 
-advanced_panel_parent = "DATA_PT_rigify_buttons"
-if not hasattr(bpy.types, advanced_panel_parent):
+# Find the correct Rigify UI classes, accounting for their historical names for backwards comp.
+if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
+	rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
+	advanced_panel_parent = "DATA_PT_rigify_buttons"
+elif hasattr(bpy.types, 'DATA_PT_rigify_generate'):
+	rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
 	advanced_panel_parent = "DATA_PT_rigify_generate"
+else:
+	rigify_generate_ui = bpy.types.DATA_PT_rigify
+	advanced_panel_parent = "DATA_PT_rigify"
 
 class CLOUDRIG_PT_generator_advanced(Panel):
 	bl_space_type = 'PROPERTIES'
@@ -305,10 +312,6 @@ registry = [
 ]
 
 # Restore Rigify panels' draw functions.
-if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
-	rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
-else:
-	rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
 
 def register():
 	# Hijack Rigify panels' draw functions.
