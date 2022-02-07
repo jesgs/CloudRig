@@ -685,6 +685,8 @@ class CloudGenerator(Generator):
 			if vg_name not in vgroup_map:
 				continue
 			pb = pbones.get(bi.name)
+			if pb.enable_bone_gizmo:
+				continue
 			assert pb
 
 			gizmo_props = pb.bone_gizmo
@@ -724,15 +726,12 @@ class CloudGenerator(Generator):
 
 		# Save Custom Gizmo settings
 		if self.use_gizmos:
+			gizmo_properties_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py('BoneGizmoProperties')
 			for old_pb in old_rig.pose.bones:
 				new_pb = new_rig.pose.bones.get(old_pb.name)
-				if not new_pb: continue
-
-				from_params = old_pb.get('bone_gizmo')
-				if from_params:
-					param_dict = from_params.to_dict()
-				new_pb['bone_gizmo'] = from_params
-				new_pb.enable_bone_gizmo = old_pb.enable_bone_gizmo
+				for key in gizmo_properties_class.__annotations__.keys():
+					value = getattr(old_pb.bone_gizmo, key)
+					setattr(new_pb.bone_gizmo, key, value)
 
 		# Remove old rig from all of its collections, and link the new rig to them.
 		for coll in new_rig.users_collection:
@@ -943,16 +942,16 @@ class CloudGenerator(Generator):
 		# Only leave Force Widget Update enabled until the next generation.
 		self.params.rigify_force_widget_update = False
 
-		if self.params.cloudrig_parameters.auto_setup_gizmos and self.use_gizmos:
-			self.auto_initialize_gizmos()
-
 		self.execute_custom_script()
 
 		if old_rig:
 			self.replace_old_with_new_rig(old_rig, obj)
 		else:
 			obj.name = obj.name.replace("NEW-", "")
-		
+
+		if self.params.cloudrig_parameters.auto_setup_gizmos and self.use_gizmos:
+			self.auto_initialize_gizmos()
+
 		self.create_action_shape_key_drivers()
 
 		self.params.rigify_target_rig = obj

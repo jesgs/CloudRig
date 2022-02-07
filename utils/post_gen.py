@@ -4,7 +4,10 @@ post-generation scripts.
 """
 
 import bpy
+from typing import List
+from bpy.types import Object
 from rna_prop_ui import rna_idprop_ui_prop_update
+from ..rig_features.object import get_object_hierarchy_recursive
 
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
@@ -137,3 +140,58 @@ def GLOBAL_rename_obdatas():
 		data_name = "Data_"+o.name
 		if o.data.name != data_name:
 			o.data.name = data_name
+
+def auto_assign_bone_gizmo_maps(old_rig, new_rig, layers: List[int]):
+	"""Auto-assign vertex groups/face maps for the Bone Gizmo addon for entire rig."""
+
+	obs = get_object_hierarchy_recursive(old_rig)[1:]
+	for pb in new_rig.pose.bones:
+		if pb.enable_bone_gizmo:
+			continue
+		for i, l in enumerate(pb.bone.layers):
+			if l and i in layers:
+				break
+		else:
+			continue
+
+		auto_assign_bone_gizmo(pb, obs, debug='Finger_Index1' in pb.name)
+
+def auto_assign_bone_gizmo(pb, obs: List[Object], debug=False):
+	"""Auto-assign vgroups/facemaps for the Bone Gizmo addon for a single bone.
+	This is done based on a naming convention basis, with these priorities:
+	1. Face map matching the bone's name.
+	2. Vertex group matching the name `BG_{bone_name}` (for "BoneGizmo").
+	3. Vertex group matching the name `FM_{bone_name}` (for "FaceMap").
+	4. Vertex group matching the bone's name.
+	"""
+	for ob in obs:
+		if ob.type != 'MESH':
+			continue
+		if debug:
+			print(pb.name)
+			print("aaaaa")
+		if pb.name in ob.data.face_maps:
+			pb.enable_bone_gizmo = True
+			pb.bone_gizmo.shape_object = ob
+			pb.bone_gizmo.use_face_map = True
+			pb.bone_gizmo.face_map_name = pb.name
+			return
+
+		for prefix in ["BG_", "FM_", ""]:
+			prefixed_name = prefix+pb.name
+			if debug: 
+				print("prefixed name:", prefixed_name)
+			if prefixed_name in ob.vertex_groups:
+				print("great success")
+				pb.enable_bone_gizmo = True
+				pb.bone_gizmo.shape_object = ob
+				pb.bone_gizmo.use_face_map = False
+				pb.bone_gizmo.vertex_group_name = prefixed_name
+				return
+
+		def_name = "DEF-" + pb.name.split("-")[-1]
+		if def_name in ob.vertex_groups:
+			pb.enable_bone_gizmo = True
+			pb.bone_gizmo.shape_object = ob
+			pb.bone_gizmo.use_face_map = False
+			pb.bone_gizmo.vertex_group_name = def_name
