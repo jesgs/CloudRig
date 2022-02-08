@@ -154,9 +154,9 @@ def auto_assign_bone_gizmo_maps(old_rig, new_rig, layers: List[int]):
 		else:
 			continue
 
-		auto_assign_bone_gizmo(pb, obs, debug='Finger_Index1' in pb.name)
+		auto_assign_bone_gizmo(pb, obs)
 
-def auto_assign_bone_gizmo(pb, obs: List[Object], debug=False):
+def auto_assign_bone_gizmo(pb, obs: List[Object]):
 	"""Auto-assign vgroups/facemaps for the Bone Gizmo addon for a single bone.
 	This is done based on a naming convention basis, with these priorities:
 	1. Face map matching the bone's name.
@@ -167,9 +167,6 @@ def auto_assign_bone_gizmo(pb, obs: List[Object], debug=False):
 	for ob in obs:
 		if ob.type != 'MESH':
 			continue
-		if debug:
-			print(pb.name)
-			print("aaaaa")
 		if pb.name in ob.data.face_maps:
 			pb.enable_bone_gizmo = True
 			pb.bone_gizmo.shape_object = ob
@@ -179,10 +176,7 @@ def auto_assign_bone_gizmo(pb, obs: List[Object], debug=False):
 
 		for prefix in ["BG_", "FM_", ""]:
 			prefixed_name = prefix+pb.name
-			if debug: 
-				print("prefixed name:", prefixed_name)
 			if prefixed_name in ob.vertex_groups:
-				print("great success")
 				pb.enable_bone_gizmo = True
 				pb.bone_gizmo.shape_object = ob
 				pb.bone_gizmo.use_face_map = False
