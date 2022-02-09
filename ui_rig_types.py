@@ -1,6 +1,14 @@
 import bpy
 from .utils.misc import find_rig_class
 
+def get_active_pose_bone(context):
+	"""Return the PoseBone of the active bone. Can be None."""
+	posebone = context.active_pose_bone
+	if not posebone:
+		bone = context.active_bone
+		posebone = context.object.pose.bones.get(bone.name)
+	return posebone
+
 class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
@@ -12,9 +20,11 @@ class CloudParamSubPanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		pb = context.active_pose_bone
+		pb = get_active_pose_bone(context)
+		if not pb:
+			return False
 		rig_class = find_rig_class(pb.rigify_type)
-		if not rig_class or not pb:
+		if not rig_class:
 			return False
 		if not hasattr(rig_class, cls.draw_function_name):
 			return False

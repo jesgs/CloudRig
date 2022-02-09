@@ -10,6 +10,7 @@ from rigify.ui import build_type_list
 from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
 from .utils.misc import check_addon
+from .ui_rig_types import get_active_pose_bone
 
 rigify_has_advanced_panel = hasattr(rigify.ui, 'DATA_PT_rigify_generate_advanced')
 
@@ -268,8 +269,8 @@ def draw_cloud_layer_names(self, context):
 
 def draw_rigify_types(self, context):
 	id_store = context.window_manager
-	bone = context.active_pose_bone
-	rig_name = context.active_pose_bone.rigify_type
+	posebone = get_active_pose_bone(context)
+	rig_name = posebone.rigify_type
 
 	if 'cloud_' not in rig_name:
 		return self.draw_old(context)
@@ -285,7 +286,7 @@ def draw_rigify_types(self, context):
 		row = layout.row()
 		row.prop(context.object.data, "active_feature_set")
 	row = layout.row()
-	row.prop_search(bone, "rigify_type", id_store, "rigify_types", text="Rig type")
+	row.prop_search(posebone, "rigify_type", id_store, "rigify_types", text="Rig type")
 
 	# Rig type parameters / Rig type non-exist alert
 	if rig_name != "":
@@ -305,7 +306,7 @@ def draw_rigify_types(self, context):
 				col.label(text="No options")
 			else:
 				col = layout.column()
-				rig.parameters_ui(layout, bone.rigify_parameters)
+				rig.parameters_ui(layout, posebone.rigify_parameters)
 
 registry = [
 	CLOUDRIG_PT_generator_advanced
