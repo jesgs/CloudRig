@@ -1517,6 +1517,8 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 			for prop_id in sorted(prop_owner.keys()):
 				if prop_id.startswith("_"): continue
 				if prop_id in props_done: continue
+				addon_props = {prop.identifier for prop in prop_owner.bl_rna.properties if prop.is_runtime}
+				if prop_id in addon_props: continue
 
 				add_prop(layout, prop_owner, prop_id)
 
