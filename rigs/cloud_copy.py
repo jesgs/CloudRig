@@ -101,7 +101,7 @@ class CloudCopyRig(CloudBaseRig):
 				,bone_set = self.bone_sets['Mechanism Bones']
 			)
 			constrained_parent.name = "CON-" + bi.name
-			for con_info in reversed(bi.constraint_infos):
+			for con_info in bi.constraint_infos[:]:
 				if 'KEEP' not in con_info['name']:
 					constrained_parent.constraint_infos.append(con_info) # ...but we always take the constraints from the bone, not from the custom pivot!
 					bi.constraint_infos.remove(con_info)
@@ -179,7 +179,7 @@ class CloudCopyRig(CloudBaseRig):
 		)
 		params.CR_copy_ensure_free = BoolProperty(
 			name		 = "Ensure Free Transformation"
-			,description = "Create a parent which will have all non-Limit constraints that this bone would have"
+			,description = 'Create a parent which will have all constraints that this bone would have, unless the constraint name starts with "KEEP"'
 			,default	 = False
 		)
 		params.CR_copy_property_ui_subpanel = StringProperty(
@@ -195,8 +195,8 @@ class CloudCopyRig(CloudBaseRig):
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		cls.draw_prop(layout, params, 'CR_copy_custom_pivot')
-		cls.draw_prop(layout, params, 'CR_copy_ensure_free')
 		cls.draw_prop(layout, params, 'CR_copy_create_deform')
+		cls.draw_prop(layout, params, 'CR_copy_ensure_free')
 
 	@classmethod
 	def draw_custom_prop_params(cls, layout, context, params):
@@ -204,7 +204,9 @@ class CloudCopyRig(CloudBaseRig):
 		layout.separator()
 
 		cls.draw_prop(layout, params, 'CR_copy_property_ui_subpanel')
-		cls.draw_prop(layout, params, 'CR_copy_property_ui_label')
+		row = layout.row()
+		row.enabled = bool(params.CR_copy_property_ui_subpanel)
+		cls.draw_prop(row, params, 'CR_copy_property_ui_label')
 		return layout
 
 	@classmethod
