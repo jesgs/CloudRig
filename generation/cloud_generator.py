@@ -671,6 +671,8 @@ class CloudGenerator(Generator):
 		contains the neccessary data.
 		This is not done on a per-bone basis due to performance.
 		"""
+		# This function just gives terrible results.
+		return
 		rig = self.metarig.data.rigify_target_rig
 		object_candidates = rig.children[:]
 
@@ -729,6 +731,7 @@ class CloudGenerator(Generator):
 			gizmo_properties_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py('BoneGizmoProperties')
 			for old_pb in old_rig.pose.bones:
 				new_pb = new_rig.pose.bones.get(old_pb.name)
+				new_pb.enable_bone_gizmo = old_pb.enable_bone_gizmo
 				for key in gizmo_properties_class.__annotations__.keys():
 					value = getattr(old_pb.bone_gizmo, key)
 					setattr(new_pb.bone_gizmo, key, value)
