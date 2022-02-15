@@ -1,9 +1,8 @@
-from bpy.types import (Operator, UILayout, Object, Panel,
+from bpy.types import (UILayout, Object,
 		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
 		BONE_PT_rigify_buttons)
 import bpy
 
-import rigify
 from rigify import rig_lists, feature_sets, feature_set_list
 from rigify.ui import build_type_list
 
@@ -11,8 +10,6 @@ from .generation.cloudrig import draw_layers_ui
 from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
 from .utils.misc import check_addon
 from .ui_rig_types import get_active_pose_bone
-
-rigify_has_advanced_panel = hasattr(rigify.ui, 'DATA_PT_rigify_generate_advanced')
 
 def draw_version_check(layout: UILayout) -> bool:
 	""" Compare Blender version number to current lowest supported
@@ -58,9 +55,6 @@ def draw_cloudrig_rigify_generate(self, context):
 
 	cloudrig = metarig.data.cloudrig_parameters
 
-	# Basic Parameters
-	layout.prop(metarig.data, "rigify_target_rig")
-	layout.prop(cloudrig, "widget_collection")
 
 def draw_rigify_header(self, context):
 	layout = self.layout
@@ -97,77 +91,6 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
 			if 'cloud_fk_chain' in str(rig_module.mro()):
 				return True
 	return False
-
-# Find the correct Rigify UI classes, accounting for their historical names for backwards comp.
-if hasattr(bpy.types, 'DATA_PT_rigify_buttons'):	# TODO: Remove when dropping Blender 3.0 compatibility.
-	rigify_generate_ui = bpy.types.DATA_PT_rigify_buttons
-	advanced_panel_parent = "DATA_PT_rigify_buttons"
-elif hasattr(bpy.types, 'DATA_PT_rigify_generate'):
-	rigify_generate_ui = bpy.types.DATA_PT_rigify_generate
-	advanced_panel_parent = "DATA_PT_rigify_generate"
-else:
-	rigify_generate_ui = bpy.types.DATA_PT_rigify
-	advanced_panel_parent = "DATA_PT_rigify"
-
-class CLOUDRIG_PT_generator_advanced(Panel):
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = 'data'
-	bl_label = "Advanced"
-	bl_parent_id = advanced_panel_parent
-	bl_options = {'DEFAULT_CLOSED'}
-
-	@classmethod
-	def poll(cls, context):
-		obj = context.object
-		return not rigify_has_advanced_panel and \
-			is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
-
-	def draw(self, context):
-		layout = self.layout
-		layout.use_property_split=True
-		layout.use_property_decorate=False
-		layout = layout.column()
-
-		obj = context.object
-		cloudrig = obj.data.cloudrig_parameters
-
-		layout.prop(cloudrig, 'advanced_mode')
-		layout.separator()
-
-		# Bone Group Color Parameters
-		layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
-		if obj.data.rigify_colors_lock:
-			layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
-			layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
-			layout.separator()
-
-		### Root Bone Parameters
-		layout.prop(cloudrig, 'create_root')
-		if cloudrig.create_root and cloudrig.advanced_mode:
-				layout.prop(cloudrig, 'double_root')
-				layout.separator()
-
-		# Test Animation Parameters
-		if metarig_contains_fk_chain(obj):
-			heading = "Generate Action"
-			if cloudrig.test_action:
-				heading = "Update Action"
-			act_row = layout.row(heading=heading)
-			act_row.prop(cloudrig, 'generate_test_action', text="")
-			act_col = act_row.column()
-			act_col.prop(cloudrig, 'test_action', text="")
-			act_col.enabled = cloudrig.generate_test_action
-
-		layout.prop(obj.data, 'rigify_force_widget_update')
-
-		if not cloudrig.advanced_mode:
-			return
-
-		layout.prop(obj.data, 'rigify_rig_ui')
-		layout.prop(obj.data, 'rigify_finalize_script')
-		if check_addon(context, 'bone_gizmos'):
-			layout.prop(cloudrig, 'auto_setup_gizmos')
 
 def extend_rigify_advanced_panel(self, context):
 	"""For newer versions of Rigify (starting with Blender 3.1 I think), 
@@ -308,19 +231,13 @@ def draw_rigify_types(self, context):
 				col = layout.column()
 				rig.parameters_ui(layout, posebone.rigify_parameters)
 
-registry = [
-	CLOUDRIG_PT_generator_advanced
-]
-
-# Restore Rigify panels' draw functions.
+rigify_generate_ui = bpy.types.DATA_PT_rigify
 
 def register():
 	# Hijack Rigify panels' draw functions.
-	rigify_generate_ui.draw_old = rigify_generate_ui.draw
 	rigify_generate_ui.draw = draw_cloudrig_rigify_generate
 
-	if rigify_has_advanced_panel:
-		bpy.types.DATA_PT_rigify_generate_advanced.append(extend_rigify_advanced_panel)
+	bpy.types.DATA_PT_rigify_advanced.append(extend_rigify_advanced_panel)
 
 	DATA_PT_rigify_bone_groups.poll_old = DATA_PT_rigify_bone_groups.poll
 	DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
@@ -335,8 +252,8 @@ def register():
 	BONE_PT_rigify_buttons.draw = draw_rigify_types
 
 def unregister():
-	if rigify_has_advanced_panel:
-		bpy.types.DATA_PT_rigify_generate_advanced.remove(extend_rigify_advanced_panel)
+	# Restore Rigify panels' draw functions.
+	bpy.types.DATA_PT_rigify_advanced.remove(extend_rigify_advanced_panel)
 	rigify_generate_ui.draw = rigify_generate_ui.draw_old
 	DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
 	DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old

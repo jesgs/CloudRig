@@ -1,8 +1,8 @@
 rigify_info = {
 	'name': "CloudRig"
 	,'author': "Demeter Dzadik"
-	,'version': (0, 0, 7)
-	,'blender': (3, 0, 0)	# This should be the lowest Blender version that is currently compatible.
+	,'version': (0, 0, 8)
+	,'blender': (3, 2, 0)	# This should be the lowest Blender version that is currently compatible.
 	,'description': "Feature set developed by the Blender Animation Studio"
 	,'doc_url': "https://gitlab.com/blender/CloudRig/-/wikis/"
 	,'link': "https://gitlab.com/blender/CloudRig/"
