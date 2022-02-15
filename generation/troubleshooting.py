@@ -607,7 +607,8 @@ class CLOUDRIG_PT_log(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
-	bl_label = "Rigify Log"
+	bl_label = "Generation Log"
+	bl_parent_id = "DATA_PT_rigify"
 	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod

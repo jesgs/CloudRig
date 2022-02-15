@@ -624,7 +624,8 @@ class CLOUDRIG_PT_actions(Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
-	bl_label = "Rigify Actions"
+	bl_label = "Actions"
+	bl_parent_id = "DATA_PT_rigify"
 	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod

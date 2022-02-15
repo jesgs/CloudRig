@@ -145,6 +145,8 @@ def rigify_bone_groups_poll(cls, context):
 		for b in context.object.pose.bones:
 			if b.rigify_type != "" and 'cloud' not in b.rigify_type:
 				return True
+		else:
+			return False
 	return bpy.types.DATA_PT_rigify_bone_groups.poll_old(context)
 
 def draw_cloud_layer_names(self, context):
