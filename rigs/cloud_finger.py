@@ -136,6 +136,26 @@ class CloudFingerRig(CloudIKChainRig):
 
 		return ik2_chain
 
+	def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+		"""Overrides cloud_ik_chain"""
+		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
+
+		# It's quite strange to be creating an extra helper bone in this function,
+		# but we need it for correct snapping in this case.
+		tip_str = self.main_str_bones[-1]
+		snap_helper = self.bone_sets['Mechanism Bones'].new(
+			source = tip_str
+			,parent = tip_str
+			,name = "SNAP-"+ik_mstr.name
+			,use_inherit_rotation = False
+		)
+
+		map_on = [
+			(ik_mstr.name, snap_helper.name)
+		]
+
+		ui_data["map_on"] = map_on
+		return ui_data
 class Rig(CloudFingerRig):
 	pass
 
