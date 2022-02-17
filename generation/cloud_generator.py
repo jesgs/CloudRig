@@ -61,11 +61,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,type		 = bpy.types.Text
 		,description = "Execute a python script after the rig is generated"
 	)
-	widget_collection: PointerProperty(
-		name		 = "Widgets Collection"
-		,type		 = bpy.types.Collection
-		,description = "Collection in which widgets will be placed"
-	)
 
 	generate_test_action: BoolProperty(
 		name		 = "Generate Test Action"
@@ -188,7 +183,7 @@ class CloudGenerator(Generator):
 				print("Rigify compatible generation enabled.")
 				break
 
-		self.use_gizmos = check_addon(context, 'bone_gizmos')
+		self.use_gizmos = check_addon(context, 'bone_gizmos') and self.params.cloudrig_parameters.auto_setup_gizmos
 
 		# Check if Selection Sets addon is enabled
 		self.do_sel_sets = check_addon(context, 'bone_selection_sets')
@@ -403,32 +398,6 @@ class CloudGenerator(Generator):
 				bone_set.active = self.params.rigify_selection_colors.active
 
 			bone_set.ensure_bone_group(self.obj, overwrite=True)
-
-	### Widget management
-	def ensure_widget_collection(self, context):
-		"""Find or create the collection where rig widgets should be stored."""
-
-		# Rigify compatibility...
-		self.new_widget_table ={}
-
-		widget_collection = self.params.cloudrig_parameters.widget_collection
-		if widget_collection:
-			return widget_collection
-
-		coll_name = "widgets_" + self.obj.name.replace("RIG-", "").replace("NEW-", "").lower()
-
-		# Try finding the widgets collection anywhere.
-		widget_collection = bpy.data.collections.get(coll_name)
-
-		if not widget_collection:
-			# Create a Widgets collection within the master collection.
-			widget_collection = bpy.data.collections.new(coll_name)
-			context.scene.collection.children.link(widget_collection)
-			self.params.cloudrig_parameters.widget_collection = widget_collection
-
-		widget_collection.hide_viewport = True
-		widget_collection.hide_render = True
-		return widget_collection
 
 	def ensure_widget(self, widget_name):
 		wgt = cloud_widgets.ensure_widget(
@@ -854,8 +823,8 @@ class CloudGenerator(Generator):
 
 		self.defaults['rig'] = obj
 
-		# Collection to store bone widgets
-		self.widget_collection = self.ensure_widget_collection(context)
+		# Create Widget Collection
+		self.ensure_widget_collection()
 
 		redraw_viewport()
 
