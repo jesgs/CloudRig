@@ -12,8 +12,6 @@ def set_context_attr(context, data_path, value):
 class GenericUIListOperator(Operator):
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Sadly operators don't seem to inherit parameters, so this
-	# has no use beside being the source of copy-pasting.
 	list_context_path: StringProperty()
 	active_idx_context_path: StringProperty()
 
@@ -31,9 +29,6 @@ class UILIST_OT_Entry_Remove(GenericUIListOperator):
 
 	bl_idname = "ui.list_entry_remove"
 	bl_label = "Remove Selected Entry"
-
-	list_context_path: StringProperty()
-	active_idx_context_path: StringProperty()
 
 	def execute(self, context):
 		my_list = self.get_list(context)
@@ -54,9 +49,6 @@ class UILIST_OT_Entry_Add(GenericUIListOperator):
 
 	bl_idname = "ui.list_entry_add"
 	bl_label = "Add Entry"
-
-	list_context_path: StringProperty()
-	active_idx_context_path: StringProperty()
 
 	def execute(self, context):
 		my_list = self.get_list(context)
@@ -104,16 +96,16 @@ class UILIST_OT_Entry_Move(GenericUIListOperator):
 		return { 'FINISHED' }
 
 def draw_ui_list(
-			layout
-			,context
-			,class_name = 'UI_UL_list'
-			,*	# Only keyword arguments from here.
-			,list_context_path = 'object.data.vertex_groups'
-			,active_idx_context_path = 'object.data.vertex_groups.active_index'
-			,insertion_operators = True
-			,move_operators = True
-			,menu_class_name = ''
-			,**kwargs
+			layout,
+			context,
+			class_name="UI_UL_list",
+			*,  # Only keyword arguments from here.
+			list_context_path,  # Eg. "object.vertex_groups".
+			active_idx_context_path,  # Eg., "object.vertex_groups.active_index".
+			insertion_operators=True,
+			move_operators=True,
+			menu_class_name="",
+			**kwargs,
 		) -> UILayout:
 	"""This is intended as a replacement for row.template_list().
 	By changing the requirements of the parameters, we can provide the Add, Remove and Move Up/Down operators
