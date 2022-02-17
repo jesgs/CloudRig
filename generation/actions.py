@@ -6,7 +6,7 @@ from bpy.types import (ID, Operator, UIList, PropertyGroup, Panel,
 					Armature, Action, Object, PoseBone, Constraint,
 					ShapeKey)
 from . import naming
-from ..rig_features.ui import is_cloud_metarig, is_advanced_mode
+from ..rig_features.ui import is_cloud_metarig
 from ..rig_features.object import get_object_hierarchy_recursive
 from ..utils.ui_list import draw_ui_list
 

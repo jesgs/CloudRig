@@ -1,6 +1,6 @@
 from bpy.types import (UILayout, Object,
 		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
-		BONE_PT_rigify_buttons)
+		BONE_PT_rigify_buttons, DATA_PT_rigify)
 import bpy
 
 from rigify import rig_lists, feature_sets, feature_set_list
@@ -38,7 +38,6 @@ def draw_cloudrig_rigify_generate(self, context):
 	metarig = context.object
 
 	if not is_cloud_metarig(metarig) or metarig.mode=='EDIT':
-		self.draw_old(context)
 		return
 
 	if metarig.mode not in {'POSE', 'OBJECT'}:
@@ -55,7 +54,6 @@ def draw_cloudrig_rigify_generate(self, context):
 
 	cloudrig = metarig.data.cloudrig_parameters
 
-
 def draw_rigify_header(self, context):
 	layout = self.layout
 
@@ -66,12 +64,8 @@ def draw_rigify_header(self, context):
 	layout.operator('object.cloudrig_metarig_toggle')
 
 	if context.mode == 'POSE':
-		try:
-			from rigify.operators.copy_mirror_parameters import draw_copy_mirror_ops
-			draw_copy_mirror_ops(self, context)
-		except ImportError:
-			# TODO: Remove this try/except once we're in Blender 3.1
-			pass
+		from rigify.operators.copy_mirror_parameters import draw_copy_mirror_ops
+		draw_copy_mirror_ops(self, context)
 
 	if context.mode == 'EDIT_ARMATURE':
 		layout.separator()
@@ -233,11 +227,10 @@ def draw_rigify_types(self, context):
 				col = layout.column()
 				rig.parameters_ui(layout, posebone.rigify_parameters)
 
-rigify_generate_ui = bpy.types.DATA_PT_rigify
-
 def register():
 	# Hijack Rigify panels' draw functions.
-	rigify_generate_ui.draw = draw_cloudrig_rigify_generate
+	DATA_PT_rigify.draw_old = DATA_PT_rigify.draw
+	DATA_PT_rigify.draw = draw_cloudrig_rigify_generate
 
 	bpy.types.DATA_PT_rigify_advanced.append(extend_rigify_advanced_panel)
 
@@ -256,7 +249,7 @@ def register():
 def unregister():
 	# Restore Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_advanced.remove(extend_rigify_advanced_panel)
-	rigify_generate_ui.draw = rigify_generate_ui.draw_old
+	DATA_PT_rigify.draw = DATA_PT_rigify.draw_old
 	DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
 	DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
 	VIEW3D_MT_rigify.draw = VIEW3D_MT_rigify.draw_old
