@@ -351,6 +351,11 @@ def draw_asset_rightclick_menu(self, context):
 		op = layout.operator(POSE_OT_assign_asset_as_widget.bl_idname)
 		op.ob_name = context.asset_file_handle.name
 
+def draw_button(self, context):
+	layout = self.layout
+	layout.operator(POSE_OT_toggle_edit_widget.bl_idname)
+	layout.operator(POSE_OT_make_widget_unique.bl_idname)
+
 registry = [
 	POSE_OT_toggle_edit_widget
 	,POSE_OT_make_widget_unique
@@ -360,11 +365,13 @@ registry = [
 def register():
 	bpy.types.ASSETBROWSER_MT_context_menu.append(draw_asset_rightclick_menu)
 
+	bpy.types.VIEW3D_MT_pose.append(draw_button)
 	bpy.types.Scene.is_widget_edit_mode = BoolProperty()
 	bpy.types.Scene.widget_edit_armature = StringProperty()
 
 def unregister():
 	bpy.types.ASSETBROWSER_MT_context_menu.remove(draw_asset_rightclick_menu)
 
+	bpy.types.VIEW3D_MT_pose.remove(draw_button)
 	del bpy.types.Scene.is_widget_edit_mode
 	del bpy.types.Scene.widget_edit_armature
