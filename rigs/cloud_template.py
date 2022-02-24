@@ -1,11 +1,12 @@
 from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
+from ..load_metarig import load_sample_by_file
 
 class CloudTemplateRig(CloudBaseRig):
 	"""Template for implementing rig types in CloudRig. Just creates a control bone."""
 
 	def initialize(self):
-		super().initialize()
+		pass
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -13,13 +14,14 @@ class CloudTemplateRig(CloudBaseRig):
 			self.make_ctr_bone(self.bones_org[0])
 
 	def make_ctr_bone(self, bone):
+		"""Simple control bone that owns the ORG bone."""
 		ctr_bone = self.bone_sets['Template Bones'].new(
 			name = bone.name.replace('ORG', "CTR")
 			,source = bone
 			,custom_shape = self.ensure_widget('Circle')
 			,parent = bone.parent
 		)
-		copy_trans = bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)
+		bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)
 		return ctr_bone
 
 	##############################
@@ -44,7 +46,6 @@ class CloudTemplateRig(CloudBaseRig):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		super().draw_control_params(layout, context, params)
 
 		cls.draw_prop(layout, params, 'CR_template_use_control')
 
@@ -52,8 +53,8 @@ class CloudTemplateRig(CloudBaseRig):
 # class Rig(CloudTemplateRig):
 # 	pass
 
-# For the rig type template to work, there must be an object in CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
-from ..load_metarig import load_sample_by_file
+# For the rig type template to work, there must be an object in 
+# CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
 
 def create_sample(obj):
 	load_sample_by_file(__file__)

@@ -10,8 +10,8 @@ rigify_info = {
 
 bl_info = {
 	'name' : "CloudRig is not an Addon!"
-	,'version' : (0, 0, 7)
-	,'blender' : (3, 0, 0)
+	,'version' : (0, 0, 8)
+	,'blender' : (3, 2, 0)
 	,'description' : "It should be installed as a Feature Set within the Rigify addon"
 	,'location': "Addons->Rigify->Feature Sets->Install Feature Set from File"
 	,'category': 'Rigging'

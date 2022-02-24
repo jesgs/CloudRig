@@ -8,6 +8,7 @@ from typing import List
 from bpy.types import Object
 from rna_prop_ui import rna_idprop_ui_prop_update
 from ..rig_features.object import get_object_hierarchy_recursive
+from ..rig_features.ui import add_ui_data	# Not used in this file, but nice to be able to access here from post-gen scripts.
 
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
