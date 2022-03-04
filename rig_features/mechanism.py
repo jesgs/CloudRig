@@ -18,9 +18,10 @@ class CloudMechanismMixin:
 	def find_rig_of_bone(pose_bone):
 		return find_rig_of_bone(pose_bone)
 
-	@staticmethod
-	def get_rigify_chain(pose_bone):
-		return get_rigify_chain(pose_bone)
+	@classmethod
+	def get_rigify_chain(cls, pose_bone):
+		connected = cls.chain_must_be_connected
+		return get_rigify_chain(pose_bone, connected)
 
 	@staticmethod
 	def get_object_scalar(obj):
@@ -118,7 +119,7 @@ def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
 
 	return find_rig_of_bone(pose_bone.parent)
 
-def get_rigify_chain(pose_bone) -> List[bpy.types.Bone]:
+def get_rigify_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 	"""Find the chain of bones constituting a rig element that this pose bone belongs to."""
 
 	# We start building a chain with the current bone, prepending bones as we go
@@ -144,7 +145,9 @@ def get_rigify_chain(pose_bone) -> List[bpy.types.Bone]:
 	while cur_pb and len(cur_pb.children)>0:
 		next_bone = None
 		for c in cur_pb.children:
-			if c.rigify_type=="" and c.bone.use_connect:
+			if c.rigify_type=="":
+				if connected and not c.bone.use_connect:
+					continue
 				if next_bone != None:
 					print(f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
 						\tChain could continue with either {next_bone.name} or {c.name}. \n

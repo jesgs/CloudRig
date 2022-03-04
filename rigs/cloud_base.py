@@ -50,6 +50,7 @@ class CloudBaseRig(
 	relinking_behaviour = ""
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
+	chain_must_be_connected = True
 
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main."""
