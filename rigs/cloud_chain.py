@@ -32,7 +32,7 @@ class CloudChainRig(CloudBaseRig):
 			self.bones_org[0].prev = self.bones_org[-1]
 			self.bones_org[-1].next = self.bones_org[0]
 
-		# Calculate total and average bone length
+		# Calculate total bone length
 		for org in self.bones_org:
 			self.chain_length += org.length
 

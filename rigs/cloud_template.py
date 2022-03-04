@@ -2,6 +2,8 @@ from bpy.props import BoolProperty
 from .cloud_base import CloudBaseRig
 from ..load_metarig import load_sample_by_file
 
+from ..rig_features.bone import BoneInfo
+
 class CloudTemplateRig(CloudBaseRig):
 	"""Template for implementing rig types in CloudRig. Just creates a control bone."""
 
@@ -13,7 +15,7 @@ class CloudTemplateRig(CloudBaseRig):
 		if self.params.CR_template_use_control:
 			self.make_ctr_bone(self.bones_org[0])
 
-	def make_ctr_bone(self, bone):
+	def make_ctr_bone(self, bone) -> BoneInfo:
 		"""Simple control bone that owns the ORG bone."""
 		ctr_bone = self.bone_sets['Template Bones'].new(
 			name = bone.name.replace('ORG', "CTR")

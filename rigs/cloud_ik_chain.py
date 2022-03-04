@@ -156,8 +156,7 @@ class CloudIKChainRig(CloudFKChainRig):
 	@staticmethod
 	def calculate_ik_info_static(
 			meta_first: PoseBone,
-			meta_second: PoseBone,
-			scale
+			meta_second: PoseBone
 		) -> Tuple[float, Vector, Vector]:
 
 		chain_vector = meta_second.tail - meta_first.head
@@ -217,7 +216,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		meta_second_name = self.bones_org[1].name.replace("ORG-", "")
 		meta_second = self.meta_bone(meta_second_name)
 
-		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second, self.scale)
+		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second)
 		self.pole_angle = pole_angle
 		self.pole_vector = pole_vector
 
@@ -773,7 +772,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		active_b = get_active_edit_or_pose_bone(context)
 		chain = self.get_bone_chain(context)
 
-		_pole_angle, pole_vector, _pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(metarig))
+		_pole_angle, pole_vector, _pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1])
 
 		# To create a Rotation that "points at" a Vector, we can use to_track_quat().
 		rot = pole_vector.to_track_quat('Z', 'Y')
@@ -798,7 +797,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		chain = CloudIKChainRig.get_rigify_chain(active_pb)
 		if context.mode == 'EDIT_ARMATURE':
 			chain = [context.object.data.edit_bones.get(b.name) for b in chain]
-		_pole_angle, _pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1], CloudIKChainRig.get_object_scalar(context.object))
+		_pole_angle, _pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1])
 
 		# active_pb = get_active_pbone(context)
 		# distance = active_pb.rigify_parameters.CR_GZ_ik_chain_pole_distance
