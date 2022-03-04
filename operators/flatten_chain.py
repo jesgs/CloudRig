@@ -9,11 +9,15 @@ from ..rig_features.mechanism import get_bone_chain
 from ..generation.troubleshooting import remove_active_log
 
 def is_chain_flat(chain: List[EditBone]) -> bool:
+	"""Determine whether a chain of bones is ideal for IK."""
 	coords = get_flattened_coords(chain)
 
 	THRESHOLD = 0.01
 	for i, eb in enumerate(chain):
 		head, tail = coords[i]
+		if not head:
+			# This happens when several bones are perfectly straight. intersect_line_plane() will return None.
+			continue
 		if (head - eb.head).length > THRESHOLD or (tail - eb.tail).length > THRESHOLD:
 			return False
 
