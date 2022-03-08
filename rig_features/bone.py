@@ -9,7 +9,7 @@ from rna_prop_ui import rna_idprop_ui_create
 from ..utils.maths import flat
 from ..rig_features.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
-from rigify.utils.bones import align_bone_roll
+from rigify.utils.bones import align_bone_roll, align_bone_z_axis
 
 # These values should match Blender's defaults, otherwise they won't be written.
 edit_bone_properties = {

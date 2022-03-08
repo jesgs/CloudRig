@@ -208,14 +208,11 @@ class CloudCurveRig(CloudBaseRig):
 		bone = self.obj.data.bones.get(boneinfo.name)
 		self.obj.data.bones.active = bone
 
-		# If the hook modifier already exists, remove it.
-		mod = curve_ob.modifiers.get(boneinfo.name)
-		if mod:
-			curve_ob.modifiers.remove(mod)
+		hook_m = curve_ob.modifiers.get(boneinfo.name)
+		if not hook_m:
+			# Add hook modifier
+			hook_m = curve_ob.modifiers.new(name=boneinfo.name, type='HOOK')
 
-		# Add hook modifier
-		old_modifiers = [m.name for m in curve_ob.modifiers]
-		hook_m = curve_ob.modifiers.new(name=boneinfo.name, type='HOOK')
 		hook_m.vertex_indices_set(indices)
 		hook_m.show_expanded = False
 		hook_m.show_in_editmode = True
@@ -223,9 +220,6 @@ class CloudCurveRig(CloudBaseRig):
 
 		hook_m.object = self.obj
 		hook_m.subtarget = boneinfo.name
-
-		for i in range(len(curve_ob.modifiers)):
-			bpy.ops.object.modifier_move_up(modifier=hook_m.name)
 
 	def configure_bones(self):
 		self.setup_curve(self.all_hooks)

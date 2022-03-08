@@ -55,7 +55,6 @@ def rename_bone(rig, name_from, name_to):
 		return
 	bone.name = name_to
 	replace_in_ui_data(rig, name_from, name_to)
-	replace_driver_var_path(rig, name_from, name_to)
 
 def rename_custom_property(rig, bone_name, name_from, name_to):
 	"""Rename a bone custom property, and account for all the things that could 

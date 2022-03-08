@@ -10,11 +10,13 @@ from datetime import datetime
 
 from rigify.generate import Generator, select_object
 from rigify import rig_ui_template
-from rigify.utils.layers import ORG_LAYER, MCH_LAYER, DEF_LAYER, ROOT_LAYER
-from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX, ROOT_NAME
+from rigify.utils.layers import ORG_LAYER, MCH_LAYER, DEF_LAYER
+from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX, change_name_side, get_name_side, Side
+
 from rigify.utils.errors import MetarigError
 from rigify.utils.bones import new_bone
 from rigify.utils.mechanism import refresh_all_drivers
+from rigify.utils.collections import ensure_collection
 from rigify.base_rig import BaseRig
 
 from ..rig_features.ui import redraw_viewport, is_cloud_metarig
@@ -783,6 +785,33 @@ class CloudGenerator(Generator):
 				,file_name = "cloudrig.py"
 				,datablock = metarig.data.rigify_rig_ui
 			)
+
+
+	def ensure_widget_collection(self):
+		"""Overrides Rigify's generator's function to avoid annoying object renaming."""
+		# Create/find widget collection
+		self.widget_collection = self.metarig.data.rigify_widgets_collection
+		if not self.widget_collection:
+			self.widget_collection = self.__find_legacy_collection()
+		if not self.widget_collection:
+			wgts_group_name = "WGTS_" + self.obj.name.replace("RIG-", "")
+			self.widget_collection = ensure_collection(self.context, wgts_group_name, hidden=True)
+
+		self.metarig.data.rigify_widgets_collection = self.widget_collection
+
+		self.use_mirror_widgets = self.metarig.data.rigify_mirror_widgets
+
+		# Build tables for existing widgets
+		self.old_widget_table = {}
+		self.new_widget_table = {}
+		self.widget_mirror_mesh = {}
+
+		# Find meshes for mirroring
+		if self.use_mirror_widgets:
+			for bone_name, widget in self.old_widget_table.items():
+				mid_name = change_name_side(bone_name, Side.MIDDLE)
+				if bone_name != mid_name:
+					self.widget_mirror_mesh[mid_name] = widget.data
 
 	def generate(self, context):
 		bpy.ops.object.mode_set(mode='OBJECT')
