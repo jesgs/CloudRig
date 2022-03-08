@@ -287,7 +287,7 @@ def version_cloud_metarig(metarig):
 				rigify_layer.name = ""
 	if data.cloudrig_parameters.version < 16:
 		print("16:")
-		if 'custom_script' in metarig.data.cloudrig_parameters:
+		if 'custom_script' in metarig.data.cloudrig_parameters and metarig.data.cloudrig_parameters['custom_script']:
 			metarig.data.rigify_finalize_script = metarig.data.cloudrig_parameters['custom_script']
 			del metarig.data.cloudrig_parameters['custom_script']
 			print("Set finalize script to Rigify property instead of the old CloudRig property.")
