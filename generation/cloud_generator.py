@@ -792,7 +792,7 @@ class CloudGenerator(Generator):
 		# Create/find widget collection
 		self.widget_collection = self.metarig.data.rigify_widgets_collection
 		if not self.widget_collection:
-			self.widget_collection = self.__find_legacy_collection()
+			self.widget_collection = self._Generator__find_legacy_collection()
 		if not self.widget_collection:
 			wgts_group_name = "WGTS_" + self.obj.name.replace("RIG-", "")
 			self.widget_collection = ensure_collection(self.context, wgts_group_name, hidden=True)
