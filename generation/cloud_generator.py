@@ -786,7 +786,6 @@ class CloudGenerator(Generator):
 				,datablock = metarig.data.rigify_rig_ui
 			)
 
-
 	def ensure_widget_collection(self):
 		"""Overrides Rigify's generator's function to avoid annoying object renaming."""
 		# Create/find widget collection
@@ -812,6 +811,20 @@ class CloudGenerator(Generator):
 				mid_name = change_name_side(bone_name, Side.MIDDLE)
 				if bone_name != mid_name:
 					self.widget_mirror_mesh[mid_name] = widget.data
+
+	def invoke_load_bone_infos(self):
+		"""Bit of a hacked-in additional stage to load BoneInfos before
+		prepare_bones. 
+		
+		This is needed only so that BoneInfo.children is correctly populated
+		with sub-rig-components during prepare_bones().
+
+		This makes sense to have from CloudRig's perspective, I just 
+		didn't find a nice way to add an extra stage to the Generator class.
+		"""
+		for rig in self.rig_list:
+			if hasattr(rig, 'load_bone_infos'):
+				rig.load_bone_infos()
 
 	def generate(self, context):
 		bpy.ops.object.mode_set(mode='OBJECT')
@@ -877,6 +890,10 @@ class CloudGenerator(Generator):
 		self.create_root_bones()
 		if self.rigify_compatible :
 			self._Generator__create_root_bone()
+
+		#------------------------------------------
+		self.invoke_load_bone_infos()
+		t.tick("Load BoneInfos: ")
 
 		#------------------------------------------
 		self.invoke_prepare_bones()

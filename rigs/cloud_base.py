@@ -1,11 +1,12 @@
 # Typing
 import bpy
-from typing import Dict
+from typing import List, Tuple
 
 # CloudBaseRig parent classes
 from ..generation.troubleshooting import LoggerMixin
 from rigify.base_rig import BaseRig
 from ..rig_features.bone_set import BoneSetMixin
+from ..rig_features.bone import BoneInfo
 from ..rig_features.bone_gizmos import BoneGizmoMixin
 from ..rig_features.ui import CloudUIMixin
 from ..rig_features.mechanism import CloudMechanismMixin
@@ -132,9 +133,6 @@ class CloudBaseRig(
 		self.add_gizmo_interactions()
 
 	def create_bone_infos(self):
-		"""Create the BoneInfo instances which will be turned into real bones by
-		the CloudRig generator."""
-		self.load_org_bone_infos()
 		self.root_bone = self.bones_org[0]
 
 	def relink(self):
@@ -142,9 +140,11 @@ class CloudBaseRig(
 		bi = self.root_bone
 		bi.relink()
 
-	def load_org_bone_infos(self):
-		"""Read ORG bones into BoneInfo instances in self.bones_org."""
-
+	def load_bone_infos(self):
+		"""Read ORG bones into BoneInfo instances in self.bones_org
+		which will be turned into real bones by the CloudRig generator.
+		"""
+		bone_list: List[Tuple[bpy.types.EditBone, BoneInfo]] = []
 		for bn in self.bones.org.main:
 			eb = self.get_bone(bn)
 			eb.use_connect = False
@@ -177,6 +177,9 @@ class CloudBaseRig(
 			org_bi = self.bones_org.new_from_real(self.obj, eb)
 			org_bi.layers = self.bones_org.layers[:]
 			org_bi.bbone_width = eb.bbone_x / self.scale
+			bone_list.append((eb, org_bi))
+
+		for eb, org_bi in bone_list:
 			if eb.parent:
 				parent = self.generator.find_bone_info(eb.parent.name)
 				org_bi.parent = parent
