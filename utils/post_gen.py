@@ -55,6 +55,7 @@ def rename_bone(rig, name_from, name_to):
 		return
 	bone.name = name_to
 	replace_in_ui_data(rig, name_from, name_to)
+	replace_driver_var_path(rig, name_from, name_to, data_only=True)
 
 def rename_custom_property(rig, bone_name, name_from, name_to):
 	"""Rename a bone custom property, and account for all the things that could 
@@ -83,9 +84,11 @@ def replace_in_ui_data(rig, from_str, to_str):
 	replace_data(rig.data, 'ui_data')
 	replace_data(rig.data, 'gizmo_interactions')
 
-def replace_driver_var_path(rig, from_str, to_str):
+def replace_driver_var_path(rig, from_str, to_str, data_only=False):
 	"""Replace a string in all driver data paths of a rig."""
-	datablocks = [rig, rig.data]
+	datablocks = [rig.data]
+	if not data_only:
+		datablocks.append(rig)
 	for db in datablocks:
 		if not db.animation_data:
 			continue
