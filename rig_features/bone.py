@@ -1,15 +1,12 @@
 from typing import List
 from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
-import bpy
 from mathutils import Vector, Matrix
 from copy import deepcopy
-from rna_prop_ui import rna_idprop_ui_create
 
 from ..utils.maths import flat
 from ..rig_features.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
-from rigify.utils.bones import align_bone_roll, align_bone_z_axis
 
 # These values should match Blender's defaults, otherwise they won't be written.
 edit_bone_properties = {
@@ -28,6 +25,13 @@ edit_bone_properties = {
 	,'bbone_easeout' : 1
 	,'bbone_scalein' : Vector((1, 1, 1))
 	,'bbone_scaleout' : Vector((1, 1, 1))
+
+	# These axis values are only read for original bones. Updating them after 
+	# changing roll or head/tail positions would require some serious maths
+	# or some functions to be exposed from C.
+	,'x_axis' : Vector()
+	,'y_axis' : Vector()
+	,'z_axis' : Vector()
 }
 
 bone_properties = {
@@ -143,7 +147,7 @@ class BoneInfo:
 
 		# Recalculate Roll
 		# TODO: Refactor this so that roll_type is gone, and just the existence of roll_bone or roll_vector indicates what should be done.
-		self.roll_type = ""				# This will be passed as the "type" parameter to bpy.ops.armature.calculate_roll().
+		self.roll_type = ""				# Whether the roll_bone or roll_vector should be used to calculate bone roll..
 		self.roll_bone = None			# If roll_type=='ALIGN', use this as the bone to align with. This is a BoneInfo instance or a string. This is equivalent to the "Active Bone" alignment in Blender.
 		self.roll_vector = Vector()		# If roll_type=='VECTOR', use this as the vector that the Z axis should point towards. This is equivalent to "Align to Cursor" in Blender.
 
@@ -397,6 +401,7 @@ class BoneInfo:
 		### Edit Bone properties
 		for key in edit_bone_properties:
 			key = key.replace("edit_", "")	# Allows bbone properties to specify if they are only for edit bone version
+			if key.endswith("_axis"): continue # Read-only.
 			value = self.__dict__[key]
 			default_value = edit_bone_properties[key]
 			if value == default_value:
@@ -431,9 +436,9 @@ class BoneInfo:
 				if not align_bone:
 					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
-					align_bone_roll(self.owner_rig.obj, eb.name, align_bone.name)
+					eb.align_roll(align_bone.z_axis)
 			elif self.roll_type == 'VECTOR':
-				align_bone_z_axis(self.owner_rig.obj, eb.name, self.roll_vector)
+				eb.align_roll(self.roll_vector)
 
 			eb.roll += self.roll
 

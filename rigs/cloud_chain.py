@@ -1,9 +1,8 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 from ..rig_features.bone import BoneInfo
 from ..rig_features.bone_set import BoneSet
 
 from bpy.props import BoolProperty, IntProperty
-from copy import deepcopy
 
 from .cloud_base import CloudBaseRig
 
@@ -191,7 +190,7 @@ class CloudChainRig(CloudBaseRig):
 		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
 		main_str.align_in = main_str
 		main_str.align_out = main_str
-		if org_bone.prev and self.params.CR_chain_align_roll and not self.params.CR_chain_sharp:
+		if org_bone.prev and self.params.CR_chain_align_roll and not self.params.CR_chain_sharp and num_segments > 1:
 			main_str.roll_type = 'ALIGN'
 			main_str.roll_bone = org_bone.name
 			main_str.roll = 0
@@ -245,7 +244,10 @@ class CloudChainRig(CloudBaseRig):
 		return sections
 
 	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
-		"""Child classes may want to override this."""
+		"""
+		Return how many deform bones should be created for a given org_bone.
+		Child classes may want to override this.
+		"""
 		if org_bone == self.bones_org[-1] and not self.params.CR_chain_tip_control:
 			return 1
 		return self.params.CR_chain_segments

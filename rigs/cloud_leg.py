@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from ..rig_features.bone import BoneInfo
 
@@ -117,8 +117,8 @@ class CloudLegRig(CloudLimbRig):
 		dsp_bone.tail = shoe_tip
 		dsp_bone.head.z = dsp_bone.tail.z
 		dsp_bone.length = 0.1 * self.scale
-		dsp_bone.roll_type = 'ALIGN'
-		dsp_bone.roll_bone = toe
+		dsp_bone.roll_type = 'VECTOR'
+		dsp_bone.roll_vector = toe.z_axis
 		dsp_bone.roll = rad(90) * direction
 
 		return dsp_bone
@@ -162,7 +162,7 @@ class CloudLegRig(CloudLimbRig):
 	# End of overrides
 
 	@staticmethod
-	def calc_footroll_headtail(knee: BoneInfo, toe: BoneInfo, scale: float) -> [Vector, Vector]:
+	def calc_footroll_headtail(knee: BoneInfo, toe: BoneInfo, scale: float) -> Tuple[Vector, Vector]:
 		scalar = knee.bbone_width * scale
 
 		# Project a line along the knee bone, and find the point on that line closest to the toe tail
@@ -214,9 +214,8 @@ class CloudLegRig(CloudLimbRig):
 			,bbone_width  = 1/18
 			,head		  = head
 			,tail		  = tail
-			,roll_type	  = 'ALIGN'
-			,roll_bone	  = toe
-			,roll		  = 0
+			,roll_type	  = 'VECTOR'
+			,roll_vector  = toe.z_axis
 			,parent		  = self.ik_mstr
 			,custom_shape = self.ensure_widget('Roll_Flat')
 			,use_custom_shape_bone_size = True
@@ -248,9 +247,8 @@ class CloudLegRig(CloudLimbRig):
 			,bbone_width  = self.bones_org[-1].bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
-			,roll		  = pi
-			,roll_type	  = 'ALIGN'
-			,roll_bone	  = self.bones_org[-1]
+			,roll_type	  = 'VECTOR'
+			,roll_vector  = self.bones_org[-1].z_axis
 			,parent		  = roll_master
 		)
 
@@ -259,21 +257,21 @@ class CloudLegRig(CloudLimbRig):
 			map_from = 'ROTATION',
 			map_to = 'ROTATION',
 			from_min_x_rot = rad(-90),
-			to_min_x_rot = rad(60),
+			to_min_x_rot = rad(-60),
 		)
 
 		# Create reverse bones
 		rik_chain = []
 		for i, b in reversed(list(enumerate(org_chain))):
 			rik_bone = self.bone_sets['Foot Reverse IK Controls'].new(
-				name		 = b.name.replace("ORG", "RIK")
-				,source		 = b
-				,head		 = b.tail.copy()
-				,tail		 = b.head.copy()
-				,roll		 = pi
-				,roll_type	 = 'ALIGN'
-				,roll_bone	 = b
-				,parent		 = heel_pivot
+				name		  = b.name.replace("ORG", "RIK")
+				,source		  = b
+				,head		  = b.tail.copy()
+				,tail		  = b.head.copy()
+				,roll		  = pi
+				,roll_type	  = 'VECTOR'
+				,roll_vector  = -b.z_axis
+				,parent		  = heel_pivot
 				,custom_shape = self.ensure_widget("Circle_Spiked_2")
 			)
 			rik_chain.append(rik_bone)
