@@ -1,3 +1,14 @@
+from typing import List
+import sys, importlib, inspect
+
+from rigify import feature_sets
+from bpy.utils import register_class, unregister_class
+
+from . import versioning, manual, operators, ui, ui_rig_types, rigs
+from .utils import ui_list
+from .rig_features import bone_set, parent_switching
+from .generation import actions, troubleshooting, cloud_generator
+
 rigify_info = {
 	'name': "CloudRig"
 	,'author': "Demeter Dzadik"
@@ -18,26 +29,6 @@ bl_info = {
 	,'doc_url' : "https://gitlab.com/blender/CloudRig/"
 }
 
-from typing import List
-import importlib
-from bpy.utils import register_class, unregister_class
-
-from rigify import feature_sets
-import sys
-
-from .utils import ui_list
-from .rig_features import bone_set
-from .rig_features import parent_switching
-from .generation import actions
-from .generation import troubleshooting
-from .generation import cloud_generator
-from . import versioning
-from . import manual
-from . import operators
-from . import ui
-from . import ui_rig_types
-from . import rigs
-
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
 	ui_list,
@@ -55,6 +46,10 @@ modules = [
 ]
 
 def register_unregister_modules(modules: List, register: bool):
+	"""Recursively register or unregister modules by looking for either
+	un/register() functions or lists named `registry` which should be a list of 
+	registerable classes.
+	"""
 	register_func = register_class if register else unregister_class
 
 	for m in modules:
@@ -62,7 +57,12 @@ def register_unregister_modules(modules: List, register: bool):
 			importlib.reload(m)
 		if hasattr(m, 'registry'):
 			for c in m.registry:
-				register_func(c)
+				try:
+					register_func(c)
+				except Exception as e:
+					un = 'un' if not register else ''
+					print(f"Warning: CloudRig failed to {un}register class: {c.__name__}")
+					print(e)
 
 		if hasattr(m, 'modules'):
 			register_unregister_modules(m.modules, register)
@@ -73,7 +73,7 @@ def register_unregister_modules(modules: List, register: bool):
 			m.unregister()
 
 def register():
-	import inspect
+	"""Called by Rigify when installing or enabling CloudRig."""
 	caller_name = inspect.stack()[2].function
 	trying_to_install_as_addon = caller_name == 'execute'
 	assert not trying_to_install_as_addon, "CloudRig is not an addon. Install it as a Feature Set within the Rigify addon."
@@ -84,5 +84,6 @@ def register():
 	register_unregister_modules(modules, True)
 
 def unregister():
+	"Called by Rigify when uninstalling or disabling CloudRig."
 	register_unregister_modules(modules, False)
 	del feature_sets.CloudRig
