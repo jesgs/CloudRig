@@ -1752,7 +1752,11 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 
 def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}):
 	wm = bpy.context.window_manager
-	keymaps = wm.keyconfigs.addon.keymaps
+	addon_keyconfig = wm.keyconfigs.addon
+	if not addon_keyconfig:
+		# This happens when running Blender in background mode.
+		return
+	keymaps = addon_keyconfig.keymaps
 
 	km = keymaps.get(key_cat)
 	if not km:
