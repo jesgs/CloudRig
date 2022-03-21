@@ -850,6 +850,10 @@ class CloudGenerator(Generator):
 		# Update metarig version
 		self.params.cloudrig_parameters.version = cloud_metarig_version
 
+		# Symmetry option seems to mess with generation...
+		self.bkp_x_mirror = metarig.data.use_mirror_x
+		metarig.data.use_mirror_x = False
+
 		# Ensure rigify layers are initialized.
 		if len(metarig.data.rigify_layers) < 32:
 			init_cloudrig_layers(metarig.data)
@@ -996,6 +1000,7 @@ class CloudGenerator(Generator):
 			del self.metarig['rot_bkp']
 			del self.metarig['scale_bkp']
 		self.obj.data.pose_position = 'POSE'
+		self.metarig.data.use_mirror_x = self.bkp_x_mirror
 
 		# Refresh drivers
 		refresh_all_drivers()
