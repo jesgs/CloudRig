@@ -1368,15 +1368,22 @@ def draw_rig_settings(layout, rig, main_dict):
 			col = row.column()
 			sub_row = col.row(align=True)
 
-			slider_text = entry_name
-			if 'texts' in info:
-				texts = json.loads(info['texts'])
-				prop_value = prop_bone[prop_id]
-				value = int(prop_value)
-				if len(texts) > value:
-					slider_text = entry_name + ": " + texts[value]
+			prop_value = prop_bone[prop_id]
+			if isinstance(prop_value, bpy.types.Object):
+				# Property is an object pointer
+				sub_row.prop_search(prop_bone, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=entry_name)
+			else:
+				# Property is a float/int/color
+				# NOTE: Boolean custom properties don't exist in Blender 3.2, 
+				# so they are not accounted for here either.
+				slider_text = entry_name
+				if 'texts' in info:
+					texts = json.loads(info['texts'])
+					value = int(prop_value)
+					if len(texts) > value:
+						slider_text = entry_name + ": " + texts[value]
 
-			sub_row.prop(prop_bone, '["' + prop_id + '"]', slider=True, text=slider_text)
+				sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=slider_text)
 
 			# Draw an operator if provided.
 			if 'operator' in info:
@@ -1458,9 +1465,10 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 				row = layout.row()
 				if prop_id in props_done: return
 
-				if type(prop_owner[prop_id]) in [int, float]:
+				prop_value = prop_owner[prop_id]
+				if type(prop_value) in [int, float]:
 					row.prop(prop_owner, '["'+prop_id+'"]', slider=True,
-						text = get_text(prop_owner, prop_id, prop_owner[prop_id])
+						text = get_text(prop_owner, prop_id, prop_value)
 					)
 					if 'op_'+prop_id in prop_owner or prop_id=='Quality':
 						# HACK: Hard-code behaviour for a property named "Quality", so I don't have to add it on every character manually on Sprite Fright. This needs a more elegant design...
@@ -1471,9 +1479,12 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 						if type(op_info)==str:
 							op_info = eval(op_info)
 						add_operator(row, op_info)
-				elif str(type(prop_owner[prop_id])) == "<class 'IDPropertyArray'>":
+				elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
 					# Vectors
-					row.prop(prop_owner, '["'+prop_id+'"]', text=prop_id.replace("_", " "))
+					row.prop(prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " "))
+				elif isinstance(prop_value, bpy.types.Object):
+					# Property is a pointer
+					row.prop_search(prop_owner, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=prop_id)
 
 			# Drawing properties with hierarchy
 			if 'prop_hierarchy' in prop_owner:
