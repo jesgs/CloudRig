@@ -192,7 +192,7 @@ def filter_items(self, context, data, propname):
 														reverse=self.use_filter_sort_reverse)
 
 	if not flt_flags:
-		flt_flags = [self.bitflag_filter_item] * len(island_groups)
+		flt_flags = [self.bitflag_filter_item] * len(list_items)
 
 	if self.use_filter_invert:
 		for idx, flag in enumerate(flt_flags):
