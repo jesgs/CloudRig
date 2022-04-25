@@ -37,12 +37,9 @@ def draw_cloudrig_rigify_generate(self, context):
 	layout.use_property_decorate=False
 	metarig = context.object
 
-	if not is_cloud_metarig(metarig) or metarig.mode=='EDIT':
-		return
-
-	if metarig.mode not in {'POSE', 'OBJECT'}:
-		return
-
+	if not is_cloud_metarig(metarig):
+		return self.draw_old(context)
+	
 	if not draw_version_check(layout):
 		return
 
@@ -51,8 +48,6 @@ def draw_cloudrig_rigify_generate(self, context):
 		text = "Re-Generate CloudRig"
 	layout.operator("pose.cloudrig_generate", text=text)
 	layout.separator()
-
-	cloudrig = metarig.data.cloudrig_parameters
 
 def draw_rigify_header(self, context):
 	layout = self.layout
