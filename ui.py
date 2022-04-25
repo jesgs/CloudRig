@@ -84,13 +84,17 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
 def extend_rigify_advanced_panel(self, context):
 	"""For newer versions of Rigify (starting with Blender 3.1 I think), 
 	there is now an 'Advanced' sub-panel, so we don't have to create our own."""
+
+	metarig = context.object
+	if not is_cloud_metarig(metarig):
+		return
+
 	layout = self.layout
 	layout.use_property_split=True
 	layout.use_property_decorate=False
 	layout = layout.column()
 
-	obj = context.object
-	cloudrig = obj.data.cloudrig_parameters
+	cloudrig = metarig.data.cloudrig_parameters
 
 	layout.label(text="CloudRig")
 
@@ -98,10 +102,10 @@ def extend_rigify_advanced_panel(self, context):
 	layout.separator()
 
 	# Bone Group Color Parameters
-	layout.prop(obj.data, "rigify_colors_lock", text="Unified Select/Active Colors")
-	if obj.data.rigify_colors_lock:
-		layout.prop(obj.data.rigify_selection_colors, "select", text="Select Color")
-		layout.prop(obj.data.rigify_selection_colors, "active", text="Active Color")
+	layout.prop(metarig.data, "rigify_colors_lock", text="Unified Select/Active Colors")
+	if metarig.data.rigify_colors_lock:
+		layout.prop(metarig.data.rigify_selection_colors, "select", text="Select Color")
+		layout.prop(metarig.data.rigify_selection_colors, "active", text="Active Color")
 		layout.separator()
 
 	### Root Bone Parameters
@@ -111,7 +115,7 @@ def extend_rigify_advanced_panel(self, context):
 		layout.separator()
 
 	# Test Animation Parameters
-	if metarig_contains_fk_chain(obj):
+	if metarig_contains_fk_chain(metarig):
 		heading = "Generate Action"
 		if cloudrig.test_action:
 			heading = "Update Action"
