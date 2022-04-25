@@ -2,7 +2,6 @@ from typing import List
 from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
 from mathutils import Vector, Matrix
-from copy import deepcopy
 
 from ..utils.maths import flat
 from ..rig_features.object import set_layers
@@ -530,19 +529,31 @@ class BoneInfo:
 			driver_info['prop'] = f'bones["{pb.name}"]{fixed_path(driver_info["prop"])}'
 			make_driver(armature.data, target_id=armature, **driver_info)
 
-	def clone(self, new_name=None):
+	def clone(self, new_name=None, bone_set=None):
 		"""Return a clone of self."""
-		custom_ob_backup = self.custom_shape	# This would fail to deepcopy since it's a bpy.types.Object.
-		self.custom_shape = None
+		if not new_name:
+			new_name = self.name + ".001"		# TODO: Properly find an avilable name (there's uniqify() for this in the Selection Sets addon, would be nice to move that to master.)
 
-		my_clone = deepcopy(self)
-		my_clone.name = self.name + ".001"
-		if new_name:
-			my_clone.name = new_name
+		if not bone_set:
+			bone_set = self.bone_set
 
-		my_clone.custom_shape = custom_ob_backup
+		new_bone = bone_set.new(
+			name = new_name
+		)
 
-		return my_clone
+		for key, value in self.__dict__.items():
+			if key=='name' or key.startswith("_"):
+				continue
+			print(key)
+			value = getattr(self, key)
+			if type(value) in [Vector, Matrix, dict]:
+				setattr(new_bone, key, value.copy())
+			elif type(value) in [list]:
+				setattr(new_bone, key, value[:])
+			else:
+				setattr(new_bone, key, value)
+
+		return new_bone
 
 	def disown(self, new_parent):
 		""" Parent all children of this bone to a new parent. """
