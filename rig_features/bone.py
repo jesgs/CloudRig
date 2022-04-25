@@ -544,7 +544,6 @@ class BoneInfo:
 		for key, value in self.__dict__.items():
 			if key=='name' or key.startswith("_"):
 				continue
-			print(key)
 			value = getattr(self, key)
 			if type(value) in [Vector, Matrix, dict]:
 				setattr(new_bone, key, value.copy())
