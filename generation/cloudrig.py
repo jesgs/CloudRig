@@ -1078,6 +1078,8 @@ class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
 
 	@classmethod
 	def poll(cls, context):
+		return False
+
 		if not super().poll(context):
 			return False
 
@@ -1592,7 +1594,7 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
 	global custom_panels
 	custom_panels.append(new_panel)
 
-def ensure_custom_panels(scene, depsgraph):
+def ensure_custom_panels(_dummy1, _dummy2):
 	rig = is_active_cloudrig(bpy.context)
 	if not rig:
 		return
@@ -1824,6 +1826,8 @@ def register():
 			# Don't re-register Settings panel, or sub-panels become top-level...
 			continue
 		register_class(c)
+
+	ensure_custom_panels(None, None)
 
 	# Store outfit properties in Object because it can be accessed on Proxies.
 	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)

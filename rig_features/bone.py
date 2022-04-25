@@ -532,15 +532,15 @@ class BoneInfo:
 
 	def clone(self, new_name=None):
 		"""Return a clone of self."""
-		custom_ob_backup = self.custom_object	# This would fail to deepcopy since it's a bpy.types.Object.
-		self.custom_object = None
+		custom_ob_backup = self.custom_shape	# This would fail to deepcopy since it's a bpy.types.Object.
+		self.custom_shape = None
 
 		my_clone = deepcopy(self)
 		my_clone.name = self.name + ".001"
 		if new_name:
 			my_clone.name = new_name
 
-		my_clone.custom_object = custom_ob_backup
+		my_clone.custom_shape = custom_ob_backup
 
 		return my_clone
 
