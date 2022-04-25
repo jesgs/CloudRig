@@ -200,9 +200,10 @@ def draw_rigify_types(self, context):
 
 	# Rig type field
 	get_feature_list_func = feature_set_list.get_installed_modules_names if hasattr(feature_set_list, "get_installed_modules_names") else feature_set_list.get_installed_list	# TODO: Remove after 3.0 compatibility drop
+	metarig = context.object
 	if len(get_feature_list_func()) > 0:
 		row = layout.row()
-		row.prop(context.object.data, "active_feature_set")
+		row.prop(metarig.data, "active_feature_set")
 	row = layout.row()
 	row.prop_search(posebone, "rigify_type", id_store, "rigify_types", text="Rig type")
 
@@ -225,6 +226,8 @@ def draw_rigify_types(self, context):
 			else:
 				col = layout.column()
 				rig.parameters_ui(layout, posebone.rigify_parameters)
+
+	layout.prop(metarig.data.cloudrig_parameters, 'advanced_mode', text="Show Advanced Options")
 
 def register():
 	# Hijack Rigify panels' draw functions.

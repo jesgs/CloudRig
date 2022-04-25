@@ -210,4 +210,3 @@ class CloudBaseRig(
 		registered in ui_rig_types.py.
 		"""
 		pass
-
