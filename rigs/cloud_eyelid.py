@@ -76,7 +76,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 			sticky_strength = 1 - distance / eyelid_width
 			copyrot_x.drivers.append({
 				'prop' : 'influence'
-				,'expression' : f"var*{sticky_strength}"
+				,'expression' : f"var*{sticky_strength}*2"
 				,'variables' : [(parent_rig.properties_bone.name, sticky_prop_name)]
 			})
 
