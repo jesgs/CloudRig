@@ -714,6 +714,9 @@ class CloudGenerator(Generator):
 			coll.objects.unlink(old_rig)
 			coll.objects.link(new_rig)
 
+		old_data_name = old_rig.data.name
+		old_rig.data.name += "_old"
+
 		# Swap all references pointing at the old rig to the new rig
 		old_rig.id_data.user_remap(new_rig)
 		old_name = old_rig.name
@@ -738,6 +741,7 @@ class CloudGenerator(Generator):
 
 		# Preserve object name of previous rig.
 		new_rig.name = old_name
+		new_rig.data.name = old_data_name
 
 		# Select and make active the new rig
 		new_rig.select_set(True)
