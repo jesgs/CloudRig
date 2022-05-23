@@ -13,11 +13,13 @@ from ..utils.ui_list import draw_ui_list
 from ..generation.cloudrig import draw_layers_ui
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
-def driver_from_real(driver: bpy.types.Driver) -> dict:
+def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
+	driver = fcurve.driver
 	"""Return a dictionary describing the driver."""
 	driver_info = {
 		'type' : driver.type
 		,'variables' : []
+		,'index' : fcurve.array_index
 	}
 	if driver.type=='SCRIPTED':
 		driver_info['expression'] = driver.expression
@@ -209,7 +211,7 @@ class BoneSet(LinkedList):
 					path_from_last = "." + data_path.split('"].')[-1]
 					if path_from_last.endswith('"]'):
 						path_from_last = "[" + path_from_last.split("][")[-1]
-					driver_info = driver_from_real(driver)
+					driver_info = driver_from_real(fcurve)
 					driver_info['prop'] = path_from_last
 					if 'constraints' in fcurve.data_path:
 						con_name = data_path.split('constraints["')[-1].split('"]')[0]
