@@ -42,7 +42,9 @@ class CloudAimRig(CloudBaseRig):
 		)
 
 		if self.params.CR_aim_deform:
-			self.make_def_bone(self.ctr_bone, self.bone_sets['Aim Deform'])
+			def_bone = self.make_def_bone(self.ctr_bone, self.bone_sets['Aim Deform'])
+			def_bone.parent = aim_org
+			def_bone.add_constraint('COPY_TRANSFORMS', subtarget=self.ctr_bone.name)
 
 		if self.params.CR_aim_create_sub_control:
 			self.create_eye_highlight(self.ctr_bone)
@@ -83,7 +85,7 @@ class CloudAimRig(CloudBaseRig):
 		ctr_bone = self.bone_sets['Aim Target Controls'].new(
 			name = self.naming.make_name(["CTR"], *self.naming.slice_name(org_bone.name)[1:])
 			,source = org_bone
-			,parent = org_bone
+			,parent = org_bone.parent
 			,custom_shape = self.ensure_widget("Circle")
 		)
 
@@ -120,18 +122,17 @@ class CloudAimRig(CloudBaseRig):
 		})
 		return ctr_bone
 
-	def make_root_bone(self, bone) -> BoneInfo:
-		base_bone = self.bones_org[0]
+	def make_root_bone(self, org_bone) -> BoneInfo:
 		root_bone = self.bone_sets['Aim Root Control'].new(
-			name = base_bone.name.replace("ORG", "ROOT")
-			,source = base_bone
-			,parent = base_bone.parent
+			name = org_bone.name.replace("ORG", "ROOT")
+			,source = org_bone
+			,parent = org_bone.parent
 			,custom_shape = self.ensure_widget('Square')
 			,custom_shape_scale = 2
 			,custom_shape_along_length = 1
 		)
 
-		bone.parent = root_bone
+		org_bone.parent = root_bone
 
 		return root_bone
 
