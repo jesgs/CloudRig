@@ -34,11 +34,11 @@ class CloudCopyRig(CloudBaseRig):
 		if not bi.use_custom_shape_bone_size:
 			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
 
-		meta_bone = self.meta_bone(bi.name)
+		meta_bone = self.meta_bone(self.orgless_name)
 		bi.layers = meta_bone.bone.layers[:]
 		bi.use_deform = False
 		if not meta_bone:
-			self.add_log_bug("Bone not found in MetaRig", trouble_bone=bi.name)
+			self.add_log_bug("Bone not found in MetaRig", trouble_bone=self.orgless_name)
 			return
 
 		if meta_bone.custom_shape:
@@ -100,12 +100,18 @@ class CloudCopyRig(CloudBaseRig):
 			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...
 				,bone_set = self.bone_sets['Mechanism Bones']
 			)
-			constrained_parent.name = "CON-" + bi.name
+			constrained_parent.name = "CON-" + self.orgless_name
 			for con_info in bi.constraint_infos[:]:
 				if 'KEEP' not in con_info['name']:
 					constrained_parent.constraint_infos.append(con_info) # ...but we always take the constraints from the bone, not from the custom pivot!
 					bi.constraint_infos.remove(con_info)
 			self.root_bone = constrained_parent
+
+	def finalize(self):
+		bi = self.bones_org[0]
+		pb = self.obj.pose.bones.get(bi.name)
+		pb.name = "ORG-"+self.orgless_name
+		pb.name = self.orgless_name
 
 	def create_custom_pivot(self, boneinfo, bone_set=None):
 		if not bone_set:
