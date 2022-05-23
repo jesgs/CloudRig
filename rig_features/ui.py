@@ -23,15 +23,12 @@ class CloudUIMixin:
 		return is_advanced_mode(context)
 
 	@classmethod
-	def draw_prop(cls, layout, prop_owner, prop_name, new_row=True, **kwargs):
-		if prop_name in cls.forced_params.keys():
-			return layout
-		row = draw_prop(layout, prop_owner, prop_name, new_row, **kwargs)
-		return row
+	def draw_prop(cls, layout, prop_owner, prop_name, **kwargs):
+		return draw_prop(layout, prop_owner, prop_name, **kwargs)
 
 	@classmethod
-	def draw_prop_search(cls, layout, prop_owner, prop_name, collection, coll_prop_name, new_row=True, **kwargs):
-		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, new_row, **kwargs)
+	def draw_prop_search(cls, layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs):
+		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs)
 		if prop_name in cls.forced_params.keys():
 			row.enabled = False
 		return row
@@ -80,17 +77,15 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 			col.label(text=line)
 	return col
 
-def draw_prop(layout, prop_owner, prop_name, new_row=True, **kwargs):
-	if new_row:
-		layout = layout.row(align=True)
-	layout.prop(prop_owner, prop_name, **kwargs)
-	return layout
+def draw_prop(layout, prop_owner, prop_name, **kwargs):
+	row = layout.row(align=True)
+	row.prop(prop_owner, prop_name, **kwargs)
+	return row
 
-def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, new_row, **kwargs):
-	if new_row:
-		layout = layout.row()
-	layout.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
-	return layout
+def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs):
+	row = layout.row()
+	row.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
+	return row
 
 def add_ui_data(obj
 		,panel_name: str		# Name of the sub-panel that the property should be drawn in. These are created dynamically, so this can be anything.

@@ -349,7 +349,7 @@ class BoneSetMixin:
 
 		set_info = cls.bone_set_defs[active_bone_set.name]
 		split = layout.row().split(factor=0.8)
-		cls.draw_prop_search(split.row(), params, set_info['param'], obj.pose, "bone_groups", new_row=False, text="Bone Group")
+		cls.draw_prop_search(split.row(), params, set_info['param'], obj.pose, "bone_groups", text="Bone Group")
 		bone_group_name = getattr(params, set_info['param'])
 		bone_group = obj.pose.bone_groups.get(bone_group_name)
 		if bone_group:
