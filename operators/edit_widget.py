@@ -373,5 +373,8 @@ def unregister():
 	bpy.types.ASSETBROWSER_MT_context_menu.remove(draw_asset_rightclick_menu)
 
 	bpy.types.VIEW3D_MT_pose.remove(draw_button)
-	del bpy.types.Scene.is_widget_edit_mode
-	del bpy.types.Scene.widget_edit_armature
+	try:
+		del bpy.types.Scene.is_widget_edit_mode
+		del bpy.types.Scene.widget_edit_armature
+	except AttributeError:
+		pass

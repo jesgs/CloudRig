@@ -166,12 +166,8 @@ class CloudParentSwitchMixin:
 			,description = "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
 			,default	 = ""
 		)
-		params.CR_base_active_parent_slot_index = IntProperty()
-
-		# XXX: Currently this causes an error when turning the Rigify addon off
-		# and back on, unless running Reload Scripts in between. I suspect this
-		# is because of ParameterValidator shennanigans, but I couldn't fix.
 		params.CR_base_parent_slots = CollectionProperty(type=ParentSlot)
+		params.CR_base_active_parent_slot_index = IntProperty()
 
 	@classmethod
 	def draw_parent_param(cls, layout, rig, params):
@@ -202,6 +198,8 @@ class CloudParentSwitchMixin:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 
 registry = [
-	ParentSlot,
 	CLOUDRIG_UL_parent_slots,
 ]
+
+def register():
+	bpy.utils.register_class(ParentSlot)

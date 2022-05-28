@@ -86,4 +86,7 @@ def register():
 def unregister():
 	"Called by Rigify when uninstalling or disabling CloudRig."
 	register_unregister_modules(modules, False)
-	del feature_sets.CloudRig
+	try:
+		del feature_sets.CloudRig
+	except AttributeError:
+		pass

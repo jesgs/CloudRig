@@ -317,4 +317,7 @@ def register():
 	bpy.app.handlers.load_post.append(update_all_metarigs)
 
 def unregister():
-	bpy.app.handlers.load_post.remove(update_all_metarigs)
+	try:
+		bpy.app.handlers.load_post.remove(update_all_metarigs)
+	except ValueError:
+		pass

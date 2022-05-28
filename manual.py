@@ -64,4 +64,7 @@ def register():
 	bpy.utils.register_manual_map(cloudrig_manual_map)
 
 def unregister():
-	bpy.utils.unregister_manual_map(cloudrig_manual_map)
+	try:
+		bpy.utils.unregister_manual_map(cloudrig_manual_map)
+	except ValueError:
+		pass

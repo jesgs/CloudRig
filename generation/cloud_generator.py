@@ -1190,4 +1190,7 @@ def register():
 	bpy.types.Armature.cloudrig_parameters = PointerProperty(type=CloudRigProperties)
 
 def unregister():
-	del bpy.types.Armature.cloudrig_parameters
+	try:
+		del bpy.types.Armature.cloudrig_parameters
+	except AttributeError:
+		pass
