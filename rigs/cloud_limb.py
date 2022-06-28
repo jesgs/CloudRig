@@ -153,13 +153,27 @@ class CloudLimbRig(CloudIKChainRig):
 			factor_unit = 0.9 / len(str_chain)
 			factor = 0.9 - factor_unit * i
 			str_bone = str_chain[i]
-			str_bone.add_constraint('COPY_ROTATION'
-				,name		= "Copy Rotation (Counter-Rotate)"
-				,use_xyz	= [False, True, False]
-				,invert_xyz	= [False, True, False]
+			trans_con = str_bone.add_constraint('TRANSFORM'
+				,name		= "Transformation (Counter-Rotate)"
 				,subtarget	= str_bone.source.name
 				,influence	= factor
+				,map_to		= 'ROTATION'
 			)
+			trans_con.drivers.append({
+				'prop' : f'to_min_y_rot'
+				,'expression' : "-var"
+				,'variables' : [
+					{
+						'type' : 'TRANSFORMS'
+						,'targets' : [{
+							'bone_target' : str_bone.source.name
+							,'transform_space' : 'LOCAL_SPACE'
+							,'transform_type' : 'ROT_Y'
+							,'rotation_mode' : 'SWING_TWIST_Y'
+						}]
+					}
+				]
+			})
 
 	def setup_rubber_hose(self
 			,org_upper: BoneInfo
