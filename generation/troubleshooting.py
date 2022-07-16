@@ -864,7 +864,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
 					pb.custom_shape = new_obj
 
 		bpy.data.objects.remove(old_obj)
-		widget_collection = metarig.data.cloudrig_parameters.widget_collection
+		widget_collection = metarig.data.rigify_widgets_collection
 		if widget_collection and new_obj.name not in widget_collection.objects:
 			widget_collection.objects.link(new_obj)
 
