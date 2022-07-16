@@ -347,8 +347,8 @@ class BoneInfo:
 				kwargs['targets'] = []
 				for t in constraint.targets:
 					kwargs['targets'].append({
-						'target' : constraint.id_data,
-						'subtarget' : t.subtarget.replace("ORG-", ""),
+						'target' : t.target,
+						'subtarget' : t.subtarget.replace("ORG-", ""),	# TODO: Replacing ORG- here makes it impossible to set ORG- bones as the target of a constraint...
 						'weight' : t.weight
 					})
 				continue
@@ -607,7 +607,7 @@ class ConstraintInfo(dict):
 		# Set target as the rig object, except for some constraint types.
 		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE',
 							'LIMIT_ROTATION', 'SHRINKWRAP']:
-			if hasattr(self.bone_info, 'rig'):
+			if hasattr(self.bone_info, 'rig') and self.target in [None, self.bone_info.owner_rig.generator.metarig]:
 				self.target = self.bone_info.rig
 
 		# Constraints that support local space should default to local space.
