@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
 from mathutils import Vector, Matrix
@@ -324,7 +324,8 @@ class BoneInfo:
 		"""Store constraint information about a constraint in this BoneInfo.
 		contype: Type of constraint, eg. 'STRETCH_TO'.
 		kwargs: Dictionary of properties and values.
-		true_defaults: When False, we use a set of arbitrary default values that I consider better than Blender's defaults.
+		true_defaults: When False, we use a set of arbitrary default values that 
+			I consider better than Blender's defaults.
 		"""
 
 		con_info = ConstraintInfo(self, contype, **kwargs)
@@ -337,7 +338,8 @@ class BoneInfo:
 
 	def add_constraint_from_real(self, constraint: Constraint):
 		kwargs = {}
-		skip = ['active', 'bl_rna', 'error_location', 'error_rotation', 'is_proxy_local', 'is_valid', 'rna_type', 'type']
+		skip = ['active', 'bl_rna', 'error_location', 'error_rotation', 
+				'is_proxy_local', 'is_valid', 'rna_type', 'type']
 		for key in dir(constraint):
 			if "__" in key: continue
 			if key in skip: continue
@@ -348,20 +350,19 @@ class BoneInfo:
 				for t in constraint.targets:
 					kwargs['targets'].append({
 						'target' : t.target,
-						'subtarget' : t.subtarget.replace("ORG-", ""),	# TODO: Replacing ORG- here makes it impossible to set ORG- bones as the target of a constraint...
+						'subtarget' : t.subtarget,
 						'weight' : t.weight
 					})
 				continue
 			elif constraint.type == 'STRETCH_TO' \
-				 and key == 'rest_length' \
-				 and value == 0:
-				 continue
+				and key == 'rest_length' \
+				and value == 0:
+				continue
 
 			kwargs[key] = value
 			# HACK: Why is subtarget handled differently than space_subtarget?? Commit message includes "quick fix" so this probably needs a cleanup.
 			if key == 'space_subtarget':
 				kwargs[key] = kwargs[key].replace("ORG-", "")
-
 		new_con = ConstraintInfo(self, constraint.type, **kwargs)
 		new_con.is_from_real = True
 		self.constraint_infos.append(new_con)
@@ -371,7 +372,8 @@ class BoneInfo:
 		self.constraint_infos = []
 
 	def relink(self):
-		"""Relinking a bone just means relinking its drivers, constraints and constraint drivers."""
+		"""Relinking a bone just means relinking its drivers, constraints and 
+		constraint drivers."""
 		# Relink bone drivers
 		for d in self.drivers:
 			self.bone_set.rig.relink_driver(d)
@@ -567,7 +569,8 @@ class BoneInfo:
 			b.parent = new_parent
 
 	def get_real(self, rig: Object):
-		"""If a bone with the name of this BoneInfo exists in the passed rig, return it."""
+		"""If a bone with the name of this BoneInfo exists in the passed rig, 
+		return it."""
 		if rig.mode == 'EDIT':
 			return rig.data.edit_bones.get(self.name)
 		else:
@@ -580,7 +583,8 @@ class BoneInfo:
 		return self.name
 
 class ConstraintInfo(dict):
-	"""Helper class to store and manage constraint info before it's passed to Rigify's make_constraint."""
+	"""Helper class to store and manage constraint info before it's passed to 
+	Rigify's make_constraint()."""
 
 	def __init__(self, bone_info, con_type, target=None, use_preferred_defaults=True, **kwargs):
 		# Blame this guy https://stackoverflow.com/a/14620633/1527672
@@ -602,7 +606,8 @@ class ConstraintInfo(dict):
 			self.__dict__[key] = value
 
 	def set_preferred_defaults(self):
-		"""Set some arbitrary preferred defaults, separately from __init__(), to keep this optional."""
+		"""Set some arbitrary preferred defaults, separately from __init__(), 
+		to keep this optional."""
 
 		# Set target as the rig object, except for some constraint types.
 		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE',
@@ -644,7 +649,8 @@ class ConstraintInfo(dict):
 			self.chain_count = 2
 
 	def relink(self):
-		"""Allow the Rigify relink naming convention of an @ symbol separating the constraint name from a list of subtargets separated by commas."""
+		"""Allow the Rigify relink naming convention of an @ symbol separating 
+		the constraint name from a list of subtargets separated by commas."""
 
 		rig_element = self.bone_info.bone_set.rig
 		rig = rig_element.obj
@@ -679,39 +685,45 @@ class ConstraintInfo(dict):
 
 	def make_real(self, pose_bone):
 		""" Create a constraint based on this ConstraintInfo on a given pose bone. """
-		con_type = self.type
 		con_info = self.__dict__.copy()
 		for key in ['type', 'bone_info', 'drivers', 'is_from_real', 'is_override_data']:
 			if key in con_info:
 				del con_info[key]
 
-		subtargets = []
-		if 'subtarget' in con_info:
-			subtargets = [str(con_info['subtarget'])]
-			con_info['subtarget'] = str(con_info['subtarget'])
+		# List of ID + string tuples that define a constraint target. 
+		# The string is an optional "subtarget" (bone or vgroup name)
+		target_pairs: List[Tuple["bpy.types.ID", str]] = []
 		if 'targets' in con_info:
-			for t in con_info['targets']:
-				t['subtarget'] = str(t['subtarget'])
-				subtargets = [str(t['subtarget']) for t in con_info['targets']]
+			for target_info in con_info['targets']:
+				assert 'subtarget' in target_info, f"Armature constraint with no subtarget: {pose_bone.name}"
+				if 'target' not in target_info:
+					# Allow omitting target object from Armature contraint targets.
+					target_info['target'] = pose_bone.id_data
+				if isinstance(target_info['subtarget'], BoneInfo):
+					# Allow using BoneInfo instances, convert them to string here.
+					target_info['subtarget'] = target_info['subtarget'].name
+			target_pairs = [(t['target'], t['subtarget']) for t in con_info['targets']]
+		elif 'target' in con_info:
+			target_pairs = [(con_info['target'], "")]
+		if 'subtarget' in con_info:
+			# Singular target, target object is optional, assumed to be the rig.
+			target_pairs = [(pose_bone.id_data, con_info['subtarget'])]
+			if isinstance(con_info['subtarget'], BoneInfo):
+				# Allow using BoneInfo instances, convert them to string here.
+				con_info['subtarget'] = con_info['subtarget'].name
 
-		# HACK We can't get cloud_tweak rigs to not create an ORG bone, so constraints targetting those
-		# tweak bones end up targetting the ORG bone which is not good.
-		if self.is_from_real:
-			if con_type == 'ARMATURE':
-				for t in con_info['targets']:
-					if t['subtarget'].startswith('ORG-'):
-						t['subtarget'] = t['subtarget'][4:]
-			elif hasattr(self, 'subtarget') and self.subtarget.startswith('ORG'):
-				self.subtarget = self.subtarget[4:]
-
-		for i, subtarget in enumerate(subtargets):
-			if subtarget not in pose_bone.id_data.data.bones:
+		for target_pair in enumerate(target_pairs):
+			target, subtarget = target_pair
+			if isinstance(subtarget, BoneInfo):
+				# Allow using BoneInfo instances, convert them to string here.
+				subtarget = con_info['subtarget'].name
+			if target and target.type=='ARMATURE' and subtarget not in target.data.bones:
 				self.bone_info.owner_rig.add_log("Invalid constraint target!"
 					,owner_bone   = self.bone_info.name
 					,trouble_bone = subtarget
 					,description  = f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget}.'
 				)
 
-		con = make_constraint(pose_bone, con_type, **con_info)
+		con = make_constraint(pose_bone, self.type, **con_info)
 
 		return con
