@@ -941,7 +941,7 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
+		return (context.pose_object or context.active_object)
 
 	def invoke(self, context, event):
 		wm = context.window_manager
