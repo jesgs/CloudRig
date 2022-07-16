@@ -721,6 +721,13 @@ class CloudGenerator(Generator):
 		old_rig.id_data.user_remap(new_rig)
 		old_name = old_rig.name
 
+		# Preserve parenting information of previous rig.
+		new_rig.parent = old_rig.parent
+		new_rig.parent_type = old_rig.parent_type
+		new_rig.parent_bone = old_rig.parent_bone
+		new_rig.parent_vertices = old_rig.parent_vertices
+		new_rig.matrix_parent_inverse = old_rig.matrix_parent_inverse.copy()
+
 		# Preserve transform matrix of previous rig.
 		new_rig.matrix_world = old_rig.matrix_world.copy()
 
