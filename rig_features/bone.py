@@ -706,17 +706,14 @@ class ConstraintInfo(dict):
 		elif 'target' in con_info:
 			target_pairs = [(con_info['target'], "")]
 		if 'subtarget' in con_info:
-			# Singular target, target object is optional, assumed to be the rig.
-			target_pairs = [(pose_bone.id_data, con_info['subtarget'])]
 			if isinstance(con_info['subtarget'], BoneInfo):
 				# Allow using BoneInfo instances, convert them to string here.
 				con_info['subtarget'] = con_info['subtarget'].name
+			# Singular target, target object is optional, assumed to be the rig.
+			target_pairs = [(pose_bone.id_data, con_info['subtarget'])]
 
-		for target_pair in enumerate(target_pairs):
+		for target_pair in target_pairs:
 			target, subtarget = target_pair
-			if isinstance(subtarget, BoneInfo):
-				# Allow using BoneInfo instances, convert them to string here.
-				subtarget = con_info['subtarget'].name
 			if target and target.type=='ARMATURE' and subtarget not in target.data.bones:
 				self.bone_info.owner_rig.add_log("Invalid constraint target!"
 					,owner_bone   = self.bone_info.name
