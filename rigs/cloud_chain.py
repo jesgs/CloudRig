@@ -657,6 +657,8 @@ class CloudChainRig(CloudBaseRig):
 			,head		 = def_bone_2.head.copy()
 			,tail		 = def_bone_2.tail.copy()
 			,parent		 = skp_bone
+			,roll_type	 = 'ALIGN'
+			,roll_bone	 = def_bone_1
 		)
 		skh_bone.scale_width(2)
 		skh_bone.scale_length(0.4)
