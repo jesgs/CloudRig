@@ -502,7 +502,7 @@ class CloudChainRig(CloudBaseRig):
 					continue
 				def_bone.drivers.append({
 					'prop' : prop
-					,'expression' : "var-1"
+					,'expression' : "max(0, var-1)"
 					,'variables' : {
 						'var' : {
 							'type' : 'TRANSFORMS',
@@ -522,8 +522,8 @@ class CloudChainRig(CloudBaseRig):
 		def_bone.bbone_custom_handle_start	  = str_bone.tangent_helper
 		def_bone.bbone_handle_use_scale_start = [True, False, True]
 		def_bone.bbone_handle_use_scale_end	  = [True, False, True]
-		def_bone.bbone_handle_use_ease_start = True
-		def_bone.bbone_handle_use_ease_end = True
+		# def_bone.bbone_handle_use_ease_start = True
+		# def_bone.bbone_handle_use_ease_end = True
 
 		if hasattr(next_str_bone, 'tangent_helper'):
 			# This can be False when connecting to a parent chain rig that has Smooth Spline=False.
