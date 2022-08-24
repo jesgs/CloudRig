@@ -390,11 +390,11 @@ class CloudChainRig(CloudBaseRig):
 			)
 		else:
 			handle_bone.parent = str_bone
-			handle_bone.add_constraint('COPY_SCALE'
-				,subtarget = str_bone.name
-				,space = 'WORLD'
-			)
-			handle_bone.inherit_scale = 'NONE'
+			# handle_bone.add_constraint('COPY_SCALE'
+			# 	,subtarget = str_bone.name
+			# 	,space = 'WORLD'
+			# )
+			# handle_bone.inherit_scale = 'NONE'
 
 		return handle_bone
 
