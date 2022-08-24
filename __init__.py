@@ -4,9 +4,7 @@ import sys, importlib, inspect
 from rigify import feature_sets
 from bpy.utils import register_class, unregister_class
 
-from . import versioning, manual, operators, ui, ui_rig_types, rigs
-from .utils import ui_list
-from .rig_features import bone_set, parent_switching
+from . import versioning, manual, operators, ui, ui_rig_types, rigs, utils, rig_features
 from .generation import actions, troubleshooting, cloud_generator
 
 rigify_info = {
@@ -31,18 +29,17 @@ bl_info = {
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
-	ui_list,
 	actions,
 	troubleshooting,
-	bone_set,
+	rig_features,
 	cloud_generator,
 	ui,
 	versioning,
 	manual,
 	operators,
-	parent_switching,
 	ui_rig_types,
-	rigs
+	rigs,
+	utils
 ]
 
 def register_unregister_modules(modules: List, register: bool):

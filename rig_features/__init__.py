@@ -1,5 +1,6 @@
-from . import parent_switching
+from . import parent_switching, bone_set
 
 modules = [
-	parent_switching
+	parent_switching,
+	bone_set
 ]
