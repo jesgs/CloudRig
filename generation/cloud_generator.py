@@ -91,8 +91,16 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	action_slots: CollectionProperty(type=ActionSlot)
 	active_action_slot_index: IntProperty(min=0)
 
+	@property
+	def active_action_slot(self):
+		return self.action_slots[self.active_action_slot_index] if len(self.action_slots) > 0 else None
+
 	logs: CollectionProperty(type=CloudRigLogEntry)
 	active_log_index: IntProperty(min=0)
+
+	@property
+	def active_log(self):
+		return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
 	ui_bone_sets: CollectionProperty(type=UIBoneSet)
 	bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")

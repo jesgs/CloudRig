@@ -15,15 +15,13 @@ def poll_trigger_action(self, action):
 	"""Whether an action can be used as a corrective action's trigger or not."""
 	rig = bpy.context.object
 	cloudrig = rig.data.cloudrig_parameters
-	action_slots = cloudrig.action_slots
-	active_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
 
 	# If this action is the same as the active slot's action, don't show it.
-	if action == active_slot.action:
+	if action == cloudrig.active_action_slot.action:
 		return False
 
 	# If this action is used by any other action slot, show it.
-	for slot in action_slots:
+	for slot in cloudrig.action_slots:
 		if slot.action == action:
 			return True
 
@@ -637,7 +635,6 @@ class CLOUDRIG_PT_actions(Panel):
 		metarig = context.object
 		cloudrig = metarig.data.cloudrig_parameters
 		action_slots = cloudrig.action_slots
-		active_index = cloudrig.active_action_slot_index
 
 		layout = self.layout
 		layout.use_property_split=True
@@ -653,7 +650,7 @@ class CLOUDRIG_PT_actions(Panel):
 
 		if len(action_slots) == 0:
 			return
-		active_slot = action_slots[active_index]
+		active_slot = cloudrig.active_action_slot
 
 		layout.template_ID(active_slot, 'action', new='object.cloudrig_action_create')
 		if not active_slot.action:
@@ -726,7 +723,7 @@ class CLOUDRIG_OT_Action_Create(Operator):
 		a = bpy.data.actions.new(name="Action")
 		rig = context.object
 		cloudrig = rig.data.cloudrig_parameters
-		action_slot = cloudrig.action_slots[cloudrig.active_action_slot_index]
+		action_slot = cloudrig.active_action_slot
 		action_slot.action = a
 		return {'FINISHED'}
 

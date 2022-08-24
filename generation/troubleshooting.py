@@ -620,7 +620,6 @@ class CLOUDRIG_PT_log(Panel):
 		metarig = context.object
 		cloudrig = metarig.data.cloudrig_parameters
 		logs = cloudrig.logs
-		active_index = cloudrig.active_log_index
 		layout = self.layout
 		row = layout.row()
 
@@ -636,7 +635,7 @@ class CLOUDRIG_PT_log(Panel):
 		if len(logs)==0:
 			return
 
-		log = logs[active_index]
+		log = cloudrig.active_log
 
 		layout.use_property_split = False
 
@@ -699,10 +698,7 @@ class CLOUDRIG_PT_stack_trace(Panel):
 
 	def draw(self, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		logs = cloudrig.logs
-		active_index = cloudrig.active_log_index
-		log = logs[active_index]
-		draw_label_with_linebreak(self.layout, log.pretty_stack, alert=True)
+		draw_label_with_linebreak(self.layout, cloudrig.active_log.pretty_stack, alert=True)
 
 class CLOUDRIG_OT_Jump_To_Bone(Operator):
 	"""Change context to make a bone visible and active in the metarig or generated rig."""
