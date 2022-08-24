@@ -88,7 +88,7 @@ class CloudJawRig(CloudCopyRig):
 		if not chin_bi:
 			self.raise_error("Chin Bone not found!")
 		mouth_bi = self.generator.find_bone_info(self.params.CR_jaw_mouth_bone)
-		if not chin_bi:
+		if not mouth_bi:
 			self.raise_error("Mouth Master Bone not found!")
 
 		lower_jaw = self.make_lower_jaw(jaw_bi, mouth_bi)

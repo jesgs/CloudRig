@@ -198,27 +198,37 @@ class CloudGenerator(Generator):
 		# Check if Selection Sets addon is enabled
 		self.do_sel_sets = check_addon(context, 'bone_selection_sets')
 
-	@staticmethod
-	def cloudrig_reorder_rigs(rig_list):
+	def cloudrig_reorder_rigs(self, rig_list):
 		"""Some rig types need special treatment in regards to where they are in
 		the rig generation order."""
 		from ..rigs.cloud_tweak import CloudTweakRig
 		from ..rigs.cloud_chain_anchor import CloudChainAnchorRig
 		from ..rigs.cloud_face_chain import CloudFaceChainRig
+		from ..rigs.cloud_jaw import CloudJawRig
 
-		first_face = -1
+		first_face_idx = -1
 		for i, rig in enumerate(rig_list[:]):
 			if isinstance(rig, CloudTweakRig) or isinstance(rig, CloudChainAnchorRig):
 				# cloud_tweak rigs should be generated last.
 				rig_list.remove(rig)
 				rig_list.append(rig)
-			if isinstance(rig, CloudFaceChainRig) and first_face==-1:
-				first_face = i
+			if isinstance(rig, CloudFaceChainRig) and first_face_idx == -1:
+				first_face_idx = i
+
+		for i, rig in enumerate(rig_list[:]):
+			if isinstance(rig, CloudJawRig):
+				for param_name in {'CR_jaw_lower_face_bone', 'CR_jaw_squash_bone', 'CR_jaw_chin_bone', 'CR_jaw_mouth_bone', 'CR_jaw_teeth_follow', 'CR_jaw_teeth_upper_bone', 'CR_jaw_teeth_lower_bone'}:
+					bone_name = getattr(rig.params, param_name)
+					dependency_rig = self.get_rig_by_name(bone_name)
+					if dependency_rig:
+						rig_list.remove(dependency_rig)
+						rig_list.insert(i-1, dependency_rig)
+
 		for rig in rig_list[:]:
 			if isinstance(rig, CloudChainAnchorRig):
 				# cloud_chain_anchor pushed before the first cloud_face_chain.
 				rig_list.remove(rig)
-				rig_list.insert(first_face, rig)
+				rig_list.insert(first_face_idx, rig)
 
 	def find_bone_info(self, name):
 		for rig in self.rig_list:
@@ -506,6 +516,11 @@ class CloudGenerator(Generator):
 			if r.rigify_parent == rig:
 				children.append(r)
 		return children
+
+	def get_rig_by_name(self, rig_name: str) -> BaseRig:
+		for r in self.rig_list:
+			if r.base_bone.replace("ORG-", "") == rig_name:
+				return r
 
 	def create_test_animation(self):
 		"""Generate deformation test animation.
