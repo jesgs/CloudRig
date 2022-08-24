@@ -1,6 +1,6 @@
 from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-from bpy.props import StringProperty, IntProperty, BoolProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
 
 import bpy, os, traceback, sys
 import json, webbrowser, time
@@ -222,6 +222,7 @@ class CloudLogManager:
 			,owner_bone = ""
 			,trouble_bone = ""
 			,description = "No description."
+			,display_stack_trace = 'NEVER'
 			,icon = 'ERROR'
 			,note = ""
 			,note_icon = 'NONE'
@@ -237,6 +238,7 @@ class CloudLogManager:
 		entry.name = owner_bone + " " + trouble_bone + " " + description_short + " " + note + " " + description # For search.
 		entry.description_short = description_short
 		entry.description = description
+		entry.display_stack_trace = display_stack_trace
 		entry.note = note
 		entry.note_icon = note_icon
 		entry.icon = icon
@@ -263,11 +265,11 @@ class CloudLogManager:
 		return self.log(
 			"(Fatal) " + description_short
 			,description = description
+			,display_stack_trace = 'ALWAYS'
 			,icon		 = icon
 			,operator	 = operator
 			,**kwargs
 		)
-		 
 
 	def log_error(self
 			,description_short: str
@@ -284,6 +286,7 @@ class CloudLogManager:
 		entry = self.log(
 			"(Fatal) " + description_short
 			,description = description or description_short
+			,display_stack_trace = 'ALWAYS'
 			,**kwargs
 		)
 
@@ -538,6 +541,10 @@ class CloudRigLogEntry(PropertyGroup):
 		,description = "Name of the bone on the metarig which owns the rig that created this entry"
 		,default = ""
 	)
+	display_stack_trace: EnumProperty(
+		items = [(s, s, s) for s in {'ADVANCED', 'NEVER', 'ALWAYS'}],
+		description = "Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled"
+	)
 	note: StringProperty(
 		name = "Note"
 		,description = "Extra note that gets displayed in the UIList when there's no owner bone"
@@ -692,9 +699,8 @@ class CLOUDRIG_PT_stack_trace(Panel):
 	@classmethod
 	def poll(cls, context):
 		cloudrig = context.object.data.cloudrig_parameters
-		logs = cloudrig.logs
-		is_fatal_error = len(logs) == 1 and "Fatal" in logs[0].name	# Always display stack trace of fatal errors, even without Advanced Mode.
-		return len(logs) > 0 and is_advanced_mode(context) or is_fatal_error
+		display_mode = cloudrig.active_log.display_stack_trace
+		return display_mode == 'ALWAYS' or display_mode == 'ADVANCED' and is_advanced_mode(context)
 
 	def draw(self, context):
 		cloudrig = context.object.data.cloudrig_parameters
