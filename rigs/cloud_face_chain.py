@@ -116,7 +116,7 @@ class CloudFaceChainRig(CloudChainRig):
 		# so we just have to make this class aware of its descendant, which is
 		# possibly the worst thing I've ever coded.
 		for chain_rig in self.chain_rigs:
-			if type(chain_rig) != type(self):
+			if hasattr(chain_rig, 'make_sticky_eyelid'):
 				chain_rig.make_sticky_eyelid()
 
 	def create_bone_infos(self):
