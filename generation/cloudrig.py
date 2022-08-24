@@ -1311,7 +1311,8 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
 		name	= "Outfit",
 		items	= items_outfit,
 		update	= change_outfit,
-		options	= {"LIBRARY_EDITABLE"} # Make it not animatable.
+		options	= {"LIBRARY_EDITABLE"}, # Make it not animatable.
+		override	 = {'LIBRARY_OVERRIDABLE'}
 	)
 
 
