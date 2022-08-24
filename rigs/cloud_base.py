@@ -91,8 +91,6 @@ class CloudBaseRig(
 		self.generator_params = self.generator.metarig.data
 		self.defaults = dict(self.generator.defaults)
 
-		self.meta_base_bone = self.meta_bone(self.base_bone.replace("ORG-", ""))
-
 		self.scale = self.generator.scale
 
 		# Reference to the rig's own root bone which should be filled in during create_bone_infos()
@@ -109,6 +107,11 @@ class CloudBaseRig(
 		self.bones_org = self.bone_sets['Original Bones']
 		self.bones_def = self.bone_sets['Deform Bones']
 		self.bones_mch = self.bone_sets['Mechanism Bones']
+
+	@property
+	def meta_base_bone(self):
+		"""Return pose bone in the metarig that has this rig type assigned."""
+		return self.meta_bone(self.base_bone.replace("ORG-", ""))
 
 	def force_parameters(self, meta_base_bone, params):
 		"""Allows the class to force certain parameter values for its instances."""
