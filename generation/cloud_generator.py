@@ -958,6 +958,10 @@ class CloudGenerator(Generator):
 		t.tick("Action Constraints: ")
 
 		#------------------------------------------
+		self.invoke_preapply_bones()
+		t.tick("Preapply bones: ")
+
+		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')
 
 		self.invoke_apply_bones()
