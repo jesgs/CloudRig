@@ -186,18 +186,14 @@ def combine_bone_names(names) -> str:
 			break
 
 	# Make sure total name length doesn't exceed 59 characters.
-	while True:
-		pref_len = max(0, sum([len(p) for p in prefixes]) + len(prefixes) - 1)
-		suf_len = max(0, sum([len(s) for s in suffixes]) + len(suffixes) - 1)
-		base_len = len(base_start) + sum([len(base) for base in bases]) + len(bases) - 1
-		tot_name_length = pref_len + suf_len + base_len
-		if tot_name_length < 60:
-			break
-		bases.pop()
-
 	bases = [base[len(base_start):] for base in bases]
 
+	bases.sort(reverse=True)
+
 	combined_name = make_name(prefixes, base_start+"+".join(bases), suffixes)
+
+	if len(combined_name) > 59:
+		raise ValueError(f'Intersection control bone name "{combined_name}" would be too long. Try using shorter bone names for face chain bones')
 
 	return combined_name
 
