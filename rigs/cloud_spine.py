@@ -121,7 +121,7 @@ class CloudSpineRig(CloudFKChainRig):
 				name				= fk_bone.name.replace("FK", "IK-CTR")
 				,source				= fk_bone
 				,custom_shape 		= self.ensure_widget('Circle')
-				,custom_shape_scale_xyz = ((1, 1, 0.8))
+				,custom_shape_scale_xyz = Vector((1, 1, 0.8))
 			)
 
 			if i == 0:

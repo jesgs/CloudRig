@@ -1,4 +1,6 @@
 from bpy.props import BoolProperty, StringProperty
+from mathutils import Vector
+
 from ..rig_features.bone_set import BoneInfo, BoneSet
 
 from .cloud_base import CloudBaseRig
@@ -120,7 +122,7 @@ class CloudCopyRig(CloudBaseRig):
 		pivot.name = pivot.name.replace("P-", "PVT-")
 		boneinfo.add_constraint('COPY_LOCATION', subtarget=pivot, invert_xyz = [True, True, True])
 		pivot.custom_shape = self.ensure_widget('Axes_6')
-		pivot.custom_shape_scale_xyz = [max(boneinfo.custom_shape_scale_xyz)] * 3
+		pivot.custom_shape_scale_xyz = Vector([max(boneinfo.custom_shape_scale_xyz)] * 3)
 		pivot.custom_shape_translation = (0, 0, 0)
 		pivot.custom_shape_rotation_euler = (0, 0, 0)
 		pivot.layers = boneinfo.layers[:]

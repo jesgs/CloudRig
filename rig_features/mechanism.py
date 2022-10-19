@@ -187,8 +187,8 @@ def create_parent_bone(child, bone_set=None):
 		,source						 = child
 		,parent						 = child.parent
 		,custom_shape				 = child.custom_shape
-		,custom_shape_scale_xyz		 = child.custom_shape_scale_xyz * 1.2
-		,custom_shape_translation	 = child.custom_shape_translation
+		,custom_shape_scale_xyz		 = Vector(child.custom_shape_scale_xyz) * 1.2
+		,custom_shape_translation	 = Vector(child.custom_shape_translation)
 		,use_custom_shape_bone_size  = child.use_custom_shape_bone_size
 		,custom_shape_rotation_euler = child.custom_shape_rotation_euler
 	)
