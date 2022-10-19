@@ -172,9 +172,18 @@ def make_custom_property(prop_bone, prop_id, **kwargs):
 		prop_bone.property_overridable_library_set(f'["{prop_id}"]', True)
 
 class HiddenPrints:
+	def write(*args):
+		# This is a workaround to /issues/83 based on 
+		# https://stackoverflow.com/questions/6735917/redirecting-stdout-to-nothing-in-python
+		pass
+
 	def __enter__(self):
 		self._original_stdout = sys.stdout
-		sys.stdout = open(os.devnull, 'w')
+		try:
+			sys.stdout = open(os.devnull, 'w')
+		except FileNotFoundError:
+			# Workaround, relies on this class having a write() method.
+			sys.stdout = self
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		sys.stdout.close()
