@@ -1042,6 +1042,7 @@ class CloudGenerator(Generator):
 
 		# Refresh drivers
 		refresh_all_drivers()
+		refresh_constraints(self.obj)
 		self.context.view_layer.update()
 
 	def log_minor_issues(self):
@@ -1051,6 +1052,15 @@ class CloudGenerator(Generator):
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 		self.logger.report_unused_bone_groups()
 		self.logger.report_actions()
+
+def refresh_constraints(rig: bpy.types.Object):
+	for pb in rig.pose.bones:
+		for c in pb.constraints:
+			if hasattr(c, 'target'):
+				c.target = c.target
+			if c.type == 'ARMATURE':
+				for t in c.targets:
+					t.target = t.target
 
 def is_single_cloud_metarig(context):
 	"""If there is only one CloudRig metarig in the scene, return it."""
