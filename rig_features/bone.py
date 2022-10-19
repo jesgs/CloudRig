@@ -660,7 +660,9 @@ class ConstraintInfo(dict):
 			if self.type=='ARMATURE':
 				for i, t in enumerate(self.targets):
 					if t == metarig:
-						self.targets[i]['target'] = rig
+						t['target'] = rig
+					if not self.targets[i]['target']:
+						t['target'] = rig
 			return
 
 		split_name = self.name.split("@")
