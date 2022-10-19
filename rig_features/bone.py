@@ -678,6 +678,8 @@ class ConstraintInfo(dict):
 
 			for i, t in enumerate(self.targets):
 				t['subtarget'] = subtargets[i]
+				if not t['target']:
+					t['target'] = rig
 			return
 
 		if len(subtargets) > 0:
