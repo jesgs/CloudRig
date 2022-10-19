@@ -366,7 +366,14 @@ class BoneSetMixin:
 				row.prop(bone_group, 'color_set', text="", icon='DOWNARROW_HLT')
 
 		layout.use_property_split=False
-		draw_layers_ui(layout, obj, show_hidden_checkbox=True, owner=params, layers_prop = set_info['layer_param'])
+		draw_layers_ui(
+			layout = layout, 
+			rig = obj, 
+			show_unnamed_selected_layers = True,
+			show_hidden_checkbox = True, 
+			layer_prop_owner = params, 
+			layer_prop_name = set_info['layer_param']
+		)
 
 
 	@classmethod

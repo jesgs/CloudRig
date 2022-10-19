@@ -33,7 +33,7 @@ class CLOUDRIG_OT_layer_assign(Operator):
 		rig = context.pose_object
 		if not rig:
 			rig = context.object
-		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True, owner=self)
+		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True, layer_prop_owner=self)
 
 	def execute(self, context):
 		return {'FINISHED'}

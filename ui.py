@@ -181,9 +181,11 @@ def draw_cloud_layer_names(self, context):
 		row.prop(arm, "layers", index=i, text="", toggle=True, icon=icon)
 		icon = 'FAKE_USER_ON' if arm.layers_protected[i] else 'FAKE_USER_OFF'
 
-		row.prop(arm, "layers_protected", index=i, text="", toggle=True, icon=icon)
 		row.prop(rigify_layer, "name", text="")
-		row.prop(rigify_layer, "row", text="UI Row")
+		if rigify_layer.name:
+			row.prop(rigify_layer, "row", text="UI Row")
+		else:
+			row.label(text="")
 
 def draw_rigify_types(self, context):
 	id_store = context.window_manager

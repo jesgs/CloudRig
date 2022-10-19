@@ -1630,27 +1630,35 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 ############# Rig Layers ##############
 #######################################
 
-def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_prop='layers'):
+def draw_layers_ui(
+		layout: bpy.types.UILayout, 
+		rig: bpy.types.Object, 
+		*,
+		show_unnamed_selected_layers = False,
+		show_hidden_checkbox = True, 
+		layer_prop_owner = None, 
+		layer_prop_name = 'layers'
+	):
 	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
 	# This should be able to run even if the Rigify addon is disabled.
 
 	data = rig.data
-	if not owner:
-		owner = data
+	if not layer_prop_owner:
+		layer_prop_owner = data
 
 	# Hidden layers will only work if CloudRig is enabled.
-	if hasattr(data, 'cloudrig_parameters'):	# If CloudRig is enabled:
+	is_cloudrig_enabled = hasattr(data, 'cloudrig_parameters')
+	show_hidden = False
+	if is_cloudrig_enabled:
 		cloudrig = data.cloudrig_parameters
 		if show_hidden_checkbox:
 			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden Layers")
 		show_hidden = cloudrig.show_layers_preview_hidden
-	else:
-		show_hidden = False
 
 	if 'rigify_layers' not in data:
 		row = layout.row()
-		row.alert=True
-		row.label(text="Create Rigify layer data in the Rigify Layer Names panel.")
+		row.alert = True
+		row.label(text="Please initialize layer data in the Rigify Layer Names panel.")
 		return
 	layer_data = data['rigify_layers']
 	rigify_layers = [dict(l) for l in layer_data]
@@ -1665,13 +1673,19 @@ def draw_layers_ui(layout, rig, show_hidden_checkbox=True, owner=None, layers_pr
 	sorted_layers = [l for l in sorted_layers if 'name' in l and l['name']!=" "]
 	current_row_index = 0
 	for rigify_layer in sorted_layers:
-		if rigify_layer['name'] in ["", " "]: continue
-		if rigify_layer['name'].startswith("$") and not show_hidden: continue
+		layer_selected = getattr(layer_prop_owner, layer_prop_name)[rigify_layer['index']]
+		if (rigify_layer['name'].strip() == "" \
+			and not layer_selected \
+			and not show_unnamed_selected_layers):
+				continue
+		if rigify_layer['name'].startswith("$") and not show_hidden: 
+			continue
 
 		if rigify_layer['row'] > current_row_index:
 			current_row_index = rigify_layer['row']
 			row = layout.row()
-		row.prop(owner, layers_prop, index=rigify_layer['index'], toggle=True, text=rigify_layer['name'])
+		text = rigify_layer['name'] or "<UNNAMED>"
+		row.prop(layer_prop_owner, layer_prop_name, index=rigify_layer['index'], toggle=True, text=text)
 
 class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
 	bl_idname = "CLOUDRIG_PT_layers"
@@ -1690,7 +1704,7 @@ class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
 		if not rig:
 			rig = is_active_cloud_metarig(context)
 		if not rig: return
-		draw_layers_ui(self.layout, rig, show_hidden_checkbox = True)
+		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True)
 
 class CLOUDRIG_OT_layer_select(bpy.types.Operator):
 	"""Select active layers for this armature using the named Rigify layers"""
