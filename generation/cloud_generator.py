@@ -445,9 +445,12 @@ class CloudGenerator(Generator):
 		rig = self.obj
 		action_slots = self.metarig.data.cloudrig_parameters.action_slots
 
+		# Put correctives at the top of the list.
+		action_slots_sorted = sorted(action_slots, key=lambda s: not s.is_corrective)
+
 		# Iterate over all Action Slots.
 		# Reversed because each constraint gets moved to the top of the stack when created.
-		for act_slot in reversed(action_slots):
+		for act_slot in reversed(action_slots_sorted):
 			if not act_slot.enabled: continue
 			action = act_slot.action
 			subtarget = act_slot.subtarget
