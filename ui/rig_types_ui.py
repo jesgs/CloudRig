@@ -1,5 +1,5 @@
 import bpy
-from .utils.misc import find_rig_class
+from ..utils.misc import find_rig_class
 
 def get_active_pose_bone(context):
 	"""Return the PoseBone of the active bone. Can be None."""

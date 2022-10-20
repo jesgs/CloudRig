@@ -4,7 +4,7 @@ import sys, importlib, inspect
 from rigify import feature_sets
 from bpy.utils import register_class, unregister_class
 
-from . import versioning, manual, operators, ui, ui_rig_types, rigs, utils, rig_features
+from . import versioning, manual, operators, rigs, utils, rig_features, ui
 from .generation import actions, troubleshooting, cloud_generator
 
 rigify_info = {
@@ -37,7 +37,6 @@ modules = [
 	versioning,
 	manual,
 	operators,
-	ui_rig_types,
 	rigs,
 	utils
 ]

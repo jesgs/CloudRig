@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 import bpy
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
-from ..utils.ui_list import draw_ui_list
+from ..utils.generic_ui_list import draw_ui_list
 from ..rig_features.ui import draw_label_with_linebreak
 
 class CLOUDRIG_UL_parent_slots(bpy.types.UIList):

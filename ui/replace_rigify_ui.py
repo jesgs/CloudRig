@@ -6,10 +6,10 @@ import bpy
 from rigify import rig_lists, feature_sets, feature_set_list
 from rigify.ui import build_type_list
 
-from .generation.cloudrig import draw_layers_ui
-from .rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
-from .utils.misc import check_addon
-from .ui_rig_types import get_active_pose_bone
+from ..generation.cloudrig import draw_layers_ui
+from ..rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
+from ..utils.misc import check_addon
+from .rig_types_ui import get_active_pose_bone
 
 def draw_version_check(layout: UILayout) -> bool:
 	""" Compare Blender version number to current lowest supported
@@ -19,7 +19,8 @@ def draw_version_check(layout: UILayout) -> bool:
 	version_to_float = lambda version_tuple: float(str(version_tuple[0]) + "." + str(version_tuple[1]) + str(version_tuple[2]))
 
 	blender_version = version_to_float(bpy.app.version)
-	cloudrig_module = getattr(feature_sets, __package__.replace("rigify.feature_sets.", ""))
+	cloudrig_module_name = __package__.replace("rigify.feature_sets.", "").replace(".ui", "")
+	cloudrig_module = getattr(feature_sets, cloudrig_module_name)
 	lowest_compatible_version = version_to_float(cloudrig_module.rigify_info['blender'])
 	is_compatible = blender_version >= lowest_compatible_version
 

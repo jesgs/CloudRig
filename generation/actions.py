@@ -8,7 +8,7 @@ from bpy.types import (ID, Operator, UIList, PropertyGroup, Panel,
 from . import naming
 from ..rig_features.ui import is_cloud_metarig
 from ..rig_features.object import get_object_hierarchy_recursive
-from ..utils.ui_list import draw_ui_list
+from ..utils.generic_ui_list import draw_ui_list
 
 
 def poll_trigger_action(self, action):

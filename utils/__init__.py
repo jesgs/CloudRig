@@ -1,9 +1,9 @@
-from . import lattice, maths, misc, post_gen, ui_list
+from . import generic_ui_list, lattice, maths, misc, post_gen
 
 modules = [
     lattice,
     maths,
     misc,
     post_gen,
-    ui_list
+    generic_ui_list
 ]
