@@ -29,22 +29,12 @@ def is_blender_version_compatible() -> bool:
 
 	return cloudrig_max >= blender >= cloudrig_min
 
-def old_is_blender_version_compatible() -> bool:
-	version_to_float = lambda version_tuple: float(str(version_tuple[0]) + "." + str(version_tuple[1]) + str(version_tuple[2]))
-
-	blender_version = version_to_float(bpy.app.version)
-	cloudrig_module_name = __package__.replace("rigify.feature_sets.", "").replace(".ui", "")
-	cloudrig_module = getattr(feature_sets, cloudrig_module_name)
-	lowest_compatible_version = version_to_float(cloudrig_module.rigify_info['blender'])
-	highest_compatible_version = version_to_float(cloudrig_module.max_blender_version)
-	return highest_compatible_version >= blender_version >= lowest_compatible_version
-
 def draw_version_check(layout: UILayout) -> bool:
 	""" If Blender is too old or new, draw a link to download
 		another version of CloudRig.
 	"""
 
-	if not old_is_blender_version_compatible():
+	if not is_blender_version_compatible():
 		draw_label_with_linebreak(layout, f"Version mismatch detected.", alert=True)
 		draw_label_with_linebreak(layout, f"Download an older or newer version here:", alert=True)
 		op = layout.operator('wm.url_open', text="Releases", icon='URL')
