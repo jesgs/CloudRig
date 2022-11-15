@@ -17,6 +17,8 @@ rigify_info = {
 	,'link': "https://gitlab.com/blender/CloudRig/"
 }
 
+max_blender_version = (3, 4, 99)
+
 bl_info = {
 	'name' : "CloudRig is not an Addon!"
 	,'version' : (0, 0, 8)

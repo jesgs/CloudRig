@@ -11,26 +11,47 @@ from ..rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_ad
 from ..utils.misc import check_addon
 from .rig_types_ui import get_active_pose_bone
 
-def draw_version_check(layout: UILayout) -> bool:
-	""" Compare Blender version number to current lowest supported
-		version number. If Blender is too old, draw a link to download
-		an older version of CloudRig.
-	"""
+
+def is_blender_version_compatible() -> bool:
+	"""Return whether current Blender version is compatible 
+	with current CloudRig version."""
+	from packaging import version
+
+	tuple_to_version = lambda v: version.parse(str(v).replace(", ", ".")[1:-1])
+
+	blender = tuple_to_version(bpy.app.version)
+
+	cloudrig_module_name = __package__.replace("rigify.feature_sets.", "").replace(".ui", "")
+	cloudrig_module = getattr(feature_sets, cloudrig_module_name)
+
+	cloudrig_min = tuple_to_version(cloudrig_module.rigify_info['blender'])
+	cloudrig_max = tuple_to_version(cloudrig_module.max_blender_version)
+
+	return cloudrig_max >= blender >= cloudrig_min
+
+def old_is_blender_version_compatible() -> bool:
 	version_to_float = lambda version_tuple: float(str(version_tuple[0]) + "." + str(version_tuple[1]) + str(version_tuple[2]))
 
 	blender_version = version_to_float(bpy.app.version)
 	cloudrig_module_name = __package__.replace("rigify.feature_sets.", "").replace(".ui", "")
 	cloudrig_module = getattr(feature_sets, cloudrig_module_name)
 	lowest_compatible_version = version_to_float(cloudrig_module.rigify_info['blender'])
-	is_compatible = blender_version >= lowest_compatible_version
+	highest_compatible_version = version_to_float(cloudrig_module.max_blender_version)
+	return highest_compatible_version >= blender_version >= lowest_compatible_version
 
-	if not is_compatible:
-		draw_label_with_linebreak(layout, f"This version of CloudRig requires at least Blender {lowest_compatible_version}.", alert=True)
-		draw_label_with_linebreak(layout, f"You can download an older version of CloudRig from the Releases page on CloudRig's GitLab:", alert=True)
+def draw_version_check(layout: UILayout) -> bool:
+	""" If Blender is too old or new, draw a link to download
+		another version of CloudRig.
+	"""
+
+	if not old_is_blender_version_compatible():
+		draw_label_with_linebreak(layout, f"Version mismatch detected.", alert=True)
+		draw_label_with_linebreak(layout, f"Download an older or newer version here:", alert=True)
 		op = layout.operator('wm.url_open', text="Releases", icon='URL')
 		op.url = "https://gitlab.com/blender/CloudRig/-/releases"
+		return False
 
-	return is_compatible
+	return True
 
 def draw_cloudrig_rigify_generate(self, context):
 	layout = self.layout
