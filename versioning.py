@@ -309,7 +309,8 @@ def version_cloud_metarig(metarig):
 					try:
 						setattr(rigify_action_slot, key, value)
 					except TypeError:
-						set_enum_property_by_integer(rigify_action_slot, key, value)
+						if value != {}: # For some reason empty PointerProperties become a dict??
+							set_enum_property_by_integer(rigify_action_slot, key, value)
 			del data.cloudrig_parameters['action_slots']
 			print(f"Updated {len(data.rigify_action_slots)} action slots to the new system.")
 
