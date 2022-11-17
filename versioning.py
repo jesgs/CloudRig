@@ -6,7 +6,7 @@ from .rig_features.object import set_enum_property_by_integer
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,
 # changing names of parameters, etc.
-cloud_metarig_version = 17
+cloud_metarig_version = 18
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -298,6 +298,29 @@ def version_cloud_metarig(metarig):
 			metarig.data.rigify_widgets_collection = metarig.data.cloudrig_parameters['widget_collection']
 			del metarig.data.cloudrig_parameters['widget_collection']
 			print("Set Widgets Collection to Rigify property instead of the old CloudRig property.")
+	if data.cloudrig_parameters.version < 18:
+		print("18:")
+		# Action system has been upstreamed into core Rigify by Alexander.
+		if 'action_slots' in data.cloudrig_parameters:
+			for action_slot in data.cloudrig_parameters['action_slots']:
+				rigify_action_slot = data.rigify_action_slots.add()
+				action_dict = action_slot.to_dict()
+				for key, value in action_dict.items():
+					try:
+						setattr(rigify_action_slot, key, value)
+					except TypeError:
+						set_enum_property_by_integer(rigify_action_slot, key, value)
+			del data.cloudrig_parameters['action_slots']
+			print(f"Updated {len(data.rigify_action_slots)} action slots to the new system.")
+
+		# Delete some outdated unused properties if they are present
+		if 'actions' in data.cloudrig_parameters:
+			del data.cloudrig_parameters['actions']
+		if 'active_action_index' in data.cloudrig_parameters:
+			del data.cloudrig_parameters['active_action_index']
+		if 'active_action_slot_index' in data.cloudrig_parameters:
+			del data.cloudrig_parameters['active_action_slot_index']
+
 
 @persistent
 def update_all_metarigs(dummy):
