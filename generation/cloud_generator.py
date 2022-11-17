@@ -28,7 +28,6 @@ from ..rig_features.mechanism import get_object_scalar
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
-from .actions import ActionSlot
 
 from ..operators.assign_bone_layers import init_cloudrig_layers
 from ..versioning import cloud_metarig_version
@@ -87,13 +86,6 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 		,description = "Experiment with the initial BoneGizmo addon integration"
 		,default	 = False
 	)
-
-	action_slots: CollectionProperty(type=ActionSlot)
-	active_action_slot_index: IntProperty(min=0)
-
-	@property
-	def active_action_slot(self):
-		return self.action_slots[self.active_action_slot_index] if len(self.action_slots) > 0 else None
 
 	logs: CollectionProperty(type=CloudRigLogEntry)
 	active_log_index: IntProperty(min=0)
@@ -397,10 +389,6 @@ class CloudGenerator(Generator):
 			self.bone_sets.append(self.root_parent_set)
 			self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
 
-		# If the Metarig has any Action Slots, create an Action Property Helper bone.
-		if len(self.params.cloudrig_parameters.action_slots) > 0:
-			self.action_helper = self.create_action_helper(self.root_set)
-
 	def ensure_bone_groups(self):
 		# Wipe any existing bone groups from the target rig.
 		if self.obj.pose:
@@ -440,49 +428,6 @@ class CloudGenerator(Generator):
 		if widget_ob.name in context.scene.collection.objects:
 			context.scene.collection.objects.unlink(widget_ob)
 
-	### Action set-up
-	def create_action_constraints(self):
-		rig = self.obj
-		action_slots = self.metarig.data.cloudrig_parameters.action_slots
-
-		# Put correctives at the top of the list.
-		action_slots_sorted = sorted(action_slots, key=lambda s: not s.is_corrective)
-
-		# Iterate over all Action Slots.
-		# Reversed because each constraint gets moved to the top of the stack when created.
-		for act_slot in reversed(action_slots_sorted):
-			if not act_slot.enabled: continue
-			action = act_slot.action
-			subtarget = act_slot.subtarget
-
-			# Sanity checks and early exit
-			if not action:
-				self.logger.log("Action missing for an Action Slot.")
-				continue
-			if subtarget not in rig.pose.bones and not act_slot.is_corrective:
-				self.logger.log("Invalid Control Bone for Action"
-					,trouble_bone = subtarget
-					,description = f'Control Bone "{subtarget}"" does not exist in the generated rig for Action Slot "{action.name}"'
-				)
-				continue
-
-			act_slot.setup_constraints_on_rig(rig, self.action_helper.name)
-	
-	def create_action_shape_key_drivers(self):
-		rig = self.obj
-		action_slots = self.metarig.data.cloudrig_parameters.action_slots
-		for act_slot in action_slots:
-			act_slot.setup_drivers_on_shape_keys(rig, self.action_helper.name)
-
-	def create_action_helper(self, bone_set):
-		action_helper = bone_set.new(
-			name				= "action_props"
-			,head				= Vector((0, 0, 0))
-			,tail				= Vector((0, self.scale*1, 0))
-			,bbone_width		= 1/20
-		)
-		action_helper.layers = [i==31 for i in range(32)]
-		return action_helper
 
 	### Deform test animation generation
 	def ensure_test_action(self):
@@ -957,9 +902,6 @@ class CloudGenerator(Generator):
 		t.tick("Write Pose Data: ")
 		redraw_viewport()
 
-		self.create_action_constraints()
-		t.tick("Action Constraints: ")
-
 		#------------------------------------------
 		self.invoke_preapply_bones()
 		t.tick("Preapply bones: ")
@@ -1015,8 +957,6 @@ class CloudGenerator(Generator):
 		if self.params.cloudrig_parameters.auto_setup_gizmos and self.use_gizmos:
 			self.auto_initialize_gizmos()
 
-		self.create_action_shape_key_drivers()
-
 		self.params.rigify_target_rig = obj
 
 		ensure_custom_panels(None, None)
@@ -1054,7 +994,7 @@ class CloudGenerator(Generator):
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
 		self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
 		self.logger.report_unused_bone_groups()
-		self.logger.report_actions()
+		# self.logger.report_actions()
 
 def refresh_constraints(rig: bpy.types.Object):
 	for pb in rig.pose.bones:

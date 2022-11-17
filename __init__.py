@@ -5,7 +5,7 @@ from rigify import feature_sets
 from bpy.utils import register_class, unregister_class
 
 from . import versioning, manual, operators, rigs, utils, rig_features, ui
-from .generation import actions, troubleshooting, cloud_generator
+from .generation import troubleshooting, cloud_generator
 
 rigify_info = {
 	'name': "CloudRig"
@@ -31,7 +31,6 @@ bl_info = {
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
-	actions,
 	troubleshooting,
 	rig_features,
 	cloud_generator,
