@@ -18,6 +18,7 @@ from rigify.utils.bones import new_bone
 from rigify.utils.mechanism import refresh_all_drivers
 from rigify.utils.collections import ensure_collection
 from rigify.base_rig import BaseRig
+from rigify.utils.action_layers import ActionLayerBuilder
 
 from ..rig_features.ui import redraw_viewport, is_cloud_metarig
 from ..rig_features.widgets import widgets as cloud_widgets
@@ -306,8 +307,9 @@ class CloudGenerator(Generator):
 		bpy.ops.object.duplicate()
 		obj = context.view_layer.objects.active	# NOTE: Oddly, this is different from context.object.
 		obj.name = rig_name
-		for b in obj.data.bones:
-			b.name = "ORG-"+b.name
+		for pb in obj.pose.bones:
+			if pb.rigify_type not in {'cloud_copy', 'basic.raw_copy'}:
+				pb.name = "ORG-"+pb.name
 		# self._Generator__rename_org_bones(obj)
 		obj.data.name = "Data_" + final_name
 
@@ -861,6 +863,9 @@ class CloudGenerator(Generator):
 		self.script = None
 		if self.rigify_compatible:
 			self.script = rig_ui_template.ScriptGenerator(self)
+
+
+		self.action_layers = ActionLayerBuilder(self)
 
 		#------------------------------------------
 		self.instantiate_rig_tree()
