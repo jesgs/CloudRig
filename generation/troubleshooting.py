@@ -699,6 +699,8 @@ class CLOUDRIG_PT_stack_trace(Panel):
 	@classmethod
 	def poll(cls, context):
 		cloudrig = context.object.data.cloudrig_parameters
+		if not cloudrig.active_log:
+			return False
 		display_mode = cloudrig.active_log.display_stack_trace
 		return display_mode == 'ALWAYS' or display_mode == 'ADVANCED' and is_advanced_mode(context)
 
