@@ -214,7 +214,7 @@ def version_cloud_metarig(metarig):
 					def_name = parent.name.replace("ORG", "DEF")
 					pb.rigify_parameters['CR_base_parent'] = def_name
 					print(f"Convert param {pb.name}: CR_fk_chain_def_parenting -> CR_base_parent ({def_name})")
-	if data.cloudrig_parameters.version < 9:
+	if data.cloudrig_parameters.version < 9 and False: # Disabled due to version 18.
 		print("9:")
 		# Rigify now supports CollectionProperty parameters, so we no longer need to store
 		# the parent switching list on bpy.types.Bone.
@@ -258,7 +258,7 @@ def version_cloud_metarig(metarig):
 		preserve_old_default(metarig, ['cloud_chain', 'cloud_fk_chain', 'cloud_physics_chain', 'cloud_ik_chain', 'cloud_limb', 'cloud_leg'], 'CR_chain_segments', 2)
 
 		# Root bone is no longer forced as a parent option for parent switching.
-		if data.cloudrig_parameters.create_root:
+		if data.cloudrig_parameters.create_root and False: # Disabled due to version 18.
 			for pb in metarig.pose.bones:
 				if pb.rigify_parameters.CR_base_parent_switching:
 					root_specified = False
@@ -321,6 +321,18 @@ def version_cloud_metarig(metarig):
 			del data.cloudrig_parameters['active_action_index']
 		if 'active_action_slot_index' in data.cloudrig_parameters:
 			del data.cloudrig_parameters['active_action_slot_index']
+
+		# I got sick of the issues caused by trying to add a CollectionProperty as a Rigify parameter,
+		# so, reverting the change made in metarig version 9, the CR_base_parent_slots param
+		# is going back onto bpy.types.Bone.
+		for pb in metarig.pose.bones:
+			b = pb.bone
+			if 'CR_base_parent_slots' in pb.rigify_parameters.keys():
+				for i, old_slot in enumerate(pb.rigify_parameters['CR_base_parent_slots']):
+					new_slot = b.cloudrig_parent_slots.add()
+					new_slot.name = old_slot['name']
+					new_slot.bone = old_slot['bone']
+				del pb.rigify_parameters['CR_base_parent_slots']
 
 
 @persistent

@@ -131,7 +131,7 @@ class CloudBaseRig(
 		if not skip_root_parenting and self.params.CR_base_parent != "":
 			self.apply_custom_root_parent()
 		if self.params.CR_base_parent_switching:
-			self.apply_parent_switching(self.params.CR_base_parent_slots)
+			self.apply_parent_switching(self.meta_base_bone.bone.cloudrig_parent_slots)
 		self.relink()
 		self.add_gizmo_interactions()
 

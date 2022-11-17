@@ -533,8 +533,8 @@ class CloudIKChainRig(CloudFKChainRig):
 		parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
 		parent_helper.custom_shape = None
 
-		if self.params.CR_base_parent_switching and len(self.params.CR_base_parent_slots) > 0:
-			_parent_ui_names, parent_bone_names = self.sanitize_parent_list(self.params.CR_base_parent_slots)
+		if self.params.CR_base_parent_switching and len(self.meta_base_bone.bone.cloudrig_parent_slots) > 0:
+			_parent_ui_names, parent_bone_names = self.sanitize_parent_list(self.meta_base_bone.bone.cloudrig_parent_slots)
 			first_parent = parent_bone_names[0]
 		elif self.generator_params.cloudrig_parameters.create_root:
 			first_parent = 'root'
