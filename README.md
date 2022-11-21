@@ -13,7 +13,7 @@ CloudRig is a collection of customizable rig building blocks to extend the Rigif
 
 <details>
 <summary>It is currently recommended not to mix CloudRig and Rigify elements.</summary>
-To achive better compatibility, Rigify needs to catch-up, as it is outdated in many ways; bone organization systems and UX being the first ones. I am contributing to Rigify by pushing the best features of CloudRig upstream when I can, but it is a very slow process since Rigify has no full-time maintainers.
+Although technically possible and shouldn't cause any errors, the way core Rigify and CloudRig organize their bones and rig UI are quite different.
 </details>
 
 You can support the development of CloudRig by subscribing to the [Blender Studio](https://studio.blender.org/)!
