@@ -363,7 +363,7 @@ class CloudChainRig(CloudBaseRig):
 			,smooth = False,
 		) -> BoneInfo:
 		"""Create a child bone for an STR bone with Damped Track constraints
-		to aim at the previous and next STR bones."""
+		to aim at the previous and next STR bones if Smooth Curve is enabled."""
 		handle_bone = self.bone_sets['Stretch Helpers'].new(
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
@@ -390,11 +390,11 @@ class CloudChainRig(CloudBaseRig):
 			)
 		else:
 			handle_bone.parent = str_bone
-			# handle_bone.add_constraint('COPY_SCALE'
-			# 	,subtarget = str_bone.name
-			# 	,space = 'WORLD'
-			# )
-			# handle_bone.inherit_scale = 'NONE'
+			handle_bone.add_constraint('COPY_SCALE'
+				,subtarget = str_bone.name
+				,space = 'WORLD'
+			)
+			handle_bone.inherit_scale = 'NONE'
 
 		return handle_bone
 
