@@ -29,7 +29,7 @@ And bam, you have a rig!
 <li>To learn how to actually customize the rig, you can check out the <a href="/../../../-/wikis/Home">wiki</a>.</li>
 <li>The Blender Studio website hosts a <a href="https://studio.blender.org/training/blender-studio-rigging-tools/">video series</a> that covers most of what is on the wiki in video form. This is behind a paywall.</li>
 <li>I have some <a href="https://www.youtube.com/watch?v=SB3qIbwvq8Y&list=PLav47HAVZMjnA3P7yQvneyQPiVxZ6erFS">live streams</a> of creating the rig for the free [Snow](https://studio.blender.org/characters/snow/v2/) character.
-<li> <details><summary>Example Production Rigs (Click me)</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes behind a paywall, sometimes for free), there is a whole host of CloudRig character rigs available for you to download: 
+<li> <details><summary><a href="">Example Production Rigs</a></summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes behind a paywall, sometimes for free), there is a whole host of CloudRig character rigs available for you to download: 
 
 #### Sprite Fright
 - [Ellie](https://studio.blender.org/characters/ellie/)
