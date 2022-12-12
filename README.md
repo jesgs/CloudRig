@@ -18,16 +18,41 @@ Although technically possible and shouldn't cause any errors, the way core Rigif
 
 You can support the development of CloudRig by subscribing to the [Blender Studio](https://studio.blender.org/)!
 
-# Using CloudRig
-The easiest way to get started is to add the pre-built human metarig via **Add->Armature->Cloud Humans -> Basic Human (Metarig)**.
+# Getting Started
+Add the pre-built human metarig via **Add->Armature->Cloud Humans -> Basic Human (Metarig)**.
 Next, you can generate this rig via **Properties->Object Data->Rigify Buttons->Generate CloudRig**.
 And bam, you have a rig!
 ![](docs/armature_generate.gif)
 
-To learn how to actually customize the rig, you can check out the [wiki](/../../../-/wikis/Home) or [this video series on the Blender Studio Website](https://studio.blender.org/training/blender-studio-rigging-tools/).
+## Learning Resources
+<ul>
+<li>To learn how to actually customize the rig, you can check out the <a href="/../../../-/wikis/Home">wiki</a>.</li>
+<li>The Blender Studio website hosts a <a href="https://studio.blender.org/training/blender-studio-rigging-tools/">video series</a> that covers most of what is on the wiki in video form. This is behind a paywall.</li>
+<li>I have some <a href="https://www.youtube.com/watch?v=SB3qIbwvq8Y&list=PLav47HAVZMjnA3P7yQvneyQPiVxZ6erFS">live streams</a> of creating the rig for the free [Snow](https://studio.blender.org/characters/snow/v2/) character.
+<li> <details><summary>Example Production Rigs (Click me)</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes behind a paywall, sometimes for free), there is a whole host of CloudRig character rigs available for you to download: 
 
-# Examples
-For examples of characters rigged with CloudRig, check out the [Sprite Fright](https://studio.blender.org/characters/) and [Settlers](https://studio.blender.org/films/settlers/5e8f16fd9e1df355918c30e9/) characters.
+#### Sprite Fright
+- [Ellie](https://studio.blender.org/characters/ellie/)
+- [Victoria](https://studio.blender.org/characters/victoria/)
+- [Rex](https://studio.blender.org/characters/rex/)
+- [Phil](https://studio.blender.org/characters/phil/)
+- [Jay](https://studio.blender.org/characters/jay/)
+- [Sprite](https://studio.blender.org/characters/sprite/)
+- [Elder Sprite](https://studio.blender.org/characters/elder-sprite/)
+- [Animals](https://studio.blender.org/characters/forest-animals/)
+
+#### Settlers
+- [Lunte](https://studio.blender.org/characters/lunte/)
+- [Gabby](https://studio.blender.org/characters/gabby/)
+- [Phileas](https://studio.blender.org/characters/phileas/)
+- [Pip](https://studio.blender.org/characters/pip/)
+
+</details></li>
+</ul>
+
+
+
+
 
 # Report problems
 If you run into weird error messages or have suggestions on how something could be improved, feel free to [open an issue](/../issues/new?issuable_template=Bug).
