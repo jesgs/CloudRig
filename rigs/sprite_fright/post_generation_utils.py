@@ -53,8 +53,11 @@ def face_rig_tweaks(rig):
 			if not pb: continue
 			# print("    " + pb.name)
 			for prop_name in ['use_bulge_min', 'use_bulge_max']:
-				pb.constraints[0].driver_remove(prop_name)
-				d = pb.constraints[0].driver_add(prop_name).driver
+				con = pb.constraints[0]
+				if con.type != 'STRETCH_TO':
+					continue
+				con.driver_remove(prop_name)
+				d = con.driver_add(prop_name).driver
 				d.type = 'SCRIPTED'
 				d.expression = '1-var'
 				var = d.variables.new()
@@ -115,7 +118,7 @@ def face_rig_tweaks(rig):
 
 	bpy.ops.object.mode_set(mode='OBJECT')
 
-def sprite_post_gen_chores(context, charname="", shared_script=True):
+def sprite_post_gen_chores(context, charname="", shared_script=False):
 	"""Automate post-generation chores as much as possible, relying on naming conventions when possible."""
 
 	rig = context.object
