@@ -7,11 +7,16 @@ import bpy
 from typing import List
 from bpy.types import Object
 from rna_prop_ui import rna_idprop_ui_prop_update
-from ..rig_features.object import get_object_hierarchy_recursive
-from ..rig_features.ui import add_ui_data	# Not used in this file, but nice to be able to access here from post-gen scripts.
+from .. import rig_features
 
 sides = {'.L' : 'Left', '.R' : 'Right'}
 suffixes = list(sides.keys())
+
+def add_ui_data(*args, **kwargs):
+	# Without this weird hack, CloudRig fails to properly register without error due to some
+	# perceived circular dependency which I fail to see...
+	return rig_features.ui.add_ui_data(*args, **kwargs)
+
 
 def set_custom_property_value(rig, bone_name, prop, value):
 	"""Assign the value of a custom property."""
@@ -147,7 +152,7 @@ def GLOBAL_rename_obdatas():
 def auto_assign_bone_gizmo_maps(old_rig, new_rig, layers: List[int]):
 	"""Auto-assign vertex groups/face maps for the Bone Gizmo addon for entire rig."""
 
-	obs = get_object_hierarchy_recursive(old_rig)[1:]
+	obs = rig_features.object.get_object_hierarchy_recursive(old_rig)[1:]
 	for pb in new_rig.pose.bones:
 		if pb.enable_bone_gizmo:
 			continue
