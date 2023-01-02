@@ -15,7 +15,10 @@ from .rig_types_ui import get_active_pose_bone
 def is_blender_version_compatible() -> bool:
 	"""Return whether current Blender version is compatible 
 	with current CloudRig version."""
-	from packaging import version
+	try:
+		from packaging import version
+	except ModuleNotFoundError:
+		return True
 
 	tuple_to_version = lambda v: version.parse(str(v).replace(", ", ".")[1:-1])
 
@@ -265,8 +268,11 @@ def register():
 def unregister():
 	# Restore Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_advanced.remove(extend_rigify_advanced_panel)
-	DATA_PT_rigify.draw = DATA_PT_rigify.draw_old
-	DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
-	DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
-	VIEW3D_MT_rigify.draw = VIEW3D_MT_rigify.draw_old
-	BONE_PT_rigify_buttons.draw = BONE_PT_rigify_buttons.draw_old
+	try:
+		DATA_PT_rigify.draw = DATA_PT_rigify.draw_old
+		DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
+		DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
+		VIEW3D_MT_rigify.draw = VIEW3D_MT_rigify.draw_old
+		BONE_PT_rigify_buttons.draw = BONE_PT_rigify_buttons.draw_old
+	except AttributeError:
+		print("Warning: Looks like CloudRig never got registered?")
