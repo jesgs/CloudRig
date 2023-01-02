@@ -77,13 +77,15 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 			match_selection = True
 		):
 		org_mode = from_arm.mode
-		bpy.ops.object.mode_set(mode='OBJECT')
-		from_arm.hide_set(True)
 
 		to_arm.hide_set(False)
 		if not to_arm.visible_get():
 			self.report({'ERROR'}, f'Could not make "{to_arm.name}" visible. Make sure it is enabled, and in an enabled collection!')
 			return {'CANCELLED'}
+
+		bpy.ops.object.mode_set(mode='OBJECT')
+		from_arm.hide_set(True)
+
 		context.view_layer.objects.active = to_arm
 		to_arm.select_set(True)
 		bpy.ops.object.mode_set(mode=org_mode)
