@@ -15,6 +15,7 @@ class CloudPhysicsChainRig(CloudFKChainRig):
 	forced_params = {
 		'CR_fk_chain_double_first' : False
 		,'CR_fk_chain_hinge' : False
+		,'CR_fk_chain_position_along_bone' : 0
 	}
 
 	def initialize(self):

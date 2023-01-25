@@ -24,7 +24,8 @@ class CloudIKChainRig(CloudFKChainRig):
 	chain_must_be_connected = False
 
 	forced_params = {
-		'CR_fk_chain_root' : True,
+		'CR_fk_chain_root' : True
+		,'CR_fk_chain_position_along_bone' : 0
 	}
 
 	def initialize(self):

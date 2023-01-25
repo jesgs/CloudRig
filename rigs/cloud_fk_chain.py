@@ -1,7 +1,7 @@
 from typing import List
 from ..rig_features.bone import BoneInfo
 
-from bpy.props import BoolProperty, IntVectorProperty, BoolVectorProperty, EnumProperty
+from bpy.props import BoolProperty, IntVectorProperty, BoolVectorProperty, EnumProperty, FloatProperty
 
 from .cloud_chain import CloudChainRig
 from ..rig_features.animation import CloudAnimationMixin
@@ -128,6 +128,11 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
 			,gizmo_operator				= 'transform.rotate'
 		)
+
+		if self.params.CR_fk_chain_position_along_bone > 0:
+			position = org_bone.head + (org_bone.tail-org_bone.head) * self.params.CR_fk_chain_position_along_bone
+			fk_bone.put(position)
+
 		org_bone.fk_bone = fk_bone
 		# Parent FK bone to previous FK bone.
 		if org_bone.prev:
@@ -244,6 +249,11 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 	def attach_org_to_fk(self, org_bones, fk_bones):
 		"""Make ORG bones Copy Transforms of FK bones."""
+		if self.params.CR_fk_chain_position_along_bone > 0:
+			for str_bone, fk_bone in zip(self.main_str_bones[1:], fk_bones):
+				str_bone.parent = fk_bone
+			return
+
 		for org_bone, fk_bone in zip(org_bones, fk_bones):
 			org_bone.add_constraint('COPY_TRANSFORMS'
 				,space			= 'WORLD'
@@ -321,6 +331,13 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
 			,default	 = True
 		)
+		params.CR_fk_chain_position_along_bone = FloatProperty(
+			name		 = "Position Along Bone"
+			,description = "Whether the position of each FK control should be at the deform bone's head or tail. Increasing this above 0 also means ORG bones won't be constrained to FK bones, and STR bones get parented to FK bones directly"
+			,default	 = 0
+			,min		 = 0
+			,max		 = 1
+		)
 		params.CR_fk_chain_double_first = BoolProperty(
 			 name		 = "Duplicate First FK"
 			,description = "Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid gimbal locking"
@@ -381,6 +398,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 		if not cls.is_advanced_mode(context):
 			return
+		cls.draw_prop(layout, params, 'CR_fk_chain_position_along_bone', slider=True)
 		cls.draw_prop(layout, params, 'CR_fk_chain_inherit_scale')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
 

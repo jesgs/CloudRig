@@ -156,8 +156,8 @@ class CloudChainRig(CloudBaseRig):
 		segments = self.params.CR_chain_segments
 		direction = org_bone.vector
 		if org_bone.prev:
-			# Rotate the bone halfway towards the previous one TODO: This shouldn't happen for the last STR bone?
-			direction = org_bone.tail - org_bone.prev.head
+			# Make bone parallel to line from previous bone's head to current bone's tail.
+			direction = (org_bone.tail - org_bone.prev.head).normalized()
 		if org_i == 0 and self.is_cyclic:
 			direction = (org_bone.tail - self.bones_org[-1].head).normalized()
 
