@@ -15,6 +15,7 @@ class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 			row = layout.row()
 			row.prop(parent_slot, 'name', text=f"", emboss=True)
 			row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="")
+			row.prop(parent_slot, 'is_default', text="")
 		elif self.layout_type in {'GRID'}:
 			layout.alignment = 'CENTER'
 			layout.label(text="", icon_value=icon)
@@ -23,8 +24,42 @@ class ParentSlot(bpy.types.PropertyGroup):
 	name: StringProperty(name="Name", description="Name to display in the UI for this parent option")
 	bone: StringProperty(name="Bone", description="Bone that will be used as the parent")
 
+	def update_is_default(self, context):
+		arm_ob = context.object
+		bone = None
+		for b in arm_ob.data.bones:
+			for ps in b.cloudrig_parent_slots:
+				if ps == self:
+					bone = b
+					break
+		for ps in bone.cloudrig_parent_slots:
+			if ps != self:
+				ps['is_default'] = False
+			else:
+				ps['is_default'] = True
+
+	is_default: BoolProperty(
+		name="Is Default", 
+		description="Set this parent option as the default when the rig is generated", 
+		default=False, 
+		update=update_is_default
+	)
+
 def draw_cloudrig_parents(layout, context, text=""):
-	draw_label_with_linebreak(layout, text, align_split=True)
+	draw_label_with_linebreak(layout, text, align_split=False)
+
+	split = layout.split(factor=0.43)
+	row = split.row()
+	row.label(text="  UI Name")
+	
+	sub = split.split(factor=0.8)
+	row = sub.row()
+	row.label(text="Bone")
+
+	sub = split.split(factor=0.8)
+	row = sub.row()
+	row.alignment='RIGHT'
+	row.label(text="Default")
 
 	draw_ui_list(
 		layout
@@ -85,7 +120,7 @@ class CloudParentSwitchMixin:
 			self.add_ui_data(panel_name, row_name, info
 				,label_name = label_name
 				,entry_name = entry_name
-				,default = 0
+				,default = self.get_default_parent_index(parent_bone_names, parent_slots)
 				,max = len(parent_ui_names)-1
 			)
 
@@ -145,6 +180,18 @@ class CloudParentSwitchMixin:
 			return [], []
 
 		return parent_ui_names, parent_bone_names
+
+	def get_default_parent_index(self, parent_bone_names: List[str], parent_slots: List[ParentSlot]) -> int:
+		for ps in parent_slots:
+			if ps.is_default:
+				parent_bone = ps.bone
+				break
+		else:
+			parent_bone = parent_slots[0].bone
+
+		for i, bone_name in enumerate(parent_bone_names):
+			if bone_name == parent_bone:
+				return i
 
 	def apply_custom_root_parent(self, bone=None, parent_name=""):
 		if not bone:
