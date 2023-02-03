@@ -173,6 +173,9 @@ class CloudChainRig(CloudBaseRig):
 			name = str_name
 			,source = org_bone
 			,vector = direction
+			,roll = 0
+			,roll_type = 'ALIGN'
+			,roll_bone = org_bone.name
 			,length = org_bone.length / segments / 2
 			,custom_shape_scale = -0.6
 			,parent = org_bone
@@ -191,9 +194,6 @@ class CloudChainRig(CloudBaseRig):
 		main_str.align_in = main_str
 		main_str.align_out = main_str
 		if org_bone.prev and self.params.CR_chain_align_roll and not self.params.CR_chain_sharp and num_segments > 1:
-			main_str.roll_type = 'ALIGN'
-			main_str.roll_bone = org_bone.name
-			main_str.roll = 0
 			main_str.align_in = self.bone_sets['Mechanism Bones'].new(
 				name = str_name.replace("STR", "STR-RI")
 				,source = org_bone.prev

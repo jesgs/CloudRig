@@ -433,6 +433,10 @@ class BoneInfo:
 		# Recalculate roll.
 		if self.roll_type != "":
 			if self.roll_type == 'ALIGN':
+				# NOTE: If you're looking at this code and wondering why your roll
+				# is not aligned like it should be, it's probably because
+				# `eb.roll += self.roll`` down below.
+				# Make sure to set `self.roll = 0` if that's what you need.
 				align_bone = armature.data.edit_bones.get(str(self.roll_bone))
 				if not align_bone:
 					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
