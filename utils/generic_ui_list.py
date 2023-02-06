@@ -1,1 +1,1 @@
-from rigify.operators.generic_ui_list import draw_ui_list
+from bl_ui.generic_ui_list import draw_ui_list

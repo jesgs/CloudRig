@@ -65,8 +65,8 @@ def draw_cloudrig_parents(layout, context, text=""):
 		layout
 		,context
 		,class_name = 'CLOUDRIG_UL_parent_slots'
-		,list_context_path = 'active_pose_bone.bone.cloudrig_parent_slots'
-		,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_base_active_parent_slot_index'
+		,list_path = 'active_pose_bone.bone.cloudrig_parent_slots'
+		,active_index_path = 'active_pose_bone.rigify_parameters.CR_base_active_parent_slot_index'
 	)
 
 class CloudParentSwitchMixin:

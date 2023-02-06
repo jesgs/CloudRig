@@ -327,8 +327,8 @@ class BoneSetMixin:
 			layout
 			,context
 			,class_name = 'CLOUDRIG_UL_bone_set'
-			,list_context_path = 'object.data.cloudrig_parameters.ui_bone_sets'
-			,active_idx_context_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
+			,list_path = 'object.data.cloudrig_parameters.ui_bone_sets'
+			,active_index_path = 'active_pose_bone.rigify_parameters.CR_active_bone_set_index'
 			,insertion_operators = False
 			,move_operators = False
 			,type='GRID' if cloudrig.bone_set_use_grid_layout else 'DEFAULT'
