@@ -665,7 +665,7 @@ class ConstraintInfo(dict):
 				for i, t in enumerate(self.targets):
 					if t == metarig:
 						t['target'] = rig
-					if not self.targets[i]['target']:
+					if 'target' not in self.targets[i] or not self.targets[i]['target']:
 						t['target'] = rig
 			return
 

@@ -199,7 +199,35 @@ class CloudParentSwitchMixin:
 		if parent_name == "":
 			parent_name = self.params.CR_base_parent
 
-		self.bendy_parenting(bone, parent_name)
+		parent_bone = self.generator.find_bone_info(parent_name)
+
+		if not parent_bone:
+			# Still try string-based parenting. If this fails, an error will be
+			# logged in write_edit_data().
+			self.add_log("Name-based parenting",
+				description=f'Parent bone "{parent_name}" did not yet exist at time of parenting. This could be caused by incorrect metarig bone hierarchy, where a child rig is not parented to its intended parent rig, so it executes before the parent.'
+			)
+			bone.parent = parent_name
+			return
+
+		if parent_bone.bbone_segments == 0 or not self.params.CR_base_use_constraint_parenting:
+			bone.parent = parent_bone
+			return
+
+		constrained_bone = bone
+		if self.params.CR_base_use_parent_helper:
+			constrained_bone = self.create_parent_bone(bone, self.bones_mch)
+			constrained_bone.custom_shape = None
+
+		constrained_bone.add_constraint('ARMATURE', 
+			index = -len(constrained_bone.constraint_infos),
+			use_deform_preserve_volume = True,
+			targets = [
+				{
+					"subtarget" : parent_bone.name
+				}
+			]
+		)
 
 	@classmethod
 	def add_parent_switch_parameters(cls, params):
@@ -207,6 +235,16 @@ class CloudParentSwitchMixin:
 			name		 = "Parent Switching"
 			,description = "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
 			,default	 = False
+		)
+		params.CR_base_use_constraint_parenting = BoolProperty(
+			name		 = "Use Armature Constraint"
+			,description = "Instead of directly parenting this bone to the parent, use an Armature constraint. This allows the bone to follow the parent's bendy bone curvature"
+			,default	 = True
+		)
+		params.CR_base_use_parent_helper = BoolProperty(
+			name		 = "Create Parent Helper"
+			,description = "Instead of adding the Armature constraint directly to this bone, create a parent bone prefixed with 'P-' and add it to that one instead. This will keep the local transformations of this bone clear from any parenting-induced transformations, as would be the case with normal parenting"
+			,default	 = True
 		)
 		params.CR_base_parent = StringProperty(
 			name		 = "Root Parent"
@@ -219,10 +257,17 @@ class CloudParentSwitchMixin:
 	@classmethod
 	def draw_parent_param(cls, layout, rig, params):
 		parent_bone = rig.pose.bones.get(params.CR_base_parent)
-		text = "Root Parent: "
-		if parent_bone and parent_bone.bone.bbone_segments > 1:
-			text = "Root Parent (Bendy): "
-		cls.draw_prop_search(layout, params, 'CR_base_parent', rig.pose, 'bones', text=text)
+		is_parent_bendy = parent_bone and parent_bone.bone.bbone_segments > 1
+		text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
+		
+		row = layout.row(align=True)
+		cls.draw_prop_search(row, params, 'CR_base_parent', rig.pose, 'bones', text=text)
+		if is_parent_bendy:
+			cls.draw_prop(row, params, 'CR_base_use_constraint_parenting', icon='CON_ARMATURE', text="")
+			if params.CR_base_use_constraint_parenting:
+				cls.draw_prop(row, params, 'CR_base_use_parent_helper', icon='BONE_DATA', text="")
+			else:
+				row.label(text="", icon="BONE_DATA")
 
 	@classmethod
 	def draw_parenting_params(cls, layout, context, params):

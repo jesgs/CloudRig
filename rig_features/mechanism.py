@@ -63,30 +63,6 @@ class CloudMechanismMixin:
 			from_bone.drivers.remove(d)
 			self.relink_driver(d)
 
-	def bendy_parenting(self, bone, parent_name):
-		if parent_name=="": return
-		parent_bone = self.generator.find_bone_info(parent_name)
-		if not parent_bone:
-			# Still try string-based parenting. If this fails, an error will be
-			# logged in write_edit_data().
-			bone.parent = parent_name
-			return
-		else:
-			bone.parent = parent_bone
-			# If parent bone has BBone segments, use Armature constraint for parenting.
-			# In this case, we also want to create a parent helper bone to hold that armature constraint.
-			if parent_bone.bbone_segments > 1:
-				parent_helper = self.create_parent_bone(bone, self.bones_mch)
-				parent_helper.custom_shape = None
-				parent_helper.add_constraint('ARMATURE', index=-len(bone.constraint_infos)
-					,use_deform_preserve_volume = True
-					,targets = [
-						{
-							"subtarget" : parent_bone.name
-						}
-					]
-				)
-
 def get_object_scalar(obj):
 	"""Return a value that can be used all across CloudRig for calculating sizes
 	and distances in a rig-size-agnostic way.
