@@ -1673,10 +1673,11 @@ def draw_layers_ui(
 	sorted_layers = [l for l in sorted_layers if 'name' in l and l['name']!=" "]
 	current_row_index = 0
 	for rigify_layer in sorted_layers:
-		layer_selected = getattr(layer_prop_owner, layer_prop_name)[rigify_layer['index']]
+		is_selected = getattr(layer_prop_owner, layer_prop_name)[rigify_layer['index']]
 		if (rigify_layer['name'].strip() == "" \
-			and not layer_selected \
-			and not show_unnamed_selected_layers):
+			and not (show_unnamed_selected_layers \
+			and is_selected)
+			):
 				continue
 		if rigify_layer['name'].startswith("$") and not show_hidden: 
 			continue
