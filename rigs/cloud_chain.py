@@ -184,6 +184,9 @@ class CloudChainRig(CloudBaseRig):
 
 		if not self.is_cyclic and org_i == 0:
 			main_str.custom_shape = self.ensure_widget('Sphere_Half')
+		elif org_bone == self.bones_org[-1] and self.params.CR_chain_tip_control:
+			main_str.custom_shape = self.ensure_widget('Sphere_Half')
+			main_str.custom_shape_scale_xyz *= -1
 		else:
 			main_str.custom_shape = self.ensure_widget("Sphere")
 
