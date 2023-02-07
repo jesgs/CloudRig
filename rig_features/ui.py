@@ -24,13 +24,31 @@ class CloudUIMixin:
 
 	@classmethod
 	def draw_prop(cls, layout, prop_owner, prop_name, **kwargs):
-		return draw_prop(layout, prop_owner, prop_name, **kwargs)
+		rig = prop_owner.id_data
+
+		is_forced = prop_name in cls.forced_params.keys()
+		if is_forced and not rig.data.cloudrig_parameters.advanced_mode:
+			return
+
+		row = draw_prop(layout, prop_owner, prop_name, **kwargs)
+		if is_forced:
+			row.enabled = False
+
+		return row
 
 	@classmethod
 	def draw_prop_search(cls, layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs):
+		rig = prop_owner.id_data
+		
+		is_forced = prop_name in cls.forced_params.keys()
+		if is_forced and not rig.data.cloudrig_parameters.advanced_mode:
+			return
+
 		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs)
-		if prop_name in cls.forced_params.keys():
+
+		if is_forced:
 			row.enabled = False
+
 		return row
 
 def is_advanced_mode(context):
