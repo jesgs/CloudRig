@@ -125,6 +125,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,custom_shape 				= self.ensure_widget("Circle_Spiked_2")
 			,inherit_scale				= self.params.CR_fk_chain_inherit_scale
 			,custom_shape_along_length	= self.params.CR_fk_chain_display_center / 2
+			,rotation_mode				= org_bone.rotation_mode
 			,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
 			,gizmo_operator				= 'transform.rotate'
 		)
