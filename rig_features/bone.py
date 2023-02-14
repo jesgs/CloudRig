@@ -712,21 +712,26 @@ class ConstraintInfo(dict):
 					target_info['subtarget'] = target_info['subtarget'].name
 			target_pairs = [(t['target'], t['subtarget']) for t in con_info['targets']]
 		elif 'target' in con_info:
-			target_pairs = [(con_info['target'], "")]
+			target_pairs = [[con_info['target'], ""]]
+
 		if 'subtarget' in con_info:
 			if isinstance(con_info['subtarget'], BoneInfo):
 				# Allow using BoneInfo instances, convert them to string here.
 				con_info['subtarget'] = con_info['subtarget'].name
+
 			# Singular target, target object is optional, assumed to be the rig.
-			target_pairs = [(pose_bone.id_data, con_info['subtarget'])]
+			target = target_pairs[0][0]
+			if not target:
+				target = pose_bone.id_data
+			target_pairs = [(target, con_info['subtarget'])]
 
 		for target_pair in target_pairs:
 			target, subtarget = target_pair
-			if target and target.type=='ARMATURE' and subtarget not in target.data.bones:
+			if (target and target.type=='ARMATURE') and (subtarget not in target.data.bones):
 				self.bone_info.owner_rig.add_log("Invalid constraint target!"
 					,owner_bone   = self.bone_info.name
 					,trouble_bone = subtarget
-					,description  = f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget}.'
+					,description  = f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget} in {target}.'
 				)
 
 		con = make_constraint(pose_bone, self.type, **con_info)
