@@ -119,13 +119,18 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 	def make_fk_bone(self, org_bone) -> BoneInfo:
 		fk_name = org_bone.name.replace("ORG", "FK")
+		
+		rot_mode = self.params.CR_fk_chain_rot_mode
+		if rot_mode == 'PROPAGATE':
+			rot_mode = org_bone.rotation_mode
+
 		fk_bone = self.bone_sets['FK Controls'].new(
 			name						= fk_name
 			,source						= org_bone
 			,custom_shape 				= self.ensure_widget("Circle_Spiked_2")
 			,inherit_scale				= self.params.CR_fk_chain_inherit_scale
 			,custom_shape_along_length	= self.params.CR_fk_chain_display_center / 2
-			,rotation_mode				= org_bone.rotation_mode
+			,rotation_mode				= rot_mode
 			,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
 			,gizmo_operator				= 'transform.rotate'
 		)
@@ -181,6 +186,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		hng_bone = bone_set.new(
 			name			= hng_name
 			,source			= bone
+			,head			= bone.source.head
+			,tail			= bone.source.tail
 		)
 
 		# Hinge Armature constraint
@@ -355,6 +362,21 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this"
 			,default	 = True
 		)
+		params.CR_fk_chain_rot_mode = EnumProperty(
+			name		 = "Rotation Mode"
+			,description = "How to determine the rotation order of FK bones"
+			,items		 = [
+				('XYZ', 'XYZ Euler', ''),
+				('XZY', 'XZY Euler', ''),
+				('YXZ', 'YXZ Euler', ''),
+				('YZX', 'YZX Euler', ''),
+				('ZXY', 'ZXY Euler', ''),
+				('ZYX', 'ZYX Euler', ''),
+				('AXIS_ANGLE', 'Axis Angle', ''),
+				('QUATERNION', 'Quaternion', ''),
+				('PROPAGATE', 'Propagate', 'Propagate rotation mode from each meta bone to its corresponding FK control'),
+			]
+		)
 
 		params.CR_fk_chain_test_animation_generate = BoolProperty(
 			 name		 = "Generate Test Animation"
@@ -401,6 +423,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			return
 		cls.draw_prop(layout, params, 'CR_fk_chain_position_along_bone', slider=True)
 		cls.draw_prop(layout, params, 'CR_fk_chain_inherit_scale')
+		cls.draw_prop(layout, params, 'CR_fk_chain_rot_mode')
 		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
 
 	@classmethod
