@@ -578,7 +578,7 @@ class CloudGenerator(Generator):
 		for eb in self.obj.data.edit_bones:
 			pb = self.obj.pose.bones.get(eb.name)
 			for c in pb.constraints:
-				if c.type=='ARMATURE':
+				if c.type=='ARMATURE' and c.enabled:
 					eb.parent = None
 					break
 
