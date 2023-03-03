@@ -14,6 +14,8 @@ from bpy.props import (
 						StringProperty, BoolProperty, BoolVectorProperty,
 						EnumProperty, PointerProperty, IntProperty
 					)
+from bpy.types import Object, UILayout
+
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
@@ -1334,9 +1336,9 @@ def draw_rig_settings_per_label(layout, rig, main_dict):
 			ui = top
 		draw_rig_settings(ui, rig, main_dict[label_name])
 
-def draw_rig_settings(layout, rig, main_dict):
+def draw_rig_settings(layout: UILayout, rig: Object, ui_data: Dict):
 	"""
-	main_dict: Dictionary containing the UI data, created during rig generation.
+	ui_data: Dictionary containing the UI data, created during rig generation.
 	The top-level represents rows, and each row can contain any number of slider definitions.
 
 	A slider definition must have the following keywords:
@@ -1354,7 +1356,7 @@ def draw_rig_settings(layout, rig, main_dict):
 	# Sort the rows alphabetically, just so "Arm" always comes before "Leg".
 	# Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
 	# consistent and predictable.
-	row_datas = [(row_name, main_dict[row_name]) for row_name in sorted(main_dict.keys())]
+	row_datas = [(row_name, ui_data[row_name]) for row_name in sorted(ui_data.keys())]
 
 	# Each top-level dictionary within the main dictionary defines a row.
 	for row_name, row_entries in row_datas:
@@ -1375,6 +1377,8 @@ def draw_rig_settings(layout, rig, main_dict):
 			if isinstance(prop_value, bpy.types.Object):
 				# Property is an object pointer
 				sub_row.prop_search(prop_bone, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=entry_name)
+			elif type(prop_value) == bool:
+				sub_row.prop(prop_bone, f'["{prop_id}"]', toggle=False, text=prop_id)
 			else:
 				# Property is a float/int/color
 				# NOTE: Boolean custom properties don't exist in Blender 3.2, 
@@ -1485,6 +1489,9 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 				elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
 					# Vectors
 					row.prop(prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " "))
+				elif type(prop_value) == bool:
+					icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+					row.prop(prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " "), toggle=True, icon=icon)
 				elif isinstance(prop_value, bpy.types.Object):
 					# Property is a pointer
 					row.prop_search(prop_owner, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=prop_id)
@@ -1631,8 +1638,8 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 #######################################
 
 def draw_layers_ui(
-		layout: bpy.types.UILayout, 
-		rig: bpy.types.Object, 
+		layout: UILayout, 
+		rig: Object, 
 		*,
 		show_unnamed_selected_layers = False,
 		show_hidden_checkbox = True, 
