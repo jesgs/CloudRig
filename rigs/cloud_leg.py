@@ -222,6 +222,7 @@ class CloudLegRig(CloudLimbRig):
 			,custom_shape = self.ensure_widget('Roll_Flat')
 			,use_custom_shape_bone_size = True
 		)
+		self.properties_bone.parent = roll_ctrl
 		# Limit Rotation, lock other transforms
 		self.lock_transforms(roll_ctrl, rot=False)
 		roll_ctrl.add_constraint('LIMIT_ROTATION'
