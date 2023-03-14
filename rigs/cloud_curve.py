@@ -1,8 +1,14 @@
 import bpy
+
+from bpy.types import Object, Spline
+from typing import List
+from ..rig_features.bone import BoneInfo
+
 from bpy.props import BoolProperty, StringProperty, PointerProperty
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 from .cloud_base import CloudBaseRig
+from ..utils import curve as curve_utils
 
 def is_curve(self, obj):
 	return obj.type=='CURVE'
@@ -77,6 +83,15 @@ class CloudCurveRig(CloudBaseRig):
 				)
 			self.all_hooks.append(hooks)
 
+	def get_opposite_index(self, spline: Spline, point_idx: int, threshold=0.01) -> int:
+		_opp_co, opp_idx, offset = curve_utils.find_opposite_point_on_spline(spline, point_idx)
+		if offset > threshold:
+			self.raise_error("Curve is not symmetrical"
+				,note = f"{point_idx} -> {opp_idx} dist: {offset}"
+				,description = f"The nearest point to the X-axis flipped coordinate of point {point_idx} is point {opp_idx}.\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis."
+			)
+		return opp_idx
+
 	def make_hook_name(self, spline_idx: int, point_idx: int, prefix="") -> str:
 		if self.params.CR_curve_hook_name:
 			hook_name = self.params.CR_curve_hook_name
@@ -94,20 +109,56 @@ class CloudCurveRig(CloudBaseRig):
 		if prefix:
 			prefix_part = "_"+prefix
 
-		return f"Hook{prefix_part}_{hook_name}{spline_part}_{str(point_idx).zfill(2)}{suffix}"
+		point_name = point_idx
+		if self.params.CR_curve_x_axis_symmetry:
+			spline = self.params.CR_curve_target.data.splines[spline_idx]
+			opp_idx = self.get_opposite_index(spline, point_idx)
+			if opp_idx == point_idx:
+				suffix = ""
+			else:
+				point_name = min([point_idx, opp_idx])
+				x_co = curve_utils.get_spline_points(spline)[point_idx].co.x
+				if x_co > 0:
+					suffix = ".L"
+				elif x_co < 0:
+					suffix = ".R"
+				else:
+					suffix = ""
 
-	def make_ctrls_for_curve_point(self, loc, loc_left, loc_right, spline_idx, point_idx, cyclic=False):
+		return f"Hook{prefix_part}_{hook_name}{spline_part}_{str(point_name).zfill(2)}{suffix}"
+
+	def make_ctrls_for_curve_point(
+			self, 
+			loc: Vector, 
+			loc_left: Vector, 
+			loc_right: Vector, 
+			spline_idx: int, 
+			point_idx: int, 
+			cyclic=False
+		):
 		""" Create hook controls for a bezier curve point defined by three points (loc, loc_left, loc_right). """
 
+		tail = loc_left
 		hook_ctr = self.bone_sets['Curve Hooks'].new(
 			name						= self.make_hook_name(spline_idx, point_idx)
 			,source						= self.bones_org[0]
 			,use_custom_shape_bone_size	= False
 			,head						= loc
-			,tail						= loc_left
+			,tail						= tail
 			,parent						= self.bones_org[0]
 			,rotation_mode				= 'YZX'
 		)
+		if self.params.CR_curve_x_axis_symmetry:
+			size = (loc - loc_left).length
+			hook_ctr.tail = loc + Vector((0, 0, size))
+			hook_dsp_ctr = self.bone_sets['Mechanism Bones'].new(
+				name = "DSP-"+hook_ctr.name,
+				source = hook_ctr,
+				head = loc,
+				tail = loc_left,
+				parent = hook_ctr
+			)
+			hook_ctr.custom_shape_transform = hook_dsp_ctr
 
 		hook_ctr.left_handle_control = None
 		hook_ctr.right_handle_control = None
@@ -120,6 +171,7 @@ class CloudCurveRig(CloudBaseRig):
 				radius_control = self.bone_sets['Curve Handles'].new(
 					name						= self.make_hook_name(spline_idx, point_idx, "Radius")
 					,source						= hook_ctr
+					,tail						= loc_left
 					,use_custom_shape_bone_size	= False
 					,custom_shape_scale			= 0.8
 					,parent						= hook_ctr
@@ -127,12 +179,17 @@ class CloudCurveRig(CloudBaseRig):
 				)
 				radius_control.length *= 0.8
 				self.lock_transforms(radius_control, loc=True, rot=True, scale=[False, True, False])
-				self.lock_transforms(hook_ctr, loc=False, rot=False, scale=[True, False, True])
+				if not self.params.CR_curve_x_axis_symmetry:
+					self.lock_transforms(hook_ctr, loc=False, rot=False, scale=[True, False, True])
 				hook_ctr.radius_control = radius_control
 
+			left_name = "L"
+			right_name = "R"
+			if self.params.CR_curve_x_axis_symmetry and loc.x > 0:
+				left_name, right_name = right_name, left_name
 			if (point_idx != 0) or cyclic:				# Skip for first hook unless cyclic.
 				handle_left_ctr = self.bone_sets['Curve Handles'].new(
-					name		  = self.make_hook_name(spline_idx, point_idx, "L")
+					name		  = self.make_hook_name(spline_idx, point_idx, left_name)
 					,source		  = hook_ctr
 					,head 		  = loc
 					,tail		  = loc_left
@@ -145,7 +202,7 @@ class CloudCurveRig(CloudBaseRig):
 
 			if (point_idx != self.num_controls-1) or cyclic:	# Skip for last hook unless cyclic.
 				handle_right_ctr = self.bone_sets['Curve Handles'].new(
-					name 		  = self.make_hook_name(spline_idx, point_idx, "R")
+					name 		  = self.make_hook_name(spline_idx, point_idx, right_name)
 					,source		  = hook_ctr
 					,head 		  = loc
 					,tail 		  = loc_right
@@ -182,54 +239,60 @@ class CloudCurveRig(CloudBaseRig):
 
 		return hook_ctr
 
-	def make_hook_modifier(self, spline_i, cp_i, boneinfo, main_handle=False, left_handle=False, right_handle=False):
+	def make_hook_modifier(
+			self, 
+			rig_ob: Object, 
+			bonename: str, 
+			curve_ob: Object, 
+			spline_i: int, 
+			point_i: int, 
+			main_handle=False, 
+			left_handle=False, 
+			right_handle=False
+		):
 		""" Create a Hook modifier on the curve(active object, in edit mode), hooking the control point at a given index to a given bone. The bone must exist. """
-		if not boneinfo: return
+		if not bonename: return
 
 		# Workaround of T74888: Re-grab references to curve object, splines and points.
 		# A potential fix, D7190 was sadly rejected.
 		curve_ob = self.params.CR_curve_target
-		spline = curve_ob.data.splines[spline_i]
 		idx_offset = 0
 		for i in range(0, spline_i):
 			idx_offset += len(curve_ob.data.splines[i].bezier_points) * 3
-		points = spline.bezier_points
-		cp = points[cp_i]
 
 		indices = []
 		if main_handle:
-			indices.append(idx_offset + cp_i*3 + 1)
+			indices.append(idx_offset + point_i*3 + 1)
 		if left_handle:
-			indices.append(idx_offset + cp_i*3)
+			indices.append(idx_offset + point_i*3)
 		if right_handle:
-			indices.append(idx_offset + cp_i*3 + 2)
+			indices.append(idx_offset + point_i*3 + 2)
 
 		# Set active bone
-		bone = self.obj.data.bones.get(boneinfo.name)
-		self.obj.data.bones.active = bone
+		bone = rig_ob.data.bones.get(bonename)
+		rig_ob.data.bones.active = bone
 
-		hook_m = curve_ob.modifiers.get(boneinfo.name)
+		hook_m = curve_ob.modifiers.get(bonename)
 		if not hook_m:
 			# Add hook modifier
-			hook_m = curve_ob.modifiers.new(name=boneinfo.name, type='HOOK')
+			hook_m = curve_ob.modifiers.new(name=bonename, type='HOOK')
 
 		hook_m.vertex_indices_set(indices)
 		hook_m.show_expanded = False
 		hook_m.show_in_editmode = True
 		hook_m.use_apply_on_spline = True
 
-		hook_m.object = self.obj
-		hook_m.subtarget = boneinfo.name
+		hook_m.object = rig_ob
+		hook_m.subtarget = bonename
 
 	def configure_bones(self):
 		self.setup_curve(self.all_hooks)
 		super().configure_bones()
 
-	def setup_curve(self, all_hooks):
+	def setup_curve(self, all_hooks: List[List[BoneInfo]]):
 		""" Configure the Hook Modifiers for the curve.
 		all_hooks: List of List of BoneInfo objects that were created with make_ctrls_for_curve_point().
 				Each list corresponds to one curve spline.
-		curve_ob: The curve object.
 		"""
 
 		curve_ob = self.params.CR_curve_target
@@ -247,7 +310,7 @@ class CloudCurveRig(CloudBaseRig):
 
 		self.meta_base_bone.rigify_parameters.CR_curve_target = curve_ob
 
-	def setup_spline(self, curve_ob, spline_i, hooks):
+	def setup_spline(self, curve_ob: Object, spline_i: int, hooks: List[BoneInfo]):
 		spline = curve_ob.data.splines[spline_i]
 		points = spline.bezier_points
 		num_points = len(points)
@@ -270,12 +333,36 @@ class CloudCurveRig(CloudBaseRig):
 
 		for point_i in range(0, num_points):
 			hook_b = hooks[point_i]
+			shared_kwargs = {
+				"rig_ob" : self.obj,
+				"curve_ob" : self.params.CR_curve_target,
+				"spline_i" : spline_i,
+				"point_i" : point_i
+			}
 			if not self.params.CR_curve_controls_for_handles:
-				self.make_hook_modifier(spline_i, point_i, hook_b, main_handle=True, left_handle=True, right_handle=True)
+				self.make_hook_modifier(
+			    				bonename=hook_b.name, 
+								main_handle=True, 
+								left_handle=True, 
+								right_handle=True,
+								**shared_kwargs
+				)
 			else:
-				self.make_hook_modifier(spline_i, point_i, hook_b, main_handle=True)
-				self.make_hook_modifier(spline_i, point_i, hook_b.left_handle_control, left_handle=True)
-				self.make_hook_modifier(spline_i, point_i, hook_b.right_handle_control, right_handle=True)
+				self.make_hook_modifier(
+								bonename = hook_b.name, 
+								main_handle=True,
+								**shared_kwargs
+				)
+				self.make_hook_modifier(
+								bonename=hook_b.left_handle_control.name,
+								left_handle=True,
+								**shared_kwargs
+				)
+				self.make_hook_modifier(
+								bonename = hook_b.right_handle_control.name, 
+								right_handle=True,
+								**shared_kwargs
+				)
 
 			# Add Radius driver
 			data_path = f"splines[0].bezier_points[{point_i}].radius"
@@ -340,11 +427,6 @@ class CloudCurveRig(CloudBaseRig):
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
-		# TODO: Add "X Symmetry" parameter, when enabled, determine hook bone
-		#  sides automatically based on X coordinate sign, and flip bones on
-		# one side so mirror posing works as expected.
-		# An actual symmetrical curve shape is not enforced, but expected.
-
 		params.CR_curve_hook_name = StringProperty(
 			 name		 = "Custom Name"
 			,description = "Used in the naming of created bones and objects. If empty, use the base bone's name"
@@ -363,6 +445,11 @@ class CloudCurveRig(CloudBaseRig):
 		params.CR_curve_separate_radius = BoolProperty(
 			 name		 = "Separate Radius Control"
 			,description = "Create a separate control for controlling the curve points' radii, instead of using the hook control's scale"
+			,default	 = False
+		)
+		params.CR_curve_x_axis_symmetry = BoolProperty(
+			 name		 = "X Axis Symmetry"
+			,description = "Controls will be named with .L/.R suffixes based on their X position. A curve object that is symmetrical around its own X 0 point is expected, otherwise results may be unexpected. Useful for character mouths"
 			,default	 = False
 		)
 
@@ -392,10 +479,12 @@ class CloudCurveRig(CloudBaseRig):
 		cls.curve_selector_ui(layout, params)
 
 		cls.draw_prop(layout, params, "CR_curve_hook_name")
+		cls.draw_prop(layout, params, "CR_curve_x_axis_symmetry")
 		cls.draw_prop(layout, params, "CR_curve_controls_for_handles")
 		if params.CR_curve_controls_for_handles:
 			cls.draw_prop(layout, params, "CR_curve_rotatable_handles")
 			cls.draw_prop(layout, params, "CR_curve_separate_radius")
+
 
 class Rig(CloudCurveRig):
 	pass
