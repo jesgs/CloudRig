@@ -210,7 +210,7 @@ class CloudParentSwitchMixin:
 			bone.parent = parent_name
 			return
 
-		if parent_bone.bbone_segments == 0 or not self.params.CR_base_use_constraint_parenting:
+		if parent_bone.bbone_segments == 1 or not self.params.CR_base_use_constraint_parenting:
 			bone.parent = parent_bone
 			return
 
