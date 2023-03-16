@@ -149,7 +149,7 @@ class CloudCurveRig(CloudBaseRig):
 			,rotation_mode				= 'YZX'
 		)
 		if self.params.CR_curve_x_axis_symmetry:
-			size = (loc - loc_left).length
+			size = ( (loc - loc_left).length + (loc - loc_right).length ) / 2
 			hook_ctr.tail = loc + Vector((0, 0, size))
 			hook_dsp_ctr = self.bone_sets['Mechanism Bones'].new(
 				name = "DSP-"+hook_ctr.name,
