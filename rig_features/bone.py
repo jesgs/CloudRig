@@ -315,6 +315,15 @@ class BoneInfo:
 		"""Set custom widget display position as a factor along the bone's length."""
 		self.custom_shape_translation.y = self.length * value
 
+	def copy_custom_shape(self, other):
+		if not other.custom_shape:
+			return
+		self.custom_shape = other.custom_shape
+		self.custom_shape_translation = other.custom_shape_translation
+		self.custom_shape_rotation_euler = other.custom_shape_rotation_euler
+		self.custom_shape_scale_xyz = other.custom_shape_scale_xyz
+		self.use_custom_shape_bone_size = other.use_custom_shape_bone_size
+
 	def get_constraint(self, name):
 		for ci in self.constraint_infos:
 			if ci.name == name:
