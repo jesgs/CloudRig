@@ -51,13 +51,17 @@ class CloudCurveRig(CloudBaseRig):
 		self.make_ctrls_for_curve_points()
 
 	def make_curve_root_ctrl(self):
-		self.root_bone = self.bone_sets['Curve Handles'].new(
+		org_bone = self.bones_org[0]
+		self.root_bone = self.bone_sets['Curve Root'].new(
 			name						= self.base_bone.replace("ORG", "ROOT")
-			,source						= self.bones_org[0]
-			,custom_shape				= self.ensure_widget("Cube")
+			,source						= org_bone
 			,use_custom_shape_bone_size = True
 		)
-		self.bones_org[0].parent = self.root_bone
+		org_bone.parent = self.root_bone
+		if org_bone.custom_shape:
+			self.root_bone.copy_custom_shape(org_bone)
+		else:
+			self.root_bone.custom_shape = self.ensure_widget('Cube')
 
 	def make_ctrls_for_curve_points(self):
 		curve_ob = self.params.CR_curve_target
@@ -420,6 +424,7 @@ class CloudCurveRig(CloudBaseRig):
 	def add_bone_set_parameters(cls, params):
 		"""Create parameters for this rig's bone sets."""
 		super().add_bone_set_parameters(params)
+		cls.define_bone_set(params, 'Curve Root', preset=1)
 		cls.define_bone_set(params, 'Curve Hooks', preset=0)
 		cls.define_bone_set(params, 'Curve Handles', preset=8)
 
