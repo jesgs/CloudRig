@@ -142,7 +142,8 @@ class BoneInfo:
 		self.init_variables(edit_bone_properties)
 		self.init_variables(bone_properties)
 		self.init_variables(pose_bone_properties)
-		self.use_custom_shape_bone_size = False
+		self.use_custom_shape_bone_size = False		# A better default.
+		self.use_custom_shape_bbone_scaling = True	# Custom boolean for CloudRig, used by the generator.
 
 		# Recalculate Roll
 		# TODO: Refactor this so that roll_type is gone, and just the existence of roll_bone or roll_vector indicates what should be done.
@@ -323,6 +324,7 @@ class BoneInfo:
 		self.custom_shape_rotation_euler = other.custom_shape_rotation_euler
 		self.custom_shape_scale_xyz = other.custom_shape_scale_xyz
 		self.use_custom_shape_bone_size = other.use_custom_shape_bone_size
+		self.use_custom_shape_bbone_scaling = False
 
 	def get_constraint(self, name):
 		for ci in self.constraint_infos:

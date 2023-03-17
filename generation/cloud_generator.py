@@ -565,7 +565,7 @@ class CloudGenerator(Generator):
 
 			# Scale bone shape based on B-Bone scale
 			bi.write_pose_data(pose_bone)
-			if not pose_bone.use_custom_shape_bone_size:
+			if not pose_bone.use_custom_shape_bone_size and bi.use_custom_shape_bbone_scaling:
 				pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
 
 		super().invoke_configure_bones()
