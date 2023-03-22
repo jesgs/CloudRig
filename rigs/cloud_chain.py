@@ -518,7 +518,7 @@ class CloudChainRig(CloudBaseRig):
 					}
 				})
 		
-		def_bone.inherit_scale = 'NONE'
+		def_bone.inherit_scale = 'FULL'
 		# B-Bone ease
 		def_bone.bbone_handle_type_start	  = 'TANGENT'
 		def_bone.bbone_handle_type_end		  = 'TANGENT'
