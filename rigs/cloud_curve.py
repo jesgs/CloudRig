@@ -164,6 +164,7 @@ class CloudCurveRig(CloudBaseRig):
 			)
 			hook_ctr.custom_shape_transform = hook_dsp_ctr
 
+		hook_ctr.spline_idx = spline_idx
 		hook_ctr.left_handle_control = None
 		hook_ctr.right_handle_control = None
 		handles = []
@@ -357,19 +358,21 @@ class CloudCurveRig(CloudBaseRig):
 								main_handle=True,
 								**shared_kwargs
 				)
-				self.make_hook_modifier(
-								bonename=hook_b.left_handle_control.name,
-								left_handle=True,
-								**shared_kwargs
-				)
-				self.make_hook_modifier(
-								bonename = hook_b.right_handle_control.name, 
-								right_handle=True,
-								**shared_kwargs
-				)
+				if hook_b.left_handle_control:
+					self.make_hook_modifier(
+									bonename=hook_b.left_handle_control.name,
+									left_handle=True,
+									**shared_kwargs
+					)
+				if hook_b.right_handle_control:
+					self.make_hook_modifier(
+									bonename = hook_b.right_handle_control.name, 
+									right_handle=True,
+									**shared_kwargs
+					)
 
 			# Add Radius driver
-			data_path = f"splines[0].bezier_points[{point_i}].radius"
+			data_path = f"splines[{hook_b.spline_idx}].bezier_points[{point_i}].radius"
 			curve_ob.data.driver_remove(data_path)
 
 			D = curve_ob.data.driver_add(data_path)
