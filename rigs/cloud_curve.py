@@ -1,6 +1,6 @@
 import bpy
 
-from bpy.types import Object, Spline
+from bpy.types import Object, Curve, Spline, SplinePoint, BezierSplinePoint
 from typing import List
 from ..rig_features.bone import BoneInfo
 
@@ -29,6 +29,13 @@ class CloudCurveRig(CloudBaseRig):
 		if curve_ob.type != 'CURVE':
 			self.raise_error("Curve target must be a curve!")
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
+
+		if not self.params.CR_curve_controls_for_handles:
+			self.params.CR_curve_rotatable_handles = False
+			self.params.CR_curve_separate_radius = False
+		
+		if len(curve_ob.data.splines) < 2:
+			self.params.CR_curve_root_per_spline = False
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -72,7 +79,22 @@ class CloudCurveRig(CloudBaseRig):
 		worldspace = lambda loc: (curve_ob.matrix_basis @ Matrix.Translation(loc)).to_translation()
 
 		self.all_hooks: List[List[BoneInfo]] = []
-		for spl_i, spline in enumerate(curve_ob.data.splines):
+		for spline_idx, spline in enumerate(curve_ob.data.splines):
+			parent_bone = self.bones_org[0]
+			if self.params.CR_curve_root_per_spline:
+				loc = curve_utils.get_spline_bounding_box_center(spline)
+				loc += self.params.CR_curve_target.matrix_world.to_translation()
+				dir = (curve_utils.get_spline_points(spline)[-1].co - loc).normalized()
+				spline_root = self.bone_sets['Curve Root'].new(
+					name						= self.make_spline_name(spline_idx)
+					,source						= self.bones_org[0]
+					,head						= loc
+					,tail						= loc + dir
+					,parent						= self.bones_org[0]
+					,custom_shape				= self.ensure_widget('Cube')
+				)
+				spline_root.flatten()
+				parent_bone = spline_root
 			hooks = []
 			for i, cp in enumerate(spline.bezier_points):
 				hooks.append(
@@ -80,56 +102,104 @@ class CloudCurveRig(CloudBaseRig):
 						loc			= worldspace(cp.co)
 						,loc_left	= worldspace(cp.handle_left)
 						,loc_right	= worldspace(cp.handle_right)
-						,spline_idx	= spl_i
+						,spline_idx	= spline_idx
 						,point_idx	= i
+						,parent_bone= parent_bone
 						,cyclic		= spline.use_cyclic_u
 					)
 				)
 			self.all_hooks.append(hooks)
 
-	def get_opposite_index(self, spline: Spline, point_idx: int, threshold=0.01) -> int:
-		_opp_co, opp_idx, offset = curve_utils.find_opposite_point_on_spline(spline, point_idx)
-		if offset > threshold:
-			self.raise_error("Curve is not symmetrical"
-				,note = f"{point_idx} -> {opp_idx} dist: {offset}"
-				,description = f"The nearest point to the X-axis flipped coordinate of point {point_idx} is point {opp_idx}.\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis."
-			)
-		return opp_idx
+	def get_x_axis_opposite_curve_point(self,
+				     curve: Curve, 
+					 spline_idx: int,
+					 point_idx: int ,
+					 threshold=0.01, 
+					 must_exist=False
+				) -> int:
+		"""Return spline point at the opposite side of this point. 
+		The curve must be perfectly symmetrical."""
+		spline = curve.splines[spline_idx]
+		spline_point = curve_utils.get_spline_points(spline)[point_idx]
+		opp_spline, opp_point_idx, offset = curve_utils.find_opposite_point_on_curve(curve, spline_idx, point_idx)
+		opp_point = curve_utils.get_spline_points(opp_spline)[opp_point_idx]
 
-	def make_hook_name(self, spline_idx: int, point_idx: int, prefix="") -> str:
-		if self.params.CR_curve_hook_name:
-			hook_name = self.params.CR_curve_hook_name
-		else:
-			hook_name = self.base_bone.replace("ORG-", "")
-		suffix = self.side_suffix
-		if suffix != "":
-			suffix = self.naming.suffix_separator + suffix
-		
-		spline_part = ""
-		if len(self.params.CR_curve_target.data.splines) > 1:
-			spline_part = f"_{spline_idx}"
+		if opp_point == spline_point and not must_exist:
+			return spline, point_idx
+
+		if offset > threshold:
+			point_name = ".".join(str(spline_point).split(".")[2:])
+			opp_point_name = ".".join(str(opp_point).split(".")[2:])
+			self.raise_error("Curve is not symmetrical"
+				,note = f"Curve must be symmetrical."
+				,description = f"The nearest point to the X-axis flipped coordinate of point {point_name} is point {opp_point_name}.\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis."
+			)
+		return opp_spline, opp_point_idx
+
+	def make_spline_name(self, spline_idx: int, prefix="") -> str:
+		curve = self.params.CR_curve_target.data
+		spline = curve.splines[spline_idx]
 
 		prefix_part = ""
 		if prefix:
 			prefix_part = "_"+prefix
 
+		if self.params.CR_curve_hook_name:
+			hook_name = self.params.CR_curve_hook_name
+		else:
+			hook_name = self.base_bone.replace("ORG-", "")
+		
+		spline_part = ""
+		if len(self.params.CR_curve_target.data.splines) > 1:
+			spline_part = f"_{spline_idx}"
+			if self.params.CR_curve_x_axis_symmetry:
+				# TODO: callling find_opposite_spline() for each spline is very inefficient!
+				opp_spl_idx, opp_spl = curve_utils.find_opposite_spline(curve, spline_idx)
+				spline_part = "_" + str(min(spline_idx, opp_spl_idx))
+
+		if self.params.CR_curve_x_axis_symmetry:
+			x_co = curve_utils.get_spline_bounding_box_center(spline).x
+			if x_co > 0:
+				suffix = ".L"
+			elif x_co < 0:
+				suffix = ".R"
+			else:
+				suffix = ""
+		else:
+			suffix = self.side_suffix
+			if suffix != "":
+				suffix = self.naming.suffix_separator + suffix
+
+		return f"Hook{prefix_part}_{hook_name}{spline_part}{suffix}"
+
+	def make_hook_name(self, spline_idx: int, point_idx: int, prefix="") -> str:
+		spline_name = self.make_spline_name(spline_idx, prefix)
+		prefixes, base, suffixes = self.naming.slice_name(spline_name)
+
+		suffix = suffixes[0] if suffixes else ""
+		assert len(suffixes) < 2, "Hook control name should have max one suffix: " + spline_name
+
 		point_name = point_idx
 		if self.params.CR_curve_x_axis_symmetry:
-			spline = self.params.CR_curve_target.data.splines[spline_idx]
-			opp_idx = self.get_opposite_index(spline, point_idx)
-			if opp_idx == point_idx:
-				suffix = ""
-			else:
-				point_name = min([point_idx, opp_idx])
+			curve = self.params.CR_curve_target.data
+			opp_spline, opp_point_idx = self.get_x_axis_opposite_curve_point(curve, spline_idx, point_idx)
+			opp_point = curve_utils.get_spline_points(opp_spline)[opp_point_idx]
+			point = curve_utils.get_spline_points(curve.splines[spline_idx])[point_idx]
+
+			if opp_point != point:
+				point_name = min([point_idx, opp_point_idx])
+				spline = curve.splines[spline_idx]
 				x_co = curve_utils.get_spline_points(spline)[point_idx].co.x
 				if x_co > 0:
-					suffix = ".L"
+					suffix = "L"
 				elif x_co < 0:
-					suffix = ".R"
+					suffix = "R"
 				else:
 					suffix = ""
 
-		return f"Hook{prefix_part}_{hook_name}{spline_part}_{str(point_name).zfill(2)}{suffix}"
+		base += f"_{str(point_name).zfill(2)}"
+
+		return self.naming.make_name(prefixes, base, [suffix])
 
 	def make_ctrls_for_curve_point(
 			self, 
@@ -138,6 +208,7 @@ class CloudCurveRig(CloudBaseRig):
 			loc_right: Vector, 
 			spline_idx: int, 
 			point_idx: int, 
+			parent_bone: BoneInfo,
 			cyclic=False
 		):
 		""" Create hook controls for a bezier curve point defined by three points (loc, loc_left, loc_right). """
@@ -145,11 +216,11 @@ class CloudCurveRig(CloudBaseRig):
 		tail = loc_left
 		hook_ctr = self.bone_sets['Curve Hooks'].new(
 			name						= self.make_hook_name(spline_idx, point_idx)
-			,source						= self.bones_org[0]
+			,source						= parent_bone
 			,use_custom_shape_bone_size	= False
 			,head						= loc
 			,tail						= tail
-			,parent						= self.bones_org[0]
+			,parent						= parent_bone
 			,rotation_mode				= 'YZX'
 		)
 		if self.params.CR_curve_x_axis_symmetry:
@@ -460,6 +531,11 @@ class CloudCurveRig(CloudBaseRig):
 			,description = "Controls will be named with .L/.R suffixes based on their X position. A curve object that is symmetrical around its own X 0 point is expected, otherwise results may be unexpected. Useful for character mouths"
 			,default	 = False
 		)
+		params.CR_curve_root_per_spline = BoolProperty(
+			 name		 = "Root Per Spline"
+			,description = "This curve has more than one spline. Enable this option to create a root bone for each spline"
+			,default	 = False
+		)
 
 		params.CR_curve_target = PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
 
@@ -485,6 +561,8 @@ class CloudCurveRig(CloudBaseRig):
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		cls.curve_selector_ui(layout, params)
+		if params.CR_curve_target and len(params.CR_curve_target.data.splines) > 1:
+			cls.draw_prop(layout, params, "CR_curve_root_per_spline")
 
 		cls.draw_prop(layout, params, "CR_curve_hook_name")
 		cls.draw_prop(layout, params, "CR_curve_x_axis_symmetry")

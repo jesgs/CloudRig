@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any
 import re
 
 SEPARATORS = "._-"
@@ -29,6 +29,8 @@ class CloudNameManager:
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
 		return make_name(prefixes, base, suffixes)
 
+
+
 	def slice_name(self, thing) -> Tuple[ List[str], str, List[str] ]:
 		return slice_name(get_name(thing))
 
@@ -57,10 +59,10 @@ class CloudNameManager:
 
 	def strip_org(self, thing):
 		from rigify.utils.naming import strip_org
-		name = get_name(thing)
-		return strip_org(name)
+		return strip_org(get_name(thing))
 
-def get_name(thing) -> str:
+def get_name(thing: Any) -> str:
+	"""Return any PyObject's "name" attribute if it has one, else cast it to a string."""
 	if hasattr(thing, 'name'):
 		return thing.name
 	else:
@@ -78,7 +80,7 @@ def make_name(prefixes=[], base="", suffixes=[]) -> str:
 		name += SUFFIX_SEPARATOR + suf
 	return name
 
-def slice_name(name):
+def slice_name(name: str):
 	"""Break up a name into its prefix, base, suffix components."""
 	prefixes = name.split(PREFIX_SEPARATOR)[:-1]
 	suffixes = name.split(SUFFIX_SEPARATOR)[1:]
@@ -91,13 +93,14 @@ def slice_name(name):
 			base = base.replace("_"+suffix, "")
 	return [prefixes, base, suffixes]
 
-def has_trailing_zeroes(thing) -> bool:
+def has_trailing_zeroes(thing: Any) -> bool:
+	"""Use regex to test if an object or string has .001 ending."""
 	name = get_name(thing)
 	regex = "\.[0-9]*$"
 	search = re.search(regex, name)
 	return search != None
 
-def has_wrong_separator(thing) -> bool:
+def has_wrong_separator(thing: Any) -> bool:
 	name = get_name(thing)
 
 	for separator in ".-_":
@@ -110,7 +113,7 @@ def has_wrong_separator(thing) -> bool:
 					return True
 	return False
 
-def side_is_suffix(thing) -> bool:
+def side_is_suffix(thing: Any) -> bool:
 	"""Return True when the name of a thing either does not contain a side indicator,
 	or the side indicator is at the end of the name."""
 	name = get_name(thing)
@@ -125,7 +128,7 @@ def side_is_suffix(thing) -> bool:
 
 	return True
 
-def strip_trailing_numbers(name) -> Tuple[str, str]:
+def strip_trailing_numbers(name: str) -> Tuple[str, str]:
 	if "." in name:
 		# Check if there are only digits after the last period
 		slices = name.split(".")
@@ -138,7 +141,7 @@ def strip_trailing_numbers(name) -> Tuple[str, str]:
 
 	return name, ""
 
-def combine_bone_names(names) -> str:
+def combine_bone_names(names: str) -> str:
 	"""Combine multiple bone names into one by:
 	- Removing duplicate pre and suffixes
 	- Cancelling out left/right suffixes
@@ -216,11 +219,11 @@ def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[st
 
 	return left, right_placehold, right
 
-def flip_name(from_name, ignore_base=True, must_change=False) -> str:
+def flip_name(from_name: str, ignore_base=True, must_change=False) -> str:
 	"""Turn a left-sided name into a right-sided one or vice versa.
 
 	Based on BLI_string_flip_side_name:
-	https://developer.blender.org/diffusion/B/browse/master/source/blender/blenlib/intern/string_utils.c
+	https://projects.blender.org/blender/blender/src/branch/main/source/blender/blenlib/intern/string_utils.c
 
 	ignore_base: When True, ignore occurrences of side hints unless they're in
 				 the beginning or end of the name string.
