@@ -191,6 +191,61 @@ class CloudBaseRig(
 	# Parameters
 
 	@classmethod
+	def make_rotation_mode_param(cls, 
+				name="Rotation Mode",
+				description="Set the rotation mode of the controls", 
+				can_propagate=True, 
+				default='XYZ'
+			):
+		items = [
+				('XYZ', 'XYZ Euler', ''),
+				('XZY', 'XZY Euler', ''),
+				('YXZ', 'YXZ Euler', ''),
+				('YZX', 'YZX Euler', ''),
+				('ZXY', 'ZXY Euler', ''),
+				('ZYX', 'ZYX Euler', ''),
+				('AXIS_ANGLE', 'Axis Angle', ''),
+				('QUATERNION', 'Quaternion', ''),
+			]
+		if can_propagate:
+			items.append(
+				('PROPAGATE', 'Propagate', 'Propagate rotation mode from each meta bone to its corresponding control'),
+			)
+		
+		return bpy.props.EnumProperty(
+			name		 = name
+			,description = description
+			,items		 = items
+			,default	 = default
+		)
+
+	@classmethod
+	def make_inherit_scale_param(cls, 
+				name = "Inherit Scale",
+				description="Set the scale inheritance mode for the controls", 
+				can_propagate=True, 
+				default='FULL'
+			):
+		items = [
+				('FULL', 'Full', 'Inherit all effects of parent scaling'),
+				('FIX_SHEAR', 'Fix Shear', 'Inherit scaling, but remove shearing of the child in the rest orientation'),
+				('ALIGNED', 'Aligned', 'Rotate non-uniform parent scaling to align with the child, applying parent X scale to child X axis, and so forth'),
+				('AVERAGE', 'Average', 'Inherit uniform scaling representing the overall change in the volume of the parent'),
+				('NONE', 'None', 'Completely ignore parent scaling'),
+			]
+		if can_propagate:
+			items.append(
+				('PROPAGATE', 'Propagate', 'Propagate scale inheritance mode from each meta bone to its corresponding control')
+			)
+		
+		return bpy.props.EnumProperty(
+			name		 = name
+			,description = description
+			,items		 = items
+			,default	 = default
+		)
+
+	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		cls.add_custom_property_parameters(params)

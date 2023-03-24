@@ -322,17 +322,9 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 
 		# We are re-defining this instead of using the bone's own `inherit_scale` property because we want the default to be 'ALIGNED' instead of 'FULL'.
-		params.CR_fk_chain_inherit_scale = EnumProperty(
-			 name		 = "Inherit Scale"
-			,description = "Scale inheritance type for FK controls"
-			,items		 = [
-				('NONE', 'None', "Completely ignore parent scaling")
-				,('AVERAGE', 'Average', "Inherit uniform scaling representing the overall change in the volume of the parent")
-				,('ALIGNED', 'Aligned', "Rotate non-uniform parent scaling to align with the child, applying parent X scale to child X axis, and so forth")
-				,('FIX_SHEAR', 'Fix Shear', "Inherit scaling, but remove shearing of the child in the rest orientation")
-				,('FULL', 'Full', "Inherit all affects of parent scaling")
-			]
-			,default	 = 'ALIGNED'
+		params.CR_fk_chain_inherit_scale = cls.make_inherit_scale_param(
+			description="Scale inheritance type for FK controls",
+			default = 'ALIGNED'
 		)
 		params.CR_fk_chain_display_center = BoolProperty(
 			 name		 = "Display FK in center"
@@ -362,20 +354,9 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this"
 			,default	 = True
 		)
-		params.CR_fk_chain_rot_mode = EnumProperty(
-			name		 = "Rotation Mode"
-			,description = "How to determine the rotation order of FK bones"
-			,items		 = [
-				('XYZ', 'XYZ Euler', ''),
-				('XZY', 'XZY Euler', ''),
-				('YXZ', 'YXZ Euler', ''),
-				('YZX', 'YZX Euler', ''),
-				('ZXY', 'ZXY Euler', ''),
-				('ZYX', 'ZYX Euler', ''),
-				('AXIS_ANGLE', 'Axis Angle', ''),
-				('QUATERNION', 'Quaternion', ''),
-				('PROPAGATE', 'Propagate', 'Propagate rotation mode from each meta bone to its corresponding FK control'),
-			]
+		params.CR_fk_chain_rot_mode = cls.make_rotation_mode_param(
+			description="Set the rotation mode of the FK controls"
+			,can_propagate=True
 		)
 
 		params.CR_fk_chain_test_animation_generate = BoolProperty(

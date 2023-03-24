@@ -92,6 +92,7 @@ class CloudCurveRig(CloudBaseRig):
 					,tail						= loc + dir
 					,parent						= self.bones_org[0]
 					,custom_shape				= self.ensure_widget('Cube')
+					,inherit_scale				= self.params.CR_curve_inherit_scale
 				)
 				spline_root.flatten()
 				parent_bone = spline_root
@@ -222,6 +223,7 @@ class CloudCurveRig(CloudBaseRig):
 			,tail						= tail
 			,parent						= parent_bone
 			,rotation_mode				= 'YZX'
+			,inherit_scale				= self.params.CR_curve_inherit_scale
 		)
 		if self.params.CR_curve_x_axis_symmetry:
 			size = ( (loc - loc_left).length + (loc - loc_right).length ) / 2
@@ -536,6 +538,10 @@ class CloudCurveRig(CloudBaseRig):
 			,description = "This curve has more than one spline. Enable this option to create a root bone for each spline"
 			,default	 = False
 		)
+		params.CR_curve_inherit_scale = cls.make_inherit_scale_param(
+			description="Scale inheritance setting of the curve hook and spline root controls"
+			,can_propagate=False
+			)
 
 		params.CR_curve_target = PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
 
@@ -565,6 +571,7 @@ class CloudCurveRig(CloudBaseRig):
 			cls.draw_prop(layout, params, "CR_curve_root_per_spline")
 
 		cls.draw_prop(layout, params, "CR_curve_hook_name")
+		cls.draw_prop(layout, params, "CR_curve_inherit_scale")
 		cls.draw_prop(layout, params, "CR_curve_x_axis_symmetry")
 		cls.draw_prop(layout, params, "CR_curve_controls_for_handles")
 		if params.CR_curve_controls_for_handles:
