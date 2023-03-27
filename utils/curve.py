@@ -57,7 +57,7 @@ def find_opposite_point_on_curve(curve: Curve, spline_idx: int, point_idx: int) 
     # Find the closest point to the opposite side
     spline_points = get_spline_points(spline)
     co = spline_points[point_idx].co
-    flipped_co = [-co.x, co.y, co.z]
+    flipped_co = Vector([-co.x, co.y, co.z])
     opp_co, opp_kd_idx, offset = kd.find(flipped_co)
 
     opp_spline, opp_point_idx, opp_co = point_list[opp_kd_idx]

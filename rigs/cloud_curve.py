@@ -125,15 +125,17 @@ class CloudCurveRig(CloudBaseRig):
 		opp_spline, opp_point_idx, offset = curve_utils.find_opposite_point_on_curve(curve, spline_idx, point_idx)
 		opp_point = curve_utils.get_spline_points(opp_spline)[opp_point_idx]
 
-		if opp_point == spline_point and not must_exist:
+		if (opp_point == spline_point) and not must_exist:
 			return spline, point_idx
 
 		if offset > threshold:
-			point_name = ".".join(str(spline_point).split(".")[2:])
-			opp_point_name = ".".join(str(opp_point).split(".")[2:])
+			point_path = spline_point.path_from_id()
+			opp_point_path = opp_point.path_from_id()
+			point_name = ".".join(point_path.split(".")[0:])
+			opp_point_name = ".".join(opp_point_path.split(".")[0:])
 			self.raise_error("Curve is not symmetrical"
 				,note = f"Curve must be symmetrical."
-				,description = f"The nearest point to the X-axis flipped coordinate of point {point_name} is point {opp_point_name}.\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis."
+				,description = f'The nearest point to the X-axis flipped coordinate of point "{point_name} ({curve.path_resolve(point_path).co})" is point "{opp_point_name} (({curve.path_resolve(opp_point_path).co}))".\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis. If this message keeps popping up, you might be modifying a shape key instead of the base shape.'
 			)
 		return opp_spline, opp_point_idx
 
