@@ -227,20 +227,12 @@ class CloudCurveRig(CloudBaseRig):
 			,rotation_mode				= 'YZX'
 			,inherit_scale				= self.params.CR_curve_inherit_scale
 		)
+		hook_ctr.invert_tilt = False
 		if self.params.CR_curve_x_axis_symmetry:
-			size = ( (loc - loc_left).length + (loc - loc_right).length ) / 2
-			
 			opp_hook_ctr = self.generator.find_bone_info(self.naming.flipped_name(hook_ctr))
 			if opp_hook_ctr:
 				hook_ctr.tail = opp_hook_ctr.tail * Vector([-1, 1, 1])
-			hook_dsp_ctr = self.bone_sets['Mechanism Bones'].new(
-				name = "DSP-"+hook_ctr.name,
-				source = hook_ctr,
-				head = loc,
-				tail = loc_left,
-				parent = hook_ctr
-			)
-			hook_ctr.custom_shape_transform = hook_dsp_ctr
+				hook_ctr.invert_tilt = True
 
 		hook_ctr.spline_idx = spline_idx
 		hook_ctr.left_handle_control = None
@@ -477,16 +469,18 @@ class CloudCurveRig(CloudBaseRig):
 			D = curve_ob.data.driver_add(data_path)
 			driver = D.driver
 
-			driver.expression = "-var"
+			if hook_b.invert_tilt:
+				driver.expression = "var"
+			else:
+				driver.expression = "-var"
 			my_var = driver.variables.new()
 			my_var.name = "var"
-			my_var.type = 'TRANSFORMS'
 
+			# Use Single Property instead of Transforms driver type, this allows
+			# greater than 180 degree tilt control.
 			var_tgt = my_var.targets[0]
 			var_tgt.id = self.obj
-			var_tgt.transform_space = 'LOCAL_SPACE'
-			var_tgt.transform_type = 'ROT_Y'
-			var_tgt.rotation_mode = hook_b.rotation_mode
+			var_tgt.data_path = f'pose.bones["{hook_b.name}"].rotation_euler.y'
 			var_tgt.bone_target = hooks[point_i].name
 
 		# Restore modifier visibility on curve object
