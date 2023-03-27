@@ -173,10 +173,10 @@ class CloudCurveRig(CloudBaseRig):
 			if suffix != "":
 				suffix = self.naming.suffix_separator + suffix
 
-		return f"Hook{prefix_part}_{hook_name}{spline_part}{suffix}"
+		return f"Spline{prefix_part}_{hook_name}{spline_part}{suffix}"
 
 	def make_hook_name(self, spline_idx: int, point_idx: int, prefix="") -> str:
-		spline_name = self.make_spline_name(spline_idx, prefix)
+		spline_name = self.make_spline_name(spline_idx, prefix).replace("Spline", "Hook")
 		prefixes, base, suffixes = self.naming.slice_name(spline_name)
 
 		suffix = suffixes[0] if suffixes else ""
@@ -197,8 +197,8 @@ class CloudCurveRig(CloudBaseRig):
 					suffix = "L"
 				elif x_co < 0:
 					suffix = "R"
-				else:
-					suffix = ""
+			else:
+				suffix = ""
 
 		base += f"_{str(point_name).zfill(2)}"
 
@@ -229,7 +229,10 @@ class CloudCurveRig(CloudBaseRig):
 		)
 		if self.params.CR_curve_x_axis_symmetry:
 			size = ( (loc - loc_left).length + (loc - loc_right).length ) / 2
-			hook_ctr.tail = loc + Vector((0, 0, size))
+			
+			opp_hook_ctr = self.generator.find_bone_info(self.naming.flipped_name(hook_ctr))
+			if opp_hook_ctr:
+				hook_ctr.tail = opp_hook_ctr.tail * Vector([-1, 1, 1])
 			hook_dsp_ctr = self.bone_sets['Mechanism Bones'].new(
 				name = "DSP-"+hook_ctr.name,
 				source = hook_ctr,
