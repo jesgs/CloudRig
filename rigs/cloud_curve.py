@@ -46,7 +46,7 @@ class CloudCurveRig(CloudBaseRig):
 		Move constraints from the ORG to the ROOT bone and relink them.
 		"""
 		org = self.bones_org[0]
-		for c in org.constraint_infos:
+		for c in org.constraint_infos[:]:
 			self.root_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
 			for d in c.drivers:
