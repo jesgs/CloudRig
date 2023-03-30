@@ -275,7 +275,8 @@ class CloudCurveRig(CloudBaseRig):
 				hook_ctr.left_handle_control = handle_left_ctr
 				handles.append(handle_left_ctr)
 
-			if (point_idx != self.num_controls-1) or cyclic:	# Skip for last hook unless cyclic.
+			last_point_idx = len(curve_utils.get_spline_points(self.params.CR_curve_target.data.splines[spline_idx]))-1
+			if (point_idx != last_point_idx) or cyclic:	# Skip for last hook unless cyclic.
 				handle_right_ctr = self.bone_sets['Curve Handles'].new(
 					name 		  = self.make_hook_name(spline_idx, point_idx, right_name)
 					,source		  = hook_ctr
@@ -463,7 +464,7 @@ class CloudCurveRig(CloudBaseRig):
 				var_tgt.bone_target = hooks[point_i].radius_control.name
 
 			# Add Tilt driver
-			data_path = f"splines[0].bezier_points[{point_i}].tilt"
+			data_path = f"splines[{hook_b.spline_idx}].bezier_points[{point_i}].tilt"
 			curve_ob.data.driver_remove(data_path)
 
 			D = curve_ob.data.driver_add(data_path)
