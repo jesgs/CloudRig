@@ -981,7 +981,7 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
 					if not ui_data: continue
 
-					if type(pb[key]) not in (float, int): continue
+					if type(pb[key]) not in (float, int, bool): continue
 					pb[key] = ui_data['default']
 
 		return {'FINISHED'}
