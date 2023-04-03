@@ -1,11 +1,12 @@
 import bpy
 
-from bpy.types import Object, Curve, Spline, SplinePoint, BezierSplinePoint
+from bpy.types import Object, Curve
 from typing import List
 from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty, StringProperty, PointerProperty
 from mathutils import Matrix, Vector
+from math import pi
 
 from .cloud_base import CloudBaseRig
 from ..utils import curve as curve_utils
@@ -80,17 +81,17 @@ class CloudCurveRig(CloudBaseRig):
 
 		self.all_hooks: List[List[BoneInfo]] = []
 		for spline_idx, spline in enumerate(curve_ob.data.splines):
-			parent_bone = self.bones_org[0]
+			parent_bone = self.root_bone
 			if self.params.CR_curve_root_per_spline:
 				loc = curve_utils.get_spline_bounding_box_center(spline)
-				loc += self.params.CR_curve_target.matrix_world.to_translation()
-				dir = (curve_utils.get_spline_points(spline)[-1].co - loc).normalized()
-				spline_root = self.bone_sets['Curve Root'].new(
+				loc_delta = self.params.CR_curve_target.matrix_world.to_translation()
+				dir = (curve_utils.get_spline_points(spline)[0].co - loc)#.normalized()
+				spline_root = self.bone_sets['Spline Roots'].new(
 					name						= self.make_spline_name(spline_idx)
-					,source						= self.bones_org[0]
-					,head						= loc
-					,tail						= loc + dir
-					,parent						= self.bones_org[0]
+					,source						= self.root_bone
+					,head						= loc + loc_delta
+					,tail						= loc + loc_delta + dir
+					,parent						= self.root_bone
 					,custom_shape				= self.ensure_widget('Cube')
 					,inherit_scale				= self.params.CR_curve_inherit_scale
 				)
@@ -162,9 +163,9 @@ class CloudCurveRig(CloudBaseRig):
 
 		if self.params.CR_curve_x_axis_symmetry:
 			x_co = curve_utils.get_spline_bounding_box_center(spline).x
-			if x_co > 0:
+			if x_co > 0.001:
 				suffix = ".L"
-			elif x_co < 0:
+			elif x_co < -0.001:
 				suffix = ".R"
 			else:
 				suffix = ""
@@ -226,6 +227,9 @@ class CloudCurveRig(CloudBaseRig):
 			,parent						= parent_bone
 			,rotation_mode				= 'YZX'
 			,inherit_scale				= self.params.CR_curve_inherit_scale
+			,roll_type					= 'ALIGN'
+			,roll_bone					= parent_bone
+			,roll						= 0
 		)
 		hook_ctr.invert_tilt = False
 		if self.params.CR_curve_x_axis_symmetry:
@@ -271,6 +275,9 @@ class CloudCurveRig(CloudBaseRig):
 					,parent		  = hook_ctr
 					,custom_shape = self.ensure_widget("Curve_Handle")
 					,use_custom_shape_bone_size	= False
+					,roll		  = 0
+					,roll_type	  = 'ALIGN'
+					,roll_bone	  = hook_ctr
 				)
 				hook_ctr.left_handle_control = handle_left_ctr
 				handles.append(handle_left_ctr)
@@ -283,6 +290,9 @@ class CloudCurveRig(CloudBaseRig):
 					,head 		  = loc
 					,tail 		  = loc_right
 					,parent 	  = hook_ctr
+					,roll		  = 0
+					,roll_type	  = 'ALIGN'
+					,roll_bone	  = hook_ctr
 					,custom_shape = self.ensure_widget("Curve_Handle")
 					,use_custom_shape_bone_size	= False
 				)
@@ -501,6 +511,7 @@ class CloudCurveRig(CloudBaseRig):
 		"""Create parameters for this rig's bone sets."""
 		super().add_bone_set_parameters(params)
 		cls.define_bone_set(params, 'Curve Root', preset=1)
+		cls.define_bone_set(params, 'Spline Roots', preset=2)
 		cls.define_bone_set(params, 'Curve Hooks', preset=0)
 		cls.define_bone_set(params, 'Curve Handles', preset=8)
 
