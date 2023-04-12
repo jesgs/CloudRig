@@ -1374,23 +1374,26 @@ def draw_rig_settings(layout: UILayout, rig: Object, ui_data: Dict):
 			sub_row = col.row(align=True)
 
 			prop_value = prop_bone[prop_id]
-			if isinstance(prop_value, bpy.types.Object):
-				# Property is an object pointer
-				sub_row.prop_search(prop_bone, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=entry_name)
-			elif type(prop_value) == bool:
-				sub_row.prop(prop_bone, f'["{prop_id}"]', toggle=False, text=prop_id)
-			else:
-				# Property is a float/int/color
-				# NOTE: Boolean custom properties don't exist in Blender 3.2, 
-				# so they are not accounted for here either.
-				slider_text = entry_name
+
+			def get_text():
+				text = entry_name
 				if 'texts' in info:
 					texts = json.loads(info['texts'])
 					value = int(prop_value)
 					if len(texts) > value:
-						slider_text = entry_name + ": " + texts[value]
+						text = entry_name + ": " + texts[value]
+				return text
 
-				sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=slider_text)
+			if isinstance(prop_value, bpy.types.Object):
+				# Property is an object pointer
+				sub_row.prop_search(prop_bone, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=entry_name)
+			elif type(prop_value) == bool:
+				icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+				sub_row.prop(prop_bone, f'["{prop_id}"]', toggle=True, text=get_text(), icon=icon)
+			else:
+				# Property is a float/int/color
+				
+				sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=get_text())
 
 			# Draw an operator if provided.
 			if 'operator' in info:

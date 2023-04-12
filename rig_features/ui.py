@@ -171,10 +171,11 @@ def add_ui_data(obj
 def make_custom_property(prop_bone, prop_id, **kwargs):
 	if 'default' not in kwargs:
 		kwargs['default'] = 0.0
-	if 'min' not in kwargs:
-		kwargs['min'] = 0
-	if 'max' not in kwargs:
-		kwargs['max'] = 1
+	if type(kwargs['default']) != bool:
+		if 'min' not in kwargs:
+			kwargs['min'] = 0
+		if 'max' not in kwargs:
+			kwargs['max'] = 1
 
 	if type(prop_bone) == BoneInfo:
 		# Let this function work for BoneInfo objects during the generation process.
