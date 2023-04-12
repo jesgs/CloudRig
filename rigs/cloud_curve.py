@@ -86,8 +86,11 @@ class CloudCurveRig(CloudBaseRig):
 				loc = curve_utils.get_spline_bounding_box_center(spline)
 				loc_delta = self.params.CR_curve_target.matrix_world.to_translation()
 				dir = (curve_utils.get_spline_points(spline)[0].co - loc)#.normalized()
+				bone_name = self.make_spline_name(spline_idx)
+				if self.params.CR_curve_x_axis_symmetry and self.naming.side_is_left(bone_name) == None:
+					dir = self.root_bone.vector
 				spline_root = self.bone_sets['Spline Roots'].new(
-					name						= self.make_spline_name(spline_idx)
+					name						= bone_name
 					,source						= self.root_bone
 					,head						= loc + loc_delta
 					,tail						= loc + loc_delta + dir
