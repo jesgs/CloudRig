@@ -363,6 +363,12 @@ class CloudCurveRig(CloudBaseRig):
 
 		hook_m = curve_ob.modifiers.get(bonename)
 		if not hook_m:
+			for m in curve_ob.modifiers:
+				if m.type == 'HOOK' and m.subtarget == bonename:
+					hook_m = m
+					break
+		
+		if not hook_m:
 			# Add hook modifier
 			hook_m = curve_ob.modifiers.new(name=bonename, type='HOOK')
 
