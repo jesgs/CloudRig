@@ -11,7 +11,7 @@ def assign_to_collection(obj, collection):
 	if obj.name not in collection.objects:
 		collection.objects.link(obj)
 
-def ensure_widget(name, overwrite=True, collection=None):
+def ensure_widget(name, overwrite=True, collection=None, clear_asset=True):
 	""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
 
 	if not collection:
@@ -54,6 +54,8 @@ def ensure_widget(name, overwrite=True, collection=None):
 	else:
 		wgt_ob = new_wgt_ob
 
+	if clear_asset:
+		wgt_ob.asset_clear()
 	assign_to_collection(wgt_ob, collection)
 
 	return wgt_ob
