@@ -45,13 +45,13 @@ class POSE_OT_select_bone_by_name_relation(Operator):
 					return
 
 	@staticmethod
-	def increment_bone_name(bone_name: str):
+	def increment_bone_name(bone_name: str, increment: int):
 		# Increment LAST number in the name.
 		# TODO: Use RegEx to support more than a single digit here.
 		for i, c in enumerate(list(reversed(bone_name))):
 			if c.isdecimal():
 				num = int(c)
-				return bone_name.replace(c, str(num+self.increment))
+				return bone_name.replace(c, str(num+increment))
 		return bone_name
 
 	@staticmethod
@@ -106,7 +106,7 @@ class POSE_OT_select_bone_by_name_relation(Operator):
 				bone_name = bone_name[:-self.strip_end]
 			bone_name = self.prefix + bone_name + self.suffix
 
-			bone_name = self.increment_bone_name(bone_name)
+			bone_name = self.increment_bone_name(bone_name, self.increment)
 
 			if context.mode == 'EDIT_ARMATURE':
 				target_bone = rig.data.edit_bones.get(bone_name)
