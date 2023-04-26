@@ -102,7 +102,7 @@ def transform_widget_to_bone(pb: bpy.types.PoseBone, select=False):
 class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 	"""Assign a widget to all selected bones, or start editing the widget of the active bone, if it is the only bone selected"""
 	bl_idname = "pose.toggle_edit_widget"
-	bl_label = "Toggle Edit Widget"
+	bl_label = "Assign Widget"
 	bl_options = {'REGISTER', 'UNDO'}
 
 	def update_name(self, context):
@@ -113,10 +113,20 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 			self.widget_name = "WGT-" + context.active_pose_bone.name
 
 	widget_name: StringProperty(name="Widget Name")
-	use_custom_widget_name: BoolProperty(name="Custom Name", update=update_name)
-	widget_shape: EnumProperty(name="Widget Shape",
+	use_custom_widget_name: BoolProperty(name="Custom Widget", description="Create a new widget object based on the selected shape, so you can modify it without affecting other bones that also use that shape", update=update_name)
+	widget_shape: EnumProperty(
+		name="Widget Shape",
+		description="Choose a widget shape from CloudRig's widget library as well as any objects in the current file prefixed with 'WGT-'",
 		items = get_widget_list,
 		update = update_name,
+	)
+	widget_op: EnumProperty(
+		name="Operation", 
+		description="What to do with the widgets of the selected bones", 
+		items = [
+			('ASSIGN', 'Assign', 'Assign a shape to the selected bones'),
+			('CLEAR', 'Clear', 'Un-assign the shapes of the selected bones')
+		]
 	)
 
 	@classmethod
@@ -145,6 +155,10 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		layout = self.layout
 		layout.use_property_split = True
 		layout.use_property_decorate = False
+
+		layout.row().prop(self, 'widget_op', expand=True)
+		if self.widget_op == 'CLEAR':
+			return
 
 		# We want to put a textbox and a toggle button underneath an enum drop-down
 		# in a way that they align, which is sadly an absolute nightmare.
@@ -218,6 +232,14 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 
 	def execute(self, context):
 		restore_all_widgets_visibility()
+
+		if self.widget_op == 'CLEAR':
+			for pb in context.selected_pose_bones:
+				pb.custom_shape = None
+				pb.custom_shape_translation = (0, 0, 0)
+				pb.custom_shape_rotation_euler = (0, 0, 0)
+				pb.custom_shape_scale_xyz = (1, 1, 1)
+			return {'FINISHED'}
 
 		widget_name = ""
 		if self.use_custom_widget_name:
