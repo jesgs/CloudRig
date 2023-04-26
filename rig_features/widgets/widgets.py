@@ -11,14 +11,21 @@ def assign_to_collection(obj, collection):
 	if obj.name not in collection.objects:
 		collection.objects.link(obj)
 
-def ensure_widget(name, overwrite=True, collection=None, clear_asset=True):
+def get_widget_blend_path() -> str:
+	filename = "Widgets.blend"
+	filedir = os.path.dirname(os.path.realpath(__file__))
+	blend_path = os.path.join(filedir, filename)
+	return blend_path
+
+def ensure_widget(wgt_name, overwrite=True, collection=None, clear_asset=True):
 	""" Load custom shapes by appending them from Widgets.blend, unless they already exist in this file. """
 
 	if not collection:
 		collection = bpy.context.scene.collection
 
 	# Check if it already exists locally.
-	wgt_name = "WGT-"+name
+	if not wgt_name.startswith("WGT-"):
+		wgt_name = "WGT-"+wgt_name
 	wgt_ob = bpy.data.objects.get((wgt_name, None))
 
 	if wgt_ob:
@@ -31,9 +38,7 @@ def ensure_widget(name, overwrite=True, collection=None, clear_asset=True):
 			return wgt_ob
 
 	# Loading widget object from file.
-	filename = "Widgets.blend"
-	filedir = os.path.dirname(os.path.realpath(__file__))
-	blend_path = os.path.join(filedir, filename)
+	blend_path = get_widget_blend_path()
 
 	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
 		for o in data_from.objects:
