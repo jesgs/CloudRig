@@ -119,7 +119,7 @@ class POSE_MT_PIE_child_bones(Menu):
             op.bone_name = child_pb.name
 
 
-class CLOUDRIG_PIE_select_bone(Menu):
+class CLOUDRIG_MT_PIE_select_bone(Menu):
     bl_label = "Select Bone"
 
     @classmethod
@@ -214,7 +214,7 @@ registry = [
     POSE_MT_PIE_constrained_bones,
     POSE_MT_PIE_bone_constraint_targets,
     POSE_MT_PIE_child_bones,
-    CLOUDRIG_PIE_select_bone
+    CLOUDRIG_MT_PIE_select_bone
 ]
 
 def register():
@@ -223,5 +223,5 @@ def register():
             hotkey_kwargs = {'type': "D", 'value': "PRESS", 'alt': True},
             key_cat = key_cat,
             space_type = 'VIEW_3D',
-            op_kwargs = {'name' : 'CLOUDRIG_PIE_select_bone'}
+            op_kwargs = {'name' : 'CLOUDRIG_MT_PIE_select_bone'}
         )

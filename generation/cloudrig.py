@@ -1787,7 +1787,7 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 				if (
 					'cloudrig' in kmi.idname
 					or 'rigify' in kmi.idname
-					or (hasattr(kmi.properties, 'name') and 'cloudrig' in kmi.properties.name.lower())
+					or kmi.idname == "wm.call_menu_pie" and 'CLOUDRIG' in kmi.properties.name
 				):
 					col = layout.column()
 					col.context_pointer_set("keymap", km)
