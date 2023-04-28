@@ -1784,7 +1784,11 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 
 		for km in kc.keymaps:
 			for kmi in km.keymap_items:
-				if 'cloudrig' in kmi.idname or 'rigify' in kmi.idname:
+				if (
+					'cloudrig' in kmi.idname
+					or 'rigify' in kmi.idname
+					or (hasattr(kmi.properties, 'name') and 'cloudrig' in kmi.properties.name.lower())
+				):
 					col = layout.column()
 					col.context_pointer_set("keymap", km)
 					self.draw_kmi(km, kmi, col)
@@ -1800,11 +1804,13 @@ def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='E
 	km = keymaps.get(key_cat)
 	if not km:
 		km = keymaps.new(name=key_cat, space_type=space_type)
+
 	if bl_idname not in km.keymap_items:
 		kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
-	for key in op_kwargs:
-		value = op_kwargs[key]
-		setattr(kmi.properties, key, value)
+
+		for key in op_kwargs:
+			value = op_kwargs[key]
+			setattr(kmi.properties, key, value)
 
 # Ensure hotkeys, whether loaded as an addon or part of a rig.
 register_hotkey(CLOUDRIG_OT_layer_select.bl_idname

@@ -71,6 +71,11 @@ def get_name(thing: Any) -> str:
 def make_name(prefixes=[], base="", suffixes=[]) -> str:
 	"""Make a name from a list of prefixes, a base, and a list of suffixes."""
 	name = ""
+	if type(prefixes) == str:
+		prefixes = [prefixes]
+	if type(suffixes) == str:
+		suffixes = [suffixes]
+
 	for pre in prefixes:
 		if pre=="": continue
 		name += pre + PREFIX_SEPARATOR
@@ -78,6 +83,7 @@ def make_name(prefixes=[], base="", suffixes=[]) -> str:
 	for suf in suffixes:
 		if suf=="": continue
 		name += SUFFIX_SEPARATOR + suf
+
 	return name
 
 def slice_name(name: str):
