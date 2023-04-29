@@ -100,6 +100,14 @@ class BoneSelectOperatorMixin:
 		description="Bones that are already selected will remain selected"
 	)
 
+	def invoke(self, context, event):
+		if event.shift:
+			self.extend_selection = True
+		else:
+			self.extend_selection = False
+
+		return self.execute(context)
+
 	@classmethod
 	def poll(cls, context):
 		return context.active_bone or context.active_pose_bone
@@ -112,7 +120,7 @@ class BoneSelectOperatorMixin:
 
 
 class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
-	"""Select the bone of a given name. Intended for use in pie menus"""
+	"""Select this bone. Hold Shift to extend selection"""
 	bl_idname = "pose.select_bone_by_name"
 	bl_label = "Select Bone By Name"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -225,7 +233,6 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
 				self.report({'INFO'}, f'Bone "{bone_name}" not found.')
 				continue
 
-			reveal_and_select(context, target_bone)
 			if is_active_bone(context, bone):
 				active_target_bone = target_bone
 
@@ -234,6 +241,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
 				continue
 
 			ensure_visible_bone_layer(target_bone)
+			reveal_and_select(context, target_bone)
 
 		set_active_bone(context, active_target_bone)
 
