@@ -47,8 +47,11 @@ def ensure_widget(wgt_name, overwrite=True, collection=None, clear_asset=True):
 
 	new_wgt_ob = bpy.data.objects.get((wgt_name, None))
 	if not new_wgt_ob:
-		print("WARNING: Failed to load widget: " + wgt_name)
-		return
+		# Widget name was not in resource file, so nothing to overwrite with.
+		# Just clear the _temp from the end of the names.
+		wgt_ob.name = wgt_name
+		wgt_ob.data.name = wgt_name
+		return wgt_ob
 	elif wgt_ob:
 		# Update original object with new one's data, then delete new object.
 		old_data_name = wgt_ob.data.name
