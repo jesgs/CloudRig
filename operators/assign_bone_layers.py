@@ -13,11 +13,13 @@ class CLOUDRIG_OT_layer_assign(Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	def update_layers(self, context):
-		for pb in context.selected_pose_bones:
-			pb.bone.layers = self.layers[:]
+		rig = context.object
+		bones = context.selected_bones if context.mode=='EDIT_ARMATURE' else [pb.bone for pb in context.selected_pose_bones]
+		for bone in bones:
+			bone.layers = self.layers[:]
 		for i, layer in enumerate(self.layers):
-			if context.object.data.layers[i] == False and layer == True:
-				context.object.data.layers[i] = True
+			if rig.data.layers[i] == False and layer == True:
+				rig.data.layers[i] = True
 
 	layers: BoolVectorProperty(size = 32, subtype = 'LAYER', description = f"Layers to assign selected bones to", update=update_layers)
 
