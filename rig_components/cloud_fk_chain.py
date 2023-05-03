@@ -343,7 +343,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 	@classmethod
 	def draw_anim_params(cls, layout, context, params):
 		col = layout.column()
-		col.enabled = test_animation_generate
+		col.enabled = params.test_animation_generate
 
 		row = col.row()
 		row.prop(params.fk_chain, 'test_animation_rotation_range', index=0)
