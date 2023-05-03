@@ -1,4 +1,5 @@
 Priority 0: Re-write as standalone add-on
+<<<<<<< HEAD
 	- Figure out how BoneSets will work.
 		- Convert all bone set definitions to the new system. (monkey work)
 >>>>>>>>>>>>>> Maybe instead of doing all this work for everyting all at once, we should just get cloud_aim working and actually generating.
@@ -45,6 +46,34 @@ Priority 0: Re-write as standalone add-on
 		- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
 			- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
 			- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
+=======
+	- Implement rig parameters without ParameterValidator. (proof of concept working! This will be time consuming as shit.)
+		- Move params from add_parameters() to the Params(PropertyGroup) class
+		- Tweak the UI drawing code accordingly
+		- Tweak generation code accordingly
+		- Tweak foced_parameters accordingly
+		- Search for "CR_" to find any leftovers.
+
+	- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
+		- That said, this could stay in generator.py instead of properties.py
+	- Implement rig types as a list stored on the Armature.
+		- Allow assigning and displaying the rig type info on the bone as well, to mimic Rigify's UX. Both can co-exist.
+	- Draw all UI without replacing any Rigify UI.
+
+	- Re-write the Generator... (this will be the hardest part)
+		- Make sure forced_parameters still works.
+		- Integrate reliance on BoneInfo as much as possible.
+		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
+
+	- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
+
+	BELLS AND WHISTLES:
+	- Use callbacks to update certain things when changing rig types:
+		- Clear all PointerProperties (each rig type should implement its own update callback, and all of them should get called on switch)
+		- Create any missing BoneSets (which should no longer need to wait for a generation in order to exist, because the Generator, along with all of its data, will always exist and be stored in RNA.)
+	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig element list is empty or not.
+	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
+>>>>>>> 8301ef8 (Update aim, base, chain, and copy rigs to new Params.)
 
 
 
