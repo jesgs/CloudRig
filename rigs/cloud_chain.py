@@ -3,6 +3,7 @@ from ..rig_features.bone import BoneInfo
 from ..rig_features.bone_set import BoneSet
 
 from bpy.props import BoolProperty, IntProperty
+from bpy.types import PropertyGroup
 
 from .cloud_base import CloudBaseRig
 
@@ -808,6 +809,9 @@ class CloudChainRig(CloudBaseRig):
 		cls.draw_control_label(layout, "Stretch")
 		cls.draw_prop(layout, params, 'CR_chain_segments')
 		cls.draw_prop(layout, params, 'CR_chain_tip_control')
+
+class Params(PropertyGroup):
+	test: BoolProperty()
 
 class Rig(CloudChainRig):
 	pass

@@ -4,11 +4,11 @@ import sys, importlib, inspect
 from rigify import feature_sets
 from bpy.utils import register_class, unregister_class
 
-from . import versioning, manual, operators, rigs, utils, rig_features, ui
+from . import versioning, manual, operators, rigs, utils, rig_features, ui, properties
 from .generation import troubleshooting, cloud_generator
 
 rigify_info = {
-	'name': "CloudRig"
+	'name': "CloudRig is no longer a Rigify extension, but a stand-alone add-on!"
 	,'author': "Demeter Dzadik"
 	,'version': (0, 0, 9)
 	,'blender': (3, 5, 0)	# This should be the lowest Blender version that is currently compatible.
@@ -20,11 +20,11 @@ rigify_info = {
 max_blender_version = (4, 0, 0) # This should be set for in commits that will be tagged as a release.
 
 bl_info = {
-	'name' : "CloudRig is not an Addon!"
-	,'version' : (0, 0, 9)
-	,'blender' : (3, 5, 0)
-	,'description' : "It should be installed as a Feature Set within the Rigify addon"
-	,'location': "Addons->Rigify->Feature Sets->Install Feature Set from File"
+	'name' : "CloudRig"
+	,'version' : (1, 0, 0)
+	,'blender' : (3, 6, 0)
+	,'description' : "Rig generation and rigging workflow toolkit"
+	,'location': "Properties->Armature Data"
 	,'category': 'Rigging'
 	,'doc_url' : "https://gitlab.com/blender/CloudRig/"
 }
@@ -39,7 +39,8 @@ modules = [
 	manual,
 	operators,
 	rigs,
-	utils
+	utils,
+	properties
 ]
 
 def register_unregister_modules(modules: List, register: bool):
@@ -70,14 +71,8 @@ def register_unregister_modules(modules: List, register: bool):
 			m.unregister()
 
 def register():
-	"""Called by Rigify when installing or enabling CloudRig."""
-	caller_name = inspect.stack()[2].function
-	trying_to_install_as_addon = caller_name == 'execute'
-	assert not trying_to_install_as_addon, "CloudRig is not an addon. Install it as a Feature Set within the Rigify addon."
-
-	rigify_info['tracker_url'] = troubleshooting.url_prefill_from_cloudrig()
-	feature_sets.CloudRig = sys.modules[__name__]
-
+	"""Called by Blender when enabling the CloudRig add-on."""
+	# TODO: Throw a useful error when trying to use as a Rigify extension.
 	register_unregister_modules(modules, True)
 
 def unregister():
