@@ -34,7 +34,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 		if not isinstance(parent_rig, CloudAimRig):
 			self.raise_error(f'Parent of eyelid rig MUST be a "cloud_aim" rig type, not "{type(parent_rig)}"!')
 
-		sticky_prop_name = "sticky_eyelids_" + parent_rig.params.CR_aim_group.lower().replace(" ", "_")
+		sticky_prop_name = "sticky_eyelids_" + parent_rig.params.aim.group.lower().replace(" ", "_")
 		self.create_sticky_property(parent_rig, sticky_prop_name)
 
 		main_controls = []
@@ -98,7 +98,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 			'prop_bone' : eye_rig.properties_bone,
 			'prop_id' : sticky_prop_name
 		}
-		self.add_ui_data('Face', eye_rig.params.CR_aim_group, info, default=0.1)
+		self.add_ui_data('Face', eye_rig.params.aim.group, info, default=0.1)
 
 	##############################
 	# Parameters

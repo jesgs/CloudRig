@@ -1,4 +1,5 @@
 from typing import List
+from bpy.types import PropertyGroup
 from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty, IntVectorProperty, BoolVectorProperty, EnumProperty, FloatProperty
@@ -26,13 +27,13 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
 		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
-		if not (self.params.CR_fk_chain_root and self.generator_params.cloudrig_parameters.create_root):
-			self.params.CR_fk_chain_hinge = False
+		if not (self.params.fk_chain.root and self.generator_params.cloudrig_parameters.create_root):
+			self.params.fk_chain.hinge = False
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
 
-		if self.params.CR_fk_chain_root:
+		if self.params.fk_chain.root:
 			self.root_bone = self.make_root_bone()
 
 		self.fk_chain = self.make_fk_chain(self.bones_org)
@@ -65,7 +66,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
 				to_bone = self.bone_sets['FK Controls'][i]
-				if i==0 and self.params.CR_fk_chain_double_first:
+				if i==0 and self.params.fk_chain.double_first:
 					to_bone = to_bone.parent
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
@@ -82,7 +83,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			,source 		= org_bone
 			,parent 		= org_bone.parent
 			,custom_shape 	= self.ensure_widget("Cube")
-			,inherit_scale	= self.params.CR_fk_chain_inherit_scale
+			,inherit_scale	= self.params.fk_chain.inherit_scale
 		)
 		org_bone.parent = root_bone
 		return root_bone
@@ -95,15 +96,15 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			fk_bone = self.make_fk_bone(org_bone)
 			if i == 0:
 				hng_child = fk_bone
-				if self.params.CR_fk_chain_double_first:
+				if self.params.fk_chain.double_first:
 					# Make a parent for the first control.
 					fk_parent_bone = self.create_parent_bone(fk_bone ,bone_set=self.bone_sets['FK Controls Extra'])
 					fk_parent_bone.custom_shape = fk_bone.custom_shape
-					fk_parent_bone.custom_shape_along_length = self.params.CR_fk_chain_display_center / 2
+					fk_parent_bone.custom_shape_along_length = self.params.fk_chain.display_center / 2
 					hng_child = fk_parent_bone
 
 		# Create Hinge helper
-		if self.params.CR_fk_chain_hinge:
+		if self.params.fk_chain.hinge:
 			hng_bone = self.make_hinge_setup(
 				bone		 = hng_child
 				,bone_set	 = self.bone_sets['FK Helpers']
@@ -120,7 +121,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	def make_fk_bone(self, org_bone) -> BoneInfo:
 		fk_name = org_bone.name.replace("ORG", "FK")
 		
-		rot_mode = self.params.CR_fk_chain_rot_mode
+		rot_mode = self.params.fk_chain.rot_mode
 		if rot_mode == 'PROPAGATE':
 			rot_mode = org_bone.rotation_mode
 
@@ -128,15 +129,15 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			name						= fk_name
 			,source						= org_bone
 			,custom_shape 				= self.ensure_widget("Circle_Spiked_2")
-			,inherit_scale				= self.params.CR_fk_chain_inherit_scale
-			,custom_shape_along_length	= self.params.CR_fk_chain_display_center / 2
+			,inherit_scale				= self.params.fk_chain.inherit_scale
+			,custom_shape_along_length	= self.params.fk_chain.display_center / 2
 			,rotation_mode				= rot_mode
 			,gizmo_vgroup				= self.def_bones_of_org[org_bone][0].name
 			,gizmo_operator				= 'transform.rotate'
 		)
 
-		if self.params.CR_fk_chain_position_along_bone > 0:
-			position = org_bone.head + (org_bone.tail-org_bone.head) * self.params.CR_fk_chain_position_along_bone
+		if self.params.fk_chain.position_along_bone > 0:
+			position = org_bone.head + (org_bone.tail-org_bone.head) * self.params.fk_chain.position_along_bone
 			fk_bone.put(position)
 
 		org_bone.fk_bone = fk_bone
@@ -246,18 +247,18 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 		# If we didn't put a stretch constraint on the final deform bone,
 		# it must mean there is no cap control.
-		if len(last_def.constraint_infos)==0 and not self.params.CR_chain_unlock_deform:
+		if len(last_def.constraint_infos)==0 and not self.params.chain.unlock_deform:
 			if last_def.prev:
 				# In this case, set the previous def_bone's easeout to 0.
 				last_def.prev.bbone_easeout = 0
 			# Also, parent this to the ORG bone. This is so that scaling
 			# the last STR control doesn't affect this deform bone.
-			if not self.params.CR_chain_unlock_deform:
+			if not self.params.chain.unlock_deform:
 				last_def.parent = self.bones_org[-1]
 
 	def attach_org_to_fk(self, org_bones, fk_bones):
 		"""Make ORG bones Copy Transforms of FK bones."""
-		if self.params.CR_fk_chain_position_along_bone > 0:
+		if self.params.fk_chain.position_along_bone > 0:
 			for str_bone, fk_bone in zip(self.main_str_bones[1:], fk_bones):
 				str_bone.parent = fk_bone
 			return
@@ -278,7 +279,7 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		Return the frame at which animation is finished.
 		"""
 
-		if not self.params.CR_fk_chain_test_animation_generate:
+		if not self.params.fk_chain.test_animation_generate:
 			return start_frame
 
 		# Create FCurves
@@ -289,10 +290,10 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		)
 
 		# Populate FCurves with keyframes
-		min_rot = self.params.CR_fk_chain_test_animation_rotation_range[0]
-		max_rot = self.params.CR_fk_chain_test_animation_rotation_range[1]
+		min_rot = self.params.fk_chain.test_animation_rotation_range[0]
+		max_rot = self.params.fk_chain.test_animation_rotation_range[1]
 
-		axes_boolean = self.params.CR_fk_chain_test_animation_axes
+		axes_boolean = self.params.fk_chain.test_animation_axes
 		order = [0, 2, 1]
 		axes = [order[i] for i in range(3) if axes_boolean[i]]
 
@@ -318,72 +319,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		cls.define_bone_set(params, 'FK Helpers', 				   default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-
-		# We are re-defining this instead of using the bone's own `inherit_scale` property because we want the default to be 'ALIGNED' instead of 'FULL'.
-		params.CR_fk_chain_inherit_scale = cls.make_inherit_scale_param(
-			description="Scale inheritance type for FK controls",
-			default = 'ALIGNED'
-		)
-		params.CR_fk_chain_display_center = BoolProperty(
-			 name		 = "Display FK in center"
-			,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
-			,default	 = True
-		)
-		params.CR_fk_chain_position_along_bone = FloatProperty(
-			name		 = "Position Along Bone"
-			,description = "Whether the position of each FK control should be at the deform bone's head or tail. Increasing this above 0 also means ORG bones won't be constrained to FK bones, and STR bones get parented to FK bones directly"
-			,default	 = 0
-			,min		 = 0
-			,max		 = 1
-		)
-		params.CR_fk_chain_double_first = BoolProperty(
-			 name		 = "Duplicate First FK"
-			,description = "Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid gimbal locking"
-			,default	 = False
-		)
-
-		params.CR_fk_chain_root = BoolProperty(
-			name		 = "Create Root"
-			,description = "Create a root control"
-			,default	 = False
-		)
-		params.CR_fk_chain_hinge = BoolProperty(
-			name		 = "Hinge"
-			,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this"
-			,default	 = True
-		)
-		params.CR_fk_chain_rot_mode = cls.make_rotation_mode_param(
-			description="Set the rotation mode of the FK controls"
-			,can_propagate=True
-		)
-
-		params.CR_fk_chain_test_animation_generate = BoolProperty(
-			 name		 = "Generate Test Animation"
-			,description = "Include this rig element in the test animation"
-			,default	 = False
-		)
-		params.CR_fk_chain_test_animation_rotation_range = IntVectorProperty(
-			 name		 = "Rotation Range"
-			,description = "Minimum and Maximum rotations for the test animation"
-			,size		 = 2
-			,default	 = (-130, 130)
-			,min 		 = -180
-			,max		 = 180
-		)
-		params.CR_fk_chain_test_animation_axes = BoolVectorProperty(
-			 name		 = "Rotation Axes"
-			,description = "Rotation axes to test in the test animation"
-			,subtype	 = 'EULER'
-			,default	 = (True, True, True)
-		)
-
-		super().add_parameters(params)
-
-	@classmethod
 	def draw_appearance_params(cls, layout, context, params):
-		cls.draw_prop(layout, params, 'CR_fk_chain_display_center')
+		cls.draw_prop(layout, params.fk_chain, 'display_center')
 
 		return layout
 
@@ -396,29 +333,29 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		layout.separator()
 		cls.draw_control_label(layout, "FK")
 
-		cls.draw_prop(layout, params, 'CR_fk_chain_root')
-		row = cls.draw_prop(layout.row(), params, 'CR_fk_chain_hinge')
-		row.enabled = params.CR_fk_chain_root and cloudrig.create_root
+		cls.draw_prop(layout, params.fk_chain, 'root')
+		row = cls.draw_prop(layout.row(), params.fk_chain, 'hinge')
+		row.enabled = root and cloudrig.create_root
 
 		if not cls.is_advanced_mode(context):
 			return
-		cls.draw_prop(layout, params, 'CR_fk_chain_position_along_bone', slider=True)
-		cls.draw_prop(layout, params, 'CR_fk_chain_inherit_scale')
-		cls.draw_prop(layout, params, 'CR_fk_chain_rot_mode')
-		cls.draw_prop(layout, params, 'CR_fk_chain_double_first')
+		cls.draw_prop(layout, params.fk_chain, 'position_along_bone', slider=True)
+		cls.draw_prop(layout, params.fk_chain, 'inherit_scale')
+		cls.draw_prop(layout, params.fk_chain, 'rot_mode')
+		cls.draw_prop(layout, params.fk_chain, 'double_first')
 
 	@classmethod
 	def draw_anim_params(cls, layout, context, params):
 		col = layout.column()
-		col.enabled = params.CR_fk_chain_test_animation_generate
+		col.enabled = test_animation_generate
 
 		row = col.row()
-		row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=0)
-		row.prop(params, 'CR_fk_chain_test_animation_rotation_range', index=1, text="")
+		row.prop(params.fk_chain, 'test_animation_rotation_range', index=0)
+		row.prop(params.fk_chain, 'test_animation_rotation_range', index=1, text="")
 		row = col.row(heading="Rotation Axes", align=True)
-		row.prop(params, 'CR_fk_chain_test_animation_axes', text="X", toggle=True, index=0)
-		row.prop(params, 'CR_fk_chain_test_animation_axes', text="Y", toggle=True, index=1)
-		row.prop(params, 'CR_fk_chain_test_animation_axes', text="Z", toggle=True, index=2)
+		row.prop(params.fk_chain, 'test_animation_axes', text="X", toggle=True, index=0)
+		row.prop(params.fk_chain, 'test_animation_axes', text="Y", toggle=True, index=1)
+		row.prop(params.fk_chain, 'test_animation_axes', text="Z", toggle=True, index=2)
 
 	@classmethod
 	def is_using_custom_props(cls, context, params):
@@ -427,8 +364,67 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 			return True
 
 		cloudrig = context.object.data.cloudrig_parameters
-		if params.CR_fk_chain_hinge and params.CR_fk_chain_root and cloudrig.create_root:
+		if hinge and root and cloudrig.create_root:
 			return True
+
+class Params(PropertyGroup):
+	# We are re-defining this instead of using the bone's own `inherit_scale` property because we want the default to be 'ALIGNED' instead of 'FULL'.
+	inherit_scale: CloudFKChainRig.make_inherit_scale_param(
+		description="Scale inheritance type for FK controls",
+		default = 'ALIGNED'
+	)
+	display_center: BoolProperty(
+		name		 = "Display FK in center"
+		,description = "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
+		,default	 = True
+	)
+	position_along_bone: FloatProperty(
+		name		 = "Position Along Bone"
+		,description = "Whether the position of each FK control should be at the deform bone's head or tail. Increasing this above 0 also means ORG bones won't be constrained to FK bones, and STR bones get parented to FK bones directly"
+		,default	 = 0
+		,min		 = 0
+		,max		 = 1
+	)
+	double_first: BoolProperty(
+		name		 = "Duplicate First FK"
+		,description = "Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid gimbal locking"
+		,default	 = False
+	)
+
+	root: BoolProperty(
+		name		 = "Create Root"
+		,description = "Create a root control"
+		,default	 = False
+	)
+	hinge: BoolProperty(
+		name		 = "Hinge"
+		,description = "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. The 'Create Root' generator setting must be enabled for this"
+		,default	 = True
+	)
+	rot_mode: CloudFKChainRig.make_rotation_mode_param(
+		description="Set the rotation mode of the FK controls"
+		,can_propagate=True
+	)
+
+	test_animation_generate: BoolProperty(
+		name		 = "Generate Test Animation"
+		,description = "Include this rig element in the test animation"
+		,default	 = False
+	)
+	test_animation_rotation_range: IntVectorProperty(
+		name		 = "Rotation Range"
+		,description = "Minimum and Maximum rotations for the test animation"
+		,size		 = 2
+		,default	 = (-130, 130)
+		,min 		 = -180
+		,max		 = 180
+	)
+	test_animation_axes: BoolVectorProperty(
+		name		 = "Rotation Axes"
+		,description = "Rotation axes to test in the test animation"
+		,subtype	 = 'EULER'
+		,default	 = (True, True, True)
+	)
 
 class Rig(CloudFKChainRig):
 	pass

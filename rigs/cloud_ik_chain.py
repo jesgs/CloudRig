@@ -1,4 +1,4 @@
-from bpy.types import PoseBone, GizmoGroup
+from bpy.types import PoseBone, GizmoGroup, PropertyGroup
 from typing import Tuple
 
 from bpy.props import BoolProperty, FloatProperty
@@ -24,8 +24,8 @@ class CloudIKChainRig(CloudFKChainRig):
 	chain_must_be_connected = False
 
 	forced_params = {
-		'CR_fk_chain_root' : True
-		,'CR_fk_chain_position_along_bone' : 0
+		'fk_chain.root' : True
+		,'fk_chain.position_along_bone' : 0
 	}
 
 	def initialize(self):
@@ -43,7 +43,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Elements of the rig can use this to avoid having to make assumptions about correlations
 		# between the length of the ORG chain vs how long the IK chain is.
 		self.chain_count = self.bone_count-1
-		if self.params.CR_ik_chain_at_tip:
+		if self.params.ik_chain.at_tip:
 			self.chain_count += 1
 
 		self.ik_controls = []	# Used for creating Gizmo Interaction Data.
@@ -62,14 +62,14 @@ class CloudIKChainRig(CloudFKChainRig):
 			)
 
 		self.last_org = self.bones_org[-1]
-		if self.params.CR_ik_chain_at_tip:
+		if self.params.ik_chain.at_tip:
 			self.bones_org.new(
 				name = "TIP-"+self.last_org.name
 				,source = self.last_org
 				,head = self.last_org.tail.copy()
 				,vector = self.last_org.vector
 			)
-		if self.params.CR_ik_chain_world_aligned:
+		if self.params.ik_chain.world_aligned:
 			self.world_align_last_fk()
 		self.make_ik_setup()
 
@@ -115,7 +115,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.calculate_ik_info()
 		# Create Pole control
 		self.pole_ctrl = None
-		if self.params.CR_ik_chain_use_pole:
+		if self.params.ik_chain.use_pole:
 			self.pole_ctrl = self.make_pole_control()
 
 		# Create IK Chain
@@ -132,7 +132,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		# Set up IK Stretch
 		self.stretch_bone = self.make_ik_stretch()
 
-		if self.params.CR_ik_chain_use_pole:
+		if self.params.ik_chain.use_pole:
 			self.setup_ik_pole_follow_slider(self.pole_ctrl, self.ik_mstr, self.stretch_bone)
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name="Sphere"):
@@ -222,7 +222,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		self.pole_angle = pole_angle
 		self.pole_vector = pole_vector
 
-		self.pole_location = pole_location + self.pole_vector.normalized() * self.params.CR_GZ_ik_chain_pole_distance
+		self.pole_location = pole_location + self.pole_vector.normalized() * self.params.ik_chain.gizmo_pole_distance
 
 	def make_pole_control(self):
 		# Create IK Pole Control
@@ -299,7 +299,7 @@ class CloudIKChainRig(CloudFKChainRig):
 				)
 				# Parent this one to the IK master.
 				ik_bone.parent = ik_mstr
-				if self.params.CR_ik_chain_world_aligned:
+				if self.params.ik_chain.world_aligned:
 					ik_mstr.flatten()
 
 		ik_chain[0].custom_shape_scale_xyz = ik_chain[0].custom_shape_scale_xyz.copy()	# TODO: This shouldn't be needed! Otherwise it seems all bones in this rig use a single vector.
@@ -321,7 +321,7 @@ class CloudIKChainRig(CloudFKChainRig):
 		map_on.append( (ik_mstr.name, fk_chain[-1].name) )
 		map_on.append( (ik_chain[0].name, fk_chain[0].name) )
 
-		if self.params.CR_fk_chain_double_first:
+		if self.params.fk_chain.double_first:
 			hide_on.append( (fk_chain[0].parent.name) )
 			map_off.append( (fk_chain[0].parent.name, ik_chain[0].name) )
 
@@ -464,7 +464,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			head_tail = cum_length/chain_length
 			if head_tail > 1.0: break
 			if i == 0: continue
-			if i == len(self.main_str_bones)-1 and not self.params.CR_ik_chain_at_tip: continue
+			if i == len(self.main_str_bones)-1 and not self.params.ik_chain.at_tip: continue
 			# Create STR-S helper
 			main_str_helper = self.bone_sets['IK Mechanism'].new(
 				name		 = self.naming.add_prefix(main_str_bone, "S")
@@ -526,7 +526,7 @@ class CloudIKChainRig(CloudFKChainRig):
 			,entry_name = entry_name or self.limb_ui_name
 		)
 
-		if self.params.CR_ik_chain_use_pole:
+		if self.params.ik_chain.use_pole:
 			self.setup_ik_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
 
 	def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone):
@@ -668,35 +668,6 @@ class CloudIKChainRig(CloudFKChainRig):
 		cls.define_bone_set(params, 'IK Mechanism', 			  default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-
-		params.CR_ik_chain_at_tip = BoolProperty(
-			name		 = "IK At Tail"
-			,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
-			,default	 = False
-		)
-		params.CR_ik_chain_world_aligned = BoolProperty(
-			 name		 = "World Aligned IK Master"
-			,description = "Ankle/Wrist IK/FK controls are aligned with world axes"
-			,default	 = False
-		)
-		params.CR_ik_chain_use_pole = BoolProperty(
-			name 		 = "Create IK Pole"
-			,description = "If disabled, you can control the rotation of the IK chain by simply rotating its first bone, rather than with an IK pole control"
-			,default	 = True
-		)
-
-		# Gizmo Parameters
-		params.CR_GZ_ik_chain_pole_distance = FloatProperty(
-			name		 = "Pole Distance"
-			,description = "An additive offset to the IK pole distance"
-			,default	 = 0.0
-		)
-
-		super().add_parameters(params)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
@@ -704,17 +675,42 @@ class CloudIKChainRig(CloudFKChainRig):
 		layout.separator()
 		cls.draw_control_label(layout, "IK")
 
-		cls.draw_prop(layout, params, 'CR_ik_chain_use_pole')
-		if cls.is_advanced_mode(context) and params.CR_ik_chain_use_pole:
-			cls.draw_prop(layout, params, 'CR_GZ_ik_chain_pole_distance')
-		cls.draw_prop(layout, params, 'CR_ik_chain_at_tip')
+		cls.draw_prop(layout, params.ik_chain, 'use_pole')
+		if cls.is_advanced_mode(context) and params.ik_chain.use_pole:
+			cls.draw_prop(layout, params, 'ik_chain.gizmo_pole_distance')
+		cls.draw_prop(layout, params.ik_chain, 'at_tip')
 
 		if cls.is_advanced_mode(context):
-			cls.draw_prop(layout, params, 'CR_ik_chain_world_aligned')
+			cls.draw_prop(layout, params.ik_chain, 'world_aligned')
 
 		split = layout.split(factor=0.4)
 		split.row()
 		split.row().operator('armature.flatten_chain')
+
+
+class Params(PropertyGroup):
+	at_tip: BoolProperty(
+		name		 = "IK At Tail"
+		,description = "Put the IK control at the tail of the chain, rather than the head of the last bone"
+		,default	 = False
+	)
+	world_aligned: BoolProperty(
+			name		 = "World Aligned IK Master"
+		,description = "Ankle/Wrist IK/FK controls are aligned with world axes"
+		,default	 = False
+	)
+	use_pole: BoolProperty(
+		name 		 = "Create IK Pole"
+		,description = "If disabled, you can control the rotation of the IK chain by simply rotating its first bone, rather than with an IK pole control"
+		,default	 = True
+	)
+
+	# Gizmo Parameters
+	# params.ik_chain.gizmo_pole_distance = FloatProperty(
+	# 	name		 = "Pole Distance"
+	# 	,description = "An additive offset to the IK pole distance"
+	# 	,default	 = 0.0
+	# )
 
 ########################################
 ################ GIZMOS ################
@@ -802,7 +798,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		_pole_angle, _pole_vector, pole_location = CloudIKChainRig.calculate_ik_info_static(chain[0], chain[1])
 
 		# active_pb = get_active_pbone(context)
-		# distance = active_pb.rigify_parameters.CR_GZ_ik_chain_pole_distance
+		# distance = active_pb.rigify_parameters.ik_chain.gizmo_pole_distance
 
 		loc = Vector((0, 0, 0))
 		rot = Euler(Vector((0, 0, 0)))
@@ -827,7 +823,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		gz.alpha_highlight = 0.5
 
 		# Hook up the gizmo's 'offset' property to the ik pole distance.
-		gz.target_set_prop('offset', active_pb.rigify_parameters, 'CR_GZ_ik_chain_pole_distance')
+		gz.target_set_prop('offset', active_pb.rigify_parameters, 'ik_chain.gizmo_pole_distance')
 
 		gz.matrix_basis = Matrix.Identity((4))
 		gz.matrix_offset = Matrix.Identity((4))
@@ -839,7 +835,7 @@ class CLOUDRIG_GG_ik_pole_distance(GizmoGroup):
 		active_pb = get_active_pbone(context)
 
 		gz = self.ik_distance_gizmo
-		gz.target_set_prop('offset', active_pb.rigify_parameters, 'CR_GZ_ik_chain_pole_distance')
+		gz.target_set_prop('offset', active_pb.rigify_parameters, 'ik_chain.gizmo_pole_distance')
 
 		gz.matrix_basis = self.get_matrix(context)
 		gz.matrix_offset = self.get_offset_matrix(context)

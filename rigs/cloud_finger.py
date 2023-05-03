@@ -8,10 +8,10 @@ class CloudFingerRig(CloudIKChainRig):
 	"""An IK chain tailored for fingers. The finger bending axis should be +X."""
 
 	forced_params = {
-		'CR_ik_chain_at_tip' : True,
-		'CR_chain_tip_control' : True,
-		'CR_fk_chain_root' : True,
-		'CR_fk_chain_double_first' : False,
+		'ik_chain.at_tip' : True,
+		'chain.tip_control' : True,
+		'fk_chain.root' : True,
+		'fk_chain.double_first' : False,
 	}
 
 	required_chain_length = 3
@@ -51,11 +51,11 @@ class CloudFingerRig(CloudIKChainRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		last_org = self.bones_org[-(1+self.params.CR_ik_chain_at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
+		last_org = self.bones_org[-(1+self.params.ik_chain.at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
 		self.ik_mstr.parent = self.root_bone
 
-		if self.params.CR_ik_chain_use_pole:
+		if self.params.ik_chain.use_pole:
 			# Parent the pole target to the stretch bone
 			self.pole_ctrl.parent = self.stretch_bone
 		
@@ -156,6 +156,7 @@ class CloudFingerRig(CloudIKChainRig):
 
 		ui_data["map_on"] = map_on
 		return ui_data
+
 class Rig(CloudFingerRig):
 	pass
 

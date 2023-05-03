@@ -1,4 +1,5 @@
 from typing import List
+from bpy.types import PropertyGroup
 from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty
@@ -17,13 +18,13 @@ class CloudSquashySpineRig(CloudFKChainRig):
 	"""Spine setup that can squash and not just stretch."""
 
 	forced_params = {
-		'CR_chain_segments' : 1
-		,'CR_chain_tip_control' : True
-		,'CR_fk_chain_shift_to_center' : True
-		,'CR_fk_chain_double_first' : False
-		,'CR_fk_chain_hinge' : False
-		,'CR_fk_chain_display_center' : False
-		,'CR_fk_chain_root' : True
+		'chain.segments' : 1
+		,'chain.tip_control' : True
+		,'fk_chain.shift_to_center' : True
+		,'fk_chain.double_first' : False
+		,'fk_chain.hinge' : False
+		,'fk_chain.display_center' : False
+		,'fk_chain.root' : True
 	}
 	always_use_custom_props = True
 
@@ -67,7 +68,7 @@ class CloudSquashySpineRig(CloudFKChainRig):
 				,parent					= self.root_bone
 		)
 
-		if self.params.CR_spine_world_align:
+		if self.params.spine_squashy.world_align:
 			self.root_bone.flatten()
 			self.mstr_hips.flatten()
 
@@ -115,13 +116,13 @@ class CloudSquashySpineRig(CloudFKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		# If we want to parent things to the root bone, we use self.root_torso.
-		# However, for CR_spine_double to work, self.root_bone must be the bone
+		# However, for spine.double to work, self.root_bone must be the bone
 		# returned from create_parent_bone().
 		self.root_torso = self.root_bone
 
 		self.make_squashy_spine()
 
-		if self.params.CR_spine_double:
+		if self.params.spine_squashy.double:
 			self.root_bone = self.create_parent_bone(self.root_torso, self.bone_sets['Spine Parent Controls'])
 
 	def make_squashy_spine(self):
@@ -136,7 +137,7 @@ class CloudSquashySpineRig(CloudFKChainRig):
 				,parent					  = self.root_torso
 			)
 
-		if self.params.CR_spine_double:
+		if self.params.spine_squashy.double:
 			self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
 
 		# Create squash helper
@@ -283,25 +284,9 @@ class CloudSquashySpineRig(CloudFKChainRig):
 		cls.define_bone_set(params, 'Spine Mechanism',					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_spine_world_align = BoolProperty(
-			name		 = "World-Align Controls"
-			,description = "Flatten the torso and hips to align with the closest world axis"
-			,default	 = True
-		)
-		params.CR_spine_double = BoolProperty(
-			name		 = "Duplicate Controls"
-			,description = "Make duplicates of the main spine controls"
-			,default	 = True
-		)
-
-	@classmethod
 	def is_bone_set_used(cls, params, set_info):
 		if set_info['name'] == "Spine Parent Controls":
-			return params.CR_spine_double
+			return params.CR.spine.double
 
 		return super().is_bone_set_used(params, set_info)
 
@@ -312,8 +297,21 @@ class CloudSquashySpineRig(CloudFKChainRig):
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spine")
-		cls.draw_prop(layout, params, "CR_spine_double")
-		cls.draw_prop(layout, params, "CR_spine_world_align")
+		cls.draw_prop(layout, params.spine_squashy, 'double')
+		cls.draw_prop(layout, params.spine_squashy, 'world_align')
+
+
+class Params(PropertyGroup):
+	world_align: BoolProperty(
+		name		 = "World-Align Controls"
+		,description = "Flatten the torso and hips to align with the closest world axis"
+		,default	 = True
+	)
+	double: BoolProperty(
+		name		 = "Duplicate Controls"
+		,description = "Make duplicates of the main spine controls"
+		,default	 = True
+	)
 
 class Rig(CloudSquashySpineRig):
 	pass

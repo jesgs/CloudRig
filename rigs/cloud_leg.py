@@ -3,6 +3,7 @@ from typing import List, Tuple
 from ..rig_features.bone import BoneInfo
 
 import bpy
+from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
@@ -18,11 +19,11 @@ class CloudLegRig(CloudLimbRig):
 	"""Limb rig with extra features for legs, such as foot roll."""
 
 	forced_params = {
-		'CR_chain_tip_control' : True
-		,'CR_fk_chain_root' : True
-		,'CR_fk_chain_position_along_bone' : 0
-		,'CR_ik_chain_at_tip' : False
-		,'CR_chain_sharp' : True
+		'chain.tip_control' : True
+		,'fk_chain.root' : True
+		,'fk_chain.position_along_bone' : 0
+		,'ik_chain.at_tip' : False
+		,'chain.sharp' : True
 	}
 
 	required_chain_length = 4
@@ -83,12 +84,12 @@ class CloudLegRig(CloudLimbRig):
 		self.create_foot_dsp(self.ik_mstr)
 
 		# IK Foot setup, including Foot Roll
-		if self.params.CR_leg_use_foot_roll:
+		if self.params.leg.use_foot_roll:
 			self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.bones_org[-2:])
 
 			# For FK->IK snapping to work properly when the IK control is world-aligned,
 			# we need a world-aligned child of the IK bone.
-			if self.params.CR_ik_chain_world_aligned:
+			if self.params.ik_chain.world_aligned:
 				self.foot_snap_bone = self.bone_sets['IK Mechanism'].new(
 					name		 = self.bone_sets['FK Controls'][2].name.replace("W-", "W-SNAP-")
 					,source		 = self.bone_sets['FK Controls'][2]
@@ -141,7 +142,7 @@ class CloudLegRig(CloudLimbRig):
 
 		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
-		if self.params.CR_ik_chain_world_aligned and self.params.CR_leg_use_foot_roll:
+		if self.params.ik_chain.world_aligned and self.params.leg.use_foot_roll:
 			# In the case of world aligned IK control + footroll, we must
 			# snap the FK foot to a specialized helper bone rather than any IK bone.
 			ui_data['map_off'][-1] = (ui_data['map_off'][-1][0], self.foot_snap_bone.name)
@@ -347,7 +348,7 @@ class CloudLegRig(CloudLimbRig):
 			self.properties_bone.custom_shape_transform = roll_ctrl
 
 	def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
-		heel_pivot_name = self.params.CR_leg_heel_bone
+		heel_pivot_name = self.params.leg.heel_bone
 		if heel_pivot_name=="":
 			heel_pivot_name = self.bones_org[-2].name.replace("ORG-", "")
 		heel_pivot_pb = self.meta_bone(heel_pivot_name)
@@ -396,7 +397,7 @@ class CloudLegRig(CloudLimbRig):
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):
 		if set_info['name'] == 'Foot Reverse IK Controls':
-			return params.CR_leg_use_foot_roll
+			return params.leg.use_foot_roll
 
 		return super().is_bone_set_used(params, set_info)
 
@@ -407,35 +408,27 @@ class CloudLegRig(CloudLimbRig):
 		cls.define_bone_set(params, 'Foot Reverse IK Controls', preset=2, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_leg_show_settings = BoolProperty(
-			name		 = "Leg Settings"
-			,description = "Reveal settings for the cloud_leg rig type"
-		)
-		params.CR_leg_use_foot_roll = BoolProperty(
-			 name 		 = "Foot Roll"
-			,description = "Create Foot roll controls"
-			,default 	 = True
-		)
-		params.CR_leg_heel_bone = StringProperty(
-			 name		 = "Heel Pivot Bone"
-			,description = "Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone"
-			,default	 = ""
-		)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
 
 		cls.draw_prop(layout, params, "CR_leg_use_foot_roll")
-		if params.CR_leg_use_foot_roll:
+		if params.leg.use_foot_roll:
 			split = layout.split(factor=0.1)
 			split.row()
 			cls.draw_prop_search(split.row(), params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
+
+class Params(PropertyGroup):
+	use_foot_roll: BoolProperty(
+		name 		 = "Foot Roll"
+		,description = "Create Foot roll controls"
+		,default 	 = True
+	)
+	heel_bone: StringProperty(
+		name		 = "Heel Pivot Bone"
+		,description = "Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone"
+		,default	 = ""
+	)
 
 class Rig(CloudLegRig):
 	pass

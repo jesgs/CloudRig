@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, IntProperty, FloatProperty
+from bpy.types import PropertyGroup
 
 from .cloud_curve import CloudCurveRig
 
@@ -14,12 +15,12 @@ class CloudSplineIKRig(CloudCurveRig):
 	relinking_behaviour = "Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled."	# TODO: Gray this out otherwise!
 
 	forced_params = {
-		# 'CR_curve_target' : None TODO: This shouldn't be user-modifiable, but it also can't be set to None, because we need the curve reference in create_curve_object().
+		# 'curve.target' : None TODO: This shouldn't be user-modifiable, but it also can't be set to None, because we need the curve reference in create_curve_object().
 	}
 
 	def initialize_curve_rig(self):
 		length = self.bone_count
-		subdiv = self.params.CR_spline_ik_subdivide
+		subdiv = self.params.spline_ik.subdivide
 		total = length * subdiv
 		if length > 255:
 			self.raise_error(f"Spline IK rig consists of {length} bones but the Spline IK constraint only supports a chain of 255 bones.")
@@ -33,7 +34,7 @@ class CloudSplineIKRig(CloudCurveRig):
 				,description = f"Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \nThe Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} for a new total of {total} bones."
 			)
 
-		self.num_controls = self.bone_count+1 if self.params.CR_spline_ik_match_hooks else self.params.CR_spline_ik_hooks
+		self.num_controls = self.bone_count+1 if self.params.spline_ik.match_hooks else self.params.spline_ik.hooks
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -79,7 +80,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		curve_ob.data.dimensions = '3D'
 		sum_bone_length = sum([b.length for b in self.bones_org])
 		length_unit = sum_bone_length / (self.num_controls-1)
-		handle_length = length_unit * self.params.CR_spline_ik_handle_length
+		handle_length = length_unit * self.params.spline_ik.handle_length
 
 		self.meta_base_bone.rigify_parameters.CR_curve_target = self.params.CR_curve_target = curve_ob
 
@@ -94,7 +95,7 @@ class CloudSplineIKRig(CloudCurveRig):
 			p = points[i]
 
 			# Place control points
-			index = i if self.params.CR_spline_ik_match_hooks else -1
+			index = i if self.params.spline_ik.match_hooks else -1
 			loc, direction = self.vector_along_bone_chain(self.bones_org, point_along_chain, index)
 			p.co = loc
 			p.handle_right = loc + handle_length * direction
@@ -103,7 +104,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		return curve_ob
 
 	def make_def_chain(self):
-		segments = self.params.CR_spline_ik_subdivide
+		segments = self.params.spline_ik.subdivide
 
 		count_def_bone = 0
 		for org_bone in self.bones_org:
@@ -142,7 +143,7 @@ class CloudSplineIKRig(CloudCurveRig):
 		Move constraints from ORG to Hook controls and relink them.
 		Only works when CR_spline_ik_match_hooks==True. TODO: Indicate this by graying out in the UI!
 		"""
-		if not self.params.CR_spline_ik_match_hooks: return
+		if not self.params.spline_ik.match_hooks: return
 		for i, org in enumerate(self.bones_org):
 			for c in org.constraint_infos[:]:
 				if not c.is_from_real: continue
@@ -181,39 +182,6 @@ class CloudSplineIKRig(CloudCurveRig):
 		cls.define_bone_set(params, 'Curve Deform Bones', default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_spline_ik_show_settings = BoolProperty(name="Spline IK")
-		params.CR_spline_ik_match_hooks = BoolProperty(
-			 name		 = "Match Controls to Bones"
-			,description = "Hook controls will be created at each bone, instead of being equally distributed across the length of the chain"
-			,default	 = True
-		)
-		params.CR_spline_ik_handle_length = FloatProperty(
-			 name		 = "Curve Handle Length"
-			,description = "Increasing this will result in longer curve handles, resulting in a sharper curve. A value of 1 means the curve handle reaches the neighbouring curve point"
-			,default	 = 0.4
-			,min		 = 0.01
-			,max		 = 2.0
-		)
-		params.CR_spline_ik_hooks = IntProperty(
-			 name		 = "Number of Hooks"
-			,description = "Number of controls that will be spaced out evenly across the entire chain"
-			,default	 = 3
-			,min		 = 3
-			,max		 = 99
-		)
-		params.CR_spline_ik_subdivide = IntProperty(
-			 name="Subdivide Bones"
-			,description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain"
-			,default=3
-			,min=1
-			,max=99
-		)
-
-	@classmethod
 	def curve_selector_ui(cls, layout, params):
 		"""Overrides cloud_curve to disable the curve selection."""
 		row = cls.draw_prop(layout.row(), params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
@@ -234,8 +202,37 @@ class CloudSplineIKRig(CloudCurveRig):
 		# we would interpolate between the direction of the two bones, using
 		# length_remaining/bone.length as a factor, or something similar to that.
 		cls.draw_prop(layout, params, "CR_spline_ik_match_hooks")
-		if not params.CR_spline_ik_match_hooks:
+		if not params.spline_ik.match_hooks:
 			cls.draw_prop(layout, params, "CR_spline_ik_hooks")
+
+
+class Params(PropertyGroup):
+	match_hooks: BoolProperty(
+			name		 = "Match Controls to Bones"
+		,description = "Hook controls will be created at each bone, instead of being equally distributed across the length of the chain"
+		,default	 = True
+	)
+	handle_length: FloatProperty(
+			name		 = "Curve Handle Length"
+		,description = "Increasing this will result in longer curve handles, resulting in a sharper curve. A value of 1 means the curve handle reaches the neighbouring curve point"
+		,default	 = 0.4
+		,min		 = 0.01
+		,max		 = 2.0
+	)
+	hooks: IntProperty(
+			name		 = "Number of Hooks"
+		,description = "Number of controls that will be spaced out evenly across the entire chain"
+		,default	 = 3
+		,min		 = 3
+		,max		 = 99
+	)
+	subdivide: IntProperty(
+			name="Subdivide Bones"
+		,description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain"
+		,default=3
+		,min=1
+		,max=99
+	)
 
 class Rig(CloudSplineIKRig):
 	pass

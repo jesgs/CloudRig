@@ -200,26 +200,26 @@ class CloudCopyRig(CloudBaseRig):
 		return super().is_bone_set_used(params, set_info)
 
 class Params(PropertyGroup):
-	create_deform = BoolProperty(
+	create_deform: BoolProperty(
 		name		 = "Create Deform"
 		,description = 'Create a deforming child bone for this bone, prefixed with "DEF-"'
 		,default	 = False
 	)
-	custom_pivot = BoolProperty(
+	custom_pivot: BoolProperty(
 		name		 = "Create Custom Pivot"
 		,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
 		,default	 = False
 	)
-	ensure_free = BoolProperty(
+	ensure_free: BoolProperty(
 		name		 = "Ensure Free Transformation"
 		,description = 'Create a parent which will have all constraints that this bone would have, unless the constraint name starts with "KEEP"'
 		,default	 = False
 	)
-	property_ui_subpanel = StringProperty(
+	property_ui_subpanel: StringProperty(
 		name		 = "UI Sub-panel"
 		,description = "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
 	)
-	property_ui_label = StringProperty(
+	property_ui_label: StringProperty(
 		name		 = "UI Label"
 		,description = "Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel"
 	)

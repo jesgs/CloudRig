@@ -1,10 +1,11 @@
+import bpy
 from bpy.props import StringProperty, PointerProperty, BoolProperty, CollectionProperty
 from bpy.types import PropertyGroup
 from . import rigs
 import inspect
 
 param_classes = {
-    name : module.Params
+    name.replace("cloud_", "") : module.Params
     for name, module in inspect.getmembers(rigs, inspect.ismodule)
     if hasattr(module, 'Params')
 }
@@ -37,6 +38,14 @@ registry = list(param_classes.values()) + [
 
 def register():
     bpy.types.Armature.cloudrig = PointerProperty(type=CloudRigProperties)
+
+    print("here be the classes:")
+    for key, value in param_classes.items():
+        print(key, value)
+
+    print("Here be the annotations:")
+    for key, value in RigParams.__annotations__.items():
+        print(key, value)
 
 def unregister():
     del bpy.types.Armature.cloudrig

@@ -17,11 +17,11 @@ class CloudSpineRig(CloudFKChainRig):
 	"""Spine setup with FK, IK-like and stretchy IK controls."""
 
 	forced_params = {
-		'CR_chain_segments' : 1
-		,'CR_fk_chain_double_first' : False
-		,'CR_fk_chain_hinge' : False
-		,'CR_fk_chain_display_center' : False
-		,'CR_fk_chain_root' : True
+		'chain.segments' : 1
+		,'fk_chain.double_first' : False
+		,'fk_chain.hinge' : False
+		,'fk_chain.display_center' : False
+		,'fk_chain.root' : True
 	}
 	always_use_custom_props = True
 
@@ -29,7 +29,7 @@ class CloudSpineRig(CloudFKChainRig):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		if self.params.CR_spine_use_ik and not self.bone_count > 2:
+		if self.params.spine.use_ik and not self.bone_count > 2:
 			self.raise_error("Spine rig with IK must consist of a chain of at least 3 connected bones!")
 		if not self.bone_count > 1:
 			self.raise_error("Spine rig must consist of a chain of at least 2 connected bones!")
@@ -67,7 +67,7 @@ class CloudSpineRig(CloudFKChainRig):
 				,custom_shape_scale_xyz	= Vector((0.8, -0.8, 0.8))
 				,parent					= self.root_bone
 		)
-		if self.params.CR_spine_world_align:
+		if self.params.spine.world_align:
 			self.root_bone.flatten()
 			self.mstr_hips.flatten()
 
@@ -85,15 +85,15 @@ class CloudSpineRig(CloudFKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		# If we want to parent things to the root bone, we use self.root_torso.
-		# However, for CR_spine_double to work, self.root_bone must be the bone
+		# However, for spine.double to work, self.root_bone must be the bone
 		# returned from create_parent_bone().
 		self.root_torso = self.root_bone
 
-		if self.params.CR_spine_use_ik:
+		if self.params.spine.use_ik:
 			self.make_ik_spine()
 		self.tweak_str_spine()
 
-		if self.params.CR_spine_double:
+		if self.params.spine.double:
 			self.root_bone = self.create_parent_bone(self.root_torso, self.bone_sets['Spine Parent Controls'])
 
 	def make_ik_spine(self):
@@ -110,7 +110,7 @@ class CloudSpineRig(CloudFKChainRig):
 				,parent					  = self.root_torso
 			)
 
-		if self.params.CR_spine_double:
+		if self.params.spine.double:
 			self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
 
 		### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
@@ -187,7 +187,7 @@ class CloudSpineRig(CloudFKChainRig):
 				damped_track_target = self.ik_ctr_chain[-1].name
 				head_tail = 0
 				self.mstr_chest.custom_shape_transform = ik_bone
-				if self.params.CR_spine_double:
+				if self.params.spine.double:
 					self.mstr_chest.parent.custom_shape_transform = ik_bone
 			else:
 				damped_track_target = self.ik_r_chain[-i-1].name
@@ -258,7 +258,7 @@ class CloudSpineRig(CloudFKChainRig):
 		otherwise that FK control's rotation disconnects the spine from itself."""
 		# TODO: Why isn't this parenting done in the same place where STR bones get parented normally?
 		for i, str_bone in enumerate(self.main_str_bones):
-			if i == len(self.main_str_bones) - 1 - self.params.CR_chain_tip_control:
+			if i == len(self.main_str_bones) - 1 - self.params.chain.tip_control:
 				str_bone.parent = self.bone_sets['FK Controls'][-2]
 
 	def attach_org_to_fk(self, org_bones, fk_bones):
@@ -277,7 +277,7 @@ class CloudSpineRig(CloudFKChainRig):
 			else:
 				org_bone.parent = fk_bones[i-1]
 
-		if self.params.CR_chain_tip_control:
+		if self.params.chain.tip_control:
 			self.main_str_bones[-1].parent = fk_bones[-1]
 
 	##############################
@@ -293,32 +293,11 @@ class CloudSpineRig(CloudFKChainRig):
 		cls.define_bone_set(params, 'Spine Mechanism',					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_spine_world_align = BoolProperty(
-			name		 = "World-Align Controls"
-			,description = "Flatten the torso and hips to align with the closest world axis"
-			,default	 = True
-		)
-		params.CR_spine_use_ik = BoolProperty(
-			name		 = "Create IK Spine"
-			,description = "If disabled, this spine rig will only have FK controls"
-			,default	 = True
-		)
-		params.CR_spine_double = BoolProperty(
-			name		 = "Duplicate Controls"
-			,description = "Make duplicates of the main spine controls"
-			,default	 = True
-		)
-
-	@classmethod
 	def is_bone_set_used(cls, params, set_info):
 		if set_info['name'] == "Spine IK Secondary":
-			return params.CR_spine_use_ik
+			return params.spine.use_ik
 		if set_info['name'] == "Spine Parent Controls":
-			return params.CR_spine_double
+			return params.spine.double
 
 		return super().is_bone_set_used(params, set_info)
 
@@ -329,9 +308,27 @@ class CloudSpineRig(CloudFKChainRig):
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spine")
-		cls.draw_prop(layout, params, "CR_spine_use_ik")
-		cls.draw_prop(layout, params, "CR_spine_double")
-		cls.draw_prop(layout, params, "CR_spine_world_align")
+		cls.draw_prop(layout, params.spine, 'use_ik')
+		cls.draw_prop(layout, params.spine, 'double')
+		cls.draw_prop(layout, params.spine, 'world_align')
+
+
+class Params(PropertyGroup):
+	use_ik: BoolProperty(
+		name		 = "Create IK Spine"
+		,description = "If disabled, this spine rig will only have FK controls"
+		,default	 = True
+	)
+	double: BoolProperty(
+		name		 = "Duplicate Controls"
+		,description = "Make duplicates of the main spine controls"
+		,default	 = True
+	)
+	world_align: BoolProperty(
+		name		 = "World-Align Controls"
+		,description = "Flatten the torso and hips to align with the closest world axis"
+		,default	 = True
+	)
 
 class Rig(CloudSpineRig):
 	pass

@@ -1,4 +1,5 @@
 import bpy
+from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, PointerProperty
 from mathutils import Matrix
 
@@ -60,8 +61,8 @@ class CloudLatticeRig(CloudBaseRig):
 		super().finalize()
 		root_pb = self.obj.pose.bones.get(self.root_bone.name)
 		hook_pb = self.obj.pose.bones.get(self.hook_bone.name)
-		lattice_ob = self.params.CR_lattice_lattice
-		if not lattice_ob or self.params.CR_lattice_regenerate:
+		lattice_ob = self.params.lattice.lattice
+		if not lattice_ob or self.params.lattice.regenerate:
 			self.meta_base_bone.rigify_parameters.CR_lattice_lattice = self.create_lattice(root_pb, hook_pb)
 		elif lattice_ob:
 			# Reset Hook inverse matrices
@@ -71,7 +72,7 @@ class CloudLatticeRig(CloudBaseRig):
 
 	def create_lattice(self, root_bone: bpy.types.PoseBone, hook_bone: bpy.types.PoseBone):
 		# If lattice doesn't exist, create it.
-		lattice_ob = self.params.CR_lattice_lattice
+		lattice_ob = self.params.lattice.lattice
 		lattice_exists = lattice_ob != None
 		if not lattice_exists:
 			lattice_name = hook_bone.name
@@ -119,7 +120,7 @@ class CloudLatticeRig(CloudBaseRig):
 			if isinstance(rig, type(self)):
 				if rig == self:
 					return
-				if rig.params.CR_lattice_lattice == self.params.CR_lattice_lattice and self.params.CR_lattice_lattice != None:
+				if rig.params.CR_lattice_lattice == self.params.lattice.lattice and self.params.lattice.lattice != None:
 					self.raise_error("Lattice shared by rigs",
 						operator = 'object.cloudrig_clear_pointer_param',
 						op_kwargs = {'bone_name': self.meta_base_bone.name, 'param_name': 'CR_lattice_lattice'}
@@ -141,26 +142,23 @@ class CloudLatticeRig(CloudBaseRig):
 		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup"""
-		super().add_parameters(params)
-
-		params.CR_lattice_lattice = PointerProperty(
-			type		 = bpy.types.Object
-			,name		 = "Lattice"
-			,description = "Lattice Object that will be hooked up to this control. If not left empty, the already existing lattice will not be affected in any way, unless Regenerate Lattice is enabled"
-		)
-		params.CR_lattice_regenerate = BoolProperty(
-			name		 = "Regenerate"
-			,description = "Whether to re-generate the lattice object on rig generation. Disable if you intend to modify the generated lattice object manually"
-			,default	 = True
-		)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		cls.draw_prop(layout, params, "CR_lattice_lattice")
 		cls.draw_prop(layout, params, "CR_lattice_regenerate")
+
+
+class Params(PropertyGroup):
+	lattice: PointerProperty(
+		type		 = bpy.types.Object
+		,name		 = "Lattice"
+		,description = "Lattice Object that will be hooked up to this control. If not left empty, the already existing lattice will not be affected in any way, unless Regenerate Lattice is enabled"
+	)
+	regenerate: BoolProperty(
+		name		 = "Regenerate"
+		,description = "Whether to re-generate the lattice object on rig generation. Disable if you intend to modify the generated lattice object manually"
+		,default	 = True
+	)
 
 class Rig(CloudLatticeRig):
 	pass

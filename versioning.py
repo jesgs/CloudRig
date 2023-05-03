@@ -61,7 +61,6 @@ def version_cloud_metarig(metarig):
 		dictionary = {
 			"CR_constraints_additive" : "CR_copy_constraints_additive"
 			,"CR_bone_type" : "CR_bone_copy_type"
-			,"CR_show_spline_ik_settings" : "CR_spline_ik_show_settings"
 			,"CR_match_hooks_to_bones" : "CR_spline_ik_match_hooks"
 			,"CR_curve_handle_length" : "CR_spline_ik_handle_length"
 			,"CR_num_hooks" : "CR_spline_ik_hooks"

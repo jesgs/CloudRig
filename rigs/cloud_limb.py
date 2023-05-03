@@ -2,6 +2,7 @@ from typing import List
 from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty, EnumProperty
+from bpy.types import PropertyGroup
 from mathutils import Vector
 from math import radians as rad
 from math import pow
@@ -13,10 +14,10 @@ class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features such as Auto-Rubberhose for a simple limb like an arm."""
 
 	forced_params = {
-		'CR_chain_sharp' : True
-		,'CR_fk_chain_root' : True
-		,'CR_fk_chain_position_along_bone' : 0
-		,'CR_ik_chain_at_tip' : False
+		'chain.sharp' : True
+		,'fk_chain.root' : True
+		,'fk_chain.position_along_bone' : 0
+		,'ik_chain.at_tip' : False
 	}
 
 	required_chain_length = 3
@@ -25,8 +26,8 @@ class CloudLimbRig(CloudIKChainRig):
 		super().initialize()
 		"""Gather and validate data about the rig."""
 
-		if not self.params.CR_chain_smooth_spline:
-			self.params.CR_limb_auto_hose = False
+		if not self.params.chain.smooth_spline:
+			self.params.limb.auto_hose = False
 
 		# IK values
 		self.ik_pole_direction = 1
@@ -41,8 +42,8 @@ class CloudLimbRig(CloudIKChainRig):
 	def create_bone_infos(self):
 		super().create_bone_infos()
 		self.tweak_str_limb()
-		segments = self.params.CR_chain_segments
-		if self.params.CR_limb_auto_hose and segments > 1:
+		segments = self.params.chain.segments
+		if self.params.limb.auto_hose and segments > 1:
 			upper_section = self.main_str_bones[0].sub_bones
 			lower_section = self.main_str_bones[1].sub_bones
 			self.setup_rubber_hose(self.bones_org[0], self.bones_org[1], upper_section, lower_section)
@@ -55,7 +56,7 @@ class CloudLimbRig(CloudIKChainRig):
 		Place the properties bone near the end of the limb, parented to the last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()
-		if self.params.CR_base_props_storage == 'GENERATED':
+		if self.params.base.props_storage == 'GENERATED':
 			properties_bone.head = self.bones_org[-1].head.copy() + Vector((0, self.scale/1.5, 0))
 			properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
 			properties_bone.parent = self.bones_org[-1]
@@ -65,14 +66,14 @@ class CloudLimbRig(CloudIKChainRig):
 		"""Override cloud_chain, force 1 segment on the wrist."""
 		if org_bone == self.bones_org[-1]:
 			return 1
-		return self.params.CR_chain_segments
+		return self.params.chain.segments
 
 	def make_ik_setup(self):
 		"""Override."""
 		super().make_ik_setup()
 
 		# Parent control
-		if self.params.CR_limb_double_ik:
+		if self.params.limb.double_ik:
 			old_name = self.ik_mstr.name
 			self.ik_mstr.name = self.naming.add_prefix(self.ik_mstr, "C")
 			double_control = self.create_parent_bone(self.ik_mstr, self.bone_sets['IK Child Controls'])
@@ -80,7 +81,7 @@ class CloudLimbRig(CloudIKChainRig):
 			double_control.name = old_name
 			double_control.layers, self.ik_mstr.layers = self.ik_mstr.layers, double_control.layers
 
-		self.add_counterrotate_constraints(self.str_chain[:self.params.CR_chain_segments])
+		self.add_counterrotate_constraints(self.str_chain[:self.params.chain.segments])
 
 	def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
 		"""Override."""
@@ -97,7 +98,7 @@ class CloudLimbRig(CloudIKChainRig):
 		):
 		"""Overrides cloud_ik_chain."""
 
-		if self.params.CR_limb_double_ik:
+		if self.params.limb.double_ik:
 			child_bone = self.ik_mstr.parent
 
 		super().apply_parent_switching(parent_slots,
@@ -112,9 +113,9 @@ class CloudLimbRig(CloudIKChainRig):
 
 	def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
 		"""Overrides cloud_ik_chain."""
-		if self.params.CR_limb_double_ik:
+		if self.params.limb.double_ik:
 			ik_mstr = ik_mstr.parent
-			# TODO: These checks for CR_limb_double_ik should be replaced with a @property.
+			# TODO: These checks for limb.double_ik should be replaced with a @property.
 
 		super().setup_ik_pole_parent_switch(ik_pole, ik_mstr)
 
@@ -122,7 +123,7 @@ class CloudLimbRig(CloudIKChainRig):
 		"""Overrides cloud_ik_chain."""
 		ui_data = super().create_fkik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
-		if self.params.CR_limb_double_ik:
+		if self.params.limb.double_ik:
 			ui_data['hide_off'].append(ik_mstr.parent.name)
 			map_on = []
 			# Need to awkwardly insert IK master parent->last FK bone switching BEFORE IK master parent.
@@ -140,7 +141,7 @@ class CloudLimbRig(CloudIKChainRig):
 		# Make changes to the STR chain to make it behave more like a limb.
 
 		# Disable first Copy Rotation constraint on the upperarm
-		if self.params.CR_chain_segments > 1:
+		if self.params.chain.segments > 1:
 			for b in self.main_str_bones[0].sub_bones:
 				str_h_bone = b.parent
 				str_h_bone.constraint_infos[2].mute = True
@@ -195,7 +196,7 @@ class CloudLimbRig(CloudIKChainRig):
 		}
 
 		control_bone = None
-		if self.params.CR_limb_auto_hose_control:
+		if self.params.limb.auto_hose_control:
 			# Create control bone
 			control_bone = self.make_rubber_hose_control(org_lower)
 			self.properties_bone.custom_props[prop_name] = {'default' : 0.0}
@@ -221,7 +222,7 @@ class CloudLimbRig(CloudIKChainRig):
 			org_upper, org_lower
 			,str_upper_section, str_lower_section
 			,prop_name
-			,hose_type = self.params.CR_limb_auto_hose_type
+			,hose_type = self.params.limb.auto_hose_type
 		)
 
 	def make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
@@ -256,8 +257,8 @@ class CloudLimbRig(CloudIKChainRig):
 		dsp_bone.add_constraint('ARMATURE'
 			,use_deform_preserve_volume = True
 			,targets = [
-				{"subtarget" : self.bones_def[self.params.CR_chain_segments-1].name}
-				,{"subtarget" : self.bones_def[self.params.CR_chain_segments].name}
+				{"subtarget" : self.bones_def[self.params.chain.segments-1].name}
+				,{"subtarget" : self.bones_def[self.params.chain.segments].name}
 			]
 		)
 		dsp_bone.add_constraint('COPY_SCALE', subtarget=control_bone.name)
@@ -431,54 +432,24 @@ class CloudLimbRig(CloudIKChainRig):
 		cls.define_bone_set(params, 'IK Child Controls', preset=8, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_limb_auto_hose = BoolProperty(
-			name		 = "Rubber Hose"
-			,description = "Add an Auto Rubber Hose setting which can be enabled to automatically add curvature to limbs as they bend. Stretch Segments parameter must be >1 and Smooth Spline must be enabled"
-			,default	 = False
-		)
-		params.CR_limb_auto_hose_control = BoolProperty(
-			name		 = "With Control"
-			,description = "Instead of controlling the Auto Rubber Hose property from the rig UI, create a control bone on the FK Extras layer"
-			,default	 = False
-		)
-		params.CR_limb_auto_hose_type = EnumProperty(
-			name		 = "Type"
-			,description = "The rubber hosing effect can be achieved in different ways. This lets you pick which one you prefer"
-			,items	 = [
-				('MIDDLE_OUT', "Long", "Shift mid-limb STR bones away from the elbow bending direction. As a result, the limb becomes longer")
-				,('ELBOW_IN', "Short", "Shift the elbow STR bone towards the elbow bending direction, and counter-shift the mid-limb STR bones so they stay roughly in place. As a result, the limb becomes shorter")
-			]
-		)
-
-		params.CR_limb_double_ik = BoolProperty(
-			 name		 = "Duplicate IK Master"
-			,description = "The IK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
-			,default	 = False
-		)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
 
-		cls.draw_prop(layout, params, "CR_limb_double_ik")
+		cls.draw_prop(layout, params.limb, 'double_ik')
 
 		layout.separator()
 		cls.draw_control_label(layout, "Limb")
 
-		row = cls.draw_prop(layout, params, 'CR_limb_auto_hose')
-		row.enabled = params.CR_chain_segments > 1 and params.CR_chain_smooth_spline
-		if row.enabled and params.CR_limb_auto_hose:
+		row = cls.draw_prop(layout, params.limb, 'auto_hose')
+		row.enabled = params.chain.segments > 1 and params.chain.smooth_spline
+		if row.enabled and params.limb.auto_hose:
 			split = layout.split(factor=0.1)
 			split.row()
-			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_control')
+			cls.draw_prop(split.row(), params.limb, 'auto_hose_control')
 			split = layout.split(factor=0.1)
 			split.row()
-			cls.draw_prop(split.row(), params, 'CR_limb_auto_hose_type', expand=True)
+			cls.draw_prop(split.row(), params.limb, 'auto_hose_type', expand=True)
 
 	##############################
 	# Overlay
@@ -490,6 +461,32 @@ class CloudLimbRig(CloudIKChainRig):
 		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(rig_chain[0], rig_chain[1])
 
 		buffer.draw_line_3d(rig_chain[0].tail, pole_location)
+
+class Params(PropertyGroup):
+	auto_hose: BoolProperty(
+		name		 = "Rubber Hose"
+		,description = "Add an Auto Rubber Hose setting which can be enabled to automatically add curvature to limbs as they bend. Stretch Segments parameter must be >1 and Smooth Spline must be enabled"
+		,default	 = False
+	)
+	auto_hose_control: BoolProperty(
+		name		 = "With Control"
+		,description = "Instead of controlling the Auto Rubber Hose property from the rig UI, create a control bone on the FK Extras layer"
+		,default	 = False
+	)
+	auto_hose_type: EnumProperty(
+		name		 = "Type"
+		,description = "The rubber hosing effect can be achieved in different ways. This lets you pick which one you prefer"
+		,items	 = [
+			('MIDDLE_OUT', "Long", "Shift mid-limb STR bones away from the elbow bending direction. As a result, the limb becomes longer")
+			,('ELBOW_IN', "Short", "Shift the elbow STR bone towards the elbow bending direction, and counter-shift the mid-limb STR bones so they stay roughly in place. As a result, the limb becomes shorter")
+		]
+	)
+
+	double_ik: BoolProperty(
+			name		 = "Duplicate IK Master"
+		,description = "The IK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose"
+		,default	 = False
+	)
 
 class Rig(CloudLimbRig):
 	pass

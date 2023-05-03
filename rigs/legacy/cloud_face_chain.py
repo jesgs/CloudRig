@@ -1,4 +1,5 @@
 from typing import List
+from bpy.types import PropertyGroup
 from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty
@@ -11,7 +12,7 @@ MERGE_THRESHOLD = 0.000001
 # TODO: Center merging probably doesn't work without an anchor, or when Smooth Spline is on. Need tests!
 
 def has_tangent_helpers(rig) -> bool:
-	return rig.params.CR_chain_smooth_spline and rig.params.CR_chain_bbone_density > 0
+	return rig.params.chain.smooth_spline and rig.params.chain.bbone_density > 0
 
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo, have_anchor: bool):
 	for str_bone in cluster:
@@ -28,7 +29,7 @@ def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneIn
 def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 	"""Gather a list of lists of more than one STR bones that are in the same
 	location as another STR bone from another face_chain rig with
-	CR_face_chain_merge==True.
+	params.face_chain.merge==True.
 	"""
 
 	clusters = []
@@ -36,7 +37,7 @@ def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 
 	all_str_bones = []
 	for rig in chain_rigs:
-		if not rig.params.CR_face_chain_merge: continue
+		if not rig.params.face_chain.merge: continue
 		all_str_bones.extend(rig.main_str_bones)
 
 	for str_bone in all_str_bones:
@@ -68,7 +69,7 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 		b.flatten()
 		if has_tangent_helpers(b.owner_rig):
 			b.tangent_helper.flatten()
-		if b.owner_rig.params.CR_chain_smooth_spline:
+		if b.owner_rig.params.chain.smooth_spline:
 			flipped_name = rig.naming.flipped_name(b)
 			if flipped_name == b.name:
 				continue
@@ -227,17 +228,19 @@ class CloudFaceChainRig(CloudChainRig):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
 		super().add_parameters(params)
 
-		params.CR_face_chain_merge = BoolProperty(
-			name		 = "Merge Controls"
-			,description = "If any controls of this rig intersect with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
-			,default	 = True
-		)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
-		cls.draw_prop(layout, params, "CR_face_chain_merge")
+		cls.draw_prop(layout, params.face_chain, 'merge')
+
+class Params(PropertyGroup):
+	merge: BoolProperty(
+		name		 = "Merge Controls"
+		,description = "If any controls of this rig intersect with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
+		,default	 = True
+	)
 
 class Rig(CloudFaceChainRig):
 	pass

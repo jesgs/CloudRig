@@ -1,4 +1,5 @@
 from bpy.props import BoolProperty
+from bpy.types import PropertyGroup
 from .cloud_base import CloudBaseRig
 from ..load_metarig import load_sample_by_file
 
@@ -12,7 +13,7 @@ class CloudTemplateRig(CloudBaseRig):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		if self.params.CR_template_use_control:
+		if self.params.template.use_control:
 			self.make_ctr_bone(self.bones_org[0])
 
 	def make_ctr_bone(self, bone) -> BoneInfo:
@@ -35,28 +36,23 @@ class CloudTemplateRig(CloudBaseRig):
 		cls.define_bone_set(params, 'Template Bones', preset=1,	default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_template_use_control = BoolProperty(
-			name		 = "Make Control"
-			,description = "Create a Control bone"
-			,default	 = True
-		)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 
-		cls.draw_prop(layout, params, 'CR_template_use_control')
+		cls.draw_prop(layout, params.template, 'use_control')
 
-# Uncomment the next two lines to make this rig show up in Blender.
-# class Rig(CloudTemplateRig):
-# 	pass
 
-# For the rig type template to work, there must be an object in 
-# CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
+class Params(PropertyGroup):
+	use_control = BoolProperty(
+		name		 = "Make Control"
+		,description = "Create a Control bone"
+		,default	 = True
+	)
+
+class Rig(CloudTemplateRig):
+	pass
 
 def create_sample(obj):
+	# For the rig sample to work, there must be an object in 
+	# CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
 	load_sample_by_file(__file__)

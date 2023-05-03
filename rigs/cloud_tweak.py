@@ -1,4 +1,5 @@
 from bpy.props import BoolProperty
+from bpy.types import PropertyGroup
 from .cloud_base import CloudBaseRig
 from ..rig_features.bone_set import BoneSet
 
@@ -35,7 +36,7 @@ class CloudTweakRig(CloudBaseRig):
 
 		self.root_bone = self.tweak_bone	# Allow parenting parameters to work
 
-		if self.params.CR_tweak_transforms:
+		if self.params.tweak.transforms:
 			tweak_bone.head = org_bi.head.copy()
 			tweak_bone.tail = org_bi.tail.copy()
 			tweak_bone.roll = org_bi.roll
@@ -45,16 +46,16 @@ class CloudTweakRig(CloudBaseRig):
 		# Transfer and relink bone drivers
 		self.transfer_relink_drivers(org_bi, tweak_bone)
 
-		if self.params.CR_tweak_locks:
+		if self.params.tweak.locks:
 			tweak_bone.lock_location = org_bi.lock_location[:]
 			tweak_bone.lock_rotation = org_bi.lock_rotation[:]
 			tweak_bone.lock_rotation_w = org_bi.lock_rotation_w
 			tweak_bone.lock_scale = org_bi.lock_scale[:]
 
-		if self.params.CR_tweak_rot_mode:
+		if self.params.tweak.rot_mode:
 			tweak_bone.rotation_mode = org_bi.rotation_mode
 
-		if self.params.CR_tweak_shape:
+		if self.params.tweak.shape:
 			tweak_bone.custom_shape = org_bi.custom_shape
 			tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
 			if tweak_bone.use_custom_shape_bone_size:
@@ -70,7 +71,7 @@ class CloudTweakRig(CloudBaseRig):
 			if org_bi.custom_shape:
 				self.add_to_widget_collection(org_bi.custom_shape)
 
-		if self.params.CR_tweak_group:
+		if self.params.tweak.group:
 			# TODO: This code overlaps a lot with cloud_copy, maybe it could be shared somehow?
 			# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
 			meta_bg = meta_bone.bone_group
@@ -89,10 +90,10 @@ class CloudTweakRig(CloudBaseRig):
 				self.generator.bone_sets.append(new_set)
 				tweak_bone.bone_group = bg_name
 
-		if self.params.CR_tweak_layers:
+		if self.params.tweak.layers:
 			tweak_bone.layers = meta_bone.bone.layers[:]
 
-		if self.params.CR_tweak_ik_settings:
+		if self.params.tweak.ik_settings:
 			tweak_bone.ik_stretch = org_bi.ik_stretch
 			tweak_bone.lock_ik_x = org_bi.lock_ik_x
 			tweak_bone.lock_ik_y = org_bi.lock_ik_y
@@ -110,12 +111,12 @@ class CloudTweakRig(CloudBaseRig):
 			tweak_bone.ik_min_z = org_bi.ik_min_z
 			tweak_bone.ik_max_z = org_bi.ik_max_z
 
-		if self.params.CR_tweak_bbone_props:
+		if self.params.tweak.bbone_props:
 			tweak_bone.bbone_segments = org_bi.bbone_segments
 			tweak_bone.bbone_x = org_bi.bbone_x
 			tweak_bone.bbone_z = org_bi.bbone_z
 
-		if True:#self.params.CR_tweak_custom_props:
+		if True:#self.params.tweak.custom_props:
 			for prop_name in org_bi.custom_props:
 				tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
 
@@ -127,7 +128,7 @@ class CloudTweakRig(CloudBaseRig):
 			return
 
 		org_bi = self.bones_org[0]
-		if not self.params.CR_tweak_constraints_additive:
+		if not self.params.tweak.constraints_additive:
 			self.tweak_bone.clear_constraints()
 		for c in org_bi.constraint_infos[:]:
 			self.tweak_bone.constraint_infos.append(c)
@@ -145,57 +146,6 @@ class CloudTweakRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_tweak_constraints_additive = BoolProperty(
-			name="Additive Constraints"
-			,description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead"
-			,default=True
-		)
-		params.CR_tweak_transforms = BoolProperty(
-			 name="Transforms"
-			,description="Replace the matching generated bone's transforms with this bone's transforms" # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
-			,default=False
-		)
-		params.CR_tweak_locks = BoolProperty(
-			 name="Locks"
-			,description="Replace the matching generated bone's transform locks with this bone's transform locks"
-			,default=True
-		)
-		params.CR_tweak_rot_mode = BoolProperty(
-			 name="Rotation Mode"
-			,description="Set the matching generated bone's rotation mode to this bone's rotation mode"
-			,default=False
-		)
-		params.CR_tweak_shape = BoolProperty(
-			 name="Bone Shape"
-			,description = "Replace the matching generated bone's shape with this bone's shape"
-			,default=False
-		)
-		params.CR_tweak_group = BoolProperty(
-			 name="Bone Group"
-			,description="Replace the matching generated bone's group with this bone's group"
-			,default=False
-		)
-		params.CR_tweak_layers = BoolProperty(
-			 name="Layers"
-			,description="Set the generated bone's layers to this bone's layers"
-			,default=False
-		)
-		params.CR_tweak_ik_settings = BoolProperty(
-			 name="IK Settings"
-			,description="Copy IK settings from this bone to the generated bone"
-			,default=False
-		)
-		params.CR_tweak_bbone_props = BoolProperty(
-			name="B-Bone Settings"
-			,description="Copy B-Bone settings from this bone to the generated bone"
-			,default=False
-		)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 
@@ -209,6 +159,54 @@ class CloudTweakRig(CloudBaseRig):
 		cls.draw_prop(layout, params, "CR_tweak_layers")
 		cls.draw_prop(layout, params, "CR_tweak_ik_settings")
 		cls.draw_prop(layout, params, "CR_tweak_bbone_props")
+
+
+class Params(PropertyGroup):
+	constraints_additive: BoolProperty(
+		name="Additive Constraints"
+		,description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead"
+		,default=True
+	)
+	transforms: BoolProperty(
+			name="Transforms"
+		,description="Replace the matching generated bone's transforms with this bone's transforms" # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
+		,default=False
+	)
+	locks: BoolProperty(
+			name="Locks"
+		,description="Replace the matching generated bone's transform locks with this bone's transform locks"
+		,default=True
+	)
+	rot_mode: BoolProperty(
+			name="Rotation Mode"
+		,description="Set the matching generated bone's rotation mode to this bone's rotation mode"
+		,default=False
+	)
+	shape: BoolProperty(
+			name="Bone Shape"
+		,description = "Replace the matching generated bone's shape with this bone's shape"
+		,default=False
+	)
+	group: BoolProperty(
+			name="Bone Group"
+		,description="Replace the matching generated bone's group with this bone's group"
+		,default=False
+	)
+	layers: BoolProperty(
+			name="Layers"
+		,description="Set the generated bone's layers to this bone's layers"
+		,default=False
+	)
+	ik_settings: BoolProperty(
+			name="IK Settings"
+		,description="Copy IK settings from this bone to the generated bone"
+		,default=False
+	)
+	bbone_props: BoolProperty(
+		name="B-Bone Settings"
+		,description="Copy B-Bone settings from this bone to the generated bone"
+		,default=False
+	)
 
 class Rig(CloudTweakRig):
 	pass

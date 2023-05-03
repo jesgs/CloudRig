@@ -756,53 +756,53 @@ class CloudChainRig(CloudBaseRig):
 		cls.draw_prop(layout, params.chain, 'tip_control')
 
 class Params(PropertyGroup):
-	segments = IntProperty(	# TODO: It would be more intuitive to rename this to "Sub-Controls" and set default to 0, change code logic accordingly, and do metarig versioning.
-			name		 = "Stretch Segments"
+	segments: IntProperty(	# TODO: It would be more intuitive to rename this to "Sub-Controls" and set default to 0, change code logic accordingly, and do metarig versioning.
+		name		 = "Stretch Segments"
 		,description = "Number of bendy bones to create for each original bone"
 		,default	 = 1
 		,min		 = 1
 		,max		 = 9
 	)
-	bbone_density = IntProperty(
-			name		 = "B-Bone Density"
+	bbone_density: IntProperty(
+		name		 = "B-Bone Density"
 		,description = "Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
 		,default	 = 10
 		,min		 = 0
 		,max		 = 32
 	)
-	unlock_deform = BoolProperty(
-			name		 = "Create Deform Controls"
+	unlock_deform: BoolProperty(
+		name		 = "Create Deform Controls"
 		,description = "Create CTR-DEF controls that allow Deform bones to be controlled directly"
 		,default	 = False
 	)
-	shape_key_helpers = BoolProperty(
-			name		 = "Create Shape Key Helpers"
+	shape_key_helpers: BoolProperty(
+		name		 = "Create Shape Key Helpers"
 		,description = "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
 	)
-	sharp = BoolProperty(
-			name		 = "Sharp Sections"
+	sharp: BoolProperty(
+		name		 = "Sharp Sections"
 		,description = "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
 		,default	 = False
 	)
-	smooth_spline = BoolProperty(
-			name		 = "Smooth Spline"
+	smooth_spline: BoolProperty(
+		name		 = "Smooth Spline"
 		,description = "B-Bone Splines affect their neighbours for smoother curves"
 		,default	 = False
 	)
 
 	# This parameter is not exposed, and only exists for backwards compatibility currently.
-	align_roll = BoolProperty(
-			name		 = "Align Roll"
+	align_roll: BoolProperty(
+		name		 = "Align Roll"
 		,description = "Re-calculate the bone roll of STR controls based on the ORG bones"
 		,default	 = True
 	)
-	tip_control = BoolProperty(
-			name		 = "Tip Control"
+	tip_control: BoolProperty(
+		name		 = "Tip Control"
 		,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one, or to make this chain loop into itself"
 		,default	 = True
 	)
-	preserve_volume = BoolProperty(
-			name		 = "Preserve Volume"
+	preserve_volume: BoolProperty(
+		name		 = "Preserve Volume"
 		,description = "Squash and stretch will preserve volume"
 		,default	 = False
 	)

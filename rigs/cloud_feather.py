@@ -4,9 +4,9 @@ class CloudFeatherRig(CloudFKChainRig):
 	"""Single-bone rig for a simple feather."""
 
 	forced_params = {
-		'CR_chain_segments' : 1
-		,'CR_chain_tip_control' : True
-		,'CR_fk_chain_display_center' : False
+		'chain.segments' : 1
+		,'chain.tip_control' : True
+		,'fk_chain.display_center' : False
 	}
 
 	def initialize(self):

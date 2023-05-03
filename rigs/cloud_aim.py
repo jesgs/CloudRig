@@ -327,36 +327,36 @@ class CloudAimRig(CloudBaseRig):
 		cls.draw_prop(layout, params.aim, "create_sub_control")
 
 class Params(PropertyGroup):
-	group = StringProperty(
+	group: StringProperty(
 		name		 = "Aim Group"
 		,default	 = "Eyes"
 		,description = "Aim rigs belonging to the same Aim Group will have a shared master control generated for them"
 	)
 
-	target_distance = FloatProperty(
+	target_distance: FloatProperty(
 		name		 = "Target Distance"
 		,default	 = 5.0
 		,description = "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
 		,min		 = 0
 	)
-	flatten = BoolProperty(
+	flatten: BoolProperty(
 		name		 = "Flatten X"
 		,description = "Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other"
 		,default	 = False
 	)
 	# TODO: Do this the same way as cloud_copy instead, ie. use the bone's use_deform property.
-	deform = BoolProperty(
+	deform: BoolProperty(
 		name		 = "Create Deform"
 		,default	 = False
 		,description = "Create a deform bone for this rig"
 	)
 	# TODO: Move this to cloud_base.
-	root = BoolProperty(
+	root: BoolProperty(
 		name		 = "Create Root"
 		,default	 = False
 		,description = "Create a root bone for this rig"
 	)
-	create_sub_control = BoolProperty(
+	create_sub_control: BoolProperty(
 		name		 = "Create Sub-Control"
 		,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
 		,default	 = False
