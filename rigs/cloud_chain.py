@@ -27,7 +27,7 @@ class CloudChainRig(CloudBaseRig):
 		self.def_bones_of_org = {org : [] for org in self.bones_org}
 
 		# Determine if this is a cyclic chain rig (last bone touches first)
-		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001 and not self.params.CR_chain_tip_control
+		self.is_cyclic = (self.bones_org[-1].tail - self.bones_org[0].head).length < 0.001 and not self.params.chain.tip_control
 		if self.is_cyclic:
 			self.bones_org[0].prev = self.bones_org[-1]
 			self.bones_org[-1].next = self.bones_org[0]
@@ -48,15 +48,15 @@ class CloudChainRig(CloudBaseRig):
 		self.str_chain = self.sort_str_sections_into_chain(str_sections, self.is_cyclic)
 
 		self.tangent_helpers = []
-		if self.params.CR_chain_bbone_density > 0:
+		if self.params.chain.bbone_density > 0:
 			# Create tangent helpers that will control bendy bone curvature
 			self.tangent_helpers = self.make_tangent_helpers(self.str_chain)
 
 		self.make_def_chain(
 			str_chain = self.str_chain
 			,tangent_helpers = self.tangent_helpers
-			,preserve_volume = self.params.CR_chain_preserve_volume
-			,create_ctr_def_ctrls = self.params.CR_chain_unlock_deform
+			,preserve_volume = self.params.chain.preserve_volume
+			,create_ctr_def_ctrls = self.params.chain.unlock_deform
 		)
 
 		self.connect_parent_chain_rig()
@@ -126,7 +126,7 @@ class CloudChainRig(CloudBaseRig):
 		"""Create the main stretch controls:
 		One for each ORG bone, plus optionally one more at the end of the chain."""
 		main_str_bones = []
-		if self.params.CR_chain_tip_control:
+		if self.params.chain.tip_control:
 			# Temporarily create an extra ORG BoneInfo. TODO: I swear this is not so temporary?
 			last_org = org_chain[-1]
 			extra_org = org_chain.new(
@@ -142,7 +142,7 @@ class CloudChainRig(CloudBaseRig):
 			main_str_bone = self.make_main_str_bone(org_bone, i)
 			main_str_bones.append(main_str_bone)
 
-		if self.params.CR_chain_tip_control:
+		if self.params.chain.tip_control:
 			extra_org = org_chain[-1]
 			org_chain.remove(extra_org)
 			del extra_org
@@ -154,7 +154,7 @@ class CloudChainRig(CloudBaseRig):
 			,org_i: int
 		) -> BoneInfo:
 		"""Create and return a main STR control."""
-		segments = self.params.CR_chain_segments
+		segments = self.params.chain.segments
 		direction = org_bone.vector
 		if org_bone.prev:
 			# Make bone parallel to line from previous bone's head to current bone's tail.
@@ -185,7 +185,7 @@ class CloudChainRig(CloudBaseRig):
 
 		if not self.is_cyclic and org_i == 0:
 			main_str.custom_shape = self.ensure_widget('Sphere_Half')
-		elif org_bone == self.bones_org[-1] and self.params.CR_chain_tip_control:
+		elif org_bone == self.bones_org[-1] and self.params.chain.tip_control:
 			main_str.custom_shape = self.ensure_widget('Sphere_Half')
 			main_str.custom_shape_scale_xyz *= -1
 		else:
@@ -197,7 +197,7 @@ class CloudChainRig(CloudBaseRig):
 		# TODO: There should be a better solution here, at least code-wise if not rig-wise.
 		main_str.align_in = main_str
 		main_str.align_out = main_str
-		if org_bone.prev and self.params.CR_chain_align_roll and not self.params.CR_chain_sharp and num_segments > 1:
+		if org_bone.prev and self.params.chain.align_roll and not self.params.chain.sharp and num_segments > 1:
 			main_str.align_in = self.bone_sets['Mechanism Bones'].new(
 				name = str_name.replace("STR", "STR-RI")
 				,source = org_bone.prev
@@ -252,9 +252,9 @@ class CloudChainRig(CloudBaseRig):
 		Return how many deform bones should be created for a given org_bone.
 		Child classes may want to override this.
 		"""
-		if org_bone == self.bones_org[-1] and not self.params.CR_chain_tip_control:
+		if org_bone == self.bones_org[-1] and not self.params.chain.tip_control:
 			return 1
-		return self.params.CR_chain_segments
+		return self.params.chain.segments
 
 	def make_sub_str_section(self
 			,org_bone: BoneInfo
@@ -354,7 +354,7 @@ class CloudChainRig(CloudBaseRig):
 				str_bone = str_bone
 				,prev_str = str_bone.prev or str_bone
 				,next_str = str_bone.next or str_bone
-				,smooth = self.params.CR_chain_smooth_spline
+				,smooth = self.params.chain.smooth_spline
 			)
 			tangent_helpers.append(str_bone.tangent_helper)
 
@@ -415,7 +415,7 @@ class CloudChainRig(CloudBaseRig):
 
 		# For each STR control, create a deform bone between it and the next one.
 		for i, str_bone in enumerate(str_chain):
-			if i == len(str_chain) - 1 and self.params.CR_chain_tip_control:
+			if i == len(str_chain) - 1 and self.params.chain.tip_control:
 				# Don't create the last one when it's the tip control.
 				continue
 
@@ -468,7 +468,7 @@ class CloudChainRig(CloudBaseRig):
 			next_str_bone = str_bone.next
 
 		# Stretch to next STR bone.
-		if not self.params.CR_chain_unlock_deform:
+		if not self.params.chain.unlock_deform:
 			def_bone.add_constraint('COPY_SCALE'
 				,subtarget = org_bone
 				,space = 'WORLD'
@@ -484,14 +484,14 @@ class CloudChainRig(CloudBaseRig):
 
 		# If bbone_density is >0, force at least 2 bbone_segments.
 		# Otherwise it's not a bendy bone.
-		if self.params.CR_chain_bbone_density > 0 and def_bone.bbone_segments < 2:
+		if self.params.chain.bbone_density > 0 and def_bone.bbone_segments < 2:
 			def_bone.bbone_segments = 2
-		elif self.params.CR_chain_bbone_density == 0:
+		elif self.params.chain.bbone_density == 0:
 			# If we don't have bendy bones then we're done.
 			return
 
 		# Set initial ease according to Sharp Sections param.
-		if self.params.CR_chain_sharp:
+		if self.params.chain.sharp:
 			if str_bone in self.main_str_bones:
 				def_bone.bbone_easein = 0
 			if str_bone.next in self.main_str_bones:
@@ -533,7 +533,7 @@ class CloudChainRig(CloudBaseRig):
 			# This can be False when connecting to a parent chain rig that has Smooth Spline=False.
 			def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
 
-		if self.params.CR_chain_shape_key_helpers and def_bone.prev:
+		if self.params.chain.shape_key_helpers and def_bone.prev:
 			self.make_shape_key_helper(def_bone.prev, def_bone)
 
 	def determine_num_bbone_segments(self
@@ -543,10 +543,10 @@ class CloudChainRig(CloudBaseRig):
 		"""Determine how many deform and b-bone segments should be in a section of the chain."""
 		average_bone_length = self.chain_length / len(self.bones_org)	# TODO: This might be wrong now because we add a bone to bones_org when tip control is enabled...
 		bbone_density = round(org_bone.length/average_bone_length *
-			self.params.CR_chain_bbone_density * self.params.CR_chain_segments)
+			self.params.chain.bbone_density * self.params.chain.segments)
 
 		bbone_segments = int( bbone_density / (org_bone.length / def_bone.length) )
-		if self.params.CR_chain_bbone_density > 0:
+		if self.params.chain.bbone_density > 0:
 			# Force at least 2 bbone_segments, otherwise it's not a bendy bone.
 			bbone_segments = max(bbone_segments, 2)
 
@@ -576,8 +576,8 @@ class CloudChainRig(CloudBaseRig):
 		if str_bone.next:
 			def_bone_parent.add_constraint('STRETCH_TO'
 				,subtarget = str_bone.next.name
-				,use_bulge_min = not self.params.CR_chain_preserve_volume
-				,use_bulge_max = not self.params.CR_chain_preserve_volume
+				,use_bulge_min = not self.params.chain.preserve_volume
+				,use_bulge_max = not self.params.chain.preserve_volume
 			)
 		def_bone_control.custom_shape = self.ensure_widget('Cube')
 		def_bone_control.custom_shape_scale_xyz.y = 0.1
@@ -684,11 +684,11 @@ class CloudChainRig(CloudBaseRig):
 		# Check if we can connect into the parent rig
 		parent_rig = self.rigify_parent
 		if not isinstance(parent_rig, CloudChainRig): return
-		if parent_rig.params.CR_chain_tip_control: return
+		if parent_rig.params.chain.tip_control: return
 		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bones_org[0]))
 		if not meta_org_bone.bone.use_connect: return
 
-		parent_rig.params.CR_chain_tip_control = True
+		parent_rig.params.chain.tip_control = True
 		last_def = parent_rig.bones_def[-1]
 		last_str = parent_rig.str_chain[-1]
 		last_org = parent_rig.bones_org[-1]
@@ -697,23 +697,23 @@ class CloudChainRig(CloudBaseRig):
 			,org_bone = last_org
 			,str_bone = last_str
 			,next_str_bone = self.str_chain[0]
-			,preserve_volume = parent_rig.params.CR_chain_preserve_volume
+			,preserve_volume = parent_rig.params.chain.preserve_volume
 		)
 		
 		# Set bbone ease according to parent rig's Sharp Sections param.
-		if parent_rig.params.CR_chain_sharp:
+		if parent_rig.params.chain.sharp:
 			parent_rig.bone_sets['Deform Bones'][-1].bbone_easeout = 0
 			self.bone_sets['Deform Bones'][0].bbone_easein = 0
 
 		last_str.next = self.str_chain[0]
 		last_str.custom_shape = self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
-		if self.params.CR_chain_shape_key_helpers or parent_rig.params.CR_chain_shape_key_helpers:
+		if self.params.chain.shape_key_helpers or parent_rig.params.chain.shape_key_helpers:
 			self.make_shape_key_helper(last_def, self.bones_def[0])
-		if self.params.CR_chain_smooth_spline:
+		if self.params.chain.smooth_spline:
 			self.tangent_helpers[0].constraint_infos[0].subtarget = parent_rig.str_chain[-1]
-		if parent_rig.params.CR_chain_smooth_spline:
+		if parent_rig.params.chain.smooth_spline:
 			parent_rig.tangent_helpers[-1].constraint_infos[1].subtarget = self.str_chain[0]
-		if parent_rig.params.CR_chain_unlock_deform:
+		if parent_rig.params.chain.unlock_deform:
 			parent_rig.make_def_control(last_str, last_def)
 
 	##############################
@@ -723,7 +723,7 @@ class CloudChainRig(CloudBaseRig):
 	def is_bone_set_used(cls, params, set_info):
 		# We only want to draw this bone set UI if the option for it is enabled.
 		if set_info['name'] in ["Deform Controls", "Deform Helpers"]:
-			return params.CR_chain_unlock_deform
+			return params.chain.unlock_deform
 		return super().is_bone_set_used(params, set_info)
 
 	@classmethod
@@ -736,82 +736,76 @@ class CloudChainRig(CloudBaseRig):
 		cls.define_bone_set(params, 'Stretch Helpers',				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 		cls.define_bone_set(params, 'Shape Key Helpers',			default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_chain_segments = IntProperty(	# TODO: It would be more intuitive to rename this to "Sub-Controls" and set default to 0, change code logic accordingly, and do metarig versioning.
-			 name		 = "Stretch Segments"
-			,description = "Number of bendy bones to create for each original bone"
-			,default	 = 1
-			,min		 = 1
-			,max		 = 9
-		)
-		params.CR_chain_bbone_density = IntProperty(
-			 name		 = "B-Bone Density"
-			,description = "Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
-			,default	 = 10
-			,min		 = 0
-			,max		 = 32
-		)
-		params.CR_chain_unlock_deform = BoolProperty(
-			 name		 = "Create Deform Controls"
-			,description = "Create CTR-DEF controls that allow Deform bones to be controlled directly"
-			,default	 = False
-		)
-		params.CR_chain_shape_key_helpers = BoolProperty(
-			 name		 = "Create Shape Key Helpers"
-			,description = "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
-		)
-		params.CR_chain_sharp = BoolProperty(
-			 name		 = "Sharp Sections"
-			,description = "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
-			,default	 = False
-		)
-		params.CR_chain_smooth_spline = BoolProperty(
-			 name		 = "Smooth Spline"
-			,description = "B-Bone Splines affect their neighbours for smoother curves"
-			,default	 = False
-		)
-
-		# This parameter is not exposed, and only exists for backwards compatibility currently.
-		params.CR_chain_align_roll = BoolProperty(
-			 name		 = "Align Roll"
-			,description = "Re-calculate the bone roll of STR controls based on the ORG bones"
-			,default	 = True
-		)
-		params.CR_chain_tip_control = BoolProperty(
-			 name		 = "Tip Control"
-			,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one, or to make this chain loop into itself"
-			,default	 = True
-		)
-		params.CR_chain_preserve_volume = BoolProperty(
-			 name		 = "Preserve Volume"
-			,description = "Squash and stretch will preserve volume"
-			,default	 = False
-		)
 
 	@classmethod
 	def draw_bendy_params(cls, layout, context, params):
-		cls.draw_prop(layout, params, 'CR_chain_bbone_density')
-		sharp = cls.draw_prop(layout, params, 'CR_chain_sharp')
-		smooth = cls.draw_prop(layout, params, 'CR_chain_smooth_spline')
-		sharp.enabled = smooth.enabled = params.CR_chain_bbone_density > 0
+		cls.draw_prop(layout, params.chain, 'bbone_density')
+		row_sharp = cls.draw_prop(layout, params.chain, 'sharp')
+		row_smooth = cls.draw_prop(layout, params.chain, 'smooth_spline')
+		row_sharp.enabled = row_smooth.enabled = params.chain.bbone_density > 0
 
 		if cls.is_advanced_mode(context):
-			cls.draw_prop(layout, params, 'CR_chain_preserve_volume')
-			cls.draw_prop(layout, params, 'CR_chain_shape_key_helpers')
-			cls.draw_prop(layout, params, 'CR_chain_unlock_deform')
+			cls.draw_prop(layout, params.chain, 'preserve_volume')
+			cls.draw_prop(layout, params.chain, 'shape_key_helpers')
+			cls.draw_prop(layout, params.chain, 'unlock_deform')
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		cls.draw_control_label(layout, "Stretch")
-		cls.draw_prop(layout, params, 'CR_chain_segments')
-		cls.draw_prop(layout, params, 'CR_chain_tip_control')
+		cls.draw_prop(layout, params.chain, 'segments')
+		cls.draw_prop(layout, params.chain, 'tip_control')
 
 class Params(PropertyGroup):
-	test: BoolProperty()
+	segments = IntProperty(	# TODO: It would be more intuitive to rename this to "Sub-Controls" and set default to 0, change code logic accordingly, and do metarig versioning.
+			name		 = "Stretch Segments"
+		,description = "Number of bendy bones to create for each original bone"
+		,default	 = 1
+		,min		 = 1
+		,max		 = 9
+	)
+	bbone_density = IntProperty(
+			name		 = "B-Bone Density"
+		,description = "Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
+		,default	 = 10
+		,min		 = 0
+		,max		 = 32
+	)
+	unlock_deform = BoolProperty(
+			name		 = "Create Deform Controls"
+		,description = "Create CTR-DEF controls that allow Deform bones to be controlled directly"
+		,default	 = False
+	)
+	shape_key_helpers = BoolProperty(
+			name		 = "Create Shape Key Helpers"
+		,description = "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
+	)
+	sharp = BoolProperty(
+			name		 = "Sharp Sections"
+		,description = "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
+		,default	 = False
+	)
+	smooth_spline = BoolProperty(
+			name		 = "Smooth Spline"
+		,description = "B-Bone Splines affect their neighbours for smoother curves"
+		,default	 = False
+	)
+
+	# This parameter is not exposed, and only exists for backwards compatibility currently.
+	align_roll = BoolProperty(
+			name		 = "Align Roll"
+		,description = "Re-calculate the bone roll of STR controls based on the ORG bones"
+		,default	 = True
+	)
+	tip_control = BoolProperty(
+			name		 = "Tip Control"
+		,description = "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one, or to make this chain loop into itself"
+		,default	 = True
+	)
+	preserve_volume = BoolProperty(
+			name		 = "Preserve Volume"
+		,description = "Squash and stretch will preserve volume"
+		,default	 = False
+	)
 
 class Rig(CloudChainRig):
 	pass

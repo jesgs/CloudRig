@@ -127,10 +127,10 @@ class CloudBaseRig(
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
 		"""
 		self.create_bone_infos()
-		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.CR_base_parent_switching
-		if not skip_root_parenting and self.params.CR_base_parent != "":
+		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.base.parent_switching
+		if not skip_root_parenting and self.params.base.parent != "":
 			self.apply_custom_root_parent()
-		if self.params.CR_base_parent_switching:
+		if self.params.base.parent_switching:
 			self.apply_parent_switching(self.meta_base_bone.bone.cloudrig_parent_slots)
 		self.relink()
 		self.add_gizmo_interactions()

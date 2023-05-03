@@ -1,10 +1,32 @@
-Check out ebo.align_roll() instead of bpy.ops.armature.calculate_roll().
+Priority 0: Re-write as standalone add-on
+	- Implement rig parameters without ParameterValidator. (proof of concept working! This will be time consuming as shit.)
+		- Move params from add_parameters() to the Params(PropertyGroup) class
+		- Tweak the UI drawing code accordingly
+		- Tweak generation code accordingly
+		- Tweak foced_parameters accordingly
+		- Search for "CR_" to find any leftovers.
 
-Add a warning when the metarig was posed before generating.
-Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
+	- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
+		- That said, this could stay in generator.py instead of properties.py
+	- Implement rig types as a list stored on the Armature.
+		- Allow assigning and displaying the rig type info on the bone as well, to mimic Rigify's UX. Both can co-exist.
+	- Draw all UI without replacing any Rigify UI.
 
-I think we should refactor bone creation and set-up such that each function call is somewhat responsible for a rig parameter.
-	I think it would make the code feel a lot more intuitive to both read and write, but it might have its own complications.
+	- Re-write the Generator... (this will be the hardest part)
+		- Make sure forced_parameters still works.
+		- Integrate reliance on BoneInfo as much as possible.
+		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
+
+	- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
+
+	BELLS AND WHISTLES:
+	- Use callbacks to update certain things when changing rig types:
+		- Clear all PointerProperties (each rig type should implement its own update callback, and all of them should get called on switch)
+		- Create any missing BoneSets (which should no longer need to wait for a generation in order to exist, because the Generator, along with all of its data, will always exist and be stored in RNA.)
+	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig element list is empty or not.
+	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
+
+
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
@@ -21,10 +43,12 @@ Priority 1: Bugs
 			Enter edit mode on the duplicate
 			Begin generating rigs (Rigs can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
+	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
 	It would be nice if metarigs could be in orchatedral, after we implement gizmos for setting widget sizes.
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
 		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
+		- Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
 
 	"(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
 	Scale Inheritance and modifiers
@@ -49,7 +73,7 @@ Priority 2: New features
 		Each row has a + button to add a new entry to that row, and the bottom of the UI has a + icon to add a new entry in a new column.
 			If we're at the max of 32 layers, we throw a nice error.
 			Each time we add an entry, the layer number assignments are re-initialized so that the named layers correspond to the real ones from top to bottom and left to right
-			Since all interaction is done through operators, each execution of such an operator should update all Bone Set assignments in the metarig.
+			Since all interaction is done through operators, each execution of such an operator (or changing of the name property) should update all Bone Set assignments in the metarig.
 		While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
 		Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
 Priority 3: Changes that will affect metarigs

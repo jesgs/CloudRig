@@ -1,6 +1,7 @@
 from typing import Optional, List
 
 import bpy
+from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
 
@@ -27,11 +28,11 @@ class CloudAimRig(CloudBaseRig):
 			,parent		 = aim_org
 		)
 
-		if self.params.CR_aim_root:
+		if self.params.aim.root:
 			self.root_bone = self.make_root_bone(aim_org)
 
 		self.group_master = None
-		if self.params.CR_aim_group != "":
+		if self.params.aim.group != "":
 			self.group_master = self.ensure_group_master()
 
 		self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
@@ -41,23 +42,23 @@ class CloudAimRig(CloudBaseRig):
 			,subtarget = self.target_bone.name
 		)
 
-		if self.params.CR_aim_deform:
+		if self.params.aim.deform:
 			def_bone = self.make_def_bone(self.ctr_bone, self.bone_sets['Aim Deform'])
 			def_bone.parent = aim_org
 			def_bone.add_constraint('COPY_TRANSFORMS', subtarget=self.ctr_bone.name)
 
-		if self.params.CR_aim_create_sub_control:
+		if self.params.aim.create_sub_control:
 			self.create_eye_highlight(self.ctr_bone)
 
 	def find_target_pos(self, bone: BoneInfo) -> Vector:
 		"""Find location of where the target bone should be for an aim bone."""
-		if self.params.CR_aim_flatten:
+		if self.params.aim.flatten:
 			direction = bone.vector.normalized()
 			# Ignore X axis
 			direction[0] = 0.0
-			return bone.head + direction * self.params.CR_aim_target_distance * self.scale
+			return bone.head + direction * self.params.aim.target_distance * self.scale
 		else:
-			return bone.tail + bone.vector.normalized() * self.params.CR_aim_target_distance * self.scale
+			return bone.tail + bone.vector.normalized() * self.params.aim.target_distance * self.scale
 
 	def make_target_control(self, bone: BoneInfo, parent: BoneInfo=None) -> BoneInfo:
 		"""Set up target control for a bone."""
@@ -216,14 +217,14 @@ class CloudAimRig(CloudBaseRig):
 			,panel_name = panel_name
 			,label_name = label_name or "Aim Target Parent"
 			,row_name = row_name
-			,entry_name = entry_name or self.params.CR_aim_group + " Parent"
+			,entry_name = entry_name or self.params.aim.group + " Parent"
 		)
 
 	def find_aim_bones_in_group(self, group_name) -> List[bpy.types.PoseBone]:
 		"""Return a list of all cloud_aim rigs with a matching Aim Group."""
 		aim_bones = []
 		for rig in self.generator.rig_list:
-			if isinstance(rig, CloudAimRig) and rig.params.CR_aim_group == group_name:
+			if isinstance(rig, CloudAimRig) and rig.group == group_name:
 				aim_bone = self.obj.pose.bones[rig.base_bone]
 				aim_bones.append(aim_bone)
 		return aim_bones
@@ -234,7 +235,7 @@ class CloudAimRig(CloudBaseRig):
 		"""
 
 		# Check if a bone with the right name already exists and if it does, just return it.
-		group_name = self.params.CR_aim_group
+		group_name = self.params.aim.group
 		group_master_name = "MSTR-TGT-"+group_name
 		existing = self.generator.find_bone_info(group_master_name)
 		if existing:
@@ -243,7 +244,7 @@ class CloudAimRig(CloudBaseRig):
 		aim_bones = self.find_aim_bones_in_group(group_name)
 
 		# Find a parent to fall back to, although ideally the rigger specifies
-		# parents using CR_base_parent_switching.
+		# parents using params.base.parent_switching.
 		first_parent = ""
 		for aim_bone in aim_bones:
 			if aim_bone.parent and first_parent=="":
@@ -301,7 +302,7 @@ class CloudAimRig(CloudBaseRig):
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):
 		if set_info['name'] == 'Aim Deform':
-			return params.CR_aim_deform
+			return deform
 
 		return super().is_bone_set_used(params, set_info)
 
@@ -316,54 +317,50 @@ class CloudAimRig(CloudBaseRig):
 		cls.define_bone_set(params, 'Aim Deform',							default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-
-		params.CR_aim_group = StringProperty(
-			name		 = "Aim Group"
-			,default	 = "Eyes"
-			,description = "Aim rigs belonging to the same Aim Group will have a shared master control generated for them"
-		)
-
-		params.CR_aim_target_distance = FloatProperty(
-			name		 = "Target Distance"
-			,default	 = 5.0
-			,description = "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
-			,min		 = 0
-		)
-		params.CR_aim_flatten = BoolProperty(
-			name		 = "Flatten X"
-			,description = "Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other"
-			,default	 = False
-		)
-		# TODO: Do this the same way as cloud_copy instead, ie. use the bone's use_deform property.
-		params.CR_aim_deform = BoolProperty(
-			name		 = "Create Deform"
-			,default	 = False
-			,description = "Create a deform bone for this rig"
-		)
-		# TODO: Move this to cloud_base.
-		params.CR_aim_root = BoolProperty(
-			name		 = "Create Root"
-			,default	 = False
-			,description = "Create a root bone for this rig"
-		)
-		params.CR_aim_create_sub_control = BoolProperty(
-			name		 = "Create Sub-Control"
-			,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
-			,default	 = False
-		)
-		super().add_parameters(params)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.draw_prop(layout, params, "CR_aim_group")
-		cls.draw_prop(layout, params, "CR_aim_target_distance")
-		cls.draw_prop(layout, params, "CR_aim_flatten")
-		cls.draw_prop(layout, params, "CR_aim_deform")
-		cls.draw_prop(layout, params, "CR_aim_root")
-		cls.draw_prop(layout, params, "CR_aim_create_sub_control")
+		cls.draw_prop(layout, params.aim, "group")
+		cls.draw_prop(layout, params.aim, "target_distance")
+		cls.draw_prop(layout, params.aim, "flatten")
+		cls.draw_prop(layout, params.aim, "deform")
+		cls.draw_prop(layout, params.aim, "root")
+		cls.draw_prop(layout, params.aim, "create_sub_control")
+
+class Params(PropertyGroup):
+	group = StringProperty(
+		name		 = "Aim Group"
+		,default	 = "Eyes"
+		,description = "Aim rigs belonging to the same Aim Group will have a shared master control generated for them"
+	)
+
+	target_distance = FloatProperty(
+		name		 = "Target Distance"
+		,default	 = 5.0
+		,description = "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
+		,min		 = 0
+	)
+	flatten = BoolProperty(
+		name		 = "Flatten X"
+		,description = "Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other"
+		,default	 = False
+	)
+	# TODO: Do this the same way as cloud_copy instead, ie. use the bone's use_deform property.
+	deform = BoolProperty(
+		name		 = "Create Deform"
+		,default	 = False
+		,description = "Create a deform bone for this rig"
+	)
+	# TODO: Move this to cloud_base.
+	root = BoolProperty(
+		name		 = "Create Root"
+		,default	 = False
+		,description = "Create a root bone for this rig"
+	)
+	create_sub_control = BoolProperty(
+		name		 = "Create Sub-Control"
+		,description = "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights"
+		,default	 = False
+	)
 
 class Rig(CloudAimRig):
 	pass

@@ -1,3 +1,4 @@
+from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 
@@ -10,15 +11,15 @@ class CloudCopyRig(CloudBaseRig):
 	always_use_custom_props = True
 
 	forced_params = {
-		'CR_base_props_storage' : 'CUSTOM'
-		,'CR_base_props_storage_bone' : ""
+		'base.props_storage' : 'CUSTOM'
+		,'base.props_storage_bone' : ""
 	}
 
 	def initialize(self):
 		super().initialize()
 
 		self.orgless_name = self.base_bone.replace("ORG-", "")
-		self.params.CR_base_props_storage_bone = self.orgless_name
+		self.params.base.props_storage_bone = self.orgless_name
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
 		self.do_parenting = True
@@ -57,7 +58,7 @@ class CloudCopyRig(CloudBaseRig):
 			)
 			bi.rotation_mode = 'XYZ'
 
-		if self.params.CR_copy_create_deform:
+		if self.params.copy.create_deform:
 			# Make a copy with DEF- prefix, as our deform bone.
 			def_bone = self.make_def_bone(bi, self.bones_def)
 			def_bone.parent = bi
@@ -88,17 +89,17 @@ class CloudCopyRig(CloudBaseRig):
 			)
 		self.generator.bone_sets.append(my_bone_set)
 
-		if self.params.CR_copy_property_ui_subpanel:
+		if self.params.copy.property_ui_subpanel:
 			self.add_ui_data_of_bone(bi
-				,self.params.CR_copy_property_ui_subpanel
-				,self.params.CR_copy_property_ui_label
+				,self.params.copy.property_ui_subpanel
+				,self.params.copy.property_ui_label
 			)
 
 		self.root_bone = bi
-		if self.params.CR_copy_custom_pivot:
+		if self.params.copy.custom_pivot:
 			self.root_bone = self.create_custom_pivot(bi, my_bone_set)
 
-		if self.params.CR_copy_ensure_free:
+		if self.params.copy.ensure_free:
 			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...
 				,bone_set = self.bone_sets['Mechanism Bones']
 			)
@@ -174,58 +175,54 @@ class CloudCopyRig(CloudBaseRig):
 	# Parameters
 
 	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
-		params.CR_copy_create_deform = BoolProperty(
-			name		 = "Create Deform"
-			,description = 'Create a deforming child bone for this bone, prefixed with "DEF-"'
-			,default	 = False
-		)
-		params.CR_copy_custom_pivot = BoolProperty(
-			name		 = "Create Custom Pivot"
-			,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
-			,default	 = False
-		)
-		params.CR_copy_ensure_free = BoolProperty(
-			name		 = "Ensure Free Transformation"
-			,description = 'Create a parent which will have all constraints that this bone would have, unless the constraint name starts with "KEEP"'
-			,default	 = False
-		)
-		params.CR_copy_property_ui_subpanel = StringProperty(
-			name		 = "UI Sub-panel"
-			,description = "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
-		)
-		params.CR_copy_property_ui_label = StringProperty(
-			name		 = "UI Label"
-			,description = "Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel"
-		)
-
-	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.draw_prop(layout, params, 'CR_copy_custom_pivot')
-		cls.draw_prop(layout, params, 'CR_copy_create_deform')
-		cls.draw_prop(layout, params, 'CR_copy_ensure_free')
+		cls.draw_prop(layout, params.copy, 'custom_pivot')
+		cls.draw_prop(layout, params.copy, 'create_deform')
+		cls.draw_prop(layout, params.copy, 'ensure_free')
 
 	@classmethod
 	def draw_custom_prop_params(cls, layout, context, params):
 		layout = super().draw_custom_prop_params(layout, context, params)
 		layout.separator()
 
-		cls.draw_prop(layout, params, 'CR_copy_property_ui_subpanel')
+		cls.draw_prop(layout, params.copy, 'property_ui_subpanel')
 		row = layout.row()
-		row.enabled = bool(params.CR_copy_property_ui_subpanel)
-		cls.draw_prop(row, params, 'CR_copy_property_ui_label')
+		row.enabled = bool(property_ui_subpanel)
+		cls.draw_prop(row, params.copy, 'property_ui_label')
 		return layout
 
 	@classmethod
 	def is_bone_set_used(cls, params, set_info):
 		if set_info['name'] == 'Deform Bones':
-			return params.CR_copy_create_deform
+			return create_deform
 
 		return super().is_bone_set_used(params, set_info)
+
+class Params(PropertyGroup):
+	create_deform = BoolProperty(
+		name		 = "Create Deform"
+		,description = 'Create a deforming child bone for this bone, prefixed with "DEF-"'
+		,default	 = False
+	)
+	custom_pivot = BoolProperty(
+		name		 = "Create Custom Pivot"
+		,description = "Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are"
+		,default	 = False
+	)
+	ensure_free = BoolProperty(
+		name		 = "Ensure Free Transformation"
+		,description = 'Create a parent which will have all constraints that this bone would have, unless the constraint name starts with "KEEP"'
+		,default	 = False
+	)
+	property_ui_subpanel = StringProperty(
+		name		 = "UI Sub-panel"
+		,description = "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
+	)
+	property_ui_label = StringProperty(
+		name		 = "UI Label"
+		,description = "Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel"
+	)
 
 class Rig(CloudCopyRig):
 	pass
