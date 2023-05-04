@@ -4,7 +4,7 @@ import sys, importlib, inspect
 from rigify import feature_sets
 from bpy.utils import register_class, unregister_class
 
-from . import versioning, manual, operators, rigs, utils, rig_features, ui, properties
+from . import versioning, manual, operators, rigs, utils, rig_features, ui, properties, prefs
 from .generation import troubleshooting, cloud_generator
 
 rigify_info = {
@@ -33,6 +33,7 @@ bl_info = {
 modules = [
 	rigs,
 	properties,
+	prefs,
 	ui,
 	troubleshooting,
 	rig_features,
@@ -70,10 +71,12 @@ def register_unregister_modules(modules: List, register: bool):
 		elif hasattr(m, 'unregister'):
 			m.unregister()
 
+
 def register():
 	"""Called by Blender when enabling the CloudRig add-on."""
 	# TODO: Throw a useful error when trying to use as a Rigify extension.
 	register_unregister_modules(modules, True)
+	
 
 def unregister():
 	"Called by Rigify when uninstalling or disabling CloudRig."

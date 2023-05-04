@@ -3,6 +3,7 @@
 
 from rigify import rig_lists
 import addon_utils
+import bpy
 
 def find_rig_class(rig_type):
 	if rig_type == "":
@@ -25,3 +26,8 @@ def check_addon(context, addon_name) -> bool:
 		return addon_enabled_in_workspace
 
 	return addon_enabled_in_userprefs
+
+def get_addon_prefs(context=None):
+	if not context:
+		context = bpy.context
+	return context.preferences.addons[__package__.split(".")[0]].preferences

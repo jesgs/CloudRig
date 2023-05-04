@@ -1,6 +1,8 @@
 import os, importlib
 from pathlib import Path
 
+rig_types = {}
+
 def load_modules(dir_path: str, package: str):
     files = os.listdir(dir_path)
 
@@ -25,4 +27,5 @@ def load_modules(dir_path: str, package: str):
     return rigs
 
 def register():
-    load_modules(os.path.dirname(__file__), __package__)
+    global rig_types
+    rig_types = load_modules(os.path.dirname(__file__), __package__)

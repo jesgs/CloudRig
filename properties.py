@@ -20,14 +20,17 @@ class RigParams(PropertyGroup):
     }
 
 class RigElement(PropertyGroup):
-	owner_bone: StringProperty()
-	params: PointerProperty(type=RigParams)
+    owner_bone: StringProperty()
+    element_type: StringProperty()
+    params: PointerProperty(type=RigParams)
 
 class GeneratorParameters(PropertyGroup):
     advanced_mode: BoolProperty()
 
 class CloudRigProperties(PropertyGroup):
     rig_elements: CollectionProperty(type=RigElement)
+    active_rig_element_index: IntProperty()
+
     generator: PointerProperty(type=GeneratorParameters)
     metarig_version: IntProperty()
 
