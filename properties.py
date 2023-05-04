@@ -252,13 +252,5 @@ def register():
     bpy.types.Armature.cloudrig = PointerProperty(type=Properties_CloudRig)
     bpy.types.PoseBone.cloudrig_component = PointerProperty(type=RigComponent)
 
-    print("here be the classes:")
-    for key, value in param_classes.items():
-        print(key, value)
-
-    print("Here be the annotations:")
-    for key, value in RigParams.__annotations__.items():
-        print(key, value)
-
 def unregister():
     del bpy.types.Armature.cloudrig
