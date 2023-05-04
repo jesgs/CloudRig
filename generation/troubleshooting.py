@@ -615,7 +615,7 @@ class CLOUDRIG_PT_log(Panel):
 	bl_region_type = 'WINDOW'
 	bl_context = 'data'
 	bl_label = "Generation Log"
-	bl_parent_id = "DATA_PT_rigify"
+	bl_parent_id = "POSE_PT_CloudRig"
 	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod

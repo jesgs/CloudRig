@@ -1,4 +1,5 @@
 from typing import List
+from bpy.types import PropertyGroup
 from ..rig_features.bone import BoneInfo
 
 from bpy.props import BoolProperty

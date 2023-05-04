@@ -12,7 +12,7 @@ def get_active_pose_bone(context):
 class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
-	bl_parent_id = "BONE_PT_rigify_buttons"
+	bl_parent_id = "POSE_PT_CloudRig"
 	bl_options = {'DEFAULT_CLOSED'}
 
 	draw_function_name = "draw_parenting_params"

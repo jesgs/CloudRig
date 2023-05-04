@@ -1,5 +1,6 @@
 
 from typing import Dict, Any
+from bpy.types import Object
 
 from .bone import BoneInfo
 
@@ -56,12 +57,8 @@ def is_advanced_mode(context):
 		return False
 	return context.object.data.cloudrig_parameters.advanced_mode
 
-def is_cloud_metarig(rig):
-	if rig.type=='ARMATURE' and 'rig_id' not in rig.data:
-		for b in rig.pose.bones:
-			if 'cloud' in b.rigify_type:
-				return True
-	return False
+def is_cloud_metarig(rig: Object):
+	return len(rig.data.cloudrig.rig_elements) > 0
 
 def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 	""" Attempt to simulate a proper textbox by only displaying as many

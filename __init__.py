@@ -31,16 +31,16 @@ bl_info = {
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
+	rigs,
+	properties,
+	ui,
 	troubleshooting,
 	rig_features,
 	cloud_generator,
-	ui,
 	versioning,
 	manual,
 	operators,
-	rigs,
 	utils,
-	properties
 ]
 
 def register_unregister_modules(modules: List, register: bool):
