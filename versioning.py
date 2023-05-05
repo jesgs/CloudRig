@@ -44,7 +44,7 @@ def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of
 	CloudRig as well as possible. They will still need some manual cleanup!!!"""
 	data = metarig.data
-	target_rig = data.rigify_target_rig
+	target_rig = data.cloudrig.target_rig
 
 	# NOTE on limitations:
 	# The old value is not stored in the file at all if it was left as default, so

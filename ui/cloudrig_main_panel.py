@@ -19,18 +19,28 @@ class CLOUDRIG_UL_rig_elements(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         rig = context.object
         cloudrig = data
-        rig_element = item
+        rig_element_bone_name = item.bone_name
         addon_prefs = get_addon_prefs(context)
+
+        pb = rig.pose.bones.get(rig_element_bone_name)
+
 
         row = layout.row()
         split = row.split(factor=0.4)
-        icon = 'BONE_DATA'
-        if rig_element.owner_bone not in rig.pose.bones:
-            icon = 'ERROR'
-        split.prop_search(rig_element, 'owner_bone', rig.pose, 'bones', text="", icon=icon)
-        split2 = split.split(factor=0.3)
-        split2.label(text="")
-        split2.prop_search(rig_element, 'element_type', addon_prefs, 'rig_type_list', text="", icon='ARMATURE_DATA')
+        row = split.row()
+        row.enabled = False
+        if not pb:
+            row.prop_search(item, 'bone_name', rig.pose, 'bones', text="", icon='ERROR')
+        else:
+            rig_element = pb.cloudrig_element
+            row.prop_search(rig_element, 'owner_bone', rig.pose, 'bones', text="")
+            split2 = split.split(factor=0.3)
+            split2.alignment = 'RIGHT'
+            split2.label(text="Type:")
+        if not pb:
+            split.label(text="Bone renamed or deleted. Click to refresh.")
+        else:
+            split2.prop_search(rig_element, 'element_type', addon_prefs, 'rig_type_list', text="", icon='ARMATURE_DATA')
 
 class CLOUDRIG_PT_rig_elements(Panel):
     bl_label = "Rig Elements"
@@ -46,15 +56,40 @@ class CLOUDRIG_PT_rig_elements(Panel):
             layout,
             context,
             class_name = 'CLOUDRIG_UL_rig_elements',
-            list_path = 'object.data.cloudrig.rig_elements',
+            list_path = 'object.data.cloudrig.rig_element_bones',
             active_index_path = 'object.data.cloudrig.active_rig_element_index',
             insertion_operators = True,
             move_operators = True,
         )
 
+class CLOUDRIG_PT_rig_element(Panel):
+    bl_label = "CloudRig Element"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'bone'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object or context.object.type != 'ARMATURE':
+            return False
+        if context.object.mode not in {'POSE', 'OBJECT'}:
+            return False
+        if not context.active_bone and not context.active_pose_bone:
+            return False
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        addon_prefs = get_addon_prefs(context)
+        active_bone = context.active_bone
+        active_pb = context.object.pose.bones.get(active_bone.name)
+        rig_element = active_pb.cloudrig_element
+        layout.prop_search(rig_element, 'element_type', addon_prefs, 'rig_type_list', icon='ARMATURE_DATA')
 
 registry = [
     POSE_PT_CloudRig,
     CLOUDRIG_UL_rig_elements,
-    CLOUDRIG_PT_rig_elements
+    CLOUDRIG_PT_rig_elements,
+    CLOUDRIG_PT_rig_element
 ]
