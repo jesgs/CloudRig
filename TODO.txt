@@ -1,13 +1,11 @@
 Priority 0: Re-write as standalone add-on
-	Unexpected inconveniences: 
-		- Storing rig elements on the armature instead of on the bone means shit breaks when renaming a bone, which is pretty sad.
-		- Duplicating a bone also won't work.
-		- We probably have to go back to storing the rig type and parameters on the bone then...
-		- The rig element list could still exist, but it would be an implicit list, that is re-generated whenever a bone's assigned rig type is changed, or when specific rig element parameters might change, eg. there could still be an "order" parameter to enable tweaking the order in which things generate.
+	- There could be an "order" parameter on each rig element, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
+		- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
+		- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
+	- Figure out how BoneSets will work.
 
-
-	- Implement rig parameters without ParameterValidator. (proof of concept working! This will be time consuming as shit.)
+	- Implement rig parameters without ParameterValidator.
 		- Move params from add_parameters() to the Params(PropertyGroup) class
 		- Tweak the UI drawing code accordingly
 		- Tweak generation code accordingly

@@ -19,7 +19,7 @@ class CLOUDRIG_UL_rig_elements(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         rig = context.object
         cloudrig = data
-        rig_element_bone_name = item.bone_name
+        rig_element_bone_name = item.name
         addon_prefs = get_addon_prefs(context)
 
         pb = rig.pose.bones.get(rig_element_bone_name)
@@ -30,7 +30,7 @@ class CLOUDRIG_UL_rig_elements(UIList):
         row = split.row()
         row.enabled = False
         if not pb:
-            row.prop_search(item, 'bone_name', rig.pose, 'bones', text="", icon='ERROR')
+            row.prop_search(item, 'name', rig.pose, 'bones', text="", icon='ERROR')
         else:
             rig_element = pb.cloudrig_element
             row.prop_search(rig_element, 'owner_bone', rig.pose, 'bones', text="")
@@ -41,6 +41,11 @@ class CLOUDRIG_UL_rig_elements(UIList):
             split.label(text="Bone renamed or deleted. Click to refresh.")
         else:
             split2.prop_search(rig_element, 'element_type', addon_prefs, 'rig_type_list', text="", icon='ARMATURE_DATA')
+
+    def draw_filter(self, context, layout):
+        """Don't draw sorting buttons here, since the displayed order should ALWAYS
+        show the order in which the rig elements will be executed during generation."""
+        layout.row().prop(self, "filter_name", text="")
 
 class CLOUDRIG_PT_rig_elements(Panel):
     bl_label = "Rig Elements"

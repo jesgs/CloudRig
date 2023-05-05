@@ -24,7 +24,7 @@ def refresh_element_bones_list(rig_ob: Object):
     for pb in rig_ob.pose.bones:
         if pb.cloudrig_element.element_type:
             rig_element_bone = rig_ob.data.cloudrig.rig_element_bones.add()
-            rig_element_bone.bone_name = pb.name
+            rig_element_bone.name = pb.name
             pb.cloudrig_element.owner_bone = pb.name
 
 class RigElement(PropertyGroup):
@@ -45,7 +45,7 @@ class RigElementBone(PropertyGroup):
         # TODO: Implement this, similar to Copy Rigify Type & Parameters, 
         # but ideally it would also clear the data from the source.
 
-    bone_name: StringProperty(update=change_assigned_bone)
+    name: StringProperty(update=change_assigned_bone)
 
 class CloudRigProperties(PropertyGroup):
     rig_element_bones: CollectionProperty(type=RigElementBone)
@@ -64,7 +64,7 @@ class CloudRigProperties(PropertyGroup):
     active_rig_element_index: IntProperty(update=update_elem_index)
     @property
     def active_element_bone_name(self):
-        return self.rig_element_bones[self.active_rig_element_index].bone_name
+        return self.rig_element_bones[self.active_rig_element_index].name
 
     generator: PointerProperty(type=GeneratorParameters)
     metarig_version: IntProperty()
