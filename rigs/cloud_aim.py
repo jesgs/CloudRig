@@ -326,6 +326,13 @@ class CloudAimRig(CloudBaseRig):
 		cls.draw_prop(layout, params.aim, "root")
 		cls.draw_prop(layout, params.aim, "create_sub_control")
 
+bone_set_definitions = {
+	'aim_group_target_control' : {
+		'preset' : 1,
+		'default_layer' : CloudBaseRig.DEFAULT_LAYERS.FACE_MAIN
+	}
+}
+
 class Params(PropertyGroup):
 	group: StringProperty(
 		name		 = "Aim Group"

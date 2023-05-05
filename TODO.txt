@@ -4,6 +4,26 @@ Priority 0: Re-write as standalone add-on
 		- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
 	- Figure out how BoneSets will work.
+		- Should register during registration, as baby jesus intended.
+			- Okay, so, this still cannot be done because the ELEMENTS of a CollectionProperty can't do this.
+			- Either we allow every bone set to be a named attribute (so like cloudrig_element.params.bone_sets.fk_main) and achieve that procedurally via an __annotations__ = {} assignment, OR, we make sure to initialize bone sets on rig_element update() callback.
+			- I think making them named attributes might actually not be so bad...! Only question is, how?
+			- Ehhh, yuck, we would have to procedurally generate a separate PropertyGroup class for each bone set definition. I'm not a huge fan of that... It will spam bpy.types full of my stuff. On the other hand, resetting values to default will *actually work*, which is nice...
+			- Implementation-wise though, still a huge mess. On register(), we need to grab some data from the rig.py files, generate a list of classes from that, register those classes, then assign those classes to the params.bone_sets PropertyGroup... How do we even do that though, we can't pass the classes we generate during register() into the class definition of the bone_sets PropertyGroup.
+				- Oh god... But maybe we can do it the other way around... During interpretation time, the bone_set PropGroup gets gathers its list of bone set data... It uses that to generate a list of PropGroup classes to be registered... And it generates its list of annotations... Then at registration time, which is later, the classes are already prepared and stored, they just need to be grabbed and registered (before the bone_set PropGroup, importantly)
+				- Sweet baby jesus, it's so fucking insane it just might work.
+		
+		- One more problem remains, I think: How to draw all the bone sets in a UIList? Oh, fuck. God damnit, we're gonna need a UI wrapper CollectionProperty afterall, won't we... Fine, whatever, we still keep all the benefits.
+			- Make a CollectionProperty of BoneSetNames when changing rig element type
+			- The name is the attribute name, so we will use getattr(params.bone_sets, bone_set_name).
+			- Not sure how the current code filters to only show relevant bone sets, but hopefully that can keep happening.
+				- Okay, current implementation is that every bone set is stored in one big batch, and they store what bone they belong to, rather than being stored on the bone that they belong to, which is what we will have now. Except now, every bone will have every bone set, which was not the case before. Doesn't matter.
+				- Point is this: Only create UIBoneSets for those bone sets whose name appears in the current bone's rig type's bone_set_definitions' keys() list. Simples!
+
+		- Would make most sense under rig_element.params.bone_sets, so, a CollectionProperty inside class RigParams.
+		- Contains a BoolVectorProperty for the layers, a StringProperty for the group name.
+		- Possibly Bone Group Color information, although, it would probably be better to simply display the colors of the corresponding bone group if it exists.
+			- If it does not exist... hmm... I guess user should create it outside of the BoneSet interface, or in some other explicit manner.
 
 	- Implement rig parameters without ParameterValidator.
 		- Move params from add_parameters() to the Params(PropertyGroup) class

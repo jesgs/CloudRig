@@ -441,7 +441,6 @@ class BoneSetMixin:
 		"""Create parameters for this rig's bone sets."""
 		# For correct behaviour on Reload Scripts. (Not sure if needed)
 		cls.bone_set_defs = OrderedDict()
-		params.CR_show_bone_sets = BoolProperty(name="Bone Organization", description="Reveal Bone Set settings")
 		params.CR_show_advanced_bone_sets = BoolProperty(name="Advanced Bone Sets", description="Reveal bone sets of helper bones")
 		params.CR_active_bone_set_index = IntProperty()
 
