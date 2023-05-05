@@ -59,6 +59,7 @@ class BoneSets(PropertyGroup):
 
     @staticmethod
     def class_from_definition(bone_set_name: str, bone_set_definition: dict) -> type:
+        pretty_name = bone_set_name.replace("_", " ").title()
         annotations = {
             'name' : StringProperty(
                 name = "Bone Set Name",
@@ -89,7 +90,7 @@ class BoneSets(PropertyGroup):
             ),
             'generated_bones': CollectionProperty(
                 name = "Generated Bones",
-                description = "List of bone names generated in this Bone Set during the last time the target rig was generated"
+                description = "List of bone names generated in this Bone Set during the last time the target rig was generated",
                 type=GeneratedBone
             )
         }
@@ -114,8 +115,7 @@ class BoneSets(PropertyGroup):
                 if bone_set_name in classes:
                     print("ERROR: Trying to re-define bone-set: " + bone_set_name)
                     continue
-                pretty_name = bone_set_name.replace("_", " ").title()
-                bone_set__class = class_from_definition(bone_set_name, bone_set_definition)
+                bone_set_class = BoneSets.class_from_definition(bone_set_name, bone_set_definition)
                 classes[bone_set_name] = bone_set_class
 
         return classes
