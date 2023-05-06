@@ -8,16 +8,10 @@ Priority 0: Re-write as standalone add-on
 
 		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
 
-		- Would make most sense under rig_component.params.bone_sets, so, a CollectionProperty inside class ComponentParams.
-		- Contains a BoolVectorProperty for the layers, a StringProperty for the group name.
-		- Possibly Bone Group Color information, although, it would probably be better to simply display the colors of the corresponding bone group if it exists.
-			- If it does not exist... hmm... I guess user should create it outside of the BoneSet interface, or in some other explicit manner.
 
 	- Implement rig parameters without ParameterValidator.
-		- Move params from add_parameters() to the Params(PropertyGroup) class
-		- Tweak the UI drawing code accordingly
-		- Tweak generation code accordingly
-		- Tweak foced_parameters accordingly
+		- Draw the UI for the new component_params
+		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
 		- Search for "CR_" to find any leftovers.
 
 	- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
@@ -34,6 +28,9 @@ Priority 0: Re-write as standalone add-on
 	- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
 
 	- Get rid of generic_ui_list.py
+	- Re-make Rig Samples and MetaRigs (ooof.)
+	- Update the wiki (OOOOF!!!)
+	- Update Manual links
 
 	BELLS AND WHISTLES:
 	- Use callbacks to update certain things when changing rig types:
