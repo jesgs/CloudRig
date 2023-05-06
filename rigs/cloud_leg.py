@@ -17,7 +17,7 @@ from ..rig_features.ui import make_custom_property
 
 class CloudLegRig(CloudLimbRig):
 	"""Limb rig with extra features for legs, such as foot roll."""
-
+	ui_name = "Limb: Biped Leg"
 	forced_params = {
 		'chain.tip_control' : True
 		,'fk_chain.root' : True

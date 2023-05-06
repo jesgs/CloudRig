@@ -12,7 +12,7 @@ from .cloud_ik_chain import CloudIKChainRig
 
 class CloudLimbRig(CloudIKChainRig):
 	"""IK chain with extra features such as Auto-Rubberhose for a simple limb like an arm."""
-
+	ui_name = "Limb: Generic"
 	forced_params = {
 		'chain.sharp' : True
 		,'fk_chain.root' : True

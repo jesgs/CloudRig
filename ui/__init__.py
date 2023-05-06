@@ -1,7 +1,7 @@
-from . import rig_types_ui, bone_selection_pie_menu, cloudrig_main_panel
+from . import rig_types_ui, cloudrig_main_panel, rig_element_list
 
 modules = [
-    bone_selection_pie_menu,
     cloudrig_main_panel,
+    rig_element_list,
     # rig_types_ui,
 ]

@@ -8,6 +8,7 @@ from .cloud_base import CloudBaseRig
 
 class CloudCopyRig(CloudBaseRig):
 	"""Copy this bone to the generated rig."""
+	ui_name = "Copy Bone"
 	always_use_custom_props = True
 
 	forced_params = {

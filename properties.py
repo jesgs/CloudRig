@@ -10,12 +10,11 @@ import inspect
 
 def get_param_classes():
     ret = {}
-    # TODO: This should use rigs.rig_types instead of inspect! We already built the module list!
+    # TODO: This should use rigs.rig_modules instead of inspect! We already built the module list!
     for name, module in inspect.getmembers(rigs, inspect.ismodule):
         if hasattr(module, 'Params'):
             ret[name.replace("cloud_", "")] = module.Params
     return ret
-
 
 class GeneratedBone(PropertyGroup):
     name: StringProperty()
@@ -119,7 +118,7 @@ class BoneSets(PropertyGroup):
 
     def make_bone_set_property_groups() -> Dict[str, type]:
         classes = {}
-        for rig_type_name, rig_module in rigs.rig_types.items():
+        for rig_type_name, rig_module in rigs.rig_modules.items():
             rig_class = getattr(rig_module, 'Rig')
             if not hasattr(rig_class, 'bone_set_definitions'):
                 continue
@@ -161,7 +160,7 @@ def refresh_element_bones_list(context):
             pb.cloudrig_element.owner_bone = pb.name
 
     # Initialize UI Bone Sets, if not already done.
-    for rig_type_name, rig_module in rigs.rig_types.items():
+    for rig_type_name, rig_module in rigs.rig_modules.items():
         rig_class = getattr(rig_module, 'Rig')
         if not hasattr(rig_class, 'bone_set_definitions'):
             continue
@@ -183,7 +182,7 @@ class RigElement(PropertyGroup):
 
     @property
     def element_module(self):
-        return rigs.rig_types.get(self.element_module_name)
+        return rigs.rig_modules.get(self.element_module_name)
     
     @property
     def rig_class(self):

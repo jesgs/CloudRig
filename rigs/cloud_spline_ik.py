@@ -11,7 +11,7 @@ from .cloud_curve import CloudCurveRig
 
 class CloudSplineIKRig(CloudCurveRig):
 	"""Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
-
+	ui_name = "Curve: Spline IK"
 	relinking_behaviour = "Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled."	# TODO: Gray this out otherwise!
 
 	forced_params = {

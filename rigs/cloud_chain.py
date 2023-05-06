@@ -9,6 +9,7 @@ from .cloud_base import CloudBaseRig
 
 class CloudChainRig(CloudBaseRig):
 	"""Chain with cartoony squash and stretch controls."""
+	ui_name = "Chain: Basic"
 	relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with \"TAIL-\"."
 
 	def __init__(self, *args, **kwargs):

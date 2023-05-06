@@ -53,6 +53,8 @@ class CloudBaseRig(
 	parent_switch_overwrites_root_parent = True
 	chain_must_be_connected = True
 
+	ui_name = "Cloud Base (Should not be visible in UI!)"
+
 	def get_bone_set_definitions() -> Dict:
 		bone_set_definitions = {
 			'deform_bones' : {

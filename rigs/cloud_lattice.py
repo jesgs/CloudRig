@@ -9,7 +9,7 @@ from .cloud_base import CloudBaseRig
 
 class CloudLatticeRig(CloudBaseRig):
 	"""Create a simple lattice set-up. Lattice modifiers have to be added manually to the objects that should be deformed."""
-
+	ui_name = "Lattice"
 	relinking_behaviour = "Constraints will be moved to the Lattice Root."
 
 	def initialize(self):

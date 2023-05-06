@@ -3,16 +3,18 @@ from bpy.props import StringProperty, CollectionProperty
 import bpy
 from . import rigs
 
-def refresh_rig_type_list(context=None):
+def init_element_module_list(context=None):
     if not context:
         context = bpy.context
     prefs = context.preferences.addons[__package__].preferences
     prefs.rig_type_list.clear()
-    for rig_file_name, rig_module in rigs.rig_types.items():
-        pretty_name = rig_file_name.replace("cloud_", "").replace("_", " ").title().replace("Fk", "FK").replace("Ik", "IK")
+    for rig_file_name, rig_module in rigs.rig_modules.items():
+        if not hasattr(rig_module, 'Rig'):
+            continue
+        rig_class = rig_module.Rig
 
         type_info = prefs.rig_type_list.add()
-        type_info.name = pretty_name
+        type_info.name = rig_class.ui_name
         type_info.module_name = rig_file_name
 
 class CloudRigElementTypeInfo(PropertyGroup):
@@ -39,4 +41,4 @@ registry = [
 ]
 
 def register():
-    refresh_rig_type_list()
+    init_element_module_list()

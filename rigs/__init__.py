@@ -1,10 +1,10 @@
 import os, importlib
 from pathlib import Path
 
-rig_types = {}
+rig_modules = {}
 
 def load_modules(dir_path: str, package: str):
-    """This function is not only important to populate the global variable rig_types defined above.
+    """This function is not only important to populate the global variable rig_modules defined above.
 
     It also manualy imports the rig modules, which is necessary because 
     >>>Blender only recognizes modules that are imported BY NAME.<<<
@@ -40,5 +40,5 @@ def load_modules(dir_path: str, package: str):
     return rigs
 
 def register():
-    global rig_types
-    rig_types = load_modules(os.path.dirname(__file__), __package__)
+    global rig_modules
+    rig_modules = load_modules(os.path.dirname(__file__), __package__)

@@ -2,7 +2,7 @@ from .cloud_fk_chain import CloudFKChainRig
 
 class CloudFeatherRig(CloudFKChainRig):
 	"""Single-bone rig for a simple feather."""
-
+	ui_name = "Feather"
 	forced_params = {
 		'chain.segments' : 1
 		,'chain.tip_control' : True

@@ -9,7 +9,7 @@ from ..rig_features.animation import CloudAnimationMixin
 
 class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 	"""FK chain with squash and stretch controls."""
-
+	ui_name = "Chain: FK"
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	relinking_behaviour = "Constraints will be moved to the FK controls."
 

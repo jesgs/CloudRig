@@ -16,7 +16,7 @@ Re-implement FK-C bones (maybe under a param)
 
 class CloudSquashySpineRig(CloudFKChainRig):
 	"""Spine setup that can squash and not just stretch."""
-
+	ui_name = "Spine: Squashy"
 	forced_params = {
 		'chain.segments' : 1
 		,'chain.tip_control' : True

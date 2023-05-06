@@ -6,7 +6,7 @@ from math import radians
 
 class CloudFingerRig(CloudIKChainRig):
 	"""An IK chain tailored for fingers. The finger bending axis should be +X."""
-
+	ui_name = "Chain: Finger"
 	forced_params = {
 		'ik_chain.at_tip' : True,
 		'chain.tip_control' : True,
