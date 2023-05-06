@@ -1,6 +1,6 @@
 # Typing
 import bpy
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 # CloudBaseRig parent classes
 from ..generation.troubleshooting import LoggerMixin
@@ -52,6 +52,17 @@ class CloudBaseRig(
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
 	chain_must_be_connected = True
+
+	def get_bone_set_definitions() -> Dict:
+		bone_set_definitions = {
+			'deform_bones' : {
+				'preset' : 1,
+				'default_layer' : DEFAULT_LAYERS.DEF,
+				'is_advanced' : True
+			}
+		}
+		return bone_set_definitions
+	bone_set_definitions = get_bone_set_definitions()
 
 	def find_org_bones(self, pose_bone):
 		"""Populate self.bones.org.main."""

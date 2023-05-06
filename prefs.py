@@ -29,8 +29,6 @@ class CloudRigElementTypeInfo(PropertyGroup):
     )
 
 class CloudRigPreferences(AddonPreferences):
-    # this must match the addon name, use '__package__'
-    # when defining this in a submodule of a python package.
     bl_idname = __package__
 
     rig_type_list: CollectionProperty(type=CloudRigElementTypeInfo)

@@ -20,6 +20,18 @@ def get_param_classes():
 class GeneratedBone(PropertyGroup):
     name: StringProperty()
 
+class UIBoneSet(PropertyGroup):
+    """I want to draw Bone Sets in a UIList, but for that, they need to be a CollectionProperty,
+    which I want to avoid for the reasons explained in the docstring of class BoneSets.
+
+    So, we have this layer on top of that, just so we can display Bone Sets in a UIList.
+    """
+    name: StringProperty()
+
+    @property
+    def pretty_name(self) -> str:
+        return self.name.replace("_", " ").title().replace("Fk", "FK").replace("Ik", "IK")
+
 class BoneSets(PropertyGroup):
     """
         We could've simply created a class BoneSet(PropertyGroup) and then make a CollectionProperty of that, yes.
@@ -108,16 +120,14 @@ class BoneSets(PropertyGroup):
     def make_bone_set_property_groups() -> Dict[str, type]:
         classes = {}
         for rig_type_name, rig_module in rigs.rig_types.items():
-            if not hasattr(rig_module, 'bone_set_definitions'):
+            rig_class = getattr(rig_module, 'Rig')
+            if not hasattr(rig_class, 'bone_set_definitions'):
                 continue
-
-            for bone_set_name, bone_set_definition in rig_module.bone_set_definitions.items():
+            for bone_set_name, bone_set_definition in rig_class.bone_set_definitions.items():
                 if bone_set_name in classes:
-                    print("ERROR: Trying to re-define bone-set: " + bone_set_name)
                     continue
                 bone_set_class = BoneSets.class_from_definition(bone_set_name, bone_set_definition)
                 classes[bone_set_name] = bone_set_class
-
         return classes
 
     bone_set_property_groups = make_bone_set_property_groups()
@@ -144,6 +154,19 @@ def refresh_element_bones_list(rig_ob: Object):
             rig_element_bone = rig_ob.data.cloudrig.rig_element_bones.add()
             rig_element_bone.name = pb.name
             pb.cloudrig_element.owner_bone = pb.name
+    
+    # Initialize UI Bone Sets, if not already done.
+    for rig_type_name, rig_module in rigs.rig_types.items():
+        rig_class = rig_module.getattr('Rig')
+        if not hasattr(rig_class, 'bone_set_definitions'):
+            continue
+
+        for bone_set_name, bone_set_definition in rig_class.bone_set_definitions.items():
+            ui_bone_sets = rig_ob.data.cloudrig.ui_bone_sets
+            if bone_set_name in ui_bone_sets:
+                continue
+            ui_bone_set = ui_bone_sets.add()
+            ui_bone_set.name = bone_set_name
 
 class RigElement(PropertyGroup):
     def update_element_type(self, context):
@@ -152,6 +175,20 @@ class RigElement(PropertyGroup):
 
     owner_bone: StringProperty()
     element_type: StringProperty(name="Element Type", update=update_element_type)
+    
+    @property
+    def element_module(self):
+        if self.element_type not in rigs.rig_types:
+            return
+
+        file_name, module = rigs.rig_types.get(self.element_type)
+        return module
+    
+    @property
+    def rig_class(self):
+        element_module = self.element_module()
+        return getattr(element_module, 'Rig')
+
     params: PointerProperty(type=RigParams)
 
 class GeneratorParameters(PropertyGroup):
@@ -189,7 +226,14 @@ class CloudRigProperties(PropertyGroup):
 
     target_rig: PointerProperty(type=Object)
 
-registry = list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [
+    # TODO: These should maybe be moved into a sub-propertygroup, but I'm not sure.
+    # ui_bone_sets: CollectionProperty(type=UIBoneSet)
+    active_bone_set_idx: IntProperty()
+    bone_set_use_grid_layout: BoolProperty()
+    bone_set_show_advanced: BoolProperty()
+
+registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [
+    UIBoneSet,
     BoneSets,
     RigParams,
     RigElement,

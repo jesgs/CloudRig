@@ -515,7 +515,7 @@ class CLOUDRIG_UL_bone_set(UIList):
 			layout.alignment = 'CENTER'
 			layout.label(text=ui_bone_set.name)
 
-registry = [
-	UIBoneSet
-	,CLOUDRIG_UL_bone_set
-]
+# registry = [
+# 	UIBoneSet
+# 	,CLOUDRIG_UL_bone_set
+# ]

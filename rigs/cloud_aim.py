@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import bpy
 from bpy.types import PropertyGroup
@@ -17,6 +17,19 @@ class CloudAimRig(CloudBaseRig):
 	relinking_behaviour = "Constraints will be moved to the Eye Root Control."
 	parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye rigs with a matching string as their Eye Group paramter."
 	parent_switch_overwrites_root_parent = False
+
+	def get_bone_set_definitions() -> Dict:
+		bone_set_definitions = CloudBaseRig.get_bone_set_definitions()
+		bone_set_definitions.update(
+			{
+				'aim_group_target_control' : {
+					'preset' : 1,
+					'default_layer' : CloudBaseRig.DEFAULT_LAYERS.FACE_MAIN
+				}
+			}
+		)
+		return bone_set_definitions
+	bone_set_definitions = get_bone_set_definitions()
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
@@ -325,13 +338,6 @@ class CloudAimRig(CloudBaseRig):
 		cls.draw_prop(layout, params.aim, "deform")
 		cls.draw_prop(layout, params.aim, "root")
 		cls.draw_prop(layout, params.aim, "create_sub_control")
-
-bone_set_definitions = {
-	'aim_group_target_control' : {
-		'preset' : 1,
-		'default_layer' : CloudBaseRig.DEFAULT_LAYERS.FACE_MAIN
-	}
-}
 
 class Params(PropertyGroup):
 	group: StringProperty(
