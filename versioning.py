@@ -1,7 +1,7 @@
 import bpy
 from bpy.app.handlers import persistent
-from .rig_features.ui import is_cloud_metarig
-from .rig_features.object import set_enum_property_by_integer
+from .rig_component_features.ui import is_cloud_metarig
+from .rig_component_features.object import set_enum_property_by_integer
 
 # This should get a version bump whenever there is a change that affects metarigs.
 # For example, changing names of rig types, splitting an old rig type into multiple,

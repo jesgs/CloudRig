@@ -4,7 +4,7 @@ import sys, importlib, inspect
 from rigify import feature_sets
 from bpy.utils import register_class, unregister_class
 
-from . import versioning, manual, operators, rigs, utils, rig_features, ui, properties, prefs
+from . import versioning, manual, operators, rig_components, rig_component_features, utils, ui, properties, prefs
 from .generation import troubleshooting, cloud_generator
 
 rigify_info = {
@@ -31,12 +31,12 @@ bl_info = {
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
-	rigs,
+	rig_components,
 	prefs,
 	properties,
 	ui,
 	troubleshooting,
-	rig_features,
+	rig_component_features,
 	cloud_generator,
 	versioning,
 	manual,

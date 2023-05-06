@@ -7,7 +7,7 @@ from rigify import rig_lists, feature_sets, feature_set_list
 from rigify.ui import build_type_list
 
 from ..generation.cloudrig import draw_layers_ui
-from ..rig_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
+from ..rig_component_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
 from ..utils.misc import check_addon
 from .rig_types_ui import get_active_pose_bone
 
@@ -91,7 +91,7 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
 	for pb in metarig.pose.bones:
 		if pb.rigify_type!='':
 			rig_module = rig_lists.rigs[pb.rigify_type]["module"].Rig
-			# This is a bit nasty but importing CloudFKCHainRig and using issubclass() breaks parameter registering (don't ask me why!)
+			# This is a bit nasty but importing Component_Chain_FK and using issubclass() breaks parameter registering (don't ask me why!)
 			if 'cloud_fk_chain' in str(rig_module.mro()):
 				return True
 	return False
@@ -148,7 +148,7 @@ def extend_rigify_advanced_panel(self, context):
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):
-	# If the current rig has only cloudrig elements, don't draw this panel.
+	# If the current rig has only cloudrig components, don't draw this panel.
 	if is_cloud_metarig(context.object):
 		for b in context.object.pose.bones:
 			if b.rigify_type != "" and 'cloud' not in b.rigify_type:
@@ -160,7 +160,7 @@ def rigify_bone_groups_poll(cls, context):
 def draw_cloud_layer_names(self, context):
 	""" Hijack Rigify's Layer Names panel and replace it with our own. """
 	obj = context.object
-	# If the current rig doesn't have any cloudrig elements, draw Rigify's UI.
+	# If the current rig doesn't have any cloudrig components, draw Rigify's UI.
 	if not is_cloud_metarig(obj):
 		bpy.types.DATA_PT_rigify_layer_names.draw_old(self, context)
 		return

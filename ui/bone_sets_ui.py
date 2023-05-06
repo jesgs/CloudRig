@@ -27,7 +27,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         obj = context.object
         cloudrig = obj.data.cloudrig
         active_pb = context.active_pose_bone
-        rig_class = active_pb.cloudrig_element.rig_class
+        rig_class = active_pb.cloudrig_component.rig_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
             if ui_bone_set.name not in rig_class.bone_set_definitions:

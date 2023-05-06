@@ -3,8 +3,8 @@ import bpy
 from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 
-from ..rig_features.object import EnsureVisible
-from ..rig_features.widgets.widgets import ensure_widget
+from ..rig_component_features.object import EnsureVisible
+from ..rig_component_features.widgets.widgets import ensure_widget
 
 widgets_visible = []
 widget_items = []
@@ -28,7 +28,7 @@ def assign_to_collection(obj, collection):
 
 def get_widget_blend_path() -> str:
 	filedir = os.path.dirname(os.path.realpath(__file__))
-	blend_path = os.sep.join(filedir.split(os.sep)[:-1] + ['rig_features', 'widgets', 'Widgets.blend'])
+	blend_path = os.sep.join(filedir.split(os.sep)[:-1] + ['rig_component_features', 'widgets', 'Widgets.blend'])
 	return blend_path
 
 def get_widget_list(self, context):

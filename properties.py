@@ -5,13 +5,13 @@ from bpy.props import (
 )
 from bpy.types import PropertyGroup, Object
 from typing import Dict
-from . import rigs
+from . import rig_components
 import inspect
 
 def get_param_classes():
     ret = {}
-    # TODO: This should use rigs.rig_modules instead of inspect! We already built the module list!
-    for name, module in inspect.getmembers(rigs, inspect.ismodule):
+    # TODO: This should use rig_components.rig_modules instead of inspect! We already built the module list!
+    for name, module in inspect.getmembers(rig_components, inspect.ismodule):
         if hasattr(module, 'Params'):
             ret[name.replace("cloud_", "")] = module.Params
     return ret
@@ -118,8 +118,8 @@ class BoneSets(PropertyGroup):
 
     def make_bone_set_property_groups() -> Dict[str, type]:
         classes = {}
-        for rig_type_name, rig_module in rigs.rig_modules.items():
-            rig_class = getattr(rig_module, 'Rig')
+        for rig_type_name, rig_module in rig_components.rig_modules.items():
+            rig_class = getattr(rig_module, 'RigComponent')
             if not hasattr(rig_class, 'bone_set_definitions'):
                 continue
             for bone_set_name, bone_set_definition in rig_class.bone_set_definitions.items():
@@ -136,8 +136,8 @@ class BoneSets(PropertyGroup):
         for name, bone_set_class in bone_set_property_groups.items()
     }
 
-class RigParams(PropertyGroup):
-    # TODO: Some params would have to be grabbed from the rig_features package.
+class ComponentParams(PropertyGroup):
+    # TODO: Some params would have to be grabbed from the rig_component_features package.
 
     __annotations__ = {
         name : PointerProperty(type=param_class)
@@ -146,22 +146,22 @@ class RigParams(PropertyGroup):
     
     bone_sets: PointerProperty(type=BoneSets)
 
-def refresh_element_bones_list(context):
+def refresh_component_bones_list(context):
     rig_ob = context.object
-    rig_ob.data.cloudrig.rig_element_bones.clear()
+    rig_ob.data.cloudrig.rig_component_bones.clear()
     addon_prefs = context.preferences.addons[__package__].preferences
     for pb in rig_ob.pose.bones:
-        elem_type = pb.cloudrig_element.element_type
+        elem_type = pb.cloudrig_component.component_type
         if elem_type:
-            rig_element_bone = rig_ob.data.cloudrig.rig_element_bones.add()
-            rig_element_bone.name = pb.name
+            rig_component_bone = rig_ob.data.cloudrig.rig_component_bones.add()
+            rig_component_bone.name = pb.name
             module_name = addon_prefs.rig_type_list[elem_type].module_name
-            pb.cloudrig_element.element_module_name = module_name
-            pb.cloudrig_element.owner_bone = pb.name
+            pb.cloudrig_component.component_module_name = module_name
+            pb.cloudrig_component.owner_bone = pb.name
 
     # Initialize UI Bone Sets, if not already done.
-    for rig_type_name, rig_module in rigs.rig_modules.items():
-        rig_class = getattr(rig_module, 'Rig')
+    for rig_type_name, rig_module in rig_components.rig_modules.items():
+        rig_class = getattr(rig_module, 'RigComponent')
         if not hasattr(rig_class, 'bone_set_definitions'):
             continue
 
@@ -172,29 +172,29 @@ def refresh_element_bones_list(context):
             ui_bone_set = ui_bone_sets.add()
             ui_bone_set.name = bone_set_name
 
-class RigElement(PropertyGroup):
-    def update_element_type(self, context):
-        refresh_element_bones_list(context)
+class RigComponent(PropertyGroup):
+    def update_component_type(self, context):
+        refresh_component_bones_list(context)
 
     owner_bone: StringProperty()
-    element_type: StringProperty(name="Element Type", update=update_element_type)
-    element_module_name: StringProperty()
+    component_type: StringProperty(name="Component Type", update=update_component_type)
+    component_module_name: StringProperty()
 
     @property
-    def element_module(self):
-        return rigs.rig_modules.get(self.element_module_name)
+    def component_module(self):
+        return rig_components.rig_modules.get(self.component_module_name)
     
     @property
     def rig_class(self):
-        element_module = self.element_module
-        return getattr(self.element_module, 'Rig')
+        component_module = self.component_module
+        return getattr(self.component_module, 'RigComponent')
 
-    params: PointerProperty(type=RigParams)
+    params: PointerProperty(type=ComponentParams)
 
 class GeneratorParameters(PropertyGroup):
     advanced_mode: BoolProperty()
 
-class RigElementBone(PropertyGroup):
+class RigComponentBone(PropertyGroup):
     def change_assigned_bone(self, context):
         pass
         # TODO: Implement this, similar to Copy Rigify Type & Parameters, 
@@ -203,11 +203,11 @@ class RigElementBone(PropertyGroup):
     name: StringProperty(update=change_assigned_bone)
 
 class Properties_CloudRig(PropertyGroup):
-    rig_element_bones: CollectionProperty(type=RigElementBone)
+    rig_component_bones: CollectionProperty(type=RigComponentBone)
     def update_elem_index(self, context):
-        refresh_element_bones_list(context)
+        refresh_component_bones_list(context)
         rig = context.object
-        active_elem_pb = rig.pose.bones.get(self.active_element_bone_name)
+        active_elem_pb = rig.pose.bones.get(self.active_component_bone_name)
         if not active_elem_pb:
             return
 
@@ -216,10 +216,10 @@ class Properties_CloudRig(PropertyGroup):
         active_elem_pb.bone.select = True
         rig.data.bones.active = active_elem_pb.bone
 
-    active_rig_element_index: IntProperty(update=update_elem_index)
+    active_rig_component_index: IntProperty(update=update_elem_index)
     @property
-    def active_element_bone_name(self):
-        return self.rig_element_bones[self.active_rig_element_index].name
+    def active_component_bone_name(self):
+        return self.rig_component_bones[self.active_rig_component_index].name
 
     generator: PointerProperty(type=GeneratorParameters)
     metarig_version: IntProperty()
@@ -235,16 +235,16 @@ class Properties_CloudRig(PropertyGroup):
 registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [
     BoneSet_ForUI,
     BoneSets,
-    RigParams,
-    RigElement,
-    RigElementBone,
+    ComponentParams,
+    RigComponent,
+    RigComponentBone,
     GeneratorParameters,
     Properties_CloudRig
 ]
 
 def register():
     bpy.types.Armature.cloudrig = PointerProperty(type=Properties_CloudRig)
-    bpy.types.PoseBone.cloudrig_element = PointerProperty(type=RigElement)
+    bpy.types.PoseBone.cloudrig_component = PointerProperty(type=RigComponent)
 
 def unregister():
     del bpy.types.Armature.cloudrig

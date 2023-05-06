@@ -6,8 +6,8 @@ import bpy, os, traceback, sys
 import json, webbrowser, time
 import struct, platform, io, urllib.parse, importlib
 
-from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
-from ..rig_features.object import get_object_hierarchy_recursive
+from ..rig_component_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
+from ..rig_component_features.object import get_object_hierarchy_recursive
 
 from rigify.utils.errors import MetarigError
 
@@ -36,7 +36,7 @@ Common to all 3 types:
 TODO: Symmetry warnings:
 	- Symmetrical action setup's transform curves are actually asymmetrical
 	- Symmetrically named rig owners have asymetrical children in the chain
-	- Symmetrically named and transformed rigs have asymmetrical constraints
+	- Symmetrically named and transformed components have asymmetrical constraints
 """
 
 class LoggerMixin:
@@ -650,7 +650,7 @@ class CLOUDRIG_PT_log(Panel):
 		# the log entry relates to a rigify type.
 		if log.owner_bone != "":
 			split = layout.row().split(factor=0.3)
-			split.label(text="Rig Element:")
+			split.label(text="Rig Component:")
 			main_row = split.column().row(align=True)
 			row = main_row.row(align=True)
 			row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")

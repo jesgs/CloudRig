@@ -20,12 +20,12 @@ from rigify.utils.collections import ensure_collection
 from rigify.base_rig import BaseRig
 from rigify.utils.action_layers import ActionLayerBuilder
 
-from ..rig_features.ui import redraw_viewport, is_cloud_metarig
-from ..rig_features.widgets import widgets as cloud_widgets
-from ..rig_features.bone_set import BoneSet, UIBoneSet
-from ..rig_features.object import EnsureVisible
-from ..rig_features import mechanism
-from ..rig_features.mechanism import get_object_scalar
+from ..rig_component_features.ui import redraw_viewport, is_cloud_metarig
+from ..rig_component_features.widgets import widgets as cloud_widgets
+from ..rig_component_features.bone_set import BoneSet, UIBoneSet
+from ..rig_component_features.object import EnsureVisible
+from ..rig_component_features import mechanism
+from ..rig_component_features.mechanism import get_object_scalar
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
@@ -66,7 +66,7 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 
 	generate_test_action: BoolProperty(
 		name		 = "Generate Test Action"
-		,description = "Whether to create/update the deform test action or not. Enabling this enables the Animation parameter category on FK chain rigs"
+		,description = "Whether to create/update the deform test action or not. Enabling this enables the Animation parameter category on FK chain components"
 		,default	 = False
 	)
 	test_action: PointerProperty(
@@ -163,11 +163,11 @@ class CloudGenerator(Generator):
 
 		self.naming = CloudNameManager()
 
-		# List that stores a reference to all BoneInfo instances of all rigs.
+		# List that stores a reference to all BoneInfo instances of all components.
 		# IMPORTANT: This should not be a BoneSet, just a regular list. Otherwise the LinkedList behaviour gets all messed up!
 		# Each BoneInfo should only exist in a single BoneSet!
 		self.bone_infos = []
-		# List that stores a reference to all BoneSets of all rigs.
+		# List that stores a reference to all BoneSets of all components.
 		self.bone_sets: List[BoneSet] = []
 		# Default kwargs that are passed in to every created BoneInfo
 		self.defaults = {
@@ -194,15 +194,15 @@ class CloudGenerator(Generator):
 	def cloudrig_reorder_rigs(self, rig_list):
 		"""Some rig types need special treatment in regards to where they are in
 		the rig generation order."""
-		from ..rigs.cloud_tweak import CloudTweakRig
-		from ..rigs.cloud_chain_anchor import CloudChainAnchorRig
-		from ..rigs.cloud_face_chain import CloudFaceChainRig
-		from ..rigs.cloud_jaw import CloudJawRig
+		from ..rig_components.cloud_tweak import Component_TweakBone
+		from ..rig_components.cloud_chain_anchor import CloudChainAnchorRig
+		from ..rig_components.cloud_face_chain import CloudFaceChainRig
+		from ..rig_components.cloud_jaw import CloudJawRig
 
 		first_face_idx = -1
 		for i, rig in enumerate(rig_list[:]):
-			if isinstance(rig, CloudTweakRig) or isinstance(rig, CloudChainAnchorRig):
-				# cloud_tweak rigs should be generated last.
+			if isinstance(rig, Component_TweakBone) or isinstance(rig, CloudChainAnchorRig):
+				# cloud_tweak components should be generated last.
 				rig_list.remove(rig)
 				rig_list.append(rig)
 			if isinstance(rig, CloudFaceChainRig) and first_face_idx == -1:
@@ -475,15 +475,15 @@ class CloudGenerator(Generator):
 	def create_test_animation(self):
 		"""Generate deformation test animation.
 
-		In order to generate the test animation, we need to call add_test_animation() on rigs
+		In order to generate the test animation, we need to call add_test_animation() on components
 		in a different order than regular rig execution, and we also want to account for symmetry.
 
 		Usual rig execution is in order of hierarchical levels: highest level gets executed first,
-		then all second level rigs, then all third level rigs.
+		then all second level components, then all third level components.
 		For the animation, we need a hierarchy to be executed all the way down before moving on to
 		the next one.
 
-		Symmetrical rigs should animate at the same time, and with the Y and Z axis rotations flipped.
+		Symmetrical components should animate at the same time, and with the Y and Z axis rotations flipped.
 		"""
 
 		if not self.params.cloudrig_parameters.generate_test_action:
@@ -873,7 +873,7 @@ class CloudGenerator(Generator):
 
 		#------------------------------------------
 		self.invoke_initialize()
-		t.tick("Initialize rigs: ")
+		t.tick("Initialize components: ")
 
 		#------------------------------------------
 		bpy.ops.object.mode_set(mode='EDIT')

@@ -5,7 +5,7 @@ from bpy.types import EditBone, Operator
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
-from ..rig_features.mechanism import get_bone_chain
+from ..rig_component_features.mechanism import get_bone_chain
 from ..generation.troubleshooting import remove_active_log
 
 def is_chain_flat(chain: List[EditBone]) -> bool:

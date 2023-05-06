@@ -1,12 +1,12 @@
 Priority 0: Re-write as standalone add-on
-	- There could be an "order" parameter on each rig element, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
+	- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
 		- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
 		- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
 	- Figure out how BoneSets will work.
 		- Should register during registration, as baby jesus intended.
 			- Okay, so, this still cannot be done because the ELEMENTS of a CollectionProperty can't do this.
-			- Either we allow every bone set to be a named attribute (so like cloudrig_element.params.bone_sets.fk_main) and achieve that procedurally via an __annotations__ = {} assignment, OR, we make sure to initialize bone sets on rig_element update() callback.
+			- Either we allow every bone set to be a named attribute (so like cloudrig_component.params.bone_sets.fk_main) and achieve that procedurally via an __annotations__ = {} assignment, OR, we make sure to initialize bone sets on rig_component update() callback.
 			- I think making them named attributes might actually not be so bad...! Only question is, how?
 			- Ehhh, yuck, we would have to procedurally generate a separate PropertyGroup class for each bone set definition. I'm not a huge fan of that... It will spam bpy.types full of my stuff. On the other hand, resetting values to default will *actually work*, which is nice...
 			- Implementation-wise though, still a huge mess. On register(), we need to grab some data from the rig.py files, generate a list of classes from that, register those classes, then assign those classes to the params.bone_sets PropertyGroup... How do we even do that though, we can't pass the classes we generate during register() into the class definition of the bone_sets PropertyGroup.
@@ -14,7 +14,7 @@ Priority 0: Re-write as standalone add-on
 				- Sweet baby jesus, it's so fucking insane it just might work.
 		
 		- One more problem remains, I think: How to draw all the bone sets in a UIList? Oh, fuck. God damnit, we're gonna need a UI wrapper CollectionProperty afterall, won't we... Fine, whatever, we still keep all the benefits.
-			- Make a CollectionProperty of BoneSetNames when changing rig element type
+			- Make a CollectionProperty of BoneSetNames when changing rig component type
 			- The name is the attribute name, so we will use getattr(params.bone_sets, bone_set_name).
 			- Not sure how the current code filters to only show relevant bone sets, but hopefully that can keep happening.
 				- Okay, current implementation is that every bone set is stored in one big batch, and they store what bone they belong to, rather than being stored on the bone that they belong to, which is what we will have now. Except now, every bone will have every bone set, which was not the case before. Doesn't matter.
@@ -22,7 +22,7 @@ Priority 0: Re-write as standalone add-on
 
 		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
 
-		- Would make most sense under rig_element.params.bone_sets, so, a CollectionProperty inside class RigParams.
+		- Would make most sense under rig_component.params.bone_sets, so, a CollectionProperty inside class ComponentParams.
 		- Contains a BoolVectorProperty for the layers, a StringProperty for the group name.
 		- Possibly Bone Group Color information, although, it would probably be better to simply display the colors of the corresponding bone group if it exists.
 			- If it does not exist... hmm... I guess user should create it outside of the BoneSet interface, or in some other explicit manner.
@@ -51,7 +51,7 @@ Priority 0: Re-write as standalone add-on
 	- Use callbacks to update certain things when changing rig types:
 		- Clear all PointerProperties (each rig type should implement its own update callback, and all of them should get called on switch)
 		- Create any missing BoneSets (which should no longer need to wait for a generation in order to exist, because the Generator, along with all of its data, will always exist and be stored in RNA.)
-	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig element list is empty or not.
+	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig component list is empty or not.
 	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
 
 
@@ -69,7 +69,7 @@ Priority 1: Bugs
 			Duplicate Metarig
 			(DO NOT RENAME BONES TO ORG)
 			Enter edit mode on the duplicate
-			Begin generating rigs (Rigs can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
+			Begin generating rig_components (Each can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
 	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
 	It would be nice if metarigs could be in orchatedral, after we implement gizmos for setting widget sizes.
@@ -85,8 +85,8 @@ Priority 2: New features
 		- Corrective Smooth scale
 		- Cast modifier radius
 
-	Perhaps some parameters could belong all the way up in CloudBaseRig.
-		- Create ORG bones (False by default, can force to True for rigs that need it)
+	Perhaps some parameters could belong all the way up in Component_Base.
+		- Create ORG bones (False by default, can force to True for components that need it)
 
 	cloud_leg
 		Implement a gizmo to place the heel pivot, is way cooler.
@@ -102,7 +102,7 @@ Priority 2: New features
 			If we're at the max of 32 layers, we throw a nice error.
 			Each time we add an entry, the layer number assignments are re-initialized so that the named layers correspond to the real ones from top to bottom and left to right
 			Since all interaction is done through operators, each execution of such an operator (or changing of the name property) should update all Bone Set assignments in the metarig.
-		While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
+		While each entry has a selection state, there is also an active component, which is whichever was toggled last. This is kept track of by a shared update callback.
 		Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
 Priority 3: Changes that will affect metarigs
 	Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
@@ -177,7 +177,7 @@ Ideas:
 
 		cloud_instance
 			This would be a single bone rig with a single parameter, which is another bone from the metarig which has a rigify type.
-			This bone would act as an instance of that entire rig element, copying all its child rigs and everything. Crazy stuff. Not sure if possible.
+			This bone would act as an instance of that entire rig component, copying all its child components and everything. Crazy stuff. Not sure if possible.
 			But wait, the hard part of this is name conflicts. Bone names have to be unique, obviously, but if you just copy over all the bones... hmm... more parameters to handle name replacement? probably a similar deal to the batch rename tool. weird stuff.
 		cloud_ik_chain
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
@@ -190,8 +190,3 @@ Ideas:
 
 	Bring back BoolProperties? Issue is animating them works badly. (doesn't work) because they rely on the update callback which is not called when changed by a keyframe.
 		Maybe after D9697.
-
-Better metarig design for Sprite Fright Face rigs:
-	Mouth
-		This would create the Jaw, the Master Mouth and the "Fake Jaw"(Master Mouth mechanism) that the lower lip can be parented to.
-		Tricky bit is that the Master Mouth usually wants to be in a different position than the Jaw.
