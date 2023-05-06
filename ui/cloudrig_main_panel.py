@@ -118,7 +118,7 @@ class CLOUDRIG_PT_rig_element(Panel):
         list_column = draw_ui_list(
             layout
             ,context
-            ,class_name = 'CLOUDRIG_UL_bone_set'
+            ,class_name = 'CLOUDRIG_UL_bone_sets'
             ,list_path = 'object.data.cloudrig.ui_bone_sets'
             ,active_index_path = 'object.data.cloudrig.active_bone_set_idx'
             ,insertion_operators = False
@@ -131,7 +131,7 @@ class CLOUDRIG_PT_rig_element(Panel):
         # layout_icon = 'MESH_GRID' if cloudrig.bone_set_use_grid_layout else 'COLLAPSEMENU'
         # list_column.prop(cloudrig, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
 
-        # elif not CLOUDRIG_UL_bone_set.flt_flags[cloudrig.active_bone_set_idx]:
+        # elif not CLOUDRIG_UL_bone_sets.flt_flags[cloudrig.active_bone_set_idx]:
         #     # If the active item is not visible
         #     return
 
@@ -164,7 +164,7 @@ class CLOUDRIG_PT_rig_element(Panel):
         # )
 
 
-class CLOUDRIG_UL_bone_set(UIList):
+class CLOUDRIG_UL_bone_sets(UIList):
     flt_flags = []
 
     def draw_filter(self, context, layout):
@@ -186,16 +186,13 @@ class CLOUDRIG_UL_bone_set(UIList):
         if not flt_flags:
             flt_flags = [self.bitflag_filter_item] * len(ui_bone_sets)
 
-        return flt_flags, flt_neworder
-
         obj = context.object
         cloudrig = obj.data.cloudrig
         active_pb = context.active_pose_bone
         rig_class = active_pb.cloudrig_element.rig_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
-            # TODO: Filter bone sets not in the class definition of the active bone's assigned rig element.
-            if ui_bone_set.name not in rig_class.bone_set_defs:
+            if ui_bone_set.name not in rig_class.bone_set_definitions:
                 flt_flags[idx] = 0
             # else:
             #     bone_set_def = rig_class.bone_set_defs[ui_bone_set.name]
@@ -225,7 +222,7 @@ class CLOUDRIG_UL_bone_set(UIList):
 
 registry = [
     POSE_PT_CloudRig,
-    CLOUDRIG_UL_bone_set,
+    CLOUDRIG_UL_bone_sets,
     CLOUDRIG_UL_rig_elements,
     CLOUDRIG_PT_rig_elements,
     CLOUDRIG_PT_rig_element

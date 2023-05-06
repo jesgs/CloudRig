@@ -13,7 +13,7 @@ def refresh_rig_type_list(context=None):
 
         type_info = prefs.rig_type_list.add()
         type_info.name = pretty_name
-        type_info.file_name = rig_file_name
+        type_info.module_name = rig_file_name
 
 class CloudRigElementTypeInfo(PropertyGroup):
     """Purely for UI purposes, so we can store a list of strings in the RNA that
@@ -23,9 +23,9 @@ class CloudRigElementTypeInfo(PropertyGroup):
         name = "UI Name", 
         description = "Pretty, title-case name that will be displayed in the UI"
     )
-    file_name: StringProperty(
-        name = "File Name", 
-        description = "Name used under the hood for matching the element type to its implementation python file"
+    module_name: StringProperty(
+        name = "Rig Module Name", 
+        description = "Name used under the hood for matching the element type to its implementation module (ie. Python file)"
     )
 
 class CloudRigPreferences(AddonPreferences):
