@@ -58,8 +58,15 @@ class Component_Base(
 	def get_bone_set_definitions() -> Dict:
 		bone_set_definitions = {
 			'deform_bones' : {
-				'preset' : 1,
 				'default_layer' : DEFAULT_LAYERS.DEF,
+				'is_advanced' : True
+			},
+			'mechanism_bones' : {
+				'default_layer' : DEFAULT_LAYERS.MCH,
+				'is_advanced' : True
+			},
+			'original_bones' : {
+				'default_layer' : DEFAULT_LAYERS.ORG,
 				'is_advanced' : True
 			}
 		}
@@ -264,15 +271,6 @@ class Component_Base(
 		cls.add_custom_property_parameters(params)
 		cls.add_parent_switch_parameters(params)
 		cls.add_bone_set_parameters(params)
-
-	@classmethod
-	def add_bone_set_parameters(cls, params):
-		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-
-		cls.define_bone_set(params, 'Deform Bones',		default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
-		cls.define_bone_set(params, 'Mechanism Bones',	default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		cls.define_bone_set(params, 'Original Bones',	default_layers=[cls.DEFAULT_LAYERS.ORG], is_advanced=True)
 
 	@classmethod
 	def parameters_ui(cls, layout, params):

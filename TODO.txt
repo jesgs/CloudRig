@@ -5,9 +5,9 @@ Priority 0: Re-write as standalone add-on
 
 	- Figure out how BoneSets will work.
 		- Convert all bone set definitions to the new system. (monkey work)
+>>>>>>>>>>>>>> Maybe instead of doing all this work for everyting all at once, we should just get cloud_aim working and actually generating.
 
 		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
-
 
 	- Implement rig parameters without ParameterValidator.
 		- Draw the UI for the new component_params
@@ -27,8 +27,12 @@ Priority 0: Re-write as standalone add-on
 
 	- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
 
+	- Bring back cloud_face_chain, cloud_eyelid, cloud_chain_anchor, but make them less of a disaster somehow.
+	- Bring in Rigify's Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
+
 	- Get rid of generic_ui_list.py
 	- Re-make Rig Samples and MetaRigs (ooof.)
+		- Also need to do our own UI for spawning them, since no more Rigify.
 	- Update the wiki (OOOOF!!!)
 	- Update Manual links
 
@@ -121,19 +125,10 @@ Priority 5: UI, UX & documentation
 		Then we could add a page to the manual that's specific to the rig UI and targeted at animators rather than riggers.
 	Upstream
 		Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon.
-Priority 6: Rigify compatibility
-	When enabled, bone groups assigned in cloud_bone seem to get overwritten.
-	- When a Rigify rig is merged into the generated rig, the widgets get "NEW" in their names.
-		This needs to be fixed upstream. It needs the idea of not removing the old rig until the new one is fully generated.
-		But this works best when the generation operator also accounts for the failed rig and auto-deletes it.
-		Not to mention Toggle Metarig/Generated rig.
 
 Priority 7: Ideas from Animators
-	From Javier: Spine IK control with squash&stretch
 	From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
 		The available parents could be the same as the IK control, plus the IK control itself.
-	From Rik: Make the Spine rig properties bone appear behind the spine.
-		We could limit the definition of "behind" to being decided by the first two bones. This is already the case for IK poles anyways, so it would just be a matter of making that code more generic, to find which way two bones are pointing at.
 	Make the Quality slider non-animatable (I don't think this is possible to do in a decent way)
 		Add a property registration in cloudrig.py? Don't like it...
 		Attach a new text datablock to the rig that registers the properties from the character bone.
