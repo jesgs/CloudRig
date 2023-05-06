@@ -407,6 +407,7 @@ class Component_ToonChain(Component_Base):
 			if i == len(str_chain) - 1 and not self.is_cyclic:
 				# Don't set up the last one unless we're a cyclic rig, since it has no next STR.
 				def_bone.tail = org_bone.tail
+				def_bone.inherit_scale = 'ALIGNED'		# TODO: In FK chain components, this last lonely deform bone should be parented to FK for good scaling behaviour.
 				continue
 
 			if self.params.CR_chain_unlock_deform:
