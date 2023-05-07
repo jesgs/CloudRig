@@ -41,7 +41,6 @@ class CloudMetarigError(Exception):
 	def __str__(self):
 		return repr(self.message)
 
-
 class LoggerMixin:
 	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
 	This class should come BEFORE BaseRig in the inheritance order.
@@ -52,7 +51,7 @@ class LoggerMixin:
 			,**kwargs
 		):
 		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log(description_short ,**kwargs)
+		self.generator.logger.log_entry(description_short ,**kwargs)
 
 	def raise_metarig_error(self
 			,description_short = "Metarig Error"
