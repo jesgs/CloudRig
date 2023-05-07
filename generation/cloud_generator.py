@@ -113,6 +113,11 @@ class CloudGenerator:
             'rotation_mode' : 'XYZ'
         }
 
+        # Flag to help with handling errors in code written by the user.
+        # Since such error has no expected type, but we still want to
+        # differentiate between them and bugs/asserts in our own code.
+        self.custom_script_failure = False
+
         # Wipe the generation log.
         self.logger = CloudLogManager(metarig)
         self.logger.clear()
@@ -745,16 +750,9 @@ class CloudGenerator:
         try:
             exec(script.as_string(), {})
         except Exception as e:
-            traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
-            entry = self.logger.log_fatal_error(
-                "Post-Generation Script failed."
-                ,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
-                ,note         = str(e)
-                ,popup_text     = traceback_str
-                ,pretty_stack = traceback_str
-            )
-
-            # Continue the exception.
+            # Exception is handled higher up the stack in generate_rig(),
+            # but let's flip this flag so that we know the error isn't in CloudRig's code.
+            self.custom_script_failure = True
             raise e
 
     def ensure_cloudrig_ui(self, metarig, rig):

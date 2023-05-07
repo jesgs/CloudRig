@@ -2,8 +2,6 @@ import bpy, sys, os, traceback
 from bpy.types import Object, Operator
 from bpy.props import BoolProperty
 
-from rigify.utils.errors import MetarigError
-
 from ..rig_component_features.ui import is_cloud_metarig
 from ..rig_component_features.object import EnsureVisible
 
@@ -44,12 +42,8 @@ class CLOUDRIG_OT_generate(Operator):
         ,description = "After successfully generating a single rig, hide the metarig, unhide the generated rig, enter the same mode as the current mode, and match bone selection states where possible"
     )
 
-    @classmethod
-    def poll(cls, context):
-        return is_active_cloud_metarig(context) or is_active_cloudrig(context) or is_single_cloud_metarig(context)
-
-    def execute(self, context):
-        obj = context.object
+    @staticmethod
+    def get_metarig_to_generate(context):
         metarig = is_single_cloud_metarig(context)
         if not metarig:
             metarig = is_active_cloud_metarig(context)
@@ -61,11 +55,14 @@ class CLOUDRIG_OT_generate(Operator):
                     metarig = o
                     break
 
-        if not metarig:
-            self.report({'ERROR'}, "Could not find metarig.")
-            return {'CANCELLED'}
+    @classmethod
+    def poll(cls, context):
+        return cls.get_metarig_to_generate(context)
 
-        ### Save state so it can be restored for convenience
+    def execute(self, context):
+        metarig = self.get_metarig_to_generate(context)
+
+        # Save state so it can be restored for convenience.
         state_mode = 'OBJECT'
         state_active_bone = context.active_pose_bone.name if context.active_pose_bone else ""
         state_selected_bones = [bone.name for bone in context.selected_pose_bones] if context.selected_pose_bones else []
@@ -80,16 +77,17 @@ class CLOUDRIG_OT_generate(Operator):
             rig_visible = EnsureVisible(target_rig)
         context.view_layer.objects.active = metarig
 
-        # Generate, without halting execution on failure
+        # Try to generate a rig based on the metarig. 
         rig = self.generate_rig(context, metarig)
-
-        if not rig:
-            return {'FINISHED'}
 
         # Restore states.
         meta_visible.restore()
         if rig_visible:
             rig_visible.restore()
+
+        if not rig:
+            # This means an error has occurred. It was already handled in generate_rig().
+            return {'FINISHED'}
 
         if self.focus_generated:
             self.restore_state(context, metarig, state_mode, state_active_bone,
@@ -97,51 +95,61 @@ class CLOUDRIG_OT_generate(Operator):
 
         return {'FINISHED'}
 
-    def report_exception(self, exception):
-        _exc_type, _exc_value, exc_traceback = sys.exc_info()
-        fn = traceback.extract_tb(exc_traceback)[-1][0]
-        fn = os.path.basename(fn)
-        fn = os.path.splitext(fn)[0]
-        message = [exception.message]
-
-        self.report({'ERROR'}, '\n'.join(message))
-
     def generate_rig(self, context, metarig):
-        """Generates a rig from a metarig."""
-        meta_visible = EnsureVisible(metarig)
-        target_rig = metarig.data.rigify_target_rig
-        rig_visible = None
-        if target_rig:
-            rig_visible = EnsureVisible(target_rig)
+        """Generates a rig from a metarig.
+
+        Encountering a rig generation error will not halt the execution of the operator.
+        This is important because the user can make mistakes in the MetaRig set-up, 
+        which cannot be detected until the rig is attempted to be fully generated.
+        Such errors must be accounted for and handled gracefully.
+        """
 
         generator = CloudGenerator(context, metarig)
         try:
             generator.generate(context)
-        except Exception as exc:
-            # Cleanup if something goes wrong
+        except Exception as exception:
             generator.restore_rig_states()
             generator.obj.name = "FAILED-" + generator.obj.name
             generator.obj.name = generator.obj.name.replace("NEW-", "")
             metarig['failed_rig'] = generator.obj
-            if isinstance(exc, MetarigError):
-                traceback.print_exc()
-                self.report_exception(exc)
+
+            traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
+            message = [exception.message]
+
+            if isinstance(exception, CloudMetarigError):
+                # A MetaRig error means the user didn't follow instructions correctly.
+                # This is the only kind of Exception that is not a bug in CloudRig.
+                _exc_type, _exc_value, exc_traceback = sys.exc_info()
+                fn = traceback.extract_tb(exc_traceback)[-1][0]
+                fn = os.path.basename(fn)
+                fn = os.path.splitext(fn)[0]
+                self.report({'ERROR'}, '\n'.join(message))
                 return
 
-            entry = generator.logger.log_bug(
-                "Execution Failed!"
-                ,description = f'Execution failed unexpectedly. This should never happen!'
-                ,icon         = 'URL'
-                ,operator     = 'wm.cloudrig_report_bug'
-                ,note         = str(exc)
+            if generator.custom_script_failure:
+                self.logger.log_fatal_error(
+                    "Post-Generation Script failed."
+                    ,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
+                    ,note         = str(e)
+                )
+                # The error occurred in the user's script.
+                # execute_custom_script() has already created the log entry for us,
+                # so we just want to keep raising the exception.
+                raise e
+
+            # Any other exception type is a bug. 
+            # Let's invite the user to report the error they've encountered.
+            generator.logger.log_fatal_error(
+                "Execution Failed!",
+                description = "Execution failed unexpectedly. This should never happen!",
+                display_stack_trace = 'ALWAYS',
+                icon = 'URL',
+                note = str(exc),
+                operator = 'wm.cloudrig_report_bug',
             )
 
-            # Continue the exception
-            raise exc
+            self.report({'ERROR'}, "A bug has occurred. You can report it through the Generation Log interface. \nStack Trace:\n", entry.op_kwargs['stack_trace'])
 
-        meta_visible.restore()
-        if rig_visible:
-            rig_visible.restore()
         return target_rig
 
     def restore_state(self, context, metarig, mode, 
@@ -150,7 +158,7 @@ class CLOUDRIG_OT_generate(Operator):
         ):
         """Restore state for convenience."""
         metarig.hide_set(True)
-        rig = metarig.data.rigify_target_rig
+        rig = metarig.data.cloudrig.target_rig
         rig.hide_set(False)
         context.view_layer.objects.active = rig
         bpy.ops.object.mode_set(mode='OBJECT')

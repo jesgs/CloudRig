@@ -9,27 +9,20 @@ import struct, platform, io, urllib.parse, importlib
 from ..rig_component_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
 from ..rig_component_features.object import get_object_hierarchy_recursive
 
-from rigify.utils.errors import MetarigError
-
-# This whole thing could be part of Rigify.
-
 """
-About generation errors: Fatal errors can happen in 3 distinct ways:
-- Generic execution error: This is a bug, should never happen and should be reported on GitLab.
-	- Raised by: Interpreter
-	- Caught in: generate_rig()
-	- User gets a stack trace in both the pop-up and the Rigify Log; The latter also provides a Report Bug button.
-- Post-generation script error: This is a bug in the code written by the user.
-	- Raised by: Interpreter
-	- Caught in: execute_custom_script()
-	- User gets a stack trace of only their script, both in the pop-up and the Rigify Log.
-- Metarig Error: This is a mistake in the MetaRig's bone setup.
-	- Raised by: self.raise_error() -> logger.log_error()
-	- Caught in: generate_rig()
-	- User gets no stack trace unless they look at the Rigify Log with Advanced Mode enabled.
+Fatal errors can happen in 3 ways:
+- Generic execution error anywhere throughout the generation process including asserts
+	- Should never happen and should be reported as a bug on GitLab.
+	- User should see stack trace in both the pop-up and the Generation Log; The latter also provides a Report Bug button.
+- Post-generation script error: This is a bug in the code written by the user, see execute_custom_script().
+	- User should see a stack trace of only their script, both in the pop-up and the Generation Log.
+- Metarig Error: This is a mistake in the MetaRig's bone setup, raised via self.raise_metarig_error()
+	- User gets no stack trace unless they look at the Generation Log with Advanced Mode enabled.
 
-Common to all 3 types:
-	- Since these are fatal errors, any other rig errors are removed from the Rigify Log.
+Common to all types:
+	- Since these are fatal errors, any other rig errors are removed from the Generation Log.
+	- All errors are caught and handled in generate_rig().
+	- All errors should give the user useful information on how to proceed.
 """
 
 """
@@ -48,6 +41,7 @@ class CloudMetarigError(Exception):
 	def __str__(self):
 		return repr(self.message)
 
+
 class LoggerMixin:
 	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
 	This class should come BEFORE BaseRig in the inheritance order.
@@ -58,7 +52,7 @@ class LoggerMixin:
 			,**kwargs
 		):
 		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log_entry(description_short ,**kwargs)
+		self.generator.logger.log(description_short ,**kwargs)
 
 	def raise_metarig_error(self
 			,description_short = "Metarig Error"
@@ -174,7 +168,7 @@ def get_pretty_stack() -> str:
 			after_generator = True
 		if not after_generator:
 			continue
-		if frame.name in ("log", "add_log", "log_error", "log_bug"):
+		if frame.name in ("log", "add_log", "log_fatal_error"):
 			break
 
 		# Shorten the file name; All files are in blender's "scripts" folder, so
@@ -234,7 +228,9 @@ class CloudLogManager:
 			,op_kwargs = {}
 			,op_text = ""
 		):
-		"""Add a log entry to the metarig object's data."""
+		"""Add a log entry to the metarig object's data.
+		This is the lowest level function that should be used.
+		"""
 		entry = self.metarig.data.cloudrig_parameters.logs.add()
 		entry.pretty_stack = get_pretty_stack()
 		entry.owner_bone = owner_bone
@@ -251,42 +247,19 @@ class CloudLogManager:
 		entry.op_text = op_text
 		return entry
 
-	def log_bug(self
+	def log_fatal_error(self
 			,description_short: str
-			,*
-			,description: str
-			,icon = 'URL'
-			,operator = 'wm.cloudrig_report_bug'
-			,**kwargs
-		):
-		"""This should be used over asserts, especially when something small goes 
-		wrong that shouldn't halt generation.
-		"""
-		if 'op_kwargs' not in kwargs:
-			kwargs['op_kwargs'] = {}
-			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
-		self.clear()
-		return self.log(
-			"(Fatal) " + description_short
-			,description = description
-			,display_stack_trace = 'ALWAYS'
-			,icon		 = icon
-			,operator	 = operator
-			,**kwargs
-		)
-
-	def log_error(self
-			,description_short: str
-			,popup_text = ""
 			,pretty_stack = ""
-			,clear_logs = True
 			,*
 			,description = ""
 			,**kwargs
 		):
-		"""This should be used by self.raise_error()."""
-		if clear_logs:
-			self.clear()
+		"""
+		Wipe all other log entries, and create a log entry for an error that has caused 
+		generation to halt.
+		Halting of the generation and raising the exception must be done by the caller.
+		"""
+		self.clear()
 		entry = self.log(
 			"(Fatal) " + description_short
 			,description = description or description_short
@@ -294,17 +267,7 @@ class CloudLogManager:
 			,**kwargs
 		)
 
-		if pretty_stack:
-			entry.pretty_stack = pretty_stack
-
-		message = description or description_short
-		if 'owner_bone' in kwargs:
-			owner_bone = kwargs['owner_bone']
-			message = f'"{owner_bone}": {message}'
-
-		message += "\n" + popup_text
-
-		raise MetarigError(message)
+		return entry
 
 	def clear(self):
 		cloudrig = self.metarig.data.cloudrig_parameters
@@ -531,8 +494,8 @@ class CloudRigLogEntry(PropertyGroup):
 	A CollectionProperty of CloudRigLogEntries are added to the armature datablock
 	in cloud_generator.register().
 
-	This CollectionProperty is then populated by CloudLogManager via log() and
-	log_bug() functions.
+	This CollectionProperty is then populated by a CloudLogManager instance created by
+	CloudGenerator, which is created by the Generate operator.
 	"""
 
 	icon: StringProperty(
@@ -793,10 +756,9 @@ class CLOUDRIG_OT_Report_Bug(Operator):
 	bl_label = "Report Bug (Requires GitLab Account)"
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	stack_trace: StringProperty()
-
 	def execute(self, context):
-		webbrowser.open(url_prefill_from_cloudrig(self.stack_trace))
+		pretty_stack = context.object.data.cloudrig.active_log.pretty_stack
+		webbrowser.open(url_prefill_from_cloudrig(pretty_stack))
 
 		return { 'FINISHED' }
 
