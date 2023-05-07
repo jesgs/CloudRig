@@ -12,15 +12,15 @@ class Component_CopyBone(Component_Base):
 	always_use_custom_props = True
 
 	forced_params = {
-		'base.props_storage' : 'CUSTOM'
-		,'base.props_storage_bone' : ""
+		'custom_props.props_storage' : 'CUSTOM'
+		,'custom_props.props_storage_bone' : ""
 	}
 
 	def initialize(self):
 		super().initialize()
 
 		self.orgless_name = self.base_bone.replace("ORG-", "")
-		self.params.base.props_storage_bone = self.orgless_name
+		self.params.custom_props.props_storage_bone = self.orgless_name
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
 		self.do_parenting = True
@@ -194,11 +194,11 @@ class Component_CopyBone(Component_Base):
 		return layout
 
 	@classmethod
-	def is_bone_set_used(cls, params, set_info):
-		if set_info['name'] == 'Deform Bones':
-			return create_deform
+	def is_bone_set_used(cls, rig, params, set_name):
+		if set_name == 'deform_bones':
+			return params.copy.create_deform
 
-		return super().is_bone_set_used(params, set_info)
+		return super().is_bone_set_used(rig, params, set_name)
 
 class Params(PropertyGroup):
 	create_deform: BoolProperty(

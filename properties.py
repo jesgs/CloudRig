@@ -6,15 +6,17 @@ from bpy.props import (
 from bpy.types import PropertyGroup, Object
 from typing import Dict
 from . import rig_components
+from . import rig_component_features
 import inspect
 
-def get_param_classes():
-    ret = {}
-    # TODO: This should use rig_components.rig_modules instead of inspect! We already built the module list!
-    for name, module in inspect.getmembers(rig_components, inspect.ismodule):
-        if hasattr(module, 'Params'):
-            ret[name.replace("cloud_", "")] = module.Params
-    return ret
+def get_param_classes() -> Dict:
+    param_classes = {}
+    module_dicts = (rig_components.rig_modules, rig_component_features.component_feature_modules)
+    for module_dict in module_dicts:
+        for module_name, module in module_dict.items():
+            if hasattr(module, 'Params'):
+                param_classes[module_name.replace("cloud_", "")] = module.Params
+    return param_classes
 
 class GeneratedBone(PropertyGroup):
     name: StringProperty()
@@ -97,7 +99,7 @@ class BoneSets(PropertyGroup):
             'is_advanced': BoolProperty(
                 name = "Is Advanced",
                 description = "If True, this Bone Set will only be displayed in the UI when the 'Show Advanced Bone Sets' toggle is checked",
-                default = False
+                default = bone_set_definition.get('is_advanced') or False
             ),
             'generated_bones': CollectionProperty(
                 name = "Generated Bones",
@@ -226,11 +228,15 @@ class Properties_CloudRig(PropertyGroup):
 
     target_rig: PointerProperty(type=Object)
 
-    # TODO: These should maybe be moved into a sub-propertygroup, but I'm not sure.
-    active_bone_set_idx: IntProperty()
-    bone_set_use_grid_layout: BoolProperty()
-    bone_set_show_advanced: BoolProperty()
+    # TODO: Some of these should be stored in add-on prefs! Maybe all of them, who knows!
+    advanced_mode: BoolProperty(name="Advanced Mode")
+    advanced_bone_sets: BoolProperty(name="Advanced Bone Sets")
+
     ui_bone_sets: CollectionProperty(type=BoneSet_ForUI)
+    active_bone_set_idx: IntProperty()
+    bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")
+    bone_set_show_advanced: BoolProperty()
+
 
 registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [
     BoneSet_ForUI,

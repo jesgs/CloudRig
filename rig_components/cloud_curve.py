@@ -526,11 +526,11 @@ class Component_Curve_Hooked(Component_Base):
 		cls.define_bone_set(params, 'Curve Handles', preset=8)
 
 	@classmethod
-	def is_bone_set_used(cls, params, set_info):
+	def is_bone_set_used(cls, rig, params, set_name):
 		# We only want to draw Curve Handles bone set UI if the option for it is enabled.
-		if set_info['name'] == "Curve Handles":
-			return controls_for_handles
-		return super().is_bone_set_used(params, set_info)
+		if set_name == 'curve_handles':
+			return params.curve.controls_for_handles
+		return super().is_bone_set_used(rig, params, set_name)
 
 	@classmethod
 	def curve_selector_ui(cls, layout, params):

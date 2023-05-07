@@ -56,7 +56,7 @@ class Component_Limb(Component_Chain_IKFK):
 		Place the properties bone near the end of the limb, parented to the last ORG bone.
 		"""
 		properties_bone = super().generate_properties_bone()
-		if self.params.base.props_storage == 'GENERATED':
+		if self.params.custom_props.props_storage == 'GENERATED':
 			properties_bone.head = self.bones_org[-1].head.copy() + Vector((0, self.scale/1.5, 0))
 			properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale/2))
 			properties_bone.parent = self.bones_org[-1]

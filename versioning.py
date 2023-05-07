@@ -1,4 +1,6 @@
 import bpy
+from bpy.types import Object
+from typing import Any
 from bpy.app.handlers import persistent
 from .rig_component_features.ui import is_cloud_metarig
 from .rig_component_features.object import set_enum_property_by_integer
@@ -21,7 +23,7 @@ def rename_parameters(metarig, dictionary):
 	"""When we change the python name of a parameter, this can be used to find the old data
 	and put it on the property with the new name."""
 	for pb in metarig.pose.bones:
-		if pb.rigify_type == '': continue
+		if pb.cloudrig_component.component_type == '': continue
 		for old_key in list(pb.rigify_parameters.keys()):
 			if old_key in dictionary:
 				new_key = dictionary[old_key]
@@ -32,12 +34,10 @@ def rename_parameters(metarig, dictionary):
 				except:
 					update_enum_property(pb.rigify_parameters, old_key, new_key, value)
 
-def preserve_old_default(metarig, rigify_types, param_name, old_default):
+def preserve_old_default(metarig: Object, param_name: str, old_default: Any):
 	for pb in metarig.pose.bones:
-		if pb.rigify_type not in rigify_types:
-			continue
-		if param_name not in pb.rigify_parameters:
-			setattr(pb.rigify_parameters, param_name, old_default)
+		if param_name not in pb.cloudrig_component.params:
+			setattr(pb.cloudrig_component.params, param_name, old_default)
 			print(f"Preserve old default value: {pb.name} -> {param_name} = {old_default}")
 
 def version_cloud_metarig(metarig):

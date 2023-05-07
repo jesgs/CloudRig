@@ -31,12 +31,12 @@ bl_info = {
 
 # NOTE: Load order matters, eg. cloud_generator relies on some types already being registered!
 modules = [
+	rig_component_features,
 	rig_components,
 	prefs,
 	properties,
 	ui,
 	troubleshooting,
-	rig_component_features,
 	cloud_generator,
 	versioning,
 	manual,

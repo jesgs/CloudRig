@@ -55,7 +55,7 @@ class CloudUIMixin:
 def is_advanced_mode(context):
 	if not is_cloud_metarig(context.object):
 		return False
-	return context.object.data.cloudrig_parameters.advanced_mode
+	return context.object.data.cloudrig.advanced_mode
 
 def is_cloud_metarig(rig: Object):
 	return len(rig.data.cloudrig.rig_component_bones) > 0
@@ -116,7 +116,7 @@ def add_ui_data(obj
 	# and uses a PoseBone when it gets an str.
 	# This is handy so that UI data and properties can be added both before and after generation,
 	# but it might make more sense to make this two separate functions; Maybe one should be in
-	# the BoneInfo class, and the other in rig_component_features/custom_properties.
+	# the BoneInfo class, and the other in rig_component_features/custom_props.
 
 	# Also, it not only adds UI data but also creates the custom property.
 	# Although this is handy because when adding UI data we also always want to create a property,

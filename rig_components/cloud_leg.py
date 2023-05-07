@@ -344,7 +344,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 				ci.subtarget = rolly_stretchy.name
 
 		# Set properties bone display
-		if self.params.CR_base_props_storage == 'GENERATED':
+		if self.params.custom_props.props_storage == 'GENERATED':
 			self.properties_bone.custom_shape_transform = roll_ctrl
 
 	def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
@@ -395,11 +395,11 @@ class Component_Limb_BipedLeg(Component_Limb):
 	# Parameters
 
 	@classmethod
-	def is_bone_set_used(cls, params, set_info):
-		if set_info['name'] == 'Foot Reverse IK Controls':
+	def is_bone_set_used(cls, rig, params, set_name):
+		if set_name == 'foot_reverse_ik_control':
 			return params.leg.use_foot_roll
 
-		return super().is_bone_set_used(params, set_info)
+		return super().is_bone_set_used(rig, params, set_name)
 
 	@classmethod
 	def add_bone_set_parameters(cls, params):

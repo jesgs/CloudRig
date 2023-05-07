@@ -20,85 +20,17 @@ class CLOUDRIG_PT_rig_component(Panel):
         return True
 
     def draw(self, context):
-        layout = self.layout
+        layout = self.layout.column()
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
         addon_prefs = get_addon_prefs(context)
         active_bone = context.active_bone
         active_pb = context.object.pose.bones.get(active_bone.name)
+        cloudrig = context.object.data.cloudrig
         rig_component = active_pb.cloudrig_component
         layout.prop_search(rig_component, 'component_type', addon_prefs, 'rig_type_list', icon='ARMATURE_DATA')
-
-        self.draw_bone_sets_list(layout, context, rig_component)
-
-    def draw_bone_sets_list(self, layout, context, params):
-        """Drawing the Bone Sets section of the Rigify Parameters."""
-        obj = context.object
-        cloudrig = obj.data.cloudrig
-        active_pb = context.active_pose_bone
-        if not active_pb.cloudrig_component.component_type:
-            return
-        params = active_pb.cloudrig_component.params
-
-        if (
-            len(cloudrig.ui_bone_sets) == 0 or \
-            cloudrig.active_bone_set_idx > len(cloudrig.ui_bone_sets)
-        ):
-            layout.label(text="UI Bone Sets were not yet initialized. This should never happen!")
-            return
-
-        active_ui_bone_set = cloudrig.ui_bone_sets[cloudrig.active_bone_set_idx]
-        active_bone_set = getattr(params.bone_sets, active_ui_bone_set.name)
-        if not active_bone_set:
-            layout.label(text="Could not find Bone Set named " + active_ui_bone_set.name)
-            return
-
-        list_column = draw_ui_list(
-            layout
-            ,context
-            ,class_name = 'CLOUDRIG_UL_bone_sets'
-            ,list_path = 'object.data.cloudrig.ui_bone_sets'
-            ,active_index_path = 'object.data.cloudrig.active_bone_set_idx'
-            ,insertion_operators = False
-            ,move_operators = False
-            ,type='GRID' if cloudrig.bone_set_use_grid_layout else 'DEFAULT'
-            ,columns=3
-        )
-        # eye_icon = 'HIDE_OFF' if cloudrig.bone_set_show_advanced else 'HIDE_ON'
-        # list_column.prop(cloudrig, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon)
-        # layout_icon = 'MESH_GRID' if cloudrig.bone_set_use_grid_layout else 'COLLAPSEMENU'
-        # list_column.prop(cloudrig, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
-
-        # elif not CLOUDRIG_UL_bone_sets.flt_flags[cloudrig.active_bone_set_idx]:
-        #     # If the active item is not visible
-        #     return
-
-        # set_info = cls.bone_set_defs[active_bone_set.name]
-        # split = layout.row().split(factor=0.8)
-        # cls.draw_prop_search(split.row(), params, set_info['param'], obj.pose, "bone_groups", text="Bone Group")
-        # bone_group_name = getattr(params, set_info['param'])
-        # bone_group = obj.pose.bone_groups.get(bone_group_name)
-        # if bone_group:
-        #     row = split.row(align=True)
-
-        #     if bone_group.color_set != 'DEFAULT':
-        #         row.prop(bone_group, 'color_set', text="", icon_only=True)
-        #         row = row.row(align=True)
-        #         row.enabled = bone_group.is_custom_color_set
-        #         row.prop(bone_group.colors, "normal", text="")
-        #         row.prop(bone_group.colors, "select", text="")
-        #         row.prop(bone_group.colors, "active", text="")
-        #     else:
-        #         row.prop(bone_group, 'color_set', text="", icon='DOWNARROW_HLT')
-
-        # layout.use_property_split=False
-        # draw_layers_ui(
-        #     layout = layout, 
-        #     rig = obj, 
-        #     show_unnamed_selected_layers = True,
-        #     show_hidden_checkbox = True, 
-        #     layer_prop_owner = params, 
-        #     layer_prop_name = set_info['layer_param']
-        # )
-
+        layout.prop(cloudrig, 'advanced_mode')
 
 registry = [
     CLOUDRIG_PT_rig_component

@@ -11,8 +11,8 @@ from ..rig_component_features.bone_gizmos import BoneGizmoMixin
 from ..rig_component_features.ui import CloudUIMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
-from ..rig_component_features.parent_switching import CloudParentSwitchMixin
-from ..rig_component_features.custom_properties import CloudCustomPropertiesMixin
+from ..rig_component_features.parenting import CloudParentingMixin
+from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 
 class DEFAULT_LAYERS:
 	IK_MAIN = 0
@@ -35,7 +35,7 @@ class DEFAULT_LAYERS:
 class Component_Base(
 					LoggerMixin,
 					BaseRig,
-					CloudParentSwitchMixin,
+					CloudParentingMixin,
 					CloudMechanismMixin,
 					CloudObjectUtilitiesMixin,
 					CloudCustomPropertiesMixin,
@@ -147,11 +147,11 @@ class Component_Base(
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
 		"""
 		self.create_bone_infos()
-		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.base.parent_switching
-		if not skip_root_parenting and self.params.base.parent != "":
+		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.parenting.parent_switching
+		if not skip_root_parenting and self.params.parenting.root_parent != "":
 			self.apply_custom_root_parent()
-		if self.params.base.parent_switching:
-			self.apply_parent_switching(self.meta_base_bone.bone.cloudrig_parent_slots)
+		if self.params.parenting.parent_switching:
+			self.apply_parent_switching(self.params.parenting.parent_slots)
 		self.relink()
 		self.add_gizmo_interactions()
 
@@ -268,8 +268,6 @@ class Component_Base(
 	@classmethod
 	def add_parameters(cls, params):
 		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		cls.add_custom_property_parameters(params)
-		cls.add_parent_switch_parameters(params)
 		cls.add_bone_set_parameters(params)
 
 	@classmethod

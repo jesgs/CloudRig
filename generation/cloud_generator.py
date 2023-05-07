@@ -95,15 +95,13 @@ class CloudRigProperties(bpy.types.PropertyGroup):
 	def active_log(self):
 		return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
-	ui_bone_sets: CollectionProperty(type=UIBoneSet)
-	bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")
 
 def is_cloud_rig_type(rig_type_name: str):
 	return  rig_type_name != "" and \
 			('cloud' in rig_type_name or \
 			'sprite_fright' in rig_type_name)
 
-def load_script(file_path="", file_name="cloudrig.py", datablock=None) -> bpy.types.Text:
+def load_script(file_path="", file_name="cloudrig.py", datablock=None, execute=True) -> bpy.types.Text:
 	"""Load a text file into a text datablock, enable register checkbox and execute it.
 	Also run an optional search and replace on the file content.
 	"""
@@ -130,7 +128,8 @@ def load_script(file_path="", file_name="cloudrig.py", datablock=None) -> bpy.ty
 	readfile.close()
 
 	# Run UI script
-	exec(text.as_string(), {})
+	if execute:
+		exec(text.as_string(), {})
 
 	return text
 
@@ -177,14 +176,6 @@ class CloudGenerator(Generator):
 		# Nuke log entries
 		self.logger = CloudLogManager(metarig)
 		self.logger.clear()
-
-		# Flag for whether there are any non-CloudRig rig types in the metarig.
-		self.rigify_compatible = False
-		for b in metarig.pose.bones:
-			if b.rigify_type != '' and not is_cloud_rig_type(b.rigify_type):
-				self.rigify_compatible = True
-				print("Rigify compatible generation enabled.")
-				break
 
 		self.use_gizmos = check_addon(context, 'bone_gizmos') and self.params.cloudrig_parameters.auto_setup_gizmos
 
@@ -269,29 +260,29 @@ class CloudGenerator(Generator):
 
 			bone.bbone_x = bone.bbone_z = bone.length * 0.05
 
-	def update_bone_set_ui_info(self):
-		"""Keep in sync the bone_sets CollectionProperty stored in the generator
-		parameters, with the bone set parameters stored in RigifyParameters.
-		We copy the data from the latter to the former."""
+	# def update_bone_set_ui_info(self):
+	# 	"""Keep in sync the bone_sets CollectionProperty stored in the generator
+	# 	parameters, with the bone set parameters stored in RigifyParameters.
+	# 	We copy the data from the latter to the former."""
 
-		# Nuke UI bone sets
-		ui_bone_sets = self.metarig.data.cloudrig_parameters.ui_bone_sets
-		ui_bone_sets.clear()
+	# 	# Nuke UI bone sets
+	# 	ui_bone_sets = self.metarig.data.cloudrig_parameters.ui_bone_sets
+	# 	ui_bone_sets.clear()
 
-		# Re-initialize UI bone sets
-		for pb in self.metarig.pose.bones:
-			if not is_cloud_rig_type(pb.rigify_type):
-				continue
-			pb.rigify_parameters.CR_active_bone_set_index = 0
-			rig_class = find_rig_class(pb.rigify_type)
-			rig_bone_set_defs = rig_class.bone_set_defs
-			for rig_bone_set_name in rig_bone_set_defs.keys():
-				rig_bone_set_def = rig_bone_set_defs[rig_bone_set_name]
-				new_ui_set = ui_bone_sets.add()
-				new_ui_set.name = rig_bone_set_def['name']
-				new_ui_set.bone = pb.name
-				new_ui_set.param_name = rig_bone_set_def['param']
-				new_ui_set.layer_param = rig_bone_set_def['layer_param']
+	# 	# Re-initialize UI bone sets
+	# 	for pb in self.metarig.pose.bones:
+	# 		if not is_cloud_rig_type(pb.rigify_type):
+	# 			continue
+	# 		pb.rigify_parameters.CR_active_bone_set_index = 0
+	# 		rig_class = find_rig_class(pb.rigify_type)
+	# 		rig_bone_set_defs = rig_class.bone_set_defs
+	# 		for rig_bone_set_name in rig_bone_set_defs.keys():
+	# 			rig_bone_set_def = rig_bone_set_defs[rig_bone_set_name]
+	# 			new_ui_set = ui_bone_sets.add()
+	# 			new_ui_set.name = rig_bone_set_def['name']
+	# 			new_ui_set.bone = pb.name
+	# 			new_ui_set.param_name = rig_bone_set_def['param']
+	# 			new_ui_set.layer_param = rig_bone_set_def['layer_param']
 
 	def create_rig_object(self, context, metarig) -> bpy.types.Object:
 		"""Create the rig object that will replace the previous generation result."""
@@ -548,9 +539,11 @@ class CloudGenerator(Generator):
 
 		# Parent parent-less bones to the root bone, if there is one.
 		if self.root_bone:
-			if not self.rigify_compatible:
-				self.root_bone = self.root_bone.name
-			self._Generator__parent_bones_to_root()
+			self.parent_bones_to_root()
+
+	def parent_bones_to_root(self):
+		pass
+		# TODO: Implement this (Can copy from Rigify, but operating on BoneInfo might be better, dunno.)
 
 	def invoke_configure_bones(self):
 		for bi in self.bone_infos:
@@ -750,25 +743,11 @@ class CloudGenerator(Generator):
 
 	def ensure_cloudrig_ui(self, metarig, rig):
 		"""Load and execute cloudrig.py rig UI script."""
-		if self.rigify_compatible:
-			# We need to have both cloudrig.py and rigify's rig_ui.py, so
-			# let rigify use the proper script field, and put cloudrig.py
-			# in a custom property.
-			if not 'cloudrig_ui' in metarig.data:
-				metarig.data['cloudrig_ui'] = ""
-			if not 'cloudrig_ui' in rig.data:
-				rig.data['cloudrig_ui'] = ""
-			metarig.data['cloudrig_ui'] = rig.data['cloudrig_ui'] = load_script(
-				file_path = os.path.dirname(os.path.realpath(__file__))
-				,file_name = "cloudrig.py"
-				,datablock = metarig.data['cloudrig_ui']
-			)
-		else:
-			metarig.data.rigify_rig_ui = rig.data.rigify_rig_ui = load_script(
-				file_path = os.path.dirname(os.path.realpath(__file__))
-				,file_name = "cloudrig.py"
-				,datablock = metarig.data.rigify_rig_ui
-			)
+		metarig.data.rigify_rig_ui = rig.data.rigify_rig_ui = load_script(
+			file_path = os.path.dirname(os.path.realpath(__file__))
+			,file_name = "cloudrig.py"
+			,datablock = metarig.data.rigify_rig_ui
+		)
 
 	def ensure_widget_collection(self):
 		"""Overrides Rigify's generator's function to avoid annoying object renaming."""
@@ -861,9 +840,6 @@ class CloudGenerator(Generator):
 		self.driver_map = self.map_drivers()
 
 		self.script = None
-		if self.rigify_compatible:
-			self.script = rig_ui_template.ScriptGenerator(self)
-
 
 		self.action_layers = ActionLayerBuilder(self)
 
@@ -879,8 +855,6 @@ class CloudGenerator(Generator):
 		bpy.ops.object.mode_set(mode='EDIT')
 		self.root_bone = None
 		self.create_root_bones()
-		if self.rigify_compatible :
-			self._Generator__create_root_bone()
 
 		#------------------------------------------
 		self.invoke_load_bone_infos()
@@ -924,15 +898,7 @@ class CloudGenerator(Generator):
 		redraw_viewport()
 
 		#------------------------------------------
-		if self.rigify_compatible:
-			self.invoke_generate_widgets()
-			t.tick("Generate widgets: ")
-
-		#------------------------------------------
 		self._Generator__restore_driver_vars()
-
-		if self.rigify_compatible:
-			self.rigify_assign_layers()
 
 		#------------------------------------------
 		self.ensure_cloudrig_ui(metarig, obj)

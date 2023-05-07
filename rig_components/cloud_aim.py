@@ -269,7 +269,7 @@ class Component_Aim(Component_Base):
 		aim_bones = self.find_aim_bones_in_group(group_name)
 
 		# Find a parent to fall back to, although ideally the rigger specifies
-		# parents using params.base.parent_switching.
+		# parents using params.parenting.parent_switching.
 		first_parent = ""
 		for aim_bone in aim_bones:
 			if aim_bone.parent and first_parent=="":
@@ -325,11 +325,11 @@ class Component_Aim(Component_Base):
 	# Parameters
 
 	@classmethod
-	def is_bone_set_used(cls, params, set_info):
-		if set_info['name'] == 'Aim Deform':
+	def is_bone_set_used(cls, rig, params, set_name):
+		if set_name == 'deform_bones':
 			return params.aim.deform
 
-		return super().is_bone_set_used(params, set_info)
+		return super().is_bone_set_used(rig, params, set_name)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

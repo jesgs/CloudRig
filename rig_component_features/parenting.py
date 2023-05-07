@@ -2,14 +2,18 @@
 from typing import List, Tuple
 
 import bpy
+from bpy.types import PropertyGroup
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from ..utils.generic_ui_list import draw_ui_list
+from ..utils.misc import get_active_pose_bone
 from ..rig_component_features.ui import draw_label_with_linebreak
+
+# TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching.
 
 class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		metarig = context.object
-		rig = metarig.data.rigify_target_rig
+		rig = metarig.data.cloudrig.target_rig
 		parent_slot = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
@@ -26,23 +30,19 @@ class ParentSlot(bpy.types.PropertyGroup):
 
 	def update_is_default(self, context):
 		arm_ob = context.object
-		bone = None
-		for b in arm_ob.data.bones:
-			for ps in b.cloudrig_parent_slots:
-				if ps == self:
-					bone = b
-					break
-		for ps in bone.cloudrig_parent_slots:
+		active_pb = get_active_pose_bone(context)
+
+		for ps in active_pb.cloudrig_component.params.parenting.parent_slots:
 			if ps != self:
 				ps['is_default'] = False
 			else:
 				ps['is_default'] = True
 
 	is_default: BoolProperty(
-		name="Is Default", 
-		description="Set this parent option as the default when the rig is generated", 
-		default=False, 
-		update=update_is_default
+		name = "Is Default", 
+		description = "Set this parent option as the default when the rig is generated", 
+		default = False, 
+		update = update_is_default
 	)
 
 def draw_cloudrig_parents(layout, context, text=""):
@@ -65,11 +65,11 @@ def draw_cloudrig_parents(layout, context, text=""):
 		layout
 		,context
 		,class_name = 'CLOUDRIG_UL_parent_slots'
-		,list_path = 'active_pose_bone.bone.cloudrig_parent_slots'
-		,active_index_path = 'active_pose_bone.rigify_parameters.CR_base_active_parent_slot_index'
+		,list_path = 'active_pose_bone.bone.cloudrig_component.params.parenting.parent_slots'
+		,active_index_path = 'active_pose_bone.cloudrig_component.params.parenting.active_parent_index'
 	)
 
-class CloudParentSwitchMixin:
+class CloudParentingMixin:
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
 	parent_switch_overwrites_root_parent = True
 
@@ -197,7 +197,7 @@ class CloudParentSwitchMixin:
 		if not bone:
 			bone = self.root_bone
 		if parent_name == "":
-			parent_name = self.params.CR_base_parent
+			parent_name = self.params.parenting.root_parent
 
 		parent_bone = self.generator.find_bone_info(parent_name)
 
@@ -210,12 +210,12 @@ class CloudParentSwitchMixin:
 			bone.parent = parent_name
 			return
 
-		if parent_bone.bbone_segments == 1 or not self.params.CR_base_use_constraint_parenting:
+		if parent_bone.bbone_segments == 1 or not self.params.parenting.use_armature_constraint:
 			bone.parent = parent_bone
 			return
 
 		constrained_bone = bone
-		if self.params.CR_base_use_parent_helper:
+		if self.params.parenting.use_helper_bone:
 			constrained_bone = self.create_parent_bone(bone, self.bones_mch)
 			constrained_bone.custom_shape = None
 
@@ -230,69 +230,67 @@ class CloudParentSwitchMixin:
 		)
 
 	@classmethod
-	def add_parent_switch_parameters(cls, params):
-		params.CR_base_parent_switching = BoolProperty(
-			name		 = "Parent Switching"
-			,description = "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
-			,default	 = False
-		)
-		params.CR_base_use_constraint_parenting = BoolProperty(
-			name		 = "Use Armature Constraint"
-			,description = "Instead of directly parenting this bone to the parent, use an Armature constraint. This allows the bone to follow the parent's bendy bone curvature"
-			,default	 = True
-		)
-		params.CR_base_use_parent_helper = BoolProperty(
-			name		 = "Create Parent Helper"
-			,description = "Instead of adding the Armature constraint directly to this bone, create a parent bone prefixed with 'P-' and add it to that one instead. This will keep the local transformations of this bone clear from any parenting-induced transformations, as would be the case with normal parenting"
-			,default	 = True
-		)
-		params.CR_base_parent = StringProperty(
-			name		 = "Root Parent"
-			,description = "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
-			,default	 = ""
-		)
-
-		params.CR_base_active_parent_slot_index = IntProperty()
-
-	@classmethod
 	def draw_parent_param(cls, layout, rig, params):
-		parent_bone = rig.pose.bones.get(params.CR_base_parent)
+		parent_bone = rig.pose.bones.get(params.parenting.root_parent)
 		is_parent_bendy = parent_bone and parent_bone.bone.bbone_segments > 1
 		text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
 		
 		row = layout.row(align=True)
-		cls.draw_prop_search(row, params, 'CR_base_parent', rig.pose, 'bones', text=text)
+		cls.draw_prop_search(row, params, 'parenting.root_parent', rig.pose, 'bones', text=text)
 		if is_parent_bendy:
-			cls.draw_prop(row, params, 'CR_base_use_constraint_parenting', icon='CON_ARMATURE', text="")
-			if params.CR_base_use_constraint_parenting:
-				cls.draw_prop(row, params, 'CR_base_use_parent_helper', icon='BONE_DATA', text="")
+			cls.draw_prop(row, params, 'parenting.use_armature_constraint', icon='CON_ARMATURE', text="")
+			if params.parenting.use_armature_constraint:
+				cls.draw_prop(row, params, 'parenting.use_helper_bone', icon='BONE_DATA', text="")
 			else:
 				row.label(text="", icon="BONE_DATA")
 
 	@classmethod
 	def draw_parenting_params(cls, layout, context, params):
 		metarig = context.object
-		rig = metarig.data.rigify_target_rig
+		rig = metarig.data.cloudrig.target_rig
 		if not rig:
 			draw_label_with_linebreak(layout, "Generate the rig to see parenting parameters.", align_split=True)
 			return
 
 		if cls.parent_switch_overwrites_root_parent:
-			cls.draw_prop(layout, params, "CR_base_parent_switching")
-			if params.CR_base_parent_switching:
+			cls.draw_prop(layout, params.parenting, "parent_switching")
+			if params.parenting.parent_switching:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 			else:
 				cls.draw_parent_param(layout, rig, params)
 		else:
 			cls.draw_parent_param(layout, rig, params)
-			cls.draw_prop(layout, params, "CR_base_parent_switching")
-			if params.CR_base_parent_switching:
+			cls.draw_prop(layout, params.parenting, "parent_switching")
+			if params.parenting.parent_switching:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 
+class Params(PropertyGroup):
+	parent_switching: BoolProperty(
+		name		 = "Parent Switching"
+		,description = "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
+		,default	 = False
+	)
+	use_armature_constraint: BoolProperty(
+		name		 = "Use Armature Constraint"
+		,description = "Instead of directly parenting this bone to the parent, use an Armature constraint. This allows the bone to follow the parent's bendy bone curvature"
+		,default	 = True
+	)
+	use_helper_bone: BoolProperty(
+		name		 = "Create Parent Helper"
+		,description = "Instead of adding the Armature constraint directly to this bone, create a parent bone prefixed with 'P-' and add it to that one instead. This will keep the local transformations of this bone clear from any parenting-induced transformations, as would be the case with normal parenting"
+		,default	 = True
+	)
+	root_parent: StringProperty(
+		name		 = "Root Parent"
+		,description = "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
+		,default	 = ""
+	)
+
+	parent_slots: CollectionProperty(type=ParentSlot)
+	active_parent_index: IntProperty()
+
 registry = [
+	ParentSlot,
 	CLOUDRIG_UL_parent_slots,
 ]
 
-def register():
-	bpy.utils.register_class(ParentSlot)
-	bpy.types.Bone.cloudrig_parent_slots = CollectionProperty(type=ParentSlot)

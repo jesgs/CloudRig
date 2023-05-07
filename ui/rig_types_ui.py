@@ -1,18 +1,10 @@
 import bpy
-from ..utils.misc import find_rig_class
-
-def get_active_pose_bone(context):
-	"""Return the PoseBone of the active bone. Can be None."""
-	posebone = context.active_pose_bone
-	if not posebone:
-		bone = context.active_bone
-		posebone = context.object.pose.bones.get(bone.name)
-	return posebone
+from ..utils.misc import find_rig_class, get_active_pose_bone
 
 class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
-	bl_parent_id = "POSE_PT_CloudRig"
+	bl_parent_id = "CLOUDRIG_PT_rig_component"
 	bl_options = {'DEFAULT_CLOSED'}
 
 	draw_function_name = "draw_parenting_params"
@@ -23,7 +15,10 @@ class CloudParamSubPanel(bpy.types.Panel):
 		pb = get_active_pose_bone(context)
 		if not pb:
 			return False
-		rig_class = find_rig_class(pb.rigify_type)
+		rig_component = pb.cloudrig_component
+		if not rig_component.component_type:
+			return False
+		rig_class = rig_component.rig_class
 		if not rig_class:
 			return False
 		if not hasattr(rig_class, cls.draw_function_name):
@@ -38,10 +33,10 @@ class CloudParamSubPanel(bpy.types.Panel):
 		layout.use_property_decorate = False
 		layout = layout.column()
 
-		pb = context.active_pose_bone
-		rig_class = find_rig_class(pb.rigify_type)
+		pb = get_active_pose_bone(context)
+		rig_class = pb.cloudrig_component.rig_class
 		draw_func = getattr(rig_class, self.draw_function_name)
-		draw_func(layout, context, pb.rigify_parameters)
+		draw_func(layout, context, pb.cloudrig_component.params)
 
 class CLOUDRIG_PT_params_parenting(CloudParamSubPanel):
 	bl_label = "Parenting"
@@ -86,9 +81,9 @@ class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
 	def poll(cls, context):
 		if not super().poll(context):
 			return False
-		pb = context.active_pose_bone
-		rig_class = find_rig_class(pb.rigify_type)
-		return rig_class.is_using_custom_props(context, pb.rigify_parameters)
+		pb = get_active_pose_bone(context)
+		rig_class = pb.cloudrig_component.rig_class
+		return rig_class.is_using_custom_props(context, pb.cloudrig_component.params)
 
 class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
 	bl_label = "Bone Organization"
@@ -100,16 +95,15 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
 		if not super().poll(context):
 			return False
 
-		pb = context.active_pose_bone
-		rig_class = find_rig_class(pb.rigify_type)
+		pb = get_active_pose_bone(context)
+		rig_class = pb.cloudrig_component.rig_class
 
 		# If no bone sets are visible, don't draw the panel.
-		any_used = False
-		for bsd in rig_class.bone_set_defs.values():
-			if rig_class.is_bone_set_used(pb.rigify_parameters, bsd):
-				any_used = True
-				break
-		return any_used
+		for bone_set_name in rig_class.bone_set_definitions.keys():
+			if rig_class.is_bone_set_used(context.object, pb.cloudrig_component.params, bone_set_name):
+				return True
+
+		return False
 
 registry = [
 	CLOUDRIG_PT_params_parenting
