@@ -450,7 +450,7 @@ class BoneInfo:
 				# Make sure to set `self.roll = 0` if that's what you need.
 				align_bone = armature.data.edit_bones.get(str(self.roll_bone))
 				if not align_bone:
-					self.owner_rig.raise_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
+					self.owner_rig.raise_metarig_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
 					eb.align_roll(align_bone.z_axis)
 			elif self.roll_type == 'VECTOR':

@@ -353,7 +353,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 			heel_pivot_name = self.bones_org[-2].name.replace("ORG-", "")
 		heel_pivot_pb = self.meta_bone(heel_pivot_name)
 		if not heel_pivot_pb:
-			self.raise_error(f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".')
+			self.raise_metarig_error(f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".')
 
 		return heel_pivot_pb.bone
 

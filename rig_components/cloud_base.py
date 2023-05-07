@@ -183,14 +183,14 @@ class Component_Base(
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 			if self.naming.has_wrong_separator(meta_org):
-				self.raise_error("Wrong separator"
+				self.raise_metarig_error("Wrong separator"
 					,note = meta_org_name
 					,description = f"{meta_org_name}: CloudRig requires the side indicator in the bone's name to be separated by a period(`.`)."
 					,operator = 'object.cloudrig_rename_bone'
 					,op_kwargs = {'old_name' : meta_org_name}
 				)
 			if not self.naming.side_is_suffix(meta_org):
-				self.raise_error("Side indicator must be suffix"
+				self.raise_metarig_error("Side indicator must be suffix"
 					,note = meta_org_name
 					,description = f"{meta_org_name}: CloudRig requires the side indicator in the bone's name to be at the end of the bone name."
 					,operator = 'object.cloudrig_rename_bone'

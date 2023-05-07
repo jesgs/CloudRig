@@ -39,11 +39,9 @@ class Component_CopyBone(Component_Base):
 			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
 
 		meta_bone = self.meta_bone(self.orgless_name)
+		assert meta_bone, f'Bone "{self.orgless_name}" not found in MetaRig'
 		bi.layers = meta_bone.bone.layers[:]
 		bi.use_deform = False
-		if not meta_bone:
-			self.add_log_bug("Bone not found in MetaRig", trouble_bone=self.orgless_name)
-			return
 
 		if meta_bone.custom_shape:
 			self.add_to_widget_collection(meta_bone.custom_shape)

@@ -142,15 +142,10 @@ class BoneSet(LinkedList):
         if hasattr(self.rig, 'generator'):
             generator = self.rig.generator
 
-        # If a BoneInfo with the passed name already exists, add a warning and do not create a new one.
+        # If a BoneInfo with the passed name already exists, something is very wrong!
         bone_info = generator.find_bone_info(name)
         if bone_info:
-            generator.logger.log_error("Re-defined bone!"
-                ,owner_bone   = bone_info.bone_set.rig.meta_base_bone.name
-                ,trouble_bone = bone_info.name
-                ,description  = f'Bone name "{bone_info.name}" was used twice! Make sure your bone names are unique and do not have trailing zeroes!'
-                ,clear_logs   = False
-            )
+            self.raise_metarig_error(f'Bone name "{bone_info.name}" was used twice! Make sure your bone names are unique and do not have trailing zeroes!')
 
         if 'bone_group' not in kwargs:
             kwargs['bone_group'] = self.bone_group

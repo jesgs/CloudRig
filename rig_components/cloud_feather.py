@@ -13,7 +13,7 @@ class Component_Feather(Component_Chain_FK):
 		super().initialize()
 
 		if self.bone_count != 1:
-			self.raise_error("Feather rig must consist of exactly 1 bone.")
+			self.raise_metarig_error("Feather rig must consist of exactly 1 bone.")
 
 	def create_bone_infos(self):
 		super().create_bone_infos()

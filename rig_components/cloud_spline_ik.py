@@ -23,7 +23,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 		subdiv = self.params.spline_ik.subdivide
 		total = length * subdiv
 		if length > 255:
-			self.raise_error(f"Spline IK rig consists of {length} bones but the Spline IK constraint only supports a chain of 255 bones.")
+			self.raise_metarig_error(f"Spline IK rig consists of {length} bones but the Spline IK constraint only supports a chain of 255 bones.")
 		if total > 255:
 			old_total = total
 			old_subdiv = subdiv

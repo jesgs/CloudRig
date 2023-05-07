@@ -39,6 +39,15 @@ TODO: Symmetry warnings:
 	- Symmetrically named and transformed components have asymmetrical constraints
 """
 
+class CloudMetarigError(Exception):
+	""" Exception raised for errors.
+	"""
+	def __init__(self, message):
+		self.message = message
+
+	def __str__(self):
+		return repr(self.message)
+
 class LoggerMixin:
 	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
 	This class should come BEFORE BaseRig in the inheritance order.
@@ -49,16 +58,9 @@ class LoggerMixin:
 			,**kwargs
 		):
 		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log(description_short ,**kwargs)
+		self.generator.logger.log_entry(description_short ,**kwargs)
 
-	def add_log_bug(self
-			,description_short
-			,**kwargs
-		):
-		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log_bug(description_short ,**kwargs)
-
-	def raise_error(self
+	def raise_metarig_error(self
 			,description_short = "Metarig Error"
 			,description = ""
 			,**kwargs
@@ -67,12 +69,14 @@ class LoggerMixin:
 		This means that this class should come SOONER in the inheritance order.
 		"""
 
-		self.generator.logger.log_error(
+		self.generator.logger.log_fatal_error(
 			description_short
 			,description = description
 			,owner_bone = self.meta_base_bone.name
 			,**kwargs
 		)
+
+		raise CloudMetarigError("Metarig Error: ", description)
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.

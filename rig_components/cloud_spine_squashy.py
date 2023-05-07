@@ -33,7 +33,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 		super().initialize()
 
 		if not self.bone_count > 1:
-			self.raise_error("Spine rig must consist of a chain of at least 2 connected bones!")
+			self.raise_metarig_error("Spine rig must consist of a chain of at least 2 connected bones!")
 
 		self.spine_name = self.naming.slice_name(self.base_bone)[1]
 		self.squashy_name = "squashy_spine_" + self.spine_name.lower()
