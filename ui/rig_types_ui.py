@@ -1,5 +1,5 @@
 import bpy
-from ..utils.misc import find_rig_class, get_active_pose_bone
+from ..utils.misc import get_active_pose_bone
 
 class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'

@@ -1,68 +1,15 @@
-from bpy.types import (UILayout, Object,
+from bpy.types import (Object,
 		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
-		BONE_PT_rigify_buttons, DATA_PT_rigify)
+		BONE_PT_rigify_buttons)
 import bpy
 
-from rigify import rig_lists, feature_sets, feature_set_list
+from rigify import rig_lists, feature_set_list
 from rigify.ui import build_type_list
 
 from ..generation.cloudrig import draw_layers_ui
-from ..rig_component_features.ui import draw_label_with_linebreak, is_cloud_metarig, is_advanced_mode
+from ..rig_component_features.ui import is_cloud_metarig, is_advanced_mode
 from ..utils.misc import check_addon
 from .rig_types_ui import get_active_pose_bone
-
-
-def is_blender_version_compatible() -> bool:
-	"""Return whether current Blender version is compatible 
-	with current CloudRig version."""
-	try:
-		from packaging import version
-	except ModuleNotFoundError:
-		return True
-
-	tuple_to_version = lambda v: version.parse(str(v).replace(", ", ".")[1:-1])
-
-	blender = tuple_to_version(bpy.app.version)
-
-	cloudrig_module_name = __package__.replace("rigify.feature_sets.", "").replace(".ui", "")
-	cloudrig_module = getattr(feature_sets, cloudrig_module_name)
-
-	cloudrig_min = tuple_to_version(cloudrig_module.rigify_info['blender'])
-	cloudrig_max = tuple_to_version(cloudrig_module.max_blender_version)
-
-	return cloudrig_max >= blender >= cloudrig_min
-
-def draw_version_check(layout: UILayout) -> bool:
-	""" If Blender is too old or new, draw a link to download
-		another version of CloudRig.
-	"""
-
-	if not is_blender_version_compatible():
-		draw_label_with_linebreak(layout, f"Version mismatch detected.", alert=True)
-		draw_label_with_linebreak(layout, f"Download an older or newer version here:", alert=True)
-		op = layout.operator('wm.url_open', text="Releases", icon='URL')
-		op.url = "https://gitlab.com/blender/CloudRig/-/releases"
-		return False
-
-	return True
-
-def draw_cloudrig_rigify_generate(self, context):
-	layout = self.layout
-	layout.use_property_split=True
-	layout.use_property_decorate=False
-	metarig = context.object
-
-	if not is_cloud_metarig(metarig):
-		return self.draw_old(context)
-	
-	if not draw_version_check(layout):
-		return
-
-	text = "Generate CloudRig"
-	if metarig.data.rigify_target_rig:
-		text = "Re-Generate CloudRig"
-	layout.operator("pose.cloudrig_generate", text=text)
-	layout.separator()
 
 def draw_rigify_header(self, context):
 	layout = self.layout
@@ -248,8 +195,6 @@ def draw_rigify_types(self, context):
 
 def register():
 	# Hijack Rigify panels' draw functions.
-	DATA_PT_rigify.draw_old = DATA_PT_rigify.draw
-	DATA_PT_rigify.draw = draw_cloudrig_rigify_generate
 
 	bpy.types.DATA_PT_rigify_advanced.append(extend_rigify_advanced_panel)
 
@@ -269,7 +214,6 @@ def unregister():
 	# Restore Rigify panels' draw functions.
 	bpy.types.DATA_PT_rigify_advanced.remove(extend_rigify_advanced_panel)
 	try:
-		DATA_PT_rigify.draw = DATA_PT_rigify.draw_old
 		DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
 		DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
 		VIEW3D_MT_rigify.draw = VIEW3D_MT_rigify.draw_old

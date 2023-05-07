@@ -8,7 +8,6 @@ from rna_prop_ui import rna_idprop_has_properties
 from mathutils import Vector, Matrix
 from collections import OrderedDict
 
-from ..utils.misc import find_rig_class
 from ..utils.generic_ui_list import draw_ui_list
 from ..generation.cloudrig import draw_layers_ui
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties

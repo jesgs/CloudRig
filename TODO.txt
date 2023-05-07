@@ -1,39 +1,27 @@
 Priority 0: Re-write as standalone add-on
-	- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
-		- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
-		- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
-
 	- Figure out how BoneSets will work.
 		- Convert all bone set definitions to the new system. (monkey work)
 >>>>>>>>>>>>>> Maybe instead of doing all this work for everyting all at once, we should just get cloud_aim working and actually generating.
 
-		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
-
-	- Implement rig parameters without ParameterValidator.
-		- Draw the UI for the new component_params
-		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
-		- Search for "CR_" to find any leftovers.
-
-	- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
-		- That said, this could stay in generator.py instead of properties.py
-	- Implement rig types as a list stored on the Armature.
-		- Allow assigning and displaying the rig type info on the bone as well, to mimic Rigify's UX. Both can co-exist.
-	- Draw all UI without replacing any Rigify UI.
-
 	- Re-write the Generator... (this will be the hardest part)
+		- Expose the Generate operator in the UI again.
+		- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
+		- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
+			- That said, this could stay in generator.py instead of properties.py
 		- Re-implement functions calls starting with _Generator__, since we won't be inheriting those from Rigify anymore (most likely)
 			- parent_bones_to_root()
-		- Make sure forced_parameters still works.
 		- Integrate reliance on BoneInfo as much as possible.
 		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
 
+
+	- UI:
+		- Draw all UI without replacing any Rigify UI.
+		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
+		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
+
 	- Delete stuff that's no longer needed:
-		- find_rig_class()
 		- define_bone_set()
 		- add_bone_set_parameters()
-		- update_bone_set_ui_info()
-
-	- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
 
 	- Bring back cloud_face_chain, cloud_eyelid, cloud_chain_anchor, but make them less of a disaster somehow.
 	- Bring in Rigify's Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
@@ -46,6 +34,7 @@ Priority 0: Re-write as standalone add-on
 
 	BELLS AND WHISTLES:
 	- Write a recursive lazy register thing that makes it so we can get rid of the modules = [] lists from our __init__.py's, using the recently discovered bpy.path.module_names() function!
+		- This would still require detecting dependencies and sorting the register list accordingly; CollectionProperties and PointerProperties depend on their type if it's a PropertyGroup, and Panels depend on their bl_parent_id. I'm not sure what else there might be.
 	- Ability to disable rig types. Simple checkbox. Skip generating the damn thing.
 	- Alphabet sort component types when choosing them.
 	- Use callbacks to update certain things when changing rig types:
@@ -53,6 +42,9 @@ Priority 0: Re-write as standalone add-on
 		- Create any missing BoneSets (which should no longer need to wait for a generation in order to exist, because the Generator, along with all of its data, will always exist and be stored in RNA.)
 	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig component list is empty or not.
 	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
+		- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
+			- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
+			- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
 
 

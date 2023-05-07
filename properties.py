@@ -7,7 +7,7 @@ from bpy.types import PropertyGroup, Object
 from typing import Dict
 from . import rig_components
 from . import rig_component_features
-import inspect
+from .generation.cloud_generator import GeneratorProperties
 
 def get_param_classes() -> Dict:
     param_classes = {}
@@ -193,8 +193,6 @@ class RigComponent(PropertyGroup):
 
     params: PointerProperty(type=ComponentParams)
 
-class GeneratorParameters(PropertyGroup):
-    advanced_mode: BoolProperty()
 
 class RigComponentBone(PropertyGroup):
     def change_assigned_bone(self, context):
@@ -205,6 +203,11 @@ class RigComponentBone(PropertyGroup):
     name: StringProperty(update=change_assigned_bone)
 
 class Properties_CloudRig(PropertyGroup):
+    version: IntProperty(
+        name         = "CloudRig MetaRig Version"
+        ,description = "For internal use only"
+        ,default     = -1
+    )
     rig_component_bones: CollectionProperty(type=RigComponentBone)
     def update_elem_index(self, context):
         refresh_component_bones_list(context)
@@ -223,7 +226,7 @@ class Properties_CloudRig(PropertyGroup):
     def active_component_bone_name(self):
         return self.rig_component_bones[self.active_rig_component_index].name
 
-    generator: PointerProperty(type=GeneratorParameters)
+    generator: PointerProperty(type=GeneratorProperties)
     metarig_version: IntProperty()
 
     target_rig: PointerProperty(type=Object)
@@ -244,7 +247,6 @@ registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.
     ComponentParams,
     RigComponent,
     RigComponentBone,
-    GeneratorParameters,
     Properties_CloudRig
 ]
 
