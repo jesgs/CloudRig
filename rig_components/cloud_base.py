@@ -87,7 +87,7 @@ class Component_Base(
 		super().initialize()
 
 		from .. import cloud_generator
-		assert type(self.generator) == cloud_generator.CloudGenerator, "CloudRig rig type initialized without CloudGenerator. This is a bug!"
+		assert type(self.generator) == cloud_generator.CloudRig_Generator, "CloudRig rig type initialized without CloudRig_Generator. This is a bug!"
 
 		self.bone_count = len(self.bones.org.main)
 

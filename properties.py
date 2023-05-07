@@ -229,8 +229,6 @@ class Properties_CloudRig(PropertyGroup):
     generator: PointerProperty(type=GeneratorProperties)
     metarig_version: IntProperty()
 
-    target_rig: PointerProperty(type=Object)
-
     # TODO: Some of these should be stored in add-on prefs! Maybe all of them, who knows!
     advanced_mode: BoolProperty(name="Advanced Mode")
     advanced_bone_sets: BoolProperty(name="Advanced Bone Sets")

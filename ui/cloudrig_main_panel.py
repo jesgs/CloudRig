@@ -40,10 +40,28 @@ class POSE_PT_CloudRig(Panel):
             return
 
         text = "Generate CloudRig"
-        if metarig.data.cloudrig.target_rig:
+        if metarig.data.cloudrig.generator.target_rig:
             text = "Re-Generate CloudRig"
         layout.operator("pose.cloudrig_generate", text=text)
 
+
+class POSE_PT_CloudRig_Generation(Panel):
+    bl_label = "Generation"
+    bl_parent_id = 'POSE_PT_CloudRig'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        metarig = context.object
+        layout.prop(metarig.data.cloudrig.generator, 'target_rig')
+
 registry = [
     POSE_PT_CloudRig,
+    POSE_PT_CloudRig_Generation
 ]

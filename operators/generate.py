@@ -6,7 +6,7 @@ from ..rig_component_features.ui import is_cloud_metarig
 from ..rig_component_features.object import EnsureVisible
 
 from ..generation.cloudrig import register_hotkey, is_active_cloud_metarig, is_active_cloudrig
-
+from ..generation.cloud_generator import CloudRig_Generator
 
 def refresh_constraints(rig: Object):
     for pb in rig.pose.bones:
@@ -45,15 +45,18 @@ class CLOUDRIG_OT_generate(Operator):
     @staticmethod
     def get_metarig_to_generate(context):
         metarig = is_single_cloud_metarig(context)
+
         if not metarig:
             metarig = is_active_cloud_metarig(context)
 
         if not metarig and is_active_cloudrig(context):
             # Find the metarig referencing this rig
             for o in context.scene.objects:
-                if o.type == 'ARMATURE' and o.data.rigify_target_rig == obj:
+                if o.type == 'ARMATURE' and o.data.cloudrig.generator.target_rig == obj:
                     metarig = o
                     break
+
+        return metarig
 
     @classmethod
     def poll(cls, context):
@@ -71,7 +74,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         # Ensure required visibility and active states.
         meta_visible = EnsureVisible(metarig)
-        target_rig = metarig.data.rigify_target_rig
+        target_rig = metarig.data.cloudrig.generator.target_rig
         rig_visible = None
         if target_rig:
             rig_visible = EnsureVisible(target_rig)
@@ -104,7 +107,7 @@ class CLOUDRIG_OT_generate(Operator):
         Such errors must be accounted for and handled gracefully.
         """
 
-        generator = CloudGenerator(context, metarig)
+        generator = CloudRig_Generator(context, metarig)
         try:
             generator.generate(context)
         except Exception as exception:
@@ -158,7 +161,7 @@ class CLOUDRIG_OT_generate(Operator):
         ):
         """Restore state for convenience."""
         metarig.hide_set(True)
-        rig = metarig.data.cloudrig.target_rig
+        rig = metarig.data.cloudrig.generator.target_rig
         rig.hide_set(False)
         context.view_layer.objects.active = rig
         bpy.ops.object.mode_set(mode='OBJECT')

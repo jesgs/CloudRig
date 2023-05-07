@@ -13,7 +13,7 @@ from ..rig_component_features.ui import draw_label_with_linebreak
 class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		metarig = context.object
-		rig = metarig.data.cloudrig.target_rig
+		rig = metarig.data.cloudrig.generator.target_rig
 		parent_slot = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
@@ -247,7 +247,7 @@ class CloudParentingMixin:
 	@classmethod
 	def draw_parenting_params(cls, layout, context, params):
 		metarig = context.object
-		rig = metarig.data.cloudrig.target_rig
+		rig = metarig.data.cloudrig.generator.target_rig
 		if not rig:
 			draw_label_with_linebreak(layout, "Generate the rig to see parenting parameters.", align_split=True)
 			return

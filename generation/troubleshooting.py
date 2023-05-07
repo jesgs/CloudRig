@@ -206,7 +206,7 @@ def get_datablock_type_icon(datablock):
 class CloudLogManager:
 	"""Class to manage CloudRigLogEntry CollectionProperty on metarigs.
 
-	This class is instanced once per rig generation, by the CloudGenerator class.
+	This class is instanced once per rig generation, by the CloudRig_Generator class.
 	"""
 
 	def __init__(self, metarig, rig=None):
@@ -495,7 +495,7 @@ class CloudRigLogEntry(PropertyGroup):
 	in cloud_generator.register().
 
 	This CollectionProperty is then populated by a CloudLogManager instance created by
-	CloudGenerator, which is created by the Generate operator.
+	CloudRig_Generator, which is created by the Generate operator.
 	"""
 
 	icon: StringProperty(

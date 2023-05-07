@@ -33,6 +33,11 @@ from ..versioning import cloud_metarig_version
 from .cloudrig import ensure_custom_panels
 
 class GeneratorProperties(PropertyGroup):
+    target_rig: PointerProperty(
+        name = "Target Rig",
+        description = "Armature object to be overwritten whenever this Metarig is generated. If none specified, one will be created",
+        type = Object
+    )
     create_root: BoolProperty(
         name         = "Create Root"
         ,description = "Create a default root control"
@@ -82,7 +87,7 @@ class GeneratorProperties(PropertyGroup):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
 
-class CloudGenerator:
+class CloudRig_Generator:
     """
     This class is instantiated by the Generate operator. 
     It instantiates the rig components and calls their rig generation functions.
