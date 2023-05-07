@@ -402,13 +402,7 @@ class BoneInfo:
 		assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."
 
 		# Check for 0-length bones.
-		if (self.head - self.tail).length == 0:
-			# Warn and force length.
-			self.bone_set.rig.add_log_bug("Bone with 0 length"
-				,trouble_bone = self.name
-				,description = "Bones cannot be created with a length of 0. Fell back to default vector."
-			)
-			self.tail = self.head+Vector((0, 0.1, 0))
+		assert (self.head - self.tail).length == 0, f'Bone "{eb.name}" cannot be created with a length of 0.'
 
 		### Edit Bone properties
 		for key in edit_bone_properties:

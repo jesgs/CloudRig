@@ -82,7 +82,6 @@ class GeneratorProperties(PropertyGroup):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
 
-
 class CloudGenerator:
     """
     This class is instantiated by the Generate operator. 
@@ -434,10 +433,8 @@ class CloudGenerator:
             ,overwrite = self.params.rigify_force_widget_update
             ,collection = self.widget_collection
         )
-        if not wgt:
-            self.logger.log_bug("Failed to create widget"
-                ,description = f"Failed to load widget named '{widget_name}'."
-            )
+        assert wgt, f'Failed to load widget named "{widget_name}".'
+
         return wgt
 
     def add_to_widget_collection(self, widget_ob):
@@ -545,13 +542,8 @@ class CloudGenerator:
                 # since they already get created by __duplicate_rig()
                 continue
             new_name = new_bone(self.obj, bi.name)
-            if new_name != bi.name:
-                self.logger.log(
-                    "Bone Name Clash"
-                    ,trouble_bone = bi.name
-                    ,description = f'Bone name "{bi.name}" was already taken, fell back to "{new_name}" instead. This is a bug unless your bone names are around 60 characters long.'
-                )
-                bi.name = new_name
+            assert new_name == bi.name, f'Duplicate bone name: "{bi.name}". This may or may not be a bug. Try to make sure your bone names are unique and no longer than 50 characters.'
+            bi.name = new_name
             self.bone_owners[new_name] = None
 
         super().invoke_generate_bones()
@@ -575,13 +567,7 @@ class CloudGenerator:
     def invoke_configure_bones(self):
         for bi in self.bone_infos:
             pose_bone = self.obj.pose.bones.get(bi.name)
-            if not pose_bone:
-                self.logger.log("Bone creation failed"
-                    ,owner_bone   = bi.owner_rig.base_bone
-                    ,trouble_bone = bi.name
-                    ,description  = f'BoneInfo "{bi.name}" was not created for some reason.'
-                )
-                continue
+            assert pose_bone, f'Bone "{bi.name}" was not created.'
 
             # Scale bone shape based on B-Bone scale
             bi.write_pose_data(pose_bone)
@@ -760,13 +746,16 @@ class CloudGenerator:
             exec(script.as_string(), {})
         except Exception as e:
             traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
-            entry = self.logger.log_error(
+            entry = self.logger.log_fatal_error(
                 "Post-Generation Script failed."
                 ,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
                 ,note         = str(e)
                 ,popup_text     = traceback_str
                 ,pretty_stack = traceback_str
             )
+
+            # Continue the exception.
+            raise e
 
     def ensure_cloudrig_ui(self, metarig, rig):
         """Load and execute cloudrig.py rig UI script."""

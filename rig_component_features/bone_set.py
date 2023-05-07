@@ -269,10 +269,7 @@ class BoneSetMixin:
         """Take a bone set definition stored in the class and create a single BoneSet for it."""
         bone_set_defs = type(self).bone_set_defs
 
-        if not bone_set_name in bone_set_defs:
-            msg = f"Error: Bone Set definition named {bone_set_name} not found in class {type(self)}. Could not create Bone Set. Report a bug!"
-            self.add_log_bug("Bone Set Error", description=msg)
-            assert False, msg
+        assert bone_set_name in bone_set_defs, f"Failed to create Bone Set {bone_set_name}. Bone Set definition not found in class: {type(self)}."
 
         bone_set_def = bone_set_defs[bone_set_name]
 
