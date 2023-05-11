@@ -12,7 +12,7 @@ Priority 0: Re-write as standalone add-on
 			- parent_bones_to_root()
 		- Integrate reliance on BoneInfo as much as possible.
 		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
-
+		- Disable the Action system for now, then figure out how to hook into Rigify for it. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
 	- UI:
 		- Draw all UI without replacing any Rigify UI.
@@ -128,7 +128,7 @@ Priority 5: UI, UX & documentation
 	Upstream
 		Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon.
 
-Priority 7: Ideas from Animators
+Priority 7: Ideas from Animators/Users
 	From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
 		The available parents could be the same as the IK control, plus the IK control itself.
 	Make the Quality slider non-animatable (I don't think this is possible to do in a decent way)
@@ -136,6 +136,11 @@ Priority 7: Ideas from Animators
 		Attach a new text datablock to the rig that registers the properties from the character bone.
 			Make sure those properties are overridable but not animatable
 			Add those property path changes to the anim curve rename script
+	From various people: Implement a "Game Mode" option, that forces bendy bones to 0 and parents DEF- bones in a chain.
+		Annoying thing about this is that it implies that CloudRig is designed for and tested on a game dev workflow, which is false.
+		I would rather add an FAQ where I explain that you can simply set bendy bones to 0, and re-design cloud_chain so that DEF bones are indeed parented to each other, since IIRC that was always an arbitrary choice.
+	From Johannes Lübke: It might make sense to put the target rig in POSE position in one of the generation stages, so constraints can be applied.
+
 
 Ideas:
 	A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
@@ -165,11 +170,9 @@ Ideas:
 		cloud_ik_chain
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
 
-	UI
-	Customizing bone shapes would be pretty neat.
-		I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
-		Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
-		If generating with an empty object, switch it back to the defaults.
-
-	Bring back BoolProperties? Issue is animating them works badly. (doesn't work) because they rely on the update callback which is not called when changed by a keyframe.
-		Maybe after D9697.
+	UI:
+		Customizing bone shapes would be pretty neat.
+			I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
+			Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
+			If generating with an empty object, switch it back to the defaults.
+		Use the lovely new boolean custom properties where it makes sense! (IK/FK toggles shouldn't be sliders!)
