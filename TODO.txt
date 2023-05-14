@@ -176,3 +176,24 @@ Ideas:
 			Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
 			If generating with an empty object, switch it back to the defaults.
 		Use the lovely new boolean custom properties where it makes sense! (IK/FK toggles shouldn't be sliders!)
+
+
+- CloudRigify
+	- Component types should be displayed by implementation hierarchy.
+	- Adding Rig Samples: Instead of being in a separate panel or menu, there should be an "Add Sample" button in the Component Type UI.
+	- More customizability for bone shapes and group assignments. CloudRig already delivers on a lot of this, but not so much on bone shapes.
+
+	- cloud_chain rework:
+		- Instead of trying to propagate rotation down to the tangent bones and having to worry about what's in the local matrix and what isn't in its chain of parents or Copy Rotation target, simply use a Damped Track or Stretch To constraint with a child of the STR bone that is offset in the direction of the deform bone.
+		- Problem is, bone twist isn't propagated by neither Damped Track or Stretch To, but perhaps we could use Track To?
+		- Either way, the goal would be to create a bendy bone chain set-up that can support additional, mis-aligned parents of the STR bone (intersection bones for face grids) as simply and easily as possible.
+		- Alternatively, ditch the support for face grid chain set-ups, since it's kindof a relic of an idea from the face rig of Spring in BlenRig, which never worked that great in the first place anyways.
+
+	- Not just a rig generation add-on, but a full rigging workflow overhaul:
+		- Include a system for naming armature layers (like it already does, but this time, independent from the rig generation workflow)
+		- Include a better version of the SelectionSets add-on, and a better version of other community add-ons like Extra Groups and whatnot.
+		- Merge in workflow operators from MetsTools.
+		- A pop-up panel of the Component Parameters, so user doesn't have to go into Properties panel.
+	- A panel for organizing custom properties in the rig UI panel (Select a bone, a custom property on that bone, assign an optional display name, main panel name, subpanel name, label name, row name.
+		- This is to avoid having to rely on add_ui_data() in the post-gen scripts, which has been a huge chunk of my post-gen scripts.
+		- This would also replace the Custom Property parameters on cloud_copy, I think (which organizes every property on a bone into one place, which is not that useful).
