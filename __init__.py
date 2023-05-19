@@ -12,6 +12,8 @@ rigify_info = {
     ,'version': (0, 0, 9)
 }
 
+max_blender_version = (10, 0, 0) # This should be set for in commits that will be tagged as a release.
+
 bl_info = {
     'name' : "CloudRig",
     'author' : 'Demeter Dzadik',

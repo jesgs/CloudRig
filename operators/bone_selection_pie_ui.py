@@ -60,9 +60,27 @@ def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     
     return entries
 
+def get_active_bone(context):
+    rig = context.pose_object or context.object
+    if not rig or rig.type != 'ARMATURE':
+        return None
+
+    active_bone = context.active_bone or context.active_pose_bone
+    if not active_bone:
+        return None
+
+    active_pose_bone = rig.pose.bones.get(active_bone.name)
+    if not active_pose_bone:
+        return None
+
+    return active_pose_bone or active_bone
 
 class POSE_MT_PIE_bone_constraint_targets(Menu):
     bl_label = "Constraint Targets"
+
+    @classmethod
+    def poll(cls, context):
+        return get_active_bone(context)
 
     @staticmethod
     def draw_select_bone(layout: UILayout, con: Constraint, subtarget: str):
@@ -87,6 +105,10 @@ class POSE_MT_PIE_bone_constraint_targets(Menu):
 class POSE_MT_PIE_constrained_bones(Menu):
     bl_label = "Constrained Bones"
 
+    @classmethod
+    def poll(cls, context):
+        return get_active_bone(context)
+
     @staticmethod
     def draw_select_bone(layout: UILayout, con: Constraint, bone_name: str):
         icon = get_constraint_icon(con)
@@ -110,6 +132,10 @@ class POSE_MT_PIE_constrained_bones(Menu):
 class POSE_MT_PIE_child_bones(Menu):
     bl_label = "Child Bones"
 
+    @classmethod
+    def poll(cls, context):
+        return get_active_bone(context)
+
     def draw(self, context):
         layout = self.layout
         active_bone = context.active_bone or context.active_pose_bone
@@ -124,19 +150,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object or context.object
-        if not rig or rig.type != 'ARMATURE':
-            return False
-
-        active_bone = context.active_bone or context.active_pose_bone
-        if not active_bone:
-            return False
-
-        active_pose_bone = rig.pose.bones.get(active_bone.name)
-        if not active_pose_bone:
-            return False
-
-        return True
+        return get_active_bone(context)
 
     def draw(self, context):
         layout = self.layout
