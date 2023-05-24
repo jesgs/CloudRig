@@ -518,6 +518,7 @@ class CloudGenerator(Generator):
 				rigs_anim_order.remove(symm_rig)
 			start_frame = max(new_start_frame, symm_new_start_frame)
 
+	### Rigify Generation Stages
 	def invoke_generate_bones(self):
 		"""Create real bones from all BoneInfos.
 		No bone data is written yet beside the name."""
@@ -582,6 +583,7 @@ class CloudGenerator(Generator):
 					eb.parent = None
 					break
 
+	# Generation functions
 	@staticmethod
 	def map_vgroups_to_most_significant_object(
 			group_names: List[str]
@@ -1164,7 +1166,8 @@ class CLOUDRIG_OT_generate(bpy.types.Operator):
 		for bone_name in hide_bones.keys():
 			bone = rig.data.bones.get(bone_name)
 			if not bone: continue
-			bone.hide = hide_bones[bone_name]
+
+			bone.hide = False
 
 registry = [
 	CloudRigProperties,
