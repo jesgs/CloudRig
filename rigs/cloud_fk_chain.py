@@ -231,14 +231,9 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 		bone.parent = hng_bone
 		return hng_bone
 
-	def make_def_chain(self
-			,str_chain: List[BoneInfo]
-			,tangent_helpers: List[BoneInfo]
-			,preserve_volume: bool
-			,create_ctr_def_ctrls: bool
-		) -> List[BoneInfo]:
+	def make_def_chain(self ,str_chain: List[BoneInfo]) -> List[BoneInfo]:
 		"""Extend cloud_chain by tweaking some bbone values."""
-		def_chain = super().make_def_chain(str_chain, tangent_helpers, preserve_volume, create_ctr_def_ctrls)
+		def_chain = super().make_def_chain(str_chain)
 
 		last_def = def_chain[-1]
 		if last_def == def_chain[0]:
