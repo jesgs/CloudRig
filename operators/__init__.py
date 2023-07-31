@@ -1,15 +1,19 @@
-from . import flatten_chain
-from . import toggle_metarig
-from . import assign_bone_layers
-from . import toggle_action_constraints
-from . import edit_widget
-from . import bone_selection_pie_ops
+from . import (
+    assign_bone_group,
+    assign_bone_layers,
+    bone_selection_pie_ops,
+    edit_widget,
+    flatten_chain,
+    toggle_action_constraints,
+    toggle_metarig,
+)
 
 modules = [
-	flatten_chain
-	,toggle_metarig
-	,assign_bone_layers
-	,toggle_action_constraints
-	,edit_widget
-    ,bone_selection_pie_ops
+    assign_bone_group,
+    assign_bone_layers,
+    bone_selection_pie_ops,
+    edit_widget,
+    flatten_chain,
+    toggle_action_constraints,
+    toggle_metarig,
 ]
