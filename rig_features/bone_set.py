@@ -333,6 +333,7 @@ class BoneSetMixin:
 			,move_operators = False
 			,type='GRID' if cloudrig.bone_set_use_grid_layout else 'DEFAULT'
 			,columns=3
+			,unique_id="CloudRig Bone Sets"
 		)
 		eye_icon = 'HIDE_OFF' if rigify_params.CR_show_advanced_bone_sets else 'HIDE_ON'
 		list_column.prop(rigify_params, 'CR_show_advanced_bone_sets', text="", emboss=False, icon=eye_icon)
