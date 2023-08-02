@@ -34,7 +34,7 @@ class CloudCopyRig(CloudBaseRig):
 		bi.name = self.orgless_name
 
 		if not bi.use_custom_shape_bone_size:
-			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
+			bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
 
 		meta_bone = self.meta_bone(self.orgless_name)
 		bi.layers = meta_bone.bone.layers[:]
