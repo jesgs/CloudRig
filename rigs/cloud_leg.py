@@ -84,7 +84,7 @@ class CloudLegRig(CloudLimbRig):
 
 		# IK Foot setup, including Foot Roll
 		if self.params.CR_leg_use_foot_roll:
-			self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.bones_org[-2:])
+			self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.bones_org)
 
 			# For FK->IK snapping to work properly when the IK control is world-aligned,
 			# we need a world-aligned child of the IK bone.
@@ -151,7 +151,7 @@ class CloudLegRig(CloudLimbRig):
 	def make_fk_chain(self, org_chain) -> List[BoneInfo]:
 		"""Overrides cloud_fk_chain."""
 		fk_chain = super().make_fk_chain(org_chain)
-		self.fk_toe = org_chain[3].fk_bone
+		self.fk_toe = org_chain[-1].fk_bone
 		return fk_chain
 
 	def world_align_last_fk(self):
@@ -186,18 +186,19 @@ class CloudLegRig(CloudLimbRig):
 
 	def make_footroll(self, ik_tgt, ik_chain, org_chain):
 		ik_foot = ik_chain[0]
+		thigh, knee, foot, toe = org_chain
 
 		rolly_stretchy = self.bone_sets['IK Mechanism'].new(
-			name		 = self.bones_org[0].name.replace("ORG", "IK-STR-ROLL")
-			,source		 = self.bones_org[0]
+			name		 = thigh.name.replace("ORG", "IK-STR-ROLL")
+			,source		 = thigh
 			,tail		 = self.ik_mstr.head.copy()
 			,parent		 = self.root_bone
 		)
 		rolly_stretchy.scale_width(0.4)
 		rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
 
-		sliced_name = self.naming.slice_name(ik_foot.name)
-		master_name = self.naming.make_name(["ROLL", "MSTR"], sliced_name[1], sliced_name[2])
+		_prefixes, base_name, suffixes = self.naming.slice_name(foot.name)
+		master_name = self.naming.make_name(["ROLL", "MSTR"], base_name, suffixes)
 		roll_master = self.bone_sets['IK Mechanism'].new(
 			name		 = master_name
 			,source		 = self.ik_mstr
@@ -207,12 +208,10 @@ class CloudLegRig(CloudLimbRig):
 		self.ik_tgt_bone.clear_constraints()
 
 		# Create ROLL control behind the foot
-		knee = self.bones_org[1]
-		toe = self.bones_org[-1]
 		head, tail = self.calc_footroll_headtail(knee, toe, self.scale)
 
 		roll_ctrl = self.bone_sets['IK Controls'].new(
-			name		  = self.naming.make_name(["ROLL"], sliced_name[1], sliced_name[2])
+			name		  = self.naming.make_name(["ROLL"], base_name, suffixes)
 			,bbone_width  = 1/18
 			,head		  = head
 			,tail		  = tail
@@ -246,12 +245,12 @@ class CloudLegRig(CloudLimbRig):
 			self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
 
 		heel_pivot = self.bone_sets['IK Mechanism'].new(
-			name		  = "IK-RollBack" + self.naming.suffix_separator + self.side_suffix
-			,bbone_width  = self.bones_org[-1].bbone_width
+			name		  = "IK-RollBack" + base_name + self.naming.suffix_separator + self.side_suffix
+			,bbone_width  = toe.bbone_width
 			,head		  = heel_pivot_bone.head_local
 			,tail		  = heel_pivot_bone.head_local + Vector((0, -self.scale*0.1, 0))
 			,roll_type	  = 'VECTOR'
-			,roll_vector  = self.bones_org[-1].z_axis
+			,roll_vector  = toe.z_axis
 			,parent		  = roll_master
 		)
 
@@ -265,7 +264,7 @@ class CloudLegRig(CloudLimbRig):
 
 		# Create reverse bones
 		rik_chain = []
-		for i, b in reversed(list(enumerate(org_chain))):
+		for i, b in reversed(list(enumerate([foot, toe]))):
 			rik_bone = self.bone_sets['Foot Reverse IK Controls'].new(
 				name		  = b.name.replace("ORG", "RIK")
 				,source		  = b
