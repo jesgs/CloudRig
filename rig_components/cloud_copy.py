@@ -36,7 +36,7 @@ class Component_CopyBone(Component_Base):
 		bi.name = self.orgless_name
 
 		if not bi.use_custom_shape_bone_size:
-			bi.custom_shape_scale /= bi.bbone_width * 10 * self.scale
+			bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
 
 		meta_bone = self.meta_bone(self.orgless_name)
 		assert meta_bone, f'Bone "{self.orgless_name}" not found in MetaRig'
