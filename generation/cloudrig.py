@@ -1365,11 +1365,14 @@ def draw_rig_settings(layout: UILayout, rig: Object, ui_data: Dict):
 		# If there is more than one, they will be drawn next to each other, since they're in the same row.
 		for entry_name in row_entries.keys():
 			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-			assert 'prop_bone' in info and 'prop_id' in info, f"Limb definition lacks properties bone or prop ID: {row_name}, {info}"
+			if not 'prop_bone' in info and 'prop_id' in info:
+				print(f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{info}")
+				continue
 			prop_bone = rig.pose.bones.get(info['prop_bone'])
 			prop_id = info['prop_id']
-			assert prop_bone and prop_id in prop_bone, f"Properties bone or property does not exist: {info}"
-
+			if not prop_bone and prop_id in prop_bone:
+				print(f"CloudRig UI Error: Properties bone or property does not exist: {info}")
+				continue
 			col = row.column()
 			sub_row = col.row(align=True)
 
