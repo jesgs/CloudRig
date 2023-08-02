@@ -14,6 +14,7 @@ class CloudSplineIKRig(CloudCurveRig):
 	relinking_behaviour = "Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled."	# TODO: Gray this out otherwise!
 
 	forced_params = {
+		'CR_curve_x_axis_symmetry' : False,
 		# 'CR_curve_target' : None TODO: This shouldn't be user-modifiable, but it also can't be set to None, because we need the curve reference in create_curve_object().
 	}
 
@@ -68,6 +69,11 @@ class CloudSplineIKRig(CloudCurveRig):
 			for spline in curve_ob.data.splines[:]:
 				curve_ob.data.splines.remove(spline)
 			spline = curve_ob.data.splines.new(type='BEZIER')
+			# Remove all Hook modifiers. They seem to cause an issue where deform bones get created at 0,0,0...
+			# Blows my mind, don't ask me.
+			for m in curve_ob.modifiers[:]:
+				if m.type == 'HOOK':
+					curve_ob.modifiers.remove(m)
 		else:
 			# Create and name curve object.
 			curve = bpy.data.curves.new(curve_name, 'CURVE')
@@ -110,7 +116,10 @@ class CloudSplineIKRig(CloudCurveRig):
 			for i in range(0, segments):
 				## Create Deform bones
 				def_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", "")
-				def_name = "DEF-" + def_name + "_" + str(count_def_bone).zfill(3)
+				prefixes, base, suffixes = self.naming.slice_name(def_name)
+				suffixes.insert(0, str(count_def_bone).zfill(3))
+				prefixes.insert(0, "DEF")
+				def_name = self.naming.make_name(prefixes, base, suffixes)
 				count_def_bone += 1
 
 				unit = org_bone.vector / segments
