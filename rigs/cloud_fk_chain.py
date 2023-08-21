@@ -393,7 +393,8 @@ class CloudFKChainRig(CloudChainRig, CloudAnimationMixin):
 
 		cls.draw_prop(layout, params, 'CR_fk_chain_root')
 		row = cls.draw_prop(layout.row(), params, 'CR_fk_chain_hinge')
-		row.enabled = params.CR_fk_chain_root and cloudrig.create_root
+		if row:
+			row.enabled = params.CR_fk_chain_root and cloudrig.create_root
 
 		if not cls.is_advanced_mode(context):
 			return

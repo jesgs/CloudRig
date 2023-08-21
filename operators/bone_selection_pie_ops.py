@@ -33,21 +33,27 @@ def ensure_visible_bone_layer(bone: Bone or EditBone or PoseBone):
 				armature.layers[i] = True
 				return
 
-def increment_bone_name(bone_name: str, increment: int):
-	# Increment LAST number in the name.
-	# TODO: Use RegEx to support more than a single digit here.
-	for i, c in enumerate(list(reversed(bone_name))):
-		if c.isdecimal():
-			num = int(c)
-			return bone_name.replace(c, str(num+increment))
-	return bone_name
-
 def get_selected_bones(context):
 	"""Return a list of Bones or EditBones depending on context."""
 	if context.mode == 'EDIT_ARMATURE':
 		return context.selected_editable_bones[:]
 	else:
 		return [pb.bone for pb in context.selected_pose_bones]
+
+def get_active_bone(context):
+	"""Return active PoseBone or EditBone, depending on context."""
+	if context.mode == 'EDIT_ARMATURE':
+		return context.active_bone
+	else:
+		return context.active_pose_bone
+
+def get_bone_by_name(context, bone_name: str):
+	"""Return PoseBone or EditBone with the given name, depending on context."""
+	obj = context.pose_object or context.object
+	if context.mode == 'EDIT_ARMATURE':
+		return obj.data.edit_bones.get(bone_name)
+	else:
+		return obj.pose.bones.get(bone_name)
 
 def is_active_bone(context, bone: Bone or EditBone or PoseBone):
 	"""Return whether the passed bone is the active one"""
@@ -85,7 +91,7 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 		if bone.name in context.object.vertex_groups:
 			context.object.vertex_groups.active = context.object.vertex_groups[bone.name]
 
-def reveal_and_select(context, bone: Bone or EditBone or PoseBone):
+def reveal_and_select(context, bone: Bone or EditBone or PoseBone, set_active=True):
 	if type(bone) == PoseBone:
 		bone = bone.bone
 	bone.hide = False
@@ -93,6 +99,9 @@ def reveal_and_select(context, bone: Bone or EditBone or PoseBone):
 	if context.mode == 'EDIT_ARMATURE':
 		bone.select_head = True
 		bone.select_tail = True
+	if set_active:
+		set_active_bone(context, bone)
+
 
 class BoneSelectOperatorMixin:
 	extend_selection: BoolProperty(
@@ -223,7 +232,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
 					sliced = naming.slice_name(bone_name)
 					bone_name = naming.make_name(sliced[0], sliced[1], [self.suffix])
 
-			bone_name = increment_bone_name(bone_name, self.increment)
+			bone_name = naming.increment_name(bone_name, self.increment)
 
 			if context.mode == 'EDIT_ARMATURE':
 				target_bone = rig.data.edit_bones.get(bone_name)
@@ -241,7 +250,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
 				continue
 
 			ensure_visible_bone_layer(target_bone)
-			reveal_and_select(context, target_bone)
+			reveal_and_select(context, target_bone, set_active=False)
 
 		set_active_bone(context, active_target_bone)
 
@@ -270,8 +279,48 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
 		return {'FINISHED'}
 
 
+class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
+	"""Search for a bone name to select"""
+	bl_idname = "bone.select_by_name_search"
+	bl_label = "Search Bone"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	bone_name: StringProperty(name="Bone")
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	def invoke(self, context, _event):
+		bone = get_active_bone(context)
+		if bone:
+			self.bone_name = bone.name
+		return context.window_manager.invoke_props_dialog(self)
+
+	def draw(self, context):
+		layout = self.layout
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		rig = context.pose_object or context.object
+		if context.mode == 'EDIT_ARMATURE':
+			layout.prop_search(self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA')
+		else:
+			layout.prop_search(self, 'bone_name', rig.data, 'bones', icon='BONE_DATA')
+		layout.prop(self, 'extend_selection')
+
+	def execute(self, context):
+		bone = get_bone_by_name(context, self.bone_name)
+		if not self.extend_selection:
+			deselect_all_bones(context)
+
+		ensure_visible_bone_layer(bone)
+		reveal_and_select(context, bone)
+
+		return {'FINISHED'}
+
 registry = [
 	POSE_OT_select_bone_by_name,
 	POSE_OT_select_bone_by_name_relation,
-	POSE_OT_select_parent_bone
+	POSE_OT_select_parent_bone,
+	POSE_OT_select_bone_by_name_search,
 ]

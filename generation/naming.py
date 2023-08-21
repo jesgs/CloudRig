@@ -29,8 +29,6 @@ class CloudNameManager:
 	def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
 		return make_name(prefixes, base, suffixes)
 
-
-
 	def slice_name(self, thing) -> Tuple[ List[str], str, List[str] ]:
 		return slice_name(get_name(thing))
 
@@ -49,6 +47,9 @@ class CloudNameManager:
 
 	def side_is_left(self, thing) -> Optional[bool]:
 		return side_is_left(get_name(thing))
+
+	def increment_name(self, thing) -> str:
+		return increment_name(thing)
 
 	def add_prefix(self, thing, new_prefix) -> str:
 		"""The most common case of making a bone name based on another one is to add a prefix to it."""
@@ -323,3 +324,20 @@ def side_is_left(name) -> Optional[bool]:
 
 	# If left and right were both found somewhere, I give up.
 	return None
+
+def increment_name(thing: Any, increment: int):
+	# Increment LAST number in the name.
+	# Negative numbers will be clamped to 0.
+	# Digit length will be preserved, so 10 will decrement to 09.
+	# 99 will increment to 100, not 00.
+
+	name = get_name(thing)
+
+	numbers_in_name = re.findall(r'\d+', name)
+	if not numbers_in_name:
+		return name + str(max(0, increment))
+	
+	last = numbers_in_name[-1]
+	incremented = str( max(0, int(last) + increment) ).zfill(len(last))
+	split = name.rsplit(last, 1)
+	return incremented.join(split)
