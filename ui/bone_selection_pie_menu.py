@@ -161,28 +161,28 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         pie = layout.menu_pie()
 
         # 1) < Parent Bone.
-        if active_pb.parent:
-            op = pie.operator('pose.select_parent_bone', text="Parent: " + active_pb.parent.name, icon='BONE_DATA')
+        if active_bone.parent:
+            op = pie.operator('pose.select_parent_bone', text="Parent: " + active_bone.parent.name, icon='BONE_DATA')
         else:
             pie.separator()
 
         # 2) > Child Bone(s).
-        if len(active_pb.children) == 1:
+        if len(active_bone.children) == 1:
             child = active_pb.children[0]
             if child:
                 # Sometimes child can be none...? I don't get how.
                 op = pie.operator('pose.select_bone_by_name', text="Child: "+child.name, icon='BONE_DATA')
                 op.bone_name = child.name
-        elif len(active_pb.children) > 1:
+        elif len(active_bone.children) > 1:
             pie.menu('POSE_MT_PIE_child_bones', icon='COLLAPSEMENU')
         else:
             pie.separator()
 
         # 3) v Lower number bone
-        lower_bone = rig.pose.bones.get(naming.increment_name(active_pb.name, increment=-1))
-        if not lower_bone and active_pb.name.startswith("STR"):
+        lower_bone = rig.pose.bones.get(naming.increment_name(active_bone.name, increment=-1))
+        if not lower_bone and active_bone.name.startswith("STR"):
             # TODO: Should probably change the bone naming of CloudRig, to remove the TIP- suffix, and just increment the bone name instead.
-            prev_name = active_pb.name.replace("STR-TIP", "STR")
+            prev_name = active_bone.name.replace("STR-TIP", "STR")
             lower_bone = rig.pose.bones.get(prev_name)
             op = pie.operator('pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN')
             op.bone_name = prev_name
@@ -193,10 +193,10 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             pie.separator()
 
         # 4) ^ Higher number bone
-        higher_bone = rig.pose.bones.get(naming.increment_name(active_pb.name, increment=1))
-        if not higher_bone and active_pb.name.startswith("STR"):
+        higher_bone = rig.pose.bones.get(naming.increment_name(active_bone.name, increment=1))
+        if not higher_bone and active_bone.name.startswith("STR"):
             # TODO: Should probably change the bone naming of CloudRig, to remove the TIP- suffix, and just increment the bone name instead.
-            tip_name = active_pb.name.replace("STR", "STR-TIP")
+            tip_name = active_bone.name.replace("STR", "STR-TIP")
             higher_bone = rig.pose.bones.get(tip_name)
             if higher_bone:
                 op = pie.operator('pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP')
@@ -228,10 +228,10 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             pie.separator()
 
         # 7) <v BBone Handle Start & End <OR> Corresponding Deform Bone.
-        start = active_pb.bbone_custom_handle_start
-        end = active_pb.bbone_custom_handle_end
+        start = active_bone.bbone_custom_handle_start
+        end = active_bone.bbone_custom_handle_end
 
-        sliced = naming.slice_name(active_pb.name)
+        sliced = naming.slice_name(active_bone.name)
         new_name = naming.make_name(["DEF"], sliced[1], sliced[2])
         def_bone = rig.pose.bones.get(new_name)
         if start or end:
@@ -242,7 +242,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             if end:
                 op = col.operator('pose.select_bone_by_name', text="End Handle: " + end.name, icon='OUTLINER_OB_CURVE')
                 op.bone_name = end.name
-        elif def_bone and def_bone.name != active_pb.name:
+        elif def_bone and def_bone.name != active_bone.name:
             op = pie.operator('pose.select_bone_by_name_relation', text="Deform Bone: " + def_bone.name, icon='BONE_DATA')
             op.prefix="DEF"
         else:
