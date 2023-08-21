@@ -330,7 +330,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
 		cls.draw_prop(layout, params.fk_chain, 'root')
 		row = cls.draw_prop(layout.row(), params.fk_chain, 'hinge')
-		row.enabled = root and cloudrig.create_root
+		if row:
+			row.enabled = params.fk_chain.root and cloudrig.create_root
 
 		if not cls.is_advanced_mode(context):
 			return
