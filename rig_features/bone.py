@@ -296,10 +296,25 @@ class BoneInfo:
 		if scale_width:
 			self.scale_width(scale_width)
 
-	def flatten(self):
-		self.vector = flat(self.vector)
+	def flatten(self, axis=""):
+		if axis:
+			length = self.length
+			if axis == 'X':
+				self.tail.y = self.head.y
+				self.tail.z = self.head.z
+			elif axis == 'Y':
+				self.tail.x = self.head.x
+				self.tail.z = self.head.z
+			elif axis == 'Z':
+				self.tail.x = self.head.x
+				self.tail.y = self.head.y
+			self.length = length
+		else:
+			self.vector = flat(self.vector)
+
 		from math import pi
 		deg = self.roll*180/pi
+
 		# Round to nearest 90 degrees.
 		rounded = round(deg/90)*90
 		self.roll = pi/180*rounded
