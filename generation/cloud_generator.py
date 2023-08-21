@@ -229,6 +229,10 @@ class CloudGenerator(Generator):
 					if exists:
 						return exists
 
+		# If the name wasn't found in any rig component's bone sets,
+		# maybe it's in the root set that's owned by the Generator.
+		return self.root_set.find(name)
+
 	def rigify_assign_layers(self):
 		""" Rigify compatibility function: Assign ORG/MCH/DEF layers, only to non-CloudRig types. """
 		cloudrig_bones = []
