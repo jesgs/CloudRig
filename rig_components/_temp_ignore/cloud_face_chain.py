@@ -55,20 +55,27 @@ def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 	return clusters
 
 def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anchor=False):
-	# If bones are in the center, flatten them to make sure they produce a clean curvature.
-	# This is important for things like the teeth or the lips, which are one rig
-	# component on each side that meet in the center, and are expected to make a smooth curve.
-
+	# If bones are in the center, flatten them along the X axis to make sure 
+	# they produce a clean curvature. This is important for things like the 
+	# teeth or the lips, which are one rig element on each side that meet in 
+	# the center, and are expected to make a smooth curve.
 	rig = cluster[0].owner_rig
+
+	pos_sum = cluster[0].head.copy()
+	for c in cluster[1:]:
+		pos_sum += c.head
+	avg_pos = pos_sum / len(cluster)
 
 	if not is_anchor:
 		intersection.vector = Vector((0, 0, intersection.length))
 		intersection.roll = 0
+		intersection.roll_type = 'VECTOR'
+		intersection.roll_vector = avg_pos
 
 	for b in cluster:
-		b.flatten()
+		b.flatten(axis='X')
 		if has_tangent_helpers(b.owner_rig):
-			b.tangent_helper.flatten()
+			b.tangent_helper.flatten(axis='X')
 		if b.owner_rig.params.chain.smooth_spline:
 			flipped_name = rig.naming.flipped_name(b)
 			if flipped_name == b.name:
