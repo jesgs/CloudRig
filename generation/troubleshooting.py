@@ -230,7 +230,7 @@ class CloudLogManager:
 		"""Add a log entry to the metarig object's data.
 		This is the lowest level function that should be used.
 		"""
-		entry = self.metarig.data.cloudrig_parameters.logs.add()
+		entry = self.metarig.data.cloudrig.generator.logs.add()
 		entry.pretty_stack = get_pretty_stack()
 		entry.owner_bone = owner_bone
 		entry.trouble_bone = trouble_bone
@@ -269,9 +269,9 @@ class CloudLogManager:
 		return entry
 
 	def clear(self):
-		cloudrig = self.metarig.data.cloudrig_parameters
-		cloudrig.logs.clear()
-		cloudrig.active_log_index = 0
+		generator = self.metarig.data.cloudrig.generator
+		generator.logs.clear()
+		generator.active_log_index = 0
 
 	####################################################################
 	# Functions for finding various issues at the end of rig generation.
@@ -414,7 +414,7 @@ class CloudLogManager:
 		has a keyframe and the keyframe has default transform values.
 		"""
 
-		action_slots = self.metarig.data.cloudrig_parameters.action_slots
+		action_slots = self.metarig.data.cloudrig.generator.action_slots
 		for i, action_slot in enumerate(action_slots):
 			if not action_slot.enabled: continue
 			action = action_slot.action
@@ -591,24 +591,24 @@ class CLOUDRIG_PT_log(Panel):
 
 	def draw(self, context):
 		metarig = context.object
-		cloudrig = metarig.data.cloudrig_parameters
-		logs = cloudrig.logs
+		generator = metarig.data.cloudrig.generator
+		logs = generator.logs
 		layout = self.layout
 		row = layout.row()
 
 		row.template_list(
 			'CLOUDRIG_UL_log_entry_slots',
 			'',
-			cloudrig,
+			generator,
 			'logs',
-			cloudrig,
+			generator,
 			'active_log_index',
 		)
 
 		if len(logs)==0:
 			return
 
-		log = cloudrig.active_log
+		log = generator.active_log
 
 		layout.use_property_split = False
 
@@ -664,15 +664,15 @@ class CLOUDRIG_PT_stack_trace(Panel):
 
 	@classmethod
 	def poll(cls, context):
-		cloudrig = context.object.data.cloudrig_parameters
-		if not cloudrig.active_log:
+		generator = context.object.data.cloudrig.generator
+		if not generator.active_log:
 			return False
-		display_mode = cloudrig.active_log.display_stack_trace
+		display_mode = generator.active_log.display_stack_trace
 		return display_mode == 'ALWAYS' or display_mode == 'ADVANCED' and is_advanced_mode(context)
 
 	def draw(self, context):
-		cloudrig = context.object.data.cloudrig_parameters
-		draw_label_with_linebreak(self.layout, cloudrig.active_log.pretty_stack, alert=True)
+		generator = context.object.data.cloudrig.generator
+		draw_label_with_linebreak(self.layout, generator.active_log.pretty_stack, alert=True)
 
 class CLOUDRIG_OT_Jump_To_Bone(Operator):
 	"""Change context to make a bone visible and active in the metarig or generated rig."""
@@ -995,7 +995,7 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
 
 	def execute(self, context):
 		metarig = context.object
-		action_slots = metarig.data.cloudrig_parameters.action_slots
+		action_slots = metarig.data.cloudrig.generator.action_slots
 		action_slot = action_slots[self.action_slot_idx]
 
 		curves_removed = 0
@@ -1026,7 +1026,7 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
 
-		action_slots = metarig.data.cloudrig_parameters.action_slots
+		action_slots = metarig.data.cloudrig.generator.action_slots
 		action_slot = action_slots[self.action_slot_idx]
 
 		layout = self.layout
@@ -1039,17 +1039,17 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 
 
 def remove_active_log(metarig: Object):
-	cloudrig = metarig.data.cloudrig_parameters
-	logs = cloudrig.logs
+	generator = metarig.data.cloudrig.generator
+	logs = generator.logs
 
-	active_index = cloudrig.active_log_index
+	active_index = generator.active_log_index
 	# This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
 	to_index = active_index
 	if to_index > len(logs)-2:
 		to_index = len(logs)-2
 
-	cloudrig.logs.remove(active_index)
-	cloudrig.active_log_index = to_index
+	generator.logs.remove(active_index)
+	generator.active_log_index = to_index
 
 registry = [
 	CLOUDRIG_UL_log_entry_slots

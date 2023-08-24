@@ -55,6 +55,7 @@ class CLOUDRIG_PT_rig_components(Panel):
             active_index_path = 'object.data.cloudrig.active_rig_component_index',
             insertion_operators = True,
             move_operators = True,
+            unique_id = 'CloudRig Rig Component List'
         )
 
 registry = [

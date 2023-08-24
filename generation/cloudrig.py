@@ -1660,13 +1660,13 @@ def draw_layers_ui(
 		layer_prop_owner = data
 
 	# Hidden layers will only work if CloudRig is enabled.
-	is_cloudrig_enabled = hasattr(data, 'cloudrig_parameters')
+	is_cloudrig_enabled = hasattr(data, 'cloudrig')
 	show_hidden = False
 	if is_cloudrig_enabled:
-		cloudrig = data.cloudrig_parameters
+		cloudrig = data.cloudrig
 		if show_hidden_checkbox:
-			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden Layers")
-		show_hidden = cloudrig.show_layers_preview_hidden
+			layout.prop(cloudrig.generator, 'show_layers_preview_hidden', text="Show Hidden Layers")
+		show_hidden = cloudrig.generator.show_layers_preview_hidden
 
 	if 'rigify_layers' not in data:
 		row = layout.row()

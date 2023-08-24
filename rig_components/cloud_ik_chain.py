@@ -146,7 +146,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 			,parent		  = None
 		)
 
-		if not self.generator_params.cloudrig_parameters.create_root:
+		if not self.generator_params.create_root:
 			# If there's no rig root bone, parent the IK master to the component's root.
 			# Although ideally, components with IK chains in them should really have a root bone.
 			ik_master.parent = self.bones_org[0].parent
@@ -537,7 +537,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 		if self.params.CR_base_parent_switching and len(self.params.parenting.parent_slots) > 0:
 			_parent_ui_names, parent_bone_names = self.sanitize_parent_list(self.params.parenting.parent_slots)
 			first_parent = parent_bone_names[0]
-		elif self.generator_params.cloudrig_parameters.create_root:
+		elif self.generator_params.create_root:
 			first_parent = 'root'
 		else:
 			first_parent = self.bones_org[0].parent

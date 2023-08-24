@@ -27,7 +27,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
 		self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
-		if not (self.params.fk_chain.root and self.generator_params.cloudrig_parameters.create_root):
+		if not (self.params.fk_chain.root and self.generator_params.create_root):
 			self.params.fk_chain.hinge = False
 
 	def create_bone_infos(self):
@@ -323,7 +323,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 	def draw_control_params(cls, layout, context, params):
 		super().draw_control_params(layout, context, params)
 
-		cloudrig = context.object.data.cloudrig_parameters
+		generator = context.object.data.cloudrig.generator
 
 		layout.separator()
 		cls.draw_control_label(layout, "FK")
@@ -331,7 +331,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		cls.draw_prop(layout, params.fk_chain, 'root')
 		row = cls.draw_prop(layout.row(), params.fk_chain, 'hinge')
 		if row:
-			row.enabled = params.fk_chain.root and cloudrig.create_root
+			row.enabled = params.fk_chain.root and generator.create_root
 
 		if not cls.is_advanced_mode(context):
 			return
@@ -343,7 +343,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 	@classmethod
 	def draw_anim_params(cls, layout, context, params):
 		col = layout.column()
-		col.enabled = params.test_animation_generate
+		col.enabled = params.fk_chain.test_animation_generate
 
 		row = col.row()
 		row.prop(params.fk_chain, 'test_animation_rotation_range', index=0)
@@ -359,8 +359,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		if super().is_using_custom_props(context, params):
 			return True
 
-		cloudrig = context.object.data.cloudrig_parameters
-		if hinge and root and cloudrig.create_root:
+		cloudrig = context.object.data.cloudrig.generator
+		if params.fk_chain.hinge and params.fk_chain.root and cloudrig.create_root:
 			return True
 
 class Params(PropertyGroup):

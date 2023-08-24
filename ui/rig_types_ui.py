@@ -55,7 +55,7 @@ class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
 	def poll(cls, context):
 		if not super().poll(context):
 			return False
-		return context.object.data.cloudrig_parameters.generate_test_action
+		return context.object.data.cloudrig.generator.generate_test_action
 
 	def draw_header(self, context):
 		layout = self.layout

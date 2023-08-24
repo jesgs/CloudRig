@@ -108,7 +108,7 @@ class Component_Base(
 			self.side_suffix = "R"
 			self.side_prefix = "Right"
 
-		self.generator_params = self.generator.metarig.data
+		self.generator_params = self.generator.params
 		self.defaults = dict(self.generator.defaults)
 
 		self.scale = self.generator.scale

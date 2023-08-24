@@ -28,7 +28,7 @@ class CloudUIMixin:
 		rig = prop_owner.id_data
 
 		is_forced = prop_name in cls.forced_params.keys()
-		if is_forced and not rig.data.cloudrig_parameters.advanced_mode:
+		if is_forced and not rig.data.cloudrig.advanced_mode:
 			return
 
 		row = draw_prop(layout, prop_owner, prop_name, **kwargs)
@@ -42,7 +42,7 @@ class CloudUIMixin:
 		rig = prop_owner.id_data
 		
 		is_forced = prop_name in cls.forced_params.keys()
-		if is_forced and not rig.data.cloudrig_parameters.advanced_mode:
+		if is_forced and not rig.data.cloudrig.advanced_mode:
 			return
 
 		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs)

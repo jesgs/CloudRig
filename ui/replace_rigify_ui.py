@@ -56,7 +56,7 @@ def extend_rigify_advanced_panel(self, context):
 	layout.use_property_decorate=False
 	layout = layout.column()
 
-	cloudrig = metarig.data.cloudrig_parameters
+	generator = metarig.data.cloudrig.generator
 
 	layout.label(text="CloudRig")
 
@@ -64,34 +64,34 @@ def extend_rigify_advanced_panel(self, context):
 	layout.separator()
 
 	# Bone Group Color Parameters
-	layout.prop(metarig.data, "rigify_colors_lock", text="Unified Select/Active Colors")
-	if metarig.data.rigify_colors_lock:
-		layout.prop(metarig.data.rigify_selection_colors, "select", text="Select Color")
-		layout.prop(metarig.data.rigify_selection_colors, "active", text="Active Color")
-		layout.separator()
+	# layout.prop(metarig.data, "rigify_colors_lock", text="Unified Select/Active Colors")
+	# if metarig.data.rigify_colors_lock:
+	# 	layout.prop(metarig.data.rigify_selection_colors, "select", text="Select Color")
+	# 	layout.prop(metarig.data.rigify_selection_colors, "active", text="Active Color")
+	# 	layout.separator()
 
 	### Root Bone Parameters
-	layout.prop(cloudrig, 'create_root')
-	if cloudrig.create_root and cloudrig.advanced_mode:
-		layout.prop(cloudrig, 'double_root')
+	layout.prop(generator, 'create_root')
+	if generator.create_root and generator.advanced_mode:
+		layout.prop(generator, 'double_root')
 		layout.separator()
 
 	# Test Animation Parameters
 	if metarig_contains_fk_chain(metarig):
 		heading = "Generate Action"
-		if cloudrig.test_action:
+		if generator.test_action:
 			heading = "Update Action"
 		act_row = layout.row(heading=heading)
-		act_row.prop(cloudrig, 'generate_test_action', text="")
+		act_row.prop(generator, 'generate_test_action', text="")
 		act_col = act_row.column()
-		act_col.prop(cloudrig, 'test_action', text="")
-		act_col.enabled = cloudrig.generate_test_action
+		act_col.prop(generator, 'test_action', text="")
+		act_col.enabled = generator.generate_test_action
 
-	if not cloudrig.advanced_mode:
+	if not generator.advanced_mode:
 		return
 
 	if check_addon(context, 'bone_gizmos'):
-		layout.prop(cloudrig, 'auto_setup_gizmos')
+		layout.prop(generator, 'auto_setup_gizmos')
 
 @classmethod
 def rigify_bone_groups_poll(cls, context):
@@ -113,7 +113,6 @@ def draw_cloud_layer_names(self, context):
 		return
 
 	arm = obj.data
-	cloudrig = arm.cloudrig_parameters
 	layout = self.layout
 
 	# Ensure that the layers exist
@@ -191,7 +190,7 @@ def draw_rigify_types(self, context):
 				col = layout.column()
 				rig.parameters_ui(layout, posebone.rigify_parameters)
 
-	layout.prop(metarig.data.cloudrig_parameters, 'advanced_mode', text="Show Advanced Options")
+	layout.prop(metarig.data.cloudrig, 'advanced_mode', text="Show Advanced Options")
 
 def register():
 	# Hijack Rigify panels' draw functions.

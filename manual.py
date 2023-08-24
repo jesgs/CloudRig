@@ -5,7 +5,7 @@ from . import rig_components
 def cloudrig_manual_map():
 	url_manual_prefix = "https://gitlab.com/blender/CloudRig/-/wikis/"
 	params_pref = "bpy.types.rigifyparameters.cr_"
-	generator_params_pref = "bpy.types.cloudrigproperties."
+	generator_params_pref = "bpy.types.generatorproperties."	# TODO: This is probably wrong.
 
 	cloud_types_pref = "CloudRig-Types#cloud_"
 
