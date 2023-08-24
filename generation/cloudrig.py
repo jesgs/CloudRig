@@ -19,27 +19,25 @@ from bpy.types import Object, UILayout
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 
-def is_cloudrig(obj):
-	"""Return whether obj is marked as being compatible with this script file."""
-	return obj.type=='ARMATURE' and (
-			('rig_id' in obj.data and obj.data['rig_id'] == 'cloudrig') or \
-			('cloudrig' in obj.data)
-		)
+def is_cloudrig_ui_enabled(obj):
+	"""Return whether obj is marked as being compatible with cloudrig.py."""
+	return obj.type=='ARMATURE' and \
+			('allow_cloudrig_ui' in obj.data and obj.data['allow_cloudrig_ui'])
 
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """
-	return [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloudrig(o)]
+	return [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloudrig_ui_enabled(o)]
 
 def is_active_cloudrig(context):
 	""" If the active object is a cloudrig, return it. """
 	rig = context.pose_object or context.object
-	if rig and is_cloudrig(rig):
+	if rig and is_cloudrig_ui_enabled(rig):
 		return rig
 
 def is_active_cloud_metarig(context):
 	""" If the active object is a cloud metarig, return it. """
 	rig = context.pose_object or context.object
-	if rig and rig.type=='ARMATURE' and not is_cloudrig(rig):
+	if rig and rig.type=='ARMATURE' and not is_cloudrig_ui_enabled(rig):
 		for pb in rig.pose.bones:
 			if not hasattr(pb, 'rigify_type'):
 				return None
@@ -1660,9 +1658,9 @@ def draw_layers_ui(
 		layer_prop_owner = data
 
 	# Hidden layers will only work if CloudRig is enabled.
-	is_cloudrig_enabled = hasattr(data, 'cloudrig')
+	is_cloudrig_ui_enabled_enabled = hasattr(data, 'cloudrig')
 	show_hidden = False
-	if is_cloudrig_enabled:
+	if is_cloudrig_ui_enabled_enabled:
 		cloudrig = data.cloudrig
 		if show_hidden_checkbox:
 			layout.prop(cloudrig.generator, 'show_layers_preview_hidden', text="Show Hidden Layers")

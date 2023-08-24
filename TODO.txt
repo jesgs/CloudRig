@@ -3,7 +3,6 @@ Priority 0: Re-write as standalone add-on
 		- Convert all bone set definitions to the new system. (monkey work)
 
 	- Re-write the Generator... (this will be the hardest part)
-		- Expose the Generate operator in the UI again.
 		- Re-implement or remove support for any generator properties that we're using from Rigify, like the "unified selected/active" colors, which imo should go away. But "Force Widget Update" we probably want to keep.
 		- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
 			- That said, this could stay in generator.py instead of properties.py

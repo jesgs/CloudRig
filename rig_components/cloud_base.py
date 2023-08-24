@@ -4,7 +4,6 @@ from typing import List, Tuple, Dict
 
 # Component_Base parent classes
 from ..generation.troubleshooting import LoggerMixin
-from rigify.base_rig import BaseRig
 from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.bone import BoneInfo
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
@@ -34,7 +33,6 @@ class DEFAULT_LAYERS:
 
 class Component_Base(
 					LoggerMixin,
-					BaseRig,
 					CloudParentingMixin,
 					CloudMechanismMixin,
 					CloudObjectUtilitiesMixin,
@@ -54,6 +52,19 @@ class Component_Base(
 	chain_must_be_connected = True
 
 	ui_name = "Cloud Base (Should not be visible in UI!)"
+
+	def __init__(self, generator: 'CloudRig_Generator', bone_name: str):
+		self.generator = generator
+
+		# self.obj = generator.obj
+		self.metarig = generator.metarig
+		self.base_bone_name = bone_name
+
+		pose_bone = self.metarig.pose.bones.get(bone_name)
+		self.params = pose_bone.cloudrig_component.params
+
+		self.parent_component = None
+		self.child_components = []
 
 	def get_bone_set_definitions() -> Dict:
 		bone_set_definitions = {

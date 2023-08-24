@@ -8,9 +8,7 @@ from bone_selection_sets import from_json, to_json
 from mathutils import Matrix, Vector
 from datetime import datetime
 
-from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX, change_name_side, Side
-from rigify.utils.layers import ORG_LAYER, MCH_LAYER, DEF_LAYER
-from rigify.generate import Generator, select_object
+from rigify.utils.naming import change_name_side, Side
 
 from rigify.utils.action_layers import ActionLayerBuilder
 from rigify.utils.mechanism import refresh_all_drivers
@@ -82,13 +80,49 @@ class GeneratorProperties(PropertyGroup):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
 
+class CloudRig_Generator_Base:
+    def instantiate_rig_components(self):
+        """Create rig instances and connect them into a tree."""
 
-class CloudGenerator:
+        # assert(context.active_object == self.obj)
+        # assert(self.obj.mode == 'OBJECT')
+
+        # Find bones that have no parents.
+        parentless = [pb for pb in self.metarig.pose.bones if not pb.bone.parent]
+        for pb in parentless:
+            self.instantiate_rig_components_recursive(pb)
+
+    def instantiate_rig_components_recursive(
+                self, 
+                pb: bpy.types.PoseBone, 
+                parent_component: "RigComponent" = None
+            ):
+        if pb.cloudrig_component.component_type:
+            # Maintain rig component's awareness of what bone it is on.
+            pb.cloudrig_component.owner_bone = pb.name
+            # Instantiate rig component class.
+            comp_instance = pb.cloudrig_component.instantiate(generator=self)
+            print("Instantiated ", pb.name)
+
+            # Store parent/child relations
+            if parent_component:
+                comp_instance.parent_component = parent_component
+                parent_component.child_components.append(comp_instance)
+
+            # Set parent for the next recursion.
+            parent_component = comp_instance
+
+        for child_pb in pb.children:
+            self.instantiate_rig_components_recursive(child_pb, parent_component)
+
+class CloudRig_Generator(CloudRig_Generator_Base):
     """
     This class is instantiated by the Generate operator. 
     It instantiates the rig components and calls their rig generation functions.
     """
     def __init__(self, context, metarig):
+        self.metarig = metarig
+        self.target_rig = None
         self.params = metarig.data.cloudrig.generator
 
         metarig.data.pose_position = 'REST'
@@ -97,6 +131,7 @@ class CloudGenerator:
         metarig['scale_bkp'] = metarig.matrix_world.to_scale()
         metarig.matrix_world = Matrix.Identity(4)
 
+        return
         context.view_layer.update() # Needed to make sure we get the correct scale # TODO: Is this really necessary?
         self.scale = get_object_scalar(metarig)
 
@@ -127,13 +162,18 @@ class CloudGenerator:
         bpy.ops.object.mode_set(mode='OBJECT')
 
         metarig = self.metarig
+        self.target_rig = self.create_rig_object(context, metarig)
         print("Begin Generating CloudRig from metarig: " + metarig.name)
-        t = Timer()
 
         # self.collection is only used for Rigify compatibility.
         self.collection = context.scene.collection
         if len(self.metarig.users_collection) > 0:
             self.collection = self.metarig.users_collection[0]
+
+        print("Instantiate rig components...!")
+        self.instantiate_rig_components()
+
+        return
 
         # If the previous generation failed, delete the failed rig.
         if 'failed_rig' in metarig and metarig['failed_rig']:
@@ -162,7 +202,7 @@ class CloudGenerator:
         #------------------------------------------
 
         # Create/find the rig object and set it up
-        old_rig = self.params.rigify_target_rig
+        old_rig = self.params.target_rig
         self.obj = obj = self.create_rig_object(context, metarig)
 
         self.logger.rig = obj
@@ -183,7 +223,7 @@ class CloudGenerator:
 
         #------------------------------------------
         self.instantiate_rig_tree()
-        self.cloudrig_reorder_rigs(self.rig_list)
+        self.cloudrig_reorder_rig_components(self.rig_list)
 
         #------------------------------------------
         self.invoke_initialize()
@@ -275,7 +315,7 @@ class CloudGenerator:
         if self.params.auto_setup_gizmos and self.use_gizmos:
             self.auto_initialize_gizmos()
 
-        self.params.rigify_target_rig = obj
+        self.params.target_rig = obj
 
         ensure_custom_panels(None, None)
 
@@ -285,7 +325,7 @@ class CloudGenerator:
         t.tick("Cleanup & Troubleshoot: ")
         t.total()
 
-    def cloudrig_reorder_rigs(self, rig_list):
+    def cloudrig_reorder_rig_components(self, rig_list):
         """Some rig types need special treatment in regards to where they are in
         the rig generation order."""
         from ..rig_components.cloud_tweak import Component_TweakBone
@@ -331,8 +371,8 @@ class CloudGenerator:
 
 
     def create_rig_object(self, context, metarig) -> Object:
-        """Create the rig object that will replace the previous generation result."""
-
+        """Create a new empty Armature object that will get populated throughout
+        the generation process and then replace the previously generated rig."""
         metaname = metarig.name
         final_name = metaname.replace("META", "RIG")
         if 'META' not in metaname:
@@ -340,59 +380,33 @@ class CloudGenerator:
 
         rig_name = "NEW-" + final_name
 
-        select_object(context, metarig, deselect_all=True)
-        bpy.ops.object.duplicate()
-        obj = context.view_layer.objects.active    # NOTE: Oddly, this is different from context.object.
-        obj.name = rig_name
-        for pb in obj.pose.bones:
-            if pb.rigify_type not in {'cloud_copy', 'basic.raw_copy'}:
-                pb.name = "ORG-"+pb.name
-        # self._Generator__rename_org_bones(obj)
-        obj.data.name = "Data_" + final_name
-
-        # Remove all custom properties
-        for db in [obj, obj.data]:
-            for key, value in list(db.items()):
-                del db[key]
-
-        # Adding the rig_id necessary to not display metarig UI on generated rigs.
-        # XXX UPSTREAM: Metarigs should be marked rather than non-metarigs!
-        obj.data['rig_id'] = self.rig_id
+        armature = bpy.data.armatures.new(name=rig_name)
+        target_rig = bpy.data.objects.new(rig_name, armature)
+        context.scene.collection.objects.link(target_rig)
         # Mark rig for cloudrig.py compatibility checks
-        obj.data['cloudrig'] = 1
+        target_rig.data['allow_cloudrig_ui'] = True
 
         # Save generation timestamp to a custom property
         today = datetime.today()
         now = datetime.now()
-        obj.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
-        obj.data['generation_time'] = f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
+        target_rig.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
+        target_rig.data['generation_time'] = f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
 
         # Make sure Hidden Layers checkbox is saved in the generated rig, so it
         # remains even if the Rigify addon is disabled.
-        obj.data.cloudrig_parameters.show_layers_preview_hidden = False
+        target_rig.data.cloudrig.generator.show_layers_preview_hidden = False
 
         # By default, use B-Bone display type since it's the most useful
-        obj.data.display_type = 'BBONE'
+        target_rig.data.display_type = 'BBONE'
 
         # Copy viewport display settings from the metarig.
-        obj.data.show_names = metarig.data.show_names
-        obj.show_in_front = metarig.show_in_front
-        obj.data.show_axes = metarig.data.show_axes
+        target_rig.data.show_names = metarig.data.show_names
+        target_rig.show_in_front = metarig.show_in_front
+        target_rig.data.show_axes = metarig.data.show_axes
 
-        # Copy layers from the metarig.
-        obj.data.layers = metarig.data.layers[:]
-        obj.data.layers_protected = metarig.data.layers_protected[:]
-        for i, l in enumerate(metarig.data.rigify_layers):
-            if len(obj.data.rigify_layers) <= i:
-                new_l = obj.data.rigify_layers.add()
-            else:
-                new_l = obj.data.rigify_layers[i]
-            new_l.name = l.name
-            new_l.row = l.row
+        target_rig.data.pose_position = 'REST'
 
-        obj.data.pose_position = 'REST'
-
-        return obj
+        return target_rig
 
     def create_root_bones(self):
         # Bone Set used for the Root, default Properties, and Action Properties bones.
@@ -473,7 +487,7 @@ class CloudGenerator:
         test_action = self.params.test_action
         if not test_action:
             test_action = bpy.data.actions.new("RIG.DeformTest."+self.obj.name)
-            self.metarig.data.cloudrig_parameters.test_action = test_action
+            self.metarig.data.cloudrig.generator.test_action = test_action
 
         # Nuke all curves
         for fc in test_action.fcurves[:]:
@@ -655,7 +669,7 @@ class CloudGenerator:
         """
         # This function just gives terrible results.
         return
-        rig = self.metarig.data.rigify_target_rig
+        rig = self.params.target_rig
         object_candidates = rig.children[:]
 
         vgroup_names = set([bi.gizmo_vgroup for bi in self.bone_infos if bi.gizmo_vgroup != ""])
@@ -836,7 +850,7 @@ class CloudGenerator:
 
     def restore_rig_states(self):
         """Restore transforms after generation has either failed or succeeded."""
-
+        return
         bpy.ops.object.mode_set(mode='OBJECT')
         self.metarig.data.pose_position = 'POSE'
         if 'loc_bkp' in self.metarig:

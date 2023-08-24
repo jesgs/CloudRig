@@ -7,6 +7,7 @@ from ..rig_component_features.object import EnsureVisible
 
 from ..generation.cloudrig import register_hotkey, is_active_cloud_metarig, is_active_cloudrig
 from ..generation.cloud_generator import CloudRig_Generator
+from ..generation.troubleshooting import CloudMetarigError
 
 def refresh_constraints(rig: Object):
     for pb in rig.pose.bones:
@@ -52,7 +53,7 @@ class CLOUDRIG_OT_generate(Operator):
         if not metarig and is_active_cloudrig(context):
             # Find the metarig referencing this rig
             for o in context.scene.objects:
-                if o.type == 'ARMATURE' and o.data.cloudrig.generator.target_rig == obj:
+                if o.type == 'ARMATURE' and o.data.cloudrig.generator.target_rig == context.object:
                     metarig = o
                     break
 
@@ -107,14 +108,15 @@ class CLOUDRIG_OT_generate(Operator):
         Such errors must be accounted for and handled gracefully.
         """
 
+        generator_properties = metarig.data.cloudrig.generator
         generator = CloudRig_Generator(context, metarig)
         try:
             generator.generate(context)
         except Exception as exception:
             generator.restore_rig_states()
-            generator.obj.name = "FAILED-" + generator.obj.name
-            generator.obj.name = generator.obj.name.replace("NEW-", "")
-            metarig['failed_rig'] = generator.obj
+            generator.target_rig.name = "FAILED-" + generator.target_rig.name
+            generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
+            metarig['failed_rig'] = generator.target_rig
 
             traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
             message = [exception.message]
@@ -132,13 +134,13 @@ class CLOUDRIG_OT_generate(Operator):
             if generator.custom_script_failure:
                 self.logger.log_fatal_error(
                     "Post-Generation Script failed."
-                    ,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
-                    ,note         = str(e)
+                    ,description = f'Execution of post-generation script in text datablock "{generator_properties.custom_script.name}" failed, see stack trace below.'
+                    ,note         = str(exception)
                 )
                 # The error occurred in the user's script.
                 # execute_custom_script() has already created the log entry for us,
                 # so we just want to keep raising the exception.
-                raise e
+                raise exception
 
             # Any other exception type is a bug. 
             # Let's invite the user to report the error they've encountered.
@@ -147,13 +149,13 @@ class CLOUDRIG_OT_generate(Operator):
                 description = "Execution failed unexpectedly. This should never happen!",
                 display_stack_trace = 'ALWAYS',
                 icon = 'URL',
-                note = str(exc),
+                note = str(exception),
                 operator = 'wm.cloudrig_report_bug',
             )
 
             self.report({'ERROR'}, "A bug has occurred. You can report it through the Generation Log interface. \nStack Trace:\n", entry.op_kwargs['stack_trace'])
 
-        return target_rig
+        return generator_properties.target_rig
 
     def restore_state(self, context, metarig, mode, 
             active_bone_name="", selected_bone_names="", 

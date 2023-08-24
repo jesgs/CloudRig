@@ -178,18 +178,26 @@ class RigComponent(PropertyGroup):
     def update_component_type(self, context):
         refresh_component_bones_list(context)
 
-    owner_bone: StringProperty()
-    component_type: StringProperty(name="Component Type", update=update_component_type)
+    owner_bone: StringProperty(
+        name="Owner Bone",
+        description="Name of the bone this RigComponent is on. This is updated as an early step of the Generation process, since it can fall out of sync by bone renaming or bone duplication"
+    )
+    component_type: StringProperty(
+        name="Component Type", 
+        update=update_component_type
+    )
     component_module_name: StringProperty()
 
     @property
     def component_module(self):
         return rig_components.rig_modules.get(self.component_module_name)
-    
+
     @property
-    def rig_class(self):
-        component_module = self.component_module
+    def rig_class(self) -> type:
         return getattr(self.component_module, 'RigComponent')
+
+    def instantiate(self, generator) -> 'RigComponent':
+        return self.rig_class(generator=generator, bone_name=self.owner_bone)
 
     params: PointerProperty(type=ComponentParams)
 
