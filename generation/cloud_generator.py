@@ -10,7 +10,11 @@ from datetime import datetime
 
 from rigify.generate import Generator, select_object
 from rigify import rig_ui_template
-from rigify.utils.layers import ORG_LAYER, MCH_LAYER, DEF_LAYER
+try:
+	from rigify.utils.layers import ORG_LAYER, MCH_LAYER, DEF_LAYER
+except:
+	# Blender 4.0 - No more layers. This version of CloudRig will only work in 3.6 LTS and below.
+	pass
 from rigify.utils.naming import ORG_PREFIX, MCH_PREFIX, DEF_PREFIX, change_name_side, get_name_side, Side
 
 from rigify.utils.errors import MetarigError

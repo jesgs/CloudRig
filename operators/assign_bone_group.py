@@ -330,8 +330,12 @@ def register():
     from bpy.utils import register_class
 
     register_class(POSE_OT_assign_bone_group)
-    bpy.types.VIEW3D_MT_pose_group.draw_old = bpy.types.VIEW3D_MT_pose_group.draw
-    bpy.types.VIEW3D_MT_pose_group.draw = POSE_OT_assign_bone_group.draw_in_menu
+    try:
+        bpy.types.VIEW3D_MT_pose_group.draw_old = bpy.types.VIEW3D_MT_pose_group.draw
+        bpy.types.VIEW3D_MT_pose_group.draw = POSE_OT_assign_bone_group.draw_in_menu
+    except:
+        # Blender 4.0 - Won't work, but we don't want to raise error so that we can give a useful message in the UI instead.
+        pass
 
 
     register_hotkey(POSE_OT_assign_bone_group.bl_idname
@@ -344,4 +348,7 @@ def unregister():
     from bpy.utils import unregister_class
 
     unregister_class(POSE_OT_assign_bone_group)
-    bpy.types.VIEW3D_MT_pose_group.draw = bpy.types.VIEW3D_MT_pose_group.draw_old
+    try:
+        bpy.types.VIEW3D_MT_pose_group.draw = bpy.types.VIEW3D_MT_pose_group.draw_old
+    except:
+        pass

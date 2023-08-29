@@ -17,7 +17,7 @@ rigify_info = {
 	,'link': "https://gitlab.com/blender/CloudRig/"
 }
 
-max_blender_version = (10, 0, 0) # This should be set for in commits that will be tagged as a release.
+max_blender_version = (3, 6, 0) # This should be set for in commits that will be tagged as a release.
 
 bl_info = {
 	'name' : "CloudRig is not an Addon!"

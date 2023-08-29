@@ -1,6 +1,13 @@
 from bpy.types import (UILayout, Object,
-		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
-		BONE_PT_rigify_buttons, DATA_PT_rigify)
+		VIEW3D_MT_rigify, BONE_PT_rigify_buttons, DATA_PT_rigify)
+try:
+	from bpy.types import (
+		DATA_PT_rigify_bone_groups,
+		DATA_PT_rigify_layer_names
+	)
+except:
+	# These will fail in Blender 4.0.
+	pass
 import bpy
 
 from rigify import rig_lists, feature_sets, feature_set_list
@@ -15,22 +22,13 @@ from .rig_types_ui import get_active_pose_bone
 def is_blender_version_compatible() -> bool:
 	"""Return whether current Blender version is compatible 
 	with current CloudRig version."""
-	try:
-		from packaging import version
-	except ModuleNotFoundError:
-		return True
-
-	tuple_to_version = lambda v: version.parse(str(v).replace(", ", ".")[1:-1])
-
-	blender = tuple_to_version(bpy.app.version)
-
 	cloudrig_module_name = __package__.replace("rigify.feature_sets.", "").replace(".ui", "")
 	cloudrig_module = getattr(feature_sets, cloudrig_module_name)
 
-	cloudrig_min = tuple_to_version(cloudrig_module.rigify_info['blender'])
-	cloudrig_max = tuple_to_version(cloudrig_module.max_blender_version)
+	cloudrig_min = cloudrig_module.rigify_info['blender']
+	cloudrig_max = cloudrig_module.max_blender_version
 
-	return cloudrig_max >= blender >= cloudrig_min
+	return cloudrig_max >= bpy.app.version >= cloudrig_min
 
 def draw_version_check(layout: UILayout) -> bool:
 	""" If Blender is too old or new, draw a link to download
@@ -253,11 +251,12 @@ def register():
 
 	bpy.types.DATA_PT_rigify_advanced.append(extend_rigify_advanced_panel)
 
-	DATA_PT_rigify_bone_groups.poll_old = DATA_PT_rigify_bone_groups.poll
-	DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
+	if bpy.app.version <= (3, 6, 3):
+		DATA_PT_rigify_bone_groups.poll_old = DATA_PT_rigify_bone_groups.poll
+		DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
 
-	DATA_PT_rigify_layer_names.draw_old = DATA_PT_rigify_layer_names.draw
-	DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
+		DATA_PT_rigify_layer_names.draw_old = DATA_PT_rigify_layer_names.draw
+		DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
 
 	VIEW3D_MT_rigify.draw_old = VIEW3D_MT_rigify.draw
 	VIEW3D_MT_rigify.draw = draw_rigify_header
