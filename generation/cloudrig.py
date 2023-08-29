@@ -1656,6 +1656,9 @@ def draw_layers_ui(
 	# This should be able to run even if the Rigify addon is disabled.
 
 	data = rig.data
+	if not hasattr(data, 'layers'):
+		layout.label(text="Rig Layers have been removed in Blender 4.0.")
+		return
 	if not layer_prop_owner:
 		layer_prop_owner = data
 
