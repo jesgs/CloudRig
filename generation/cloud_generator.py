@@ -31,6 +31,11 @@ from ..versioning import cloud_metarig_version
 from .cloudrig import ensure_custom_panels
 
 class GeneratorProperties(PropertyGroup):
+    target_rig: PointerProperty(
+        name="Target Rig", 
+        description="Rig to re-genreate based on this metarig when the Generate button is used", 
+        type=bpy.types.Object
+    )
     create_root: BoolProperty(
         name         = "Create Root"
         ,description = "Create a default root control"
