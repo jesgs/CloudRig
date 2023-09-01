@@ -94,7 +94,7 @@ class POSE_MT_PIE_bone_constraint_targets(Menu):
 
     def draw(self, context):
         layout = self.layout
-        active_pb = context.active_pose_bone
+        active_pb = context.active_pose_bone or context.object.pose.bones.get(context.active_bone.name)
 
         entries = get_target_bones(active_pb)
 

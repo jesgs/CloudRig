@@ -58,6 +58,8 @@ def is_advanced_mode(context):
 	return context.object.data.cloudrig.advanced_mode
 
 def is_cloud_metarig(rig: Object):
+	if not rig.type == 'ARMATURE':
+		return False
 	return len(rig.data.cloudrig.rig_component_bones) > 0
 
 def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
