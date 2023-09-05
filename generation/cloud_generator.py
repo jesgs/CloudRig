@@ -311,8 +311,8 @@ class CloudGenerator(Generator):
 
 		rig_name = "NEW-" + final_name
 
-		select_object(context, metarig, deselect_all=True)
-		bpy.ops.object.duplicate()
+		with context.temp_override(object=metarig, selected_objects=[metarig]):
+			bpy.ops.object.duplicate()
 		obj = context.view_layer.objects.active	# NOTE: Oddly, this is different from context.object.
 		obj.name = rig_name
 		for pb in obj.pose.bones:
