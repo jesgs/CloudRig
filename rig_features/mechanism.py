@@ -120,9 +120,9 @@ def get_rigify_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 	cur_pb = chain[-1]
 	while cur_pb and len(cur_pb.children)>0:
 		next_bone = None
-		for c in cur_pb.children:
-			if c.rigify_type=="":
-				if connected and not c.bone.use_connect:
+		for child_pb in cur_pb.children:
+			if child_pb.rigify_type == "":
+				if connected and not child_pb.bone.use_connect:
 					continue
 				if next_bone != None:
 					print(f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
@@ -130,7 +130,7 @@ def get_rigify_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 						\tPicking the first one arbitrarily! \n
 						\tDisconnect the bone or assign a rigify type to make it unambiguous.""")
 				else:
-					next_bone = c
+					next_bone = child_pb
 		if next_bone:
 			chain.append(next_bone)
 		cur_pb = next_bone
