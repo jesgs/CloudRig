@@ -18,6 +18,8 @@ from bpy.types import Object, UILayout
 
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
+import copy_global_transform
+get_4d_rotlock = copy_global_transform.AutoKeying.get_4d_rotlock
 
 def is_cloudrig(obj):
 	"""Return whether obj is marked as being compatible with this script file."""
