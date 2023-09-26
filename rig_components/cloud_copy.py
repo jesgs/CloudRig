@@ -176,19 +176,19 @@ class Component_CopyBone(Component_Base):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.draw_prop(layout, params.copy, 'custom_pivot')
-		cls.draw_prop(layout, params.copy, 'create_deform')
-		cls.draw_prop(layout, params.copy, 'ensure_free')
+		cls.draw_prop(context, layout, params.copy, 'custom_pivot')
+		cls.draw_prop(context, layout, params.copy, 'create_deform')
+		cls.draw_prop(context, layout, params.copy, 'ensure_free')
 
 	@classmethod
 	def draw_custom_prop_params(cls, layout, context, params):
 		layout = super().draw_custom_prop_params(layout, context, params)
 		layout.separator()
 
-		cls.draw_prop(layout, params.copy, 'property_ui_subpanel')
+		cls.draw_prop(context, layout, params.copy, 'property_ui_subpanel')
 		row = layout.row()
 		row.enabled = bool(property_ui_subpanel)
-		cls.draw_prop(row, params.copy, 'property_ui_label')
+		cls.draw_prop(context, row, params.copy, 'property_ui_label')
 		return layout
 
 	@classmethod

@@ -39,7 +39,7 @@ class CloudTemplateRig(Component_Base):
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 
-		cls.draw_prop(layout, params.template, 'use_control')
+		cls.draw_prop(context, layout, params.template, 'use_control')
 
 
 class Params(PropertyGroup):

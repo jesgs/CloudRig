@@ -1,7 +1,8 @@
 from bpy.types import PropertyGroup, AddonPreferences
-from bpy.props import StringProperty, CollectionProperty
+from bpy.props import StringProperty, CollectionProperty, BoolProperty
 import bpy
 from . import rig_components
+
 
 def init_component_module_list(context=None):
     if not context:
@@ -17,28 +18,47 @@ def init_component_module_list(context=None):
         type_info.name = rig_class.ui_name
         type_info.module_name = rig_file_name
 
+
 class CloudRigComponentTypeInfo(PropertyGroup):
     """Purely for UI purposes, so we can store a list of strings in the RNA that
     represent the list of available rig types. We need that in the RNA so we can use
-    prop_search() to draw a nice list that the user can type into to filter and search."""
+    prop_search() to draw a nice list that the user can type into to filter and search.
+    """
+
     name: StringProperty(
-        name = "UI Name", 
-        description = "Pretty, title-case name that will be displayed in the UI"
+        name="UI Name",
+        description="Pretty, title-case name that will be displayed in the UI",
     )
     module_name: StringProperty(
-        name = "Rig Module Name", 
-        description = "Name used under the hood for matching the component type to its implementation module (ie. Python file)"
+        name="Rig Module Name",
+        description="Name used under the hood for matching the component type to its implementation module (ie. Python file)",
     )
+
 
 class CloudRigPreferences(AddonPreferences):
     bl_idname = __package__
 
     rig_type_list: CollectionProperty(type=CloudRigComponentTypeInfo)
 
-registry = [
-    CloudRigComponentTypeInfo,
-    CloudRigPreferences
-]
+    advanced_mode: BoolProperty(
+        name="Advanced Mode",
+        description="Reveal advanced options in the Generator and Rig Component interfaces",
+        default=False,
+    )
+    bone_set_use_grid_layout: BoolProperty(
+        name="Use Grid Layout",
+        description="Switch the list display between a compact grid and a detailed list",
+        default=True,
+    )
+    bone_set_show_advanced: BoolProperty(
+        name="Show Internal Bone Sets",
+        description="Reveal bone sets that are marked as internal, ie. mechanism bones. You would customize these much less frequently than the controls, which are exposed to animators",
+        default=False,
+    )
+
+
+registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
+
 
 def register():
     init_component_module_list()

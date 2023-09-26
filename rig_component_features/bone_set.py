@@ -9,6 +9,7 @@ from mathutils import Vector, Matrix
 from collections import OrderedDict
 
 from ..utils.generic_ui_list import draw_ui_list
+from ..utils.misc import get_addon_prefs
 from ..generation.cloudrig import draw_layers_ui
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
@@ -318,6 +319,7 @@ class BoneSetMixin:
             layout.label(text="Could not find Bone Set named " + active_ui_bone_set.name)
             return
 
+        prefs = get_addon_prefs(context)
         list_column = draw_ui_list(
             layout
             ,context
@@ -326,13 +328,13 @@ class BoneSetMixin:
             ,active_index_path = 'object.data.cloudrig.active_bone_set_idx'
             ,insertion_operators = False
             ,move_operators = False
-            ,type='GRID' if cloudrig.bone_set_use_grid_layout else 'DEFAULT'
+            ,type='GRID' if prefs.bone_set_use_grid_layout else 'DEFAULT'
             ,columns=3
         )
-        eye_icon = 'HIDE_OFF' if cloudrig.bone_set_show_advanced else 'HIDE_ON'
-        list_column.prop(cloudrig, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon)
-        layout_icon = 'MESH_GRID' if cloudrig.bone_set_use_grid_layout else 'COLLAPSEMENU'
-        list_column.prop(cloudrig, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
+        eye_icon = 'HIDE_OFF' if prefs.bone_set_show_advanced else 'HIDE_ON'
+        list_column.prop(prefs, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon)
+        layout_icon = 'MESH_GRID' if prefs.bone_set_use_grid_layout else 'COLLAPSEMENU'
+        list_column.prop(prefs, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
 
         # elif not CLOUDRIG_UL_bone_sets.flt_flags[cloudrig.active_bone_set_idx]:
         #     # If the active item is not visible
@@ -340,7 +342,7 @@ class BoneSetMixin:
 
         # set_info = cls.bone_set_defs[active_bone_set.name]
         # split = layout.row().split(factor=0.8)
-        # cls.draw_prop_search(split.row(), params, set_info['param'], obj.pose, "bone_groups", text="Bone Group")
+        # clsdraw_prop_search(context, split.row(), params, set_info['param'], obj.pose, "bone_groups", text="Bone Group")
         # bone_group_name = getattr(params, set_info['param'])
         # bone_group = obj.pose.bone_groups.get(bone_group_name)
         # if bone_group:
@@ -461,7 +463,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
             flt_flags = [self.bitflag_filter_item] * len(ui_bone_sets)
 
         metarig = context.object
-        cloudrig = metarig.data.cloudrig
+        prefs = get_addon_prefs(context)
         component = context.active_pose_bone.cloudrig_component
         rig_class = component.rig_class
 
@@ -470,7 +472,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
                 flt_flags[idx] = 0
             else:
                 bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
-                if not cloudrig.bone_set_show_advanced and bone_set.is_advanced:
+                if not prefs.bone_set_show_advanced and bone_set.is_advanced:
                     # Filter advanced bone sets when the user doesn't want to see them.
                     flt_flags[idx] = 0
                     continue

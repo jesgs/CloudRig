@@ -144,8 +144,8 @@ class Component_Lattice(Component_Base):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.draw_prop(layout, params, "CR_lattice_lattice")
-		cls.draw_prop(layout, params, "CR_lattice_regenerate")
+		cls.draw_prop(context, layout, params, "CR_lattice_lattice")
+		cls.draw_prop(context, layout, params, "CR_lattice_regenerate")
 
 
 class Params(PropertyGroup):

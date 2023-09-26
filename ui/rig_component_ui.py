@@ -24,13 +24,12 @@ class CLOUDRIG_PT_rig_component(Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        addon_prefs = get_addon_prefs(context)
+        prefs = get_addon_prefs(context)
         active_bone = context.active_bone
         active_pb = context.object.pose.bones.get(active_bone.name)
-        cloudrig = context.object.data.cloudrig
         rig_component = active_pb.cloudrig_component
-        layout.prop_search(rig_component, 'component_type', addon_prefs, 'rig_type_list', icon='ARMATURE_DATA')
-        layout.prop(cloudrig, 'advanced_mode')
+        layout.prop_search(rig_component, 'component_type', prefs, 'rig_type_list', icon='ARMATURE_DATA')
+        layout.prop(prefs, 'advanced_mode')
 
 registry = [
     CLOUDRIG_PT_rig_component

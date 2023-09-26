@@ -236,11 +236,11 @@ class CloudParentingMixin:
 		text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
 		
 		row = layout.row(align=True)
-		cls.draw_prop_search(row, params, 'parenting.root_parent', rig.pose, 'bones', text=text)
+		clsdraw_prop_search(context, row, params, 'parenting.root_parent', rig.pose, 'bones', text=text)
 		if is_parent_bendy:
-			cls.draw_prop(row, params, 'parenting.use_armature_constraint', icon='CON_ARMATURE', text="")
+			cls.draw_prop(context, row, params, 'parenting.use_armature_constraint', icon='CON_ARMATURE', text="")
 			if params.parenting.use_armature_constraint:
-				cls.draw_prop(row, params, 'parenting.use_helper_bone', icon='BONE_DATA', text="")
+				cls.draw_prop(context, row, params, 'parenting.use_helper_bone', icon='BONE_DATA', text="")
 			else:
 				row.label(text="", icon="BONE_DATA")
 
@@ -253,14 +253,14 @@ class CloudParentingMixin:
 			return
 
 		if cls.parent_switch_overwrites_root_parent:
-			cls.draw_prop(layout, params.parenting, "parent_switching")
+			cls.draw_prop(context, layout, params.parenting, "parent_switching")
 			if params.parenting.parent_switching:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 			else:
 				cls.draw_parent_param(layout, rig, params)
 		else:
 			cls.draw_parent_param(layout, rig, params)
-			cls.draw_prop(layout, params.parenting, "parent_switching")
+			cls.draw_prop(context, layout, params.parenting, "parent_switching")
 			if params.parenting.parent_switching:
 				draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
 

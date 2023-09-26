@@ -690,21 +690,21 @@ class Component_ToonChain(Component_Base):
 
 	@classmethod
 	def draw_bendy_params(cls, layout, context, params):
-		cls.draw_prop(layout, params.chain, 'bbone_density')
-		row_sharp = cls.draw_prop(layout, params.chain, 'sharp')
-		row_smooth = cls.draw_prop(layout, params.chain, 'smooth_spline')
+		cls.draw_prop(context, layout, params.chain, 'bbone_density')
+		row_sharp = cls.draw_prop(context, layout, params.chain, 'sharp')
+		row_smooth = cls.draw_prop(context, layout, params.chain, 'smooth_spline')
 		row_sharp.enabled = row_smooth.enabled = params.chain.bbone_density > 0
 
 		if cls.is_advanced_mode(context):
-			cls.draw_prop(layout, params.chain, 'preserve_volume')
-			cls.draw_prop(layout, params.chain, 'shape_key_helpers')
-			cls.draw_prop(layout, params.chain, 'unlock_deform')
+			cls.draw_prop(context, layout, params.chain, 'preserve_volume')
+			cls.draw_prop(context, layout, params.chain, 'shape_key_helpers')
+			cls.draw_prop(context, layout, params.chain, 'unlock_deform')
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		cls.draw_control_label(layout, "Stretch")
-		cls.draw_prop(layout, params.chain, 'segments')
-		cls.draw_prop(layout, params.chain, 'tip_control')
+		cls.draw_prop(context, layout, params.chain, 'segments')
+		cls.draw_prop(context, layout, params.chain, 'tip_control')
 
 class Params(PropertyGroup):
 	segments: IntProperty(	# TODO: It would be more intuitive to rename this to "Sub-Controls" and set default to 0, change code logic accordingly, and do metarig versioning.

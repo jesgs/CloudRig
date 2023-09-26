@@ -57,7 +57,7 @@ class CloudShoulderRig(Component_Chain_FK):
 		"""Create the ui for the rig parameters."""
 		super().draw_appearance_params(layout, context, params)
 
-		cls.draw_prop(layout, params, 'CR_shoulder_up_axis')
+		cls.draw_prop(context, layout, params, 'CR_shoulder_up_axis')
 
 class RigComponent(CloudShoulderRig):
 	pass

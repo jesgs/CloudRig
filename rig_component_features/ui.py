@@ -2,6 +2,7 @@
 from typing import Dict, Any
 from bpy.types import Object
 
+from ..utils.misc import get_addon_prefs
 from .bone import BoneInfo
 
 import bpy, sys, os
@@ -24,11 +25,9 @@ class CloudUIMixin:
 		return is_advanced_mode(context)
 
 	@classmethod
-	def draw_prop(cls, layout, prop_owner, prop_name, **kwargs):
-		rig = prop_owner.id_data
-
+	def draw_prop(cls, context, layout, prop_owner, prop_name, **kwargs):
 		is_forced = prop_name in cls.forced_params.keys()
-		if is_forced and not rig.data.cloudrig.advanced_mode:
+		if is_forced and not cls.is_advanced_mode(context):
 			return
 
 		row = draw_prop(layout, prop_owner, prop_name, **kwargs)
@@ -38,11 +37,11 @@ class CloudUIMixin:
 		return row
 
 	@classmethod
-	def draw_prop_search(cls, layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs):
+	def draw_prop_search(cls, context, layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs):
 		rig = prop_owner.id_data
-		
+
 		is_forced = prop_name in cls.forced_params.keys()
-		if is_forced and not rig.data.cloudrig.advanced_mode:
+		if is_forced and not cls.is_advanced_mode(context):
 			return
 
 		row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs)
@@ -55,7 +54,7 @@ class CloudUIMixin:
 def is_advanced_mode(context):
 	if not is_cloud_metarig(context.object):
 		return False
-	return context.object.data.cloudrig.advanced_mode
+	return get_addon_prefs(context).advanced_mode
 
 def is_cloud_metarig(rig: Object):
 	if not rig.type == 'ARMATURE':

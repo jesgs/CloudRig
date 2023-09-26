@@ -432,20 +432,20 @@ class Component_Limb(Component_Chain_IKFK):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
 
-		cls.draw_prop(layout, params.limb, 'double_ik')
+		cls.draw_prop(context, layout, params.limb, 'double_ik')
 
 		layout.separator()
 		cls.draw_control_label(layout, "Limb")
 
-		row = cls.draw_prop(layout, params.limb, 'auto_hose')
+		row = cls.draw_prop(context, layout, params.limb, 'auto_hose')
 		row.enabled = params.chain.segments > 1 and params.chain.smooth_spline
 		if row.enabled and params.limb.auto_hose:
 			split = layout.split(factor=0.1)
 			split.row()
-			cls.draw_prop(split.row(), params.limb, 'auto_hose_control')
+			cls.draw_prop(context, split.row(), params.limb, 'auto_hose_control')
 			split = layout.split(factor=0.1)
 			split.row()
-			cls.draw_prop(split.row(), params.limb, 'auto_hose_type', expand=True)
+			cls.draw_prop(context, split.row(), params.limb, 'auto_hose_type', expand=True)
 
 	##############################
 	# Overlay

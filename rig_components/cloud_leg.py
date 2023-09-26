@@ -411,11 +411,11 @@ class Component_Limb_BipedLeg(Component_Limb):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
 
-		cls.draw_prop(layout, params, "CR_leg_use_foot_roll")
+		cls.draw_prop(context, layout, params, "CR_leg_use_foot_roll")
 		if params.leg.use_foot_roll:
 			split = layout.split(factor=0.1)
 			split.row()
-			cls.draw_prop_search(split.row(), params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
+			clsdraw_prop_search(context, split.row(), params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
 
 class Params(PropertyGroup):
 	use_foot_roll: BoolProperty(

@@ -297,8 +297,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spine")
-		cls.draw_prop(layout, params.spine_squashy, 'double')
-		cls.draw_prop(layout, params.spine_squashy, 'world_align')
+		cls.draw_prop(context, layout, params.spine_squashy, 'double')
+		cls.draw_prop(context, layout, params.spine_squashy, 'world_align')
 
 
 class Params(PropertyGroup):

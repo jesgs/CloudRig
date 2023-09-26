@@ -150,15 +150,15 @@ class Component_TweakBone(Component_Base):
 		"""Create the ui for the rig parameters."""
 
 		cls.draw_control_label(layout, "Tweak")
-		cls.draw_prop(layout, params, "CR_tweak_constraints_additive")
-		cls.draw_prop(layout, params, "CR_tweak_transforms")
-		cls.draw_prop(layout, params, "CR_tweak_locks")
-		cls.draw_prop(layout, params, "CR_tweak_rot_mode")
-		cls.draw_prop(layout, params, "CR_tweak_shape")
-		cls.draw_prop(layout, params, "CR_tweak_group")
-		cls.draw_prop(layout, params, "CR_tweak_layers")
-		cls.draw_prop(layout, params, "CR_tweak_ik_settings")
-		cls.draw_prop(layout, params, "CR_tweak_bbone_props")
+		cls.draw_prop(context, layout, params, "CR_tweak_constraints_additive")
+		cls.draw_prop(context, layout, params, "CR_tweak_transforms")
+		cls.draw_prop(context, layout, params, "CR_tweak_locks")
+		cls.draw_prop(context, layout, params, "CR_tweak_rot_mode")
+		cls.draw_prop(context, layout, params, "CR_tweak_shape")
+		cls.draw_prop(context, layout, params, "CR_tweak_group")
+		cls.draw_prop(context, layout, params, "CR_tweak_layers")
+		cls.draw_prop(context, layout, params, "CR_tweak_ik_settings")
+		cls.draw_prop(context, layout, params, "CR_tweak_bbone_props")
 
 
 class Params(PropertyGroup):

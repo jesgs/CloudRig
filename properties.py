@@ -237,14 +237,10 @@ class Properties_CloudRig(PropertyGroup):
     generator: PointerProperty(type=GeneratorProperties)
     metarig_version: IntProperty()
 
-    # TODO: Some of these should be stored in add-on prefs! Maybe all of them, who knows!
-    advanced_mode: BoolProperty(name="Advanced Mode")
     advanced_bone_sets: BoolProperty(name="Advanced Bone Sets")
 
     ui_bone_sets: CollectionProperty(type=BoneSet_ForUI)
     active_bone_set_idx: IntProperty()
-    bone_set_use_grid_layout: BoolProperty(name="Use Grid Layout", default=True, description="Switch the list display between a compact grid and a detailed list")
-    bone_set_show_advanced: BoolProperty()
 
 
 registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [

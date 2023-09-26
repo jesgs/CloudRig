@@ -315,7 +315,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
 	@classmethod
 	def draw_appearance_params(cls, layout, context, params):
-		cls.draw_prop(layout, params.fk_chain, 'display_center')
+		cls.draw_prop(context, layout, params.fk_chain, 'display_center')
 
 		return layout
 
@@ -328,17 +328,17 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		layout.separator()
 		cls.draw_control_label(layout, "FK")
 
-		cls.draw_prop(layout, params.fk_chain, 'root')
-		row = cls.draw_prop(layout.row(), params.fk_chain, 'hinge')
+		cls.draw_prop(context, layout, params.fk_chain, 'root')
+		row = cls.draw_prop(context, layout.row(), params.fk_chain, 'hinge')
 		if row:
 			row.enabled = params.fk_chain.root and generator.create_root
 
 		if not cls.is_advanced_mode(context):
 			return
-		cls.draw_prop(layout, params.fk_chain, 'position_along_bone', slider=True)
-		cls.draw_prop(layout, params.fk_chain, 'inherit_scale')
-		cls.draw_prop(layout, params.fk_chain, 'rot_mode')
-		cls.draw_prop(layout, params.fk_chain, 'double_first')
+		cls.draw_prop(context, layout, params.fk_chain, 'position_along_bone', slider=True)
+		cls.draw_prop(context, layout, params.fk_chain, 'inherit_scale')
+		cls.draw_prop(context, layout, params.fk_chain, 'rot_mode')
+		cls.draw_prop(context, layout, params.fk_chain, 'double_first')
 
 	@classmethod
 	def draw_anim_params(cls, layout, context, params):

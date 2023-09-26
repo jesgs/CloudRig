@@ -309,9 +309,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spine")
-		cls.draw_prop(layout, params.spine, 'use_ik')
-		cls.draw_prop(layout, params.spine, 'double')
-		cls.draw_prop(layout, params.spine, 'world_align')
+		cls.draw_prop(context, layout, params.spine, 'use_ik')
+		cls.draw_prop(context, layout, params.spine, 'double')
+		cls.draw_prop(context, layout, params.spine, 'world_align')
 
 
 class Params(PropertyGroup):

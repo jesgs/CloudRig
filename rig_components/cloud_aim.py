@@ -334,12 +334,12 @@ class Component_Aim(Component_Base):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.draw_prop(layout, params.aim, "group")
-		cls.draw_prop(layout, params.aim, "target_distance")
-		cls.draw_prop(layout, params.aim, "flatten")
-		cls.draw_prop(layout, params.aim, "deform")
-		cls.draw_prop(layout, params.aim, "root")
-		cls.draw_prop(layout, params.aim, "create_sub_control")
+		cls.draw_prop(context, layout, params.aim, "group")
+		cls.draw_prop(context, layout, params.aim, "target_distance")
+		cls.draw_prop(context, layout, params.aim, "flatten")
+		cls.draw_prop(context, layout, params.aim, "deform")
+		cls.draw_prop(context, layout, params.aim, "root")
+		cls.draw_prop(context, layout, params.aim, "create_sub_control")
 
 class Params(PropertyGroup):
 	group: StringProperty(

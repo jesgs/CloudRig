@@ -541,22 +541,22 @@ class Component_Curve_Hooked(Component_Base):
 		bad_curve = curve_ob==None or curve_ob.type!='CURVE'
 
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
-		cls.draw_prop(layout, params.curve, 'target', icon=icon)
+		cls.draw_prop(context, layout, params.curve, 'target', icon=icon)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		cls.curve_selector_ui(layout, params)
 		if target and len(target.data.splines) > 1:
-			cls.draw_prop(layout, params.curve, "root_per_spline")
+			cls.draw_prop(context, layout, params.curve, "root_per_spline")
 
-		cls.draw_prop(layout, params.curve, "hook_name")
-		cls.draw_prop(layout, params.curve, "inherit_scale")
-		cls.draw_prop(layout, params.curve, "x_axis_symmetry")
-		cls.draw_prop(layout, params.curve, "controls_for_handles")
+		cls.draw_prop(context, layout, params.curve, "hook_name")
+		cls.draw_prop(context, layout, params.curve, "inherit_scale")
+		cls.draw_prop(context, layout, params.curve, "x_axis_symmetry")
+		cls.draw_prop(context, layout, params.curve, "controls_for_handles")
 		if controls_for_handles:
-			cls.draw_prop(layout, params.curve, "rotatable_handles")
-			cls.draw_prop(layout, params.curve, "separate_radius")
+			cls.draw_prop(context, layout, params.curve, "rotatable_handles")
+			cls.draw_prop(context, layout, params.curve, "separate_radius")
 
 class Params(PropertyGroup):
 	hook_name: StringProperty(

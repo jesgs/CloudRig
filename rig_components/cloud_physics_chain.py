@@ -215,15 +215,15 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 		layout.separator()
 		cls.draw_control_label(layout, "Physics")
 
-		cls.draw_prop(layout, params.physics_chain, 'phys_obj')
-		cls.draw_prop(layout, params.physics_chain, 'force_regen')
+		cls.draw_prop(context, layout, params.physics_chain, 'phys_obj')
+		cls.draw_prop(context, layout, params.physics_chain, 'force_regen')
 
 		if not params.physics_chain.phys_obj or params.physics_chain.force_regen:
-			cls.draw_prop(layout, params.physics_chain, 'pin_falloff')
+			cls.draw_prop(context, layout, params.physics_chain, 'pin_falloff')
 			if params.physics_chain.pin_falloff != 'NONE':
-				cls.draw_prop(layout, params.physics_chain, 'pin_falloff_offset')
+				cls.draw_prop(context, layout, params.physics_chain, 'pin_falloff_offset')
 
-		cls.draw_prop(layout, params.physics_chain, 'make_ctrl')
+		cls.draw_prop(context, layout, params.physics_chain, 'make_ctrl')
 
 
 class Params(PropertyGroup):

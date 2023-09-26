@@ -193,7 +193,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 	@classmethod
 	def curve_selector_ui(cls, layout, params):
 		"""Overrides cloud_curve to disable the curve selection."""
-		row = cls.draw_prop(layout.row(), params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
+		row = cls.draw_prop(context, layout.row(), params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
 		row.enabled = False
 
 	@classmethod
@@ -203,16 +203,16 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spline")
-		cls.draw_prop(layout, params, "CR_spline_ik_subdivide")
-		cls.draw_prop(layout, params, "CR_spline_ik_handle_length")
+		cls.draw_prop(context, layout, params, "CR_spline_ik_subdivide")
+		cls.draw_prop(context, layout, params, "CR_spline_ik_handle_length")
 
 		# TODO: When this is false, the directions of the curve points and bones
 		# don't match, and both of them are unsatisfactory. It would be nice if
 		# we would interpolate between the direction of the two bones, using
 		# length_remaining/bone.length as a factor, or something similar to that.
-		cls.draw_prop(layout, params, "CR_spline_ik_match_hooks")
+		cls.draw_prop(context, layout, params, "CR_spline_ik_match_hooks")
 		if not params.spline_ik.match_hooks:
-			cls.draw_prop(layout, params, "CR_spline_ik_hooks")
+			cls.draw_prop(context, layout, params, "CR_spline_ik_hooks")
 
 
 class Params(PropertyGroup):

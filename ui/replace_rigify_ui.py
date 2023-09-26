@@ -10,6 +10,7 @@ from ..generation.cloudrig import draw_layers_ui
 from ..rig_component_features.ui import is_cloud_metarig, is_advanced_mode
 from ..utils.misc import check_addon
 from .rig_types_ui import get_active_pose_bone
+from ..utils.misc import get_addon_prefs
 
 def draw_rigify_header(self, context):
 	layout = self.layout
@@ -57,10 +58,11 @@ def extend_rigify_advanced_panel(self, context):
 	layout = layout.column()
 
 	generator = metarig.data.cloudrig.generator
+	prefs = get_addon_prefs(context)
 
 	layout.label(text="CloudRig")
 
-	layout.prop(cloudrig, 'advanced_mode')
+	layout.prop(prefs, 'advanced_mode')
 	layout.separator()
 
 	# Bone Group Color Parameters
@@ -72,7 +74,7 @@ def extend_rigify_advanced_panel(self, context):
 
 	### Root Bone Parameters
 	layout.prop(generator, 'create_root')
-	if generator.create_root and generator.advanced_mode:
+	if generator.create_root and prefs.advanced_mode:
 		layout.prop(generator, 'double_root')
 		layout.separator()
 
@@ -87,7 +89,7 @@ def extend_rigify_advanced_panel(self, context):
 		act_col.prop(generator, 'test_action', text="")
 		act_col.enabled = generator.generate_test_action
 
-	if not generator.advanced_mode:
+	if not prefs.advanced_mode:
 		return
 
 	if check_addon(context, 'bone_gizmos'):
@@ -190,7 +192,8 @@ def draw_rigify_types(self, context):
 				col = layout.column()
 				rig.parameters_ui(layout, posebone.rigify_parameters)
 
-	layout.prop(metarig.data.cloudrig, 'advanced_mode', text="Show Advanced Options")
+	prefs = get_addon_prefs(context)
+	layout.prop(prefs, 'advanced_mode', text="Show Advanced Options")
 
 def register():
 	# Hijack Rigify panels' draw functions.

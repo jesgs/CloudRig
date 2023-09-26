@@ -675,13 +675,13 @@ class Component_Chain_IKFK(Component_Chain_FK):
 		layout.separator()
 		cls.draw_control_label(layout, "IK")
 
-		cls.draw_prop(layout, params.ik_chain, 'use_pole')
+		cls.draw_prop(context, layout, params.ik_chain, 'use_pole')
 		if cls.is_advanced_mode(context) and params.ik_chain.use_pole:
-			cls.draw_prop(layout, params, 'ik_chain.gizmo_pole_distance')
-		cls.draw_prop(layout, params.ik_chain, 'at_tip')
+			cls.draw_prop(context, layout, params, 'ik_chain.gizmo_pole_distance')
+		cls.draw_prop(context, layout, params.ik_chain, 'at_tip')
 
 		if cls.is_advanced_mode(context):
-			cls.draw_prop(layout, params.ik_chain, 'world_aligned')
+			cls.draw_prop(context, layout, params.ik_chain, 'world_aligned')
 
 		split = layout.split(factor=0.4)
 		split.row()

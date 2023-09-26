@@ -240,7 +240,7 @@ class CloudFaceChainRig(Component_ToonChain):
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
 		super().draw_control_params(layout, context, params)
-		cls.draw_prop(layout, params.face_chain, 'merge')
+		cls.draw_prop(context, layout, params.face_chain, 'merge')
 
 class Params(PropertyGroup):
 	merge: BoolProperty(
