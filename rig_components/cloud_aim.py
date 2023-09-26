@@ -8,7 +8,6 @@ from mathutils import Vector
 from ..rig_component_features.bone import BoneInfo
 from .cloud_base import Component_Base
 
-from ..rig_component_features.widgets.widgets import bezier_widget
 from ..utils.maths import bounding_box_center
 
 def get_bone_set_definitions() -> Dict:
