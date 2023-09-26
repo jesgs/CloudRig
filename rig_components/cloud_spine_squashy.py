@@ -284,11 +284,11 @@ class Component_Spine_Squashy(Component_Chain_FK):
 		cls.define_bone_set(params, 'Spine Mechanism',					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
 
 	@classmethod
-	def is_bone_set_used(cls, rig, params, set_name):
+	def is_bone_set_used(cls, context, rig, params, set_name):
 		if set_name == "spine_parent_controls":
 			return params.spine.double
 
-		return super().is_bone_set_used(rig, params, set_name)
+		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

@@ -324,11 +324,11 @@ class Component_Aim(Component_Base):
 	# Parameters
 
 	@classmethod
-	def is_bone_set_used(cls, rig, params, set_name):
+	def is_bone_set_used(cls, context, rig, params, set_name):
 		if set_name == 'deform_bones':
 			return params.aim.deform
 
-		return super().is_bone_set_used(rig, params, set_name)
+		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

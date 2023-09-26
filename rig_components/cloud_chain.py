@@ -671,11 +671,11 @@ class Component_ToonChain(Component_Base):
 	# Parameters
 
 	@classmethod
-	def is_bone_set_used(cls, rig, params, set_name):
+	def is_bone_set_used(cls, context, rig, params, set_name):
 		# We only want to draw this bone set UI if the option for it is enabled.
 		if set_name in ["deform_controls", "deform_helpers"]:
 			return params.chain.unlock_deform
-		return super().is_bone_set_used(rig, params, set_name)
+		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
 	def add_bone_set_parameters(cls, params):

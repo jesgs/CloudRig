@@ -192,11 +192,11 @@ class Component_CopyBone(Component_Base):
 		return layout
 
 	@classmethod
-	def is_bone_set_used(cls, rig, params, set_name):
+	def is_bone_set_used(cls, context, rig, params, set_name):
 		if set_name == 'deform_bones':
 			return params.copy.create_deform
 
-		return super().is_bone_set_used(rig, params, set_name)
+		return super().is_bone_set_used(context, rig, params, set_name)
 
 class Params(PropertyGroup):
 	create_deform: BoolProperty(

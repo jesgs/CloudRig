@@ -237,8 +237,6 @@ class Properties_CloudRig(PropertyGroup):
     generator: PointerProperty(type=GeneratorProperties)
     metarig_version: IntProperty()
 
-    advanced_bone_sets: BoolProperty(name="Advanced Bone Sets")
-
     ui_bone_sets: CollectionProperty(type=BoneSet_ForUI)
     active_bone_set_idx: IntProperty()
 

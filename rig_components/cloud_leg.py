@@ -394,11 +394,11 @@ class Component_Limb_BipedLeg(Component_Limb):
 	# Parameters
 
 	@classmethod
-	def is_bone_set_used(cls, rig, params, set_name):
+	def is_bone_set_used(cls, context, rig, params, set_name):
 		if set_name == 'foot_reverse_ik_control':
 			return params.leg.use_foot_roll
 
-		return super().is_bone_set_used(rig, params, set_name)
+		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
 	def add_bone_set_parameters(cls, params):

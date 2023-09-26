@@ -100,7 +100,7 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
 
 		# If no bone sets are visible, don't draw the panel.
 		for bone_set_name in rig_class.bone_set_definitions.keys():
-			if rig_class.is_bone_set_used(context.object, pb.cloudrig_component.params, bone_set_name):
+			if rig_class.is_bone_set_used(context, context.object, pb.cloudrig_component.params, bone_set_name):
 				return True
 
 		return False
