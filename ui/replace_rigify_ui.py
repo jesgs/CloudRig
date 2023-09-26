@@ -1,3 +1,5 @@
+# TODO 4.0: Remove this dead file.
+
 from bpy.types import (Object,
 		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
 		BONE_PT_rigify_buttons)

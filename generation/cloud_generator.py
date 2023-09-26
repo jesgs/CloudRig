@@ -25,7 +25,7 @@ from ..rig_component_features import mechanism
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
 
-from ..operators.assign_bone_layers import init_cloudrig_layers
+# from ..operators.assign_bone_layers import init_cloudrig_layers
 from ..utils.misc import check_addon, load_script
 from ..versioning import cloud_metarig_version
 from .cloudrig import ensure_custom_panels
@@ -212,8 +212,8 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         metarig.data.use_mirror_x = False
 
         # Ensure rigify layers are initialized.
-        if len(metarig.data.rigify_layers) < 32:
-            init_cloudrig_layers(metarig.data)
+        # if len(metarig.data.rigify_layers) < 32:
+        #     init_cloudrig_layers(metarig.data)
 
         #------------------------------------------
 
@@ -618,7 +618,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
     def parent_bones_to_root(self):
         pass
-        # TODO: Implement this (Can copy from Rigify, but operating on BoneInfo might be better, dunno.)
+        # TODO 4.0: Implement this (Can copy from Rigify, but operating on BoneInfo might be better, dunno.)
 
     def invoke_configure_bones(self):
         for bi in self.bone_infos:

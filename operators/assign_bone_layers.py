@@ -1,8 +1,9 @@
+# TODO 4.0: Remove this dead file, write similar functionality for bone collections if needed.
+
 from bpy.types import Operator, Armature
 from bpy.props import BoolVectorProperty
 from ..generation.cloudrig import (is_active_cloudrig, is_active_cloud_metarig,
 									draw_layers_ui, register_hotkey)
-
 # Layer Select operator can be found in cloudrig.py instead of here,
 # since it needs to be included with rigs when CloudRig isn't installed.
 

@@ -1,9 +1,5 @@
-from bpy.types import UILayout, Object, Panel
-import bpy
+from bpy.types import UILayout, Panel
 
-from rigify.ui import build_type_list
-
-from ..generation.cloudrig import draw_layers_ui
 from ..rig_component_features.ui import draw_label_with_linebreak, is_cloud_metarig
 from ..utils.misc import is_blender_version_compatible
 

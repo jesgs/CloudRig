@@ -1473,17 +1473,6 @@ def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='E
 			value = op_kwargs[key]
 			setattr(kmi.properties, key, value)
 
-# Ensure hotkeys, whether loaded as an addon or part of a rig.
-register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-	,key_cat = 'Pose'
-	,space_type = 'VIEW_3D'
-)
-register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-	,key_cat = 'Armature'
-)
-
 #######################################
 ############## Register ###############
 #######################################
@@ -1498,15 +1487,9 @@ classes = (
 	,CLOUDRIG_OT_copy_property
 	,CLOUDRIG_OT_reset_rig
 
-	,CLOUDRIG_OT_delete_override_leftovers
-	,CLOUDRIG_OT_override_fix_name
-	,CLOUDRIG_PT_troubleshoot_overrides
-
 	,CloudRig_Properties
 
 	,CLOUDRIG_PT_character
-	,CLOUDRIG_PT_layers
-	,CLOUDRIG_OT_layer_select
 	,CLOUDRIG_PT_settings
 
 	,CLOUDRIG_PT_hotkeys

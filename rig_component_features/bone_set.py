@@ -10,7 +10,6 @@ from collections import OrderedDict
 
 from ..utils.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs
-from ..generation.cloudrig import draw_layers_ui
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
 def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
