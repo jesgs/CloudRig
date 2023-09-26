@@ -59,7 +59,7 @@ def is_advanced_mode(context):
 def is_cloud_metarig(rig: Object):
 	if not rig.type == 'ARMATURE':
 		return False
-	return len(rig.data.cloudrig.rig_component_bones) > 0
+	return rig.data.cloudrig.enabled
 
 def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 	""" Attempt to simulate a proper textbox by only displaying as many

@@ -149,17 +149,26 @@ class ComponentParams(PropertyGroup):
     bone_sets: PointerProperty(type=BoneSets)
 
 def refresh_component_bones_list(context):
-    rig_ob = context.active_object
-    rig_ob.data.cloudrig.rig_component_bones.clear()
     addon_prefs = context.preferences.addons[__package__].preferences
+    
+    rig_ob = context.object
+    cloudrig = rig_ob.data.cloudrig
+    components = rig_ob.data.cloudrig.rig_component_bones
+    active_comp = cloudrig.active_component
+
+    owner_pb = None
+    if active_comp and active_comp.bone:
+        owner_pb = active_comp.owner_pose_bone
+
+    components.clear()
     for pb in rig_ob.pose.bones:
         elem_type = pb.cloudrig_component.component_type
         if elem_type:
-            rig_component_bone = rig_ob.data.cloudrig.rig_component_bones.add()
+            rig_component_bone = cloudrig.rig_component_bones.add()
             rig_component_bone.name = pb.name
             module_name = addon_prefs.rig_type_list[elem_type].module_name
             pb.cloudrig_component.component_module_name = module_name
-            pb.cloudrig_component.owner_bone = pb.name
+            pb.cloudrig_component.owner_bone_name = pb.name
 
     # Initialize UI Bone Sets, if not already done.
     for rig_type_name, rig_module in rig_components.rig_modules.items():
@@ -174,17 +183,27 @@ def refresh_component_bones_list(context):
             ui_bone_set = ui_bone_sets.add()
             ui_bone_set.name = bone_set_name
 
-class RigComponent(PropertyGroup):
-    def update_component_type(self, context):
-        refresh_component_bones_list(context)
+    # Reset the active element to the one belonging to the same PoseBone as before.
+    if owner_pb:
+        for i, comp in enumerate(components):
+            if comp.owner_pb == owner_pb:
+                cloudrig.active_rig_component_index = i
 
-    owner_bone: StringProperty(
+class RigComponent(PropertyGroup):
+    """This PropertyGroup lives on PoseBones, so it cannot be used in the UIList.
+    Still, it is important to store it on the bone, so that when a bone is duplicated,
+    this information is duplicated with it.
+    """
+    owner_bone_name: StringProperty(
         name="Owner Bone",
-        description="Name of the bone this RigComponent is on. This is updated as an early step of the Generation process, since it can fall out of sync by bone renaming or bone duplication"
+        description="Name of the bone this RigComponent is on. This is updated by interacting with the list UI, since it can fall out of sync by bone renaming or bone duplication"
     )
+    @property
+    def owner_pose_bone(self):
+        return self.id_data.pose.bones.get(self.owner_bone_name)
+
     component_type: StringProperty(
         name="Component Type", 
-        update=update_component_type
     )
     component_module_name: StringProperty()
 
@@ -194,47 +213,46 @@ class RigComponent(PropertyGroup):
 
     @property
     def rig_class(self) -> type:
+        if not self.component_module:
+            return
         return getattr(self.component_module, 'RigComponent')
 
     def instantiate(self, generator) -> 'RigComponent':
-        return self.rig_class(generator=generator, bone_name=self.owner_bone)
+        return self.rig_class(generator=generator, bone_name=self.owner_bone_name)
 
     params: PointerProperty(type=ComponentParams)
 
 
-class RigComponentBone(PropertyGroup):
-    def change_assigned_bone(self, context):
-        pass
-        # TODO: Implement this, similar to Copy Rigify Type & Parameters, 
-        # but ideally it would also clear the data from the source.
-
-    name: StringProperty(update=change_assigned_bone)
-
 class Properties_CloudRig(PropertyGroup):
+    enabled: BoolProperty(
+        name="CloudRig",
+        description="Whether this armature is a CloudRig metarig",
+        default=False
+    )
+
     version: IntProperty(
         name         = "CloudRig MetaRig Version"
         ,description = "For internal use only"
         ,default     = -1
     )
-    rig_component_bones: CollectionProperty(type=RigComponentBone)
-    def update_elem_index(self, context):
-        refresh_component_bones_list(context)
-        rig = context.active_object
-        active_elem_pb = rig.pose.bones.get(self.active_component_bone_name)
-        if not active_elem_pb:
+
+    @property
+    def rig_component_bones(self):
+        rig = bpy.context.object
+        return [pb.cloudrig_component for pb in rig.pose.bones if pb.cloudrig_component.component_type]
+
+    elem_index_is_updating: BoolProperty(description="Internal flag for avoiding infinite loops")
+
+    @property
+    def active_component(self):
+        if len(self.rig_component_bones) == 0:
             return
 
-        for pb in context.selected_pose_bones:
-            pb.bone.select = False
-        active_elem_pb.bone.select = True
-        rig.data.bones.active = active_elem_pb.bone
-
-    active_rig_component_index: IntProperty(update=update_elem_index)
-    @property
-    def active_component_bone_name(self):
-        return self.rig_component_bones[self.active_rig_component_index].name
+        # TODO 4.0: Unsafe index-based access here, but figure out how to keep that index clamped.
+        return self.rig_component_bones[self.active_rig_component_index]
 
     generator: PointerProperty(type=GeneratorProperties)
+
     metarig_version: IntProperty()
 
     ui_bone_sets: CollectionProperty(type=BoneSet_ForUI)
@@ -246,7 +264,6 @@ registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.
     BoneSets,
     ComponentParams,
     RigComponent,
-    RigComponentBone,
     Properties_CloudRig
 ]
 

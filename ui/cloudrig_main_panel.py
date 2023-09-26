@@ -26,11 +26,19 @@ class POSE_PT_CloudRig(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.object and context.object.type == 'ARMATURE' and is_cloud_metarig(context.object)
+        return context.object and context.object.type == 'ARMATURE'
+
+    def draw_header(self, context):
+        layout = self.layout
+        layout.prop(context.object.data.cloudrig, 'enabled', text="")
 
     def draw(self, context):
         layout = self.layout
+
         metarig = context.object
+        cloudrig = metarig.data.cloudrig
+
+        layout.enabled = cloudrig.enabled
 
         if not draw_version_check(layout):
             return
@@ -48,7 +56,13 @@ class POSE_PT_CloudRig_Generation(Panel):
     bl_region_type = 'WINDOW'
     bl_context = 'data'
     bl_options = {'DEFAULT_CLOSED'}
-    
+
+    @classmethod
+    def poll(cls, context):
+        # This is safe because of bl_parent_id; The parent panel's poll does
+        # early exit checks already, no point repeating them here.
+        return context.object.data.cloudrig.enabled
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
