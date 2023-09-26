@@ -519,9 +519,7 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
 	"""CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log,
 	when the active object is a CloudRig Metarig.
 	"""
-	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-		# rig = context.object
-		# cloudrig = data
+	def draw_item(self, _context, layout, _data, item, icon_value, _active_data, _active_propname):
 		log = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
@@ -533,7 +531,7 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
 
 		elif self.layout_type in {'GRID'}:
 			layout.alignment = 'CENTER'
-			layout.label(text="", icon_value=icon)
+			layout.label(text="", icon_value=icon_value)
 
 class CLOUDRIG_PT_log(Panel):
 	bl_space_type = 'PROPERTIES'

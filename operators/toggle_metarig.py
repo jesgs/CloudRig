@@ -35,27 +35,28 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object and context.object.type == 'ARMATURE' and context.object.visible_get()
+		rig = context.active_object
+		return rig and rig.type == 'ARMATURE' and rig.visible_get()
 
 	def execute(self, context):
-		ob = context.object
+		rig = context.active_object
 		metarig = None
 
-		if ob.data.rigify_target_rig:
+		if rig.data.rigify_target_rig:
 			# If the active object is a metarig, switch to the generated rig.
-			metarig = ob
+			metarig = rig
 			rig = metarig.data.rigify_target_rig
 			self.switch_rig_focus(context, metarig, rig, self.match_layers, self.match_selection)
 			return {'FINISHED'}
 
 		# Otherwise, try to find a metarig that references this rig
-		metarig = self.find_metarig_of_rig(context, ob)
+		metarig = self.find_metarig_of_rig(context, rig)
 		if not metarig:
 			self.report({'ERROR'}, "No metarig found for this rig.")
 			return {'CANCELLED'}
 
 		# Switch from the rig to the metarig
-		self.switch_rig_focus(context, ob, metarig, self.match_layers, self.match_selection)
+		self.switch_rig_focus(context, rig, metarig, self.match_layers, self.match_selection)
 		return {'FINISHED'}
 
 	def find_metarig_of_rig(self, context, rig: Object):

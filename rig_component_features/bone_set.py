@@ -298,8 +298,8 @@ class BoneSetMixin:
     @classmethod
     def draw_bone_sets_list(cls, layout, context, params):
         """Drawing the Bone Sets section of the Rigify Parameters."""
-        obj = context.object
-        cloudrig = obj.data.cloudrig
+        metarig = context.object
+        cloudrig = metarig.data.cloudrig
         active_pb = context.active_pose_bone
         if not active_pb.cloudrig_component.component_type:
             return
@@ -460,8 +460,8 @@ class CLOUDRIG_UL_bone_sets(UIList):
         if not flt_flags:
             flt_flags = [self.bitflag_filter_item] * len(ui_bone_sets)
 
-        rig = context.object
-        cloudrig = rig.data.cloudrig
+        metarig = context.object
+        cloudrig = metarig.data.cloudrig
         component = context.active_pose_bone.cloudrig_component
         rig_class = component.rig_class
 
@@ -474,19 +474,15 @@ class CLOUDRIG_UL_bone_sets(UIList):
                     # Filter advanced bone sets when the user doesn't want to see them.
                     flt_flags[idx] = 0
                     continue
-                if not rig_class.is_bone_set_used(rig, component.params, ui_bone_set.name):
+                if not rig_class.is_bone_set_used(metarig, component.params, ui_bone_set.name):
                     # Filter bone sets that are not used based on current parameters.
                     flt_flags[idx] = 0
 
         return flt_flags, flt_neworder
 
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+    def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
         ui_bone_set = item
         pretty_name = ui_bone_set.pretty_name
-        # rig_data = ui_bone_set.id_data
-        # rigify_layers = rig_data.rigify_layers
-        rig = context.object
-        pb = context.active_pose_bone
         # param_layers = getattr(pb.rigify_parameters, ui_bone_set.layer_param)
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             row = layout.row()

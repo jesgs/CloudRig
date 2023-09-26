@@ -68,7 +68,12 @@ class Timer:
         print(string + "%.3f" %(t - self.start_time))
 
 def get_active_pose_bone(context):
-    """Return the PoseBone of the active bone. Can be None."""
+    """Return the PoseBone of the active bone. Can be None. Useful for drawing
+    data stored on the PoseBone, in Edit Mode.
+    
+    TODO 4.0: Anything that uses this indicates that the data it's trying to access
+    should be stored on the Bone rather than the PoseBone. (Ie. CloudRig Components!!)
+    """
     return context.object.pose.bones.get(context.active_bone.name)
 
 def check_addon(context, addon_name: str) -> bool:

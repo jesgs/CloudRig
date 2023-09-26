@@ -181,7 +181,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		sub2.prop(self, 'use_custom_widget_name', text="", icon='GREASEPENCIL')
 
 	def assign_shape_to_selected_bones(self, context, widget_shape: str, ob_name=""):
-		rig = context.object
+		rig = context.active_object
 		if hasattr(rig.data, 'rigify_widgets_collection') and rig.data.rigify_widgets_collection:
 			# Rigify integration: If we're on a metarig, use the widget collection.
 			collection = rig.data.rigify_widgets_collection
@@ -199,7 +199,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 			pb.custom_shape = shape
 
 	def enter_shape_edit_mode_single(self, context):
-		rig = context.object
+		rig = context.active_object
 		active_pb = context.active_pose_bone
 		shape = active_pb.custom_shape
 

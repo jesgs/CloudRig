@@ -43,7 +43,7 @@ def load_sample(rig_name):
 
 	sample_name = "Sample_"+rig_name
 
-	rig = context.object
+	rig = context.active_object
 	bpy.ops.object.mode_set(mode='OBJECT')
 
 	assert sample_name not in bpy.data.objects, "Rig sample exists in the file, delete and purge it!"

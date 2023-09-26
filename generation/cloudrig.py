@@ -30,13 +30,13 @@ def get_rigs():
 
 def is_active_cloudrig(context):
 	""" If the active object is a cloudrig, return it. """
-	rig = context.pose_object or context.object
+	rig = context.pose_object or context.active_object
 	if rig and is_cloudrig_ui_enabled(rig):
 		return rig
 
 def is_active_cloud_metarig(context):
 	""" If the active object is a cloud metarig, return it. """
-	rig = context.pose_object or context.object
+	rig = context.pose_object or context.active_object
 	if rig and rig.type=='ARMATURE' and not is_cloudrig_ui_enabled(rig):
 		for pb in rig.pose.bones:
 			if not hasattr(pb, 'rigify_type'):
@@ -791,7 +791,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 	fk_last:	StringProperty()
 
 	def init_invoke(self, context):
-		rig = context.object
+		rig = context.active_object
 
 		self.pole = rig.pose.bones.get(self.ik_pole)	# Can be None.
 		prop_value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
@@ -855,8 +855,8 @@ class CLOUDRIG_OT_copy_property(bpy.types.Operator):
 
 	def invoke(self, context, event):
 		# Collect and save references to rigs in the scene which have this property somewhere on the rig.
-		# TODO: Add an assert that prop_bone and prop_id are found in context.object.
-		self.rig_bones = {context.object.name : self.prop_bone}
+		# TODO: Add an assert that prop_bone and prop_id are found in context.active_object.
+		self.rig_bones = {context.active_object.name : self.prop_bone}
 		for rig in context.scene.objects:
 			if rig.type!='ARMATURE' or 'cloudrig' not in rig.data: continue
 			for pb in rig.pose.bones:
@@ -898,7 +898,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 	def poll(cls, context):
 		return (is_active_cloudrig(context) is not None) and \
 			(context.pose_object or context.active_object) and \
-			'ui_data' in context.object.data
+			'ui_data' in context.active_object.data
 
 	def execute(self, context):
 		rig = context.pose_object or context.active_object
@@ -1229,7 +1229,7 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 
 	def draw(self, context):
 		layout = self.layout
-		rig = context.pose_object or context.object
+		rig = context.pose_object or context.active_object
 
 		rig_props = rig.cloud_rig
 

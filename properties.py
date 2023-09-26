@@ -149,7 +149,7 @@ class ComponentParams(PropertyGroup):
     bone_sets: PointerProperty(type=BoneSets)
 
 def refresh_component_bones_list(context):
-    rig_ob = context.object
+    rig_ob = context.active_object
     rig_ob.data.cloudrig.rig_component_bones.clear()
     addon_prefs = context.preferences.addons[__package__].preferences
     for pb in rig_ob.pose.bones:
@@ -219,7 +219,7 @@ class Properties_CloudRig(PropertyGroup):
     rig_component_bones: CollectionProperty(type=RigComponentBone)
     def update_elem_index(self, context):
         refresh_component_bones_list(context)
-        rig = context.object
+        rig = context.active_object
         active_elem_pb = rig.pose.bones.get(self.active_component_bone_name)
         if not active_elem_pb:
             return

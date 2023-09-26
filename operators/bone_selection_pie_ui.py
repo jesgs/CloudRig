@@ -61,7 +61,7 @@ def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     return entries
 
 def get_active_bone(context):
-    rig = context.pose_object or context.object
+    rig = context.pose_object or context.active_object
     if not rig or rig.type != 'ARMATURE':
         return None
 
@@ -94,7 +94,7 @@ class POSE_MT_PIE_bone_constraint_targets(Menu):
 
     def draw(self, context):
         layout = self.layout
-        active_pb = context.active_pose_bone or context.object.pose.bones.get(context.active_bone.name)
+        active_pb = context.active_pose_bone or context.active_object.pose.bones.get(context.active_bone.name)
 
         entries = get_target_bones(active_pb)
 
@@ -154,7 +154,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rig = context.pose_object or context.object
+        rig = context.pose_object or context.active_object
         active_bone = context.active_bone or context.active_pose_bone
         active_pb = rig.pose.bones.get(active_bone.name)
 

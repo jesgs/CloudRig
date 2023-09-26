@@ -67,17 +67,20 @@ class CLOUDRIG_OT_FlattenChain(Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object and context.object.type=='ARMATURE' and context.object.mode=='POSE'
+		rig = context.active_object
+		return rig and rig.type=='ARMATURE' and rig.mode=='POSE'
 
 	def execute(self, context):
+		rig = context.active_object
+
 		# Enter edit mode
-		org_mode = context.object.mode
+		org_mode = rig.mode
 		bpy.ops.object.mode_set(mode='EDIT')
 		bpy.ops.armature.select_all(action='DESELECT')
 
 		# Find the bone chain that we will be operating on
 		if self.start_bone != "":
-			start_bone = context.object.data.edit_bones.get(self.start_bone)
+			start_bone = rig.data.edit_bones.get(self.start_bone)
 		else:
 			start_bone = context.active_bone
 		chain = get_bone_chain(start_bone)
@@ -89,7 +92,7 @@ class CLOUDRIG_OT_FlattenChain(Operator):
 		bpy.ops.object.mode_set(mode=org_mode)
 
 		if self.remove_log:
-			remove_active_log(context.object)
+			remove_active_log(rig)
 
 		return { 'FINISHED' }
 

@@ -13,7 +13,7 @@ class CLOUDRIG_OT_layer_assign(Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	def update_layers(self, context):
-		rig = context.object
+		rig = context.active_object
 		bones = context.selected_bones if context.mode=='EDIT_ARMATURE' else [pb.bone for pb in context.selected_pose_bones]
 		for bone in bones:
 			bone.layers = self.layers[:]
@@ -34,7 +34,7 @@ class CLOUDRIG_OT_layer_assign(Operator):
 	def draw(self, context):
 		rig = context.pose_object
 		if not rig:
-			rig = context.object
+			rig = context.active_object
 		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True, layer_prop_owner=self)
 
 	def execute(self, context):
@@ -101,7 +101,7 @@ class CLOUDRIG_OT_layer_init(Operator):
 	bl_options = {'UNDO', 'INTERNAL'}
 
 	def execute(self, context):
-		armature = context.object.data
+		armature = context.active_object.data
 
 		init_cloudrig_layers(armature)
 

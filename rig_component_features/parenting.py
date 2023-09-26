@@ -11,7 +11,7 @@ from ..rig_component_features.ui import draw_label_with_linebreak
 # TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching.
 
 class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
-	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+	def draw_item(self, context, layout, _data, item, icon_value, _active_data, _active_propname):
 		metarig = context.object
 		rig = metarig.data.cloudrig.generator.target_rig
 		parent_slot = item
@@ -22,14 +22,13 @@ class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
 			row.prop(parent_slot, 'is_default', text="")
 		elif self.layout_type in {'GRID'}:
 			layout.alignment = 'CENTER'
-			layout.label(text="", icon_value=icon)
+			layout.label(text="", icon_value=icon_value)
 
 class ParentSlot(bpy.types.PropertyGroup):
 	name: StringProperty(name="Name", description="Name to display in the UI for this parent option")
 	bone: StringProperty(name="Bone", description="Bone that will be used as the parent")
 
 	def update_is_default(self, context):
-		arm_ob = context.object
 		active_pb = get_active_pose_bone(context)
 
 		for ps in active_pb.cloudrig_component.params.parenting.parent_slots:

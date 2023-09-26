@@ -6,9 +6,8 @@ class CLOUDRIG_UL_rig_components(UIList):
     """CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log,
     when the active object is a CloudRig Metarig.
     """
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+    def draw_item(self, context, layout, _data, item, _icon_value, _active_data, _active_propname):
         rig = context.object
-        cloudrig = data
         rig_component_bone_name = item.name
         addon_prefs = get_addon_prefs(context)
 

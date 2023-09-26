@@ -53,7 +53,7 @@ class CLOUDRIG_OT_generate(Operator):
         if not metarig and is_active_cloudrig(context):
             # Find the metarig referencing this rig
             for o in context.scene.objects:
-                if o.type == 'ARMATURE' and o.data.cloudrig.generator.target_rig == context.object:
+                if o.type == 'ARMATURE' and o.data.cloudrig.generator.target_rig == context.active_object:
                     metarig = o
                     break
 
@@ -172,7 +172,7 @@ class CLOUDRIG_OT_generate(Operator):
         if mode in ['OBJECT', 'EDIT', 'POSE']:
             bpy.ops.object.mode_set(mode=mode)
 
-        rig = context.object
+        rig = context.active_object
         if active_bone_name in rig.pose.bones:
             rig.data.bones.active = rig.data.bones[active_bone_name]
 

@@ -18,17 +18,17 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		ob = context.object
-		if not ob or ob.type != 'ARMATURE' or ob.mode not in ['POSE', 'OBJECT']:
+		rig = context.active_object
+		if not rig or rig.type != 'ARMATURE' or rig.mode not in ['POSE', 'OBJECT']:
 			return
-		if not (ob.animation_data and ob.animation_data.action):
+		if not (rig.animation_data and rig.animation_data.action):
 			return
-		action = ob.animation_data.action
-		con = cls.get_first_referencing_constraint(ob, action)
+		action = rig.animation_data.action
+		con = cls.get_first_referencing_constraint(rig, action)
 		return con != None
 
 	def execute(self, context):
-		rig = context.object
+		rig = context.active_object
 		action = rig.animation_data.action
 
 		con_count = 0
@@ -50,7 +50,8 @@ def draw_toggle_but(self, context):
 		return
 	if not CLOUDRIG_OT_Toggle_Action_Constraints.poll(context):
 		return
-	first_con = CLOUDRIG_OT_Toggle_Action_Constraints.get_first_referencing_constraint(context.object, context.object.animation_data.action)
+	rig = context.active_object
+	first_con = CLOUDRIG_OT_Toggle_Action_Constraints.get_first_referencing_constraint(rig, rig.animation_data.action)
 	word = "Disable" if first_con.enabled else "Enable"
 	op = layout.operator(CLOUDRIG_OT_Toggle_Action_Constraints.bl_idname, text=word + " Constraints", icon='CONSTRAINT_BONE')
 	op.enable = not first_con.enabled

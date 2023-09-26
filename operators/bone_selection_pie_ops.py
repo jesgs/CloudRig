@@ -47,13 +47,12 @@ def get_active_bone(context):
 	else:
 		return context.active_pose_bone
 
-def get_bone_by_name(context, bone_name: str):
+def get_bone_by_name(rig, bone_name: str):
 	"""Return PoseBone or EditBone with the given name, depending on context."""
-	obj = context.pose_object or context.object
-	if context.mode == 'EDIT_ARMATURE':
-		return obj.data.edit_bones.get(bone_name)
+	if rig.mode == 'EDIT_ARMATURE':
+		return rig.data.edit_bones.get(bone_name)
 	else:
-		return obj.pose.bones.get(bone_name)
+		return rig.pose.bones.get(bone_name)
 
 def is_active_bone(context, bone: Bone or EditBone or PoseBone):
 	"""Return whether the passed bone is the active one"""
@@ -88,8 +87,8 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 		armature.bones.active = bone
 
 	if context.mode == 'PAINT_WEIGHT':
-		if bone.name in context.object.vertex_groups:
-			context.object.vertex_groups.active = context.object.vertex_groups[bone.name]
+		if bone.name in context.active_object.vertex_groups:
+			context.active_object.vertex_groups.active = context.active_object.vertex_groups[bone.name]
 
 def reveal_and_select(context, bone: Bone or EditBone or PoseBone, set_active=True):
 	if type(bone) == PoseBone:
@@ -141,10 +140,10 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 
 	@classmethod
 	def poll(cls, context):
-		return context.pose_object or (context.object and context.object.type=='ARMATURE')
+		return context.pose_object or (context.active_object and context.active_object.type=='ARMATURE')
 
 	def execute(self, context):
-		rig = context.pose_object or context.object
+		rig = context.pose_object or context.active_object
 		if rig.mode == 'EDIT':
 			bone = rig.data.edit_bones.get(self.bone_name)
 		else:
@@ -157,8 +156,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 		super().execute(context)
 
 		ensure_visible_bone_layer(bone)
-		reveal_and_select(context, bone)
-		set_active_bone(context, bone)
+		reveal_and_select(context, bone, set_active=True)
 
 		return {'FINISHED'}
 
@@ -209,7 +207,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
 	)
 
 	def execute(self, context):
-		rig = context.pose_object or context.object
+		rig = context.pose_object or context.active_object
 		active_target_bone = None
 
 		selected_bones = get_selected_bones(context)
@@ -301,7 +299,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
 		layout = self.layout
 		layout.use_property_split = True
 		layout.use_property_decorate = False
-		rig = context.pose_object or context.object
+		rig = context.pose_object or context.active_object
 		if context.mode == 'EDIT_ARMATURE':
 			layout.prop_search(self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA')
 		else:
@@ -309,12 +307,12 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
 		layout.prop(self, 'extend_selection')
 
 	def execute(self, context):
-		bone = get_bone_by_name(context, self.bone_name)
+		bone = get_bone_by_name(context.active_object, self.bone_name)
 		if not self.extend_selection:
 			deselect_all_bones(context)
 
 		ensure_visible_bone_layer(bone)
-		reveal_and_select(context, bone)
+		reveal_and_select(context, bone, set_active=True)
 
 		return {'FINISHED'}
 
