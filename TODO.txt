@@ -27,6 +27,7 @@ Priority 0: Re-write as standalone add-on
 	- Update Manual links
 
 	BELLS AND WHISTLES:
+	- Don't version metarigs that are linked or overridden.
 	- Write a recursive lazy register thing that makes it so we can get rid of the modules = [] lists from our __init__.py's, using the recently discovered bpy.path.module_names() function!
 		- This would still require detecting dependencies and sorting the register list accordingly; CollectionProperties and PointerProperties depend on their type if it's a PropertyGroup, and Panels depend on their bl_parent_id. I'm not sure what else there might be.
 	- Ability to disable rig types. Simple checkbox. Skip generating the damn thing.
@@ -49,34 +50,11 @@ Priority 0: Re-write as standalone add-on
 		- Integrate reliance on BoneInfo as much as possible.
 		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
 
-
-	- UI:
-		- Draw all UI without replacing any Rigify UI.
-		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
-		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
-
 	- Delete stuff that's no longer needed:
 		- define_bone_set()
 		- add_bone_set_parameters()
 
 	- Get rid of generic_ui_list.py
-
-	BELLS AND WHISTLES:
-	- Don't version metarigs that are linked or overridden.
-	- Use callbacks to update certain things when changing rig types:
-		- Clear all PointerProperties (each rig type should implement its own update callback, and all of them should get called on switch)
-		- Create any missing BoneSets (which should no longer need to wait for a generation in order to exist, because the Generator, along with all of its data, will always exist and be stored in RNA.)
-	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig component list is empty or not.
-	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
-<<<<<<< HEAD
->>>>>>> 8301ef8 (Update aim, base, chain, and copy rigs to new Params.)
-=======
-		- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
-			- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
-			- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
->>>>>>> de4758a (Bring back the Generate button (doesn't work yet))
-
-
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
@@ -117,15 +95,6 @@ Priority 2: New features
 			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 			Not to mention, the eye target distance should be determined by a gizmo! :(
 
-	New bone layer preview UI and management:
-		The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.
-		Bone layers are stored in rows which are stored in columns, and are not initialized to 32 entries but 0.
-		Each row has a + button to add a new entry to that row, and the bottom of the UI has a + icon to add a new entry in a new column.
-			If we're at the max of 32 layers, we throw a nice error.
-			Each time we add an entry, the layer number assignments are re-initialized so that the named layers correspond to the real ones from top to bottom and left to right
-			Since all interaction is done through operators, each execution of such an operator (or changing of the name property) should update all Bone Set assignments in the metarig.
-		While each entry has a selection state, there is also an active component, which is whichever was toggled last. This is kept track of by a shared update callback.
-		Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
 Priority 3: Changes that will affect metarigs
 	Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
 	Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
@@ -177,15 +146,6 @@ Ideas:
 	A button to copy a single bone set's settings to all selected bones.
 
 	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
-
-	Layers:
-		Allow saving Layer Presets into a .json file, and loading and applying those layer presets with the Generate CloudRig Layers button - except, that button, along with a Save button, would remain available after the layers have been generated.
-		Disconnect real armature layers from Rigify layers, so that the rig can always generate with the same active layers instead of always the same ones.
-		This would probably require un-registering and the Rigify Layers propertygroup, and registering our modified version instead, which would have these flags:
-		- Layer Enabled
-		- Layer Protected
-		- Layer Visible
-		Better to do this upstream instead.
 
 	cloudrig.py:
 		Import stuff from cloudrig code, then at generation time to some shennanigans to replace the imports with the actual code that they're importing? Is this worth the headache? The only benefit is better code organization.

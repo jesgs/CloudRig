@@ -45,10 +45,6 @@ class EnsureVisible:
 
 class CloudObjectUtilitiesMixin:
 	@staticmethod
-	def set_layers(obj, layerlist, additive=False):
-		return set_layers(obj, layerlist, additive)
-
-	@staticmethod
 	def lock_transforms(obj, loc=True, rot=True, scale=True):
 		return lock_transforms(obj, loc, rot, scale)
 
@@ -77,27 +73,6 @@ def lock_transforms(obj, loc=True, rot=True, scale=True):
 		obj.lock_scale = scale
 	else:
 		obj.lock_scale = [scale, scale, scale]
-
-def set_layers(obj, layerlist, additive=False):
-	"""Layer setting function that can take either a list of booleans or a list of ints.
-	In case of booleans, it must be a 32 length list, and we set the bone's layer list to the passed list.
-	In case of ints, enable the layers with the indicies in the passed list.
-
-	obj can either be a bone or an armature.
-	"""
-	layers = list(obj.layers[:])
-	layerlist = layerlist[:]
-
-	if not additive:
-		layers = [False]*32
-	for i, e in enumerate(layerlist):
-		if type(e)==bool:
-			assert len(layerlist)==32, f"Layer assignment expected a list of 32 booleans, got {len(layerlist)}."
-			layers[i] = e or layers[i]
-		elif type(e)==int:
-			layers[e] = True
-
-	obj.layers = layers[:]
 
 def set_enum_property_by_integer(owner: ID, key:str, int_value) -> str or False:
 	"""Attempt setting an EnumProperty by its integer value.

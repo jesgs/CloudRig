@@ -874,11 +874,9 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         self.context.view_layer.update()
 
     def log_minor_issues(self):
-        self.logger.report_unused_named_layers()
         self.logger.report_widgets(self.widget_collection)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
-        self.logger.report_unused_bone_groups()
         # self.logger.report_actions()
 
 registry = [

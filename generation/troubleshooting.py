@@ -276,52 +276,11 @@ class CloudLogManager:
 	####################################################################
 	# Functions for finding various issues at the end of rig generation.
 	# For these, self.rig is expected to be set.
-	def report_unused_named_layers(self):
-		rig = self.rig
-		used_layers = [False]*32
-		for b in rig.data.bones:
-			for i in range(32):
-				used_layers[i] = used_layers[i] or b.layers[i]
 
-		rigify_layers = rig.data.rigify_layers
-		for i, rigify_layer in enumerate(rigify_layers):
-			if rigify_layer.name!="" and not rigify_layer.name.startswith("$") and not used_layers[i]:
-				self.log("Layer named but empty"
-					,description = f'Named Rigify Layer "{rigify_layer.name}" has no bones assigned so it should be removed or some bones assigned to it.'
-					,icon		 = 'LAYER_USED'
-					,note		 = f"{rigify_layer.name} ({i})"
-					,operator	 = 'object.cloudrig_rename_layer'
-					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : "$" + rigify_layer.name}
-					,op_text	 = "Mark Layer as Hidden"
-				)
-
-		for i in range(32):
-			if i > len(rigify_layers)-1:
-				# TODO (upstream): Rigify Layers should be initialized as a list of 32 booleans!!!
-				break
-			if used_layers[i] and rigify_layers[i].name=="":
-				self.log("Layer used but not named"
-					,description = f"Layer {i} has bones on it, but it does not have a Rigify Layer Name, therefore it won't display in the Layers panel."
-					,icon		 = 'LAYER_ACTIVE'
-					,note		 = str(i)
-					,operator	 = 'object.cloudrig_rename_layer'
-					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : ""}
-				)
-
-	def report_unused_bone_groups(self):
-		"""Unused bone groups simply won't get created on the generated rig,
-		so all we need to do here is compare the bone groups of the generated rig
-		to those of the metarig.
-		"""
-		for bg in self.metarig.pose.bone_groups:
-			if bg.name not in self.rig.pose.bone_groups:
-				self.log("Unused Bone Group"
-					,description = f'Bone Group "{bg.name}" is never used.'
-					,icon		 = 'GROUP_BONE'
-					,note		 = bg.name
-					,operator	 = 'object.cloudrig_remove_bone_group'
-					,op_kwargs	 = {'bg_name' : bg.name}
-				)
+	def report_unused_bone_collections(self):
+		pass
+		# TODO 4.0: We used to report unused bone groups and empty named layers, so
+		# I guess it would make sense to report empty collections.
 
 	def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
 		if not datablock: return
@@ -561,8 +520,8 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
 	when the active object is a CloudRig Metarig.
 	"""
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-		rig = context.object
-		cloudrig = data
+		# rig = context.object
+		# cloudrig = data
 		log = item
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
 			row = layout.row()
@@ -929,60 +888,6 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 
-class CLOUDRIG_OT_Rename_Rigify_Layer(Operator):
-	"""Rename a Rigify Layer"""
-
-	bl_idname = "object.cloudrig_rename_layer"
-	bl_label = "Rename Rigify Layer"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# Should be provided by the UI.
-	layer_idx: IntProperty()
-	layer_name: StringProperty(name="Layer Name")
-
-	def invoke(self, context, event):
-		if self.layer_name == '':
-			wm = context.window_manager
-			return wm.invoke_props_dialog(self)
-
-		return self.execute(context)
-
-	def draw(self, context):
-		self.layout.prop(self, 'layer_name')
-
-	def execute(self, context):
-		metarig = context.object
-
-		old_name = metarig.data.rigify_layers[self.layer_idx].name
-		metarig.data.rigify_layers[self.layer_idx].name = self.layer_name
-
-		self.report({'INFO'}, f'Renamed layer from "{old_name}" to "{self.layer_name}".')
-		remove_active_log(metarig)
-		return { 'FINISHED' }
-
-class CLOUDRIG_OT_Remove_Bone_Group(Operator):
-	"""Remove a Bone Group"""
-
-	bl_idname = "object.cloudrig_remove_bone_group"
-	bl_label = "Remove Bone Group"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# Should be provided by the UI.
-	bg_name: StringProperty(name="Group Name")
-
-	def execute(self, context):
-		metarig = context.object
-
-		bg = metarig.pose.bone_groups.get(self.bg_name)
-		if not bg:
-			self.report({'ERROR'}, f'Bone Group "{self.bg_name}" was already removed.')
-		else:
-			metarig.pose.bone_groups.remove(bg)
-			self.report({'INFO'}, f'Removed Bone Group "{self.bg_name}".')
-
-		remove_active_log(metarig)
-		return { 'FINISHED' }
-
 class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
 	"""Remove curves with only one keyframe"""
 
@@ -1068,8 +973,6 @@ registry = [
 	,CLOUDRIG_OT_Delete_Object
 
 	,CLOUDRIG_OT_Clear_Pointer
-	,CLOUDRIG_OT_Rename_Rigify_Layer
-	,CLOUDRIG_OT_Remove_Bone_Group
 
 	,CLOUDRIG_OT_Clear_Single_Keyframes
 	,CLOUDRIG_OT_Edit_Action_Slot

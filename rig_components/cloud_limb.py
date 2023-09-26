@@ -232,10 +232,6 @@ class Component_Limb(Component_Chain_IKFK):
 			,parent = org_lower
 			,custom_shape = self.ensure_widget('Arrow_Two-way')
 		)
-		# Assign to main FK layer and both IK layers also
-		control_bone.set_layers(self.bone_sets['FK Controls'].layers, additive=True)
-		control_bone.set_layers(self.bone_sets['IK Controls'].layers, additive=True)
-		control_bone.set_layers(self.bone_sets['FK Controls'].layers, additive=True)
 
 		# Shift it towards the IK pole or where it would be.
 		new_loc = control_bone.head + self.pole_vector.normalized() * org_lower.bbone_width*self.scale * 6

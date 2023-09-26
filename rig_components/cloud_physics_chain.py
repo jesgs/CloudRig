@@ -155,7 +155,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 			,parent = self.bone_sets['Physics Bones'][0]
 			,use_deform = True
 		)
-		self.set_layers(pin_bone, [type(self).DEFAULT_LAYERS.MCH])
 
 		# Add Armature modifier on physics object.
 		if phys_ob.modifiers.find('Armature') == -1:

@@ -4,7 +4,6 @@ from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 from mathutils import Vector, Matrix
 
 from ..utils.maths import flat
-from ..rig_component_features.object import set_layers
 from rigify.utils.mechanism import make_constraint, make_driver, make_property
 
 # These values should match Blender's defaults, otherwise they won't be written.
@@ -275,9 +274,6 @@ class BoneInfo:
 	def reverse(self):
 		"""Flip the head and the tail.""" # NOTE: What to do with roll, if there is one?
 		self.head, self.tail = self.tail, self.head
-
-	def set_layers(self, layerlist, additive=False):
-		set_layers(self, layerlist, additive)
 
 	def put(self, loc=None, length=None, width=None, scale_length=None, scale_width=None):
 		if not loc:
