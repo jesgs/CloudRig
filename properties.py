@@ -253,8 +253,13 @@ registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.
 ]
 
 def register():
-    bpy.types.Armature.cloudrig = PointerProperty(type=Properties_CloudRig)
+    # It might make sense to store things on Bone instead of PoseBone,
+    # but PoseBone, being stored on Object, has access to the Object via id_data,
+    # which can be handy.
     bpy.types.PoseBone.cloudrig_component = PointerProperty(type=RigComponent)
+
+    # TODO: For the same reason as above, we should probably store this on Object.
+    bpy.types.Armature.cloudrig = PointerProperty(type=Properties_CloudRig)
 
 def unregister():
     del bpy.types.Armature.cloudrig

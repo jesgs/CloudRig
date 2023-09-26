@@ -2,6 +2,7 @@ import bpy
 from bpy.types import ID, Object, LayerCollection
 
 class EnsureVisible:
+	# TODO: Nick has a nicer version of this that uses `yield`, which works with the `with` statement. Steal it.
 	"""Ensure an object is visible, then reset it to how it was before."""
 
 	def __init__(self, obj, do_collection=True):

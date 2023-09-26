@@ -65,13 +65,6 @@ def extend_rigify_advanced_panel(self, context):
 	layout.prop(prefs, 'advanced_mode')
 	layout.separator()
 
-	# Bone Group Color Parameters
-	# layout.prop(metarig.data, "rigify_colors_lock", text="Unified Select/Active Colors")
-	# if metarig.data.rigify_colors_lock:
-	# 	layout.prop(metarig.data.rigify_selection_colors, "select", text="Select Color")
-	# 	layout.prop(metarig.data.rigify_selection_colors, "active", text="Active Color")
-	# 	layout.separator()
-
 	### Root Bone Parameters
 	layout.prop(generator, 'create_root')
 	if generator.create_root and prefs.advanced_mode:

@@ -1,11 +1,6 @@
 Priority 0: Re-write as standalone add-on
 
 	- Re-write the Generator... (This is the bulk of the work, since if the Generator touches almost everything that CloudRig is.)
-		- Re-implement or remove support for any generator properties that we're using from Rigify:
-			- Omit "unified selected/active" colors
-			- Keep "Force Widget Update"
-			- Keep Widget Collection
-			- Keep Post-Generation Script.
 		- Move Generator Parameters to Armature.cloudrig.generator instead of Armature.cloudrig_parameters.
 			- That said, this could stay in generator.py instead of properties.py
 		- Re-implement functions calls starting with _Generator__, since we won't be inheriting those from Rigify anymore (most likely)
@@ -16,17 +11,23 @@ Priority 0: Re-write as standalone add-on
 		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
 		- Disable the Action system for now, then figure out how to hook into Rigify for it. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
+	- Re-implement Rigify functionality
+		- Adding Metarigs to the Armature UI
+		- Rig Samples (different UI)
+
 	- UI:
 		- Draw all UI without replacing any Rigify UI.
 		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
 		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
 
+	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
+		- This then also allows other code to set an `override_widget` property, which can be used instead, if set.
+		- This way, when widget overriding is used, the overridden widgets won't be loaded unnecessarily.
+		- Widgets are still always force-updated, unlike in Rigify, where that's optional.
 	- Bring back cloud_face_chain, cloud_eyelid, cloud_chain_anchor, but make them less of a disaster somehow.
 	- Bring in Rigify's Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
 
 	- Get rid of generic_ui_list.py
-	- Re-make Rig Samples and MetaRigs (ooof.)
-		- Also need to do our own UI for spawning them, since no more Rigify.
 	- Update the wiki (OOOOF!!!)
 	- Update Manual links
 

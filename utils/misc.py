@@ -4,6 +4,7 @@
 import addon_utils
 import bpy
 from typing import Tuple
+import time
 
 # Written by __init__.py at register time. (No other way to access bl_info)
 version_min: Tuple = ()
@@ -28,9 +29,10 @@ def load_script(file_path="", file_name="cloudrig.py", datablock=None, execute=T
     """
 
     if datablock:
+        # Allow writing into a passed text datablock.
         text = datablock
     else:
-        # Check if it already exists
+        # Check if a text datablock with this file name already exists.
         text = bpy.data.texts.get(file_name)
         # If not, create it.
         if not text:
@@ -70,9 +72,6 @@ class Timer:
 def get_active_pose_bone(context):
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
-    
-    TODO 4.0: Anything that uses this indicates that the data it's trying to access
-    should be stored on the Bone rather than the PoseBone. (Ie. CloudRig Components!!)
     """
     return context.object.pose.bones.get(context.active_bone.name)
 

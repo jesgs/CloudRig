@@ -26,11 +26,15 @@ from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
 
 from ..operators.assign_bone_layers import init_cloudrig_layers
-from ..utils.misc import check_addon
+from ..utils.misc import check_addon, load_script
 from ..versioning import cloud_metarig_version
 from .cloudrig import ensure_custom_panels
 
 class GeneratorProperties(PropertyGroup):
+    # TODO: I see no reason why this class couldn't be merged with the one that 
+    # holds the generate() function, making a unified `Generator` class that 
+    # lives in RNA, giving us the ability to just to `my_metarig.cloudrig.generator.generate()`,
+    # which would be pretty neat I think.
     target_rig: PointerProperty(
         name="Target Rig", 
         description="Rig to re-genreate based on this metarig when the Generate button is used", 
@@ -51,6 +55,11 @@ class GeneratorProperties(PropertyGroup):
         name         = "Post-Generation Script"
         ,type         = bpy.types.Text
         ,description = "Execute a python script after the rig is generated"
+    )
+    widget_collection: PointerProperty(
+        name         = "Widget Collection"
+        ,type         = bpy.types.Collection
+        ,description = "Collection dedicated to storing nothing but the widgets used by this rig. Additional objects will result in warnings, and missing widgets will be re-linked during generation"
     )
 
     generate_test_action: BoolProperty(
@@ -129,6 +138,8 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         self.metarig = metarig
         self.target_rig = None
         self.params = metarig.data.cloudrig.generator
+
+        self.custom_script_failure = False
 
         metarig.data.pose_position = 'REST'
         metarig['loc_bkp'] = metarig.matrix_world.to_translation()
@@ -293,7 +304,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         self._Generator__restore_driver_vars()
 
         #------------------------------------------
-        self.ensure_cloudrig_ui(metarig, obj)
+        self.ensure_cloudrig_ui(obj)
 
         self.invoke_finalize()
 
@@ -790,27 +801,27 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
     def execute_custom_script(self):
         """Execute a text datablock to be executed after rig generation."""
-        script = self.params.rigify_finalize_script
+        script = self.params.custom_script
         if not script:
             return
         try:
             exec(script.as_string(), {})
         except Exception as e:
             traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
-            entry = self.logger.log_error(
+            self.logger.log_error(
                 "Post-Generation Script failed."
                 ,description = f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.'
                 ,note         = str(e)
                 ,popup_text     = traceback_str
                 ,pretty_stack = traceback_str
             )
+            self.custom_script_failure = True
 
-    def ensure_cloudrig_ui(self, metarig, rig):
+    def ensure_cloudrig_ui(self, rig):
         """Load and execute cloudrig.py rig UI script."""
-        metarig.data.rigify_rig_ui = rig.data.rigify_rig_ui = load_script(
+        rig.data['cloudrig_ui'] = load_script(
             file_path = os.path.dirname(os.path.realpath(__file__))
             ,file_name = "cloudrig.py"
-            ,datablock = metarig.data.rigify_rig_ui
         )
 
     def ensure_widget_collection(self):

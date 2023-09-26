@@ -132,12 +132,12 @@ class CLOUDRIG_OT_generate(Operator):
                 return
 
             if generator.custom_script_failure:
+                # The error occurred in the user's script.
                 self.logger.log_fatal_error(
                     "Post-Generation Script failed."
                     ,description = f'Execution of post-generation script in text datablock "{generator_properties.custom_script.name}" failed, see stack trace below.'
                     ,note         = str(exception)
                 )
-                # The error occurred in the user's script.
                 # execute_custom_script() has already created the log entry for us,
                 # so we just want to keep raising the exception.
                 raise exception
