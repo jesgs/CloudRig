@@ -248,7 +248,6 @@ class CloudLogManager:
 
 	def log_fatal_error(self
 			,description_short: str
-			,pretty_stack = ""
 			,*
 			,description = ""
 			,**kwargs
@@ -625,7 +624,7 @@ class CLOUDRIG_PT_stack_trace(Panel):
 		if not generator.active_log:
 			return False
 		display_mode = generator.active_log.display_stack_trace
-		return display_mode == 'ALWAYS' or display_mode == 'ADVANCED' and is_advanced_mode(context)
+		return display_mode == 'ALWAYS' or (display_mode == 'ADVANCED' and is_advanced_mode(context))
 
 	def draw(self, context):
 		generator = context.object.data.cloudrig.generator

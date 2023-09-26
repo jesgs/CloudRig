@@ -118,9 +118,6 @@ class CLOUDRIG_OT_generate(Operator):
             generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
             metarig['failed_rig'] = generator.target_rig
 
-            traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
-            message = [exception.message]
-
             if isinstance(exception, CloudMetarigError):
                 # A MetaRig error means the user didn't follow instructions correctly.
                 # This is the only kind of Exception that is not a bug in CloudRig.
@@ -128,16 +125,11 @@ class CLOUDRIG_OT_generate(Operator):
                 fn = traceback.extract_tb(exc_traceback)[-1][0]
                 fn = os.path.basename(fn)
                 fn = os.path.splitext(fn)[0]
-                self.report({'ERROR'}, '\n'.join(message))
+                self.report({'ERROR'}, exception.message)
                 return
 
             if generator.custom_script_failure:
                 # The error occurred in the user's script.
-                self.logger.log_fatal_error(
-                    "Post-Generation Script failed."
-                    ,description = f'Execution of post-generation script in text datablock "{generator_properties.custom_script.name}" failed, see stack trace below.'
-                    ,note         = str(exception)
-                )
                 # execute_custom_script() has already created the log entry for us,
                 # so we just want to keep raising the exception.
                 raise exception
