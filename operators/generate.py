@@ -71,7 +71,7 @@ class CLOUDRIG_OT_generate(Operator):
         state_active_bone = context.active_pose_bone.name if context.active_pose_bone else ""
         state_selected_bones = [bone.name for bone in context.selected_pose_bones] if context.selected_pose_bones else []
         state_hide_bones = {bone.name : bone.hide for bone in metarig.data.bones}
-        state_layers = metarig.data.layers[:]
+        # TODO 4.0: Should Bone Collection Visibilities be preserved? I think so, but probably based on what's on the previously generated rig, not the metarig.
 
         # Ensure required visibility and active states.
         meta_visible = EnsureVisible(metarig)
@@ -95,7 +95,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         if self.focus_generated:
             self.restore_state(context, metarig, state_mode, state_active_bone,
-                        state_selected_bones, state_hide_bones, state_layers)
+                        state_selected_bones, state_hide_bones)
 
         return {'FINISHED'}
 
@@ -151,7 +151,7 @@ class CLOUDRIG_OT_generate(Operator):
 
     def restore_state(self, context, metarig, mode, 
             active_bone_name="", selected_bone_names="", 
-            hide_bones={}, layers=[]
+            hide_bones={}
         ):
         """Restore state for convenience."""
         metarig.hide_set(True)
@@ -171,9 +171,6 @@ class CLOUDRIG_OT_generate(Operator):
         for bone_name in selected_bone_names:
             if bone_name in rig.data.bones:
                 rig.data.bones[bone_name].select = True
-
-        if layers:
-            rig.data.layers = layers[:]
 
         for bone_name in hide_bones.keys():
             bone = rig.data.bones.get(bone_name)
