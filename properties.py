@@ -241,7 +241,13 @@ class Properties_CloudRig(PropertyGroup):
         rig = bpy.context.object
         return [pb.cloudrig_component for pb in rig.pose.bones if pb.cloudrig_component.component_type]
 
-    elem_index_is_updating: BoolProperty(description="Internal flag for avoiding infinite loops")
+    def select_bone_of_component(self, context):
+        rig = context.object
+        for bone in rig.data.bones:
+            bone.select = False
+        rig.data.bones.active = rig.data.bones[self.active_component_index]
+
+    active_component_index: IntProperty(description="Active CloudRig Component", update=select_bone_of_component)
 
     @property
     def active_component(self):

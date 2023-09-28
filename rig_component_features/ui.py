@@ -57,6 +57,7 @@ def is_advanced_mode(context):
 	return get_addon_prefs(context).advanced_mode
 
 def is_cloud_metarig(rig: Object):
+	if not rig: return False
 	if not rig.type == 'ARMATURE':
 		return False
 	return rig.data.cloudrig.enabled
