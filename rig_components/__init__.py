@@ -1,16 +1,15 @@
 import os, importlib
 from typing import Dict
-from pathlib import Path
 import bpy
 
-rig_modules = {}
+component_modules = {}
 
-def load_component_modules(dir_path: str, package: str) -> Dict:
+def load_component_modules(dir_path: str) -> Dict:
     """Manualy imports the rig modules, since they don't get automatically
     loaded because they aren't referenced by the code directly.
     """
     module_info = bpy.path.module_names(dir_path)
-    components = {}
+    component_modules = {}
     for module_name, module_filepath in module_info:
         # This terrbileness is needed because import_module() does not work
         # with absolute paths containing a period (which Blender scripts 
@@ -21,10 +20,10 @@ def load_component_modules(dir_path: str, package: str) -> Dict:
         module = importlib.import_module(delta, __package__)
         if not hasattr(module, 'RigComponent'):
             continue
-        components[module_name] = module
+        component_modules[module_name] = module
 
-    return components
+    return component_modules
 
 def register():
-    global rig_modules
-    rig_modules = load_component_modules(os.path.dirname(__file__), __package__)
+    global component_modules
+    component_modules = load_component_modules(os.path.dirname(__file__))

@@ -22,7 +22,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         split2 = split.split(factor=0.3)
         split2.alignment = 'RIGHT'
         split2.label(text="")
-        split2.prop_search(rig_component, 'component_type', addon_prefs, 'rig_type_list', text="", icon='ARMATURE_DATA')
+        split2.prop_search(rig_component, 'component_type', addon_prefs, 'component_types', text="", icon='ARMATURE_DATA')
 
     def draw_filter(self, context, layout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
@@ -94,7 +94,7 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         if not selected_pb:
             return
         prefs = get_addon_prefs(context)
-        row.prop_search(self, 'component_type', prefs, 'rig_type_list', text="", icon='ARMATURE_DATA')
+        row.prop_search(self, 'component_type', prefs, 'component_types', text="", icon='ARMATURE_DATA')
 
     def execute(self, context):
         rig = context.object
@@ -110,6 +110,7 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         selected_pb = rig.pose.bones[self.bone_name]
 
         selected_pb.cloudrig_component.component_type = self.component_type
+        selected_pb.cloudrig_component.owner_bone_name = selected_pb.name
         rig.data.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
 
         # Need to re-draw UI, otherwise the changes don't always show up...

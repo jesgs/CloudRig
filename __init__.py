@@ -13,8 +13,8 @@ from . import (
     ui,
     properties,
     prefs,
+    generation,
 )
-from .generation import troubleshooting, cloud_generator
 
 max_blender_version = (10, 0, 0)  # This should be set for in commits that will be tagged as a release.
 
@@ -42,8 +42,7 @@ modules = [
     rig_component_features,
     rig_components,
     prefs,
-    troubleshooting,
-    cloud_generator,
+    generation,
     properties,
 ]
 

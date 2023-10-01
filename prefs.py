@@ -8,13 +8,13 @@ def init_component_module_list(context=None):
     if not context:
         context = bpy.context
     prefs = context.preferences.addons[__package__].preferences
-    prefs.rig_type_list.clear()
-    for rig_file_name, rig_module in rig_components.rig_modules.items():
+    prefs.component_types.clear()
+    for rig_file_name, rig_module in rig_components.component_modules.items():
         if not hasattr(rig_module, 'RigComponent'):
             continue
         rig_class = rig_module.RigComponent
 
-        type_info = prefs.rig_type_list.add()
+        type_info = prefs.component_types.add()
         type_info.name = rig_class.ui_name
         type_info.module_name = rig_file_name
 
@@ -38,7 +38,7 @@ class CloudRigComponentTypeInfo(PropertyGroup):
 class CloudRigPreferences(AddonPreferences):
     bl_idname = __package__
 
-    rig_type_list: CollectionProperty(type=CloudRigComponentTypeInfo)
+    component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
     advanced_mode: BoolProperty(
         name="Advanced Mode",

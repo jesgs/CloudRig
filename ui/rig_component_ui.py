@@ -28,7 +28,7 @@ class CLOUDRIG_PT_rig_component(Panel):
         active_bone = context.active_bone
         active_pb = context.object.pose.bones.get(active_bone.name)
         rig_component = active_pb.cloudrig_component
-        layout.prop_search(rig_component, 'component_type', prefs, 'rig_type_list', icon='ARMATURE_DATA')
+        layout.prop_search(rig_component, 'component_type', prefs, 'component_types', icon='ARMATURE_DATA')
         layout.prop(prefs, 'advanced_mode')
 
 registry = [

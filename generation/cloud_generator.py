@@ -100,19 +100,28 @@ class CloudRig_Generator_Base:
 
         self.metarig.data.cloudrig.refresh_generation_order(self.metarig)
 
-        component_bones_ordered = [pb for pb in sorted(self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.component_order) if pb.cloudrig_component.component_type]
+        component_bones_ordered = [pb for pb in sorted(self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order) if pb.cloudrig_component.component_type]
 
         comp_map = {}
         for pb in component_bones_ordered:
             comp_instance = pb.cloudrig_component.instantiate(generator=self)
+            if not comp_instance:
+                self.logger.log(
+                    "Invalid Component Type",
+                    note=pb.cloudrig_component.component_type,
+                    description="This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."
+                )
+                continue
             comp_map[pb.name] = comp_instance
 
             parent_component = pb.cloudrig_component.parent
-
-            # Store parent/child relations on the instances.
             if parent_component:
-                comp_instance.parent_component = parent_component
-                parent_component.child_components.append(comp_instance)
+                parent_instance = comp_map.get(parent_component.owner_bone_name)
+                assert parent_instance, "Error: Parent should've been instantiated already!"
+
+                # Store parent/child relations on the instances.
+                comp_instance.parent_component = parent_instance
+                parent_instance.child_components.append(comp_instance)
 
 
 class CloudRig_Generator(CloudRig_Generator_Base):
