@@ -265,6 +265,8 @@ class CloudLogManager:
 			,**kwargs
 		)
 
+		print(entry.pretty_stack)
+
 		return entry
 
 	def clear(self):

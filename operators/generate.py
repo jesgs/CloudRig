@@ -139,13 +139,12 @@ class CLOUDRIG_OT_generate(Operator):
             generator.logger.log_fatal_error(
                 "Execution Failed!",
                 description = "Execution failed unexpectedly. This should never happen!",
-                display_stack_trace = 'ALWAYS',
                 icon = 'URL',
                 note = str(exception),
                 operator = 'wm.cloudrig_report_bug',
             )
 
-            self.report({'ERROR'}, "A bug has occurred. You can report it through the Generation Log interface. \nStack Trace:\n", entry.op_kwargs['stack_trace'])
+            self.report({'ERROR'}, "A bug has occurred. You can report it through the Generation Log interface.")
 
         return generator_properties.target_rig
 
