@@ -96,38 +96,24 @@ class GeneratorProperties(PropertyGroup):
 
 class CloudRig_Generator_Base:
     def instantiate_rig_components(self):
-        """Create rig instances and connect them into a tree."""
+        """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
-        # assert(context.active_object == self.obj)
-        # assert(self.obj.mode == 'OBJECT')
+        self.metarig.data.cloudrig.refresh_generation_order(self.metarig)
 
-        # Find bones that have no parents.
-        parentless = [pb for pb in self.metarig.pose.bones if not pb.bone.parent]
-        for pb in parentless:
-            self.instantiate_rig_components_recursive(pb)
+        component_bones_ordered = [pb for pb in sorted(self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.component_order) if pb.cloudrig_component.component_type]
 
-    def instantiate_rig_components_recursive(
-                self, 
-                pb: bpy.types.PoseBone, 
-                parent_component: "RigComponent" = None
-            ):
-        if pb.cloudrig_component.component_type:
-            # Maintain rig component's awareness of what bone it is on.
-            pb.cloudrig_component.owner_bone = pb.name
-            # Instantiate rig component class.
+        comp_map = {}
+        for pb in component_bones_ordered:
             comp_instance = pb.cloudrig_component.instantiate(generator=self)
-            print("Instantiated ", pb.name)
+            comp_map[pb.name] = comp_instance
 
-            # Store parent/child relations
+            parent_component = pb.cloudrig_component.parent
+
+            # Store parent/child relations on the instances.
             if parent_component:
                 comp_instance.parent_component = parent_component
                 parent_component.child_components.append(comp_instance)
 
-            # Set parent for the next recursion.
-            parent_component = comp_instance
-
-        for child_pb in pb.children:
-            self.instantiate_rig_components_recursive(child_pb, parent_component)
 
 class CloudRig_Generator(CloudRig_Generator_Base):
     """
@@ -147,7 +133,6 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         metarig['scale_bkp'] = metarig.matrix_world.to_scale()
         metarig.matrix_world = Matrix.Identity(4)
 
-        return
         context.view_layer.update() # Needed to make sure we get the correct scale # TODO: Is this really necessary?
         self.scale = get_object_scalar(metarig)
 

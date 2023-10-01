@@ -9,7 +9,6 @@ class CLOUDRIG_UL_rig_components(UIList):
     """The Rig Component list is actually a list of all pose bones on the object, 
     filtered to only show the ones that have a CloudRig component type assigned.
     """
-    # TODO 4.0: Make sure this list has functional filtering, hierarchical sorting, and ideally, hierarchical indentation.
     def draw_item(self, context, layout, data, item, icon_value, _active_data, _active_propname):
         pose_bone = item
         rig_component = pose_bone.cloudrig_component
@@ -19,7 +18,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         row = layout.row()
         split = row.split(factor=0.4)
         row = split.row()
-        row.label(text=pose_bone.name, icon_value=icon_value)
+        row.label(text=">" * rig_component.depth + pose_bone.name, icon_value=icon_value)
         split2 = split.split(factor=0.3)
         split2.alignment = 'RIGHT'
         split2.label(text="")
@@ -37,7 +36,6 @@ class CLOUDRIG_UL_rig_components(UIList):
         flt_flags = [self.bitflag_filter_item] * len(pbones)
         flt_neworder = []
 
-
         helper_funcs = bpy.types.UI_UL_list
 
         # Filtering by name search.
@@ -47,6 +45,8 @@ class CLOUDRIG_UL_rig_components(UIList):
 
         # Filter out bones that don't have a rig component.
         flt_flags = [flag * int(pbones[i].cloudrig_component.component_type!="") for i, flag in enumerate(flt_flags)]
+
+        flt_neworder = [i for i, _pb in enumerate(sorted(pbones, key=lambda pb: pb.cloudrig_component.order))]
 
         return flt_flags, flt_neworder
 

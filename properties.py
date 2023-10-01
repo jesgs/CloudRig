@@ -148,47 +148,6 @@ class ComponentParams(PropertyGroup):
     
     bone_sets: PointerProperty(type=BoneSets)
 
-def refresh_component_bones_list(context):
-    addon_prefs = context.preferences.addons[__package__].preferences
-    
-    rig_ob = context.object
-    cloudrig = rig_ob.data.cloudrig
-    components = rig_ob.data.cloudrig.rig_component_bones
-    active_comp = cloudrig.active_component
-
-    owner_pb = None
-    if active_comp and active_comp.bone:
-        owner_pb = active_comp.owner_pose_bone
-
-    components.clear()
-    for pb in rig_ob.pose.bones:
-        elem_type = pb.cloudrig_component.component_type
-        if elem_type:
-            rig_component_bone = cloudrig.rig_component_bones.add()
-            rig_component_bone.name = pb.name
-            module_name = addon_prefs.rig_type_list[elem_type].module_name
-            pb.cloudrig_component.component_module_name = module_name
-            pb.cloudrig_component.owner_bone_name = pb.name
-
-    # Initialize UI Bone Sets, if not already done.
-    for rig_type_name, rig_module in rig_components.rig_modules.items():
-        rig_class = getattr(rig_module, 'RigComponent')
-        if not hasattr(rig_class, 'bone_set_definitions'):
-            continue
-
-        for bone_set_name, bone_set_definition in rig_class.bone_set_definitions.items():
-            ui_bone_sets = rig_ob.data.cloudrig.ui_bone_sets
-            if bone_set_name in ui_bone_sets:
-                continue
-            ui_bone_set = ui_bone_sets.add()
-            ui_bone_set.name = bone_set_name
-
-    # Reset the active element to the one belonging to the same PoseBone as before.
-    if owner_pb:
-        for i, comp in enumerate(components):
-            if comp.owner_pb == owner_pb:
-                cloudrig.active_rig_component_index = i
-
 class RigComponent(PropertyGroup):
     """This PropertyGroup lives on PoseBones, so it cannot be used in the UIList.
     Still, it is important to store it on the bone, so that when a bone is duplicated,
@@ -221,7 +180,29 @@ class RigComponent(PropertyGroup):
         return self.rig_class(generator=generator, bone_name=self.owner_bone_name)
 
     params: PointerProperty(type=ComponentParams)
+    order: IntProperty(
+        name="Generation order of this component",
+        description="Internal value, based on bone hierarchy",
+        default=-1
+    )
+    depth: IntProperty(
+        name="Hierarchy depth, used for UI",
+        description="Internal value, based on bone hierarchy",
+        default=0
+    )
 
+    @property
+    def parent(self):
+        armature = self.id_data
+        this_bone = armature.data.bones.get(self.owner_bone_name)
+        bone_parent = this_bone.parent
+        parent_component = None
+        while bone_parent:
+            if bone_parent.cloudrig_component.component_type:
+                parent_component = bone_parent.cloudrig_component
+            bone_parent = bone_parent.parent
+        
+        return parent_component
 
 class Properties_CloudRig(PropertyGroup):
     enabled: BoolProperty(
@@ -247,6 +228,8 @@ class Properties_CloudRig(PropertyGroup):
             bone.select = False
         rig.data.bones.active = rig.data.bones[self.active_component_index]
 
+        self.refresh_generation_order(context.object)
+
     active_component_index: IntProperty(description="Active CloudRig Component", update=select_bone_of_component)
 
     @property
@@ -258,6 +241,39 @@ class Properties_CloudRig(PropertyGroup):
         return self.rig_component_bones[self.active_rig_component_index]
 
     generator: PointerProperty(type=GeneratorProperties)
+
+    def refresh_generation_order(self, metarig_ob):
+        # Find bones that have no parents.
+        parentless = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
+        index = 0
+        for pb in parentless:
+            index = self.number_rig_components_recursive(pb=pb, parent_component=None, index=index)
+
+    def number_rig_components_recursive(
+                self, 
+                pb: bpy.types.PoseBone, 
+                parent_component: "RigComponent" = None,
+                index=0
+            ):
+        if pb.cloudrig_component.component_type:
+            pb.cloudrig_component.order = index
+            if parent_component:
+                pb.cloudrig_component.depth = parent_component.depth + 1
+            else:
+                pb.cloudrig_component.depth = 0
+            index += 1
+
+            # Set parent for the next recursion.
+            parent_component = pb.cloudrig_component
+        else:
+            pb.cloudrig_component.order = -1
+            pb.cloudrig_component.depth = 0
+
+        for child_pb in pb.children:
+            index = self.number_rig_components_recursive(pb=child_pb, parent_component=parent_component, index=index)
+
+        return index
+
 
     metarig_version: IntProperty()
 
