@@ -415,7 +415,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 		if params.leg.use_foot_roll:
 			split = layout.split(factor=0.1)
 			split.row()
-			clsdraw_prop_search(context, split.row(), params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
+			cls.draw_prop_search(context, split.row(), params, "CR_leg_heel_bone", context.object.data, "bones", text="Heel Pivot")
 
 class Params(PropertyGroup):
 	use_foot_roll: BoolProperty(

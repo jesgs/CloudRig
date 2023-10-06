@@ -75,7 +75,7 @@ class CloudCustomPropertiesMixin:
 
 		cls.draw_prop(context, layout, params.custom_props, 'props_storage', expand=True)
 		if params.CR_base_props_storage == 'CUSTOM':
-			clsdraw_prop_search(context, layout, params.custom_props, 'props_storage_bone', rig.pose, 'bones')
+			cls.draw_prop_search(context, layout, params.custom_props, 'props_storage_bone', rig.pose, 'bones')
 		return layout
 
 class Params(PropertyGroup):

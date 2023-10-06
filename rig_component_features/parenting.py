@@ -236,7 +236,7 @@ class CloudParentingMixin:
 		text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
 		
 		row = layout.row(align=True)
-		clsdraw_prop_search(context, row, params, 'parenting.root_parent', rig.pose, 'bones', text=text)
+		cls.draw_prop_search(context, row, params, 'parenting.root_parent', rig.pose, 'bones', text=text)
 		if is_parent_bendy:
 			cls.draw_prop(context, row, params, 'parenting.use_armature_constraint', icon='CON_ARMATURE', text="")
 			if params.parenting.use_armature_constraint:

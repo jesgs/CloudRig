@@ -232,15 +232,15 @@ class CloudJawRig(Component_CopyBone):
 
 		layout.label(text="The cloud_jaw rig type is still in experimental stage.")
 		layout.label(text="Compatibility will break, don't use for anything serious!")
-		clsdraw_prop_search(context, layout.row(), params, "CR_jaw_lower_face_bone", context.object.data, "bones")
-		clsdraw_prop_search(context, layout.row(), params, "CR_jaw_squash_bone", context.object.data, "bones")
-		clsdraw_prop_search(context, layout.row(), params, "CR_jaw_chin_bone", context.object.data, "bones")
-		clsdraw_prop_search(context, layout.row(), params, "CR_jaw_mouth_bone", context.object.data, "bones")
+		cls.draw_prop_search(context, layout.row(), params, "CR_jaw_lower_face_bone", context.object.data, "bones")
+		cls.draw_prop_search(context, layout.row(), params, "CR_jaw_squash_bone", context.object.data, "bones")
+		cls.draw_prop_search(context, layout.row(), params, "CR_jaw_chin_bone", context.object.data, "bones")
+		cls.draw_prop_search(context, layout.row(), params, "CR_jaw_mouth_bone", context.object.data, "bones")
 
 		cls.draw_prop(context, layout, params, 'CR_jaw_teeth_follow')
 		if params.CR_jaw_teeth_follow:
-			clsdraw_prop_search(context, layout.row(), params, "CR_jaw_teeth_upper_bone", context.object.data, "bones")
-			clsdraw_prop_search(context, layout.row(), params, "CR_jaw_teeth_lower_bone", context.object.data, "bones")
+			cls.draw_prop_search(context, layout.row(), params, "CR_jaw_teeth_upper_bone", context.object.data, "bones")
+			cls.draw_prop_search(context, layout.row(), params, "CR_jaw_teeth_lower_bone", context.object.data, "bones")
 
 
 # Uncomment the next two lines to make this rig show up in Blender.
