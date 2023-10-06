@@ -67,32 +67,13 @@ class BoneSet(LinkedList):
         Also responsible for bone group layer assignment.
     """
 
-    presets = [
-        [(0.6039215922355652, 0.0, 0.0), (0.7411764860153198, 0.06666667014360428, 0.06666667014360428), (0.9686275124549866, 0.03921568766236305, 0.03921568766236305)],
-        [(0.9686275124549866, 0.250980406999588, 0.0941176563501358), (0.9647059440612793, 0.4117647409439087, 0.07450980693101883), (0.9803922176361084, 0.6000000238418579, 0.0)],
-        [(0.11764706671237946, 0.5686274766921997, 0.03529411926865578), (0.3490196168422699, 0.7176470756530762, 0.04313725605607033), (0.5137255191802979, 0.9372549653053284, 0.11372549831867218)],
-        [(0.03921568766236305, 0.21176472306251526, 0.5803921818733215), (0.21176472306251526, 0.40392160415649414, 0.874509871006012), (0.3686274588108063, 0.7568628191947937, 0.9372549653053284)],
-        [(0.6627451181411743, 0.16078431904315948, 0.30588236451148987), (0.7568628191947937, 0.2549019753932953, 0.41568630933761597), (0.9411765336990356, 0.364705890417099, 0.5686274766921997)],
-        [(0.26274511218070984, 0.0470588281750679, 0.4705882668495178), (0.3294117748737335, 0.22745099663734436, 0.6392157077789307), (0.529411792755127, 0.3921568989753723, 0.8352941870689392)],
-        [(0.1411764770746231, 0.4705882668495178, 0.3529411852359772), (0.2352941334247589, 0.5843137502670288, 0.4745098352432251), (0.43529415130615234, 0.7137255072593689, 0.6705882549285889)],
-        [(0.29411765933036804, 0.4392157196998596, 0.4862745404243469), (0.41568630933761597, 0.5254902243614197, 0.5686274766921997), (0.6078431606292725, 0.760784387588501, 0.803921639919281)],
-        [(0.9568628072738647, 0.7882353663444519, 0.0470588281750679), (0.9333333969116211, 0.760784387588501, 0.21176472306251526), (0.9529412388801575, 1.0, 0.0)],
-        [(0.11764706671237946, 0.125490203499794, 0.1411764770746231), (0.2823529541492462, 0.2980392277240753, 0.33725491166114807), (1.0, 1.0, 1.0)],
-        [(0.43529415130615234, 0.18431372940540314, 0.41568630933761597), (0.5960784554481506, 0.2705882489681244, 0.7450980544090271), (0.8274510502815247, 0.1882353127002716, 0.8392157554626465)],
-        [(0.4235294461250305, 0.5568627715110779, 0.13333334028720856), (0.49803924560546875, 0.6901960968971252, 0.13333334028720856), (0.7333333492279053, 0.9372549653053284, 0.35686275362968445)],
-        [(0.5529412031173706, 0.5529412031173706, 0.5529412031173706), (0.6901960968971252, 0.6901960968971252, 0.6901960968971252), (0.8705883026123047, 0.8705883026123047, 0.8705883026123047)],
-        [(0.5137255191802979, 0.26274511218070984, 0.14901961386203766), (0.545098066329956, 0.3450980484485626, 0.06666667014360428), (0.7411764860153198, 0.41568630933761597, 0.06666667014360428)],
-        [(0.0313725508749485, 0.19215688109397888, 0.05490196496248245), (0.1098039299249649, 0.26274511218070984, 0.04313725605607033), (0.2039215862751007, 0.38431376218795776, 0.16862745583057404)],
-    ]
-
-    def __init__(self, rig, ui_name="Bone Set",
-            bone_group="Group", normal=None, select=None, active=None, preset=-1,
-            layers = [l==0 for l in range(32)],
+    def __init__(self, rig_component, ui_name="Bone Set",
+            collection="Collection", color_palette='DEFAULT',
             defaults = {}
         ):
         super().__init__()
 
-        self.rig = rig
+        self.rig_component = rig_component
 
         # kwargs that will be passed to new BoneInfo() instances.
         self.defaults = defaults
@@ -100,30 +81,11 @@ class BoneSet(LinkedList):
         # Name that will be displayed in the Bone Sets UI.
         self.ui_name = ui_name
 
-        # Layers to assign to newly defined BoneInfos.
-        self.layers = layers
+        # Collection to assign to newly defined BoneInfos.
+        self.collection = collection # TODO 4.0 This needs to be a list, and in turn a CollectionProperty...
 
         # Bone Group name to assign to newly defined BoneInfos.
-        self.bone_group = bone_group
-
-        self.color_set = 'CUSTOM'
-        self.normal = [0, 0, 0]
-        self.select = [0, 0, 0]
-        self.active = [0, 0, 0]
-
-        presets = type(self).presets
-
-        if len(presets) > preset > -1:
-            self.normal = presets[preset][0]
-            self.select = presets[preset][1]
-            self.active = presets[preset][2]
-        else:
-            if not normal and not select and not active:
-                self.color_set = 'DEFAULT'
-
-        if normal: self.normal = normal
-        if select: self.select = select
-        if active: self.active = active
+        self.color_palette = color_palette
 
     def find(self, name):
         """Find a BoneInfo instance by name, return it if found."""
@@ -138,19 +100,21 @@ class BoneSet(LinkedList):
     def new(self, name="Bone", source=None, **kwargs):
         """Create and add a new BoneInfo to self."""
 
-        generator = self.rig
-        if hasattr(self.rig, 'generator'):
-            generator = self.rig.generator
+        if hasattr(self.rig_component, 'generator'):
+            generator = self.rig_component.generator
+        else:
+            # Since the generator can also be a rig component...
+            generator = self.rig_component
 
         # If a BoneInfo with the passed name already exists, something is very wrong!
         bone_info = generator.find_bone_info(name)
         if bone_info:
             self.raise_metarig_error(f'Bone name "{bone_info.name}" was used twice! Make sure your bone names are unique and do not have trailing zeroes!')
 
-        if 'bone_group' not in kwargs:
-            kwargs['bone_group'] = self.bone_group
-        if 'layers' not in kwargs:
-            kwargs['layers'] = self.layers
+        if 'collection' not in kwargs:
+            kwargs['collection'] = self.collection
+        if 'color_palette_base' not in kwargs:
+            kwargs['color_palette_base'] = self.color_palette
         for key in self.defaults.keys():
             if key not in kwargs:
                 kwargs[key] = self.defaults[key]
@@ -158,16 +122,16 @@ class BoneSet(LinkedList):
         bone_info = BoneInfo(self, name, source, **kwargs)
         self.append(bone_info)
         generator.bone_infos.append(bone_info)
-        bone_info.owner_rig = self.rig
+        bone_info.owner_rig = self.rig_component
 
         return bone_info
 
-    def new_from_real(self, rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
+    def new_from_real(self, rig_ob: bpy.types.Object, edit_bone: bpy.types.EditBone):
         """Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
         # NOTE: Parenting should be done outside of this function, 
         # since parent bone info is not guaranteed to exist.
 
-        pose_bone = rig.pose.bones.get(edit_bone.name)
+        pose_bone = rig_ob.pose.bones.get(edit_bone.name)
         data_bone = pose_bone.bone
         bone_info = self.new(name=edit_bone.name)
 
@@ -199,11 +163,11 @@ class BoneSet(LinkedList):
             ci = bone_info.add_constraint_from_real(c)
 
         # Load Drivers.
-        if rig.animation_data:
-            driver_map = self.rig.generator.driver_map
+        if rig_ob.animation_data:
+            driver_map = self.rig_ob.generator.driver_map
             if bone_info.name in driver_map:
                 for data_path, array_index in driver_map[bone_info.name]:
-                    fcurve = rig.animation_data.drivers.find(data_path, index=array_index)
+                    fcurve = rig_ob.animation_data.drivers.find(data_path, index=array_index)
                     path_from_last = "." + data_path.split('"].')[-1]
                     if path_from_last.endswith('"]'):
                         path_from_last = "[" + path_from_last.split("][")[-1]
@@ -216,7 +180,7 @@ class BoneSet(LinkedList):
                             constraint_info.drivers.append(driver_info)
                     else:
                         bone_info.drivers.append(driver_info)
-                    rig.animation_data.drivers.remove(fcurve)
+                    rig_ob.animation_data.drivers.remove(fcurve)
 
         # Load Custom Properties.
         if rna_idprop_has_properties(pose_bone):
@@ -246,15 +210,15 @@ class BoneSet(LinkedList):
 
         return bone_info
 
-    def ensure_bone_group(self, rig, overwrite=False):
-        """ Create the bone group defined by this bone set on rig. """
+    def ensure_bone_group(self, rig_ob, overwrite=False):
+        """ Create the bone group defined by this bone set on rig_ob. """
 
-        bone_group = rig.pose.bone_groups.get(self.bone_group)
+        bone_group = rig_ob.pose.bone_groups.get(self.bone_group)
         if bone_group and not overwrite:
             return bone_group
 
         if not bone_group:
-            bone_group = rig.pose.bone_groups.new(name=self.bone_group)
+            bone_group = rig_ob.pose.bone_groups.new(name=self.bone_group)
 
         bone_group.color_set = self.color_set
         bone_group.colors.normal = self.normal[:]
@@ -276,9 +240,8 @@ class BoneSetMixin:
 
         new_set = BoneSet(self,
             ui_name = rna_bone_set.name,
-            bone_group = "", # TODO 4.0
-            # layers = bone_set_def['layers'],
-            # preset = bone_set_def['preset'],
+            # collection = "",  # TODO 4.0 collections
+            # color_palette = rna_bone_set.color_palette,
             defaults = self.defaults
         )
 

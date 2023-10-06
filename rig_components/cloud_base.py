@@ -89,6 +89,12 @@ class Component_Base(
 
 	bone_set_definitions = get_bone_set_definitions()
 
+	@property
+	def bone_infos(self):
+		for name, bone_set in self.bone_sets.items():
+			for bone_info in bone_set:
+				yield bone_info
+
 	def initialize(self):
 		"""First Rigify stage, called by the Generator.
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
@@ -151,6 +157,11 @@ class Component_Base(
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
 		"""
 		self.create_bone_infos()
+
+	def create_bone_infos(self):
+		self.root_bone = self.bones_org[0]
+
+	def create_component_interactions(self):
 		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.parenting.parent_switching
 		if not skip_root_parenting and self.params.parenting.root_parent != "":
 			self.apply_custom_root_parent()
@@ -159,15 +170,12 @@ class Component_Base(
 		self.relink()
 		self.add_gizmo_interactions()
 
-	def create_bone_infos(self):
-		self.root_bone = self.bones_org[0]
-
 	def relink(self):
 		# Relink the base bone.
 		bi = self.root_bone
 		bi.relink()
 
-	def load_bone_infos(self, metarig: Object):
+	def load_metarig_bone_infos(self, metarig: Object):
 		"""Read ORG bones into BoneInfo instances in self.bones_org
 		which will be turned into real bones by the CloudRig generator.
 

@@ -12,8 +12,6 @@ from datetime import datetime
 from rigify.utils.action_layers import ActionLayerBuilder
 from rigify.utils.mechanism import refresh_all_drivers
 from rigify.utils.collections import ensure_collection
-from rigify.utils.bones import new_bone
-from rigify.base_rig import BaseRig
 
 from ..rig_component_features.widgets import widgets as cloud_widgets
 from ..rig_component_features.mechanism import get_object_scalar
@@ -72,9 +70,9 @@ class GeneratorProperties(PropertyGroup):
         ,description = "Action which will be generated with the keyframes neccessary to test the rig's deformations"
     )
 
-    show_secret_collections: BoolProperty(
+    show_secret_collections: BoolProperty( # TODO 4.0 implement this.
         name         = "Show Secret Collections"
-        ,description = "Show layers whose names start with $ and will be hidden on the rig UI"
+        ,description = "Show collections whose names contain $ and will be hidden on the rig UI"
         ,default     = True
         ,override     = {'LIBRARY_OVERRIDABLE'}
     )
@@ -172,19 +170,22 @@ class CloudRig_Generator:
         bpy.ops.object.mode_set(mode='EDIT')
         self.root_bone = None
         self.create_root_bone_infos()
-        self.load_bone_infos(self.component_map, self.metarig)
+        self.load_metarig_bone_infos(self.component_map, self.metarig)
+
+        #------------------------------------------
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
+        self.target_rig.select_set(True)
+        context.view_layer.objects.active = self.target_rig
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        self.create_bone_infos()
+        self.create_component_interactions()
+        self.create_real_bones()
+        #------------------------------------------
+
         return
-
-        #------------------------------------------
-        self.invoke_prepare_bones()
-        t.tick("Prepare bones: ")
-
-        #------------------------------------------
-        self.invoke_generate_bones()
-        t.tick("Generate bones: ")
-
-        #------------------------------------------
-        self.invoke_parent_bones()
+        self.write_edit_bone_data()
         t.tick("Write Edit Data: ")
         redraw_viewport()
 
@@ -380,9 +381,8 @@ class CloudRig_Generator:
         # Bone Set used for the Root, default Properties, and Action Properties bones.
         self.root_set = BoneSet(self
             ,ui_name = 'Root'
-            ,bone_group = "Generator"
-            ,layers = [i==0 for i in range(32)]
-            ,preset = 2
+            ,collection = "Generator"
+            ,color_palette = 'THEME02'
             ,defaults = self.defaults
         )
         self.bone_sets.append(self.root_set)
@@ -402,9 +402,8 @@ class CloudRig_Generator:
         if self.params.double_root:
             self.root_parent_set = BoneSet(self
                 ,ui_name = 'Root'
-                ,bone_group = "Root Parent"
-                ,layers = [i==0 for i in range(32)]
-                ,preset = 8
+                ,collection = "Root Parent"
+                ,color_palette = 'THEME08'
                 ,defaults = self.defaults
             )
             self.bone_sets.append(self.root_parent_set)
@@ -532,28 +531,53 @@ class CloudRig_Generator:
                 rigs_anim_order.remove(symm_component)
             start_frame = max(new_start_frame, symm_new_start_frame)
 
-    def invoke_generate_bones(self):
+    def create_bone_infos(self):
+        """Create additional BoneInfos that represent an abstract version of the bones in the
+        generated rig.
+        """
+
+        for base_bone_name, rig_component in self.component_map.items():
+            rig_component.create_bone_infos()
+
+    def create_component_interactions(self):
+        """Once all rig components have created their BoneInfos, we can safely
+        create relationships between components, since all bones exist.
+        """
+
+        for base_bone_name, rig_component in self.component_map.items():
+            rig_component.create_component_interactions()
+
+    def create_real_bones(self):
         """Create real bones from all BoneInfos.
         No bone data is written yet beside the name."""
-        for bi in self.bone_infos:
-            if bi.name in self.target_rig.data.edit_bones:
-                # This happens for ORG bones that we load into BoneInfo objects,
-                # since they already get created by __duplicate_rig()
-                continue
-            new_name = new_bone(self.target_rig, bi.name)
-            if new_name != bi.name:
-                self.logger.log(
-                    "Bone Name Clash"
-                    ,trouble_bone = bi.name
-                    ,description = f'Bone name "{bi.name}" was already taken, fell back to "{new_name}" instead. This is a bug unless your bone names are around 60 characters long.'
-                )
-                bi.name = new_name
-            self.bone_owners[new_name] = None
 
-        super().invoke_generate_bones()
+        for base_bone_name, rig_component in self.component_map.items():
+            for bone_info in rig_component.bone_infos:
+                if bone_info.name in self.target_rig.data.edit_bones:
+                    # This happens for ORG bones that we load into BoneInfo objects,
+                    # since they already get created by __duplicate_rig()
+                    continue
+                edit_bone = self.create_bone(self.target_rig, bone_info.name)
+                if edit_bone.name != bone_info.name:
+                    self.logger.log(
+                        "Bone Name Clash"
+                        ,trouble_bone = bone_info.name
+                        ,description = f'Bone name "{bone_info.name}" was already taken, got back to "{edit_bone.name}" instead.'
+                    )
+                    bone_info.name = edit_bone.name
 
-    def invoke_parent_bones(self):
-        super().invoke_parent_bones()
+    def create_bone(self, rig_ob, bone_name: str):
+        """ Adds a new bone to the active Armature object.
+            Returns the resulting Edit Bone.
+        """
+        edit_bone = rig_ob.data.edit_bones.new(bone_name)
+        edit_bone.head = (0, 0, 0)
+        edit_bone.tail = (0, 0, 1)
+        edit_bone.roll = 0
+        return edit_bone
+
+    def write_edit_bone_data(self):
+        super().write_edit_bone_data()
 
         # Write edit bone data for BoneInfos.
         for bi in self.bone_infos:
@@ -781,7 +805,7 @@ class CloudRig_Generator:
             self.params.widget_collection = ensure_collection(context, wgts_group_name, hidden=True)
 
     @staticmethod
-    def load_bone_infos(component_map, metarig):
+    def load_metarig_bone_infos(component_map, metarig):
         """While in edit mode (so we can access as much data as possible)
         let all rig components populate their initial BoneInfo instances.
         """
@@ -789,8 +813,8 @@ class CloudRig_Generator:
         bone_infos = {}
 
         for bone_name, component in component_map.items():
-            if hasattr(component, 'load_bone_infos'):
-                bone_infos.update(component.load_bone_infos(metarig))
+            if hasattr(component, 'load_metarig_bone_infos'):
+                bone_infos.update(component.load_metarig_bone_infos(metarig))
 
         for bone_name, bone_info in bone_infos.items():
             ebone = metarig.data.edit_bones.get(bone_info.name)

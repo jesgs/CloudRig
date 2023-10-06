@@ -130,7 +130,6 @@ class BoneInfo:
 		self.drivers = []				# List of dictionaries that will be passed to Rigify's make_driver().
 		self.drivers_data = []			# Same but for data bone properties.
 
-
 		self.color_palette_base = 'DEFAULT'
 		self.color_palette_pose = 'DEFAULT'
 		self.constraint_infos = []		# List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
@@ -188,13 +187,11 @@ class BoneInfo:
 	@name.setter
 	def name(self, value):
 		new_name = value
-		rig = self.bone_set.rig
-		rig_ob = rig.obj
+		rig_component = self.bone_set.rig_component
+		rig_ob = rig_component.target_rig
 		bone = rig_ob.data.bones.get(self._name)
 		if bone:
-			generator = rig.generator
-			del generator.bone_owners[self._name]
-			generator.bone_owners[new_name] = rig
+			generator = rig_component.generator
 			bone.name = new_name
 		self._name = new_name
 

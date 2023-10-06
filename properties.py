@@ -80,22 +80,15 @@ class BoneSets(PropertyGroup):
                 description = "Name of this Bone Set in the UI. Defined by rig type implementation, should not be modified by user",    # Although it technically shouldn't break anything if user changes this name, it's not used for anything other than UI display.
                 default = bone_set_definition.get('name') or pretty_name
             ),
-            'bone_group' : StringProperty(
-                name = "Bone Group",
-                description = "Name of the Bone Group that bones in this Bone Set will be assigned to during generation",
+            'collection' : StringProperty(
+                name = "Bone Collection",
+                description = "Name of the Bone Collection that bones in this Bone Set will be assigned to during generation",
                 default = bone_set_definition.get('bone_group') or pretty_name,
             ),
-            'layers': BoolVectorProperty(
-                name = 'Armature Layers',
-                description = "Armature layers that bones in this Bone Set will be assigned to during generation",
-                size = 32,
-                subtype = 'LAYER',
-                default = [i in ([bone_set_definition.get('default_layer')] or [0]) for i in range(32)]
-            ),
-            'color_preset' : IntProperty(
-                name = "Color Preset",
-                description = "Index of the built-in color preset to use for the Bone Group of this Bone Set",
-                default = bone_set_definition.get('preset') or 1
+            'color_palette' : StringProperty(
+                name = "Color Palette",
+                description = "Color palette to use for the Bone Group of this Bone Set",
+                default = 'DEFAULT'
             ),
             'is_advanced': BoolProperty(
                 name = "Is Advanced",

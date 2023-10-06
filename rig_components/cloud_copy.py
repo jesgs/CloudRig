@@ -30,83 +30,49 @@ class Component_CopyBone(Component_Base):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		bi = self.bones_org[0]
+		bone_info = self.bones_org[0]
 
-		# Strip ORG from bone's name (@name.setter takes care of everything)
-		bi.name = self.orgless_name
+		# if not bi.use_custom_shape_bone_size: # TODO 4.0 I think this can be removed?
+		# 	bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
 
-		if not bi.use_custom_shape_bone_size:
-			bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
+		if bone_info.custom_shape:
+			self.add_to_widget_collection(bone_info.custom_shape)
 
-		meta_bone = self.meta_bone(self.orgless_name)
-		assert meta_bone, f'Bone "{self.orgless_name}" not found in MetaRig'
-		bi.layers = meta_bone.bone.layers[:]
-		bi.use_deform = False
-
-		if meta_bone.custom_shape:
-			self.add_to_widget_collection(meta_bone.custom_shape)
-
-		if bi.rotation_mode == 'QUATERNION':
+		if bone_info.rotation_mode == 'QUATERNION':
 			self.add_log("Quaternion rotation"
 				,trouble_bone = self.base_bone_name
-				,description = f'"{meta_bone.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!'
+				,description = f'"{bone_info.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!'
 				,icon = 'GIZMO'
 				,operator = 'pose.cloudrig_troubleshoot_rotationmode'
 				,op_kwargs = {'bone_name' : self.orgless_name}
-				,op_text = f"Set {meta_bone.name} to Euler"
+				,op_text = f"Set {bone_info.name} to Euler"
 			)
-			bi.rotation_mode = 'XYZ'
+			bone_info.rotation_mode = 'XYZ'
 
 		if self.params.copy.create_deform:
 			# Make a copy with DEF- prefix, as our deform bone.
-			def_bone = self.make_def_bone(bi, self.bones_def)
-			def_bone.parent = bi
-
-		# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
-		# Alternatively, this could be moved to a later generation stage so we don't have to rely on BoneInfo.
-		meta_bg = meta_bone.bone_group
-		if meta_bg:
-			bg_name = meta_bg.name
-
-			my_bone_set = BoneSet(self,
-				ui_name = bg_name
-				,bone_group = bg_name
-				,layers = meta_bone.bone.layers[:]
-				,normal = meta_bg.colors.normal[:]
-				,active = meta_bg.colors.active[:]
-				,select = meta_bg.colors.select[:]
-				,defaults = self.defaults
-			)
-			my_bone_set.color_set = meta_bg.color_set
-			bi.bone_group = bg_name
-		else:
-			my_bone_set = BoneSet(self,
-				ui_name = 'Default'
-				,bone_group = 'Default'
-				,layers = meta_bone.bone.layers[:]
-				,defaults = self.defaults
-			)
-		self.generator.bone_sets.append(my_bone_set)
+			def_bone = self.make_def_bone(bone_info, self.bones_def)
+			def_bone.parent = bone_info
 
 		if self.params.copy.property_ui_subpanel:
-			self.add_ui_data_of_bone(bi
+			self.add_ui_data_of_bone(bone_info
 				,self.params.copy.property_ui_subpanel
 				,self.params.copy.property_ui_label
 			)
 
-		self.root_bone = bi
+		self.root_bone = bone_info
 		if self.params.copy.custom_pivot:
-			self.root_bone = self.create_custom_pivot(bi, my_bone_set)
+			self.root_bone = self.create_custom_pivot(bone_info, my_bone_set)
 
 		if self.params.copy.ensure_free:
 			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...
 				,bone_set = self.bone_sets['Mechanism Bones']
 			)
 			constrained_parent.name = "CON-" + self.orgless_name
-			for con_info in bi.constraint_infos[:]:
+			for con_info in bone_info.constraint_infos[:]:
 				if 'KEEP' not in con_info['name']:
 					constrained_parent.constraint_infos.append(con_info) # ...but we always take the constraints from the bone, not from the custom pivot!
-					bi.constraint_infos.remove(con_info)
+					bone_info.constraint_infos.remove(con_info)
 			self.root_bone = constrained_parent
 
 	def finalize(self):
@@ -125,8 +91,9 @@ class Component_CopyBone(Component_Base):
 		pivot.custom_shape_scale_xyz = Vector([max(boneinfo.custom_shape_scale_xyz)] * 3)
 		pivot.custom_shape_translation = (0, 0, 0)
 		pivot.custom_shape_rotation_euler = (0, 0, 0)
-		pivot.layers = boneinfo.layers[:]
-		pivot.bone_group = boneinfo.bone_group
+		pivot.collection = boneinfo.collection
+		pivot.color_palette_base = boneinfo.color_palette_base
+		pivot.color_palette_pose = boneinfo.color_palette_pose
 		return pivot
 
 	def add_ui_data_of_bone(self, bone: BoneInfo, panel_name: str, label_name=""):
@@ -187,7 +154,7 @@ class Component_CopyBone(Component_Base):
 
 		cls.draw_prop(context, layout, params.copy, 'property_ui_subpanel')
 		row = layout.row()
-		row.enabled = bool(property_ui_subpanel)
+		row.enabled = bool(params.copy.property_ui_subpanel)
 		cls.draw_prop(context, row, params.copy, 'property_ui_label')
 		return layout
 

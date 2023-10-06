@@ -51,7 +51,7 @@ class LoggerMixin:
 			,**kwargs
 		):
 		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log_entry(description_short ,**kwargs)
+		self.generator.logger.log(description_short ,**kwargs)
 
 	def raise_metarig_error(self
 			,description_short = "Metarig Error"
@@ -227,8 +227,7 @@ class CloudLogManager:
 			,op_kwargs = {}
 			,op_text = ""
 		):
-		"""Add a log entry to the metarig object's data.
-		This is the lowest level function that should be used.
+		"""Low-level function to add a log entry to the metarig object's data.
 		"""
 		entry = self.metarig.data.cloudrig.generator.logs.add()
 		entry.pretty_stack = get_pretty_stack()
@@ -664,6 +663,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 		bpy.ops.pose.select_all(action='DESELECT')
 		bone.hide = False
 		bone.select = True
+		# TODO 4.0 collections
 		bone_is_visible = any([bone.layers[i] == rig.data.layers[i]==True for i in range(32)])
 		if not bone_is_visible:
 			for i, l in enumerate(bone.layers):
