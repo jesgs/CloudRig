@@ -39,8 +39,8 @@ class Component_Limb_BipedLeg(Component_Limb):
 		self.pole_side = -1
 		self.chain_count -= 1
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.tweak_org_foot()
 
 		# Tweak foot bone's first DEF bone

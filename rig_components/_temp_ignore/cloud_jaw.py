@@ -65,8 +65,8 @@ class CloudJawRig(Component_CopyBone):
 	def initialize(self):
 		super().initialize()
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		# Not yet sure what's the best way to make the user define the components of the jaw rig
 		# and therefore not sure what's the best way to grab the bone info here.
 		# For now, let's do this: The other rig components are expected to be cloud_copy components, 

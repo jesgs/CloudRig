@@ -30,8 +30,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		if not (self.params.fk_chain.root and self.generator_params.create_root):
 			self.params.fk_chain.hinge = False
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 
 		if self.params.fk_chain.root:
 			self.root_bone = self.make_root_bone()

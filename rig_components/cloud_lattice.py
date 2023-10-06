@@ -17,8 +17,8 @@ class Component_Lattice(Component_Base):
 		self.create_deform_bone = False
 		self.test_lattice_already_used()
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.lattice_root = self.make_lattice_root_ctrl(self.root_bone)
 		self.hook_bone = self.make_hook_ctrl(self.lattice_root)
 

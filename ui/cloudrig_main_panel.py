@@ -88,15 +88,8 @@ class POSE_PT_CloudRig_Generation(Panel):
         layout = layout.column()
         layout.prop(generator, 'target_rig')
 
-        layout.separator()
-        layout.prop(prefs, 'advanced_mode')
-
-        ### Root Bone Parameters
         row = layout.row()
-        row.prop(generator, 'create_root')  # TODO 4.1: Would be better to have a single "Ensure Root" option, on by default, that actually adds a cloud_copy bone named `root` to the metarig before generation. This way, the generator doesn't need to own any bones.
-        if generator.create_root and prefs.advanced_mode:
-            row.prop(generator, 'double_root')
-            row.separator()
+        row.prop_search(generator, 'ensure_root', context.object.data, 'bones')
 
         # Test Animation Parameters
         if self.metarig_contains_fk_chain(metarig):

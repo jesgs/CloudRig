@@ -10,8 +10,8 @@ class CloudChainAnchorRig(Component_CopyBone):
 		super().initialize()
 		self.create_deform_bone = False
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		bi = self.bones_org[0]
 		meta_bone = self.meta_bone(bi.name)
 

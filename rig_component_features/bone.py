@@ -106,21 +106,20 @@ class BoneInfo:
 	rigging it. Eg, it does not store transformations such as loc/rot/scale.
 	"""
 
-	def init_variables(self, var_dict):
-		for key in var_dict.keys():
-			value = var_dict[key]
-			if type(value) in [Vector, Matrix]:
-				value = value.copy()
-			setattr(self, key, value)
-
-	def __init__(self, bone_set, name="Bone", source: EditBone or BoneInfo = None, **kwargs):
+	def __init__(
+			self, 
+			bone_set, 
+			name="Bone", 
+			source: EditBone or BoneInfo = None, 
+			owner_component = None,
+			**kwargs):
 		"""
 		source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
 		kwargs: Allow setting arbitrary bone properties at initialization.
 		"""
 
 		self.bone_set = bone_set
-		self.owner_rig = None			# This should be set after creating the instance!
+		self.owner_component = owner_component
 		self.next = self.prev = None	# For LinkedList behaviour.
 		self.gizmo_vgroup = ""			# For CloudRig Gizmos
 		self.gizmo_operator = 'transform.translate'
@@ -180,6 +179,13 @@ class BoneInfo:
 		for key, value in kwargs.items():
 			setattr(self, key, value)
 
+	def init_variables(self, var_dict):
+		for key in var_dict.keys():
+			value = var_dict[key]
+			if type(value) in [Vector, Matrix]:
+				value = value.copy()
+			setattr(self, key, value)
+
 	@property
 	def name(self):
 		return self._name
@@ -216,6 +222,17 @@ class BoneInfo:
 	@property
 	def parent(self):
 		return self._parent
+
+	@property
+	def is_orphan(self):
+		if self.parent:
+			return False
+
+		for con_info in self.constraint_infos:
+			if con_info.type == 'ARMATURE':
+				return False
+		
+		return True
 
 	@parent.setter
 	def parent(self, value):
@@ -396,22 +413,21 @@ class BoneInfo:
 		constraint drivers."""
 		# Relink bone drivers
 		for d in self.drivers:
-			self.bone_set.rig.relink_driver(d)
+			self.bone_set.rig_component.relink_driver(d)
 
 		for c in self.constraint_infos:
 			c.relink()
 			# Relink constraint drivers
 			for d in c.drivers:
-				self.bone_set.rig.relink_driver(d)
+				self.bone_set.rig_component.relink_driver(d)
 
-	def write_edit_data(self, generator, eb: EditBone, context: Context):
+	def write_edit_data(self, generator, eb: EditBone):
 		"""Write relevant data of this BoneInfo into an EditBone."""
-		# TODO: The fact that type annotating the generator would require a cyclic dependency suggests that this code belongs in the generator!
-		armature = generator.obj
+		armature = generator.target_rig
 		assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."
 
 		# Check for 0-length bones.
-		assert (self.head - self.tail).length == 0, f'Bone "{eb.name}" cannot be created with a length of 0.'
+		assert (self.head - self.tail).length > 0, f'Bone "{eb.name}" cannot be created with a length of 0.'
 
 		### Edit Bone properties
 		for key in edit_bone_properties:
@@ -435,7 +451,7 @@ class BoneInfo:
 		if self.parent:
 			eb.parent = armature.data.edit_bones.get(str(self.parent))
 			if not eb.parent:
-				self.bone_set.rig.add_log("Parent not found"
+				self.bone_set.rig_component.add_log("Parent not found"
 					,trouble_bone=self.name
 					,description=f'Parent bone "{self.parent}" does not exist or is a child of this bone.'
 				)
@@ -453,7 +469,7 @@ class BoneInfo:
 				# Make sure to set `self.roll = 0` if that's what you need.
 				align_bone = armature.data.edit_bones.get(str(self.roll_bone))
 				if not align_bone:
-					self.owner_rig.raise_metarig_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
+					self.owner_component.raise_metarig_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
 					eb.align_roll(align_bone.z_axis)
 			elif self.roll_type == 'VECTOR':
@@ -501,7 +517,7 @@ class BoneInfo:
 			setattr(b, key, value)
 
 		if b.name.startswith("DEF") and not b.use_deform:
-			self.bone_set.rig.add_log("Non-deforming DEF bone"
+			self.bone_set.rig_component.add_log("Non-deforming DEF bone"
 				,trouble_bone = self.name
 				,description = f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. This bone will not be keyframed by the "Whole Character" keying set!'
 				,operator = 'object.cloudrig_rename_bone'
@@ -630,8 +646,8 @@ class ConstraintInfo(dict):
 		# Set target as the rig object, except for some constraint types.
 		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE',
 							'LIMIT_ROTATION', 'SHRINKWRAP']:
-			if hasattr(self.bone_info, 'rig') and self.target in [None, self.bone_info.owner_rig.generator.metarig]:
-				self.target = self.bone_info.rig
+			if hasattr(self.bone_info, 'rig') and self.target in [None, self.bone_info.owner_component.generator.metarig]:
+				self.target = self.bone_info.rig_component.target_rig
 
 		# Constraints that support local space should default to local space.
 		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',
@@ -670,8 +686,8 @@ class ConstraintInfo(dict):
 		"""Allow the Rigify relink naming convention of an @ symbol separating 
 		the constraint name from a list of subtargets separated by commas."""
 
-		rig_component = self.bone_info.bone_set.rig
-		rig = rig_component.obj
+		rig_component = self.bone_info.bone_set.rig_component
+		rig = rig_component.target_rig
 		metarig = rig_component.generator.metarig
 
 		if "@" not in self.name:
@@ -689,7 +705,7 @@ class ConstraintInfo(dict):
 
 		if self.type=='ARMATURE':
 			if len(self.targets) > len(subtargets):
-				self.bone_info.owner_rig.add_log(
+				self.bone_info.owner_component.add_log(
 					"Relinking failed",
 					trouble_bone = self.bone_info.name,
 					description  = f'Failed to relink constraint due to too many targets in constraint "{self.name}".\n Remove unneeded targets from the Armature constraint!'
@@ -742,7 +758,7 @@ class ConstraintInfo(dict):
 		for target_pair in target_pairs:
 			target, subtarget = target_pair
 			if (target and target.type=='ARMATURE') and (subtarget not in target.data.bones):
-				self.bone_info.owner_rig.add_log("Invalid constraint target!"
+				self.bone_info.owner_component.add_log("Invalid constraint target!"
 					,owner_bone   = self.bone_info.name
 					,trouble_bone = subtarget
 					,description  = f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget} in {target}.'

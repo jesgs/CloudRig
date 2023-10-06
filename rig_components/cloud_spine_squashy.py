@@ -113,8 +113,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
 		for org_bone, str_bone in zip(org_bones, str_bones[1:]):
 			str_bone.parent = org_bone
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		# If we want to parent things to the root bone, we use self.root_torso.
 		# However, for spine.double to work, self.root_bone must be the bone
 		# returned from create_parent_bone().

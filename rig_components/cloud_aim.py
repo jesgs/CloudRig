@@ -42,8 +42,8 @@ class Component_Aim(Component_Base):
 
 	bone_set_definitions = get_bone_set_definitions()
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 
 		aim_org = self.bones_org[0]
 		aim_bone = self.bone_sets.aim_group_target_control.new(

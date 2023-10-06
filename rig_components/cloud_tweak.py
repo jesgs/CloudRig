@@ -1,5 +1,5 @@
 from bpy.props import BoolProperty
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, Object
 from .cloud_base import Component_Base
 from ..rig_component_features.bone_set import BoneSet
 
@@ -17,20 +17,23 @@ class Component_TweakBone(Component_Base):
 	def initialize(self):
 		super().initialize()
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
-		orgless_name = self.base_bone_name.replace("ORG-", "", 1)
-		meta_bone = self.meta_bone(orgless_name)
+	def load_metarig_bone_infos(self, metarig: Object):
+		bone_infos = super().load_metarig_bone_infos(metarig)
+		assert len(bone_infos) == 1
 
-		self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)
+		self.original_name = bone_infos[0].name
+		bone_infos[0].name += "_Tweak"
 
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		org_bi = self.bones_org[0]
+		self.tweak_bone = tweak_bone = self.generator.find_bone_info(org_bi.name)
 
 		if not self.tweak_bone:
 			self.add_log("No bone to tweak"
-				,description = f'Could not find a bone called "{orgless_name}" on the generated rig.'
+				,description = f'Could not find a bone called "{self.original_name}" on the generated rig.'
 				,operator	 = 'object.cloudrig_rename_bone'
-				,op_kwargs	 = {'old_name': orgless_name}
+				,op_kwargs	 = {'old_name': self.original_name}
 			)
 			return
 
@@ -69,29 +72,13 @@ class Component_TweakBone(Component_Base):
 			tweak_bone.custom_shape_translation = org_bi.custom_shape_translation
 			tweak_bone.custom_shape_rotation_euler = org_bi.custom_shape_rotation_euler
 			if org_bi.custom_shape:
-				self.add_to_widget_collection(org_bi.custom_shape)
+				self.add_to_widget_collection(context, org_bi.custom_shape)
 
-		if self.params.tweak.group:
-			# TODO: This code overlaps a lot with cloud_copy, maybe it could be shared somehow?
-			# In order for the bone group to transfer to the generated rig, we need to add a bone set to the generator.
-			meta_bg = meta_bone.bone_group
-			if meta_bg:
-				bg_name = meta_bg.name
-
-				new_set = BoneSet(self,
-					ui_name = bg_name
-					,bone_group = bg_name
-					,layers = meta_bone.bone.layers[:]
-					,normal = meta_bg.colors.normal[:]
-					,active = meta_bg.colors.active[:]
-					,select = meta_bg.colors.select[:]
-					,defaults = self.defaults
-				)
-				self.generator.bone_sets.append(new_set)
-				tweak_bone.bone_group = bg_name
-
-		if self.params.tweak.layers:
-			tweak_bone.layers = meta_bone.bone.layers[:]
+		if self.params.tweak.collection:
+			tweak_bone.collection = org_bi.collection
+		if self.params.tweak.color_palette:
+			tweak_bone.color_palette_base = org_bi.color_palette_base
+			tweak_bone.color_palette_pose = org_bi.color_palette_pose
 
 		if self.params.tweak.ik_settings:
 			tweak_bone.ik_stretch = org_bi.ik_stretch
@@ -146,15 +133,15 @@ class Component_TweakBone(Component_Base):
 		"""Create the ui for the rig parameters."""
 
 		cls.draw_control_label(layout, "Tweak")
-		cls.draw_prop(context, layout, params, "CR_tweak_constraints_additive")
-		cls.draw_prop(context, layout, params, "CR_tweak_transforms")
-		cls.draw_prop(context, layout, params, "CR_tweak_locks")
-		cls.draw_prop(context, layout, params, "CR_tweak_rot_mode")
-		cls.draw_prop(context, layout, params, "CR_tweak_shape")
-		cls.draw_prop(context, layout, params, "CR_tweak_group")
-		cls.draw_prop(context, layout, params, "CR_tweak_layers")
-		cls.draw_prop(context, layout, params, "CR_tweak_ik_settings")
-		cls.draw_prop(context, layout, params, "CR_tweak_bbone_props")
+		cls.draw_prop(context, layout, params.tweak, "constraints_additive")
+		cls.draw_prop(context, layout, params.tweak, "transforms")
+		cls.draw_prop(context, layout, params.tweak, "locks")
+		cls.draw_prop(context, layout, params.tweak, "rot_mode")
+		cls.draw_prop(context, layout, params.tweak, "shape")
+		cls.draw_prop(context, layout, params.tweak, "collection")
+		cls.draw_prop(context, layout, params.tweak, "color_palette")
+		cls.draw_prop(context, layout, params.tweak, "ik_settings")
+		cls.draw_prop(context, layout, params.tweak, "bbone_props")
 
 
 class Params(PropertyGroup):
@@ -164,37 +151,37 @@ class Params(PropertyGroup):
 		,default=True
 	)
 	transforms: BoolProperty(
-			name="Transforms"
+		name="Transforms"
 		,description="Replace the matching generated bone's transforms with this bone's transforms" # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
 		,default=False
 	)
 	locks: BoolProperty(
-			name="Locks"
+		name="Locks"
 		,description="Replace the matching generated bone's transform locks with this bone's transform locks"
 		,default=True
 	)
 	rot_mode: BoolProperty(
-			name="Rotation Mode"
+		name="Rotation Mode"
 		,description="Set the matching generated bone's rotation mode to this bone's rotation mode"
 		,default=False
 	)
 	shape: BoolProperty(
-			name="Bone Shape"
+		name="Bone Shape"
 		,description = "Replace the matching generated bone's shape with this bone's shape"
 		,default=False
 	)
-	group: BoolProperty(
-			name="Bone Group"
-		,description="Replace the matching generated bone's group with this bone's group"
+	collection: BoolProperty(
+		name="Collections"
+		,description="Replace the matching generated bone's collections with this bone's collections"
 		,default=False
 	)
-	layers: BoolProperty(
-			name="Layers"
-		,description="Set the generated bone's layers to this bone's layers"
+	color_palette: BoolProperty(
+		name="Color Palette"
+		,description="Set the generated bone's colors to this bone's colors"
 		,default=False
 	)
 	ik_settings: BoolProperty(
-			name="IK Settings"
+		name="IK Settings"
 		,description="Copy IK settings from this bone to the generated bone"
 		,default=False
 	)

@@ -71,6 +71,7 @@ class Component_Base(
 	chain_must_be_connected = True
 
 	ui_name = "Cloud Base (Should not be visible in UI!)"
+	bone_set_definitions = get_bone_set_definitions()
 
 	def __init__(self, generator: 'CloudRig_Generator', bone_name: str):
 		self.generator = generator
@@ -86,8 +87,6 @@ class Component_Base(
 		self.child_components = []
 
 		self.initialize()	# TODO 4.0: __init__ and initialize() should probably be merged.
-
-	bone_set_definitions = get_bone_set_definitions()
 
 	@property
 	def bone_infos(self):
@@ -158,7 +157,7 @@ class Component_Base(
 		"""
 		self.create_bone_infos()
 
-	def create_bone_infos(self):
+	def create_bone_infos(self, context):
 		self.root_bone = self.bones_org[0]
 
 	def create_component_interactions(self):

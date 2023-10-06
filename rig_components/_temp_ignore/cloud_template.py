@@ -11,8 +11,8 @@ class CloudTemplateRig(Component_Base):
 	def initialize(self):
 		pass
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		if self.params.template.use_control:
 			self.make_ctr_bone(self.bones_org[0])
 

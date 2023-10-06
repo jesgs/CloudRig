@@ -49,8 +49,8 @@ class Component_Finger(Component_Chain_IKFK):
 		# Don't world align last FK, only IK.
 		pass
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		last_org = self.bones_org[-(1+self.params.ik_chain.at_tip)] # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
 		self.ik_mstr.parent = self.root_bone

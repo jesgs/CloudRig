@@ -23,8 +23,8 @@ class Component_ToonChain(Component_Base):
 		self.tangent_helpers: List[BoneInfo]
 		self.def_bones_of_org: Dict[BoneInfo, List[BoneInfo]]
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.def_bones_of_org = {org : [] for org in self.bones_org}
 
 		# Determine if this is a cyclic chain rig (last bone touches first)

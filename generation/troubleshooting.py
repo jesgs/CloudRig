@@ -41,6 +41,22 @@ class CloudMetarigError(Exception):
 	def __str__(self):
 		return repr(self.message)
 
+def raise_metarig_error(logger
+		,description_short = "Metarig Error"
+		,description = ""
+		,**kwargs
+	):
+	"""For raising non-bug errors that should be fixable by the user.
+	"""
+
+	logger.log_fatal_error(
+		description_short
+		,description = description
+		,**kwargs
+	)
+
+	raise CloudMetarigError("Metarig Error: ", description)
+
 class LoggerMixin:
 	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
 	This class should come BEFORE BaseRig in the inheritance order.
@@ -50,26 +66,15 @@ class LoggerMixin:
 			,description_short
 			,**kwargs
 		):
-		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log(description_short ,**kwargs)
-
-	def raise_metarig_error(self
-			,description_short = "Metarig Error"
-			,description = ""
-			,**kwargs
-		):
-		"""Overrides BaseRig from Rigify, to raise errors using the Rigify Log panel.
-		This means that this class should come SOONER in the inheritance order.
-		"""
-
-		self.generator.logger.log_fatal_error(
-			description_short
-			,description = description
-			,owner_bone = self.meta_base_bone.name
-			,**kwargs
+		self.generator.logger.log(
+			description_short, 
+			owner_bone = self.meta_base_bone.name,
+			**kwargs
 		)
 
-		raise CloudMetarigError("Metarig Error: ", description)
+	def raise_metarig_error(self, **kwargs):
+		"""For raising non-bug errors that should be fixable by the user."""
+		raise_metarig_error(self.generator.logger, **kwargs)
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.
@@ -295,7 +300,7 @@ class CloudLogManager:
 				trouble_bone = ""
 				if 'pose.bones' in fcurve.data_path:
 					bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
-					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.data.rigify_target_rig == self.rig:
+					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.data.cloudrig.generator.target_rig == self.rig:
 						owner_bone = bone_name
 					elif datablock == self.rig:
 						trouble_bone = bone_name

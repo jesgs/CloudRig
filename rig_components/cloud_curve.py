@@ -39,8 +39,8 @@ class Component_Curve_Hooked(Component_Base):
 		if len(curve_ob.data.splines) < 2:
 			self.params.curve.root_per_spline = False
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.make_curve_controls()
 
 	def relink(self):

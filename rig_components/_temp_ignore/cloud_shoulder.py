@@ -18,8 +18,8 @@ class CloudShoulderRig(Component_Chain_FK):
 			print(f"""Shoulder rig on {self.base_bone_name} has a chain of more than a single bone.
 				   The rig only requires one bone, the rest will be unaffected!""")
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.prepare_fk_shoulder()
 
 	def prepare_fk_shoulder(self):

@@ -4,7 +4,6 @@ Priority 0: Re-write as standalone add-on
 		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
 
 		- Re-implement functions calls starting with _Generator__, since we won't be inheriting those from Rigify anymore (most likely)
-			- parent_bones_to_root()
 		- Figure out how BoneSets will work.
 			- Convert all bone set definitions to the new system. (monkey work)
 		- Integrate reliance on BoneInfo as much as possible.

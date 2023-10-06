@@ -11,6 +11,7 @@ from collections import OrderedDict
 from ..utils.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
+from ..generation.troubleshooting import raise_metarig_error
 
 def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
     driver = fcurve.driver
@@ -87,7 +88,7 @@ class BoneSet(LinkedList):
         # Bone Group name to assign to newly defined BoneInfos.
         self.color_palette = color_palette
 
-    def find(self, name):
+    def get(self, name):
         """Find a BoneInfo instance by name, return it if found."""
         for bi in self:
             if bi.name == name:
@@ -100,16 +101,16 @@ class BoneSet(LinkedList):
     def new(self, name="Bone", source=None, **kwargs):
         """Create and add a new BoneInfo to self."""
 
-        if hasattr(self.rig_component, 'generator'):
-            generator = self.rig_component.generator
-        else:
-            # Since the generator can also be a rig component...
-            generator = self.rig_component
+        generator = self.rig_component.generator
 
         # If a BoneInfo with the passed name already exists, something is very wrong!
         bone_info = generator.find_bone_info(name)
         if bone_info:
-            self.raise_metarig_error(f'Bone name "{bone_info.name}" was used twice! Make sure your bone names are unique and do not have trailing zeroes!')
+            raise_metarig_error(
+                generator.logger,
+                description_short = f'Bone name "{bone_info.name}" was used twice!',
+                description = "Make sure your bone names are unique and do not have trailing zeroes!",
+            )
 
         if 'collection' not in kwargs:
             kwargs['collection'] = self.collection
@@ -119,10 +120,8 @@ class BoneSet(LinkedList):
             if key not in kwargs:
                 kwargs[key] = self.defaults[key]
 
-        bone_info = BoneInfo(self, name, source, **kwargs)
+        bone_info = BoneInfo(self, name, source, owner_component=self.rig_component, **kwargs)
         self.append(bone_info)
-        generator.bone_infos.append(bone_info)
-        bone_info.owner_rig = self.rig_component
 
         return bone_info
 
@@ -244,8 +243,6 @@ class BoneSetMixin:
             # color_palette = rna_bone_set.color_palette,
             defaults = self.defaults
         )
-
-        self.generator.bone_sets.append(new_set)
 
         return new_set
 

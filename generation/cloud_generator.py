@@ -1,7 +1,7 @@
 import bpy, sys, os, traceback, time
 from collections import OrderedDict
 
-from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty
+from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty, StringProperty
 from bpy.types import Object, PropertyGroup
 from typing import List, Dict, Tuple
 
@@ -27,6 +27,8 @@ from ..utils.misc import check_addon, load_script
 from ..versioning import cloud_metarig_version
 from .cloudrig import ensure_custom_panels
 
+from ..rig_components.cloud_base import Component_Base
+
 class GeneratorProperties(PropertyGroup):
     # TODO: I see no reason why this class couldn't be merged with the one that 
     # holds the generate() function, making a unified `Generator` class that 
@@ -37,15 +39,10 @@ class GeneratorProperties(PropertyGroup):
         description="Rig to re-genreate based on this metarig when the Generate button is used", 
         type=bpy.types.Object
     )
-    create_root: BoolProperty(
-        name         = "Create Root"
-        ,description = "Create a default root control"
-        ,default     = True
-    )
-    double_root: BoolProperty(
-        name         = "Double Root"
-        ,description = "Create two default root controls"
-        ,default     = False
+    ensure_root: StringProperty(
+        name         = "Ensure Root"
+        ,description = "Create a default root bone with the given name on the metarig before generating. Bones that would otherwise be orphaned will be parented to this bone"
+        ,default     = 'root'
     )
 
     custom_script: PointerProperty(
@@ -102,6 +99,8 @@ class CloudRig_Generator:
         self.params = metarig.data.cloudrig.generator
 
         self.custom_script_failure = False
+        self.root_set = None
+        self.root_parent_set = None
 
         # TODO 4.0: __init__ should only be assigning stuff to self. This should be moved to generate().
         metarig.data.pose_position = 'REST'
@@ -115,16 +114,9 @@ class CloudRig_Generator:
 
         self.naming = CloudNameManager()
 
-        # List that stores a reference to all BoneInfo instances of all components.
-        # IMPORTANT: This should not be a BoneSet, just a regular list. Otherwise the LinkedList behaviour gets all messed up!
-        # Each BoneInfo should only exist in a single BoneSet!
-        # TODO: Would make more sense to make this a @property that loops through the BoneSets, but that may be less performant.
-        self.bone_infos = []
-        # List that stores a reference to all BoneSets of all components.
-        self.bone_sets: List[BoneSet] = []
         # Default kwargs that are passed in to every created BoneInfo.
         self.defaults = {
-            'rotation_mode' : 'XYZ'
+            'rotation_mode' : 'XYZ',
         }
 
         # Wipe the generation log.
@@ -168,8 +160,8 @@ class CloudRig_Generator:
 
         #------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
-        self.root_bone = None
-        self.create_root_bone_infos()
+        if self.params.ensure_root:
+            self.ensure_root_bone_component(self.metarig, self.params.ensure_root)
         self.load_metarig_bone_infos(self.component_map, self.metarig)
 
         #------------------------------------------
@@ -179,14 +171,16 @@ class CloudRig_Generator:
         context.view_layer.objects.active = self.target_rig
         bpy.ops.object.mode_set(mode='EDIT')
 
-        self.create_bone_infos()
+        self.create_bone_infos(context)
         self.create_component_interactions()
+        if self.root_bone_info:
+            self.parent_orphan_bones_to_root()
         self.create_real_bones()
         #------------------------------------------
 
-        return
         self.write_edit_bone_data()
-        t.tick("Write Edit Data: ")
+        self.parent_orphan_bones_to_root()
+        return
         redraw_viewport()
 
         #------------------------------------------
@@ -203,10 +197,6 @@ class CloudRig_Generator:
 
         #------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
-
-        self.invoke_apply_bones()
-        t.tick("Apply bones: ")
-        redraw_viewport()
 
         #------------------------------------------
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -264,7 +254,7 @@ class CloudRig_Generator:
         t.tick("Cleanup & Troubleshoot: ")
         t.total()
 
-    def instantiate_rig_components(self) -> Dict[str, "Component_Base"]:
+    def instantiate_rig_components(self) -> Dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
         self.metarig.data.cloudrig.refresh_generation_order(self.metarig)
@@ -291,7 +281,7 @@ class CloudRig_Generator:
                 # Store parent/child relations on the instances.
                 comp_instance.parent_component = parent_instance
                 parent_instance.child_components.append(comp_instance)
-        
+
         return comp_map
 
     def cloudrig_reorder_rig_components(self, rig_list):
@@ -328,16 +318,11 @@ class CloudRig_Generator:
                 rig_list.insert(first_face_idx, rig)
 
     def find_bone_info(self, name):
-        for _bone_name, component in self.component_map.items():
-            if hasattr(component, "bone_sets"):
-                for bone_set in list(component.bone_sets.values()):
-                    exists = bone_set.find(name)
-                    if exists:
-                        return exists
-
-        # If the name wasn't found in any rig component's bone sets,
-        # maybe it's in the root set that's owned by the Generator.
-        return self.root_set.find(name)
+        for bone_set in self.bone_sets:
+            print("Checking bone set: ", bone_set, "for: ", name)
+            exists = bone_set.get(name)
+            if exists:
+                return exists
 
     def create_rig_object(self, context, metarig) -> Object:
         """Create a new empty Armature object that will get populated throughout
@@ -377,37 +362,16 @@ class CloudRig_Generator:
 
         return target_rig
 
-    def create_root_bone_infos(self):
-        # Bone Set used for the Root, default Properties, and Action Properties bones.
-        self.root_set = BoneSet(self
-            ,ui_name = 'Root'
-            ,collection = "Generator"
-            ,color_palette = 'THEME02'
-            ,defaults = self.defaults
-        )
-        self.bone_sets.append(self.root_set)
+    def ensure_root_bone_component(self, metarig, root_name='root'):
+        if root_name in metarig.data.edit_bones:
+            return
+        edit_bone = self.create_bone(metarig, root_name)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='EDIT')
 
-        self.root_bone = None
-        if self.params.create_root:
-            self.root_bone = self.root_set.new(
-                name                = "root"
-                ,head                = Vector((0, 0, 0))
-                ,tail                = Vector((0, self.scale*5, 0))
-                ,bbone_width        = 1/10
-                ,custom_shape        = self.ensure_widget("Root")
-                ,custom_shape_scale = 1.5
-                ,use_custom_shape_bone_size = True
-            )
-
-        if self.params.double_root:
-            self.root_parent_set = BoneSet(self
-                ,ui_name = 'Root'
-                ,collection = "Root Parent"
-                ,color_palette = 'THEME08'
-                ,defaults = self.defaults
-            )
-            self.bone_sets.append(self.root_parent_set)
-            self.root_parent = mechanism.create_parent_bone(self.root_bone, self.root_parent_set)
+        pose_bone = metarig.pose.bones[root_name]
+        pose_bone.cloudrig_component.component_type = 'Copy Bone'
+        pose_bone.custom_shape = self.ensure_widget("Root")
 
     def ensure_bone_groups(self):
         # Wipe any existing bone groups from the target rig.
@@ -439,8 +403,7 @@ class CloudRig_Generator:
             )
         return wgt
 
-    def add_to_widget_collection(self, widget_ob):
-        context = self.context
+    def add_to_widget_collection(self, context, widget_ob):
         if not self.params.widget_collection:
             return
         if widget_ob.name not in self.params.widget_collection.objects:
@@ -531,13 +494,13 @@ class CloudRig_Generator:
                 rigs_anim_order.remove(symm_component)
             start_frame = max(new_start_frame, symm_new_start_frame)
 
-    def create_bone_infos(self):
+    def create_bone_infos(self, context):
         """Create additional BoneInfos that represent an abstract version of the bones in the
         generated rig.
         """
 
         for base_bone_name, rig_component in self.component_map.items():
-            rig_component.create_bone_infos()
+            rig_component.create_bone_infos(context)
 
     def create_component_interactions(self):
         """Once all rig components have created their BoneInfos, we can safely
@@ -547,24 +510,49 @@ class CloudRig_Generator:
         for base_bone_name, rig_component in self.component_map.items():
             rig_component.create_component_interactions()
 
+    @property
+    def root_bone_info(self):
+        self.find_bone_info(self.params.ensure_root)
+
+    @property
+    def bone_sets(self):
+        if self.root_set:
+            yield self.root_set
+        if self.root_parent_set:
+            yield self.root_parent_set
+        for rig_component in self.component_map.values():
+            for bone_set in rig_component.bone_sets.values():
+                yield bone_set
+
+    @property
+    def bone_infos(self):
+        for bone_set in self.bone_sets:
+            for bone_info in bone_set:
+                yield bone_info
+
+    def parent_orphan_bones_to_root(self):
+        for bone_info in self.bone_infos:
+            if bone_info.is_orphan:
+                bone_info.parent = self.root_bone_info
+
+
     def create_real_bones(self):
         """Create real bones from all BoneInfos.
         No bone data is written yet beside the name."""
 
-        for base_bone_name, rig_component in self.component_map.items():
-            for bone_info in rig_component.bone_infos:
-                if bone_info.name in self.target_rig.data.edit_bones:
-                    # This happens for ORG bones that we load into BoneInfo objects,
-                    # since they already get created by __duplicate_rig()
-                    continue
-                edit_bone = self.create_bone(self.target_rig, bone_info.name)
-                if edit_bone.name != bone_info.name:
-                    self.logger.log(
-                        "Bone Name Clash"
-                        ,trouble_bone = bone_info.name
-                        ,description = f'Bone name "{bone_info.name}" was already taken, got back to "{edit_bone.name}" instead.'
-                    )
-                    bone_info.name = edit_bone.name
+        for bone_info in self.bone_infos:
+            if bone_info.name in self.target_rig.data.edit_bones:
+                # This happens for ORG bones that we load into BoneInfo objects,
+                # since they already get created by __duplicate_rig()
+                continue
+            edit_bone = self.create_bone(self.target_rig, bone_info.name)
+            if edit_bone.name != bone_info.name:
+                self.logger.log(
+                    "Bone Name Clash"
+                    ,trouble_bone = bone_info.name
+                    ,description = f'Bone name "{bone_info.name}" was already taken, got back to "{edit_bone.name}" instead.'
+                )
+                bone_info.name = edit_bone.name
 
     def create_bone(self, rig_ob, bone_name: str):
         """ Adds a new bone to the active Armature object.
@@ -572,32 +560,22 @@ class CloudRig_Generator:
         """
         edit_bone = rig_ob.data.edit_bones.new(bone_name)
         edit_bone.head = (0, 0, 0)
-        edit_bone.tail = (0, 0, 1)
+        edit_bone.tail = (0, 1, 0)
         edit_bone.roll = 0
         return edit_bone
 
     def write_edit_bone_data(self):
-        super().write_edit_bone_data()
-
         # Write edit bone data for BoneInfos.
-        for bi in self.bone_infos:
-            edit_bone = self.target_rig.data.edit_bones.get(bi.name)
-            bi.write_edit_data(self, edit_bone, self.context)
-
-        # Parent parent-less bones to the root bone, if there is one.
-        if self.root_bone:
-            self.parent_bones_to_root()
-
-    def parent_bones_to_root(self):
-        pass
-        # TODO 4.0: Implement this (Can copy from Rigify, but operating on BoneInfo might be better, dunno.)
+        for bone_info in self.bone_infos:
+            edit_bone = self.target_rig.data.edit_bones.get(bone_info.name)
+            bone_info.write_edit_data(self, edit_bone)
 
     def invoke_configure_bones(self):
         for bi in self.bone_infos:
             pose_bone = self.target_rig.pose.bones.get(bi.name)
             if not pose_bone:
                 self.logger.log("Bone creation failed"
-                    ,owner_bone   = bi.owner_rig.base_bone
+                    ,owner_bone   = bi.owner_component.base_bone
                     ,trouble_bone = bi.name
                     ,description  = f'BoneInfo "{bi.name}" was not created for some reason.'
                 )
@@ -610,17 +588,6 @@ class CloudRig_Generator:
 
         super().invoke_configure_bones()
 
-    def invoke_apply_bones(self):
-        super().invoke_apply_bones()
-
-        # Rigify automatically parents bones that have no parent to the root bone.
-        # We want to undo this when the bone has an Armature constraint.
-        for eb in self.target_rig.data.edit_bones:
-            pb = self.target_rig.pose.bones.get(eb.name)
-            for c in pb.constraints:
-                if c.type=='ARMATURE' and c.enabled:
-                    eb.parent = None
-                    break
 
     @staticmethod
     def map_vgroups_to_most_significant_object(
@@ -665,8 +632,7 @@ class CloudRig_Generator:
         vgroup_map = self.map_vgroups_to_most_significant_object(vgroup_names, object_candidates)
 
         pbones = self.target_rig.pose.bones
-        bone_infos = self.bone_infos
-        for bi in bone_infos:
+        for bi in self.bone_infos:
             vg_name = bi.gizmo_vgroup
             if vg_name not in vgroup_map:
                 continue

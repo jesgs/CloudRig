@@ -13,8 +13,8 @@ class CloudEyelidRig(CloudFaceChainRig):
 
 		super().initialize()
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 
 		# Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
 		# but we obviously don't want to parent the eyelid to the eyeball,

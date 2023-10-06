@@ -48,8 +48,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
 		self.ik_controls = []	# Used for creating Gizmo Interaction Data.
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		if not len(self.bones_org) > 1:
 			self.raise_metarig_error(f"Must be a chain of at least 2 bones!")
 

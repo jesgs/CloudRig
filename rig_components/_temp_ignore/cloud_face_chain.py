@@ -16,7 +16,7 @@ def has_tangent_helpers(rig) -> bool:
 
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo, have_anchor: bool):
 	for str_bone in cluster:
-		rig = str_bone.owner_rig
+		rig = str_bone.owner_component
 		str_bone.parent = intersection
 		str_bone.intersection_ctrl = intersection
 		if has_tangent_helpers(rig) and not have_anchor:
@@ -59,7 +59,7 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 	# they produce a clean curvature. This is important for things like the 
 	# teeth or the lips, which are one rig element on each side that meet in 
 	# the center, and are expected to make a smooth curve.
-	rig = cluster[0].owner_rig
+	rig = cluster[0].owner_component
 
 	pos_sum = cluster[0].head.copy()
 	for c in cluster[1:]:
@@ -74,16 +74,16 @@ def do_centered_cluster(cluster: List[BoneInfo], intersection: BoneInfo, is_anch
 
 	for b in cluster:
 		b.flatten(axis='X')
-		if has_tangent_helpers(b.owner_rig):
+		if has_tangent_helpers(b.owner_component):
 			b.tangent_helper.flatten(axis='X')
-		if b.owner_rig.params.chain.smooth_spline:
+		if b.owner_component.params.chain.smooth_spline:
 			flipped_name = rig.naming.flipped_name(b)
 			if flipped_name == b.name:
 				continue
-			opposite_bone = b.owner_rig.generator.find_bone_info(flipped_name)
+			opposite_bone = b.owner_component.generator.find_bone_info(flipped_name)
 			if not opposite_bone:
 				continue
-			if has_tangent_helpers(opposite_bone.owner_rig):
+			if has_tangent_helpers(opposite_bone.owner_component):
 				# Make the Damped Track constraint of the opposite TAN- bone aim 
 				# at this STR bone's Damped Track target.
 				# This gets us a smooth curve across the two chains.
@@ -117,7 +117,7 @@ class CloudFaceChainRig(Component_ToonChain):
 		# their tangent_helper to be parented to the intersection control's parent.
 		for intersection in self.intersection_bones:
 			for str_bone in intersection.str_bones:
-				if has_tangent_helpers(str_bone.owner_rig):
+				if has_tangent_helpers(str_bone.owner_component):
 					str_bone.tangent_helper.parent = intersection.parent
 
 		# HACK: We can't ensure that the last chain rig to be executed is a cloud_eyelid,
@@ -127,8 +127,8 @@ class CloudFaceChainRig(Component_ToonChain):
 			if hasattr(chain_rig, 'make_sticky_eyelid'):
 				chain_rig.make_sticky_eyelid()
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 
 		### Following code is only run ONCE by the LAST face_chain_rig.
 		if not self.is_last_chain_rig:
@@ -181,7 +181,7 @@ class CloudFaceChainRig(Component_ToonChain):
 			If it doesn't exist, create one.
 		"""
 
-		rig = cluster[0].owner_rig
+		rig = cluster[0].owner_component
 
 		intersection_control = None
 		have_anchor = False

@@ -37,8 +37,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
 		self.num_controls = self.bone_count+1 if self.params.spline_ik.match_hooks else self.params.spline_ik.hooks
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.make_curve_root_ctrl()
 		self.create_curve_object()
 		self.make_ctrls_for_curve_points()
@@ -48,7 +48,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 	def make_curve_controls(self):
 		""" Overrides.
 			This rig's create_curve_object() relies on Component_Base.create_bone_infos()
-			having already run. But if we simply call super().create_bone_infos(),
+			having already run. But if we simply call super().create_bone_infos(context),
 			it will run make_ctrls_for_curve_points(), which, for this class,
 			relies on create_curve_object() running beforehand.
 			So, we override this with nothing, and we put the calls in the

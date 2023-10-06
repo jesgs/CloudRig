@@ -39,8 +39,8 @@ class Component_Limb(Component_Chain_IKFK):
 		if self.bone_count != req_len:
 			self.raise_metarig_error(f"Chain must be exactly {req_len} connected bones.")
 
-	def create_bone_infos(self):
-		super().create_bone_infos()
+	def create_bone_infos(self, context):
+		super().create_bone_infos(context)
 		self.tweak_str_limb()
 		segments = self.params.chain.segments
 		if self.params.limb.auto_hose and segments > 1:
