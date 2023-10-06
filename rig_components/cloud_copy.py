@@ -62,7 +62,7 @@ class Component_CopyBone(Component_Base):
 
 		self.root_bone = bone_info
 		if self.params.copy.custom_pivot:
-			self.root_bone = self.create_custom_pivot(bone_info, my_bone_set)
+			self.root_bone = self.create_custom_pivot(bone_info)
 
 		if self.params.copy.ensure_free:
 			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...

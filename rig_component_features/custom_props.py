@@ -27,10 +27,12 @@ class CloudCustomPropertiesMixin:
 			self.params.custom_props.props_storage = 'DEFAULT'
 
 		if self.params.custom_props.props_storage == 'DEFAULT':
-			bone_name = "Properties"
+			bone_name = self.generator.params.properties_bone
 			properties_bone = self.generator.find_bone_info(bone_name)
-			if not properties_bone:
-				properties_bone = self.generator.root_set.new(
+			if properties_bone:
+				return properties_bone
+			
+			return self.bone_sets['Mechanism Bones'].new(
 					name		  = bone_name
 					,head		  = Vector((0, self.scale*2, 0))
 					,tail		  = Vector((0, self.scale*2, self.scale*2))
@@ -38,7 +40,6 @@ class CloudCustomPropertiesMixin:
 					,custom_shape = self.ensure_widget("Cogwheel_Y")
 					,use_custom_shape_bone_size = True
 				)
-			return properties_bone
 		elif self.params.custom_props.props_storage == 'GENERATED':
 			# Create a bone at the base of the rig with a cogwheel shape.
 			properties_bone = self.generate_properties_bone()

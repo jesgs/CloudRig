@@ -44,6 +44,11 @@ class GeneratorProperties(PropertyGroup):
         ,description = "Create a default root bone with the given name on the metarig before generating. Bones that would otherwise be orphaned will be parented to this bone"
         ,default     = 'root'
     )
+    properties_bone: StringProperty(
+        name         = "Properties Bonet"
+        ,description = "Bone to use as the default custom property storage. Can be the same as the root bone. If it doesn't exist and is required, a bone named 'Properties' will be created on the metarig"
+        ,default     = 'Properties'
+    )
 
     custom_script: PointerProperty(
         name         = "Post-Generation Script"
@@ -99,8 +104,6 @@ class CloudRig_Generator:
         self.params = metarig.data.cloudrig.generator
 
         self.custom_script_failure = False
-        self.root_set = None
-        self.root_parent_set = None
 
         # TODO 4.0: __init__ should only be assigning stuff to self. This should be moved to generate().
         metarig.data.pose_position = 'REST'
@@ -317,7 +320,8 @@ class CloudRig_Generator:
 
     def find_bone_info(self, name):
         for bone_set in self.bone_sets:
-            print("Checking bone set: ", bone_set, "for: ", name)
+            if len(bone_set) == 0:
+                continue
             exists = bone_set.get(name)
             if exists:
                 return exists
@@ -367,7 +371,7 @@ class CloudRig_Generator:
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='EDIT')
 
-        pose_bone = metarig.pose.bones[root_name]
+        pose_bone = metarig.pose.bones[edit_bone.name]
         pose_bone.cloudrig_component.component_type = 'Copy Bone'
         pose_bone.custom_shape = self.ensure_widget("Root")
 
@@ -498,14 +502,10 @@ class CloudRig_Generator:
 
     @property
     def root_bone_info(self):
-        self.find_bone_info(self.params.ensure_root)
+        return self.find_bone_info(self.params.ensure_root)
 
     @property
     def bone_sets(self):
-        if self.root_set:
-            yield self.root_set
-        if self.root_parent_set:
-            yield self.root_parent_set
         for rig_component in self.component_map.values():
             for bone_set in rig_component.bone_sets.values():
                 yield bone_set
@@ -518,9 +518,10 @@ class CloudRig_Generator:
 
     def parent_orphan_bones_to_root(self):
         for bone_info in self.bone_infos:
+            if bone_info == self.root_bone_info:
+                continue
             if bone_info.is_orphan:
                 bone_info.parent = self.root_bone_info
-
 
     def create_real_bones(self):
         """Create real bones from all BoneInfos.
