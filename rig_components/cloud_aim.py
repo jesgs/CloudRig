@@ -249,7 +249,7 @@ class Component_Aim(Component_Base):
 		aim_bones = []
 		for rig in self.generator.rig_list:
 			if isinstance(rig, Component_Aim) and rig.group == group_name:
-				aim_bone = self.obj.pose.bones[rig.base_bone]
+				aim_bone = self.metarig.pose.bones[rig.base_bone]
 				aim_bones.append(aim_bone)
 		return aim_bones
 

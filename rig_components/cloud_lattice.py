@@ -59,11 +59,11 @@ class Component_Lattice(Component_Base):
 
 	def finalize(self):
 		super().finalize()
-		root_pb = self.obj.pose.bones.get(self.root_bone.name)
-		hook_pb = self.obj.pose.bones.get(self.hook_bone.name)
+		root_pb = self.target_rig.pose.bones.get(self.root_bone.name)
+		hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
 		lattice_ob = self.params.lattice.lattice
 		if not lattice_ob or self.params.lattice.regenerate:
-			self.meta_base_bone.cloudrig_component.params.lattice = self.create_lattice(root_pb, hook_pb)
+			self.meta_base_bone.cloudrig_component.params.lattice.lattice = self.create_lattice(root_pb, hook_pb)
 		elif lattice_ob:
 			# Reset Hook inverse matrices
 			for m in lattice_ob.modifiers:
@@ -92,7 +92,7 @@ class Component_Lattice(Component_Base):
 		vg = ensure_falloff_vgroup(lattice_ob, vg_name="Hook", multiplier=1.5)
 
 		# Parent lattice to the generated rig
-		lattice_ob.parent = self.obj
+		lattice_ob.parent = self.target_rig
 		# Bone-parent lattice to root bone
 		lattice_ob.parent_type = 'BONE'
 		lattice_ob.parent_bone = self.lattice_root.name
@@ -106,7 +106,7 @@ class Component_Lattice(Component_Base):
 
 		# Add Hook modifier to the lattice
 		hook_mod = lattice_ob.modifiers.new(name="Hook", type='HOOK')
-		hook_mod.object = self.obj
+		hook_mod.object = self.target_rig
 		hook_mod.vertex_group = vg.name
 		hook_mod.subtarget = hook_bone.name
 

@@ -55,7 +55,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 			# Create physics object.
 			phys_obj = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
 			context.scene.collection.objects.link(phys_obj)
-			phys_obj.parent = self.obj
+			phys_obj.parent = self.target_rig
 		else:
 			phys_obj.data = cloth_mesh
 
@@ -126,7 +126,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 		bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value":(0, 0.01, 0)})
 		bpy.ops.object.mode_set(mode='OBJECT')
 
-		context.view_layer.objects.active = self.obj
+		context.view_layer.objects.active = self.target_rig
 		bpy.ops.object.mode_set(mode='EDIT')
 		self.params.physics_chain.phys_obj = phys_obj
 		return phys_obj
@@ -158,7 +158,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 		# Add Armature modifier on physics object.
 		if phys_ob.modifiers.find('Armature') == -1:
 			arm_mod = phys_ob.modifiers.new(type='ARMATURE', name="Armature")
-			arm_mod.object = self.obj
+			arm_mod.object = self.target_rig
 
 		# Parent first FK control to first PSX control.
 		self.bone_sets['FK Controls'][0].parent = self.bone_sets['Physics Bones'][0]
@@ -184,11 +184,11 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 			# Move armature modifier to top of the stack
 			context.view_layer.objects.active = phys_obj
 			bpy.ops.object.modifier_move_to_index(modifier='Armature', index=0)
-			context.view_layer.objects.active = self.obj
+			context.view_layer.objects.active = self.target_rig
 			phys_obj.parent = None
 		else:
 			# Parent physics object.
-			phys_obj.parent = self.obj
+			phys_obj.parent = self.target_rig
 			phys_obj.parent_type = 'BONE'
 			parent = self.bones_org[0].parent
 			if not parent:

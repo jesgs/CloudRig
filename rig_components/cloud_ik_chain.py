@@ -291,7 +291,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 			if i == self.chain_count:
 				# Add the IK constraint to the previous bone, targetting this one.
 				ik_chain[-2].add_constraint('IK',
-					pole_target		= self.obj if pole_target else None,
+					pole_target		= self.target_rig if pole_target else None,
 					pole_subtarget	= pole_target.name if pole_target else "",
 					pole_angle		= self.pole_angle,
 					subtarget		= ik_bone.name,
@@ -383,7 +383,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 					'type' : 'SINGLE_PROP',
 					'targets' : [
 						{
-							'id' : self.obj,
+							'id' : self.target_rig,
 							'id_type' : 'OBJECT',
 							'data_path' : f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]'
 						}

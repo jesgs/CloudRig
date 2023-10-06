@@ -168,17 +168,17 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 		the Spline IK constraint."""
 		super().configure_bones()
 
-		self.obj.data.pose_position = 'POSE'
+		self.target_rig.data.pose_position = 'POSE'
 		bpy.ops.object.mode_set(mode='EDIT')
 
 		for def_bi in self.bone_sets['Curve Deform Bones']:
-			eb = self.obj.data.edit_bones.get(def_bi.name)
+			eb = self.target_rig.data.edit_bones.get(def_bi.name)
 			if not eb:
 				continue
-			pb = self.obj.pose.bones.get(def_bi.name)
+			pb = self.target_rig.pose.bones.get(def_bi.name)
 			eb.head = pb.matrix.to_translation()
 
-		self.obj.data.pose_position = 'REST'
+		self.target_rig.data.pose_position = 'REST'
 		bpy.ops.object.mode_set(mode='OBJECT')
 
 	##############################

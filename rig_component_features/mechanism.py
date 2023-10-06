@@ -55,7 +55,7 @@ class CloudMechanismMixin:
 		return vector_along_bone_chain(chain, length, index)
 
 	def relink_driver(self, driver_info):
-		relink_driver(self.generator.metarig, self.obj, driver_info)
+		relink_driver(self.metarig, self.target_rig, driver_info)
 
 	def transfer_relink_drivers(self, from_bone: BoneInfo, to_bone: BoneInfo):
 		"""Transfer and relink drivers from one bone to another."""

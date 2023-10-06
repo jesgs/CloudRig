@@ -306,7 +306,6 @@ class Component_Limb_BipedLeg(Component_Limb):
 				# Foot bone's roll
 				rik_bone.add_constraint('COPY_LOCATION'
 					,space			= 'WORLD'
-					,target			= self.obj
 					,subtarget		= rik_chain[-2].name
 					,head_tail		= 1
 				)

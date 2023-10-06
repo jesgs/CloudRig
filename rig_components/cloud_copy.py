@@ -111,7 +111,7 @@ class Component_CopyBone(Component_Base):
 
 	def finalize(self):
 		bi = self.bones_org[0]
-		pb = self.obj.pose.bones.get(bi.name)
+		pb = self.target_rig.pose.bones.get(bi.name)
 		pb.name = "ORG-"+self.orgless_name
 		pb.name = self.orgless_name
 

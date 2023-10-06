@@ -14,10 +14,10 @@ class BoneGizmoMixin:
 		BoneGizmos addon, execute an operator with the given arguments.
 		Useful eg., for automatic IK/FK switching.
 		"""
-		if 'gizmo_interactions' not in self.obj.data:
-			self.obj.data['gizmo_interactions'] = {}
+		if 'gizmo_interactions' not in self.target_rig.data:
+			self.target_rig.data['gizmo_interactions'] = {}
 
-		gizmo_dict = self.obj.data['gizmo_interactions'].to_dict()
+		gizmo_dict = self.target_rig.data['gizmo_interactions'].to_dict()
 		if operator not in gizmo_dict:
 			op_data = gizmo_dict[operator] = []
 
@@ -28,7 +28,7 @@ class BoneGizmoMixin:
 		op_data = gizmo_dict[operator]
 		op_data.append((bone_names, op_kwargs))
 
-		self.obj.data['gizmo_interactions'] = gizmo_dict
+		self.target_rig.data['gizmo_interactions'] = gizmo_dict
 
 	def add_gizmo_interactions(self):
 		"""CloudRig types can override this and make calls to 

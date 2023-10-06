@@ -108,7 +108,7 @@ class Component_Finger(Component_Chain_IKFK):
 		last_ik2 = ik2_chain[-1]
 		# Add the IK constraint to the previous bone, targetting this one.
 		last_ik2.parent.add_constraint('IK',
-			pole_target		= self.obj if pole_target else None,
+			pole_target		= self.target_rig if pole_target else None,
 			pole_subtarget	= pole_target.name if pole_target else "",
 			pole_angle		= self.pole_angle,
 			subtarget		= last_ik2,
