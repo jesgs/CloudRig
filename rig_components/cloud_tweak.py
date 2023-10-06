@@ -138,10 +138,6 @@ class Component_TweakBone(Component_Base):
 				self.relink_driver(d)
 			org_bi.constraint_infos.remove(c)
 
-			# Remove actual bpy drivers, as their re-linked version will be created later by the generator.
-			for d in c.drivers:
-				self.obj.driver_remove(f'pose.bones["{org_bi.name}"].constraints["{c.name}"].{d["prop"]}')
-
 	##############################
 	# Parameters
 

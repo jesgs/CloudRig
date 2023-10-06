@@ -159,8 +159,6 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 				to_bone = self.bone_sets['Curve Hooks'][i]
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
-				for d in c.drivers:
-					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
 
 	def configure_bones(self):

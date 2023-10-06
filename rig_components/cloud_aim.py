@@ -215,8 +215,6 @@ class Component_Aim(Component_Base):
 		for c in org.constraint_infos:
 			self.root_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
-			for d in c.drivers:
-				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
 
 	def apply_parent_switching(self, parent_slots, *,

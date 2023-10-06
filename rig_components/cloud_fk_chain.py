@@ -70,8 +70,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 					to_bone = to_bone.parent
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
-				for d in c.drivers:
-					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
 
 	def make_root_bone(self):

@@ -39,8 +39,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 				to_bone = self.bone_sets['Physics Bones'][i]
 				to_bone.constraint_infos.append(c)
 				org.constraint_infos.remove(c)
-				for d in c.drivers:
-					self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 				c.relink()
 
 	def ensure_physics_object(self, bone_chain: List[BoneInfo]):

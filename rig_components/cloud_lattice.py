@@ -30,8 +30,6 @@ class Component_Lattice(Component_Base):
 		for c in org.constraint_infos:
 			self.lattice_root.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
-			for d in c.drivers:
-				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
 
 	def make_lattice_root_ctrl(self, org_bi):

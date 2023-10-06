@@ -51,8 +51,6 @@ class Component_Curve_Hooked(Component_Base):
 		for c in org.constraint_infos[:]:
 			self.root_bone.constraint_infos.append(c)
 			org.constraint_infos.remove(c)
-			for d in c.drivers:
-				self.obj.driver_remove(f'pose.bones["{org.name}"].constraints["{c.name}"].{d["prop"]}')
 			c.relink()
 
 	def make_curve_controls(self):
@@ -432,7 +430,7 @@ class Component_Curve_Hooked(Component_Base):
 		for point_i in range(0, num_points):
 			hook_b = hooks[point_i]
 			shared_kwargs = {
-				"rig_ob" : self.obj,
+				"rig_ob" : self.target_rig,
 				"curve_ob" : self.params.curve.target,
 				"spline_i" : spline_i,
 				"point_i" : point_i
@@ -477,7 +475,7 @@ class Component_Curve_Hooked(Component_Base):
 			my_var.type = 'TRANSFORMS'
 
 			var_tgt = my_var.targets[0]
-			var_tgt.id = self.obj
+			var_tgt.id = self.target_rig
 			var_tgt.transform_space = 'WORLD_SPACE'
 			var_tgt.transform_type = 'SCALE_X'
 			var_tgt.bone_target = hooks[point_i].name
@@ -502,7 +500,7 @@ class Component_Curve_Hooked(Component_Base):
 			# Use Single Property instead of Transforms driver type, this allows
 			# greater than 180 degree tilt control.
 			var_tgt = my_var.targets[0]
-			var_tgt.id = self.obj
+			var_tgt.id = self.target_rig
 			var_tgt.data_path = f'pose.bones["{hook_b.name}"].rotation_euler.y'
 			var_tgt.bone_target = hooks[point_i].name
 
