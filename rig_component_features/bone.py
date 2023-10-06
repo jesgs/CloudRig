@@ -484,7 +484,6 @@ class BoneInfo:
 		assert armature.mode != 'EDIT', "Armature cannot be in Edit Mode when writing pose data"
 
 		# Pose bone data
-		pb = pose_bone
 		for key in pose_bone_properties:
 			key = key.replace("pose_", "")	# Allows bbone properties to specify if they are only for pose bone version
 			value = self.__dict__[key]
@@ -495,15 +494,10 @@ class BoneInfo:
 			if value in [None, ""]: continue
 			if key == 'custom_shape_transform':
 				value = armature.pose.bones.get(value.name)
-			if key == 'bone_group':
-				value = armature.pose.bone_groups.get(self.bone_group)
-			setattr(pb, key, value)
-
-		# Reset pose
-		pb.matrix_basis = Matrix.Identity(4)
+			setattr(pose_bone, key, value)
 
 		# Bone data
-		b = pb.bone
+		bone = pose_bone.bone
 		for key in bone_properties:
 			value = self.__dict__[key]
 			if value in [None, ""]: continue
@@ -513,10 +507,18 @@ class BoneInfo:
 				# TODO: To write bone shape scale data properly, we would need a reference to the generator.scale.
 				# This would best be done if this function was in the generator rather than BoneInfo.
 				continue
+			if key == 'collections':
+				for coll_name in value:
+					coll = armature.data.collections.get(coll_name)
+					coll.assign(pose_bone)
+				continue
+			setattr(bone, key, value)
 
-			setattr(b, key, value)
+		# Bone colors
+		bone.color.palette = self.color_palette_base
+		pose_bone.color.palette = self.color_palette_pose
 
-		if b.name.startswith("DEF") and not b.use_deform:
+		if bone.name.startswith("DEF") and not b.use_deform:
 			self.bone_set.rig_component.add_log("Non-deforming DEF bone"
 				,trouble_bone = self.name
 				,description = f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. This bone will not be keyframed by the "Whole Character" keying set!'

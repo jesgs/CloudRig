@@ -83,7 +83,7 @@ class BoneSet(LinkedList):
         self.ui_name = ui_name
 
         # Collection to assign to newly defined BoneInfos.
-        self.collection = collection # TODO 4.0 This needs to be a list, and in turn a CollectionProperty...
+        self.collections = [collection] # TODO 4.0 This needs to be a list, and in turn a CollectionProperty...
 
         # Bone Group name to assign to newly defined BoneInfos.
         self.color_palette = color_palette
@@ -112,8 +112,8 @@ class BoneSet(LinkedList):
                 description = "Make sure your bone names are unique and do not have trailing zeroes!",
             )
 
-        if 'collection' not in kwargs:
-            kwargs['collection'] = self.collection
+        if 'collections' not in kwargs:
+            kwargs['collections'] = self.collections
         if 'color_palette_base' not in kwargs:
             kwargs['color_palette_base'] = self.color_palette
         for key in self.defaults.keys():
@@ -208,23 +208,6 @@ class BoneSet(LinkedList):
                 bone_info.custom_props[prop_name] = prop_data
 
         return bone_info
-
-    def ensure_bone_group(self, rig_ob, overwrite=False):
-        """ Create the bone group defined by this bone set on rig_ob. """
-
-        bone_group = rig_ob.pose.bone_groups.get(self.bone_group)
-        if bone_group and not overwrite:
-            return bone_group
-
-        if not bone_group:
-            bone_group = rig_ob.pose.bone_groups.new(name=self.bone_group)
-
-        bone_group.color_set = self.color_set
-        bone_group.colors.normal = self.normal[:]
-        bone_group.colors.select = self.select[:]
-        bone_group.colors.active = self.active[:]
-
-        return bone_group
 
 class BoneSetMixin:
     """Class that provides bone set management to Component_Base."""

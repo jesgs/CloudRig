@@ -180,16 +180,14 @@ class CloudRig_Generator:
 
         self.write_edit_bone_data()
         self.parent_orphan_bones_to_root()
-        return
-        redraw_viewport()
 
         #------------------------------------------
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        self.ensure_bone_groups()
+        self.ensure_bone_collections(self.target_rig)
         self.invoke_configure_bones()
-        t.tick("Write Pose Data: ")
-        redraw_viewport()
+
+        return
 
         #------------------------------------------
         self.invoke_preapply_bones()
@@ -373,23 +371,11 @@ class CloudRig_Generator:
         pose_bone.cloudrig_component.component_type = 'Copy Bone'
         pose_bone.custom_shape = self.ensure_widget("Root")
 
-    def ensure_bone_groups(self):
-        # Wipe any existing bone groups from the target rig.
-        if self.target_rig.pose:
-            for bone_group in self.target_rig.pose.bone_groups:
-                self.target_rig.pose.bone_groups.remove(bone_group)
-
-        for bone_set in self.bone_sets:
-            meta_bg = bone_set.ensure_bone_group(self.metarig, overwrite=False)
-            if meta_bg:
-                bone_set.normal = meta_bg.colors.normal[:]
-                bone_set.select = meta_bg.colors.select[:]
-                bone_set.active = meta_bg.colors.active[:]
-            if self.params.rigify_colors_lock:
-                bone_set.select = self.params.rigify_selection_colors.select
-                bone_set.active = self.params.rigify_selection_colors.active
-
-            bone_set.ensure_bone_group(self.target_rig, overwrite=True)
+    def ensure_bone_collections(self, rig):
+        for bone_info in self.bone_infos:
+            for collection_name in bone_info.collections:
+                if collection_name not in rig.data.collections:
+                    rig.data.   collections.new(collection_name)
 
     def ensure_widget(self, widget_name):
         wgt = cloud_widgets.ensure_widget(
@@ -585,9 +571,6 @@ class CloudRig_Generator:
             bi.write_pose_data(pose_bone)
             if not pose_bone.use_custom_shape_bone_size and bi.use_custom_shape_bbone_scaling:
                 pose_bone.custom_shape_scale_xyz *= bi.bbone_width * 10 * self.scale
-
-        super().invoke_configure_bones()
-
 
     @staticmethod
     def map_vgroups_to_most_significant_object(
