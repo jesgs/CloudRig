@@ -164,7 +164,8 @@ class BoneSet(LinkedList):
 
     def new_from_real(self, rig: bpy.types.Object, edit_bone: bpy.types.EditBone):
         """Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
-        # NOTE: Parenting should be done outside of this function. (TODO but maybe shouldn't need to be?)
+        # NOTE: Parenting should be done outside of this function, 
+        # since parent bone info is not guaranteed to exist.
 
         pose_bone = rig.pose.bones.get(edit_bone.name)
         data_bone = pose_bone.bone
@@ -176,32 +177,33 @@ class BoneSet(LinkedList):
             ,edit_bone : edit_bone_properties
         }
 
-        for bone in sources:
-            prop_list = sources[bone]
+        for source, prop_list in sources.items():
             for key in prop_list:
-                value = getattr(bone, key)
+                value = getattr(source, key)
                 if value in [None, ""]: continue
-                if key == 'bone_group':
-                    value = value.name
+                if key == 'collections':
+                    value = [coll.name for coll in value]
                 if type(value) in [Vector, Matrix]:
                     value = value.copy()
                 setattr(bone_info, key, value)
 
-        #HACK: force use_deform to False for now...
+        # The default value of use_deform in Blender is True, but for CloudRig, False makes a LOT more sense.
         bone_info.use_deform = False
 
-        # Remove constraints from the bone and load them into the BoneInfo so they can be read and modified.
+        # Load color palettes (only presets are supported, no custom colors)
+        bone_info.color_palette_pose = pose_bone.color.palette
+        bone_info.color_palette_base = data_bone.color.palette
+
+        # Load Constraints.
         for c in pose_bone.constraints:
             ci = bone_info.add_constraint_from_real(c)
-            pose_bone.constraints.remove(c)
 
-        # Load drivers
+        # Load Drivers.
         if rig.animation_data:
             driver_map = self.rig.generator.driver_map
             if bone_info.name in driver_map:
                 for data_path, array_index in driver_map[bone_info.name]:
                     fcurve = rig.animation_data.drivers.find(data_path, index=array_index)
-                    driver = fcurve.driver
                     path_from_last = "." + data_path.split('"].')[-1]
                     if path_from_last.endswith('"]'):
                         path_from_last = "[" + path_from_last.split("][")[-1]
@@ -216,7 +218,7 @@ class BoneSet(LinkedList):
                         bone_info.drivers.append(driver_info)
                     rig.animation_data.drivers.remove(fcurve)
 
-        # Load custom property definition dictionaries
+        # Load Custom Properties.
         if rna_idprop_has_properties(pose_bone):
             rna_properties = {prop.identifier for prop in pose_bone.bl_rna.properties if prop.is_runtime}
             for prop_name in pose_bone.keys():
@@ -267,19 +269,16 @@ class BoneSetMixin:
 
     def init_bone_set(self, bone_set_name):
         """Take a bone set definition stored in the class and create a single BoneSet for it."""
-        bone_set_defs = type(self).bone_set_defs
-
-        assert bone_set_name in bone_set_defs, f"Failed to create Bone Set {bone_set_name}. Bone Set definition not found in class: {type(self)}."
-
-        bone_set_def = bone_set_defs[bone_set_name]
-
-        bone_set_def['layers'] = getattr(self.params, bone_set_def['layer_param'])
+        rna_name = bone_set_name.lower().replace(" ", "_")
+        rna_bone_set = getattr(self.params.bone_sets, rna_name)
+        
+        assert rna_bone_set, f"Failed to create Bone Set {rna_name}. Couldn't find corresponding RNA bone set."
 
         new_set = BoneSet(self,
-            ui_name = bone_set_def['name'],
-            bone_group = getattr(self.params, bone_set_def['param']),
-            layers = bone_set_def['layers'],
-            preset = bone_set_def['preset'],
+            ui_name = rna_bone_set.name,
+            bone_group = "", # TODO 4.0
+            # layers = bone_set_def['layers'],
+            # preset = bone_set_def['preset'],
             defaults = self.defaults
         )
 
@@ -289,10 +288,10 @@ class BoneSetMixin:
 
     def init_bone_sets(self):
         """Instantiate all bone sets based on the class's bone_set_defs dictionary."""
-        bone_set_defs = type(self).bone_set_defs
+        bone_set_defs = type(self).bone_set_definitions
         for bone_set_name in bone_set_defs.keys():
-            print("INIT BONE SET: ", bone_set_name)
-            self.bone_sets[bone_set_name] = self.init_bone_set(bone_set_name)
+            ui_name = bone_set_name.replace("_", " ").title()
+            self.bone_sets[ui_name] = self.init_bone_set(bone_set_name)
 
     ##############################
     # UI
@@ -342,8 +341,8 @@ class BoneSetMixin:
 
         # set_info = cls.bone_set_defs[active_bone_set.name]
         # split = layout.row().split(factor=0.8)
-        # clsdraw_prop_search(context, split.row(), params, set_info['param'], obj.pose, "bone_groups", text="Bone Group")
-        # bone_group_name = getattr(params, set_info['param'])
+        # cls.draw_prop_search(context, split.row(), params, set_info['color_param'], obj.pose, "bone_groups", text="Bone Group")
+        # bone_group_name = getattr(params, set_info['color_param'])
         # bone_group = obj.pose.bone_groups.get(bone_group_name)
         # if bone_group:
         #     row = split.row(align=True)
@@ -365,7 +364,7 @@ class BoneSetMixin:
         #     show_unnamed_selected_layers = True,
         #     show_hidden_checkbox = True, 
         #     layer_prop_owner = params, 
-        #     layer_prop_name = set_info['layer_param']
+        #     layer_prop_name = set_info['collection_param']
         # )
 
 
@@ -396,13 +395,13 @@ class BoneSetMixin:
         if default_group=="":
             default_group = ui_name
 
-        param_name = "CR_BG_" + group_name.replace(" ", "_")
-        layer_param_name = "CR_BG_LAYERS_" + group_name.replace(" ", "_")
+        color_param_name = "BoneSet_Color_" + group_name.replace(" ", "_")
+        collection_param_name = "BoneSet_Collection_" + group_name.replace(" ", "_")
 
         setattr(
             params,
-            param_name,
-            StringProperty(
+            color_param_name,
+            StringProperty( # TODO 4.0 collections: This should be an enumprop, mimicing the bone color preset drop-down.
                 default = default_group,
                 description = f"Select what group {ui_name} should be assigned to"
             )
@@ -411,8 +410,8 @@ class BoneSetMixin:
         default_layers_bools = [i in default_layers for i in range(32)]
         setattr(
             params,
-            layer_param_name,
-            BoolVectorProperty(
+            collection_param_name,
+            BoolVectorProperty( # TODO 4.0 collections: This should be a StringProp... somehow matching to the collections. Ideally in a way where renaming collections is possible, see how Rigify does that.
                 size = 32,
                 subtype = 'LAYER',
                 description = f"Select what layers {ui_name} should be assigned to",
@@ -423,12 +422,13 @@ class BoneSetMixin:
         # TODO: Why are we not just creating a class-level BoneSet instance to store here?
         # Even if that's not a good idea, we could make a UIBoneSet class and instance that.
         cls.bone_set_defs[ui_name] = {
-            'name'            : ui_name
-            ,'preset'        : preset            # Bone Group color preset to use in case the bone group doesn't already exist.
-            ,'param'          : param_name        # Name of the bone group name parameter
-            ,'layer_param'    : layer_param_name    # Name of the bone layers parameter
-            ,'is_advanced'    : is_advanced
+            'name'              : ui_name
+            ,'preset'           : preset                 # Bone Group color preset to use in case the bone group doesn't already exist.
+            ,'color_param'      : color_param_name       # Name of the bone color parameter
+            ,'collection_param' : collection_param_name  # Name of the bone collection parameter
+            ,'is_advanced'      : is_advanced
         }
+        print("Defined bone set: ", ui_name)
         return ui_name
 
 ##########################
@@ -441,7 +441,7 @@ class UIBoneSet(PropertyGroup):
     # are not yet ready at that time. (They only become "real" after registration is complete.)
     bone: StringProperty()
     param_name: StringProperty(description="Name of the Rigify Parameter holding the bone group name")
-    layer_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
+    collection_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
 
 class CLOUDRIG_UL_bone_sets(UIList):
     def draw_filter(self, context, layout):
@@ -486,7 +486,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
     def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
         ui_bone_set = item
         pretty_name = ui_bone_set.pretty_name
-        # param_layers = getattr(pb.cloudrig_component.params, ui_bone_set.layer_param)
+        # param_layers = getattr(pb.cloudrig_component.params, ui_bone_set.collection_param)
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             row = layout.row()
             row.label(text=pretty_name)

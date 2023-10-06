@@ -792,7 +792,7 @@ class CloudRig_Generator:
             if hasattr(component, 'load_bone_infos'):
                 bone_infos.update(component.load_bone_infos(metarig))
 
-        for bone_info in bone_infos:
+        for bone_name, bone_info in bone_infos.items():
             ebone = metarig.data.edit_bones.get(bone_info.name)
             if ebone.parent:
                 parent_bone_info = bone_infos.get(ebone.parent.name)

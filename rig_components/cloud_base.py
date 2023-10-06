@@ -1,5 +1,6 @@
 # Typing
 import bpy
+from bpy.types import Object
 from typing import List, Tuple, Dict
 
 # Component_Base parent classes
@@ -31,6 +32,24 @@ class DEFAULT_LAYERS:
 
 	FACE_TWEAK = 20
 
+def get_bone_set_definitions() -> Dict:
+	# TODO 4.0 This is terrible and dumb. Find a good way to register bone sets in RNA.
+	bone_set_definitions = {
+		'deform_bones' : {
+			'default_layer' : DEFAULT_LAYERS.DEF,
+			'is_advanced' : True
+		},
+		'mechanism_bones' : {
+			'default_layer' : DEFAULT_LAYERS.MCH,
+			'is_advanced' : True
+		},
+		'original_bones' : {
+			'default_layer' : DEFAULT_LAYERS.ORG,
+			'is_advanced' : True
+		}
+	}
+	return bone_set_definitions
+
 class Component_Base(
 					LoggerMixin,
 					CloudParentingMixin,
@@ -56,7 +75,7 @@ class Component_Base(
 	def __init__(self, generator: 'CloudRig_Generator', bone_name: str):
 		self.generator = generator
 
-		# self.obj = generator.obj
+		self.target_rig = generator.target_rig
 		self.metarig = generator.metarig
 		self.base_bone_name = bone_name
 
@@ -68,22 +87,6 @@ class Component_Base(
 
 		self.initialize()	# TODO 4.0: __init__ and initialize() should probably be merged.
 
-	def get_bone_set_definitions(self) -> Dict:
-		bone_set_definitions = {
-			'deform_bones' : {
-				'default_layer' : DEFAULT_LAYERS.DEF,
-				'is_advanced' : True
-			},
-			'mechanism_bones' : {
-				'default_layer' : DEFAULT_LAYERS.MCH,
-				'is_advanced' : True
-			},
-			'original_bones' : {
-				'default_layer' : DEFAULT_LAYERS.ORG,
-				'is_advanced' : True
-			}
-		}
-		return bone_set_definitions
 	bone_set_definitions = get_bone_set_definitions()
 
 	def initialize(self):
@@ -124,7 +127,7 @@ class Component_Base(
 		self.bone_sets = dict()
 		self.init_bone_sets()
 
-		# Quick access to the most important bone sets
+		# Quick access to the basic important bone sets
 		self.bones_org = self.bone_sets['Original Bones']
 		self.bones_def = self.bone_sets['Deform Bones']
 		self.bones_mch = self.bone_sets['Mechanism Bones']
@@ -164,7 +167,7 @@ class Component_Base(
 		bi = self.root_bone
 		bi.relink()
 
-	def load_bone_infos(self, metarig):
+	def load_bone_infos(self, metarig: Object):
 		"""Read ORG bones into BoneInfo instances in self.bones_org
 		which will be turned into real bones by the CloudRig generator.
 
@@ -172,16 +175,16 @@ class Component_Base(
 		TODO RNA: Once component types are entirely on rna, they can access the metarig via self.id_data.
 		"""
 
-		assert metarig.mode == 'EDIT_ARMATURE'
+		assert metarig.type=='ARMATURE' and metarig.mode == 'EDIT', "Metarig must be an edit mode armature."
 
-		bone_infos: Dict[str, BoneInfo] = []
+		bone_infos: Dict[str, BoneInfo] = {}
 		for pbone in self.get_component_bone_chain():
-			eb = metarig.data.edit_bones.get(pbone.name)
-			eb.use_connect = False
+			ebone = metarig.data.edit_bones.get(pbone.name)
+			ebone.use_connect = False
 
 			if self.naming.has_trailing_zeroes(pbone):
 				self.add_log("Trailing zeroes"
-					,trouble_bone = eb.name
+					,trouble_bone = ebone.name
 					,description = "Trailing zeroes in the metarig can cause bone name clashes and should be avoided."
 					,operator = 'object.cloudrig_rename_bone'
 					,op_kwargs = {'old_name' : pbone.name}
@@ -201,11 +204,13 @@ class Component_Base(
 					,op_kwargs = {'old_name' : pbone.name}
 				)
 
-			# TODO: While it currently shouldn't be possible for a single bone to belong to multiple components, if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already exists on any other component of this metarig.
-			bone_info = self.bones_org.new_from_real(self.obj, eb)
+			# TODO: While it currently shouldn't be possible for a single bone to belong to multiple components, 
+			# if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already 
+			# exists on any other component of this metarig.
+			bone_info = self.bones_org.new_from_real(self.metarig, ebone)
 			# org_bi.layers = self.bones_org.layers[:] TODO 4.0 collections
-			bone_info.bbone_width = eb.bbone_x / self.scale
-			bone_infos[bone_info.name] = org_bi
+			bone_info.bbone_width = ebone.bbone_x / self.scale
+			bone_infos[bone_info.name] = bone_info
 
 		return bone_infos
 
@@ -266,16 +271,3 @@ class Component_Base(
 			,items		 = items
 			,default	 = default
 		)
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		cls.add_bone_set_parameters(params)
-
-	@classmethod
-	def parameters_ui(cls, layout, params):
-		"""This function from the Rigify API is not used, because we
-		organize all CloudRig rig type parameters into sub-panels,
-		registered in ui_rig_types.py.
-		"""
-		pass

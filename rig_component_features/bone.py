@@ -33,7 +33,7 @@ edit_bone_properties = {
 }
 
 bone_properties = {
-	'layers' : [l==0 for l in range(32)]	# 32 bools where only the first one is True.
+	'collections' : []
 	,'hide_select' : False
 	,'hide' : False
 
@@ -66,9 +66,7 @@ bone_properties = {
 }
 
 pose_bone_properties = {
-	'bone_group' : ""		# This should be str, NOT a bpy.types.BoneGroup!
-
-	,'custom_shape' : None	# bpy.types.Object
+	'custom_shape' : None	# bpy.types.Object
 	,'custom_shape_transform' : None # BoneInfo
 	,'custom_shape_scale_xyz' : Vector((1.0, 1.0, 1.0))
 	,'custom_shape_translation' : Vector((0.0, 0.0, 0.0))
@@ -132,6 +130,9 @@ class BoneInfo:
 		self.drivers = []				# List of dictionaries that will be passed to Rigify's make_driver().
 		self.drivers_data = []			# Same but for data bone properties.
 
+
+		self.color_palette_base = 'DEFAULT'
+		self.color_palette_pose = 'DEFAULT'
 		self.constraint_infos = []		# List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
 
 		self._name = name
