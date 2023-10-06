@@ -66,7 +66,9 @@ class Component_Base(
 		self.parent_component = None
 		self.child_components = []
 
-	def get_bone_set_definitions() -> Dict:
+		self.initialize()	# TODO 4.0: __init__ and initialize() should probably be merged.
+
+	def get_bone_set_definitions(self) -> Dict:
 		bone_set_definitions = {
 			'deform_bones' : {
 				'default_layer' : DEFAULT_LAYERS.DEF,
@@ -84,23 +86,11 @@ class Component_Base(
 		return bone_set_definitions
 	bone_set_definitions = get_bone_set_definitions()
 
-	def find_org_bones(self, pose_bone):
-		"""Populate self.bones.org.main."""
-
-		chain = self.get_rigify_chain(pose_bone)
-		from rigify.utils.bones import BoneDict
-		return BoneDict(main=[b.name for b in chain])
-
 	def initialize(self):
 		"""First Rigify stage, called by the Generator.
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
 		"""
-		super().initialize()
-
-		from .. import cloud_generator
-		assert type(self.generator) == cloud_generator.CloudRig_Generator, "CloudRig rig type initialized without CloudRig_Generator. This is a bug!"
-
-		self.bone_count = len(self.bones.org.main)
+		self.bone_count = len(self.get_component_bone_chain())
 
 		### Quick access to the generator's log manager
 		self.logger = self.generator.logger
@@ -111,7 +101,7 @@ class Component_Base(
 		# Determine Suffix/Prefix
 		self.side_suffix = ""
 		self.side_prefix = ""
-		is_left = self.naming.side_is_left(self.base_bone)
+		is_left = self.naming.side_is_left(self.base_bone_name)
 		if is_left:
 			self.side_suffix = "L"
 			self.side_prefix = "Left"
@@ -142,7 +132,7 @@ class Component_Base(
 	@property
 	def meta_base_bone(self):
 		"""Return pose bone in the metarig that has this rig type assigned."""
-		return self.meta_bone(self.base_bone.replace("ORG-", ""))
+		return self.meta_bone(self.base_bone_name.replace("ORG-", ""))
 
 	def force_parameters(self, meta_base_bone, params):
 		"""Allows the class to force certain parameter values for its instances."""
@@ -150,7 +140,7 @@ class Component_Base(
 		for param in clas.forced_params.keys():
 			forced_value = clas.forced_params[param]
 			if forced_value != 'NOFORCE':
-				meta_base_bone.rigify_parameters[param] = forced_value
+				meta_base_bone.cloudrig_component.params[param] = forced_value
 				setattr(params, param, forced_value)
 
 	def prepare_bones(self):
@@ -174,49 +164,50 @@ class Component_Base(
 		bi = self.root_bone
 		bi.relink()
 
-	def load_bone_infos(self):
+	def load_bone_infos(self, metarig):
 		"""Read ORG bones into BoneInfo instances in self.bones_org
 		which will be turned into real bones by the CloudRig generator.
+
+		This function requires the metarig in edit mode.
+		TODO RNA: Once component types are entirely on rna, they can access the metarig via self.id_data.
 		"""
-		bone_list: List[Tuple[bpy.types.EditBone, BoneInfo]] = []
-		for bn in self.bones.org.main:
-			eb = self.get_bone(bn)
+
+		assert metarig.mode == 'EDIT_ARMATURE'
+
+		bone_infos: Dict[str, BoneInfo] = []
+		for pbone in self.get_component_bone_chain():
+			eb = metarig.data.edit_bones.get(pbone.name)
 			eb.use_connect = False
 
-			meta_org_name = eb.name[4:]
-			meta_org = self.meta_bone(meta_org_name)
-
-			if self.naming.has_trailing_zeroes(meta_org):
+			if self.naming.has_trailing_zeroes(pbone):
 				self.add_log("Trailing zeroes"
 					,trouble_bone = eb.name
 					,description = "Trailing zeroes in the metarig can cause bone name clashes and should be avoided."
 					,operator = 'object.cloudrig_rename_bone'
-					,op_kwargs = {'old_name' : meta_org_name}
+					,op_kwargs = {'old_name' : pbone.name}
 				)
-			if self.naming.has_wrong_separator(meta_org):
+			if self.naming.has_wrong_separator(pbone):
 				self.raise_metarig_error("Wrong separator"
-					,note = meta_org_name
-					,description = f"{meta_org_name}: CloudRig requires the side indicator in the bone's name to be separated by a period(`.`)."
+					,note = pbone.name
+					,description = f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be separated by a period(`.`)."
 					,operator = 'object.cloudrig_rename_bone'
-					,op_kwargs = {'old_name' : meta_org_name}
+					,op_kwargs = {'old_name' : pbone.name}
 				)
-			if not self.naming.side_is_suffix(meta_org):
+			if not self.naming.side_is_suffix(pbone):
 				self.raise_metarig_error("Side indicator must be suffix"
-					,note = meta_org_name
-					,description = f"{meta_org_name}: CloudRig requires the side indicator in the bone's name to be at the end of the bone name."
+					,note = pbone.name
+					,description = f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be at the end of the bone name."
 					,operator = 'object.cloudrig_rename_bone'
-					,op_kwargs = {'old_name' : meta_org_name}
+					,op_kwargs = {'old_name' : pbone.name}
 				)
 
-			org_bi = self.bones_org.new_from_real(self.obj, eb)
-			org_bi.layers = self.bones_org.layers[:]
-			org_bi.bbone_width = eb.bbone_x / self.scale
-			bone_list.append((eb, org_bi))
+			# TODO: While it currently shouldn't be possible for a single bone to belong to multiple components, if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already exists on any other component of this metarig.
+			bone_info = self.bones_org.new_from_real(self.obj, eb)
+			# org_bi.layers = self.bones_org.layers[:] TODO 4.0 collections
+			bone_info.bbone_width = eb.bbone_x / self.scale
+			bone_infos[bone_info.name] = org_bi
 
-		for eb, org_bi in bone_list:
-			if eb.parent:
-				parent = self.generator.find_bone_info(eb.parent.name)
-				org_bi.parent = parent
+		return bone_infos
 
 	##############################
 	# Parameters

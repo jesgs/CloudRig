@@ -19,7 +19,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		"""Gather and validate data about the rig."""
 		super().initialize()
 
-		self.limb_name = self.naming.slice_name(self.base_bone)[1]
+		self.limb_name = self.naming.slice_name(self.base_bone_name)[1]
 		self.limb_ui_name = self.limb_name
 		if self.side_prefix != "":
 			self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
@@ -76,7 +76,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
 	def make_root_bone(self):
 		# Socket/Root bone to parent IK and FK to.
-		root_name = self.base_bone.replace("ORG", "ROOT")
+		root_name = self.base_bone_name.replace("ORG", "ROOT")
 		org_bone = self.bones_org[0]
 		root_bone = self.bone_sets['FK Controls Extra'].new(
 			name 			= root_name
@@ -110,7 +110,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 				,bone_set	 = self.bone_sets['FK Helpers']
 				,category	 = self.limb_name
 				,parent_bone = self.root_bone
-				,hng_name	 = self.base_bone.replace("ORG", "FK-HNG")
+				,hng_name	 = self.base_bone_name.replace("ORG", "FK-HNG")
 				,prop_bone	 = self.properties_bone
 				,prop_name	 = self.fk_hinge_name
 				,limb_name	 = self.limb_ui_name

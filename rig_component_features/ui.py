@@ -57,6 +57,7 @@ def is_advanced_mode(context):
 	return get_addon_prefs(context).advanced_mode
 
 def is_cloud_metarig(rig: Object):
+	# TODO: This is duplicated in cloudrig.py. Should only exist there.
 	if not rig: return False
 	if not rig.type == 'ARMATURE':
 		return False

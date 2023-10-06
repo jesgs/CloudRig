@@ -19,7 +19,7 @@ class Component_CopyBone(Component_Base):
 	def initialize(self):
 		super().initialize()
 
-		self.orgless_name = self.base_bone.replace("ORG-", "")
+		self.orgless_name = self.base_bone_name.replace("ORG-", "")
 		self.params.custom_props.props_storage_bone = self.orgless_name
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
@@ -48,7 +48,7 @@ class Component_CopyBone(Component_Base):
 
 		if bi.rotation_mode == 'QUATERNION':
 			self.add_log("Quaternion rotation"
-				,trouble_bone = self.base_bone
+				,trouble_bone = self.base_bone_name
 				,description = f'"{meta_bone.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!'
 				,icon = 'GIZMO'
 				,operator = 'pose.cloudrig_troubleshoot_rotationmode'

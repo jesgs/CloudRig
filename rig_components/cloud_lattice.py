@@ -63,7 +63,7 @@ class Component_Lattice(Component_Base):
 		hook_pb = self.obj.pose.bones.get(self.hook_bone.name)
 		lattice_ob = self.params.lattice.lattice
 		if not lattice_ob or self.params.lattice.regenerate:
-			self.meta_base_bone.rigify_parameters.CR_lattice_lattice = self.create_lattice(root_pb, hook_pb)
+			self.meta_base_bone.cloudrig_component.params.lattice = self.create_lattice(root_pb, hook_pb)
 		elif lattice_ob:
 			# Reset Hook inverse matrices
 			for m in lattice_ob.modifiers:
@@ -116,14 +116,14 @@ class Component_Lattice(Component_Base):
 		"""Test if the target lattice object is already being used by
 		another cloud_lattice rig."""
 
-		for rig in self.generator.rig_list:
-			if isinstance(rig, type(self)):
-				if rig == self:
+		for bone_name, component in self.generator.component_map.items():
+			if isinstance(component, type(self)):
+				if component == self:
 					return
-				if rig.params.CR_lattice_lattice == self.params.lattice.lattice and self.params.lattice.lattice != None:
+				if component.cloudrig_component.params.lattice.lattice == self.params.lattice.lattice and self.params.lattice.lattice != None:
 					self.raise_metarig_error("Lattice shared by multiple components",
 						operator = 'object.cloudrig_clear_pointer_param',
-						op_kwargs = {'bone_name': self.meta_base_bone.name, 'param_name': 'CR_lattice_lattice'}
+						op_kwargs = {'bone_name': self.meta_base_bone.name, 'param_name': 'lattice.lattice'}
 					)
 
 	##############################

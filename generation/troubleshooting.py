@@ -879,11 +879,13 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
 
 	def execute(self, context):
 		metarig = context.object
-		bone = metarig.pose.bones.get(self.bone_name)
-		old_ref = getattr(bone.rigify_parameters, self.param_name)
-		setattr(bone.rigify_parameters, self.param_name, None)
+		pbone = metarig.pose.bones.get(self.bone_name)
+		param_split = self.param_name.split(".")
+		param_category = getattr(pbone.cloudrig_component.params, param_split[0])
+		old_ref = getattr(pbone.cloudrig_component.params, param_split[1])
+		setattr(param_category, param_split[1], None)
 
-		self.report({'INFO'}, f'Cleared reference to "{old_ref.name}" on "{bone.name}".')
+		self.report({'INFO'}, f'Cleared reference to "{old_ref.name}" on "{pbone.name}".')
 		remove_active_log(metarig)
 		return { 'FINISHED' }
 

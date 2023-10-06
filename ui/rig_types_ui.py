@@ -60,8 +60,8 @@ class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
 	def draw_header(self, context):
 		layout = self.layout
 		pb = context.active_pose_bone
-		params = pb.rigify_parameters
-		layout.prop(params, 'CR_fk_chain_test_animation_generate', text="")
+		params = pb.cloudrig_component.params
+		layout.prop(params.fk_chain, 'test_animation_generate', text="")
 
 class CLOUDRIG_PT_params_bendy(CloudParamSubPanel):
 	bl_label = "Bendy Bones"

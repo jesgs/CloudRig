@@ -63,7 +63,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 		curve_ob = self.params.CR_curve_target
 
 		curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
-		curve_name += "_" + (self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", ""))
+		curve_name += "_" + (self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone_name.replace("ORG-", ""))
 
 		if curve_ob:
 			# Remove all splines, then add a new one.
@@ -88,7 +88,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 		length_unit = sum_bone_length / (self.num_controls-1)
 		handle_length = length_unit * self.params.spline_ik.handle_length
 
-		self.meta_base_bone.rigify_parameters.CR_curve_target = self.params.CR_curve_target = curve_ob
+		self.params.CR_curve_target = curve_ob
 
 		# Add the necessary number of curve points to the spline
 		points = spline.bezier_points
@@ -116,7 +116,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 		for org_bone in self.bones_org:
 			for i in range(0, segments):
 				## Create Deform bones
-				def_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone.replace("ORG-", "")
+				def_name = self.params.CR_curve_hook_name if self.params.CR_curve_hook_name!="" else self.base_bone_name.replace("ORG-", "")
 				prefixes, base, suffixes = self.naming.slice_name(def_name)
 				suffixes.insert(0, str(count_def_bone).zfill(3))
 				prefixes.insert(0, "DEF")

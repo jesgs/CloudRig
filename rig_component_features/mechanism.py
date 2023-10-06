@@ -15,13 +15,14 @@ class CloudMechanismMixin:
 		return self.generator.find_bone_info(name)
 
 	@staticmethod
-	def find_rig_of_bone(pose_bone):
-		return find_rig_of_bone(pose_bone)
+	def find_chain_of_pbone(pose_bone):
+		return find_chain_of_pbone(pose_bone)
 
-	@classmethod
-	def get_rigify_chain(cls, pose_bone):
-		connected = cls.chain_must_be_connected
-		return get_rigify_chain(pose_bone, connected)
+	def get_component_bone_chain(self):
+		# TODO 4.0: This could be moved to the RigComponent RNA class.
+		connected = type(self).chain_must_be_connected
+		pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
+		return get_component_bone_chain(pose_bone, connected)
 
 	@staticmethod
 	def get_object_scalar(obj):
@@ -87,15 +88,15 @@ def relink_driver(metarig, rig, driver_info):
 				if t['id'] == None or t['id'] == metarig:
 					t['id'] = rig
 
-def find_rig_of_bone(pose_bone) -> List[bpy.types.PoseBone]:
-	if pose_bone.rigify_type != "":
-		return get_rigify_chain(pose_bone)
-	if pose_bone.parent==None:
+def find_chain_of_pbone(pose_bone) -> List[bpy.types.PoseBone]:
+	if pose_bone.cloudrig_component.component_type:
+		return get_component_bone_chain(pose_bone)
+	if not pose_bone:
 		return None
 
-	return find_rig_of_bone(pose_bone.parent)
+	return find_chain_of_pbone(pose_bone.parent)
 
-def get_rigify_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
+def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 	"""Find the chain of bones constituting a rig component that this pose bone belongs to."""
 
 	# We start building a chain with the current bone, prepending bones as we go
@@ -106,7 +107,7 @@ def get_rigify_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 	found = False
 	while cur_pb:
 		chain.insert(0, cur_pb)
-		if cur_pb.rigify_type!="":
+		if cur_pb.cloudrig_component.component_type != "":
 			found = True
 			break
 		cur_pb = cur_pb.parent
@@ -121,7 +122,7 @@ def get_rigify_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 	while cur_pb and len(cur_pb.children)>0:
 		next_bone = None
 		for c in cur_pb.children:
-			if c.rigify_type=="":
+			if c.cloudrig_component.component_type == "":
 				if connected and not c.bone.use_connect:
 					continue
 				if next_bone != None:

@@ -19,7 +19,7 @@ class Component_TweakBone(Component_Base):
 
 	def create_bone_infos(self):
 		super().create_bone_infos()
-		orgless_name = self.base_bone.replace("ORG-", "", 1)
+		orgless_name = self.base_bone_name.replace("ORG-", "", 1)
 		meta_bone = self.meta_bone(orgless_name)
 
 		self.tweak_bone = tweak_bone = self.generator.find_bone_info(meta_bone.name)

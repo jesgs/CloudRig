@@ -62,7 +62,7 @@ class Component_Curve_Hooked(Component_Base):
 	def make_curve_root_ctrl(self):
 		org_bone = self.bones_org[0]
 		self.root_bone = self.bone_sets['Curve Root'].new(
-			name						= self.base_bone.replace("ORG", "ROOT")
+			name						= self.base_bone_name.replace("ORG", "ROOT")
 			,source						= org_bone
 			,use_custom_shape_bone_size = True
 		)
@@ -155,7 +155,7 @@ class Component_Curve_Hooked(Component_Base):
 		if self.params.curve.hook_name:
 			hook_name = self.params.curve.hook_name
 		else:
-			hook_name = self.base_bone.replace("ORG-", "")
+			hook_name = self.base_bone_name.replace("ORG-", "")
 
 		spline_part = ""
 		if len(self.params.curve.target.data.splines) > 1:

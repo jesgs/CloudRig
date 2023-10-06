@@ -452,7 +452,7 @@ class Component_Limb(Component_Chain_IKFK):
 	@classmethod
 	def draw_overlay(cls, context, buffer) -> list((Vector, Vector)):
 		active_pb = context.active_pose_bone
-		rig_chain = cls.find_rig_of_bone(active_pb)
+		rig_chain = cls.find_chain_of_pbone(active_pb)
 
 		pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(rig_chain[0], rig_chain[1])
 

@@ -15,7 +15,7 @@ class CloudShoulderRig(Component_Chain_FK):
 		super().initialize()
 		"""Gather and validate data about the rig."""
 		if self.bone_count>1:
-			print(f"""Shoulder rig on {self.base_bone} has a chain of more than a single bone.
+			print(f"""Shoulder rig on {self.base_bone_name} has a chain of more than a single bone.
 				   The rig only requires one bone, the rest will be unaffected!""")
 
 	def create_bone_infos(self):
@@ -29,7 +29,7 @@ class CloudShoulderRig(Component_Chain_FK):
 
 		control.custom_shape_rotation_euler.y = shoulder_rot
 
-		parent = self.get_bone(self.base_bone).parent
+		parent = self.get_bone(self.base_bone_name).parent
 		if parent:
 			control.parent = parent.name
 

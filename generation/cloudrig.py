@@ -24,7 +24,7 @@ def is_cloudrig_ui_enabled(obj):
 	return obj.type=='ARMATURE' and \
 			('enable_cloudrig_ui' in obj.data and obj.data['enable_cloudrig_ui'])
 
-def get_rigs():
+def get_all_rigs_with_ui_enabled():
 	""" Find all cloudrig armature objects in the file. """
 	return [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloudrig_ui_enabled(o)]
 
@@ -34,15 +34,14 @@ def is_active_cloudrig(context):
 	if rig and is_cloudrig_ui_enabled(rig):
 		return rig
 
+def is_cloud_metarig(rig: Object):
+	if not rig: return False
+	if not rig.type == 'ARMATURE':
+		return False
+	return rig.data.cloudrig.enabled
+
 def is_active_cloud_metarig(context):
-	""" If the active object is a cloud metarig, return it. """
-	rig = context.pose_object or context.active_object
-	if rig and rig.type=='ARMATURE' and not is_cloudrig_ui_enabled(rig):
-		for pb in rig.pose.bones:
-			if not hasattr(pb, 'rigify_type'):
-				return None
-			if 'cloud' in pb.rigify_type:
-				return rig
+	return is_cloud_metarig(context.object)
 
 #######################################
 ###### Keyframe baking framework ######
@@ -1016,7 +1015,7 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
 	def get_rig(self):
 		""" Find the armature object that is using this instance (self). """
 
-		for rig in get_rigs():
+		for rig in get_all_rigs_with_ui_enabled():
 			if rig.cloud_rig == self:
 				return rig
 

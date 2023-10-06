@@ -291,6 +291,7 @@ class BoneSetMixin:
         """Instantiate all bone sets based on the class's bone_set_defs dictionary."""
         bone_set_defs = type(self).bone_set_defs
         for bone_set_name in bone_set_defs.keys():
+            print("INIT BONE SET: ", bone_set_name)
             self.bone_sets[bone_set_name] = self.init_bone_set(bone_set_name)
 
     ##############################
@@ -485,7 +486,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
     def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
         ui_bone_set = item
         pretty_name = ui_bone_set.pretty_name
-        # param_layers = getattr(pb.rigify_parameters, ui_bone_set.layer_param)
+        # param_layers = getattr(pb.cloudrig_component.params, ui_bone_set.layer_param)
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             row = layout.row()
             row.label(text=pretty_name)

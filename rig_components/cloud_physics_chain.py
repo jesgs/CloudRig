@@ -50,7 +50,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 		if phys_obj and not self.params.physics_chain.force_regen:
 			return phys_obj
 
-		cloth_mesh = bpy.data.meshes.new(name=self.phys_name(self.base_bone) )
+		cloth_mesh = bpy.data.meshes.new(name=self.phys_name(self.base_bone_name) )
 		if not phys_obj:
 			# Create physics object.
 			phys_obj = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
@@ -129,7 +129,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 		context.view_layer.objects.active = self.obj
 		bpy.ops.object.mode_set(mode='EDIT')
 		self.params.physics_chain.phys_obj = phys_obj
-		self.meta_base_bone.rigify_parameters.CR_physics_chain_object = phys_obj
 		return phys_obj
 
 	def phys_name(self, thing):

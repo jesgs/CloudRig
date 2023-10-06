@@ -1,4 +1,5 @@
 import bpy, sys, os, traceback, time
+from collections import OrderedDict
 
 from bpy.props import BoolProperty, PointerProperty, CollectionProperty, IntProperty
 from bpy.types import Object, PropertyGroup
@@ -92,37 +93,7 @@ class GeneratorProperties(PropertyGroup):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
 
-class CloudRig_Generator_Base:
-    def instantiate_rig_components(self):
-        """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
-
-        self.metarig.data.cloudrig.refresh_generation_order(self.metarig)
-
-        component_bones_ordered = [pb for pb in sorted(self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order) if pb.cloudrig_component.component_type]
-
-        comp_map = {}
-        for pb in component_bones_ordered:
-            comp_instance = pb.cloudrig_component.instantiate(generator=self)
-            if not comp_instance:
-                self.logger.log(
-                    "Invalid Component Type",
-                    note=pb.cloudrig_component.component_type,
-                    description="This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."
-                )
-                continue
-            comp_map[pb.name] = comp_instance
-
-            parent_component = pb.cloudrig_component.parent
-            if parent_component:
-                parent_instance = comp_map.get(parent_component.owner_bone_name)
-                assert parent_instance, "Error: Parent should've been instantiated already!"
-
-                # Store parent/child relations on the instances.
-                comp_instance.parent_component = parent_instance
-                parent_instance.child_components.append(comp_instance)
-
-
-class CloudRig_Generator(CloudRig_Generator_Base):
+class CloudRig_Generator:
     """
     This class is instantiated by the Generate operator. 
     It instantiates the rig components and calls their rig generation functions.
@@ -171,10 +142,11 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         metarig = self.metarig
+        print("Begin Generating CloudRig from metarig: " + metarig.name)
+
         metarig.data.name = "Data_" + self.metarig.name
         self.params.version = cloud_metarig_version
-
-        print("Begin Generating CloudRig from metarig: " + metarig.name)
+        self.driver_map = self.map_pbones_to_drivers(self.metarig)
 
         # If the previous generation failed, delete the failed rig.
         if 'failed_rig' in metarig and metarig['failed_rig']:
@@ -183,40 +155,25 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         # Prepare the target rig.
         self.target_rig = self.create_rig_object(context, metarig)
-
-        self.instantiate_rig_components()
-
         self.logger.rig = self.target_rig
         self.logger.metarig = metarig
-
         self.defaults['rig'] = self.target_rig
 
         # Create Widget Collection
+        # TODO: It could be argued that this should only happen when the first widget is created.
         self.ensure_widget_collection(context)
 
-        return
-        self.driver_map = self.map_drivers()
-
-        self.script = None
-
-        self.action_layers = ActionLayerBuilder(self)
+        # self.action_layers = ActionLayerBuilder(self) TODO 4.0 this might be a problem... Not sure how we can drag along the least amount of Rigify spaghetti while still making use of the Action system code.
 
         #------------------------------------------
-        self.instantiate_rig_tree()
-        self.cloudrig_reorder_rig_components(self.rig_list)
-
-        #------------------------------------------
-        self.invoke_initialize()
-        t.tick("Initialize components: ")
+        self.component_map = self.instantiate_rig_components()
 
         #------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
         self.root_bone = None
-        self.create_root_bones()
-
-        #------------------------------------------
-        self.invoke_load_bone_infos()
-        t.tick("Load BoneInfos: ")
+        self.create_root_bone_infos()
+        self.load_bone_infos(self.component_map, self.metarig)
+        return
 
         #------------------------------------------
         self.invoke_prepare_bones()
@@ -306,9 +263,40 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         t.tick("Cleanup & Troubleshoot: ")
         t.total()
 
+    def instantiate_rig_components(self) -> Dict[str, "Component_Base"]:
+        """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
+
+        self.metarig.data.cloudrig.refresh_generation_order(self.metarig)
+
+        component_bones_ordered = [pb for pb in sorted(self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order) if pb.cloudrig_component.component_type]
+
+        comp_map = OrderedDict()
+        for pb in component_bones_ordered:
+            comp_instance = pb.cloudrig_component.instantiate(generator=self)
+            if not comp_instance:
+                self.logger.log(
+                    "Invalid Component Type",
+                    note=pb.cloudrig_component.component_type,
+                    description="This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."
+                )
+                continue
+            comp_map[pb.name] = comp_instance
+
+            parent_component = pb.cloudrig_component.parent
+            if parent_component:
+                parent_instance = comp_map.get(parent_component.owner_bone_name)
+                assert parent_instance, "Error: Parent should've been instantiated already!"
+
+                # Store parent/child relations on the instances.
+                comp_instance.parent_component = parent_instance
+                parent_instance.child_components.append(comp_instance)
+        
+        return comp_map
+
     def cloudrig_reorder_rig_components(self, rig_list):
         """Some rig types need special treatment in regards to where they are in
         the rig generation order."""
+        # TODO 4.0: This should be handled by the Rig Component List UI, parenting, and move up/down operators...
         from ..rig_components.cloud_tweak import Component_TweakBone
         from ..rig_components.cloud_chain_anchor import CloudChainAnchorRig
         from ..rig_components.cloud_face_chain import CloudFaceChainRig
@@ -327,10 +315,10 @@ class CloudRig_Generator(CloudRig_Generator_Base):
             if isinstance(rig, CloudJawRig):
                 for param_name in {'CR_jaw_lower_face_bone', 'CR_jaw_squash_bone', 'CR_jaw_chin_bone', 'CR_jaw_mouth_bone', 'CR_jaw_teeth_follow', 'CR_jaw_teeth_upper_bone', 'CR_jaw_teeth_lower_bone'}:
                     bone_name = getattr(rig.params, param_name)
-                    dependency_rig = self.get_rig_by_name(bone_name)
-                    if dependency_rig:
-                        rig_list.remove(dependency_rig)
-                        rig_list.insert(i-1, dependency_rig)
+                    dependency_component = self.component_map.get(bone_name)
+                    if dependency_component:
+                        rig_list.remove(dependency_component)
+                        rig_list.insert(i-1, dependency_component)
 
         for rig in rig_list[:]:
             if isinstance(rig, CloudChainAnchorRig):
@@ -339,17 +327,16 @@ class CloudRig_Generator(CloudRig_Generator_Base):
                 rig_list.insert(first_face_idx, rig)
 
     def find_bone_info(self, name):
-        for rig in self.rig_list:
-            if hasattr(rig, "bone_sets"):
-                for bs in list(rig.bone_sets.values()):
-                    exists = bs.find(name)
+        for _bone_name, component in self.component_map.items():
+            if hasattr(component, "bone_sets"):
+                for bone_set in list(component.bone_sets.values()):
+                    exists = bone_set.find(name)
                     if exists:
                         return exists
 
         # If the name wasn't found in any rig component's bone sets,
         # maybe it's in the root set that's owned by the Generator.
         return self.root_set.find(name)
-
 
     def create_rig_object(self, context, metarig) -> Object:
         """Create a new empty Armature object that will get populated throughout
@@ -389,7 +376,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         return target_rig
 
-    def create_root_bones(self):
+    def create_root_bone_infos(self):
         # Bone Set used for the Root, default Properties, and Action Properties bones.
         self.root_set = BoneSet(self
             ,ui_name = 'Root'
@@ -444,7 +431,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
     def ensure_widget(self, widget_name):
         wgt = cloud_widgets.ensure_widget(
             widget_name
-            ,overwrite = self.params.rigify_force_widget_update
+            ,overwrite = False
             ,collection = self.params.widget_collection
         )
         if not wgt:
@@ -482,26 +469,22 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         return test_action
 
-    def get_symmetry_rig(self, rig: BaseRig) -> BaseRig:
+    def get_symmetry_rig_component(self, rig: "Component_Base") -> "Component_Base":
         """Find another rig in the generator with the opposite name for rig.base_bone."""
         flipped_name = self.naming.flipped_name(rig.base_bone)
         if flipped_name == rig.base_bone: return
 
-        for other_rig in self.rig_list:
-            if other_rig.base_bone == flipped_name:
-                return other_rig
+        for bone_name, other_component in self.component_map.items():
+            if bone_name == flipped_name:
+                return other_component
 
-    def get_rig_children(self, rig: BaseRig):
+    def get_rig_component_children(self, component: "Component_Base"):
+        # TODO 4.0: Components should be aware of their children, in fact I think they already are, so this is superfluous.
         children = []
-        for r in self.rig_list:
-            if r.rigify_parent == rig:
-                children.append(r)
+        for _bone_name, component in self.component_map.items():
+            if component.parent_component == component:
+                children.append(component)
         return children
-
-    def get_rig_by_name(self, rig_name: str) -> BaseRig:
-        for r in self.rig_list:
-            if r.base_bone.replace("ORG-", "") == rig_name:
-                return r
 
     def create_test_animation(self):
         """Generate deformation test animation.
@@ -533,7 +516,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         def add_rig_hierarchy_to_animation_order(rig):
             if hasattr(type(rig), 'has_test_animation') and type(rig).has_test_animation:
                 rigs_anim_order.append(rig)
-            for child_rig in self.get_rig_children(rig):
+            for child_rig in self.get_rig_component_children(rig):
                 add_rig_hierarchy_to_animation_order(child_rig)
 
         for root_rig in self.root_rigs:
@@ -541,12 +524,12 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         start_frame = 1
         for rig in rigs_anim_order:
-            symm_rig = self.get_symmetry_rig(rig)
+            symm_component = self.get_symmetry_rig_component(rig)
             symm_new_start_frame = 1
             new_start_frame = rig.add_test_animation(action, start_frame)
-            if symm_rig:
-                symm_new_start_frame = symm_rig.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
-                rigs_anim_order.remove(symm_rig)
+            if symm_component:
+                symm_new_start_frame = symm_component.add_test_animation(action, start_frame, flip_xyz=[False, True, True])
+                rigs_anim_order.remove(symm_component)
             start_frame = max(new_start_frame, symm_new_start_frame)
 
     def invoke_generate_bones(self):
@@ -677,19 +660,21 @@ class CloudRig_Generator(CloudRig_Generator_Base):
                 gizmo_props.color = pb.bone_group.colors.normal[:]
                 gizmo_props.color_highlight = pb.bone_group.colors.active[:]
 
-    def map_drivers(self) -> Dict[str, Tuple[str, int]]:
+    @staticmethod
+    def map_pbones_to_drivers(armature_ob) -> Dict[str, Tuple[str, int]]:
         """Create a dictionary matching bone names to full data paths of drivers
         that belong to those bones. This is to speed up loading drivers into BoneInfos."""
         driver_map = {}
-        if not self.target_rig.animation_data:
+        if not armature_ob.animation_data:
             return
-        for fc in self.target_rig.animation_data.drivers:
+        for fc in armature_ob.animation_data.drivers:
             data_path = fc.data_path
-            if "pose.bones" in data_path:
-                bone_name = data_path.split('pose.bones["')[1].split('"]')[0]
-                if bone_name not in driver_map:
-                    driver_map[bone_name] = []
-                driver_map[bone_name].append((data_path, fc.array_index))
+            if "pose.bones" not in data_path:
+                continue
+            bone_name = data_path.split('pose.bones["')[1].split('"]')[0]
+            if bone_name not in driver_map:
+                driver_map[bone_name] = []
+            driver_map[bone_name].append((data_path, fc.array_index))
         return driver_map
 
     def replace_old_with_new_rig(self, old_rig, new_rig):
@@ -795,19 +780,26 @@ class CloudRig_Generator(CloudRig_Generator_Base):
             wgts_group_name = "Widgets_" + self.target_rig.name.replace("RIG-", "")
             self.params.widget_collection = ensure_collection(context, wgts_group_name, hidden=True)
 
-    def invoke_load_bone_infos(self):
-        """Bit of a hacked-in additional stage to load BoneInfos before
-        prepare_bones. 
-        
-        This is needed only so that BoneInfo.children is correctly populated
-        with sub-rig-components during prepare_bones().
-
-        This makes sense to have from CloudRig's perspective, I just 
-        didn't find a nice way to add an extra stage to the Generator class.
+    @staticmethod
+    def load_bone_infos(component_map, metarig):
+        """While in edit mode (so we can access as much data as possible)
+        let all rig components populate their initial BoneInfo instances.
         """
-        for rig in self.rig_list:
-            if hasattr(rig, 'load_bone_infos'):
-                rig.load_bone_infos()
+
+        bone_infos = {}
+
+        for bone_name, component in component_map.items():
+            if hasattr(component, 'load_bone_infos'):
+                bone_infos.update(component.load_bone_infos(metarig))
+
+        for bone_info in bone_infos:
+            ebone = metarig.data.edit_bones.get(bone_info.name)
+            if ebone.parent:
+                parent_bone_info = bone_infos.get(ebone.parent.name)
+                if parent_bone_info:
+                    bone_info.parent = parent_bone_info
+                else:
+                    bone_info.parent = ebone.parent.name
 
     def restore_rig_states(self):
         """Restore transforms after generation has either failed or succeeded."""
