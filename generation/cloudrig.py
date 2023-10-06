@@ -22,7 +22,7 @@ from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 def is_cloudrig_ui_enabled(obj):
 	"""Return whether obj is marked as being compatible with cloudrig.py."""
 	return obj.type=='ARMATURE' and \
-			('allow_cloudrig_ui' in obj.data and obj.data['allow_cloudrig_ui'])
+			('enable_cloudrig_ui' in obj.data and obj.data['enable_cloudrig_ui'])
 
 def get_rigs():
 	""" Find all cloudrig armature objects in the file. """

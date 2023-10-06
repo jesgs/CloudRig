@@ -8,8 +8,6 @@ from bone_selection_sets import from_json, to_json
 from mathutils import Matrix, Vector
 from datetime import datetime
 
-from rigify.utils.naming import change_name_side, Side
-
 from rigify.utils.action_layers import ActionLayerBuilder
 from rigify.utils.mechanism import refresh_all_drivers
 from rigify.utils.collections import ensure_collection
@@ -73,8 +71,8 @@ class GeneratorProperties(PropertyGroup):
         ,description = "Action which will be generated with the keyframes neccessary to test the rig's deformations"
     )
 
-    show_layers_preview_hidden: BoolProperty(
-        name         = "Show Hidden Layers"
+    show_secret_collections: BoolProperty(
+        name         = "Show Secret Collections"
         ,description = "Show layers whose names start with $ and will be hidden on the rig UI"
         ,default     = True
         ,override     = {'LIBRARY_OVERRIDABLE'}
@@ -136,6 +134,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         self.custom_script_failure = False
 
+        # TODO 4.0: __init__ should only be assigning stuff to self. This should be moved to generate().
         metarig.data.pose_position = 'REST'
         metarig['loc_bkp'] = metarig.matrix_world.to_translation()
         metarig['rot_bkp'] = metarig.matrix_world.to_euler()
@@ -172,59 +171,30 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         metarig = self.metarig
-        self.target_rig = self.create_rig_object(context, metarig)
+        metarig.data.name = "Data_" + self.metarig.name
+        self.params.version = cloud_metarig_version
+
         print("Begin Generating CloudRig from metarig: " + metarig.name)
-
-        # self.collection is only used for Rigify compatibility.
-        self.collection = context.scene.collection
-        if len(self.metarig.users_collection) > 0:
-            self.collection = self.metarig.users_collection[0]
-
-        print("Instantiate rig components...!")
-        self.instantiate_rig_components()
-
-        return
 
         # If the previous generation failed, delete the failed rig.
         if 'failed_rig' in metarig and metarig['failed_rig']:
             bpy.data.objects.remove(metarig['failed_rig'])
             del metarig['failed_rig']
 
-        #------------------------------------------
+        # Prepare the target rig.
+        self.target_rig = self.create_rig_object(context, metarig)
 
-        # Rename metarig data
-        metarig.data.name = "Data_" + self.metarig.name
-        # Update metarig version
-        self.params.version = cloud_metarig_version
+        self.instantiate_rig_components()
 
-        # Symmetry option seems to mess with generation...
-        self.bkp_x_mirror = metarig.data.use_mirror_x
-        metarig.data.use_mirror_x = False
-
-        # Symmetry option seems to mess with generation...
-        self.bkp_x_mirror = metarig.data.use_mirror_x
-        metarig.data.use_mirror_x = False
-
-        # Ensure rigify layers are initialized.
-        # if len(metarig.data.rigify_layers) < 32:
-        #     init_cloudrig_layers(metarig.data)
-
-        #------------------------------------------
-
-        # Create/find the rig object and set it up
-        old_rig = self.params.target_rig
-        self.obj = obj = self.create_rig_object(context, metarig)
-
-        self.logger.rig = obj
+        self.logger.rig = self.target_rig
         self.logger.metarig = metarig
 
-        self.defaults['rig'] = obj
+        self.defaults['rig'] = self.target_rig
 
         # Create Widget Collection
-        self.ensure_widget_collection()
+        self.ensure_widget_collection(context)
 
-        redraw_viewport()
-
+        return
         self.driver_map = self.map_drivers()
 
         self.script = None
@@ -317,6 +287,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         self.execute_custom_script()
 
+        old_rig = self.params.target_rig
         if old_rig:
             self.replace_old_with_new_rig(old_rig, obj)
         else:
@@ -382,7 +353,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
     def create_rig_object(self, context, metarig) -> Object:
         """Create a new empty Armature object that will get populated throughout
-        the generation process and then replace the previously generated rig."""
+        the generation process."""
         metaname = metarig.name
         final_name = metaname.replace("META", "RIG")
         if 'META' not in metaname:
@@ -394,7 +365,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         target_rig = bpy.data.objects.new(rig_name, armature)
         context.scene.collection.objects.link(target_rig)
         # Mark rig for cloudrig.py compatibility checks
-        target_rig.data['allow_cloudrig_ui'] = True
+        target_rig.data['enable_cloudrig_ui'] = True
 
         # Save generation timestamp to a custom property
         today = datetime.today()
@@ -404,12 +375,12 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         # Make sure Hidden Layers checkbox is saved in the generated rig, so it
         # remains even if the Rigify addon is disabled.
-        target_rig.data.cloudrig.generator.show_layers_preview_hidden = False
+        target_rig.data.cloudrig.generator.show_secret_collections = False
 
         # By default, use B-Bone display type since it's the most useful
         target_rig.data.display_type = 'BBONE'
 
-        # Copy viewport display settings from the metarig.
+        # Copy debug viewport display settings from the metarig, usually used for debugging.
         target_rig.data.show_names = metarig.data.show_names
         target_rig.show_in_front = metarig.show_in_front
         target_rig.data.show_axes = metarig.data.show_axes
@@ -454,9 +425,9 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
     def ensure_bone_groups(self):
         # Wipe any existing bone groups from the target rig.
-        if self.obj.pose:
-            for bone_group in self.obj.pose.bone_groups:
-                self.obj.pose.bone_groups.remove(bone_group)
+        if self.target_rig.pose:
+            for bone_group in self.target_rig.pose.bone_groups:
+                self.target_rig.pose.bone_groups.remove(bone_group)
 
         for bone_set in self.bone_sets:
             meta_bg = bone_set.ensure_bone_group(self.metarig, overwrite=False)
@@ -468,13 +439,13 @@ class CloudRig_Generator(CloudRig_Generator_Base):
                 bone_set.select = self.params.rigify_selection_colors.select
                 bone_set.active = self.params.rigify_selection_colors.active
 
-            bone_set.ensure_bone_group(self.obj, overwrite=True)
+            bone_set.ensure_bone_group(self.target_rig, overwrite=True)
 
     def ensure_widget(self, widget_name):
         wgt = cloud_widgets.ensure_widget(
             widget_name
             ,overwrite = self.params.rigify_force_widget_update
-            ,collection = self.widget_collection
+            ,collection = self.params.widget_collection
         )
         if not wgt:
             self.logger.log_bug("Failed to create widget"
@@ -484,10 +455,10 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
     def add_to_widget_collection(self, widget_ob):
         context = self.context
-        if not self.widget_collection:
+        if not self.params.widget_collection:
             return
-        if widget_ob.name not in self.widget_collection.objects:
-            self.widget_collection.objects.link(widget_ob)
+        if widget_ob.name not in self.params.widget_collection.objects:
+            self.params.widget_collection.objects.link(widget_ob)
         if widget_ob.name in context.scene.collection.objects:
             context.scene.collection.objects.unlink(widget_ob)
 
@@ -496,18 +467,18 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         # Ensure test action exists
         test_action = self.params.test_action
         if not test_action:
-            test_action = bpy.data.actions.new("RIG.DeformTest."+self.obj.name)
+            test_action = bpy.data.actions.new("RIG.DeformTest."+self.target_rig.name)
             self.metarig.data.cloudrig.generator.test_action = test_action
 
         # Nuke all curves
         for fc in test_action.fcurves[:]:
             test_action.fcurves.remove(fc)
 
-        if not self.obj.animation_data:
-            self.obj.animation_data_create()
+        if not self.target_rig.animation_data:
+            self.target_rig.animation_data_create()
 
-        if not self.obj.animation_data.action:
-            self.obj.animation_data.action = test_action
+        if not self.target_rig.animation_data.action:
+            self.target_rig.animation_data.action = test_action
 
         return test_action
 
@@ -582,11 +553,11 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         """Create real bones from all BoneInfos.
         No bone data is written yet beside the name."""
         for bi in self.bone_infos:
-            if bi.name in self.obj.data.edit_bones:
+            if bi.name in self.target_rig.data.edit_bones:
                 # This happens for ORG bones that we load into BoneInfo objects,
                 # since they already get created by __duplicate_rig()
                 continue
-            new_name = new_bone(self.obj, bi.name)
+            new_name = new_bone(self.target_rig, bi.name)
             if new_name != bi.name:
                 self.logger.log(
                     "Bone Name Clash"
@@ -603,7 +574,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         # Write edit bone data for BoneInfos.
         for bi in self.bone_infos:
-            edit_bone = self.obj.data.edit_bones.get(bi.name)
+            edit_bone = self.target_rig.data.edit_bones.get(bi.name)
             bi.write_edit_data(self, edit_bone, self.context)
 
         # Parent parent-less bones to the root bone, if there is one.
@@ -616,7 +587,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
     def invoke_configure_bones(self):
         for bi in self.bone_infos:
-            pose_bone = self.obj.pose.bones.get(bi.name)
+            pose_bone = self.target_rig.pose.bones.get(bi.name)
             if not pose_bone:
                 self.logger.log("Bone creation failed"
                     ,owner_bone   = bi.owner_rig.base_bone
@@ -637,8 +608,8 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         # Rigify automatically parents bones that have no parent to the root bone.
         # We want to undo this when the bone has an Armature constraint.
-        for eb in self.obj.data.edit_bones:
-            pb = self.obj.pose.bones.get(eb.name)
+        for eb in self.target_rig.data.edit_bones:
+            pb = self.target_rig.pose.bones.get(eb.name)
             for c in pb.constraints:
                 if c.type=='ARMATURE' and c.enabled:
                     eb.parent = None
@@ -686,7 +657,7 @@ class CloudRig_Generator(CloudRig_Generator_Base):
 
         vgroup_map = self.map_vgroups_to_most_significant_object(vgroup_names, object_candidates)
 
-        pbones = self.obj.pose.bones
+        pbones = self.target_rig.pose.bones
         bone_infos = self.bone_infos
         for bi in bone_infos:
             vg_name = bi.gizmo_vgroup
@@ -710,9 +681,9 @@ class CloudRig_Generator(CloudRig_Generator_Base):
         """Create a dictionary matching bone names to full data paths of drivers
         that belong to those bones. This is to speed up loading drivers into BoneInfos."""
         driver_map = {}
-        if not self.obj.animation_data:
+        if not self.target_rig.animation_data:
             return
-        for fc in self.obj.animation_data.drivers:
+        for fc in self.target_rig.animation_data.drivers:
             data_path = fc.data_path
             if "pose.bones" in data_path:
                 bone_name = data_path.split('pose.bones["')[1].split('"]')[0]
@@ -818,31 +789,11 @@ class CloudRig_Generator(CloudRig_Generator_Base):
             ,file_name = "cloudrig.py"
         )
 
-    def ensure_widget_collection(self):
-        """Overrides Rigify's generator's function to avoid annoying object renaming."""
-        # Create/find widget collection
-        self.widget_collection = self.metarig.data.rigify_widgets_collection
-        if not self.widget_collection:
-            self.widget_collection = self._Generator__find_legacy_collection()
-        if not self.widget_collection:
-            wgts_group_name = "WGTS_" + self.obj.name.replace("RIG-", "")
-            self.widget_collection = ensure_collection(self.context, wgts_group_name, hidden=True)
-
-        self.metarig.data.rigify_widgets_collection = self.widget_collection
-
-        self.use_mirror_widgets = self.metarig.data.rigify_mirror_widgets
-
-        # Build tables for existing widgets
-        self.old_widget_table = {}
-        self.new_widget_table = {}
-        self.widget_mirror_mesh = {}
-
-        # Find meshes for mirroring
-        if self.use_mirror_widgets:
-            for bone_name, widget in self.old_widget_table.items():
-                mid_name = change_name_side(bone_name, Side.MIDDLE)
-                if bone_name != mid_name:
-                    self.widget_mirror_mesh[mid_name] = widget.data
+    def ensure_widget_collection(self, context):
+        """Create the collection where bone shapes will be linked to."""
+        if not self.params.widget_collection:
+            wgts_group_name = "Widgets_" + self.target_rig.name.replace("RIG-", "")
+            self.params.widget_collection = ensure_collection(context, wgts_group_name, hidden=True)
 
     def invoke_load_bone_infos(self):
         """Bit of a hacked-in additional stage to load BoneInfos before
@@ -870,18 +821,18 @@ class CloudRig_Generator(CloudRig_Generator_Base):
             del self.metarig['loc_bkp']
             del self.metarig['rot_bkp']
             del self.metarig['scale_bkp']
-        self.obj.data.pose_position = 'POSE'
+        self.target_rig.data.pose_position = 'POSE'
         self.metarig.data.use_mirror_x = self.bkp_x_mirror
 
         # Refresh drivers
         refresh_all_drivers()
-        refresh_constraints(self.obj)
+        refresh_constraints(self.target_rig)
         self.context.view_layer.update()
 
     def log_minor_issues(self):
-        self.logger.report_widgets(self.widget_collection)
+        self.logger.report_widgets(self.params.widget_collection)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
-        self.logger.report_invalid_drivers_on_object_hierarchy(self.obj)
+        self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
         # self.logger.report_actions()
 
 registry = [

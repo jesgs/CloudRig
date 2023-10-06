@@ -41,7 +41,7 @@ def cloudrig_manual_map():
 		(generator_params_pref+"root_layers", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_parent_group", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"root_parent_layers", "Organizing-Bones#bone-sets"),
-		(generator_params_pref+"show_layers_preview_hidden", "Organizing-Bones#bone-sets"),
+		(generator_params_pref+"show_secret_collections", "Organizing-Bones#bone-sets"),
 		(generator_params_pref+"bone_set_use_grid_layout", "Organizing-Bones#bone-sets"),
 		(params_pref+"show_bone_sets", "Organizing-Bones#bone-sets"),
 		(params_pref+"show_advanced_bone_sets", "Organizing-Bones#bone-sets"),
