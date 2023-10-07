@@ -159,12 +159,11 @@ class CloudRig_Generator:
         # self.action_layers = ActionLayerBuilder(self) TODO 4.0 this might be a problem... Not sure how we can drag along the least amount of Rigify spaghetti while still making use of the Action system code.
 
         #------------------------------------------
-        self.component_map = self.instantiate_rig_components()
-
-        #------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
         if self.params.ensure_root:
             self.ensure_root_bone_component(self.metarig, self.params.ensure_root)
+
+        self.component_map = self.instantiate_rig_components()
         self.load_metarig_bone_infos(self.component_map, self.metarig)
 
         #------------------------------------------
