@@ -271,37 +271,15 @@ class BoneSetMixin:
         layout_icon = 'MESH_GRID' if prefs.bone_set_use_grid_layout else 'COLLAPSEMENU'
         list_column.prop(prefs, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
 
-        # elif not CLOUDRIG_UL_bone_sets.flt_flags[cloudrig.active_bone_set_idx]:
-        #     # If the active item is not visible
-        #     return
+        if not any(CLOUDRIG_UL_bone_sets.flt_flags):
+            layout.label(text="No bone sets to show. Clear the search filter or regenerate the rig.")
+            return
+        elif not CLOUDRIG_UL_bone_sets.flt_flags[component.bone_sets_active_index]:
+            # If the active item is not visible
+            return
 
-        # set_info = cls.bone_set_defs[active_bone_set.name]
-        # split = layout.row().split(factor=0.8)
-        # cls.draw_prop_search(context, split.row(), params, set_info['color_param'], obj.pose, "bone_groups", text="Bone Group")
-        # bone_group_name = getattr(params, set_info['color_param'])
-        # bone_group = obj.pose.bone_groups.get(bone_group_name)
-        # if bone_group:
-        #     row = split.row(align=True)
-
-        #     if bone_group.color_set != 'DEFAULT':
-        #         row.prop(bone_group, 'color_set', text="", icon_only=True)
-        #         row = row.row(align=True)
-        #         row.enabled = bone_group.is_custom_color_set
-        #         row.prop(bone_group.colors, "normal", text="")
-        #         row.prop(bone_group.colors, "select", text="")
-        #         row.prop(bone_group.colors, "active", text="")
-        #     else:
-        #         row.prop(bone_group, 'color_set', text="", icon='DOWNARROW_HLT')
-
-        # layout.use_property_split=False
-        # draw_layers_ui(
-        #     layout = layout, 
-        #     rig = obj, 
-        #     show_unnamed_selected_layers = True,
-        #     show_hidden_checkbox = True, 
-        #     layer_prop_owner = params, 
-        #     layer_prop_name = set_info['collection_param']
-        # )
+        layout.prop(active_bone_set, 'color_palette')
+        layout.prop(active_bone_set, 'collection')
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
@@ -352,6 +330,8 @@ class BoneSetMixin:
 ##########################
 
 class CLOUDRIG_UL_bone_sets(UIList):
+    flt_flags = []
+
     def draw_filter(self, context, layout):
         layout.prop(self, 'filter_name', text="")
 
@@ -391,6 +371,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
                     # Filter bone sets that are not used based on current parameters.
                     flt_flags[idx] = 0
 
+        type(self).flt_flags = flt_flags
         return flt_flags, flt_neworder
 
     def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):

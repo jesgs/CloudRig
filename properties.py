@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import (
-    StringProperty, PointerProperty, BoolProperty, BoolVectorProperty, 
+    StringProperty, PointerProperty, BoolProperty, EnumProperty,
     CollectionProperty, IntProperty
 )
 from bpy.types import PropertyGroup, Object
@@ -81,9 +81,13 @@ class BoneSets(PropertyGroup):
                 description = "Name of the Bone Collection that bones in this Bone Set will be assigned to during generation",
                 default = str(bone_set_definition.get('collections')),
             ),
-            'color_palette' : StringProperty(   # TODO 4.0; This should be an EnumProperty.
+            'color_palette' : EnumProperty(
                 name = "Color Palette",
-                description = "Color palette to use for the Bone Group of this Bone Set",
+                description = "Color palette to use for the Bone Group of this Bone Set. Custom Colors are not supported, only theme color presets",
+                items = [
+                    (item.identifier, item.name, item.description, item.icon, item.value)
+                    for item in bpy.types.BoneColor.bl_rna.properties['palette'].enum_items[:-1]
+                ],
                 default = bone_set_definition.get('color_palette') or 'DEFAULT'
             ),
             'is_advanced': BoolProperty(
