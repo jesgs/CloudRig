@@ -165,7 +165,6 @@ class BoneInfo:
 				self.roll_type = source.roll_type
 				self.roll_bone = source.roll_bone
 				self.roll = source.roll
-				self.bone_group = source.bone_group
 				self.bbone_width = source.bbone_width
 				if source.parent:
 					self.parent = source.parent

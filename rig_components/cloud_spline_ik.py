@@ -161,10 +161,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 				org.constraint_infos.remove(c)
 				c.relink()
 
-	def configure_bones(self):
+	def create_helper_objects(self, context):
 		"""Apply the rest pose of the deform bones, as dictated by
 		the Spline IK constraint."""
-		super().configure_bones()
+		super().create_helper_objects(context)
 
 		self.target_rig.data.pose_position = 'POSE'
 		bpy.ops.object.mode_set(mode='EDIT')
@@ -183,13 +183,13 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
-		super().add_bone_set_parameters(params)
+	def define_bone_sets(cls):
+		super().define_bone_sets()
 		"""Create parameters for this rig's bone sets."""
-		cls.define_bone_set(params, 'Curve Deform Bones', default_layers=[cls.DEFAULT_LAYERS.DEF], is_advanced=True)
+		cls.define_bone_set('Curve Deform Bones', collections=['Deform Bones'], is_advanced=True)
 
 	@classmethod
-	def curve_selector_ui(cls, layout, params):
+	def curve_selector_ui(cls, layout, context, params):
 		"""Overrides cloud_curve to disable the curve selection."""
 		row = cls.draw_prop(context, layout.row(), params, "CR_curve_target", icon='OUTLINER_OB_CURVE')
 		row.enabled = False
@@ -201,40 +201,40 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
 		layout.separator()
 		cls.draw_control_label(layout, "Spline")
-		cls.draw_prop(context, layout, params, "CR_spline_ik_subdivide")
-		cls.draw_prop(context, layout, params, "CR_spline_ik_handle_length")
+		cls.draw_prop(context, layout, params.spline_ik, "subdivide")
+		cls.draw_prop(context, layout, params.spline_ik, "handle_length")
 
 		# TODO: When this is false, the directions of the curve points and bones
 		# don't match, and both of them are unsatisfactory. It would be nice if
 		# we would interpolate between the direction of the two bones, using
 		# length_remaining/bone.length as a factor, or something similar to that.
-		cls.draw_prop(context, layout, params, "CR_spline_ik_match_hooks")
+		cls.draw_prop(context, layout, params.spline_ik, "match_hooks")
 		if not params.spline_ik.match_hooks:
-			cls.draw_prop(context, layout, params, "CR_spline_ik_hooks")
+			cls.draw_prop(context, layout, params.spline_ik, "hooks")
 
 
 class Params(PropertyGroup):
 	match_hooks: BoolProperty(
-			name		 = "Match Controls to Bones"
+		name		 = "Match Controls to Bones"
 		,description = "Hook controls will be created at each bone, instead of being equally distributed across the length of the chain"
 		,default	 = True
 	)
 	handle_length: FloatProperty(
-			name		 = "Curve Handle Length"
+		name		 = "Curve Handle Length"
 		,description = "Increasing this will result in longer curve handles, resulting in a sharper curve. A value of 1 means the curve handle reaches the neighbouring curve point"
 		,default	 = 0.4
 		,min		 = 0.01
 		,max		 = 2.0
 	)
 	hooks: IntProperty(
-			name		 = "Number of Hooks"
+		name		 = "Number of Hooks"
 		,description = "Number of controls that will be spaced out evenly across the entire chain"
 		,default	 = 3
 		,min		 = 3
 		,max		 = 99
 	)
 	subdivide: IntProperty(
-			name="Subdivide Bones"
+		name="Subdivide Bones"
 		,description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain"
 		,default=3
 		,min=1

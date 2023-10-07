@@ -10,28 +10,6 @@ from .cloud_base import Component_Base
 
 from ..utils.maths import bounding_box_center
 
-def get_bone_set_definitions() -> Dict:
-	bone_set_definitions = dict(Component_Base.bone_set_definitions)
-	bone_set_definitions.update({
-		'aim_group_target_control' : {
-			'preset' : 1,
-			'default_layer' : Component_Base.DEFAULT_LAYERS.FACE_MAIN
-		},
-		'aim_target_controls' : {
-			'preset' : 2,
-			'default_layer' : Component_Base.DEFAULT_LAYERS.FACE_MAIN
-		},
-		'aim_root_control' : {
-			'preset' : 2,
-			'default_layer' : Component_Base.DEFAULT_LAYERS.FACE_SECOND
-		},
-		'aim_deform' : {
-			'default_layer' : Component_Base.DEFAULT_LAYERS.DEF,
-			'is_advanced' : True
-		}
-	})
-	return bone_set_definitions
-
 class Component_Aim(Component_Base):
 	"""Create aim target controls for a single bone."""
 
@@ -39,8 +17,6 @@ class Component_Aim(Component_Base):
 	relinking_behaviour = "Constraints will be moved to the Eye Root Control."
 	parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye components with a matching string as their Eye Group paramter."
 	parent_switch_overwrites_root_parent = False
-
-	bone_set_definitions = get_bone_set_definitions()
 
 	def create_bone_infos(self, context):
 		super().create_bone_infos(context)
@@ -327,6 +303,14 @@ class Component_Aim(Component_Base):
 			return params.aim.deform
 
 		return super().is_bone_set_used(context, rig, params, set_name)
+
+	@classmethod
+	def define_bone_sets(cls):
+		super().define_bone_sets()
+		cls.define_bone_set("Aim Group Target Control", collections=['Face Main'], color_palette='THEME02')
+		cls.define_bone_set("Aim Target Control", collections=['Face Main'], color_palette='THEME03')
+		cls.define_bone_set("Aim Root Control", collections=['Face Secondary'], color_palette='THEME03')
+		cls.define_bone_set("Aim Deform", collections=['Deform Bones'], is_advanced=True)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

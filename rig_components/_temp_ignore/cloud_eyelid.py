@@ -104,10 +104,10 @@ class CloudEyelidRig(CloudFaceChainRig):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Eyelid Mechanism', default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().define_bone_sets()
+		cls.define_bone_set('Eyelid Mechanism', collections=['Mechanism Bones'], is_advanced=True)
 
 class RigComponent(CloudEyelidRig):
 	pass

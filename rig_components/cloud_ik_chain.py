@@ -281,8 +281,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
 				ik_bone.parent 						= self.root_bone
 				ik_bone.custom_shape 				= self.ensure_widget("Squares_2")
 				ik_bone.custom_shape_scale_xyz		= Vector((0.8, 1, 0.8))
-				ik_bone.bone_group	  				= self.bone_sets['IK Controls'].bone_group
-				ik_bone.layers		  				= self.bone_sets['IK Controls'].layers[:]
+				ik_bone.collections	  				= self.bone_sets['IK Controls'].collections
+				ik_bone.color_palette_base		  	= self.bone_sets['IK Controls'].color_palette
 				self.ik_controls.append(ik_bone)
 
 			else:
@@ -660,12 +660,12 @@ class Component_Chain_IKFK(Component_Chain_FK):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'IK Controls', 		preset=2, default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
-		cls.define_bone_set(params, 'IK Extra Controls',preset=2, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
-		cls.define_bone_set(params, 'IK Mechanism', 			  default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().define_bone_sets()
+		cls.define_bone_set('IK Controls', color_palette='THEME03', collections=['IK Controls'])
+		cls.define_bone_set('IK Extra Controls', color_palette='THEME03', collections=['IK Secondary'])
+		cls.define_bone_set('IK Mechanism', collections=['Mechanism Bones'], is_advanced=True)
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

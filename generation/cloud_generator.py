@@ -186,28 +186,15 @@ class CloudRig_Generator:
         #------------------------------------------
         bpy.ops.object.mode_set(mode='OBJECT')
 
+        self.create_helper_objects(context)
         self.ensure_bone_collections(self.target_rig)
-        self.invoke_configure_bones()
+        self.write_pose_bone_data()
 
         return
-
         #------------------------------------------
-        self.ensure_cloudrig_ui(obj)
-
-        self.invoke_finalize()
-
-        t.tick("Finalize: ")
-        redraw_viewport()
-
-        #------------------------------------------
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-        self._Generator__assign_widgets()
+        self.ensure_cloudrig_ui(self.target_rig)
 
         self.create_test_animation()
-
-        # Only leave Force Widget Update enabled until the next generation.
-        self.params.rigify_force_widget_update = False
 
         self.execute_custom_script()
 
@@ -343,10 +330,11 @@ class CloudRig_Generator:
         if root_name in metarig.data.edit_bones:
             return
         edit_bone = self.create_bone(metarig, root_name)
+        name = edit_bone.name
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='EDIT')
 
-        pose_bone = metarig.pose.bones[edit_bone.name]
+        pose_bone = metarig.pose.bones[name]
         pose_bone.cloudrig_component.component_type = 'Copy Bone'
         pose_bone.custom_shape = self.ensure_widget("Root")
 
@@ -475,6 +463,12 @@ class CloudRig_Generator:
         for base_bone_name, rig_component in self.component_map.items():
             rig_component.create_component_interactions()
 
+    def create_helper_objects(self, context):
+        """Called in Object mode once bones have been created and placed.
+        """
+        for base_bone_name, rig_component in self.component_map.items():
+            rig_component.create_helper_objects(context)
+
     @property
     def root_bone_info(self):
         return self.find_bone_info(self.params.ensure_root)
@@ -532,7 +526,7 @@ class CloudRig_Generator:
             edit_bone = self.target_rig.data.edit_bones.get(bone_info.name)
             bone_info.write_edit_data(self, edit_bone)
 
-    def invoke_configure_bones(self):
+    def write_pose_bone_data(self):
         for bi in self.bone_infos:
             pose_bone = self.target_rig.pose.bones.get(bi.name)
             if not pose_bone:
@@ -605,9 +599,7 @@ class CloudRig_Generator:
             gizmo_props.shape_object = vgroup_map[vg_name]
             gizmo_props.vertex_group_name = vg_name
             gizmo_props.operator = bi.gizmo_operator
-            if pb.bone_group:
-                gizmo_props.color = pb.bone_group.colors.normal[:]
-                gizmo_props.color_highlight = pb.bone_group.colors.active[:]
+            # TODO: color gizmo based on bone color.
 
     @staticmethod
     def map_pbones_to_drivers(armature_ob) -> Dict[str, Tuple[str, int]]:

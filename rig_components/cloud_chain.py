@@ -676,14 +676,14 @@ class Component_ToonChain(Component_Base):
 		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Stretch Controls', preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
-		cls.define_bone_set(params, 'Deform Controls', preset=5,	default_layers=[cls.DEFAULT_LAYERS.DEF_CTR])
-		cls.define_bone_set(params, 'Deform Helpers', 				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		cls.define_bone_set(params, 'Stretch Helpers',				default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
-		cls.define_bone_set(params, 'Shape Key Helpers',			default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().define_bone_sets()
+		cls.define_bone_set('Stretch Controls', color_palette='THEME09')
+		cls.define_bone_set('Deform Controls', color_palette='THEME09')
+		cls.define_bone_set('Deform Helpers', collections=['Mechanism Bones'], is_advanced=True)
+		cls.define_bone_set('Stretch Helpers', collections=['Mechanism Bones'], is_advanced=True)
+		cls.define_bone_set('Shape Key Helpers', collections=['Mechanism Bones'], is_advanced=True)
 
 
 	@classmethod

@@ -72,37 +72,37 @@ class BoneSets(PropertyGroup):
     """
 
     @staticmethod
-    def class_from_definition(bone_set_name: str, bone_set_definition: dict) -> type:
-        pretty_name = bone_set_name.replace("_", " ").title()
+    def class_from_definition(rna_name: str, bone_set_definition: dict) -> type:
+        pretty_name = rna_name.replace("_", " ").title()
         annotations = {
             'name' : StringProperty(
                 name = "Bone Set Name",
                 description = "Name of this Bone Set in the UI. Defined by rig type implementation, should not be modified by user",    # Although it technically shouldn't break anything if user changes this name, it's not used for anything other than UI display.
                 default = bone_set_definition.get('name') or pretty_name
             ),
-            'collection' : StringProperty(
+            'collection' : StringProperty(  # TODO 4.0 collections; This needs to be a CollectionProperty.
                 name = "Bone Collection",
                 description = "Name of the Bone Collection that bones in this Bone Set will be assigned to during generation",
-                default = bone_set_definition.get('bone_group') or pretty_name,
+                default = bone_set_definition.get('collection') or pretty_name,
             ),
-            'color_palette' : StringProperty(
+            'color_palette' : StringProperty(   # TODO 4.0; This should be an EnumProperty.
                 name = "Color Palette",
                 description = "Color palette to use for the Bone Group of this Bone Set",
-                default = 'DEFAULT'
+                default = bone_set_definition.get('color_palette') or 'DEFAULT'
             ),
             'is_advanced': BoolProperty(
                 name = "Is Advanced",
                 description = "If True, this Bone Set will only be displayed in the UI when the 'Show Advanced Bone Sets' toggle is checked",
                 default = bone_set_definition.get('is_advanced') or False
             ),
-            'generated_bones': CollectionProperty(
+            'generated_bones': CollectionProperty(  # TODO 4.0: Implement this, so bone sets store which bones they generated. Although, might be more useful to store this on the RigComponent instead, actually.
                 name = "Generated Bones",
                 description = "List of bone names generated in this Bone Set during the last time the target rig was generated",
                 type=GeneratedBone
             )
         }
 
-        class_name = "BoneSet_" + bone_set_name
+        class_name = "BoneSet_" + rna_name
         base_classes = (PropertyGroup, )
         class_attributes = {
             '__annotations__' : annotations
@@ -116,13 +116,13 @@ class BoneSets(PropertyGroup):
         classes = {}
         for rig_type_name, rig_module in rig_components.component_modules.items():
             rig_class = getattr(rig_module, 'RigComponent')
-            if not hasattr(rig_class, 'bone_set_definitions'):
-                continue
-            for bone_set_name, bone_set_definition in rig_class.bone_set_definitions.items():
-                if bone_set_name in classes:
+            rig_class.define_bone_sets()
+            for bone_set_name, bone_set_definition in rig_class.bone_set_defs.items():
+                rna_name = bone_set_name.lower().replace(" ", "_")
+                if rna_name in classes:
                     continue
-                bone_set_class = BoneSets.class_from_definition(bone_set_name, bone_set_definition)
-                classes[bone_set_name] = bone_set_class
+                bone_set_class = BoneSets.class_from_definition(rna_name, bone_set_definition)
+                classes[rna_name] = bone_set_class
         return classes
 
     bone_set_property_groups = make_bone_set_property_groups()

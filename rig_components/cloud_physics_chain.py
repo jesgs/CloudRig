@@ -199,10 +199,10 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 	##############################
 	# Parameters
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Physics Bones', preset=3,	default_layers=[28])
+		super().define_bone_sets()
+		cls.define_bone_set('Physics Bones', color_palette='THEME04', collections=['Physics Bones'])
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

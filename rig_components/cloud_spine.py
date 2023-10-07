@@ -285,13 +285,13 @@ class Component_Spine_IKFK(Component_Chain_FK):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
-		super().add_bone_set_parameters(params)
+	def define_bone_sets(cls):
+		super().define_bone_sets()
 		"""Create parameters for this rig's bone sets."""
-		cls.define_bone_set(params, 'Spine Main Controls',	  preset=2,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
-		cls.define_bone_set(params, 'Spine Parent Controls',  preset=8,  default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
-		cls.define_bone_set(params, 'Spine IK Secondary',	  preset=10, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
-		cls.define_bone_set(params, 'Spine Mechanism',					 default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		cls.define_bone_set('Spine Main Controls', color_palette='THEME03', collections=['IK Controls'])
+		cls.define_bone_set('Spine Parent Controls', color_palette='THEME09', collections=['IK Controls'])
+		cls.define_bone_set('Spine IK Secondary', color_palette='THEME11', collections=['IK Secondary'])
+		cls.define_bone_set('Spine Mechanism', collections=['Mechanism Bones'], is_advanced=True)
 
 	@classmethod
 	def is_bone_set_used(cls, context, rig, params, set_name):

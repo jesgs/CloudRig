@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, PoseBone, Object
 from bpy.props import BoolProperty, PointerProperty
 from mathutils import Matrix
 
@@ -15,10 +15,10 @@ class Component_Lattice(Component_Base):
 	def initialize(self):
 		super().initialize()
 		self.create_deform_bone = False
-		self.test_lattice_already_used()
 
 	def create_bone_infos(self, context):
 		super().create_bone_infos(context)
+		self.test_lattice_already_used()
 		self.lattice_root = self.make_lattice_root_ctrl(self.root_bone)
 		self.hook_bone = self.make_hook_ctrl(self.lattice_root)
 
@@ -55,24 +55,32 @@ class Component_Lattice(Component_Base):
 		)
 		return hook_bone
 
-	def finalize(self):
-		super().finalize()
+	def create_helper_objects(self, context):
+		super().create_helper_objects(context)
 		root_pb = self.target_rig.pose.bones.get(self.root_bone.name)
 		hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
-		lattice_ob = self.params.lattice.lattice
-		if not lattice_ob or self.params.lattice.regenerate:
-			self.meta_base_bone.cloudrig_component.params.lattice.lattice = self.create_lattice(root_pb, hook_pb)
-		elif lattice_ob:
+		self.params.lattice.lattice = self.ensure_lattice(hook_pb.name)
+		if self.params.lattice.regenerate:
+			self.reset_lattice(self.params.lattice.lattice, root_pb, hook_pb)
+		else:
 			# Reset Hook inverse matrices
 			for m in lattice_ob.modifiers:
 				if m.type=='HOOK':
 					m.subtarget = m.subtarget
 
-	def create_lattice(self, root_bone: bpy.types.PoseBone, hook_bone: bpy.types.PoseBone):
-		# If lattice doesn't exist, create it.
+	def ensure_lattice(self, lattice_name="Lattice") -> Object:
 		lattice_ob = self.params.lattice.lattice
-		lattice_exists = lattice_ob != None
-		if not lattice_exists:
+		if lattice_ob:
+			return lattice_ob
+
+		lattice = bpy.data.lattices.new(lattice_name)
+		lattice_ob = bpy.data.objects.new(lattice_name, lattice)
+		bpy.context.scene.collection.objects.link(lattice_ob)
+		return lattice_ob
+
+	def reset_lattice(self, lattice_ob: Object, root_bone: PoseBone, hook_bone: PoseBone):
+		# If lattice doesn't exist, create it.
+		if not lattice_ob:
 			lattice_name = hook_bone.name
 			lattice = bpy.data.lattices.new(lattice_name)
 			lattice_ob = bpy.data.objects.new(lattice_name, lattice)
@@ -128,10 +136,10 @@ class Component_Lattice(Component_Base):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Lattice Controls', preset=3, default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
+		super().define_bone_sets()
+		cls.define_bone_set('Lattice Controls', color_palette='THEME03')
 
 	@classmethod
 	def is_bone_set_used(cls, context, rig, params, set_name):
@@ -142,8 +150,8 @@ class Component_Lattice(Component_Base):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.draw_prop(context, layout, params, "CR_lattice_lattice")
-		cls.draw_prop(context, layout, params, "CR_lattice_regenerate")
+		cls.draw_prop(context, layout, params.lattice, "lattice")
+		cls.draw_prop(context, layout, params.lattice, "regenerate")
 
 
 class Params(PropertyGroup):

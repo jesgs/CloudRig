@@ -1,12 +1,9 @@
 Priority 0: Re-write as standalone add-on
 
 	- Re-write the Generator... (This is the bulk of the work, since if the Generator touches almost everything that CloudRig is.)
-		- Fewer generation stages; create_bone_infos(), create_helper_objects(). The latter is equivalent to the current setup_rig, so, it executes after the armature is created.
-
-		- Re-implement functions calls starting with _Generator__, since we won't be inheriting those from Rigify anymore (most likely)
-		- Figure out how BoneSets will work.
-			- Convert all bone set definitions to the new system. (monkey work)
-		- Integrate reliance on BoneInfo as much as possible.
+		- Figure out why root bone is not spawning
+		- Make bone sets create collections
+		- Add UI/UX for multiple collections per bone set, and turn it into a CollectionProperty.
 		- Disable the Action system for now, then figure out how to hook into Rigify for it. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
 	- Re-implement Rigify functionality
@@ -33,20 +30,14 @@ Priority 0: Re-write as standalone add-on
 	- Don't version metarigs that are linked or overridden.
 	- Write a recursive lazy register thing that makes it so we can get rid of the modules = [] lists from our __init__.py's, using the recently discovered bpy.path.module_names() function!
 		- This would still require detecting dependencies and sorting the register list accordingly; CollectionProperties and PointerProperties depend on their type if it's a PropertyGroup, and Panels depend on their bl_parent_id. I'm not sure what else there might be.
-	- Ability to disable rig types. Simple checkbox. Skip generating the damn thing.
+	- Ability to disable rig types. Simple checkbox. Simply don't add it to the component_map.
 	- Alphabet sort component types when choosing them.
-	- Use callbacks to update certain things when changing rig types:
-		- Clear all PointerProperties (each rig type should implement its own update callback, and all of them should get called on switch)
-		- Create any missing BoneSets (which should no longer need to wait for a generation in order to exist, because the Generator, along with all of its data, will always exist and be stored in RNA.)
-	- Whether a rig is a CloudRig generated rig should be stored in Armature.cloudrig. Whether a rig is a CloudRig metarig should be determined based on if the rig component list is empty or not.
+	- Use a callback on the component type to clear PointerProperties
 	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
 		- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
 			- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
 			- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
-	- Delete stuff that's no longer needed:
-		- define_bone_set()
-		- add_bone_set_parameters()
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.

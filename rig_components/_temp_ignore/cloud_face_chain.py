@@ -16,15 +16,15 @@ def has_tangent_helpers(rig) -> bool:
 
 def parent_cluster_to_intersection(cluster: List[BoneInfo], intersection: BoneInfo, have_anchor: bool):
 	for str_bone in cluster:
-		rig = str_bone.owner_component
+		component = str_bone.owner_component
 		str_bone.parent = intersection
 		str_bone.intersection_ctrl = intersection
 		if has_tangent_helpers(rig) and not have_anchor:
 			str_bone.tangent_helper.constraint_infos[-1].subtarget = intersection.name
 			str_bone.tangent_helper.constraint_infos[-1].name = "Copy STR-I Transforms"
 			str_bone.tangent_helper.parent = intersection
-		str_bone.bone_group = rig.bone_sets['Sub Controls'].bone_group
-		str_bone.layers = rig.bone_sets['Sub Controls'].layers[:]
+		str_bone.collections = component.bone_sets['Sub Controls'].collections
+		str_bone.color_palette_base = component.bone_sets['Sub Controls'].color_palette
 
 def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 	"""Gather a list of lists of more than one STR bones that are in the same
@@ -220,21 +220,15 @@ class CloudFaceChainRig(Component_ToonChain):
 	##############################
 	# Parameters
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
+		super().define_bone_sets()
 		# The sub_controls set is special in that its .new() function should never be
 		# called, and therefore it never creates any bones. However, pre-existing
 		# STR bones who then had a merged control created for them will be assigned
 		# the bone group and layer of this BoneSet.
-		cls.define_bone_set(params, 'Sub Controls', 	preset=1,	default_layers=[cls.DEFAULT_LAYERS.MCH])#, is_advanced=True)
-		cls.define_bone_set(params, 'Intersection Controls',	preset=8,	default_layers=[cls.DEFAULT_LAYERS.STRETCH])
-
-	@classmethod
-	def add_parameters(cls, params):
-		"""Add rig parameters to the RigifyParameters PropertyGroup."""
-		super().add_parameters(params)
-
+		cls.define_bone_set('Sub Controls', color_palette='THEME02', collections=['Mechanism Bones'], is_advanced=True)
+		cls.define_bone_set('Intersection Controls', color_palette='THEME09', collections=['Stretch Controls'])
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

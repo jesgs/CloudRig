@@ -186,10 +186,10 @@ class CloudJawRig(Component_CopyBone):
 	##############################
 	# Parameters
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Jaw Controls', preset=2,	default_layers=[cls.DEFAULT_LAYERS.FACE_MAIN])
+		super().define_bone_sets()
+		cls.define_bone_set('Jaw Controls', color_palette='THEME03', collections=['Face Main'])
 
 	@classmethod
 	def add_parameters(cls, params):

@@ -400,10 +400,10 @@ class Component_Limb_BipedLeg(Component_Limb):
 		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Foot Reverse IK Controls', preset=2, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
+		super().define_bone_sets()
+		cls.define_bone_set('Foot Reverse IK Controls', color_palette='THEME03', collections=['IK Secondary'])
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

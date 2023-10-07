@@ -304,12 +304,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'FK Controls', 		 preset=1, default_layers=[cls.DEFAULT_LAYERS.FK_MAIN])
-		cls.define_bone_set(params, 'FK Controls Extra', preset=1, default_layers=[cls.DEFAULT_LAYERS.FK_SECOND])
-		cls.define_bone_set(params, 'FK Helpers', 				   default_layers=[cls.DEFAULT_LAYERS.MCH], is_advanced=True)
+		super().define_bone_sets()
+		cls.define_bone_set('FK Controls', color_palette='THEME02', collections=['FK Controls'])
+		cls.define_bone_set('FK Controls Extra', color_palette='THEME02', collections=['FK Secondary'])
+		cls.define_bone_set('FK Helpers', collections=['Mechanism Bones'], is_advanced=True)
 
 	@classmethod
 	def draw_appearance_params(cls, layout, context, params):

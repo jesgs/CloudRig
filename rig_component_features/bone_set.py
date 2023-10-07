@@ -230,7 +230,7 @@ class BoneSetMixin:
 
     def init_bone_sets(self):
         """Instantiate all bone sets based on the class's bone_set_defs dictionary."""
-        bone_set_defs = type(self).bone_set_definitions
+        bone_set_defs = type(self).bone_set_defs
         for bone_set_name in bone_set_defs.keys():
             ui_name = bone_set_name.replace("_", " ").title()
             self.bone_sets[ui_name] = self.init_bone_set(bone_set_name)
@@ -323,55 +323,30 @@ class BoneSetMixin:
     # Parameters
 
     @classmethod
-    def define_bone_set(cls, params, ui_name, default_group="", default_layers=[0], is_advanced=False, preset=-1):
+    def define_bone_set(cls, ui_name, collections=[], color_palette='DEFAULT', is_advanced=False):
         """
-        A bone set is a set of rig parameters for choosing a bone group and list of bone layers.
-        This function is responsible for creating those rig parameters, as well as storing them,
-        so they can be referenced easily when implementing the creation of a new bone
-        and assigning its bone group and layers.
+        A bone set is an RNA PropertyGroup containing properties for choosing bone collections and color.
+        This function is responsible for creating the data, which will be used by
+        class BoneSets(PropertyGroup) to automagically populate itself during add-on registration.
 
         For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
-        Then the "FK Main" bone set's bone group and bone layer can be customized via the parameters.
+        The "FK Main" bone set's collections and color can be customized via the parameters under
+        my_pose_bone.cloudrig_component.bone_sets.fk_main.color_palette/collections.
         """
-        group_name = ui_name.replace(" ", "_").lower()
-        if default_group=="":
-            default_group = ui_name
 
-        color_param_name = "BoneSet_Color_" + group_name.replace(" ", "_")
-        collection_param_name = "BoneSet_Collection_" + group_name.replace(" ", "_")
-
-        setattr(
-            params,
-            color_param_name,
-            StringProperty( # TODO 4.0 collections: This should be an enumprop, mimicing the bone color preset drop-down.
-                default = default_group,
-                description = f"Select what group {ui_name} should be assigned to"
-            )
-        )
-
-        default_layers_bools = [i in default_layers for i in range(32)]
-        setattr(
-            params,
-            collection_param_name,
-            BoolVectorProperty( # TODO 4.0 collections: This should be a StringProp... somehow matching to the collections. Ideally in a way where renaming collections is possible, see how Rigify does that.
-                size = 32,
-                subtype = 'LAYER',
-                description = f"Select what layers {ui_name} should be assigned to",
-                default = default_layers_bools
-            )
-        )
-
-        # TODO: Why are we not just creating a class-level BoneSet instance to store here?
-        # Even if that's not a good idea, we could make a UIBoneSet class and instance that.
         cls.bone_set_defs[ui_name] = {
             'name'              : ui_name
-            ,'preset'           : preset                 # Bone Group color preset to use in case the bone group doesn't already exist.
-            ,'color_param'      : color_param_name       # Name of the bone color parameter
-            ,'collection_param' : collection_param_name  # Name of the bone collection parameter
+            ,'collections'      : collections or [ui_name]
+            ,'color_palette'    : color_palette
             ,'is_advanced'      : is_advanced
         }
-        print("Defined bone set: ", ui_name)
         return ui_name
+    
+    @classmethod
+    def define_bone_sets(cls):
+        # Each class should override this with their define_bone_set() calls.
+        # As well as a super().define_bone_sets().
+        pass
 
 ##########################
 #### Bone Sets UIList ####
@@ -411,7 +386,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         rig_class = component.rig_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
-            if ui_bone_set.name not in rig_class.bone_set_definitions:
+            if ui_bone_set.name not in rig_class.bone_set_defs:
                 flt_flags[idx] = 0
             else:
                 bone_set = getattr(component.params.bone_sets, ui_bone_set.name)

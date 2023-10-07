@@ -1,17 +1,10 @@
 # TODO 4.0: Remove this dead file.
 
-from bpy.types import (Object,
-		DATA_PT_rigify_bone_groups, DATA_PT_rigify_layer_names, VIEW3D_MT_rigify,
-		BONE_PT_rigify_buttons)
+from bpy.types import DATA_PT_rigify_layer_names, VIEW3D_MT_rigify
 import bpy
-
-from rigify import rig_lists, feature_set_list
-from rigify.ui import build_type_list
 
 from ..generation.cloudrig import draw_layers_ui
 from ..rig_component_features.ui import is_cloud_metarig, is_advanced_mode
-from .rig_types_ui import get_active_pose_bone
-from ..utils.misc import get_addon_prefs
 
 def draw_rigify_header(self, context):
 	layout = self.layout
@@ -33,17 +26,6 @@ def draw_rigify_header(self, context):
 			layout.separator()
 			layout.operator('armature.rigify_encode_metarig', text="Encode Metarig")
 			layout.operator('armature.rigify_encode_metarig_sample', text="Encode Metarig Sample")
-
-@classmethod
-def rigify_bone_groups_poll(cls, context):
-	# If the current rig has only cloudrig components, don't draw this panel.
-	if is_cloud_metarig(context.object):
-		for b in context.object.pose.bones:
-			if b.rigify_type != "" and 'cloud' not in b.rigify_type:
-				return True
-		else:
-			return False
-	return bpy.types.DATA_PT_rigify_bone_groups.poll_old(context)
 
 def draw_cloud_layer_names(self, context):
 	""" Hijack Rigify's Layer Names panel and replace it with our own. """
@@ -92,9 +74,6 @@ def draw_cloud_layer_names(self, context):
 def register():
 	# Hijack Rigify panels' draw functions.
 
-	DATA_PT_rigify_bone_groups.poll_old = DATA_PT_rigify_bone_groups.poll
-	DATA_PT_rigify_bone_groups.poll = rigify_bone_groups_poll
-
 	DATA_PT_rigify_layer_names.draw_old = DATA_PT_rigify_layer_names.draw
 	DATA_PT_rigify_layer_names.draw = draw_cloud_layer_names
 
@@ -105,7 +84,6 @@ def register():
 def unregister():
 	# Restore Rigify panels' draw functions.
 	try:
-		DATA_PT_rigify_bone_groups.poll = DATA_PT_rigify_bone_groups.poll_old
 		DATA_PT_rigify_layer_names.draw = DATA_PT_rigify_layer_names.draw_old
 		VIEW3D_MT_rigify.draw = VIEW3D_MT_rigify.draw_old
 	except AttributeError:

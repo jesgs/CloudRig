@@ -422,10 +422,10 @@ class Component_Limb(Component_Chain_IKFK):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'IK Child Controls', preset=8, default_layers=[cls.DEFAULT_LAYERS.IK_SECOND])
+		super().define_bone_sets()
+		cls.define_bone_set('IK Child Controls', color_palette='THEME09', collections=['IK Secondary'])
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

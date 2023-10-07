@@ -14,42 +14,6 @@ from ..rig_component_features.object import CloudObjectUtilitiesMixin
 from ..rig_component_features.parenting import CloudParentingMixin
 from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 
-class DEFAULT_LAYERS:
-	IK_MAIN = 0
-	IK_SECOND = 16
-	FK_MAIN = 1
-	FK_SECOND = 17
-
-	STRETCH = 2
-	DEF_CTR = 18
-
-	FACE_MAIN = 3
-	FACE_SECOND = 19
-
-	DEF = 29
-	MCH = 30
-	ORG = 31
-
-	FACE_TWEAK = 20
-
-def get_bone_set_definitions() -> Dict:
-	# TODO 4.0 This is terrible and dumb. Find a good way to register bone sets in RNA.
-	bone_set_definitions = {
-		'deform_bones' : {
-			'default_layer' : DEFAULT_LAYERS.DEF,
-			'is_advanced' : True
-		},
-		'mechanism_bones' : {
-			'default_layer' : DEFAULT_LAYERS.MCH,
-			'is_advanced' : True
-		},
-		'original_bones' : {
-			'default_layer' : DEFAULT_LAYERS.ORG,
-			'is_advanced' : True
-		}
-	}
-	return bone_set_definitions
-
 class Component_Base(
 					LoggerMixin,
 					CloudParentingMixin,
@@ -62,8 +26,6 @@ class Component_Base(
 	):
 	"""Base class that all CloudRig components should inherit from."""
 
-	DEFAULT_LAYERS = DEFAULT_LAYERS
-
 	# Strings to try to communicate obscure behaviours of this rig type in the params UI.
 	relinking_behaviour = ""
 	parent_switch_behaviour = "The active parent will own the rig's root bone."
@@ -71,7 +33,6 @@ class Component_Base(
 	chain_must_be_connected = True
 
 	ui_name = "Cloud Base (Should not be visible in UI!)"
-	bone_set_definitions = get_bone_set_definitions()
 
 	def __init__(self, generator: 'CloudRig_Generator', bone_name: str):
 		self.generator = generator
@@ -220,9 +181,22 @@ class Component_Base(
 			bone_infos[bone_info.name] = bone_info
 
 		return bone_infos
+	
+	def create_helper_objects(self, context):
+		# Called by the generator. Subclasses can use this to create 
+		# helpers like curves, empties, lattices.
+		pass
 
 	##############################
 	# Parameters
+
+	@classmethod
+	def define_bone_sets(cls):
+		"""Create parameters for this rig's bone sets."""
+		super().define_bone_sets()
+		cls.define_bone_set('Deform Bones', is_advanced=True)
+		cls.define_bone_set('Mechanism Bones', is_advanced=True)
+		cls.define_bone_set('Original Bones', is_advanced=True)
 
 	@classmethod
 	def make_rotation_mode_param(cls, 

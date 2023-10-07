@@ -381,9 +381,9 @@ class Component_Curve_Hooked(Component_Base):
 		hook_m.object = rig_ob
 		hook_m.subtarget = bonename
 
-	def configure_bones(self):
+	def create_helper_objects(self, context):
 		self.setup_curve(self.all_hooks)
-		super().configure_bones()
+		super().create_helper_objects(context)
 
 	def setup_curve(self, all_hooks: List[List[BoneInfo]]):
 		""" Configure the Hook Modifiers for the curve.
@@ -517,13 +517,13 @@ class Component_Curve_Hooked(Component_Base):
 	# Parameters
 
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Curve Root', preset=1)
-		cls.define_bone_set(params, 'Spline Roots', preset=2)
-		cls.define_bone_set(params, 'Curve Hooks', preset=0)
-		cls.define_bone_set(params, 'Curve Handles', preset=8)
+		super().define_bone_sets()
+		cls.define_bone_set('Curve Root', color_palette='THEME02')
+		cls.define_bone_set('Spline Roots', color_palette='THEME03')
+		cls.define_bone_set('Curve Hooks', color_palette='THEME01')
+		cls.define_bone_set('Curve Handles', color_palette='THEME09')
 
 	@classmethod
 	def is_bone_set_used(cls, context, rig, params, set_name):
@@ -533,9 +533,9 @@ class Component_Curve_Hooked(Component_Base):
 		return super().is_bone_set_used(context, rig, params, set_name)
 
 	@classmethod
-	def curve_selector_ui(cls, layout, params):
+	def curve_selector_ui(cls, layout, context, params):
 		"""Since this rig requires a curve object, draw with alert=True otherwise."""
-		curve_ob = target
+		curve_ob = params.curve.target
 		bad_curve = curve_ob==None or curve_ob.type!='CURVE'
 
 		icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
@@ -544,15 +544,16 @@ class Component_Curve_Hooked(Component_Base):
 	@classmethod
 	def draw_control_params(cls, layout, context, params):
 		"""Create the ui for the rig parameters."""
-		cls.curve_selector_ui(layout, params)
-		if target and len(target.data.splines) > 1:
+		curve_ob = params.curve.target
+		cls.curve_selector_ui(layout, context, params)
+		if curve_ob and len(curve_ob.data.splines) > 1:
 			cls.draw_prop(context, layout, params.curve, "root_per_spline")
 
 		cls.draw_prop(context, layout, params.curve, "hook_name")
 		cls.draw_prop(context, layout, params.curve, "inherit_scale")
 		cls.draw_prop(context, layout, params.curve, "x_axis_symmetry")
 		cls.draw_prop(context, layout, params.curve, "controls_for_handles")
-		if controls_for_handles:
+		if params.curve.controls_for_handles:
 			cls.draw_prop(context, layout, params.curve, "rotatable_handles")
 			cls.draw_prop(context, layout, params.curve, "separate_radius")
 

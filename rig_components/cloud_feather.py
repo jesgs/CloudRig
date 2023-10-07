@@ -43,7 +43,7 @@ class Component_Feather(Component_Chain_FK):
 			,custom_shape = self.ensure_widget("Line")
 			,use_custom_shape_bone_size = True
 		)
-		bend_ctr.bone_group = line.bone_group = self.bone_sets['Stretch Controls'].bone_group
+		bend_ctr.collections = line.collections = self.bone_sets['Stretch Controls'].collections
 		line.bbone_width *= 0.2
 		line.hide_select = True
 

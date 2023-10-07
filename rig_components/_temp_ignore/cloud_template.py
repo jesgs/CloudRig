@@ -30,10 +30,10 @@ class CloudTemplateRig(Component_Base):
 	##############################
 	# Parameters
 	@classmethod
-	def add_bone_set_parameters(cls, params):
+	def define_bone_sets(cls):
 		"""Create parameters for this rig's bone sets."""
-		super().add_bone_set_parameters(params)
-		cls.define_bone_set(params, 'Template Bones', preset=1,	default_layers=[cls.DEFAULT_LAYERS.IK_MAIN])
+		super().define_bone_sets()
+		cls.define_bone_set('Template Bones', color_palette='THEME02', collections=['IK Controls'])
 
 	@classmethod
 	def draw_control_params(cls, layout, context, params):

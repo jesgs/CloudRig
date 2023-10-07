@@ -75,12 +75,6 @@ class Component_CopyBone(Component_Base):
 					bone_info.constraint_infos.remove(con_info)
 			self.root_bone = constrained_parent
 
-	def finalize(self):
-		bi = self.bones_org[0]
-		pb = self.target_rig.pose.bones.get(bi.name)
-		pb.name = "ORG-"+self.orgless_name
-		pb.name = self.orgless_name
-
 	def create_custom_pivot(self, boneinfo, bone_set=None):
 		if not bone_set:
 			bone_set = boneinfo.bone_set
