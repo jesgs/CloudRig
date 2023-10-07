@@ -85,8 +85,9 @@ def relink_driver(metarig, rig, driver_info):
 			var_info['name'] = splits[0]
 			for i, t in enumerate(var_info['targets']):
 				var_info['targets'][i]['bone_target'] = splits[i+1]
-				if t['id'] == None or t['id'] == metarig:
-					t['id'] = rig
+		for i, t in enumerate(var_info['targets']):
+			if t['id'] == None or t['id'] == metarig:
+				t['id'] = rig
 
 def find_chain_of_pbone(pose_bone) -> List[bpy.types.PoseBone]:
 	if pose_bone.cloudrig_component.component_type:

@@ -197,7 +197,6 @@ class BoneInfo:
 		rig_ob = rig_component.target_rig
 		bone = rig_ob.data.bones.get(self._name)
 		if bone:
-			generator = rig_component.generator
 			bone.name = new_name
 		self._name = new_name
 
@@ -540,38 +539,38 @@ class BoneInfo:
 
 		# Constraints.
 		for ci in self.constraint_infos:
-			con = ci.make_real(pb)
+			con = ci.make_real(pose_bone)
 			for driver_info in ci.drivers:
-				driver_info['prop'] = f'pose.bones["{pb.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
+				driver_info['prop'] = f'pose.bones["{pose_bone.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
 				make_driver_safe(armature, target_id=armature, **driver_info)
 
 		# Custom Properties.
 		for prop_name, prop in self.custom_props.items():
 			if 'value' in prop:
-				pb[prop_name] = prop['value']
+				pose_bone[prop_name] = prop['value']
 				del prop['value']
 			else:
-				pb[prop_name] = prop['default']
+				pose_bone[prop_name] = prop['default']
 
 			if 'overridable' in prop:
-				pb.property_overridable_library_set(f'["{prop_name}"]', prop['overridable'])
+				pose_bone.property_overridable_library_set(f'["{prop_name}"]', prop['overridable'])
 				del prop['overridable']
 
 			for key, value in prop.items():
 				try:
-					pb.id_properties_ui(prop_name).update(**{key : value})
+					pose_bone.id_properties_ui(prop_name).update(**{key : value})
 				except TypeError:
 					# Python properties do not support UI data.
 					break
 
 		# Pose Bone Drivers.
 		for driver_info in self.drivers:
-			driver_info['prop'] = f'pose.bones["{pb.name}"]{fixed_path(driver_info["prop"])}'
+			driver_info['prop'] = f'pose.bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
 			make_driver_safe(armature, target_id=armature, **driver_info)
 
 		# Data Bone Drivers.
 		for driver_info in self.drivers_data:
-			driver_info['prop'] = f'bones["{pb.name}"]{fixed_path(driver_info["prop"])}'
+			driver_info['prop'] = f'bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
 			make_driver_safe(armature.data, target_id=armature, **driver_info)
 
 	def clone(self, new_name=None, bone_set=None):
@@ -649,7 +648,7 @@ class ConstraintInfo(dict):
 		if self.type not in ['SPLINE_IK', 'LIMIT_LOCATION', 'LIMIT_SCALE',
 							'LIMIT_ROTATION', 'SHRINKWRAP']:
 			if hasattr(self.bone_info, 'rig') and self.target in [None, self.bone_info.owner_component.generator.metarig]:
-				self.target = self.bone_info.rig_component.target_rig
+				self.target = self.bone_info.bone_set.rig_component.target_rig
 
 		# Constraints that support local space should default to local space.
 		support_local = ['COPY_LOCATION', 'COPY_SCALE', 'COPY_ROTATION', 'COPY_TRANSFORMS',

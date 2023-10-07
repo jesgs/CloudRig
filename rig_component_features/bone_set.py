@@ -14,8 +14,8 @@ from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_pro
 from ..generation.troubleshooting import raise_metarig_error
 
 def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
-    driver = fcurve.driver
     """Return a dictionary describing the driver."""
+    driver = fcurve.driver
     driver_info = {
         'type' : driver.type
         ,'variables' : []
@@ -163,7 +163,7 @@ class BoneSet(LinkedList):
 
         # Load Drivers.
         if rig_ob.animation_data:
-            driver_map = self.rig_ob.generator.driver_map
+            driver_map = self.rig_component.generator.driver_map
             if bone_info.name in driver_map:
                 for data_path, array_index in driver_map[bone_info.name]:
                     fcurve = rig_ob.animation_data.drivers.find(data_path, index=array_index)
@@ -179,7 +179,6 @@ class BoneSet(LinkedList):
                             constraint_info.drivers.append(driver_info)
                     else:
                         bone_info.drivers.append(driver_info)
-                    rig_ob.animation_data.drivers.remove(fcurve)
 
         # Load Custom Properties.
         if rna_idprop_has_properties(pose_bone):

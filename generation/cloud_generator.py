@@ -180,7 +180,6 @@ class CloudRig_Generator:
             self.parent_orphan_bones_to_root()
         self.create_real_bones()
         #------------------------------------------
-
         self.write_edit_bone_data()
         self.parent_orphan_bones_to_root()
 
@@ -191,30 +190,6 @@ class CloudRig_Generator:
         self.invoke_configure_bones()
 
         return
-
-        #------------------------------------------
-        self.invoke_preapply_bones()
-        t.tick("Preapply bones: ")
-
-        #------------------------------------------
-        bpy.ops.object.mode_set(mode='EDIT')
-
-        #------------------------------------------
-        bpy.ops.object.mode_set(mode='OBJECT')
-        self.invoke_rig_bones()
-        redraw_viewport()
-
-        self.invoke_apply_bones()
-        t.tick("Apply bones: ")
-        redraw_viewport()
-
-        #------------------------------------------
-        bpy.ops.object.mode_set(mode='OBJECT')
-        self.invoke_rig_bones()
-        redraw_viewport()
-
-        #------------------------------------------
-        self._Generator__restore_driver_vars()
 
         #------------------------------------------
         self.ensure_cloudrig_ui(obj)
