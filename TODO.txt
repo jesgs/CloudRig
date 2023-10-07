@@ -1,8 +1,6 @@
 Priority 0: Re-write as standalone add-on
 
 	- Re-write the Generator... (This is the bulk of the work, since if the Generator touches almost everything that CloudRig is.)
-		- Figure out why root bone is not spawning
-		- Make bone sets create collections
 		- Add UI/UX for multiple collections per bone set, and turn it into a CollectionProperty.
 		- Disable the Action system for now, then figure out how to hook into Rigify for it. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 

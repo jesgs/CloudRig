@@ -6,7 +6,7 @@ from bpy.types import Object, PropertyGroup
 from typing import List, Dict, Tuple
 
 from bone_selection_sets import from_json, to_json
-from mathutils import Matrix, Vector
+from mathutils import Matrix
 from datetime import datetime
 
 from rigify.utils.action_layers import ActionLayerBuilder
@@ -15,8 +15,7 @@ from rigify.utils.collections import ensure_collection
 
 from ..rig_component_features.widgets import widgets as cloud_widgets
 from ..rig_component_features.mechanism import get_object_scalar
-from ..rig_component_features.ui import redraw_viewport
-from ..rig_component_features.bone_set import BoneSet
+from ..rig_component_features.ui import redraw_viewport, get_addon_prefs
 from ..rig_component_features import mechanism
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
@@ -24,7 +23,6 @@ from .naming import CloudNameManager
 
 # from ..operators.assign_bone_layers import init_cloudrig_layers
 from ..utils.misc import check_addon, load_script
-from ..versioning import cloud_metarig_version
 from .cloudrig import ensure_custom_panels
 
 from ..rig_components.cloud_base import Component_Base
@@ -138,7 +136,7 @@ class CloudRig_Generator:
         print("Begin Generating CloudRig from metarig: " + metarig.name)
 
         metarig.data.name = "Data_" + self.metarig.name
-        self.params.version = cloud_metarig_version
+        self.params.version = get_addon_prefs(context).cloud_metarig_version
         self.driver_map = self.map_pbones_to_drivers(self.metarig)
 
         # If the previous generation failed, delete the failed rig.

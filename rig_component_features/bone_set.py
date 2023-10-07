@@ -11,7 +11,6 @@ from collections import OrderedDict
 from ..utils.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
-from ..generation.troubleshooting import raise_metarig_error
 
 def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
     """Return a dictionary describing the driver."""
@@ -106,11 +105,7 @@ class BoneSet(LinkedList):
         # If a BoneInfo with the passed name already exists, something is very wrong!
         bone_info = generator.find_bone_info(name)
         if bone_info:
-            raise_metarig_error(
-                generator.logger,
-                description_short = f'Bone name "{bone_info.name}" was used twice!',
-                description = "Make sure your bone names are unique and do not have trailing zeroes!",
-            )
+            return False
 
         if 'collections' not in kwargs:
             kwargs['collections'] = self.collections
@@ -133,6 +128,8 @@ class BoneSet(LinkedList):
         pose_bone = rig_ob.pose.bones.get(edit_bone.name)
         data_bone = pose_bone.bone
         bone_info = self.new(name=edit_bone.name)
+        if not bone_info:
+            return False
 
         sources = {
             pose_bone : pose_bone_properties
@@ -210,14 +207,12 @@ class BoneSet(LinkedList):
 
 class BoneSetMixin:
     """Class that provides bone set management to Component_Base."""
-    bone_set_defs: Dict[str, str] = OrderedDict()
 
-    def init_bone_set(self, bone_set_name):
+    def init_bone_set(self, bone_set_prop_name):
         """Take a bone set definition stored in the class and create a single BoneSet for it."""
-        rna_name = bone_set_name.lower().replace(" ", "_")
-        rna_bone_set = getattr(self.params.bone_sets, rna_name)
+        rna_bone_set = getattr(self.params.bone_sets, bone_set_prop_name)
         
-        assert rna_bone_set, f"Failed to create Bone Set {rna_name}. Couldn't find corresponding RNA bone set."
+        assert rna_bone_set, f"Failed to create Bone Set {bone_set_prop_name}. Couldn't find corresponding RNA bone set."
 
         new_set = BoneSet(self,
             ui_name = rna_bone_set.name,
@@ -231,9 +226,8 @@ class BoneSetMixin:
     def init_bone_sets(self):
         """Instantiate all bone sets based on the class's bone_set_defs dictionary."""
         bone_set_defs = type(self).bone_set_defs
-        for bone_set_name in bone_set_defs.keys():
-            ui_name = bone_set_name.replace("_", " ").title()
-            self.bone_sets[ui_name] = self.init_bone_set(bone_set_name)
+        for bone_set_prop_name, bone_set_def in bone_set_defs.items():
+            self.bone_sets[bone_set_def['ui_name']] = self.init_bone_set(bone_set_prop_name)
 
     ##############################
     # UI
@@ -245,16 +239,15 @@ class BoneSetMixin:
         active_pb = context.active_pose_bone
         if not active_pb.cloudrig_component.component_type:
             return
-        params = active_pb.cloudrig_component.params
 
-        if (
-            len(cloudrig.ui_bone_sets) == 0 or \
-            cloudrig.active_bone_set_idx > len(cloudrig.ui_bone_sets)
-        ):
+        component = active_pb.cloudrig_component
+        params = component.params
+
+        if not component.active_bone_set:
             layout.label(text="UI Bone Sets were not yet initialized. This should never happen!")
             return
 
-        active_ui_bone_set = cloudrig.ui_bone_sets[cloudrig.active_bone_set_idx]
+        active_ui_bone_set = component.active_ui_bone_set
         active_bone_set = getattr(params.bone_sets, active_ui_bone_set.name)
         if not active_bone_set:
             layout.label(text="Could not find Bone Set named " + active_ui_bone_set.name)
@@ -265,12 +258,13 @@ class BoneSetMixin:
             layout
             ,context
             ,class_name = 'CLOUDRIG_UL_bone_sets'
-            ,list_path = 'object.data.cloudrig.ui_bone_sets'
-            ,active_index_path = 'object.data.cloudrig.active_bone_set_idx'
+            ,list_path = f'object.pose.bones["{component.owner_bone_name}"].cloudrig_component.ui_bone_sets'
+            ,active_index_path = f'object.pose.bones["{component.owner_bone_name}"].cloudrig_component.bone_sets_active_index'
             ,insertion_operators = False
             ,move_operators = False
             ,type='GRID' if prefs.bone_set_use_grid_layout else 'DEFAULT'
             ,columns=3
+            ,unique_id="CloudRig Bone Sets"
         )
         eye_icon = 'HIDE_OFF' if prefs.bone_set_show_advanced else 'HIDE_ON'
         list_column.prop(prefs, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon)
@@ -309,10 +303,10 @@ class BoneSetMixin:
         #     layer_prop_name = set_info['collection_param']
         # )
 
-
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
         """Override in child classes to be able to check for unused bone sets based on current parameters."""
+        set_name = set_name.replace(" ", "_").lower()
         bone_set = getattr(params.bone_sets, set_name)
         if bone_set.is_advanced:
             prefs = get_addon_prefs(context)
@@ -334,8 +328,9 @@ class BoneSetMixin:
         my_pose_bone.cloudrig_component.bone_sets.fk_main.color_palette/collections.
         """
 
-        cls.bone_set_defs[ui_name] = {
-            'name'              : ui_name
+        prop_name = ui_name.replace(" ", "_").lower()
+        cls.bone_set_defs[prop_name] = {
+            'ui_name'              : ui_name
             ,'collections'      : collections or [ui_name]
             ,'color_palette'    : color_palette
             ,'is_advanced'      : is_advanced
@@ -346,19 +341,15 @@ class BoneSetMixin:
     def define_bone_sets(cls):
         # Each class should override this with their define_bone_set() calls.
         # As well as a super().define_bone_sets().
+
+        # This needs to be defined in a function, otherwise every class shares a single instance of this dict.
+        # We want each class to have its own instance, so they only store the bone sets they actually define.
+        cls.bone_set_defs: Dict[str, str] = OrderedDict()
         pass
 
 ##########################
 #### Bone Sets UIList ####
 ##########################
-class UIBoneSet(PropertyGroup):
-    """This class is to bridge the data between Blender's UI and the generator."""
-    # The reason we can't use this for the actual Bone Set class used during generation is that
-    # the properties of the bone set must be defined during registration, and CollectionProperties
-    # are not yet ready at that time. (They only become "real" after registration is complete.)
-    bone: StringProperty()
-    param_name: StringProperty(description="Name of the Rigify Parameter holding the bone group name")
-    collection_param: StringProperty(description="Name of the Rigify Parameter holding the bone layer BoolVectorProperty")
 
 class CLOUDRIG_UL_bone_sets(UIList):
     def draw_filter(self, context, layout):
@@ -374,46 +365,47 @@ class CLOUDRIG_UL_bone_sets(UIList):
         # Always sort alphabetical.
         flt_neworder = helper_funcs.sort_items_by_name(ui_bone_sets, "name")
 
+        # Filter by search string.
         if self.filter_name:
-            flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, ui_bone_sets, "pretty_name")
+            flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, ui_bone_sets, "ui_name")
 
         if not flt_flags:
             flt_flags = [self.bitflag_filter_item] * len(ui_bone_sets)
 
+        # Filter to only show bone sets that are relevant to this component type with the current settings.
         metarig = context.object
         prefs = get_addon_prefs(context)
-        component = context.active_pose_bone.cloudrig_component
+        component = metarig.data.cloudrig.active_component
         rig_class = component.rig_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
             if ui_bone_set.name not in rig_class.bone_set_defs:
                 flt_flags[idx] = 0
-            else:
-                bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
-                if not prefs.bone_set_show_advanced and bone_set.is_advanced:
-                    # Filter advanced bone sets when the user doesn't want to see them.
-                    flt_flags[idx] = 0
-                    continue
-                if not rig_class.is_bone_set_used(context, metarig, component.params, ui_bone_set.name):
-                    # Filter bone sets that are not used based on current parameters.
-                    flt_flags[idx] = 0
+            # else:
+            #     bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
+            #     if not prefs.bone_set_show_advanced and bone_set.is_advanced:
+            #         # Filter advanced bone sets when the user doesn't want to see them.
+            #         flt_flags[idx] = 0
+            #         continue
+            #     if not rig_class.is_bone_set_used(context, metarig, component.params, ui_bone_set.name):
+            #         # Filter bone sets that are not used based on current parameters.
+            #         flt_flags[idx] = 0
 
         return flt_flags, flt_neworder
 
     def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
         ui_bone_set = item
-        pretty_name = ui_bone_set.pretty_name
+
         # param_layers = getattr(pb.cloudrig_component.params, ui_bone_set.collection_param)
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             row = layout.row()
-            row.label(text=pretty_name)
+            row.label(text=ui_bone_set.ui_name)
             # layer_names = ", ".join([layer.name for i, layer in enumerate(rigify_layers) if param_layers[i]])
             # row.label(text=layer_names)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label(text=pretty_name)
+            layout.label(text=ui_bone_set.ui_name)
 
 registry = [
-    UIBoneSet
-    ,CLOUDRIG_UL_bone_sets
+    CLOUDRIG_UL_bone_sets
 ]

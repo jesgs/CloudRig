@@ -38,6 +38,11 @@ class CloudRigComponentTypeInfo(PropertyGroup):
 class CloudRigPreferences(AddonPreferences):
     bl_idname = __package__
 
+    # This should get a version bump whenever there is a change that affects metarigs.
+    # For example, changing names of rig types, splitting an old rig type into multiple,
+    # changing names of parameters, etc.
+    cloud_metarig_version = 1
+
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
     advanced_mode: BoolProperty(

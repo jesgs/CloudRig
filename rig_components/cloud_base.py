@@ -176,7 +176,11 @@ class Component_Base(
 			# if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already 
 			# exists on any other component of this metarig.
 			bone_info = self.bones_org.new_from_real(self.metarig, ebone)
-			# org_bi.layers = self.bones_org.layers[:] TODO 4.0 collections
+			if not bone_info:
+				self.raise_metarig_error(
+					description_short = f'Bone name "{bone_info.name}" was used twice!',
+					description = "Make sure your bone names are unique and do not have trailing zeroes!",
+				)
 			bone_info.bbone_width = ebone.bbone_x / self.scale
 			bone_infos[bone_info.name] = bone_info
 

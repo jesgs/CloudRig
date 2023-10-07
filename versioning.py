@@ -2,13 +2,8 @@ import bpy
 from bpy.types import Object
 from typing import Any
 from bpy.app.handlers import persistent
-from .rig_component_features.ui import is_cloud_metarig
+from .rig_component_features.ui import is_cloud_metarig, get_addon_prefs
 from .rig_component_features.object import set_enum_property_by_integer
-
-# This should get a version bump whenever there is a change that affects metarigs.
-# For example, changing names of rig types, splitting an old rig type into multiple,
-# changing names of parameters, etc.
-cloud_metarig_version = 1
 
 def update_enum_property(owner, old_key, new_key, int_value):
 	enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
@@ -51,8 +46,8 @@ def version_cloud_metarig(metarig):
 	# there's no way to guarantee correct versioning when changing the default value of a parameter.
 	# So, make really damn sure that default values are correct when first implementing them!
 
-	# Beginning of metarig versioning: 2020-07-22.
-	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig.metarig_version} -> {cloud_metarig_version}")
+	metarig_version = get_addon_prefs().cloud_metarig_version
+	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig.metarig_version} -> {metarig_version}")
 	if data.cloudrig.metarig_version < 1:
 		# No backwards compatibility with the version of CloudRig that used to be a Rigify feature set.
 		pass
@@ -60,17 +55,18 @@ def version_cloud_metarig(metarig):
 
 @persistent
 def update_all_metarigs(dummy):
+	metarig_version = get_addon_prefs().cloud_metarig_version
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
 	for metarig in cloud_metarigs:
-		if metarig.data.cloudrig.metarig_version == cloud_metarig_version:
+		if metarig.data.cloudrig.metarig_version == metarig_version:
 			continue
-		if metarig.data.cloudrig.metarig_version > cloud_metarig_version:
+		if metarig.data.cloudrig.metarig_version > metarig_version:
 			print(f"\tFound a metarig with a higher metarig version than the current: {metarig.name}")
 			print("\tIt must have been created with a newer version of CloudRig, and won't behave as expected.")
 			print("\tYou should update CloudRig!")
 			continue
 		version_cloud_metarig(metarig)
-		metarig.data.cloudrig.metarig_version = cloud_metarig_version
+		metarig.data.cloudrig.metarig_version = metarig_version
 
 def register():
 	bpy.app.handlers.load_post.append(update_all_metarigs)
