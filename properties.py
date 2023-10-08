@@ -19,7 +19,7 @@ def get_param_classes() -> Dict:
                 param_classes[module_name.replace("cloud_", "")] = module.Params
     return param_classes
 
-class GeneratedBone(PropertyGroup):
+class NameProperty(PropertyGroup):
     name: StringProperty()
 
 class BoneSet_ForUI(PropertyGroup):
@@ -76,10 +76,14 @@ class BoneSets(PropertyGroup):
                 description = "Name of this Bone Set in the UI. Defined by rig type implementation, should not be modified by user",    # Although it technically shouldn't break anything if user changes this name, it's not used for anything other than UI display.
                 default = bone_set_definition.get('ui_name')
             ),
-            'collection' : StringProperty(  # TODO 4.0 collections; This needs to be a CollectionProperty.
-                name = "Bone Collection",
-                description = "Name of the Bone Collection that bones in this Bone Set will be assigned to during generation",
-                default = str(bone_set_definition.get('collections')),
+            'collections' : CollectionProperty(  # TODO 4.0 collections; This needs to be a CollectionProperty.
+                name = "Bone Collections",
+                description = "Select a collection",
+                type = NameProperty
+            ),
+            'collections_active_index': IntProperty(
+                name = "Bone Set Collection Active Index",
+                description = "Name of the Bone Collections that bones in this Bone Set will be assigned to during generation",
             ),
             'color_palette' : EnumProperty(
                 name = "Color Palette",
@@ -98,7 +102,7 @@ class BoneSets(PropertyGroup):
             'generated_bones': CollectionProperty(  # TODO 4.0: Implement this, so bone sets store which bones they generated. Although, might be more useful to store this on the RigComponent instead, actually.
                 name = "Generated Bones",
                 description = "List of bone names generated in this Bone Set during the last time the target rig was generated",
-                type=GeneratedBone
+                type=NameProperty
             )
         }
 
@@ -311,7 +315,7 @@ class Properties_CloudRig(PropertyGroup):
         return index
 
 
-registry = [GeneratedBone] + list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [
+registry = [NameProperty] + list(get_param_classes().values()) + list(BoneSets.bone_set_property_groups.values()) + [
     BoneSet_ForUI,
     BoneSets,
     ComponentParams,

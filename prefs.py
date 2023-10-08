@@ -50,11 +50,6 @@ class CloudRigPreferences(AddonPreferences):
         description="Reveal advanced options in the Generator and Rig Component interfaces",
         default=False,
     )
-    bone_set_use_grid_layout: BoolProperty(
-        name="Use Grid Layout",
-        description="Switch the list display between a compact grid and a detailed list",
-        default=True,
-    )
     bone_set_show_advanced: BoolProperty(
         name="Show Internal Bone Sets",
         description="Reveal bone sets that are marked as internal, ie. mechanism bones. You would customize these much less frequently than the controls, which are exposed to animators",

@@ -2,7 +2,7 @@ from typing import Dict
 
 import bpy
 from bpy.props import StringProperty, BoolVectorProperty, BoolProperty, IntProperty
-from bpy.types import PropertyGroup, UIList, UI_UL_list
+from bpy.types import PropertyGroup, UIList, UI_UL_list, Operator
 from rna_prop_ui import rna_idprop_has_properties
 
 from mathutils import Vector, Matrix
@@ -216,8 +216,8 @@ class BoneSetMixin:
 
         new_set = BoneSet(self,
             ui_name = rna_bone_set.name,
-            # collection = "",  # TODO 4.0 collections
-            # color_palette = rna_bone_set.color_palette,
+            collections = rna_bone_set.collections,
+            color_palette = rna_bone_set.color_palette,
             defaults = self.defaults
         )
 
@@ -262,14 +262,11 @@ class BoneSetMixin:
             ,active_index_path = f'object.pose.bones["{component.owner_bone_name}"].cloudrig_component.bone_sets_active_index'
             ,insertion_operators = False
             ,move_operators = False
-            ,type='GRID' if prefs.bone_set_use_grid_layout else 'DEFAULT'
             ,columns=3
             ,unique_id="CloudRig Bone Sets"
         )
         eye_icon = 'HIDE_OFF' if prefs.bone_set_show_advanced else 'HIDE_ON'
         list_column.prop(prefs, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon)
-        layout_icon = 'MESH_GRID' if prefs.bone_set_use_grid_layout else 'COLLAPSEMENU'
-        list_column.prop(prefs, 'bone_set_use_grid_layout', text="", emboss=False, icon=layout_icon)
 
         if not any(CLOUDRIG_UL_bone_sets.flt_flags):
             layout.label(text="No bone sets to show. Clear the search filter or regenerate the rig.")
@@ -278,8 +275,23 @@ class BoneSetMixin:
             # If the active item is not visible
             return
 
-        layout.prop(active_bone_set, 'color_palette')
-        layout.prop(active_bone_set, 'collection')
+        box = layout.box()
+        box.label(text=f"Collections of {active_bone_set.ui_name}:")
+        row = box.row()
+        col = row.column()
+        col.template_list(
+            'CLOUDRIG_UL_bone_set_collections',
+            "CloudRig Bone Set Collections",
+            active_bone_set,
+            'collections',
+            active_bone_set,
+            'collections_active_index'
+        )
+        col = row.column()
+        col.operator('pose.cloudrig_bone_set_collection_add', icon='ADD', text="")
+        col.operator('pose.cloudrig_bone_set_collection_remove', icon='REMOVE', text="")
+        col.separator()
+        col.operator('pose.cloudrig_bone_set_collection_reset', icon='FILE_REFRESH', text="")
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
@@ -329,6 +341,15 @@ class BoneSetMixin:
 #### Bone Sets UIList ####
 ##########################
 
+class CLOUDRIG_UL_bone_set_collections(UIList):
+    def draw_item(self, context, layout, data, item, icon_value, active_data, active_propname):
+        collection = item
+        rig_ob = item.id_data
+
+        row = layout.row()
+        split = row.split(factor=0.85)
+        split.row().prop_search(collection, 'name', rig_ob.data, 'collections', icon='OUTLINER_COLLECTION', text="")
+
 class CLOUDRIG_UL_bone_sets(UIList):
     flt_flags = []
 
@@ -374,19 +395,58 @@ class CLOUDRIG_UL_bone_sets(UIList):
         type(self).flt_flags = flt_flags
         return flt_flags, flt_neworder
 
-    def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
+    def draw_item(self, context, layout, _data, item, _icon_value, _active_data, _active_propname):
         ui_bone_set = item
+        component = _data
+        bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
 
-        # param_layers = getattr(pb.cloudrig_component.params, ui_bone_set.collection_param)
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            row = layout.row()
-            row.label(text=ui_bone_set.ui_name)
-            # layer_names = ", ".join([layer.name for i, layer in enumerate(rigify_layers) if param_layers[i]])
-            # row.label(text=layer_names)
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label(text=ui_bone_set.ui_name)
+        row = layout.row()
+        row.label(text=ui_bone_set.ui_name)
+        row.prop(bone_set, 'color_palette', text="")
+
+class CLOUDRIG_OT_bone_set_collection_add(Operator):
+    """Add bone set collection"""
+    bl_idname = "pose.cloudrig_bone_set_collection_add"
+    bl_label = "Add Collection"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def execute(self, context):
+        context.active_pose_bone.cloudrig_component.active_bone_set.collections.add()
+        return {'FINISHED'}
+
+class CLOUDRIG_OT_bone_set_collection_remove(Operator):
+    """Remove bone set collection"""
+    bl_idname = "pose.cloudrig_bone_set_collection_remove"
+    bl_label = "Remove Collection"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def execute(self, context):
+        bone_set = context.active_pose_bone.cloudrig_component.active_bone_set
+        bone_set.collections.remove(bone_set.collections_active_index)
+        return {'FINISHED'}
+
+class CLOUDRIG_OT_bone_set_collection_reset(Operator):
+    """Remove bone set collection"""
+    bl_idname = "pose.cloudrig_bone_set_collection_reset"
+    bl_label = "Reset Collections"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def execute(self, context):
+        component = context.active_pose_bone.cloudrig_component
+        ui_bone_set = component.active_ui_bone_set
+        bone_set = component.active_bone_set
+        bone_set_definitions = component.rig_class.bone_set_defs
+        bone_set_definition = bone_set_definitions[ui_bone_set.name]
+        bone_set.collections.clear()
+        for default_coll in bone_set_definition['collections']:
+            coll_entry = bone_set.collections.add()
+            coll_entry.name = default_coll
+        return {'FINISHED'}
 
 registry = [
-    CLOUDRIG_UL_bone_sets
+    CLOUDRIG_UL_bone_sets,
+    CLOUDRIG_OT_bone_set_collection_add,
+    CLOUDRIG_OT_bone_set_collection_remove,
+    CLOUDRIG_OT_bone_set_collection_reset,
+    CLOUDRIG_UL_bone_set_collections
 ]
