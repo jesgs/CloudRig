@@ -1,6 +1,5 @@
 Priority 0: Re-write as standalone add-on
 	- Re-implement Rigify functionality
-		- Rig Samples (different UI)
 		- Collections UI customization (probably also different)
 		- Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
 		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
@@ -20,6 +19,7 @@ Priority 0: Re-write as standalone add-on
 	- Update Manual links
 
 	BELLS AND WHISTLES:
+	- User preference to hide Bone Collections and Rigify panels on CloudRig armatures.
 	- Don't version metarigs that are linked or overridden.
 	- Write a recursive lazy register thing that makes it so we can get rid of the modules = [] lists from our __init__.py's, using the recently discovered bpy.path.module_names() function!
 		- This would still require detecting dependencies and sorting the register list accordingly; CollectionProperties and PointerProperties depend on their type if it's a PropertyGroup, and Panels depend on their bl_parent_id. I'm not sure what else there might be.
@@ -31,6 +31,28 @@ Priority 0: Re-write as standalone add-on
 			- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
 			- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
+- Rig Samples UX
+	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
+	- This probably already exists, considering there is already an Add menu in armature edit mode in the header. Probably works the same way as the Object Add Armature menu.
+	- This will mean that rig samples aren't really coupled with rig types, and they essentially become identical to metarigs, which tbh seems reasonable.
+	- Should add the ability for users to add their own metarigs/samples. How?
+		- Move all our current blend files into a "resources" folder:
+			Resources
+				metarigs.blend
+				samples.blend
+				widgets
+					primitives.blend
+					complex_shapes.blend
+		- Then construct relevant manus procedurally, since we can't customize them by passing parameters to them, AFAIK.
+		- So, to construct the menus we add to the Object Add->Armature menu, we would os.walk the metarigs folder, and create a sub-menu for each .blend file and each subfolder... same as current Rigify.
+		- Do the same for samples, which will live in both armature edit mode's Add menu, as well as Object Add->Armature.
+		- Add a "Widgets" menu to the Object Add menu.
+
+		- Then, also read this folder structure from the user's presets/CloudRig folder.
+
+		- Add a "Store MetaRig" operator that pushes the active CloudRig MetaRig to presets/CloudRig/metarigs.blend.
+		- Add a "Store Sample" operator that pushes the selected edit bones to presets/CloudRig/samples.blend
+		- Add a "Store Widgets" operator that pushes the selected WGT- objects to presets/CloudRig/widgets.blend 
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
