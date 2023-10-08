@@ -187,29 +187,28 @@ class CloudRig_Generator:
         self.ensure_bone_collections(self.target_rig)
         self.write_pose_bone_data()
 
-        return
         #------------------------------------------
         self.ensure_cloudrig_ui(self.target_rig)
 
-        self.create_test_animation()
+        self.create_test_animation()    # TODO 4.0: Verify this works.
 
         self.execute_custom_script()
 
         old_rig = self.params.target_rig
         if old_rig:
-            self.replace_old_with_new_rig(old_rig, obj)
+            self.replace_old_with_new_rig(context, old_rig, self.target_rig)
         else:
-            obj.name = obj.name.replace("NEW-", "")
+            self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+        self.params.target_rig = self.target_rig
 
+        return
         if self.params.auto_setup_gizmos and self.use_gizmos:
             self.auto_initialize_gizmos()
-
-        self.params.target_rig = obj
 
         ensure_custom_panels(None, None)
 
         t.tick("The rest: ")
-        self.restore_rig_states()
+        self.restore_rig_states(context)
         self.log_minor_issues()
         t.tick("Cleanup & Troubleshoot: ")
         t.total()
@@ -615,16 +614,16 @@ class CloudRig_Generator:
             driver_map[bone_name].append((data_path, fc.array_index))
         return driver_map
 
-    def replace_old_with_new_rig(self, old_rig, new_rig):
+    def replace_old_with_new_rig(self, context, old_rig, new_rig):
         """Preserve useful user-inputted information from the previous rig,
         then delete it and remap users to the new rig."""
 
         # Save selection sets
         if self.do_sel_sets:
-            self.context.view_layer.objects.active = old_rig
+            context.view_layer.objects.active = old_rig
             for selset in old_rig.selection_sets:
                 selset.is_selected = True
-            selsets = to_json(self.context)
+            selsets = to_json(context)
 
         # Save Custom Gizmo settings
         if self.use_gizmos:
@@ -681,11 +680,11 @@ class CloudRig_Generator:
 
         # Select and make active the new rig
         new_rig.select_set(True)
-        self.context.view_layer.objects.active = new_rig
+        context.view_layer.objects.active = new_rig
 
         # Preserve selection sets of previous rig.
         if self.do_sel_sets:
-            from_json(self.context, selsets)
+            from_json(context, selsets)
 
     def execute_custom_script(self):
         """Execute a text datablock to be executed after rig generation."""
@@ -739,7 +738,7 @@ class CloudRig_Generator:
                 else:
                     bone_info.parent = ebone.parent.name
 
-    def restore_rig_states(self):
+    def restore_rig_states(self, context):
         """Restore transforms after generation has either failed or succeeded."""
         return
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -757,7 +756,7 @@ class CloudRig_Generator:
         # Refresh drivers
         refresh_all_drivers()
         refresh_constraints(self.target_rig)
-        self.context.view_layer.update()
+        context.view_layer.update()
 
     def log_minor_issues(self):
         self.logger.report_widgets(self.params.widget_collection)

@@ -2,7 +2,7 @@
 # really don't fit anywhere.
 
 import addon_utils
-import bpy
+import bpy, os
 from typing import Tuple
 import time
 
