@@ -68,7 +68,7 @@ class BoneSet(LinkedList):
     """
 
     def __init__(self, rig_component, ui_name="Bone Set",
-            collection="Collection", color_palette='DEFAULT',
+            collections=["Collection"], color_palette='DEFAULT',
             defaults = {}
         ):
         super().__init__()
@@ -82,7 +82,7 @@ class BoneSet(LinkedList):
         self.ui_name = ui_name
 
         # Collection to assign to newly defined BoneInfos.
-        self.collections = [collection] # TODO 4.0 This needs to be a list, and in turn a CollectionProperty...
+        self.collections = collections
 
         # Bone Group name to assign to newly defined BoneInfos.
         self.color_palette = color_palette
