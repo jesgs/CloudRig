@@ -111,8 +111,3 @@ class CloudEyelidRig(CloudFaceChainRig):
 
 class RigComponent(CloudEyelidRig):
 	pass
-
-from ..load_metarig import load_sample_by_file
-
-def create_sample(obj):
-	load_sample_by_file(__file__)

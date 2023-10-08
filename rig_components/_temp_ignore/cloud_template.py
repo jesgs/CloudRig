@@ -51,8 +51,3 @@ class Params(PropertyGroup):
 
 class RigComponent(CloudTemplateRig):
 	pass
-
-def create_sample(obj):
-	# For the rig sample to work, there must be an object in 
-	# CloudRig/metarigs/MetaRigs.blend called Sample_cloud_template.
-	load_sample_by_file(__file__)

@@ -246,8 +246,3 @@ class CloudJawRig(Component_CopyBone):
 # Uncomment the next two lines to make this rig show up in Blender.
 class RigComponent(CloudJawRig):
 	pass
-
-from ..load_metarig import load_sample_by_file
-
-def create_sample(obj):
-	load_sample_by_file(__file__)

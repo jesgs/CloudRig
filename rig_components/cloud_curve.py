@@ -599,10 +599,9 @@ class Params(PropertyGroup):
 class RigComponent(Component_Curve_Hooked):
 	pass
 
-from ..load_metarig import load_sample_by_file
 
 def create_sample(obj):
-	load_sample_by_file(__file__)
+	# load_sample_by_file(__file__)
 	# load_sample_by_file() does not deal with additional dependent objects,
 	# so we have to bring the curve object into the scene collection.
 	curve_ob = bpy.data.objects.get(("cloud_curve", None))
