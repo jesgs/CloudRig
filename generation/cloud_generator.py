@@ -339,7 +339,7 @@ class CloudRig_Generator:
         for bone_info in self.bone_infos:
             for collection_name in bone_info.collections:
                 if collection_name not in rig.data.collections:
-                    rig.data.   collections.new(collection_name)
+                    rig.data.collections.new(collection_name)
 
     def ensure_widget(self, widget_name):
         wgt = cloud_widgets.ensure_widget(

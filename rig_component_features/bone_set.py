@@ -216,7 +216,7 @@ class BoneSetMixin:
 
         new_set = BoneSet(self,
             ui_name = rna_bone_set.name,
-            collections = rna_bone_set.collections,
+            collections = [prop.name for prop in rna_bone_set.collections],
             color_palette = rna_bone_set.color_palette,
             defaults = self.defaults
         )
