@@ -4,7 +4,7 @@ from typing import List, Tuple
 import bpy
 from bpy.types import PropertyGroup
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
-from ..utils.generic_ui_list import draw_ui_list
+from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_active_pose_bone
 from ..rig_component_features.ui import draw_label_with_linebreak
 
