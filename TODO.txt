@@ -1,12 +1,9 @@
 Priority 0: Re-write as standalone add-on
-
-	- Re-write the Generator... (This is the bulk of the work, since if the Generator touches almost everything that CloudRig is.)
-		- Disable the Action system for now, then figure out how to hook into Rigify for it. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
-
 	- Re-implement Rigify functionality
 		- Rig Samples (different UI)
 		- Collections UI customization (probably also different)
 		- Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
+		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
 	- UI:
 		- Draw all UI without replacing any Rigify UI.

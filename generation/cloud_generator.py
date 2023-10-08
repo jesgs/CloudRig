@@ -43,7 +43,7 @@ class GeneratorProperties(PropertyGroup):
         ,default     = 'root'
     )
     properties_bone: StringProperty(
-        name         = "Properties Bonet"
+        name         = "Properties Bone"
         ,description = "Bone to use as the default custom property storage. Can be the same as the root bone. If it doesn't exist and is required, a bone named 'Properties' will be created on the metarig"
         ,default     = 'Properties'
     )
@@ -201,17 +201,13 @@ class CloudRig_Generator:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
         self.params.target_rig = self.target_rig
 
-        return
         if self.params.auto_setup_gizmos and self.use_gizmos:
             self.auto_initialize_gizmos()
 
         ensure_custom_panels(None, None)
 
-        t.tick("The rest: ")
         self.restore_rig_states(context)
         self.log_minor_issues()
-        t.tick("Cleanup & Troubleshoot: ")
-        t.total()
 
     def instantiate_rig_components(self) -> Dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
@@ -740,9 +736,8 @@ class CloudRig_Generator:
 
     def restore_rig_states(self, context):
         """Restore transforms after generation has either failed or succeeded."""
-        return
-        bpy.ops.object.mode_set(mode='OBJECT')
         self.metarig.data.pose_position = 'POSE'
+        self.target_rig.data.pose_position = 'POSE'
         if 'loc_bkp' in self.metarig:
             self.metarig.location = self.metarig['loc_bkp'].to_list()
             self.metarig.rotation_euler = self.metarig['rot_bkp'].to_list()
@@ -750,8 +745,6 @@ class CloudRig_Generator:
             del self.metarig['loc_bkp']
             del self.metarig['rot_bkp']
             del self.metarig['scale_bkp']
-        self.target_rig.data.pose_position = 'POSE'
-        self.metarig.data.use_mirror_x = self.bkp_x_mirror
 
         # Refresh drivers
         refresh_all_drivers()
@@ -763,6 +756,15 @@ class CloudRig_Generator:
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
         # self.logger.report_actions()
+
+def refresh_constraints(rig: Object):
+    for pb in rig.pose.bones:
+        for c in pb.constraints:
+            if hasattr(c, 'target'):
+                c.target = c.target
+            if c.type == 'ARMATURE':
+                for t in c.targets:
+                    t.target = t.target
 
 registry = [
     GeneratorProperties,

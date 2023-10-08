@@ -9,15 +9,6 @@ from ..generation.cloudrig import register_hotkey, is_active_cloud_metarig, is_a
 from ..generation.cloud_generator import CloudRig_Generator
 from ..generation.troubleshooting import CloudMetarigError
 
-def refresh_constraints(rig: Object):
-    for pb in rig.pose.bones:
-        for c in pb.constraints:
-            if hasattr(c, 'target'):
-                c.target = c.target
-            if c.type == 'ARMATURE':
-                for t in c.targets:
-                    t.target = t.target
-
 def is_single_cloud_metarig(context):
     """If there is only one CloudRig metarig in the scene, return it."""
     ret = None
@@ -113,7 +104,7 @@ class CLOUDRIG_OT_generate(Operator):
         try:
             generator.generate(context)
         except Exception as exception:
-            generator.restore_rig_states()
+            generator.restore_rig_states(context)
             generator.target_rig.name = "FAILED-" + generator.target_rig.name
             generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
             metarig['failed_rig'] = generator.target_rig
