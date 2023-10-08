@@ -22,10 +22,10 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 	bl_label = "Toggle Meta/Generated Rig"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	match_layers: BoolProperty(
-		name		 = "Match Layers"
+	match_collections: BoolProperty(
+		name		 = "Match Collections"
 		,default	 = True
-		,description = "Keep the active layer list between armatures when switching between them, as if they shared active layers"
+		,description = "Keep the same collections visible between armatures when switching between them"
 	)
 	match_selection: BoolProperty(
 		name		 = "Match Selection"
@@ -42,11 +42,11 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 		rig = context.active_object
 		metarig = None
 
-		if rig.data.rigify_target_rig:
+		if rig.data.cloudrig.generator.target_rig:
 			# If the active object is a metarig, switch to the generated rig.
 			metarig = rig
-			rig = metarig.data.rigify_target_rig
-			self.switch_rig_focus(context, metarig, rig, self.match_layers, self.match_selection)
+			rig = metarig.data.cloudrig.generator.target_rig
+			self.switch_rig_focus(context, metarig, rig, self.match_collections, self.match_selection)
 			return {'FINISHED'}
 
 		# Otherwise, try to find a metarig that references this rig
@@ -56,7 +56,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 			return {'CANCELLED'}
 
 		# Switch from the rig to the metarig
-		self.switch_rig_focus(context, rig, metarig, self.match_layers, self.match_selection)
+		self.switch_rig_focus(context, rig, metarig, self.match_collections, self.match_selection)
 		return {'FINISHED'}
 
 	def find_metarig_of_rig(self, context, rig: Object):
@@ -68,13 +68,13 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
 		for o in context.scene.objects:
 			if o.type != 'ARMATURE': continue
-			if o.data.rigify_target_rig == rig:
+			if o.data.cloudrig.generator.target_rig == rig:
 				return o
 
 	def switch_rig_focus(self, context,
 			from_arm: Object,
 			to_arm: Object,
-			match_layers = True,
+			match_collections = True,
 			match_selection = True
 		):
 		org_mode = from_arm.mode
@@ -91,8 +91,11 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 		to_arm.select_set(True)
 		bpy.ops.object.mode_set(mode=org_mode)
 
-		if match_layers:
-			to_arm.data.layers = from_arm.data.layers[:]
+		if match_collections:
+			for to_coll in to_arm.data.collections:
+				from_coll = from_arm.data.collections.get(to_coll.name)
+				if from_coll:
+					to_coll.is_visible = from_coll.is_visible
 
 		# When switching between the metarig and the generated rig,
 		# match the bone selection as much as possible, unless a lot of bones are selected.
