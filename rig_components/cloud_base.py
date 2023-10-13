@@ -106,7 +106,6 @@ class Component_Base(
 
 		bone_infos: List[BoneInfo] = []
 		for pbone in self.get_component_bone_chain():
-			print("PBONE: ", pbone)
 			ebone = metarig.data.edit_bones.get(pbone.name)
 			ebone.use_connect = False
 

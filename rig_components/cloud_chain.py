@@ -55,7 +55,7 @@ class Component_ToonChain(Component_Base):
 
 		self.make_def_chain(str_chain = self.str_chain)
 
-		self.connect_parent_chain_rig()
+		self.connect_parent_chain_component()
 
 	def sort_str_sections_into_chain(self
 			,str_sections: List[Tuple[BoneInfo, List[BoneInfo]]]
@@ -120,72 +120,73 @@ class Component_ToonChain(Component_Base):
 		"""Create the main stretch controls:
 		One for each ORG bone, plus optionally one more at the end of the chain."""
 		main_str_bones = []
-		if self.params.chain.tip_control:
-			# Temporarily create an extra ORG BoneInfo. TODO: I swear this is not so temporary?
-			last_org = org_chain[-1]
-			extra_org = org_chain.new(
-				name = last_org.name.replace("ORG", "ORG-TIP")
-				,source = last_org
-				,parent = last_org
-			)
-			extra_org.put(last_org.tail)
-			if self.is_cyclic:
-				self.org_chain[0].prev = extra_org
 
 		for i, org_bone in enumerate(org_chain):
-			main_str_bone = self.make_main_str_bone(org_bone, i)
+			main_str_bone = self.make_main_str_bone(org_chain, i)
 			main_str_bones.append(main_str_bone)
 
 		if self.params.chain.tip_control:
-			extra_org = org_chain[-1]
-			org_chain.remove(extra_org)
-			del extra_org
+			main_str_bones.append(self.make_main_str_bone(org_chain, i, at_tip=True))
 
 		return main_str_bones
 
 	def make_main_str_bone(self
-			,org_bone: BoneInfo
+			,org_chain: BoneInfo
 			,org_i: int
+			,at_tip = False
 		) -> BoneInfo:
 		"""Create and return a main STR control."""
+		org_bone = org_chain[org_i]
 		segments = self.params.chain.segments
 		direction = org_bone.vector
-		if org_bone.prev:
+		if not at_tip and org_bone.prev:
 			# Make bone parallel to line from previous bone's head to current bone's tail.
 			direction = (org_bone.tail - org_bone.prev.head).normalized()
 		if org_i == 0 and self.is_cyclic:
 			direction = (org_bone.tail - self.bones_org[-1].head).normalized()
 
-		str_name = org_bone.name.replace("ORG", "STR")
-		sliced = self.naming.slice_name(str_name)
+		str_name = self.naming.add_prefix(org_bone, 'STR')
 
 		# Add a 1 at the end unless there's only 1 segment.
 		num_segments = self.get_num_segments_of_section(org_bone)
+		if at_tip:
+			str_name = self.naming.increment_name(str_name)
 		if num_segments > 1:
-			sliced[1] += "1"
-		str_name = self.naming.make_name(*sliced)
+			sliced = self.naming.slice_name(str_name)
+			sliced[1] += "_1"
+			str_name = self.naming.make_name(*sliced)
 		main_str = self.bone_sets['Stretch Controls'].new(
 			name = str_name
 			,source = org_bone
 			,vector = direction
 			,roll = 0
-			,roll_type = 'ALIGN'
-			,roll_bone = org_bone.name
+			,roll_type = 'VECTOR'
+			,roll_vector = org_bone.z_axis.copy()
 			,length = org_bone.length / segments / 2
 			,custom_shape_scale = -0.6
 			,parent = org_bone
 			,inherit_scale = 'AVERAGE'
 		)
+		if at_tip:
+			main_str.put(org_bone.tail)
 
 		if not self.is_cyclic and org_i == 0:
 			main_str.custom_shape = self.ensure_widget('Sphere_Half')
-		elif org_bone == self.bones_org[-1] and self.params.chain.tip_control:
-			main_str.custom_shape = self.ensure_widget('Sphere_Half')
+		if at_tip:
 			main_str.custom_shape_scale_xyz *= -1
 		else:
 			main_str.custom_shape = self.ensure_widget("Sphere")
 
 		return main_str
+
+	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
+		"""
+		Return how many deform bones should be created for a given org_bone.
+		Child classes override this.
+		"""
+		if org_bone == self.bones_org[-1] and not self.params.chain.tip_control:
+			return 1
+		return self.params.chain.segments
 
 	def make_sub_str_sections(self
 			,main_str_bones: List[BoneInfo]
@@ -218,15 +219,6 @@ class Component_ToonChain(Component_Base):
 			main_start.sub_bones = section
 
 		return sections
-
-	def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
-		"""
-		Return how many deform bones should be created for a given org_bone.
-		Child classes may want to override this.
-		"""
-		if org_bone == self.bones_org[-1] and not self.params.chain.tip_control:
-			return 1
-		return self.params.chain.segments
 
 	def make_sub_str_section(self
 			,org_bone: BoneInfo
@@ -340,6 +332,11 @@ class Component_ToonChain(Component_Base):
 			name = self.naming.add_prefix(str_bone, "TAN")
 			,source = str_bone
 			,parent = str_bone.parent	# For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
+			,roll = 0
+			,roll_type = 'BONE'
+			,roll_bone = str_bone
+			,bbone_width = 1.5
+			,length = str_bone.length * 0.2
 		)
 
 		if smooth:
@@ -386,6 +383,9 @@ class Component_ToonChain(Component_Base):
 			else:
 				tail = str_bone.next.head
 			org_bone = str_bone.source
+			print("sauce:")
+			print(str_bone)
+			print(org_bone)
 
 			def_name = str_bone.name.replace("STR", "DEF")
 			def_bone = self.bones_def.new(
@@ -400,6 +400,7 @@ class Component_ToonChain(Component_Base):
 			parent = def_bone
 			if i == 0:
 				def_bone.add_constraint('COPY_LOCATION', subtarget = str_bone, space='WORLD')
+
 			self.def_bones_of_org[org_bone].append(def_bone)
 
 			if i == len(str_chain) - 1 and not self.is_cyclic:
@@ -408,7 +409,7 @@ class Component_ToonChain(Component_Base):
 				def_bone.inherit_scale = 'ALIGNED'		# TODO: In FK chain components, this last lonely deform bone should be parented to FK for good scaling behaviour.
 				continue
 
-			if self.params.CR_chain_unlock_deform:
+			if self.params.chain.unlock_deform:
 				self.make_def_control(str_bone, def_bone)
 
 			self.setup_deform_bone(
@@ -438,8 +439,8 @@ class Component_ToonChain(Component_Base):
 			)
 			def_bone.add_constraint('STRETCH_TO'
 				,subtarget = next_str_bone
-				,use_bulge_min = not self.params.CR_chain_preserve_volume
-				,use_bulge_max = not self.params.CR_chain_preserve_volume
+				,use_bulge_min = not self.params.chain.preserve_volume
+				,use_bulge_max = not self.params.chain.preserve_volume
 			)
 
 		# Set BBone Segments according to BBone Density param.
@@ -624,7 +625,7 @@ class Component_ToonChain(Component_Base):
 		)
 		return skh_bone
 
-	def connect_parent_chain_rig(self):
+	def connect_parent_chain_component(self):
 		"""Connect two separate but connected cloud_chain components.
 
 		If the parent rig is a connected chain rig with tip_control=False,
@@ -632,17 +633,17 @@ class Component_ToonChain(Component_Base):
 		"""
 
 		# Check if we can connect into the parent rig
-		parent_rig = self.rigify_parent
-		if not isinstance(parent_rig, Component_ToonChain): return
-		if parent_rig.params.chain.tip_control: return
+		parent_component = self.parent_component
+		if not isinstance(parent_component, Component_ToonChain): return
+		if parent_component.params.chain.tip_control: return
 		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bones_org[0]))
 		if not meta_org_bone.bone.use_connect: return
 
-		parent_rig.params.chain.tip_control = True
-		last_def = parent_rig.bones_def[-1]
-		last_str = parent_rig.str_chain[-1]
-		last_org = parent_rig.bones_org[-1]
-		parent_rig.setup_deform_bone(
+		parent_component.params.chain.tip_control = True
+		last_def = parent_component.bones_def[-1]
+		last_str = parent_component.str_chain[-1]
+		last_org = parent_component.bones_org[-1]
+		parent_component.setup_deform_bone(
 			def_bone = last_def
 			,org_bone = last_org
 			,str_bone = last_str
@@ -650,20 +651,20 @@ class Component_ToonChain(Component_Base):
 		)
 
 		# Set bbone ease according to parent rig's Sharp Sections param.
-		if parent_rig.params.chain.sharp:
-			parent_rig.bone_sets['Deform Bones'][-1].bbone_easeout = 0
+		if parent_component.params.chain.sharp:
+			parent_component.bone_sets['Deform Bones'][-1].bbone_easeout = 0
 			self.bone_sets['Deform Bones'][0].bbone_easein = 0
 
 		last_str.next = self.str_chain[0]
 		last_str.custom_shape = self.str_chain[0].custom_shape = self.ensure_widget('Sphere')
-		if self.params.chain.shape_key_helpers or parent_rig.params.chain.shape_key_helpers:
+		if self.params.chain.shape_key_helpers or parent_component.params.chain.shape_key_helpers:
 			self.make_shape_key_helper(last_def, self.bones_def[0])
 		if self.params.chain.smooth_spline:
-			self.tangent_helpers[0].constraint_infos[0].subtarget = parent_rig.str_chain[-1]
-		if parent_rig.params.chain.smooth_spline:
-			parent_rig.tangent_helpers[-1].constraint_infos[1].subtarget = self.str_chain[0]
-		if parent_rig.params.chain.unlock_deform:
-			parent_rig.make_def_control(last_str, last_def)
+			self.tangent_helpers[0].constraint_infos[0].subtarget = parent_component.str_chain[-1]
+		if parent_component.params.chain.smooth_spline:
+			parent_component.tangent_helpers[-1].constraint_infos[1].subtarget = self.str_chain[0]
+		if parent_component.params.chain.unlock_deform:
+			parent_component.make_def_control(last_str, last_def)
 
 	##############################
 	# Parameters
