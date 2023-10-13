@@ -272,7 +272,7 @@ class CloudRig_Generator:
 
         old_rig = self.params.target_rig
         if old_rig:
-            self.replace_old_with_new_rig(
+            replace_old_with_new_rig(
                 context, 
                 old_rig, 
                 self.target_rig, 
@@ -639,7 +639,7 @@ def map_pbones_to_drivers(armature_ob) -> Dict[str, Tuple[str, int]]:
         driver_map[bone_name].append((data_path, fc.array_index))
     return driver_map
 
-def replace_old_with_new_rig(context, old_rig, new_rig, preserve_sel_sets=True, preserve_bone_gizmos=True):
+def replace_old_with_new_rig(context, old_rig, new_rig, preserve_sel_sets=True, preserve_gizmos=True):
     """Preserve useful user-inputted information from the previous rig,
     then delete it and remap users to the new rig.
 
@@ -657,7 +657,7 @@ def replace_old_with_new_rig(context, old_rig, new_rig, preserve_sel_sets=True, 
         selsets = to_json(context)
 
     # Save Custom Gizmo settings
-    if preserve_bone_gizmos:
+    if preserve_gizmos:
         gizmo_properties_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py('BoneGizmoProperties')
         for old_pb in old_rig.pose.bones:
             new_pb = new_rig.pose.bones.get(old_pb.name)
@@ -842,35 +842,34 @@ class CLOUDRIG_OT_generate(Operator):
         generator = CloudRig_Generator(context, metarig)
         try:
             generator.generate(context)
-        except CloudGeneratorError as cloudrig_exc:
-            # A MetaRig error means the user didn't follow instructions correctly.
-            # This is the only kind of Exception that is not a bug in CloudRig.
-            self.report({'ERROR'}, cloudrig_exc.message)
-            return
         except Exception as exception:
-            if generator.custom_script_failure:
-                # The error occurred in the user's script.
-                # execute_custom_script() has already created the log entry for us,
-                # so we just want to keep raising the exception.
-                raise exc
-
-            # Any other exception type is a bug. 
-            # Let's invite the user to report the error they've encountered.
-            generator.logger.log_fatal_error(
-                "Execution Failed!",
-                description = "Execution failed unexpectedly. This should never happen!",
-                icon = 'URL',
-                note = str(exception),
-                operator = 'wm.cloudrig_report_bug',
-            )
-
-            self.report({'ERROR'}, f"A bug has occurred. You can report it through the Generation Log interface.\n{traceback.format_exc()}")
-
-        finally:
             generator.restore_rig_states(context)
             generator.target_rig.name = "FAILED-" + generator.target_rig.name
             generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
             metarig['failed_rig'] = generator.target_rig
+
+            if type(exception) == CloudGeneratorError:
+                # A MetaRig error means the user didn't follow instructions correctly.
+                # This is the only kind of Exception that is not a bug in CloudRig.
+                self.report({'ERROR'}, cloudrig_exc.message)
+            else:
+                if generator.custom_script_failure:
+                    # The error occurred in the user's script.
+                    # execute_custom_script() has already created the log entry for us,
+                    # so we just want to keep raising the exception.
+                    raise exc
+
+                # Any other exception type is a bug. 
+                # Let's invite the user to report the error they've encountered.
+                generator.logger.log_fatal_error(
+                    "Execution Failed!",
+                    description = "Execution failed unexpectedly. This should never happen!",
+                    icon = 'URL',
+                    note = str(exception),
+                    operator = 'wm.cloudrig_report_bug',
+                )
+
+                self.report({'ERROR'}, f"A bug has occurred. You can report it through the Generation Log interface.\n{traceback.format_exc()}")
 
         return generator_properties.target_rig
 

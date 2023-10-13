@@ -740,12 +740,12 @@ class ConstraintInfo(dict):
 				if isinstance(target_info['subtarget'], BoneInfo):
 					# Allow using BoneInfo instances, convert them to string here.
 					target_info['subtarget'] = target_info['subtarget'].name
-			target_pairs = [(t['target'], t['subtarget']) for t in con_info['targets']]
+			target_pairs = [(t['target'], str(t['subtarget'])) for t in con_info['targets']]
 		elif 'target' in con_info:
 			target_pairs = [[con_info['target'], ""]]
 
 		if 'subtarget' in con_info:
-			if isinstance(con_info['subtarget'], BoneInfo):
+			if hasattr(con_info['subtarget'], 'name'):
 				# Allow using BoneInfo instances, convert them to string here.
 				con_info['subtarget'] = con_info['subtarget'].name
 

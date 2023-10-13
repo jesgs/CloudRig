@@ -1,4 +1,6 @@
 Priority 0: Re-write as standalone add-on
+	Figure out the issue driving me fucking NUTS, where every class seems to get re-defined on reload, so type(boneinfo) != BoneInfo.
+
 	- Re-implement Rigify functionality
 		- Collections UI customization (probably also different)
 		- Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
