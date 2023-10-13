@@ -18,6 +18,7 @@ def load_component_modules(dir_path: str) -> Dict:
         if module_name.startswith("_") or module_filepath.endswith("__init__"):
             continue
         module = importlib.import_module(delta, __package__)
+        importlib.reload(module)
         if not hasattr(module, 'RigComponent'):
             continue
         component_modules[module_name] = module

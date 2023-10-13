@@ -46,7 +46,7 @@ class Component_Base(
 
 		self.parent_component = parent_instance
 		if parent_instance:
-			parent_component.child_components.append(self)
+			parent_instance.child_components.append(self)
 		self.child_components = []
 
 		self.initialize()	# TODO 4.0: __init__ and initialize() should probably be merged.
@@ -94,7 +94,7 @@ class Component_Base(
 		self.bones_def = self.bone_sets['Deform Bones']
 		self.bones_mch = self.bone_sets['Mechanism Bones']
 
-	def load_metarig_bone_infos(self, metarig: Object) -> List[BoneInfo]:
+	def load_metarig_bone_infos(self, metarig: Object) -> Dict[str, BoneInfo]:
 		"""Read ORG bones into BoneInfo instances in self.bones_org
 		which will be turned into real bones by the CloudRig generator.
 
@@ -104,7 +104,7 @@ class Component_Base(
 
 		assert metarig.type=='ARMATURE' and metarig.mode == 'EDIT', "Metarig must be an edit mode armature."
 
-		bone_infos: List[BoneInfo] = []
+		bone_infos = {}
 		for pbone in self.get_component_bone_chain():
 			ebone = metarig.data.edit_bones.get(pbone.name)
 			ebone.use_connect = False
@@ -141,7 +141,7 @@ class Component_Base(
 					description = "Make sure your bone names are unique and do not have trailing zeroes!",
 				)
 			bone_info.bbone_width = ebone.bbone_x / self.scale
-			bone_infos.append(bone_info)
+			bone_infos[bone_info.name] = bone_info
 
 		return bone_infos
 

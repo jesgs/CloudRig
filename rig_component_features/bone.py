@@ -160,7 +160,7 @@ class BoneInfo:
 			self.use_envelope_multiply = source.use_envelope_multiply
 			self.head_radius = source.head_radius
 			self.tail_radius = source.tail_radius
-			if type(source) == BoneInfo:
+			if type(source) == type(self):
 				self._source = source
 				self.roll_type = source.roll_type
 				self.roll_bone = source.roll_bone

@@ -383,9 +383,6 @@ class Component_ToonChain(Component_Base):
 			else:
 				tail = str_bone.next.head
 			org_bone = str_bone.source
-			print("sauce:")
-			print(str_bone)
-			print(org_bone)
 
 			def_name = str_bone.name.replace("STR", "DEF")
 			def_bone = self.bones_def.new(

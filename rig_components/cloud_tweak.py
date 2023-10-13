@@ -1,6 +1,8 @@
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup, Object
+from typing import Dict
 from .cloud_base import Component_Base
+from ..rig_component_features.bone import BoneInfo
 from ..rig_component_features.bone_set import BoneSet
 
 """TODO
@@ -17,12 +19,13 @@ class Component_TweakBone(Component_Base):
 	def initialize(self):
 		super().initialize()
 
-	def load_metarig_bone_infos(self, metarig: Object):
+	def load_metarig_bone_infos(self, metarig: Object) -> Dict[str, BoneInfo]:
 		bone_infos = super().load_metarig_bone_infos(metarig)
 		assert len(bone_infos) == 1
 
 		self.original_name = bone_infos[0].name
 		bone_infos[0].name += "_Tweak"
+		return bone_infos
 
 	def create_bone_infos(self, context):
 		super().create_bone_infos(context)
