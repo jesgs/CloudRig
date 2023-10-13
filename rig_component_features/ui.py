@@ -8,6 +8,8 @@ from .bone import BoneInfo
 import bpy, sys, os
 import json
 
+from ..generation.cloudrig import is_cloud_metarig
+
 class CloudUIMixin:
 	forced_params = dict()
 
@@ -55,13 +57,6 @@ def is_advanced_mode(context):
 	if not is_cloud_metarig(context.object):
 		return False
 	return get_addon_prefs(context).advanced_mode
-
-def is_cloud_metarig(rig: Object):
-	# TODO: This is duplicated in cloudrig.py. Should only exist there.
-	if not rig: return False
-	if not rig.type == 'ARMATURE':
-		return False
-	return rig.data.cloudrig.enabled
 
 def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 	""" Attempt to simulate a proper textbox by only displaying as many

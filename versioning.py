@@ -2,7 +2,8 @@ import bpy
 from bpy.types import Object
 from typing import Any
 from bpy.app.handlers import persistent
-from .rig_component_features.ui import is_cloud_metarig, get_addon_prefs
+from .generation.cloudrig import is_cloud_metarig
+from .rig_component_features.ui import get_addon_prefs
 from .rig_component_features.object import set_enum_property_by_integer
 
 def update_enum_property(owner, old_key, new_key, int_value):

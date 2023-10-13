@@ -6,8 +6,9 @@ import bpy, os, traceback, sys
 import json, webbrowser, time
 import struct, platform, io, urllib.parse, importlib
 
-from ..rig_component_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
+from ..rig_component_features.ui import draw_label_with_linebreak, is_advanced_mode
 from ..rig_component_features.object import get_object_hierarchy_recursive
+from ..generation.cloudrig import is_cloud_metarig
 
 """
 Fatal errors can happen in 3 ways:

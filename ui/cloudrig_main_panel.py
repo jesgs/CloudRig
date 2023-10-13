@@ -1,6 +1,7 @@
 from bpy.types import UILayout, Panel, Object
 
-from ..rig_component_features.ui import draw_label_with_linebreak, is_cloud_metarig
+from ..rig_component_features.ui import draw_label_with_linebreak
+from ..generation.cloudrig import is_cloud_metarig
 from ..utils.misc import is_blender_version_compatible, check_addon
 from ..rig_component_features.ui import get_addon_prefs
 
