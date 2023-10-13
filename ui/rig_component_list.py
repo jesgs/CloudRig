@@ -110,7 +110,7 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         selected_pb = rig.pose.bones[self.bone_name]
 
         selected_pb.cloudrig_component.component_type = self.component_type
-        selected_pb.cloudrig_component.owner_bone_name = selected_pb.name
+        selected_pb.cloudrig_component.base_bone_name = selected_pb.name
         rig.data.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
 
         # Need to re-draw UI, otherwise the changes don't always show up...

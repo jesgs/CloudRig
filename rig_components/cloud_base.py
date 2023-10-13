@@ -158,14 +158,14 @@ class Component_Base(
 					,op_kwargs = {'old_name' : pbone.name}
 				)
 			if self.naming.has_wrong_separator(pbone):
-				self.raise_metarig_error("Wrong separator"
+				self.raise_generation_error("Wrong separator"
 					,note = pbone.name
 					,description = f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be separated by a period(`.`)."
 					,operator = 'object.cloudrig_rename_bone'
 					,op_kwargs = {'old_name' : pbone.name}
 				)
 			if not self.naming.side_is_suffix(pbone):
-				self.raise_metarig_error("Side indicator must be suffix"
+				self.raise_generation_error("Side indicator must be suffix"
 					,note = pbone.name
 					,description = f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be at the end of the bone name."
 					,operator = 'object.cloudrig_rename_bone'
@@ -177,7 +177,7 @@ class Component_Base(
 			# exists on any other component of this metarig.
 			bone_info = self.bones_org.new_from_real(self.metarig, ebone)
 			if not bone_info:
-				self.raise_metarig_error(
+				self.raise_generation_error(
 					description_short = f'Bone name "{bone_info.name}" was used twice!',
 					description = "Make sure your bone names are unique and do not have trailing zeroes!",
 				)

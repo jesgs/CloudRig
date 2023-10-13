@@ -102,7 +102,7 @@ Priority 3: Changes that will affect metarigs
 	This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
 Priority 4: Code quality
 	Instantiation of rig classes shouldn't be necessary, I think, if we simply move all the generation functions to the RNA class that currently holds the parameters. The same class can just as well hold temporary arbitrary Py data like BoneInfo lists and etc.
-		Getting rid of owner_bone_name property would also be nice. Getting rid of a bunch of other properties like rig_class and instantiate() would probably also be possible.
+		Getting rid of base_bone_name property would also be nice. Getting rid of a bunch of other properties like rig_class and instantiate() would probably also be possible.
 	Widgets should only be loaded with ensure_widget() when a bone is actually created, instead of when its BoneInfo is defined.
 	write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo?
 		Alternatively, we could pass the generator, or the scalar if that's all we need, as an argument.

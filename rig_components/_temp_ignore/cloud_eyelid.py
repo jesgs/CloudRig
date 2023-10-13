@@ -9,7 +9,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 
 	def initialize(self):
 		if not self.rigify_parent or type(self.rigify_parent) != Component_Aim:
-			self.raise_metarig_error("Must have a cloud_aim parent bone!")
+			self.raise_generation_error("Must have a cloud_aim parent bone!")
 
 		super().initialize()
 
@@ -32,7 +32,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 		# Parent rig must be a cloud_aim type rig!
 		parent_rig = self.rigify_parent
 		if not isinstance(parent_rig, Component_Aim):
-			self.raise_metarig_error(f'Parent of eyelid rig MUST be a "cloud_aim" rig type, not "{type(parent_rig)}"!')
+			self.raise_generation_error(f'Parent of eyelid rig MUST be a "cloud_aim" rig type, not "{type(parent_rig)}"!')
 
 		sticky_prop_name = "sticky_eyelids_" + parent_rig.params.aim.group.lower().replace(" ", "_")
 		self.create_sticky_property(parent_rig, sticky_prop_name)

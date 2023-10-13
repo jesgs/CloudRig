@@ -16,7 +16,7 @@ Fatal errors can happen in 3 ways:
 	- User should see stack trace in both the pop-up and the Generation Log; The latter also provides a Report Bug button.
 - Post-generation script error: This is a bug in the code written by the user, see execute_custom_script().
 	- User should see a stack trace of only their script, both in the pop-up and the Generation Log.
-- Metarig Error: This is a mistake in the MetaRig's bone setup, raised via self.raise_metarig_error()
+- Metarig Error: This is a mistake in the MetaRig's bone setup, raised via self.raise_generation_error()
 	- User gets no stack trace unless they look at the Generation Log with Advanced Mode enabled.
 
 Common to all types:
@@ -32,31 +32,6 @@ TODO: Symmetry warnings:
 	- Symmetrically named and transformed components have asymmetrical constraints
 """
 
-class CloudMetarigError(Exception):
-	""" Exception raised for errors.
-	"""
-	def __init__(self, message):
-		self.message = message
-
-	def __str__(self):
-		return repr(self.message)
-
-def raise_metarig_error(logger
-		,description_short = "Metarig Error"
-		,description = ""
-		,**kwargs
-	):
-	"""For raising non-bug errors that should be fixable by the user.
-	"""
-
-	logger.log_fatal_error(
-		description_short
-		,description = description
-		,**kwargs
-	)
-
-	raise CloudMetarigError("Metarig Error: ", description)
-
 class LoggerMixin:
 	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
 	This class should come BEFORE BaseRig in the inheritance order.
@@ -68,13 +43,14 @@ class LoggerMixin:
 		):
 		self.generator.logger.log(
 			description_short, 
-			owner_bone = self.meta_base_bone.name,
+			base_bone_name = self.meta_base_bone.name,
 			**kwargs
 		)
 
-	def raise_metarig_error(self, **kwargs):
+	def raise_generation_error(self, **kwargs):
 		"""For raising non-bug errors that should be fixable by the user."""
-		raise_metarig_error(self.generator.logger, **kwargs)
+		kwargs['base_bone_name'] = self.base_bone_name
+		self.generator.raise_generation_error(**kwargs)
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.
@@ -221,7 +197,7 @@ class CloudLogManager:
 	def log(self
 			,description_short: str
 			,*
-			,owner_bone = ""
+			,base_bone_name = ""
 			,trouble_bone = ""
 			,description = "No description."
 			,display_stack_trace = 'NEVER'
@@ -236,9 +212,9 @@ class CloudLogManager:
 		"""
 		entry = self.metarig.data.cloudrig.generator.logs.add()
 		entry.pretty_stack = get_pretty_stack()
-		entry.owner_bone = owner_bone
+		entry.base_bone_name = base_bone_name
 		entry.trouble_bone = trouble_bone
-		entry.name = owner_bone + " " + trouble_bone + " " + description_short + " " + note + " " + description # For search.
+		entry.name = base_bone_name + " " + trouble_bone + " " + description_short + " " + note + " " + description # For search.
 		entry.description_short = description_short
 		entry.description = description
 		entry.display_stack_trace = display_stack_trace
@@ -248,11 +224,13 @@ class CloudLogManager:
 		entry.operator = operator
 		entry.op_kwargs = json.dumps(op_kwargs)
 		entry.op_text = op_text
+
 		return entry
 
 	def log_fatal_error(self
 			,description_short: str
 			,*
+			,wipe_log = True
 			,description = ""
 			,**kwargs
 		):
@@ -261,15 +239,14 @@ class CloudLogManager:
 		generation to halt.
 		Halting of the generation and raising the exception must be done by the caller.
 		"""
-		self.clear()
+		if wipe_log:
+			self.clear()
 		entry = self.log(
 			"(Fatal) " + description_short
 			,description = description or description_short
 			,display_stack_trace = 'ALWAYS'
 			,**kwargs
 		)
-
-		print(entry.pretty_stack)
 
 		return entry
 
@@ -296,12 +273,12 @@ class CloudLogManager:
 			if not driver.is_valid:
 				owner = owner_datablock or datablock
 
-				owner_bone = ""
+				base_bone_name = ""
 				trouble_bone = ""
 				if 'pose.bones' in fcurve.data_path:
 					bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
 					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.data.cloudrig.generator.target_rig == self.rig:
-						owner_bone = bone_name
+						base_bone_name = bone_name
 					elif datablock == self.rig:
 						trouble_bone = bone_name
 
@@ -310,7 +287,7 @@ class CloudLogManager:
 					,icon		  = 'DRIVER'
 					,note		  = owner.name
 					,note_icon	  = get_datablock_type_icon(datablock)
-					,owner_bone	  = owner_bone
+					,base_bone_name	  = base_bone_name
 					,trouble_bone = trouble_bone
 					,operator	  = 'screen.drivers_editor_show'
 				)
@@ -466,7 +443,7 @@ class CloudRigLogEntry(PropertyGroup):
 		,description = "Icon for this log entry"
 		,default = 'ERROR'
 	)
-	owner_bone: StringProperty(
+	base_bone_name: StringProperty(
 		name = "Rig Bone"
 		,description = "Name of the bone on the metarig which owns the rig that created this entry"
 		,default = ""
@@ -531,8 +508,8 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
 			row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
 			if log.note != "":
 				row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
-			elif log.owner_bone != "":
-				row.prop(log, 'owner_bone', text="", emboss=False, icon='BONE_DATA')
+			elif log.base_bone_name != "":
+				row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
 
 		elif self.layout_type in {'GRID'}:
 			layout.alignment = 'CENTER'
@@ -576,17 +553,17 @@ class CLOUDRIG_PT_log(Panel):
 
 		# It is optional for the log entry to provide a bone from the metarig, in case
 		# the log entry relates to a rigify type.
-		if log.owner_bone != "":
+		if log.base_bone_name != "":
 			split = layout.row().split(factor=0.3)
 			split.label(text="Rig Component:")
 			main_row = split.column().row(align=True)
 			row = main_row.row(align=True)
-			row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
+			row.prop_search(log, 'base_bone_name', metarig.data, 'bones', text="")
 			row.enabled = False
 			row = main_row.row(align=True)
 			op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
 			op.use_target_rig = False
-			op.target_bone = log.owner_bone
+			op.target_bone = log.base_bone_name
 
 		if log.trouble_bone != "":
 			split = layout.row().split(factor=0.3)

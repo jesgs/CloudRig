@@ -27,9 +27,9 @@ class Component_Curve_Hooked(Component_Base):
 	def initialize_curve_rig(self):
 		curve_ob = self.params.curve.target
 		if not curve_ob:
-			self.raise_metarig_error("Curve object not found!")
+			self.raise_generation_error("Curve object not found!")
 		if curve_ob.type != 'CURVE':
-			self.raise_metarig_error("Curve target must be a curve!")
+			self.raise_generation_error("Curve target must be a curve!")
 		self.num_controls = len(curve_ob.data.splines[0].bezier_points)
 
 		if not self.params.curve.controls_for_handles:
@@ -136,7 +136,7 @@ class Component_Curve_Hooked(Component_Base):
 			opp_point_path = opp_point.path_from_id()
 			point_name = ".".join(point_path.split(".")[0:])
 			opp_point_name = ".".join(opp_point_path.split(".")[0:])
-			self.raise_metarig_error("Curve is not symmetrical"
+			self.raise_generation_error("Curve is not symmetrical"
 				,note = f"Curve must be symmetrical."
 				,description = f'The nearest point to the X-axis flipped coordinate of point "{point_name} ({curve.path_resolve(point_path).co})" is point "{opp_point_name} (({curve.path_resolve(opp_point_path).co}))".\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis. If this message keeps popping up, you might be modifying a shape key instead of the base shape.'
 			)
@@ -393,11 +393,11 @@ class Component_Curve_Hooked(Component_Base):
 
 		curve_ob = self.params.curve.target
 		if not curve_ob:
-			self.raise_metarig_error("Curve object not found!")
+			self.raise_generation_error("Curve object not found!")
 		curve_visible = self.ensure_visible(curve_ob)
 
 		if not curve_ob.visible_get():
-			self.raise_metarig_error(f'Curve "{curve_ob.name}" could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?')
+			self.raise_generation_error(f'Curve "{curve_ob.name}" could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?')
 
 		for spline_i, hooks in enumerate(all_hooks):
 			self.setup_spline(curve_ob, spline_i, hooks)

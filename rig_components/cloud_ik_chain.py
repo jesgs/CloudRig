@@ -51,7 +51,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 	def create_bone_infos(self, context):
 		super().create_bone_infos(context)
 		if not len(self.bones_org) > 1:
-			self.raise_metarig_error(f"Must be a chain of at least 2 bones!")
+			self.raise_generation_error(f"Must be a chain of at least 2 bones!")
 
 		if not is_chain_flat(self.bones_org):
 			self.add_log(

@@ -6,7 +6,6 @@ from . import (
     flatten_chain,
     toggle_action_constraints,
     toggle_metarig,
-    generate,
 )
 
 modules = [
@@ -17,5 +16,4 @@ modules = [
     flatten_chain,
     toggle_action_constraints,
     toggle_metarig,
-    generate,
 ]

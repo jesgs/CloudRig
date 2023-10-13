@@ -103,9 +103,9 @@ class BoneSet(LinkedList):
         generator = self.rig_component.generator
 
         # If a BoneInfo with the passed name already exists, something is very wrong!
+        # This could be a bug, or not.
         bone_info = generator.find_bone_info(name)
-        if bone_info:
-            return False
+        self.rig_component.raise_generation_error(description=f"`{name}` was already defined. This could be a bug, but it could also be caused by bones not being named uniquely enough.")
 
         if 'collections' not in kwargs:
             kwargs['collections'] = self.collections
@@ -188,7 +188,7 @@ class BoneSet(LinkedList):
                 try:
                     prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
                 except TypeError:
-                    # This should only happen with python dictionaries, let's just ignore them for now.
+                    # This should only happen with python dictionaries, let's just ignore them for now. TODO.
                     prop_data = {'default': pose_bone[prop_name]}
 
                 value = pose_bone[prop_name]
@@ -258,8 +258,8 @@ class BoneSetMixin:
             layout
             ,context
             ,class_name = 'CLOUDRIG_UL_bone_sets'
-            ,list_path = f'object.pose.bones["{component.owner_bone_name}"].cloudrig_component.ui_bone_sets'
-            ,active_index_path = f'object.pose.bones["{component.owner_bone_name}"].cloudrig_component.bone_sets_active_index'
+            ,list_path = f'object.pose.bones["{component.base_bone_name}"].cloudrig_component.ui_bone_sets'
+            ,active_index_path = f'object.pose.bones["{component.base_bone_name}"].cloudrig_component.bone_sets_active_index'
             ,insertion_operators = False
             ,move_operators = False
             ,columns=3

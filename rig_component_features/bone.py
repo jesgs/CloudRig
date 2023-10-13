@@ -467,7 +467,7 @@ class BoneInfo:
 				# Make sure to set `self.roll = 0` if that's what you need.
 				align_bone = armature.data.edit_bones.get(str(self.roll_bone))
 				if not align_bone:
-					self.owner_component.raise_metarig_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
+					self.owner_component.raise_generation_error(f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}.")
 				else:
 					eb.align_roll(align_bone.z_axis)
 			elif self.roll_type == 'VECTOR':
@@ -559,7 +559,7 @@ class BoneInfo:
 				try:
 					pose_bone.id_properties_ui(prop_name).update(**{key : value})
 				except TypeError:
-					# Python properties do not support UI data.
+					# Python properties do not support UI data. TODO: I think they do as of 4.0.
 					break
 
 		# Pose Bone Drivers.
@@ -759,7 +759,7 @@ class ConstraintInfo(dict):
 			target, subtarget = target_pair
 			if (target and target.type=='ARMATURE') and (subtarget not in target.data.bones):
 				self.bone_info.owner_component.add_log("Invalid constraint target!"
-					,owner_bone   = self.bone_info.name
+					,base_bone_name   = self.bone_info.name
 					,trouble_bone = subtarget
 					,description  = f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget} in {target}.'
 				)

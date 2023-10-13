@@ -151,13 +151,13 @@ class RigComponent(PropertyGroup):
     Still, it is important to store it on the bone, so that when a bone is duplicated,
     this information is duplicated with it.
     """
-    owner_bone_name: StringProperty(
+    base_bone_name: StringProperty(
         name="Owner Bone",
         description="Name of the bone this RigComponent is on. This is updated by interacting with the list UI, since it can fall out of sync by bone renaming or bone duplication"
     )
     @property
     def owner_pose_bone(self):
-        return self.id_data.pose.bones.get(self.owner_bone_name)
+        return self.id_data.pose.bones.get(self.base_bone_name)
 
     @property
     def active_bone_set(self):
@@ -208,7 +208,7 @@ class RigComponent(PropertyGroup):
         return getattr(self.component_module, 'RigComponent')
 
     def instantiate(self, generator) -> 'RigComponent':
-        return self.rig_class(generator=generator, bone_name=self.owner_bone_name)
+        return self.rig_class(generator=generator, bone_name=self.base_bone_name)
 
     params: PointerProperty(type=ComponentParams)
     order: IntProperty(
@@ -225,7 +225,7 @@ class RigComponent(PropertyGroup):
     @property
     def parent(self):
         armature = self.id_data
-        this_bone = armature.pose.bones.get(self.owner_bone_name)
+        this_bone = armature.pose.bones.get(self.base_bone_name)
         bone_parent = this_bone.parent
         parent_component = None
         while bone_parent and not parent_component:
@@ -281,7 +281,7 @@ class Properties_CloudRig(PropertyGroup):
     def refresh_generation_order(self, metarig_ob):
         # Ensure each RigComponent is aware of which bone it's on.
         for pb in metarig_ob.pose.bones:
-            pb.cloudrig_component.owner_bone_name = pb.name
+            pb.cloudrig_component.base_bone_name = pb.name
 
         # Find bones that have no parents.
         parentless = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
