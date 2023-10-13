@@ -106,13 +106,14 @@ class CloudFaceChainRig(Component_ToonChain):
 
 		self.is_last_chain_rig = self == self.chain_rigs[-1]
 
-	def prepare_bones(self):
-		super().prepare_bones()
+	def create_bone_infos(self):
+		super().create_bone_infos()
 
-		### Following code is only run ONCE by the LAST face_chain_rig.
-		if not self.is_last_chain_rig:
-			return
+		if self.is_last_chain_rig:
+			# This will only run ONCE for the LAST cloud_face_chain.
+			self.setup_all_intersections()
 
+	def setup_all_intersections(self):
 		# This is ugly, but any STR controls with the Smooth Spline param need
 		# their tangent_helper to be parented to the intersection control's parent.
 		for intersection in self.intersection_bones:

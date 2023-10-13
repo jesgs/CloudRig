@@ -149,7 +149,7 @@ def get_pretty_stack() -> str:
 			after_generator = True
 		if not after_generator:
 			continue
-		if frame.name in ("log", "add_log", "log_fatal_error"):
+		if frame.name in ("log", "add_log", "log_fatal_error", "raise_generation_error"):
 			break
 
 		# Shorten the file name; All files are in blender's "scripts" folder, so

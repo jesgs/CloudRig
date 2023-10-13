@@ -11,7 +11,7 @@ from ..generation.naming import slice_name, make_name
 class CloudMechanismMixin:
 	"""Mixin class for rigging functions, using mostly the BoneInfo class."""
 
-	def get_bone_info(self, name):
+	def find_bone_info(self, name):
 		return self.generator.find_bone_info(name)
 
 	@staticmethod
@@ -46,6 +46,11 @@ class CloudMechanismMixin:
 	def meta_bone(self, bone_name):
 		""" Find and return a bone in the metarig. """
 		return self.generator.metarig.pose.bones.get(bone_name)
+
+	@property
+	def meta_base_bone(self):
+		"""Return pose bone in the metarig that has this rig type assigned."""
+		return self.meta_bone(self.base_bone_name)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)

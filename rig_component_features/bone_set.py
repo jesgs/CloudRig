@@ -105,7 +105,10 @@ class BoneSet(LinkedList):
         # If a BoneInfo with the passed name already exists, something is very wrong!
         # This could be a bug, or not.
         bone_info = generator.find_bone_info(name)
-        self.rig_component.raise_generation_error(description=f"`{name}` was already defined. This could be a bug, but it could also be caused by bones not being named uniquely enough.")
+        if bone_info:
+            self.rig_component.raise_generation_error(
+                description=f"`{name}` was already defined. This could be a bug, but it could also be caused by bones not being named uniquely enough."
+            )
 
         if 'collections' not in kwargs:
             kwargs['collections'] = self.collections
@@ -207,6 +210,12 @@ class BoneSet(LinkedList):
 
 class BoneSetMixin:
     """Class that provides bone set management to Component_Base."""
+
+    @property
+    def bone_infos(self):
+        for name, bone_set in self.bone_sets.items():
+            for bone_info in bone_set:
+                yield bone_info
 
     def init_bone_set(self, bone_set_prop_name):
         """Take a bone set definition stored in the class and create a single BoneSet for it."""

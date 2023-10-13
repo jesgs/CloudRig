@@ -495,7 +495,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
 		for org_bone in self.bones_org:
 			# Copy Transforms to IK bone
-			ik_bone = self.get_bone_info(org_bone.name.replace("ORG", "IK"))
+			ik_bone = self.find_bone_info(org_bone.name.replace("ORG", "IK"))
 			ct_ik = org_bone.add_constraint('COPY_TRANSFORMS'
 				,space		  = 'WORLD'
 				,subtarget	  = ik_bone.name

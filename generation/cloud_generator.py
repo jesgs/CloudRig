@@ -427,7 +427,7 @@ class CloudRig_Generator:
                 bone_infos += component.load_metarig_bone_infos(metarig)
 
         # Parent has to be stored in a separate loop, after all BoneInfos are loaded.
-        for bone_info in bone_infos.items():
+        for bone_info in bone_infos:
             ebone = metarig.data.edit_bones.get(bone_info.name)
             if ebone.parent:
                 parent_bone_info = bone_infos.get(ebone.parent.name)

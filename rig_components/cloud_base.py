@@ -51,12 +51,6 @@ class Component_Base(
 
 		self.initialize()	# TODO 4.0: __init__ and initialize() should probably be merged.
 
-	@property
-	def bone_infos(self):
-		for name, bone_set in self.bone_sets.items():
-			for bone_info in bone_set:
-				yield bone_info
-
 	def initialize(self):
 		"""First Rigify stage, called by the Generator.
 		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
@@ -85,7 +79,7 @@ class Component_Base(
 
 		self.scale = self.generator.scale
 
-		# Reference to the rig's own root bone which should be filled in during create_bone_infos()
+		# Reference to this component's root bone info which should be set in create_bone_infos()
 		# Used for the "Custom Root Parent" feature.
 		self.root_bone = None
 
@@ -100,43 +94,6 @@ class Component_Base(
 		self.bones_def = self.bone_sets['Deform Bones']
 		self.bones_mch = self.bone_sets['Mechanism Bones']
 
-	@property
-	def meta_base_bone(self):
-		"""Return pose bone in the metarig that has this rig type assigned."""
-		return self.meta_bone(self.base_bone_name.replace("ORG-", ""))
-
-	def force_parameters(self, meta_base_bone, params):
-		"""Allows the class to force certain parameter values for its instances."""
-		clas = type(self)
-		for param in clas.forced_params.keys():
-			forced_value = clas.forced_params[param]
-			if forced_value != 'NOFORCE':
-				meta_base_bone.cloudrig_component.params[param] = forced_value
-				setattr(params, param, forced_value)
-
-	def prepare_bones(self):
-		"""Second Rigify stage, called by the generator.
-		https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
-		"""
-		self.create_bone_infos()
-
-	def create_bone_infos(self, context):
-		self.root_bone = self.bones_org[0]
-
-	def create_component_interactions(self):
-		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.parenting.parent_switching
-		if not skip_root_parenting and self.params.parenting.root_parent != "":
-			self.apply_custom_root_parent()
-		if self.params.parenting.parent_switching:
-			self.apply_parent_switching(self.params.parenting.parent_slots)
-		self.relink()
-		self.add_gizmo_interactions()
-
-	def relink(self):
-		# Relink the base bone.
-		bi = self.root_bone
-		bi.relink()
-
 	def load_metarig_bone_infos(self, metarig: Object) -> List[BoneInfo]:
 		"""Read ORG bones into BoneInfo instances in self.bones_org
 		which will be turned into real bones by the CloudRig generator.
@@ -147,8 +104,9 @@ class Component_Base(
 
 		assert metarig.type=='ARMATURE' and metarig.mode == 'EDIT', "Metarig must be an edit mode armature."
 
-		bone_infos: List[BoneInfo] = {}
+		bone_infos: List[BoneInfo] = []
 		for pbone in self.get_component_bone_chain():
+			print("PBONE: ", pbone)
 			ebone = metarig.data.edit_bones.get(pbone.name)
 			ebone.use_connect = False
 
@@ -187,14 +145,42 @@ class Component_Base(
 			bone_infos.append(bone_info)
 
 		return bone_infos
-	
+
+	### Functions called by the CloudRig Generator.
+	def create_bone_infos(self, context):
+		self.root_bone = self.bones_org[0]
+
+	def create_component_interactions(self):
+		skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.parenting.parent_switching
+		if not skip_root_parenting and self.params.parenting.root_parent != "":
+			self.apply_custom_root_parent()
+		if self.params.parenting.parent_switching:
+			self.apply_parent_switching(self.params.parenting.parent_slots)
+		self.relink()
+		self.add_gizmo_interactions()
+
 	def create_helper_objects(self, context):
 		# Called by the generator. Subclasses can use this to create 
 		# helpers like curves, empties, lattices.
 		pass
 
+	# Other functions
+	def relink(self):
+		# Relink the base bone.
+		bi = self.root_bone
+		bi.relink()
+
 	##############################
 	# Parameters
+	
+	def force_parameters(self, meta_base_bone, params):
+		"""Allows the class to force certain parameter values for its instances."""
+		clas = type(self)
+		for param in clas.forced_params.keys():
+			forced_value = clas.forced_params[param]
+			if forced_value != 'NOFORCE':
+				meta_base_bone.cloudrig_component.params[param] = forced_value
+				setattr(params, param, forced_value)
 
 	@classmethod
 	def define_bone_sets(cls):
