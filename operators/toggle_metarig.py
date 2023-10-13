@@ -11,7 +11,7 @@ from ..generation.cloudrig import register_hotkey
 # This operator should only hide/unhide the objects with the eye icon.
 # If the objects are not visible when the eye icon is disabled, the operator should fail gracefully.
 
-# Also in the case of either switch, match the armature layers.
+# Also in the case of either switch, match the armature collection visibilities.
 
 PREFIX_PRIORITY = ['FK', 'IK', 'DEF', 'STR', 'ORG']
 
@@ -141,7 +141,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 			armature: Armature,
 			bone_name: str
 		) -> Bone:
-		bone_is_visible = lambda b: not b.hide and any([b.layers[i] == armature.layers[i]==True for i in range(32)])
+		bone_is_visible = lambda b: not b.hide and any([coll.is_visible for coll in b.collections])
 		names_match = lambda a, b: a in b or b in a
 
 		if bone_name in armature.bones and bone_is_visible(armature.bones[bone_name]):

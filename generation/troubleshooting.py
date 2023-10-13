@@ -48,10 +48,10 @@ class LoggerMixin:
 			**kwargs
 		)
 
-	def raise_generation_error(self, **kwargs):
+	def raise_generation_error(self, description, **kwargs):
 		"""For raising non-bug errors that should be fixable by the user."""
 		kwargs['base_bone_name'] = self.base_bone_name
-		self.generator.raise_generation_error(**kwargs)
+		self.generator.raise_generation_error(description=description, **kwargs)
 
 def cloudrig_last_modified() -> str:
 	"""Return the date at which the most recent CloudRig .py file was modified.

@@ -845,7 +845,6 @@ class CLOUDRIG_OT_generate(Operator):
         except CloudGeneratorError as cloudrig_exc:
             # A MetaRig error means the user didn't follow instructions correctly.
             # This is the only kind of Exception that is not a bug in CloudRig.
-            _exc_type, _exc_value, exc_traceback = sys.exc_info()
             self.report({'ERROR'}, cloudrig_exc.message)
             return
         except Exception as exception:
@@ -865,7 +864,6 @@ class CLOUDRIG_OT_generate(Operator):
                 operator = 'wm.cloudrig_report_bug',
             )
 
-            exc_traceback = sys.exc_info()
             self.report({'ERROR'}, f"A bug has occurred. You can report it through the Generation Log interface.\n{traceback.format_exc()}")
 
         finally:

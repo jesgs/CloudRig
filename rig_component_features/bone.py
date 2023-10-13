@@ -172,7 +172,7 @@ class BoneInfo:
 				self.bbone_x = source.bbone_x
 				self.bbone_z = source.bbone_z
 				if source.parent:
-					self.parent = source.parent.name	# TODO: The correct way to do this would be to load bones either in a hierarchical order, or to loop through them twice. Then we would no longer have to support strings as parents, and always use BoneInfo references.
+					self.parent = source.parent.name
 
 		# Apply property values from arbitrary keyword arguments if any were passed.
 		for key, value in kwargs.items():
@@ -516,12 +516,12 @@ class BoneInfo:
 		bone.color.palette = self.color_palette_base
 		pose_bone.color.palette = self.color_palette_pose
 
-		if bone.name.startswith("DEF") and not b.use_deform:
+		if bone.name.startswith("DEF") and not bone.use_deform:
 			self.bone_set.rig_component.add_log("Non-deforming DEF bone"
 				,trouble_bone = self.name
 				,description = f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. This bone will not be keyframed by the "Whole Character" keying set!'
 				,operator = 'object.cloudrig_rename_bone'
-				,op_kwargs = {'old_name': b.name}
+				,op_kwargs = {'old_name': bone.name}
 			)
 
 		def fixed_path(data_path):

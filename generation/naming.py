@@ -338,7 +338,7 @@ def increment_name(name: str, increment=1, default_zfill=1) -> str:
 	numbers_in_name = re.findall(r'\d+', name)
 	if not numbers_in_name:
 		prefixes, base, suffixes = slice_name(name)
-		base += str(max(0, increment).zfill(default_zfill))
+		base += str(max(0, increment)).zfill(default_zfill)
 		return make_name(prefixes, base, suffixes)
 
 	last = numbers_in_name[-1]
