@@ -41,7 +41,7 @@ def is_cloud_metarig(rig: Object):
 	return rig.data.cloudrig.enabled
 
 def is_active_cloud_metarig(context):
-	return is_cloud_metarig(context.object)
+	return is_cloud_metarig(context.active_object)
 
 #######################################
 ###### Keyframe baking framework ######

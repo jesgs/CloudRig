@@ -207,8 +207,8 @@ class RigComponent(PropertyGroup):
             return
         return getattr(self.component_module, 'RigComponent')
 
-    def instantiate(self, generator) -> 'RigComponent':
-        return self.rig_class(generator=generator, bone_name=self.base_bone_name)
+    def instantiate(self, generator, parent_instance=None) -> 'RigComponent':
+        return self.rig_class(generator=generator, bone_name=self.base_bone_name, parent_instance=parent_instance)
 
     params: PointerProperty(type=ComponentParams)
     order: IntProperty(

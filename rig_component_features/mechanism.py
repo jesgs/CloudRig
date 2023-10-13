@@ -24,10 +24,6 @@ class CloudMechanismMixin:
 		pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
 		return get_component_bone_chain(pose_bone, connected)
 
-	@staticmethod
-	def get_object_scalar(obj):
-		return get_object_scalar(obj)
-
 	def ensure_widget(self, name):
 		return self.generator.ensure_widget(name)
 
@@ -63,12 +59,6 @@ class CloudMechanismMixin:
 			to_bone.drivers.append(d)
 			from_bone.drivers.remove(d)
 			self.relink_driver(d)
-
-def get_object_scalar(obj):
-	"""Return a value that can be used all across CloudRig for calculating sizes
-	and distances in a rig-size-agnostic way.
-	obj is usually the Metarig."""
-	return max(obj.dimensions) / 10
 
 def relink_driver(metarig, rig, driver_info):
 	"""Adjust drivers read from the metarig according to some conventions:

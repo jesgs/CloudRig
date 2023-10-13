@@ -53,8 +53,15 @@ class CloudObjectUtilitiesMixin:
 	def ensure_visible(obj) -> EnsureVisible:
 		return EnsureVisible(obj)
 
-	def add_to_widget_collection(self, context, obj):
-		self.generator.add_to_widget_collection(context, obj)
+	def add_to_widget_collection(self, context, widget_ob):
+		generator = self.generator
+		if not generator.params.widget_collection:
+			return
+		if widget_ob.name not in generator.params.widget_collection.objects:
+			generator.params.widget_collection.objects.link(widget_ob)
+		if widget_ob.name in context.scene.collection.objects:
+			# Nobody should store widget objects at the scene root.
+			context.scene.collection.objects.unlink(widget_ob)
 
 def lock_transforms(obj, loc=True, rot=True, scale=True):
 	if type(loc) in (list, tuple):
