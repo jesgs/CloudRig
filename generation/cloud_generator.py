@@ -341,6 +341,7 @@ class CloudRig_Generator:
         bpy.ops.object.mode_set(mode='EDIT')
 
         pose_bone = metarig.pose.bones[name]
+        pose_bone.rotation_mode = 'XYZ'
         pose_bone.cloudrig_component.component_type = 'Copy Bone'
         pose_bone.custom_shape = self.ensure_widget("Root")
 

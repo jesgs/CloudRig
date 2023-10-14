@@ -169,13 +169,13 @@ class Component_ToonChain(Component_Base):
 		)
 		if at_tip:
 			main_str.put(org_bone.tail)
+			main_str.custom_shape_scale_xyz *= -1
 
 		if not self.is_cyclic and org_i == 0:
 			main_str.custom_shape = self.ensure_widget('Sphere_Half')
-		if at_tip:
-			main_str.custom_shape_scale_xyz *= -1
 		else:
 			main_str.custom_shape = self.ensure_widget("Sphere")
+
 
 		return main_str
 
