@@ -57,7 +57,7 @@ class CloudCustomPropertiesMixin:
 			,custom_shape = self.ensure_widget("Cogwheel_Y")
 			,use_custom_shape_bone_size = True
 		)
-		properties_bone.layers = self.meta_base_bone.bone.layers[:]
+		properties_bone.layers = self.metarig_base_pbone.bone.layers[:]
 		return properties_bone
 
 	@classmethod

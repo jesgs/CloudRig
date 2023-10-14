@@ -44,7 +44,7 @@ class LoggerMixin:
 		):
 		self.generator.logger.log(
 			description_short, 
-			base_bone_name = self.meta_base_bone.name,
+			base_bone_name = self.metarig_base_pbone.name,
 			**kwargs
 		)
 

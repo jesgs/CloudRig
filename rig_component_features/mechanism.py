@@ -43,14 +43,14 @@ class CloudMechanismMixin:
 		)
 		return def_bone
 
-	def meta_bone(self, bone_name):
+	def get_metarig_pbone(self, bone_name):
 		""" Find and return a bone in the metarig. """
 		return self.generator.metarig.pose.bones.get(bone_name)
 
 	@property
-	def meta_base_bone(self):
+	def metarig_base_pbone(self):
 		"""Return pose bone in the metarig that has this rig type assigned."""
-		return self.meta_bone(self.base_bone_name)
+		return self.get_metarig_pbone(self.base_bone_name)
 
 	def vector_along_bone_chain(self, chain, length=0, index=-1):
 		return vector_along_bone_chain(chain, length, index)

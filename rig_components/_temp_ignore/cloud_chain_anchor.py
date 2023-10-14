@@ -13,7 +13,7 @@ class CloudChainAnchorRig(Component_CopyBone):
 	def create_bone_infos(self, context):
 		super().create_bone_infos(context)
 		bi = self.bones_org[0]
-		meta_bone = self.meta_bone(bi.name)
+		meta_bone = self.get_metarig_pbone(bi.name)
 
 		if not meta_bone.custom_shape:
 			bi.custom_shape = self.ensure_widget('Cube')

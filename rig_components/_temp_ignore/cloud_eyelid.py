@@ -69,7 +69,7 @@ class CloudEyelidRig(CloudFaceChainRig):
 			eyelid_width = (self.bones_org[0].head - self.bones_org[-1].tail).length * 0.55
 
 			# Reject the ROT bone tail onto the eye bone Z axis
-			rejection_z = project_vector_on_plane(rot_ctr.vector, parent_rig.meta_base_bone.z_axis)
+			rejection_z = project_vector_on_plane(rot_ctr.vector, parent_rig.metarig_base_pbone.z_axis)
 			# Take the distance between that and the base bone's vector
 			# to determine the constraints' influence.
 			distance = (eye_bone.vector - rejection_z).length

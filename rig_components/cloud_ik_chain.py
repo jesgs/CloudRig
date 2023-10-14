@@ -58,7 +58,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 				"IK chain is not flat"
 				,description = f'For correct IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls recalculated along a consistent axis (eg. Global X).'
 				,operator = 'armature.flatten_chain'
-				,op_kwargs = {'remove_log' : True, 'start_bone' : self.meta_base_bone.name}
+				,op_kwargs = {'remove_log' : True, 'start_bone' : self.metarig_base_pbone.name}
 			)
 
 		self.last_org = self.bones_org[-1]
@@ -213,10 +213,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
 	def calculate_ik_info(self):
 		""" Calculate pole angle, pole control direction and distance. """
 		meta_first_name = self.bones_org[0].name.replace("ORG-", "")
-		meta_first = self.meta_bone(meta_first_name)
+		meta_first = self.get_metarig_pbone(meta_first_name)
 
 		meta_second_name = self.bones_org[1].name.replace("ORG-", "")
-		meta_second = self.meta_bone(meta_second_name)
+		meta_second = self.get_metarig_pbone(meta_second_name)
 
 		pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(meta_first, meta_second)
 		self.pole_angle = pole_angle

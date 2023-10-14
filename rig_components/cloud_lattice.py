@@ -129,7 +129,7 @@ class Component_Lattice(Component_Base):
 				if component.cloudrig_component.params.lattice.lattice == self.params.lattice.lattice and self.params.lattice.lattice != None:
 					self.raise_generation_error("Lattice shared by multiple components",
 						operator = 'object.cloudrig_clear_pointer_param',
-						op_kwargs = {'bone_name': self.meta_base_bone.name, 'param_name': 'lattice.lattice'}
+						op_kwargs = {'bone_name': self.metarig_base_pbone.name, 'param_name': 'lattice.lattice'}
 					)
 
 	##############################

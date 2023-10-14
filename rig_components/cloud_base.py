@@ -83,7 +83,7 @@ class Component_Base(
 		# Used for the "Custom Root Parent" feature.
 		self.root_bone = None
 
-		self.force_parameters(self.meta_base_bone, self.params)
+		self.force_parameters(self.metarig_base_pbone, self.params)
 
 		# Prepare Bone Sets
 		self.bone_sets = dict()
@@ -172,13 +172,13 @@ class Component_Base(
 	##############################
 	# Parameters
 	
-	def force_parameters(self, meta_base_bone, params):
+	def force_parameters(self, metarig_base_pbone, params):
 		"""Allows the class to force certain parameter values for its instances."""
 		clas = type(self)
 		for param in clas.forced_params.keys():
 			forced_value = clas.forced_params[param]
 			if forced_value != 'NOFORCE':
-				meta_base_bone.cloudrig_component.params[param] = forced_value
+				metarig_base_pbone.cloudrig_component.params[param] = forced_value
 				setattr(params, param, forced_value)
 
 	@classmethod

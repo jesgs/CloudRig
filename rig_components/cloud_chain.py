@@ -633,7 +633,7 @@ class Component_ToonChain(Component_Base):
 		parent_component = self.parent_component
 		if not isinstance(parent_component, Component_ToonChain): return
 		if parent_component.params.chain.tip_control: return
-		meta_org_bone = self.meta_bone(self.naming.strip_org(self.bones_org[0]))
+		meta_org_bone = self.get_metarig_pbone(self.naming.strip_org(self.bones_org[0]))
 		if not meta_org_bone.bone.use_connect: return
 
 		parent_component.params.chain.tip_control = True
