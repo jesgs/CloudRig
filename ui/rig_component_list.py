@@ -2,7 +2,7 @@ import bpy
 from bpy.props import StringProperty
 from bpy.types import Panel, UIList
 from bl_ui.generic_ui_list import draw_ui_list
-from ..utils.misc import get_addon_prefs
+from ..utils.misc import get_addon_prefs, get_active_pose_bone
 from ..rig_component_features.ui import redraw_viewport
 from ..generation.cloudrig import is_cloud_metarig
 
@@ -72,8 +72,9 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         return is_cloud_metarig(context.object)
     
     def invoke(self, context, _event):
-        if context.active_pose_bone:
-            self.bone_name = context.active_pose_bone.name
+        active_pb = get_active_pose_bone(context)
+        if active_pb:
+            self.bone_name = active_pb.name
         elif context.active_bone:
             self.bone_name = context.active_bone.name
         

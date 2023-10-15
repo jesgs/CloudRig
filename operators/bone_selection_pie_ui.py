@@ -3,6 +3,7 @@ from bpy.types import Menu, Constraint, PoseBone, UILayout
 from typing import List, Tuple
 from ..generation import naming
 from ..generation.cloudrig import register_hotkey
+from ..utils.misc import get_active_pose_bone
 
 def get_constraint_icon(constraint: Constraint) -> str:
     """We do not ask questions about this function. We accept it."""
@@ -60,27 +61,12 @@ def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     
     return entries
 
-def get_active_bone(context):
-    rig = context.pose_object or context.active_object
-    if not rig or rig.type != 'ARMATURE':
-        return None
-
-    active_bone = context.active_bone or context.active_pose_bone
-    if not active_bone:
-        return None
-
-    active_pose_bone = rig.pose.bones.get(active_bone.name)
-    if not active_pose_bone:
-        return None
-
-    return active_pose_bone or active_bone
-
 class POSE_MT_PIE_bone_constraint_targets(Menu):
     bl_label = "Constraint Targets"
 
     @classmethod
     def poll(cls, context):
-        return get_active_bone(context)
+        return get_active_pose_bone(context)
 
     @staticmethod
     def draw_select_bone(layout: UILayout, con: Constraint, subtarget: str, start_text=""):
@@ -94,7 +80,7 @@ class POSE_MT_PIE_bone_constraint_targets(Menu):
 
     def draw(self, context):
         layout = self.layout
-        active_pb = context.active_pose_bone or context.active_object.pose.bones.get(context.active_bone.name)
+        active_pb = get_active_pose_bone(context)
 
         entries = get_target_bones(active_pb)
 
@@ -107,7 +93,7 @@ class POSE_MT_PIE_constrained_bones(Menu):
 
     @classmethod
     def poll(cls, context):
-        return get_active_bone(context)
+        return get_active_pose_bone(context)
 
     @staticmethod
     def draw_select_bone(layout: UILayout, con: Constraint, bone_name: str, start_text=""):
@@ -121,7 +107,7 @@ class POSE_MT_PIE_constrained_bones(Menu):
 
     def draw(self, context):
         layout = self.layout
-        active_pb = context.active_pose_bone
+        active_pb = get_active_pose_bone(context)
 
         entries = get_constrained_bones(active_pb)
 
@@ -134,13 +120,13 @@ class POSE_MT_PIE_child_bones(Menu):
 
     @classmethod
     def poll(cls, context):
-        return get_active_bone(context)
+        return get_active_pose_bone(context)
 
     def draw(self, context):
         layout = self.layout
-        active_bone = context.active_bone or context.active_pose_bone
+        active_pb = get_active_pose_bone(context)
 
-        for child_pb in active_bone.children:
+        for child_pb in active_pb.children:
             op = layout.operator('pose.select_bone_by_name', text=child_pb.name, icon='BONE_DATA')
             op.bone_name = child_pb.name
 
@@ -150,13 +136,13 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
     @classmethod
     def poll(cls, context):
-        return get_active_bone(context)
+        return get_active_pose_bone(context)
 
     def draw(self, context):
         layout = self.layout
         rig = context.pose_object or context.active_object
-        active_bone = context.active_bone or context.active_pose_bone
-        active_pb = rig.pose.bones.get(active_bone.name)
+        active_pb = get_active_pose_bone(context)
+        active_bone = active_pb.bone
 
         pie = layout.menu_pie()
 
@@ -168,7 +154,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
         # 2) > Child Bone(s).
         if len(active_bone.children) == 1:
-            child = active_pb.children[0]
+            child = active_bone.children[0]
             if child:
                 # Sometimes child can be none...? I don't get how.
                 op = pie.operator('pose.select_bone_by_name', text="Child: "+child.name, icon='BONE_DATA')

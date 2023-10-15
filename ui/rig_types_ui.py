@@ -59,8 +59,8 @@ class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
 
 	def draw_header(self, context):
 		layout = self.layout
-		pb = context.active_pose_bone
-		params = pb.cloudrig_component.params
+		active_pb = get_active_pose_bone(context)
+		params = active_pb.cloudrig_component.params
 		layout.prop(params.fk_chain, 'test_animation_generate', text="")
 
 class CLOUDRIG_PT_params_bendy(CloudParamSubPanel):

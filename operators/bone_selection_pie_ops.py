@@ -1,6 +1,7 @@
 from bpy.types import Operator, Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
+from ..utils.misc import get_active_pose_bone
 
 def deselect_all_bones(context):
 	if context.mode == 'EDIT_ARMATURE':
@@ -45,7 +46,8 @@ def get_active_bone(context):
 	if context.mode == 'EDIT_ARMATURE':
 		return context.active_bone
 	else:
-		return context.active_pose_bone
+		return get_active_pose_bone(context)
+
 
 def get_bone_by_name(rig, bone_name: str):
 	"""Return PoseBone or EditBone with the given name, depending on context."""
@@ -64,7 +66,9 @@ def is_active_bone(context, bone: Bone or EditBone or PoseBone):
 
 	if context.mode == 'EDIT_ARMATURE' and bone.name == armature.edit_bones.active.name:
 		return True
-	elif context.active_pose_bone.bone == bone:
+	elif context.mode == 'POSE' and context.active_pose_bone.bone == bone:
+		return True
+	elif context.active_bone == bone:
 		return True
 	return False
 
