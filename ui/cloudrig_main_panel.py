@@ -5,19 +5,23 @@ from ..generation.cloudrig import is_cloud_metarig
 from ..utils.misc import is_blender_version_compatible, check_addon
 from ..rig_component_features.ui import get_addon_prefs
 
+
 def draw_version_check(layout: UILayout) -> bool:
-    """ If Blender is too old or new, draw a link to download
-        another version of CloudRig.
+    """If Blender is too old or new, draw a link to download
+    another version of CloudRig.
     """
 
     if not is_blender_version_compatible():
         draw_label_with_linebreak(layout, f"Version mismatch detected.", alert=True)
-        draw_label_with_linebreak(layout, f"Find CloudRig for your Blender version here:", alert=True)
+        draw_label_with_linebreak(
+            layout, f"Find CloudRig for your Blender version here:", alert=True
+        )
         op = layout.operator('wm.url_open', text="Releases", icon='URL')
         op.url = "https://gitlab.com/blender/CloudRig/-/releases"
         return False
 
     return True
+
 
 class POSE_PT_CloudRig(Panel):
     bl_label = "CloudRig"
@@ -110,7 +114,5 @@ class POSE_PT_CloudRig_Generation(Panel):
         if check_addon(context, 'bone_gizmos'):
             layout.prop(generator, 'auto_setup_gizmos')
 
-registry = [
-    POSE_PT_CloudRig,
-    POSE_PT_CloudRig_Generation
-]
+
+registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation]
