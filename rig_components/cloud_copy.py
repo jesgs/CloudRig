@@ -19,14 +19,15 @@ class Component_CopyBone(Component_Base):
 	def initialize(self):
 		super().initialize()
 
-		self.orgless_name = self.base_bone_name.replace("ORG-", "")
-		self.params.custom_props.props_storage_bone = self.orgless_name
+		self.params.custom_props.props_storage_bone = self.base_bone_name
 
 		# If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
 		self.do_parenting = True
-		for c in self.meta_base_bone.constraints:
+		for c in self.metarig_base_pbone.constraints:
 			if c.type in ('CHILD_OF', 'ARMATURE'):
 				self.do_parenting = False
+		
+		self.bones_org.collections = [coll.name for coll in self.metarig_base_pbone.bone.collections]
 
 	def create_bone_infos(self, context):
 		super().create_bone_infos(context)
@@ -44,7 +45,7 @@ class Component_CopyBone(Component_Base):
 				,description = f'"{bone_info.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!'
 				,icon = 'GIZMO'
 				,operator = 'pose.cloudrig_troubleshoot_rotationmode'
-				,op_kwargs = {'bone_name' : self.orgless_name}
+				,op_kwargs = {'bone_name' : self.base_bone_name}
 				,op_text = f"Set {bone_info.name} to Euler"
 			)
 			bone_info.rotation_mode = 'XYZ'
@@ -68,7 +69,7 @@ class Component_CopyBone(Component_Base):
 			constrained_parent = self.create_parent_bone(self.root_bone # If custom pivot enabled, this should own that...
 				,bone_set = self.bone_sets['Mechanism Bones']
 			)
-			constrained_parent.name = "CON-" + self.orgless_name
+			constrained_parent.name = "CON-" + self.base_bone_name
 			for con_info in bone_info.constraint_infos[:]:
 				if 'KEEP' not in con_info['name']:
 					constrained_parent.constraint_infos.append(con_info) # ...but we always take the constraints from the bone, not from the custom pivot!
@@ -85,7 +86,7 @@ class Component_CopyBone(Component_Base):
 		pivot.custom_shape_scale_xyz = Vector([max(boneinfo.custom_shape_scale_xyz)] * 3)
 		pivot.custom_shape_translation = (0, 0, 0)
 		pivot.custom_shape_rotation_euler = (0, 0, 0)
-		pivot.collection = boneinfo.collection
+		pivot.collections = boneinfo.collections
 		pivot.color_palette_base = boneinfo.color_palette_base
 		pivot.color_palette_pose = boneinfo.color_palette_pose
 		return pivot
@@ -117,12 +118,12 @@ class Component_CopyBone(Component_Base):
 				'prop_id' : prop_name,
 			}
 
-			if "$"+prop_name in self.meta_base_bone:
+			if "$"+prop_name in self.metarig_base_pbone:
 				# Rigger can specify strings for integer properties with a
 				# property whose name starts with $. This property is expected
 				# to be a list of strings, where the first strings matches with the value 0.
 				# Negative integers are not supported for this.
-				info['texts'] = self.meta_base_bone["$"+prop_name]
+				info['texts'] = self.metarig_base_pbone["$"+prop_name]
 
 			self.add_ui_data(panel_name, row_name
 				,info = info

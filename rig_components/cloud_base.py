@@ -134,7 +134,7 @@ class Component_Base(
 			# TODO: While it currently shouldn't be possible for a single bone to belong to multiple components, 
 			# if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already 
 			# exists on any other component of this metarig.
-			bone_info = self.bones_org.new_from_real(self.metarig, ebone)
+			bone_info = self.bones_org.new_from_real(self.metarig, ebone, keep_collections=False, keep_colors=False)
 			if not bone_info:
 				self.raise_generation_error(
 					description_short = f'Bone name "{bone_info.name}" was used twice!',

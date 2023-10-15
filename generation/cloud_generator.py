@@ -491,13 +491,16 @@ class CloudRig_Generator:
 
     def components_write_pbone_data(self, target_rig):
         for bone_info in self.bone_infos:
-            # Ensure bone collections.
+            # Ensure bone collections in both the metarig and the target rig.
             for collection_name in bone_info.collections:
                 if collection_name not in target_rig.data.collections:
                     target_rig.data.collections.new(collection_name)
+                if collection_name not in self.metarig.data.collections:
+                    self.metarig.data.collections.new(collection_name)
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
             if not pose_bone:
+                # TODO: This should never happen. Should be treated as a bug, probably.
                 self.logger.log("Bone creation failed"
                     ,base_bone_name   = bone_info.owner_component.base_bone
                     ,trouble_bone = bone_info.name

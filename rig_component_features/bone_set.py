@@ -123,16 +123,20 @@ class BoneSet(LinkedList):
 
         return bone_info
 
-    def new_from_real(self, rig_ob: bpy.types.Object, edit_bone: bpy.types.EditBone):
-        """Load a bpy bone into a BoneInfo class along with its constraints, drivers, custom properties."""
+    def new_from_real(
+            self, 
+            rig_ob: bpy.types.Object, 
+            edit_bone: bpy.types.EditBone, 
+            keep_collections=False, 
+            keep_colors=False
+        ):
+        """Load a bpy bone into a BoneInfo instance along with its constraints, drivers, custom properties."""
         # NOTE: Parenting should be done outside of this function, 
         # since parent bone info is not guaranteed to exist.
 
         pose_bone = rig_ob.pose.bones.get(edit_bone.name)
         data_bone = pose_bone.bone
         bone_info = self.new(name=edit_bone.name)
-        if not bone_info:
-            return False
 
         sources = {
             pose_bone : pose_bone_properties
@@ -154,8 +158,23 @@ class BoneSet(LinkedList):
         bone_info.use_deform = False
 
         # Load color palettes (only presets are supported, no custom colors)
-        bone_info.color_palette_pose = pose_bone.color.palette
-        bone_info.color_palette_base = data_bone.color.palette
+        if keep_colors:
+            if pose_bone.color.palette == 'CUSTOM':
+                self.rig_component.add_log("Custom Colors must not be used.")
+            else:
+                bone_info.color_palette_pose = pose_bone.color.palette
+            if data_bone.color.palette == 'CUSTOM':
+                self.rig_component.add_log("Custom Colors must not be used.")
+            else:
+                bone_info.color_palette_base = data_bone.color.palette
+        else:
+            bone_info.color_palette_base = self.color_palette
+
+        # Load collections
+        if keep_collections:
+            bone_info.collections = [coll.name for coll in data_bone.collections]
+        else:
+            bone_info.collections = self.collections
 
         # Load Constraints.
         for c in pose_bone.constraints:
@@ -329,10 +348,11 @@ class BoneSetMixin:
 
         prop_name = ui_name.replace(" ", "_").lower()
         cls.bone_set_defs[prop_name] = {
-            'ui_name'              : ui_name
-            ,'collections'      : collections or [ui_name]
-            ,'color_palette'    : color_palette
-            ,'is_advanced'      : is_advanced
+            'name'           : prop_name,
+            'ui_name'        : ui_name,
+            'collections'    : collections or [ui_name],
+            'color_palette'  : color_palette,
+            'is_advanced'    : is_advanced,
         }
         return ui_name
     
@@ -353,11 +373,11 @@ class BoneSetMixin:
 class CLOUDRIG_UL_bone_set_collections(UIList):
     def draw_item(self, context, layout, data, item, icon_value, active_data, active_propname):
         collection = item
-        rig_ob = item.id_data
+        metarig_ob = item.id_data
 
         row = layout.row()
         split = row.split(factor=0.85)
-        split.row().prop_search(collection, 'name', rig_ob.data, 'collections', icon='OUTLINER_COLLECTION', text="")
+        split.row().prop_search(collection, 'name', metarig_ob.data, 'collections', icon='OUTLINER_COLLECTION', text="")
 
 class CLOUDRIG_UL_bone_sets(UIList):
     flt_flags = []
@@ -420,7 +440,9 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        context.active_pose_bone.cloudrig_component.active_bone_set.collections.add()
+        bone_set = context.active_pose_bone.cloudrig_component.active_bone_set
+        bone_set.collections.add()
+        self.report({'INFO'}, f"Added collection slot to {bone_set.ui_name}.")
         return {'FINISHED'}
 
 class CLOUDRIG_OT_bone_set_collection_remove(Operator):
@@ -429,27 +451,33 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
     bl_label = "Remove Collection"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
+    @classmethod
+    def poll(cls, context):
+        component = context.active_pose_bone.cloudrig_component
+        bone_set = component.active_bone_set
+        if len(bone_set.collections) == 1:
+            cls.poll_message_set("Collection list cannot be empty. You can reset it with the button below.")
+            return False
+        return True
+
     def execute(self, context):
-        bone_set = context.active_pose_bone.cloudrig_component.active_bone_set
+        component = context.active_pose_bone.cloudrig_component
+        bone_set = component.active_bone_set
+        coll_name = bone_set.collections[bone_set.collections_active_index].name
         bone_set.collections.remove(bone_set.collections_active_index)
+        self.report({'INFO'}, f"{bone_set.ui_name} will not be assigned to '{coll_name}' collection.")
         return {'FINISHED'}
 
 class CLOUDRIG_OT_bone_set_collection_reset(Operator):
-    """Remove bone set collection"""
+    """Reset collection assignments of this Bone Set to the default list"""
     bl_idname = "pose.cloudrig_bone_set_collection_reset"
     bl_label = "Reset Collections"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
         component = context.active_pose_bone.cloudrig_component
-        ui_bone_set = component.active_ui_bone_set
-        bone_set = component.active_bone_set
-        bone_set_definitions = component.rig_class.bone_set_defs
-        bone_set_definition = bone_set_definitions[ui_bone_set.name]
-        bone_set.collections.clear()
-        for default_coll in bone_set_definition['collections']:
-            coll_entry = bone_set.collections.add()
-            coll_entry.name = default_coll
+        component.reset_collections_of_bone_set(component.active_bone_set)
+        self.report({'INFO'}, f"{component.active_bone_set.ui_name} collection assignments reset to default.")
         return {'FINISHED'}
 
 registry = [
