@@ -263,7 +263,7 @@ class BoneSetMixin:
     def draw_bone_sets_list(cls, layout, context, params):
         """Drawing the Bone Sets section of the Rigify Parameters."""
         metarig = context.object
-        cloudrig = metarig.data.cloudrig
+        cloudrig = metarig.cloudrig
         active_pb = context.active_pose_bone
         if not active_pb.cloudrig_component.component_type:
             return

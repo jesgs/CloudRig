@@ -211,7 +211,7 @@ class CloudLogManager:
 		):
 		"""Low-level function to add a log entry to the metarig object's data.
 		"""
-		entry = self.metarig.data.cloudrig.generator.logs.add()
+		entry = self.metarig.cloudrig.generator.logs.add()
 		entry.pretty_stack = get_pretty_stack()
 		entry.base_bone_name = base_bone_name
 		entry.trouble_bone = trouble_bone
@@ -252,7 +252,7 @@ class CloudLogManager:
 		return entry
 
 	def clear(self):
-		generator = self.metarig.data.cloudrig.generator
+		generator = self.metarig.cloudrig.generator
 		generator.logs.clear()
 		generator.active_log_index = 0
 
@@ -278,7 +278,7 @@ class CloudLogManager:
 				trouble_bone = ""
 				if 'pose.bones' in fcurve.data_path:
 					bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
-					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.data.cloudrig.generator.target_rig == self.rig:
+					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.cloudrig.generator.target_rig == self.rig:
 						base_bone_name = bone_name
 					elif datablock == self.rig:
 						trouble_bone = bone_name
@@ -356,7 +356,7 @@ class CloudLogManager:
 		has a keyframe and the keyframe has default transform values.
 		"""
 
-		action_slots = self.metarig.data.cloudrig.generator.action_slots
+		action_slots = self.metarig.cloudrig.generator.action_slots
 		for i, action_slot in enumerate(action_slots):
 			if not action_slot.enabled: continue
 			action = action_slot.action
@@ -531,7 +531,7 @@ class CLOUDRIG_PT_log(Panel):
 
 	def draw(self, context):
 		metarig = context.object
-		generator = metarig.data.cloudrig.generator
+		generator = metarig.cloudrig.generator
 		logs = generator.logs
 		layout = self.layout
 		row = layout.row()
@@ -604,14 +604,14 @@ class CLOUDRIG_PT_stack_trace(Panel):
 
 	@classmethod
 	def poll(cls, context):
-		generator = context.object.data.cloudrig.generator
+		generator = context.object.cloudrig.generator
 		if not generator.active_log:
 			return False
 		display_mode = generator.active_log.display_stack_trace
 		return display_mode == 'ALWAYS' or (display_mode == 'ADVANCED' and is_advanced_mode(context))
 
 	def draw(self, context):
-		generator = context.object.data.cloudrig.generator
+		generator = context.object.cloudrig.generator
 		draw_label_with_linebreak(self.layout, generator.active_log.pretty_stack, alert=True)
 
 class CLOUDRIG_OT_Jump_To_Bone(Operator):
@@ -697,7 +697,7 @@ class CLOUDRIG_OT_Report_Bug(Operator):
 	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
 	def execute(self, context):
-		pretty_stack = context.object.data.cloudrig.active_log.pretty_stack
+		pretty_stack = context.object.cloudrig.active_log.pretty_stack
 		webbrowser.open(url_prefill_from_cloudrig(pretty_stack))
 
 		return { 'FINISHED' }
@@ -884,7 +884,7 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
 
 	def execute(self, context):
 		metarig = context.object
-		action_slots = metarig.data.cloudrig.generator.action_slots
+		action_slots = metarig.cloudrig.generator.action_slots
 		action_slot = action_slots[self.action_slot_idx]
 
 		curves_removed = 0
@@ -915,7 +915,7 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 		metarig = context.object
 		rig = metarig.data.rigify_target_rig
 
-		action_slots = metarig.data.cloudrig.generator.action_slots
+		action_slots = metarig.cloudrig.generator.action_slots
 		action_slot = action_slots[self.action_slot_idx]
 
 		layout = self.layout
@@ -928,7 +928,7 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 
 
 def remove_active_log(metarig: Object):
-	generator = metarig.data.cloudrig.generator
+	generator = metarig.cloudrig.generator
 	logs = generator.logs
 
 	active_index = generator.active_log_index

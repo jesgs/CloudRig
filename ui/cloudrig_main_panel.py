@@ -32,13 +32,13 @@ class POSE_PT_CloudRig(Panel):
 
     def draw_header(self, context):
         layout = self.layout
-        layout.prop(context.object.data.cloudrig, 'enabled', text="")
+        layout.prop(context.object.cloudrig, 'enabled', text="")
 
     def draw(self, context):
         layout = self.layout
 
         metarig = context.object
-        cloudrig = metarig.data.cloudrig
+        cloudrig = metarig.cloudrig
 
         layout.enabled = cloudrig.enabled
 
@@ -46,7 +46,7 @@ class POSE_PT_CloudRig(Panel):
             return
 
         text = "Generate CloudRig"
-        if metarig.data.cloudrig.generator.target_rig:
+        if metarig.cloudrig.generator.target_rig:
             text = "Re-Generate CloudRig"
         layout.operator("pose.cloudrig_generate", text=text)
 
@@ -63,7 +63,7 @@ class POSE_PT_CloudRig_Generation(Panel):
     def poll(cls, context):
         # This is safe because of bl_parent_id; The parent panel's poll does
         # early exit checks already, no point repeating them here.
-        return context.object.data.cloudrig.enabled
+        return context.object.cloudrig.enabled
 
     @staticmethod
     def metarig_contains_fk_chain(metarig: Object) -> bool:
@@ -84,13 +84,13 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         prefs = get_addon_prefs(context)
         metarig = context.object
-        generator = metarig.data.cloudrig.generator
+        generator = metarig.cloudrig.generator
 
         layout = layout.column()
         layout.prop(generator, 'target_rig')
 
-        layout.row().prop_search(generator, 'ensure_root', context.object.data, 'bones')
-        layout.row().prop_search(generator, 'properties_bone', context.object.data, 'bones')
+        layout.row().prop_search(generator, 'ensure_root', metarig.data, 'bones')
+        layout.row().prop_search(generator, 'properties_bone', metarig.data, 'bones')
         layout.row().prop(generator, 'custom_script')
 
         # Test Animation Parameters

@@ -38,7 +38,7 @@ def is_cloud_metarig(rig: Object):
 	if not rig: return False
 	if not rig.type == 'ARMATURE':
 		return False
-	return rig.data.cloudrig.enabled
+	return rig.cloudrig.enabled
 
 def is_active_cloud_metarig(context):
 	return is_cloud_metarig(context.active_object)

@@ -321,7 +321,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 	def draw_control_params(cls, layout, context, params):
 		super().draw_control_params(layout, context, params)
 
-		generator = context.object.data.cloudrig.generator
+		generator = context.object.cloudrig.generator
 
 		layout.separator()
 		cls.draw_control_label(layout, "FK")
@@ -357,7 +357,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 		if super().is_using_custom_props(context, params):
 			return True
 
-		cloudrig = context.object.data.cloudrig.generator
+		cloudrig = context.object.cloudrig.generator
 		if params.fk_chain.hinge and params.fk_chain.root and cloudrig.create_root:
 			return True
 

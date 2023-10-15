@@ -13,7 +13,7 @@ class CLOUDRIG_PT_rig_component(Panel):
     def poll(cls, context):
         if not context.object or context.object.type != 'ARMATURE':
             return False
-        if not context.object.data.cloudrig.enabled:
+        if not context.object.cloudrig.enabled:
             return False
         if not context.active_bone and not context.active_pose_bone:
             return False

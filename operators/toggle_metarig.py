@@ -42,10 +42,10 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 		rig = context.active_object
 		metarig = None
 
-		if rig.data.cloudrig.generator.target_rig:
+		if rig.cloudrig.generator.target_rig:
 			# If the active object is a metarig, switch to the generated rig.
 			metarig = rig
-			rig = metarig.data.cloudrig.generator.target_rig
+			rig = metarig.cloudrig.generator.target_rig
 			self.switch_rig_focus(context, metarig, rig, self.match_collections, self.match_selection)
 			return {'FINISHED'}
 
@@ -66,10 +66,10 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 				metarig = context.scene.objects.get(rig.name.replace('FAILED-RIG-', "META-"))
 			return metarig
 
-		for o in context.scene.objects:
-			if o.type != 'ARMATURE': continue
-			if o.data.cloudrig.generator.target_rig == rig:
-				return o
+		for obj in context.scene.objects:
+			if obj.type != 'ARMATURE': continue
+			if obj.cloudrig.generator.target_rig == rig:
+				return obj
 
 	def switch_rig_focus(self, context,
 			from_arm: Object,

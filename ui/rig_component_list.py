@@ -112,7 +112,7 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
 
         selected_pb.cloudrig_component.component_type = self.component_type
         selected_pb.cloudrig_component.base_bone_name = selected_pb.name
-        rig.data.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
+        rig.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
 
         # Need to re-draw UI, otherwise the changes don't always show up...
         redraw_viewport()
@@ -132,7 +132,7 @@ class CLOUDRIG_OT_remove_rig_component(bpy.types.Operator):
     
     def execute(self, context):
         rig = context.object
-        selected_pb = rig.pose.bones[rig.data.cloudrig.active_component_index]
+        selected_pb = rig.pose.bones[rig.cloudrig.active_component_index]
 
         selected_pb.cloudrig_component.component_type = ""
         
@@ -144,7 +144,7 @@ class CLOUDRIG_OT_remove_rig_component(bpy.types.Operator):
             if pb == selected_pb:
                 break
         
-        rig.data.cloudrig.active_component_index = last
+        rig.cloudrig.active_component_index = last
 
         return {'FINISHED'}
 
@@ -160,7 +160,7 @@ class CLOUDRIG_PT_rig_components(Panel):
     def poll(cls, context):
         # This is safe because of bl_parent_id; The parent panel's poll does
         # early exit checks already, no point repeating them here.
-        return context.object.data.cloudrig.enabled
+        return context.object.cloudrig.enabled
 
     def draw(self, context):
         layout = self.layout
@@ -169,7 +169,7 @@ class CLOUDRIG_PT_rig_components(Panel):
             context,
             class_name = 'CLOUDRIG_UL_rig_components',
             list_path = 'object.pose.bones',
-            active_index_path = 'object.data.cloudrig.active_component_index',
+            active_index_path = 'object.cloudrig.active_component_index',
             insertion_operators = False,
             move_operators = False,
             unique_id = 'CloudRig Rig Component List'

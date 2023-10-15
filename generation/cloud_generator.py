@@ -117,7 +117,7 @@ class CloudRig_Generator:
     def __init__(self, context, metarig):
         self.metarig = metarig
         self.target_rig = None
-        self.params = metarig.data.cloudrig.generator
+        self.params = metarig.cloudrig.generator
 
         self.custom_script_failure = False
 
@@ -301,7 +301,7 @@ class CloudRig_Generator:
     def instantiate_rig_components(self) -> Dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
-        self.metarig.data.cloudrig.refresh_generation_order(self.metarig)
+        self.metarig.cloudrig.refresh_generation_order(self.metarig)
 
         component_bones_ordered = [
             pb for pb in sorted(self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order) 
@@ -554,10 +554,10 @@ class CloudRig_Generator:
 
 def ensure_test_action(metarig, target_rig):
     # Ensure test action exists
-    test_action = metarig.data.cloudrig.generator.test_action
+    test_action = metarig.cloudrig.generator.test_action
     if not test_action:
         test_action = bpy.data.actions.new("RIG.DeformTest."+target_rig.name)
-        metarig.data.cloudrig.generator.test_action = test_action
+        metarig.cloudrig.generator.test_action = test_action
 
     # Nuke all curves
     for fc in test_action.fcurves[:]:
@@ -611,9 +611,9 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
     target_rig.data['generation_time'] = f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
 
-    # Make sure Hidden Layers checkbox is saved in the generated rig, so it
+    # Make sure this flag is saved in the generated rig, so it
     # remains even if the Rigify addon is disabled.
-    target_rig.data.cloudrig.generator.show_secret_collections = False
+    target_rig.cloudrig.generator.show_secret_collections = False
 
     # By default, use B-Bone display type since it's the most useful
     target_rig.data.display_type = 'BBONE'
@@ -785,7 +785,7 @@ class CLOUDRIG_OT_generate(Operator):
         elif is_active_cloudrig(context):
             # Find the metarig referencing this rig
             for obj in context.scene.objects:
-                if obj.type == 'ARMATURE' and obj.data.cloudrig.generator.target_rig == context.active_object:
+                if obj.type == 'ARMATURE' and obj.cloudrig.generator.target_rig == context.active_object:
                     return obj
 
         metarigs = [obj for obj in context.scene.objects if is_cloud_metarig(obj)]
@@ -809,7 +809,7 @@ class CLOUDRIG_OT_generate(Operator):
         # Ensure required visibility and active states.
         # TODO: Replace EnsureVisible with context overriding.
         meta_visible = EnsureVisible(metarig)
-        target_rig = metarig.data.cloudrig.generator.target_rig
+        target_rig = metarig.cloudrig.generator.target_rig
         rig_visible = None
         if target_rig:
             rig_visible = EnsureVisible(target_rig)
@@ -842,7 +842,7 @@ class CLOUDRIG_OT_generate(Operator):
         Such errors must be accounted for and handled gracefully.
         """
 
-        generator_properties = metarig.data.cloudrig.generator
+        generator_properties = metarig.cloudrig.generator
         generator = CloudRig_Generator(context, metarig)
         try:
             generator.generate(context)
@@ -883,7 +883,7 @@ class CLOUDRIG_OT_generate(Operator):
         ):
         """Restore state for convenience."""
         metarig.hide_set(True)
-        rig = metarig.data.cloudrig.generator.target_rig
+        rig = metarig.cloudrig.generator.target_rig
         rig.hide_set(False)
         context.view_layer.objects.active = rig
         bpy.ops.object.mode_set(mode='OBJECT')

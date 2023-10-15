@@ -39,8 +39,8 @@ def preserve_old_default(metarig: Object, param_name: str, old_default: Any):
 def version_cloud_metarig(metarig):
 	"""Convert older CloudRig metarigs to work with the current version of
 	CloudRig as well as possible. They will still need some manual cleanup!!!"""
-	data = metarig.data
-	target_rig = data.cloudrig.generator.target_rig
+	cloudrig = metarig.cloudrig
+	target_rig = cloudrig.generator.target_rig
 
 	# NOTE on limitations:
 	# The old value is not stored in the file at all if it was left as default, so
@@ -48,8 +48,8 @@ def version_cloud_metarig(metarig):
 	# So, make really damn sure that default values are correct when first implementing them!
 
 	metarig_version = get_addon_prefs().cloud_metarig_version
-	print(f"CloudRig Versioning: {metarig.name} bumping version {data.cloudrig.metarig_version} -> {metarig_version}")
-	if data.cloudrig.metarig_version < 1:
+	print(f"CloudRig Versioning: {metarig.name} bumping version {cloudrig.metarig_version} -> {metarig_version}")
+	if cloudrig.metarig_version < 1:
 		# No backwards compatibility with the version of CloudRig that used to be a Rigify feature set.
 		pass
 
@@ -59,15 +59,15 @@ def update_all_metarigs(dummy):
 	metarig_version = get_addon_prefs().cloud_metarig_version
 	cloud_metarigs = [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloud_metarig(o)]
 	for metarig in cloud_metarigs:
-		if metarig.data.cloudrig.metarig_version == metarig_version:
+		if metarig.cloudrig.metarig_version == metarig_version:
 			continue
-		if metarig.data.cloudrig.metarig_version > metarig_version:
+		if metarig.cloudrig.metarig_version > metarig_version:
 			print(f"\tFound a metarig with a higher metarig version than the current: {metarig.name}")
 			print("\tIt must have been created with a newer version of CloudRig, and won't behave as expected.")
 			print("\tYou should update CloudRig!")
 			continue
 		version_cloud_metarig(metarig)
-		metarig.data.cloudrig.metarig_version = metarig_version
+		metarig.cloudrig.metarig_version = metarig_version
 
 def register():
 	bpy.app.handlers.load_post.append(update_all_metarigs)
