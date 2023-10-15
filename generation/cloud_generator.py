@@ -24,7 +24,7 @@ from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
 
 # from ..operators.assign_bone_layers import init_cloudrig_layers
-from ..utils.misc import check_addon, load_script, get_active_pose_bone
+from ..utils.misc import check_addon, load_script, get_pbone_of_active
 from .cloudrig import ensure_custom_panels, register_hotkey, is_active_cloud_metarig, is_active_cloudrig, is_cloud_metarig
 
 from ..rig_components.cloud_base import Component_Base
@@ -801,7 +801,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         # Save state so it can be restored for convenience.
         state_mode = 'OBJECT'
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         state_active_bone = active_pb.name if active_pb else ""
         state_selected_bones = [bone.name for bone in context.selected_pose_bones] if context.selected_pose_bones else []
         state_hide_bones = {bone.name : bone.hide for bone in metarig.data.bones}

@@ -69,7 +69,7 @@ class Timer:
         t = time.time()
         print(string + "%.3f" %(t - self.start_time))
 
-def get_active_pose_bone(context):
+def get_pbone_of_active(context):
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """

@@ -9,7 +9,7 @@ from mathutils import Vector, Matrix
 from collections import OrderedDict
 
 from bl_ui.generic_ui_list import draw_ui_list
-from ..utils.misc import get_addon_prefs, get_active_pose_bone
+from ..utils.misc import get_addon_prefs, get_pbone_of_active
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 
 def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
@@ -264,7 +264,7 @@ class BoneSetMixin:
         """Drawing the Bone Sets section of the Rigify Parameters."""
         metarig = context.object
         cloudrig = metarig.cloudrig
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         if not (active_pb and active_pb.cloudrig_component.component_type):
             return
 
@@ -407,7 +407,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         # Filter to only show bone sets that are relevant to this component type with the current settings.
         metarig = context.object
         prefs = get_addon_prefs(context)
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         component = active_pb.cloudrig_component
         rig_class = component.rig_class
 
@@ -443,7 +443,7 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         bone_set = active_pb.cloudrig_component.active_bone_set
         bone_set.collections.add()
         self.report({'INFO'}, f"Added collection slot to {bone_set.ui_name}.")
@@ -457,7 +457,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
 
     @classmethod
     def poll(cls, context):
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         component = active_pb.cloudrig_component
         bone_set = component.active_bone_set
         if len(bone_set.collections) == 1:
@@ -466,7 +466,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
         return True
 
     def execute(self, context):
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         component = active_pb.cloudrig_component
         bone_set = component.active_bone_set
         coll_name = bone_set.collections[bone_set.collections_active_index].name
@@ -481,7 +481,7 @@ class CLOUDRIG_OT_bone_set_collection_reset(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        active_pb = get_active_pose_bone(context)
+        active_pb = get_pbone_of_active(context)
         component = active_pb.cloudrig_component
         component.reset_collections_of_bone_set(component.active_bone_set)
         self.report({'INFO'}, f"{component.active_bone_set.ui_name} collection assignments reset to default.")

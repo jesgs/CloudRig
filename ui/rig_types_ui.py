@@ -1,5 +1,5 @@
 import bpy
-from ..utils.misc import get_active_pose_bone
+from ..utils.misc import get_pbone_of_active
 
 class CloudParamSubPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
@@ -12,7 +12,7 @@ class CloudParamSubPanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		pb = get_active_pose_bone(context)
+		pb = get_pbone_of_active(context)
 		if not pb:
 			return False
 		rig_component = pb.cloudrig_component
@@ -33,7 +33,7 @@ class CloudParamSubPanel(bpy.types.Panel):
 		layout.use_property_decorate = False
 		layout = layout.column()
 
-		pb = get_active_pose_bone(context)
+		pb = get_pbone_of_active(context)
 		rig_class = pb.cloudrig_component.rig_class
 		draw_func = getattr(rig_class, self.draw_function_name)
 		draw_func(layout, context, pb.cloudrig_component.params)
@@ -59,7 +59,7 @@ class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
 
 	def draw_header(self, context):
 		layout = self.layout
-		active_pb = get_active_pose_bone(context)
+		active_pb = get_pbone_of_active(context)
 		params = active_pb.cloudrig_component.params
 		layout.prop(params.fk_chain, 'test_animation_generate', text="")
 
@@ -81,7 +81,7 @@ class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
 	def poll(cls, context):
 		if not super().poll(context):
 			return False
-		pb = get_active_pose_bone(context)
+		pb = get_pbone_of_active(context)
 		rig_class = pb.cloudrig_component.rig_class
 		return rig_class.is_using_custom_props(context, pb.cloudrig_component.params)
 
@@ -95,7 +95,7 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
 		if not super().poll(context):
 			return False
 
-		pb = get_active_pose_bone(context)
+		pb = get_pbone_of_active(context)
 		rig_class = pb.cloudrig_component.rig_class
 
 		# If no bone sets are visible, don't draw the panel.

@@ -5,7 +5,7 @@ import bpy
 from bpy.types import PropertyGroup
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from bl_ui.generic_ui_list import draw_ui_list
-from ..utils.misc import get_active_pose_bone
+from ..utils.misc import get_pbone_of_active
 from ..rig_component_features.ui import draw_label_with_linebreak
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching.
@@ -29,7 +29,7 @@ class ParentSlot(bpy.types.PropertyGroup):
 	bone: StringProperty(name="Bone", description="Bone that will be used as the parent")
 
 	def update_is_default(self, context):
-		active_pb = get_active_pose_bone(context)
+		active_pb = get_pbone_of_active(context)
 
 		for ps in active_pb.cloudrig_component.params.parenting.parent_slots:
 			if ps != self:
