@@ -1,11 +1,13 @@
 Priority 0: Re-write as standalone add-on
-	- Fix default collection not being assigned at start of generation or even more often.
-	- Fix last collection of a Bone Set shouldn't be possible to remove.
-
 	Figure out the issue driving me fucking NUTS, where every class seems to get re-defined on reload, so type(boneinfo) != BoneInfo.
 
 	- Re-implement Rigify functionality
 		- Collections UI customization (probably also different)
+			- Goal: People shouldn't need SelectionSets anymore, and just be able to rely on Bone Collections instead.
+			- Extra goal: Implement nesting using custom properties or Python properties.
+			- Nest all default collections under a "Generated" collection, and within that, all "advanced" collections under a "Internals" collection.
+			- Then allow any manual collection assignments outside of this collection hierarchy to survive between generations.
+			- Still warn about empty collections, as before.
 		- Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
 		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
