@@ -4,6 +4,7 @@ import bpy
 
 component_modules = {}
 
+
 def load_component_modules(dir_path: str) -> Dict:
     """Manualy imports the rig modules, since they don't get automatically
     loaded because they aren't referenced by the code directly.
@@ -12,9 +13,13 @@ def load_component_modules(dir_path: str) -> Dict:
     component_modules = {}
     for module_name, module_filepath in module_info:
         # This terrbileness is needed because import_module() does not work
-        # with absolute paths containing a period (which Blender scripts 
+        # with absolute paths containing a period (which Blender scripts
         # always do because of the version number folder).
-        delta = module_filepath.replace(dir_path, "").replace(os.sep, ".").replace(".py", "")
+        delta = (
+            module_filepath.replace(dir_path, "")
+            .replace(os.sep, ".")
+            .replace(".py", "")
+        )
         if module_name.startswith("_") or module_filepath.endswith("__init__"):
             continue
         module = importlib.import_module(delta, __package__)
@@ -24,6 +29,7 @@ def load_component_modules(dir_path: str) -> Dict:
         component_modules[module_name] = module
 
     return component_modules
+
 
 def register():
     global component_modules

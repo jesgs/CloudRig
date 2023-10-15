@@ -10,189 +10,197 @@ We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds 
 This means one of our bones will get a .001 in its name...
 """
 
+
 class Component_TweakBone(Component_Base):
-	"""Tweak a single bone with the same name as this bone in the generated rig."""
-	ui_name = "Tweak Bone"
-	relinking_behaviour = "Constraints will be moved to the tweaked bone."
-	parent_switch_behaviour = "The active parent will own the tweaked bone."
+    """Tweak a single bone with the same name as this bone in the generated rig."""
 
-	def initialize(self):
-		super().initialize()
+    ui_name = "Tweak Bone"
+    relinking_behaviour = "Constraints will be moved to the tweaked bone."
+    parent_switch_behaviour = "The active parent will own the tweaked bone."
 
-	def load_metarig_bone_infos(self, metarig: Object) -> Dict[str, BoneInfo]:
-		bone_infos = super().load_metarig_bone_infos(metarig)
-		assert len(bone_infos) == 1
+    def initialize(self):
+        super().initialize()
 
-		self.original_name = bone_infos[0].name
-		bone_infos[0].name += "_Tweak"
-		return bone_infos
+    def load_metarig_bone_infos(self, metarig: Object) -> Dict[str, BoneInfo]:
+        bone_infos = super().load_metarig_bone_infos(metarig)
+        assert len(bone_infos) == 1
 
-	def create_bone_infos(self, context):
-		super().create_bone_infos(context)
-		org_bi = self.bones_org[0]
-		self.tweak_bone = tweak_bone = self.generator.find_bone_info(org_bi.name)
+        self.original_name = bone_infos[0].name
+        bone_infos[0].name += "_Tweak"
+        return bone_infos
 
-		if not self.tweak_bone:
-			self.add_log("No bone to tweak"
-				,description = f'Could not find a bone called "{self.original_name}" on the generated rig.'
-				,operator	 = 'object.cloudrig_rename_bone'
-				,op_kwargs	 = {'old_name': self.original_name}
-			)
-			return
+    def create_bone_infos(self, context):
+        super().create_bone_infos(context)
+        org_bi = self.bones_org[0]
+        self.tweak_bone = tweak_bone = self.generator.find_bone_info(org_bi.name)
 
-		self.root_bone = self.tweak_bone	# Allow parenting parameters to work
+        if not self.tweak_bone:
+            self.add_log(
+                "No bone to tweak",
+                description=f'Could not find a bone called "{self.original_name}" on the generated rig.',
+                operator='object.cloudrig_rename_bone',
+                op_kwargs={'old_name': self.original_name},
+            )
+            return
 
-		if self.params.tweak.transforms:
-			tweak_bone.head = org_bi.head.copy()
-			tweak_bone.tail = org_bi.tail.copy()
-			tweak_bone.roll = org_bi.roll
-			tweak_bone.bbone_x = org_bi.bbone_x
-			tweak_bone.bbone_z = org_bi.bbone_z
+        self.root_bone = self.tweak_bone  # Allow parenting parameters to work
 
-		# Transfer and relink bone drivers
-		self.transfer_relink_drivers(org_bi, tweak_bone)
+        if self.params.tweak.transforms:
+            tweak_bone.head = org_bi.head.copy()
+            tweak_bone.tail = org_bi.tail.copy()
+            tweak_bone.roll = org_bi.roll
+            tweak_bone.bbone_x = org_bi.bbone_x
+            tweak_bone.bbone_z = org_bi.bbone_z
 
-		if self.params.tweak.locks:
-			tweak_bone.lock_location = org_bi.lock_location[:]
-			tweak_bone.lock_rotation = org_bi.lock_rotation[:]
-			tweak_bone.lock_rotation_w = org_bi.lock_rotation_w
-			tweak_bone.lock_scale = org_bi.lock_scale[:]
+        # Transfer and relink bone drivers
+        self.transfer_relink_drivers(org_bi, tweak_bone)
 
-		if self.params.tweak.rot_mode:
-			tweak_bone.rotation_mode = org_bi.rotation_mode
+        if self.params.tweak.locks:
+            tweak_bone.lock_location = org_bi.lock_location[:]
+            tweak_bone.lock_rotation = org_bi.lock_rotation[:]
+            tweak_bone.lock_rotation_w = org_bi.lock_rotation_w
+            tweak_bone.lock_scale = org_bi.lock_scale[:]
 
-		if self.params.tweak.shape:
-			tweak_bone.custom_shape = org_bi.custom_shape
-			tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
-			if tweak_bone.use_custom_shape_bone_size:
-				scalar = tweak_bone.length / org_bi.length
-				tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz * scalar
-			if not org_bi.use_custom_shape_bone_size:
-				tweak_bone.custom_shape_scale_xyz /= tweak_bone.bbone_width * 10 * self.scale
-			tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
-			tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
-			tweak_bone.show_wire = org_bi.show_wire
-			tweak_bone.custom_shape_translation = org_bi.custom_shape_translation
-			tweak_bone.custom_shape_rotation_euler = org_bi.custom_shape_rotation_euler
-			if org_bi.custom_shape:
-				self.add_to_widget_collection(context, org_bi.custom_shape)
+        if self.params.tweak.rot_mode:
+            tweak_bone.rotation_mode = org_bi.rotation_mode
 
-		if self.params.tweak.collection:
-			tweak_bone.collection = org_bi.collection
-		if self.params.tweak.color_palette:
-			tweak_bone.color_palette_base = org_bi.color_palette_base
-			tweak_bone.color_palette_pose = org_bi.color_palette_pose
+        if self.params.tweak.shape:
+            tweak_bone.custom_shape = org_bi.custom_shape
+            tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
+            if tweak_bone.use_custom_shape_bone_size:
+                scalar = tweak_bone.length / org_bi.length
+                tweak_bone.custom_shape_scale_xyz = (
+                    org_bi.custom_shape_scale_xyz * scalar
+                )
+            if not org_bi.use_custom_shape_bone_size:
+                tweak_bone.custom_shape_scale_xyz /= (
+                    tweak_bone.bbone_width * 10 * self.scale
+                )
+            tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
+            tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
+            tweak_bone.show_wire = org_bi.show_wire
+            tweak_bone.custom_shape_translation = org_bi.custom_shape_translation
+            tweak_bone.custom_shape_rotation_euler = org_bi.custom_shape_rotation_euler
+            if org_bi.custom_shape:
+                self.add_to_widget_collection(context, org_bi.custom_shape)
 
-		if self.params.tweak.ik_settings:
-			tweak_bone.ik_stretch = org_bi.ik_stretch
-			tweak_bone.lock_ik_x = org_bi.lock_ik_x
-			tweak_bone.lock_ik_y = org_bi.lock_ik_y
-			tweak_bone.lock_ik_z = org_bi.lock_ik_z
-			tweak_bone.ik_stiffness_x = org_bi.ik_stiffness_x
-			tweak_bone.ik_stiffness_y = org_bi.ik_stiffness_y
-			tweak_bone.ik_stiffness_z = org_bi.ik_stiffness_z
-			tweak_bone.use_ik_limit_x = org_bi.use_ik_limit_x
-			tweak_bone.use_ik_limit_y = org_bi.use_ik_limit_y
-			tweak_bone.use_ik_limit_z = org_bi.use_ik_limit_z
-			tweak_bone.ik_min_x = org_bi.ik_min_x
-			tweak_bone.ik_max_x = org_bi.ik_max_x
-			tweak_bone.ik_min_y = org_bi.ik_min_y
-			tweak_bone.ik_max_y = org_bi.ik_max_y
-			tweak_bone.ik_min_z = org_bi.ik_min_z
-			tweak_bone.ik_max_z = org_bi.ik_max_z
+        if self.params.tweak.collection:
+            tweak_bone.collection = org_bi.collection
+        if self.params.tweak.color_palette:
+            tweak_bone.color_palette_base = org_bi.color_palette_base
+            tweak_bone.color_palette_pose = org_bi.color_palette_pose
 
-		if self.params.tweak.bbone_props:
-			tweak_bone.bbone_segments = org_bi.bbone_segments
-			tweak_bone.bbone_x = org_bi.bbone_x
-			tweak_bone.bbone_z = org_bi.bbone_z
+        if self.params.tweak.ik_settings:
+            tweak_bone.ik_stretch = org_bi.ik_stretch
+            tweak_bone.lock_ik_x = org_bi.lock_ik_x
+            tweak_bone.lock_ik_y = org_bi.lock_ik_y
+            tweak_bone.lock_ik_z = org_bi.lock_ik_z
+            tweak_bone.ik_stiffness_x = org_bi.ik_stiffness_x
+            tweak_bone.ik_stiffness_y = org_bi.ik_stiffness_y
+            tweak_bone.ik_stiffness_z = org_bi.ik_stiffness_z
+            tweak_bone.use_ik_limit_x = org_bi.use_ik_limit_x
+            tweak_bone.use_ik_limit_y = org_bi.use_ik_limit_y
+            tweak_bone.use_ik_limit_z = org_bi.use_ik_limit_z
+            tweak_bone.ik_min_x = org_bi.ik_min_x
+            tweak_bone.ik_max_x = org_bi.ik_max_x
+            tweak_bone.ik_min_y = org_bi.ik_min_y
+            tweak_bone.ik_max_y = org_bi.ik_max_y
+            tweak_bone.ik_min_z = org_bi.ik_min_z
+            tweak_bone.ik_max_z = org_bi.ik_max_z
 
-		if True:#self.params.tweak.custom_props:
-			for prop_name in org_bi.custom_props:
-				tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
+        if self.params.tweak.bbone_props:
+            tweak_bone.bbone_segments = org_bi.bbone_segments
+            tweak_bone.bbone_x = org_bi.bbone_x
+            tweak_bone.bbone_z = org_bi.bbone_z
 
-		org_bi.layers = self.bones_mch.layers[:]
+        if True:  # self.params.tweak.custom_props:
+            for prop_name in org_bi.custom_props:
+                tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
 
-	def relink(self):
-		# Transfer and relink constraints and their drivers
-		if not self.tweak_bone:
-			return
+        org_bi.layers = self.bones_mch.layers[:]
 
-		org_bi = self.bones_org[0]
-		if not self.params.tweak.constraints_additive:
-			self.tweak_bone.clear_constraints()
-		for c in org_bi.constraint_infos[:]:
-			self.tweak_bone.constraint_infos.append(c)
-			c.relink()
-			# Relink constraint drivers
-			for d in c.drivers:
-				self.relink_driver(d)
-			org_bi.constraint_infos.remove(c)
+    def relink(self):
+        # Transfer and relink constraints and their drivers
+        if not self.tweak_bone:
+            return
 
-	##############################
-	# Parameters
+        org_bi = self.bones_org[0]
+        if not self.params.tweak.constraints_additive:
+            self.tweak_bone.clear_constraints()
+        for c in org_bi.constraint_infos[:]:
+            self.tweak_bone.constraint_infos.append(c)
+            c.relink()
+            # Relink constraint drivers
+            for d in c.drivers:
+                self.relink_driver(d)
+            org_bi.constraint_infos.remove(c)
 
-	@classmethod
-	def draw_control_params(cls, layout, context, params):
-		"""Create the ui for the rig parameters."""
+    ##############################
+    # Parameters
 
-		cls.draw_control_label(layout, "Tweak")
-		cls.draw_prop(context, layout, params.tweak, "constraints_additive")
-		cls.draw_prop(context, layout, params.tweak, "transforms")
-		cls.draw_prop(context, layout, params.tweak, "locks")
-		cls.draw_prop(context, layout, params.tweak, "rot_mode")
-		cls.draw_prop(context, layout, params.tweak, "shape")
-		cls.draw_prop(context, layout, params.tweak, "collection")
-		cls.draw_prop(context, layout, params.tweak, "color_palette")
-		cls.draw_prop(context, layout, params.tweak, "ik_settings")
-		cls.draw_prop(context, layout, params.tweak, "bbone_props")
+    @classmethod
+    def draw_control_params(cls, layout, context, params):
+        """Create the ui for the rig parameters."""
+
+        cls.draw_control_label(layout, "Tweak")
+        cls.draw_prop(context, layout, params.tweak, "constraints_additive")
+        cls.draw_prop(context, layout, params.tweak, "transforms")
+        cls.draw_prop(context, layout, params.tweak, "locks")
+        cls.draw_prop(context, layout, params.tweak, "rot_mode")
+        cls.draw_prop(context, layout, params.tweak, "shape")
+        cls.draw_prop(context, layout, params.tweak, "collection")
+        cls.draw_prop(context, layout, params.tweak, "color_palette")
+        cls.draw_prop(context, layout, params.tweak, "ik_settings")
+        cls.draw_prop(context, layout, params.tweak, "bbone_props")
 
 
 class Params(PropertyGroup):
-	constraints_additive: BoolProperty(
-		name="Additive Constraints"
-		,description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead"
-		,default=True
-	)
-	transforms: BoolProperty(
-		name="Transforms"
-		,description="Replace the matching generated bone's transforms with this bone's transforms" # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
-		,default=False
-	)
-	locks: BoolProperty(
-		name="Locks"
-		,description="Replace the matching generated bone's transform locks with this bone's transform locks"
-		,default=True
-	)
-	rot_mode: BoolProperty(
-		name="Rotation Mode"
-		,description="Set the matching generated bone's rotation mode to this bone's rotation mode"
-		,default=False
-	)
-	shape: BoolProperty(
-		name="Bone Shape"
-		,description = "Replace the matching generated bone's shape with this bone's shape"
-		,default=False
-	)
-	collection: BoolProperty(
-		name="Collections"
-		,description="Replace the matching generated bone's collections with this bone's collections"
-		,default=False
-	)
-	color_palette: BoolProperty(
-		name="Color Palette"
-		,description="Set the generated bone's colors to this bone's colors"
-		,default=False
-	)
-	ik_settings: BoolProperty(
-		name="IK Settings"
-		,description="Copy IK settings from this bone to the generated bone"
-		,default=False
-	)
-	bbone_props: BoolProperty(
-		name="B-Bone Settings"
-		,description="Copy B-Bone settings from this bone to the generated bone"
-		,default=False
-	)
+    constraints_additive: BoolProperty(
+        name="Additive Constraints",
+        description="Add the constraints of this bone to the generated bone's constraints. When disabled, we replace the constraints instead",
+        default=True,
+    )
+    transforms: BoolProperty(
+        name="Transforms",
+        description="Replace the matching generated bone's transforms with this bone's transforms",  # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
+        default=False,
+    )
+    locks: BoolProperty(
+        name="Locks",
+        description="Replace the matching generated bone's transform locks with this bone's transform locks",
+        default=True,
+    )
+    rot_mode: BoolProperty(
+        name="Rotation Mode",
+        description="Set the matching generated bone's rotation mode to this bone's rotation mode",
+        default=False,
+    )
+    shape: BoolProperty(
+        name="Bone Shape",
+        description="Replace the matching generated bone's shape with this bone's shape",
+        default=False,
+    )
+    collection: BoolProperty(
+        name="Collections",
+        description="Replace the matching generated bone's collections with this bone's collections",
+        default=False,
+    )
+    color_palette: BoolProperty(
+        name="Color Palette",
+        description="Set the generated bone's colors to this bone's colors",
+        default=False,
+    )
+    ik_settings: BoolProperty(
+        name="IK Settings",
+        description="Copy IK settings from this bone to the generated bone",
+        default=False,
+    )
+    bbone_props: BoolProperty(
+        name="B-Bone Settings",
+        description="Copy B-Bone settings from this bone to the generated bone",
+        default=False,
+    )
+
 
 class RigComponent(Component_TweakBone):
-	pass
+    pass
