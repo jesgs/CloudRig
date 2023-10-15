@@ -306,7 +306,7 @@ class Properties_CloudRig(PropertyGroup):
     metarig_version: IntProperty(
         name="CloudRig MetaRig Version",
         description="For internal use only",
-        default=-1,  # TODO 4.0  set this to something
+        default=1,
     )
 
     @property
@@ -342,7 +342,6 @@ class Properties_CloudRig(PropertyGroup):
         if len(self.rig_component_bones) == 0:
             return
 
-        # TODO 4.0: Unsafe index-based access here, but figure out how to keep that index clamped.
         return self.rig_component_bones[self.active_component_index]
 
     generator: PointerProperty(type=GeneratorProperties)

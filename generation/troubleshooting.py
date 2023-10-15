@@ -264,10 +264,18 @@ class CloudLogManager:
     # Functions for finding various issues at the end of rig generation.
     # For these, self.rig is expected to be set.
 
-    def report_unused_bone_collections(self):
-        pass
-        # TODO 4.0: We used to report unused bone groups and empty named layers, so
-        # I guess it would make sense to report empty collections.
+    def report_unused_bone_collections(self, metarig, target_rig):
+        for coll in metarig.data.collections:
+            target_coll = target_rig.data.collections.get(coll.name)
+            if not target_coll or len(target_coll.bones) == 0:
+                self.log(
+                    "Unused Bone Collection",
+                    note=coll.name,
+                    icon='OUTLINER_COLLECTION',
+                    description=f'Collection "{coll.name}" is not used by any bones.',
+                    operator=CLOUDRIG_OT_delete_collection.bl_idname,
+                    op_kwargs={'coll_name': coll.name},
+                )
 
     def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
         if not datablock:
@@ -987,6 +995,30 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_delete_collection(Operator):
+    """Remove a bone collection"""
+
+    bl_idname = "object.cloudrig_delete_bone_collection"
+    bl_label = "Delete Bone Collection"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    # Should be provided by the UI.
+    coll_name: StringProperty()
+
+    def execute(self, context):
+        metarig = context.object
+        if self.coll_name in metarig.data.collections:
+            coll = metarig.data.collections.get(self.coll_name)
+            metarig.data.collections.remove(coll)
+            self.report({'INFO'}, f"Deleted '{self.coll_name}' collection.")
+        else:
+            self.report({'INFO'}, f"Collection {self.coll_name} not found.")
+
+        remove_active_log(metarig)
+
+        return {'FINISHED'}
+
+
 def remove_active_log(metarig: Object):
     generator = metarig.cloudrig.generator
     logs = generator.logs
@@ -1016,4 +1048,5 @@ registry = [
     CLOUDRIG_OT_Clear_Pointer,
     CLOUDRIG_OT_Clear_Single_Keyframes,
     CLOUDRIG_OT_Edit_Action_Slot,
+    CLOUDRIG_OT_delete_collection,
 ]
