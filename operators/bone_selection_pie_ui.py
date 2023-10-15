@@ -5,13 +5,17 @@ from ..generation import naming
 from ..generation.cloudrig import register_hotkey
 from ..utils.misc import get_pbone_of_active
 
+
 def get_constraint_icon(constraint: Constraint) -> str:
     """We do not ask questions about this function. We accept it."""
     if constraint.type == 'ACTION':
         return 'ACTION'
 
-    icons = bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
-    return icons[bpy.types.UILayout.icon(constraint)-48]
+    icons = (
+        bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
+    )
+    return icons[bpy.types.UILayout.icon(constraint) - 48]
+
 
 def get_constrained_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     entries = []
@@ -22,7 +26,7 @@ def get_constrained_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
                 hasattr(con, 'target')
                 and hasattr(con, 'subtarget')
                 and con.target == rig
-                and con.subtarget 
+                and con.subtarget
                 and con.subtarget == pose_bone.name
             ):
                 entries.append((con, pb.name))
@@ -30,13 +34,11 @@ def get_constrained_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
 
             if con.type == 'ARMATURE':
                 for t in con.targets:
-                    if (
-                        t.target == rig
-                        and t.subtarget == pose_bone.name
-                    ):
+                    if t.target == rig and t.subtarget == pose_bone.name:
                         entries.append((con, pb.name))
-    
+
     return entries
+
 
 def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     rig = pose_bone.id_data
@@ -44,11 +46,7 @@ def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     for con in pose_bone.constraints:
         if con.type == 'ARMATURE':
             for t in con.targets:
-                if (
-                    t.target == rig
-                    and t.subtarget
-                    and t.subtarget in rig.data.bones
-                ):
+                if t.target == rig and t.subtarget and t.subtarget in rig.data.bones:
                     entries.append((con, t.subtarget))
 
         if (
@@ -58,8 +56,9 @@ def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
             and con.subtarget in rig.data.bones
         ):
             entries.append((con, con.subtarget))
-    
+
     return entries
+
 
 class POSE_MT_PIE_bone_constraint_targets(Menu):
     bl_label = "Constraint Targets"
@@ -69,12 +68,14 @@ class POSE_MT_PIE_bone_constraint_targets(Menu):
         return get_pbone_of_active(context)
 
     @staticmethod
-    def draw_select_bone(layout: UILayout, con: Constraint, subtarget: str, start_text=""):
+    def draw_select_bone(
+        layout: UILayout, con: Constraint, subtarget: str, start_text=""
+    ):
         icon = get_constraint_icon(con)
         op = layout.operator(
-            'pose.select_bone_by_name', 
+            'pose.select_bone_by_name',
             text=start_text + con.name + ": " + subtarget,
-            icon=icon
+            icon=icon,
         )
         op.bone_name = subtarget
 
@@ -96,12 +97,14 @@ class POSE_MT_PIE_constrained_bones(Menu):
         return get_pbone_of_active(context)
 
     @staticmethod
-    def draw_select_bone(layout: UILayout, con: Constraint, bone_name: str, start_text=""):
+    def draw_select_bone(
+        layout: UILayout, con: Constraint, bone_name: str, start_text=""
+    ):
         icon = get_constraint_icon(con)
         op = layout.operator(
-            'pose.select_bone_by_name', 
-            text=f"{start_text}{bone_name} ({con.name})", 
-            icon=icon
+            'pose.select_bone_by_name',
+            text=f"{start_text}{bone_name} ({con.name})",
+            icon=icon,
         )
         op.bone_name = bone_name
 
@@ -127,7 +130,9 @@ class POSE_MT_PIE_child_bones(Menu):
         active_pb = get_pbone_of_active(context)
 
         for child_pb in active_pb.children:
-            op = layout.operator('pose.select_bone_by_name', text=child_pb.name, icon='BONE_DATA')
+            op = layout.operator(
+                'pose.select_bone_by_name', text=child_pb.name, icon='BONE_DATA'
+            )
             op.bone_name = child_pb.name
 
 
@@ -148,7 +153,11 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
         # 1) < Parent Bone.
         if active_bone.parent:
-            op = pie.operator('pose.select_parent_bone', text="Parent: " + active_bone.parent.name, icon='BONE_DATA')
+            op = pie.operator(
+                'pose.select_parent_bone',
+                text="Parent: " + active_bone.parent.name,
+                icon='BONE_DATA',
+            )
         else:
             pie.separator()
 
@@ -157,7 +166,11 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             child = active_bone.children[0]
             if child:
                 # Sometimes child can be none...? I don't get how.
-                op = pie.operator('pose.select_bone_by_name', text="Child: "+child.name, icon='BONE_DATA')
+                op = pie.operator(
+                    'pose.select_bone_by_name',
+                    text="Child: " + child.name,
+                    icon='BONE_DATA',
+                )
                 op.bone_name = child.name
         elif len(active_bone.children) > 1:
             pie.menu('POSE_MT_PIE_child_bones', icon='COLLAPSEMENU')
@@ -165,30 +178,42 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             pie.separator()
 
         # 3) v Lower number bone
-        lower_bone = rig.pose.bones.get(naming.increment_name(active_bone.name, increment=-1))
+        lower_bone = rig.pose.bones.get(
+            naming.increment_name(active_bone.name, increment=-1)
+        )
         if not lower_bone and active_bone.name.startswith("STR"):
             # TODO: Should probably change the bone naming of CloudRig, to remove the TIP- suffix, and just increment the bone name instead.
             prev_name = active_bone.name.replace("STR-TIP", "STR")
             lower_bone = rig.pose.bones.get(prev_name)
-            op = pie.operator('pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN')
+            op = pie.operator(
+                'pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN'
+            )
             op.bone_name = prev_name
         elif lower_bone:
-            op = pie.operator('pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN')
+            op = pie.operator(
+                'pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN'
+            )
             op.bone_name = lower_bone.name
         else:
             pie.separator()
 
         # 4) ^ Higher number bone
-        higher_bone = rig.pose.bones.get(naming.increment_name(active_bone.name, increment=1))
+        higher_bone = rig.pose.bones.get(
+            naming.increment_name(active_bone.name, increment=1)
+        )
         if not higher_bone and active_bone.name.startswith("STR"):
             # TODO: Should probably change the bone naming of CloudRig, to remove the TIP- suffix, and just increment the bone name instead.
             tip_name = active_bone.name.replace("STR", "STR-TIP")
             higher_bone = rig.pose.bones.get(tip_name)
             if higher_bone:
-                op = pie.operator('pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP')
+                op = pie.operator(
+                    'pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP'
+                )
                 op.bone_name = tip_name
         elif higher_bone:
-            op = pie.operator('pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP')
+            op = pie.operator(
+                'pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP'
+            )
             op.bone_name = higher_bone.name
         else:
             pie.separator()
@@ -197,7 +222,9 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         constrained_bones = get_constrained_bones(active_pb)
         if len(constrained_bones) == 1:
             con, bone_name = constrained_bones[0]
-            POSE_MT_PIE_constrained_bones.draw_select_bone(pie, con, bone_name, start_text="Constrained Bone: ")
+            POSE_MT_PIE_constrained_bones.draw_select_bone(
+                pie, con, bone_name, start_text="Constrained Bone: "
+            )
         elif len(constrained_bones) > 1:
             pie.menu('POSE_MT_PIE_constrained_bones', icon='COLLAPSEMENU')
         else:
@@ -207,7 +234,9 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         target_bones = get_target_bones(active_pb)
         if len(target_bones) == 1:
             con, bone_name = target_bones[0]
-            POSE_MT_PIE_bone_constraint_targets.draw_select_bone(pie, con, bone_name, start_text="Constraint Target: ")
+            POSE_MT_PIE_bone_constraint_targets.draw_select_bone(
+                pie, con, bone_name, start_text="Constraint Target: "
+            )
         elif len(target_bones) > 1:
             pie.menu('POSE_MT_PIE_bone_constraint_targets', icon='COLLAPSEMENU')
         else:
@@ -223,32 +252,47 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         if start or end:
             col = pie.column()
             if start:
-                op = col.operator('pose.select_bone_by_name', text="Start Handle: " + start.name, icon='OUTLINER_OB_CURVE')
+                op = col.operator(
+                    'pose.select_bone_by_name',
+                    text="Start Handle: " + start.name,
+                    icon='OUTLINER_OB_CURVE',
+                )
                 op.bone_name = start.name
             if end:
-                op = col.operator('pose.select_bone_by_name', text="End Handle: " + end.name, icon='OUTLINER_OB_CURVE')
+                op = col.operator(
+                    'pose.select_bone_by_name',
+                    text="End Handle: " + end.name,
+                    icon='OUTLINER_OB_CURVE',
+                )
                 op.bone_name = end.name
         elif def_bone and def_bone.name != active_bone.name:
-            op = pie.operator('pose.select_bone_by_name_relation', text="Deform Bone: " + def_bone.name, icon='BONE_DATA')
-            op.prefix="DEF"
+            op = pie.operator(
+                'pose.select_bone_by_name_relation',
+                text="Deform Bone: " + def_bone.name,
+                icon='BONE_DATA',
+            )
+            op.prefix = "DEF"
         else:
             pie.separator()
 
         # 8) v> Search bone.
         pie.operator('bone.select_by_name_search', icon='VIEWZOOM')
 
+
 registry = [
     POSE_MT_PIE_constrained_bones,
     POSE_MT_PIE_bone_constraint_targets,
     POSE_MT_PIE_child_bones,
-    CLOUDRIG_MT_PIE_select_bone
+    CLOUDRIG_MT_PIE_select_bone,
 ]
+
 
 def register():
     for key_cat in {'Pose', 'Weight Paint', 'Armature'}:
-        register_hotkey('wm.call_menu_pie',
-            hotkey_kwargs = {'type': "D", 'value': "PRESS", 'alt': True},
-            key_cat = key_cat,
-            space_type = 'VIEW_3D',
-            op_kwargs = {'name' : 'CLOUDRIG_MT_PIE_select_bone'}
+        register_hotkey(
+            'wm.call_menu_pie',
+            hotkey_kwargs={'type': "D", 'value': "PRESS", 'alt': True},
+            key_cat=key_cat,
+            space_type='VIEW_3D',
+            op_kwargs={'name': 'CLOUDRIG_MT_PIE_select_bone'},
         )
