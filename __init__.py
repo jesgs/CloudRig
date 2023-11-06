@@ -13,6 +13,7 @@ from . import (
     ui,
     properties,
     prefs,
+    collections,
     generation,
     metarigs,
 )
@@ -43,6 +44,7 @@ modules = [
     rig_component_features,
     rig_components,
     prefs,
+    collections,
     generation,
     properties,
     metarigs,
