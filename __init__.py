@@ -18,13 +18,15 @@ from . import (
     metarigs,
 )
 
-max_blender_version = (10, 0, 0)  # This should be set for in commits that will be tagged as a release.
+# This should be set for in commits that will be tagged as a release.
+max_blender_version = (10, 0, 0)
 
 bl_info = {
     'name': "CloudRig",
     'author': 'Demeter Dzadik',
-    'version': (1, 0, 0),
-    'blender': (3, 6, 0),  # This should be the lowest Blender version that is currently compatible.
+    'version': (2, 0, 0),
+    # This should be the lowest Blender version that is currently compatible.
+    'blender': (4, 0, 0),
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'location': "Properties->Armature Data",
     'category': 'Rigging',

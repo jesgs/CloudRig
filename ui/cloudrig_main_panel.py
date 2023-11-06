@@ -1,22 +1,27 @@
 from bpy.types import UILayout, Panel, Object
 
-from ..rig_component_features.ui import draw_label_with_linebreak, is_cloud_metarig
+from ..rig_component_features.ui import draw_label_with_linebreak
+from ..generation.cloudrig import is_cloud_metarig
 from ..utils.misc import is_blender_version_compatible, check_addon
 from ..rig_component_features.ui import get_addon_prefs
 
+
 def draw_version_check(layout: UILayout) -> bool:
-    """ If Blender is too old or new, draw a link to download
-        another version of CloudRig.
+    """If Blender is too old or new, draw a link to download
+    another version of CloudRig.
     """
 
     if not is_blender_version_compatible():
         draw_label_with_linebreak(layout, f"Version mismatch detected.", alert=True)
-        draw_label_with_linebreak(layout, f"Find CloudRig for your Blender version here:", alert=True)
+        draw_label_with_linebreak(
+            layout, f"Find CloudRig for your Blender version here:", alert=True
+        )
         op = layout.operator('wm.url_open', text="Releases", icon='URL')
         op.url = "https://gitlab.com/blender/CloudRig/-/releases"
         return False
 
     return True
+
 
 class POSE_PT_CloudRig(Panel):
     bl_label = "CloudRig"
@@ -31,13 +36,13 @@ class POSE_PT_CloudRig(Panel):
 
     def draw_header(self, context):
         layout = self.layout
-        layout.prop(context.object.data.cloudrig, 'enabled', text="")
+        layout.prop(context.object.cloudrig, 'enabled', text="")
 
     def draw(self, context):
         layout = self.layout
 
         metarig = context.object
-        cloudrig = metarig.data.cloudrig
+        cloudrig = metarig.cloudrig
 
         layout.enabled = cloudrig.enabled
 
@@ -45,7 +50,7 @@ class POSE_PT_CloudRig(Panel):
             return
 
         text = "Generate CloudRig"
-        if metarig.data.cloudrig.generator.target_rig:
+        if metarig.cloudrig.generator.target_rig:
             text = "Re-Generate CloudRig"
         layout.operator("pose.cloudrig_generate", text=text)
 
@@ -62,7 +67,7 @@ class POSE_PT_CloudRig_Generation(Panel):
     def poll(cls, context):
         # This is safe because of bl_parent_id; The parent panel's poll does
         # early exit checks already, no point repeating them here.
-        return context.object.data.cloudrig.enabled
+        return context.object.cloudrig.enabled
 
     @staticmethod
     def metarig_contains_fk_chain(metarig: Object) -> bool:
@@ -83,13 +88,13 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         prefs = get_addon_prefs(context)
         metarig = context.object
-        generator = metarig.data.cloudrig.generator
+        generator = metarig.cloudrig.generator
 
         layout = layout.column()
         layout.prop(generator, 'target_rig')
 
-        layout.row().prop_search(generator, 'ensure_root', context.object.data, 'bones')
-        layout.row().prop_search(generator, 'properties_bone', context.object.data, 'bones')
+        layout.row().prop_search(generator, 'ensure_root', metarig.data, 'bones')
+        layout.row().prop_search(generator, 'properties_bone', metarig.data, 'bones')
         layout.row().prop(generator, 'custom_script')
 
         # Test Animation Parameters
@@ -109,7 +114,5 @@ class POSE_PT_CloudRig_Generation(Panel):
         if check_addon(context, 'bone_gizmos'):
             layout.prop(generator, 'auto_setup_gizmos')
 
-registry = [
-    POSE_PT_CloudRig,
-    POSE_PT_CloudRig_Generation
-]
+
+registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation]

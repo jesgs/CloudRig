@@ -10,11 +10,12 @@ import time
 version_min: Tuple = ()
 version_max: Tuple = ()
 
+
 def is_blender_version_compatible() -> bool:
-    """Return whether current Blender version is compatible 
+    """Return whether current Blender version is compatible
     with current CloudRig version."""
 
-    tuple_to_version = lambda v: v[0]*1000 + v[1]*100 + v[2]
+    tuple_to_version = lambda v: v[0] * 1000 + v[1] * 100 + v[2]
 
     ver_blender = tuple_to_version(bpy.app.version)
 
@@ -23,7 +24,10 @@ def is_blender_version_compatible() -> bool:
 
     return ver_max >= ver_blender >= ver_min
 
-def load_script(file_path="", file_name="cloudrig.py", datablock=None, execute=True) -> bpy.types.Text:
+
+def load_script(
+    file_path="", file_name="cloudrig.py", datablock=None, execute=True
+) -> bpy.types.Text:
     """Load a text file into a text datablock, enable register checkbox and execute it.
     Also run an optional search and replace on the file content.
     """
@@ -42,7 +46,7 @@ def load_script(file_path="", file_name="cloudrig.py", datablock=None, execute=T
     text.clear()
     text.use_module = True
 
-    if file_path=="":
+    if file_path == "":
         file_path = os.path.dirname(os.path.realpath(__file__))
 
     readfile = open(os.path.join(file_path, file_name), 'r')
@@ -56,6 +60,7 @@ def load_script(file_path="", file_name="cloudrig.py", datablock=None, execute=T
 
     return text
 
+
 class Timer:
     def __init__(self):
         self.start_time = self.last_time = time.time()
@@ -67,13 +72,15 @@ class Timer:
 
     def total(self, string="Total: "):
         t = time.time()
-        print(string + "%.3f" %(t - self.start_time))
+        print(string + "%.3f" % (t - self.start_time))
 
-def get_active_pose_bone(context):
+
+def get_pbone_of_active(context):
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """
     return context.object.pose.bones.get(context.active_bone.name)
+
 
 def check_addon(context, addon_name: str) -> bool:
     """Same as addon_utils.check() but account for workspace-specific disabling.
@@ -86,6 +93,7 @@ def check_addon(context, addon_name: str) -> bool:
         return addon_enabled_in_workspace
 
     return addon_enabled_in_userprefs
+
 
 def get_addon_prefs(context=None):
     if not context:

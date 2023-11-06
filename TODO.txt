@@ -16,8 +16,15 @@ Collection Customization design
 
 
 Priority 0: Re-write as standalone add-on
+	Figure out the issue driving me fucking NUTS, where every class seems to get re-defined on reload, so type(boneinfo) != BoneInfo.
+
 	- Re-implement Rigify functionality
 		- Collections UI customization (probably also different)
+			- Goal: People shouldn't need SelectionSets anymore, and just be able to rely on Bone Collections instead.
+			- Extra goal: Implement nesting using custom properties or Python properties.
+			- Nest all default collections under a "Generated" collection, and within that, all "advanced" collections under a "Internals" collection.
+			- Then allow any manual collection assignments outside of this collection hierarchy to survive between generations.
+			- Still warn about empty collections, as before.
 		- Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
 		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
@@ -36,6 +43,7 @@ Priority 0: Re-write as standalone add-on
 	- Update Manual links
 
 	BELLS AND WHISTLES:
+	- CloudRig panel on CloudRig armatures is useless. We could copy the sidebar UI there.
 	- User preference to hide Bone Collections and Rigify panels on CloudRig armatures.
 	- Don't version metarigs that are linked or overridden.
 	- Write a recursive lazy register thing that makes it so we can get rid of the modules = [] lists from our __init__.py's, using the recently discovered bpy.path.module_names() function!
@@ -119,7 +127,7 @@ Priority 3: Changes that will affect metarigs
 	This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
 Priority 4: Code quality
 	Instantiation of rig classes shouldn't be necessary, I think, if we simply move all the generation functions to the RNA class that currently holds the parameters. The same class can just as well hold temporary arbitrary Py data like BoneInfo lists and etc.
-		Getting rid of owner_bone_name property would also be nice. Getting rid of a bunch of other properties like rig_class and instantiate() would probably also be possible.
+		Getting rid of base_bone_name property would also be nice. Getting rid of a bunch of other properties like rig_class and instantiate() would probably also be possible.
 	Widgets should only be loaded with ensure_widget() when a bone is actually created, instead of when its BoneInfo is defined.
 	write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo?
 		Alternatively, we could pass the generator, or the scalar if that's all we need, as an argument.
