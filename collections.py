@@ -9,6 +9,7 @@ from .generation.cloudrig import is_active_cloud_metarig
 from .utils.misc import get_addon_prefs
 from .rig_component_features.ui import redraw_viewport
 
+
 class CloudRigBoneCollection(PropertyGroup):
     def get_collection(self) -> Collection:
         armature = self.id_data
@@ -26,9 +27,7 @@ class CloudRigBoneCollection(PropertyGroup):
         coll.name = self.name
 
     name: StringProperty(
-        name="Name",
-        description="Name of this bone collection",
-        update=update_name
+        name="Name", description="Name of this bone collection", update=update_name
     )
     show_children: BoolProperty()
     parent_name: StringProperty(
@@ -44,6 +43,8 @@ class CloudRigBoneCollection(PropertyGroup):
     @property
     def children(self) -> List[Collection]:
         children = []
+        if not self.name:
+            return []
         armature = self.id_data
         for coll in armature.collections:
             if self.name == coll.cloudrig_info.parent_name:
@@ -60,11 +61,11 @@ class CloudRigBoneCollection(PropertyGroup):
             return False
 
         return self.parent_collection.cloudrig_info.should_draw
-    
+
     @property
     def hierarchy_depth(self):
         """Return number of parents"""
-        
+
         parent = self.parent_collection
         counter = 0
         while parent:
@@ -73,12 +74,15 @@ class CloudRigBoneCollection(PropertyGroup):
 
         return counter
 
+
 def ensure_cloudrig_bone_collections(armature):
     for coll in armature.collections:
         coll.cloudrig_info.name = coll.name
 
+
 class CLOUDRIG_OT_refresh_bone_collections(Operator):
     """Refresh Nested Bone Collection UI data"""
+
     bl_idname = "pose.cloudrig_collections_refresh"
     bl_label = "Refresh Collections UI"
     bl_options = {'INTERNAL', 'REGISTER'}
@@ -93,17 +97,23 @@ class CLOUDRIG_OT_refresh_bone_collections(Operator):
         self.report({'INFO'}, "CloudRig Collection UI data refreshed.")
         return {'FINISHED'}
 
+
 class CLOUDRIG_OT_collection_parent_set(Operator):
     """Set parent collection"""
+
     bl_idname = "pose.cloudrig_collection_parent_set"
     bl_label = "Set Parent Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     coll_idx: IntProperty()
-    parent_name: StringProperty(name="Parent", description="Parent to set as this bone collection's parent")
+    parent_name: StringProperty(
+        name="Parent", description="Parent to set as this bone collection's parent"
+    )
 
     def invoke(self, context, _event):
-        self.parent_name = context.object.data.collections[self.coll_idx].cloudrig_info.parent_name
+        self.parent_name = context.object.data.collections[
+            self.coll_idx
+        ].cloudrig_info.parent_name
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -126,7 +136,9 @@ class CLOUDRIG_OT_collection_parent_set(Operator):
         while parent:
             if parent in coll_info.children:
                 parent.cloudrig_info.parent_name = ""
-                self.report({'INFO'}, "A collection was un-parented to avoid a parenting loop.")
+                self.report(
+                    {'INFO'}, "A collection was un-parented to avoid a parenting loop."
+                )
                 redraw_viewport()
                 return {'FINISHED'}
             parent = parent.cloudrig_info.parent_collection
@@ -135,9 +147,13 @@ class CLOUDRIG_OT_collection_parent_set(Operator):
         self.report({'INFO'}, "Collection parent set.")
         return {'FINISHED'}
 
+
 class CLOUDRIG_UL_bone_collection_nested_list(UIList):
     """Draw bone collections with nesting support provided by CloudRig"""
-    def draw_item(self, context, layout, data, item, icon_value, _active_data, _active_propname):
+
+    def draw_item(
+        self, context, layout, data, item, icon_value, _active_data, _active_propname
+    ):
         collection = item
         cloudrig_info = collection.cloudrig_info
 
@@ -152,11 +168,14 @@ class CLOUDRIG_UL_bone_collection_nested_list(UIList):
         else:
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', icon_value=icon_value, text="", emboss=False)
-        row.operator(CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF').coll_idx = data.collections.find(collection.name)
+        row.operator(
+            CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
+        ).coll_idx = data.collections.find(collection.name)
 
     def draw_filter(self, context, layout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
-        show the order in which the rig components will be executed during generation."""
+        show the order in which the rig components will be executed during generation.
+        """
         layout.row().prop(self, "filter_name", text="")
 
     def filter_items(self, context, data, propname):
@@ -170,15 +189,25 @@ class CLOUDRIG_UL_bone_collection_nested_list(UIList):
 
         # Filtering by name search.
         if self.filter_name:
-            flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, collections, "name",
-                                                          reverse=False)
+            flt_flags = helper_funcs.filter_items_by_name(
+                self.filter_name,
+                self.bitflag_filter_item,
+                collections,
+                "name",
+                reverse=False,
+            )
 
         # Filter out collections whose parents are collapsed
-        flt_flags = [flag * int(collections[i].cloudrig_info.should_draw) for i, flag in enumerate(flt_flags)]
+        flt_flags = [
+            flag * int(collections[i].cloudrig_info.should_draw)
+            for i, flag in enumerate(flt_flags)
+        ]
 
         # Order collections by hierarchy and name...
         # Find collections without any parent
-        root_colls = [coll for coll in collections if coll.cloudrig_info.parent_name == ""]
+        root_colls = [
+            coll for coll in collections if coll.cloudrig_info.parent_name == ""
+        ]
         root_colls.sort(key=lambda c: c.name)
         sorted_colls = []
 
@@ -193,6 +222,7 @@ class CLOUDRIG_UL_bone_collection_nested_list(UIList):
         flt_neworder = [sorted_colls.index(coll) for coll in collections]
 
         return flt_flags, flt_neworder
+
 
 class CLOUDRIG_PT_bone_collection_ui(Panel):
     bl_space_type = 'PROPERTIES'
@@ -210,27 +240,29 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
         ops_col = draw_ui_list(
             layout,
             context,
-            class_name = 'CLOUDRIG_UL_bone_collection_nested_list',
-            list_path = 'object.data.collections',
-            active_index_path = 'object.data.collections.active_index',
-            insertion_operators = False,
-            move_operators = False,
-            unique_id = 'CloudRig Nested Collections UI'
+            class_name='CLOUDRIG_UL_bone_collection_nested_list',
+            list_path='object.data.collections',
+            active_index_path='object.data.collections.active_index',
+            insertion_operators=False,
+            move_operators=False,
+            unique_id='CloudRig Nested Collections UI',
         )
 
-        ops_col.operator(CLOUDRIG_OT_refresh_bone_collections.bl_idname, text="", icon='FILE_REFRESH')
+        ops_col.operator(
+            CLOUDRIG_OT_refresh_bone_collections.bl_idname, text="", icon='FILE_REFRESH'
+        )
 
 
 registry = [
     CloudRigBoneCollection,
-
     CLOUDRIG_OT_refresh_bone_collections,
     CLOUDRIG_OT_collection_parent_set,
-
     CLOUDRIG_PT_bone_collection_ui,
     CLOUDRIG_UL_bone_collection_nested_list,
 ]
 
 
 def register():
-    bpy.types.BoneCollection.cloudrig_info = PointerProperty(type=CloudRigBoneCollection)
+    bpy.types.BoneCollection.cloudrig_info = PointerProperty(
+        type=CloudRigBoneCollection
+    )
