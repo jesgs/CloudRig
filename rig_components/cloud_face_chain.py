@@ -6,7 +6,7 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 
 from .cloud_chain import Component_ToonChain
-from .cloud_chain_anchor import CloudChainAnchorRig
+from .cloud_chain_anchor import Component_FaceChainAnchor
 
 MERGE_THRESHOLD = 0.000001
 # TODO: Center merging probably doesn't work without an anchor, or when Smooth Spline is on. Need tests!
@@ -105,7 +105,7 @@ def do_centered_cluster(
                 ].subtarget = opposite_bone.tangent_helper.constraint_infos[0].subtarget
 
 
-class CloudFaceChainRig(Component_ToonChain):
+class Component_FaceChain(Component_ToonChain):
     """Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
     relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone's head, or tail if the constraint name is prefixed with \"TAIL-\". If the STR bone is part of an intersection, the constraint is moved to the STR-I intersection control instead."
@@ -116,7 +116,7 @@ class CloudFaceChainRig(Component_ToonChain):
         # Check the generator rig list to see if we are the last chain rig that will be generated.
         self.chain_rigs = []
         for rig in self.generator.rig_list:
-            if isinstance(rig, CloudFaceChainRig):
+            if isinstance(rig, Component_FaceChain):
                 self.chain_rigs.append(rig)
 
         self.is_last_chain_rig = self == self.chain_rigs[-1]
@@ -276,5 +276,5 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(CloudFaceChainRig):
+class RigComponent(Component_FaceChain):
     pass

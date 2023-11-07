@@ -1,6 +1,7 @@
 # Typing
 import bpy
-from bpy.types import Object
+from bpy.types import Object, PropertyGroup
+from bpy.props import BoolProperty
 from typing import List, Tuple, Dict
 
 # Component_Base parent classes

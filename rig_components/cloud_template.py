@@ -1,12 +1,11 @@
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
 from .cloud_base import Component_Base
-from ..load_metarig import load_sample_by_file
 
 from ..rig_component_features.bone import BoneInfo
 
 
-class CloudTemplateRig(Component_Base):
+class Component_Template(Component_Base):
     """Template for implementing rig types in CloudRig. Just creates a control bone."""
 
     def initialize(self):
@@ -51,5 +50,5 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(CloudTemplateRig):
-    pass
+# class RigComponent(Component_Template):
+#     pass

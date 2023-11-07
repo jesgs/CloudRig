@@ -1,13 +1,11 @@
-from bpy.props import BoolProperty
-from .cloud_face_chain import (
-    Rig as CloudFaceChainRig,
-)  # It is important to import it this way due to type comparisons with isinstance()!
-from .cloud_aim import Rig as Component_Aim
+# It is important to import it this way due to type comparisons with isinstance()!
+from .cloud_face_chain import RigComponent as CloudFaceChainRig
+from .cloud_aim import RigComponent as Component_Aim
 
 from ..utils.maths import project_vector_on_plane
 
 
-class CloudEyelidRig(CloudFaceChainRig):
+class Component_Eyelid(CloudFaceChainRig):
     """Extends cloud_face_chain with eyelid functionality. This rig's parent bone must have the cloud_aim rig type!"""
 
     def initialize(self):
@@ -126,5 +124,5 @@ class CloudEyelidRig(CloudFaceChainRig):
         )
 
 
-class RigComponent(CloudEyelidRig):
+class RigComponent(Component_Eyelid):
     pass

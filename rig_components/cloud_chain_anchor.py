@@ -4,7 +4,7 @@ from .cloud_copy import Component_CopyBone
 from .cloud_base import Component_Base
 
 
-class CloudChainAnchorRig(Component_CopyBone):
+class Component_FaceChainAnchor(Component_CopyBone):
     """Create a control on the generated rig that serves as an anchor for cloud_face_chain components."""
 
     def initialize(self):
@@ -23,5 +23,5 @@ class CloudChainAnchorRig(Component_CopyBone):
     # No parameters for this rig type.
 
 
-class RigComponent(CloudChainAnchorRig):
+class RigComponent(Component_FaceChainAnchor):
     pass

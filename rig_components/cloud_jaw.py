@@ -4,7 +4,7 @@ from .cloud_copy import Component_CopyBone
 from ..rig_component_features.bone import BoneInfo
 
 
-class CloudJawRig(Component_CopyBone):
+class Component_Jaw(Component_CopyBone):
     """Jaw rig with cartoony features."""
 
     """Functionality TODO:
@@ -286,5 +286,5 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(CloudJawRig):
+class RigComponent(Component_Jaw):
     pass

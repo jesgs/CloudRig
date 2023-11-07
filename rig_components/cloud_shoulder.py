@@ -5,7 +5,8 @@ from math import radians
 
 from .cloud_fk_chain import Component_Chain_FK
 
-class CloudShoulderRig(Component_Chain_FK):
+
+class Component_Shoulder(Component_Chain_FK):
     """A single bone control to connect an arm to a spine."""
 
     ui_name = "Shoulder Bone"
@@ -45,7 +46,8 @@ class CloudShoulderRig(Component_Chain_FK):
 
         cls.draw_prop(context, layout, params.shoulder, 'up_axis')
 
-class Params(PropertyGroup)
+
+class Params(PropertyGroup):
     up_axis: EnumProperty(
         name="Widget Up Axis",
         description="Rotate the bone shape to align with this axis of the bone",
@@ -58,5 +60,5 @@ class Params(PropertyGroup)
     )
 
 
-class RigComponent(CloudShoulderRig):
+class RigComponent(Component_Shoulder):
     pass
