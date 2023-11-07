@@ -20,16 +20,23 @@ class CLOUDRIG_UL_rig_components(UIList):
 
         addon_prefs = get_addon_prefs(context)
 
-        row = layout.row()
-        split = row.split(factor=0.4)
-        row = split.row()
-        row.label(
-            text=">" * rig_component.depth + pose_bone.name, icon_value=icon_value
-        )
-        split2 = split.split(factor=0.3)
-        split2.alignment = 'RIGHT'
-        split2.label(text="")
-        split2.prop_search(
+        row = layout.row(align=True)
+        main_split = row.split(factor=0.5)
+        row = main_split.row(align=True)
+        icon = 'TRIA_DOWN' if rig_component.show_child_components else 'TRIA_RIGHT'
+        if rig_component.parent:
+            split = row.split(factor=0.02 * rig_component.depth)
+            split.row()
+            row = split.row(align=True)
+        if rig_component.children:
+            row.prop(
+                rig_component, 'show_child_components', text="", icon=icon, emboss=False
+            )
+        else:
+            row.label(text="", icon='BLANK1')
+        row.label(text=pose_bone.name)
+
+        main_split.row().prop_search(
             rig_component,
             'component_type',
             addon_prefs,
@@ -66,6 +73,12 @@ class CLOUDRIG_UL_rig_components(UIList):
         # Filter out bones that don't have a rig component.
         flt_flags = [
             flag * int(pbones[i].cloudrig_component.component_type != "")
+            for i, flag in enumerate(flt_flags)
+        ]
+
+        # Filter out components whose parents are collapsed
+        flt_flags = [
+            flag * int(pbones[i].cloudrig_component.should_draw)
             for i, flag in enumerate(flt_flags)
         ]
 

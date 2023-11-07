@@ -284,8 +284,8 @@ class RigComponent(PropertyGroup):
 
     @property
     def parent(self):
-        armature = self.id_data
-        this_bone = armature.pose.bones.get(self.base_bone_name)
+        rig_ob = self.id_data
+        this_bone = rig_ob.pose.bones.get(self.base_bone_name)
         bone_parent = this_bone.parent
         parent_component = None
         while bone_parent and not parent_component:
@@ -294,6 +294,35 @@ class RigComponent(PropertyGroup):
             bone_parent = bone_parent.parent
 
         return parent_component
+
+    @property
+    def should_draw(self):
+        """Return False if any parent up the chain has show_children=False"""
+        if not self.parent:
+            return True
+
+        if not self.parent.show_child_components:
+            return False
+
+        return self.parent.should_draw
+
+    show_child_components: BoolProperty(
+        name="Show Children",
+        description="Show child components in the list",
+        default=False,
+    )
+
+    @property
+    def children(self):
+        rig_ob = self.id_data
+        children = []
+        for pb in rig_ob.pose.bones:
+            if (
+                pb.cloudrig_component.component_type
+                and pb.cloudrig_component.parent == self
+            ):
+                children.append(pb.cloudrig_component)
+        return children
 
 
 class Properties_CloudRig(PropertyGroup):
@@ -342,7 +371,8 @@ class Properties_CloudRig(PropertyGroup):
         if len(self.rig_component_bones) == 0:
             return
 
-        return self.rig_component_bones[self.active_component_index]
+        rig_ob = self.id_data
+        return rig_ob.pose.bones[self.active_component_index].cloudrig_component
 
     generator: PointerProperty(type=GeneratorProperties)
 
@@ -350,6 +380,7 @@ class Properties_CloudRig(PropertyGroup):
         # Ensure each RigComponent is aware of which bone it's on.
         for pb in metarig_ob.pose.bones:
             pb.cloudrig_component.base_bone_name = pb.name
+            pb.cloudrig_component.name = pb.name
 
         # Find bones that have no parents.
         parentless = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
