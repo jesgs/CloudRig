@@ -79,7 +79,7 @@ class CloudCustomPropertiesMixin:
         cls.draw_prop(
             context, layout, params.custom_props, 'props_storage', expand=True
         )
-        if params.CR_base_props_storage == 'CUSTOM':
+        if params.custom_props.props_storage == 'CUSTOM':
             cls.draw_prop_search(
                 context,
                 layout,

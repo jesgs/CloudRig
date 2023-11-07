@@ -18,7 +18,7 @@ Allow disabling IK stretch functionality.
 class Component_Chain_IKFK(Component_Chain_FK):
     """IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
-    ui_name: "Chain: IK"
+    ui_name = "Chain: IK"
     # Strings to try to communicate obscure behaviours of this rig type in the params UI.
     parent_switch_behaviour = (
         'The active parent will own the IK-MSTR and IK-POLE controls.'
@@ -596,7 +596,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         parent_helper.custom_shape = None
 
         if (
-            self.params.CR_base_parent_switching
+            self.params.parenting.parent_switching
             and len(self.params.parenting.parent_slots) > 0
         ):
             _parent_ui_names, parent_bone_names = self.sanitize_parent_list(

@@ -69,12 +69,12 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     def create_curve_object(self):
         """Find or create the Bezier Curve that will be used by the rig."""
 
-        curve_ob = self.params.CR_curve_target
+        curve_ob = self.params.curve.target
 
         curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
         curve_name += "_" + (
-            self.params.CR_curve_hook_name
-            if self.params.CR_curve_hook_name != ""
+            self.params.curve.hook_name
+            if self.params.curve.hook_name != ""
             else self.base_bone_name.replace("ORG-", "")
         )
 
@@ -101,7 +101,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         length_unit = sum_bone_length / (self.num_controls - 1)
         handle_length = length_unit * self.params.spline_ik.handle_length
 
-        self.params.CR_curve_target = curve_ob
+        self.params.curve.target = curve_ob
 
         # Add the necessary number of curve points to the spline
         points = spline.bezier_points
@@ -132,8 +132,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             for i in range(0, segments):
                 ## Create Deform bones
                 def_name = (
-                    self.params.CR_curve_hook_name
-                    if self.params.CR_curve_hook_name != ""
+                    self.params.curve.hook_name
+                    if self.params.curve.hook_name != ""
                     else self.base_bone_name.replace("ORG-", "")
                 )
                 prefixes, base, suffixes = self.naming.slice_name(def_name)
@@ -162,7 +162,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         # Add constraint to deform chain
         self.bone_sets['Curve Deform Bones'][-1].add_constraint(
             'SPLINE_IK',
-            target=self.params.CR_curve_target,
+            target=self.params.curve.target,
             use_curve_radius=True,
             chain_count=len(self.bone_sets['Curve Deform Bones']),
         )
@@ -170,7 +170,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     def relink(self):
         """Override cloud_base.
         Move constraints from ORG to Hook controls and relink them.
-        Only works when CR_spline_ik_match_hooks==True. TODO: Indicate this by graying out in the UI!
+        Only works when params.spline_ik.match_hooks==True. TODO: Indicate this by graying out in the UI!
         """
         if not self.params.spline_ik.match_hooks:
             return
@@ -216,7 +216,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     def curve_selector_ui(cls, layout, context, params):
         """Overrides cloud_curve to disable the curve selection."""
         row = cls.draw_prop(
-            context, layout.row(), params, "CR_curve_target", icon='OUTLINER_OB_CURVE'
+            context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE'
         )
         row.enabled = False
 

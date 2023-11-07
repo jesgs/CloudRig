@@ -77,13 +77,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         """Override cloud_leg, force 1 segment on the foot and toe."""
         if org_bone in self.bones_org[2:]:
             return 1
-        return self.params.CR_chain_segments
+        return self.params.chain.segments
 
     def make_ik_setup(self):
         """Override."""
         super().make_ik_setup()
 
-        if self.params.CR_limb_double_ik:
+        if self.params.limb.double_ik:
             self.create_foot_dsp(self.ik_mstr.parent)
         self.create_foot_dsp(self.ik_mstr)
 
@@ -253,7 +253,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         # Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
         self.ik_mstr._bbone_x = heel_pivot_bone.bbone_x
         self.ik_mstr._bbone_z = heel_pivot_bone.bbone_z
-        if self.params.CR_limb_double_ik:
+        if self.params.limb.double_ik:
             self.ik_mstr.parent._bbone_x = heel_pivot_bone.bbone_x
             self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
 
@@ -435,15 +435,15 @@ class Component_Limb_BipedLeg(Component_Limb):
         """Create the ui for the rig parameters."""
         super().draw_control_params(layout, context, params)
 
-        cls.draw_prop(context, layout, params, "CR_leg_use_foot_roll")
+        cls.draw_prop(context, layout, params.leg, "use_foot_roll")
         if params.leg.use_foot_roll:
             split = layout.split(factor=0.1)
             split.row()
             cls.draw_prop_search(
                 context,
                 split.row(),
-                params,
-                "CR_leg_heel_bone",
+                params.leg,
+                "heel_bone",
                 context.object.data,
                 "bones",
                 text="Heel Pivot",

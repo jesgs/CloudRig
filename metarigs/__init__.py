@@ -19,7 +19,7 @@ class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
             self.report({'ERROR'}, "Failed to load metarig: " + self.metarig_name)
             return {'CANCELLED'}
 
-        self.report({'INFO'}, "Successfully loaded metarig: " + metarig.name)
+        self.report({'INFO'}, "Loaded Metarig: " + metarig.name)
         return {'FINISHED'}
 
 

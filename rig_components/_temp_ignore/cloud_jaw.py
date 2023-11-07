@@ -1,5 +1,5 @@
 from bpy.props import BoolProperty, StringProperty
-from .cloud_base import Component_Base
+from bpy.types import PropertyGroup
 from .cloud_copy import Component_CopyBone
 from ..rig_component_features.bone import BoneInfo
 
@@ -27,12 +27,12 @@ class CloudJawRig(Component_CopyBone):
     """
 
     """Hierarchy:
-        MSTR-Head_Bottom (CR_jaw_lower_face_bone)
+        MSTR-Head_Bottom (jaw.lower_face_bone)
             Purpose: Owns entire lower half of the face, but not the back of the head. Currently exposed to animators, but doesn't have to be.
             Parent: DEF-Head (outside this rig)
             Constraints: None
             Placement: Such that it favors swinging the mouth side-to-side like a pendulum: quite high above lips
-        MSTR-Head_Bottom_Squash (should be MSTR-LowerFace_Squash) (CR_jaw_squash_bone)
+        MSTR-Head_Bottom_Squash (should be MSTR-LowerFace_Squash) (jaw.squash_bone)
             Purpose: Control to squash the lower face.
             Parent: MSTR-Head_Bottom
             Constraints: None
@@ -50,7 +50,7 @@ class CloudJawRig(Component_CopyBone):
             Parent: MSTR-H-Head_Bottom
             Constraints: None
             Placement: From side view: Height at the lips, depth almost reaching earlobe.
-        MSTR-Mouth (should be MSTR-Lips) (CR_jaw_mouth_bone)
+        MSTR-Mouth (should be MSTR-Lips) (jaw.mouth_bone)
             Purpose: Move the entire mouth around the face. On Ellie's rig, this is a directly exposed control, but I would mask it behind an Action control.
             Parent: MSTR-H-Head_Bottom
             Constraints: None (Future: Action)
@@ -62,6 +62,8 @@ class CloudJawRig(Component_CopyBone):
             Constraints:
                 Copy Transforms (Local): Jaw
     """
+
+    ui_name = 'Jaw'
 
     def initialize(self):
         super().initialize()
@@ -78,21 +80,19 @@ class CloudJawRig(Component_CopyBone):
         # so the rig is easier to set up.
 
         jaw_bi = self.bones_org[0]
-        lower_face_bi = self.generator.find_bone_info(
-            self.params.CR_jaw_lower_face_bone
-        )
+        lower_face_bi = self.generator.find_bone_info(self.params.jaw.lower_face_bone)
         if not lower_face_bi:
             self.raise_generation_error("Lower Face Bone not found!")
-        face_squash_bi = self.generator.find_bone_info(self.params.CR_jaw_squash_bone)
+        face_squash_bi = self.generator.find_bone_info(self.params.jaw.squash_bone)
         if not face_squash_bi:
             self.raise_generation_error("Squash Bone not found!")
         lower_face_squasher = self.create_face_squasher(
             face_squash_bi, lower_face_bi, jaw_bi
         )
-        chin_bi = self.generator.find_bone_info(self.params.CR_jaw_chin_bone)
+        chin_bi = self.generator.find_bone_info(self.params.jaw.chin_bone)
         if not chin_bi:
             self.raise_generation_error("Chin Bone not found!")
-        mouth_bi = self.generator.find_bone_info(self.params.CR_jaw_mouth_bone)
+        mouth_bi = self.generator.find_bone_info(self.params.jaw.mouth_bone)
         if not mouth_bi:
             self.raise_generation_error("Mouth Master Bone not found!")
 
@@ -145,12 +145,12 @@ class CloudJawRig(Component_CopyBone):
         info = {'prop_bone': jaw_bi, 'prop_id': 'teeth_follow_mouth'}
         self.add_ui_data("Face", "Teeth Follow Mouth", info, default=1.0)
         teeth_upper_root = self.generator.find_bone_info(
-            self.params.CR_jaw_teeth_upper_bone
+            self.params.jaw.teeth_upper_bone
         )
         if not teeth_upper_root:
             self.raise_generation_error("Upper Teeth not found!")
         teeth_lower_root = self.generator.find_bone_info(
-            self.params.CR_jaw_teeth_lower_bone
+            self.params.jaw.teeth_lower_bone
         )
         if not teeth_lower_root:
             self.raise_generation_error("Lower Teeth not found!")
@@ -196,41 +196,6 @@ class CloudJawRig(Component_CopyBone):
         )
 
     @classmethod
-    def add_parameters(cls, params):
-        """Add rig parameters to the RigifyParameters PropertyGroup."""
-        super().add_parameters(params)
-
-        params.CR_jaw_lower_face_bone = StringProperty(
-            name="Lower Face Bone",
-            description="Optional. Select a bone to place the Lower Face control. This bone should be placed for best effect when rotating side to side, to swing the cartoony jaw around like a pendulum",
-        )
-        params.CR_jaw_squash_bone = StringProperty(
-            name="Squash Bone",
-            description="Optional. Select a bone to place the Lower Face Squash control. This will squash from its head to its tail, so place it carefully for best effect",
-        )
-        params.CR_jaw_chin_bone = StringProperty(
-            name="Chin Bone",
-            description='Optional. Select a bone to place the Chin control. You can parent the chin area to that bone, and control the influence of the jaw on it via a "Chin Resist Jaw" property',
-        )
-        params.CR_jaw_mouth_bone = StringProperty(
-            name="Mouth Master",
-            description='Select a bone to place the Mouth Master control. You can parent the chin area to that bone, and control the influence of the jaw on it via a "Chin Resist Jaw" property',
-        )
-        params.CR_jaw_teeth_follow = BoolProperty(
-            name="Teeth Follow Mouth Master",
-            description='Create a Lower/UpperJaw helper bone and a "Teeth Follow MSTR-Lips" slider. You should parent the lower teeth to this helper bone to allow the teeth to be parented to the mouth master control',
-            default=False,
-        )
-        params.CR_jaw_teeth_upper_bone = StringProperty(
-            name="Upper Teeth Root",
-            description='Select the cloud_copy bone that acts as the root of the upper teeth',
-        )
-        params.CR_jaw_teeth_lower_bone = StringProperty(
-            name="Lower Teeth Root",
-            description='Select the cloud_copy bone that acts as the root of the upper teeth',
-        )
-
-    @classmethod
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the rig parameters."""
 
@@ -239,56 +204,87 @@ class CloudJawRig(Component_CopyBone):
         cls.draw_prop_search(
             context,
             layout.row(),
-            params,
-            "CR_jaw_lower_face_bone",
+            params.jaw,
+            "lower_face_bone",
             context.object.data,
             "bones",
         )
         cls.draw_prop_search(
             context,
             layout.row(),
-            params,
-            "CR_jaw_squash_bone",
+            params.jaw,
+            "squash_bone",
             context.object.data,
             "bones",
         )
         cls.draw_prop_search(
             context,
             layout.row(),
-            params,
-            "CR_jaw_chin_bone",
+            params.jaw,
+            "chin_bone",
             context.object.data,
             "bones",
         )
         cls.draw_prop_search(
             context,
             layout.row(),
-            params,
-            "CR_jaw_mouth_bone",
+            params.jaw,
+            "mouth_bone",
             context.object.data,
             "bones",
         )
 
-        cls.draw_prop(context, layout, params, 'CR_jaw_teeth_follow')
-        if params.CR_jaw_teeth_follow:
+        cls.draw_prop(context, layout, params.jaw, 'teeth_follow')
+        if params.jaw.teeth_follow:
             cls.draw_prop_search(
                 context,
                 layout.row(),
-                params,
-                "CR_jaw_teeth_upper_bone",
+                params.jaw,
+                "teeth_upper_bone",
                 context.object.data,
                 "bones",
             )
             cls.draw_prop_search(
                 context,
                 layout.row(),
-                params,
-                "CR_jaw_teeth_lower_bone",
+                params.jaw,
+                "teeth_lower_bone",
                 context.object.data,
                 "bones",
             )
 
 
-# Uncomment the next two lines to make this rig show up in Blender.
+class Params(PropertyGroup):
+    lower_face_bone: StringProperty(
+        name="Lower Face Bone",
+        description="Optional. Select a bone to place the Lower Face control. This bone should be placed for best effect when rotating side to side, to swing the cartoony jaw around like a pendulum",
+    )
+    squash_bone: StringProperty(
+        name="Squash Bone",
+        description="Optional. Select a bone to place the Lower Face Squash control. This will squash from its head to its tail, so place it carefully for best effect",
+    )
+    chin_bone: StringProperty(
+        name="Chin Bone",
+        description='Optional. Select a bone to place the Chin control. You can parent the chin area to that bone, and control the influence of the jaw on it via a "Chin Resist Jaw" property',
+    )
+    mouth_bone: StringProperty(
+        name="Mouth Master",
+        description='Select a bone to place the Mouth Master control. You can parent the chin area to that bone, and control the influence of the jaw on it via a "Chin Resist Jaw" property',
+    )
+    teeth_follow: BoolProperty(
+        name="Teeth Follow Mouth Master",
+        description='Create a Lower/UpperJaw helper bone and a "Teeth Follow MSTR-Lips" slider. You should parent the lower teeth to this helper bone to allow the teeth to be parented to the mouth master control',
+        default=False,
+    )
+    teeth_upper_bone: StringProperty(
+        name="Upper Teeth Root",
+        description='Select the cloud_copy bone that acts as the root of the upper teeth',
+    )
+    teeth_lower_bone: StringProperty(
+        name="Lower Teeth Root",
+        description='Select the cloud_copy bone that acts as the root of the upper teeth',
+    )
+
+
 class RigComponent(CloudJawRig):
     pass
