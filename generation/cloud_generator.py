@@ -51,6 +51,11 @@ class GeneratorProperties(PropertyGroup):
     # holds the generate() function, making a unified `Generator` class that
     # lives in RNA, giving us the ability to just to `my_metarig.cloudrig.generator.generate()`,
     # which would be pretty neat I think.
+    metarig_version: IntProperty(
+        name="Metarig Version",
+        description="Used for automatic versioning of metarigs",
+        default=0,
+    )
     target_rig: PointerProperty(
         name="Target Rig",
         description="Rig to re-genreate based on this metarig when the Generate button is used",
@@ -224,7 +229,7 @@ class CloudRig_Generator:
         print("Begin Generating CloudRig from metarig: " + metarig.name)
 
         metarig.data.name = "Data_" + self.metarig.name
-        self.params.version = get_addon_prefs(context).cloud_metarig_version
+        self.params.metarig_version = get_addon_prefs(context).cloud_metarig_version
         self.driver_map = map_pbones_to_drivers(self.metarig)
 
         # If the previous generation failed, delete the failed rig.
