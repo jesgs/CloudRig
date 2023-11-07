@@ -9,14 +9,20 @@ def init_component_module_list(context=None):
         context = bpy.context
     prefs = context.preferences.addons[__package__].preferences
     prefs.component_types.clear()
+
+    module_infos = []
     for rig_file_name, rig_module in rig_components.component_modules.items():
         if not hasattr(rig_module, 'RigComponent'):
             continue
         rig_class = rig_module.RigComponent
 
+        module_infos.append((rig_class.ui_name, rig_file_name))
+
+    module_infos.sort(key=lambda t: t[0])
+    for ui_name, file_name in module_infos:
         type_info = prefs.component_types.add()
-        type_info.name = rig_class.ui_name
-        type_info.module_name = rig_file_name
+        type_info.name = ui_name
+        type_info.module_name = file_name
 
 
 class CloudRigComponentTypeInfo(PropertyGroup):
