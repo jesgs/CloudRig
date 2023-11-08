@@ -241,7 +241,9 @@ class RigComponent(PropertyGroup):
     # This could be an EnumProp, but a StringProp allows us to use prop_search,
     # which is better UX.
     def component_type_update_callback(self, context):
-        self.id_data.cloudrig.active_component_update_callback(context)
+        self.id_data.cloudrig.active_component_index = self.id_data.pose.bones.find(
+            context.active_bone.name
+        )
 
     component_type: StringProperty(
         name="Component Type",
