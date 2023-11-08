@@ -5,7 +5,9 @@ from .cloud_base import Component_Base
 
 
 class Component_FaceChainAnchor(Component_CopyBone):
-    """Create a control on the generated rig that serves as an anchor for cloud_face_chain components."""
+    """Create a control on the generated rig that serves as an intersection for cloud_face_chain components."""
+
+    ui_name = "Chain Intersection"
 
     def initialize(self):
         super().initialize()

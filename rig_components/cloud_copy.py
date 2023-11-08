@@ -10,7 +10,7 @@ from .cloud_base import Component_Base
 class Component_CopyBone(Component_Base):
     """Copy this bone to the generated rig."""
 
-    ui_name = "Copy Bone"
+    ui_name = "Bone Copy"
     always_use_custom_props = True
 
     forced_params = {

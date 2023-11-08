@@ -1,12 +1,14 @@
 # It is important to import it this way due to type comparisons with isinstance()!
-from .cloud_face_chain import RigComponent as CloudFaceChainRig
+from .cloud_face_chain import RigComponent as Component_FaceChain
 from .cloud_aim import RigComponent as Component_Aim
 
 from ..utils.maths import project_vector_on_plane
 
 
-class Component_Eyelid(CloudFaceChainRig):
+class Component_Eyelid(Component_FaceChain):
     """Extends cloud_face_chain with eyelid functionality. This rig's parent bone must have the cloud_aim rig type!"""
+
+    ui_name = "Chain: Eyelid"
 
     def initialize(self):
         if not self.rigify_parent or type(self.rigify_parent) != Component_Aim:

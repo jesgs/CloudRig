@@ -109,6 +109,7 @@ class Component_FaceChain(Component_ToonChain):
     """Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
     relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone's head, or tail if the constraint name is prefixed with \"TAIL-\". If the STR bone is part of an intersection, the constraint is moved to the STR-I intersection control instead."
+    ui_name = "Chain: Toon With Intersections"
 
     def initialize(self):
         super().initialize()
@@ -197,7 +198,7 @@ class Component_FaceChain(Component_ToonChain):
 
     @staticmethod
     def create_intersection_for_cluster(cluster: List[BoneInfo]) -> BoneInfo:
-        """Try to find a CloudChainAnchorRig to parent the cluster to.
+        """Try to find a Component_FaceChainAnchor to parent the cluster to.
         If it doesn't exist, create one.
         """
 
@@ -207,7 +208,9 @@ class Component_FaceChain(Component_ToonChain):
         have_anchor = False
         # Search for an anchor rig
         anchor_rigs = [
-            r for r in rig.generator.rig_list if isinstance(r, CloudChainAnchorRig)
+            r
+            for r in rig.generator.rig_list
+            if isinstance(r, Component_FaceChainAnchor)
         ]
         for anchor_rig in anchor_rigs:
             distance = (anchor_rig.bones_org[0].head - cluster[0].head).length
