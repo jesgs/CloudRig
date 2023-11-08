@@ -379,7 +379,7 @@ class CloudRig_Generator:
 
         pose_bone = metarig.pose.bones[name]
         pose_bone.rotation_mode = 'XYZ'
-        pose_bone.cloudrig_component.component_type = 'Copy Bone'
+        pose_bone.cloudrig_component.component_type = 'Bone Copy'
         pose_bone.custom_shape = self.ensure_widget("Root")
 
     def ensure_widget(self, widget_name):
@@ -941,13 +941,13 @@ class CLOUDRIG_OT_generate(Operator):
             if type(exception) == CloudGeneratorError:
                 # A MetaRig error means the user didn't follow instructions correctly.
                 # This is the only kind of Exception that is not a bug in CloudRig.
-                self.report({'ERROR'}, cloudrig_exc.message)
+                self.report({'ERROR'}, exception.message)
             else:
                 if generator.custom_script_failure:
                     # The error occurred in the user's script.
                     # execute_custom_script() has already created the log entry for us,
                     # so we just want to keep raising the exception.
-                    raise exc
+                    raise exception
 
                 # Any other exception type is a bug.
                 # Let's invite the user to report the error they've encountered.

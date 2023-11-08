@@ -12,7 +12,7 @@ from ..utils.maths import bounding_box_center
 
 
 class Component_Aim(Component_Base):
-    """Create aim target controls for a single bone."""
+    """Create Aim Target Control for a single bone."""
 
     ui_name = "Aim"
     relinking_behaviour = "Constraints will be moved to the Eye Root Control."
@@ -23,8 +23,8 @@ class Component_Aim(Component_Base):
         super().create_bone_infos(context)
 
         aim_org = self.bones_org[0]
-        aim_bone = self.bone_sets.aim_group_target_control.new(
-            name=self.bones_org[0].name.replace("ORG", "AIM"),
+        aim_bone = self.bone_sets['Aim Group Target Control'].new(
+            name=self.naming.add_prefix(self.bones_org[0].name, 'AIM'),
             source=aim_org,
             parent=aim_org,
         )
@@ -42,7 +42,7 @@ class Component_Aim(Component_Base):
         aim_bone.add_constraint('DAMPED_TRACK', subtarget=self.target_bone.name)
 
         if self.params.aim.deform:
-            def_bone = self.make_def_bone(self.ctr_bone, self.bone_sets.deform_bones)
+            def_bone = self.make_def_bone(self.ctr_bone, self.bones_def)
             def_bone.parent = aim_org
             def_bone.add_constraint('COPY_TRANSFORMS', subtarget=self.ctr_bone.name)
 
@@ -72,8 +72,8 @@ class Component_Aim(Component_Base):
         head = self.find_target_pos(bone)
         tail = head + bone.vector
 
-        target_bone = self.bone_sets.aim_target_controls.new(
-            name=self.bones_org[0].name.replace("ORG", "TGT"),
+        target_bone = self.bone_sets['Aim Target Control'].new(
+            name=self.naming.add_prefix(self.bones_org[0].name, 'TGT'),
             source=self.bones_org[0],
             head=head,
             tail=tail,
@@ -89,7 +89,7 @@ class Component_Aim(Component_Base):
 
     def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
         """Create direct control, with a display bone at the tip of it."""
-        ctr_bone = self.bone_sets.aim_target_controls.new(
+        ctr_bone = self.bone_sets['Aim Target Control'].new(
             name=self.naming.make_name(
                 ["CTR"], *self.naming.slice_name(org_bone.name)[1:]
             ),
@@ -135,8 +135,8 @@ class Component_Aim(Component_Base):
         return ctr_bone
 
     def make_root_bone(self, org_bone) -> BoneInfo:
-        root_bone = self.bone_sets.aim_root_control.new(
-            name=org_bone.name.replace("ORG", "ROOT"),
+        root_bone = self.bone_sets['Aim Root Control'].new(
+            name=self.naming.add_prefix(org_bone.name, 'ROOT'),
             source=org_bone,
             parent=org_bone.parent,
             custom_shape=self.ensure_widget('Square'),
@@ -151,7 +151,7 @@ class Component_Aim(Component_Base):
     def create_eye_highlight(self, ctr_bone):
         name_slices = self.naming.slice_name(ctr_bone)
         name_slices[1] += "_Highlight"
-        highlight_ctr = self.bone_sets.aim_target_controls.new(
+        highlight_ctr = self.bone_sets['Aim Target Control'].new(
             name=self.naming.make_name(*name_slices),
             source=ctr_bone,
             parent=ctr_bone,
@@ -193,7 +193,7 @@ class Component_Aim(Component_Base):
             rot=False,
             scale=[False, True, False],
         )
-        self.make_def_bone(highlight_ctr, self.bone_sets.deform_bones)
+        self.make_def_bone(highlight_ctr, self.bones_def)
 
     def relink(self):
         """Override cloud_base.
@@ -249,7 +249,10 @@ class Component_Aim(Component_Base):
         """Return a list of all cloud_aim components with a matching Aim Group."""
         aim_bones = []
         for component in self.generator.all_components:
-            if isinstance(component, Component_Aim) and component.group == group_name:
+            if (
+                isinstance(component, Component_Aim)
+                and component.params.aim.group == group_name
+            ):
                 aim_bone = self.metarig.pose.bones[component.base_bone_name]
                 aim_bones.append(aim_bone)
         return aim_bones
@@ -288,7 +291,7 @@ class Component_Aim(Component_Base):
 
         # Create a helper bone in the center.
         group_vec = target_center - aims_center
-        center_bone = self.bone_sets.aim_group_target_control.new(
+        center_bone = self.bone_sets['Aim Group Target Control'].new(
             name="CEN-" + group_name,
             source=self.bones_org[0],
             head=aims_center,
@@ -305,7 +308,7 @@ class Component_Aim(Component_Base):
                 max_dist = dist
 
         # Create the master bone.
-        group_master = self.bone_sets.aim_group_target_control.new(
+        group_master = self.bone_sets['Aim Group Target Control'].new(
             name=group_master_name,
             source=self.bones_org[0],
             head=target_center,
