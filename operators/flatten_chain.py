@@ -6,7 +6,6 @@ from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
 from ..rig_component_features.mechanism import get_bone_chain
-from ..generation.troubleshooting import remove_active_log
 
 
 def is_chain_flat(chain: List[EditBone]) -> bool:
@@ -70,7 +69,7 @@ class CLOUDRIG_OT_FlattenChain(Operator):
     bl_label = "Flatten Bone Chain"
     bl_options = {'REGISTER', 'UNDO'}
 
-    remove_log: BoolProperty(
+    remove_active_log: BoolProperty(
         description="For calling this operator from the Rigify Log", default=False
     )
     start_bone: StringProperty(
@@ -103,8 +102,8 @@ class CLOUDRIG_OT_FlattenChain(Operator):
 
         bpy.ops.object.mode_set(mode=org_mode)
 
-        if self.remove_log:
-            remove_active_log(rig)
+        if self.remove_active_log:
+            rig.cloudrig.generator.remove_active_log()
 
         return {'FINISHED'}
 

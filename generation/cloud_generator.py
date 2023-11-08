@@ -110,6 +110,18 @@ class GeneratorProperties(PropertyGroup):
     logs: CollectionProperty(type=CloudRigLogEntry)
     active_log_index: IntProperty(min=0)
 
+    def remove_active_log(self):
+        logs = self.logs
+
+        active_index = self.active_log_index
+        # This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
+        to_index = active_index
+        if to_index > len(logs) - 2:
+            to_index = len(logs) - 2
+
+        self.logs.remove(active_index)
+        self.active_log_index = to_index
+
     @property
     def active_log(self):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
@@ -346,7 +358,11 @@ class CloudRig_Generator:
                 self.logger.log(
                     "Invalid Component Type",
                     note=pb.cloudrig_component.component_type,
+                    base_bone_name=pb.name,
                     description="This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type.",
+                    operator='pose.cloudrig_assign_component_type',
+                    op_kwargs={'bone_name': pb.name, 'remove_active_log': True},
+                    op_text="Assign Component",
                 )
                 continue
             comp_map[pb.name] = comp_instance

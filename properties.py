@@ -8,7 +8,7 @@ from bpy.props import (
     IntProperty,
 )
 from bpy.types import PropertyGroup, Object
-from typing import Dict
+from typing import Dict, Optional
 from . import rig_components
 from . import rig_component_features
 from .generation.cloud_generator import GeneratorProperties
@@ -214,6 +214,8 @@ class RigComponent(PropertyGroup):
         self.ui_bone_sets.clear()
         for prop_name in BoneSets.bone_set_property_groups.keys():
             bone_set = getattr(self.params.bone_sets, prop_name)
+            if not self.rig_class:
+                continue
             if prop_name not in self.rig_class.bone_set_defs:
                 continue
             ui_bone_set = self.ui_bone_sets.add()
@@ -254,20 +256,28 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def component_module(self):
+    def component_module(self) -> Optional['ModuleType']:
         prefs = get_addon_prefs(bpy.context)
         component_type_info = prefs.component_types.get(self.component_type)
         if not component_type_info:
             return
-        return rig_components.component_modules.get(component_type_info.module_name)
+        module = rig_components.component_modules.get(component_type_info.module_name)
+        assert (
+            module
+        ), f"Could not get component module: {component_type_info.module_name}"
+
+        return module
 
     @property
-    def rig_class(self) -> type:
+    def rig_class(self) -> Optional[type]:
         if not self.component_module:
             return
         return getattr(self.component_module, 'RigComponent')
 
-    def instantiate(self, generator, parent_instance=None) -> 'RigComponent':
+    def instantiate(self, generator, parent_instance=None) -> Optional['RigComponent']:
+        if not self.rig_class:
+            return
+
         return self.rig_class(
             generator=generator,
             bone_name=self.base_bone_name,

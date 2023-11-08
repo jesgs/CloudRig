@@ -742,7 +742,7 @@ class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
         if not pbone or pbone.rotation_mode == 'QUATERNION':
             return {'CANCELLED'}
 
-        remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
@@ -799,7 +799,7 @@ class CLOUDRIG_OT_Rename_Bone(Operator):
 
         bone.name = self.new_name
         if bone.name == self.new_name:
-            remove_active_log(metarig)
+            metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
@@ -842,7 +842,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         if widget_collection and new_obj.name not in widget_collection.objects:
             widget_collection.objects.link(new_obj)
 
-        remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
         self.report(
             {'INFO'},
             f'Replaced all references of "{self.old_name}" to "{self.new_name}".',
@@ -892,7 +892,7 @@ class CLOUDRIG_OT_Rename_Object(Operator):
 
         obj.name = self.new_name
         if obj.name == self.new_name:
-            remove_active_log(metarig)
+            metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
@@ -910,7 +910,7 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         metarig = context.object
         ob = bpy.data.objects.get((self.ob_name, None))
 
-        remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
 
         if not ob:
             self.report(
@@ -947,7 +947,7 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
         self.report(
             {'INFO'}, f'Cleared reference to "{old_ref.name}" on "{pbone.name}".'
         )
-        remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
@@ -973,7 +973,7 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
                 curves_removed += 1
 
         self.report({'INFO'}, f'Removed {curves_removed} curves.')
-        remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
@@ -1026,23 +1026,9 @@ class CLOUDRIG_OT_delete_collection(Operator):
         else:
             self.report({'INFO'}, f"Collection {self.coll_name} not found.")
 
-        remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
 
         return {'FINISHED'}
-
-
-def remove_active_log(metarig: Object):
-    generator = metarig.cloudrig.generator
-    logs = generator.logs
-
-    active_index = generator.active_log_index
-    # This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
-    to_index = active_index
-    if to_index > len(logs) - 2:
-        to_index = len(logs) - 2
-
-    generator.logs.remove(active_index)
-    generator.active_log_index = to_index
 
 
 registry = [

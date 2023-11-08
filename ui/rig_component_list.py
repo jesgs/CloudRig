@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty
 from bpy.types import Panel, UIList
 from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
@@ -38,13 +38,16 @@ class CLOUDRIG_UL_rig_components(UIList):
             row.label(text="", icon='BLANK1')
         row.label(text=pose_bone.name)
 
+        icon = 'ARMATURE_DATA'
+        if not rig_component.rig_class:
+            icon = 'ERROR'
         main_split.row().prop_search(
             rig_component,
             'component_type',
             addon_prefs,
             'component_types',
             text="",
-            icon='ARMATURE_DATA',
+            icon=icon,
         )
 
     def draw_filter(self, context, layout):
@@ -107,21 +110,27 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
     component_type: StringProperty(
         name="Component Type", description="Component type to assign"
     )
+    remove_active_log: BoolProperty(
+        name="Remove Active Log",
+        description="If True, remove the active generation log entry",
+        default=False,
+    )
 
     @classmethod
     def poll(cls, context):
         return is_cloud_metarig(context.object)
 
     def invoke(self, context, _event):
-        active_pb = get_pbone_of_active(context)
-        if active_pb:
-            self.bone_name = active_pb.name
-        elif context.active_bone:
-            self.bone_name = context.active_bone.name
+        if not self.bone_name:
+            active_pb = get_pbone_of_active(context)
+            if active_pb:
+                self.bone_name = active_pb.name
+            elif context.active_bone:
+                self.bone_name = context.active_bone.name
 
-        selected_pb = context.object.pose.bones.get(self.bone_name)
-        if selected_pb:
-            self.component_type = selected_pb.cloudrig_component.component_type
+            selected_pb = context.object.pose.bones.get(self.bone_name)
+            if selected_pb:
+                self.component_type = selected_pb.cloudrig_component.component_type
 
         return context.window_manager.invoke_props_dialog(self, width=500)
 
@@ -160,12 +169,14 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         selected_pb = rig.pose.bones[self.bone_name]
 
         selected_pb.cloudrig_component.component_type = self.component_type
-        selected_pb.cloudrig_component.base_bone_name = selected_pb.name
         rig.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
         self.report(
             {'INFO'},
             f'Added "{selected_pb.cloudrig_component.component_type}" component to "{selected_pb.name}".',
         )
+
+        if self.remove_active_log:
+            rig.cloudrig.generator.remove_active_log()
 
         # Need to re-draw UI, otherwise the changes don't always show up...
         redraw_viewport()

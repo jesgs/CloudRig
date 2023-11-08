@@ -3,7 +3,8 @@
 
 import addon_utils
 import bpy, os
-from typing import Tuple
+from typing import Tuple, Optional
+from bpy.types import PoseBone
 import time
 
 # Written by __init__.py at register time. (No other way to access bl_info)
@@ -75,10 +76,12 @@ class Timer:
         print(string + "%.3f" % (t - self.start_time))
 
 
-def get_pbone_of_active(context):
+def get_pbone_of_active(context) -> Optional[PoseBone]:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """
+    if not context.active_bone:
+        return
     return context.object.pose.bones.get(context.active_bone.name)
 
 
