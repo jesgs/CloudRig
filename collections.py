@@ -75,24 +75,6 @@ class CloudRigBoneCollection(PropertyGroup):
         return counter
 
 
-class CLOUDRIG_OT_refresh_bone_collections(Operator):
-    """Refresh Nested Bone Collection UI data"""
-
-    bl_idname = "pose.cloudrig_collections_refresh"
-    bl_label = "Refresh Collections UI"
-    bl_options = {'INTERNAL', 'REGISTER'}
-
-    @classmethod
-    def poll(cls, context):
-        return is_active_cloud_metarig(context)
-
-    def execute(self, context):
-        context.object.cloudrig.ensure_bone_collections_info()
-
-        self.report({'INFO'}, "CloudRig Collection UI data refreshed.")
-        return {'FINISHED'}
-
-
 class CLOUDRIG_OT_collection_parent_set(Operator):
     """Set parent collection"""
 
@@ -223,7 +205,7 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'data'
-    bl_label = "Collections UI"
+    bl_label = "Nested Collections"
     bl_parent_id = "POSE_PT_CloudRig"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -238,25 +220,20 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        ops_col = draw_ui_list(
+        draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_bone_collection_nested_list',
             list_path='object.data.collections',
-            active_index_path='object.data.collections.active_index',
+            active_index_path='object.cloudrig.active_collection_index',
             insertion_operators=False,
             move_operators=False,
             unique_id='CloudRig Nested Collections UI',
         )
 
-        ops_col.operator(
-            CLOUDRIG_OT_refresh_bone_collections.bl_idname, text="", icon='FILE_REFRESH'
-        )
-
 
 registry = [
     CloudRigBoneCollection,
-    CLOUDRIG_OT_refresh_bone_collections,
     CLOUDRIG_OT_collection_parent_set,
     CLOUDRIG_PT_bone_collection_ui,
     CLOUDRIG_UL_bone_collection_nested_list,

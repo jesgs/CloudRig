@@ -331,7 +331,7 @@ class CloudRig_Generator:
     def instantiate_rig_components(self) -> Dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
-        self.metarig.cloudrig.refresh_generation_order()
+        self.metarig.cloudrig.active_component_update_callback()
 
         component_bones_ordered = [
             pb

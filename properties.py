@@ -342,12 +342,19 @@ class RigComponent(PropertyGroup):
 
 
 class Properties_CloudRig(PropertyGroup):
-    def ensure_bone_collections_info(self):
+    def ensure_bone_collections_info(self, context=None):
         rig_ob = self.id_data
+        rig_ob.data.collections.active_index = self.active_collection_index
         for coll in rig_ob.data.collections:
             coll.cloudrig_info.name = coll.name
 
-    def active_component_update_callback(self, context):
+    active_collection_index: IntProperty(
+        name="Nested Collections",
+        description="Nested Collections",
+        update=ensure_bone_collections_info,
+    )
+
+    def active_component_update_callback(self, context=None):
         # Update component order (used for sorting the UIList as well as generation order).
         self.refresh_generation_order()
         self.ensure_bone_collections_info()
@@ -355,7 +362,7 @@ class Properties_CloudRig(PropertyGroup):
         if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
             return
         # Select the bone of this rig component
-        rig = context.object
+        rig = self.id_data
         for bone in rig.data.bones:
             bone.select = False
         rig.data.bones.active = rig.data.bones[self.active_component_index]
@@ -366,6 +373,14 @@ class Properties_CloudRig(PropertyGroup):
     active_component_index: IntProperty(
         description="Active CloudRig Component", update=active_component_update_callback
     )
+
+    @property
+    def active_component(self):
+        if len(self.rig_component_bones) == 0:
+            return
+
+        rig_ob = self.id_data
+        return rig_ob.pose.bones[self.active_component_index].cloudrig_component
 
     enabled: BoolProperty(
         name="CloudRig",
@@ -388,14 +403,6 @@ class Properties_CloudRig(PropertyGroup):
             for pb in rig.pose.bones
             if pb.cloudrig_component.component_type
         ]
-
-    @property
-    def active_component(self):
-        if len(self.rig_component_bones) == 0:
-            return
-
-        rig_ob = self.id_data
-        return rig_ob.pose.bones[self.active_component_index].cloudrig_component
 
     generator: PointerProperty(type=GeneratorProperties)
 
@@ -457,3 +464,4 @@ def register():
 
 def unregister():
     del bpy.types.Object.cloudrig
+    del bpy.types.Object.cloudrig_component
