@@ -248,9 +248,9 @@ class Component_Aim(Component_Base):
     def find_aim_bones_in_group(self, group_name) -> List[bpy.types.PoseBone]:
         """Return a list of all cloud_aim components with a matching Aim Group."""
         aim_bones = []
-        for rig in self.generator.rig_list:
-            if isinstance(rig, Component_Aim) and rig.group == group_name:
-                aim_bone = self.metarig.pose.bones[rig.base_bone]
+        for component in self.generator.all_components:
+            if isinstance(component, Component_Aim) and component.group == group_name:
+                aim_bone = self.metarig.pose.bones[component.base_bone_name]
                 aim_bones.append(aim_bone)
         return aim_bones
 

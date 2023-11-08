@@ -178,14 +178,16 @@ class RigComponent(PropertyGroup):
     this information is duplicated with it.
     """
 
-    base_bone_name: StringProperty(
-        name="Owner Bone",
-        description="Name of the bone this RigComponent is on. This is updated by interacting with the list UI, since it can fall out of sync by bone renaming or bone duplication",
-    )
+    @property
+    def base_bone_name(self):
+        return self.owner_pose_bone.name
 
     @property
     def owner_pose_bone(self):
-        return self.id_data.pose.bones.get(self.base_bone_name)
+        metarig = self.id_data
+        for pb in metarig.pose.bones:
+            if pb.cloudrig_component == self:
+                return pb
 
     @property
     def active_bone_set(self):
@@ -389,13 +391,12 @@ class Properties_CloudRig(PropertyGroup):
 
     def refresh_generation_order(self):
         metarig_ob = self.id_data
-        # Ensure each RigComponent is aware of which bone it's on.
-        for pb in metarig_ob.pose.bones:
-            pb.cloudrig_component.base_bone_name = pb.name
-            pb.cloudrig_component.name = pb.name
 
         # Find bones that have no parents.
         parentless = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
+        parentless.sort(key=lambda pb: pb.name)
+
+        # Number them hierarchically
         index = 0
         for pb in parentless:
             index = self.number_rig_components_recursive(
@@ -419,7 +420,7 @@ class Properties_CloudRig(PropertyGroup):
             pb.cloudrig_component.order = -1
             pb.cloudrig_component.depth = 0
 
-        for child_pb in pb.children:
+        for child_pb in sorted(pb.children, key=lambda pb: pb.name):
             index = self.number_rig_components_recursive(
                 pb=child_pb, parent_component=parent_component, index=index
             )

@@ -116,9 +116,9 @@ class Component_FaceChain(Component_ToonChain):
 
         # Check the generator rig list to see if we are the last chain rig that will be generated.
         self.chain_rigs = []
-        for rig in self.generator.rig_list:
-            if isinstance(rig, Component_FaceChain):
-                self.chain_rigs.append(rig)
+        for component in self.generator.all_components:
+            if isinstance(component, Component_FaceChain):
+                self.chain_rigs.append(component)
 
         self.is_last_chain_rig = self == self.chain_rigs[-1]
 
@@ -207,12 +207,12 @@ class Component_FaceChain(Component_ToonChain):
         intersection_control = None
         have_anchor = False
         # Search for an anchor rig
-        anchor_rigs = [
-            r
-            for r in rig.generator.rig_list
-            if isinstance(r, Component_FaceChainAnchor)
+        anchor_components = [
+            component
+            for component in rig.generator.all_components
+            if isinstance(component, Component_FaceChainAnchor)
         ]
-        for anchor_rig in anchor_rigs:
+        for anchor_rig in anchor_components:
             distance = (anchor_rig.bones_org[0].head - cluster[0].head).length
             if distance < 0.000001:
                 intersection_control = anchor_rig.bones_org[0]

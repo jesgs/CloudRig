@@ -433,8 +433,8 @@ class CloudRig_Generator:
         self, component: "Component_Base"
     ) -> "Component_Base":
         """Find another component in the generator with the opposite name as the one provided."""
-        flipped_name = self.naming.flipped_name(rig.base_bone)
-        if flipped_name == component.base_bone:
+        flipped_name = self.naming.flipped_name(component.base_bone_name)
+        if flipped_name == component.base_bone_name:
             return
 
         for other_component in self.all_components:
@@ -528,7 +528,7 @@ class CloudRig_Generator:
                 # TODO: This should never happen. Should be treated as a bug, probably.
                 self.logger.log(
                     "Bone creation failed",
-                    base_bone_name=bone_info.owner_component.base_bone,
+                    base_bone_name=bone_info.owner_component.base_bone_name,
                     trouble_bone=bone_info.name,
                     description=f'BoneInfo "{bone_info.name}" was not created for some reason.',
                 )
