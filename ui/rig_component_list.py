@@ -17,6 +17,8 @@ class CLOUDRIG_UL_rig_components(UIList):
     ):
         pose_bone = item
         rig_component = pose_bone.cloudrig_component
+        if not rig_component.component_type:
+            return
 
         addon_prefs = get_addon_prefs(context)
 
@@ -160,6 +162,10 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         selected_pb.cloudrig_component.component_type = self.component_type
         selected_pb.cloudrig_component.base_bone_name = selected_pb.name
         rig.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
+        self.report(
+            {'INFO'},
+            f'Added "{selected_pb.cloudrig_component.component_type}" component to "{selected_pb.name}".',
+        )
 
         # Need to re-draw UI, otherwise the changes don't always show up...
         redraw_viewport()
@@ -176,12 +182,19 @@ class CLOUDRIG_OT_remove_rig_component(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return is_cloud_metarig(context.object)
+        return (
+            is_cloud_metarig(context.object)
+            and context.object.cloudrig.active_component
+        )
 
     def execute(self, context):
         rig = context.object
         selected_pb = rig.pose.bones[rig.cloudrig.active_component_index]
 
+        self.report(
+            {'INFO'},
+            f'Removed "{selected_pb.cloudrig_component.component_type}" component from "{selected_pb.name}".',
+        )
         selected_pb.cloudrig_component.component_type = ""
 
         # Set active index to previous bone that has a component.

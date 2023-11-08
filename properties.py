@@ -285,6 +285,8 @@ class RigComponent(PropertyGroup):
     @property
     def parent(self):
         rig_ob = self.id_data
+        if not self.base_bone_name:
+            return
         this_bone = rig_ob.pose.bones.get(self.base_bone_name)
         bone_parent = this_bone.parent
         parent_component = None
@@ -326,10 +328,36 @@ class RigComponent(PropertyGroup):
 
 
 class Properties_CloudRig(PropertyGroup):
+    def ensure_bone_collections_info(self):
+        rig_ob = self.id_data
+        for coll in rig_ob.data.collections:
+            coll.cloudrig_info.name = coll.name
+
+    def active_component_update_callback(self, context):
+        # Update component order (used for sorting the UIList as well as generation order).
+        self.refresh_generation_order()
+        self.ensure_bone_collections_info()
+
+        if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
+            return
+        # Select the bone of this rig component
+        rig = context.object
+        for bone in rig.data.bones:
+            bone.select = False
+        rig.data.bones.active = rig.data.bones[self.active_component_index]
+
+        # Ensure this component has UI bone sets
+        self.active_component.update_ui_bone_sets()
+
+    active_component_index: IntProperty(
+        description="Active CloudRig Component", update=active_component_update_callback
+    )
+
     enabled: BoolProperty(
         name="CloudRig",
         description="Whether this armature is a CloudRig metarig",
         default=False,
+        update=active_component_update_callback,
     )
 
     metarig_version: IntProperty(
@@ -347,25 +375,6 @@ class Properties_CloudRig(PropertyGroup):
             if pb.cloudrig_component.component_type
         ]
 
-    def active_component_update_callback(self, context):
-        if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
-            return
-        # Select the bone of this rig component
-        rig = context.object
-        for bone in rig.data.bones:
-            bone.select = False
-        rig.data.bones.active = rig.data.bones[self.active_component_index]
-
-        # Update component order (used for sorting the UIList as well as generation order).
-        self.refresh_generation_order(context.object)
-
-        # Ensure this component has UI bone sets
-        self.active_component.update_ui_bone_sets()
-
-    active_component_index: IntProperty(
-        description="Active CloudRig Component", update=active_component_update_callback
-    )
-
     @property
     def active_component(self):
         if len(self.rig_component_bones) == 0:
@@ -376,7 +385,8 @@ class Properties_CloudRig(PropertyGroup):
 
     generator: PointerProperty(type=GeneratorProperties)
 
-    def refresh_generation_order(self, metarig_ob):
+    def refresh_generation_order(self):
+        metarig_ob = self.id_data
         # Ensure each RigComponent is aware of which bone it's on.
         for pb in metarig_ob.pose.bones:
             pb.cloudrig_component.base_bone_name = pb.name

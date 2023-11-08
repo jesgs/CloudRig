@@ -75,11 +75,6 @@ class CloudRigBoneCollection(PropertyGroup):
         return counter
 
 
-def ensure_cloudrig_bone_collections(armature):
-    for coll in armature.collections:
-        coll.cloudrig_info.name = coll.name
-
-
 class CLOUDRIG_OT_refresh_bone_collections(Operator):
     """Refresh Nested Bone Collection UI data"""
 
@@ -92,7 +87,7 @@ class CLOUDRIG_OT_refresh_bone_collections(Operator):
         return is_active_cloud_metarig(context)
 
     def execute(self, context):
-        ensure_cloudrig_bone_collections(context.object.data)
+        context.object.cloudrig.ensure_bone_collections_info()
 
         self.report({'INFO'}, "CloudRig Collection UI data refreshed.")
         return {'FINISHED'}
@@ -231,6 +226,12 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
     bl_label = "Collections UI"
     bl_parent_id = "POSE_PT_CloudRig"
     bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        # This is safe because of bl_parent_id; The parent panel's poll does
+        # early exit checks already, no point repeating them here.
+        return context.object.cloudrig.enabled
 
     def draw(self, context):
         layout = self.layout
