@@ -560,13 +560,28 @@ class CLOUDRIG_PT_log(Panel):
         obj = context.object
         return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
 
+    def draw_header(self, context):
+        metarig = context.object
+        generator = metarig.cloudrig.generator
+        logs = generator.logs
+        layout = self.layout
+
+        if len(logs) == 0:
+            layout.label(text="", icon='CHECKMARK')
+        else:
+            layout.label(text="", icon='ERROR')
+
     def draw(self, context):
         metarig = context.object
         generator = metarig.cloudrig.generator
         logs = generator.logs
         layout = self.layout
-        row = layout.row()
 
+        if len(logs) == 0:
+            layout.label(text="No generation issues detected!", icon='CHECKMARK')
+            return
+
+        row = layout.row()
         row.template_list(
             'CLOUDRIG_UL_log_entry_slots',
             '',
@@ -575,9 +590,6 @@ class CLOUDRIG_PT_log(Panel):
             generator,
             'active_log_index',
         )
-
-        if len(logs) == 0:
-            return
 
         log = generator.active_log
 
