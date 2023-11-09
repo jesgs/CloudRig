@@ -7,7 +7,7 @@ from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_pbone_of_active
 from ..rig_component_features.ui import draw_label_with_linebreak
 
-# TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching, 
+# TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching,
 # not just for bendy bone parenting.
 
 
@@ -54,11 +54,15 @@ class ParentSlot(bpy.types.PropertyGroup):
 
 
 def draw_cloudrig_parents(layout, context, text=""):
-    draw_label_with_linebreak(layout, text, align_split=False)
+    draw_label_with_linebreak(layout, text, align_split=True)
+
+    layout.separator()
+
+    layout = layout.box()
 
     split = layout.split(factor=0.43)
     row = split.row()
-    row.label(text="  UI Name")
+    row.label(text="  Parent UI Name")
 
     sub = split.split(factor=0.8)
     row = sub.row()
@@ -67,20 +71,20 @@ def draw_cloudrig_parents(layout, context, text=""):
     sub = split.split(factor=0.8)
     row = sub.row()
     row.alignment = 'RIGHT'
-    row.label(text="Default")
+    row.label(text="Is Default")
 
     draw_ui_list(
         layout,
         context,
         class_name='CLOUDRIG_UL_parent_slots',
-        list_path='active_pose_bone.bone.cloudrig_component.params.parenting.parent_slots',
+        list_path='active_pose_bone.cloudrig_component.params.parenting.parent_slots',
         active_index_path='active_pose_bone.cloudrig_component.params.parenting.active_parent_index',
         unique_id='CloudRig Parent Slots',
     )
 
 
 class CloudParentingMixin:
-    parent_switch_behaviour = "The active parent will own the rig's root bone."
+    parent_switch_behaviour = "The active parent will own the component's root bone."
     parent_switch_overwrites_root_parent = True
 
     """Class that provides parent switching parameters to Component_Base."""
@@ -259,14 +263,14 @@ class CloudParentingMixin:
         )
 
     @classmethod
-    def draw_parent_param(cls, layout, rig, params):
+    def draw_parent_param(cls, layout, context, rig, params):
         parent_bone = rig.pose.bones.get(params.parenting.root_parent)
         is_parent_bendy = parent_bone and parent_bone.bone.bbone_segments > 1
         text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
 
         row = layout.row(align=True)
         cls.draw_prop_search(
-            context, row, params, 'parenting.root_parent', rig.pose, 'bones', text=text
+            context, row, params.parenting, 'root_parent', rig.pose, 'bones', text=text
         )
         if is_parent_bendy:
             cls.draw_prop(
@@ -306,9 +310,9 @@ class CloudParentingMixin:
             if params.parenting.parent_switching:
                 draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
             else:
-                cls.draw_parent_param(layout, rig, params)
+                cls.draw_parent_param(layout, context, rig, params)
         else:
-            cls.draw_parent_param(layout, rig, params)
+            cls.draw_parent_param(layout, context, rig, params)
             cls.draw_prop(context, layout, params.parenting, "parent_switching")
             if params.parenting.parent_switching:
                 draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)

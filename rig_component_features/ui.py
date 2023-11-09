@@ -188,7 +188,7 @@ def add_ui_data(
         ui_data[panel_name][label_name][row_name][entry_name] = {}
 
     prop_bone = info['prop_bone']
-    if type(prop_bone) == BoneInfo:
+    if str(type(prop_bone)) == str(BoneInfo):
         info['prop_bone'] = prop_bone.name
     elif type(prop_bone) == str:
         prop_bone = obj.pose.bones.get(prop_bone)
@@ -213,7 +213,7 @@ def make_custom_property(prop_bone, prop_id, **kwargs):
         if 'max' not in kwargs:
             kwargs['max'] = 1
 
-    if type(prop_bone) == BoneInfo:
+    if str(type(prop_bone)) == str(BoneInfo):
         # Let this function work for BoneInfo objects during the generation process.
         if 'overridable' not in kwargs:
             kwargs['overridable'] = True

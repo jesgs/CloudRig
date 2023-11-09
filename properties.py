@@ -163,8 +163,6 @@ class BoneSets(PropertyGroup):
 
 
 class ComponentParams(PropertyGroup):
-    # TODO 4.0: Some params need to be grabbed from the rig_component_features package.
-
     __annotations__ = {
         name: PointerProperty(type=param_class)
         for name, param_class in get_param_classes().items()

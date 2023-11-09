@@ -30,7 +30,7 @@ class Component_Base(
 
     # Strings to try to communicate obscure behaviours of this rig type in the params UI.
     relinking_behaviour = ""
-    parent_switch_behaviour = "The active parent will own the rig's root bone."
+    parent_switch_behaviour = "The active parent will own the component's root bone."
     parent_switch_overwrites_root_parent = True
     chain_must_be_connected = True
 
