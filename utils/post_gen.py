@@ -143,33 +143,33 @@ def clean_properties(rig):
             if key in bad_keys:
                 del prop_owner[key]
 
-    for ob in bpy.data.objects:
-        clean_prop_owner(ob, bad_prop_names)
-        if ob.data:
-            clean_prop_owner(ob.data, bad_prop_names)
-        if ob.type == 'ARMATURE':
-            if ob.data.rigify_target_rig:
-                for pb in ob.pose.bones:
+    for obj in bpy.data.objects:
+        clean_prop_owner(obj, bad_prop_names)
+        if obj.data:
+            clean_prop_owner(obj.data, bad_prop_names)
+        if obj.type == 'ARMATURE':
+            if obj.cloudrig.generator.target_rig:
+                for pb in obj.pose.bones:
                     clean_prop_owner(pb, bad_prop_names)
             else:
-                for pb in ob.pose.bones:
+                for pb in obj.pose.bones:
                     clean_prop_owner(pb, bad_prop_names + rigify)
 
 
 def check_wrong_drivers(rig):
     # Check for metarig driver vars that target the metarig.
-    for o in bpy.data.objects:
-        if o.type == 'ARMATURE' and o.data.rigify_target_rig:
-            for fc in o.animation_data.drivers:
-                for var in fc.driver.variables:
+    for obj in bpy.data.objects:
+        if obj.type == 'ARMATURE' and o.cloudrig.generator.target_rig:
+            for fcurve in obj.animation_data.drivers:
+                for var in fcurve.driver.variables:
                     if var.type == 'TRANSFORMS':
-                        for t in var.targets:
-                            if t.id == o:
+                        for tar in var.targets:
+                            if tar.id == obj:
                                 print(
                                     "Probably broken: Driver targets metarig bone transform: "
-                                    + fc.data_path
+                                    + fcurve.data_path
                                 )
-                                t.id = rig
+                                tar.id = rig
                                 print("Fixed now, but you gotta re-generate.")
 
 

@@ -1154,6 +1154,11 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
         return {'FINISHED'}
 
 
+#######################################
+############### Rig UI ################
+#######################################
+
+
 class CLOUDRIG_PT_base(bpy.types.Panel):
     """Base class for all CloudRig sidebar panels."""
 
@@ -1168,15 +1173,6 @@ class CLOUDRIG_PT_base(bpy.types.Panel):
 
     def draw(self, context):
         pass
-
-
-def has_number_suffix(name):
-    return all([char in "0123456789" for char in name[-3:]]) and name[-4] == "."
-
-
-#######################################
-############### Rig UI ################
-#######################################
 
 
 def get_char_bone(rig):

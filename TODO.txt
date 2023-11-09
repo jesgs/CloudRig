@@ -29,8 +29,6 @@ Priority 0: Re-write as standalone add-on
 		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 
 	- UI:
-		- Draw all UI without replacing any Rigify UI.
-		- Rigify Layers needs to be brought over to CloudRig. Should be easy enough, I think, although, we'd better collect any related ideas we've had over the years to make sure we have an overview of what we want to implement!
 		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
 
 	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.

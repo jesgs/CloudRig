@@ -688,7 +688,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
         rig = context.object
 
         if self.use_target_rig:
-            rig = rig.data.rigify_target_rig
+            rig = rig.cloudrig.generator.target_rig
             bpy.ops.object.cloudrig_metarig_toggle()
 
         bpy.ops.object.mode_set(mode='POSE')
@@ -828,7 +828,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
 
         rigs = [metarig]
 
-        rig = metarig.data.rigify_target_rig
+        rig = metarig.cloudrig.generator.target_rig
         if rig:
             rigs.append(rig)
 
@@ -993,7 +993,7 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
 
     def draw(self, context):
         metarig = context.object
-        rig = metarig.data.rigify_target_rig
+        rig = metarig.cloudrig.generator.target_rig
 
         action_slots = metarig.cloudrig.generator.action_slots
         action_slot = action_slots[self.action_slot_idx]

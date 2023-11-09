@@ -74,7 +74,7 @@ class CloudCustomPropertiesMixin:
     @classmethod
     def draw_custom_prop_params(cls, layout, context, params):
         metarig = context.object
-        rig = metarig.data.rigify_target_rig
+        rig = metarig.cloudrig.generator.target_rig
 
         cls.draw_prop(
             context, layout, params.custom_props, 'props_storage', expand=True
