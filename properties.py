@@ -464,4 +464,4 @@ def register():
 
 def unregister():
     del bpy.types.Object.cloudrig
-    del bpy.types.Object.cloudrig_component
+    del bpy.types.PoseBone.cloudrig_component

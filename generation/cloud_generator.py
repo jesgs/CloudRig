@@ -534,10 +534,13 @@ class CloudRig_Generator:
         for bone_info in self.bone_infos:
             # Ensure bone collections in both the metarig and the target rig.
             for collection_name in bone_info.collections:
+                meta_coll = self.metarig.data.collections.get(collection_name)
+                if not meta_coll:
+                    meta_coll = self.metarig.data.collections.new(collection_name)
+                    meta_coll.is_visible = False
                 if collection_name not in target_rig.data.collections:
-                    target_rig.data.collections.new(collection_name)
-                if collection_name not in self.metarig.data.collections:
-                    self.metarig.data.collections.new(collection_name)
+                    coll = target_rig.data.collections.new(collection_name)
+                    coll.is_visible = meta_coll.is_visible
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
             if not pose_bone:

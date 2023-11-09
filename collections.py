@@ -1,17 +1,14 @@
 from typing import List
 import bpy
-from bpy.types import PropertyGroup, Operator, Panel, UIList, Collection
+from bpy.types import PropertyGroup, Operator, Panel, UIList, BoneCollection
 from bpy.props import PointerProperty, StringProperty, BoolProperty, IntProperty
 from bl_ui.generic_ui_list import draw_ui_list
 
-from .properties import NameProperty
-from .generation.cloudrig import is_active_cloud_metarig
-from .utils.misc import get_addon_prefs
 from .rig_component_features.ui import redraw_viewport
 
 
 class CloudRigBoneCollection(PropertyGroup):
-    def get_collection(self) -> Collection:
+    def get_collection(self) -> BoneCollection:
         armature = self.id_data
         for coll in armature.collections:
             if coll.cloudrig_info == self:
@@ -22,7 +19,7 @@ class CloudRigBoneCollection(PropertyGroup):
 
         for other_coll in self.id_data.collections:
             if other_coll.cloudrig_info.parent_name == coll.name:
-                other_coll.cloudrig_collection.parent_name = self.name
+                other_coll.cloudrig_info.parent_name = self.name
 
         coll.name = self.name
 
@@ -36,12 +33,12 @@ class CloudRigBoneCollection(PropertyGroup):
     )
 
     @property
-    def parent_collection(self) -> Collection:
+    def parent_collection(self) -> BoneCollection:
         armature = self.id_data
         return armature.collections.get(self.parent_name)
 
     @property
-    def children(self) -> List[Collection]:
+    def children(self) -> List[BoneCollection]:
         children = []
         if not self.name:
             return []
@@ -122,6 +119,56 @@ class CLOUDRIG_OT_collection_parent_set(Operator):
 
         redraw_viewport()
         self.report({'INFO'}, "Collection parent set.")
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_remove(Operator):
+    """Delete active collection"""
+
+    bl_idname = "pose.cloudrig_collection_delete"
+    bl_label = "Delete"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object.data.collections.active
+
+    def execute(self, context):
+        coll = context.object.data.collections.active
+        parent_name = coll.cloudrig_info.parent_name
+
+        for child in coll.cloudrig_info.children:
+            child.cloudrig_info.parent_name = parent_name
+
+        context.object.data.collections.remove(coll)
+
+        context.object.cloudrig.active_collection_index = (
+            context.object.data.collections.find(parent_name)
+        )
+
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_add(Operator):
+    """Add bone collection"""
+
+    bl_idname = "pose.cloudrig_collection_add"
+    bl_label = "Delete"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        coll = context.object.data.collections.active
+        parent_name = ""
+        if coll:
+            parent_name = coll.cloudrig_info.parent_name
+
+        coll = context.object.data.collections.new(name="Collection")
+        coll.cloudrig_info.parent_name = parent_name
+
+        context.object.cloudrig.active_collection_index = (
+            context.object.data.collections.find(coll.name)
+        )
+
         return {'FINISHED'}
 
 
@@ -220,7 +267,7 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        draw_ui_list(
+        ops_col = draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_bone_collection_nested_list',
@@ -231,10 +278,17 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
             unique_id='CloudRig Nested Collections UI',
         )
 
+        ops_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
+        ops_col.operator(
+            CLOUDRIG_OT_collection_remove.bl_idname, text="", icon='REMOVE'
+        )
+
 
 registry = [
     CloudRigBoneCollection,
     CLOUDRIG_OT_collection_parent_set,
+    CLOUDRIG_OT_collection_remove,
+    CLOUDRIG_OT_collection_add,
     CLOUDRIG_PT_bone_collection_ui,
     CLOUDRIG_UL_bone_collection_nested_list,
 ]
