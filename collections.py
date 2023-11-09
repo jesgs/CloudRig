@@ -123,10 +123,10 @@ class CLOUDRIG_OT_collection_parent_set(Operator):
 
 
 class CLOUDRIG_OT_collection_remove(Operator):
-    """Delete active collection"""
+    """Remove the active bone collection"""
 
     bl_idname = "pose.cloudrig_collection_delete"
-    bl_label = "Delete"
+    bl_label = "Remove Bone Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     @classmethod
@@ -150,10 +150,10 @@ class CLOUDRIG_OT_collection_remove(Operator):
 
 
 class CLOUDRIG_OT_collection_add(Operator):
-    """Add bone collection"""
+    """Add a new bone collection"""
 
     bl_idname = "pose.cloudrig_collection_add"
-    bl_label = "Delete"
+    bl_label = "Add Bone Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -172,7 +172,7 @@ class CLOUDRIG_OT_collection_add(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_UL_bone_collection_nested_list(UIList):
+class CLOUDRIG_UL_bone_collections(UIList):
     """Draw bone collections with nesting support provided by CloudRig"""
 
     def draw_item(
@@ -270,7 +270,7 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
         ops_col = draw_ui_list(
             layout,
             context,
-            class_name='CLOUDRIG_UL_bone_collection_nested_list',
+            class_name='CLOUDRIG_UL_bone_collections',
             list_path='object.data.collections',
             active_index_path='object.cloudrig.active_collection_index',
             insertion_operators=False,
@@ -290,7 +290,7 @@ registry = [
     CLOUDRIG_OT_collection_remove,
     CLOUDRIG_OT_collection_add,
     CLOUDRIG_PT_bone_collection_ui,
-    CLOUDRIG_UL_bone_collection_nested_list,
+    CLOUDRIG_UL_bone_collections,
 ]
 
 
