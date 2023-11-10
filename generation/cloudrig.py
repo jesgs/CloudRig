@@ -22,6 +22,7 @@ from bpy.types import Object, UILayout
 
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
+from bl_ui.generic_ui_list import draw_ui_list
 
 
 def is_cloudrig_ui_enabled(obj):
@@ -1184,19 +1185,12 @@ def get_char_bone(rig):
 class CloudRig_Properties(bpy.types.PropertyGroup):
     """PropertyGroup for special custom properties that rely on callback functions."""
 
-    def get_rig(self):
-        """Find the armature object that is using this instance (self)."""
-
-        for rig in get_all_rigs_with_ui_enabled():
-            if rig.cloud_rig == self:
-                return rig
-
     def items_outfit(self, context):
         """Items callback for outfits EnumProperty.
         Build and return a list of outfit names based on a bone naming convention.
         Bones storing an outfit's properties must be named "Properties_Outfit_OutfitName".
         """
-        rig = self.get_rig()
+        rig = self.id_data
         if not rig:
             return [(('0', 'Default', 'Default'))]
 
@@ -1221,7 +1215,7 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
     def change_outfit(self, context):
         """Update callback of outfits EnumProperty."""
 
-        rig = self.get_rig()
+        rig = self.id_data
         if not rig:
             return
 
@@ -1255,7 +1249,9 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
     )
 
 
-def draw_rig_settings_per_label(layout, rig, main_dict):
+def draw_rig_settings_per_label(
+    layout: bpy.types.UILayout, rig: Object, main_dict: dict
+):
     """Each top-level dictionary within the main dictionary defines a panel.
     Each panel is split into sub-sections via labels.
     """
@@ -1274,7 +1270,7 @@ def draw_rig_settings_per_label(layout, rig, main_dict):
         draw_rig_settings(ui, rig, main_dict[label_name])
 
 
-def draw_rig_settings(layout: UILayout, rig: Object, ui_data: Dict):
+def draw_rig_settings(layout: bpy.types.UILayout, rig: Object, ui_data: Dict):
     """
     ui_data: Dictionary containing the UI data, created during rig generation.
     The top-level represents rows, and each row can contain any number of slider definitions.
@@ -1656,6 +1652,173 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
 
 #######################################
+###### Nested Bone Collections ########
+#######################################
+
+
+class CloudRigBoneCollection(bpy.types.PropertyGroup):
+    def get_collection(self) -> bpy.types.BoneCollection:
+        armature = self.id_data
+        for coll in armature.collections:
+            if coll.cloudrig_info == self:
+                return coll
+
+    def update_name(self, context):
+        coll = self.get_collection()
+
+        for other_coll in self.id_data.collections:
+            if other_coll.cloudrig_info.parent_name == coll.name:
+                other_coll.cloudrig_info.parent_name = self.name
+
+        coll.name = self.name
+
+    name: StringProperty(
+        name="Name", description="Name of this bone collection", update=update_name
+    )
+    show_children: BoolProperty()
+    parent_name: StringProperty(
+        name="Parent",
+        description="Parent of this bone collection",
+    )
+
+    @property
+    def parent_collection(self) -> bpy.types.BoneCollection:
+        armature = self.id_data
+        return armature.collections.get(self.parent_name)
+
+    @property
+    def children(self) -> List[bpy.types.BoneCollection]:
+        children = []
+        if not self.name:
+            return []
+        armature = self.id_data
+        for coll in armature.collections:
+            if self.name == coll.cloudrig_info.parent_name:
+                children.append(coll)
+        return children
+
+    @property
+    def should_draw(self):
+        """Return False if any parent up the chain has show_children=False"""
+        if not self.parent_collection:
+            return True
+
+        if not self.parent_collection.cloudrig_info.show_children:
+            return False
+
+        return self.parent_collection.cloudrig_info.should_draw
+
+    @property
+    def hierarchy_depth(self):
+        """Return number of parents"""
+
+        parent = self.parent_collection
+        counter = 0
+        while parent:
+            counter += 1
+            parent = parent.cloudrig_info.parent_collection
+
+        return counter
+
+
+class CLOUDRIG_UL_collections(bpy.types.UIList):
+    """Draw bone collections with nesting support provided by CloudRig"""
+
+    def draw_item(
+        self, context, layout, data, item, icon_value, _active_data, _active_propname
+    ):
+        collection = item
+        cloudrig_info = collection.cloudrig_info
+
+        row = layout.row(align=True)
+        icon = 'TRIA_DOWN' if cloudrig_info.show_children else 'TRIA_RIGHT'
+        if cloudrig_info.parent_collection:
+            split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
+            split.row()
+            row = split.row(align=True)
+        if cloudrig_info.children:
+            row.prop(cloudrig_info, 'show_children', text="", icon=icon, emboss=False)
+        else:
+            row.label(text="", icon='BLANK1')
+        row.prop(cloudrig_info, 'name', icon_value=icon_value, text="", emboss=False)
+        # row.operator(
+        #     CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
+        # ).coll_idx = data.collections.find(collection.name)
+
+    def draw_filter(self, context, layout):
+        """Don't draw sorting buttons here, since the displayed order should ALWAYS
+        show the order in which the rig components will be executed during generation.
+        """
+        layout.row().prop(self, "filter_name", text="")
+
+    def filter_items(self, context, data, propname):
+        collections = getattr(data, propname)
+
+        # Default return values.
+        flt_flags = [self.bitflag_filter_item] * len(collections)
+        flt_neworder = []
+
+        helper_funcs = bpy.types.UI_UL_list
+
+        # Filtering by name search.
+        if self.filter_name:
+            flt_flags = helper_funcs.filter_items_by_name(
+                self.filter_name,
+                self.bitflag_filter_item,
+                collections,
+                "name",
+                reverse=False,
+            )
+
+        # Filter out collections whose parents are collapsed
+        flt_flags = [
+            flag * int(collections[i].cloudrig_info.should_draw)
+            for i, flag in enumerate(flt_flags)
+        ]
+
+        # Order collections by hierarchy and name...
+        # Find collections without any parent
+        root_colls = [
+            coll for coll in collections if coll.cloudrig_info.parent_name == ""
+        ]
+        root_colls.sort(key=lambda c: c.name)
+        sorted_colls = []
+
+        def add_children_recursive(parent_coll):
+            sorted_colls.append(parent_coll)
+            for child in parent_coll.cloudrig_info.children:
+                add_children_recursive(child)
+
+        for root_coll in root_colls:
+            add_children_recursive(root_coll)
+
+        flt_neworder = [sorted_colls.index(coll) for coll in collections]
+
+        return flt_flags, flt_neworder
+
+
+class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_sidebar_collections"
+    bl_label = "Bone Collections"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        draw_ui_list(
+            layout,
+            context,
+            class_name='CLOUDRIG_UL_collections',
+            list_path='object.data.collections',
+            active_index_path='object.cloudrig.active_collection_index',
+            insertion_operators=False,
+            move_operators=False,
+            unique_id='CloudRig Nested Collections UI',
+        )
+
+
+#######################################
 ############## Hotkeys ################
 #######################################
 
@@ -1750,6 +1913,9 @@ classes = (
     CloudRig_Properties,
     CLOUDRIG_PT_character,
     CLOUDRIG_PT_settings,
+    CloudRigBoneCollection,
+    CLOUDRIG_UL_collections,
+    CLOUDRIG_PT_sidebar_collections,
     CLOUDRIG_PT_hotkeys,
 )
 
@@ -1765,10 +1931,16 @@ def register():
             continue
         register_class(c)
 
-    ensure_custom_panels(None, None)
+    if __name__ != 'CloudRig.generation.cloudrig':
+        # This doesn't work during add-on registration, since it relies on context.
+        ensure_custom_panels(None, None)
 
     # Store outfit properties in Object because it can be accessed on Proxies.
     bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
+
+    bpy.types.BoneCollection.cloudrig_info = PointerProperty(
+        type=CloudRigBoneCollection
+    )
 
     bpy.app.handlers.load_post.append(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
@@ -1794,9 +1966,11 @@ def unregister():
     bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
 
-if __name__ in ['__main__', 'builtins']:
-    # __name__ is __main__ when the script is executed in the text editor.
-    # __name__ is builtins when the script is executed via exec() in cloud_generator.
-    # This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded.
-    # In that case __name__ is "rigify.feature_sets.CloudRig.cloudrig"
+print("cloudrig.py should actually register on add-on load now as well...")
+print(__name__)
+
+if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']:
+    # __name__ == `__main__`` when executed in Blender's Text Editor.
+    # __name__ == `builtins`` when executed by cloud_generator.
+    # __name__ == `CloudRig.generation.cloudrig` when executed by Blender add-on registration.
     register()

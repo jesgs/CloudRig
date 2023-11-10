@@ -7,71 +7,6 @@ from bl_ui.generic_ui_list import draw_ui_list
 from .rig_component_features.ui import redraw_viewport
 
 
-class CloudRigBoneCollection(PropertyGroup):
-    def get_collection(self) -> BoneCollection:
-        armature = self.id_data
-        for coll in armature.collections:
-            if coll.cloudrig_info == self:
-                return coll
-
-    def update_name(self, context):
-        coll = self.get_collection()
-
-        for other_coll in self.id_data.collections:
-            if other_coll.cloudrig_info.parent_name == coll.name:
-                other_coll.cloudrig_info.parent_name = self.name
-
-        coll.name = self.name
-
-    name: StringProperty(
-        name="Name", description="Name of this bone collection", update=update_name
-    )
-    show_children: BoolProperty()
-    parent_name: StringProperty(
-        name="Parent",
-        description="Parent of this bone collection",
-    )
-
-    @property
-    def parent_collection(self) -> BoneCollection:
-        armature = self.id_data
-        return armature.collections.get(self.parent_name)
-
-    @property
-    def children(self) -> List[BoneCollection]:
-        children = []
-        if not self.name:
-            return []
-        armature = self.id_data
-        for coll in armature.collections:
-            if self.name == coll.cloudrig_info.parent_name:
-                children.append(coll)
-        return children
-
-    @property
-    def should_draw(self):
-        """Return False if any parent up the chain has show_children=False"""
-        if not self.parent_collection:
-            return True
-
-        if not self.parent_collection.cloudrig_info.show_children:
-            return False
-
-        return self.parent_collection.cloudrig_info.should_draw
-
-    @property
-    def hierarchy_depth(self):
-        """Return number of parents"""
-
-        parent = self.parent_collection
-        counter = 0
-        while parent:
-            counter += 1
-            parent = parent.cloudrig_info.parent_collection
-
-        return counter
-
-
 class CLOUDRIG_OT_collection_parent_set(Operator):
     """Set parent collection"""
 
@@ -285,16 +220,9 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
 
 
 registry = [
-    CloudRigBoneCollection,
     CLOUDRIG_OT_collection_parent_set,
     CLOUDRIG_OT_collection_remove,
     CLOUDRIG_OT_collection_add,
     CLOUDRIG_PT_bone_collection_ui,
     CLOUDRIG_UL_bone_collections,
 ]
-
-
-def register():
-    bpy.types.BoneCollection.cloudrig_info = PointerProperty(
-        type=CloudRigBoneCollection
-    )

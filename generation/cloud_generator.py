@@ -541,6 +541,8 @@ class CloudRig_Generator:
                 if collection_name not in target_rig.data.collections:
                     coll = target_rig.data.collections.new(collection_name)
                     coll.is_visible = meta_coll.is_visible
+                # Copy nesting info from metarig to target rig
+                coll['cloudrig_info'] = meta_coll['cloudrig_info'].to_dict()
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
             if not pose_bone:
