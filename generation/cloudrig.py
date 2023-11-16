@@ -25,26 +25,24 @@ from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 from bl_ui.generic_ui_list import draw_ui_list
 
 
-def is_cloudrig_ui_enabled(obj):
+def is_generated_cloudrig(obj):
     """Return whether obj is marked as being compatible with cloudrig.py."""
     return obj.type == 'ARMATURE' and (
-        'enable_cloudrig_ui' in obj.data and obj.data['enable_cloudrig_ui']
+        'is_generated_cloudrig' in obj.data and obj.data['is_generated_cloudrig']
     )
 
 
-def get_all_rigs_with_ui_enabled():
+def get_all_generated_cloudrigs():
     """Find all cloudrig armature objects in the file."""
     return [
-        o
-        for o in bpy.data.objects
-        if o.type == 'ARMATURE' and is_cloudrig_ui_enabled(o)
+        o for o in bpy.data.objects if o.type == 'ARMATURE' and is_generated_cloudrig(o)
     ]
 
 
 def is_active_cloudrig(context):
     """If the active object is a cloudrig, return it."""
     rig = context.pose_object or context.active_object
-    if rig and is_cloudrig_ui_enabled(rig):
+    if rig and is_generated_cloudrig(rig):
         return rig
 
 
@@ -1827,10 +1825,12 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys"
     bl_label = "Hotkeys"
 
+    keymap_items = []
+
     @classmethod
     def poll(cls, context):
         rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
-        return rig is not None
+        return rig
 
     @staticmethod
     def draw_kmi(km, kmi, layout):
@@ -1858,22 +1858,12 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
 
     def draw(self, context):
         layout = self.layout
-        kc = context.window_manager.keyconfigs.user
-        # NOTE: It's very important that we do NOT expose any UI pointing at
-        # keyconfigs.addons. Messing with that copy of the hotkeys after registration
-        # results in ghost hotkeys and very hard to troubleshoot issues.
 
-        for km in kc.keymaps:
-            for kmi in km.keymap_items:
-                if (
-                    'cloudrig' in kmi.idname
-                    or 'rigify' in kmi.idname
-                    or kmi.idname == "wm.call_menu_pie"
-                    and 'CLOUDRIG' in kmi.properties.name
-                ):
-                    col = layout.column()
-                    col.context_pointer_set("keymap", km)
-                    self.draw_kmi(km, kmi, col)
+        for kc, km, kmi in type(self).keymap_items:
+            if kc == context.window_manager.keyconfigs.user:
+                col = layout.column()
+                col.context_pointer_set("keymap", km)
+                self.draw_kmi(km, kmi, col)
 
 
 def register_hotkey(
@@ -1884,18 +1874,23 @@ def register_hotkey(
     if not addon_keyconfig:
         # This happens when running Blender in background mode.
         return
-    keymaps = addon_keyconfig.keymaps
 
-    km = keymaps.get(key_cat)
-    if not km:
-        km = keymaps.new(name=key_cat, space_type=space_type)
+    keyconfigs = [addon_keyconfig, wm.keyconfigs.user]
 
-    if bl_idname not in km.keymap_items:
-        kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
+    for kc in keyconfigs:
+        keymaps = addon_keyconfig.keymaps
 
-        for key in op_kwargs:
-            value = op_kwargs[key]
-            setattr(kmi.properties, key, value)
+        km = keymaps.get(key_cat)
+        if not km:
+            km = keymaps.new(name=key_cat, space_type=space_type)
+
+        if bl_idname not in km.keymap_items:
+            kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
+            bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
+
+            for key in op_kwargs:
+                value = op_kwargs[key]
+                setattr(kmi.properties, key, value)
 
 
 #######################################
@@ -1924,10 +1919,8 @@ def register():
     from bpy.utils import register_class
 
     for c in classes:
-        if c.__name__ == 'CLOUDRIG_PT_settings' and hasattr(
-            bpy.types, 'CLOUDRIG_PT_settings'
-        ):
-            # Don't re-register Settings panel, or sub-panels become top-level...
+        if c.__name__ in dir(bpy.types):
+            # Don't re-register panels, or sub-panels become top-level.
             continue
         register_class(c)
 
@@ -1935,7 +1928,7 @@ def register():
         # This doesn't work during add-on registration, since it relies on context.
         ensure_custom_panels(None, None)
 
-    # Store outfit properties in Object because it can be accessed on Proxies.
+    # TODO 4.0: These properties for outfit stuff are legacy, remove!
     bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
 
     bpy.types.BoneCollection.cloudrig_info = PointerProperty(
@@ -1951,6 +1944,10 @@ def unregister():
     called afaik. So this is only here for show.
     """
 
+    for km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+        km.keymap_items.remove(kmi)
+    bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
+
     from bpy.utils import unregister_class
 
     for c in classes:
@@ -1965,9 +1962,6 @@ def unregister():
     bpy.app.handlers.load_post.remove(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
-
-print("cloudrig.py should actually register on add-on load now as well...")
-print(__name__)
 
 if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']:
     # __name__ == `__main__`` when executed in Blender's Text Editor.

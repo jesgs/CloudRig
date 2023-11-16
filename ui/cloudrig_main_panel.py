@@ -1,7 +1,7 @@
 from bpy.types import UILayout, Panel, Object
 
 from ..rig_component_features.ui import draw_label_with_linebreak
-from ..generation.cloudrig import is_cloud_metarig
+from ..generation.cloudrig import is_generated_cloudrig
 from ..utils.misc import is_blender_version_compatible, check_addon
 from ..rig_component_features.ui import get_addon_prefs
 
@@ -32,7 +32,8 @@ class POSE_PT_CloudRig(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.object and context.object.type == 'ARMATURE'
+        rig = context.object
+        return rig and not is_generated_cloudrig(rig)
 
     def draw_header(self, context):
         layout = self.layout

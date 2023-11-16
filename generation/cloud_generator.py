@@ -658,7 +658,7 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig = bpy.data.objects.new(rig_name, armature)
     context.scene.collection.objects.link(target_rig)
     # Mark rig for cloudrig.py compatibility checks
-    target_rig.data['enable_cloudrig_ui'] = True
+    target_rig.data['is_generated_cloudrig'] = True
 
     # Save generation timestamp to a custom property
     today = datetime.today()
