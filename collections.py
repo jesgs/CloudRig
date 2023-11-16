@@ -217,6 +217,16 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
         ops_col.operator(
             CLOUDRIG_OT_collection_remove.bl_idname, text="", icon='REMOVE'
         )
+        row = layout.row()
+        if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
+            row.enabled = False
+        sub = row.row(align=True)
+        sub.operator("armature.collection_assign", text="Assign")
+        sub.operator("armature.collection_unassign", text="Remove")
+
+        sub = row.row(align=True)
+        sub.operator("armature.collection_select", text="Select")
+        sub.operator("armature.collection_deselect", text="Deselect")
 
 
 registry = [
