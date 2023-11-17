@@ -27,7 +27,7 @@ class Component_Feather(Component_Chain_FK):
         # Create a new bone parented to ORG, and parent the tip control to it.
         org = self.bones_org[0]
         bend_ctr = self.bone_sets['FK Controls Extra'].new(
-            name=org.name.replace("ORG", "BEND"),
+            name=self.naming.add_prefix(org.name, "BEND"),
             source=org,
             parent=org,
             custom_shape=self.ensure_widget("Feather"),
@@ -37,7 +37,7 @@ class Component_Feather(Component_Chain_FK):
 
         # Create a visual helper line from the bend to the FK control's display positions.
         line = self.bone_sets['FK Controls Extra'].new(
-            name=org.name.replace("ORG", "LINE-BEND"),
+            name=self.naming.add_prefix(org.name, "LINE-BEND"),
             source=bend_ctr,
             parent=bend_ctr,
             head=bend_ctr.head + bend_ctr.vector * 0.95,

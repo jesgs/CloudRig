@@ -146,7 +146,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self, bone_set, source_bone, bone_name="", shape_name="Sphere"
     ):
         if bone_name == "":
-            bone_name = source_bone.name.replace("ORG", "IK-MSTR")
+            bone_name = self.naming.add_prefix(source_bone, "IK-MSTR")
 
         ik_master = bone_set.new(
             name=bone_name,
@@ -291,7 +291,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         ik_chain = []
         for i, org_bone in enumerate(org_chain):
             ik_bone = self.bone_sets['IK Mechanism'].new(
-                name=org_bone.name.replace("ORG", "IK"), source=org_bone
+                name=self.naming.add_prefix(org_bone, "IK"),
+                source=org_bone,
             )
             ik_chain.append(ik_bone)
 
@@ -381,7 +382,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         ik_org_bone = self.bones_org[self.chain_count]
         stretch_bone = self.bone_sets['IK Mechanism'].new(
-            name=self.bones_org[0].name.replace("ORG", "IK-STR"),
+            name=self.naming.add_prefix(self.bones_org[0], "IK-STR"),
             source=self.bones_org[0],
             tail=self.ik_mstr.head.copy(),
             parent=self.root_bone,
@@ -390,7 +391,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         # Bone responsible for giving stretch_bone the target position to stretch to.
         self.stretch_target_bone = self.bone_sets['IK Mechanism'].new(
-            name=ik_org_bone.name.replace("ORG", "IK-STR-TGT"),
+            name=self.naming.add_prefix(ik_org_bone, "IK-STR-TGT"),
             source=ik_org_bone,
             parent=self.ik_mstr,
         )
@@ -546,7 +547,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         for org_bone in self.bones_org:
             # Copy Transforms to IK bone
-            ik_bone = self.find_bone_info(org_bone.name.replace("ORG", "IK"))
+            ik_bone = self.find_bone_info(self.naming.add_prefix(org_bone, "IK"))
             ct_ik = org_bone.add_constraint(
                 'COPY_TRANSFORMS',
                 space='WORLD',

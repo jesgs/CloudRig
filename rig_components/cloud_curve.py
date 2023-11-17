@@ -63,7 +63,7 @@ class Component_Curve_Hooked(Component_Base):
     def make_curve_root_ctrl(self):
         org_bone = self.bones_org[0]
         self.root_bone = self.bone_sets['Curve Root'].new(
-            name=self.base_bone_name.replace("ORG", "ROOT"),
+            name=self.naming.add_prefix(self.base_bone_name, "ROOT"),
             source=org_bone,
             use_custom_shape_bone_size=True,
         )

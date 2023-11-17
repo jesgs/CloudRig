@@ -92,7 +92,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     def make_root_bone(self):
         # Socket/Root bone to parent IK and FK to.
-        root_name = self.base_bone_name.replace("ORG", "ROOT")
+        root_name = self.naming.add_prefix(self.base_bone_name, "ROOT")
         org_bone = self.bones_org[0]
         root_bone = self.bone_sets['FK Controls Extra'].new(
             name=root_name,
@@ -130,7 +130,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 bone_set=self.bone_sets['FK Helpers'],
                 category=self.limb_name,
                 parent_bone=self.root_bone,
-                hng_name=self.base_bone_name.replace("ORG", "FK-HNG"),
+                hng_name=self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
                 prop_bone=self.properties_bone,
                 prop_name=self.fk_hinge_name,
                 limb_name=self.limb_ui_name,
@@ -139,7 +139,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return self.bone_sets['FK Controls']
 
     def make_fk_bone(self, org_bone) -> BoneInfo:
-        fk_name = org_bone.name.replace("ORG", "FK")
+        fk_name = self.naming.add_prefix(org_bone, "FK")
 
         rot_mode = self.params.fk_chain.rot_mode
         if rot_mode == 'PROPAGATE':

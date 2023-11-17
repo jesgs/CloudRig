@@ -53,7 +53,7 @@ class CloudCustomPropertiesMixin:
     def generate_properties_bone(self) -> BoneInfo:
         org_bone = self.bones_org[0]
         properties_bone = self.bones_mch.new(
-            name=org_bone.name.replace("ORG", "PRP"),
+            name=self.naming.add_prefix(org_bone, "PRP"),
             source=org_bone,
             parent=org_bone,
             custom_shape=self.ensure_widget("Cogwheel_Y"),

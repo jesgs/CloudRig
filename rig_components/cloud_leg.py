@@ -203,7 +203,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         thigh, knee, foot, toe = org_chain
 
         rolly_stretchy = self.bone_sets['IK Mechanism'].new(
-            name=thigh.name.replace("ORG", "IK-STR-ROLL"),
+            name=self.naming.add_prefix(thigh, "IK-STR-ROLL"),
             source=thigh,
             tail=self.ik_mstr.head.copy(),
             parent=self.root_bone,
@@ -283,7 +283,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         rik_chain = []
         for i, b in reversed(list(enumerate([foot, toe]))):
             rik_bone = self.bone_sets['Foot Reverse IK Controls'].new(
-                name=b.name.replace("ORG", "RIK"),
+                name=self.naming.add_prefix(b, "RIK"),
                 source=b,
                 head=b.tail.copy(),
                 tail=b.head.copy(),
