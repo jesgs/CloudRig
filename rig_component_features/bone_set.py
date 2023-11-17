@@ -215,6 +215,9 @@ class BoneSet(LinkedList):
                 if prop_name in rna_properties:
                     # We don't want to reset addon-defined properties.
                     continue
+                if 'rigify' in prop_name:
+                    # Legacy stuff, don't need it.
+                    continue
                 if prop_name[0] in "_$":
                     continue
                 try:
