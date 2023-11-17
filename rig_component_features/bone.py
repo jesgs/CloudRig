@@ -118,17 +118,17 @@ class BoneInfo:
         self.gizmo_vgroup = ""  # For CloudRig Gizmos
         self.gizmo_operator = 'transform.translate'
 
-		# {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
+        # {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
         self.custom_props = {}
         self.custom_props_edit = {}
-		# List of dictionaries that will be passed to Rigify's make_driver().
+        # List of dictionaries that will be passed to Rigify's make_driver().
         self.drivers = []
-		# Same but for data bone properties.
+        # Same but for data bone properties.
         self.drivers_data = []
 
         self.color_palette_base = 'DEFAULT'
         self.color_palette_pose = 'DEFAULT'
-		# List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
+        # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
         self.constraint_infos = []
 
         self._name = name
@@ -138,18 +138,18 @@ class BoneInfo:
         self.init_variables(edit_bone_properties)
         self.init_variables(bone_properties)
         self.init_variables(pose_bone_properties)
-		# A better default.
+        # A better default.
         self.use_custom_shape_bone_size = False
-		# Custom boolean for CloudRig, used by the generator.
+        # Custom boolean for CloudRig, used by the generator.
         self.use_custom_shape_bbone_scaling = True
 
         ### Recalculate Roll
         # TODO: Refactor this so that roll_type is gone, and just the existence of roll_bone or roll_vector indicates what should be done.
-		# Whether the roll_bone or roll_vector should be used to calculate bone roll..
+        # Whether the roll_bone or roll_vector should be used to calculate bone roll..
         self.roll_type = ""
-		# If roll_type=='ALIGN', use this as the bone to align with. This is a BoneInfo instance or a string. This is equivalent to the "Active Bone" alignment in Blender.
+        # If roll_type=='ALIGN', use this as the bone to align with. This is a BoneInfo instance or a string. This is equivalent to the "Active Bone" alignment in Blender.
         self.roll_bone = None
-		# If roll_type=='VECTOR', use this as the vector that the Z axis should point towards. This is equivalent to "Align to Cursor" in Blender.
+        # If roll_type=='VECTOR', use this as the vector that the Z axis should point towards. This is equivalent to "Align to Cursor" in Blender.
         self.roll_vector = Vector()
 
         self._source = self
