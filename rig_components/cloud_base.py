@@ -113,7 +113,6 @@ class Component_Base(
         bone_infos = {}
         for pbone in self.get_component_bone_chain():
             ebone = metarig.data.edit_bones.get(pbone.name)
-            ebone.use_connect = False
 
             if self.naming.has_trailing_zeroes(pbone):
                 self.add_log(
@@ -152,6 +151,7 @@ class Component_Base(
                     description="Make sure your bone names are unique and do not have trailing zeroes!",
                 )
             bone_info.bbone_width = ebone.bbone_x / self.scale
+            bone_info.use_connect = False
             bone_infos[bone_info.name] = bone_info
 
         return bone_infos
