@@ -1663,10 +1663,20 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     def update_name(self, context):
         coll = self.get_collection()
+        if coll.name == self.name:
+            return
 
         for other_coll in self.id_data.collections:
             if other_coll.cloudrig_info.parent_name == coll.name:
                 other_coll.cloudrig_info.parent_name = self.name
+        for pb in context.object.pose.bones:
+            comp = pb.cloudrig_component
+            for bone_set_name in comp.params.bone_sets.keys():
+                bone_set = getattr(comp.params.bone_sets, bone_set_name)
+                for bone_set_coll in bone_set.collections:
+                    if bone_set_coll.name == coll.name:
+                        bone_set_coll.name = self.name
+                        break
 
         coll.name = self.name
 
