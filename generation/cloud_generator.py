@@ -276,6 +276,7 @@ class CloudRig_Generator:
         context.view_layer.objects.active = self.target_rig
         bpy.ops.object.mode_set(mode='EDIT')
 
+        self.metarig.cloudrig.ensure_bone_collections_info()
         self.components_create_bone_infos(context)
         self.components_create_interactions()
         if self.root_bone_info:
@@ -331,7 +332,7 @@ class CloudRig_Generator:
     def instantiate_rig_components(self) -> Dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
-        self.metarig.cloudrig.active_component_update_callback()
+        self.metarig.cloudrig.refresh_generation_order()
 
         component_bones_ordered = [
             pb

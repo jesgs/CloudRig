@@ -354,8 +354,7 @@ class Properties_CloudRig(PropertyGroup):
 
     def active_component_update_callback(self, context=None):
         # Update component order (used for sorting the UIList as well as generation order).
-        self.refresh_generation_order()
-        self.ensure_bone_collections_info()
+        self.refresh_generator_data()
 
         if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
             return
@@ -403,6 +402,10 @@ class Properties_CloudRig(PropertyGroup):
         ]
 
     generator: PointerProperty(type=GeneratorProperties)
+
+    def refresh_generator_data(self):
+        self.refresh_generation_order()
+        self.ensure_bone_collections_info()
 
     def refresh_generation_order(self):
         metarig_ob = self.id_data

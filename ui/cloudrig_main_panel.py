@@ -93,6 +93,7 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         layout = layout.column()
         layout.prop(generator, 'target_rig')
+        layout.prop(generator, 'widget_collection')
 
         layout.row().prop_search(generator, 'ensure_root', metarig.data, 'bones')
         layout.row().prop_search(generator, 'properties_bone', metarig.data, 'bones')
