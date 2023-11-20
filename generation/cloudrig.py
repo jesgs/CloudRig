@@ -1911,13 +1911,12 @@ def register_hotkey(
         if not km:
             km = keymaps.new(name=key_cat, space_type=space_type)
 
-        if bl_idname not in km.keymap_items:
-            kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
-            bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
+        kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
+        bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
 
-            for key in op_kwargs:
-                value = op_kwargs[key]
-                setattr(kmi.properties, key, value)
+        for key in op_kwargs:
+            value = op_kwargs[key]
+            setattr(kmi.properties, key, value)
 
 
 #######################################
