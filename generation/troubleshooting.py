@@ -699,10 +699,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
         bpy.ops.pose.select_all(action='DESELECT')
         bone.hide = False
         bone.select = True
-        # TODO 4.0 collections
-        bone_is_visible = any(
-            [bone.layers[i] == rig.data.layers[i] == True for i in range(32)]
-        )
+        bone_is_visible = any([coll.is_visible for coll in bone.collections])
         if not bone_is_visible:
             for i, l in enumerate(bone.layers):
                 if l:

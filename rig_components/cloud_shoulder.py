@@ -23,18 +23,18 @@ class Component_Shoulder(Component_Chain_FK):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.prepare_fk_shoulder()
+        self.shoulder_setup()
 
-    def prepare_fk_shoulder(self):
+    def shoulder_setup(self):
         control = self.bone_sets['FK Controls'][0]
         control.custom_shape = self.ensure_widget("Clavicle")
         shoulder_rot = radians(int(self.params.shoulder.up_axis) * 90)
 
         control.custom_shape_rotation_euler.y = shoulder_rot
 
-        parent = self.get_bone(self.base_bone_name).parent
+        parent = self.find_bone_info(self.base_bone_name).parent
         if parent:
-            control.parent = parent.name
+            control.parent = parent
 
     ##############################
     # Parameters

@@ -60,7 +60,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 description=f'For correct IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls recalculated along a consistent axis (eg. Global X).',
                 operator='armature.flatten_chain',
                 op_kwargs={
-                    'remove_log': True,
+                    'remove_active_log': True,
                     'start_bone': self.metarig_base_pbone.name,
                 },
             )
