@@ -6,7 +6,6 @@ from bpy.props import (
     BoolProperty,
     IntVectorProperty,
     BoolVectorProperty,
-    EnumProperty,
     FloatProperty,
 )
 
@@ -365,7 +364,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop(context, layout, params.fk_chain, 'root')
         row = cls.draw_prop(context, layout.row(), params.fk_chain, 'hinge')
         if row:
-            row.enabled = params.fk_chain.root and generator.ensure_root
+            row.enabled = bool(params.fk_chain.root and generator.ensure_root)
 
         if not cls.is_advanced_mode(context):
             return

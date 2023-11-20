@@ -44,8 +44,15 @@ class CloudUIMixin:
         return is_advanced_mode(context)
 
     @classmethod
+    def is_forced_param(cls, prop_name):
+        for forced_param_name, value in cls.forced_params.items():
+            if forced_param_name.endswith(prop_name):
+                return True
+        return False
+
+    @classmethod
     def draw_prop(cls, context, layout, prop_owner, prop_name, **kwargs):
-        is_forced = prop_name in cls.forced_params.keys()
+        is_forced = cls.is_forced_param(prop_name)
         if is_forced and not cls.is_advanced_mode(context):
             return
 
@@ -66,9 +73,7 @@ class CloudUIMixin:
         coll_prop_name,
         **kwargs,
     ):
-        rig = prop_owner.id_data
-
-        is_forced = prop_name in cls.forced_params.keys()
+        is_forced = cls.is_forced_param(prop_name)
         if is_forced and not cls.is_advanced_mode(context):
             return
 

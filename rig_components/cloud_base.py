@@ -192,8 +192,13 @@ class Component_Base(
         for param in clas.forced_params.keys():
             forced_value = clas.forced_params[param]
             if forced_value != 'NOFORCE':
-                metarig_base_pbone.cloudrig_component.params[param] = forced_value
-                setattr(params, param, forced_value)
+                parts = param.split(".")
+                component_prop = metarig_base_pbone.cloudrig_component.params
+                while len(parts) > 1:
+                    part = parts.pop(0)
+                    component_prop = getattr(component_prop, part)
+
+                setattr(component_prop, parts[0], forced_value)
 
     @classmethod
     def define_bone_sets(cls):

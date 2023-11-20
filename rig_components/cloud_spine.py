@@ -53,9 +53,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         # Create Torso Master control
         limb_root_bone = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(
-                ["MSTR"], self.spine_name + "_Torso", [self.side_suffix]
-            ),
+            name=self.naming.make_name(["ROOT"], self.spine_name, [self.side_suffix]),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
