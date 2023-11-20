@@ -7,12 +7,16 @@ Collection Customization design
 		I want to add collections of my own using library overrides.
 	As a rigger
 		I want to customize not only the nesting but also the order of bone collections
-		I want to be able to parent a single collection to multiple parents, just like in the Outliner.
 		I want to be able to freely rename a collection without having to worry about breaking anything.
 		I want to be able to assign bones and toggle collections using this custom interface on both the metarig and generated rig.
 
 	Nesting is defined via custom properties; There is a "Parents" python property of a list of strings.
 	Renaming collections via the operator 
+
+	Still TODO:
+	- Better ability to re-order collections. It works, but custom behaviour would be needed to fully replace the default panel.
+	- Operators to interact with collections (select, reset, keyframe, isolate, etc)
+	- Ability for animators to add collections.
 
 
 Priority 0: Re-write as standalone add-on

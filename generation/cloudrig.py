@@ -1792,13 +1792,13 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             for i, flag in enumerate(flt_flags)
         ]
 
-        # Order collections by hierarchy and name...
+        # Order collections by hierarchy, such that children come after their
+        # parents, but the original order is otherwise preserved.
 
         # Find collections without any parent
         root_colls = [
             coll for coll in collections if coll.cloudrig_info.parent_name == ""
         ]
-        root_colls.sort(key=lambda c: c.name)
         sorted_colls = []
 
         def add_children_recursive(parent_coll):

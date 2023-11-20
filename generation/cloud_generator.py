@@ -289,6 +289,7 @@ class CloudRig_Generator:
 
         self.components_create_helper_objs(context)
         self.metarig.cloudrig.ensure_bone_collections_info()
+        self.copy_bone_collections(src=metarig, target=self.target_rig)
         self.components_write_pbone_data(self.target_rig)
 
         # ------------------------------------------
@@ -531,6 +532,12 @@ class CloudRig_Generator:
         """Called in Object mode once bones have been created and placed."""
         for component in self.all_components:
             component.create_helper_objects(context)
+
+    @staticmethod
+    def copy_bone_collections(src, target):
+        for coll in src.data.collections:
+            if coll.name not in target.data.collections:
+                target.data.collections.new(coll.name)
 
     def components_write_pbone_data(self, target_rig):
         for bone_info in self.bone_infos:
