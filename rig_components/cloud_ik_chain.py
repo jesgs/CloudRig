@@ -155,7 +155,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             parent=None,
         )
 
-        if not self.generator_params.create_root:
+        if not self.generator_params.ensure_root:
             # If there's no rig root bone, parent the IK master to the component's root.
             # Although ideally, components with IK chains in them should really have a root bone.
             ik_master.parent = self.bones_org[0].parent
@@ -231,10 +231,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.pole_angle = pole_angle
         self.pole_vector = pole_vector
 
-        self.pole_location = (
-            pole_location
-            + self.pole_vector.normalized() * self.params.ik_chain.gizmo_pole_distance
-        )
+        self.pole_location = pole_location
 
     def make_pole_control(self):
         # Create IK Pole Control
@@ -604,8 +601,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 self.params.parenting.parent_slots
             )
             first_parent = parent_bone_names[0]
-        elif self.generator_params.create_root:
-            first_parent = 'root'
+        elif self.generator_params.ensure_root:
+            first_parent = self.generator_params.ensure_root
         else:
             first_parent = self.bones_org[0].parent
 
@@ -765,8 +762,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
         cls.draw_control_label(layout, "IK")
 
         cls.draw_prop(context, layout, params.ik_chain, 'use_pole')
-        if cls.is_advanced_mode(context) and params.ik_chain.use_pole:
-            cls.draw_prop(context, layout, params, 'ik_chain.gizmo_pole_distance')
         cls.draw_prop(context, layout, params.ik_chain, 'at_tip')
 
         if cls.is_advanced_mode(context):

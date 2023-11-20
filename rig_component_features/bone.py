@@ -803,7 +803,7 @@ class ConstraintInfo(dict):
                 if 'target' not in target_info:
                     # Allow omitting target object from Armature contraint targets.
                     target_info['target'] = pose_bone.id_data
-                if isinstance(target_info['subtarget'], BoneInfo):
+                if hasattr(target_info['subtarget'], 'name'):
                     # Allow using BoneInfo instances, convert them to string here.
                     target_info['subtarget'] = target_info['subtarget'].name
             target_pairs = [

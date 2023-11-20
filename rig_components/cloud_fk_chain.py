@@ -35,7 +35,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
         self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
-        if not (self.params.fk_chain.root and self.generator_params.create_root):
+        if not self.params.fk_chain.root and self.generator_params.ensure_root:
             self.params.fk_chain.hinge = False
 
     def create_bone_infos(self, context):
@@ -365,7 +365,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop(context, layout, params.fk_chain, 'root')
         row = cls.draw_prop(context, layout.row(), params.fk_chain, 'hinge')
         if row:
-            row.enabled = params.fk_chain.root and generator.create_root
+            row.enabled = params.fk_chain.root and generator.ensure_root
 
         if not cls.is_advanced_mode(context):
             return
@@ -396,7 +396,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             return True
 
         cloudrig = context.object.cloudrig.generator
-        if params.fk_chain.hinge and params.fk_chain.root and cloudrig.create_root:
+        if params.fk_chain.hinge and params.fk_chain.root and cloudrig.ensure_root:
             return True
 
 

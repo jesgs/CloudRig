@@ -276,7 +276,6 @@ class CloudRig_Generator:
         context.view_layer.objects.active = self.target_rig
         bpy.ops.object.mode_set(mode='EDIT')
 
-        self.metarig.cloudrig.ensure_bone_collections_info()
         self.components_create_bone_infos(context)
         self.components_create_interactions()
         if self.root_bone_info:
@@ -289,6 +288,7 @@ class CloudRig_Generator:
         bpy.ops.object.mode_set(mode='OBJECT')
 
         self.components_create_helper_objs(context)
+        self.metarig.cloudrig.ensure_bone_collections_info()
         self.components_write_pbone_data(self.target_rig)
 
         # ------------------------------------------
@@ -372,7 +372,7 @@ class CloudRig_Generator:
 
     def ensure_root_bone_component(self, metarig, root_name='root'):
         if root_name in metarig.data.edit_bones:
-            return
+            return metarig.pose.bones[root_name]
         edit_bone = create_bone(metarig, root_name)
         name = edit_bone.name
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -382,6 +382,7 @@ class CloudRig_Generator:
         pose_bone.rotation_mode = 'XYZ'
         pose_bone.cloudrig_component.component_type = 'Bone Copy'
         pose_bone.custom_shape = self.ensure_widget("Root")
+        return pose_bone
 
     def ensure_widget(self, widget_name):
         wgt = cloud_widgets.ensure_widget(
@@ -538,11 +539,13 @@ class CloudRig_Generator:
                 meta_coll = self.metarig.data.collections.get(collection_name)
                 if not meta_coll:
                     meta_coll = self.metarig.data.collections.new(collection_name)
+                    meta_coll.cloudrig_info.name = meta_coll.name
                     meta_coll.is_visible = False
                 if collection_name not in target_rig.data.collections:
                     coll = target_rig.data.collections.new(collection_name)
+                    coll.cloudrig_info.name = coll.name
                     coll.is_visible = meta_coll.is_visible
-                # Copy nesting info from metarig to target rig
+                # Copy nesting info from metarig to target rig.
                 coll['cloudrig_info'] = meta_coll['cloudrig_info'].to_dict()
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
