@@ -1,7 +1,6 @@
-from typing import List
 import bpy
-from bpy.types import PropertyGroup, Operator, Panel, UIList, BoneCollection
-from bpy.props import PointerProperty, StringProperty, BoolProperty, IntProperty
+from bpy.types import Operator, Panel, UIList
+from bpy.props import StringProperty, IntProperty
 from bl_ui.generic_ui_list import draw_ui_list
 
 from .rig_component_features.ui import redraw_viewport
@@ -107,7 +106,7 @@ class CLOUDRIG_OT_collection_add(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_UL_bone_collections(UIList):
+class CLOUDRIG_UL_collections_metarig(UIList):
     """Draw bone collections with nesting support provided by CloudRig"""
 
     def draw_item(
@@ -131,56 +130,11 @@ class CLOUDRIG_UL_bone_collections(UIList):
             CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
         ).coll_idx = data.collections.find(collection.name)
 
-    def draw_filter(self, context, layout):
-        """Don't draw sorting buttons here, since the displayed order should ALWAYS
-        show the order in which the rig components will be executed during generation.
-        """
-        layout.row().prop(self, "filter_name", text="")
-
-    def filter_items(self, context, data, propname):
-        collections = getattr(data, propname)
-
-        # Default return values.
-        flt_flags = [self.bitflag_filter_item] * len(collections)
-        flt_neworder = []
-
-        helper_funcs = bpy.types.UI_UL_list
-
-        # Filtering by name search.
-        if self.filter_name:
-            flt_flags = helper_funcs.filter_items_by_name(
-                self.filter_name,
-                self.bitflag_filter_item,
-                collections,
-                "name",
-                reverse=False,
-            )
-
-        # Filter out collections whose parents are collapsed
-        flt_flags = [
-            flag * int(collections[i].cloudrig_info.should_draw)
-            for i, flag in enumerate(flt_flags)
-        ]
-
-        # Order collections by hierarchy and name...
-        # Find collections without any parent
-        root_colls = [
-            coll for coll in collections if coll.cloudrig_info.parent_name == ""
-        ]
-        root_colls.sort(key=lambda c: c.name)
-        sorted_colls = []
-
-        def add_children_recursive(parent_coll):
-            sorted_colls.append(parent_coll)
-            for child in parent_coll.cloudrig_info.children:
-                add_children_recursive(child)
-
-        for root_coll in root_colls:
-            add_children_recursive(root_coll)
-
-        flt_neworder = [sorted_colls.index(coll) for coll in collections]
-
-        return flt_flags, flt_neworder
+    # NOTE: Trying to import the class and reference the code from there seems
+    # to cause issues with class registration (dafuq?)
+    # Same for trying to use inheritance.
+    draw_filter = bpy.types.CLOUDRIG_UL_collections.draw_filter
+    filter_items = bpy.types.CLOUDRIG_UL_collections.filter_items
 
 
 class CLOUDRIG_PT_bone_collection_ui(Panel):
@@ -205,7 +159,7 @@ class CLOUDRIG_PT_bone_collection_ui(Panel):
         ops_col = draw_ui_list(
             layout,
             context,
-            class_name='CLOUDRIG_UL_bone_collections',
+            class_name='CLOUDRIG_UL_collections_metarig',
             list_path='object.data.collections',
             active_index_path='object.cloudrig.active_collection_index',
             insertion_operators=False,
@@ -234,5 +188,5 @@ registry = [
     CLOUDRIG_OT_collection_remove,
     CLOUDRIG_OT_collection_add,
     CLOUDRIG_PT_bone_collection_ui,
-    CLOUDRIG_UL_bone_collections,
+    CLOUDRIG_UL_collections_metarig,
 ]

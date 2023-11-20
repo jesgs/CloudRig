@@ -13,8 +13,8 @@ from . import (
     ui,
     properties,
     prefs,
-    collections,
     generation,
+    collections,
     metarigs,
 )
 
@@ -43,11 +43,12 @@ modules = [
     # For CollectionProperties and PointerProperties, their type must
     # be registered before they themselves are.
     # For Panels, they must be registered before their bl_parent_id is.
+    # And for cases of class inheritance
     rig_component_features,
     rig_components,
     prefs,
-    collections,
     generation,
+    collections,
     properties,
     metarigs,
 ]

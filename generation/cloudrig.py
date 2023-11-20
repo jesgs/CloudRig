@@ -1697,11 +1697,19 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     @property
     def children(self) -> List[bpy.types.BoneCollection]:
         children = []
-        if not self.name:
+        self_coll = self.get_collection()
+
+        # BUG: self.name should always be the same as self_coll.name,
+        # but for some reason I don't understand, this isn't the case.
+        # So, just use self_coll.name...
+
+        if not self_coll.name:
             return []
         armature = self.id_data
         for coll in armature.collections:
-            if self.name == coll.cloudrig_info.parent_name:
+            if (
+                self_coll.name == coll.cloudrig_info.parent_name
+            ) and self_coll.name != "":
                 children.append(coll)
         return children
 
@@ -1785,6 +1793,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         ]
 
         # Order collections by hierarchy and name...
+
         # Find collections without any parent
         root_colls = [
             coll for coll in collections if coll.cloudrig_info.parent_name == ""
@@ -1800,8 +1809,8 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         for root_coll in root_colls:
             add_children_recursive(root_coll)
 
+        # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
         flt_neworder = [sorted_colls.index(coll) for coll in collections]
-
         return flt_flags, flt_neworder
 
 
