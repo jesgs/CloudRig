@@ -329,11 +329,11 @@ class Component_ToonChain(Component_Base):
             source=str_bone,
             parent=str_bone.parent,  # For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
             roll=0,
-            roll_type='BONE',
+            roll_type='ALIGN',
             roll_bone=str_bone,
-            bbone_width=1.5,
             length=str_bone.length * 0.2,
         )
+        handle_bone.bbone_width = str_bone.bbone_width * 1.5
 
         if smooth:
             assert (
