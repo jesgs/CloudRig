@@ -535,9 +535,11 @@ class CloudRig_Generator:
 
     @staticmethod
     def copy_bone_collections(src, target):
-        for coll in src.data.collections:
-            if coll.name not in target.data.collections:
-                target.data.collections.new(coll.name)
+        for src_coll in src.data.collections:
+            tgt_coll = target.data.collections.get(src_coll.name)
+            if not tgt_coll:
+                tgt_coll = target.data.collections.new(src_coll.name)
+            tgt_coll.is_visible = src_coll.is_visible
 
     def components_write_pbone_data(self, target_rig):
         for bone_info in self.bone_infos:

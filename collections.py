@@ -110,22 +110,18 @@ class CLOUDRIG_UL_collections_metarig(UIList):
     """Draw bone collections with nesting support provided by CloudRig"""
 
     def draw_item(
-        self, context, layout, data, item, icon_value, _active_data, _active_propname
+        self,
+        context,
+        layout,
+        data,
+        collection,
+        _icon_value,
+        _active_data,
+        _active_propname,
     ):
-        collection = item
-        cloudrig_info = collection.cloudrig_info
-
-        row = layout.row(align=True)
-        icon = 'TRIA_DOWN' if cloudrig_info.show_children else 'TRIA_RIGHT'
-        if cloudrig_info.parent_collection:
-            split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
-            split.row()
-            row = split.row(align=True)
-        if cloudrig_info.children:
-            row.prop(cloudrig_info, 'show_children', text="", icon=icon, emboss=False)
-        else:
-            row.label(text="", icon='BLANK1')
-        row.prop(cloudrig_info, 'name', icon_value=icon_value, text="", emboss=False)
+        row = bpy.types.CLOUDRIG_UL_collections.draw_collection(
+            context, layout, collection
+        )
         row.operator(
             CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
         ).coll_idx = data.collections.find(collection.name)

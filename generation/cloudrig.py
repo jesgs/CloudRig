@@ -1740,10 +1740,8 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 class CLOUDRIG_UL_collections(bpy.types.UIList):
     """Draw bone collections with nesting support provided by CloudRig"""
 
-    def draw_item(
-        self, context, layout, data, item, icon_value, _active_data, _active_propname
-    ):
-        collection = item
+    @staticmethod
+    def draw_collection(context, layout, collection):
         cloudrig_info = collection.cloudrig_info
 
         row = layout.row(align=True)
@@ -1752,14 +1750,24 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
             split.row()
             row = split.row(align=True)
+            row = row.row(align=True)
         if cloudrig_info.children:
             row.prop(cloudrig_info, 'show_children', text="", icon=icon, emboss=False)
         else:
             row.label(text="", icon='BLANK1')
-        row.prop(cloudrig_info, 'name', icon_value=icon_value, text="", emboss=False)
-        # row.operator(
-        #     CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
-        # ).coll_idx = data.collections.find(collection.name)
+        row.prop(cloudrig_info, 'name', text="", emboss=False)
+        row.prop(
+            collection,
+            'is_visible',
+            text="",
+            icon='HIDE_OFF' if collection.is_visible else 'HIDE_ON',
+        )
+        return row
+
+    def draw_item(
+        self, context, layout, _data, item, _icon_value, _active_data, _active_propname
+    ):
+        self.draw_collection(context, layout, item)
 
     def draw_filter(self, context, layout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
