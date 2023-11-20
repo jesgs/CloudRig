@@ -16,25 +16,19 @@ def deselect_all_bones(context):
             b.select_tail = False
 
 
-def ensure_visible_bone_layer(bone: Bone or EditBone or PoseBone):
-    """If target bone not in any enabled layers, enable first one."""
+def ensure_visible_bone_collection(bone: Bone or EditBone or PoseBone):
+    """If target bone not in any enabled collections, enable first one."""
     if type(bone) == PoseBone:
         armature = bone.id_data.data
         bone = bone.bone
     else:
         armature = bone.id_data
 
-    any_layer = False
-    for i, enabled in enumerate(armature.layers):
-        if enabled and bone.layers[i]:
-            any_layer = True
-            return
+    if len(bone.collections) == 0:
+        return
 
-    if not any_layer:
-        for i in range(len(bone.layers)):
-            if bone.layers[i]:
-                armature.layers[i] = True
-                return
+    if not any([coll.is_visible for coll in bone.collections]):
+        bone.collections[0].is_visible = True
 
 
 def get_selected_bones(context):
@@ -170,7 +164,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 
         super().execute(context)
 
-        ensure_visible_bone_layer(bone)
+        ensure_visible_bone_collection(bone)
         reveal_and_select(context, bone, set_active=True)
 
         return {'FINISHED'}
@@ -248,7 +242,8 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
                     sliced = naming.slice_name(bone_name)
                     bone_name = naming.make_name(sliced[0], sliced[1], [self.suffix])
 
-            bone_name = naming.increment_name(bone_name, self.increment)
+            if self.increment != 0:
+                bone_name = naming.increment_name(bone_name, self.increment)
 
             if context.mode == 'EDIT_ARMATURE':
                 target_bone = rig.data.edit_bones.get(bone_name)
@@ -267,7 +262,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
                 )
                 continue
 
-            ensure_visible_bone_layer(target_bone)
+            ensure_visible_bone_collection(target_bone)
             reveal_and_select(context, target_bone, set_active=False)
 
         set_active_bone(context, active_target_bone)
@@ -292,7 +287,7 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
 
         active_bone = context.active_bone or context.active_pose_bone
 
-        ensure_visible_bone_layer(active_bone.parent)
+        ensure_visible_bone_collection(active_bone.parent)
         set_active_bone(context, active_bone.parent)
 
         return {'FINISHED'}
@@ -335,7 +330,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         if not self.extend_selection:
             deselect_all_bones(context)
 
-        ensure_visible_bone_layer(bone)
+        ensure_visible_bone_collection(bone)
         reveal_and_select(context, bone, set_active=True)
 
         return {'FINISHED'}
