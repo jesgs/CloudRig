@@ -940,9 +940,9 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
     def get_pole_target_matrix(self):
         """Find the matrix where the IK pole should be."""
         """ This is only accurate when the bone chain lies perfectly on a plane
-			and the IK Pole Angle is divisible by 90.
-			This should be the case for a correct IK chain!
-		"""
+            and the IK Pole Angle is divisible by 90.
+            This should be the case for a correct IK chain!
+        """
 
         rig = self.bake_rig
 

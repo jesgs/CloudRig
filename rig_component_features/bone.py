@@ -108,7 +108,7 @@ class BoneInfo:
         **kwargs,
     ):
         """
-        source:	Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
+        source:    Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
         kwargs: Allow setting arbitrary bone properties at initialization.
         """
 

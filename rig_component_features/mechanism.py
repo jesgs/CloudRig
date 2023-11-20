@@ -129,9 +129,9 @@ def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
                 if next_bone != None:
                     print(
                         f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
-						\tChain could continue with either {next_bone.name} or {c.name}. \n
-						\tPicking the first one arbitrarily! \n
-						\tDisconnect the bone or assign a rigify type to make it unambiguous."""
+                        \tChain could continue with either {next_bone.name} or {c.name}. \n
+                        \tPicking the first one arbitrarily! \n
+                        \tDisconnect the bone or assign a rigify type to make it unambiguous."""
                     )
                 else:
                     next_bone = c

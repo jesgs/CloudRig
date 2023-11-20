@@ -38,7 +38,7 @@ class Component_CopyBone(Component_Base):
         bone_info = self.bones_org[0]
 
         # if not bi.use_custom_shape_bone_size: # TODO 4.0 I think this can be removed?
-        # 	bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
+        #     bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
 
         if bone_info.custom_shape:
             self.add_to_widget_collection(context, bone_info.custom_shape)
