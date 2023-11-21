@@ -6,6 +6,7 @@ from . import (
     flatten_chain,
     toggle_action_constraints,
     toggle_metarig,
+    copy_mirror_components,
 )
 
 modules = [
@@ -16,4 +17,5 @@ modules = [
     flatten_chain,
     toggle_action_constraints,
     toggle_metarig,
+    copy_mirror_components,
 ]
