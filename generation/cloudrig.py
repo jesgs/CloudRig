@@ -1749,6 +1749,13 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         return children
 
     @property
+    def all_bones(self) -> List[bpy.types.Bone]:
+        bones = self.get_collection().bones[:]
+        for child in self.children:
+            bones += child.cloudrig_info.all_bones
+        return bones
+
+    @property
     def should_draw(self):
         """Return False if any parent up the chain has unfold_children=False"""
         if not self.parent_collection:
@@ -1908,12 +1915,10 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys"
     bl_label = "Hotkeys"
 
-    keymap_items = []
-
     @classmethod
     def poll(cls, context):
         rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
-        return rig
+        return True
 
     @staticmethod
     def draw_kmi(km, kmi, layout):
@@ -1968,7 +1973,9 @@ def register_hotkey(
             km = keymaps.new(name=key_cat, space_type=space_type)
 
         kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
-        bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
+        # if not hasattr(bpy.types.CLOUDRIG_PT_hotkeys, 'keymap_items'):
+        #     bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
+        # bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
 
         for key in op_kwargs:
             value = op_kwargs[key]
@@ -2000,15 +2007,15 @@ classes = (
 def register():
     from bpy.utils import register_class
 
+    # keymap_items = []
+    # if 'CLOUDRIG_PT_hotkeys' in dir(bpy.types):
+    #     keymap_items = bpy.types.CLOUDRIG_PT_hotkeys.keymap_items
+
     for c in classes:
         if c.__name__ in dir(bpy.types):
             # Don't re-register panels, or sub-panels become top-level.
             continue
         register_class(c)
-
-    if __name__ != 'CloudRig.generation.cloudrig':
-        # This doesn't work during add-on registration, since it relies on context.
-        ensure_custom_panels(None, None)
 
     # TODO 4.0: These properties for outfit stuff are legacy, remove!
     bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
@@ -2017,6 +2024,10 @@ def register():
         type=CloudRigBoneCollection
     )
 
+    # Ensure custom panels.
+    if __name__ != 'CloudRig.generation.cloudrig':
+        # This doesn't work during add-on registration, since it relies on context.
+        ensure_custom_panels(None, None)
     bpy.app.handlers.load_post.append(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
 
@@ -2026,9 +2037,9 @@ def unregister():
     called afaik. So this is only here for show.
     """
 
-    for km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
-        km.keymap_items.remove(kmi)
-    bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
+    # for kc, km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+    #     km.keymap_items.remove(kmi)
+    # bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
 
     from bpy.utils import unregister_class
 

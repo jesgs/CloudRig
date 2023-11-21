@@ -267,7 +267,7 @@ class CloudLogManager:
     def report_unused_bone_collections(self, metarig, target_rig):
         for coll in metarig.data.collections:
             target_coll = target_rig.data.collections.get(coll.name)
-            if not target_coll or len(target_coll.bones) == 0:
+            if not target_coll or len(target_coll.cloudrig_info.all_bones) == 0:
                 self.log(
                     "Unused Bone Collection",
                     note=coll.name,
