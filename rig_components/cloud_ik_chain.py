@@ -25,7 +25,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
     )
     parent_switch_overwrites_root_parent = False
     always_use_custom_props = True
-    chain_must_be_connected = False
 
     forced_params = {'fk_chain.root': True, 'fk_chain.position_along_bone': 0}
 

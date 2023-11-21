@@ -21,9 +21,8 @@ class CloudMechanismMixin:
 
     def get_component_bone_chain(self):
         # TODO 4.0: This could be moved to the RigComponent RNA class.
-        connected = type(self).chain_must_be_connected
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
-        return get_component_bone_chain(pose_bone, connected)
+        return get_component_bone_chain(pose_bone)
 
     def ensure_widget(self, name):
         return self.generator.ensure_widget(name)
@@ -118,13 +117,13 @@ def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
 
     # Go down in the hierarchy from the last bone, appending connected bones to the list.
     # NOTE: If one bone has multiple connected children and neither of them have
-    # a rigify type, the chain becomes ambiguous. This case is not supported!
+    # a component type, the chain becomes ambiguous. This case is not supported!
     cur_pb = chain[-1]
     while cur_pb and len(cur_pb.children) > 0:
         next_bone = None
-        for c in cur_pb.children:
-            if c.cloudrig_component.component_type == "":
-                if connected and not c.bone.use_connect:
+        for child_pb in cur_pb.children:
+            if child_pb.cloudrig_component.component_type == "":
+                if connected and not child_pb.bone.use_connect:
                     continue
                 if next_bone != None:
                     print(
@@ -134,7 +133,7 @@ def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
                         \tDisconnect the bone or assign a rigify type to make it unambiguous."""
                     )
                 else:
-                    next_bone = c
+                    next_bone = child_pb
         if next_bone:
             chain.append(next_bone)
         cur_pb = next_bone

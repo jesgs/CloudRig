@@ -32,7 +32,6 @@ class Component_Base(
     relinking_behaviour = ""
     parent_switch_behaviour = "The active parent will own the component's root bone."
     parent_switch_overwrites_root_parent = True
-    chain_must_be_connected = True
 
     ui_name = "Cloud Base (Should not be visible in UI!)"
 
