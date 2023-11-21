@@ -539,6 +539,7 @@ class CloudRig_Generator:
             tgt_coll = target.data.collections.get(src_coll.name)
             if not tgt_coll:
                 tgt_coll = target.data.collections.new(src_coll.name)
+                tgt_coll['cloudrig_info'] = src_coll['cloudrig_info'].to_dict()
             tgt_coll.is_visible = src_coll.is_visible
 
     def components_write_pbone_data(self, target_rig):
@@ -556,9 +557,6 @@ class CloudRig_Generator:
                     target_coll = target_rig.data.collections.new(collection_name)
                     target_coll.cloudrig_info.name = target_coll.name
                     target_coll.is_visible = meta_coll.is_visible
-
-                # Copy nesting info from metarig to target rig.
-                target_coll['cloudrig_info'] = meta_coll['cloudrig_info'].to_dict()
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
             if not pose_bone:

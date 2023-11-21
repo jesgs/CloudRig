@@ -1683,7 +1683,42 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     name: StringProperty(
         name="Name", description="Name of this bone collection", update=update_name
     )
-    show_children: BoolProperty()
+    unfold_children: BoolProperty()
+
+    def update_is_visible(self, context):
+        # The is_visible flag is not intended to stay perfectly in sync with the
+        # collections themselves. Instead, we consider this a higher level toggle,
+        # that controls the hierarchy.
+        # So, self.is_visible may be True, but the actual collection underneath
+        # will still be hidden, if any of our parent collections is hidden.
+        coll = self.get_collection()
+        coll.is_visible = self.is_visible
+        if self.is_visible:
+            self.should_stay_hidden = False
+        for child in self.children:
+            if not child.cloudrig_info.is_visible and not self.is_visible:
+                child.cloudrig_info.should_stay_hidden = True
+            if (
+                self.is_visible
+                and not child.cloudrig_info.is_visible
+                and child.cloudrig_info.should_stay_hidden
+            ):
+                continue
+            if not self.is_visible and not child.cloudrig_info.is_visible:
+                continue
+            child.cloudrig_info.is_visible = self.is_visible
+
+    is_visible: BoolProperty(
+        name="Visible",
+        description="Toggle the visiblity of this collection, and all child collections",
+        default=True,
+        update=update_is_visible,
+    )
+    should_stay_hidden: BoolProperty(
+        name="Stay Hidden",
+        description="Internal value to preserve hidden state when a parent gets un-hidden",
+        default=False,
+    )
     parent_name: StringProperty(
         name="Parent",
         description="Parent of this bone collection",
@@ -1715,14 +1750,25 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     @property
     def should_draw(self):
-        """Return False if any parent up the chain has show_children=False"""
+        """Return False if any parent up the chain has unfold_children=False"""
         if not self.parent_collection:
             return True
 
-        if not self.parent_collection.cloudrig_info.show_children:
+        if not self.parent_collection.cloudrig_info.unfold_children:
             return False
 
         return self.parent_collection.cloudrig_info.should_draw
+
+    @property
+    def should_draw_grayed(self):
+        """Return True if any parent up the chain has is_visible=False"""
+        if not self.parent_collection:
+            return False
+
+        if not self.parent_collection.cloudrig_info.is_visible:
+            return True
+
+        return False
 
     @property
     def hierarchy_depth(self):
@@ -1745,23 +1791,27 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         cloudrig_info = collection.cloudrig_info
 
         row = layout.row(align=True)
-        icon = 'TRIA_DOWN' if cloudrig_info.show_children else 'TRIA_RIGHT'
+        icon = 'TRIA_DOWN' if cloudrig_info.unfold_children else 'TRIA_RIGHT'
         if cloudrig_info.parent_collection:
             split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
             split.row()
             row = split.row(align=True)
             row = row.row(align=True)
         if cloudrig_info.children:
-            row.prop(cloudrig_info, 'show_children', text="", icon=icon, emboss=False)
+            row.prop(cloudrig_info, 'unfold_children', text="", icon=icon, emboss=False)
         else:
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', text="", emboss=False)
-        row.prop(
-            collection,
-            'is_visible',
-            text="",
-            icon='HIDE_OFF' if collection.is_visible else 'HIDE_ON',
-        )
+        row = row.row()
+        row.enabled = not cloudrig_info.should_draw_grayed
+        icon = 'HIDE_ON'
+        if collection.is_visible or (
+            cloudrig_info.parent_collection
+            and not cloudrig_info.parent_collection.cloudrig_info.is_visible
+            and not cloudrig_info.should_stay_hidden
+        ):
+            icon = 'HIDE_OFF'
+        row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
         return row
 
     def draw_item(
