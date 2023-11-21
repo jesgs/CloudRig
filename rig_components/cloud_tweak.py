@@ -25,21 +25,23 @@ class Component_TweakBone(Component_Base):
         bone_infos = super().load_metarig_bone_infos(metarig)
         assert len(bone_infos) == 1
 
-        self.original_name = bone_infos[0].name
-        bone_infos[0].name += "_Tweak"
+        bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
+        self.original_name, self_bone = bone_info_tuple
+        self_bone.name += "_Tweak"
+        self_bone.create = False
         return bone_infos
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         org_bi = self.bones_org[0]
-        self.tweak_bone = tweak_bone = self.generator.find_bone_info(org_bi.name)
+        self.tweak_bone = tweak_bone = self.generator.find_bone_info(self.original_name)
 
         if not self.tweak_bone:
             self.add_log(
                 "No bone to tweak",
-                description=f'Could not find a bone called "{self.original_name}" on the generated rig.',
+                description=f'Could not find a bone called "{original_name}" on the generated rig.',
                 operator='object.cloudrig_rename_bone',
-                op_kwargs={'old_name': self.original_name},
+                op_kwargs={'old_name': original_name},
             )
             return
 
@@ -84,8 +86,8 @@ class Component_TweakBone(Component_Base):
             if org_bi.custom_shape:
                 self.add_to_widget_collection(context, org_bi.custom_shape)
 
-        if self.params.tweak.collection:
-            tweak_bone.collection = org_bi.collection
+        if self.params.tweak.collections:
+            tweak_bone.collections = org_bi.collections
         if self.params.tweak.color_palette:
             tweak_bone.color_palette_base = org_bi.color_palette_base
             tweak_bone.color_palette_pose = org_bi.color_palette_pose
@@ -113,11 +115,9 @@ class Component_TweakBone(Component_Base):
             tweak_bone.bbone_x = org_bi.bbone_x
             tweak_bone.bbone_z = org_bi.bbone_z
 
-        if True:  # self.params.tweak.custom_props:
+        if self.params.tweak.custom_props:
             for prop_name in org_bi.custom_props:
                 tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
-
-        org_bi.layers = self.bones_mch.layers[:]
 
     def relink(self):
         # Transfer and relink constraints and their drivers
@@ -148,10 +148,11 @@ class Component_TweakBone(Component_Base):
         cls.draw_prop(context, layout, params.tweak, "locks")
         cls.draw_prop(context, layout, params.tweak, "rot_mode")
         cls.draw_prop(context, layout, params.tweak, "shape")
-        cls.draw_prop(context, layout, params.tweak, "collection")
+        cls.draw_prop(context, layout, params.tweak, "collections")
         cls.draw_prop(context, layout, params.tweak, "color_palette")
         cls.draw_prop(context, layout, params.tweak, "ik_settings")
         cls.draw_prop(context, layout, params.tweak, "bbone_props")
+        cls.draw_prop(context, layout, params.tweak, "custom_props")
 
 
 class Params(PropertyGroup):
@@ -180,7 +181,7 @@ class Params(PropertyGroup):
         description="Replace the matching generated bone's shape with this bone's shape",
         default=False,
     )
-    collection: BoolProperty(
+    collections: BoolProperty(
         name="Collections",
         description="Replace the matching generated bone's collections with this bone's collections",
         default=False,
@@ -198,6 +199,11 @@ class Params(PropertyGroup):
     bbone_props: BoolProperty(
         name="B-Bone Settings",
         description="Copy B-Bone settings from this bone to the generated bone",
+        default=False,
+    )
+    custom_props: BoolProperty(
+        name="Custom Properties",
+        description="Copy custom properties from this bone to the generated bone",
         default=False,
     )
 
