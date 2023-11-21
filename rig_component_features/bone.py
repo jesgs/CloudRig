@@ -574,7 +574,7 @@ class BoneInfo:
         if self.color_palette_base not in {'DEFAULT', 'CUSTOM'}:
             palette = self.color_palette_base
             theme_color = bpy.context.preferences.themes[0].bone_color_sets[
-                int(self.color_palette_base[-2:])
+                int(self.color_palette_base[-2:]) - 1
             ]
             self.color_palette_base = 'CUSTOM'
             bone.color.palette = 'CUSTOM'

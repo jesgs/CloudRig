@@ -162,8 +162,8 @@ class BoneSet(LinkedList):
 
         # Load color palettes (only presets are supported, no custom colors)
         # TODO 4.1: Drop support for custom colors.
-        if keep_colors and False:
-            if data_bone.color.palette == 'CUSTOM':
+        if keep_colors:
+            if data_bone.color.palette == 'CUSTOM' and False:
                 self.rig_component.add_log("Custom Colors must not be used.")
             else:
                 bone_info.color_palette_base = data_bone.color.palette
