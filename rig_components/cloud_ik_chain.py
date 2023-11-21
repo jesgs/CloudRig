@@ -259,6 +259,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,
             hide_select=True,
+            roll_type='ALIGN',
+            roll_bone=pole_ctrl,
+            roll=0,
             custom_shape=self.ensure_widget('Line'),
             use_custom_shape_bone_size=True,
         )
