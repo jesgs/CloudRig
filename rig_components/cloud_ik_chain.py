@@ -537,8 +537,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
             copyloc.drivers.append(dict(ik_stretch_engaged_driver))
 
     def attach_org_to_ik(self):
-        # Note: Runs after attach_org_to_fk().
-
         # Add Copy Transforms constraints to the ORG bones to copy the IK bones.
         # Put driver on the influence to be able to disable IK.
 
