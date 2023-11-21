@@ -276,8 +276,8 @@ class CloudParentingMixin:
             cls.draw_prop(
                 context,
                 row,
-                params,
-                'parenting.use_armature_constraint',
+                params.parenting,
+                'use_armature_constraint',
                 icon='CON_ARMATURE',
                 text="",
             )
@@ -285,8 +285,8 @@ class CloudParentingMixin:
                 cls.draw_prop(
                     context,
                     row,
-                    params,
-                    'parenting.use_helper_bone',
+                    params.parenting,
+                    'use_helper_bone',
                     icon='BONE_DATA',
                     text="",
                 )
