@@ -5,11 +5,6 @@ from .cloud_base import Component_Base
 from ..rig_component_features.bone import BoneInfo
 from ..rig_component_features.bone_set import BoneSet
 
-"""TODO
-We cannot tweak ORG bones because when Rigify adds the ORG prefix, it only adds it if it isn't already there.
-This means one of our bones will get a .001 in its name...
-"""
-
 
 class Component_TweakBone(Component_Base):
     """Tweak a single bone with the same name as this bone in the generated rig."""
@@ -39,9 +34,9 @@ class Component_TweakBone(Component_Base):
         if not self.tweak_bone:
             self.add_log(
                 "No bone to tweak",
-                description=f'Could not find a bone called "{original_name}" on the generated rig.',
+                description=f'Could not find a bone called "{self.original_name}" on the generated rig.',
                 operator='object.cloudrig_rename_bone',
-                op_kwargs={'old_name': original_name},
+                op_kwargs={'old_name': self.original_name},
             )
             return
 

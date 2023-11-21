@@ -502,6 +502,8 @@ class CloudRig_Generator:
         No bone data is written yet beside the name."""
 
         for bone_info in self.bone_infos:
+            if not bone_info.create:
+                continue
             if bone_info.name in self.target_rig.data.edit_bones:
                 # This happens for ORG bones that we load into BoneInfo objects,
                 # since they already get created by __duplicate_rig()
@@ -544,6 +546,8 @@ class CloudRig_Generator:
 
     def components_write_pbone_data(self, target_rig):
         for bone_info in self.bone_infos:
+            if not bone_info.create:
+                continue
             # Ensure bone collections in both the metarig and the target rig.
             for collection_name in bone_info.collections:
                 meta_coll = self.metarig.data.collections.get(collection_name)
