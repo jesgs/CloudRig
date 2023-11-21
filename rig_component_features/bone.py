@@ -475,6 +475,11 @@ class BoneInfo:
         eb.head_radius = self.bbone_width * scale
         eb.tail_radius = self.bbone_width * scale
 
+        # Parenting - If an Armature Constraint is present, don't allow double parenting.
+        for con in self.constraint_infos:
+            if con.type == 'ARMATURE':
+                self.parent = None
+
         if self.parent:
             eb.parent = armature.data.edit_bones.get(str(self.parent))
             if not eb.parent:
