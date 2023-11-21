@@ -114,6 +114,7 @@ class BoneInfo:
 
         self.bone_set = bone_set
         self.owner_component = owner_component
+        self.create = True
         self.next = self.prev = None  # For LinkedList behaviour.
         self.gizmo_vgroup = ""  # For CloudRig Gizmos
         self.gizmo_operator = 'transform.translate'
@@ -439,6 +440,9 @@ class BoneInfo:
 
     def write_edit_data(self, generator, eb: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
+        if not self.create:
+            return
+
         armature = generator.target_rig
         assert (
             armature.mode == 'EDIT'
@@ -505,6 +509,9 @@ class BoneInfo:
 
     def write_pose_data(self, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
+        if not self.create:
+            return
+
         armature = pose_bone.id_data
 
         assert (
