@@ -23,7 +23,7 @@ class Component_Aim(Component_Base):
         super().create_bone_infos(context)
 
         aim_org = self.bones_org[0]
-        aim_bone = self.bone_sets['Aim Group Target Control'].new(
+        aim_bone = self.bone_sets['Mechanism Bones'].new(
             name=self.naming.add_prefix(self.bones_org[0].name, 'AIM'),
             source=aim_org,
             parent=aim_org,
@@ -291,12 +291,13 @@ class Component_Aim(Component_Base):
 
         # Create a helper bone in the center.
         group_vec = target_center - aims_center
-        center_bone = self.bone_sets['Aim Group Target Control'].new(
+        center_bone = self.bone_sets['Mechanism Bones'].new(
             name="CEN-" + group_name,
             source=self.bones_org[0],
             head=aims_center,
             tail=aims_center + group_vec.normalized() * self.scale,
             bbone_width=0.1,
+            roll=0,
             parent=self.generator.find_bone_info(first_parent),
         )
 
