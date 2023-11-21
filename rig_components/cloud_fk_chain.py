@@ -282,6 +282,15 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if self.params.fk_chain.position_along_bone > 0:
             for str_bone, fk_bone in zip(self.main_str_bones[1:], fk_bones):
                 str_bone.parent = fk_bone
+            return
+
+        for org_bone, fk_bone in zip(org_bones, fk_bones):
+            org_bone.add_constraint(
+                'COPY_TRANSFORMS',
+                space='WORLD',
+                subtarget=fk_bone.name,
+                name="Copy Transforms FK",
+            )
 
     ##############################
     # Test Action
