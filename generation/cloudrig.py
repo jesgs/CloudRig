@@ -1831,11 +1831,17 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
+        list_path = 'active_object.data.collections'
+        if context.mode == 'PAINT_WEIGHT':
+            list_path = 'pose_object.data.collections'
+            if not context.pose_object:
+                return
+
         draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_collections',
-            list_path='object.data.collections',
+            list_path=list_path,
             active_index_path='object.cloudrig.active_collection_index',
             insertion_operators=False,
             move_operators=False,
