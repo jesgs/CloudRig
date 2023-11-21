@@ -224,6 +224,9 @@ class RigComponent(PropertyGroup):
             # doesn't have any collections yet, its defaults are assigned.
             if len(bone_set.collections) == 0:
                 self.reset_collections_of_bone_set(bone_set)
+        self.bone_sets_active_index = min(
+            self.bone_sets_active_index, len(self.ui_bone_sets) - 1
+        )
 
     def reset_collections_of_bone_set(self, bone_set):
         ui_bone_set = self.ui_bone_sets[bone_set.name]
