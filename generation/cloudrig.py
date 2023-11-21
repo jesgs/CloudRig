@@ -1719,6 +1719,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         description="Internal value to preserve hidden state when a parent gets un-hidden",
         default=False,
     )
+
     parent_name: StringProperty(
         name="Parent",
         description="Parent of this bone collection",
@@ -1734,9 +1735,8 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         children = []
         self_coll = self.get_collection()
 
-        # BUG: self.name should always be the same as self_coll.name,
-        # but for some reason I don't understand, this isn't the case.
-        # So, just use self_coll.name...
+        # self.name should be the same as self_coll.name.
+        # If that's not the case, there's a bug in copy_bone_collections().
 
         if not self_coll.name:
             return []
@@ -1746,6 +1746,13 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
                 self_coll.name == coll.cloudrig_info.parent_name
             ) and self_coll.name != "":
                 children.append(coll)
+        return children
+
+    @property
+    def children_recursive(self) -> List[bpy.types.BoneCollection]:
+        children = self.children[:]
+        for child in children:
+            children += child.children
         return children
 
     @property
@@ -1819,6 +1826,9 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         ):
             icon = 'HIDE_OFF'
         row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
+        row.operator(
+            CLOUDRIG_OT_collection_solo.bl_idname, text="", icon='SOLO_ON'
+        ).collection_name = collection.name
         return row
 
     def draw_item(
@@ -1904,6 +1914,38 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
             move_operators=False,
             unique_id='CloudRig Nested Collections UI',
         )
+
+
+class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
+    """Reveal all bones of this collection, and hide all others"""
+
+    bl_idname = "pose.cloudrig_collection_solo"
+    bl_label = "Solo Collection"
+
+    collection_name: StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and context.active_object.type == 'ARMATURE'
+
+    def execute(self, context):
+        rig = context.object
+        collection = rig.data.collections.get(self.collection_name)
+
+        if not collection:
+            collection = rig.data.collections.active
+        if not collection:
+            return {'CANCELLED'}
+
+        if not collection.is_visible:
+            collection.cloudrig_info.is_visible = True
+
+        all_bones = collection.cloudrig_info.all_bones
+
+        for pb in rig.pose.bones:
+            pb.bone.hide = pb.bone not in all_bones
+
+        return {'FINISHED'}
 
 
 #######################################
@@ -2000,6 +2042,7 @@ classes = (
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
     CLOUDRIG_PT_sidebar_collections,
+    CLOUDRIG_OT_collection_solo,
     CLOUDRIG_PT_hotkeys,
 )
 
