@@ -1,3 +1,4 @@
+import bpy
 from typing import List, Tuple
 from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
@@ -561,6 +562,25 @@ class BoneInfo:
         # Bone colors
         bone.color.palette = self.color_palette_base
         pose_bone.color.palette = self.color_palette_pose
+
+        # TODO 4.1: Remove this
+        # Convert theme colors to custom colors, so the rigger's theme colors
+        # propagate to all users.
+        # This is because we dropped support for custom colors expecting better
+        # theme colors to drop in 4.0, but that didn't happen.
+        # TODO DOCS: Document that the way to add custom colors in CloudRig
+        # currently, is by customizing your theme colors, and mention that
+        # hopefully 4.1 will have the new theme colors.
+        if self.color_palette_base not in {'DEFAULT', 'CUSTOM'}:
+            palette = self.color_palette_base
+            theme_color = bpy.context.preferences.themes[0].bone_color_sets[
+                int(self.color_palette_base[-2:])
+            ]
+            self.color_palette_base = 'CUSTOM'
+            bone.color.palette = 'CUSTOM'
+            bone.color.custom.normal = theme_color.normal
+            bone.color.custom.select = theme_color.select
+            bone.color.custom.active = theme_color.active
 
         if bone.name.startswith("DEF") and not bone.use_deform:
             self.bone_set.rig_component.add_log(

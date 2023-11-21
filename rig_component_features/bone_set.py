@@ -161,11 +161,8 @@ class BoneSet(LinkedList):
         bone_info.use_deform = False
 
         # Load color palettes (only presets are supported, no custom colors)
-        if keep_colors:
-            if pose_bone.color.palette == 'CUSTOM':
-                self.rig_component.add_log("Custom Colors must not be used.")
-            else:
-                bone_info.color_palette_pose = pose_bone.color.palette
+        # TODO 4.1: Drop support for custom colors.
+        if keep_colors and False:
             if data_bone.color.palette == 'CUSTOM':
                 self.rig_component.add_log("Custom Colors must not be used.")
             else:
