@@ -50,9 +50,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         # Create Torso Master control
         limb_root_bone = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(
-                ["MSTR"], self.spine_name + "_Torso", [self.side_suffix]
-            ),
+            name=self.naming.make_name(["ROOT"], self.spine_name, [self.side_suffix]),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
@@ -66,9 +64,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         # Create master hip control
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(
-                ["MSTR"], self.spine_name + "_Hips", [self.side_suffix]
-            ),
+            name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
             source=org_chain[0],
             head=org_chain[0].center,
             custom_shape=self.ensure_widget("Hyperbola"),
@@ -80,7 +76,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             self.root_bone.flatten()
             self.mstr_hips.flatten()
 
-        # Parent the first one to MSTR-Torso.
+        # Parent the first FK control to ROOT.
         self.bone_sets['FK Controls'][0].parent = self.root_bone
 
         return fk_chain
@@ -138,7 +134,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         ### Create master chest control
         chest_org = self.bones_org[-1]
         self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
-            name=f"MSTR-{self.spine_name}_Chest",
+            name=self.naming.add_prefix(self.spine_name, "CHST"),
             source=chest_org,
             custom_shape=self.ensure_widget("Hyperbola"),
             custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),

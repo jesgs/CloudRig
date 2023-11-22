@@ -264,7 +264,7 @@ class Component_Aim(Component_Base):
 
         # Check if a bone with the right name already exists and if it does, just return it.
         group_name = self.params.aim.group
-        group_master_name = "MSTR-TGT-" + group_name
+        group_master_name = self.naming.add_prefix(group_name, "TGT")
         existing = self.generator.find_bone_info(group_master_name)
         if existing:
             return existing

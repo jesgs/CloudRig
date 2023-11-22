@@ -212,7 +212,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
 
         _prefixes, base_name, suffixes = self.naming.slice_name(foot.name)
-        master_name = self.naming.make_name(["ROLL", "MSTR"], base_name, suffixes)
+        master_name = self.naming.make_name(["ROLL"], base_name, suffixes)
         roll_master = self.bone_sets['IK Mechanism'].new(
             name=master_name, source=self.ik_mstr, parent=self.ik_mstr
         )
@@ -223,7 +223,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         head, tail = self.calc_footroll_headtail(knee, toe, self.scale)
 
         roll_ctrl = self.bone_sets['IK Controls'].new(
-            name=self.naming.make_name(["ROLL"], base_name, suffixes),
+            name=self.naming.make_name(["ROLL-M"], base_name, suffixes),
             bbone_width=1 / 18,
             head=head,
             tail=tail,

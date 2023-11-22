@@ -20,9 +20,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     ui_name = "Chain: IK"
     # Strings to try to communicate obscure behaviours of this rig type in the params UI.
-    parent_switch_behaviour = (
-        'The active parent will own the IK-MSTR and IK-POLE controls.'
-    )
+    parent_switch_behaviour = 'The active parent will own the IK and POLE controls.'
     parent_switch_overwrites_root_parent = False
     always_use_custom_props = True
 
@@ -145,7 +143,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self, bone_set, source_bone, bone_name="", shape_name="Sphere"
     ):
         if bone_name == "":
-            bone_name = self.naming.add_prefix(source_bone, "IK-MSTR")
+            bone_name = self.naming.add_prefix(source_bone, "IK")
 
         ik_master = bone_set.new(
             name=bone_name,
@@ -235,9 +233,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     def make_pole_control(self):
         # Create IK Pole Control
         pole_ctrl = self.pole_ctrl = self.bone_sets['IK Controls'].new(
-            name=self.naming.make_name(
-                ["IK", "POLE"], self.limb_name, [self.side_suffix]
-            ),
+            name=self.naming.make_name(["POLE"], self.limb_name, [self.side_suffix]),
             bbone_width=0.1,
             head=self.pole_location,
             tail=self.pole_location
@@ -252,9 +248,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.lock_transforms(pole_ctrl, loc=False)
 
         pole_line = self.bone_sets['IK Controls'].new(
-            name=self.naming.make_name(
-                ["IK", "POLE", "LINE"], self.limb_name, [self.side_suffix]
-            ),
+            name=self.naming.make_name(["LINE"], self.limb_name, [self.side_suffix]),
             source=pole_ctrl,
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,
@@ -290,7 +284,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         ik_chain = []
         for i, org_bone in enumerate(org_chain):
             ik_bone = self.bone_sets['IK Mechanism'].new(
-                name=self.naming.add_prefix(org_bone, "IK"),
+                name=self.naming.add_prefix(org_bone, "IK-M"),
                 source=org_bone,
             )
             ik_chain.append(ik_bone)
@@ -546,7 +540,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         for org_bone in self.bones_org:
             # Copy Transforms to IK bone
-            ik_bone = self.find_bone_info(self.naming.add_prefix(org_bone, "IK"))
+            ik_bone = self.find_bone_info(self.naming.add_prefix(org_bone, "IK-M"))
             ct_ik = org_bone.add_constraint(
                 'COPY_TRANSFORMS',
                 space='WORLD',
