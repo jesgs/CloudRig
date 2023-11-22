@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Panel, UIList
 from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
@@ -87,13 +87,9 @@ class CLOUDRIG_UL_rig_components(UIList):
             for i, flag in enumerate(flt_flags)
         ]
 
-        flt_neworder = [
-            i
-            for i, _pb in enumerate(
-                sorted(pbones, key=lambda pb: pb.cloudrig_component.order)
-            )
-        ]
-
+        sorted_pbones = sorted(pbones, key=lambda pb: pb.cloudrig_component.order)
+        # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
+        flt_neworder = [sorted_pbones.index(pb) for pb in pbones]
         return flt_flags, flt_neworder
 
 
@@ -221,6 +217,61 @@ class CLOUDRIG_OT_remove_rig_component(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_reorder_rig_component(bpy.types.Operator):
+    """Reorder active rig component"""
+
+    bl_idname = "pose.cloudrig_reorder_component"
+    bl_label = "Reorder Component"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    direction: EnumProperty(
+        name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")]
+    )
+
+    @classmethod
+    def poll(cls, context):
+        rig = context.object
+        if not is_cloud_metarig(rig):
+            cls.poll_message_set("Must be a CloudRig metarig.")
+            return False
+        comp = rig.cloudrig.active_component
+        if not comp:
+            cls.poll_message_set("Select a component.")
+            return False
+        if len(comp.sibling_components) == 0:
+            cls.poll_message_set("Active component has no siblings.")
+            return False
+        return True
+
+    def execute(self, context):
+        rig = context.object
+        component = rig.cloudrig.active_component
+
+        delta = -1 if self.direction == 'UP' else 1
+        sibling_idx = component.sibling_order + delta
+        if sibling_idx < 0:
+            self.report(
+                {'ERROR'},
+                "This component is already the first among its siblings. It cannot be moved higher in the generation order.",
+            )
+            return {'CANCELLED'}
+        if sibling_idx > len(component.parent.children) - 1:
+            self.report(
+                {'ERROR'},
+                "This component is already the last among its siblings. It cannot be moved lower in the generation order.",
+            )
+            return {'CANCELLED'}
+
+        # Swap the sibling order of the two siblings.
+        sibling = component.parent.children[sibling_idx]
+        sibling.sibling_order -= delta
+        component.sibling_order += delta
+
+        rig.cloudrig.refresh_generation_order()
+
+        return {'FINISHED'}
+
+
 class CLOUDRIG_PT_rig_components(Panel):
     bl_label = "Rig Components"
     bl_space_type = 'PROPERTIES'
@@ -251,11 +302,19 @@ class CLOUDRIG_PT_rig_components(Panel):
         ops_col.operator(
             CLOUDRIG_OT_remove_rig_component.bl_idname, text="", icon='REMOVE'
         )
+        ops_col.separator()
+        ops_col.operator(
+            CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_UP'
+        ).direction = 'UP'
+        ops_col.operator(
+            CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN'
+        ).direction = 'DOWN'
 
 
 registry = [
     CLOUDRIG_UL_rig_components,
     CLOUDRIG_OT_add_rig_component,
     CLOUDRIG_OT_remove_rig_component,
+    CLOUDRIG_OT_reorder_rig_component,
     CLOUDRIG_PT_rig_components,
 ]

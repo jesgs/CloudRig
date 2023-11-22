@@ -8,7 +8,7 @@ from bpy.props import (
     IntProperty,
 )
 from bpy.types import PropertyGroup, Object
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from . import rig_components
 from . import rig_component_features
 from .generation.cloud_generator import GeneratorProperties
@@ -286,9 +286,15 @@ class RigComponent(PropertyGroup):
         )
 
     params: PointerProperty(type=ComponentParams)
+
+    sibling_order: IntProperty(
+        name="Sibling Order",
+        description="Can be affected by the user to tweak the generation order of sibling components",
+        default=0,
+    )
     order: IntProperty(
         name="Generation order of this component",
-        description="Internal value, based on bone hierarchy",
+        description="Internal value, based on bone hierarchy and sibling_order",
         default=-1,
     )
     depth: IntProperty(
@@ -298,7 +304,7 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def parent(self):
+    def parent(self) -> 'RigComponent':
         rig_ob = self.id_data
         if not self.base_bone_name:
             return
@@ -313,7 +319,17 @@ class RigComponent(PropertyGroup):
         return parent_component
 
     @property
-    def should_draw(self):
+    def sibling_components(self) -> List['RigComponent']:
+        if not self.parent:
+            return [
+                pb.cloudrig_component
+                for pb in self.id_data.pose.bones
+                if not pb.cloudrig_component.parent
+            ]
+        return [sibling for sibling in self.parent.children if sibling != self]
+
+    @property
+    def should_draw(self) -> bool:
         """Return False if any parent up the chain has show_children=False"""
         if not self.parent:
             return True
@@ -330,7 +346,7 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def children(self):
+    def children(self) -> List['RigComponent']:
         rig_ob = self.id_data
         children = []
         for pb in rig_ob.pose.bones:
@@ -339,7 +355,7 @@ class RigComponent(PropertyGroup):
                 and pb.cloudrig_component.parent == self
             ):
                 children.append(pb.cloudrig_component)
-        return children
+        return sorted(children, key=lambda comp: comp.sibling_order)
 
 
 class Properties_CloudRig(PropertyGroup):
@@ -411,42 +427,61 @@ class Properties_CloudRig(PropertyGroup):
         self.ensure_bone_collections_info()
 
     def refresh_generation_order(self):
+        """Set the `order` and `depth` property of rig components.
+
+        These are used for determining what order to execute rig components in
+        during generation, as well as for drawing the component list in the UI.
+
+        This should run when changing rig components, and also before generation,
+        just in case.
+        """
         metarig_ob = self.id_data
 
         # Find bones that have no parents.
-        parentless = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
-        parentless.sort(key=lambda pb: pb.name)
+        parentless_components = [
+            pb.cloudrig_component
+            for pb in metarig_ob.pose.bones
+            if pb.cloudrig_component.component_type and not pb.bone.parent
+        ]
+        parentless_components.sort(key=lambda comp: comp.sibling_order)
 
         # Number them hierarchically
-        index = 0
-        for pb in parentless:
-            index = self.number_rig_components_recursive(
-                pb=pb, parent_component=None, index=index
+        order_idx = 0
+        for rig_component in parentless_components:
+            order_idx = self.order_components_recursive(
+                rig_component=rig_component, order_idx=order_idx
             )
 
-    def number_rig_components_recursive(
-        self, pb: bpy.types.PoseBone, parent_component: "RigComponent" = None, index=0
-    ):
-        if pb.cloudrig_component.component_type:
-            pb.cloudrig_component.order = index
+    def order_components_recursive(
+        self, rig_component: "RigComponent", order_idx=0
+    ) -> int:
+        parent_component = rig_component.parent
+        if rig_component.component_type:
+            rig_component.order = order_idx
             if parent_component:
-                pb.cloudrig_component.depth = parent_component.depth + 1
+                rig_component.depth = parent_component.depth + 1
             else:
-                pb.cloudrig_component.depth = 0
-            index += 1
+                rig_component.depth = 0
+            order_idx += 1
 
             # Set parent for the next recursion.
-            parent_component = pb.cloudrig_component
+            parent_component = rig_component
         else:
-            pb.cloudrig_component.order = -1
-            pb.cloudrig_component.depth = 0
+            rig_component.order = -1
+            rig_component.depth = 0
 
-        for child_pb in sorted(pb.children, key=lambda pb: pb.name):
-            index = self.number_rig_components_recursive(
-                pb=child_pb, parent_component=parent_component, index=index
+        for sibling_idx, child_component in enumerate(
+            sorted(
+                rig_component.children,
+                key=lambda comp: comp.sibling_order,
+            )
+        ):
+            child_component.sibling_order = sibling_idx
+            order_idx = self.order_components_recursive(
+                rig_component=child_component, order_idx=order_idx
             )
 
-        return index
+        return order_idx
 
 
 registry = (
