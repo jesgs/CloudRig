@@ -1909,7 +1909,7 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
             context,
             class_name='CLOUDRIG_UL_collections',
             list_path=list_path,
-            active_index_path='object.cloudrig.active_collection_index',
+            active_index_path='object.data.collections.active_index',
             insertion_operators=False,
             move_operators=False,
             unique_id='CloudRig Nested Collections UI',
