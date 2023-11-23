@@ -135,13 +135,13 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 custom_shape_scale_xyz=Vector((1, 1, 0.8)),
             )
 
-            if i == 0:
-                ik_ctr_bone.add_constraint(
-                    'COPY_ROTATION',
-                    subtarget=self.mstr_hips.name,
-                    influence=0.5,
-                    use_xyz=[False, True, False],
-                )
+            # if i == 0:
+            #     ik_ctr_bone.add_constraint(
+            #         'COPY_ROTATION',
+            #         subtarget=self.mstr_hips.name,
+            #         influence=0.5,
+            #         use_xyz=[False, True, False],
+            #     )
             if i == len(self.bones_org) - 3:
                 ik_ctr_bone.add_constraint(
                     'COPY_ROTATION',
@@ -150,7 +150,10 @@ class Component_Spine_IKFK(Component_Chain_FK):
                     use_xyz=[False, True, False],
                 )
 
-            if i >= len(self.bones_org) - 2:
+            if i == 0:
+                # First spine control should be parented to the hip control.
+                ik_ctr_bone.parent = self.mstr_hips
+            elif i >= len(self.bones_org) - 2:
                 # Last two spine controls should be parented to the chest control.
                 ik_ctr_bone.parent = self.mstr_chest
             else:
