@@ -1898,18 +1898,17 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        list_path = 'active_object.data.collections'
-        if context.mode == 'PAINT_WEIGHT':
+        if context.pose_object:
             list_path = 'pose_object.data.collections'
-            if not context.pose_object:
-                return
+        else:
+            list_path = 'active_object.data.collections'
 
         draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_collections',
             list_path=list_path,
-            active_index_path='object.data.collections.active_index',
+            active_index_path=list_path + '.active_index',
             insertion_operators=False,
             move_operators=False,
             unique_id='CloudRig Nested Collections UI',
