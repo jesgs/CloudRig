@@ -116,7 +116,7 @@ def replace_driver_var_path(rig, from_str, to_str, data_only=False):
                         t.data_path = t.data_path.replace(from_str, to_str)
 
 
-def clean_properties(rig):
+def GLOBAL_clean_custom_properties():
     """Remove useless custom props;
     These were causing crashes when trying to open anim files with Ellie re-generated with
     latest CloudRig on 2021 Nov 4.
@@ -139,7 +139,7 @@ def clean_properties(rig):
     rigify = ['rigify_type', 'rigify_parameters']
 
     def clean_prop_owner(prop_owner, bad_keys):
-        for key, value in list(prop_owner.items()):
+        for key, _value in list(prop_owner.items()):
             if key in bad_keys:
                 del prop_owner[key]
 
@@ -154,23 +154,6 @@ def clean_properties(rig):
             else:
                 for pb in obj.pose.bones:
                     clean_prop_owner(pb, bad_prop_names + rigify)
-
-
-def check_wrong_drivers(rig):
-    # Check for metarig driver vars that target the metarig.
-    for obj in bpy.data.objects:
-        if obj.type == 'ARMATURE' and o.cloudrig.generator.target_rig:
-            for fcurve in obj.animation_data.drivers:
-                for var in fcurve.driver.variables:
-                    if var.type == 'TRANSFORMS':
-                        for tar in var.targets:
-                            if tar.id == obj:
-                                print(
-                                    "Probably broken: Driver targets metarig bone transform: "
-                                    + fcurve.data_path
-                                )
-                                tar.id = rig
-                                print("Fixed now, but you gotta re-generate.")
 
 
 def GLOBAL_rename_obdatas():
