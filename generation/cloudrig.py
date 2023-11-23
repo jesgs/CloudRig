@@ -1681,9 +1681,18 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         coll.name = self.name
 
     name: StringProperty(
-        name="Name", description="Name of this bone collection", update=update_name
+        name="Name",
+        description="Name of this bone collection",
+        update=update_name,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
-    unfold_children: BoolProperty()
+    unfold_children: BoolProperty(
+        name="Unfold Children",
+        description="Unfold child collections",
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
     def update_is_visible(self, context):
         # The is_visible flag is not intended to stay perfectly in sync with the
@@ -1713,11 +1722,15 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         description="Toggle the visiblity of this collection, and all child collections",
         default=True,
         update=update_is_visible,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
     should_stay_hidden: BoolProperty(
         name="Stay Hidden",
         description="Internal value to preserve hidden state when a parent gets un-hidden",
         default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
     parent_name: StringProperty(
