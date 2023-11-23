@@ -172,6 +172,11 @@ class Component_Limb_BipedLeg(Component_Limb):
         """
         self.make_world_aligned_control(self.bones_org[-2].fk_bone)
 
+    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
+        """Override the default to be 1.0, so that leg IK poles follow the IK
+        master by default."""
+        super().setup_ik_pole_follow_slider(ik_pole, ik_mstr, stretch_bone, 1.0)
+
     ##############################
     # End of overrides
 

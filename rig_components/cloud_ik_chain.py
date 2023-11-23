@@ -584,7 +584,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         if self.params.ik_chain.use_pole:
             self.setup_ik_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
 
-    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone):
+    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
         # Create parent helper bone
         parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
         parent_helper.custom_shape = None
@@ -652,7 +652,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             info,
             label_name="IK Pole Follow",
             entry_name=self.limb_ui_name,
-            default=0.0,
+            default=default,
         )
 
     def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
