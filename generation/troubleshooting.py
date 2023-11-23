@@ -701,10 +701,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
         bone.select = True
         bone_is_visible = any([coll.is_visible for coll in bone.collections])
         if not bone_is_visible:
-            for i, l in enumerate(bone.layers):
-                if l:
-                    rig.data.layers[i] = True
-                    break
+            bone.collections[0].cloudrig_info.is_visible = True
 
         rig.data.bones.active = bone
 

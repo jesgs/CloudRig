@@ -166,17 +166,16 @@ def GLOBAL_rename_obdatas():
             o.data.name = data_name
 
 
-def auto_assign_bone_gizmo_maps(old_rig, new_rig, layers: List[int]):
-    """Auto-assign vertex groups/face maps for the Bone Gizmo addon for entire rig."""
+def auto_assign_bone_gizmo_maps(old_rig, new_rig, *, bone_collection: str):
+    """Auto-assign vertex groups/face maps for the Bone Gizmo addon for bones
+    of the passed collection."""
 
     obs = rig_component_features.object.get_object_hierarchy_recursive(old_rig)[1:]
-    for pb in new_rig.pose.bones:
+    coll = new_rig.data.collections.get(bone_collection)
+    if not coll:
+        return
+    for pb in [new_rig.pose.bones.get(b.name) for b in coll.bones]:
         if pb.enable_bone_gizmo:
-            continue
-        for i, l in enumerate(pb.bone.layers):
-            if l and i in layers:
-                break
-        else:
             continue
 
         auto_assign_bone_gizmo(pb, obs)

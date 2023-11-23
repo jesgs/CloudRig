@@ -23,7 +23,7 @@ class Component_Jaw(Component_CopyBone):
             Would be better to not have to assign a Rigify Type to these bones.
             They could all be parented to the jaw bone (otherwise throw useful error) and then loaded into BoneInfo instances during initialize() by making the load_org_bones() function in cloud_base more flexible.
 
-        - Bone shapes & layers
+        - Bone shapes & collections
     """
 
     """Hierarchy:

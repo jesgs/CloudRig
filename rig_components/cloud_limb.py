@@ -89,9 +89,9 @@ class Component_Limb(Component_Chain_IKFK):
             )
             self.ik_controls.append(double_control)
             double_control.name = old_name
-            double_control.layers, self.ik_mstr.layers = (
-                self.ik_mstr.layers,
-                double_control.layers,
+            double_control.collections, self.ik_mstr.collections = (
+                self.ik_mstr.collections,
+                double_control.collections,
             )
 
         self.add_counterrotate_constraints(self.str_chain[: self.params.chain.segments])

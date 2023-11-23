@@ -565,9 +565,7 @@ class Component_ToonChain(Component_Base):
             )
         def_bone_control.custom_shape = self.ensure_widget('Cube')
         def_bone_control.custom_shape_scale_xyz.y = 0.1
-        def_bone_control.layers = self.bone_sets['Deform Controls'].layers[
-            :
-        ]  # TODO: This should not be necessary!
+        def_bone_control.collections = self.bone_sets['Deform Controls'].collections
 
         # Add drivers to BBone Roll so that rotating CTR-DEF controls on
         # local Y axis gives the results an animator might expect.
