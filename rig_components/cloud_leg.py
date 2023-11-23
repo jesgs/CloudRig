@@ -54,12 +54,12 @@ class Component_Limb_BipedLeg(Component_Limb):
     ##############################
     # Override some inherited functionality
 
-    def generate_properties_bone(self) -> BoneInfo:
+    def create_properties_bone(self) -> BoneInfo:
         """Overrides cloud_limb.
         Place the properties bone near where the foot IK will be,
         parented to the 2nd-to-last ORG bone.
         """
-        properties_bone = super().generate_properties_bone()
+        properties_bone = super().create_properties_bone()
         head, tail = self.calc_footroll_headtail(
             self.bones_org[1], self.bones_org[-1], self.scale
         )

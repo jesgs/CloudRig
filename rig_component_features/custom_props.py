@@ -15,7 +15,9 @@ class CloudCustomPropertiesMixin:
         # This is a @property so if it's never called, the properties bone is not created.
         # https://en.wikipedia.org/wiki/Lazy_initialization
 
-        if self.params.custom_props.props_storage == 'CUSTOM':
+        storage = self.params.custom_props.props_storage
+
+        if storage == 'CUSTOM':
             prop_bone_name = self.params.custom_props.props_storage_bone
             properties_bone = self.generator.find_bone_info(prop_bone_name)
             if properties_bone:
@@ -26,9 +28,9 @@ class CloudCustomPropertiesMixin:
                 trouble_bone=prop_bone_name,
                 description=f'Custom Property bone named "{prop_bone_name}" not found, falling back to default Properties bone. If it exists, make sure it generates before this rig.',
             )
-            self.params.custom_props.props_storage = 'DEFAULT'
+            storage = 'DEFAULT'
 
-        if self.params.custom_props.props_storage == 'DEFAULT':
+        if storage == 'DEFAULT':
             bone_name = self.generator.params.properties_bone
             properties_bone = self.generator.find_bone_info(bone_name)
             if properties_bone:
@@ -42,25 +44,28 @@ class CloudCustomPropertiesMixin:
                 custom_shape=self.ensure_widget("Cogwheel_Y"),
                 use_custom_shape_bone_size=True,
             )
-        elif self.params.custom_props.props_storage == 'GENERATED':
+        elif storage == 'GENERATED':
             # Create a bone at the base of the rig with a cogwheel shape.
-            properties_bone = self.generate_properties_bone()
-            # This block should only run once, so change the storage type to no longer be 'GENERATED'.
-            self.params.custom_props.props_storage = 'CUSTOM'
-            self.params.custom_props.props_storage_bone = properties_bone.name
-            return properties_bone
+            return self.create_properties_bone()
 
-    def generate_properties_bone(self) -> BoneInfo:
+    def create_properties_bone(self) -> BoneInfo:
         org_bone = self.bones_org[0]
-        properties_bone = self.bones_mch.new(
-            name=self.naming.add_prefix(org_bone, "PRP"),
+        prop_bone_name = self.naming.add_prefix(org_bone, "PRP")
+        prop_bone = self.generator.find_bone_info(prop_bone_name)
+        if prop_bone:
+            return prop_bone
+
+        prop_bone = self.bones_mch.new(
+            name=prop_bone_name,
             source=org_bone,
             parent=org_bone,
             custom_shape=self.ensure_widget("Cogwheel_Y"),
             use_custom_shape_bone_size=True,
         )
-        properties_bone.layers = self.metarig_base_pbone.bone.layers[:]
-        return properties_bone
+        prop_bone.collections = [
+            coll.name for coll in self.metarig_base_pbone.bone.collections
+        ]
+        return prop_bone
 
     @classmethod
     def is_using_custom_props(cls, context, params):

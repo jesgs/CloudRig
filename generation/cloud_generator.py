@@ -593,7 +593,7 @@ class CloudRig_Generator:
             exec(script.as_string(), {})
         except Exception as e:
             traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
-            self.logger.log_error(
+            self.logger.log_fatal_error(
                 "Post-Generation Script failed.",
                 description=f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.',
                 note=str(e),
