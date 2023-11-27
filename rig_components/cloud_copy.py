@@ -127,7 +127,7 @@ class Component_CopyBone(Component_Base):
                 entry_name = self.side_prefix + " " + prop_name
 
             info = {
-                'prop_bone': bone.name,
+                'prop_bone': bone,
                 'prop_id': prop_name,
             }
 
