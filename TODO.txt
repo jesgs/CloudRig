@@ -1,14 +1,9 @@
 Collection Customization design
 	As an animator
-		I want to have a nested list of bone collections, so I can collapse areas I'm not interested in.
-		I want to be able to hide, unhide, isolate, select, reset, keyframe, toggle selectability of bones in a given collection. This would include all of its child collections.
-		I also want to hide the collection itself. This should mimic the Outliner behaviour completely.
-		I want to customize the UI to reduce clutter by hiding operations I don't use in my workflow.
 		I want to add collections of my own using library overrides.
 	As a rigger
-		I want to customize not only the nesting but also the order of bone collections
-		I want to be able to freely rename a collection without having to worry about breaking anything.
 		I want to be able to assign bones and toggle collections using this custom interface on both the metarig and generated rig.
+		I don't want to be bamboozled by the original Bone Collections panel.
 
 	Nesting is defined via custom properties; There is a "Parents" python property of a list of strings.
 	Renaming collections via the operator 

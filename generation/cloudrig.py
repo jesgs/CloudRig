@@ -41,6 +41,11 @@ def get_all_generated_cloudrigs():
 
 def is_active_cloudrig(context):
     """If the active object is a cloudrig, return it."""
+    if not hasattr(context, 'pose_object'):
+        # Can happen when a file is saved with the UI open,
+        # and that UI is trying to draw during file open, when context isn't
+        # initialized yet.
+        return False
     rig = context.pose_object or context.active_object
     if rig and is_generated_cloudrig(rig):
         return rig
@@ -1650,6 +1655,29 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
 
 #######################################
+########### Rig Preferences ###########
+#######################################
+
+
+class CloudRig_RigPreferences(bpy.types.PropertyGroup):
+    show_visibility: bpy.props.BoolProperty(
+        name="Hide",
+        description="Show the Hide setting",
+        default=True,
+    )
+    show_solo: bpy.props.BoolProperty(
+        name="Isolate",
+        description="Show the Isolate operator",
+        default=True,
+    )
+    show_select: bpy.props.BoolProperty(
+        name="Select",
+        description="Show the Select operator",
+        default=True,
+    )
+
+
+#######################################
 ###### Nested Bone Collections ########
 #######################################
 
@@ -1817,6 +1845,8 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
     def draw_collection(context, layout, collection):
         cloudrig_info = collection.cloudrig_info
 
+        prefs = context.object.cloudrig_prefs
+
         row = layout.row(align=True)
         icon = 'TRIA_DOWN' if cloudrig_info.unfold_children else 'TRIA_RIGHT'
         if cloudrig_info.parent_collection:
@@ -1829,7 +1859,8 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         else:
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', text="", emboss=False)
-        row = row.row()
+
+        row = row.row(align=True)
         row.enabled = not cloudrig_info.should_draw_grayed
         icon = 'HIDE_ON'
         if collection.is_visible or (
@@ -1838,10 +1869,19 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             and not cloudrig_info.should_stay_hidden
         ):
             icon = 'HIDE_OFF'
-        row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
-        row.operator(
-            CLOUDRIG_OT_collection_solo.bl_idname, text="", icon='SOLO_ON'
-        ).collection_name = collection.name
+        if prefs.show_visibility:
+            row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
+        if prefs.show_solo:
+            row.operator(
+                CLOUDRIG_OT_collection_solo.bl_idname, text="", icon='SOLO_ON'
+            ).collection_name = collection.name
+        if prefs.show_select:
+            row.operator(
+                CLOUDRIG_OT_collection_select.bl_idname,
+                text="",
+                icon='RESTRICT_SELECT_OFF',
+            ).collection_name = collection.name
+
         return row
 
     def draw_item(
@@ -1916,7 +1956,7 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
         else:
             list_path = 'active_object.data.collections'
 
-        draw_ui_list(
+        list_col = draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_collections',
@@ -1925,6 +1965,11 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
             insertion_operators=False,
             move_operators=False,
             unique_id='CloudRig Nested Collections UI',
+        )
+        list_col.popover(
+            panel="CLOUDRIG_PT_collections_filter",
+            text="",
+            icon='FILTER',
         )
 
 
@@ -1935,6 +1980,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
     bl_label = "Solo Collection"
 
     collection_name: StringProperty()
+    select_bones: BoolProperty(default=False)
 
     @classmethod
     def poll(cls, context):
@@ -1952,12 +1998,64 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
         if not collection.is_visible:
             collection.cloudrig_info.is_visible = True
 
-        all_bones = collection.cloudrig_info.all_bones
+        collection_bones = collection.cloudrig_info.all_bones
 
         for pb in rig.pose.bones:
-            pb.bone.hide = pb.bone not in all_bones
+            pb.bone.hide = pb.bone not in collection_bones
+            if self.select_bones:
+                pb.bone.select = True
 
         return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_select(bpy.types.Operator):
+    """Select all bones of this collection"""
+
+    bl_idname = "pose.cloudrig_collection_select"
+    bl_label = "Select Bones of Collection"
+
+    collection_name: StringProperty()
+    reveal_bones: BoolProperty(default=False)
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and context.active_object.type == 'ARMATURE'
+
+    def execute(self, context):
+        rig = context.object
+        collection = rig.data.collections.get(self.collection_name)
+
+        if not collection:
+            collection = rig.data.collections.active
+        if not collection:
+            return {'CANCELLED'}
+
+        if not collection.is_visible:
+            collection.cloudrig_info.is_visible = True
+
+        collection_bones = collection.cloudrig_info.all_bones
+
+        for bone in collection_bones:
+            if self.reveal_bones:
+                bone.hide = False
+            bone.select = True
+
+        return {'FINISHED'}
+
+
+class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_label = "Filter"
+
+    def draw(self, context):
+        layout = self.layout
+        prefs = context.object.cloudrig_prefs
+        row = layout.row(align=True)
+        row.prop(prefs, "show_visibility", text="", icon='HIDE_OFF')
+        row.prop(prefs, "show_solo", text="", icon='SOLO_ON')
+        row.prop(prefs, "show_select", text="", icon='RESTRICT_SELECT_OFF')
+        layout.separator()
 
 
 #######################################
@@ -2051,10 +2149,13 @@ classes = (
     CloudRig_Properties,
     CLOUDRIG_PT_character,
     CLOUDRIG_PT_settings,
+    CloudRig_RigPreferences,
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
     CLOUDRIG_PT_sidebar_collections,
     CLOUDRIG_OT_collection_solo,
+    CLOUDRIG_OT_collection_select,
+    CLOUDRIG_PT_collections_filter,
     CLOUDRIG_PT_hotkeys,
 )
 
@@ -2074,6 +2175,7 @@ def register():
 
     # TODO 4.0: These properties for outfit stuff are legacy, remove!
     bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
+    bpy.types.Object.cloudrig_prefs = PointerProperty(type=CloudRig_RigPreferences)
 
     bpy.types.BoneCollection.cloudrig_info = PointerProperty(
         type=CloudRigBoneCollection
