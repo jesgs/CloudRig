@@ -1,28 +1,25 @@
 """
-This file is executed and loaded into a self-registering text datablock when a
-rig is generated with the CloudRig feature set.
-It's responsible for drawing rig UI and operators such as IK/FK snapping and
-keyframe baking.
-
-Only one instance of this script is required to run in a scene, regardless of how
-many CloudRig characters are in the scene.
+This file is loaded into a self-executing text datablock and attached to all
+CloudRig rigs.
+It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterable
 import bpy, traceback, json, collections, re
 from bpy.props import (
     StringProperty,
     BoolProperty,
-    BoolVectorProperty,
     EnumProperty,
     PointerProperty,
     IntProperty,
 )
-from bpy.types import Object, UILayout
+from bpy.types import Object, PoseBone, FCurve
 
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
 from bl_ui.generic_ui_list import draw_ui_list
+
+from copy_global_transform import AutoKeying
 
 
 def is_generated_cloudrig(obj):
@@ -64,8 +61,8 @@ def is_active_cloud_metarig(context):
 
 
 #######################################
-###### Keyframe baking framework ######
-###### from Rigify ####################
+############ Keyframe Baking ##########
+#######################################
 
 
 def set_curve_key_interpolation(curves, ipo, key_range=None):
@@ -74,13 +71,13 @@ def set_curve_key_interpolation(curves, ipo, key_range=None):
         key.interpolation = ipo
 
 
-def delete_curve_keys_in_range(curves, key_range=None):
+def delete_curve_keys_in_range(curves: List[FCurve], frame_start: int, frame_end: int):
     "Delete all keys of the given curves within the given range."
     for curve in flatten_curve_set(curves):
         points = curve.keyframe_points
         for i in range(len(points), 0, -1):
             key = points[i - 1]
-            if key_range is None or key_range[0] <= key.co[0] <= key_range[1]:
+            if frame_start <= key.co[0] <= frame_end:
                 points.remove(key, fast=True)
         curve.update()
 
@@ -113,23 +110,11 @@ def get_curve_frame_set(curves, key_range=None):
 
 
 def clean_action_empty_curves(action):
-    "Delete completely empty curves from the given action."
-    action = find_action(action)
+    "Delete all empty curves from the given action."
     for curve in list(action.fcurves):
         if curve.is_empty:
             action.fcurves.remove(curve)
     action.update_tag()
-
-
-def find_action(action):
-    if isinstance(action, bpy.types.Object):
-        action = action.animation_data
-    if isinstance(action, bpy.types.AnimData):
-        action = action.action
-    if isinstance(action, bpy.types.Action):
-        return action
-    else:
-        return None
 
 
 TRANSFORM_PROPS_LOCATION = frozenset(['location'])
@@ -145,15 +130,18 @@ TRANSFORM_PROPS_ALL = frozenset(
 class FCurveTable(object):
     "Table for efficient lookup of FCurves by properties."
 
-    def __init__(self):
-        self.curve_map = collections.defaultdict(dict)
+    def __init__(self, action):
+        self.action = action
+        self.curve_map = self.index_curves(self.action.fcurves)
 
     def index_curves(self, curves):
+        curve_map = collections.defaultdict(dict)
         for curve in curves:
             index = curve.array_index
             if index < 0:
                 index = 0
-            self.curve_map[curve.data_path][index] = curve
+            curve_map[curve.data_path][index] = curve
+        return curve_map
 
     def get_prop_curves(self, ptr, prop_path):
         "Returns a dictionary from array index to curve for the given property, or Null."
@@ -171,16 +159,6 @@ class FCurveTable(object):
 
     def get_custom_prop_curves(self, ptr, prop):
         return self.get_prop_curves(ptr, rna_idprop_quote_path(prop))
-
-
-class ActionCurveTable(FCurveTable):
-    "Table for efficient lookup of Action FCurves by properties."
-
-    def __init__(self, action):
-        super().__init__()
-        self.action = find_action(action)
-        if self.action:
-            self.index_curves(self.action.fcurves)
 
 
 def nla_tweak_to_scene(anim_data, frames, invert=False):
@@ -236,66 +214,46 @@ def get_autokey_flags(context, ignore_keyset=False):
         return None
 
 
+def keyframe_channels(pbone, prop_name):
+    prop_value = getattr(pbone, prop_name)
+    for i, value in enumerate(prop_value):
+        pbone.keyframe_insert(prop_name, index=i, group=pbone.name)
+
+
 def keyframe_transform_properties(
     obj,
     bone_name,
-    keyflags,
-    *,
-    ignore_locks=False,
-    no_loc=False,
-    no_rot=False,
-    no_scale=False,
 ):
     "Keyframe transformation properties, taking flags and mode into account, and avoiding keying locked channels."
     bone = obj.pose.bones[bone_name]
 
-    def keyframe_channels(prop, locks):
-        if ignore_locks or not all(locks):
-            if ignore_locks or not any(locks):
-                bone.keyframe_insert(prop, group=bone_name, options=keyflags)
-            else:
-                for i, lock in enumerate(locks):
-                    if not lock:
-                        bone.keyframe_insert(
-                            prop, index=i, group=bone_name, options=keyflags
-                        )
-
-    if not (no_loc or bone.bone.use_connect):
+    # Location.
+    if not bone.bone.use_connect:
         keyframe_channels('location', bone.lock_location)
 
-    if not no_rot:
-        if bone.rotation_mode == 'QUATERNION':
-            keyframe_channels('rotation_quaternion', get_4d_rotlock(bone))
-        elif bone.rotation_mode == 'AXIS_ANGLE':
-            keyframe_channels('rotation_axis_angle', get_4d_rotlock(bone))
-        else:
-            keyframe_channels('rotation_euler', bone.lock_rotation)
+    # Rotation.
+    if bone.rotation_mode == 'QUATERNION':
+        keyframe_channels('rotation_quaternion')
+    elif bone.rotation_mode == 'AXIS_ANGLE':
+        keyframe_channels('rotation_axis_angle')
+    else:
+        keyframe_channels('rotation_euler', bone.lock_rotation)
 
-    if not no_scale:
-        keyframe_channels('scale', bone.lock_scale)
+    # Scale.
+    keyframe_channels('scale', bone.lock_scale)
 
 
 def set_transform_from_matrix(
+    context,
     obj,
     bone_name,
     target_matrix,
     *,
     space='POSE',
-    ignore_locks=False,
-    no_loc=False,
-    no_rot=False,
-    no_scale=False,
-    keyflags=None,
 ):
-    "Apply the matrix to the transformation of the bone, taking locked channels, mode and certain constraints into account, and optionally keyframe it."
+    """Apply the matrix to the transformation of the bone, taking locked channels,
+    mode and certain constraints into account, and optionally keyframe it."""
     bone = obj.pose.bones[bone_name]
-
-    # Save the old values of the local transforms
-    old_loc = Vector(bone.location)
-    old_rot_euler = Vector(bone.rotation_euler)
-    old_rot_quat = Vector(bone.rotation_quaternion)
-    old_rot_axis = Vector(bone.rotation_axis_angle)
-    old_scale = Vector(bone.scale)
 
     # Set the bone transforms in pose space in a way that accounts for additive constraints
     if space != 'POSE':
@@ -311,54 +269,7 @@ def set_transform_from_matrix(
 
     bone.matrix = target_matrix - constraint_delta
 
-    # Restore locked properties
-    def restore_channels(prop, old_vec, locks, extra_lock):
-        if extra_lock or (not ignore_locks and all(locks)):
-            setattr(bone, prop, old_vec)
-        else:
-            if not ignore_locks and any(locks):
-                new_vec = Vector(getattr(bone, prop))
-
-                for i, lock in enumerate(locks):
-                    if lock:
-                        new_vec[i] = old_vec[i]
-
-                setattr(bone, prop, new_vec)
-
-    restore_channels(
-        'location', old_loc, bone.lock_location, no_loc or bone.bone.use_connect
-    )
-
-    if bone.rotation_mode == 'QUATERNION':
-        restore_channels(
-            'rotation_quaternion', old_rot_quat, get_4d_rotlock(bone), no_rot
-        )
-        bone.rotation_axis_angle = old_rot_axis
-        bone.rotation_euler = old_rot_euler
-    elif bone.rotation_mode == 'AXIS_ANGLE':
-        bone.rotation_quaternion = old_rot_quat
-        restore_channels(
-            'rotation_axis_angle', old_rot_axis, get_4d_rotlock(bone), no_rot
-        )
-        bone.rotation_euler = old_rot_euler
-    else:
-        bone.rotation_quaternion = old_rot_quat
-        bone.rotation_axis_angle = old_rot_axis
-        restore_channels('rotation_euler', old_rot_euler, bone.lock_rotation, no_rot)
-
-    restore_channels('scale', old_scale, bone.lock_scale, no_scale)
-
-    # Keyframe properties
-    if keyflags is not None:
-        keyframe_transform_properties(
-            obj,
-            bone_name,
-            keyflags,
-            ignore_locks=ignore_locks,
-            no_loc=no_loc,
-            no_rot=no_rot,
-            no_scale=no_scale,
-        )
+    AutoKeying.autokey_transformation(context, obj.pose.bones[bone_name])
 
 
 def get_custom_property_value(rig, bone_name, prop_id):
@@ -381,42 +292,77 @@ def set_custom_property_value(obj, bone_name, prop, value, *, keyflags=None):
         )
 
 
-class RigifyOperatorMixinBase:
-    bl_options = {'UNDO', 'INTERNAL'}
+class SnapBakeOperator:
+    """Change a custom property value, while ensuring certain bones do not move,
+    and that these bones get keyed, optionally in a given frame range"""
 
-    def init_invoke(self, context):
-        "Override to initialize the operator before invoke."
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def init_execute(self, context):
-        "Override to initialize the operator before execute."
+    do_bake: BoolProperty(
+        name="Bake Keyframes in Range",
+        options={'SKIP_SAVE'},
+        description="Bake keyframes for the affected bones and remove keyframes from the switched property",
+        default=False,
+    )
+    frame_start: IntProperty(name="Start Frame")
+    frame_end: IntProperty(name="End Frame")
+    bake_every_frame: BoolProperty(
+        name="Bake Every Frame",
+        description="Insert a keyframe on every frame of the affected bones, rather than only frames which are keyframed on the source bones. Results in a more accurate bake, but takes longer and is harder to edit afterwards",
+        default=True,
+    )
 
-    def before_save_state(self, context, rig):
-        "Override to prepare for saving state."
+    bones: StringProperty(name="Control Bones")
+    prop_bone: StringProperty(name="Property Bone")
+    prop_id: StringProperty(name="Property")
+    prop_value: IntProperty(
+        name="Property Value",
+        description="If the property value is already set to this, the operator will do nothing.",
+        default=-1,
+    )
 
-    def after_save_state(self, context, rig):
-        "Override to undo before_save_state."
-
-
-class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
-    """Basic framework for an operator that updates a set of keyed frames."""
+    select_bones: BoolProperty(name="Select Affected Bones", default=True)
 
     @classmethod
     def poll(cls, context):
-        return context.mode == 'POSE'
+        return context.pose_object
+
+    def init_bake(self, context):
+        # Override to use operator's frame range instead of Rigify's globally set range.
+        super().init_bake(context)
+        self.bake_frame_range = (self.frame_start, self.frame_end)
+        self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
+
+    def execute_scan_curves(self, context, obj):
+        "Register frames to be baked, and return curves that should be cleared."
+        if self.bake_every_frame:
+            self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
+        else:
+            self.bake_add_bone_frames(self.bone_names)
+        return None
+
+    def set_selection(self, context, bones):
+        if self.select_bones:
+            for b in context.selected_pose_bones:
+                b.bone.select = False
+            for b in bones:
+                b.bone.select = True
 
     def invoke(self, context, event):
-        self.init_invoke(context)
+        self.init_invoke()
 
-        self.invoked = True
         if hasattr(self, 'draw'):
             return context.window_manager.invoke_props_dialog(self)
         else:
             return context.window_manager.invoke_confirm(self, event)
 
+    def init_invoke(self, context):
+        self.frame_start = context.scene.frame_start
+        self.frame_end = context.scene.frame_end
+        self.bone_names = json.loads(self.bones)
+
     def init_execute(self, context):
-        if not hasattr(self, 'invoked'):
-            # Ensure init_invoke has run, even if the operator is called from Python.
-            self.init_invoke(context)
+        pass
 
     def prop_value_matches(self):
         prop_value = get_custom_property_value(
@@ -426,7 +372,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
 
     def execute(self, context):
         self.init_execute(context)
-        self.bake_init(context)
+        self.init_bake(context)
 
         if self.prop_value_matches():
             return {'CANCELLED'}
@@ -439,7 +385,12 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
         try:
             save_state = self.bake_save_state(context)
 
-            range, range_raw = self.bake_clean_curves_in_range(context, curves)
+            context.scene.frame_set(range[0])
+            range = self.get_bake_range()
+            range_raw = self.nla_to_raw(range)
+            range, range_raw = delete_curve_keys_in_range(
+                curves, range_raw[0], range_raw[1]
+            )
 
             self.execute_before_apply(context, self.bake_rig, range, range_raw)
 
@@ -452,12 +403,10 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
         return {'FINISHED'}
 
     # Default behavior implementation
-    def bake_init(self, context):
+    def init_bake(self, context):
         self.bake_rig = context.active_object
         self.bake_anim = self.bake_rig.animation_data
-        # self.bake_frame_range = RIGIFY_OT_get_frame_range.get_range(context)
-        # self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
-        self.bake_curve_table = ActionCurveTable(self.bake_rig)
+        self.bake_curve_table = FCurveTable(self.bake_rig.animation_data.action)
         self.bake_current_frame = context.scene.frame_current
         self.bake_frames_raw = set()
 
@@ -505,7 +454,7 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
             scene.frame_set(frame)
             self.apply_frame_state(context, rig, save_state.get(frame))
 
-        clean_action_empty_curves(self.bake_rig)
+        clean_action_empty_curves(self.bake_rig.animation_data.action)
         scene.frame_set(self.bake_current_frame)
 
     # Utilities
@@ -600,20 +549,6 @@ class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
             frames = self.bake_frames
             return (frames[0], frames[-1])
 
-    def get_bake_range_pair(self):
-        "Returns the frame range that is being baked, both in scene and action time."
-        range = self.get_bake_range()
-        return range, self.nla_to_raw(range)
-
-    def bake_clean_curves_in_range(self, context, curves):
-        "Deletes all keys from the given curves in the bake range."
-        range, range_raw = self.get_bake_range_pair()
-
-        context.scene.frame_set(range[0])
-        delete_curve_keys_in_range(curves, range_raw)
-
-        return range, range_raw
-
 
 #######################################
 ##### Keyframe Baking Operators #######
@@ -625,73 +560,7 @@ def get_bones(rig, names):
     return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
 
-class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
-    """Extend Rigify's keyframe baking with the ability to select the frame range
-    as part of the operator, make baking optional,
-    and add the ability to affect more than a single bone.
-    """
-
-    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-    do_bake: BoolProperty(
-        name="Bake Keyframes in Range",
-        options={'SKIP_SAVE'},
-        description="Bake keyframes for the affected bones and remove keyframes from the switched property",
-        default=False,
-    )
-    frame_start: IntProperty(name="Start Frame")
-    frame_end: IntProperty(name="End Frame")
-    bake_every_frame: BoolProperty(
-        name="Bake Every Frame",
-        description="Insert a keyframe on every frame of the affected bones, rather than only frames which are keyframed on the source bones. Results in a more accurate bake, but takes longer and is harder to edit afterwards",
-        default=True,
-    )
-
-    bones: StringProperty(name="Control Bones")
-    prop_bone: StringProperty(name="Property Bone")
-    prop_id: StringProperty(name="Property")
-    prop_value: IntProperty(
-        name="Property Value",
-        description="If the property value is already set to this, the operator will do nothing.",
-        default=-1,
-    )
-
-    select_bones: BoolProperty(name="Select Affected Bones", default=True)
-    locks: BoolVectorProperty(name="Locked", size=3, default=[False, False, False])
-
-    @classmethod
-    def poll(cls, context):
-        return context.pose_object
-
-    ### Override some inherited functions
-    def init_invoke(self, context):
-        self.frame_start = context.scene.frame_start
-        self.frame_end = context.scene.frame_end
-        self.bone_names = json.loads(self.bones)
-
-    def bake_init(self, context):
-        # Override to use operator's frame range instead of Rigify's globally set range.
-        super().bake_init(context)
-        self.bake_frame_range = (self.frame_start, self.frame_end)
-        self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
-
-    def execute_scan_curves(self, context, obj):
-        "Register frames to be baked, and return curves that should be cleared."
-        if self.bake_every_frame:
-            self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
-        else:
-            self.bake_add_bone_frames(self.bone_names)
-        return None
-
-    def set_selection(self, context, bones):
-        if self.select_bones:
-            for b in context.selected_pose_bones:
-                b.bone.select = False
-            for b in bones:
-                b.bone.select = True
-
-
-class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
+class CLOUDRIG_OT_snap_bake(SnapBakeOperator, bpy.types.Operator):
     """Toggle a custom property while ensuring that some bones stay in place."""
 
     bl_idname = "pose.cloudrig_snap_bake"
@@ -730,7 +599,7 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
             ret = super().execute(context)
         else:
             self.init_execute(context)
-            self.bake_init(context)
+            self.init_bake(context)
 
             if self.prop_value_matches():
                 return {'CANCELLED'}
@@ -800,17 +669,14 @@ class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
             set_transform_from_matrix(
                 rig,
                 bone_name,
-                old_matrix,  # space='WORLD'
-                keyflags=self.keyflags,
-                no_loc=self.locks[0],
-                no_rot=self.locks[1],
-                no_scale=self.locks[2],
+                old_matrix,
             )
             pb = rig.pose.bones.get(bone_name)
-            # For some reason, reading and writing the matrix can result in
+            # TODO: For some reason, reading and writing the matrix can result in
             # significant changes to local scale, even when nothing is scaled.
             # So, just keep a copy of the local scale and restore it after applying the matrix.
             pb.scale = scales[i]
+
             context.evaluated_depsgraph_get().update()  # This matters!!!!
 
 
