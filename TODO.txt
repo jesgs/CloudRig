@@ -1,13 +1,12 @@
-Collection Customization design
-	As an animator
-		I want to add collections of my own using library overrides.
+Priority 0: Missing Rigify functionality
+	- 
+	- Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
+	- Bug: Metarig menu multiplies when disabling and re-enabling the add-on, even though when disabling, they all go away.
+	- Finish re-factoring keyframe baking code
+	- Rig samples (see design ideas below)
 
-	- Ability for animators to add collections.
-	- Allow preserving arbitrary collections (maybe using a property on cloudrig_info)
 
-Priority 0: Re-write as standalone add-on
-	- Re-implement Rigify functionality
-		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
+
 
 	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
 		- This then also allows other code to set an `override_widget` property, which can be used instead, if set.
@@ -19,7 +18,8 @@ Priority 0: Re-write as standalone add-on
 	- Update Manual links
 
 	BELLS AND WHISTLES:
-	- User preference to hide Bone Collections and Rigify panels on CloudRig armatures.
+	- Ability for animators to add collections.
+	- Allow preserving arbitrary collections (maybe using a property on cloudrig_info)
 	- Don't version metarigs that are linked or overridden.
 	- Ability to disable rig types. Simple checkbox. Simply don't add it to the component_map.
 

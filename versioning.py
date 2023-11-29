@@ -70,6 +70,10 @@ def update_all_metarigs(dummy):
         o for o in bpy.data.objects if o.type == 'ARMATURE' and is_cloud_metarig(o)
     ]
     for metarig in cloud_metarigs:
+        if metarig.library or metarig.override_library:
+            # Don't try to version linked metarigs, there's no point.
+            # Also, metarigs shouldn't get linked and overridden in the first place.
+            continue
         if metarig.cloudrig.metarig_version == metarig_version:
             continue
         if metarig.cloudrig.metarig_version > metarig_version:
