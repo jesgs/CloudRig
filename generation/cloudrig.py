@@ -53,7 +53,7 @@ def is_cloud_metarig(rig: Object):
         return False
     if not rig.type == 'ARMATURE':
         return False
-    return rig.cloudrig.enabled
+    return hasattr(rig, 'cloudrig') and rig.cloudrig.enabled
 
 
 def is_active_cloud_metarig(context):
@@ -1037,18 +1037,23 @@ class CLOUDRIG_PT_base(bpy.types.Panel):
     bl_category = 'CloudRig'
     bl_options = {'DEFAULT_CLOSED'}
 
+    on_metarigs = False
+    on_generated_rigs = True
+
     @classmethod
     def poll(cls, context):
-        return is_active_cloudrig(context) is not None
+        if not context.object:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+        if not cls.on_generated_rigs and is_active_cloudrig(context):
+            return False
+        if not cls.on_metarigs and is_active_cloud_metarig(context):
+            return False
+        return True
 
     def draw(self, context):
         pass
-
-
-def get_char_bone(rig):
-    for b in rig.pose.bones:
-        if b.name.startswith("Properties_Character"):
-            return b
 
 
 class CloudRig_Properties(bpy.types.PropertyGroup):
@@ -1116,6 +1121,12 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
         options={"LIBRARY_EDITABLE"},  # Make it not animatable.
         override={'LIBRARY_OVERRIDABLE'},
     )
+
+
+def get_char_bone(rig):
+    for b in rig.pose.bones:
+        if b.name.startswith("Properties_Character"):
+            return b
 
 
 def draw_rig_settings_per_label(
@@ -1656,6 +1667,16 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         return children
 
     @property
+    def siblings(self):
+        """Includes self!"""
+        if not self.parent_collection:
+            all_colls = self.id_data.collections
+            return [
+                coll for coll in all_colls if not coll.cloudrig_info.parent_collection
+            ]
+        return self.parent_collection.cloudrig_info.children
+
+    @property
     def children_recursive(self) -> List[bpy.types.BoneCollection]:
         children = self.children[:]
         for child in children:
@@ -1761,6 +1782,28 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         """
         layout.row().prop(self, "filter_name", text="")
 
+    @staticmethod
+    def get_collection_order(collections):
+        # Order collections by hierarchy, such that children come after their
+        # parents, but the original order is otherwise preserved.
+
+        # Find collections without any parent
+        root_colls = [
+            coll for coll in collections if coll.cloudrig_info.parent_name == ""
+        ]
+        sorted_colls = []
+
+        def add_children_recursive(parent_coll):
+            sorted_colls.append(parent_coll)
+            for child in parent_coll.cloudrig_info.children:
+                add_children_recursive(child)
+
+        for root_coll in root_colls:
+            add_children_recursive(root_coll)
+
+        # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
+        return [sorted_colls.index(coll) for coll in collections]
+
     def filter_items(self, context, data, propname):
         collections = getattr(data, propname)
 
@@ -1786,25 +1829,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             for i, flag in enumerate(flt_flags)
         ]
 
-        # Order collections by hierarchy, such that children come after their
-        # parents, but the original order is otherwise preserved.
-
-        # Find collections without any parent
-        root_colls = [
-            coll for coll in collections if coll.cloudrig_info.parent_name == ""
-        ]
-        sorted_colls = []
-
-        def add_children_recursive(parent_coll):
-            sorted_colls.append(parent_coll)
-            for child in parent_coll.cloudrig_info.children:
-                add_children_recursive(child)
-
-        for root_coll in root_colls:
-            add_children_recursive(root_coll)
-
-        # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
-        flt_neworder = [sorted_colls.index(coll) for coll in collections]
+        flt_neworder = self.get_collection_order(collections)
         return flt_flags, flt_neworder
 
 
@@ -1812,11 +1837,19 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_sidebar_collections"
     bl_label = "Bone Collections"
 
+    on_metarigs = True
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
 
+        self.draw_nested_collections_template(layout, context)
+
+    @staticmethod
+    def draw_nested_collections_template(
+        layout, context, list_class='CLOUDRIG_UL_collections'
+    ):
         if context.pose_object:
             list_path = 'pose_object.data.collections'
         else:
@@ -1837,6 +1870,8 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
             text="",
             icon='FILTER',
         )
+
+        return list_col
 
 
 class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
@@ -1933,6 +1968,8 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys"
     bl_label = "Hotkeys"
 
+    keymap_items = []
+
     @classmethod
     def poll(cls, context):
         rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
@@ -1981,6 +2018,12 @@ def register_hotkey(
         # This happens when running Blender in background mode.
         return
 
+    # If it already exists, don't create it again.
+    for existing_kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+        kc, km, kmi = existing_kmi
+        if km.name == key_cat and kmi.idname == bl_idname:
+            return
+
     keyconfigs = [addon_keyconfig, wm.keyconfigs.user]
 
     for kc in keyconfigs:
@@ -1991,9 +2034,7 @@ def register_hotkey(
             km = keymaps.new(name=key_cat, space_type=space_type)
 
         kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
-        # if not hasattr(bpy.types.CLOUDRIG_PT_hotkeys, 'keymap_items'):
-        #     bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
-        # bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
+        bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
 
         for key in op_kwargs:
             value = op_kwargs[key]
@@ -2029,9 +2070,9 @@ classes = (
 def register():
     from bpy.utils import register_class
 
-    # keymap_items = []
-    # if 'CLOUDRIG_PT_hotkeys' in dir(bpy.types):
-    #     keymap_items = bpy.types.CLOUDRIG_PT_hotkeys.keymap_items
+    keymap_items = []
+    if 'CLOUDRIG_PT_hotkeys' in dir(bpy.types):
+        keymap_items = bpy.types.CLOUDRIG_PT_hotkeys.keymap_items
 
     for c in classes:
         if c.__name__ in dir(bpy.types):
@@ -2060,9 +2101,9 @@ def unregister():
     called afaik. So this is only here for show.
     """
 
-    # for kc, km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
-    #     km.keymap_items.remove(kmi)
-    # bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
+    for kc, km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+        km.keymap_items.remove(kmi)
+    bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
 
     from bpy.utils import unregister_class
 
