@@ -1,34 +1,13 @@
 Collection Customization design
 	As an animator
 		I want to add collections of my own using library overrides.
-	As a rigger
-		I want to be able to assign bones and toggle collections using this custom interface on both the metarig and generated rig.
-		I don't want to be bamboozled by the original Bone Collections panel.
 
-	Nesting is defined via custom properties; There is a "Parents" python property of a list of strings.
-	Renaming collections via the operator 
-
-	Still TODO:
-	- Better ability to re-order collections. It works, but custom behaviour would be needed to fully replace the default panel.
-	- Operators to interact with collections (select, reset, keyframe, isolate, etc)
 	- Ability for animators to add collections.
-
+	- Allow preserving arbitrary collections (maybe using a property on cloudrig_info)
 
 Priority 0: Re-write as standalone add-on
-	Figure out the issue driving me fucking NUTS, where every class seems to get re-defined on reload, so type(boneinfo) != BoneInfo.
-
 	- Re-implement Rigify functionality
-		- Collections UI customization (probably also different)
-			- Goal: People shouldn't need SelectionSets anymore, and just be able to rely on Bone Collections instead.
-			- Extra goal: Implement nesting using custom properties or Python properties.
-			- Nest all default collections under a "Generated" collection, and within that, all "advanced" collections under a "Internals" collection.
-			- Then allow any manual collection assignments outside of this collection hierarchy to survive between generations.
-			- Still warn about empty collections, as before.
-		- Copy/Mirror Type/Params operators (These were written by me in the first place anyways.)
 		- Rigify Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
-
-	- UI:
-		- Make foced_parameters work again (now they have a "." in them, so our get/setattr() will need recursion)
 
 	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
 		- This then also allows other code to set an `override_widget` property, which can be used instead, if set.
@@ -40,18 +19,9 @@ Priority 0: Re-write as standalone add-on
 	- Update Manual links
 
 	BELLS AND WHISTLES:
-	- CloudRig panel on CloudRig armatures is useless. We could copy the sidebar UI there.
 	- User preference to hide Bone Collections and Rigify panels on CloudRig armatures.
 	- Don't version metarigs that are linked or overridden.
-	- Write a recursive lazy register thing that makes it so we can get rid of the modules = [] lists from our __init__.py's, using the recently discovered bpy.path.module_names() function!
-		- This would still require detecting dependencies and sorting the register list accordingly; CollectionProperties and PointerProperties depend on their type if it's a PropertyGroup, and Panels depend on their bl_parent_id. I'm not sure what else there might be.
 	- Ability to disable rig types. Simple checkbox. Simply don't add it to the component_map.
-	- Alphabet sort component types when choosing them.
-	- Use a callback on the component type to clear PointerProperties
-	- Since the rig elements will be a list, allow re-ordering them, although, maybe only bones that are siblings in the hierarchy.
-		- There could be an "order" parameter on each rig component, maintained partially automatically (via bone hierarchy) and partially manually (only for sibling bones).
-			- The "move up/down" buttons in the UIList could affect the active entry's "order" parameter.
-			- The order number could be displayed on the left-side of the UIList to tell the user that the order has significance.
 
 - Rig Samples UX
 	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
