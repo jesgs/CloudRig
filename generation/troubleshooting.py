@@ -40,9 +40,9 @@ class LoggerMixin:
     """
 
     def add_log(self, description_short, **kwargs):
-        self.generator.logger.log(
-            description_short, base_bone_name=self.metarig_base_pbone.name, **kwargs
-        )
+        if 'base_bone_name' not in kwargs:
+            kwargs['base_bone_name'] = self.metarig_base_pbone.name
+        self.generator.logger.log(description_short, **kwargs)
 
     def raise_generation_error(self, description, **kwargs):
         """For raising non-bug errors that should be fixable by the user."""

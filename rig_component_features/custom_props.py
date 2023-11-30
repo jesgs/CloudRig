@@ -48,17 +48,18 @@ class CloudCustomPropertiesMixin:
             # Create a bone at the base of the rig with a cogwheel shape.
             return self.create_properties_bone()
 
-    def create_properties_bone(self) -> BoneInfo:
-        org_bone = self.bones_org[0]
-        prop_bone_name = self.naming.add_prefix(org_bone, "PRP")
+    def create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
+        if not source:
+            source = self.bones_org[0]
+        prop_bone_name = self.naming.add_prefix(source, "PRP")
         prop_bone = self.generator.find_bone_info(prop_bone_name)
         if prop_bone:
             return prop_bone
 
         prop_bone = self.bones_mch.new(
             name=prop_bone_name,
-            source=org_bone,
-            parent=org_bone,
+            source=source,
+            parent=source,
             custom_shape=self.ensure_widget("Cogwheel_Y"),
             use_custom_shape_bone_size=True,
         )

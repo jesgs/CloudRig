@@ -61,14 +61,10 @@ class Component_Limb(Component_Chain_IKFK):
         """Overrides cloud_base.
         Place the properties bone near the end of the limb, parented to the last ORG bone.
         """
-        properties_bone = super().create_properties_bone()
+        source = self.bones_org[0]
         if self.params.custom_props.props_storage == 'GENERATED':
-            properties_bone.head = self.bones_org[-1].head.copy() + Vector(
-                (0, self.scale / 1.5, 0)
-            )
-            properties_bone.tail = properties_bone.head + Vector((0, 0, self.scale / 2))
-            properties_bone.parent = self.bones_org[-1]
-        return properties_bone
+            source = self.bones_org[-1]
+        return super().create_properties_bone(source=source)
 
     def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
         """Override cloud_chain, force 1 segment on the wrist."""

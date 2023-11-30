@@ -282,7 +282,7 @@ class BoneInfo:
 
     @length.setter
     def length(self, value):
-        assert value > 0, f"{self.name}: Bone length cannot be 0!"
+        assert value > 0.0, f"{self.name}: Bone length cannot be 0!"
         self.tail = self.head + self.vector.normalized() * value
 
     @property
@@ -456,11 +456,13 @@ class BoneInfo:
 
         ### Edit Bone properties
         for key in edit_bone_properties:
-            key = key.replace(
-                "edit_", ""
-            )  # Allows bbone properties to specify if they are only for edit bone version
+            # Allow bbone properties to specify if they are only for EditBone
+            key = key.replace("edit_", "")
+
             if key.endswith("_axis"):
-                continue  # Read-only.
+                # Read-only, skip.
+                continue
+
             value = self.__dict__[key]
             default_value = edit_bone_properties[key]
             if value == default_value:
