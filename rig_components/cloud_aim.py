@@ -8,7 +8,7 @@ from mathutils import Vector
 from ..rig_component_features.bone import BoneInfo
 from .cloud_base import Component_Base
 
-from ..utils.maths import bounding_box_center
+from ..utils.maths import bounding_box_center, bounding_box
 
 
 class Component_Aim(Component_Base):
@@ -80,6 +80,7 @@ class Component_Aim(Component_Base):
             custom_shape=self.ensure_widget("Circle"),
             parent=parent,
         )
+        target_bone.custom_shape_scale *= self.params.aim.target_size
         dsp_bone = self.create_dsp_bone(target_bone)
         dsp_bone.add_constraint(
             'DAMPED_TRACK', subtarget=bone.name, track_axis='TRACK_NEGATIVE_Y'
@@ -288,6 +289,13 @@ class Component_Aim(Component_Base):
         # Find center of all targets
         target_positions = [self.find_target_pos(b) for b in aim_bones]
         target_center = bounding_box_center(target_positions)
+        z_axis = Vector((0, 0, 0))
+        for b in aim_bones:
+            z_axis += b.z_axis
+        z_axis /= len(aim_bones)
+
+        lowest, highest = bounding_box(target_positions)
+        targets_size = (highest - lowest).length
 
         # Create a helper bone in the center.
         group_vec = target_center - aims_center
@@ -297,6 +305,8 @@ class Component_Aim(Component_Base):
             head=aims_center,
             tail=aims_center + group_vec.normalized() * self.scale,
             bbone_width=0.1,
+            roll_type='VECTOR',
+            roll_vector=z_axis,
             roll=0,
             parent=self.generator.find_bone_info(first_parent),
         )
@@ -313,10 +323,13 @@ class Component_Aim(Component_Base):
             name=group_master_name,
             source=self.bones_org[0],
             head=target_center,
-            tail=target_center + group_vec.normalized() * self.scale,
+            tail=target_center + group_vec.normalized() * targets_size * 1.5,
+            roll_type='VECTOR',
+            roll_vector=z_axis,
+            roll=0,
             custom_shape=self.ensure_widget('Circle'),
             use_custom_shape_bone_size=True,
-            custom_shape_scale=(max_dist / self.scale) * 2,
+            custom_shape_scale=1,
         )
         group_master.add_constraint(
             'DAMPED_TRACK', subtarget=center_bone.name, track_axis='TRACK_NEGATIVE_Y'
@@ -353,14 +366,18 @@ class Component_Aim(Component_Base):
         )
 
     @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        cls.draw_prop(context, layout, params.aim, 'target_size')
+
+    @classmethod
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the rig parameters."""
-        cls.draw_prop(context, layout, params.aim, "group")
-        cls.draw_prop(context, layout, params.aim, "target_distance")
-        cls.draw_prop(context, layout, params.aim, "flatten")
-        cls.draw_prop(context, layout, params.aim, "deform")
-        cls.draw_prop(context, layout, params.aim, "root")
-        cls.draw_prop(context, layout, params.aim, "create_sub_control")
+        cls.draw_prop(context, layout, params.aim, 'group')
+        cls.draw_prop(context, layout, params.aim, 'target_distance')
+        cls.draw_prop(context, layout, params.aim, 'flatten')
+        cls.draw_prop(context, layout, params.aim, 'deform')
+        cls.draw_prop(context, layout, params.aim, 'root')
+        cls.draw_prop(context, layout, params.aim, 'create_sub_control')
 
 
 class Params(PropertyGroup):
@@ -375,6 +392,13 @@ class Params(PropertyGroup):
         default=5.0,
         description="Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig",
         min=0,
+    )
+    target_size: FloatProperty(
+        name="Target Size",
+        default=1.0,
+        description="Size multiplier for the target control. This is for display purposes only, as sometimes the target can be too small, and there's no good automatic way to determine the desired size",
+        min=0.1,
+        soft_max=10.0,
     )
     flatten: BoolProperty(
         name="Flatten X",

@@ -157,7 +157,8 @@ def get_bone_chain(start_bone):
 
 
 def create_parent_bone(child, bone_set=None):
-    """Copy a bone, prefix it with "P", make the bone shape a bit bigger and parent the bone to this copy."""
+    """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
+    parent the bone to this copy."""
     sliced = slice_name(child.name)
     sliced[0].append("P")
     parent_name = make_name(*sliced)
@@ -167,6 +168,9 @@ def create_parent_bone(child, bone_set=None):
         name=parent_name,
         source=child,
         parent=child.parent,
+        roll_type='ALIGN',
+        roll_bone=child,
+        roll=0,
         custom_shape=child.custom_shape,
         custom_shape_scale_xyz=Vector(child.custom_shape_scale_xyz) * 1.2,
         custom_shape_translation=Vector(child.custom_shape_translation),
@@ -185,6 +189,9 @@ def create_dsp_bone(parent, bone_set):
     dsp_bone = bone_set.new(
         name=dsp_name,
         source=parent,
+        roll_type='ALIGN',
+        roll_bone=parent,
+        roll=0,
         bbone_width=parent.bbone_width * 0.5,
         custom_shape=None,
         parent=parent,

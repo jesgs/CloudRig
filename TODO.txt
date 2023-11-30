@@ -1,11 +1,18 @@
+Bone Collections to replace Selection Sets
+	As an animator
+		I want to add collections of my own using library overrides.
+		I want to modify existing collections if liboverrides allow that?
+		I want to copy and paste collections using the Clipboard, just like Selection Sets.
+		Select easily with a pop-up menu (what hotkey?)
+	As a rigger
+		I want to be able to assign bones and toggle collections using this custom interface on both the metarig and generated rig.
+		I don't want to be bamboozled by the original Bone Collections panel.
+
 Priority 0: Missing Rigify functionality
-	- 
 	- Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 	- Bug: Metarig menu multiplies when disabling and re-enabling the add-on, even though when disabling, they all go away.
 	- Finish re-factoring keyframe baking code
 	- Rig samples (see design ideas below)
-
-
 
 
 	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.

@@ -238,6 +238,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
             head=self.pole_location,
             tail=self.pole_location
             + self.pole_vector.normalized() * self.chain_length * 0.2,
+            roll_type='VECTOR',
+            roll_vector=Vector((0, 0, -1)),
             roll=0,
             custom_shape=self.ensure_widget('Arrow_Head'),
             custom_shape_scale=0.5,
@@ -513,7 +515,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
             main_str_helper = self.bone_sets['IK Mechanism'].new(
                 name=self.naming.add_prefix(main_str_bone, "S"),
                 source=main_str_bone,
-                bbone_width=1 / 10,
+                bbone_width=0.1,
+                roll_type='ALIGN',
+                roll_bone=main_str_bone,
+                roll=0,
                 parent=main_str_bone.parent,
             )
             main_str_bone.stretch_helper = main_str_helper
