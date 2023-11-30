@@ -1541,16 +1541,29 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
         name="Hide",
         description="Show the Hide setting",
         default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
     show_solo: bpy.props.BoolProperty(
         name="Isolate",
         description="Show the Isolate operator",
         default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
     show_select: bpy.props.BoolProperty(
         name="Select",
         description="Show the Select operator",
         default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_editing: bpy.props.BoolProperty(
+        name="Editing",
+        description="Show collection editing functions",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
 
@@ -1726,10 +1739,10 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
 
 class CLOUDRIG_UL_collections(bpy.types.UIList):
-    """Draw bone collections with nesting support provided by CloudRig"""
+    """Draw bone collections with nesting support"""
 
     @staticmethod
-    def draw_collection(context, layout, collection):
+    def draw_collection(context, layout, collection, idx):
         cloudrig_info = collection.cloudrig_info
 
         prefs = context.object.cloudrig_prefs
@@ -1768,13 +1781,17 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                 text="",
                 icon='RESTRICT_SELECT_OFF',
             ).collection_name = collection.name
-
+        if prefs.show_editing:
+            row.operator(
+                CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
+            ).coll_idx = idx
         return row
 
     def draw_item(
-        self, context, layout, _data, item, _icon_value, _active_data, _active_propname
+        self, context, layout, data, item, _icon_value, _active_data, _active_propname
     ):
-        self.draw_collection(context, layout, item)
+        idx = data.collections.find(item.name)
+        self.draw_collection(context, layout, item, idx)
 
     def draw_filter(self, context, layout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
@@ -1844,12 +1861,10 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        self.draw_nested_collections_template(layout, context)
+        rig = context.object
+        prefs = rig.cloudrig_prefs
+        active_coll = rig.data.collections.active
 
-    @staticmethod
-    def draw_nested_collections_template(
-        layout, context, list_class='CLOUDRIG_UL_collections'
-    ):
         if context.pose_object:
             list_path = 'pose_object.data.collections'
         else:
@@ -1871,7 +1886,63 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
             icon='FILTER',
         )
 
-        return list_col
+        if not prefs.show_editing:
+            return
+
+        list_col.separator()
+
+        list_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
+        if not active_coll:
+            return
+
+        list_col.operator(
+            CLOUDRIG_OT_collection_remove.bl_idname, text="", icon='REMOVE'
+        )
+        list_col.separator()
+
+        siblings, sibling_idx = CLOUDRIG_OT_collection_move.get_siblings_and_target_idx(
+            'UP', active_coll
+        )
+        row = list_col.row()
+        row.enabled = sibling_idx >= 0
+        row.operator(
+            CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_UP'
+        ).direction = 'UP'
+
+        row = list_col.row()
+        row.enabled = sibling_idx + 2 < len(siblings)
+        row.operator(
+            CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_DOWN'
+        ).direction = 'DOWN'
+
+        row = layout.row()
+        if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
+            row.enabled = False
+        sub = row.row(align=True)
+        sub.operator("armature.collection_assign", text="Assign")
+        sub.operator("armature.collection_unassign", text="Remove")
+
+        sub = row.row(align=True)
+        sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
+        sel_op.select = True
+        sel_op.collection_name = active_coll.name
+
+        desel_op = sub.operator(
+            CLOUDRIG_OT_collection_select.bl_idname, text="Deselect"
+        )
+        desel_op.select = False
+        desel_op.collection_name = active_coll.name
+
+
+class CLOUDRIG_PT_properties_collection(CLOUDRIG_PT_base):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+    bl_idname = "CLOUDRIG_PT_properties_collection"
+    bl_label = "Nested Collections"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    draw = CLOUDRIG_PT_sidebar_collections.draw
 
 
 class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
@@ -1916,6 +1987,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
     bl_label = "Select Bones of Collection"
 
     collection_name: StringProperty()
+    select: BoolProperty(default=True)
     reveal_bones: BoolProperty(default=False)
 
     @classmethod
@@ -1931,15 +2003,15 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         if not collection:
             return {'CANCELLED'}
 
-        if not collection.is_visible:
+        if not collection.is_visible and self.select:
             collection.cloudrig_info.is_visible = True
 
         collection_bones = collection.cloudrig_info.all_bones
 
         for bone in collection_bones:
-            if self.reveal_bones:
+            if self.reveal_bones and self.select:
                 bone.hide = False
-            bone.select = True
+            bone.select = self.select
 
         return {'FINISHED'}
 
@@ -1956,7 +2028,199 @@ class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
         row.prop(prefs, "show_visibility", text="", icon='HIDE_OFF')
         row.prop(prefs, "show_solo", text="", icon='SOLO_ON')
         row.prop(prefs, "show_select", text="", icon='RESTRICT_SELECT_OFF')
-        layout.separator()
+
+        row.separator()
+        row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
+
+
+class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
+    """Set parent collection"""
+
+    bl_idname = "pose.cloudrig_collection_parent_set"
+    bl_label = "Set Parent Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    coll_idx: IntProperty()
+    parent_name: StringProperty(
+        name="Parent", description="Parent to set as this bone collection's parent"
+    )
+
+    def invoke(self, context, _event):
+        coll = context.object.data.collections[self.coll_idx]
+        if not coll.is_editable:
+            self.report({'ERROR'}, "Cannot change the parent of linked collections.")
+            return {'CANCELLED'}
+        self.parent_name = context.object.data.collections[
+            self.coll_idx
+        ].cloudrig_info.parent_name
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.prop_search(self, 'parent_name', context.object.data, 'collections')
+
+    def execute(self, context):
+        coll_info = context.object.data.collections[self.coll_idx].cloudrig_info
+        if coll_info.parent_name == self.parent_name:
+            self.report({'INFO'}, "This parent is already set. Nothing was done.")
+            return {'CANCELLED'}
+        if self.parent_name == coll_info.name:
+            self.report({'ERROR'}, "Cannot set a collection's parent to be itself.")
+            return {'CANCELLED'}
+        coll_info.parent_name = self.parent_name
+
+        # Ensure there's no parent cycle.
+        parent = coll_info.parent_collection
+        while parent:
+            if parent in coll_info.children:
+                parent.cloudrig_info.parent_name = ""
+                self.report(
+                    {'INFO'}, "A collection was un-parented to avoid a parenting loop."
+                )
+                # redraw_viewport()
+                return {'FINISHED'}
+            parent = parent.cloudrig_info.parent_collection
+
+        # redraw_viewport()
+        self.report({'INFO'}, "Collection parent set.")
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_remove(bpy.types.Operator):
+    """Remove the active bone collection"""
+
+    bl_idname = "pose.cloudrig_collection_delete"
+    bl_label = "Remove Bone Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object.data.collections.active
+
+    def execute(self, context):
+        coll = context.object.data.collections.active
+        if not coll.is_editable:
+            self.report({'ERROR'}, "Cannot remove linked collection.")
+            return {'CANCELLED'}
+
+        parent_name = coll.cloudrig_info.parent_name
+
+        for child in coll.cloudrig_info.children:
+            child.cloudrig_info.parent_name = parent_name
+
+        context.object.data.collections.remove(coll)
+
+        context.object.cloudrig.active_collection_index = (
+            context.object.data.collections.find(parent_name)
+        )
+
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_add(bpy.types.Operator):
+    """Add a new bone collection"""
+
+    bl_idname = "pose.cloudrig_collection_add"
+    bl_label = "Add Bone Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        coll = context.object.data.collections.active
+        parent_name = ""
+        if coll:
+            parent_name = coll.cloudrig_info.parent_name
+
+        coll = context.object.data.collections.new(name="Collection")
+        coll.cloudrig_info.parent_name = parent_name
+
+        context.object.cloudrig.active_collection_index = (
+            context.object.data.collections.find(coll.name)
+        )
+
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_move(bpy.types.Operator):
+    bl_idname = "pose.cloudrig_collection_reorder"
+    bl_label = "Move Active Bone Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    direction: EnumProperty(
+        name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")]
+    )
+
+    @classmethod
+    def poll(cls, context):
+        rig = context.object
+        collections = rig.data.collections
+        active_coll = collections.active
+        return bool(active_coll)
+
+    @staticmethod
+    def get_siblings_and_target_idx(direction, coll):
+        siblings = coll.cloudrig_info.siblings
+
+        for sibling_idx, sibling in enumerate(siblings):
+            if sibling == coll:
+                break
+
+        delta = 1 if direction == 'DOWN' else -1
+        sibling_idx += delta
+
+        return siblings, sibling_idx
+
+    def execute(self, context):
+        rig = context.object
+
+        collections = rig.data.collections
+        active_coll = collections.active
+
+        siblings, sibling_idx = self.get_siblings_and_target_idx(
+            self.direction, active_coll
+        )
+        sibling_coll = siblings[sibling_idx]
+
+        if not active_coll.is_editable:
+            self.report({'ERROR'}, "Cannot re-order linked collections.")
+            return {'CANCELLED'}
+
+        new_idx = collections.find(sibling_coll.name)
+        old_idx = collections.active_index
+
+        collections.move(old_idx, new_idx)
+
+        self.refresh_collection_order(rig)
+
+        return {'FINISHED'}
+
+    @staticmethod
+    def refresh_collection_order(rig):
+        collections = rig.data.collections
+
+        # To get the order, we can re-use code of the nested UIList ordering.
+        new_order = CLOUDRIG_UL_collections.get_collection_order(collections)
+
+        # Backup active coll.
+        active_coll = collections.active
+
+        # The re-ordering has to be done one-by-one, so it's a bit tricky.
+        idx_map = [
+            (collections[old_idx], new_idx) for old_idx, new_idx in enumerate(new_order)
+        ]
+        idx_map.sort(key=lambda tup: tup[1])
+
+        for coll, new_idx in idx_map:
+            old_idx = rig.data.collections.find(coll.name)
+            rig.data.collections.move(old_idx, new_idx)
+
+        # Preserve active coll.
+        collections.active = active_coll
+
+
+@classmethod
+def builtin_collections_poll_override(cls, context):
+    return not (is_active_cloud_metarig(context) or is_active_cloudrig(context))
 
 
 #######################################
@@ -2060,9 +2324,14 @@ classes = (
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
     CLOUDRIG_PT_sidebar_collections,
+    CLOUDRIG_PT_properties_collection,
     CLOUDRIG_OT_collection_solo,
     CLOUDRIG_OT_collection_select,
     CLOUDRIG_PT_collections_filter,
+    CLOUDRIG_OT_collection_parent_set,
+    CLOUDRIG_OT_collection_remove,
+    CLOUDRIG_OT_collection_add,
+    CLOUDRIG_OT_collection_move,
     CLOUDRIG_PT_hotkeys,
 )
 
@@ -2095,6 +2364,12 @@ def register():
     bpy.app.handlers.load_post.append(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
 
+    # Hide the built-in Bone Collections panel.
+    bpy.types.DATA_PT_bone_collections.poll_bkp = (
+        bpy.types.DATA_PT_bone_collections.poll
+    )
+    bpy.types.DATA_PT_bone_collections.poll = builtin_collections_poll_override
+
 
 def unregister():
     """Since this file runs from the Blender Text Editor, unregister() is never
@@ -2118,6 +2393,11 @@ def unregister():
 
     bpy.app.handlers.load_post.remove(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
+
+    # Un-hide the built-in Bone Collections panel.
+    bpy.types.DATA_PT_bone_collections.poll = (
+        bpy.types.DATA_PT_bone_collections.poll_bkp
+    )
 
 
 if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']:

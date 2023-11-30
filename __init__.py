@@ -14,7 +14,6 @@ from . import (
     properties,
     prefs,
     generation,
-    collections,
     metarigs,
 )
 
@@ -48,7 +47,6 @@ modules = [
     prefs,
     generation,
     operators,
-    collections,
     properties,
     metarigs,
 ]

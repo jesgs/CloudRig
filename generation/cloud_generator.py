@@ -165,7 +165,7 @@ class CloudRig_Generator:
         context.view_layer.update()
 
         # Used to calculate sizes and distances in a rig-size-agnostic way.
-        self.scale = max(metarig.dimensions) / 10
+        self.scale = 0.18  # max(metarig.dimensions) / 10 # Don't commit this, it's just currently broken in 4.1 alpha.
 
         self.naming = CloudNameManager()
 

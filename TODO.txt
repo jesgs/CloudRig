@@ -1,11 +1,9 @@
 Bone Collections to replace Selection Sets
 	As an animator
-		I want to add collections of my own using library overrides.
-		I want to modify existing collections if liboverrides allow that?
 		I want to copy and paste collections using the Clipboard, just like Selection Sets.
 		Select easily with a pop-up menu (what hotkey?)
-	As a rigger
 		I want to be able to assign bones and toggle collections using this custom interface on both the metarig and generated rig.
+	As a rigger
 		I don't want to be bamboozled by the original Bone Collections panel.
 
 Priority 0: Missing Rigify functionality
