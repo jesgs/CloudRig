@@ -288,7 +288,7 @@ class CloudRig_Generator:
         bpy.ops.object.mode_set(mode='OBJECT')
 
         self.components_create_helper_objs(context)
-        self.metarig.cloudrig.ensure_bone_collections_info()
+        self.metarig.cloudrig_prefs.ensure_bone_collections_info()
         self.copy_bone_collections(src=metarig, target=self.target_rig)
         self.components_write_pbone_data(self.target_rig)
 

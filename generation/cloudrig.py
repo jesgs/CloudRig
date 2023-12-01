@@ -1566,6 +1566,34 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
+    def ensure_bone_collections_info(self, context=None):
+        rig_ob = self.id_data
+        flt_flags = bpy.types.CLOUDRIG_UL_collections.flt_flags
+        new_idx = self.active_collection_index
+
+        if new_idx < 0:
+            new_idx = 0
+        if new_idx > len(rig_ob.data.collections)-1:
+            new_idx = len(rig_ob.data.collections)-1
+
+        if flt_flags[new_idx] == 0:
+            while flt_flags[new_idx] == 0 and new_idx > 0:
+                new_idx -= 1
+        if new_idx != self.active_collection_index:
+            self.active_collection_index = new_idx
+            return
+
+        rig_ob.data.collections.active_index = self.active_collection_index
+
+        for coll in rig_ob.data.collections:
+            coll.cloudrig_info.name = coll.name
+
+    active_collection_index: IntProperty(
+        name="Nested Collections",
+        description="Nested Collections",
+        update=ensure_bone_collections_info,
+    )
+
 
 #######################################
 ###### Nested Bone Collections ########
@@ -1693,7 +1721,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     def children_recursive(self) -> List[bpy.types.BoneCollection]:
         children = self.children[:]
         for child in children:
-            children += child.children
+            children += child.cloudrig_info.children
         return children
 
     @property
@@ -1740,6 +1768,8 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
 class CLOUDRIG_UL_collections(bpy.types.UIList):
     """Draw bone collections with nesting support"""
+
+    flt_flags = []
 
     @staticmethod
     def draw_collection(context, layout, collection, idx):
@@ -1845,6 +1875,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             flag * int(collections[i].cloudrig_info.should_draw)
             for i, flag in enumerate(flt_flags)
         ]
+        bpy.types.CLOUDRIG_UL_collections.flt_flags = flt_flags
 
         flt_neworder = self.get_collection_order(collections)
         return flt_flags, flt_neworder
@@ -1866,16 +1897,16 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
         active_coll = rig.data.collections.active
 
         if context.pose_object:
-            list_path = 'pose_object.data.collections'
+            prop_owner = 'pose_object'
         else:
-            list_path = 'active_object.data.collections'
+            prop_owner = 'active_object'
 
         list_col = draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_collections',
-            list_path=list_path,
-            active_index_path=list_path + '.active_index',
+            list_path=prop_owner + ".data.collections",
+            active_index_path=prop_owner + '.cloudrig_prefs.active_collection_index',
             insertion_operators=False,
             move_operators=False,
             unique_id='CloudRig Nested Collections UI',
@@ -1896,8 +1927,8 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
             return
 
         list_col.operator(
-            CLOUDRIG_OT_collection_remove.bl_idname, text="", icon='REMOVE'
-        )
+            CLOUDRIG_OT_collection_delete.bl_idname, text="", icon='REMOVE'
+        ).mode='ACTIVE'
         list_col.separator()
 
 
@@ -1976,7 +2007,8 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign Selected Bones from All Collections", icon='REMOVE')
-        layout.operator(CLOUDRIG_OT_collection_remove_all.bl_idname, text="Delete All Local Collections", icon='TRASH')
+        layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete Hierarchy of Collections", icon='OUTLINER').mode='HIERARCHY'
+        layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete All Local Collections", icon='TRASH').mode='ALL'
         layout.separator()
         layout.operator(CLOUDRIG_OT_collections_clipboard_copy.bl_idname, text="Copy Visible Collections to Clipboard", icon='COPYDOWN')
         layout.operator(CLOUDRIG_OT_collections_clipboard_paste.bl_idname, text="Paste Collections from Clipboard", icon='PASTEDOWN')
@@ -2107,18 +2139,34 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collection_remove(bpy.types.Operator):
+class CLOUDRIG_OT_collection_delete(bpy.types.Operator):
     """Remove the active bone collection"""
 
     bl_idname = "pose.cloudrig_collection_delete"
     bl_label = "Remove Bone Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
+    mode: EnumProperty(
+        items=[
+            ('ACTIVE', "Active", "Delete the Active collection"),
+            ('HIERARCHY', "Hierarchy", "Delete the Active collection and its children"),
+            ('ALL', "All", "Delete all local collections"),
+        ]
+    )
+
     @classmethod
     def poll(cls, context):
         return context.object.data.collections.active
 
     def execute(self, context):
+        if self.mode == 'ACTIVE':
+            return self.delete_active(context)
+        elif self.mode == 'HIERARCHY':
+            return self.delete_hierarchy(context)
+        elif self.mode == 'ALL':
+            return self.delete_all(context)
+
+    def delete_active(self, context):
         coll = context.object.data.collections.active
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot remove linked collection.")
@@ -2131,21 +2179,25 @@ class CLOUDRIG_OT_collection_remove(bpy.types.Operator):
 
         context.object.data.collections.remove(coll)
 
-        context.object.cloudrig.active_collection_index = (
-            context.object.data.collections.find(parent_name)
-        )
-
+        context.object.cloudrig_prefs.active_collection_index -= 1
         return {'FINISHED'}
 
+    def delete_hierarchy(self, context):
+        rig = context.object
+        colls = rig.data.collections
+        if not colls.active.is_editable:
+            self.report({'ERROR'}, "Cannot remove linked collection.")
+            return {'CANCELLED'}
 
-class CLOUDRIG_OT_collection_remove_all(bpy.types.Operator):
-    """Remove all local bone collections"""
 
-    bl_idname = "pose.cloudrig_collection_delete_all"
-    bl_label = "Remove All Local Bone Collections"
-    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+        for child in colls.active.cloudrig_info.children_recursive:
+            colls.remove(child)
+        colls.remove(colls.active)
 
-    def execute(self, context):
+        context.object.cloudrig_prefs.active_collection_index -= 1
+        return {'FINISHED'}
+
+    def delete_all(self, context):
         colls = context.object.data.collections
 
         for coll in colls[:]:
@@ -2171,7 +2223,7 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
         coll = context.object.data.collections.new(name="Collection")
         coll.cloudrig_info.parent_name = parent_name
 
-        context.object.cloudrig.active_collection_index = (
+        context.object.cloudrig_prefs.active_collection_index = (
             context.object.data.collections.find(coll.name)
         )
 
@@ -2318,6 +2370,10 @@ class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
                 json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
                 json_obj[coll.name]['cloudrig_info'] = coll['cloudrig_info'].to_dict()
 
+        if counter == 0:
+            self.report({'ERROR'}, "No visible collections to copy.")
+            return {'CANCELLED'}
+
         context.window_manager.clipboard = json.dumps(json_obj)
 
         self.report({'INFO'}, f"Copied {counter} collections to Blender clipboard.")
@@ -2332,7 +2388,7 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
     overwrite_existing: BoolProperty(default=True)
 
     def execute(self, context):
-
+        counter = 0
         try:
             json_obj = json.loads(context.window_manager.clipboard)
             collections = context.object.data.collections
@@ -2353,13 +2409,20 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
                     if not pb:
                         continue
                     coll.assign(pb)
+                counter += 1
+
         except Exception as e:
             self.report({'ERROR'}, 'The clipboard does not contain Bone Collections.')
             raise e
             return {'CANCELLED'}
 
-        
+        if counter == 0:
+            self.report({'ERROR'}, "No collections in clipboard to be pasted.")
+            return {'CANCELLED'}
+
+        self.report({'INFO'}, f"Pasted {counter} collections from clipboard.")
         return {'FINISHED'}
+
 
 @classmethod
 def builtin_collections_poll_override(cls, context):
@@ -2473,8 +2536,7 @@ classes = (
     CLOUDRIG_OT_collection_solo,
     CLOUDRIG_OT_collection_select,
     CLOUDRIG_OT_collection_parent_set,
-    CLOUDRIG_OT_collection_remove,
-    CLOUDRIG_OT_collection_remove_all,
+    CLOUDRIG_OT_collection_delete,
     CLOUDRIG_OT_collection_add,
     CLOUDRIG_OT_collection_move,
     CLOUDRIG_OT_collection_assign,

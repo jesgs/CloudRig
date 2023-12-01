@@ -375,18 +375,6 @@ class RigComponent(PropertyGroup):
 
 
 class Properties_CloudRig(PropertyGroup):
-    def ensure_bone_collections_info(self, context=None):
-        rig_ob = self.id_data
-        rig_ob.data.collections.active_index = self.active_collection_index
-        for coll in rig_ob.data.collections:
-            coll.cloudrig_info.name = coll.name
-
-    active_collection_index: IntProperty(
-        name="Nested Collections",
-        description="Nested Collections",
-        update=ensure_bone_collections_info,
-    )
-
     def active_component_update_callback(self, context=None):
         # Update component order (used for sorting the UIList as well as generation order).
         self.refresh_generator_data()
@@ -440,7 +428,7 @@ class Properties_CloudRig(PropertyGroup):
 
     def refresh_generator_data(self):
         self.refresh_generation_order()
-        self.ensure_bone_collections_info()
+        self.id_data.cloudrig_prefs.ensure_bone_collections_info()
 
     def refresh_generation_order(self):
         """Set the `order` and `depth` property of rig components.
