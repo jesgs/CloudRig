@@ -1609,7 +1609,6 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
             # If that fails too, don't allow an active element.
             new_idx = -1
 
-
         if new_idx != self.active_collection_index:
             # This will cause this function to get called again, but this time, 
             # none of the if-statements should trigger.
@@ -1719,23 +1718,18 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         # that controls the hierarchy.
         # So, self.is_visible may be True, but the actual collection underneath
         # will still be hidden, if any of our parent collections is hidden.
+
         coll = self.get_collection()
         coll.is_visible = self.is_visible
-        if self.is_visible:
-            self.should_stay_hidden = False
-        for child in self.children:
-            if not child.cloudrig_info.is_visible and not self.is_visible:
-                child.cloudrig_info.should_stay_hidden = True
-            if (
-                self.is_visible
-                and not child.cloudrig_info.is_visible
-                and child.cloudrig_info.should_stay_hidden
-            ):
-                continue
-            if not self.is_visible and not child.cloudrig_info.is_visible:
-                continue
-            child.cloudrig_info.is_visible = self.is_visible
 
+        if not self.is_visible:
+            # If we are hidden, hide all children.
+            for child in self.children:
+                child.is_visible = False
+        else:
+            # If we are revealed, set all children visibilities to sync to their own collection.
+            for child in self.children:
+                child.is_visible = child.cloudrig_info.is_actually_visible
     is_visible: BoolProperty(
         name="Visible",
         description="Toggle the visiblity of this collection, and all child collections",
@@ -1744,6 +1738,24 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
+
+    @property
+    def is_actually_visible(self):
+        return self.is_visible and self.are_parents_visible
+
+    @property
+    def are_parents_visible(self):
+        parent = self.parent_collection
+        if not parent:
+            return True
+
+        while parent:
+            if not parent.is_visible:
+                return False
+            parent = parent.cloudrig_info.parent_collection
+
+        return True
+
     should_stay_hidden: BoolProperty(
         name="Stay Hidden",
         description="Internal value to preserve hidden state when a parent gets unhidden",
@@ -1872,14 +1884,8 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         row.prop(cloudrig_info, 'name', text="", emboss=False)
 
         row = row.row(align=True)
-        row.enabled = not cloudrig_info.should_draw_grayed
-        icon = 'HIDE_ON'
-        if collection.is_visible or (
-            cloudrig_info.parent_collection
-            and not cloudrig_info.parent_collection.cloudrig_info.is_visible
-            and not cloudrig_info.should_stay_hidden
-        ):
-            icon = 'HIDE_OFF'
+        row.enabled = cloudrig_info.are_parents_visible
+        icon = 'HIDE_OFF' if collection.cloudrig_info.is_visible else 'HIDE_ON'
         if prefs.show_visibility:
             row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
         if prefs.show_solo:
@@ -2089,7 +2095,7 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator('armature.collection_show_all', text="Show All", icon='HIDE_OFF')
+        layout.operator(CLOUDRIG_OT_collections_reveal_all.bl_idname, text="Show All", icon='HIDE_OFF')
         layout.separator()
         layout.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign Selected Bones from All Collections", icon='REMOVE')
         layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete Hierarchy of Collections", icon='OUTLINER').mode='HIERARCHY'
@@ -2121,6 +2127,20 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
                 op.select=True
                 op.reveal_bones=False
 
+
+class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
+    """Reveal all collections"""
+
+    bl_idname = "pose.cloudrig_collections_reveal_all"
+    bl_label = "Show All Collections"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        for coll in context.object.data.collections:
+            coll.cloudrig_info.is_visible = True
+
+        return {'FINISHED'}
+
 @contextlib.contextmanager
 def pose_mode(rig):
     if rig.mode == 'POSE':
@@ -2138,6 +2158,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
     bl_idname = "pose.cloudrig_collection_solo"
     bl_label = "Solo Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     collection_name: StringProperty()
     select_bones: BoolProperty(default=False)
@@ -2175,6 +2196,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     collection_name: StringProperty()
     select: BoolProperty(default=True)
@@ -2703,6 +2725,7 @@ classes = (
     CLOUDRIG_PT_collections_filter,
     CLOUDRIG_MT_collections_specials,
     CLOUDRIG_MT_collections_quick_select,
+    CLOUDRIG_OT_collections_reveal_all,
     CLOUDRIG_OT_collection_solo,
     CLOUDRIG_OT_collection_select,
     CLOUDRIG_OT_collection_parent_set,
