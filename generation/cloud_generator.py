@@ -543,6 +543,7 @@ class CloudRig_Generator:
                 tgt_coll = target.data.collections.new(src_coll.name)
                 tgt_coll['cloudrig_info'] = src_coll['cloudrig_info'].to_dict()
             tgt_coll.is_visible = src_coll.is_visible
+        target.data.collections.active_index = src.data.collections.active_index
 
     def components_write_pbone_data(self, target_rig):
         for bone_info in self.bone_infos:

@@ -5,7 +5,7 @@ It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
 from typing import List, Dict, Tuple, Iterable
-import bpy, traceback, json, collections, re
+import bpy, traceback, json, collections, re, contextlib
 from bpy.props import (
     StringProperty,
     BoolProperty,
@@ -1923,8 +1923,6 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
         list_col.separator()
 
         list_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
-        if not active_coll:
-            return
 
         list_col.operator(
             CLOUDRIG_OT_collection_delete.bl_idname, text="", icon='REMOVE'
@@ -2013,6 +2011,17 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
         layout.operator(CLOUDRIG_OT_collections_clipboard_copy.bl_idname, text="Copy Visible Collections to Clipboard", icon='COPYDOWN')
         layout.operator(CLOUDRIG_OT_collections_clipboard_paste.bl_idname, text="Paste Collections from Clipboard", icon='PASTEDOWN')
 
+@contextlib.contextmanager
+def pose_mode(rig):
+    if rig.mode == 'POSE':
+        yield
+
+    else:
+        mode_bkp = rig.mode
+        bpy.ops.object.mode_set(mode='POSE')
+        yield
+        bpy.ops.object.mode_set(mode=mode_bkp)
+
 
 class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
     """Reveal all bones of this collection, and hide all others"""
@@ -2025,7 +2034,8 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'ARMATURE'
+        ob = context.pose_object or context.active_object
+        return ob and ob.type == 'ARMATURE'
 
     def execute(self, context):
         rig = context.object
@@ -2039,12 +2049,13 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
         if not collection.is_visible:
             collection.cloudrig_info.is_visible = True
 
-        collection_bones = collection.cloudrig_info.all_bones
+        with pose_mode(rig):
+            collection_bones = collection.cloudrig_info.all_bones
 
-        for pb in rig.pose.bones:
-            pb.bone.hide = pb.bone not in collection_bones
-            if self.select_bones:
-                pb.bone.select = True
+            for pb in rig.pose.bones:
+                pb.bone.hide = pb.bone not in collection_bones
+                if self.select_bones:
+                    pb.bone.select = True
 
         return {'FINISHED'}
 
@@ -2061,10 +2072,12 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'ARMATURE'
+        ob = context.pose_object or context.active_object
+        return ob and ob.type == 'ARMATURE'
 
     def execute(self, context):
         rig = context.object
+
         collection = rig.data.collections.get(self.collection_name)
 
         if not collection:
@@ -2075,12 +2088,13 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         if not collection.is_visible and self.select:
             collection.cloudrig_info.is_visible = True
 
-        collection_bones = collection.cloudrig_info.all_bones
+        with pose_mode(rig):
+            collection_bones = collection.cloudrig_info.all_bones
 
-        for bone in collection_bones:
-            if self.reveal_bones and self.select:
-                bone.hide = False
-            bone.select = self.select
+            for bone in collection_bones:
+                if self.reveal_bones and self.select:
+                    bone.hide = False
+                bone.select = self.select
 
         return {'FINISHED'}
 
@@ -2231,6 +2245,8 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collection_move(bpy.types.Operator):
+    """Move the collection in the list."""
+
     bl_idname = "pose.cloudrig_collection_reorder"
     bl_label = "Move Active Bone Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
@@ -2245,6 +2261,11 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         collections = rig.data.collections
         active_coll = collections.active
         return bool(active_coll)
+
+    @classmethod
+    def description(cls, context, props):
+        direction = "up" if self.direction=='UP' else "down"
+        return f"Move active collection {direction} in the list"
 
     @staticmethod
     def get_siblings_and_target_idx(direction, coll):
@@ -2278,6 +2299,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         old_idx = collections.active_index
 
         collections.move(old_idx, new_idx)
+        rig.cloudrig_prefs.active_collection_index = new_idx
 
         self.refresh_collection_order(rig)
 
@@ -2308,6 +2330,8 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
+    """Assign to collections."""
+
     bl_idname = "pose.cloudrig_collection_assign"
     bl_label = "(Un)Assign Bones to Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
@@ -2321,8 +2345,13 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
             context.object
             and context.object.type == 'ARMATURE' 
             and context.object.data.collections.active
-            and context.object.mode in {'POSE', 'EDIT'}
         )
+
+    @classmethod
+    def description(cls, context, props):
+        words = ("Assign", "to") if props.assign else ("Unassign", "from")
+        colls = "all collections" if props.all_collections else "active collection"
+        return f"{words[0]} selected bones {words[1]} {colls}"
 
     def execute(self, context):
         rig = context.active_object
@@ -2330,16 +2359,17 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
         if self.all_collections:
             colls = rig.data.collections
 
-        if context.selected_bones:
-            pbs = [rig.pose.bones.get(eb.name) for eb in context.selected_bones]
-        else:
-            pbs = context.selected_pose_bones
-        for coll in colls:
-            for pb in pbs:
-                if self.assign:
-                    coll.assign(pb.bone)
-                else:
-                    coll.unassign(pb.bone)
+        with pose_mode(rig):
+            if context.selected_bones:
+                pbs = [rig.pose.bones.get(eb.name) for eb in context.selected_bones]
+            else:
+                pbs = context.selected_pose_bones
+            for coll in colls:
+                for pb in pbs:
+                    if self.assign:
+                        coll.assign(pb.bone)
+                    else:
+                        coll.unassign(pb.bone)
 
         # Report pretty info; Assigned/Unassigned, to/from, number of bones and collections, 
         # or use the name if just 1.
@@ -2352,6 +2382,8 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
+    """Copy visible collections to Blender clipboard"""
+
     bl_idname = "pose.cloudrig_collection_clipboard_copy"
     bl_label = "Copy Visible Collections To Clipboard"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
@@ -2381,6 +2413,8 @@ class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
+    """Paste collections from the Blender clipboard"""
+
     bl_idname = "pose.cloudrig_collection_clipboard_paste"
     bl_label = "Paste Collections From Clipboard"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
