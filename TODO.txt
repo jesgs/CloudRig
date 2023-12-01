@@ -1,14 +1,8 @@
-Bone Collections to replace Selection Sets
-	As an animator
-		Select easily with a pop-up menu (what hotkey?)
-		I want to be able to assign bones and toggle collections using this custom interface on both the metarig and generated rig.
-
 Priority 0: Missing Rigify functionality
 	- Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 	- Bug: Metarig menu multiplies when disabling and re-enabling the add-on, even though when disabling, they all go away.
 	- Finish re-factoring keyframe baking code
 	- Rig samples (see design ideas below)
-
 
 	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
 		- This then also allows other code to set an `override_widget` property, which can be used instead, if set.

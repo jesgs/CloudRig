@@ -1722,6 +1722,12 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         description="Parent of this bone collection",
     )
 
+    quick_access: BoolProperty(
+        name="Quick Access",
+        description="Toggle whether this collection should appear in the quick access list",
+        default=False,
+    )
+
     @property
     def parent_collection(self) -> bpy.types.BoneCollection:
         armature = self.id_data
@@ -1848,9 +1854,12 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                 icon='RESTRICT_SELECT_OFF',
             ).collection_name = collection.name
         if prefs.show_editing:
+            row.separator()
             row.operator(
                 CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
             ).coll_idx = idx
+            icon = 'HEART' if collection.cloudrig_info.quick_access else 'LAYER_USED'
+            row.prop(collection.cloudrig_info, 'quick_access', text="", emboss=False, icon=icon)
         return row
 
     def draw_item(
@@ -2047,6 +2056,28 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
         layout.separator()
         layout.operator(CLOUDRIG_OT_collections_clipboard_copy.bl_idname, text="Copy Visible Collections to Clipboard", icon='COPYDOWN')
         layout.operator(CLOUDRIG_OT_collections_clipboard_paste.bl_idname, text="Paste Collections from Clipboard", icon='PASTEDOWN')
+
+
+class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
+    """Quick select menu, mimicing Selection Sets functionality"""
+
+    bl_label = "Quick Select"
+    bl_idname = 'CLOUDRIG_MT_collections_quick_select'
+
+    @classmethod
+    def poll(cls, context):
+        return is_active_cloudrig(context)
+
+    def draw(self, context):
+        layout = self.layout
+
+        colls = context.object.data.collections
+        for coll in colls:
+            if coll.cloudrig_info.quick_access:
+                op = layout.operator(CLOUDRIG_OT_collection_select.bl_idname, text=coll.name, icon='RESTRICT_SELECT_OFF')
+                op.collection_name = coll.name
+                op.select=True
+                op.reveal_bones=False
 
 @contextlib.contextmanager
 def pose_mode(rig):
@@ -2605,6 +2636,7 @@ classes = (
     CLOUDRIG_PT_collections_properties,
     CLOUDRIG_PT_collections_filter,
     CLOUDRIG_MT_collections_specials,
+    CLOUDRIG_MT_collections_quick_select,
     CLOUDRIG_OT_collection_solo,
     CLOUDRIG_OT_collection_select,
     CLOUDRIG_OT_collection_parent_set,
@@ -2652,6 +2684,19 @@ def register():
     )
     bpy.types.DATA_PT_bone_collections.poll = builtin_collections_poll_override
 
+    register_hotkey(
+        bl_idname='wm.call_menu',
+        hotkey_kwargs = {
+            'type' : 'W',
+            'value' : 'PRESS',
+            'shift' : True,
+            'alt' : True,
+        },
+        key_cat = 'Pose',
+        op_kwargs = {
+            'name' : CLOUDRIG_MT_collections_quick_select.bl_idname
+        },
+    )
 
 def unregister():
     """Since this file runs from the Blender Text Editor, unregister() is never
