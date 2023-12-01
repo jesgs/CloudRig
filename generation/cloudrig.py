@@ -1486,7 +1486,7 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
 
     bpy.utils.register_class(new_panel)
 
-    # Save a reference so it can be un-registered, even though unregister() is never called.
+    # Save a reference so it can be unregistered, even though unregister() is never called.
     global custom_panels
     custom_panels.append(new_panel)
 
@@ -1645,7 +1645,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     )
     should_stay_hidden: BoolProperty(
         name="Stay Hidden",
-        description="Internal value to preserve hidden state when a parent gets un-hidden",
+        description="Internal value to preserve hidden state when a parent gets unhidden",
         default=False,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
@@ -1850,8 +1850,8 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         return flt_flags, flt_neworder
 
 
-class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
-    bl_idname = "CLOUDRIG_PT_sidebar_collections"
+class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_collections_sidebar"
     bl_label = "Bone Collections"
 
     on_metarigs = True
@@ -1900,6 +1900,12 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
         )
         list_col.separator()
 
+
+        row = list_col.row()
+        row.menu(CLOUDRIG_MT_collections_specials.bl_idname, text="", icon='DOWNARROW_HLT')
+
+        list_col.separator()
+
         siblings, sibling_idx = CLOUDRIG_OT_collection_move.get_siblings_and_target_idx(
             'UP', active_coll
         )
@@ -1915,12 +1921,13 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
             CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_DOWN'
         ).direction = 'DOWN'
 
+
         row = layout.row()
         if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
             row.enabled = False
         sub = row.row(align=True)
-        sub.operator("armature.collection_assign", text="Assign")
-        sub.operator("armature.collection_unassign", text="Remove")
+        sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Assign").assign=True
+        sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign").assign=False
 
         sub = row.row(align=True)
         sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
@@ -1934,15 +1941,45 @@ class CLOUDRIG_PT_sidebar_collections(CLOUDRIG_PT_base):
         desel_op.collection_name = active_coll.name
 
 
-class CLOUDRIG_PT_properties_collection(CLOUDRIG_PT_base):
+class CLOUDRIG_PT_collections_properties(CLOUDRIG_PT_base):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'data'
-    bl_idname = "CLOUDRIG_PT_properties_collection"
+    bl_idname = "CLOUDRIG_PT_collections_properties"
     bl_label = "Nested Collections"
     bl_options = {'DEFAULT_CLOSED'}
 
-    draw = CLOUDRIG_PT_sidebar_collections.draw
+    draw = CLOUDRIG_PT_collections_sidebar.draw
+
+
+class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_label = "Filter"
+
+    def draw(self, context):
+        layout = self.layout
+        prefs = context.object.cloudrig_prefs
+        row = layout.row(align=True)
+        row.prop(prefs, "show_visibility", text="", icon='HIDE_OFF')
+        row.prop(prefs, "show_solo", text="", icon='SOLO_ON')
+        row.prop(prefs, "show_select", text="", icon='RESTRICT_SELECT_OFF')
+
+        row.separator()
+        row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
+
+
+class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
+    bl_label = "Collection Operators"
+    bl_idname = 'CLOUDRIG_MT_collections_specials'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign Selected Bones from All Collections", icon='REMOVE')
+        layout.operator(CLOUDRIG_OT_collection_remove_all.bl_idname, text="Delete All Local Collections", icon='TRASH')
+        layout.separator()
+        layout.operator(CLOUDRIG_OT_collections_clipboard_copy.bl_idname, text="Copy Visible Collections to Clipboard", icon='COPYDOWN')
+        layout.operator(CLOUDRIG_OT_collections_clipboard_paste.bl_idname, text="Paste Collections from Clipboard", icon='PASTEDOWN')
 
 
 class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
@@ -2016,23 +2053,6 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_label = "Filter"
-
-    def draw(self, context):
-        layout = self.layout
-        prefs = context.object.cloudrig_prefs
-        row = layout.row(align=True)
-        row.prop(prefs, "show_visibility", text="", icon='HIDE_OFF')
-        row.prop(prefs, "show_solo", text="", icon='SOLO_ON')
-        row.prop(prefs, "show_select", text="", icon='RESTRICT_SELECT_OFF')
-
-        row.separator()
-        row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
-
-
 class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
     """Set parent collection"""
 
@@ -2076,7 +2096,7 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
             if parent in coll_info.children:
                 parent.cloudrig_info.parent_name = ""
                 self.report(
-                    {'INFO'}, "A collection was un-parented to avoid a parenting loop."
+                    {'INFO'}, "A collection was unparented to avoid a parenting loop."
                 )
                 # redraw_viewport()
                 return {'FINISHED'}
@@ -2114,6 +2134,23 @@ class CLOUDRIG_OT_collection_remove(bpy.types.Operator):
         context.object.cloudrig.active_collection_index = (
             context.object.data.collections.find(parent_name)
         )
+
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collection_remove_all(bpy.types.Operator):
+    """Remove all local bone collections"""
+
+    bl_idname = "pose.cloudrig_collection_delete_all"
+    bl_label = "Remove All Local Bone Collections"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        colls = context.object.data.collections
+
+        for coll in colls[:]:
+            if coll.is_editable:
+                colls.remove(coll)
 
         return {'FINISHED'}
 
@@ -2217,6 +2254,112 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         # Preserve active coll.
         collections.active = active_coll
 
+
+class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
+    bl_idname = "pose.cloudrig_collection_assign"
+    bl_label = "(Un)Assign Bones to Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    assign: BoolProperty(default=True)
+    all_collections: BoolProperty(default=False)
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.object
+            and context.object.type == 'ARMATURE' 
+            and context.object.data.collections.active
+            and context.object.mode in {'POSE', 'EDIT'}
+        )
+
+    def execute(self, context):
+        rig = context.active_object
+        colls = [rig.data.collections.active] + rig.data.collections.active.cloudrig_info.children_recursive
+        if self.all_collections:
+            colls = rig.data.collections
+
+        if context.selected_bones:
+            pbs = [rig.pose.bones.get(eb.name) for eb in context.selected_bones]
+        else:
+            pbs = context.selected_pose_bones
+        for coll in colls:
+            for pb in pbs:
+                if self.assign:
+                    coll.assign(pb.bone)
+                else:
+                    coll.unassign(pb.bone)
+
+        # Report pretty info; Assigned/Unassigned, to/from, number of bones and collections, 
+        # or use the name if just 1.
+        words = ("Assigned", "to") if self.assign else ("Unassigned", "from")
+        bones = f"{len(pbs)} bones" if len(pbs) > 0 else pbs[0].name
+        colls = f"{len(colls)} collections" if len(colls) > 0 else colls[0].name
+        self.report({'INFO'}, f"{words[0]} {bones} {words[1]} {colls}.")
+
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
+    bl_idname = "pose.cloudrig_collection_clipboard_copy"
+    bl_label = "Copy Visible Collections To Clipboard"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        import json
+
+        arm = context.object
+        active_idx = arm.active_selection_set
+
+        json_obj = collections.defaultdict(dict)
+        counter = 0
+        for coll in context.object.data.collections:
+            if coll.is_visible:
+                counter += 1
+                json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
+                json_obj[coll.name]['cloudrig_info'] = coll['cloudrig_info'].to_dict()
+
+        context.window_manager.clipboard = json.dumps(json_obj)
+
+        self.report({'INFO'}, f"Copied {counter} collections to Blender clipboard.")
+        return {'FINISHED'}
+
+
+class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
+    bl_idname = "pose.cloudrig_collection_clipboard_paste"
+    bl_label = "Paste Collections From Clipboard"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    overwrite_existing: BoolProperty(default=True)
+
+    def execute(self, context):
+
+        try:
+            json_obj = json.loads(context.window_manager.clipboard)
+            collections = context.object.data.collections
+
+            for coll_name, coll_data in json_obj.items():
+                bone_names = coll_data['bone_names']
+                cloudrig_info = coll_data['cloudrig_info']
+
+                coll = collections.get(coll_name)
+
+                if not coll or not self.overwrite_existing:
+                    coll = collections.new(coll_name)
+
+                coll['cloudrig_info'] = cloudrig_info
+
+                for bone_name in bone_names:
+                    pb = context.object.pose.bones.get(bone_name)
+                    if not pb:
+                        continue
+                    coll.assign(pb)
+        except Exception as e:
+            self.report({'ERROR'}, 'The clipboard does not contain Bone Collections.')
+            raise e
+            return {'CANCELLED'}
+
+        
+        return {'FINISHED'}
 
 @classmethod
 def builtin_collections_poll_override(cls, context):
@@ -2323,15 +2466,20 @@ classes = (
     CloudRig_RigPreferences,
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
-    CLOUDRIG_PT_sidebar_collections,
-    CLOUDRIG_PT_properties_collection,
+    CLOUDRIG_PT_collections_sidebar,
+    CLOUDRIG_PT_collections_properties,
+    CLOUDRIG_PT_collections_filter,
+    CLOUDRIG_MT_collections_specials,
     CLOUDRIG_OT_collection_solo,
     CLOUDRIG_OT_collection_select,
-    CLOUDRIG_PT_collections_filter,
     CLOUDRIG_OT_collection_parent_set,
     CLOUDRIG_OT_collection_remove,
+    CLOUDRIG_OT_collection_remove_all,
     CLOUDRIG_OT_collection_add,
     CLOUDRIG_OT_collection_move,
+    CLOUDRIG_OT_collection_assign,
+    CLOUDRIG_OT_collections_clipboard_copy,
+    CLOUDRIG_OT_collections_clipboard_paste,
     CLOUDRIG_PT_hotkeys,
 )
 
@@ -2394,7 +2542,7 @@ def unregister():
     bpy.app.handlers.load_post.remove(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
-    # Un-hide the built-in Bone Collections panel.
+    # Unhide the built-in Bone Collections panel.
     bpy.types.DATA_PT_bone_collections.poll = (
         bpy.types.DATA_PT_bone_collections.poll_bkp
     )
