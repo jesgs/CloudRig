@@ -2575,11 +2575,19 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
     def draw(self, context):
         layout = self.layout
 
-        for kc, km, kmi in type(self).keymap_items:
-            if kc == context.window_manager.keyconfigs.user:
-                col = layout.column()
-                col.context_pointer_set("keymap", km)
-                self.draw_kmi(km, kmi, col)
+        for addon_kc, km, kmi in type(self).keymap_items:
+            user_kc = context.window_manager.keyconfigs.user
+
+            user_km = user_kc.keymaps.get(km.name)
+            if not user_km:
+                continue
+            user_kmi = user_km.keymap_items.get(kmi.idname)
+            if not user_kmi:
+                continue
+
+            col = layout.column()
+            col.context_pointer_set("keymap", user_km)
+            self.draw_kmi(user_km, user_kmi, col)
 
 
 def register_hotkey(
@@ -2597,21 +2605,18 @@ def register_hotkey(
         if km.name == key_cat and kmi.idname == bl_idname:
             return
 
-    keyconfigs = [addon_keyconfig, wm.keyconfigs.user]
+    keymaps = addon_keyconfig.keymaps
 
-    for kc in keyconfigs:
-        keymaps = addon_keyconfig.keymaps
+    km = keymaps.get(key_cat)
+    if not km:
+        km = keymaps.new(name=key_cat, space_type=space_type)
 
-        km = keymaps.get(key_cat)
-        if not km:
-            km = keymaps.new(name=key_cat, space_type=space_type)
+    kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
+    bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((addon_keyconfig, km, kmi))
 
-        kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
-        bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((kc, km, kmi))
-
-        for key in op_kwargs:
-            value = op_kwargs[key]
-            setattr(kmi.properties, key, value)
+    for key in op_kwargs:
+        value = op_kwargs[key]
+        setattr(kmi.properties, key, value)
 
 
 #######################################
