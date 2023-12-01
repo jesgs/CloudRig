@@ -2070,6 +2070,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        layout.operator_context = "INVOKE_DEFAULT"
 
         colls = context.object.data.collections
         for coll in colls:
@@ -2137,11 +2138,20 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
     collection_name: StringProperty()
     select: BoolProperty(default=True)
     reveal_bones: BoolProperty(default=False)
+    flip: BoolProperty(default=False)
 
     @classmethod
     def poll(cls, context):
         ob = context.pose_object or context.active_object
         return ob and ob.type == 'ARMATURE'
+
+    def invoke(self, context, event):
+        if event.shift:
+            self.flip = True
+        else:
+            self.flip = False
+        
+        return self.execute(context)
 
     def execute(self, context):
         rig = context.object
@@ -2160,6 +2170,10 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
             collection_bones = collection.cloudrig_info.all_bones
 
             for bone in collection_bones:
+                if self.flip:
+                    bone = rig.data.bones.get(bpy.utils.flip_name(bone.name))
+                    if not bone:
+                        continue
                 if self.reveal_bones and self.select:
                     bone.hide = False
                 bone.select = self.select
