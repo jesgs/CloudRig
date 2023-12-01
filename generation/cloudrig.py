@@ -1572,7 +1572,9 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
     collection_filter: bpy.props.StringProperty(
         name="Collection Filter",
         description="Search collections by name (case-sensitive)",
-        update=update_collection_filter
+        update=update_collection_filter,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
     def keep_active_collection_visible(self):
@@ -1630,6 +1632,8 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
         name="Nested Collections",
         description="Nested Collections",
         update=update_active_collection_index,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
 
@@ -1639,20 +1643,50 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
 
 
 class CloudRigBoneCollection(bpy.types.PropertyGroup):
+    """Properties stored on BoneCollection.cloudrig_info. 
+    Used for implementing and drawing the nested collections UIList."""
+
     def get_collection(self) -> bpy.types.BoneCollection:
+        """Return the BoneCollection that this instance of this class belongs to."""
         armature = self.id_data
         for coll in armature.collections:
             if coll.cloudrig_info == self:
                 return coll
 
     def update_name(self, context):
+        """Runs when trying to change the name of this instance, which should stay in sync
+        with the collection it's masking."""
+
         coll = self.get_collection()
+
+        # If the name didn't change, don't do anything.
         if coll.name == self.name:
             return
 
+        # If the collection is not editable, don't allow changing the name.
+        if not coll.is_editable:
+            self.name = coll.name
+            return
+
+        # Force the name to be unique.
+        if self.name in self.id_data.collections:
+            counter = 1
+            base_name = self.name
+            unique_name = base_name
+            while unique_name in self.id_data.collections:
+                unique_name = base_name + "." + str(counter).zfill(3)
+                counter += 1
+            # This will cause update_name() to be called again, 
+            # but this time this `if` block won't trigger.
+            self.name = unique_name
+            return
+
+        # Update child collections to refer to the new name.
         for other_coll in self.id_data.collections:
             if other_coll.cloudrig_info.parent_name == coll.name:
                 other_coll.cloudrig_info.parent_name = self.name
+
+        # Update bone sets with this collection assigned to refer to the new name.
         for pb in context.object.pose.bones:
             comp = pb.cloudrig_component
             for bone_set_name in comp.params.bone_sets.keys():
@@ -1662,6 +1696,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
                         bone_set_coll.name = self.name
                         break
 
+        # Set the actual collection's name to be in sync.
         coll.name = self.name
 
     name: StringProperty(
@@ -1720,12 +1755,16 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     parent_name: StringProperty(
         name="Parent",
         description="Parent of this bone collection",
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
     quick_access: BoolProperty(
         name="Quick Access",
         description="Toggle whether this collection should appear in the quick access list",
         default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
     @property
@@ -2050,6 +2089,8 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        layout.operator('armature.collection_show_all', text="Show All", icon='HIDE_OFF')
+        layout.separator()
         layout.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign Selected Bones from All Collections", icon='REMOVE')
         layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete Hierarchy of Collections", icon='OUTLINER').mode='HIERARCHY'
         layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete All Local Collections", icon='TRASH').mode='ALL'
@@ -2209,7 +2250,11 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
         layout.prop_search(self, 'parent_name', context.object.data, 'collections')
 
     def execute(self, context):
-        coll_info = context.object.data.collections[self.coll_idx].cloudrig_info
+        rig = context.object
+        colls = rig.data.collections
+        coll = colls[self.coll_idx]
+        coll_info = coll.cloudrig_info
+
         if coll_info.parent_name == self.parent_name:
             self.report({'INFO'}, "This parent is already set. Nothing was done.")
             return {'CANCELLED'}
@@ -2221,16 +2266,18 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
         # Ensure there's no parent cycle.
         parent = coll_info.parent_collection
         while parent:
+            parent.cloudrig_info.unfold_children = True
             if parent in coll_info.children:
                 parent.cloudrig_info.parent_name = ""
                 self.report(
                     {'INFO'}, "A collection was unparented to avoid a parenting loop."
                 )
-                # redraw_viewport()
                 return {'FINISHED'}
             parent = parent.cloudrig_info.parent_collection
 
-        # redraw_viewport()
+        CLOUDRIG_OT_collection_move.refresh_collection_order(rig)
+        rig.cloudrig_prefs.active_collection_index = colls.find(coll.name)
+
         self.report({'INFO'}, "Collection parent set.")
         return {'FINISHED'}
 
@@ -2543,7 +2590,7 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
 
 @classmethod
 def builtin_collections_poll_override(cls, context):
-    return not (is_active_cloud_metarig(context) or is_active_cloudrig(context))
+    return True #not (is_active_cloud_metarig(context) or is_active_cloudrig(context))
 
 
 #######################################
