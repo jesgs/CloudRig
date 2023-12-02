@@ -733,14 +733,14 @@ def replace_old_with_new_rig(
     This approach could also eventually enable us to regenerate only parts of a rig.
     """
 
-    # Save selection sets
+    # Save Selection Sets.
     if preserve_sel_sets:
         context.view_layer.objects.active = old_rig
         for selset in old_rig.selection_sets:
             selset.is_selected = True
         selsets = to_json(context)
 
-    # Save Custom Gizmo settings
+    # Save Custom Gizmo settings.
     if preserve_gizmos:
         gizmo_properties_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(
             'BoneGizmoProperties'
@@ -762,7 +762,7 @@ def replace_old_with_new_rig(
     old_data_name = old_rig.data.name
     old_rig.data.name += "_old"
 
-    # Swap all references pointing at the old rig to the new rig
+    # Swap all references pointing at the old rig to the new rig.
     old_rig.id_data.user_remap(new_rig)
     old_name = old_rig.name
 
@@ -782,24 +782,37 @@ def replace_old_with_new_rig(
             new_rig.animation_data_create()
         new_rig.animation_data.action = old_rig.animation_data.action
 
-    # Preserve Armature display settings
+    # Preserve Armature display settings.
     new_rig.display_type = old_rig.display_type
     new_rig.show_in_front = old_rig.show_in_front
     new_rig.data.display_type = old_rig.data.display_type
     new_rig.data.show_axes = old_rig.data.show_axes
 
-    # Delete the old rig
+    # Preserve collections which are marked with preserve_on_regenerate.
+    for old_coll in old_rig.data.collections:
+        if not old_coll.cloudrig_info.preserve_on_regenerate:
+            continue
+        new_coll = new_rig.data.collections.get(old_coll.name)
+        if not new_coll:
+            new_coll = new_rig.data.collections.new(old_coll.name)
+        new_coll['cloudrig_info'] = old_coll['cloudrig_info'].to_dict()
+        for old_bone in old_coll.bones:
+            new_bone = new_rig.data.bones.get(old_bone.name)
+            if new_bone:
+                new_coll.assign(new_bone)
+
+    # Delete the old rig.
     bpy.data.objects.remove(old_rig)
 
     # Preserve object/data name of previous rig.
     new_rig.name = old_name
     new_rig.data.name = old_data_name
 
-    # Select and make active the new rig
+    # Select and make active the new rig.
     new_rig.select_set(True)
     context.view_layer.objects.active = new_rig
 
-    # Preserve selection sets of previous rig.
+    # Preserve selection sets of old rig.
     if preserve_sel_sets:
         from_json(context, selsets)
 

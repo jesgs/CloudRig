@@ -4,7 +4,7 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-from typing import List, Dict, Tuple, Iterable
+from typing import List, Dict, Tuple, Iterable, Optional
 import bpy, traceback, json, collections, re, contextlib
 from bpy.props import (
     StringProperty,
@@ -58,6 +58,25 @@ def is_cloud_metarig(rig: Object):
 
 def is_active_cloud_metarig(context):
     return is_cloud_metarig(context.active_object)
+
+
+def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
+    # First, try to find it by name, which should work most of the time.
+    for prefix in {'RIG-', 'FAILED-RIG-'}:
+        if rig.name.startswith(prefix):
+            metarig = context.scene.objects.get(rig.name.replace(prefix, ""))
+            if not metarig:
+                metarig = context.scene.objects.get(
+                    rig.name.replace(prefix, "META-")
+                )
+            return metarig
+
+    # If that failed, scan the whole scene.
+    for obj in context.scene.objects:
+        if obj.type != 'ARMATURE':
+            continue
+        if obj.cloudrig.generator.target_rig == rig:
+            return obj
 
 
 #######################################
@@ -1642,8 +1661,10 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
 
 
 class CloudRigBoneCollection(bpy.types.PropertyGroup):
-    """Properties stored on BoneCollection.cloudrig_info. 
-    Used for implementing and drawing the nested collections UIList."""
+    """Properties stored on BoneCollection.cloudrig_info.
+    Used for implementing and drawing the nested collections UIList.
+    Also some other functionality like Solo Collection and Preserve on Regenerate.
+    """
 
     def get_collection(self) -> bpy.types.BoneCollection:
         """Return the BoneCollection that this instance of this class belongs to."""
@@ -1852,6 +1873,11 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         """Return number of parents"""
         return len(self.parents_recursive)
 
+    preserve_on_regenerate: BoolProperty(
+        name="Preserve On Regenerate",
+        description="Should be enabled on manually defined collections, to preserve them and their assigned bones on re-generating from the metarig",
+        default=False,
+    )
 
 class CLOUDRIG_UL_collections(bpy.types.UIList):
     """Draw bone collections with nesting support"""
@@ -1879,7 +1905,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         row.operator_context = 'INVOKE_DEFAULT'
         row.enabled = cloudrig_info.are_parents_visible
         if prefs.show_visibility:
-            icon = 'HIDE_OFF' if collection.cloudrig_info.is_visible else 'HIDE_ON'
+            icon = 'HIDE_OFF' if cloudrig_info.is_visible else 'HIDE_ON'
             row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
         if prefs.show_solo:
             icon = 'SOLO_ON' if 'SOLO' in cloudrig_info.solo_flag else 'SOLO_OFF'
@@ -1897,8 +1923,11 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             row.operator(
                 CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
             ).coll_idx = idx
-            icon = 'HEART' if collection.cloudrig_info.quick_access else 'LAYER_USED'
-            row.prop(collection.cloudrig_info, 'quick_access', text="", emboss=False, icon=icon)
+            icon = 'HEART' if cloudrig_info.quick_access else 'LAYER_USED'
+            row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
+            if is_active_cloudrig(context) and find_metarig_of_rig(context.active_object):
+                icon = 'FAKE_USER_ON' if cloudrig_info.preserve_on_regenerate else 'FAKE_USER_OFF'
+                row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
         return row
 
     def draw_item(
@@ -2306,7 +2335,6 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
                 if self.reveal_bones and self.select:
                     bone.hide = False
                 bone.select = self.select
-            rig.data.bones.active = bone
 
         return {'FINISHED'}
 
@@ -2683,7 +2711,7 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
 
 @classmethod
 def builtin_collections_poll_override(cls, context):
-    return True #not (is_active_cloud_metarig(context) or is_active_cloudrig(context))
+    return not (is_active_cloud_metarig(context) or is_active_cloudrig(context))
 
 
 #######################################

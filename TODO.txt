@@ -14,9 +14,6 @@ Priority 0: Missing Rigify functionality
 	- Update Manual links
 
 	BELLS AND WHISTLES:
-	- Ability for animators to add collections.
-	- Allow preserving arbitrary collections (maybe using a property on cloudrig_info)
-	- Don't version metarigs that are linked or overridden.
 	- Ability to disable rig types. Simple checkbox. Simply don't add it to the component_map.
 
 - Rig Samples UX

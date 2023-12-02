@@ -3,7 +3,7 @@ from bpy.types import Armature, Bone, Object, Operator
 import bpy
 from bpy.props import BoolProperty
 from ..generation.naming import slice_name
-from ..generation.cloudrig import register_hotkey
+from ..generation.cloudrig import register_hotkey, find_metarig_of_rig
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -53,7 +53,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             return {'FINISHED'}
 
         # Otherwise, try to find a metarig that references this rig
-        metarig = self.find_metarig_of_rig(context, rig)
+        metarig = find_metarig_of_rig(context, rig)
         if not metarig:
             self.report({'ERROR'}, "No metarig found for this rig.")
             return {'CANCELLED'}
@@ -63,21 +63,6 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             context, rig, metarig, self.match_collections, self.match_selection
         )
         return {'FINISHED'}
-
-    def find_metarig_of_rig(self, context, rig: Object):
-        if rig.name.startswith('FAILED-RIG-'):
-            metarig = context.scene.objects.get(rig.name.replace('FAILED-RIG-', ""))
-            if not metarig:
-                metarig = context.scene.objects.get(
-                    rig.name.replace('FAILED-RIG-', "META-")
-                )
-            return metarig
-
-        for obj in context.scene.objects:
-            if obj.type != 'ARMATURE':
-                continue
-            if obj.cloudrig.generator.target_rig == rig:
-                return obj
 
     def switch_rig_focus(
         self,
