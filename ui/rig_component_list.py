@@ -36,12 +36,17 @@ class CLOUDRIG_UL_rig_components(UIList):
             )
         else:
             row.label(text="", icon='BLANK1')
+        row = row.row()
+        row.enabled = rig_component.is_enabled_component
         row.label(text=pose_bone.name)
 
         icon = 'ARMATURE_DATA'
         if not rig_component.rig_class:
             icon = 'ERROR'
-        main_split.row().prop_search(
+        main_row = main_split.row()
+        row = main_row.row()
+        row.enabled = rig_component.is_enabled_component
+        row.prop_search(
             rig_component,
             'component_type',
             addon_prefs,
@@ -49,6 +54,13 @@ class CLOUDRIG_UL_rig_components(UIList):
             text="",
             icon=icon,
         )
+        if addon_prefs.advanced_mode:
+            row = main_row.row()
+            if rig_component.are_all_parents_enabled:
+                icon = 'CHECKBOX_HLT' if rig_component.enabled_toggle else 'CHECKBOX_DEHLT'
+                row.prop(rig_component, 'enabled_toggle', text="", emboss=False, icon=icon)
+            else:
+                row.label(text="", icon='BLANK1')
 
     def draw_filter(self, context, layout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS

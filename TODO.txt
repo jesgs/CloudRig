@@ -13,9 +13,6 @@ Priority 0: Missing Rigify functionality
 	- Update the wiki (OOOOF!!!)
 	- Update Manual links
 
-	BELLS AND WHISTLES:
-	- Ability to disable rig types. Simple checkbox. Simply don't add it to the component_map.
-
 - Rig Samples UX
 	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
 	- This probably already exists, considering there is already an Add menu in armature edit mode in the header. Probably works the same way as the Object Add Armature menu.

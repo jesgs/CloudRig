@@ -340,7 +340,7 @@ class CloudRig_Generator:
             for pb in sorted(
                 self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
             )
-            if pb.cloudrig_component.component_type
+            if pb.cloudrig_component.is_enabled_component
         ]
 
         comp_map = OrderedDict()

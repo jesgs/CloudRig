@@ -279,11 +279,11 @@ class BoneSetMixin:
     # UI
     @classmethod
     def draw_bone_sets_list(cls, layout, context, params):
-        """Drawing the Bone Sets section of the Rigify Parameters."""
+        """Drawing the Bone Sets section of the Component Parameters."""
         metarig = context.object
         cloudrig = metarig.cloudrig
         active_pb = get_pbone_of_active(context)
-        if not (active_pb and active_pb.cloudrig_component.component_type):
+        if not (active_pb and active_pb.cloudrig_component.is_enabled_component):
             return
 
         component = active_pb.cloudrig_component

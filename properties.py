@@ -176,6 +176,27 @@ class RigComponent(PropertyGroup):
     this information is duplicated with it.
     """
 
+    enabled_toggle: BoolProperty(
+        name="Enabled",
+        description="Whether this rig component and its children should be generated",
+        default=True
+    )
+    @property
+    def is_enabled_component(self):
+        if not (self.component_type and self.component_module and self.enabled_toggle):
+            return False
+
+        return self.are_all_parents_enabled
+
+    @property
+    def are_all_parents_enabled(self):
+        parent = self.parent
+        while parent:
+            if not parent.is_enabled_component:
+                return False
+            parent = parent.parent
+        return True
+
     @property
     def base_bone_name(self):
         return self.owner_pose_bone.name
