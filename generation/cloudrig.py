@@ -1756,14 +1756,6 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
         return True
 
-    should_stay_hidden: BoolProperty(
-        name="Stay Hidden",
-        description="Internal value to preserve hidden state when a parent gets unhidden",
-        default=False,
-        options={'LIBRARY_EDITABLE'},
-        override={'LIBRARY_OVERRIDABLE'},
-    )
-
     parent_name: StringProperty(
         name="Parent",
         description="Parent of this bone collection",
@@ -1771,13 +1763,6 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
-    quick_access: BoolProperty(
-        name="Quick Access",
-        description="Toggle whether this collection should appear in the quick access list",
-        default=False,
-        options={'LIBRARY_EDITABLE'},
-        override={'LIBRARY_OVERRIDABLE'},
-    )
 
     @property
     def parent_collection(self) -> bpy.types.BoneCollection:
@@ -1826,8 +1811,16 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
             bones += child.cloudrig_info.all_bones
         return bones
 
+    quick_access: BoolProperty(
+        name="Quick Access",
+        description="Toggle whether this collection should appear in the quick access list",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+
     @property
-    def should_draw(self):
+    def are_parents_unfolded(self):
         """Return False if any parent up the chain has unfold_children=False"""
         if not self.parent_collection:
             return True
@@ -1835,18 +1828,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         if not self.parent_collection.cloudrig_info.unfold_children:
             return False
 
-        return self.parent_collection.cloudrig_info.should_draw
-
-    @property
-    def should_draw_grayed(self):
-        """Return True if any parent up the chain has is_visible=False"""
-        if not self.parent_collection:
-            return False
-
-        if not self.parent_collection.cloudrig_info.is_visible:
-            return True
-
-        return False
+        return self.parent_collection.cloudrig_info.are_parents_unfolded
 
     @property
     def hierarchy_depth(self):
@@ -1958,7 +1940,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
 
         # Filter out collections whose parents are collapsed
         return [
-            flag * int(collections[i].cloudrig_info.should_draw)
+            flag * int(collections[i].cloudrig_info.are_parents_unfolded)
             for i, flag in enumerate(flt_flags)
         ]
 
