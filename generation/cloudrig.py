@@ -1884,6 +1884,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         row.prop(cloudrig_info, 'name', text="", emboss=False)
 
         row = row.row(align=True)
+        row.operator_context = 'INVOKE_DEFAULT'
         row.enabled = cloudrig_info.are_parents_visible
         icon = 'HIDE_OFF' if collection.cloudrig_info.is_visible else 'HIDE_ON'
         if prefs.show_visibility:
@@ -1893,7 +1894,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                 CLOUDRIG_OT_collection_solo.bl_idname, text="", icon='SOLO_ON'
             ).collection_name = collection.name
         if prefs.show_select:
-            row.operator(
+            sel_op = row.operator(
                 CLOUDRIG_OT_collection_select.bl_idname,
                 text="",
                 icon='RESTRICT_SELECT_OFF',
@@ -2160,8 +2161,17 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
     bl_label = "Solo Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    collection_name: StringProperty()
-    select_bones: BoolProperty(default=False)
+    collection_name: StringProperty(
+        name="Collection",
+        description="Name of the collection to solo",
+        options={'SKIP_SAVE'}
+    )
+    select_bones: BoolProperty(
+        name="Select Bones",
+        description="Whether to select the bones of the solod collection or not",
+        default=False,
+        options={'SKIP_SAVE'}
+    )
 
     @classmethod
     def poll(cls, context):
@@ -2192,16 +2202,41 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collection_select(bpy.types.Operator):
-    """Select all bones of this collection"""
+    """Select all bones of this collection. Shift: Mirror selection. Ctrl: Overwrite selection. Alt: Deselect"""
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    collection_name: StringProperty()
-    select: BoolProperty(default=True)
-    reveal_bones: BoolProperty(default=False)
-    flip: BoolProperty(default=False)
+    collection_name: StringProperty(
+        name="Name",
+        description="Name of the collection to operate on",
+        options={'SKIP_SAVE'},
+    )
+    expand_selection: BoolProperty(
+        name="Expand Selection",
+        description="Whether the existing selection should be preserved",
+        default=True,
+        options={'SKIP_SAVE'},
+    )
+    select: BoolProperty(
+        name="Selection State",
+        description="Whether the collection's bones should be selected or deselected",
+        default=True,
+        options={'SKIP_SAVE'},
+    )
+    reveal_bones: BoolProperty(
+        name="Reveal Bones",
+        description="Whether bones of the collection should be un-hidden",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+    flip: BoolProperty(
+        name="Flip",
+        description="Whether to operate on the opposite side of this collection's bones",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
 
     @classmethod
     def poll(cls, context):
@@ -2213,7 +2248,13 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
             self.flip = True
         else:
             self.flip = False
-        
+
+        if event.ctrl:
+            self.expand_selection = False
+
+        if event.alt:
+            self.select = False
+
         return self.execute(context)
 
     def execute(self, context):
@@ -2230,6 +2271,10 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
             collection.cloudrig_info.is_visible = True
 
         with pose_mode(rig):
+            if not self.expand_selection:
+                for bone in rig.data.bones:
+                    bone.select = False
+
             collection_bones = collection.cloudrig_info.all_bones
 
             for bone in collection_bones:
@@ -2240,6 +2285,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
                 if self.reveal_bones and self.select:
                     bone.hide = False
                 bone.select = self.select
+            rig.data.bones.active = bone
 
         return {'FINISHED'}
 
@@ -2251,9 +2297,14 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
     bl_label = "Set Parent Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    coll_idx: IntProperty()
+    coll_idx: IntProperty(
+        name="Collection Index",
+        description="Index of the collection to change the parent of",
+        options={'SKIP_SAVE'},
+    )
     parent_name: StringProperty(
-        name="Parent", description="Parent to set as this bone collection's parent"
+        name="Parent", 
+        description="Parent to set as this bone collection's parent",
     )
 
     def invoke(self, context, _event):
