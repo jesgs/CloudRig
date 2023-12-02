@@ -1925,7 +1925,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             ).coll_idx = idx
             icon = 'HEART' if cloudrig_info.quick_access else 'LAYER_USED'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
-            if is_active_cloudrig(context) and find_metarig_of_rig(context.active_object):
+            if is_active_cloudrig(context) and find_metarig_of_rig(context, context.active_object):
                 icon = 'FAKE_USER_ON' if cloudrig_info.preserve_on_regenerate else 'FAKE_USER_OFF'
                 row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
         return row
