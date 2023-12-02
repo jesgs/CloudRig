@@ -141,3 +141,6 @@ def delayed_refresh_metarig_list():
 def register():
     bpy.app.timers.register(delayed_refresh_metarig_list)
     bpy.types.VIEW3D_MT_armature_add.append(draw_cloudrig_metarig_menu)
+
+def unregister():
+    bpy.types.VIEW3D_MT_armature_add.remove(draw_cloudrig_metarig_menu)

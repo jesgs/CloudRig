@@ -1,17 +1,13 @@
-Priority 0: Missing Rigify functionality
+Priority 0: Missing functionality
 	- Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
-	- Bug: Metarig menu multiplies when disabling and re-enabling the add-on, even though when disabling, they all go away.
 	- Finish re-factoring keyframe baking code
 	- Rig samples (see design ideas below)
 
-	- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
-		- This then also allows other code to set an `override_widget` property, which can be used instead, if set.
-		- This way, when widget overriding is used, the overridden widgets won't be loaded unnecessarily.
-		- Widgets are still always force-updated, unlike in Rigify, where that's optional.
-	- Bring back cloud_face_chain, cloud_eyelid, cloud_chain_anchor, but make them less of a disaster somehow.
-
 	- Update the wiki (OOOOF!!!)
 	- Update Manual links
+
+	- Test that cloud_face_chain, cloud_eyelid, cloud_chain_anchor, are working, and try to improve them, maybe.
+
 
 - Rig Samples UX
 	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
@@ -51,6 +47,12 @@ Priority 1: Bugs
 			Enter edit mode on the duplicate
 			Begin generating rig_components (Each can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
+	- Customizable bone widgets
+		- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
+			- This then also allows other code to set an `override_widget` property, which can be used instead, if set.
+			- This way, when widget overriding is used, the overridden widgets won't be loaded unnecessarily.
+			- Widgets are still always force-updated, unlike in Rigify, where that's optional.
+
 	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
 	It would be nice if metarigs could be in orchatedral, after we implement gizmos for setting widget sizes.
 	Feature request:
