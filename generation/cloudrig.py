@@ -1739,6 +1739,18 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
+    solo_flag: EnumProperty(
+        name="Solo Flag",
+        description="How this collection is affected by the current Solo state. Used internally for the Solo functionality",
+        items = [
+            ('NONE', 'None', "This collection's visibility was not affected by a collection being isolated, or there is no isolated collection"),
+            ('SOLO', 'Solo', "This is the isolated collection. Ctrl+Clicking it again will un-solo it"),
+            ('SOLO_REVEALED', 'Solo Revealed', "This is the isolated collection. Ctrl+Clicking it again will un-solo it, and also hide it"),
+            ('REVEALED', 'Revealed', "This collection was revealed because it is a parent of the isolated collection"),
+            ('HIDDEN', 'Hidden', "This collection was hidden due to another collection being isolated"),
+        ],
+    )
+
     @property
     def is_actually_visible(self):
         return self.is_visible and self.are_parents_visible
@@ -1762,7 +1774,6 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
-
 
     @property
     def parent_collection(self) -> bpy.types.BoneCollection:
@@ -1805,6 +1816,15 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         return children
 
     @property
+    def parents_recursive(self) -> List[bpy.types.BoneCollection]:
+        parents = []
+        parent = self.parent_collection
+        while parent:
+            parents.append(parent)
+            parent = parent.cloudrig_info.parent_collection
+        return parents
+
+    @property
     def all_bones(self) -> List[bpy.types.Bone]:
         bones = self.get_collection().bones[:]
         for child in self.children:
@@ -1825,22 +1845,12 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         if not self.parent_collection:
             return True
 
-        if not self.parent_collection.cloudrig_info.unfold_children:
-            return False
-
-        return self.parent_collection.cloudrig_info.are_parents_unfolded
+        return all([parent.cloudrig_info.unfold_children for parent in self.parents_recursive])
 
     @property
     def hierarchy_depth(self):
         """Return number of parents"""
-
-        parent = self.parent_collection
-        counter = 0
-        while parent:
-            counter += 1
-            parent = parent.cloudrig_info.parent_collection
-
-        return counter
+        return len(self.parents_recursive)
 
 
 class CLOUDRIG_UL_collections(bpy.types.UIList):
@@ -1868,12 +1878,13 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         row = row.row(align=True)
         row.operator_context = 'INVOKE_DEFAULT'
         row.enabled = cloudrig_info.are_parents_visible
-        icon = 'HIDE_OFF' if collection.cloudrig_info.is_visible else 'HIDE_ON'
         if prefs.show_visibility:
+            icon = 'HIDE_OFF' if collection.cloudrig_info.is_visible else 'HIDE_ON'
             row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
         if prefs.show_solo:
+            icon = 'SOLO_ON' if 'SOLO' in cloudrig_info.solo_flag else 'SOLO_OFF'
             row.operator(
-                CLOUDRIG_OT_collection_solo.bl_idname, text="", icon='SOLO_ON'
+                CLOUDRIG_OT_collection_solo.bl_idname, text="", icon=icon
             ).collection_name = collection.name
         if prefs.show_select:
             sel_op = row.operator(
@@ -2065,7 +2076,7 @@ class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
         prefs = context.object.cloudrig_prefs
         row = layout.row(align=True)
         row.prop(prefs, "show_visibility", text="", icon='HIDE_OFF')
-        row.prop(prefs, "show_solo", text="", icon='SOLO_ON')
+        row.prop(prefs, "show_solo", text="", icon='SOLO_OFF')
         row.prop(prefs, "show_select", text="", icon='RESTRICT_SELECT_OFF')
 
         row.separator()
@@ -2137,7 +2148,7 @@ def pose_mode(rig):
 
 
 class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
-    """Reveal all bones of this collection, and hide all others"""
+    """Temporarily isolate this collection, hiding all others"""
 
     bl_idname = "pose.cloudrig_collection_solo"
     bl_label = "Solo Collection"
@@ -2162,25 +2173,53 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
     def execute(self, context):
         rig = context.object
-        collection = rig.data.collections.get(self.collection_name)
+        colls = rig.data.collections
+        coll = colls.get(self.collection_name)
 
-        if not collection:
-            collection = rig.data.collections.active
-        if not collection:
+        if not coll:
+            coll = rig.data.collections.active
+        if not coll:
             return {'CANCELLED'}
 
-        if not collection.is_visible:
-            collection.cloudrig_info.is_visible = True
+        self.toggle_isolate(context, colls, coll)
 
-        with pose_mode(rig):
-            collection_bones = collection.cloudrig_info.all_bones
-
-            for pb in rig.pose.bones:
-                pb.bone.hide = pb.bone not in collection_bones
-                if self.select_bones:
-                    pb.bone.select = True
+        if self.select_bones:
+            with pose_mode(rig):
+                for bone in coll.cloudrig_info.all_bones:
+                    bone.select = True
 
         return {'FINISHED'}
+
+    def toggle_isolate(self, context, collections, isolate_collection):
+        un_isolate = False
+
+        # Reset solo flags & visibilities.
+        for coll in collections:
+            if coll.cloudrig_info.solo_flag == 'HIDDEN':
+                coll.cloudrig_info.is_visible = True
+            elif 'REVEALED' in coll.cloudrig_info.solo_flag:
+                coll.cloudrig_info.is_visible = False
+            if coll == isolate_collection and 'SOLO' in isolate_collection.cloudrig_info.solo_flag:
+                un_isolate = True
+            coll.cloudrig_info.solo_flag = 'NONE'
+
+        if not un_isolate:
+            # Set solo flags & visibilities.
+            for coll in collections:
+                if isolate_collection in coll.cloudrig_info.parents_recursive:
+                    # Don't reveal or hide children of the isolated collection.
+                    continue
+                if isolate_collection == coll:
+                    coll.cloudrig_info.solo_flag = 'SOLO' if coll.cloudrig_info.is_visible else 'SOLO_REVEALED'
+                    coll.cloudrig_info.is_visible = True
+                elif coll in isolate_collection.cloudrig_info.parents_recursive:
+                    # Reveal the isolated collection and its parents.
+                    coll.cloudrig_info.solo_flag = 'REVEALED' if not coll.cloudrig_info.is_visible else 'NONE'
+                    coll.cloudrig_info.is_visible = True
+                else:
+                    # Hide all other collections.
+                    coll.cloudrig_info.solo_flag = 'HIDDEN' if coll.cloudrig_info.is_visible else 'NONE'
+                    coll.cloudrig_info.is_visible = False
 
 
 class CLOUDRIG_OT_collection_select(bpy.types.Operator):
@@ -2386,7 +2425,6 @@ class CLOUDRIG_OT_collection_delete(bpy.types.Operator):
         if not colls.active.is_editable:
             self.report({'ERROR'}, "Cannot remove linked collection.")
             return {'CANCELLED'}
-
 
         for child in colls.active.cloudrig_info.children_recursive:
             colls.remove(child)
