@@ -66,9 +66,7 @@ def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
         if rig.name.startswith(prefix):
             metarig = context.scene.objects.get(rig.name.replace(prefix, ""))
             if not metarig:
-                metarig = context.scene.objects.get(
-                    rig.name.replace(prefix, "META-")
-                )
+                metarig = context.scene.objects.get(rig.name.replace(prefix, "META-"))
             return metarig
 
     # If that failed, scan the whole scene.
@@ -1601,19 +1599,21 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
         if not colls:
             return
 
-        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(colls, self.collection_filter)
+        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(
+            colls, self.collection_filter
+        )
 
         new_idx = self.active_collection_index
 
         if new_idx == -1:
-            # Means no collection is active, which is allowed, when there is 
+            # Means no collection is active, which is allowed, when there is
             # a name search filter entered, resulting in 0 matches.
             colls.active_index = -1
             return
         if new_idx < 0:
             new_idx = -1
-        if new_idx > len(colls)-1:
-            new_idx = len(colls)-1
+        if new_idx > len(colls) - 1:
+            new_idx = len(colls) - 1
 
         if flt_flags[new_idx] == 0:
             # If the new active element would be hidden, keep going up the list until a visible one is found.
@@ -1629,7 +1629,7 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
             new_idx = -1
 
         if new_idx != self.active_collection_index:
-            # This will cause this function to get called again, but this time, 
+            # This will cause this function to get called again, but this time,
             # none of the if-statements should trigger.
             self.active_collection_index = new_idx
             return
@@ -1696,7 +1696,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
             while unique_name in self.id_data.collections:
                 unique_name = base_name + "." + str(counter).zfill(3)
                 counter += 1
-            # This will cause update_name() to be called again, 
+            # This will cause update_name() to be called again,
             # but this time this `if` block won't trigger.
             self.name = unique_name
             return
@@ -1751,6 +1751,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
             # If we are revealed, set all children visibilities to sync to their own collection.
             for child in self.children:
                 child.is_visible = child.cloudrig_info.is_actually_visible
+
     is_visible: BoolProperty(
         name="Visible",
         description="Toggle the visiblity of this collection, and all child collections",
@@ -1763,12 +1764,32 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     solo_flag: EnumProperty(
         name="Solo Flag",
         description="How this collection is affected by the current Solo state. Used internally for the Solo functionality",
-        items = [
-            ('NONE', 'None', "This collection's visibility was not affected by a collection being isolated, or there is no isolated collection"),
-            ('SOLO', 'Solo', "This is the isolated collection. Ctrl+Clicking it again will un-solo it"),
-            ('SOLO_REVEALED', 'Solo Revealed', "This is the isolated collection. Ctrl+Clicking it again will un-solo it, and also hide it"),
-            ('REVEALED', 'Revealed', "This collection was revealed because it is a parent of the isolated collection"),
-            ('HIDDEN', 'Hidden', "This collection was hidden due to another collection being isolated"),
+        items=[
+            (
+                'NONE',
+                'None',
+                "This collection's visibility was not affected by a collection being isolated, or there is no isolated collection",
+            ),
+            (
+                'SOLO',
+                'Solo',
+                "This is the isolated collection. Ctrl+Clicking it again will un-solo it",
+            ),
+            (
+                'SOLO_REVEALED',
+                'Solo Revealed',
+                "This is the isolated collection. Ctrl+Clicking it again will un-solo it, and also hide it",
+            ),
+            (
+                'REVEALED',
+                'Revealed',
+                "This collection was revealed because it is a parent of the isolated collection",
+            ),
+            (
+                'HIDDEN',
+                'Hidden',
+                "This collection was hidden due to another collection being isolated",
+            ),
         ],
     )
 
@@ -1866,7 +1887,9 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         if not self.parent_collection:
             return True
 
-        return all([parent.cloudrig_info.unfold_children for parent in self.parents_recursive])
+        return all(
+            [parent.cloudrig_info.unfold_children for parent in self.parents_recursive]
+        )
 
     @property
     def hierarchy_depth(self):
@@ -1878,6 +1901,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         description="Should be enabled on manually defined collections, to preserve them and their assigned bones on re-generating from the metarig",
         default=False,
     )
+
 
 class CLOUDRIG_UL_collections(bpy.types.UIList):
     """Draw bone collections with nesting support"""
@@ -1925,8 +1949,14 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             ).coll_idx = idx
             icon = 'HEART' if cloudrig_info.quick_access else 'LAYER_USED'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
-            if is_active_cloudrig(context) and find_metarig_of_rig(context, context.active_object):
-                icon = 'FAKE_USER_ON' if cloudrig_info.preserve_on_regenerate else 'FAKE_USER_OFF'
+            if is_active_cloudrig(context) and find_metarig_of_rig(
+                context, context.active_object
+            ):
+                icon = (
+                    'FAKE_USER_ON'
+                    if cloudrig_info.preserve_on_regenerate
+                    else 'FAKE_USER_OFF'
+                )
                 row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
         return row
 
@@ -1987,7 +2017,9 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
     def filter_items(self, context, data, propname):
         collections = getattr(data, propname)
 
-        flt_flags = self.get_filter_flags(collections, context.object.cloudrig_prefs.collection_filter)
+        flt_flags = self.get_filter_flags(
+            collections, context.object.cloudrig_prefs.collection_filter
+        )
         flt_neworder = self.get_collection_order(collections)
 
         return flt_flags, flt_neworder
@@ -2038,12 +2070,13 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
 
         list_col.operator(
             CLOUDRIG_OT_collection_delete.bl_idname, text="", icon='REMOVE'
-        ).mode='ACTIVE'
+        ).mode = 'ACTIVE'
         list_col.separator()
 
-
         row = list_col.row()
-        row.menu(CLOUDRIG_MT_collections_specials.bl_idname, text="", icon='DOWNARROW_HLT')
+        row.menu(
+            CLOUDRIG_MT_collections_specials.bl_idname, text="", icon='DOWNARROW_HLT'
+        )
 
         list_col.separator()
 
@@ -2069,8 +2102,12 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
         if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
             row.enabled = False
         sub = row.row(align=True)
-        sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Assign").assign=True
-        sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign").assign=False
+        sub.operator(
+            CLOUDRIG_OT_collection_assign.bl_idname, text="Assign"
+        ).assign = True
+        sub.operator(
+            CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign"
+        ).assign = False
 
         sub = row.row(align=True)
         sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
@@ -2118,14 +2155,38 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator(CLOUDRIG_OT_collections_reveal_all.bl_idname, text="Show All", icon='HIDE_OFF')
+        layout.operator(
+            CLOUDRIG_OT_collections_reveal_all.bl_idname,
+            text="Show All",
+            icon='HIDE_OFF',
+        )
         layout.separator()
-        layout.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign Selected Bones from All Collections", icon='REMOVE')
-        layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete Hierarchy of Collections", icon='OUTLINER').mode='HIERARCHY'
-        layout.operator(CLOUDRIG_OT_collection_delete.bl_idname, text="Delete All Local Collections", icon='TRASH').mode='ALL'
+        layout.operator(
+            CLOUDRIG_OT_collection_assign.bl_idname,
+            text="Unassign Selected Bones from All Collections",
+            icon='REMOVE',
+        )
+        layout.operator(
+            CLOUDRIG_OT_collection_delete.bl_idname,
+            text="Delete Hierarchy of Collections",
+            icon='OUTLINER',
+        ).mode = 'HIERARCHY'
+        layout.operator(
+            CLOUDRIG_OT_collection_delete.bl_idname,
+            text="Delete All Local Collections",
+            icon='TRASH',
+        ).mode = 'ALL'
         layout.separator()
-        layout.operator(CLOUDRIG_OT_collections_clipboard_copy.bl_idname, text="Copy Visible Collections to Clipboard", icon='COPYDOWN')
-        layout.operator(CLOUDRIG_OT_collections_clipboard_paste.bl_idname, text="Paste Collections from Clipboard", icon='PASTEDOWN')
+        layout.operator(
+            CLOUDRIG_OT_collections_clipboard_copy.bl_idname,
+            text="Copy Visible Collections to Clipboard",
+            icon='COPYDOWN',
+        )
+        layout.operator(
+            CLOUDRIG_OT_collections_clipboard_paste.bl_idname,
+            text="Paste Collections from Clipboard",
+            icon='PASTEDOWN',
+        )
 
 
 class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
@@ -2145,10 +2206,14 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
         colls = context.object.data.collections
         for coll in colls:
             if coll.cloudrig_info.quick_access:
-                op = layout.operator(CLOUDRIG_OT_collection_select.bl_idname, text=coll.name, icon='RESTRICT_SELECT_OFF')
+                op = layout.operator(
+                    CLOUDRIG_OT_collection_select.bl_idname,
+                    text=coll.name,
+                    icon='RESTRICT_SELECT_OFF',
+                )
                 op.collection_name = coll.name
-                op.select=True
-                op.reveal_bones=False
+                op.select = True
+                op.reveal_bones = False
 
 
 class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
@@ -2163,6 +2228,7 @@ class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
             coll.cloudrig_info.is_visible = True
 
         return {'FINISHED'}
+
 
 @contextlib.contextmanager
 def pose_mode(rig):
@@ -2186,13 +2252,13 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
     collection_name: StringProperty(
         name="Collection",
         description="Name of the collection to solo",
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_bones: BoolProperty(
         name="Select Bones",
         description="Whether to select the bones of the solod collection or not",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
 
     @classmethod
@@ -2228,7 +2294,10 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
                 coll.cloudrig_info.is_visible = True
             elif 'REVEALED' in coll.cloudrig_info.solo_flag:
                 coll.cloudrig_info.is_visible = False
-            if coll == isolate_collection and 'SOLO' in isolate_collection.cloudrig_info.solo_flag:
+            if (
+                coll == isolate_collection
+                and 'SOLO' in isolate_collection.cloudrig_info.solo_flag
+            ):
                 un_isolate = True
             coll.cloudrig_info.solo_flag = 'NONE'
 
@@ -2239,15 +2308,21 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
                     # Don't reveal or hide children of the isolated collection.
                     continue
                 if isolate_collection == coll:
-                    coll.cloudrig_info.solo_flag = 'SOLO' if coll.cloudrig_info.is_visible else 'SOLO_REVEALED'
+                    coll.cloudrig_info.solo_flag = (
+                        'SOLO' if coll.cloudrig_info.is_visible else 'SOLO_REVEALED'
+                    )
                     coll.cloudrig_info.is_visible = True
                 elif coll in isolate_collection.cloudrig_info.parents_recursive:
                     # Reveal the isolated collection and its parents.
-                    coll.cloudrig_info.solo_flag = 'REVEALED' if not coll.cloudrig_info.is_visible else 'NONE'
+                    coll.cloudrig_info.solo_flag = (
+                        'REVEALED' if not coll.cloudrig_info.is_visible else 'NONE'
+                    )
                     coll.cloudrig_info.is_visible = True
                 else:
                     # Hide all other collections.
-                    coll.cloudrig_info.solo_flag = 'HIDDEN' if coll.cloudrig_info.is_visible else 'NONE'
+                    coll.cloudrig_info.solo_flag = (
+                        'HIDDEN' if coll.cloudrig_info.is_visible else 'NONE'
+                    )
                     coll.cloudrig_info.is_visible = False
 
 
@@ -2345,7 +2420,7 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
         options={'SKIP_SAVE'},
     )
     parent_name: StringProperty(
-        name="Parent", 
+        name="Parent",
         description="Parent to set as this bone collection's parent",
     )
 
@@ -2482,7 +2557,7 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
 
         coll = colls.new(name="Collection")
         coll_idx = colls.find(coll.name)
-        colls.move(coll_idx, active_idx+1)
+        colls.move(coll_idx, active_idx + 1)
         coll.cloudrig_info.parent_name = parent_name
 
         context.object.cloudrig_prefs.active_collection_index = colls.find(coll.name)
@@ -2510,7 +2585,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
 
     @classmethod
     def description(cls, context, props):
-        direction = "up" if self.direction=='UP' else "down"
+        direction = "up" if self.direction == 'UP' else "down"
         return f"Move active collection {direction} in the list"
 
     @staticmethod
@@ -2587,7 +2662,7 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
     def poll(cls, context):
         return (
             context.object
-            and context.object.type == 'ARMATURE' 
+            and context.object.type == 'ARMATURE'
             and context.object.data.collections.active
         )
 
@@ -2599,7 +2674,9 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
 
     def execute(self, context):
         rig = context.active_object
-        colls = [rig.data.collections.active] + rig.data.collections.active.cloudrig_info.children_recursive
+        colls = [
+            rig.data.collections.active
+        ] + rig.data.collections.active.cloudrig_info.children_recursive
         if self.all_collections:
             colls = rig.data.collections
 
@@ -2615,7 +2692,7 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
                     else:
                         coll.unassign(pb.bone)
 
-        # Report pretty info; Assigned/Unassigned, to/from, number of bones and collections, 
+        # Report pretty info; Assigned/Unassigned, to/from, number of bones and collections,
         # or use the name if just 1.
         words = ("Assigned", "to") if self.assign else ("Unassigned", "from")
         bones = f"{len(pbs)} bones" if len(pbs) > 0 else pbs[0].name
@@ -2704,7 +2781,9 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
 
 @classmethod
 def builtin_collections_poll_override(cls, context):
-    return not (is_active_cloud_metarig(context) or is_active_cloudrig(context))
+    if is_active_cloud_metarig(context) or is_active_cloudrig(context):
+        return True
+    return cls.poll_bkp(context)
 
 
 #######################################
@@ -2867,17 +2946,16 @@ def register():
 
     register_hotkey(
         bl_idname='wm.call_menu',
-        hotkey_kwargs = {
-            'type' : 'W',
-            'value' : 'PRESS',
-            'shift' : True,
-            'alt' : True,
+        hotkey_kwargs={
+            'type': 'W',
+            'value': 'PRESS',
+            'shift': True,
+            'alt': True,
         },
-        key_cat = 'Pose',
-        op_kwargs = {
-            'name' : CLOUDRIG_MT_collections_quick_select.bl_idname
-        },
+        key_cat='Pose',
+        op_kwargs={'name': CLOUDRIG_MT_collections_quick_select.bl_idname},
     )
+
 
 def unregister():
     """Since this file runs from the Blender Text Editor, unregister() is never
