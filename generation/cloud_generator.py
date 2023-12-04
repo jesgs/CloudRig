@@ -165,8 +165,7 @@ class CloudRig_Generator:
         context.view_layer.update()
 
         # Used to calculate sizes and distances in a rig-size-agnostic way.
-        self.scale = 0.18  # max(metarig.dimensions) / 10 # Don't commit this, it's just currently broken in 4.1 alpha.
-
+        self.scale = max(metarig.dimensions) / 10
         self.naming = CloudNameManager()
 
         # Default kwargs that are passed in to every created BoneInfo.
