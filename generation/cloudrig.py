@@ -2252,7 +2252,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collection_select(bpy.types.Operator):
-    """Select all bones of this collection. Shift: Mirror selection. Ctrl: Overwrite selection. Alt: Deselect"""
+    """Select all bones of this collection. Shift: Extend selection. Ctrl: Mirror selection. Alt: Deselect"""
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
@@ -2263,10 +2263,10 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         description="Name of the collection to operate on",
         options={'SKIP_SAVE'},
     )
-    expand_selection: BoolProperty(
+    extend_selection: BoolProperty(
         name="Expand Selection",
         description="Whether the existing selection should be preserved",
-        default=True,
+        default=False,
         options={'SKIP_SAVE'},
     )
     select: BoolProperty(
@@ -2294,16 +2294,9 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         return ob and ob.type == 'ARMATURE'
 
     def invoke(self, context, event):
-        if event.shift:
-            self.flip = True
-        else:
-            self.flip = False
-
-        if event.ctrl:
-            self.expand_selection = False
-
-        if event.alt:
-            self.select = False
+        self.extend_selection = event.shift
+        self.select = not event.alt
+        self.flip = not event.ctrl
 
         return self.execute(context)
 
@@ -2321,7 +2314,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
             collection.cloudrig_info.is_visible = True
 
         with pose_mode(rig):
-            if not self.expand_selection:
+            if not self.extend_selection:
                 for bone in rig.data.bones:
                     bone.select = False
 
