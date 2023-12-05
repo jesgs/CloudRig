@@ -659,6 +659,7 @@ class Component_ToonChain(Component_Base):
         if not meta_org_bone.bone.use_connect:
             return
 
+        tip_control_bkp = parent_component.params.chain.tip_control
         parent_component.params.chain.tip_control = True
         last_def = parent_component.bones_def[-1]
         last_str = parent_component.str_chain[-1]
@@ -669,6 +670,7 @@ class Component_ToonChain(Component_Base):
             str_bone=last_str,
             next_str_bone=self.str_chain[0],
         )
+        parent_component.params.chain.tip_control = tip_control_bkp
 
         # Set bbone ease according to parent rig's Sharp Sections param.
         if parent_component.params.chain.sharp:
@@ -724,9 +726,9 @@ class Component_ToonChain(Component_Base):
     @classmethod
     def draw_bendy_params(cls, layout, context, params):
         cls.draw_prop(context, layout, params.chain, 'bbone_density')
-        row_sharp = cls.draw_prop(context, layout, params.chain, 'sharp')
-        row_smooth = cls.draw_prop(context, layout, params.chain, 'smooth_spline')
-        row_sharp.enabled = row_smooth.enabled = params.chain.bbone_density > 0
+        enabled = params.chain.bbone_density > 0
+        cls.draw_prop(context, layout, params.chain, 'sharp', enabled=enabled)
+        cls.draw_prop(context, layout, params.chain, 'smooth_spline', enabled=enabled)
 
         if cls.is_advanced_mode(context):
             cls.draw_prop(context, layout, params.chain, 'preserve_volume')

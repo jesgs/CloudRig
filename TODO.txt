@@ -1,4 +1,6 @@
 Priority 0: Missing functionality
+	- Bug: Any cases where we previously relied on setting a param will be broken like on Mikassa's neck the Tip Control param. This is because Rigify used to give us the generated rig's PropertyGroup, but now we pass the metarig's. Search for params.*= and fix each case.
+
 	- Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
 	- Finish re-factoring keyframe baking code
 	- Rig samples (see design ideas below)

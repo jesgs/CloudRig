@@ -181,15 +181,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         lower_bone = rig.pose.bones.get(
             naming.increment_name(active_bone.name, increment=-1)
         )
-        if not lower_bone and active_bone.name.startswith("STR"):
-            # TODO: Should probably change the bone naming of CloudRig, to remove the TIP- suffix, and just increment the bone name instead.
-            prev_name = active_bone.name.replace("STR-TIP", "STR")
-            lower_bone = rig.pose.bones.get(prev_name)
-            op = pie.operator(
-                'pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN'
-            )
-            op.bone_name = prev_name
-        elif lower_bone:
+        if lower_bone:
             op = pie.operator(
                 'pose.select_bone_by_name', text=lower_bone.name, icon='TRIA_DOWN'
             )
@@ -201,16 +193,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         higher_bone = rig.pose.bones.get(
             naming.increment_name(active_bone.name, increment=1)
         )
-        if not higher_bone and active_bone.name.startswith("STR"):
-            # TODO: Should probably change the bone naming of CloudRig, to remove the TIP- suffix, and just increment the bone name instead.
-            tip_name = active_bone.name.replace("STR", "STR-TIP")
-            higher_bone = rig.pose.bones.get(tip_name)
-            if higher_bone:
-                op = pie.operator(
-                    'pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP'
-                )
-                op.bone_name = tip_name
-        elif higher_bone:
+        if higher_bone:
             op = pie.operator(
                 'pose.select_bone_by_name', text=higher_bone.name, icon='TRIA_UP'
             )

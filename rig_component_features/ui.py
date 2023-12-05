@@ -51,12 +51,12 @@ class CloudUIMixin:
         return False
 
     @classmethod
-    def draw_prop(cls, context, layout, prop_owner, prop_name, **kwargs):
+    def draw_prop(cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs):
         is_forced = cls.is_forced_param(prop_name)
         if is_forced and not cls.is_advanced_mode(context):
             return
 
-        row = draw_prop(layout, prop_owner, prop_name, **kwargs)
+        row = draw_prop(layout, prop_owner, prop_name, enabled=enabled, **kwargs)
         if is_forced:
             row.enabled = False
 
@@ -126,9 +126,10 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
     return col
 
 
-def draw_prop(layout, prop_owner, prop_name, **kwargs):
+def draw_prop(layout, prop_owner, prop_name, enabled=True, **kwargs):
     row = layout.row(align=True)
     row.prop(prop_owner, prop_name, **kwargs)
+    row.enabled = enabled
     return row
 
 

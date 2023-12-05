@@ -592,15 +592,13 @@ class CloudRig_Generator:
         try:
             exec(script.as_string(), {})
         except Exception as e:
-            traceback_str = "\n".join(str(traceback.format_exc()).split("\n")[3:])
             self.logger.log_fatal_error(
                 "Post-Generation Script failed.",
                 description=f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.',
                 note=str(e),
-                popup_text=traceback_str,
-                pretty_stack=traceback_str,
             )
             self.custom_script_failure = True
+            raise e
 
     def restore_rig_states(self, context):
         """Restore transforms after generation has either failed or succeeded."""

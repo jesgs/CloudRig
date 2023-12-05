@@ -197,7 +197,9 @@ class Component_Base(
                     part = parts.pop(0)
                     component_prop = getattr(component_prop, part)
 
-                setattr(component_prop, parts[0], forced_value)
+                current_value = getattr(component_prop, parts[0])
+                if current_value != forced_value:
+                    setattr(component_prop, parts[0], forced_value)
 
     @classmethod
     def define_bone_sets(cls):
