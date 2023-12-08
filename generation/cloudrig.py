@@ -51,7 +51,7 @@ def is_active_cloudrig(context):
 def is_cloud_metarig(rig: Object):
     if not rig:
         return False
-    if not rig.type == 'ARMATURE':
+    if rig.type != 'ARMATURE':
         return False
     return hasattr(rig, 'cloudrig') and rig.cloudrig.enabled
 
@@ -1668,10 +1668,13 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     def get_collection(self) -> bpy.types.BoneCollection:
         """Return the BoneCollection that this instance of this class belongs to."""
+        return self.get_collection_with_index()[0]
+
+    def get_collection_with_index(self) -> Tuple[bpy.types.BoneCollection, int]:
         armature = self.id_data
-        for coll in armature.collections:
+        for i, coll in enumerate(armature.collections):
             if coll.cloudrig_info == self:
-                return coll
+                return coll, i
 
     def update_name(self, context):
         """Runs when trying to change the name of this instance, which should stay in sync
@@ -1726,11 +1729,19 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
+
+    def update_unfold(self, context):
+        obj = context.pose_object or context.active_object
+        if not obj:
+            return
+        obj.cloudrig_prefs.active_collection_index = self.get_collection_with_index()[1]
+
     unfold_children: BoolProperty(
         name="Unfold Children",
         description="Unfold child collections",
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
+        update=update_unfold,
     )
 
     def update_is_visible(self, context):
@@ -1745,11 +1756,11 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
         if not self.is_visible:
             # If we are hidden, hide all children.
-            for child in self.children:
+            for child in self.children_recursive:
                 child.is_visible = False
         else:
             # If we are revealed, set all children visibilities to sync to their own collection.
-            for child in self.children:
+            for child in self.children_recursive:
                 child.is_visible = child.cloudrig_info.is_actually_visible
 
     is_visible: BoolProperty(
@@ -1821,6 +1832,12 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     def parent_collection(self) -> bpy.types.BoneCollection:
         armature = self.id_data
         return armature.collections.get(self.parent_name)
+
+    def unfold_parents(self):
+        parent = self.parent_collection
+        while parent:
+            parent.cloudrig_info.unfold_children = True
+            parent = parent.cloudrig_info.parent_collection
 
     @property
     def children(self) -> List[bpy.types.BoneCollection]:
@@ -2319,11 +2336,12 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
                     )
                     coll.cloudrig_info.is_visible = True
                 else:
-                    # Hide all other collections.
-                    coll.cloudrig_info.solo_flag = (
-                        'HIDDEN' if coll.cloudrig_info.is_visible else 'NONE'
-                    )
-                    coll.cloudrig_info.is_visible = False
+                    # Hide all other collections, but only the highest levels.
+                    if coll.cloudrig_info.is_actually_visible:
+                        coll.cloudrig_info.solo_flag = 'HIDDEN'
+                        coll.cloudrig_info.is_visible = False
+                    else:
+                        coll.cloudrig_info.solo_flag = 'NONE'
 
 
 class CLOUDRIG_OT_collection_select(bpy.types.Operator):
@@ -2371,7 +2389,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
     def invoke(self, context, event):
         self.extend_selection = event.shift
         self.select = not event.alt
-        self.flip = not event.ctrl
+        self.flip = event.ctrl
 
         return self.execute(context)
 
@@ -2389,7 +2407,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
             collection.cloudrig_info.is_visible = True
 
         with pose_mode(rig):
-            if not self.extend_selection:
+            if not self.extend_selection and self.select:
                 for bone in rig.data.bones:
                     bone.select = False
 
@@ -2559,6 +2577,8 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
         coll_idx = colls.find(coll.name)
         colls.move(coll_idx, active_idx + 1)
         coll.cloudrig_info.parent_name = parent_name
+
+        coll.cloudrig_info.unfold_parents()
 
         context.object.cloudrig_prefs.active_collection_index = colls.find(coll.name)
 
@@ -2782,8 +2802,8 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
 @classmethod
 def builtin_collections_poll_override(cls, context):
     if is_active_cloud_metarig(context) or is_active_cloudrig(context):
-        return True
-    return cls.poll_bkp(context)
+        return context.object.cloudrig_prefs.show_editing
+    return False
 
 
 #######################################
@@ -2796,11 +2816,6 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
     bl_label = "Hotkeys"
 
     keymap_items = []
-
-    @classmethod
-    def poll(cls, context):
-        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
-        return True
 
     @staticmethod
     def draw_kmi(km, kmi, layout):
@@ -2925,10 +2940,12 @@ def register():
 
     # TODO 4.0: These properties for outfit stuff are legacy, remove!
     bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
-    bpy.types.Object.cloudrig_prefs = PointerProperty(type=CloudRig_RigPreferences)
+    bpy.types.Object.cloudrig_prefs = PointerProperty(
+        type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'}
+    )
 
     bpy.types.BoneCollection.cloudrig_info = PointerProperty(
-        type=CloudRigBoneCollection
+        type=CloudRigBoneCollection, override={'LIBRARY_OVERRIDABLE'}
     )
 
     # Ensure custom panels.

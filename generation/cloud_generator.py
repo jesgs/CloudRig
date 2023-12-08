@@ -786,7 +786,7 @@ def replace_old_with_new_rig(
     new_rig.data.show_axes = old_rig.data.show_axes
 
     # Preserve collections which are marked with preserve_on_regenerate.
-    for old_coll in old_rig.data.collections:
+    for old_idx, old_coll in enumerate(old_rig.data.collections):
         if not old_coll.cloudrig_info.preserve_on_regenerate:
             continue
         new_coll = new_rig.data.collections.get(old_coll.name)
@@ -797,6 +797,10 @@ def replace_old_with_new_rig(
             new_bone = new_rig.data.bones.get(old_bone.name)
             if new_bone:
                 new_coll.assign(new_bone)
+        new_coll_idx = new_rig.data.collections.find(new_coll.name)
+        max_idx = len(new_rig.data.collections)
+        new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))
+    new_rig.data.collections.active_index = 0
 
     # Delete the old rig.
     bpy.data.objects.remove(old_rig)
