@@ -1964,7 +1964,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             row.operator(
                 CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
             ).coll_idx = idx
-            icon = 'HEART' if cloudrig_info.quick_access else 'LAYER_USED'
+            icon = 'HEART' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             if is_active_cloudrig(context) and find_metarig_of_rig(
                 context, context.active_object
@@ -2769,15 +2769,22 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
             collections = context.object.data.collections
 
             for coll_name, coll_data in json_obj.items():
-                bone_names = coll_data['bone_names']
-                cloudrig_info = coll_data['cloudrig_info']
-
                 coll = collections.get(coll_name)
 
                 if not coll or not self.overwrite_existing:
                     coll = collections.new(coll_name)
+                    coll.cloudrig_info.name = coll.name
 
-                coll['cloudrig_info'] = cloudrig_info
+                if type(coll_data) == list:
+                    # Selection Set.
+                    bone_names = coll_data
+                    coll.cloudrig_info.quick_access = True
+                    coll.cloudrig_info.preserve_on_regenerate = True
+                elif type(coll_data) == dict:
+                    # CloudRig Collection.
+                    cloudrig_info = coll_data['cloudrig_info']
+                    bone_names = coll_data['bone_names']
+                    coll['cloudrig_info'] = cloudrig_info
 
                 for bone_name in bone_names:
                     pb = context.object.pose.bones.get(bone_name)
@@ -2787,9 +2794,11 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
                 counter += 1
 
         except Exception as e:
-            self.report({'ERROR'}, 'The clipboard does not contain Bone Collections.')
+            self.report(
+                {'ERROR'},
+                'The clipboard does not contain Bone Collections or Selection Sets.',
+            )
             raise e
-            return {'CANCELLED'}
 
         if counter == 0:
             self.report({'ERROR'}, "No collections in clipboard to be pasted.")
