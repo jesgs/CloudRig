@@ -1554,30 +1554,37 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
 
 class CloudRig_RigPreferences(bpy.types.PropertyGroup):
-    show_visibility: bpy.props.BoolProperty(
+    show_visibility: BoolProperty(
         name="Hide",
         description="Show the Hide setting",
         default=True,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
-    show_solo: bpy.props.BoolProperty(
+    show_solo: BoolProperty(
         name="Isolate",
         description="Show the Isolate operator",
         default=True,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
-    show_select: bpy.props.BoolProperty(
+    show_select: BoolProperty(
         name="Select",
         description="Show the Select operator",
         default=True,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
-    show_editing: bpy.props.BoolProperty(
+    show_editing: BoolProperty(
         name="Editing",
         description="Show collection editing functions",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_bone_count: BoolProperty(
+        name="Bone Count",
+        description="Show number of bones selected/assigned (including child collections)",
         default=False,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
@@ -1944,6 +1951,15 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         else:
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', text="", emboss=False)
+        if prefs.show_bone_count:
+            all_bones = cloudrig_info.all_bones
+            vis_bones = [
+                b
+                for b in all_bones
+                if not b.hide and any([c.is_visible for c in b.collections])
+            ]
+            sel_bones = [b for b in vis_bones if b.select]
+            row.label(text=f"{len(sel_bones)}/{len(all_bones)}", icon='BONE_DATA')
 
         row = row.row(align=True)
         row.operator_context = 'INVOKE_DEFAULT'
@@ -2163,12 +2179,13 @@ class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
         layout = self.layout
         prefs = context.object.cloudrig_prefs
         row = layout.row(align=True)
-        row.prop(prefs, "show_visibility", text="", icon='HIDE_OFF')
-        row.prop(prefs, "show_solo", text="", icon='SOLO_OFF')
-        row.prop(prefs, "show_select", text="", icon='RESTRICT_SELECT_OFF')
+        row.prop(prefs, 'show_visibility', text="", icon='HIDE_OFF')
+        row.prop(prefs, 'show_solo', text="", icon='SOLO_OFF')
+        row.prop(prefs, 'show_select', text="", icon='RESTRICT_SELECT_OFF')
 
         row.separator()
         row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
+        row.prop(prefs, 'show_bone_count', text="", icon='GROUP_BONE')
 
 
 class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
