@@ -1709,15 +1709,16 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
             if other_coll.cloudrig_info.parent_name == coll.name:
                 other_coll.cloudrig_info.parent_name = self.name
 
-        # Update bone sets with this collection assigned to refer to the new name.
-        for pb in context.object.pose.bones:
-            comp = pb.cloudrig_component
-            for bone_set_name in comp.params.bone_sets.keys():
-                bone_set = getattr(comp.params.bone_sets, bone_set_name)
-                for bone_set_coll in bone_set.collections:
-                    if bone_set_coll.name == coll.name:
-                        bone_set_coll.name = self.name
-                        break
+        # Metarig: Update bone sets with this collection assigned to refer to the new name.
+        if is_active_cloud_metarig(context):
+            for pb in context.object.pose.bones:
+                comp = pb.cloudrig_component
+                for bone_set_name in comp.params.bone_sets.keys():
+                    bone_set = getattr(comp.params.bone_sets, bone_set_name)
+                    for bone_set_coll in bone_set.collections:
+                        if bone_set_coll.name == coll.name:
+                            bone_set_coll.name = self.name
+                            break
 
         # Set the actual collection's name to be in sync.
         coll.name = self.name
@@ -1775,6 +1776,8 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     solo_flag: EnumProperty(
         name="Solo Flag",
         description="How this collection is affected by the current Solo state. Used internally for the Solo functionality",
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
         items=[
             (
                 'NONE',
@@ -1958,7 +1961,9 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                 CLOUDRIG_OT_collection_select.bl_idname,
                 text="",
                 icon='RESTRICT_SELECT_OFF',
-            ).collection_name = collection.name
+            )
+            sel_op.collection_name = collection.name
+            sel_op.reveal_bones = True
         if prefs.show_editing:
             row.separator()
             row.operator(
@@ -2207,7 +2212,7 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
 
 
 class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
-    """Quick select menu, mimicing Selection Sets functionality"""
+    """Quick select menu, so favourite bone collections can be selected quickly with a hotkey"""
 
     bl_label = "Quick Select"
     bl_idname = 'CLOUDRIG_MT_collections_quick_select'
@@ -2230,7 +2235,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
                 )
                 op.collection_name = coll.name
                 op.select = True
-                op.reveal_bones = False
+                op.reveal_bones = True
 
 
 class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
@@ -2345,7 +2350,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
 
 class CLOUDRIG_OT_collection_select(bpy.types.Operator):
-    """Select all bones of this collection. Shift: Extend selection. Ctrl: Mirror selection. Alt: Deselect"""
+    """Reveal and Select this collection, its children, and all bones within.\n\nShift: Extend selection. \nCtrl: Mirror selection. \nAlt: Deselect"""
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
@@ -2403,17 +2408,19 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         if not collection:
             return {'CANCELLED'}
 
-        if not collection.is_visible and self.select:
-            collection.cloudrig_info.is_visible = True
+        reveal_colls = [collection]
+        if self.select and self.reveal_bones:
+            reveal_colls += collection.cloudrig_info.children_recursive
+
+        for reveal_coll in reveal_colls:
+            reveal_coll.cloudrig_info.is_visible = True
 
         with pose_mode(rig):
             if not self.extend_selection and self.select:
                 for bone in rig.data.bones:
                     bone.select = False
 
-            collection_bones = collection.cloudrig_info.all_bones
-
-            for bone in collection_bones:
+            for bone in collection.cloudrig_info.all_bones:
                 if self.flip:
                     bone = rig.data.bones.get(bpy.utils.flip_name(bone.name))
                     if not bone:
