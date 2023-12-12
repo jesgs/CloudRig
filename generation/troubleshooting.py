@@ -35,9 +35,7 @@ TODO: Symmetry warnings:
 
 
 class LoggerMixin:
-    """Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
-    This class should come BEFORE BaseRig in the inheritance order.
-    """
+    """Mix-in class for allowing a class to add entries to the Generation Log of an armature."""
 
     def add_log(self, description_short, **kwargs):
         if 'base_bone_name' not in kwargs:

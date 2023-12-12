@@ -55,9 +55,6 @@ class Component_Base(
         self.initialize()  # TODO 4.0: __init__ and initialize() should probably be merged.
 
     def initialize(self):
-        """First Rigify stage, called by the Generator.
-        https://wiki.blender.org/wiki/Process/Addons/Rigify/RigClass
-        """
         self.bone_count = len(self.get_component_bone_chain())
 
         ### Quick access to the generator's log manager
