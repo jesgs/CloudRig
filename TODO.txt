@@ -1,7 +1,10 @@
 Priority 0: Missing functionality
 	- Bug: Any cases where we previously relied on setting a param will be broken like on Mikassa's neck the Tip Control param. This is because Rigify used to give us the generated rig's PropertyGroup, but now we pass the metarig's. Search for params.*= and fix each case.
 
-	- Action System. Maybe we need to register some classes, but only do so if Rigify isn't already enabled? Not sure. Probably safer to just register copies, but then we can't use any Rigify code that references properties directly (as opposed to via received function params).
+	- Action System.
+		No Action properties bone: Assign custom properties to control bones instead.
+		Action system is in fact NOT a rig component, just something hard coded that runs after all the rig components have generated.
+
 	- Finish re-factoring keyframe baking code
 	- Rig samples (see design ideas below)
 
@@ -33,6 +36,7 @@ Priority 0: Missing functionality
 		- Add a "Store MetaRig" operator that pushes the active CloudRig MetaRig to presets/CloudRig/metarigs.blend.
 		- Add a "Store Sample" operator that pushes the selected edit bones to presets/CloudRig/samples.blend
 		- Add a "Store Widgets" operator that pushes the selected WGT- objects to presets/CloudRig/widgets.blend 
+	- Add the "Add Metarig" menu to the Rig Components List UI as well, under a Specials menu.
 
 Priority 1: Bugs
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.

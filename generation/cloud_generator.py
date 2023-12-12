@@ -40,6 +40,7 @@ from .cloudrig import (
 )
 
 from ..rig_components.cloud_base import Component_Base
+from .actions_component import ActionLayerComponent
 
 import bpy, sys, os, traceback
 from bpy.types import Object, Operator
@@ -125,6 +126,33 @@ class GeneratorProperties(PropertyGroup):
     @property
     def active_log(self):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
+
+    action_slots = CollectionProperty(type=ActionSlot)
+    active_action_index: IntProperty(min=0)
+
+    @property
+    def active_action_slot(self):
+        return self.action_slots[self.active_action_index]
+
+    def find_slot_by_action(self, action) -> Tuple[Optional[ActionSlot], int]:
+        """Find the ActionSlot in the rig which targets this action."""
+        if not action:
+            return None, -1
+
+        for i, slot in enumerate(self.action_slots):
+            if slot.action == action:
+                return slot, i
+        else:
+            return None, -1
+
+    def find_duplicate_action_slot(self, slot: ActionSlot) -> Optional[ActionSlot]:
+        """Find a different ActionSlot in the rig which has the same action."""
+
+        for other_slot in self.action_slots:
+            if other_slot.action == slot.action and other_slot != slot:
+                return other_slot
+
+        return None
 
 
 class CloudGeneratorError(Exception):
@@ -258,14 +286,13 @@ class CloudRig_Generator:
         # TODO: It could be argued that this should only happen when the first widget is created.
         self.ensure_widget_collection(context)
 
-        # self.action_layers = ActionLayerBuilder(self) TODO 4.0 this might be a problem... Not sure how we can drag along the least amount of Rigify spaghetti while still making use of the Action system code.
-
         # ------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
         if self.params.ensure_root:
             self.ensure_root_bone_component(self.metarig, self.params.ensure_root)
 
         self.component_map = self.instantiate_rig_components()
+
         self.components_load_bone_infos(self.component_map, self.metarig)
 
         # ------------------------------------------
