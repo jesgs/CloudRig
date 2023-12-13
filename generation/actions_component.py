@@ -5,11 +5,7 @@ from bpy.types import Action, Mesh, Armature, Object
 from bl_math import clamp
 
 from rigify.utils.naming import Side, get_name_side, change_name_side, mirror_name
-from rigify.utils.bones import BoneUtilityMixin
-from rigify.utils.mechanism import MechanismUtilityMixin, driver_var_transform, quote_property
-
-from rigify.base_rig import RigComponent, stage
-from rigify.base_generate import GeneratorPlugin
+from rigify.utils.mechanism import driver_var_transform, quote_property, make_property, make_driver, make_constraint
 
 class MetarigError(Exception):
     pass
@@ -127,7 +123,7 @@ class ActionSlotBase:
         return abs(default_frame - round(default_frame)) < 0.001
 
 
-class ActionLayer(RigComponent):
+class ActionLayer:
     """An action constraint layer instance, applying an action to a symmetry side."""
 
     owner: 'ActionLayerComponent'
@@ -135,10 +131,10 @@ class ActionLayer(RigComponent):
     side: Side
 
     def __init__(self, owner, slot, side):
-        super().__init__(owner)
-
+        self.owner = owner
         self.slot = slot
         self.side = side
+        self.generator = owner.generator
 
         self.name = self._get_name()
 
@@ -196,26 +192,28 @@ class ActionLayer(RigComponent):
         else:
             return {self.bone_name}
 
-    def configure_bones(self):
+    def create_custom_property(self):
         if self.use_property:
             factor = self.slot.get_default_factor(self.side)
 
-            self.make_property(self.owner.property_bone, self.name, float(factor))
+            make_property(owner=self.generator.target_rig.pose.bones.get('root'), name=self.name, default=float(factor))
 
-    def rig_bones(self):
+    def rig_bones_and_shape_keys(self):
         if self.slot.is_corrective and self.use_trigger:
             raise MetarigError(
                 f"Corrective action used as trigger: {self.slot.action.name}"
             )
 
         if self.use_property:
-            self.rig_input_driver(self.owner.property_bone, quote_property(self.name))
+            self.rig_input_driver(self.bone_name, quote_property(self.name))
 
         for bone_name in self.bones:
             self.rig_bone(bone_name)
+        
+        self.rig_child_shape_keys()
 
     def rig_bone(self, bone_name):
-        if bone_name not in self.obj.pose.bones:
+        if bone_name not in self.generator.target_rig.pose.bones:
             raise MetarigError(
                 f"Bone '{bone_name}' from action '{self.slot.action.name}' not found"
             )
@@ -225,8 +223,8 @@ class ActionLayer(RigComponent):
         else:
             influence = 1.0
 
-        con = self.make_constraint(
-            bone_name,
+        con = make_constraint(
+            self.generator.target_rig.pose.bones[bone_name],
             'ACTION',
             name=f'Action {self.name}',
             insert_index=0,
@@ -242,8 +240,8 @@ class ActionLayer(RigComponent):
 
     def rig_output_driver(self, obj, prop):
         if self.use_property:
-            self.make_driver(
-                obj, prop, variables=[(self.owner.property_bone, self.name)]
+            make_driver(
+                obj, prop, variables=[(self.bone_name, self.name)]
             )
         else:
             self.rig_input_driver(obj, prop)
@@ -255,13 +253,13 @@ class ActionLayer(RigComponent):
             self.rig_factor_driver(obj, prop)
 
     def rig_corrective_driver(self, obj, prop):
-        self.make_driver(
+        make_driver(
             obj,
             prop,
             expression=self.slot.get_trigger_expression('a', 'b'),
             variables={
-                'a': (self.owner.property_bone, self.trigger_a.name),
-                'b': (self.owner.property_bone, self.trigger_b.name),
+                'a': (self.bone_name, self.trigger_a.name),
+                'b': (self.bone_name, self.trigger_b.name),
             },
         )
 
@@ -271,7 +269,7 @@ class ActionLayer(RigComponent):
         else:
             control_name = self.slot.subtarget
 
-        if control_name not in self.obj.pose.bones:
+        if control_name not in self.generator.target_rig.pose.bones:
             raise MetarigError(
                 f"Control bone '{control_name}' for action '{self.slot.action.name}' not found"
             )
@@ -280,13 +278,13 @@ class ActionLayer(RigComponent):
             "ROTATION", "ROT"
         )
 
-        self.make_driver(
+        make_driver(
             obj,
             prop,
             expression=self.slot.get_factor_expression('var', side=self.side),
             variables=[
                 driver_var_transform(
-                    self.obj,
+                    self.generator.target_rig,
                     control_name,
                     type=channel,
                     space=self.slot.target_space,
@@ -295,7 +293,6 @@ class ActionLayer(RigComponent):
             ],
         )
 
-    @stage.rig_bones
     def rig_child_shape_keys(self):
         for child in self.owner.child_meshes:
             mesh: Mesh = child.data
@@ -309,7 +306,7 @@ class ActionLayer(RigComponent):
         self.rig_output_driver(key_block, 'value')
 
 
-class ActionLayerComponent(GeneratorPlugin, BoneUtilityMixin, MechanismUtilityMixin):
+class ActionLayerComponent:
     """
     An internal component
     Implements centralized generation of action layer constraints.
@@ -318,14 +315,12 @@ class ActionLayerComponent(GeneratorPlugin, BoneUtilityMixin, MechanismUtilityMi
     slot_list: List[ActionSlotBase]
     layers: List[ActionLayer]
     action_map: Dict[str, Dict[Side, ActionLayer]]
-    property_bone: Optional[str]
     child_meshes: List[Object]
 
     def __init__(self, generator):
-        super().__init__(generator)
-
+        self.generator = generator
         metarig_data = generator.metarig.data
-        self.slot_list = generator.action_slots
+        self.slot_list = generator.params.action_slots
         self.layers = []
 
     def initialize(self):
@@ -343,6 +338,8 @@ class ActionLayerComponent(GeneratorPlugin, BoneUtilityMixin, MechanismUtilityMi
             # order of transformations again, restoring the original sequence.
             for act_slot in self.sort_slots(action_slots):
                 self.spawn_slot_layers(act_slot)
+
+        self.store_child_meshes()
 
     @staticmethod
     def sort_slots(slots: List[ActionSlotBase]):
@@ -397,14 +394,10 @@ class ActionLayerComponent(GeneratorPlugin, BoneUtilityMixin, MechanismUtilityMi
                 Side.MIDDLE: ActionLayer(self, act_slot, Side.MIDDLE)
             }
 
-    def generate_bones(self):
-        if any(child.use_property for child in self.layers):
-            self.property_bone = self.new_bone("MCH-action-props")
-
-    def rig_bones(self):
+    def store_child_meshes(self):
         if self.layers:
             self.child_meshes = [
                 child
-                for child in self.generator.obj.children_recursive
+                for child in self.generator.target_rig.children_recursive
                 if child.type == 'MESH'
             ]

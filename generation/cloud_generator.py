@@ -15,7 +15,6 @@ from bone_selection_sets import from_json, to_json
 from mathutils import Matrix
 from datetime import datetime
 
-from .actions_component import ActionLayerComponent
 from ..ui.actions_ui import ActionSlot
 from rigify.utils.mechanism import refresh_all_drivers
 from rigify.utils.collections import ensure_collection
@@ -326,6 +325,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         if self.params.generate_test_action:
             self.create_test_animation()  # TODO 4.0: Verify this works.
+
+        actions = ActionLayerComponent(self)
+        actions.initialize()
+        for action_name, action_map in actions.action_map.items():
+            for side, action_layer in action_map.items():
+                action_layer.create_custom_property()
+                action_layer.rig_bones_and_shape_keys()
 
         self.execute_custom_script()
 
