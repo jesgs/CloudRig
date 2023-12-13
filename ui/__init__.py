@@ -5,6 +5,7 @@ from . import (
     rig_component_list,
     rig_component_ui,
     actions_ui,
+)
 
 modules = [
     cloudrig_dropdown_menu,

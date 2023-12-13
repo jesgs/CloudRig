@@ -1,25 +1,18 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-from typing import Optional, List, Dict, Tuple, TYPE_CHECKING
-from bpy.types import Action, Mesh, Armature
+from typing import Optional, List, Dict, Tuple
+from bpy.types import Action, Mesh, Armature, Object
 from bl_math import clamp
 
-from .errors import MetarigError
-from .misc import MeshObject, IdPropSequence
-from .naming import Side, get_name_side, change_name_side, mirror_name
-from .bones import BoneUtilityMixin
-from .mechanism import MechanismUtilityMixin, driver_var_transform, quote_property
+from rigify.utils.naming import Side, get_name_side, change_name_side, mirror_name
+from rigify.utils.bones import BoneUtilityMixin
+from rigify.utils.mechanism import MechanismUtilityMixin, driver_var_transform, quote_property
 
-from ..base_rig import RigComponent, stage
-from ..base_generate import GeneratorPlugin
+from rigify.base_rig import RigComponent, stage
+from rigify.base_generate import GeneratorPlugin
 
-if TYPE_CHECKING:
-    from ..operators.action_layers import ActionSlot
-
-
-def get_rigify_action_slots(metarig_data: Armature) -> IdPropSequence['ActionSlot']:
-    return metarig_data.rigify_action_slots  # noqa
-
+class MetarigError(Exception):
+    pass
 
 class ActionSlotBase:
     """Abstract non-RNA base for the action list slots."""
@@ -326,13 +319,13 @@ class ActionLayerComponent(GeneratorPlugin, BoneUtilityMixin, MechanismUtilityMi
     layers: List[ActionLayer]
     action_map: Dict[str, Dict[Side, ActionLayer]]
     property_bone: Optional[str]
-    child_meshes: List[MeshObject]
+    child_meshes: List[Object]
 
     def __init__(self, generator):
         super().__init__(generator)
 
         metarig_data = generator.metarig.data
-        self.slot_list = list(get_rigify_action_slots(metarig_data))
+        self.slot_list = generator.action_slots
         self.layers = []
 
     def initialize(self):

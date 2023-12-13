@@ -25,10 +25,10 @@ from bpy.props import (
     CollectionProperty,
 )
 
-from .generic_ui_list import draw_ui_list
+from bl_ui.generic_ui_list import draw_ui_list
 
-from ..utils.naming import mirror_name
-from ..utils.action_layers import ActionSlotBase
+from bpy.utils import flip_name
+from ..generation.actions_component import ActionSlotBase
 
 
 class ActionSlot(PropertyGroup, ActionSlotBase):
@@ -180,7 +180,7 @@ class CLOUDRIG_OT_action_new(Operator):
         action_slots = generator.action_slots
         active_slot = generator.active_action_slot
         action = bpy.data.actions.new(name="Action")
-        action_slot.action = action
+        active_slot.action = action
         return {'FINISHED'}
 
 
@@ -287,7 +287,7 @@ class CLOUDRIG_UL_action_slots(UIList):
                     icon = 'ERROR'
                 elif (
                     action_slot.symmetrical
-                    and mirror_name(action_slot.subtarget) not in bones
+                    and flip_name(action_slot.subtarget) not in bones
                 ):
                     row.alert = True
                     text = 'Bad Control Bone'
@@ -321,8 +321,9 @@ class DATA_PT_cloudrig_actions(Panel):
             layout,
             context,
             class_name='CLOUDRIG_UL_action_slots',
-            list_context_path='object.cloudrig.generator.action_slots',
-            active_index_context_path='object.cloudrig.generator.active_action_index',
+            unique_id = 'CloudRig Action Slots',
+            list_path='object.cloudrig.generator.action_slots',
+            active_index_path='object.cloudrig.generator.active_action_index',
         )
 
         active_slot = generator.active_action_slot
@@ -421,7 +422,7 @@ class DATA_PT_cloudrig_actions(Panel):
         else:
             row.prop(slot, 'subtarget', icon=bone_icon)
 
-        flipped_subtarget = mirror_name(slot.subtarget)
+        flipped_subtarget = flip_name(slot.subtarget)
 
         if flipped_subtarget != slot.subtarget:
             flipped_subtarget_exists = (

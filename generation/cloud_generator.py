@@ -9,13 +9,14 @@ from bpy.props import (
     StringProperty,
 )
 from bpy.types import Object, PropertyGroup
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 from bone_selection_sets import from_json, to_json
 from mathutils import Matrix
 from datetime import datetime
 
-from rigify.utils.action_layers import ActionLayerBuilder
+from .actions_component import ActionLayerComponent
+from ..ui.actions_ui import ActionSlot
 from rigify.utils.mechanism import refresh_all_drivers
 from rigify.utils.collections import ensure_collection
 
