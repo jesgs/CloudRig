@@ -326,12 +326,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.generate_test_action:
             self.create_test_animation()  # TODO 4.0: Verify this works.
 
-        actions = ActionLayerComponent(self)
-        actions.initialize()
-        for action_name, action_map in actions.action_map.items():
-            for side, action_layer in action_map.items():
-                action_layer.create_custom_property()
-                action_layer.rig_bones_and_shape_keys()
+        if self.params.action_slots:
+            actions = ActionLayerComponent(self)
+            actions.initialize()
+            for action_name, action_map in actions.action_map.items():
+                for side, action_layer in action_map.items():
+                    action_layer.create_custom_property()
+                    action_layer.rig_bones_and_shape_keys()
 
         self.execute_custom_script()
 
