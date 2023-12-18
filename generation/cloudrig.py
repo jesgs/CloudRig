@@ -1721,7 +1721,8 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
         # Metarig: Update bone sets with this collection assigned to refer to the new name.
         if is_active_cloud_metarig(context):
-            for pb in self.id_data.pose.bones:
+            rig = context.pose_object or context.active_object
+            for pb in rig.pose.bones:
                 comp = pb.cloudrig_component
                 for bone_set_name in comp.params.bone_sets.keys():
                     bone_set = getattr(comp.params.bone_sets, bone_set_name)
@@ -2480,9 +2481,7 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot change the parent of linked collections.")
             return {'CANCELLED'}
-        self.parent_name = rig.data.collections[
-            self.coll_idx
-        ].cloudrig_info.parent_name
+        self.parent_name = rig.data.collections[self.coll_idx].cloudrig_info.parent_name
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -2719,11 +2718,7 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         rig = context.pose_object or context.active_object
-        return (
-            rig
-            and rig.type == 'ARMATURE'
-            and rig.data.collections.active
-        )
+        return rig and rig.type == 'ARMATURE' and rig.data.collections.active
 
     @classmethod
     def description(cls, context, props):
