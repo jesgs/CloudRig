@@ -16,7 +16,10 @@ class CLOUDRIG_PT_rig_component(Panel):
             return False
         if not context.object.cloudrig.enabled:
             return False
-        if not context.active_bone and not context.active_pose_bone:
+        active_pb = get_pbone_of_active(context)
+        if not active_pb:
+            return False
+        if not active_pb.cloudrig_component:
             return False
         return True
 
