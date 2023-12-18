@@ -1,45 +1,26 @@
 import bpy
 from bpy.utils import flip_name
-from ..generation.naming import increment_name
+from ..generation.naming import increment_name, uniqify
 from ..generation.cloudrig import register_hotkey
 
 
-class ARMATURE_OT_better_bone_extrude(bpy.types.Operator):
-    bl_idname = "armature.better_extrude"
-    bl_description = "Extrude a bone and increment its name"
-    bl_options = {'REGISTER', 'UNDO'}
-    bl_label = "Better Extrude Bone"
-
-    hotkeys = []
-
-    @classmethod
-    def poll(cls, context):
-        b = context.active_bone
-        return (
-            context.mode == 'EDIT_ARMATURE'
-            and b
-            and b.select_head != b.select_tail
-            and len(context.selected_bones) == 0
-        )
-
-    def execute(self, context):
-        rig = context.object
-        source_bone = context.active_bone
-
-        # Increment LAST number in the name.
-        new_name = increment_name(source_bone.name, 1)
-
+class BoneDuplicateOperatorBase:
+    def bone_operation(self, context):
         # Extrude it!
         bpy.ops.armature.extrude_move()
 
-        if rig.data.use_mirror_x:
-            opp_bone = rig.data.edit_bones.get(flip_name(context.active_bone.name))
-            if opp_bone:
-                opp_bone.name = flip_name(new_name)
+    def execute(self, context):
+        rig = context.active_object
 
-        # Fix the name!
-        new_bone = context.active_bone
-        new_bone.name = new_name
+        original_bones = set(rig.data.edit_bones[:])
+        self.bone_operation(context)
+        new_bones = set(rig.data.edit_bones[:]) - original_bones
+
+        for new_bone in sorted(new_bones, key=lambda b: b.name):
+            # Fix the name!
+            new_bone.name = uniqify(
+                new_bone.name, rig.data.edit_bones, strip_first=True
+            )
 
         # This should happen on its own but it doesn't...?
         new_bone.select_tail = True
@@ -49,12 +30,46 @@ class ARMATURE_OT_better_bone_extrude(bpy.types.Operator):
         return {'FINISHED'}
 
 
-registry = [ARMATURE_OT_better_bone_extrude]
+class ARMATURE_OT_better_bone_extrude(BoneDuplicateOperatorBase, bpy.types.Operator):
+    bl_idname = "armature.better_extrude"
+    bl_description = "Extrude a bone and increment its name"
+    bl_options = {'REGISTER', 'UNDO'}
+    bl_label = "Better Extrude Bone"
+
+    @classmethod
+    def poll(cls, context):
+        selected_tails = [b for b in context.object.data.edit_bones if b.select_tail]
+        return context.mode == 'EDIT_ARMATURE' and selected_tails
+
+
+class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOperatorBase, bpy.types.Operator):
+    bl_idname = "armature.better_duplicate"
+    bl_description = "Duplicate a bone and increment its name"
+    bl_options = {'REGISTER', 'UNDO'}
+    bl_label = "Better Duplicate Bone"
+
+    @classmethod
+    def poll(cls, context):
+        selected_bones = [b for b in context.object.data.edit_bones if b.select]
+        return context.mode == 'EDIT_ARMATURE' and selected_bones
+
+    def bone_operation(self, context):
+        # Duplicate it!
+        bpy.ops.armature.duplicate_move()
+
+
+registry = [ARMATURE_OT_better_bone_extrude, ARMATURE_OT_better_bone_duplicate]
 
 
 def register():
     register_hotkey(
         ARMATURE_OT_better_bone_extrude.bl_idname,
         hotkey_kwargs={'type': 'E', 'value': 'PRESS'},
+        key_cat='Armature',
+    )
+
+    register_hotkey(
+        ARMATURE_OT_better_bone_duplicate.bl_idname,
+        hotkey_kwargs={'type': 'D', 'value': 'PRESS', 'shift': True},
         key_cat='Armature',
     )

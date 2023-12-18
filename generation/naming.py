@@ -382,3 +382,21 @@ def increment_name(name: str, increment=1, default_zfill=1) -> str:
     incremented = str(max(0, int(last) + increment)).zfill(len(last))
     split = name.rsplit(last, 1)
     return incremented.join(split)
+
+
+def strip_blender_zeroes(name):
+    if name[-4] == ".":
+        try:
+            int(name[-3:])
+        except:
+            return name
+        return name[:-4]
+    return name
+
+
+def uniqify(name, collprop: List, strip_first=True):
+    if strip_first:
+        name = strip_blender_zeroes(name)
+    while name in collprop:
+        name = increment_name(name)
+    return name
