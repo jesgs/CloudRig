@@ -120,17 +120,17 @@ class Component_Base(
                 )
             if self.naming.has_wrong_separator(pbone):
                 self.raise_generation_error(
-                    "Wrong separator",
-                    note=pbone.name,
                     description=f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be separated by a period(`.`).",
+                    description_short="Wrong separator",
+                    note=pbone.name,
                     operator='object.cloudrig_rename_bone',
                     op_kwargs={'old_name': pbone.name},
                 )
             if not self.naming.side_is_suffix(pbone):
                 self.raise_generation_error(
-                    "Side indicator must be suffix",
-                    note=pbone.name,
                     description=f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be at the end of the bone name.",
+                    description_short="Side indicator must be suffix",
+                    note=pbone.name,
                     operator='object.cloudrig_rename_bone',
                     op_kwargs={'old_name': pbone.name},
                 )
@@ -143,8 +143,8 @@ class Component_Base(
             )
             if not bone_info:
                 self.raise_generation_error(
-                    description_short=f'Bone name "{bone_info.name}" was used twice!',
                     description="Make sure your bone names are unique and do not have trailing zeroes!",
+                    description_short=f'Bone name "{bone_info.name}" was used twice!',
                 )
             bone_info.bbone_width = ebone.bbone_x / self.scale
             bone_info.use_connect = False

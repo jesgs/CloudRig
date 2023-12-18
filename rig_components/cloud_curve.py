@@ -148,9 +148,9 @@ class Component_Curve_Hooked(Component_Base):
             point_name = ".".join(point_path.split(".")[0:])
             opp_point_name = ".".join(opp_point_path.split(".")[0:])
             self.raise_generation_error(
-                "Curve is not symmetrical",
-                note=f"Curve must be symmetrical.",
                 description=f'The nearest point to the X-axis flipped coordinate of point "{point_name} ({curve.path_resolve(point_path).co})" is point "{opp_point_name} (({curve.path_resolve(opp_point_path).co}))".\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis. If this message keeps popping up, you might be modifying a shape key instead of the base shape.',
+                description_short="Curve is not symmetrical",
+                note=f"Curve must be symmetrical.",
             )
         return opp_spline, opp_point_idx
 
