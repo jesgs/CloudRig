@@ -1955,7 +1955,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         else:
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', text="", emboss=False)
-        if prefs.show_bone_count:
+        if prefs.show_bone_count and context.mode != 'EDIT_ARMATURE':
             all_bones = cloudrig_info.all_bones
             vis_bones = [
                 b
@@ -2173,6 +2173,7 @@ class CLOUDRIG_PT_collections_properties(CLOUDRIG_PT_base):
     bl_label = "Nested Collections"
     bl_options = {'DEFAULT_CLOSED'}
 
+    on_metarigs = True
     draw = CLOUDRIG_PT_collections_sidebar.draw
 
 
@@ -2860,6 +2861,7 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys"
     bl_label = "Hotkeys"
 
+    on_metarigs = True
     keymap_items = []
 
     @staticmethod
