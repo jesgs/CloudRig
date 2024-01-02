@@ -90,8 +90,8 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         if match_collections:
-            for to_coll in to_arm.data.collections:
-                from_coll = from_arm.data.collections.get(to_coll.name)
+            for to_coll in to_arm.data.collections.all:
+                from_coll = from_arm.data.collections.all.get(to_coll.name)
                 if from_coll:
                     to_coll.is_visible = from_coll.is_visible
 

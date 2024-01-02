@@ -19,10 +19,7 @@ def deselect_all_bones(context):
 def ensure_visible_bone_collection(bone: Bone or EditBone or PoseBone):
     """If target bone not in any enabled collections, enable first one."""
     if type(bone) == PoseBone:
-        armature = bone.id_data.data
         bone = bone.bone
-    else:
-        armature = bone.id_data
 
     if len(bone.collections) == 0:
         return

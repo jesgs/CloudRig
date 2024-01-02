@@ -1,6 +1,6 @@
 Priority 0: Missing functionality
 	- Bug: Any cases where we previously relied on setting a param will be broken like on Mikassa's neck the Tip Control param. This is because Rigify used to give us the generated rig's PropertyGroup, but now we pass the metarig's. Search for params.*= and fix each case.
-
+	- Bug: cloudrig.py register function runs even if the add-on isn't enabled, I think.
 
 	- Rig samples (see design ideas below)
 	- Finish re-factoring keyframe baking code

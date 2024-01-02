@@ -271,7 +271,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 'variables': [
                     {
                         'type': 'SINGLE_PROP',
-                        'targets': [
+                        'targets': [  # TODO: This is unnecessarily reaching through the Object rather than the Armature directly, but Rigify's make_driver function doesn't support passing the id type to the driver variable targets...
                             {'data_path': f'data.bones["{pole_ctrl.name}"].hide'}
                         ],
                     }

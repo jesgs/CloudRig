@@ -1610,7 +1610,7 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
             return
 
         flt_flags = CLOUDRIG_UL_collections.get_filter_flags(
-            colls, self.collection_filter
+            colls.all, self.collection_filter
         )
 
         new_idx = self.active_collection_index
@@ -1622,8 +1622,8 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
             return
         if new_idx < 0:
             new_idx = -1
-        if new_idx > len(colls) - 1:
-            new_idx = len(colls) - 1
+        if new_idx > len(colls.all) - 1:
+            new_idx = len(colls.all) - 1
 
         if flt_flags[new_idx] == 0:
             # If the new active element would be hidden, keep going up the list until a visible one is found.
@@ -1632,7 +1632,7 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
         if flt_flags[new_idx] == 0:
             # If that failed, go down the list instead.
             new_idx = self.active_collection_index + 1
-            while flt_flags[new_idx] == 0 and new_idx < len(colls):
+            while flt_flags[new_idx] == 0 and new_idx < len(colls.all):
                 new_idx += 1
         if flt_flags[new_idx] == 0:
             # If that fails too, don't allow an active element.
@@ -1649,7 +1649,7 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
     def ensure_bone_collections_info(self):
         colls = self.id_data.data.collections
 
-        for coll in colls:
+        for coll in colls.all:
             coll.cloudrig_info.name = coll.name
 
     def update_active_collection_index(self, context=None):
@@ -1682,7 +1682,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     def get_collection_with_index(self) -> Tuple[bpy.types.BoneCollection, int]:
         armature = self.id_data
-        for i, coll in enumerate(armature.collections):
+        for i, coll in enumerate(armature.collections.all):
             if coll.cloudrig_info == self:
                 return coll, i
 
@@ -1702,11 +1702,11 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
             return
 
         # Force the name to be unique.
-        if self.name in self.id_data.collections:
+        if self.name in self.id_data.collections.all:
             counter = 1
             base_name = self.name
             unique_name = base_name
-            while unique_name in self.id_data.collections:
+            while unique_name in self.id_data.collections.all:
                 unique_name = base_name + "." + str(counter).zfill(3)
                 counter += 1
             # This will cause update_name() to be called again,
@@ -1715,7 +1715,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
             return
 
         # Update child collections to refer to the new name.
-        for other_coll in self.id_data.collections:
+        for other_coll in self.id_data.collections.all:
             if other_coll.cloudrig_info.parent_name == coll.name:
                 other_coll.cloudrig_info.parent_name = self.name
 
@@ -1845,7 +1845,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     @property
     def parent_collection(self) -> bpy.types.BoneCollection:
         armature = self.id_data
-        return armature.collections.get(self.parent_name)
+        return armature.collections.all.get(self.parent_name)
 
     def unfold_parents(self):
         parent = self.parent_collection
@@ -1864,7 +1864,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         if not self_coll.name:
             return []
         armature = self.id_data
-        for coll in armature.collections:
+        for coll in armature.collections.all:
             if (
                 self_coll.name == coll.cloudrig_info.parent_name
             ) and self_coll.name != "":
@@ -1875,7 +1875,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     def siblings(self):
         """Includes self!"""
         if not self.parent_collection:
-            all_colls = self.id_data.collections
+            all_colls = self.id_data.collections.all
             return [
                 coll for coll in all_colls if not coll.cloudrig_info.parent_collection
             ]
@@ -2003,9 +2003,16 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         return row
 
     def draw_item(
-        self, context, layout, data, item, _icon_value, _active_data, _active_propname
+        self,
+        context,
+        layout,
+        collections,
+        item,
+        _icon_value,
+        _active_data,
+        _active_propname,
     ):
-        idx = data.collections.find(item.name)
+        idx = collections.all.find(item.name)
         self.draw_collection(context, layout, item, idx)
 
     def draw_filter(self, context, layout):
@@ -2016,13 +2023,13 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         layout.prop(rig.cloudrig_prefs, "collection_filter", text="")
 
     @staticmethod
-    def get_collection_order(collections):
+    def get_collection_order(all_collections):
         # Order collections by hierarchy, such that children come after their
         # parents, but the original order is otherwise preserved.
 
         # Find collections without any parent
         root_colls = [
-            coll for coll in collections if coll.cloudrig_info.parent_name == ""
+            coll for coll in all_collections if coll.cloudrig_info.parent_name == ""
         ]
         sorted_colls = []
 
@@ -2035,36 +2042,36 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             add_children_recursive(root_coll)
 
         # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
-        return [sorted_colls.index(coll) for coll in collections]
+        return [sorted_colls.index(coll) for coll in all_collections]
 
     @staticmethod
-    def get_filter_flags(collections, filter_name):
-        flt_flags = [1 << 30] * len(collections)
+    def get_filter_flags(all_collections, filter_name):
+        flt_flags = [1 << 30] * len(all_collections)
         # Filtering by name search.
         if filter_name:
             helper_funcs = bpy.types.UI_UL_list
             flt_flags = helper_funcs.filter_items_by_name(
                 filter_name,
                 1 << 30,
-                collections,
+                all_collections,
                 "name",
                 reverse=False,
             )
 
         # Filter out collections whose parents are collapsed
         return [
-            flag * int(collections[i].cloudrig_info.are_parents_unfolded)
+            flag * int(all_collections[i].cloudrig_info.are_parents_unfolded)
             for i, flag in enumerate(flt_flags)
         ]
 
     def filter_items(self, context, data, propname):
-        collections = getattr(data, propname)
+        all_collections = getattr(data, propname)
         rig = context.pose_object or context.active_object
 
         flt_flags = self.get_filter_flags(
-            collections, rig.cloudrig_prefs.collection_filter
+            all_collections, rig.cloudrig_prefs.collection_filter
         )
-        flt_neworder = self.get_collection_order(collections)
+        flt_neworder = self.get_collection_order(all_collections)
 
         return flt_flags, flt_neworder
 
@@ -2093,7 +2100,7 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
             layout,
             context,
             class_name='CLOUDRIG_UL_collections',
-            list_path=prop_owner + ".data.collections",
+            list_path=prop_owner + ".data.collections.all",
             active_index_path=prop_owner + '.cloudrig_prefs.active_collection_index',
             insertion_operators=False,
             move_operators=False,
@@ -2252,7 +2259,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
 
         rig = context.pose_object or context.active_object
         colls = rig.data.collections
-        for coll in colls:
+        for coll in colls.all:
             if coll.cloudrig_info.quick_access:
                 op = layout.operator(
                     CLOUDRIG_OT_collection_select.bl_idname,
@@ -2273,7 +2280,7 @@ class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
 
     def execute(self, context):
         rig = context.pose_object or context.active_object
-        for coll in rig.data.collections:
+        for coll in rig.data.collections.all:
             coll.cloudrig_info.is_visible = True
 
         return {'FINISHED'}
@@ -2318,14 +2325,14 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
     def execute(self, context):
         rig = context.pose_object or context.active_object
         colls = rig.data.collections
-        coll = colls.get(self.collection_name)
+        coll = colls.all.get(self.collection_name)
 
         if not coll:
             coll = rig.data.collections.active
         if not coll:
             return {'CANCELLED'}
 
-        self.toggle_isolate(context, colls, coll)
+        self.toggle_isolate(context, colls.all, coll)
 
         if self.select_bones:
             with pose_mode(rig):
@@ -2334,11 +2341,11 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
         return {'FINISHED'}
 
-    def toggle_isolate(self, context, collections, isolate_collection):
+    def toggle_isolate(self, context, all_collections, isolate_collection):
         un_isolate = False
 
         # Reset solo flags & visibilities.
-        for coll in collections:
+        for coll in all_collections:
             if coll.cloudrig_info.solo_flag == 'HIDDEN':
                 coll.cloudrig_info.is_visible = True
             elif 'REVEALED' in coll.cloudrig_info.solo_flag:
@@ -2352,7 +2359,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
         if not un_isolate:
             # Set solo flags & visibilities.
-            for coll in collections:
+            for coll in all_collections:
                 if isolate_collection in coll.cloudrig_info.parents_recursive:
                     # Don't reveal or hide children of the isolated collection.
                     continue
@@ -2428,7 +2435,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
     def execute(self, context):
         rig = context.pose_object or context.active_object
 
-        collection = rig.data.collections.get(self.collection_name)
+        collection = rig.data.collections.all.get(self.collection_name)
 
         if not collection:
             collection = rig.data.collections.active
@@ -2478,11 +2485,13 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
 
     def invoke(self, context, _event):
         rig = context.pose_object or context.active_object
-        coll = rig.data.collections[self.coll_idx]
+        coll = rig.data.collections.all[self.coll_idx]
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot change the parent of linked collections.")
             return {'CANCELLED'}
-        self.parent_name = rig.data.collections[self.coll_idx].cloudrig_info.parent_name
+        self.parent_name = rig.data.collections.all[
+            self.coll_idx
+        ].cloudrig_info.parent_name
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -2493,8 +2502,8 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
 
     def execute(self, context):
         rig = context.pose_object or context.active_object
-        colls = rig.data.collections
-        coll = colls[self.coll_idx]
+        all_colls = rig.data.collections.all
+        coll = all_colls[self.coll_idx]
         coll_info = coll.cloudrig_info
 
         if coll_info.parent_name == self.parent_name:
@@ -2518,7 +2527,7 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
             parent = parent.cloudrig_info.parent_collection
 
         CLOUDRIG_OT_collection_move.refresh_collection_order(rig)
-        rig.cloudrig_prefs.active_collection_index = colls.find(coll.name)
+        rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
 
         self.report({'INFO'}, "Collection parent set.")
         return {'FINISHED'}
@@ -2587,7 +2596,7 @@ class CLOUDRIG_OT_collection_delete(bpy.types.Operator):
         rig = context.pose_object or context.active_object
         colls = rig.data.collections
 
-        for coll in colls[:]:
+        for coll in colls.all[:]:
             if coll.is_editable:
                 colls.remove(coll)
 
@@ -2612,7 +2621,7 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
             parent_name = active_coll.cloudrig_info.parent_name
 
         coll = colls.new(name="Collection")
-        coll_idx = colls.find(coll.name)
+        coll_idx = colls.all.find(coll.name)
         colls.move(coll_idx, active_idx + 1)
         coll.cloudrig_info.parent_name = parent_name
 
@@ -2674,7 +2683,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
             self.report({'ERROR'}, "Cannot re-order linked collections.")
             return {'CANCELLED'}
 
-        new_idx = collections.find(sibling_coll.name)
+        new_idx = collections.all.find(sibling_coll.name)
         old_idx = collections.active_index
 
         collections.move(old_idx, new_idx)
@@ -2699,7 +2708,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         idx_map.sort(key=lambda tup: tup[1])
 
         for coll, new_idx in idx_map:
-            old_idx = rig.data.collections.find(coll.name)
+            old_idx = rig.data.collections.all.find(coll.name)
             rig.data.collections.move(old_idx, new_idx)
 
         # Preserve active coll.
@@ -2733,7 +2742,7 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
             rig.data.collections.active
         ] + rig.data.collections.active.cloudrig_info.children_recursive
         if self.all_collections:
-            colls = rig.data.collections
+            colls = rig.data.collections.all
 
         with pose_mode(rig):
             if context.selected_bones:
@@ -2772,7 +2781,7 @@ class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
 
         json_obj = collections.defaultdict(dict)
         counter = 0
-        for coll in rig.data.collections:
+        for coll in rig.data.collections.all:
             if coll.is_visible:
                 counter += 1
                 json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
@@ -2805,7 +2814,7 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
             collections = rig.data.collections
 
             for coll_name, coll_data in json_obj.items():
-                coll = collections.get(coll_name)
+                coll = collections.all.get(coll_name)
 
                 if not coll or not self.overwrite_existing:
                     coll = collections.new(coll_name)
