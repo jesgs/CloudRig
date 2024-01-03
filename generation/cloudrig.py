@@ -1858,6 +1858,10 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         armature = self.id_data
         return armature.collections.all.get(self.parent_name)
 
+    @parent_collection.setter
+    def parent_collection(self, coll: bpy.types.BoneCollection):
+        self.parent_name = coll.name
+
     def unfold_parents(self):
         parent = self.parent_collection
         while parent:
@@ -2048,7 +2052,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
 
     @staticmethod
     def get_collection_order(all_collections):
-        # Order collections by hierarchy, such that children come after their
+        # Order collections by CloudRig hierarchy, such that children come after their
         # parents, but the original order is otherwise preserved.
 
         # Find collections without any parent
@@ -2636,7 +2640,7 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
 
         coll.cloudrig_info.unfold_parents()
 
-        rig.cloudrig_prefs.active_collection_index = colls.find(coll.name)
+        rig.cloudrig_prefs.active_collection_index = colls.all.find(coll.name)
 
         return {'FINISHED'}
 
@@ -2701,18 +2705,38 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         return {'FINISHED'}
 
     @staticmethod
+    def clear_parenting(rig):
+        for coll in rig.data.collections.all:
+            coll.move_to_parent(None)
+
+    @staticmethod
+    def sync_parenting(rig):
+        # Sync parenting between CloudRig and Blender. Favor CloudRig.
+
+        for coll in rig.data.collections.all[:]:
+            cloudrig_parent = coll.cloudrig_info.parent_collection
+            blender_parent = coll.parent
+            if cloudrig_parent and cloudrig_parent != blender_parent:
+                coll.move_to_parent(cloudrig_parent)
+            elif blender_parent:
+                coll.cloudrig_info.parent_collection = blender_parent
+
+    @staticmethod
     def refresh_collection_order(rig):
         collections = rig.data.collections
 
+        CLOUDRIG_OT_collection_move.clear_parenting(rig)
+
         # To get the order, we can re-use code of the nested UIList ordering.
-        new_order = CLOUDRIG_UL_collections.get_collection_order(collections)
+        new_order = CLOUDRIG_UL_collections.get_collection_order(collections.all)
 
         # Backup active coll.
         active_coll_name = collections.active.name
 
         # The re-ordering has to be done one-by-one, so it's a bit tricky.
         idx_map = [
-            (collections[old_idx], new_idx) for old_idx, new_idx in enumerate(new_order)
+            (collections.all[old_idx], new_idx)
+            for old_idx, new_idx in enumerate(new_order)
         ]
         idx_map.sort(key=lambda tup: tup[1])
 
@@ -2720,8 +2744,10 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
             old_idx = rig.data.collections.all.find(coll.name)
             rig.data.collections.move(old_idx, new_idx)
 
+        CLOUDRIG_OT_collection_move.sync_parenting(rig)
+
         # Preserve active coll.
-        rig.cloudrig_prefs.active_collection_index = collections.find(active_coll_name)
+        rig.cloudrig_prefs.active_collection_index = collections.all.find(active_coll_name)
 
 
 class CLOUDRIG_OT_collection_assign(bpy.types.Operator):

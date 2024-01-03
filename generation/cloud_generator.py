@@ -753,9 +753,13 @@ def replace_old_with_new_rig(
             new_bone = new_rig.data.bones.get(old_bone.name)
             if new_bone:
                 new_coll.assign(new_bone)
-        new_coll_idx = new_rig.data.collections.find(new_coll.name)
+        new_coll_idx = new_rig.data.collections.all.find(new_coll.name)
         max_idx = len(new_rig.data.collections)
-        new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))
+        try:
+            new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))
+        except RuntimeError:
+            # Shouldn't really happen anymore...
+            pass
     new_rig.data.collections.active_index = 0
 
     # Select and make active the new rig.
