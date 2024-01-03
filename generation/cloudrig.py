@@ -2685,19 +2685,11 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         rig = context.pose_object or context.active_object
 
         collections = rig.data.collections
-        active_coll = collections.active
 
-        siblings, sibling_idx = self.get_siblings_and_target_idx(
-            self.direction, active_coll
-        )
-        sibling_coll = siblings[sibling_idx]
-
-        if not active_coll.is_editable:
-            self.report({'ERROR'}, "Cannot re-order linked collections.")
-            return {'CANCELLED'}
-
-        new_idx = collections.all.find(sibling_coll.name)
         old_idx = collections.active_index
+        new_idx = old_idx + 1
+        if self.direction == 'UP':
+            new_idx = old_idx - 1
 
         collections.move(old_idx, new_idx)
         self.refresh_collection_order(rig)
@@ -2747,7 +2739,9 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         CLOUDRIG_OT_collection_move.sync_parenting(rig)
 
         # Preserve active coll.
-        rig.cloudrig_prefs.active_collection_index = collections.all.find(active_coll_name)
+        rig.cloudrig_prefs.active_collection_index = collections.all.find(
+            active_coll_name
+        )
 
 
 class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
