@@ -1557,6 +1557,17 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
 
 class CloudRig_RigPreferences(bpy.types.PropertyGroup):
+    collection_ui_type: EnumProperty(
+        name="Collections UI Type",
+        description="Whether to use Blender's built-in Collections UI or CloudRig's",
+        items=[
+            ('DEFAULT', 'Default', "Use Blender's built-in collections UI"),
+            ('CLOUDRIG', 'CloudRig', "Use CloudRig's custom collections UI"),
+        ],
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+
     show_visibility: BoolProperty(
         name="Hide",
         description="Show the Hide setting",
@@ -2089,112 +2100,97 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         return flt_flags, flt_neworder
 
 
+def draw_cloudrig_collections(self, context):
+    layout = self.layout
+    layout.use_property_split = True
+    layout.use_property_decorate = False
+
+    rig = context.pose_object or context.active_object
+    prefs = rig.cloudrig_prefs
+    active_coll = rig.data.collections.active
+
+    if context.pose_object:
+        prop_owner = 'pose_object'
+    else:
+        prop_owner = 'active_object'
+
+    list_col = draw_ui_list(
+        layout,
+        context,
+        class_name='CLOUDRIG_UL_collections',
+        list_path=prop_owner + ".data.collections.all",
+        active_index_path=prop_owner + '.cloudrig_prefs.active_collection_index',
+        insertion_operators=False,
+        move_operators=False,
+        unique_id='CloudRig Nested Collections UI',
+    )
+    list_col.popover(
+        panel="CLOUDRIG_PT_collections_filter",
+        text="",
+        icon='FILTER',
+    )
+
+    if not prefs.show_editing:
+        return
+
+    list_col.separator()
+
+    list_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
+
+    list_col.operator(
+        CLOUDRIG_OT_collection_delete.bl_idname, text="", icon='REMOVE'
+    ).mode = 'ACTIVE'
+    list_col.separator()
+
+    row = list_col.row()
+    row.menu(CLOUDRIG_MT_collections_specials.bl_idname, text="", icon='DOWNARROW_HLT')
+
+    list_col.separator()
+
+    if not active_coll:
+        return
+
+    siblings, sibling_idx = CLOUDRIG_OT_collection_move.get_siblings_and_target_idx(
+        'UP', active_coll
+    )
+    row = list_col.row()
+    row.enabled = sibling_idx >= 0
+    row.operator(
+        CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_UP'
+    ).direction = 'UP'
+
+    row = list_col.row()
+    row.enabled = sibling_idx + 2 < len(siblings)
+    row.operator(
+        CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_DOWN'
+    ).direction = 'DOWN'
+
+    row = layout.row()
+    if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
+        row.enabled = False
+    sub = row.row(align=True)
+    sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Assign").assign = True
+    sub.operator(
+        CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign"
+    ).assign = False
+
+    sub = row.row(align=True)
+    sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
+    sel_op.select = True
+    sel_op.collection_name = active_coll.name
+
+    desel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Deselect")
+    desel_op.select = False
+    desel_op.collection_name = active_coll.name
+
+
 class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
-    bl_idname = "CLOUDRIG_PT_collections_sidebar"
-    bl_label = "Bone Collections"
-
-    on_metarigs = True
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-
-        rig = context.pose_object or context.active_object
-        prefs = rig.cloudrig_prefs
-        active_coll = rig.data.collections.active
-
-        if context.pose_object:
-            prop_owner = 'pose_object'
-        else:
-            prop_owner = 'active_object'
-
-        list_col = draw_ui_list(
-            layout,
-            context,
-            class_name='CLOUDRIG_UL_collections',
-            list_path=prop_owner + ".data.collections.all",
-            active_index_path=prop_owner + '.cloudrig_prefs.active_collection_index',
-            insertion_operators=False,
-            move_operators=False,
-            unique_id='CloudRig Nested Collections UI',
-        )
-        list_col.popover(
-            panel="CLOUDRIG_PT_collections_filter",
-            text="",
-            icon='FILTER',
-        )
-
-        if not prefs.show_editing:
-            return
-
-        list_col.separator()
-
-        list_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
-
-        list_col.operator(
-            CLOUDRIG_OT_collection_delete.bl_idname, text="", icon='REMOVE'
-        ).mode = 'ACTIVE'
-        list_col.separator()
-
-        row = list_col.row()
-        row.menu(
-            CLOUDRIG_MT_collections_specials.bl_idname, text="", icon='DOWNARROW_HLT'
-        )
-
-        list_col.separator()
-
-        if not active_coll:
-            return
-
-        siblings, sibling_idx = CLOUDRIG_OT_collection_move.get_siblings_and_target_idx(
-            'UP', active_coll
-        )
-        row = list_col.row()
-        row.enabled = sibling_idx >= 0
-        row.operator(
-            CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_UP'
-        ).direction = 'UP'
-
-        row = list_col.row()
-        row.enabled = sibling_idx + 2 < len(siblings)
-        row.operator(
-            CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_DOWN'
-        ).direction = 'DOWN'
-
-        row = layout.row()
-        if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
-            row.enabled = False
-        sub = row.row(align=True)
-        sub.operator(
-            CLOUDRIG_OT_collection_assign.bl_idname, text="Assign"
-        ).assign = True
-        sub.operator(
-            CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign"
-        ).assign = False
-
-        sub = row.row(align=True)
-        sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
-        sel_op.select = True
-        sel_op.collection_name = active_coll.name
-
-        desel_op = sub.operator(
-            CLOUDRIG_OT_collection_select.bl_idname, text="Deselect"
-        )
-        desel_op.select = False
-        desel_op.collection_name = active_coll.name
-
-
-class CLOUDRIG_PT_collections_properties(CLOUDRIG_PT_base):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
     bl_idname = "CLOUDRIG_PT_collections_properties"
-    bl_label = "Nested Collections"
+    bl_label = "Bone Collections"
     bl_options = {'DEFAULT_CLOSED'}
 
     on_metarigs = True
-    draw = CLOUDRIG_PT_collections_sidebar.draw
+    draw = draw_cloudrig_collections
 
 
 class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
@@ -2866,12 +2862,13 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
         return {'FINISHED'}
 
 
-@classmethod
-def builtin_collections_poll_override(cls, context):
-    if is_active_cloud_metarig(context) or is_active_cloudrig(context):
-        rig = context.pose_object or context.active_object
-        return rig.cloudrig_prefs.show_editing
-    return False
+def builtin_collections_draw_override(self, context):
+    self.layout.prop(context.object.cloudrig_prefs, 'collection_ui_type', expand=True)
+
+    if context.object.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
+        return draw_cloudrig_collections(self, context)
+
+    return bpy.types.DATA_PT_bone_collections.draw_bkp(self, context)
 
 
 #######################################
@@ -2976,7 +2973,6 @@ classes = (
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
     CLOUDRIG_PT_collections_sidebar,
-    CLOUDRIG_PT_collections_properties,
     CLOUDRIG_PT_collections_filter,
     CLOUDRIG_MT_collections_specials,
     CLOUDRIG_MT_collections_quick_select,
@@ -3025,10 +3021,11 @@ def register():
     bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
 
     # Hide the built-in Bone Collections panel.
-    bpy.types.DATA_PT_bone_collections.poll_bkp = (
-        bpy.types.DATA_PT_bone_collections.poll
-    )
-    bpy.types.DATA_PT_bone_collections.poll = builtin_collections_poll_override
+    if not hasattr(bpy.types.DATA_PT_bone_collections, 'draw_bkp'):
+        bpy.types.DATA_PT_bone_collections.draw_bkp = (
+            bpy.types.DATA_PT_bone_collections.draw
+        )
+        bpy.types.DATA_PT_bone_collections.draw = builtin_collections_draw_override
 
     register_hotkey(
         bl_idname='wm.call_menu',

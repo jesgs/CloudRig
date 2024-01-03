@@ -179,8 +179,9 @@ class RigComponent(PropertyGroup):
     enabled_toggle: BoolProperty(
         name="Enabled",
         description="Whether this rig component and its children should be generated",
-        default=True
+        default=True,
     )
+
     @property
     def is_enabled_component(self):
         if not (self.component_type and self.component_module and self.enabled_toggle):
@@ -268,7 +269,7 @@ class RigComponent(PropertyGroup):
         self.id_data.cloudrig.active_component_index = self.id_data.pose.bones.find(
             context.active_bone.name
         )
-        
+
         # Clear any PointerProperties that are not of the new component type.
         for comp_type_name in list(self.params.keys()):
             if self.component_type.lower().replace(" ", "_") == comp_type_name:
@@ -423,11 +424,16 @@ class Properties_CloudRig(PropertyGroup):
         rig_ob = self.id_data
         return rig_ob.pose.bones[self.active_component_index].cloudrig_component
 
+    def enabled_update_callback(self, context=None):
+        if self.enabled:
+            self.id_data.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'
+        self.active_component_update_callback()
+
     enabled: BoolProperty(
         name="CloudRig",
         description="Whether this armature is a CloudRig metarig",
         default=False,
-        update=active_component_update_callback,
+        update=enabled_update_callback,
     )
 
     metarig_version: IntProperty(
