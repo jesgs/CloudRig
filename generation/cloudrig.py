@@ -1955,15 +1955,28 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         else:
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', text="", emboss=False)
+
+        indirect_bones = cloudrig_info.all_bones
+        indirect_visible_bones = [
+            b
+            for b in indirect_bones
+            if not b.hide and any([c.is_visible for c in b.collections])
+        ]
+        indirect_selected_bones = [b for b in indirect_visible_bones if b.select]
+        direct_selected_bones = [
+            b
+            for b in collection.bones
+            if not b.hide and any([c.is_visible for c in b.collections]) and b.select
+        ]
         if prefs.show_bone_count and context.mode != 'EDIT_ARMATURE':
-            all_bones = cloudrig_info.all_bones
-            vis_bones = [
-                b
-                for b in all_bones
-                if not b.hide and any([c.is_visible for c in b.collections])
-            ]
-            sel_bones = [b for b in vis_bones if b.select]
-            row.label(text=f"{len(sel_bones)}/{len(all_bones)}", icon='BONE_DATA')
+            row.label(
+                text=f"{len(indirect_selected_bones)}/{len(indirect_bones)}",
+                icon='BONE_DATA',
+            )
+        elif direct_selected_bones:
+            row.label(text="", icon='LAYER_ACTIVE')
+        elif indirect_selected_bones:
+            row.label(text="", icon='LAYER_USED')
 
         row = row.row(align=True)
         row.operator_context = 'INVOKE_DEFAULT'
