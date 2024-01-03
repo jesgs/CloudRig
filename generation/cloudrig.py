@@ -1971,27 +1971,32 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             row.label(text="", icon='BLANK1')
         row.prop(cloudrig_info, 'name', text="", emboss=False)
 
-        indirect_bones = cloudrig_info.all_bones
-        indirect_visible_bones = [
-            b
-            for b in indirect_bones
-            if not b.hide and any([c.is_visible for c in b.collections])
-        ]
-        indirect_selected_bones = [b for b in indirect_visible_bones if b.select]
-        direct_selected_bones = [
-            b
-            for b in collection.bones
-            if not b.hide and any([c.is_visible for c in b.collections]) and b.select
-        ]
-        if prefs.show_bone_count and context.mode != 'EDIT_ARMATURE':
-            row.label(
-                text=f"{len(indirect_selected_bones)}/{len(indirect_bones)}",
-                icon='BONE_DATA',
-            )
-        elif direct_selected_bones:
-            row.label(text="", icon='LAYER_ACTIVE')
-        elif indirect_selected_bones:
-            row.label(text="", icon='LAYER_USED')
+        if context.mode != 'EDIT_ARMATURE':
+            direct_selected_bones = [
+                b
+                for b in collection.bones
+                if not b.hide
+                and any([c.is_visible for c in b.collections])
+                and b.select
+            ]
+            indirect_bones = cloudrig_info.all_bones
+            indirect_visible_bones = [
+                b
+                for b in indirect_bones
+                if not b.hide and any([c.is_visible for c in b.collections])
+            ]
+            indirect_selected_bones = [b for b in indirect_visible_bones if b.select]
+
+            if direct_selected_bones:
+                row.label(text="", icon='LAYER_ACTIVE')
+            elif indirect_selected_bones:
+                row.label(text="", icon='LAYER_USED')
+
+            if prefs.show_bone_count:
+                row.label(
+                    text=f"{len(indirect_selected_bones)}/{len(indirect_bones)}",
+                    icon='BONE_DATA',
+                )
 
         row = row.row(align=True)
         row.operator_context = 'INVOKE_DEFAULT'
@@ -2767,9 +2772,11 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
 
     def execute(self, context):
         rig = context.active_object
-        colls = [
-            rig.data.collections.active
-        ] + rig.data.collections.active.cloudrig_info.children_recursive
+        colls = [rig.data.collections.active]
+
+        if not self.assign:
+            colls += rig.data.collections.active.cloudrig_info.children_recursive
+
         if self.all_collections:
             colls = rig.data.collections.all
 
