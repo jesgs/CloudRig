@@ -512,11 +512,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         for src_coll in src.data.collections.all:
             tgt_coll = target.data.collections.all.get(src_coll.name)
             if not tgt_coll:
-                src_parent = ""  # TODO 4.1: use .parent prop, coming soon...
-                for coll in src.data.collections.all:
-                    if coll.name in src_coll.children:
-                        src_parent = coll.name
-                parent = target.data.collections.all.get(src_parent)
+                parent = None
+                if src_coll.parent:
+                    parent = target.data.collections.all.get(src_coll.parent.name)
                 tgt_coll = target.data.collections.new(src_coll.name, parent=parent)
                 tgt_coll['cloudrig_info'] = src_coll['cloudrig_info'].to_dict()
             tgt_coll.is_visible = src_coll.is_visible
@@ -717,10 +715,6 @@ def replace_old_with_new_rig(
     old_data_name = old_rig.data.name
     old_rig.data.name += "_old"
 
-    # Swap all references pointing at the old rig to the new rig.
-    old_rig.id_data.user_remap(new_rig)
-    old_name = old_rig.name
-
     # Preserve parenting information of previous rig.
     new_rig.parent = old_rig.parent
     new_rig.parent_type = old_rig.parent_type
@@ -749,9 +743,12 @@ def replace_old_with_new_rig(
             continue
         new_coll = new_rig.data.collections.get(old_coll.name)
         if not new_coll:
-            # TODO 4.1: Also try setting the parent.
-            new_coll = new_rig.data.collections.new(old_coll.name)
+            parent = None
+            if old_coll.parent:
+                parent = new_rig.data.collections.all.get(old_coll.parent.name)
+            new_coll = new_rig.data.collections.new(old_coll.name, parent=parent)
         new_coll['cloudrig_info'] = old_coll['cloudrig_info'].to_dict()
+        new_coll.is_visible = old_coll.is_visible
         for old_bone in old_coll.bones:
             new_bone = new_rig.data.bones.get(old_bone.name)
             if new_bone:
@@ -761,13 +758,6 @@ def replace_old_with_new_rig(
         new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))
     new_rig.data.collections.active_index = 0
 
-    # Delete the old rig.
-    bpy.data.objects.remove(old_rig)
-
-    # Preserve object/data name of previous rig.
-    new_rig.name = old_name
-    new_rig.data.name = old_data_name
-
     # Select and make active the new rig.
     new_rig.select_set(True)
     context.view_layer.objects.active = new_rig
@@ -775,6 +765,17 @@ def replace_old_with_new_rig(
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
         from_json(context, selsets)
+
+    # Swap all references pointing at the old rig to the new rig.
+    old_rig.id_data.user_remap(new_rig)
+    old_name = old_rig.name
+
+    # Delete the old rig.
+    bpy.data.objects.remove(old_rig)
+
+    # Preserve object/data name of previous rig.
+    new_rig.name = old_name
+    new_rig.data.name = old_data_name
 
 
 def refresh_constraints(rig: Object):
