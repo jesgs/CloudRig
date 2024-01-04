@@ -2350,7 +2350,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
         if not coll:
             return {'CANCELLED'}
 
-        self.toggle_isolate(context, colls.all, coll)
+        self.toggle_isolate(colls.all, coll)
 
         if self.select_bones:
             with pose_mode(rig):
@@ -2359,7 +2359,8 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
 
         return {'FINISHED'}
 
-    def toggle_isolate(self, context, all_collections, isolate_collection):
+    @staticmethod
+    def toggle_isolate(all_collections, isolate_collection):
         un_isolate = False
 
         # Reset solo flags & visibilities.
