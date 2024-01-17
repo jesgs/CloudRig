@@ -171,7 +171,7 @@ def auto_assign_bone_gizmo_maps(old_rig, new_rig, *, bone_collection: str):
     of the passed collection."""
 
     obs = rig_component_features.object.get_object_hierarchy_recursive(old_rig)[1:]
-    coll = new_rig.data.collections.all.get(bone_collection)
+    coll = new_rig.data.collections_all.get(bone_collection)
     if not coll:
         return
     for pb in [new_rig.pose.bones.get(b.name) for b in coll.bones]:

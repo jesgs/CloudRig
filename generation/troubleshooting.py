@@ -263,8 +263,8 @@ class CloudLogManager:
     # For these, self.rig is expected to be set.
 
     def report_unused_bone_collections(self, metarig, target_rig):
-        for coll in metarig.data.collections.all:
-            target_coll = target_rig.data.collections.all.get(coll.name)
+        for coll in metarig.data.collections_all:
+            target_coll = target_rig.data.collections_all.get(coll.name)
             if not target_coll or len(target_coll.cloudrig_info.all_bones) == 0:
                 self.log(
                     "Unused Bone Collection",
@@ -1011,8 +1011,8 @@ class CLOUDRIG_OT_delete_collection(Operator):
 
     def execute(self, context):
         metarig = context.object
-        if self.coll_name in metarig.data.collections.all:
-            coll = metarig.data.collections.all.get(self.coll_name)
+        if self.coll_name in metarig.data.collections_all:
+            coll = metarig.data.collections_all.get(self.coll_name)
             metarig.data.collections.remove(coll)
             self.report({'INFO'}, f"Deleted '{self.coll_name}' collection.")
         else:

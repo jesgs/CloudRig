@@ -509,12 +509,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     @staticmethod
     def copy_bone_collections(src, target):
-        for src_coll in src.data.collections.all:
-            tgt_coll = target.data.collections.all.get(src_coll.name)
+        for src_coll in src.data.collections_all:
+            tgt_coll = target.data.collections_all.get(src_coll.name)
             if not tgt_coll:
                 parent = None
                 if src_coll.parent:
-                    parent = target.data.collections.all.get(src_coll.parent.name)
+                    parent = target.data.collections_all.get(src_coll.parent.name)
                 tgt_coll = target.data.collections.new(src_coll.name, parent=parent)
                 tgt_coll['cloudrig_info'] = src_coll['cloudrig_info'].to_dict()
             tgt_coll.is_visible = src_coll.is_visible
@@ -526,13 +526,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 continue
             # Ensure bone collections in both the metarig and the target rig.
             for collection_name in bone_info.collections:
-                meta_coll = self.metarig.data.collections.all.get(collection_name)
+                meta_coll = self.metarig.data.collections_all.get(collection_name)
                 if not meta_coll:
                     meta_coll = self.metarig.data.collections.new(collection_name)
                     meta_coll.cloudrig_info.name = meta_coll.name
                     meta_coll.is_visible = False
 
-                target_coll = target_rig.data.collections.all.get(collection_name)
+                target_coll = target_rig.data.collections_all.get(collection_name)
                 if not target_coll:
                     target_coll = target_rig.data.collections.new(collection_name)
                     target_coll.cloudrig_info.name = target_coll.name
@@ -738,14 +738,14 @@ def replace_old_with_new_rig(
     new_rig.data.show_axes = old_rig.data.show_axes
 
     # Preserve collections which are marked with preserve_on_regenerate.
-    for old_idx, old_coll in enumerate(old_rig.data.collections.all):
+    for old_idx, old_coll in enumerate(old_rig.data.collections_all):
         if not old_coll.cloudrig_info.preserve_on_regenerate:
             continue
         new_coll = new_rig.data.collections.get(old_coll.name)
         if not new_coll:
             parent = None
             if old_coll.parent:
-                parent = new_rig.data.collections.all.get(old_coll.parent.name)
+                parent = new_rig.data.collections_all.get(old_coll.parent.name)
             new_coll = new_rig.data.collections.new(old_coll.name, parent=parent)
         new_coll['cloudrig_info'] = old_coll['cloudrig_info'].to_dict()
         new_coll.is_visible = old_coll.is_visible
@@ -753,7 +753,7 @@ def replace_old_with_new_rig(
             new_bone = new_rig.data.bones.get(old_bone.name)
             if new_bone:
                 new_coll.assign(new_bone)
-        new_coll_idx = new_rig.data.collections.all.find(new_coll.name)
+        new_coll_idx = new_rig.data.collections_all.find(new_coll.name)
         max_idx = len(new_rig.data.collections)
         try:
             new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))

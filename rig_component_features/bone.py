@@ -556,7 +556,7 @@ class BoneInfo:
                 continue
             if key == 'collections':
                 for coll_name in value:
-                    coll = armature.data.collections.all.get(coll_name)
+                    coll = armature.data.collections_all.get(coll_name)
                     coll.assign(pose_bone)
                 continue
             setattr(bone, key, value)

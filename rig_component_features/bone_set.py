@@ -580,8 +580,8 @@ class CLOUDRIG_OT_bone_set_collection_rename(Operator):
                 for coll_entry in bone_set.collections:
                     if coll_entry.name == self.old_name:
                         coll_entry.name = self.new_name
-        if self.old_name in metarig.data.collections.all:
-            metarig.data.collections.all[self.old_name].name = self.new_name
+        if self.old_name in metarig.data.collections_all:
+            metarig.data.collections_all[self.old_name].name = self.new_name
 
         self.report(
             {'INFO'},
