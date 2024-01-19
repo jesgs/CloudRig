@@ -15,8 +15,10 @@ Priority 0: Missing functionality
 	- Test that cloud_face_chain, cloud_eyelid, cloud_chain_anchor, are working, and try to improve them, maybe.
 
 - Bone Colls UX
+	- Shift+M to bring up a pop-up panel of the bone colls UIList.
 	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 	- Add a log entry for unused collections on generated rig
+	- Ability to Ctrl+Click on Unassign button to unassign only from active coll, not the children.
 
 - Rig Samples UX
 	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".

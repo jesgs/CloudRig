@@ -22,10 +22,10 @@ from bl_ui.generic_ui_list import draw_ui_list
 from copy_global_transform import AutoKeying
 
 
-def is_generated_cloudrig(obj):
+def is_generated_cloudrig(arm_ob):
     """Return whether obj is marked as being compatible with cloudrig.py."""
-    return obj.type == 'ARMATURE' and (
-        'is_generated_cloudrig' in obj.data and obj.data['is_generated_cloudrig']
+    return (
+        'is_generated_cloudrig' in arm_ob.data and arm_ob.data['is_generated_cloudrig']
     )
 
 
@@ -44,6 +44,8 @@ def is_active_cloudrig(context):
         # initialized yet.
         return False
     rig = context.pose_object or context.active_object
+    if rig.type != 'ARMATURE':
+        return False
     if rig and is_generated_cloudrig(rig):
         return rig
 
@@ -920,11 +922,10 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            (is_active_cloudrig(context) is not None)
-            and (context.pose_object or context.active_object)
-            and 'ui_data' in context.active_object.data
-        )
+        rig = is_active_cloudrig(context)
+        if not rig:
+            return False
+        return 'ui_data' in rig
 
     def execute(self, context):
         rig = context.pose_object or context.active_object
