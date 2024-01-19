@@ -13,7 +13,7 @@ from copy import deepcopy
 
 from .cloud_limb import Component_Limb
 from ..utils.maths import flat
-from ..rig_component_features.ui import make_custom_property
+from ..rig_component_features.ui import ensure_custom_property
 
 
 class Component_Limb_BipedLeg(Component_Limb):
@@ -318,7 +318,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                     to_max_z_rot=rad(10),
                 )
                 toe_roll_prop_name = "Toe Roll Threshold"
-                make_custom_property(
+                ensure_custom_property(
                     roll_ctrl, toe_roll_prop_name, default=rad(90), min=0, max=rad(180)
                 )
                 toe_roll_con.drivers.append(
