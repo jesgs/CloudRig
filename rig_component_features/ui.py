@@ -205,26 +205,29 @@ def add_ui_data(
     # Update CloudRig UI data with the changes
     obj.data['ui_data'] = ui_data
 
-    # Create custom property.
+    # Create custom property, unless it already exists.
     prop_id = info['prop_id']
-    make_custom_property(prop_bone, prop_id, **custom_prop_dict)
+    ensure_custom_property(prop_bone, prop_id, **custom_prop_dict)
 
 
-def make_custom_property(prop_bone, prop_id, **kwargs):
+def ensure_custom_property(prop_bone, prop_id, **kwargs):
     if 'default' not in kwargs:
         kwargs['default'] = 0.0
-    if type(kwargs['default']) != bool:
-        if 'min' not in kwargs:
-            kwargs['min'] = 0
-        if 'max' not in kwargs:
-            kwargs['max'] = 1
 
     if str(type(prop_bone)) == str(BoneInfo):
         # Let this function work for BoneInfo objects during the generation process.
         if 'overridable' not in kwargs:
             kwargs['overridable'] = True
-        prop_bone.custom_props[prop_id] = kwargs
+        if prop_id not in prop_bone.custom_props:
+            prop_bone.custom_props[prop_id] = kwargs
+        else:
+            prop_bone.custom_props[prop_id].update(kwargs)
     else:
+        if type(kwargs['default']) != bool:
+            if 'min' not in kwargs:
+                kwargs['min'] = 0
+            if 'max' not in kwargs:
+                kwargs['max'] = 1
         if prop_id in prop_bone:
             # If the property already exists, don't update it.
             return
