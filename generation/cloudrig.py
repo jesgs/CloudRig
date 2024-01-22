@@ -369,7 +369,7 @@ class SnapBakeOperator:
                 b.bone.select = True
 
     def invoke(self, context, event):
-        self.init_invoke()
+        self.init_invoke(context)
 
         if hasattr(self, 'draw'):
             return context.window_manager.invoke_props_dialog(self)
@@ -687,6 +687,7 @@ class CLOUDRIG_OT_snap_bake(SnapBakeOperator, bpy.types.Operator):
         for i, bone_name in enumerate(self.bone_names):
             old_matrix = matrices[i]
             set_transform_from_matrix(
+                context,
                 rig,
                 bone_name,
                 old_matrix,
