@@ -37,8 +37,10 @@ class Component_CopyBone(Component_Base):
         super().create_bone_infos(context)
         bone_info = self.bones_org[0]
 
-        # if not bi.use_custom_shape_bone_size: # TODO 4.0 I think this can be removed?
-        #     bi.custom_shape_scale_xyz /= bi.bbone_width * 10 * self.scale
+        if (
+            not bone_info.use_custom_shape_bone_size
+        ):  # TODO 4.0 I think this can be removed?
+            bone_info.custom_shape_scale_xyz /= bone_info.bbone_width * 10 * self.scale
 
         if bone_info.custom_shape:
             self.add_to_widget_collection(context, bone_info.custom_shape)
@@ -71,7 +73,7 @@ class Component_CopyBone(Component_Base):
         if self.params.copy.custom_pivot:
             self.root_bone = self.create_custom_pivot(bone_info)
 
-        if self.params.copy.ensure_free:
+        if self.params.copy.ensure_free and len(bone_info.constraint_infos) > 0:
             constrained_parent = self.create_parent_bone(
                 self.root_bone,  # If custom pivot enabled, this should own that...
                 bone_set=self.bone_sets['Mechanism Bones'],
@@ -189,7 +191,7 @@ class Params(PropertyGroup):
     )
     ensure_free: BoolProperty(
         name="Ensure Free Transformation",
-        description='Create a parent which will have all constraints that this bone would have, unless the constraint name starts with "KEEP"',
+        description='If this bone has any constraints, move them to a parent bone prefixed with "CON", unless the constraint name starts with "KEEP"',
         default=False,
     )
     property_ui_subpanel: StringProperty(

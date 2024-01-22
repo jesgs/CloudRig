@@ -1,5 +1,5 @@
 Priority -1: Production bugs
-	- Custom property min/max don't make it through to the generated rig.
+	- "Keep Transforms Free", ie. CON- helpers on cloud_copy have wrong bone roll...
 
 Priority 0: Missing functionality
 	- Bug: Any cases where we previously relied on setting a param will be broken like on Mikassa's neck the Tip Control param. This is because Rigify used to give us the generated rig's PropertyGroup, but now we pass the metarig's. Search for params.*= and fix each case.
