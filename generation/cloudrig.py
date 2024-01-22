@@ -5,7 +5,8 @@ It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
 from typing import List, Dict, Tuple, Iterable, Optional
-import bpy, traceback, json, collections, re, contextlib
+import bpy, traceback, json, re, contextlib
+import collections as py_collections
 from bpy.props import (
     StringProperty,
     BoolProperty,
@@ -44,6 +45,8 @@ def is_active_cloudrig(context):
         # initialized yet.
         return False
     rig = context.pose_object or context.active_object
+    if not rig:
+        return False
     if rig.type != 'ARMATURE':
         return False
     if rig and is_generated_cloudrig(rig):
@@ -154,7 +157,7 @@ class FCurveTable(object):
         self.curve_map = self.index_curves(self.action.fcurves)
 
     def index_curves(self, curves):
-        curve_map = collections.defaultdict(dict)
+        curve_map = py_collections.defaultdict(dict)
         for curve in curves:
             index = curve.array_index
             if index < 0:
@@ -2702,22 +2705,22 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
     @staticmethod
     def clear_parenting(rig):
         for coll in rig.data.collections_all:
-            coll.move_to_parent(None)
+            coll.parent = None
 
     @staticmethod
     def sync_parenting(rig):
         # Sync parenting between CloudRig and Blender. Favor CloudRig.
-
         for coll in rig.data.collections_all[:]:
             cloudrig_parent = coll.cloudrig_info.parent_collection
             blender_parent = coll.parent
             if cloudrig_parent and cloudrig_parent != blender_parent:
-                coll.move_to_parent(cloudrig_parent)
+                coll.parent = cloudrig_parent
             elif blender_parent:
                 coll.cloudrig_info.parent_collection = blender_parent
 
     @staticmethod
     def refresh_collection_order(rig):
+        collections = rig.data.collections
         collections_all = rig.data.collections_all
 
         CLOUDRIG_OT_collection_move.clear_parenting(rig)
@@ -2811,9 +2814,8 @@ class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
         import json
 
         rig = context.pose_object or context.active_object
-        active_idx = rig.active_selection_set
 
-        json_obj = collections.defaultdict(dict)
+        json_obj = py_collections.defaultdict(dict)
         counter = 0
         for coll in rig.data.collections_all:
             if coll.is_visible:
@@ -2846,6 +2848,7 @@ class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
             json_obj = json.loads(context.window_manager.clipboard)
             rig = context.pose_object or context.active_object
             collections = rig.data.collections
+            collections_all = rig.data.collections_all
 
             for coll_name, coll_data in json_obj.items():
                 coll = collections_all.get(coll_name)
