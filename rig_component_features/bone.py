@@ -614,26 +614,9 @@ class BoneInfo:
                 ] = f'pose.bones["{pose_bone.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
                 make_driver_safe(armature, target_id=armature, **driver_info)
 
-        # Custom Properties.
+        # Custom Properties. TODO: This is somewhat redundant with ensure_custom_property().
         for prop_name, prop in self.custom_props.items():
-            if 'value' in prop:
-                pose_bone[prop_name] = prop['value']
-                del prop['value']
-            else:
-                pose_bone[prop_name] = prop['default']
-
-            if 'overridable' in prop:
-                pose_bone.property_overridable_library_set(
-                    f'["{prop_name}"]', prop['overridable']
-                )
-                del prop['overridable']
-
-            for key, value in prop.items():
-                try:
-                    pose_bone.id_properties_ui(prop_name).update(**{key: value})
-                except TypeError:
-                    # Python properties do not support UI data. TODO: I think they do as of 4.0.
-                    break
+            ensure_custom_property(pose_bone, prop_name, **prop)
 
         # Pose Bone Drivers.
         for driver_info in self.drivers:
@@ -872,3 +855,37 @@ class ConstraintInfo(dict):
         con = make_constraint(pose_bone, self.type, **con_info)
 
         return con
+
+
+def ensure_custom_property(prop_bone, prop_id, **kwargs):
+    if 'default' not in kwargs:
+        kwargs['default'] = 0.0
+    if 'overridable' not in kwargs:
+        kwargs['overridable'] = True
+
+    if str(type(prop_bone)) == str(BoneInfo):
+        # Let this function work for BoneInfo objects during the generation process.
+        if prop_id not in prop_bone.custom_props:
+            prop_bone.custom_props[prop_id] = kwargs
+        else:
+            prop_bone.custom_props[prop_id].update(kwargs)
+    else:
+        if type(kwargs['default']) != bool:
+            if 'min' not in kwargs:
+                kwargs['min'] = 0
+            if 'max' not in kwargs:
+                kwargs['max'] = 1
+        if prop_id in prop_bone:
+            # If the property already exists, don't update it.
+            return
+        prop_bone[prop_id] = kwargs['default']
+
+        prop_bone.property_overridable_library_set(
+            f'["{prop_id}"]', kwargs['overridable']
+        )
+        del kwargs['overridable']
+        if 'value' in kwargs:
+            prop_bone[prop_id] = kwargs['value']
+            del kwargs['value']
+
+        prop_bone.id_properties_ui(prop_id).update(**kwargs)

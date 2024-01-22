@@ -2,7 +2,7 @@ from typing import Dict, Any
 from bpy.types import Object
 
 from ..utils.misc import get_addon_prefs
-from .bone import BoneInfo
+from .bone import BoneInfo, ensure_custom_property
 
 import bpy, sys, os
 import json
@@ -208,32 +208,6 @@ def add_ui_data(
     # Create custom property, unless it already exists.
     prop_id = info['prop_id']
     ensure_custom_property(prop_bone, prop_id, **custom_prop_dict)
-
-
-def ensure_custom_property(prop_bone, prop_id, **kwargs):
-    if 'default' not in kwargs:
-        kwargs['default'] = 0.0
-
-    if str(type(prop_bone)) == str(BoneInfo):
-        # Let this function work for BoneInfo objects during the generation process.
-        if 'overridable' not in kwargs:
-            kwargs['overridable'] = True
-        if prop_id not in prop_bone.custom_props:
-            prop_bone.custom_props[prop_id] = kwargs
-        else:
-            prop_bone.custom_props[prop_id].update(kwargs)
-    else:
-        if type(kwargs['default']) != bool:
-            if 'min' not in kwargs:
-                kwargs['min'] = 0
-            if 'max' not in kwargs:
-                kwargs['max'] = 1
-        if prop_id in prop_bone:
-            # If the property already exists, don't update it.
-            return
-        prop_bone[prop_id] = kwargs['default']
-        prop_bone.id_properties_ui(prop_id).update(**kwargs)
-        prop_bone.property_overridable_library_set(f'["{prop_id}"]', True)
 
 
 class HiddenPrints:
