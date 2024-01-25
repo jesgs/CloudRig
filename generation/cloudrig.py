@@ -1010,36 +1010,38 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
                 pb.rotation_quaternion = (1, 0, 0, 0)
                 pb.scale = (1, 1, 1)
 
-            if self.reset_props and len(pb.keys()) > 0:
-                rna_properties = [
-                    prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime
-                ]
+            if not self.reset_props or len(pb.keys()) == 0:
+                continue
 
-                # Reset custom property values to their default value
-                for key in pb.keys():
-                    if key.startswith("$"):
-                        continue
-                    if key in rna_properties:
-                        continue  # Addon defined property.
+            rna_properties = [
+                prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime
+            ]
 
-                    ui_data = None
-                    try:
-                        ui_data = pb.id_properties_ui(key)
-                        if not ui_data:
-                            continue
-                        ui_data = ui_data.as_dict()
-                        if not 'default' in ui_data:
-                            continue
-                    except TypeError:
-                        # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
-                        pass
+            # Reset custom property values to their default value
+            for key in pb.keys():
+                if key.startswith("$"):
+                    continue
+                if key in rna_properties:
+                    continue  # Addon defined property.
 
+                ui_data = None
+                try:
+                    ui_data = pb.id_properties_ui(key)
                     if not ui_data:
                         continue
-
-                    if type(pb[key]) not in (float, int, bool):
+                    ui_data = ui_data.as_dict()
+                    if not 'default' in ui_data:
                         continue
-                    pb[key] = ui_data['default']
+                except TypeError:
+                    # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
+                    pass
+
+                if not ui_data:
+                    continue
+
+                if type(pb[key]) not in (float, int, bool):
+                    continue
+                pb[key] = ui_data['default']
 
         return {'FINISHED'}
 
@@ -2518,7 +2520,7 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = False
         rig = context.pose_object or context.active_object
-        layout.prop_search(self, 'parent_name', rig.data, 'collections')
+        layout.prop_search(self, 'parent_name', rig.data, 'collections_all')
 
     def execute(self, context):
         rig = context.pose_object or context.active_object

@@ -416,7 +416,7 @@ class CLOUDRIG_UL_bone_set_collections(UIList):
             collection,
             'name',
             metarig_ob.data,
-            'collections',
+            'collections_all',
             icon='OUTLINER_COLLECTION',
             text="",
         )
