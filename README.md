@@ -1,9 +1,14 @@
-# Blender 4.0 support?
-It's on it's way! CloudRig for Blender 4.0 is undergoing major construction, as it has grown up to be a self-contained, standalone add-on, no longer dependent on Rigify. This will allow more radical changes to the workflow, UX, and features, which I've been wanting to do for a long time. If you'd like to try out a work-in-progress state of this, you can check out the individual_addon branch of this repository, but don't expect support or documentation until it's complete!  
+# Blender 4.0/4.1 support?
+CloudRig won't have a stable release for Blender 4.0.
 
-Once CloudRig is ready for Blender 4.0, this notice will be removed.  
+If you want to use CloudRig with the latest daily alpha build of Blender 4.1, you can try the "individual_addon" branch of this repository, but it still lacks:
+- Metarigs
+- Rig samples
+- Documentation
+- Versioning of old metarigs
+But it is what I'm using in production so if you have a deep enough understanding of CloudRig then you can painstakingly manually convert your metarig and continue using CloudRig as normal.
 
-I would like to complete this before the end of the year.
+As for when these last few missing things will be implemented, let's say Q2/Q3.
 
 # Installing into [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html)
 
