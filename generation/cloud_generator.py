@@ -496,21 +496,28 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         """Create real bones from all BoneInfos.
         No bone data is written yet beside the name."""
 
+        bones_created = []
+
         for bone_info in self.bone_infos:
             if not bone_info.create:
                 continue
             if bone_info.name in self.target_rig.data.edit_bones:
                 # This happens for ORG bones that we load into BoneInfo objects,
                 # since they already get created by __duplicate_rig()
+                if bone_info.name in bones_created:
+                    # If a BoneInfo with this name was already created in this loop, we have a name collision.
+                    self.raise_generation_error(
+                        description=f"`Bone {bone_info.name}` was already defined. This could be a bug, but it could also be caused by bones not being named uniquely enough."
+                    )
+                bones_created.append(bone_info.name)
                 continue
+
             edit_bone = create_bone(self.target_rig, bone_info.name)
-            if edit_bone.name != bone_info.name:
-                self.logger.log(
-                    "Bone Name Clash",
-                    trouble_bone=bone_info.name,
-                    description=f'Bone name "{bone_info.name}" was already taken, got back to "{edit_bone.name}" instead.',
-                )
-                bone_info.name = edit_bone.name
+            bone_info.name = edit_bone.name
+            assert (
+                bone_info.name == edit_bone.name
+            ), "Bone names clash. Should have been caught already."
+            bones_created.append(bone_info.name)
 
     def parent_orphan_bone_infos_to_root(self):
         for bone_info in self.bone_infos:

@@ -35,6 +35,8 @@ class Component_Base(
 
     ui_name = "Cloud Base (Should not be visible in UI!)"
 
+    keep_original_bones = True
+
     def __init__(
         self, generator: 'CloudRig_Generator', bone_name: str, parent_instance=None
     ):
@@ -148,6 +150,7 @@ class Component_Base(
                 )
             bone_info.bbone_width = ebone.bbone_x / self.scale
             bone_info.use_connect = False
+            bone_info.create = self.keep_original_bones
             bone_infos[bone_info.name] = bone_info
 
         return bone_infos

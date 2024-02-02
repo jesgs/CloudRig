@@ -14,6 +14,8 @@ class Component_Lattice(Component_Base):
     ui_name = "Lattice"
     relinking_behaviour = "Constraints will be moved to the Lattice Root."
 
+    keep_original_bones = False
+
     def initialize(self):
         super().initialize()
         self.create_deform_bone = False
@@ -40,7 +42,7 @@ class Component_Lattice(Component_Base):
         root_bone = self.bone_sets['Lattice Controls'].new(
             name=root_name,
             source=org_bi,
-            parent=org_bi,
+            parent=org_bi.parent,
             custom_shape=self.ensure_widget("Cube"),
             use_custom_shape_bone_size=True,
         )
@@ -61,7 +63,7 @@ class Component_Lattice(Component_Base):
         super().create_helper_objects(context)
         root_pb = self.target_rig.pose.bones.get(self.root_bone.name)
         hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
-        self.params.lattice.lattice = self.ensure_lattice(hook_pb.name)
+        lattice_ob = self.params.lattice.lattice = self.ensure_lattice(hook_pb.name)
         if self.params.lattice.regenerate:
             self.reset_lattice(self.params.lattice.lattice, root_pb, hook_pb)
         else:
@@ -139,8 +141,7 @@ class Component_Lattice(Component_Base):
                 if component == self:
                     return
                 if (
-                    component.cloudrig_component.params.lattice.lattice
-                    == self.params.lattice.lattice
+                    component.params.lattice.lattice == self.params.lattice.lattice
                     and self.params.lattice.lattice != None
                 ):
                     self.raise_generation_error(

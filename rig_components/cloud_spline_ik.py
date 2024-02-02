@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import BoolProperty, IntProperty, FloatProperty
+from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty
 from bpy.types import PropertyGroup
 
 from .cloud_curve import Component_Curve_Hooked
@@ -51,8 +51,11 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         self.make_curve_root_ctrl()
         self.create_curve_object()
         self.make_ctrls_for_curve_points()
-        self.make_def_chain()
-        self.add_spline_ik()
+
+        ik_chain = self.bones_org
+        if self.params.spline_ik.deform_setup == 'CREATE':
+            ik_chain = self.make_def_chain()
+        self.add_spline_ik(ik_chain)
 
     def make_curve_controls(self):
         """Overrides.
@@ -134,7 +137,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 def_name = (
                     self.params.curve.hook_name
                     if self.params.curve.hook_name != ""
-                    else self.base_bone_name.replace("ORG-", "")
+                    else org_bone.name.replace("ORG-", "")
                 )
                 prefixes, base, suffixes = self.naming.slice_name(def_name)
                 suffixes.insert(0, str(count_def_bone).zfill(3))
@@ -158,13 +161,15 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 else:
                     def_bone.parent = self.bones_org[0]
 
-    def add_spline_ik(self):
+        return self.bone_sets['Curve Deform Bones']
+
+    def add_spline_ik(self, bone_chain):
         # Add constraint to deform chain
-        self.bone_sets['Curve Deform Bones'][-1].add_constraint(
+        bone_chain[-1].add_constraint(
             'SPLINE_IK',
             target=self.params.curve.target,
             use_curve_radius=True,
-            chain_count=len(self.bone_sets['Curve Deform Bones']),
+            chain_count=len(bone_chain),
         )
 
     def relink(self):
@@ -227,16 +232,17 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         layout.separator()
         cls.draw_control_label(layout, "Spline")
-        cls.draw_prop(context, layout, params.spline_ik, "subdivide")
-        cls.draw_prop(context, layout, params.spline_ik, "handle_length")
+        cls.draw_prop(context, layout, params.spline_ik, 'subdivide')
+        cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
 
+        cls.draw_prop(context, layout, params.spline_ik, 'deform_setup', expand=True)
         # TODO: When this is false, the directions of the curve points and bones
         # don't match, and both of them are unsatisfactory. It would be nice if
         # we would interpolate between the direction of the two bones, using
         # length_remaining/bone.length as a factor, or something similar to that.
-        cls.draw_prop(context, layout, params.spline_ik, "match_hooks")
+        cls.draw_prop(context, layout, params.spline_ik, 'match_hooks')
         if not params.spline_ik.match_hooks:
-            cls.draw_prop(context, layout, params.spline_ik, "hooks")
+            cls.draw_prop(context, layout, params.spline_ik, 'hooks')
 
 
 class Params(PropertyGroup):
@@ -244,6 +250,19 @@ class Params(PropertyGroup):
         name="Match Controls to Bones",
         description="Hook controls will be created at each bone, instead of being equally distributed across the length of the chain",
         default=True,
+    )
+    deform_setup: EnumProperty(
+        name="Deform Setup",
+        items=[
+            (
+                'NONE',
+                'None',
+                "Disable deform flag, so this rig can't be used in tandem with Armature modifiers",
+            ),
+            ('PRESERVE', 'Preserve', "Preserve deform flag of each bone"),
+            ('CREATE', 'Create', "Create deform bones prefixed with DEF-"),
+        ],
+        description="How this curve rig should behave with Armature modifiers",
     )
     handle_length: FloatProperty(
         name="Curve Handle Length",

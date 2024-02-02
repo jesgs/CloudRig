@@ -100,16 +100,6 @@ class BoneSet(LinkedList):
     def new(self, name="Bone", source=None, **kwargs):
         """Create and add a new BoneInfo to self."""
 
-        generator = self.rig_component.generator
-
-        # If a BoneInfo with the passed name already exists, something is very wrong!
-        # This could be a bug, or not.
-        bone_info = generator.find_bone_info(name)
-        if bone_info:
-            self.rig_component.raise_generation_error(
-                description=f"`{name}` was already defined. This could be a bug, but it could also be caused by bones not being named uniquely enough."
-            )
-
         if 'collections' not in kwargs:
             kwargs['collections'] = self.collections
         if 'color_palette_base' not in kwargs:

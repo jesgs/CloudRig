@@ -13,6 +13,8 @@ class Component_TweakBone(Component_Base):
     relinking_behaviour = "Constraints will be moved to the tweaked bone."
     parent_switch_behaviour = "The active parent will own the tweaked bone."
 
+    keep_original_bones = False
+
     def initialize(self):
         super().initialize()
 
@@ -23,7 +25,6 @@ class Component_TweakBone(Component_Base):
         bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
         self.original_name, self_bone = bone_info_tuple
         self_bone.name += "_Tweak"
-        self_bone.create = False
         return bone_infos
 
     def create_bone_infos(self, context):

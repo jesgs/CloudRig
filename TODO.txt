@@ -45,6 +45,7 @@ Priority 0: Missing functionality
 	- Add the "Add Metarig" menu to the Rig Components List UI as well, under a Specials menu.
 
 Priority 1: Bugs
+	When people download a branch and the folder name is anything other than "CloudRig", things go bad. Should os.rename the folder during register.
 	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
@@ -89,6 +90,9 @@ Priority 2: New features
 		Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 			Not to mention, the eye target distance should be determined by a gizmo! :(
+	cloud_chain
+		There was at least one user requesting to make DEF- bones optional. Especially makes sense for FK robot limbs, where parts will just be object parented to ORG bones.
+
 
 Priority 3: Changes that will affect metarigs
 	Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
