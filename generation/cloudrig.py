@@ -750,11 +750,17 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
     bl_description = "Toggle a custom property and snap some bones to some other bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    map_on: StringProperty()  # Bone name dictionary to use when the property is toggled ON.
-    map_off: StringProperty()  # Bone name dictionary to use when the property is toggled OFF.
+    map_on: (
+        StringProperty()
+    )  # Bone name dictionary to use when the property is toggled ON.
+    map_off: (
+        StringProperty()
+    )  # Bone name dictionary to use when the property is toggled OFF.
 
     hide_on: StringProperty()  # List of bone names to hide when property is toggled ON.
-    hide_off: StringProperty()  # List of bone names to hide when property is toggled OFF.
+    hide_off: (
+        StringProperty()
+    )  # List of bone names to hide when property is toggled OFF.
 
     def init_invoke(self, context):
         rig = context.pose_object or context.active_object
@@ -2020,7 +2026,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                 icon='RESTRICT_SELECT_OFF',
             )
             sel_op.collection_name = collection.name
-            sel_op.reveal_bones = True
+            sel_op.reveal_bones = False
         if prefs.show_editing:
             row.separator()
             row.operator(
@@ -2183,9 +2189,9 @@ def draw_cloudrig_collections(self, context):
         row.enabled = False
     sub = row.row(align=True)
     sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Assign").assign = True
-    sub.operator(
-        CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign"
-    ).assign = False
+    sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign").assign = (
+        False
+    )
 
     sub = row.row(align=True)
     sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
@@ -2289,7 +2295,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
                 )
                 op.collection_name = coll.name
                 op.select = True
-                op.reveal_bones = True
+                op.reveal_bones = False
 
 
 class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
