@@ -2,7 +2,7 @@ import bpy
 from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty
 from bpy.types import PropertyGroup
 
-from .cloud_curve import Component_Curve_Hooked
+from .cloud_curve import Component_Curve_Hooked, get_points
 
 """TODO:
 "Subdivide Bones" param should be re-implemented as "number of bones", since it has to max out at 255 anyways. And the bones should be distributed evenly anyways. It just makes a lot more sense.
@@ -14,11 +14,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     """Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
     ui_name = "Curve: Spline IK"
-    relinking_behaviour = "Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled."  # TODO: Gray this out otherwise!
+    relinking_behaviour = "Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled."
 
     forced_params = {
         'curve.x_axis_symmetry': False,
-        # 'curve.target' : None TODO: This shouldn't be user-modifiable, but it also can't be set to None, because we need the curve reference in create_curve_object().
     }
 
     def initialize_curve_rig(self):
@@ -48,8 +47,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.make_curve_root_ctrl()
-        self.create_curve_object()
+        if self.params.curve.create_root:
+            self.make_curve_root_ctrl()
+        if not self.params.curve.target:
+            self.create_bezier_curve_obj()
         self.make_ctrls_for_curve_points()
 
         ik_chain = self.bones_org
@@ -59,17 +60,17 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
     def make_curve_controls(self):
         """Overrides.
-        This rig's create_curve_object() relies on Component_Base.create_bone_infos()
+        This rig's create_bezier_curve_obj() relies on Component_Base.create_bone_infos()
         having already run. But if we simply call super().create_bone_infos(context),
         it will run make_ctrls_for_curve_points(), which, for this class,
-        relies on create_curve_object() running beforehand.
+        relies on create_bezier_curve_obj() running beforehand.
         So, we override this with nothing, and we put the calls in the
         correct order in our own create_bone_infos().
         """
         # TODO: This could perhaps be better done with a callback of some kind.
         pass
 
-    def create_curve_object(self):
+    def create_bezier_curve_obj(self):
         """Find or create the Bezier Curve that will be used by the rig."""
 
         curve_ob = self.params.curve.target
@@ -107,7 +108,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         self.params.curve.target = curve_ob
 
         # Add the necessary number of curve points to the spline
-        points = spline.bezier_points
+        points = get_points(spline)
         points.add(self.num_controls - len(points))
         num_points = len(points)
 
@@ -173,9 +174,9 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         )
 
     def relink(self):
-        """Override cloud_base.
+        """Override cloud_curve.
         Move constraints from ORG to Hook controls and relink them.
-        Only works when params.spline_ik.match_hooks==True. TODO: Indicate this by graying out in the UI!
+        Only works when params.spline_ik.match_hooks==True.
         """
         if not self.params.spline_ik.match_hooks:
             return
