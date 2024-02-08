@@ -290,7 +290,6 @@ class Component_Curve_Hooked(Component_Base):
             roll_bone=source_bone,
             roll=0,
         )
-        print(hook_ctr.name, parent_bone.name)
         hook_ctr.invert_tilt = False
         if self.params.curve.x_axis_symmetry:
             opp_hook_ctr = self.generator.find_bone_info(

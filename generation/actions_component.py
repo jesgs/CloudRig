@@ -5,10 +5,18 @@ from bpy.types import Action, Mesh, Armature, Object
 from bl_math import clamp
 
 from rigify.utils.naming import Side, get_name_side, change_name_side, mirror_name
-from rigify.utils.mechanism import driver_var_transform, quote_property, make_property, make_driver, make_constraint
+from rigify.utils.mechanism import (
+    driver_var_transform,
+    quote_property,
+    make_property,
+    make_driver,
+    make_constraint,
+)
+
 
 class MetarigError(Exception):
     pass
+
 
 class ActionSlotBase:
     """Abstract non-RNA base for the action list slots."""
@@ -150,6 +158,7 @@ class ActionLayer:
             self.trigger_a.use_trigger = True
             self.trigger_b.use_trigger = True
 
+            self.bone_name = self.trigger_a.slot.subtarget
         else:
             self.bone_name = change_name_side(slot.subtarget, side)
 
@@ -196,7 +205,13 @@ class ActionLayer:
         if self.use_property:
             factor = self.slot.get_default_factor(self.side)
 
-            make_property(owner=self.generator.target_rig.pose.bones.get('root'), name=self.name, default=float(factor))
+            owner = self.generator.target_rig.pose.bones.get(self.bone_name)
+
+            make_property(
+                owner=owner,
+                name=self.name,
+                default=float(factor),
+            )
 
     def rig_bones_and_shape_keys(self):
         if self.slot.is_corrective and self.use_trigger:
@@ -205,11 +220,14 @@ class ActionLayer:
             )
 
         if self.use_property:
-            self.rig_input_driver(self.bone_name, quote_property(self.name))
+            self.rig_input_driver(
+                self.generator.target_rig.pose.bones.get(self.bone_name),
+                quote_property(self.name),
+            )
 
         for bone_name in self.bones:
             self.rig_bone(bone_name)
-        
+
         self.rig_child_shape_keys()
 
     def rig_bone(self, bone_name):
@@ -238,32 +256,45 @@ class ActionLayer:
 
         self.rig_output_driver(con, 'eval_time')
 
-    def rig_output_driver(self, obj, prop):
+    def rig_output_driver(self, owner, prop_name):
         if self.use_property:
             make_driver(
-                obj, prop, variables=[(self.bone_name, self.name)]
+                owner,
+                prop_name,
+                variables=[
+                    (
+                        self.generator.target_rig,
+                        f'pose.bones["{self.bone_name}"]["{self.name}"]',
+                    )
+                ],
             )
         else:
-            self.rig_input_driver(obj, prop)
+            self.rig_input_driver(owner, prop_name)
 
-    def rig_input_driver(self, obj, prop):
+    def rig_input_driver(self, owner, prop_name):
         if self.slot.is_corrective:
-            self.rig_corrective_driver(obj, prop)
+            self.rig_corrective_driver(owner, prop_name)
         else:
-            self.rig_factor_driver(obj, prop)
+            self.rig_factor_driver(owner, prop_name)
 
-    def rig_corrective_driver(self, obj, prop):
+    def rig_corrective_driver(self, owner, prop_name):
         make_driver(
-            obj,
-            prop,
+            owner,
+            prop_name,
             expression=self.slot.get_trigger_expression('a', 'b'),
             variables={
-                'a': (self.bone_name, self.trigger_a.name),
-                'b': (self.bone_name, self.trigger_b.name),
+                'a': (
+                    self.generator.target_rig,
+                    f'pose.bones["{owner.name}"]["{self.trigger_a.name}"]',
+                ),
+                'b': (
+                    self.generator.target_rig,
+                    f'pose.bones["{self.trigger_b.bone_name}"]["{self.trigger_b.name}"]',
+                ),
             },
         )
 
-    def rig_factor_driver(self, obj, prop):
+    def rig_factor_driver(self, owner, prop_name):
         if self.side != Side.MIDDLE:
             control_name = change_name_side(self.slot.subtarget, self.side)
         else:
@@ -279,8 +310,8 @@ class ActionLayer:
         )
 
         make_driver(
-            obj,
-            prop,
+            owner,
+            prop_name,
             expression=self.slot.get_factor_expression('var', side=self.side),
             variables=[
                 driver_var_transform(
