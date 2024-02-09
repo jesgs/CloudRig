@@ -2149,10 +2149,16 @@ def draw_cloudrig_collections(self, context):
         icon='FILTER',
     )
 
-    if not prefs.show_editing:
-        return
-
     list_col.separator()
+
+    if not prefs.show_editing:
+        list_col.operator(
+            CLOUDRIG_OT_collections_reveal_all.bl_idname,
+            text="",
+            icon='HIDE_OFF',
+            emboss=False,
+        )
+        return
 
     list_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
 
