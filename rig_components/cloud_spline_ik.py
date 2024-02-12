@@ -109,6 +109,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         # Add the necessary number of curve points to the spline
         points = get_points(spline)
+        assert len(points) == 1
         points.add(self.num_controls - len(points))
         num_points = len(points)
 
@@ -135,13 +136,14 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         for org_bone in self.bones_org:
             for i in range(0, segments):
                 ## Create Deform bones
-                def_name = (
-                    self.params.curve.hook_name
-                    if self.params.curve.hook_name != ""
-                    else org_bone.name.replace("ORG-", "")
-                )
+                if self.params.curve.hook_name != "":
+                    def_name = self.params.curve.hook_name
+                    counter = count_def_bone
+                else:
+                    def_name = org_bone.name.replace("ORG-", "")
+                    counter = i
                 prefixes, base, suffixes = self.naming.slice_name(def_name)
-                suffixes.insert(0, str(count_def_bone).zfill(3))
+                base += "_" + str(counter).zfill(len(str(segments)))
                 prefixes.insert(0, "DEF")
                 def_name = self.naming.make_name(prefixes, base, suffixes)
                 count_def_bone += 1
