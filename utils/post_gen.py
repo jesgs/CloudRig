@@ -157,13 +157,19 @@ def GLOBAL_clean_custom_properties():
 
 
 def GLOBAL_rename_obdatas():
-    # Ensure object data names are correct
-    for o in bpy.data.objects:
-        if not o.data:
+    # Ensure object data names are same as the object
+    for ob in bpy.data.objects:
+        if not ob.data:
             continue
-        data_name = "Data_" + o.name
-        if o.data.name != data_name:
-            o.data.name = data_name
+        # Skip if obj data is linked
+        if ob.data.library:
+            continue
+        ob.data.name = ob.name
+        if not hasattr(ob.data, 'shape_keys'):
+            continue
+        if not ob.data.shape_keys:
+            continue
+        ob.data.shape_keys.name = ob.name
 
 
 def auto_assign_bone_gizmo_maps(old_rig, new_rig, *, bone_collection: str):
