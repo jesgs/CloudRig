@@ -2223,6 +2223,10 @@ class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_label = "Filter"
 
+    @classmethod
+    def poll(cls, context):
+        return context.pose_object or context.active_object
+
     def draw(self, context):
         layout = self.layout
         obj = context.pose_object or context.active_object
