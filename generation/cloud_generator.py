@@ -292,7 +292,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         metarig = self.metarig
         print("Begin Generating CloudRig from metarig: " + metarig.name)
 
-        metarig.data.name = "Data_" + self.metarig.name
+        metarig.data.name = self.metarig.name
         self.params.metarig_version = get_addon_prefs(context).cloud_metarig_version
         self.driver_map = map_pbones_to_drivers(self.metarig)
 
