@@ -73,14 +73,15 @@ def draw_cloudrig_parents(layout, context, text=""):
     row.alignment = 'RIGHT'
     row.label(text="Is Default")
 
-    draw_ui_list(
-        layout,
-        context,
-        class_name='CLOUDRIG_UL_parent_slots',
-        list_path='active_pose_bone.cloudrig_component.params.parenting.parent_slots',
-        active_index_path='active_pose_bone.cloudrig_component.params.parenting.active_parent_index',
-        unique_id='CloudRig Parent Slots',
-    )
+    if context.mode != 'EDIT_ARMATURE':
+        draw_ui_list(
+            layout,
+            context,
+            class_name='CLOUDRIG_UL_parent_slots',
+            list_path='active_pose_bone.cloudrig_component.params.parenting.parent_slots',
+            active_index_path='active_pose_bone.cloudrig_component.params.parenting.active_parent_index',
+            unique_id='CloudRig Parent Slots',
+        )
 
 
 class CloudParentingMixin:
