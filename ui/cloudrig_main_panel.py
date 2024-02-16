@@ -33,7 +33,7 @@ class POSE_PT_CloudRig(Panel):
     @classmethod
     def poll(cls, context):
         rig = context.object
-        if rig.type != 'ARMATURE':
+        if not rig or rig.type != 'ARMATURE':
             return False
         return rig and not is_generated_cloudrig(rig)
 
