@@ -1,6 +1,6 @@
 # It is important to import it this way due to type comparisons with isinstance()!
-from .cloud_face_chain import RigComponent as Component_FaceChain
-from .cloud_aim import RigComponent as Component_Aim
+from .cloud_face_chain import Component_FaceChain
+from .cloud_aim import Component_Aim
 
 from ..utils.maths import project_vector_on_plane
 
@@ -11,20 +11,20 @@ class Component_Eyelid(Component_FaceChain):
     ui_name = "Chain: Eyelid"
 
     def initialize(self):
-        if not self.rigify_parent or type(self.rigify_parent) != Component_Aim:
-            self.raise_generation_error("Must have a cloud_aim parent bone!")
-
         super().initialize()
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
+
+        if not self.parent_component or type(self.parent_component) != Component_Aim:
+            self.raise_generation_error("Must have a cloud_aim parent bone!")
 
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
         # parent it to the parent of the eyeball.
         # This is rather cosmetic since these ORG bones don't do anything anyways.
         # TODO: unneccessary ORG bones should just be deleted...
-        self.bones_org[0].parent = self.rigify_parent.bones_org[0].parent
+        self.bones_org[0].parent = self.parent_component.bones_org[0].parent
         self.make_sticky_eyelid()
 
     def make_sticky_eyelid(self):
@@ -33,7 +33,7 @@ class Component_Eyelid(Component_FaceChain):
         intersection controls, it must be called from execute_final_face_chain()."""
 
         # Parent rig must be a cloud_aim type rig!
-        parent_rig = self.rigify_parent
+        parent_rig = self.parent_component
         if not isinstance(parent_rig, Component_Aim):
             self.raise_generation_error(
                 f'Parent of eyelid rig MUST be a "cloud_aim" rig type, not "{type(parent_rig)}"!'

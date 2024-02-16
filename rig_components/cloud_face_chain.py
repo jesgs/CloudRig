@@ -100,9 +100,9 @@ def do_centered_cluster(
                 # at this STR bone's Damped Track target.
                 # This gets us a smooth curve across the two chains.
                 # (This is also what would happen if it was just one longer smooth chain)
-                b.tangent_helper.constraint_infos[
-                    1
-                ].subtarget = opposite_bone.tangent_helper.constraint_infos[0].subtarget
+                b.tangent_helper.constraint_infos[1].subtarget = (
+                    opposite_bone.tangent_helper.constraint_infos[0].subtarget
+                )
 
 
 class Component_FaceChain(Component_ToonChain):
@@ -114,20 +114,40 @@ class Component_FaceChain(Component_ToonChain):
     def initialize(self):
         super().initialize()
 
+    def create_bone_infos(self, context):
+        super().create_bone_infos(context)
+
         # Check the generator rig list to see if we are the last chain rig that will be generated.
         self.chain_rigs = []
         for component in self.generator.all_components:
-            if isinstance(component, Component_FaceChain):
+            print(type(component))
+            if any(
+                [
+                    rig_class in str(type(component))
+                    for rig_class in ["Component_FaceChain", "Component_Eyelid"]
+                ]
+            ):
+                # I don't know why isinstance() doesn't fucking work here. It works when cloud_eyelid is testing itself, but not when cloud_face_chain is testing cloud_eyelid.
+                print("Chain rig found! ", component)
                 self.chain_rigs.append(component)
 
         self.is_last_chain_rig = self == self.chain_rigs[-1]
 
-    def create_bone_infos(self):
-        super().create_bone_infos()
+        ### Following code is only run ONCE by the LAST face_chain_rig.
+        if not self.is_last_chain_rig:
+            return
 
-        if self.is_last_chain_rig:
-            # This will only run ONCE for the LAST cloud_face_chain.
-            self.setup_all_intersections()
+        # Create and set up intersection controls.
+
+        self.intersection_bones = []
+        self.setup_all_intersections()
+
+        str_bone_clusters = get_bone_clusters(self.chain_rigs)
+
+        for cluster in str_bone_clusters:
+            self.intersection_bones.append(
+                self.create_intersection_for_cluster(cluster)
+            )
 
     def setup_all_intersections(self):
         # This is ugly, but any STR controls with the Smooth Spline param need
@@ -143,23 +163,6 @@ class Component_FaceChain(Component_ToonChain):
         for chain_rig in self.chain_rigs:
             if hasattr(chain_rig, 'make_sticky_eyelid'):
                 chain_rig.make_sticky_eyelid()
-
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
-
-        ### Following code is only run ONCE by the LAST face_chain_rig.
-        if not self.is_last_chain_rig:
-            return
-
-        # This is all code that needs to create or interact with intersection controls.
-
-        str_bone_clusters = get_bone_clusters(self.chain_rigs)
-        self.intersection_bones = []
-
-        for cluster in str_bone_clusters:
-            self.intersection_bones.append(
-                self.create_intersection_for_cluster(cluster)
-            )
 
     def relink(self, last_chain_done=False):
         # Only relink all cloud_face_chain components when the last one is generating.
