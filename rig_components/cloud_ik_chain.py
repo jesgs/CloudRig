@@ -791,5 +791,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Chain_IKFK):
-    pass
+RIG_COMPONENT_CLASS = Component_Chain_IKFK

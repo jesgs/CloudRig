@@ -284,5 +284,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(CloudPhysicsChainRig):
-    pass
+RIG_COMPONENT_CLASS = CloudPhysicsChainRig

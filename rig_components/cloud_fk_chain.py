@@ -455,5 +455,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Chain_FK):
-    pass
+RIG_COMPONENT_CLASS = Component_Chain_FK

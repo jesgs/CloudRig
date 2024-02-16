@@ -141,8 +141,8 @@ class BoneSets(PropertyGroup):
 
     def make_bone_set_property_groups() -> Dict[str, type]:
         classes = {}
-        for rig_type_name, rig_module in rig_components.component_modules.items():
-            rig_class = getattr(rig_module, 'RigComponent')
+        for rigcomp_name, rigcomp_module in rig_components.component_modules.items():
+            rig_class = getattr(rigcomp_module, 'RIG_COMPONENT_CLASS')
             rig_class.define_bone_sets()
             for bone_set_name, bone_set_definition in rig_class.bone_set_defs.items():
                 rna_name = bone_set_name.lower().replace(" ", "_")
@@ -311,7 +311,7 @@ class RigComponent(PropertyGroup):
     def rig_class(self) -> Optional[type]:
         if not self.component_module:
             return
-        return getattr(self.component_module, 'RigComponent')
+        return getattr(self.component_module, 'RIG_COMPONENT_CLASS')
 
     def instantiate(self, generator, parent_instance=None) -> Optional['RigComponent']:
         if not self.rig_class:

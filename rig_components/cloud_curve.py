@@ -690,8 +690,7 @@ class Params(PropertyGroup):
     target: PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
 
 
-class RigComponent(Component_Curve_Hooked):
-    pass
+RIG_COMPONENT_CLASS = Component_Curve_Hooked
 
 
 def create_sample(obj):

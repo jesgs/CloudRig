@@ -279,5 +279,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_FaceChain):
-    pass
+RIG_COMPONENT_CLASS = Component_FaceChain

@@ -25,5 +25,4 @@ class Component_FaceChainAnchor(Component_CopyBone):
     # No parameters for this rig type.
 
 
-class RigComponent(Component_FaceChainAnchor):
-    pass
+RIG_COMPONENT_CLASS = Component_FaceChainAnchor

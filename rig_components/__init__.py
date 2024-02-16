@@ -24,7 +24,7 @@ def load_component_modules(dir_path: str) -> Dict:
             continue
         module = importlib.import_module(delta, __package__)
         importlib.reload(module)
-        if not hasattr(module, 'RigComponent'):
+        if not hasattr(module, 'RIG_COMPONENT_CLASS'):
             continue
         component_modules[module_name] = module
 

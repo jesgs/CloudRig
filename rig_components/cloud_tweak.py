@@ -204,5 +204,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_TweakBone):
-    pass
+RIG_COMPONENT_CLASS = Component_TweakBone

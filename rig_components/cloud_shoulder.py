@@ -60,5 +60,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Shoulder):
-    pass
+RIG_COMPONENT_CLASS = Component_Shoulder

@@ -204,5 +204,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_CopyBone):
-    pass
+RIG_COMPONENT_CLASS = Component_CopyBone

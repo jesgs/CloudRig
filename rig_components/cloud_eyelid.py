@@ -126,5 +126,4 @@ class Component_Eyelid(Component_FaceChain):
         )
 
 
-class RigComponent(Component_Eyelid):
-    pass
+RIG_COMPONENT_CLASS = Component_Eyelid

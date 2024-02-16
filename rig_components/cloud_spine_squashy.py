@@ -343,5 +343,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Spine_Squashy):
-    pass
+RIG_COMPONENT_CLASS = Component_Spine_Squashy

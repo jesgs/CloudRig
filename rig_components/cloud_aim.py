@@ -420,5 +420,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Aim):
-    pass
+RIG_COMPONENT_CLASS = Component_Aim

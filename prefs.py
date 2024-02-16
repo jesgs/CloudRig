@@ -11,12 +11,12 @@ def init_component_module_list(context=None):
     prefs.component_types.clear()
 
     module_infos = []
-    for rig_file_name, rig_module in rig_components.component_modules.items():
-        if not hasattr(rig_module, 'RigComponent'):
+    for rig_file_name, rigcomp_module in rig_components.component_modules.items():
+        if not hasattr(rigcomp_module, 'RIG_COMPONENT_CLASS'):
             continue
-        rig_class = rig_module.RigComponent
+        component_class = rigcomp_module.RIG_COMPONENT_CLASS
 
-        module_infos.append((rig_class.ui_name, rig_file_name))
+        module_infos.append((component_class.ui_name, rig_file_name))
 
     module_infos.sort(key=lambda t: t[0])
     for ui_name, file_name in module_infos:

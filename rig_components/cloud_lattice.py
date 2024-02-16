@@ -188,5 +188,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Lattice):
-    pass
+RIG_COMPONENT_CLASS = Component_Lattice

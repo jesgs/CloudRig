@@ -179,5 +179,4 @@ class Component_Finger(Component_Chain_IKFK):
         return ui_data
 
 
-class RigComponent(Component_Finger):
-    pass
+RIG_COMPONENT_CLASS = Component_Finger

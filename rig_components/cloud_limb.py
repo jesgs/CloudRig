@@ -552,5 +552,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Limb):
-    pass
+RIG_COMPONENT_CLASS = Component_Limb

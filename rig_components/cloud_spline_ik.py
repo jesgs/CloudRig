@@ -290,5 +290,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Curve_SplineIK):
-    pass
+RIG_COMPONENT_CLASS = Component_Curve_SplineIK

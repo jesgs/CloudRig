@@ -687,13 +687,13 @@ class Component_ToonChain(Component_Base):
         ):
             self.make_shape_key_helper(last_def, self.bones_def[0])
         if self.params.chain.smooth_spline:
-            self.tangent_helpers[0].constraint_infos[
-                0
-            ].subtarget = parent_component.str_chain[-1]
+            self.tangent_helpers[0].constraint_infos[0].subtarget = (
+                parent_component.str_chain[-1]
+            )
         if parent_component.params.chain.smooth_spline:
-            parent_component.tangent_helpers[-1].constraint_infos[
-                1
-            ].subtarget = self.str_chain[0]
+            parent_component.tangent_helpers[-1].constraint_infos[1].subtarget = (
+                self.str_chain[0]
+            )
         if parent_component.params.chain.unlock_deform:
             parent_component.make_def_control(last_str, last_def)
 
@@ -795,5 +795,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_ToonChain):
-    pass
+RIG_COMPONENT_CLASS = Component_ToonChain

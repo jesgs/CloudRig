@@ -378,5 +378,4 @@ class Params(PropertyGroup):
     )
 
 
-class RigComponent(Component_Spine_IKFK):
-    pass
+RIG_COMPONENT_CLASS = Component_Spine_IKFK

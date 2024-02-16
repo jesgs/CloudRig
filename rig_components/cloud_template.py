@@ -50,5 +50,5 @@ class Params(PropertyGroup):
     )
 
 
-# class RigComponent(Component_Template):
-#     pass
+# Un-comment this to make it show up in the UI.
+# RIG_COMPONENT_CLASS = Component_Template

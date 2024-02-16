@@ -62,5 +62,4 @@ class Component_Feather(Component_Chain_FK):
     # No parameters for this rig type.
 
 
-class RigComponent(Component_Feather):
-    pass
+RIG_COMPONENT_CLASS = Component_Feather
