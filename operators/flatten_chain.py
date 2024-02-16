@@ -70,7 +70,7 @@ class CLOUDRIG_OT_FlattenChain(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     remove_active_log: BoolProperty(
-        description="For calling this operator from the Rigify Log", default=False
+        description="For calling this operator from the Generation Log", default=False
     )
     start_bone: StringProperty(
         description="Use a specific bone as the beginning of the chain, rather than the active bone"

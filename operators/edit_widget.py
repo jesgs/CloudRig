@@ -211,6 +211,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
             # Rigify integration: If we're on a metarig, use the widget collection.
             collection = rig.data.rigify_widgets_collection
         elif hasattr(rig, 'cloudrig') and rig.cloudrig.generator.widget_collection:
+            # CloudRig integration: If we're on a metarig, use the widget collection.
             collection = rig.cloudrig.generator.widget_collection
         else:
             collection = context.scene.collection

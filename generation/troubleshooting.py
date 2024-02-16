@@ -90,8 +90,9 @@ def url_prefill_from_cloudrig(stack_trace=""):
     )
 
     cloudrig_folder_name = os.path.dirname(__file__).split(os.sep)[-2]
-    CloudRig = importlib.import_module('rigify.feature_sets.' + cloudrig_folder_name)
-    cloudrig_version = CloudRig.rigify_info['version']
+    from .. import bl_info
+
+    cloudrig_version = bl_info['version']
     last_modified = cloudrig_last_modified()
     fh.write(f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n")
 
@@ -522,7 +523,7 @@ class CloudRigLogEntry(PropertyGroup):
 
 
 class CLOUDRIG_UL_log_entry_slots(UIList):
-    """CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log,
+    """CloudRigLogEntries are displayed under Properties->Armature->CloudRig->Generation Log,
     when the active object is a CloudRig Metarig.
     """
 
@@ -594,7 +595,7 @@ class CLOUDRIG_PT_log(Panel):
         layout.use_property_split = False
 
         # It is optional for the log entry to provide a bone from the metarig, in case
-        # the log entry relates to a rigify type.
+        # the log entry relates to a rig component.
         if log.base_bone_name != "":
             split = layout.row().split(factor=0.3)
             split.label(text="Rig Component:")
@@ -759,7 +760,9 @@ class CLOUDRIG_OT_Rename_Bone(Operator):
     bl_label = "Rename Bone"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    old_name: StringProperty()  # Should be provided to the operator by the UI, and not changed!
+    old_name: (
+        StringProperty()
+    )  # Should be provided to the operator by the UI, and not changed!
     new_name: StringProperty(name="Name")  # Exposed to user
 
     def invoke(self, context, event):
@@ -849,7 +852,9 @@ class CLOUDRIG_OT_Rename_Object(Operator):
     bl_label = "Rename Object"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    old_name: StringProperty()  # Should be provided to the operator by the UI, and not changed!
+    old_name: (
+        StringProperty()
+    )  # Should be provided to the operator by the UI, and not changed!
     new_name: StringProperty(name="Name")  # Exposed to user
 
     def invoke(self, context, event):

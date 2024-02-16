@@ -100,7 +100,7 @@ def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
     """Find the chain of bones constituting a rig component that this pose bone belongs to."""
 
     # We start building a chain with the current bone, prepending bones as we go
-    # UP in the hierarchy, until we find a connected bone with a rigify type.
+    # UP in the hierarchy, until we find a connected bone with a component type.
     # If this never happens, this bone does not belong to any rig component.
     cur_pb = pose_bone
     chain = []
@@ -130,7 +130,7 @@ def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
                         f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
                         \tChain could continue with either {next_bone.name} or {c.name}. \n
                         \tPicking the first one arbitrarily! \n
-                        \tDisconnect the bone or assign a rigify type to make it unambiguous."""
+                        \tDisconnect the bone or assign a component type to make it unambiguous."""
                     )
                 else:
                     next_bone = child_pb

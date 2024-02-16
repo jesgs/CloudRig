@@ -9,7 +9,7 @@ from rigify.utils.misc import property_to_python
 
 
 class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):
-    """Mirror Rigify type and parameters of selected bones to the opposite side. Names should end in L/R"""
+    """Mirror rig component type and parameters of selected bones to the opposite side. Names should end in L/R"""
 
     bl_idname = "pose.cloudrig_symmetrize_components"
     bl_label = "Symmetrize Components"
@@ -44,7 +44,8 @@ class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):
                 self.report(
                     {'ERROR'},
                     f"Bone {pb.name} selected on both sides, mirroring would be ambiguous, "
-                    f"aborting. Only select the left or right side, not both!")
+                    f"aborting. Only select the left or right side, not both!",
+                )
                 return {'CANCELLED'}
 
         # Then mirror the parameters.
@@ -54,7 +55,9 @@ class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):
                 # Bones without an opposite will just be ignored.
                 continue
 
-            num_mirrored += copy_cloudrig_component(pb, flip_bone, match_type=False, x_mirror=True)
+            num_mirrored += copy_cloudrig_component(
+                pb, flip_bone, match_type=False, x_mirror=True
+            )
 
         self.report({'INFO'}, f"Mirrored parameters of {num_mirrored} bones.")
 
@@ -62,7 +65,7 @@ class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):
 
 
 class POSE_OT_cloudrig_copy_component(bpy.types.Operator):
-    """Copy Rigify type and parameters from active to selected bones"""
+    """Copy rig component type parameters from active to selected bones"""
 
     bl_idname = "pose.cloudrig_copy_component"
     bl_label = "Copy Component to Selected"
@@ -71,8 +74,8 @@ class POSE_OT_cloudrig_copy_component(bpy.types.Operator):
     match_type: bpy.props.BoolProperty(
         name="Match Type",
         description="Only mirror components to selected bones which have the same component "
-                    "type as the active bone",
-        default=False
+        "type as the active bone",
+        default=False,
     )
 
     @classmethod
@@ -98,23 +101,34 @@ class POSE_OT_cloudrig_copy_component(bpy.types.Operator):
         for pb in context.selected_pose_bones:
             if pb == active_bone:
                 continue
-            num_copied += copy_cloudrig_component(active_bone, pb, match_type=self.match_type)
+            num_copied += copy_cloudrig_component(
+                active_bone, pb, match_type=self.match_type
+            )
 
-        self.report({'INFO'},
-                    f"Copied {active_bone.cloudrig_component.component_type} parameters to {num_copied} bones.")
+        self.report(
+            {'INFO'},
+            f"Copied {active_bone.cloudrig_component.component_type} parameters to {num_copied} bones.",
+        )
 
         return {'FINISHED'}
 
 
-def copy_cloudrig_component(from_bone: bpy.types.PoseBone, to_bone: bpy.types.PoseBone, *,
-                       match_type=False, x_mirror=False) -> bool:
+def copy_cloudrig_component(
+    from_bone: bpy.types.PoseBone,
+    to_bone: bpy.types.PoseBone,
+    *,
+    match_type=False,
+    x_mirror=False,
+) -> bool:
     tgt_component_type = to_bone.cloudrig_component.component_type
     src_component_type = from_bone.cloudrig_component.component_type
 
     if match_type and tgt_component_type != src_component_type:
         return False
     else:
-        tgt_component_type = to_bone.cloudrig_component.component_type = src_component_type
+        tgt_component_type = to_bone.cloudrig_component.component_type = (
+            src_component_type
+        )
 
     from_params = from_bone.get('cloudrig_component')
     if from_params and tgt_component_type:
@@ -152,20 +166,26 @@ def draw_copy_mirror_ops(self, context):
     layout = self.layout
     if context.mode == 'POSE':
         layout.separator()
-        op = layout.operator(POSE_OT_cloudrig_copy_component.bl_idname,
-                             icon='DUPLICATE', text="Copy Only Parameters")
+        op = layout.operator(
+            POSE_OT_cloudrig_copy_component.bl_idname,
+            icon='DUPLICATE',
+            text="Copy Only Parameters",
+        )
         op.match_type = True
-        op = layout.operator(POSE_OT_cloudrig_copy_component.bl_idname,
-                             icon='DUPLICATE', text="Copy Type & Parameters")
+        op = layout.operator(
+            POSE_OT_cloudrig_copy_component.bl_idname,
+            icon='DUPLICATE',
+            text="Copy Type & Parameters",
+        )
         op.match_type = False
-        layout.operator(POSE_OT_cloudrig_symmetrize_components.bl_idname,
-                        icon='MOD_MIRROR', text="Mirror Type & Parameters")
+        layout.operator(
+            POSE_OT_cloudrig_symmetrize_components.bl_idname,
+            icon='MOD_MIRROR',
+            text="Mirror Type & Parameters",
+        )
 
 
 # =============================================
 # Registration
 
-registry = [
-    POSE_OT_cloudrig_symmetrize_components,
-    POSE_OT_cloudrig_copy_component
-]
+registry = [POSE_OT_cloudrig_symmetrize_components, POSE_OT_cloudrig_copy_component]

@@ -68,7 +68,7 @@ def load_metarig(metarig_name, context) -> Optional[Object]:
 
 def load_sample(rig_name):
     """Append a rig sample from MetaRigs.blend, then join it into the currently active armature."""
-    context = bpy.context  # TODO RIGIFY: Should pass context
+    context = bpy.context  # TODO: Should pass context
 
     sample_name = "Sample_" + rig_name
 
@@ -141,6 +141,7 @@ def delayed_refresh_metarig_list():
 def register():
     bpy.app.timers.register(delayed_refresh_metarig_list)
     bpy.types.VIEW3D_MT_armature_add.append(draw_cloudrig_metarig_menu)
+
 
 def unregister():
     bpy.types.VIEW3D_MT_armature_add.remove(draw_cloudrig_metarig_menu)

@@ -1,10 +1,4 @@
-from typing import List
-from rigify.base_rig import BaseRig
-from ...rig_component_features.bone import BoneInfo
-
 import bpy
-from mathutils import Vector
-from ...utils.maths import project_points_on_plane, scale_points_from_center
 import os
 
 

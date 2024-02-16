@@ -25,7 +25,7 @@ bl_info = {
     'author': 'Demeter Dzadik',
     'version': (2, 0, 0),
     # This should be the lowest Blender version that is currently compatible.
-    'blender': (4, 0, 0),
+    'blender': (4, 1, 0),
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'location': "Properties->Armature Data",
     'category': 'Rigging',
@@ -84,7 +84,7 @@ def register_unregister_modules(modules: List, register: bool):
 
 def register():
     """Called by Blender when enabling the CloudRig add-on."""
-    # TODO: Throw a useful error when trying to use as a Rigify extension.
+    # TODO 4.1: Throw a useful error when trying to use as a Rigify extension.
 
     register_unregister_modules(modules, True)
     utils.misc.version_min = bl_info['blender']

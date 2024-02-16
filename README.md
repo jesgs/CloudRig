@@ -1,25 +1,18 @@
-# Installing into [Rigify](https://docs.blender.org/manual/en/latest/addons/rigging/rigify/introduction.html)
+# Installing into Blender 4.1 and above
 
-1. Download CloudRig for your desired Blender version from the [**Releases**](https://gitlab.com/blender/CloudRig/-/releases) page. If there's no release for your version, use the download button in the top right of this page instead.
-2. In Blender, open **Preferences->Addons->Rigify** and enable the addon. Rigify comes with Blender, so you don't need to download it.
-3. In the Rigify addon preferences, click on **Rigify: External feature sets->Install Feature Set from File...** and browse the .zip you downloaded.
-
-![](docs/featureset_load.gif)
-
+Same as any other Blender add-on:
+1. Download the appropriate version from the [**Releases**](https://gitlab.com/blender/CloudRig/-/releases) page. For bleeding edge, download the repo instead.
+2. In Blender, open **Preferences->Addons->Install...**.
+3. Enable CloudRig.
 
 # What is CloudRig?
-CloudRig is a collection of customizable rig building blocks to extend the Rigify system. This feature set is being developed for and by the Blender Animation Studio, with the guidance of professional animators.
-
-<details>
-<summary>It is currently recommended not to mix CloudRig and Rigify elements.</summary>
-Although technically possible and shouldn't cause any errors, the way core Rigify and CloudRig organize their bones and rig UI are quite different.
-</details>
+CloudRig is a rig generation system, basically my take on Rigify. It is being developed for and by our small team, the Blender Studio, for the needs of our Open Movies and our animators.
 
 You can support the development of CloudRig by subscribing to the [Blender Studio](https://studio.blender.org/)!
 
 # Getting Started
 Add the pre-built human metarig via **Add->Armature->Cloud Humans -> Basic Human (Metarig)**.
-Next, you can generate this rig via **Properties->Object Data->Rigify Buttons->Generate CloudRig**.
+Generate the rig via **Properties->Object Data->CloudRig->Generate**.
 And bam, you have a rig!
 ![](docs/armature_generate.gif)
 
@@ -48,10 +41,6 @@ And bam, you have a rig!
 
 </details></li>
 </ul>
-
-
-
-
 
 # Report problems
 If you run into weird error messages or have suggestions on how something could be improved, feel free to [open an issue](/../issues/new?issuable_template=Bug).
