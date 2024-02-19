@@ -23,7 +23,7 @@ def parent_cluster_to_intersection(
         component = str_bone.owner_component
         str_bone.parent = intersection
         str_bone.intersection_ctrl = intersection
-        if has_tangent_helpers(rig) and not have_anchor:
+        if has_tangent_helpers(component) and not have_anchor:
             str_bone.tangent_helper.constraint_infos[-1].subtarget = intersection.name
             str_bone.tangent_helper.constraint_infos[-1].name = "Copy STR-I Transforms"
             str_bone.tangent_helper.parent = intersection
@@ -109,7 +109,7 @@ class Component_FaceChain(Component_ToonChain):
     """Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
     relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone's head, or tail if the constraint name is prefixed with \"TAIL-\". If the STR bone is part of an intersection, the constraint is moved to the STR-I intersection control instead."
-    ui_name = "Chain: Toon With Intersections"
+    ui_name = "Chain: Face Grid"
 
     def initialize(self):
         super().initialize()
@@ -120,15 +120,13 @@ class Component_FaceChain(Component_ToonChain):
         # Check the generator rig list to see if we are the last chain rig that will be generated.
         self.chain_rigs = []
         for component in self.generator.all_components:
-            print(type(component))
             if any(
                 [
                     rig_class in str(type(component))
                     for rig_class in ["Component_FaceChain", "Component_Eyelid"]
                 ]
             ):
-                # I don't know why isinstance() doesn't fucking work here. It works when cloud_eyelid is testing itself, but not when cloud_face_chain is testing cloud_eyelid.
-                print("Chain rig found! ", component)
+                # NOTE: I don't know why isinstance() doesn't work here. It works when cloud_eyelid is testing itself, but not when cloud_face_chain is testing cloud_eyelid.
                 self.chain_rigs.append(component)
 
         self.is_last_chain_rig = self == self.chain_rigs[-1]
