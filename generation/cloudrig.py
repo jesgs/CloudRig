@@ -935,7 +935,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
         rig = is_active_cloudrig(context)
         if not rig:
             return False
-        return 'ui_data' in rig
+        return 'ui_data' in rig.data
 
     def execute(self, context):
         rig = context.pose_object or context.active_object
@@ -982,7 +982,7 @@ class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
 
     bl_idname = "pose.cloudrig_reset"
     bl_label = "Reset Rig"
-    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_options = {'REGISTER', 'UNDO'}
 
     reset_transforms: BoolProperty(
         name="Transforms", default=True, description="Reset bone transforms"
