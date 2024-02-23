@@ -263,7 +263,7 @@ class Component_Limb(Component_Chain_IKFK):
 
     def make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
         control_bone = self.bone_sets['FK Controls Extra'].new(
-            name=self.naming.add_prefix("AutoRubberHose"),
+            name=self.naming.add_prefix(org_lower, "RubberHose"),
             source=org_lower,
             parent=org_lower,
             custom_shape=self.ensure_widget('Arrow_Two-way'),
