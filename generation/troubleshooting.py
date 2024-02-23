@@ -747,7 +747,7 @@ class CLOUDRIG_OT_Report_Bug(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        pretty_stack = context.object.cloudrig.active_log.pretty_stack
+        pretty_stack = context.object.cloudrig.generator.active_log.pretty_stack
         webbrowser.open(url_prefill_from_cloudrig(pretty_stack))
 
         return {'FINISHED'}
