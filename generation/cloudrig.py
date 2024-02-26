@@ -2668,9 +2668,10 @@ class POSE_OT_cloudrig_collection_add(bpy.types.Operator):
             parent_name = active_coll.cloudrig_info.parent_name
 
         coll = colls.new(name="Collection")
+        coll.parent = active_coll.parent
+        coll.cloudrig_info.parent_name = parent_name
         coll_idx = all_colls.find(coll.name)
         colls.move(coll_idx, active_idx + 1)
-        coll.cloudrig_info.parent_name = parent_name
 
         coll.cloudrig_info.unfold_parents()
 
