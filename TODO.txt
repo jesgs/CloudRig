@@ -45,6 +45,7 @@ Priority 0: Missing functionality
 	- Add the "Add Metarig" menu to the Rig Components List UI as well, under a Specials menu.
 
 Priority 1: Bugs
+	Freshly generated widgets collection gets "NEW" in the name.
 	When people download a branch and the folder name is anything other than "CloudRig", things go bad. Should os.rename the folder during register.
 	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.

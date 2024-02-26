@@ -290,7 +290,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         metarig = self.metarig
-        print("Begin Generating CloudRig from metarig: " + metarig.name)
 
         metarig.data.name = self.metarig.name
         self.params.metarig_version = get_addon_prefs(context).cloud_metarig_version
@@ -667,9 +666,9 @@ def create_target_rig_obj(context, metarig) -> Object:
     today = datetime.today()
     now = datetime.now()
     target_rig.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
-    target_rig.data[
-        'generation_time'
-    ] = f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
+    target_rig.data['generation_time'] = (
+        f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
+    )
 
     # Make sure this flag is saved in the generated rig, so it
     # remains even if the Rigify addon is disabled.
@@ -836,11 +835,18 @@ class CLOUDRIG_OT_generate(Operator):
     focus_generated: BoolProperty(
         name="Focus Generated",
         default=True,
-        description="After successfully generating a single rig, hide the metarig, unhide the generated rig, enter the same mode as the current mode, and match bone selection states where possible",
+        description="After a successful generation, hide the metarig, unhide the generated rig, enter the same mode as the current mode, and match bone selection states where possible",
     )
 
     @staticmethod
-    def get_metarig_to_generate(context):
+    def get_metarig_to_generate(context) -> Optional[Object]:
+        """Finds the metarig the user wants to generate.
+        If there are more than one metarigs in the scene, use the active one,
+        or the one referencing the active one.
+        If there is only one metarig in the scene, just use that one.
+        If there are multiple metarigs and neither they or their target rig is active,
+        this returns None.
+        """
         if is_active_cloud_metarig(context):
             return context.active_object
         elif is_active_cloudrig(context):
@@ -858,27 +864,39 @@ class CLOUDRIG_OT_generate(Operator):
 
     @classmethod
     def poll(cls, context):
+        """This operator is available when we can deduce from the context which
+        metarig the user wants to generate. See docstring of the called func."""
         return cls.get_metarig_to_generate(context)
 
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
+        target_rig = metarig.cloudrig.generator.target_rig
 
         # Save state so it can be restored for convenience.
         state_mode = 'OBJECT'
+        if metarig is context.active_object:
+            state_mode = metarig.mode
+        elif target_rig and target_rig is context.active_object:
+            state_mode = target_rig.mode
         active_pb = get_pbone_of_active(context)
         state_active_bone = active_pb.name if active_pb else ""
-        state_selected_bones = (
-            [bone.name for bone in context.selected_pose_bones]
-            if context.selected_pose_bones
-            else []
+        bones = (
+            target_rig.data.edit_bones
+            if target_rig.mode == 'EDIT'
+            else target_rig.data.bones
         )
-        state_hide_bones = {bone.name: bone.hide for bone in metarig.data.bones}
-        # TODO 4.0: Should Bone Collection Visibilities be preserved? I think so, but probably based on what's on the previously generated rig, not the metarig.
+        state_bone_selection = {
+            bone.name: (bone.select, bone.select_head, bone.select_tail)
+            for bone in bones
+        }
+        state_bones_hide = {bone.name: bone.hide for bone in target_rig.data.bones}
+        state_visible_collections = {
+            coll.name: coll.is_visible for coll in target_rig.data.collections_all
+        }
 
         # Ensure required visibility and active states.
         # TODO: Replace EnsureVisible with context overriding.
         meta_visible = EnsureVisible(metarig)
-        target_rig = metarig.cloudrig.generator.target_rig
         rig_visible = None
         if target_rig:
             rig_visible = EnsureVisible(target_rig)
@@ -894,17 +912,21 @@ class CLOUDRIG_OT_generate(Operator):
 
         if not rig:
             # This means an error has occurred. It was already handled in generate_rig().
+            self.report({'ERROR'}, f"Generation of {metarig.name} has failed.")
             return {'FINISHED'}
 
         if self.focus_generated:
             self.restore_state(
                 context,
                 metarig,
-                state_mode,
-                state_active_bone,
-                state_selected_bones,
-                state_hide_bones,
+                mode=state_mode,
+                active_bone_name=state_active_bone,
+                bone_selection=state_bone_selection,
+                hide_bones=state_bones_hide,
+                visible_collections=state_visible_collections,
             )
+
+        self.report({'INFO'}, f"Generation of {rig.name} successful.")
 
         return {'FINISHED'}
 
@@ -961,33 +983,64 @@ class CLOUDRIG_OT_generate(Operator):
         metarig,
         mode,
         active_bone_name="",
-        selected_bone_names="",
+        bone_selection={},
         hide_bones={},
+        visible_collections={},
     ):
-        """Restore state for convenience."""
+        """Restore rig state for convenient re-generation workflow:
+        - Hide the metarig
+        - Reveal the target rig and set it as selected and active
+        - Enter the same mode as before
+        - Preserve bone active, selected, and hidden states where possible.
+        - Preserve collection visibility states where possible.
+        """
+        # Hide metarig.
         metarig.hide_set(True)
-        rig = metarig.cloudrig.generator.target_rig
-        rig.hide_set(False)
-        context.view_layer.objects.active = rig
-        bpy.ops.object.mode_set(mode='OBJECT')
-        rig.select_set(True)
+        target_rig = metarig.cloudrig.generator.target_rig
+        target_rig.hide_set(False)
 
-        if mode in ['OBJECT', 'EDIT', 'POSE']:
+        # Make target rig visible, selected, active.
+        context.view_layer.objects.active = target_rig
+        target_rig.select_set(True)
+
+        # Restore object's mode.
+        if target_rig.mode != mode:
             bpy.ops.object.mode_set(mode=mode)
 
-        rig = context.active_object
-        if active_bone_name in rig.pose.bones:
-            rig.data.bones.active = rig.data.bones[active_bone_name]
+        # Bones initialize with their tail selected, so deselect them.
+        bones = target_rig.data.edit_bones if mode == 'EDIT' else target_rig.data.bones
+        for bone in bones:
+            bone.select_tail = False
 
-        for bone_name in selected_bone_names:
-            if bone_name in rig.data.bones:
-                rig.data.bones[bone_name].select = True
+        # Restore active bone.
+        if active_bone_name in target_rig.pose.bones:
+            target_rig.data.bones.active = target_rig.data.bones[active_bone_name]
 
-        for bone_name in hide_bones.keys():
-            bone = rig.data.bones.get(bone_name)
+        # Restore bone selection states (including head/tail).
+        for bone_name, selection in bone_selection.items():
+            if bone_name in target_rig.data.bones:
+                bone = target_rig.data.bones[bone_name]
+                if mode == 'EDIT':
+                    bone = target_rig.data.edit_bones[bone_name]
+                bone.select, bone.select_head, bone.select_tail = (
+                    selection[0],
+                    selection[1],
+                    selection[2],
+                )
+
+        # Restore bone visibility states.
+        for bone_name, hide in hide_bones.items():
+            bone = target_rig.data.bones.get(bone_name)
             if not bone:
                 continue
-            bone.hide = hide_bones[bone_name]
+            bone.hide = hide
+
+        # Restore collection visibility states.
+        for coll_name, is_visible in visible_collections.items():
+            coll = target_rig.data.collections_all.get(coll_name)
+            if not coll:
+                continue
+            coll.cloudrig_info.is_visible = is_visible
 
 
 registry = [
