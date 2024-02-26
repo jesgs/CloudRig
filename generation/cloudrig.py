@@ -15,6 +15,7 @@ from bpy.props import (
     IntProperty,
 )
 from bpy.types import Object, PoseBone, FCurve
+from bpy.utils import register_class, unregister_class
 
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
@@ -580,7 +581,7 @@ def get_bones(rig, names):
     return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
 
-class CLOUDRIG_OT_snap_bake(SnapBakeOperator, bpy.types.Operator):
+class POSE_OT_cloudrig_snap_bake(SnapBakeOperator, bpy.types.Operator):
     """Toggle a custom property while ensuring that some bones stay in place"""
 
     bl_idname = "pose.cloudrig_snap_bake"
@@ -701,8 +702,8 @@ class CLOUDRIG_OT_snap_bake(SnapBakeOperator, bpy.types.Operator):
             context.evaluated_depsgraph_get().update()  # This matters!!!!
 
 
-class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
-    """Extend CLOUDRIG_OT_snap_bake with a parent selector"""
+class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake):
+    """Extend POSE_OT_cloudrig_snap_bake with a parent selector"""
 
     bl_idname = "pose.cloudrig_switch_parent_bake"
     bl_label = "Apply Switch Parent To Keyframes"
@@ -740,8 +741,8 @@ class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
         context.view_layer.update()
 
 
-class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
-    """Extend CLOUDRIG_OT_snap_bake with the ability to snap a list of bones
+class POSE_OT_cloudrig_snap_mapped_bake(POSE_OT_cloudrig_snap_bake):
+    """Extend POSE_OT_cloudrig_snap_bake with the ability to snap a list of bones
     to another (equal length) list of bones.
     """
 
@@ -800,8 +801,8 @@ class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
         return None
 
 
-class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
-    """Extends CLOUDRIG_OT_snap_mapped_bake with special treatment for the IK elbow"""
+class POSE_OT_cloudrig_toggle_ikfk_bake(POSE_OT_cloudrig_snap_mapped_bake):
+    """Extends POSE_OT_cloudrig_snap_mapped_bake with special treatment for the IK elbow"""
 
     bl_idname = "pose.cloudrig_toggle_ikfk_bake"
     bl_label = "Toggle And Bake IK/FK"
@@ -867,7 +868,7 @@ class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
 #######################################
 
 
-class CLOUDRIG_OT_copy_property(bpy.types.Operator):
+class OBJECT_OT_cloudrig_copy_property(bpy.types.Operator):
     """Set the value of a property on all other CloudRig rigs in the scene"""
 
     # Currently used for the rig Quality setting, to easily switch all characters to Render or Animation quality.
@@ -923,7 +924,7 @@ class CLOUDRIG_OT_copy_property(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
+class POSE_OT_cloudrig_keyframe_all_settings(bpy.types.Operator):
     """Keyframe all rig settings that are being drawn in the below UI"""
 
     bl_idname = "pose.cloudrig_keyframe_all_settings"
@@ -977,7 +978,7 @@ class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
+class POSE_OT_cloudrig_reset(bpy.types.Operator):
     """Reset all bone transforms and custom properties to their default values"""
 
     bl_idname = "pose.cloudrig_reset"
@@ -1553,12 +1554,12 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             return
 
         layout.operator(
-            CLOUDRIG_OT_keyframe_all_settings.bl_idname,
+            POSE_OT_cloudrig_keyframe_all_settings.bl_idname,
             text='Keyframe All Settings',
             icon='KEYFRAME_HLT',
         )
         layout.operator(
-            CLOUDRIG_OT_reset_rig.bl_idname, text='Reset Rig', icon='LOOP_BACK'
+            POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
         )
 
 
@@ -2017,11 +2018,11 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         if prefs.show_solo:
             icon = 'SOLO_ON' if 'SOLO' in cloudrig_info.solo_flag else 'SOLO_OFF'
             row.operator(
-                CLOUDRIG_OT_collection_solo.bl_idname, text="", icon=icon
+                POSE_OT_cloudrig_collection_solo.bl_idname, text="", icon=icon
             ).collection_name = collection.name
         if prefs.show_select:
             sel_op = row.operator(
-                CLOUDRIG_OT_collection_select.bl_idname,
+                POSE_OT_cloudrig_collection_select.bl_idname,
                 text="",
                 icon='RESTRICT_SELECT_OFF',
             )
@@ -2030,7 +2031,9 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         if prefs.show_editing:
             row.separator()
             row.operator(
-                CLOUDRIG_OT_collection_parent_set.bl_idname, text="", icon='CON_CHILDOF'
+                POSE_OT_cloudrig_collection_parent_set.bl_idname,
+                text="",
+                icon='CON_CHILDOF',
             ).coll_idx = idx
             icon = 'HEART' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
@@ -2153,17 +2156,17 @@ def draw_cloudrig_collections(self, context):
 
     if not prefs.show_editing:
         list_col.operator(
-            CLOUDRIG_OT_collections_reveal_all.bl_idname,
+            POSE_OT_cloudrig_collections_reveal_all.bl_idname,
             text="",
             icon='HIDE_OFF',
             emboss=False,
         )
         return
 
-    list_col.operator(CLOUDRIG_OT_collection_add.bl_idname, text="", icon='ADD')
+    list_col.operator(POSE_OT_cloudrig_collection_add.bl_idname, text="", icon='ADD')
 
     list_col.operator(
-        CLOUDRIG_OT_collection_delete.bl_idname, text="", icon='REMOVE'
+        POSE_OT_cloudrig_collection_delete.bl_idname, text="", icon='REMOVE'
     ).mode = 'ACTIVE'
     list_col.separator()
 
@@ -2175,42 +2178,48 @@ def draw_cloudrig_collections(self, context):
     if not active_coll:
         return
 
-    siblings, sibling_idx = CLOUDRIG_OT_collection_move.get_siblings_and_target_idx(
-        'UP', active_coll
+    siblings, sibling_idx = (
+        POSE_OT_cloudrig_collection_reorder.get_siblings_and_target_idx(
+            'UP', active_coll
+        )
     )
     row = list_col.row()
     row.enabled = sibling_idx >= 0
     row.operator(
-        CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_UP'
+        POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon='TRIA_UP'
     ).direction = 'UP'
 
     row = list_col.row()
     row.enabled = sibling_idx + 2 < len(siblings)
     row.operator(
-        CLOUDRIG_OT_collection_move.bl_idname, text="", icon='TRIA_DOWN'
+        POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon='TRIA_DOWN'
     ).direction = 'DOWN'
 
     row = layout.row()
     if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
         row.enabled = False
     sub = row.row(align=True)
-    sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Assign").assign = True
-    sub.operator(CLOUDRIG_OT_collection_assign.bl_idname, text="Unassign").assign = (
-        False
+    sub.operator(POSE_OT_cloudrig_collection_assign.bl_idname, text="Assign").assign = (
+        True
     )
+    sub.operator(
+        POSE_OT_cloudrig_collection_assign.bl_idname, text="Unassign"
+    ).assign = False
 
     sub = row.row(align=True)
-    sel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Select")
+    sel_op = sub.operator(POSE_OT_cloudrig_collection_select.bl_idname, text="Select")
     sel_op.select = True
     sel_op.collection_name = active_coll.name
 
-    desel_op = sub.operator(CLOUDRIG_OT_collection_select.bl_idname, text="Deselect")
+    desel_op = sub.operator(
+        POSE_OT_cloudrig_collection_select.bl_idname, text="Deselect"
+    )
     desel_op.select = False
     desel_op.collection_name = active_coll.name
 
 
 class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
-    bl_idname = "CLOUDRIG_PT_collections_properties"
+    bl_idname = "CLOUDRIG_PT_collections_sidebar"
     bl_label = "Bone Collections"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -2248,34 +2257,34 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator(
-            CLOUDRIG_OT_collections_reveal_all.bl_idname,
+            POSE_OT_cloudrig_collections_reveal_all.bl_idname,
             text="Show All",
             icon='HIDE_OFF',
         )
         layout.separator()
         layout.operator(
-            CLOUDRIG_OT_collection_assign.bl_idname,
+            POSE_OT_cloudrig_collection_assign.bl_idname,
             text="Unassign Selected Bones from All Collections",
             icon='REMOVE',
         )
         layout.operator(
-            CLOUDRIG_OT_collection_delete.bl_idname,
+            POSE_OT_cloudrig_collection_delete.bl_idname,
             text="Delete Hierarchy of Collections",
             icon='OUTLINER',
         ).mode = 'HIERARCHY'
         layout.operator(
-            CLOUDRIG_OT_collection_delete.bl_idname,
+            POSE_OT_cloudrig_collection_delete.bl_idname,
             text="Delete All Local Collections",
             icon='TRASH',
         ).mode = 'ALL'
         layout.separator()
         layout.operator(
-            CLOUDRIG_OT_collections_clipboard_copy.bl_idname,
+            POSE_OT_cloudrig_collection_clipboard_copy.bl_idname,
             text="Copy Visible Collections to Clipboard",
             icon='COPYDOWN',
         )
         layout.operator(
-            CLOUDRIG_OT_collections_clipboard_paste.bl_idname,
+            POSE_OT_cloudrig_collection_clipboard_paste.bl_idname,
             text="Paste Collections from Clipboard",
             icon='PASTEDOWN',
         )
@@ -2299,7 +2308,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
         for coll in rig.data.collections_all:
             if coll.cloudrig_info.quick_access:
                 op = layout.operator(
-                    CLOUDRIG_OT_collection_select.bl_idname,
+                    POSE_OT_cloudrig_collection_select.bl_idname,
                     text=coll.name,
                     icon='RESTRICT_SELECT_OFF',
                 )
@@ -2308,7 +2317,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
                 op.reveal_bones = False
 
 
-class CLOUDRIG_OT_collections_reveal_all(bpy.types.Operator):
+class POSE_OT_cloudrig_collections_reveal_all(bpy.types.Operator):
     """Reveal all collections"""
 
     bl_idname = "pose.cloudrig_collections_reveal_all"
@@ -2335,7 +2344,7 @@ def pose_mode(rig):
         bpy.ops.object.mode_set(mode=mode_bkp)
 
 
-class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_solo(bpy.types.Operator):
     """Temporarily isolate this collection, hiding all others"""
 
     bl_idname = "pose.cloudrig_collection_solo"
@@ -2421,7 +2430,7 @@ class CLOUDRIG_OT_collection_solo(bpy.types.Operator):
                         coll.cloudrig_info.solo_flag = 'NONE'
 
 
-class CLOUDRIG_OT_collection_select(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_select(bpy.types.Operator):
     """Reveal and Select this collection, its children, and all bones within.\n\nShift: Extend selection. \nCtrl: Mirror selection. \nAlt: Deselect"""
 
     bl_idname = "pose.cloudrig_collection_select"
@@ -2504,7 +2513,7 @@ class CLOUDRIG_OT_collection_select(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
     """Set parent collection"""
 
     bl_idname = "pose.cloudrig_collection_parent_set"
@@ -2564,14 +2573,14 @@ class CLOUDRIG_OT_collection_parent_set(bpy.types.Operator):
                 return {'FINISHED'}
             parent = parent.cloudrig_info.parent_collection
 
-        CLOUDRIG_OT_collection_move.refresh_collection_order(rig)
+        POSE_OT_cloudrig_collection_reorder.refresh_collection_order(rig)
         rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
 
         self.report({'INFO'}, "Collection parent set.")
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collection_delete(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_delete(bpy.types.Operator):
     """Remove the active bone collection"""
 
     bl_idname = "pose.cloudrig_collection_delete"
@@ -2640,7 +2649,7 @@ class CLOUDRIG_OT_collection_delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collection_add(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_add(bpy.types.Operator):
     """Add a new bone collection"""
 
     bl_idname = "pose.cloudrig_collection_add"
@@ -2670,7 +2679,7 @@ class CLOUDRIG_OT_collection_add(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collection_move(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_reorder(bpy.types.Operator):
     """Move the collection in the list"""
 
     bl_idname = "pose.cloudrig_collection_reorder"
@@ -2742,7 +2751,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         collections = rig.data.collections
         collections_all = rig.data.collections_all
 
-        CLOUDRIG_OT_collection_move.clear_parenting(rig)
+        POSE_OT_cloudrig_collection_reorder.clear_parenting(rig)
 
         # To get the order, we can re-use code of the nested UIList ordering.
         new_order = CLOUDRIG_UL_collections.get_collection_order(collections_all)
@@ -2761,7 +2770,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
             old_idx = rig.data.collections_all.find(coll.name)
             rig.data.collections.move(old_idx, new_idx)
 
-        CLOUDRIG_OT_collection_move.sync_parenting(rig)
+        POSE_OT_cloudrig_collection_reorder.sync_parenting(rig)
 
         # Preserve active coll.
         rig.cloudrig_prefs.active_collection_index = collections_all.find(
@@ -2769,7 +2778,7 @@ class CLOUDRIG_OT_collection_move(bpy.types.Operator):
         )
 
 
-class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
     """Assign to collections"""
 
     bl_idname = "pose.cloudrig_collection_assign"
@@ -2822,7 +2831,7 @@ class CLOUDRIG_OT_collection_assign(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_clipboard_copy(bpy.types.Operator):
     """Copy visible collections to Blender clipboard"""
 
     bl_idname = "pose.cloudrig_collection_clipboard_copy"
@@ -2852,7 +2861,7 @@ class CLOUDRIG_OT_collections_clipboard_copy(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_collections_clipboard_paste(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_clipboard_paste(bpy.types.Operator):
     """Paste collections from the Blender clipboard"""
 
     bl_idname = "pose.cloudrig_collection_clipboard_paste"
@@ -3006,49 +3015,62 @@ def register_hotkey(
 #######################################
 
 classes = (
-    CLOUDRIG_OT_switch_parent_bake,
-    CLOUDRIG_OT_ikfk_bake,
-    CLOUDRIG_OT_snap_mapped_bake,
-    CLOUDRIG_OT_snap_bake,
-    CLOUDRIG_OT_keyframe_all_settings,
-    CLOUDRIG_OT_copy_property,
-    CLOUDRIG_OT_reset_rig,
     CloudRig_Properties,
-    CLOUDRIG_PT_character,
-    CLOUDRIG_PT_settings,
     CloudRig_RigPreferences,
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
+    CLOUDRIG_PT_character,
+    CLOUDRIG_PT_settings,
+    CLOUDRIG_PT_hotkeys,
     CLOUDRIG_PT_collections_sidebar,
     CLOUDRIG_PT_collections_filter,
     CLOUDRIG_MT_collections_specials,
     CLOUDRIG_MT_collections_quick_select,
-    CLOUDRIG_OT_collections_reveal_all,
-    CLOUDRIG_OT_collection_solo,
-    CLOUDRIG_OT_collection_select,
-    CLOUDRIG_OT_collection_parent_set,
-    CLOUDRIG_OT_collection_delete,
-    CLOUDRIG_OT_collection_add,
-    CLOUDRIG_OT_collection_move,
-    CLOUDRIG_OT_collection_assign,
-    CLOUDRIG_OT_collections_clipboard_copy,
-    CLOUDRIG_OT_collections_clipboard_paste,
-    CLOUDRIG_PT_hotkeys,
+    OBJECT_OT_cloudrig_copy_property,
+    POSE_OT_cloudrig_switch_parent_bake,
+    POSE_OT_cloudrig_toggle_ikfk_bake,
+    POSE_OT_cloudrig_snap_mapped_bake,
+    POSE_OT_cloudrig_snap_bake,
+    POSE_OT_cloudrig_keyframe_all_settings,
+    POSE_OT_cloudrig_reset,
+    POSE_OT_cloudrig_collections_reveal_all,
+    POSE_OT_cloudrig_collection_solo,
+    POSE_OT_cloudrig_collection_select,
+    POSE_OT_cloudrig_collection_parent_set,
+    POSE_OT_cloudrig_collection_delete,
+    POSE_OT_cloudrig_collection_add,
+    POSE_OT_cloudrig_collection_reorder,
+    POSE_OT_cloudrig_collection_assign,
+    POSE_OT_cloudrig_collection_clipboard_copy,
+    POSE_OT_cloudrig_collection_clipboard_paste,
 )
 
 
-def register():
-    from bpy.utils import register_class
+def is_registered(cls):
+    """Returns whether a BPy class is registered.
+    May not always work, needs more testing..."""
+    if issubclass(cls, bpy.types.Operator):
+        category, op_name = cls.bl_idname.split(".")
+        if hasattr(bpy.ops, category):
+            category = getattr(bpy.ops, category)
+            return op_name in dir(category)
+    if hasattr(bpy.types, cls.__name__):
+        bl_type = getattr(bpy.types, cls.__name__)
+        if bl_type and hasattr(bl_type, 'is_registered'):
+            return bl_type.is_registered
+        return True
+    return False
 
-    keymap_items = []
-    if 'CLOUDRIG_PT_hotkeys' in dir(bpy.types):
-        keymap_items = bpy.types.CLOUDRIG_PT_hotkeys.keymap_items
+
+def register():
+    """Runs on rig generation, add-on registration, or when this file is executed
+    via the text editor.
+    Should be able to run without errors even if things are already registered.
+    """
 
     for c in classes:
-        if c.__name__ in dir(bpy.types):
-            # Don't re-register panels, or sub-panels become top-level.
-            continue
-        register_class(c)
+        if not is_registered(c):
+            register_class(c)
 
     # TODO 4.0: These properties for outfit stuff are legacy, remove!
     bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
@@ -3087,37 +3109,47 @@ def register():
     )
 
 
+def unregister_hotkeys():
+    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys'):
+        for kc, km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+            km.keymap_items.remove(kmi)
+        bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
+
+
 def unregister():
-    """Since this file runs from the Blender Text Editor, unregister() is never
-    called afaik. So this is only here for show.
+    """Runs before register() on generation and when executed from the text editor.
+    Should be able to run without errors even before there's anything to unregister.
     """
 
-    for kc, km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
-        km.keymap_items.remove(kmi)
-    bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
-
-    from bpy.utils import unregister_class
-
     for c in classes:
-        unregister_class(c)
+        if is_registered(c):
+            try:
+                unregister_class(c)
+            except RuntimeError:
+                pass
 
     global custom_panels
-    for c in custom_panels:
-        unregister_class(c)
+    for c in custom_panels[:]:
+        if is_registered(c):
+            unregister_class(c)
+    custom_panels = []
 
-    del bpy.types.Object.cloud_rig
+    try:
+        del bpy.types.Object.cloud_rig
+        bpy.app.handlers.load_post.remove(ensure_custom_panels)
+        bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
-    bpy.app.handlers.load_post.remove(ensure_custom_panels)
-    bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
-
-    # Unhide the built-in Bone Collections panel.
-    bpy.types.DATA_PT_bone_collections.poll = (
-        bpy.types.DATA_PT_bone_collections.poll_bkp
-    )
+        # Unhide the built-in Bone Collections panel.
+        bpy.types.DATA_PT_bone_collections.poll = (
+            bpy.types.DATA_PT_bone_collections.poll_bkp
+        )
+    except:
+        pass
 
 
 if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']:
     # __name__ == `__main__`` when executed in Blender's Text Editor.
     # __name__ == `builtins`` when executed by cloud_generator.
     # __name__ == `CloudRig.generation.cloudrig` when executed by Blender add-on registration.
+    unregister()
     register()
