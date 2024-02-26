@@ -823,50 +823,6 @@ def refresh_constraints(rig: Object):
                     t.target = t.target
 
 
-def ___reorder_rig_components(self, rig_list):
-    """Some rig types need special treatment in regards to where they are in
-    the rig generation order."""
-    # TODO 4.0: This should be handled by the Rig Component List UI, parenting, and move up/down operators...
-    from ..rig_components.cloud_tweak import Component_TweakBone
-    from ..rig_components.cloud_chain_anchor import Component_FaceChainAnchor
-    from ..rig_components.cloud_face_chain import Component_FaceChain
-    from ..rig_components.cloud_jaw import Component_Jaw
-
-    first_face_idx = -1
-    for i, rig in enumerate(rig_list[:]):
-        if isinstance(rig, Component_TweakBone) or isinstance(
-            rig, Component_FaceChainAnchor
-        ):
-            # cloud_tweak components should be generated last.
-            rig_list.remove(rig)
-            rig_list.append(rig)
-        if isinstance(rig, Component_FaceChain) and first_face_idx == -1:
-            first_face_idx = i
-
-    for i, rig in enumerate(rig_list[:]):
-        if isinstance(rig, Component_Jaw):
-            for param_name in {
-                'CR_jaw_lower_face_bone',
-                'CR_jaw_squash_bone',
-                'CR_jaw_chin_bone',
-                'CR_jaw_mouth_bone',
-                'CR_jaw_teeth_follow',
-                'CR_jaw_teeth_upper_bone',
-                'CR_jaw_teeth_lower_bone',
-            }:
-                bone_name = getattr(rig.params, param_name)
-                dependency_component = self.component_map.get(bone_name)
-                if dependency_component:
-                    rig_list.remove(dependency_component)
-                    rig_list.insert(i - 1, dependency_component)
-
-    for rig in rig_list[:]:
-        if isinstance(rig, Component_FaceChainAnchor):
-            # cloud_chain_anchor pushed before the first cloud_face_chain.
-            rig_list.remove(rig)
-            rig_list.insert(first_face_idx, rig)
-
-
 class CLOUDRIG_OT_generate(Operator):
     """Generates a rig from the active metarig armature using the CloudRig generator"""
 
