@@ -835,7 +835,12 @@ class CLOUDRIG_OT_generate(Operator):
     focus_generated: BoolProperty(
         name="Focus Generated",
         default=True,
-        description="After a successful generation, hide the metarig, unhide the generated rig, enter the same mode as the current mode, and match bone selection states where possible",
+        description="After a successful generation, hide the metarig, unhide the generated rig and make it active, and enter the same mode as the current mode",
+    )
+    preserve_state: BoolProperty(
+        name="Preserve State",
+        default=True,
+        description="When re-generating a rig and Focus Generated is enabled, preserve the state of its bone and collection visibility, and bone selection",
     )
 
     @staticmethod
@@ -880,19 +885,22 @@ class CLOUDRIG_OT_generate(Operator):
             state_mode = target_rig.mode
         active_pb = get_pbone_of_active(context)
         state_active_bone = active_pb.name if active_pb else ""
-        bones = (
-            target_rig.data.edit_bones
-            if target_rig.mode == 'EDIT'
-            else target_rig.data.bones
-        )
-        state_bone_selection = {
-            bone.name: (bone.select, bone.select_head, bone.select_tail)
-            for bone in bones
-        }
-        state_bones_hide = {bone.name: bone.hide for bone in target_rig.data.bones}
-        state_visible_collections = {
-            coll.name: coll.is_visible for coll in target_rig.data.collections_all
-        }
+        if target_rig:
+            bones = (
+                target_rig.data.edit_bones
+                if target_rig.mode == 'EDIT'
+                else target_rig.data.bones
+            )
+            state_bone_selection = {
+                bone.name: (bone.select, bone.select_head, bone.select_tail)
+                for bone in bones
+            }
+            state_bones_hide = {bone.name: bone.hide for bone in target_rig.data.bones}
+            state_visible_collections = {
+                coll.name: coll.is_visible for coll in target_rig.data.collections_all
+            }
+        else:
+            self.preserve_state = False
 
         # Ensure required visibility and active states.
         # TODO: Replace EnsureVisible with context overriding.
@@ -903,22 +911,25 @@ class CLOUDRIG_OT_generate(Operator):
         context.view_layer.objects.active = metarig
 
         # Try to generate a rig based on the metarig.
-        rig = self.generate_rig(context, metarig)
+        target_rig = self.generate_rig(context, metarig)
 
         # Restore states.
         meta_visible.restore()
         if rig_visible:
             rig_visible.restore()
 
-        if not rig:
+        if not target_rig:
             # This means an error has occurred. It was already handled in generate_rig().
+            self.preserve_state = False
             self.report({'ERROR'}, f"Generation of {metarig.name} has failed.")
             return {'FINISHED'}
 
         if self.focus_generated:
+            self.focus_generated_rig(context, metarig, state_mode)
+
+        if self.preserve_state and target_rig:
             self.restore_state(
-                context,
-                metarig,
+                target_rig,
                 mode=state_mode,
                 active_bone_name=state_active_bone,
                 bone_selection=state_bone_selection,
@@ -926,7 +937,7 @@ class CLOUDRIG_OT_generate(Operator):
                 visible_collections=state_visible_collections,
             )
 
-        self.report({'INFO'}, f"Generation of {rig.name} successful.")
+        self.report({'INFO'}, f"Generation of {target_rig.name} successful.")
 
         return {'FINISHED'}
 
@@ -977,23 +988,13 @@ class CLOUDRIG_OT_generate(Operator):
 
         return generator_properties.target_rig
 
-    def restore_state(
-        self,
-        context,
-        metarig,
-        mode,
-        active_bone_name="",
-        bone_selection={},
-        hide_bones={},
-        visible_collections={},
-    ):
-        """Restore rig state for convenient re-generation workflow:
-        - Hide the metarig
-        - Reveal the target rig and set it as selected and active
-        - Enter the same mode as before
-        - Preserve bone active, selected, and hidden states where possible.
-        - Preserve collection visibility states where possible.
+    def focus_generated_rig(self, context, metarig: Object, mode='OBJECT'):
+        """Focus the generated rig for convenient generation and re-generation workflow:
+        - Hide the metarig.
+        - Reveal the target rig and set it as selected and active.
+        - Enter the same mode as before.
         """
+
         # Hide metarig.
         metarig.hide_set(True)
         target_rig = metarig.cloudrig.generator.target_rig
@@ -1006,6 +1007,20 @@ class CLOUDRIG_OT_generate(Operator):
         # Restore object's mode.
         if target_rig.mode != mode:
             bpy.ops.object.mode_set(mode=mode)
+
+    def restore_state(
+        self,
+        target_rig: Object,
+        mode='OBJECT',
+        active_bone_name="",
+        bone_selection={},
+        hide_bones={},
+        visible_collections={},
+    ):
+        """Restore rig state for convenient re-generation workflow:
+        - Preserve bone active, selected, and hidden states where possible.
+        - Preserve collection visibility states where possible.
+        """
 
         # Bones initialize with their tail selected, so deselect them.
         bones = target_rig.data.edit_bones if mode == 'EDIT' else target_rig.data.bones
