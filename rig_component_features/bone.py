@@ -603,7 +603,14 @@ class BoneInfo:
                 make_driver(ob, target_id=target_id, **kwargs)
             except:
                 del kwargs['index']
-                make_driver(ob, target_id=target_id, **kwargs)
+                try:
+                    make_driver(ob, target_id=target_id, **kwargs)
+                except Exception as e:
+                    self.bone_set.rig_component.add_log(
+                        "Failed to create Driver",
+                        trouble_bone=self.name,
+                        description=str(e),
+                    )
 
         # Constraints.
         for ci in self.constraint_infos:
