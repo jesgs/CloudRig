@@ -1,4 +1,5 @@
 import bpy
+import traceback
 from typing import List, Tuple
 from bpy.types import EditBone, PoseBone, Constraint, Context, Object
 
@@ -880,7 +881,7 @@ def ensure_custom_property(prop_bone, prop_id, **kwargs):
         else:
             prop_bone.custom_props[prop_id].update(kwargs)
     else:
-        if type(kwargs['default']) != bool:
+        if type(kwargs['default']) in {int, float}:
             if 'min' not in kwargs:
                 kwargs['min'] = 0
             if 'max' not in kwargs:
