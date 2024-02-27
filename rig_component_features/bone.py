@@ -609,9 +609,9 @@ class BoneInfo:
         for ci in self.constraint_infos:
             con = ci.make_real(pose_bone)
             for driver_info in ci.drivers:
-                driver_info[
-                    'prop'
-                ] = f'pose.bones["{pose_bone.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
+                driver_info['prop'] = (
+                    f'pose.bones["{pose_bone.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
+                )
                 make_driver_safe(armature, target_id=armature, **driver_info)
 
         # Custom Properties. TODO: This is somewhat redundant with ensure_custom_property().
@@ -620,16 +620,16 @@ class BoneInfo:
 
         # Pose Bone Drivers.
         for driver_info in self.drivers:
-            driver_info[
-                'prop'
-            ] = f'pose.bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
+            driver_info['prop'] = (
+                f'pose.bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
+            )
             make_driver_safe(armature, target_id=armature, **driver_info)
 
         # Data Bone Drivers.
         for driver_info in self.drivers_data:
-            driver_info[
-                'prop'
-            ] = f'bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
+            driver_info['prop'] = (
+                f'bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
+            )
             make_driver_safe(armature.data, target_id=armature, **driver_info)
 
     def clone(self, new_name=None, bone_set=None):
@@ -823,6 +823,9 @@ class ConstraintInfo(dict):
                 if hasattr(target_info['subtarget'], 'name'):
                     # Allow using BoneInfo instances, convert them to string here.
                     target_info['subtarget'] = target_info['subtarget'].name
+                if target_info['subtarget'] == None:
+                    # Replace None with empty string, otherwise make_constraint() throws error.
+                    target_info['subtarget'] = ''
             target_pairs = [
                 (t['target'], str(t['subtarget'])) for t in con_info['targets']
             ]
