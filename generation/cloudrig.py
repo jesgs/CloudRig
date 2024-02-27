@@ -2788,6 +2788,7 @@ class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
 
     assign: BoolProperty(default=True)
     all_collections: BoolProperty(default=False)
+    assign_to_children: BoolProperty(default=False)
 
     @classmethod
     def poll(cls, context):
@@ -2803,8 +2804,7 @@ class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
     def execute(self, context):
         rig = context.active_object
         colls = [rig.data.collections.active]
-
-        if not self.assign:
+        if self.assign_to_children:
             colls += rig.data.collections.active.cloudrig_info.children_recursive
 
         if self.all_collections:
