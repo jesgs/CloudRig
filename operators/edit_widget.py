@@ -379,11 +379,7 @@ class POSE_OT_assign_asset_as_widget(bpy.types.Operator):
 
 def draw_asset_rightclick_menu(self, context):
     layout = self.layout
-    ob = context.asset_file_handle.asset_data.id_data
-    if (
-        context.asset_file_handle.name.startswith("WGT-")
-        and context.selected_pose_bones
-    ):
+    if context.asset.name.startswith("WGT-") and context.selected_pose_bones:
         op = layout.operator(POSE_OT_assign_asset_as_widget.bl_idname)
         op.ob_name = context.asset_file_handle.name
 

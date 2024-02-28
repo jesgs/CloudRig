@@ -15,6 +15,7 @@ Priority 0: Missing functionality
 	- Test that cloud_face_chain, cloud_eyelid, cloud_chain_anchor, are working, and try to improve them, maybe.
 
 - Bone Colls UX
+	- When IK/FK snapping, affected bones should be not only selected but also revealed!! Even if hidden by collection.
 	- Shift+M to bring up a pop-up panel of the bone colls UIList.
 	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
