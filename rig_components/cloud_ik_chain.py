@@ -285,7 +285,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
         """Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
         ik_chain = []
         for i, org_bone in enumerate(org_chain):
-            ik_bone = self.bone_sets['IK Mechanism'].new(
+            bone_set = self.bone_sets['IK Mechanism']
+            if i == 0:
+                # We want to expose the first IK bone because it needs to be selectable and keyable for snapping purposes.
+                bone_set = self.bone_sets['IK Controls']
+            ik_bone = bone_set.new(
                 name=self.naming.add_prefix(org_bone, "IK-M"),
                 source=org_bone,
             )
