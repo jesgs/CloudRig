@@ -38,8 +38,9 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOperatorBase, bpy.types.Opera
 
     @classmethod
     def poll(cls, context):
-        selected_tails = [b for b in context.object.data.edit_bones if b.select_tail]
-        return context.mode == 'EDIT_ARMATURE' and selected_tails
+        if not context.mode == 'EDIT_ARMATURE':
+            return False
+        return [b for b in context.object.data.edit_bones if b.select_tail]
 
 
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOperatorBase, bpy.types.Operator):
@@ -50,8 +51,9 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOperatorBase, bpy.types.Ope
 
     @classmethod
     def poll(cls, context):
-        selected_bones = [b for b in context.object.data.edit_bones if b.select]
-        return context.mode == 'EDIT_ARMATURE' and selected_bones
+        if not context.mode == 'EDIT_ARMATURE':
+            return False
+        return [b for b in context.object.data.edit_bones if b.select]
 
     def bone_operation(self, context):
         # Duplicate it!
