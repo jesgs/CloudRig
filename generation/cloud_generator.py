@@ -30,7 +30,12 @@ from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
 
 # from ..operators.assign_bone_layers import init_cloudrig_layers
-from ..utils.misc import check_addon, load_script, get_pbone_of_active
+from ..utils.misc import (
+    check_addon,
+    load_script,
+    get_pbone_of_active,
+    assign_to_collection,
+)
 from .cloudrig import (
     ensure_custom_panels,
     register_hotkey,
@@ -83,6 +88,11 @@ class GeneratorProperties(PropertyGroup):
         name="Widget Collection",
         type=bpy.types.Collection,
         description="Collection dedicated to storing nothing but the widgets used by this rig. Additional objects will result in warnings, and missing widgets will be re-linked during generation",
+    )
+    reload_widgets: BoolProperty(
+        name="Overwrite Widgets",
+        description="Reload widgets, discarding any local modifications to them",
+        default=True,
     )
 
     generate_test_action: BoolProperty(
@@ -343,7 +353,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.components_write_pbone_data(self.target_rig)
 
         # ------------------------------------------
-        ensure_cloudrig_ui(self.target_rig)
 
         if self.params.generate_test_action:
             self.create_test_animation()  # TODO 4.0: Verify this works.
@@ -369,7 +378,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+
+        ensure_cloudrig_ui(self.target_rig)
         self.params.target_rig = self.target_rig
+
+        if self.params.reload_widgets:
+            for obj in self.params.widget_collection.objects:
+                self.ensure_widget(obj.name.replace("WGT-", ""))
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos()
@@ -445,12 +460,17 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def ensure_widget(self, widget_name):
         wgt = cloud_widgets.ensure_widget(
-            widget_name, overwrite=False, collection=self.params.widget_collection
+            widget_name,
+            overwrite=self.params.reload_widgets,
         )
         if not wgt:
-            self.logger.log_bug(
-                "Failed to create widget",
+            self.raise_generation_error(
+                "Failed to load widget",
                 description=f"Failed to load widget named '{widget_name}'.",
+            )
+        else:
+            assign_to_collection(
+                wgt, self.params.widget_collection or bpy.context.scene.collection
             )
         return wgt
 
@@ -629,6 +649,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
 def ensure_cloudrig_ui(rig):
     """Load and execute cloudrig.py rig UI script."""
+    if 'cloudrig_ui' in rig.data:
+        # If the rig UI script is linked, it's been preserved in
+        # replace_old_with_new_rig().
+        # This also allows the post-generation script to assign a custom script.
+        return
     rig.data['cloudrig_ui'] = load_script(
         file_path=os.path.dirname(os.path.realpath(__file__)), file_name="cloudrig.py"
     )
@@ -715,6 +740,11 @@ def replace_old_with_new_rig(
     For example, right now we are not preserving arbitrary custom properties, even though that might be nice.
     This approach could also eventually enable us to regenerate only parts of a rig.
     """
+
+    # If cloudrig.py is linked, save that reference. This will be checked for
+    # later, in ensure_cloudrig_ui.
+    if old_rig.data['cloudrig_ui'].library:
+        new_rig.data['cloudrig_ui'] = old_rig.data['cloudrig_ui']
 
     # Save Selection Sets.
     if preserve_sel_sets:
@@ -937,7 +967,10 @@ class CLOUDRIG_OT_generate(Operator):
                 visible_collections=state_visible_collections,
             )
 
-        self.report({'INFO'}, f"Generation of {target_rig.name} successful.")
+        if 'failed_rig' in metarig:
+            self.report({'ERROR'}, f"Generation of {metarig.name} has failed.")
+        else:
+            self.report({'INFO'}, f"Generation of {target_rig.name} successful.")
 
         return {'FINISHED'}
 

@@ -76,6 +76,11 @@ class Timer:
         print(string + "%.3f" % (t - self.start_time))
 
 
+def assign_to_collection(obj, collection):
+    if obj.name not in collection.objects:
+        collection.objects.link(obj)
+
+
 def get_pbone_of_active(context) -> Optional[PoseBone]:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.

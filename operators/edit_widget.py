@@ -3,6 +3,7 @@ import bpy
 from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 
+from ..utils.misc import get_addon_prefs
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.widgets.widgets import ensure_widget
 
@@ -27,15 +28,6 @@ def assign_to_collection(obj, collection):
         return
     if obj.name not in collection.objects:
         collection.objects.link(obj)
-
-
-def get_widget_blend_path() -> str:
-    filedir = os.path.dirname(os.path.realpath(__file__))
-    blend_path = os.sep.join(
-        filedir.split(os.sep)[:-1]
-        + ['rig_component_features', 'widgets', 'Widgets.blend']
-    )
-    return blend_path
 
 
 def get_widget_list(self, context):
@@ -68,7 +60,10 @@ def refresh_widget_list():
     global widget_items
     widget_items = []
 
-    with bpy.data.libraries.load(get_widget_blend_path()) as (data_from, data_to):
+    prefs = get_addon_prefs()
+    blend_path = prefs.widget_library
+
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
         for o in data_from.objects:
             if o.startswith("WGT-"):
                 ui_name = o.replace("WGT-", "").replace("_", " ")
@@ -158,6 +153,16 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
         return context.mode == 'POSE' and pb
 
     def invoke(self, context, event):
+        pb = context.active_pose_bone
+        custom_shape = pb.custom_shape
+        if custom_shape and custom_shape.library:
+            # If the assigned widget is a linked object, we can't edit it.
+            self.report(
+                {'ERROR'},
+                f"{custom_shape.name} is a linked object, it cannot be edited locally.",
+            )
+            return {'CANCELLED'}
+
         refresh_widget_list()
         self.widget_shape = 'WGT-Cube'
         if context.mode == 'EDIT_MESH':

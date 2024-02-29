@@ -95,7 +95,9 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         layout = layout.column()
         layout.prop(generator, 'target_rig')
-        layout.prop(generator, 'widget_collection')
+        widget_row = layout.row()
+        widget_row.prop(generator, 'widget_collection')
+        widget_row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
 
         layout.prop(generator, 'ensure_root', icon='BONE_DATA')
         layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')

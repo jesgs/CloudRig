@@ -1,66 +1,74 @@
 import bpy
 import os
+from ...utils.misc import get_addon_prefs
 
 
-def assign_to_collection(obj, collection):
-    if obj.name not in collection.objects:
-        collection.objects.link(obj)
-
-
-def get_widget_blend_path() -> str:
-    filename = "Widgets.blend"
-    filedir = os.path.dirname(os.path.realpath(__file__))
-    blend_path = os.path.join(filedir, filename)
-    return blend_path
-
-
-def ensure_widget(wgt_name, overwrite=True, collection=None, clear_asset=True):
+def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
     """Load custom shapes by appending them from Widgets.blend, unless they already exist in this file."""
-
-    if not collection:
-        collection = bpy.context.scene.collection
+    prefs = get_addon_prefs()
+    link = prefs.widget_import_method == 'LINK'
+    blend_path = bpy.path.relpath(prefs.widget_library)
 
     # Check if it already exists locally.
     if not wgt_name.startswith("WGT-"):
         wgt_name = "WGT-" + wgt_name
-    wgt_ob = bpy.data.objects.get((wgt_name, None))
-
+    # We deliberately don't check for the library here, because sometimes we may
+    # want to overwrite a local widget with a linked one.
+    wgt_ob = bpy.data.objects.get(wgt_name)
     if wgt_ob:
-        assign_to_collection(wgt_ob, collection)
         if overwrite:
-            # If it exists, and we want to update it, rename it while we append the new one.
-            wgt_ob.name = wgt_ob.name + "_temp"
-            wgt_ob.data.name = wgt_ob.data.name + "_temp"
+            if wgt_ob.library:
+                if link:
+                    if wgt_ob.library.filepath == blend_path:
+                        # If object is already linked from the target lib, no need to do it again.
+                        return wgt_ob
+                else:
+                    # The object is already linked from the target lib, but the caller wants it to be local instead.
+                    wgt_ob.make_local()
+                    wgt_ob.data.make_local()
+                    if clear_asset:
+                        wgt_ob.asset_clear()
+                    return wgt_ob
+            else:
+                wgt_ob.name = wgt_ob.name + "_temp"
+                wgt_ob.data.name = wgt_ob.data.name + "_temp"
         else:
+            # Object exists and we don't want to overwrite it, so just return it.
             return wgt_ob
 
-    # Loading widget object from file.
-    blend_path = get_widget_blend_path()
-
-    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+    # Import widget object from Widgets.blend file.
+    with bpy.data.libraries.load(blend_path, link=link, relative=True) as (
+        data_from,
+        data_to,
+    ):
         for o in data_from.objects:
             if o == wgt_name:
                 data_to.objects.append(o)
 
-    new_wgt_ob = bpy.data.objects.get((wgt_name, None))
+    new_wgt_ob = bpy.data.objects.get((wgt_name, blend_path if link else None))
     if not new_wgt_ob:
-        # Widget name was not in resource file, so nothing to overwrite with.
-        # Just clear the _temp from the end of the names.
-        wgt_ob.name = wgt_name
-        wgt_ob.data.name = wgt_name
+        if wgt_ob:
+            # We failed to import a widget with the provided name, but a local one already exists.
+            # So, let's just return that local one, whether it's linked or not.
+            wgt_ob.name = wgt_name
+            wgt_ob.data.name = wgt_name
+            return wgt_ob
+        else:
+            # We failed to import anything, AND we didn't have anything... So, we are sad.
+            return None
+    elif new_wgt_ob == wgt_ob:
         return wgt_ob
-    elif wgt_ob:
-        # Update original object with new one's data, then delete new object.
-        old_data_name = wgt_ob.data.name
-        wgt_ob.data = new_wgt_ob.data
-        wgt_ob.name = wgt_name
-        bpy.data.meshes.remove(bpy.data.meshes.get(old_data_name))
-        bpy.data.objects.remove(new_wgt_ob)
-    else:
+    elif overwrite:
+        # Widget already existed, but we want to overwrite it with what we just imported.
+        wgt_ob.user_remap(new_wgt_ob)
+        # old_mesh_name = wgt_ob.data.name
+        # mesh = bpy.data.meshes.get(old_mesh_name)
+        # bpy.data.objects.remove(wgt_ob)
+        # if mesh:
+        # bpy.data.meshes.remove(bpy.data.meshes.get(old_mesh_name))
         wgt_ob = new_wgt_ob
 
-    if clear_asset:
+    if clear_asset and wgt_ob.library == None:
         wgt_ob.asset_clear()
-    assign_to_collection(wgt_ob, collection)
 
     return wgt_ob

@@ -1,7 +1,17 @@
 from bpy.types import PropertyGroup, AddonPreferences
-from bpy.props import StringProperty, CollectionProperty, BoolProperty
+from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
 import bpy
+import os
+
 from . import rig_components
+
+
+def get_default_widgets_path():
+    filedir = os.path.dirname(os.path.realpath(__file__))
+    blend_path = os.sep.join(
+        filedir.split(os.sep) + ['rig_component_features', 'widgets', 'Widgets.blend']
+    )
+    return blend_path
 
 
 def init_component_module_list(context=None):
@@ -61,6 +71,31 @@ class CloudRigPreferences(AddonPreferences):
         description="Reveal bone sets that are marked as internal, ie. mechanism bones. You would customize these much less frequently than the controls, which are exposed to animators",
         default=False,
     )
+
+    widget_library: StringProperty(
+        name="Widget Library",
+        default=get_default_widgets_path(),
+        subtype='FILE_PATH',
+        description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
+    )
+    widget_import_method: EnumProperty(
+        name="Import Method",
+        items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
+        default='APPEND',
+        description="Whether widget objects should be linked or appended",
+    )
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(self, 'advanced_mode')
+        lib_row = layout.row()
+        if not os.path.exists(self.widget_library):
+            lib_row.alert = True
+        lib_row.prop(self, 'widget_library')
+        layout.row().prop(self, 'widget_import_method', expand=True)
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
