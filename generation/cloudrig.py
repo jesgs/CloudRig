@@ -909,6 +909,7 @@ class OBJECT_OT_cloudrig_copy_property(bpy.types.Operator):
         )
         for rigname, bonename in self.rig_bones.items():
             split = layout.split(factor=0.4)
+            split.alignment = 'RIGHT'
             split.label(text=rigname, icon='ARMATURE_DATA')
             split.label(text=bonename, icon='BONE_DATA')
 
@@ -1615,6 +1616,13 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
+    show_local_overrides: BoolProperty(
+        name="Show Link",
+        description="Show an icon indicating whether a collection is a local override. Locally created collections can be renamed, removed, sorted, and parented amongst each other, but the linked collection tree from the original file cannot be modified",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
     def update_collection_filter(self, context=None):
         self.keep_active_collection_visible()
@@ -1670,17 +1678,17 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
 
         colls.active_index = self.active_collection_index
 
-    def ensure_bone_collections_info(self):
+    def sync_collection_names(self):
         for coll in self.id_data.data.collections_all:
             coll.cloudrig_info.name = coll.name
 
     def update_active_collection_index(self, context=None):
-        self.ensure_bone_collections_info()
+        self.sync_collection_names()
         self.keep_active_collection_visible()
 
     active_collection_index: IntProperty(
-        name="Nested Collections",
-        description="Nested Collections",
+        name="Bone Collections",
+        description="Bone Collections",
         update=update_active_collection_index,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
@@ -1700,13 +1708,10 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     def get_collection(self) -> bpy.types.BoneCollection:
         """Return the BoneCollection that this instance of this class belongs to."""
-        return self.get_collection_with_index()[0]
-
-    def get_collection_with_index(self) -> Tuple[bpy.types.BoneCollection, int]:
         armature = self.id_data
-        for i, coll in enumerate(armature.collections_all):
+        for coll in armature.collections_all:
             if coll.cloudrig_info == self:
-                return coll, i
+                return coll
 
     def update_name(self, context):
         """Runs when trying to change the name of this instance, which should stay in sync
@@ -1764,86 +1769,6 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
-    def update_unfold(self, context):
-        obj = context.pose_object or context.active_object
-        if not obj:
-            return
-        obj.cloudrig_prefs.active_collection_index = self.get_collection_with_index()[1]
-
-    unfold_children: BoolProperty(
-        name="Unfold Children",
-        description="Unfold child collections",
-        options={'LIBRARY_EDITABLE'},
-        override={'LIBRARY_OVERRIDABLE'},
-        update=update_unfold,
-    )
-
-    def update_is_visible(self, context):
-        # The is_visible flag is not intended to stay perfectly in sync with the
-        # collections themselves. Instead, we consider this a higher level toggle,
-        # that controls the hierarchy.
-        # So, self.is_visible may be True, but the actual collection underneath
-        # will still be hidden, if any of our parent collections is hidden.
-
-        coll = self.get_collection()
-        coll.is_visible = self.is_visible
-
-        if not self.is_visible:
-            # If we are hidden, hide all children.
-            for child in self.children_recursive:
-                child.is_visible = False
-        else:
-            # If we are revealed, set all children visibilities to sync to their own collection.
-            for child in self.children_recursive:
-                child.is_visible = child.cloudrig_info.is_actually_visible
-
-    is_visible: BoolProperty(
-        name="Visible",
-        description="Toggle the visiblity of this collection, and all child collections",
-        default=True,
-        update=update_is_visible,
-        options={'LIBRARY_EDITABLE'},
-        override={'LIBRARY_OVERRIDABLE'},
-    )
-
-    solo_flag: EnumProperty(
-        name="Solo Flag",
-        description="How this collection is affected by the current Solo state. Used internally for the Solo functionality",
-        options={'LIBRARY_EDITABLE'},
-        override={'LIBRARY_OVERRIDABLE'},
-        items=[
-            (
-                'NONE',
-                'None',
-                "This collection's visibility was not affected by a collection being isolated, or there is no isolated collection",
-            ),
-            (
-                'SOLO',
-                'Solo',
-                "This is the isolated collection. Ctrl+Clicking it again will un-solo it",
-            ),
-            (
-                'SOLO_REVEALED',
-                'Solo Revealed',
-                "This is the isolated collection. Ctrl+Clicking it again will un-solo it, and also hide it",
-            ),
-            (
-                'REVEALED',
-                'Revealed',
-                "This collection was revealed because it is a parent of the isolated collection",
-            ),
-            (
-                'HIDDEN',
-                'Hidden',
-                "This collection was hidden due to another collection being isolated",
-            ),
-        ],
-    )
-
-    @property
-    def is_actually_visible(self):
-        return self.is_visible and self.are_parents_visible
-
     @property
     def are_parents_visible(self):
         parent = self.parent_collection
@@ -1866,36 +1791,23 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     @property
     def parent_collection(self) -> bpy.types.BoneCollection:
-        armature = self.id_data
-        return armature.collections_all.get(self.parent_name)
+        # TODO 4.2: Redundant, delete.
+        return self.get_collection().parent
 
     @parent_collection.setter
     def parent_collection(self, coll: bpy.types.BoneCollection):
+        # TODO 4.2: Redundant, delete.
+        self.get_collection().parent = coll
         self.parent_name = coll.name
 
     def unfold_parents(self):
-        parent = self.parent_collection
-        while parent:
-            parent.cloudrig_info.unfold_children = True
-            parent = parent.cloudrig_info.parent_collection
+        # TODO 4.2: Redundant, delete
+        return self.get_collection().is_expanded
 
     @property
     def children(self) -> List[bpy.types.BoneCollection]:
-        children = []
-        self_coll = self.get_collection()
-
-        # self.name should be the same as self_coll.name.
-        # If that's not the case, there's a bug in copy_bone_collections().
-
-        if not self_coll.name:
-            return []
-        armature = self.id_data
-        for coll in armature.collections_all:
-            if (
-                self_coll.name == coll.cloudrig_info.parent_name
-            ) and self_coll.name != "":
-                children.append(coll)
-        return children
+        # TODO 4.2: Redundant, delete.
+        return self.get_collection().children[:]
 
     @property
     def siblings(self):
@@ -1925,10 +1837,8 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     @property
     def all_bones(self) -> List[bpy.types.Bone]:
-        bones = self.get_collection().bones[:]
-        for child in self.children:
-            bones += child.cloudrig_info.all_bones
-        return bones
+        # TODO 4.2: Redundant, delete.
+        return self.get_collection().bones_recursive
 
     quick_access: BoolProperty(
         name="Quick Access",
@@ -1940,13 +1850,11 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
 
     @property
     def are_parents_unfolded(self):
-        """Return False if any parent up the chain has unfold_children=False"""
+        """Return False if any parent up the chain has is_expanded=False"""
         if not self.parent_collection:
             return True
 
-        return all(
-            [parent.cloudrig_info.unfold_children for parent in self.parents_recursive]
-        )
+        return all([parent.is_expanded for parent in self.parents_recursive])
 
     @property
     def hierarchy_depth(self):
@@ -1970,17 +1878,27 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         prefs = rig.cloudrig_prefs
 
         row = layout.row(align=True)
-        icon = 'TRIA_DOWN' if cloudrig_info.unfold_children else 'TRIA_RIGHT'
-        if cloudrig_info.parent_collection:
+        if collection.parent:
             split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
             split.row()
             row = split.row(align=True)
             row = row.row(align=True)
-        if cloudrig_info.children:
-            row.prop(cloudrig_info, 'unfold_children', text="", icon=icon, emboss=False)
+        if collection.children:
+            icon = 'DOWNARROW_HLT' if collection.is_expanded else 'RIGHTARROW'
+            row.prop(collection, 'is_expanded', text="", icon=icon, emboss=False)
         else:
             row.label(text="", icon='BLANK1')
-        row.prop(cloudrig_info, 'name', text="", emboss=False)
+
+        if prefs.show_local_overrides and collection.is_local_override:
+            row.prop(
+                cloudrig_info,
+                'name',
+                text="",
+                icon='LIBRARY_DATA_OVERRIDE',
+                emboss=False,
+            )
+        else:
+            row.prop(cloudrig_info, 'name', text="", emboss=False)
 
         if context.mode != 'EDIT_ARMATURE':
             direct_selected_bones = [
@@ -2013,13 +1931,11 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         row.operator_context = 'INVOKE_DEFAULT'
         row.enabled = cloudrig_info.are_parents_visible
         if prefs.show_visibility:
-            icon = 'HIDE_OFF' if cloudrig_info.is_visible else 'HIDE_ON'
-            row.prop(cloudrig_info, 'is_visible', text="", icon=icon)
+            icon = 'HIDE_OFF' if collection.is_visible else 'HIDE_ON'
+            row.prop(collection, 'is_visible', text="", icon=icon)
         if prefs.show_solo:
-            icon = 'SOLO_ON' if 'SOLO' in cloudrig_info.solo_flag else 'SOLO_OFF'
-            row.operator(
-                POSE_OT_cloudrig_collection_solo.bl_idname, text="", icon=icon
-            ).collection_name = collection.name
+            icon = 'SOLO_ON' if collection.is_solo else 'SOLO_OFF'
+            row.prop(collection, 'is_solo', text="", icon=icon)
         if prefs.show_select:
             sel_op = row.operator(
                 POSE_OT_cloudrig_collection_select.bl_idname,
@@ -2030,11 +1946,13 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
             sel_op.reveal_bones = False
         if prefs.show_editing:
             row.separator()
-            row.operator(
-                POSE_OT_cloudrig_collection_parent_set.bl_idname,
-                text="",
-                icon='CON_CHILDOF',
-            ).coll_idx = idx
+            if collection.is_editable:
+                row.operator(
+                    POSE_OT_cloudrig_collection_parent_set.bl_idname,
+                    text="",
+                    icon='CON_CHILDOF',
+                ).coll_idx = idx
+
             icon = 'HEART' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             if is_active_cloudrig(context) and find_metarig_of_rig(
@@ -2074,9 +1992,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
         # parents, but the original order is otherwise preserved.
 
         # Find collections without any parent
-        root_colls = [
-            coll for coll in all_collections if coll.cloudrig_info.parent_name == ""
-        ]
+        root_colls = [coll for coll in all_collections if not coll.parent]
         sorted_colls = []
 
         def add_children_recursive(parent_coll):
@@ -2159,6 +2075,12 @@ def draw_cloudrig_collections(self, context):
             POSE_OT_cloudrig_collections_reveal_all.bl_idname,
             text="",
             icon='HIDE_OFF',
+            emboss=False,
+        )
+        list_col.operator(
+            'armature.collection_unsolo_all',
+            text="",
+            icon='SOLO_OFF',
             emboss=False,
         )
         return
@@ -2248,6 +2170,10 @@ class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
         row.separator()
         row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
         row.prop(prefs, 'show_bone_count', text="", icon='GROUP_BONE')
+        if obj.data.override_library:
+            row.prop(
+                prefs, 'show_local_overrides', text="", icon='LIBRARY_DATA_OVERRIDE'
+            )
 
 
 class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
@@ -2260,6 +2186,11 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
             POSE_OT_cloudrig_collections_reveal_all.bl_idname,
             text="Show All",
             icon='HIDE_OFF',
+        )
+        layout.operator(
+            'armature.collection_unsolo_all',
+            text="Unsolo All",
+            icon='SOLO_OFF',
         )
         layout.separator()
         layout.operator(
@@ -2305,7 +2236,16 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
         layout.operator_context = "INVOKE_DEFAULT"
 
         rig = context.pose_object or context.active_object
-        for coll in rig.data.collections_all:
+
+        def collections_recursive(colls):
+            """This has a different order from collections_all, which aligns with
+            user expectation (UI top to bottom order)."""
+            for coll in colls:
+                yield coll
+                if coll.children:
+                    yield from collections_recursive(coll.children)
+
+        for coll in collections_recursive(rig.data.collections):
             if coll.cloudrig_info.quick_access:
                 op = layout.operator(
                     POSE_OT_cloudrig_collection_select.bl_idname,
@@ -2327,7 +2267,7 @@ class POSE_OT_cloudrig_collections_reveal_all(bpy.types.Operator):
     def execute(self, context):
         rig = context.pose_object or context.active_object
         for coll in rig.data.collections_all:
-            coll.cloudrig_info.is_visible = True
+            coll.is_visible = True
 
         return {'FINISHED'}
 
@@ -2342,92 +2282,6 @@ def pose_mode(rig):
         bpy.ops.object.mode_set(mode='POSE')
         yield
         bpy.ops.object.mode_set(mode=mode_bkp)
-
-
-class POSE_OT_cloudrig_collection_solo(bpy.types.Operator):
-    """Temporarily isolate this collection, hiding all others"""
-
-    bl_idname = "pose.cloudrig_collection_solo"
-    bl_label = "Solo Collection"
-    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
-
-    collection_name: StringProperty(
-        name="Collection",
-        description="Name of the collection to solo",
-        options={'SKIP_SAVE'},
-    )
-    select_bones: BoolProperty(
-        name="Select Bones",
-        description="Whether to select the bones of the solod collection or not",
-        default=False,
-        options={'SKIP_SAVE'},
-    )
-
-    @classmethod
-    def poll(cls, context):
-        ob = context.pose_object or context.active_object
-        return ob and ob.type == 'ARMATURE'
-
-    def execute(self, context):
-        rig = context.pose_object or context.active_object
-        all_colls = rig.data.collections_all
-        coll = all_colls.get(self.collection_name)
-
-        if not coll:
-            coll = rig.data.collections.active
-        if not coll:
-            return {'CANCELLED'}
-
-        self.toggle_isolate(all_colls, coll)
-
-        if self.select_bones:
-            with pose_mode(rig):
-                for bone in coll.cloudrig_info.all_bones:
-                    bone.select = True
-
-        return {'FINISHED'}
-
-    @staticmethod
-    def toggle_isolate(all_collections, isolate_collection):
-        un_isolate = False
-
-        # Reset solo flags & visibilities.
-        for coll in all_collections:
-            if coll.cloudrig_info.solo_flag == 'HIDDEN':
-                coll.cloudrig_info.is_visible = True
-            elif 'REVEALED' in coll.cloudrig_info.solo_flag:
-                coll.cloudrig_info.is_visible = False
-            if (
-                coll == isolate_collection
-                and 'SOLO' in isolate_collection.cloudrig_info.solo_flag
-            ):
-                un_isolate = True
-            coll.cloudrig_info.solo_flag = 'NONE'
-
-        if not un_isolate:
-            # Set solo flags & visibilities.
-            for coll in all_collections:
-                if isolate_collection in coll.cloudrig_info.parents_recursive:
-                    # Don't reveal or hide children of the isolated collection.
-                    continue
-                if isolate_collection == coll:
-                    coll.cloudrig_info.solo_flag = (
-                        'SOLO' if coll.cloudrig_info.is_visible else 'SOLO_REVEALED'
-                    )
-                    coll.cloudrig_info.is_visible = True
-                elif coll in isolate_collection.cloudrig_info.parents_recursive:
-                    # Reveal the isolated collection and its parents.
-                    coll.cloudrig_info.solo_flag = (
-                        'REVEALED' if not coll.cloudrig_info.is_visible else 'NONE'
-                    )
-                    coll.cloudrig_info.is_visible = True
-                else:
-                    # Hide all other collections, but only the highest levels.
-                    if coll.cloudrig_info.is_actually_visible:
-                        coll.cloudrig_info.solo_flag = 'HIDDEN'
-                        coll.cloudrig_info.is_visible = False
-                    else:
-                        coll.cloudrig_info.solo_flag = 'NONE'
 
 
 class POSE_OT_cloudrig_collection_select(bpy.types.Operator):
@@ -2494,7 +2348,7 @@ class POSE_OT_cloudrig_collection_select(bpy.types.Operator):
             reveal_colls += collection.cloudrig_info.children_recursive
 
         for reveal_coll in reveal_colls:
-            reveal_coll.cloudrig_info.is_visible = True
+            reveal_coll.is_visible = True
 
         with pose_mode(rig):
             if not self.extend_selection and self.select:
@@ -2536,9 +2390,8 @@ class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot change the parent of linked collections.")
             return {'CANCELLED'}
-        self.parent_name = rig.data.collections_all[
-            self.coll_idx
-        ].cloudrig_info.parent_name
+        if coll.parent:
+            self.parent_name = coll.parent.name
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -2550,30 +2403,29 @@ class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
     def execute(self, context):
         rig = context.pose_object or context.active_object
         all_colls = rig.data.collections_all
+        parent = all_colls.get(self.parent_name)
         coll = all_colls[self.coll_idx]
-        coll_info = coll.cloudrig_info
 
-        if coll_info.parent_name == self.parent_name:
+        if coll.parent == parent:
             self.report({'INFO'}, "This parent is already set. Nothing was done.")
             return {'CANCELLED'}
-        if self.parent_name == coll_info.name:
+        if coll.parent == coll:
             self.report({'ERROR'}, "Cannot set a collection's parent to be itself.")
             return {'CANCELLED'}
-        coll_info.parent_name = self.parent_name
+        if not parent.is_editable:
+            self.report(
+                {'ERROR'},
+                "Parenting to a linked collection is currently not supported.",
+            )
+            return {'CANCELLED'}
+        if not coll.is_editable:
+            self.report(
+                {'ERROR'},
+                "Changing parent of linked collection is currently not supported.",
+            )
+            return {'CANCELLED'}
 
-        # Ensure there's no parent cycle.
-        parent = coll_info.parent_collection
-        while parent:
-            parent.cloudrig_info.unfold_children = True
-            if parent in coll_info.children:
-                parent.cloudrig_info.parent_name = ""
-                self.report(
-                    {'INFO'}, "A collection was unparented to avoid a parenting loop."
-                )
-                return {'FINISHED'}
-            parent = parent.cloudrig_info.parent_collection
-
-        POSE_OT_cloudrig_collection_reorder.refresh_collection_order(rig)
+        coll.parent = parent
         rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
 
         self.report({'INFO'}, "Collection parent set.")
@@ -2597,8 +2449,13 @@ class POSE_OT_cloudrig_collection_delete(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object or context.active_object
-        return rig.data.collections.active
+        rig = context.object
+        active_coll = rig.data.collections.active
+        if active_coll:
+            if not active_coll.is_editable:
+                cls.poll_message_set("Cannot delete linked collection")
+                return False
+            return True
 
     def execute(self, context):
         if self.mode == 'ACTIVE':
@@ -2612,13 +2469,8 @@ class POSE_OT_cloudrig_collection_delete(bpy.types.Operator):
         rig = context.pose_object or context.active_object
         coll = rig.data.collections.active
         if not coll.is_editable:
-            self.report({'ERROR'}, "Cannot remove linked collection.")
+            self.report({'ERROR'}, "Cannot delete linked collection.")
             return {'CANCELLED'}
-
-        parent_name = coll.cloudrig_info.parent_name
-
-        for child in coll.cloudrig_info.children:
-            child.cloudrig_info.parent_name = parent_name
 
         rig.data.collections.remove(coll)
 
@@ -2658,6 +2510,8 @@ class POSE_OT_cloudrig_collection_add(bpy.types.Operator):
 
     def execute(self, context):
         rig = context.pose_object or context.active_object
+        if rig.data.override_library:
+            rig.data.override_library.is_system_override = False
         colls = rig.data.collections
         all_colls = rig.data.collections_all
         active_coll = colls.active
@@ -2693,14 +2547,19 @@ class POSE_OT_cloudrig_collection_reorder(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object or context.active_object
-        collections = rig.data.collections
-        active_coll = collections.active
-        return bool(active_coll)
+        rig = context.object
+        active_coll = rig.data.collections.active
+        if active_coll:
+            if not active_coll.is_editable:
+                cls.poll_message_set(
+                    "Re-ordering the linked collection tree is currently not supported"
+                )
+                return False
+            return True
 
     @classmethod
     def description(cls, context, props):
-        direction = "up" if self.direction == 'UP' else "down"
+        direction = "up" if props.direction == 'UP' else "down"
         return f"Move active collection {direction} in the list"
 
     @staticmethod
@@ -2727,56 +2586,12 @@ class POSE_OT_cloudrig_collection_reorder(bpy.types.Operator):
             new_idx = old_idx - 1
 
         collections.move(old_idx, new_idx)
-        self.refresh_collection_order(rig)
+
+        rig.cloudrig_prefs.active_collection_index = rig.data.collections_all.find(
+            collections.active.name
+        )
 
         return {'FINISHED'}
-
-    @staticmethod
-    def clear_parenting(rig):
-        for coll in rig.data.collections_all:
-            coll.parent = None
-
-    @staticmethod
-    def sync_parenting(rig):
-        # Sync parenting between CloudRig and Blender. Favor CloudRig.
-        for coll in rig.data.collections_all[:]:
-            cloudrig_parent = coll.cloudrig_info.parent_collection
-            blender_parent = coll.parent
-            if cloudrig_parent and cloudrig_parent != blender_parent:
-                coll.parent = cloudrig_parent
-            elif blender_parent:
-                coll.cloudrig_info.parent_collection = blender_parent
-
-    @staticmethod
-    def refresh_collection_order(rig):
-        collections = rig.data.collections
-        collections_all = rig.data.collections_all
-
-        POSE_OT_cloudrig_collection_reorder.clear_parenting(rig)
-
-        # To get the order, we can re-use code of the nested UIList ordering.
-        new_order = CLOUDRIG_UL_collections.get_collection_order(collections_all)
-
-        # Backup active coll.
-        active_coll_name = collections.active.name
-
-        # The re-ordering has to be done one-by-one, so it's a bit tricky.
-        idx_map = [
-            (collections_all[old_idx], new_idx)
-            for old_idx, new_idx in enumerate(new_order)
-        ]
-        idx_map.sort(key=lambda tup: tup[1])
-
-        for coll, new_idx in idx_map:
-            old_idx = rig.data.collections_all.find(coll.name)
-            rig.data.collections.move(old_idx, new_idx)
-
-        POSE_OT_cloudrig_collection_reorder.sync_parenting(rig)
-
-        # Preserve active coll.
-        rig.cloudrig_prefs.active_collection_index = collections_all.find(
-            active_coll_name
-        )
 
 
 class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
@@ -3035,7 +2850,6 @@ classes = (
     POSE_OT_cloudrig_keyframe_all_settings,
     POSE_OT_cloudrig_reset,
     POSE_OT_cloudrig_collections_reveal_all,
-    POSE_OT_cloudrig_collection_solo,
     POSE_OT_cloudrig_collection_select,
     POSE_OT_cloudrig_collection_parent_set,
     POSE_OT_cloudrig_collection_delete,

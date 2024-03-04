@@ -266,7 +266,7 @@ class CloudLogManager:
     def report_unused_bone_collections(self, metarig, target_rig):
         for coll in metarig.data.collections_all:
             target_coll = target_rig.data.collections_all.get(coll.name)
-            if not target_coll or len(target_coll.cloudrig_info.all_bones) == 0:
+            if not target_coll or len(target_coll.bones_recursive) == 0:
                 self.log(
                     "Unused Bone Collection",
                     note=coll.name,
@@ -700,7 +700,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
         bone.select = True
         bone_is_visible = any([coll.is_visible for coll in bone.collections])
         if not bone_is_visible:
-            bone.collections[0].cloudrig_info.is_visible = True
+            bone.collections[0].is_visible = True
 
         rig.data.bones.active = bone
 

@@ -348,7 +348,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         self.components_create_helper_objs(context)
-        self.metarig.cloudrig_prefs.ensure_bone_collections_info()
+        self.metarig.cloudrig_prefs.sync_collection_names()
         self.copy_bone_collections(src=metarig, target=self.target_rig)
         self.components_write_pbone_data(self.target_rig)
 
@@ -743,7 +743,11 @@ def replace_old_with_new_rig(
 
     # If cloudrig.py is linked, save that reference. This will be checked for
     # later, in ensure_cloudrig_ui.
-    if old_rig.data['cloudrig_ui'].library:
+    if (
+        'cloudrig_ui' in old_rig.data
+        and old_rig.data['cloudrig_ui']
+        and old_rig.data['cloudrig_ui'].library
+    ):
         new_rig.data['cloudrig_ui'] = old_rig.data['cloudrig_ui']
 
     # Save Selection Sets.
@@ -1088,7 +1092,7 @@ class CLOUDRIG_OT_generate(Operator):
             coll = target_rig.data.collections_all.get(coll_name)
             if not coll:
                 continue
-            coll.cloudrig_info.is_visible = is_visible
+            coll.is_visible = is_visible
 
 
 registry = [

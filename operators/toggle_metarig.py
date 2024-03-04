@@ -93,9 +93,6 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             for to_coll in to_arm.data.collections_all:
                 from_coll = from_arm.data.collections_all.get(to_coll.name)
                 if from_coll:
-                    to_coll.cloudrig_info.is_visible = (
-                        from_coll.cloudrig_info.is_visible
-                    )
                     to_coll.is_visible = from_coll.is_visible
 
         # When switching between the metarig and the generated rig,
