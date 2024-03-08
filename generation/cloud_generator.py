@@ -973,7 +973,15 @@ class CLOUDRIG_OT_generate(Operator):
             )
 
         if 'failed_rig' in metarig:
-            self.report({'ERROR'}, f"Generation of {metarig.name} has failed.")
+            self.report(
+                {'ERROR'},
+                f"Generation of {metarig.name} has failed. See the Generation Log for more info.",
+            )
+        elif len(metarig.cloudrig.generator.logs) > 0:
+            self.report(
+                {'WARNING'},
+                f"Generation of {target_rig.name} successful with {len(metarig.cloudrig.generator.logs)} warnings.",
+            )
         else:
             self.report({'INFO'}, f"Generation of {target_rig.name} successful.")
 
