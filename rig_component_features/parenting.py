@@ -54,7 +54,7 @@ class ParentSlot(bpy.types.PropertyGroup):
 
 
 def draw_cloudrig_parents(layout, context, text=""):
-    draw_label_with_linebreak(layout, text, align_split=True)
+    draw_label_with_linebreak(context, layout, text, align_split=True)
 
     layout.separator()
 
@@ -300,6 +300,7 @@ class CloudParentingMixin:
         rig = metarig.cloudrig.generator.target_rig
         if not rig:
             draw_label_with_linebreak(
+                context,
                 layout,
                 "Generate the rig to see parenting parameters.",
                 align_split=True,

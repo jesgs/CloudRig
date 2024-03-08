@@ -627,7 +627,7 @@ class CLOUDRIG_PT_log(Panel):
         desc = log.description_short
         if log.description != "":
             desc = log.description
-        draw_label_with_linebreak(layout, desc)
+        draw_label_with_linebreak(context, layout, desc)
 
         if log.operator != '':
             row = layout.row()
@@ -662,7 +662,7 @@ class CLOUDRIG_PT_stack_trace(Panel):
     def draw(self, context):
         generator = context.object.cloudrig.generator
         draw_label_with_linebreak(
-            self.layout, generator.active_log.pretty_stack, alert=True
+            context, self.layout, generator.active_log.pretty_stack, alert=True
         )
 
 

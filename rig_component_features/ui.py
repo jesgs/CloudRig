@@ -93,7 +93,7 @@ def is_advanced_mode(context):
     return get_addon_prefs(context).advanced_mode
 
 
-def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
+def draw_label_with_linebreak(context, layout, text, alert=False, align_split=False):
     """Attempt to simulate a proper textbox by only displaying as many
     characters in a single label as fits in the UI.
     This only works well on specific UI zoom levels.
@@ -111,7 +111,7 @@ def draw_label_with_linebreak(layout, text, alert=False, align_split=False):
 
     # Try to determine maximum allowed characters per line, based on pixel width of the area.
     # Not a great metric, but I couldn't find anything better.
-    max_line_length = bpy.context.area.width / 8
+    max_line_length = context.area.width / 8
     if align_split:
         max_line_length *= 0.95
     for p in paragraphs:
