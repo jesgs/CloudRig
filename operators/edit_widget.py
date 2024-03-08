@@ -3,7 +3,7 @@ import bpy
 from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 
-from ..utils.misc import get_addon_prefs
+from ..utils.misc import get_addon_prefs, assign_to_collection
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.widgets.widgets import ensure_widget
 
@@ -220,7 +220,8 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
             collection = rig.cloudrig.generator.widget_collection
         else:
             collection = context.scene.collection
-        shape = ensure_widget(widget_shape, collection=collection)
+        shape = ensure_widget(widget_shape)
+        assign_to_collection(shape, collection=collection)
 
         if ob_name:
             shape = bpy.data.objects.new(

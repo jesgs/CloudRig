@@ -7,8 +7,10 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
     """Load custom shapes by appending them from Widgets.blend, unless they already exist in this file."""
     prefs = get_addon_prefs()
     link = prefs.widget_import_method == 'LINK'
-    blend_path = bpy.path.relpath(prefs.widget_library)
-
+    blend_path = prefs.widget_library
+    assert os.path.exists(blend_path), (
+        "Widgets.blend file not found: " + prefs.widget_library
+    )
     # Check if it already exists locally.
     if not wgt_name.startswith("WGT-"):
         wgt_name = "WGT-" + wgt_name
@@ -37,7 +39,11 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
             return wgt_ob
 
     # Import widget object from Widgets.blend file.
-    with bpy.data.libraries.load(blend_path, link=link, relative=True) as (
+    relative = False
+    if bpy.data.is_saved:
+        relative = True
+        blend_path = bpy.path.relpath(blend_path)
+    with bpy.data.libraries.load(blend_path, link=link, relative=relative) as (
         data_from,
         data_to,
     ):
@@ -58,17 +64,13 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
             return None
     elif new_wgt_ob == wgt_ob:
         return wgt_ob
-    elif overwrite:
+    elif wgt_ob and overwrite:
         # Widget already existed, but we want to overwrite it with what we just imported.
         wgt_ob.user_remap(new_wgt_ob)
-        # old_mesh_name = wgt_ob.data.name
-        # mesh = bpy.data.meshes.get(old_mesh_name)
-        # bpy.data.objects.remove(wgt_ob)
-        # if mesh:
-        # bpy.data.meshes.remove(bpy.data.meshes.get(old_mesh_name))
-        wgt_ob = new_wgt_ob
 
-    if clear_asset and wgt_ob.library == None:
+    wgt_ob = new_wgt_ob
+
+    if clear_asset and wgt_ob and wgt_ob.library == None:
         wgt_ob.asset_clear()
 
     return wgt_ob

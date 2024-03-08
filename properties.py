@@ -455,7 +455,7 @@ class Properties_CloudRig(PropertyGroup):
 
     def refresh_generator_data(self):
         self.refresh_generation_order()
-        self.id_data.cloudrig_prefs.ensure_bone_collections_info()
+        self.id_data.cloudrig_prefs.sync_collection_names()
 
     def refresh_generation_order(self):
         """Set the `order` and `depth` property of rig components.
