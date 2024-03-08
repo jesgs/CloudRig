@@ -139,20 +139,24 @@ class POSE_MT_PIE_child_bones(Menu):
 class CLOUDRIG_MT_PIE_select_bone(Menu):
     bl_label = "Select Bone"
 
-    @classmethod
-    def poll(cls, context):
-        return get_pbone_of_active(context)
-
     def draw(self, context):
         layout = self.layout
         rig = context.pose_object or context.active_object
         active_pb = get_pbone_of_active(context)
-        active_bone = active_pb.bone
 
         pie = layout.menu_pie()
 
+        if not active_pb:
+            for i in range(7):
+                pie.separator()
+
+            # 8) v> Search bone.
+            pie.operator('bone.select_by_name_search', icon='VIEWZOOM')
+            return
+
+        active_bone = active_pb.bone
         # 1) < Parent Bone.
-        if active_bone.parent:
+        if active_bone and active_bone.parent:
             op = pie.operator(
                 'pose.select_parent_bone',
                 text="Parent: " + active_bone.parent.name,
@@ -271,11 +275,15 @@ registry = [
 
 
 def register():
-    for key_cat in {'Pose', 'Weight Paint', 'Armature'}:
+    for key_cat, space_type in {
+        ('Pose', 'VIEW_3D'),
+        ('Weight Paint', 'EMPTY'),
+        ('Armature', 'VIEW_3D'),
+    }:
         register_hotkey(
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "D", 'value': "PRESS", 'alt': True},
             key_cat=key_cat,
-            space_type='VIEW_3D',
+            space_type=space_type,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_select_bone'},
         )
