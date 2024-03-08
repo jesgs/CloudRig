@@ -463,6 +463,40 @@ class CloudLogManager:
                     op_kwargs={'action_slot_idx': i},
                 )
 
+    def report_drivers_targetting_armature_constraint(self, rig_obj):
+        if not rig_obj or not rig_obj.animation_data:
+            return
+        for fc in rig_obj.animation_data.drivers:
+            drv = fc.driver
+            for var in drv.variables:
+                if 'PROP' in var.type:
+                    continue
+                for target in var.targets:
+                    if not (
+                        target.id.id_type == 'OBJECT'
+                        and target.id.type == 'ARMATURE'
+                        and target.bone_target
+                    ):
+                        continue
+                    if target.transform_space != 'LOCAL_SPACE':
+                        continue
+
+                    target_bone = target.id.pose.bones.get(target.bone_target)
+                    if not target_bone:
+                        continue
+                    if not any(
+                        [con.type == 'ARMATURE' for con in target_bone.constraints]
+                    ):
+                        continue
+
+                    self.log(
+                        "Misleading Local Transforms",
+                        note=target_bone.name,
+                        trouble_bone=target_bone.name,
+                        icon='DRIVER_TRANSFORM',
+                        description=f'Driver `{fc.data_path}` is trying to read local transforms from bone "{target_bone.name}", but this bone has an Armature constraint, which moves its parenting matrix into its local matrix, making it unviable as a driver target. Move the Armature constraint to a parent, or remove the driver.',
+                    )
+
 
 class CloudRigLogEntry(PropertyGroup):
     """Container for storing information about a single metarig warning/error.

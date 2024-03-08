@@ -644,6 +644,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_unused_bone_collections(self.metarig, self.target_rig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
+        self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
         # self.logger.report_actions()
 
 
