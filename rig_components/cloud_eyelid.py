@@ -105,7 +105,7 @@ class Component_Eyelid(Component_FaceChain):
                 {
                     'prop': 'influence',
                     'expression': f"var*{sticky_strength*0.5}",
-                    'variables': [(self.properties_bone.name, sticky_prop_name)],
+                    'variables': [(parent_rig.properties_bone.name, sticky_prop_name)],
                 }
             )
             str_ctr.parent = rot_ctr
