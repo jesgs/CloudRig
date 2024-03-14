@@ -8,6 +8,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
     prefs = get_addon_prefs()
     link = prefs.widget_import_method == 'LINK'
     blend_path = prefs.widget_library
+    rel_path = bpy.path.relpath(blend_path)
     assert os.path.exists(blend_path), (
         "Widgets.blend file not found: " + prefs.widget_library
     )
@@ -21,7 +22,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
         if overwrite:
             if wgt_ob.library:
                 if link:
-                    if wgt_ob.library.filepath == blend_path:
+                    if wgt_ob.library.filepath in {blend_path, rel_path}:
                         # If object is already linked from the target lib, no need to do it again.
                         return wgt_ob
                 else:
