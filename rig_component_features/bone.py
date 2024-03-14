@@ -782,10 +782,11 @@ class ConstraintInfo(dict):
         if "@" not in self.name:
             if self.type == 'ARMATURE':
                 for i, t in enumerate(self.targets):
-                    if t['target'] == metarig:
-                        t['target'] = rig
                     if 'target' not in self.targets[i] or not self.targets[i]['target']:
                         t['target'] = rig
+                    elif t['target'] == metarig:
+                        t['target'] = rig
+
             return
 
         split_name = self.name.split("@")
