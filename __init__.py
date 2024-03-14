@@ -1,6 +1,7 @@
 from typing import List
 import importlib
-
+import sys
+import os
 from bpy.utils import register_class, unregister_class
 
 from . import (
@@ -82,10 +83,28 @@ def register_unregister_modules(modules: List, register: bool):
             m.unregister()
 
 
+def ensure_importable_modules():
+    """This function is to fix GitLab/GitHub downloads that rename the add-on's 
+    root folder (and thereby python module name) from MyAddOn to MyAddOn-master.
+    
+    We do this by populating the sys.modules dictionary with references to the 
+    existing modules, pointed to by the correct names.
+    """
+    addon_name = bl_info['name']
+    if addon_name not in sys.modules:
+        dirname = __file__.split(os.sep)[-2]
+        stuff = {}
+        for name, module in sys.modules.items():
+            if dirname in name:
+                stuff[name.replace(dirname, addon_name)] = module
+        sys.modules.update(stuff)
+
+
 def register():
     """Called by Blender when enabling the CloudRig add-on."""
     # TODO 4.1: Throw a useful error when trying to use as a Rigify extension.
 
+    ensure_importable_modules()
     register_unregister_modules(modules, True)
     utils.misc.version_min = bl_info['blender']
     utils.misc.version_max = max_blender_version

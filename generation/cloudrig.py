@@ -2959,7 +2959,7 @@ def unregister():
         pass
 
 
-if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']:
+if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig'] or '.generation.cloudrig' in __name__:
     # __name__ == `__main__`` when executed in Blender's Text Editor.
     # __name__ == `builtins`` when executed by cloud_generator.
     # __name__ == `CloudRig.generation.cloudrig` when executed by Blender add-on registration.
