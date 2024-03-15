@@ -22,8 +22,7 @@ class Component_Eyelid(Component_FaceChain):
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
         # parent it to the parent of the eyeball.
-        # This is rather cosmetic since these ORG bones don't do anything anyways.
-        # TODO: unneccessary ORG bones should just be deleted...
+        # This is also important for custom root parenting functionality to work.
         self.bones_org[0].parent = self.parent_component.bones_org[0].parent
         self.make_sticky_eyelid()
 
@@ -63,7 +62,7 @@ class Component_Eyelid(Component_FaceChain):
                 name=rot_name,
                 source=eye_bone,
                 tail=str_ctr.head.copy(),
-                parent=parent_rig.bones_org[0].parent,
+                parent=self.root_bone,
                 roll_type='ALIGN',
                 roll_bone=eye_bone,
                 roll=0,
