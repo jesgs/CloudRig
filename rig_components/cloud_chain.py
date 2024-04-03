@@ -158,6 +158,8 @@ class Component_ToonChain(Component_Base):
             sliced = self.naming.slice_name(str_name)
             sliced[1] += "_1"
             str_name = self.naming.make_name(*sliced)
+        while self.generator.find_bone_info(str_name):
+            str_name = self.naming.increment_name(str_name)
         main_str = self.bone_sets['Stretch Controls'].new(
             name=str_name,
             source=org_bone,
@@ -174,7 +176,7 @@ class Component_ToonChain(Component_Base):
             main_str.put(org_bone.tail)
             main_str.custom_shape_scale_xyz *= -1
 
-        if not self.is_cyclic and org_i == 0:
+        if not self.is_cyclic and org_i == 0 or at_tip:
             main_str.custom_shape = self.ensure_widget('Sphere_Half')
         else:
             main_str.custom_shape = self.ensure_widget("Sphere")
