@@ -32,7 +32,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         """Gather and validate data about the rig."""
         super().initialize()
 
-        if self.params.spine.use_ik and not self.bone_count > 2:
+        if self.params.spine.use_ik and self.bone_count < 3:
             self.raise_generation_error(
                 "Spine rig with IK must consist of a chain of at least 3 connected bones!"
             )

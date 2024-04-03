@@ -198,16 +198,20 @@ class RigComponent(PropertyGroup):
             parent = parent.parent
         return True
 
+
     @property
     def base_bone_name(self):
+        if not self.component_type:
+            return
         return self.owner_pose_bone.name
 
     @property
     def owner_pose_bone(self):
         metarig = self.id_data
-        for pb in metarig.pose.bones:
-            if pb.cloudrig_component == self:
-                return pb
+        if not self.component_type:
+            return
+        # TODO: This causes incredibly bad performance when the Rig Components UI List is being drawn for a lot of bones.
+        return {pb.cloudrig_component : pb for pb in metarig.pose.bones if pb.cloudrig_component}[self]
 
     @property
     def active_bone_set(self):
@@ -343,10 +347,10 @@ class RigComponent(PropertyGroup):
 
     @property
     def parent(self) -> 'RigComponent':
-        rig_ob = self.id_data
-        if not self.base_bone_name:
+        this_bone = self.owner_pose_bone
+        if not this_bone:
             return
-        this_bone = rig_ob.pose.bones.get(self.base_bone_name)
+
         bone_parent = this_bone.parent
         parent_component = None
         while bone_parent and not parent_component:
@@ -358,24 +362,27 @@ class RigComponent(PropertyGroup):
 
     @property
     def sibling_components(self) -> List['RigComponent']:
-        if not self.parent:
+        parent = self.parent
+        if not parent:
             return [
                 pb.cloudrig_component
                 for pb in self.id_data.pose.bones
                 if not pb.cloudrig_component.parent
             ]
-        return [sibling for sibling in self.parent.children if sibling != self]
+        return [sibling for sibling in parent.children if sibling != self]
 
     @property
     def should_draw(self) -> bool:
         """Return False if any parent up the chain has show_children=False"""
-        if not self.parent:
+        parent = self.parent
+        
+        if not parent:
             return True
 
-        if not self.parent.show_child_components:
+        if not parent.show_child_components:
             return False
 
-        return self.parent.should_draw
+        return parent.should_draw
 
     show_child_components: BoolProperty(
         name="Show Children",
@@ -385,9 +392,8 @@ class RigComponent(PropertyGroup):
 
     @property
     def children(self) -> List['RigComponent']:
-        rig_ob = self.id_data
         children = []
-        for pb in rig_ob.pose.bones:
+        for pb in self.owner_pose_bone.children_recursive:
             if (
                 pb.cloudrig_component.component_type
                 and pb.cloudrig_component.parent == self
