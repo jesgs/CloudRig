@@ -5,6 +5,7 @@ from bpy.app.handlers import persistent
 from .generation.cloudrig import is_cloud_metarig
 from .rig_component_features.ui import get_addon_prefs
 from .rig_component_features.object import set_enum_property_by_integer
+from .rig_components import component_modules
 
 
 def update_enum_property(owner, old_key, new_key, int_value):
@@ -17,7 +18,7 @@ def update_enum_property(owner, old_key, new_key, int_value):
         owner[new_key] = int_value
 
 
-def rename_parameters(metarig, dictionary):
+def rename_blender3_parameters(metarig, dictionary):
     """When we change the python name of a parameter, this can be used to find the old data
     and put it on the property with the new name."""
     for pb in metarig.pose.bones:
@@ -43,33 +44,114 @@ def preserve_old_default(metarig: Object, param_name: str, old_default: Any):
             )
 
 
+def copy_property(from_thing, from_name, to_thing, to_name=None):
+    if hasattr(from_thing, 'to_dict'):
+        from_thing = from_thing.to_dict()
+    if from_name not in from_thing:
+        return
+
+    if not to_name:
+        to_name = from_name
+
+    value = from_thing[from_name]
+    if not value:
+        return
+    setattr(to_thing, to_name, value)
+
+
 def version_cloud_metarig(metarig):
     """Convert older CloudRig metarigs to work with the current version of
     CloudRig as well as possible. They will still need some manual cleanup!!!"""
     cloudrig = metarig.cloudrig
-    target_rig = cloudrig.generator.target_rig
 
     # NOTE on limitations:
     # The old value is not stored in the file at all if it was left as default, so
     # there's no way to guarantee correct versioning when changing the default value of a parameter.
     # So, make really damn sure that default values are correct when first implementing them!
-
     metarig_version = get_addon_prefs().cloud_metarig_version
     print(
         f"CloudRig Versioning: {metarig.name} bumping version {cloudrig.metarig_version} -> {metarig_version}"
     )
-    if cloudrig.metarig_version < 1:
-        # No backwards compatibility with the version of CloudRig that used to be a Rigify feature set.
-        pass
+    if cloudrig.metarig_version < 2:
+        print("Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig.")
+        # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
 
+        rig_type_map = {
+            key: module.RIG_COMPONENT_CLASS.ui_name
+            for key, module in component_modules.items()
+        }
+
+        # 1: Generator properties
+        cloudrig.enabled = True
+        copy_property(
+            metarig.data, 'rigify_target_rig', cloudrig.generator, 'target_rig'
+        )
+        copy_property(
+            metarig.data,
+            'rigify_widgets_collection',
+            cloudrig.generator,
+            'widget_collection',
+        )
+        if 'cloudrig_parameters' in metarig.data:
+            params = metarig.data['cloudrig_parameters']
+            copy_property(params, 'custom_script', cloudrig.generator)
+            copy_property(params, 'widget_collection', cloudrig.generator)
+
+        # 2: Bone Layers -> Bone Collections
+        for bone_coll in metarig.data.collections_all[:]:
+            if not bone_coll.name.startswith("Layer "):
+                metarig.data.collections.remove(bone_coll)
+
+        for bone_coll in metarig.data.collections_all[:]:
+            number = int(bone_coll.name.split(" ")[1])
+            bone_coll.name = metarig.data['rigify_layers'][number - 1]['name']
+
+        for pb in metarig.pose.bones:
+            if 'rigify_type' in pb and pb['rigify_type'] in rig_type_map.keys():
+                pb.cloudrig_component.component_type = rig_type_map[pb['rigify_type']]
+                print(pb.name)
+                for old_key in pb['rigify_parameters'].keys():
+                    key = old_key.replace("CR_", "")
+                    for rig_type in rig_type_map.keys():
+                        rig_type = rig_type.replace("cloud_", "")
+                        if key.startswith(rig_type):
+                            key = key.replace(rig_type+"_", "")
+                            break
+                    if not hasattr(pb.cloudrig_component.params, rig_type):
+                        print("Can't version param: ", old_key, rig_type)
+                        break
+                    params = getattr(pb.cloudrig_component.params, rig_type)
+                    if hasattr(params, key):
+                        value = pb['rigify_parameters'][old_key]
+                        if value:
+                            try:
+                                setattr(params, key, value)
+                            except TypeError:
+                                set_enum_property_by_integer(params, key, value)
+
+
+
+def get_old_cloud_metarigs():
+    maybe_metarigs = [
+        o
+        for o in bpy.data.objects
+        if o.type == 'ARMATURE'
+        and 'cloudrig_parameters' in o.data
+        and any(['rigify_type' in pb and pb['rigify_type'] for pb in o.pose.bones])
+    ]
+    for metarig in maybe_metarigs[:]:
+        if 'rigify_target_rig' in metarig.data and metarig.data['rigify_target_rig']:
+            maybe_metarigs.remove(metarig.data['rigify_target_rig'])
+    return maybe_metarigs
 
 @persistent
 def update_all_metarigs(dummy):
     metarig_version = get_addon_prefs().cloud_metarig_version
+    pre_blender4_metarigs = get_old_cloud_metarigs()
     cloud_metarigs = [
         o for o in bpy.data.objects if o.type == 'ARMATURE' and is_cloud_metarig(o)
     ]
-    for metarig in cloud_metarigs:
+    for metarig in pre_blender4_metarigs + cloud_metarigs:
         if metarig.library or metarig.override_library:
             # Don't try to version linked metarigs, there's no point.
             # Also, metarigs shouldn't get linked and overridden in the first place.
