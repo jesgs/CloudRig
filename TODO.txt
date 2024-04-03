@@ -5,12 +5,9 @@ Priority -1: Migration
 	- Check for and ensure 4.1 compatibility. Maybe even 4.0 is possible, somehow...
 
 Priority 0: Missing functionality
-	- Bug: Any cases where we previously relied on setting a param will be broken like on Mikassa's neck the Tip Control param. This is because Rigify used to give us the generated rig's PropertyGroup, but now we pass the metarig's. Search for params.*= and fix each case.
-	- Bug: cloudrig.py register function runs even if the add-on isn't enabled, I think.
-
 	- Rig samples (see design ideas below)
-	- Finish re-factoring keyframe baking code
-	- Test Action system in greater detail.
+	- Finish re-factoring keyframe baking code, and test that it actually works.
+	- Test Action system shape key drivers.
 
 	- Update the wiki (OOOOF!!!)
 	- Update Manual links
@@ -34,7 +31,7 @@ Priority 0: Missing functionality
 				widgets
 					primitives.blend
 					complex_shapes.blend
-		- Then construct relevant manus procedurally, since we can't customize them by passing parameters to them, AFAIK.
+		- Then construct relevant menus procedurally, since we can't customize them by passing parameters to them, AFAIK.
 		- So, to construct the menus we add to the Object Add->Armature menu, we would os.walk the metarigs folder, and create a sub-menu for each .blend file and each subfolder... same as current Rigify.
 		- Do the same for samples, which will live in both armature edit mode's Add menu, as well as Object Add->Armature.
 		- Add a "Widgets" menu to the Object Add menu.

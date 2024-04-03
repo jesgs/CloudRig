@@ -4,7 +4,7 @@ from bpy.types import Object
 
 # Global storage of available metarigs. List of UI name and object name tuples.
 metarig_names: List[Tuple[str, str]] = []
-
+sample_names: List[Tuple[str, str]] = []
 
 class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
     bl_idname = "object.cloudrig_metarig_add"
@@ -14,7 +14,7 @@ class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
     metarig_name: bpy.props.StringProperty()
 
     def execute(self, context):
-        metarig = load_metarig(self.metarig_name, context)
+        metarig = append_metarig(self.metarig_name, context)
         if not metarig:
             self.report({'ERROR'}, "Failed to load metarig: " + self.metarig_name)
             return {'CANCELLED'}
@@ -23,8 +23,28 @@ class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_sample_add(bpy.types.Operator):
+    bl_idname = "object.cloudrig_sample_add"
+    bl_label = "Add CloudRig Sample"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    sample_name: bpy.props.StringProperty()
+
+    def execute(self, context):
+        if context.mode == 'EDIT_ARMATURE':
+            sample_obj = add_sample_to_current_rig(context, self.sample_name)
+        else:
+            sample_obj = append_sample(context, self.sample_name)
+        if not sample_obj:
+            self.report({'ERROR'}, "Failed to load rig sample: " + self.sample_name)
+            return {'CANCELLED'}
+
+        self.report({'INFO'}, "Added rig sample: " + sample_obj.name)
+        return {'FINISHED'}
+
+
 class CLOUDRIG_MT_metarigs(bpy.types.Menu):
-    bl_label = "CloudRig"
+    bl_label = "CloudRig Metarigs"
 
     def draw(self, context):
         global metarig_names
@@ -36,72 +56,88 @@ class CLOUDRIG_MT_metarigs(bpy.types.Menu):
             ).metarig_name = obj_name
 
 
-def load_metarig(metarig_name, context) -> Optional[Object]:
-    """Append a metarig from MetaRigs.blend."""
+class CLOUDRIG_MT_rig_samples(bpy.types.Menu):
+    bl_label = "CloudRig Samples"
 
-    # Find an available name
+    def draw(self, context):
+        global sample_names
+        for ui_name, obj_name in sample_names:
+            self.layout.operator(
+                CLOUDRIG_OT_sample_add.bl_idname,
+                icon='OUTLINER_OB_ARMATURE',
+                text=ui_name,
+            ).sample_name = obj_name
+
+
+def get_available_object_name(obj_name: str) -> str:
+    """Return an available suffixed name for the passed name.
+    Eg., if "Cube" is passed, but that name is taken by an existing local object,
+    return Cube.001, or if that's taken, Cube.002, and so on.
+
+    Library objects are ignored, since they are in a separate name space.
+    """
     number = 1
-    numbered_name = metarig_name
-    while numbered_name in bpy.data.objects:
-        numbered_name = metarig_name + "." + str(number).zfill(3)
+    numbered_name = obj_name
+    while bpy.data.objects.get((numbered_name, None)):
+        numbered_name = obj_name + "." + str(number).zfill(3)
         number += 1
-    available_name = numbered_name
 
-    # Loading metarig object from file
-    with bpy.data.libraries.load(get_metarig_blend_path()) as (data_from, data_to):
+    return numbered_name
+
+
+def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, select=True, use_cursor=True) -> Object:
+    """Append an object from a .blend file and return it."""
+    available_name = get_available_object_name(obj_name)
+
+    # Loading object from file
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
         for o in data_from.objects:
-            if o == metarig_name:
+            if o == obj_name:
                 data_to.objects.append(o)
 
-    new_metarig = bpy.data.objects.get((available_name, None))
-    if not new_metarig:
-        return
+    new_obj = bpy.data.objects.get((available_name, None))
 
-    context.scene.collection.objects.link(new_metarig)
+    assert new_obj, f"Object `{obj_name}` failed to append from `{blend_path}`."
+
+    if link_to_scene:
+        context.scene.collection.objects.link(new_obj)
+    if select:
+        context.view_layer.objects.active = new_obj
+        new_obj.select_set(True)
+    if use_cursor:
+        new_obj.location = context.scene.cursor.location
+    return new_obj
+
+
+def append_metarig(metarig_name, context) -> Optional[Object]:
+    """Append a metarig from MetaRigs.blend."""
     bpy.ops.object.select_all(action='DESELECT')
-    context.view_layer.objects.active = new_metarig
-    new_metarig.select_set(True)
-    new_metarig.location = context.scene.cursor.location
+    new_metarig = append_obj_from_file(get_metarig_blend_path(), metarig_name)
 
     return new_metarig
 
 
-def load_sample(rig_name):
-    """Append a rig sample from MetaRigs.blend, then join it into the currently active armature."""
-    context = bpy.context  # TODO: Should pass context
+def append_sample(context, sample_name):
+    """Append a sample from rig_samples.blend"""
+    if "Sample_" not in sample_name:
+        sample_name = "Sample_" + sample_name
+    return append_obj_from_file(context, get_metarig_blend_path(), sample_name)
 
-    sample_name = "Sample_" + rig_name
+
+def add_sample_to_current_rig(context, sample_name: str):
+    """Append a rig sample from MetaRigs.blend, then join it into the currently active armature."""
 
     rig = context.active_object
+    mode = rig.mode
     bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')
+    sample_ob = append_sample(context, sample_name)
 
-    assert (
-        sample_name not in bpy.data.objects
-    ), "Rig sample exists in the file, delete and purge it!"
-
-    # Loading rig sample object from file
-    found = False
-    with bpy.data.libraries.load(get_metarig_blend_path()) as (data_from, data_to):
-        for o in data_from.objects:
-            if o == sample_name:
-                data_to.objects.append(o)
-                found = True
-                break
-
-    assert found, "Sample rig not found in MetaRigs.blend."
-
-    sample_ob = bpy.data.objects.get((sample_name, None))
-    sample_ob.location = context.scene.cursor.location
-    context.scene.collection.objects.link(sample_ob)
     rig.select_set(True)
     sample_ob.select_set(True)
     context.view_layer.objects.active = rig
     bpy.ops.object.join()
-    bpy.ops.object.mode_set(mode='EDIT')
-
-
-def load_sample_by_file(filename):
-    load_sample(os.path.splitext(os.path.basename(filename))[0])
+    bpy.ops.object.mode_set(mode=mode)
 
 
 def get_metarig_blend_path() -> str:
@@ -125,17 +161,34 @@ def refresh_metarig_list():
     return metarig_names
 
 
+def refresh_rig_sample_list():
+    """Build a list of available rig sample by checking inside MetaRigs.blend."""
+
+    global sample_names
+    sample_names = []
+
+    with bpy.data.libraries.load(get_metarig_blend_path()) as (data_from, data_to):
+        for obj_name in data_from.objects:
+            if obj_name.startswith("Sample_"):
+                ui_name = obj_name.replace("Sample_", "").replace("_", " ").title()
+                sample_names.append((ui_name, obj_name))
+
+    return sample_names
+
+
 def draw_cloudrig_metarig_menu(self, context):
     self.layout.menu('CLOUDRIG_MT_metarigs', icon='OUTLINER_OB_ARMATURE')
+    self.layout.menu('CLOUDRIG_MT_rig_samples', icon='OUTLINER_OB_ARMATURE')
 
 
-registry = [CLOUDRIG_OT_metarig_add, CLOUDRIG_MT_metarigs]
+registry = [CLOUDRIG_OT_metarig_add, CLOUDRIG_OT_sample_add, CLOUDRIG_MT_metarigs, CLOUDRIG_MT_rig_samples]
 
 
 # Registering is a bit tricky because we need to load a resource .blend file,
 # which is not allowed by bpy during registration, so we have to do it with a delay.
 def delayed_refresh_metarig_list():
     refresh_metarig_list()
+    refresh_rig_sample_list()
 
 
 def register():
