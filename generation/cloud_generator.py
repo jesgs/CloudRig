@@ -526,7 +526,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if bone_info.name in bones_created:
                     # If a BoneInfo with this name was already created in this loop, we have a name collision.
                     self.raise_generation_error(
-                        description=f"Bone `{bone_info.name}` was already defined. This could be a bug, but it could also be caused by bones not being named uniquely enough."
+                        description=f"Bone `{bone_info.name}` was already created. It can't be created again by `{bone_info.bone_set.rig_component.base_bone_name}`. This could be a bug, but it could also be caused by bones not being named uniquely enough."
                     )
                 bones_created.append(bone_info.name)
                 continue

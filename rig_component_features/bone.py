@@ -902,4 +902,8 @@ def ensure_custom_property(prop_bone, prop_id, **kwargs):
             prop_bone[prop_id] = kwargs['value']
             del kwargs['value']
 
-        prop_bone.id_properties_ui(prop_id).update(**kwargs)
+        try:
+            prop_bone.id_properties_ui(prop_id).update(**kwargs)
+        except TypeError:
+            # This can happen for dictionaries and such, eg. created by other add-ons.
+            pass

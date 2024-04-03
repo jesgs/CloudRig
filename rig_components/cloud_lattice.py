@@ -61,7 +61,7 @@ class Component_Lattice(Component_Base):
 
     def create_helper_objects(self, context):
         super().create_helper_objects(context)
-        root_pb = self.target_rig.pose.bones.get(self.root_bone.name)
+        root_pb = self.target_rig.pose.bones.get(self.lattice_root.name)
         hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
         lattice_ob = self.params.lattice.lattice = self.ensure_lattice(hook_pb.name)
         if self.params.lattice.regenerate:
