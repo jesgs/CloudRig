@@ -1,5 +1,8 @@
-Priority -1: Production bugs
-	- "Keep Transforms Free", ie. CON- helpers on cloud_copy have wrong bone roll...
+Priority -1: Migration
+	- Migrate to projects.blender.org
+		- I need Arnd to enable gitea import, and he's away until the 9th... sigh.
+	- Gitea also has a wiki feature, so let's use that, probably, and link to it from the user documentation page of s.b.o.
+	- Check for and ensure 4.1 compatibility. Maybe even 4.0 is possible, somehow...
 
 Priority 0: Missing functionality
 	- Bug: Any cases where we previously relied on setting a param will be broken like on Mikassa's neck the Tip Control param. This is because Rigify used to give us the generated rig's PropertyGroup, but now we pass the metarig's. Search for params.*= and fix each case.

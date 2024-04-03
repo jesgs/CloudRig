@@ -73,7 +73,8 @@ def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
             metarig = context.scene.objects.get(rig.name.replace(prefix, ""))
             if not metarig:
                 metarig = context.scene.objects.get(rig.name.replace(prefix, "META-"))
-            return metarig
+            if metarig:
+                return metarig
 
     # If that failed, scan the whole scene.
     for obj in context.scene.objects:

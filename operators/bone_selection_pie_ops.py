@@ -97,6 +97,7 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 def reveal_and_select(context, bone: Bone or EditBone or PoseBone, set_active=True):
     if type(bone) == PoseBone:
         bone = bone.bone
+    ensure_visible_bone_collection(bone)
     bone.hide = False
     bone.select = True
     if context.mode == 'EDIT_ARMATURE':
@@ -161,7 +162,6 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 
         super().execute(context)
 
-        ensure_visible_bone_collection(bone)
         reveal_and_select(context, bone, set_active=True)
 
         return {'FINISHED'}
@@ -259,7 +259,6 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
                 )
                 continue
 
-            ensure_visible_bone_collection(target_bone)
             reveal_and_select(context, target_bone, set_active=False)
 
         set_active_bone(context, active_target_bone)
@@ -327,7 +326,6 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         if not self.extend_selection:
             deselect_all_bones(context)
 
-        ensure_visible_bone_collection(bone)
         reveal_and_select(context, bone, set_active=True)
 
         return {'FINISHED'}
