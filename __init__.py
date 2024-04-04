@@ -35,7 +35,6 @@ bl_info = {
 
 modules = [
     ui,
-    versioning,
     manual,
     utils,
     # NOTE: Beyond this point, registration order matters!
@@ -45,6 +44,7 @@ modules = [
     # - Hotkeys must come after `cloudrig`, since we're storing them on a panel.
     rig_component_features,
     rig_components,
+    versioning,
     prefs,
     generation,
     operators,
