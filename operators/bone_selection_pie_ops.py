@@ -83,7 +83,8 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
         armature = bone.id_data
 
     if context.mode == 'EDIT_ARMATURE':
-        armature.edit_bones.active = bone
+        edit_bone = armature.edit_bones.get(bone.name)
+        armature.edit_bones.active = edit_bone
     else:
         armature.bones.active = bone
 
