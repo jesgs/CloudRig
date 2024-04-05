@@ -85,16 +85,17 @@ def do_centered_cluster(
         intersection.roll_vector = avg_pos
 
     for b in cluster:
+        flipped_name = rig.naming.flipped_name(b)
+        if flipped_name == b.name:
+            continue
+        opposite_bone = b.owner_component.generator.find_bone_info(flipped_name)
+        if not opposite_bone:
+            continue
+
         b.flatten(axis='X')
         if has_tangent_helpers(b.owner_component):
             b.tangent_helper.flatten(axis='X')
         if b.owner_component.params.chain.smooth_spline:
-            flipped_name = rig.naming.flipped_name(b)
-            if flipped_name == b.name:
-                continue
-            opposite_bone = b.owner_component.generator.find_bone_info(flipped_name)
-            if not opposite_bone:
-                continue
             if has_tangent_helpers(opposite_bone.owner_component):
                 # Make the Damped Track constraint of the opposite TAN- bone aim
                 # at this STR bone's Damped Track target.
@@ -137,15 +138,13 @@ class Component_FaceChain(Component_ToonChain):
 
         # Create and set up intersection controls.
 
-        self.intersection_bones = []
-        self.setup_all_intersections()
-
         str_bone_clusters = get_bone_clusters(self.chain_rigs)
-
+        self.intersection_bones = []
         for cluster in str_bone_clusters:
             self.intersection_bones.append(
                 self.create_intersection_for_cluster(cluster)
             )
+        self.setup_all_intersections()
 
     def setup_all_intersections(self):
         # This is ugly, but any STR controls with the Smooth Spline param need
@@ -156,8 +155,7 @@ class Component_FaceChain(Component_ToonChain):
                     str_bone.tangent_helper.parent = intersection.parent
 
         # HACK: We can't ensure that the last chain rig to be executed is a cloud_eyelid,
-        # so we just have to make this class aware of its descendant, which is
-        # possibly the worst thing I've ever coded.
+        # so we have to make sure the eyelid set-up function runs even when that's not the case...
         for chain_rig in self.chain_rigs:
             if hasattr(chain_rig, 'make_sticky_eyelid'):
                 chain_rig.make_sticky_eyelid()
