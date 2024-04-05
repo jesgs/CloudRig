@@ -451,6 +451,13 @@ class BoneInfo:
         ), "Armature must be in Edit Mode when writing edit bone data."
 
         # Check for 0-length bones.
+        if (self.head-self.tail).length == 0:
+            self.bone_set.rig_component.add_log(
+                "Zero-length bone",
+                trouble_bone=self.name,
+                description=f'Bone "{self.name}" had zero length. Its length was set to 1 to avoid a fatal error.'
+            )
+            self.tail.y += 1
         assert (
             self.head - self.tail
         ).length > 0, f'Bone "{eb.name}" cannot be created with a length of 0.'
