@@ -118,6 +118,12 @@ def version_blender3_metarig(metarig):
                         except TypeError:
                             set_enum_property_by_integer(params, key, value)
 
+            # Initialize UI bone set data. (No conversion, for now...)
+            pb.cloudrig_component.update_ui_bone_sets()
+
+    # Trigger the active component update callback, to initialize some data.
+    cloudrig.active_component_index = 0
+
 def version_cloud_metarig(metarig):
     """Convert older CloudRig metarigs to work with the current version of
     CloudRig as well as possible. They will still need some manual cleanup!!!"""
