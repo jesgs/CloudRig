@@ -8,7 +8,11 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
     prefs = get_addon_prefs()
     link = prefs.widget_import_method == 'LINK'
     blend_path = prefs.widget_library
-    rel_path = bpy.path.relpath(blend_path)
+    try:
+        rel_path = bpy.path.relpath(blend_path)
+    except ValueError:
+        # This can happen when the widgets.blend is on a different drive.
+        rel_path = blend_path
     assert os.path.exists(blend_path), (
         "Widgets.blend file not found: " + prefs.widget_library
     )
