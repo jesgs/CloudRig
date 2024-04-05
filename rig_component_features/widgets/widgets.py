@@ -32,7 +32,9 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
                 else:
                     # The object is already linked from the target lib, but the caller wants it to be local instead.
                     wgt_ob.make_local()
-                    wgt_ob.data.make_local()
+                    if wgt_ob.data:
+                        # This check shouldn't be necessary, but a user reported an error here. I could never reproduce.
+                        wgt_ob.data.make_local()
                     if clear_asset:
                         wgt_ob.asset_clear()
                     return wgt_ob
