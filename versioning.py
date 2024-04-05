@@ -63,6 +63,61 @@ def copy_property(from_thing, from_name, to_thing, to_name=None):
     setattr(to_thing, to_name, value)
 
 
+def version_blender3_metarig(metarig):
+    cloudrig = metarig.cloudrig
+    print("Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig.")
+    # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
+
+
+    # 1: Generator properties
+    cloudrig.enabled = True
+    copy_property(
+        metarig.data, 'rigify_target_rig', cloudrig.generator, 'target_rig'
+    )
+    copy_property(
+        metarig.data,
+        'rigify_widgets_collection',
+        cloudrig.generator,
+        'widget_collection',
+    )
+    if 'cloudrig_parameters' in metarig.data:
+        params = metarig.data['cloudrig_parameters']
+        copy_property(params, 'custom_script', cloudrig.generator)
+        copy_property(params, 'widget_collection', cloudrig.generator)
+
+    # 2: Bone Layers -> Bone Collections
+    for bone_coll in metarig.data.collections_all[:]:
+        if not bone_coll.name.startswith("Layer "):
+            metarig.data.collections.remove(bone_coll)
+
+    for bone_coll in metarig.data.collections_all[:]:
+        number = int(bone_coll.name.split(" ")[1])
+        bone_coll.name = metarig.data['rigify_layers'][number - 1]['name']
+
+    global RIG_TYPE_MAP
+    for pb in metarig.pose.bones:
+        if 'rigify_type' in pb and pb['rigify_type'] in RIG_TYPE_MAP.keys():
+            pb.cloudrig_component.component_type = RIG_TYPE_MAP[pb['rigify_type']]
+            print(pb.name)
+            for old_key in pb['rigify_parameters'].keys():
+                key = old_key.replace("CR_", "")
+                for rig_type in RIG_TYPE_MAP.keys():
+                    rig_type = rig_type.replace("cloud_", "")
+                    if key.startswith(rig_type):
+                        key = key.replace(rig_type+"_", "")
+                        break
+                if not hasattr(pb.cloudrig_component.params, rig_type):
+                    print("Can't version param: ", old_key, rig_type)
+                    break
+                params = getattr(pb.cloudrig_component.params, rig_type)
+                if hasattr(params, key):
+                    value = pb['rigify_parameters'][old_key]
+                    if value:
+                        try:
+                            setattr(params, key, value)
+                        except TypeError:
+                            set_enum_property_by_integer(params, key, value)
+
 def version_cloud_metarig(metarig):
     """Convert older CloudRig metarigs to work with the current version of
     CloudRig as well as possible. They will still need some manual cleanup!!!"""
@@ -77,58 +132,7 @@ def version_cloud_metarig(metarig):
         f"CloudRig Versioning: {metarig.name} bumping version {cloudrig.metarig_version} -> {metarig_version}"
     )
     if cloudrig.metarig_version < 2:
-        print("Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig.")
-        # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
-
-
-        # 1: Generator properties
-        cloudrig.enabled = True
-        copy_property(
-            metarig.data, 'rigify_target_rig', cloudrig.generator, 'target_rig'
-        )
-        copy_property(
-            metarig.data,
-            'rigify_widgets_collection',
-            cloudrig.generator,
-            'widget_collection',
-        )
-        if 'cloudrig_parameters' in metarig.data:
-            params = metarig.data['cloudrig_parameters']
-            copy_property(params, 'custom_script', cloudrig.generator)
-            copy_property(params, 'widget_collection', cloudrig.generator)
-
-        # 2: Bone Layers -> Bone Collections
-        for bone_coll in metarig.data.collections_all[:]:
-            if not bone_coll.name.startswith("Layer "):
-                metarig.data.collections.remove(bone_coll)
-
-        for bone_coll in metarig.data.collections_all[:]:
-            number = int(bone_coll.name.split(" ")[1])
-            bone_coll.name = metarig.data['rigify_layers'][number - 1]['name']
-
-        global RIG_TYPE_MAP
-        for pb in metarig.pose.bones:
-            if 'rigify_type' in pb and pb['rigify_type'] in RIG_TYPE_MAP.keys():
-                pb.cloudrig_component.component_type = RIG_TYPE_MAP[pb['rigify_type']]
-                print(pb.name)
-                for old_key in pb['rigify_parameters'].keys():
-                    key = old_key.replace("CR_", "")
-                    for rig_type in RIG_TYPE_MAP.keys():
-                        rig_type = rig_type.replace("cloud_", "")
-                        if key.startswith(rig_type):
-                            key = key.replace(rig_type+"_", "")
-                            break
-                    if not hasattr(pb.cloudrig_component.params, rig_type):
-                        print("Can't version param: ", old_key, rig_type)
-                        break
-                    params = getattr(pb.cloudrig_component.params, rig_type)
-                    if hasattr(params, key):
-                        value = pb['rigify_parameters'][old_key]
-                        if value:
-                            try:
-                                setattr(params, key, value)
-                            except TypeError:
-                                set_enum_property_by_integer(params, key, value)
+        pass
 
 
 
@@ -146,10 +150,14 @@ def get_old_cloud_metarigs():
 def update_all_metarigs(dummy):
     metarig_version = get_addon_prefs().cloud_metarig_version
     pre_blender4_metarigs = get_old_cloud_metarigs()
+    for metarig in pre_blender4_metarigs:
+        version_blender3_metarig(metarig)
+
     cloud_metarigs = [
         o for o in bpy.data.objects if o.type == 'ARMATURE' and is_cloud_metarig(o)
     ]
-    for metarig in pre_blender4_metarigs + cloud_metarigs:
+
+    for metarig in cloud_metarigs:
         if metarig.library or metarig.override_library:
             # Don't try to version linked metarigs, there's no point.
             # Also, metarigs shouldn't get linked and overridden in the first place.
