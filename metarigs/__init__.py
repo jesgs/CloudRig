@@ -14,7 +14,7 @@ class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
     metarig_name: bpy.props.StringProperty()
 
     def execute(self, context):
-        metarig = append_metarig(self.metarig_name, context)
+        metarig = append_metarig(context, self.metarig_name)
         if not metarig:
             self.report({'ERROR'}, "Failed to load metarig: " + self.metarig_name)
             return {'CANCELLED'}
@@ -109,10 +109,10 @@ def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, sele
     return new_obj
 
 
-def append_metarig(metarig_name, context) -> Optional[Object]:
+def append_metarig(context, metarig_name) -> Optional[Object]:
     """Append a metarig from MetaRigs.blend."""
     bpy.ops.object.select_all(action='DESELECT')
-    new_metarig = append_obj_from_file(get_metarig_blend_path(), metarig_name)
+    new_metarig = append_obj_from_file(context, get_metarig_blend_path(), metarig_name)
 
     return new_metarig
 
