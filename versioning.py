@@ -68,7 +68,6 @@ def version_blender3_metarig(metarig):
     print("Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig.")
     # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
 
-
     # 1: Generator properties
     cloudrig.enabled = True
     copy_property(
@@ -84,6 +83,8 @@ def version_blender3_metarig(metarig):
         params = metarig.data['cloudrig_parameters']
         copy_property(params, 'custom_script', cloudrig.generator)
         copy_property(params, 'widget_collection', cloudrig.generator)
+
+    del metarig.data['cloudrig_parameters']
 
     # 2: Bone Layers -> Bone Collections
     for bone_coll in metarig.data.collections_all[:]:
