@@ -154,14 +154,15 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 
     def invoke(self, context, event):
         pb = context.active_pose_bone
-        custom_shape = pb.custom_shape
-        if custom_shape and custom_shape.library:
-            # If the assigned widget is a linked object, we can't edit it.
-            self.report(
-                {'ERROR'},
-                f"{custom_shape.name} is a linked object, it cannot be edited locally.",
-            )
-            return {'CANCELLED'}
+        if pb:
+            custom_shape = pb.custom_shape
+            if custom_shape and custom_shape.library:
+                # If the assigned widget is a linked object, we can't edit it.
+                self.report(
+                    {'ERROR'},
+                    f"{custom_shape.name} is a linked object, it cannot be edited locally.",
+                )
+                return {'CANCELLED'}
 
         refresh_widget_list()
         self.widget_shape = 'WGT-Cube'
@@ -248,31 +249,23 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
         widgets_visible.append(EnsureVisible(shape))
 
         # Enter mesh edit mode on the now visible bone shape.
-        bpy.ops.object.mode_set(mode='OBJECT')
-
         context.scene.widget_edit_armature = rig.name
         context.view_layer.objects.active = shape
-        bpy.ops.object.select_all(action='DESELECT')
         transform_widget_to_bone(active_pb, select=True)
-        context.view_layer.update()
-
         bpy.ops.object.mode_set(mode='EDIT')
 
     def exit_shape_edit_mode(self, context):
         """Restore rig selection state and mode."""
         bpy.ops.object.mode_set(mode='OBJECT')
-        context.view_layer.objects.active = bpy.data.objects.get(
-            context.scene.widget_edit_armature
-        )
+        rig = bpy.data.objects.get(context.scene.widget_edit_armature)
         context.scene.widget_edit_armature = ""
+        if not rig:
+            return
+        context.view_layer.objects.active = rig
+        rig.select_set(True)
         bpy.ops.object.mode_set(mode='POSE')
 
-        context.scene.is_widget_edit_mode = not context.scene.is_widget_edit_mode
-        context.view_layer.update()
-
     def execute(self, context):
-        restore_all_widgets_visibility()
-
         if self.widget_op == 'CLEAR':
             for pb in context.selected_pose_bones:
                 pb.custom_shape = None
@@ -286,6 +279,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
             widget_name = self.widget_name
 
         if context.mode == 'POSE':
+            restore_all_widgets_visibility()
             if context.active_pose_bone not in context.selected_pose_bones:
                 self.report(
                     {'ERROR'},
@@ -307,6 +301,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 
         elif context.mode == 'EDIT_MESH':
             self.exit_shape_edit_mode(context)
+            restore_all_widgets_visibility()
 
         return {'FINISHED'}
 
@@ -407,7 +402,6 @@ def register():
     bpy.types.ASSETBROWSER_MT_context_menu.append(draw_asset_rightclick_menu)
 
     bpy.types.VIEW3D_MT_pose.append(draw_button)
-    bpy.types.Scene.is_widget_edit_mode = BoolProperty()
     bpy.types.Scene.widget_edit_armature = StringProperty()
 
 
@@ -416,7 +410,6 @@ def unregister():
 
     bpy.types.VIEW3D_MT_pose.remove(draw_button)
     try:
-        del bpy.types.Scene.is_widget_edit_mode
         del bpy.types.Scene.widget_edit_armature
     except AttributeError:
         pass
