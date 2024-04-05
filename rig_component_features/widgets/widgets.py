@@ -33,14 +33,14 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
                     # The object is already linked from the target lib, but the caller wants it to be local instead.
                     wgt_ob.make_local()
                     if wgt_ob.data:
-                        # This check shouldn't be necessary, but a user reported an error here. I could never reproduce.
                         wgt_ob.data.make_local()
                     if clear_asset:
                         wgt_ob.asset_clear()
                     return wgt_ob
             else:
                 wgt_ob.name = wgt_ob.name + "_temp"
-                wgt_ob.data.name = wgt_ob.data.name + "_temp"
+                if wgt_ob.data:
+                    wgt_ob.data.name = wgt_ob.data.name + "_temp"
         else:
             # Object exists and we don't want to overwrite it, so just return it.
             return wgt_ob
@@ -64,7 +64,8 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True):
             # We failed to import a widget with the provided name, but a local one already exists.
             # So, let's just return that local one, whether it's linked or not.
             wgt_ob.name = wgt_name
-            wgt_ob.data.name = wgt_name
+            if wgt_ob.data:
+                wgt_ob.data.name = wgt_name
             return wgt_ob
         else:
             # We failed to import anything, AND we didn't have anything... So, we are sad.
