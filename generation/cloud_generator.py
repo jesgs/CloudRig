@@ -384,7 +384,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         if self.params.reload_widgets:
             for obj in self.params.widget_collection.objects:
-                self.ensure_widget(obj.name.replace("WGT-", ""))
+                self.ensure_widget(obj.name.replace("WGT-", ""), overwrite=True)
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos()
@@ -458,20 +458,21 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         pose_bone.custom_shape = self.ensure_widget("Root")
         return pose_bone
 
-    def ensure_widget(self, widget_name):
-        wgt = cloud_widgets.ensure_widget(
-            widget_name,
-            overwrite=self.params.reload_widgets,
-        )
-        if not wgt:
+    def ensure_widget(self, widget_name, overwrite=False):
+        try:
+            wgt = cloud_widgets.ensure_widget(
+                widget_name,
+                overwrite=overwrite,
+            )
+        except ValueError:
             self.raise_generation_error(
                 "Failed to load widget",
                 description=f"Failed to load widget named '{widget_name}'.",
             )
-        else:
-            assign_to_collection(
-                wgt, self.params.widget_collection or bpy.context.scene.collection
-            )
+
+        assign_to_collection(
+            wgt, self.params.widget_collection or bpy.context.scene.collection
+        )
         return wgt
 
     ### Main generation steps
