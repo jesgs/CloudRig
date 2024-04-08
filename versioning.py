@@ -69,39 +69,55 @@ def version_blender3_metarig(metarig):
     # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
 
     # 1: Generator properties
-    cloudrig.enabled = True
-    copy_property(
-        metarig.data, 'rigify_target_rig', cloudrig.generator, 'target_rig'
-    )
-    copy_property(
-        metarig.data,
-        'rigify_widgets_collection',
-        cloudrig.generator,
-        'widget_collection',
-    )
-    if 'cloudrig_parameters' in metarig.data:
-        params = metarig.data['cloudrig_parameters']
-        copy_property(params, 'custom_script', cloudrig.generator)
-        copy_property(params, 'widget_collection', cloudrig.generator)
-
-    del metarig.data['cloudrig_parameters']
+    if not cloudrig.enabled:
+        cloudrig.enabled = True
+        copy_property(
+            metarig.data, 'rigify_target_rig', cloudrig.generator, 'target_rig'
+        )
+        copy_property(
+            metarig.data,
+            'rigify_widgets_collection',
+            cloudrig.generator,
+            'widget_collection',
+        )
+        if 'cloudrig_parameters' in metarig.data:
+            params = metarig.data['cloudrig_parameters']
+            copy_property(params, 'custom_script', cloudrig.generator)
+            copy_property(params, 'widget_collection', cloudrig.generator)
 
     # 2: Bone Layers -> Bone Collections
-    for bone_coll in metarig.data.collections_all[:]:
-        if not bone_coll.name.startswith("Layer "):
-            metarig.data.collections.remove(bone_coll)
+    if any([c.name.startswith("Layer ") for c in metarig.data.collections_all]):
+        for bone_coll in metarig.data.collections_all[:]:
+            if not bone_coll.name.startswith("Layer "):
+                metarig.data.collections.remove(bone_coll)
 
-    for bone_coll in metarig.data.collections_all[:]:
-        number = int(bone_coll.name.split(" ")[1])
-        bone_coll.name = metarig.data['rigify_layers'][number - 1]['name']
+        for bone_coll in metarig.data.collections_all[:]:
+            number = int(bone_coll.name.split(" ")[1])
+            bone_coll.name = metarig.data['rigify_layers'][number - 1]['name']
 
+    # 3: Rig types & parameters
     global RIG_TYPE_MAP
     for pb in metarig.pose.bones:
+        if pb.cloudrig_component.component_type:
+            continue
         if 'rigify_type' in pb and pb['rigify_type'] in RIG_TYPE_MAP.keys():
             pb.cloudrig_component.component_type = RIG_TYPE_MAP[pb['rigify_type']]
             print(pb.name)
             for old_key in pb['rigify_parameters'].keys():
                 key = old_key.replace("CR_", "")
+                if key.startswith("BG_LAYERS_"):
+                    bone_set_name = key.replace("BG_LAYERS_", "")
+                    bone_sets = pb.cloudrig_component.params.bone_sets
+                    if hasattr(bone_sets, bone_set_name):
+                        bone_set = getattr(bone_sets, bone_set_name)
+                        bone_set.collections.clear()
+                        layers = pb['rigify_parameters'][old_key]
+                        for i, is_assigned in enumerate(layers):
+                            if is_assigned:
+                                bsc = bone_set.collections.add()
+                                bsc.name = metarig.data['rigify_layers'][i]['name']
+                    continue
+
                 for rig_type in RIG_TYPE_MAP.keys():
                     rig_type = rig_type.replace("cloud_", "")
                     if key.startswith(rig_type):
@@ -124,6 +140,18 @@ def version_blender3_metarig(metarig):
 
     # Trigger the active component update callback, to initialize some data.
     cloudrig.active_component_index = 0
+
+    # 4: Actions
+    action_slots = cloudrig.generator.action_slots
+    if len(action_slots) == 0 and 'rigify_action_slots' in metarig.data:
+        for slot_dict in metarig.data['rigify_action_slots']:
+            act_slot = action_slots.add()
+            for key, value in slot_dict.items():
+                try:
+                    setattr(act_slot, key, value)
+                except TypeError:
+                    set_enum_property_by_integer(act_slot, key, value)
+
 
 def version_cloud_metarig(metarig):
     """Convert older CloudRig metarigs to work with the current version of
