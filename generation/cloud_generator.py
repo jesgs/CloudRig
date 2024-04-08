@@ -306,8 +306,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.driver_map = map_pbones_to_drivers(self.metarig)
 
         # If the previous generation failed, delete the failed rig.
-        if 'failed_rig' in metarig and metarig['failed_rig']:
-            bpy.data.objects.remove(metarig['failed_rig'])
+        if 'failed_rig' in metarig:
+            if metarig['failed_rig']:
+                bpy.data.objects.remove(metarig['failed_rig'])
             del metarig['failed_rig']
 
         # Prepare the target rig.
