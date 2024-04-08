@@ -232,9 +232,12 @@ class ActionLayer:
 
     def rig_bone(self, bone_name):
         if bone_name not in self.generator.target_rig.pose.bones:
-            raise MetarigError(
-                f"Bone '{bone_name}' from action '{self.slot.action.name}' not found"
+            self.generator.logger.log(
+                "Action constraint failed",
+                trouble_bone=bone_name,
+                description=f'Bone "{bone_name}" was not found, so it cannot get an Action constraint for `{self.slot.action.name}`.',
             )
+            return
 
         if self.side != Side.MIDDLE and get_name_side(bone_name) == Side.MIDDLE:
             influence = 0.5
