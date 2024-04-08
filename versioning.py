@@ -179,6 +179,7 @@ def get_old_cloud_metarigs():
         and 'cloudrig_parameters' in o.data
         and 'ui_data' not in o.data
         and any(['rigify_type' in pb and pb['rigify_type'] for pb in o.pose.bones])
+        and not any([pb.cloudrig_component.component_type for pb in o.pose.bones])
     ]
 
 @persistent
