@@ -6,13 +6,15 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Objec
     """Load custom shapes by appending them from Widgets.blend, unless they already exist in this file."""
     prefs = get_addon_prefs()
     link = prefs.widget_import_method == 'LINK'
-    blend_path = prefs.widget_library
+    abs_path = prefs.widget_library
+    relative = False
     try:
-        rel_path = bpy.path.relpath(blend_path)
+        rel_path = bpy.path.relpath(abs_path)
+        relative = bpy.data.is_saved
     except ValueError:
         # This can happen when the widgets.blend is on a different drive.
-        rel_path = blend_path
-    assert os.path.exists(blend_path), (
+        rel_path = abs_path
+    assert os.path.exists(abs_path), (
         "Widgets.blend file not found: " + prefs.widget_library
     )
     # Check if it already exists locally.
@@ -25,7 +27,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Objec
         if overwrite:
             if old_wgt_ob.library:
                 if link:
-                    if old_wgt_ob.library.filepath in {blend_path, rel_path}:
+                    if old_wgt_ob.library.filepath in {abs_path, rel_path}:
                         # If object is already linked from the target lib, no need to do it again.
                         return old_wgt_ob
                 else:
@@ -45,11 +47,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Objec
             return old_wgt_ob
 
     # Import widget object from Widgets.blend file.
-    relative = False
-    if bpy.data.is_saved:
-        relative = True
-        blend_path = bpy.path.relpath(blend_path)
-    with bpy.data.libraries.load(blend_path, link=link, relative=relative) as (
+    with bpy.data.libraries.load(rel_path, link=link, relative=relative) as (
         data_from,
         data_to,
     ):
