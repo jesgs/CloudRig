@@ -581,7 +581,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if not meta_coll:
                     meta_coll = self.metarig.data.collections.new(collection_name)
                     meta_coll.cloudrig_info.name = meta_coll.name
-                    meta_coll.is_visible = False
+                    meta_coll.is_visible = True
 
                 target_coll = target_rig.data.collections_all.get(collection_name)
                 if not target_coll:
