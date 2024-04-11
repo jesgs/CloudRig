@@ -11,8 +11,11 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Objec
     try:
         rel_path = bpy.path.relpath(abs_path)
         relative = bpy.data.is_saved
+        if not relative:
+            rel_path = abs_path
     except ValueError:
         # This can happen when the widgets.blend is on a different drive.
+        # In this case, I would argue that the abs_path is the rel_path.
         rel_path = abs_path
     assert os.path.exists(abs_path), (
         "Widgets.blend file not found: " + prefs.widget_library
@@ -55,7 +58,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Objec
             if o == wgt_name:
                 data_to.objects.append(o)
 
-    new_wgt_ob = bpy.data.objects.get((wgt_name, blend_path if link else None))
+    new_wgt_ob = bpy.data.objects.get((wgt_name, rel_path if link else None))
     if not new_wgt_ob:
         if old_wgt_ob:
             # We failed to import a widget with the provided name.
@@ -66,7 +69,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Objec
             return old_wgt_ob
         else:
             # We failed to import anything, AND we didn't have anything... So, we are sad.
-            raise ValueError("Widget not found: "+wgt_name)
+            raise ValueError(f"Widget not found: '{wgt_name}' '{rel_path}'")
     elif new_wgt_ob == old_wgt_ob:
         return old_wgt_ob
     elif old_wgt_ob and overwrite:
