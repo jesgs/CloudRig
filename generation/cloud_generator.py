@@ -603,13 +603,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
             # Scale bone shape based on B-Bone scale
             bone_info.write_pose_data(pose_bone)
-            if (
-                not pose_bone.use_custom_shape_bone_size
-                and bone_info.use_custom_shape_bbone_scaling
-            ):
-                pose_bone.custom_shape_scale_xyz *= (
-                    bone_info.bbone_width * 10 * self.scale
-                )
 
     ### Generation final steps
     def execute_custom_script(self):

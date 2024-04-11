@@ -549,6 +549,15 @@ class BoneInfo:
             if key == 'custom_shape_transform':
                 value = armature.pose.bones.get(value.name)
             setattr(pose_bone, key, value)
+        
+
+        if (
+            not pose_bone.use_custom_shape_bone_size
+            and self.use_custom_shape_bbone_scaling
+        ):
+            pose_bone.custom_shape_scale_xyz *= (
+                self.bbone_width * 10 * self.bone_set.rig_component.generator.scale
+            )
 
         # Bone data
         bone = pose_bone.bone

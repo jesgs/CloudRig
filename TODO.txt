@@ -63,9 +63,6 @@ Priority 3: Changes that will affect metarigs
 				although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
 Priority 4: Code quality
 	Widgets should only be loaded with ensure_widget() when a bone is actually created, instead of when its BoneInfo is defined.
-	write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo?
-		Alternatively, we could pass the generator, or the scalar if that's all we need, as an argument.
-			Decide which is better and do it cleanly. Also move the special handling of custom_shape_scale_xyz from generator to wherever we decide the rest will go.
 	Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
 		This was now done in cloud_chain, but in some cases it's not really possible.
 	In cloudrig.py, unify how Character and Rig properties are displayed?
