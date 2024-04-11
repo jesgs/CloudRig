@@ -358,16 +358,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.generate_test_action:
             self.create_test_animation()  # TODO 4.0: Verify this works.
 
-        if self.params.action_slots:
-            actions = ActionLayerComponent(self)
-            actions.initialize()
-            for action_name, action_map in actions.action_map.items():
-                for side, action_layer in action_map.items():
-                    action_layer.create_custom_property()
-                    action_layer.rig_bones_and_shape_keys()
-
-        self.execute_custom_script()
-
         old_rig = self.params.target_rig
         if old_rig:
             replace_old_with_new_rig(
@@ -379,6 +369,16 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+
+        if self.params.action_slots:
+            actions = ActionLayerComponent(self)
+            actions.initialize()
+            for action_name, action_map in actions.action_map.items():
+                for side, action_layer in action_map.items():
+                    action_layer.create_custom_property()
+                    action_layer.rig_bones_and_shape_keys()
+
+        self.execute_custom_script()
 
         ensure_cloudrig_ui(self.target_rig)
         self.params.target_rig = self.target_rig

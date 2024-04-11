@@ -1,52 +1,20 @@
+- Should split up Edit Widget and Assign Widget.
+- Hjalti found a bug where bone collection assignment fails, but I can't repro so far. Check again / ask him to commit his fucking file.
+
 Priority -1: Migration
 	- Migrate to projects.blender.org
 		- I need Arnd to enable gitea import, and he's away until the 9th... sigh.
 	- Gitea also has a wiki feature, so let's use that, probably, and link to it from the user documentation page of s.b.o.
-	- Check for and ensure 4.1 compatibility. Maybe even 4.0 is possible, somehow...
-
-Priority 0: Missing functionality
-	- Rig samples (see design ideas below)
-	- Finish re-factoring keyframe baking code, and test that it actually works.
-	- Test Action system shape key drivers.
-
-	- Update the wiki (OOOOF!!!)
-	- Update Manual links
-
-	- Test that cloud_face_chain, cloud_eyelid, cloud_chain_anchor, are working, and try to improve them, maybe.
+	- Actions page doesn't mention automatic shape key drivers.
 
 - Bone Colls UX
 	- When IK/FK snapping, affected bones should be not only selected but also revealed!! Even if hidden by collection.
 	- Shift+M to bring up a pop-up panel of the bone colls UIList.
 	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
-- Rig Samples UX
-	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
-	- This probably already exists, considering there is already an Add menu in armature edit mode in the header. Probably works the same way as the Object Add Armature menu.
-	- This will mean that rig samples aren't really coupled with rig types, and they essentially become identical to metarigs, which tbh seems reasonable.
-	- Should add the ability for users to add their own metarigs/samples. How?
-		- Move all our current blend files into a "resources" folder:
-			Resources
-				metarigs.blend
-				samples.blend
-				widgets
-					primitives.blend
-					complex_shapes.blend
-		- Then construct relevant menus procedurally, since we can't customize them by passing parameters to them, AFAIK.
-		- So, to construct the menus we add to the Object Add->Armature menu, we would os.walk the metarigs folder, and create a sub-menu for each .blend file and each subfolder... same as current Rigify.
-		- Do the same for samples, which will live in both armature edit mode's Add menu, as well as Object Add->Armature.
-		- Add a "Widgets" menu to the Object Add menu.
-
-		- Then, also read this folder structure from the user's presets/CloudRig folder.
-
-		- Add a "Store MetaRig" operator that pushes the active CloudRig MetaRig to presets/CloudRig/metarigs.blend.
-		- Add a "Store Sample" operator that pushes the selected edit bones to presets/CloudRig/samples.blend
-		- Add a "Store Widgets" operator that pushes the selected WGT- objects to presets/CloudRig/widgets.blend 
-	- Add the "Add Metarig" menu to the Rig Components List UI as well, under a Specials menu.
-
 Priority 1: Bugs
-	Performance of drawing the rig components list can be very slow.
+	cloud_face_chain sample has a wrong constraint, and it looks like intersection controls aren't aligned with the STR controls they should be aligned with...
 	Freshly generated widgets collection gets "NEW" in the name.
-	When people download a branch and the folder name is anything other than "CloudRig", things go bad. Should os.rename the folder during register.
 	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
@@ -62,49 +30,38 @@ Priority 1: Bugs
 			Enter edit mode on the duplicate
 			Begin generating rig_components (Each can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
-	- Customizable bone widgets
-		- Instead of ensure_widget('Name'), have a `default_widget` property on BoneInfo, and then load all widgets in one go.
-			- This then also allows other code to set an `override_widget` property, which can be used instead, if set.
-			- This way, when widget overriding is used, the overridden widgets won't be loaded unnecessarily.
-			- Widgets are still always force-updated, unlike in Rigify, where that's optional.
-
 	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
-	It would be nice if metarigs could be in orchatedral, after we implement gizmos for setting widget sizes.
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
 		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
 		- Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
 
-	"(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
 	Scale Inheritance and modifiers
 		Warn when these modifier values don't have a driver, since they should be hooked up to rig scale (root bone world scale would be easiest, but the closer it is to the nearest relevant parent in the hierarchy the better)
 		- Shrinkwrap distance
 		- Corrective Smooth scale
 		- Cast modifier radius
 
-	Perhaps some parameters could belong all the way up in Component_Base.
-		- Create ORG bones (False by default, can force to True for components that need it)
 
-	cloud_leg
-		Implement a gizmo to place the heel pivot, is way cooler.
+	If the Gizmo API didn't suck:
+		Gizmo for cloud_leg heel pivot
+		Gizmo for cloud_limb IK distance, like in the past
+		Gizmo for widget size, instead of bbone scale
 	cloud_aim
 		Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 			Not to mention, the eye target distance should be determined by a gizmo! :(
 	cloud_chain
 		There was at least one user requesting to make DEF- bones optional. Especially makes sense for FK robot limbs, where parts will just be object parented to ORG bones.
-
+	cloud_shoulder
+		We could auto-detect the correct up axis by checking which axis aligns best with the world. This could be an "Auto" enum option, which would become the default.
 
 Priority 3: Changes that will affect metarigs
-	Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
 	Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
 		Eg. "STR-TIP=Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets.
 			No more weird crazy relinking rules
 				although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
-	This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
 Priority 4: Code quality
-	Instantiation of rig classes shouldn't be necessary, I think, if we simply move all the generation functions to the RNA class that currently holds the parameters. The same class can just as well hold temporary arbitrary Py data like BoneInfo lists and etc.
-		Getting rid of base_bone_name property would also be nice. Getting rid of a bunch of other properties like rig_class and instantiate() would probably also be possible.
 	Widgets should only be loaded with ensure_widget() when a bone is actually created, instead of when its BoneInfo is defined.
 	write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo?
 		Alternatively, we could pass the generator, or the scalar if that's all we need, as an argument.
@@ -168,3 +125,27 @@ Ideas:
 			Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
 			If generating with an empty object, switch it back to the defaults.
 		Use the lovely new boolean custom properties where it makes sense! (IK/FK toggles shouldn't be sliders!)
+
+- Rig Samples UX
+	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
+	- This probably already exists, considering there is already an Add menu in armature edit mode in the header. Probably works the same way as the Object Add Armature menu.
+	- This will mean that rig samples aren't really coupled with rig types, and they essentially become identical to metarigs, which tbh seems reasonable.
+	- Should add the ability for users to add their own metarigs/samples. How?
+		- Move all our current blend files into a "resources" folder:
+			Resources
+				metarigs.blend
+				samples.blend
+				widgets
+					primitives.blend
+					complex_shapes.blend
+		- Then construct relevant menus procedurally, since we can't customize them by passing parameters to them, AFAIK.
+		- So, to construct the menus we add to the Object Add->Armature menu, we would os.walk the metarigs folder, and create a sub-menu for each .blend file and each subfolder... same as current Rigify.
+		- Do the same for samples, which will live in both armature edit mode's Add menu, as well as Object Add->Armature.
+		- Add a "Widgets" menu to the Object Add menu.
+
+		- Then, also read this folder structure from the user's presets/CloudRig folder.
+
+		- Add a "Store MetaRig" operator that pushes the active CloudRig MetaRig to presets/CloudRig/metarigs.blend.
+		- Add a "Store Sample" operator that pushes the selected edit bones to presets/CloudRig/samples.blend
+		- Add a "Store Widgets" operator that pushes the selected WGT- objects to presets/CloudRig/widgets.blend 
+	- Add the "Add Metarig" menu to the Rig Components List UI as well, under a Specials menu.
