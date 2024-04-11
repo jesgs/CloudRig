@@ -2808,7 +2808,12 @@ def register_hotkey(
     for existing_kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
         kc, km, kmi = existing_kmi
         if km.name == key_cat and kmi.idname == bl_idname:
-            return
+            # NOTE: I'm pretty sure there are cases of corrupted KeyMapItems 
+            # where accessing .properties segfaults.
+            # NOTE: This prevents duplicates on the same key combo, even if it's
+            # trying to register a different operator.
+            if kmi.properties and dict(kmi.properties) == hotkey_kwargs:
+                return
 
     keymaps = addon_keyconfig.keymaps
 
