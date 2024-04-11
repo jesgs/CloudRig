@@ -30,7 +30,7 @@ class CLOUDRIG_UL_rig_components(UIList):
             split = row.split(factor=0.02 * rig_component.depth)
             split.row()
             row = split.row(align=True)
-        if rig_component.children:
+        if rig_component.has_children:
             row.prop(
                 rig_component, 'show_child_components', text="", icon=icon, emboss=False
             )

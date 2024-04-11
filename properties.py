@@ -179,6 +179,7 @@ class RigComponent(PropertyGroup):
     def update_caches(self, context):
         for child_comp in self.children:
             child_comp.enabled_with_parents = self.enabled_toggle and self.enabled_with_parents and child_comp.enabled_toggle
+            child_comp.should_draw = self.show_child_components and self.should_draw
             child_comp.update_caches(context)
 
     enabled_toggle: BoolProperty(
@@ -386,6 +387,12 @@ class RigComponent(PropertyGroup):
         name="Show Children",
         description="Show child components in the list",
         default=False,
+        update=update_caches
+    )
+    should_draw: BoolProperty(
+        name="Cache: Draw In List",
+        description="Cached flag denoting whether this component should be drawn, updated by the collapse arrows",
+        default=True,
     )
 
     @property
@@ -394,6 +401,11 @@ class RigComponent(PropertyGroup):
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
         return [pb.cloudrig_component for pb in child_component_pbs]
 
+    has_children: BoolProperty(
+        name="Has Children",
+        description="Cache to improve UI drawing performance",
+        default=False
+    )
 
 class Properties_CloudRig(PropertyGroup):
     def active_component_update_callback(self, context=None):
@@ -486,15 +498,19 @@ class Properties_CloudRig(PropertyGroup):
         component.order = order_idx
         component.depth = depth
 
-
         child_component_pbs = get_direct_child_component_pbones(pbone)
+
+        if not child_component_pbs:
+            component.has_children = False
+            return order_idx
+        component.has_children = True
+
         # Sort the children by their sibling order value,
         # which is controlled by the user with the up/down arrows.
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
         for child_pb in child_component_pbs:
             order_idx += 1
             order_idx = self.order_components_recursive(child_pb, order_idx, depth+1)
-
 
         return order_idx
 
