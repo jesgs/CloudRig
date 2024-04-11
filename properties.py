@@ -176,28 +176,26 @@ class RigComponent(PropertyGroup):
     this information is duplicated with it.
     """
 
+    def update_caches(self, context):
+        for child_comp in self.children:
+            child_comp.enabled_with_parents = self.enabled_toggle and self.enabled_with_parents and child_comp.enabled_toggle
+            child_comp.update_caches(context)
+
     enabled_toggle: BoolProperty(
         name="Enabled",
         description="Whether this rig component and its children should be generated",
         default=True,
+        update=update_caches
     )
 
+    enabled_with_parents: BoolProperty(
+        name="Cache: Enabled",
+        description="Whether this rig component is enabled, based on the enabled state of its parents. This is cached because calculating it on redraw is expensive",
+        default=True
+    )
     @property
     def is_enabled_component(self):
-        if not (self.component_type and self.component_module and self.enabled_toggle):
-            return False
-
-        return self.are_all_parents_enabled
-
-    @property
-    def are_all_parents_enabled(self):
-        parent = self.parent
-        while parent:
-            if not parent.is_enabled_component:
-                return False
-            parent = parent.parent
-        return True
-
+        return self.enabled_toggle and self.enabled_with_parents
 
     @property
     def base_bone_name(self):
@@ -392,14 +390,9 @@ class RigComponent(PropertyGroup):
 
     @property
     def children(self) -> List['RigComponent']:
-        children = []
-        for pb in self.owner_pose_bone.children_recursive:
-            if (
-                pb.cloudrig_component.component_type
-                and pb.cloudrig_component.parent == self
-            ):
-                children.append(pb.cloudrig_component)
-        return sorted(children, key=lambda comp: comp.sibling_order)
+        child_component_pbs = [pb for pb in get_direct_child_component_pbones(self.owner_pose_bone)]
+        child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
+        return [pb.cloudrig_component for pb in child_component_pbs]
 
 
 class Properties_CloudRig(PropertyGroup):
@@ -474,51 +467,46 @@ class Properties_CloudRig(PropertyGroup):
         """
         metarig_ob = self.id_data
 
-        # Find bones that have no parents.
-        parentless_components = [
-            pb.cloudrig_component
+        # Find pbones that have no parents.
+        parentless_pbones = [
+            pb
             for pb in metarig_ob.pose.bones
-            if pb.cloudrig_component.component_type and not pb.bone.parent
+            if not pb.bone.parent
         ]
-        parentless_components.sort(key=lambda comp: comp.sibling_order)
+        # parentless_components.sort(key=lambda comp: comp.sibling_order)
 
         # Number them hierarchically
         order_idx = 0
-        for rig_component in parentless_components:
-            order_idx = self.order_components_recursive(
-                rig_component=rig_component, order_idx=order_idx
-            )
+        for pbone in parentless_pbones:
+            order_idx = self.order_components_recursive(pbone, order_idx=order_idx, depth=0)
 
-    def order_components_recursive(
-        self, rig_component: "RigComponent", order_idx=0
-    ) -> int:
-        parent_component = rig_component.parent
-        if rig_component.component_type:
-            rig_component.order = order_idx
-            if parent_component:
-                rig_component.depth = parent_component.depth + 1
-            else:
-                rig_component.depth = 0
+
+    def order_components_recursive(self, pbone, order_idx=0, depth=0):
+        component = pbone.cloudrig_component
+        component.order = order_idx
+        component.depth = depth
+
+
+        child_component_pbs = get_direct_child_component_pbones(pbone)
+        # Sort the children by their sibling order value,
+        # which is controlled by the user with the up/down arrows.
+        child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
+        for child_pb in child_component_pbs:
             order_idx += 1
+            order_idx = self.order_components_recursive(child_pb, order_idx, depth+1)
 
-            # Set parent for the next recursion.
-            parent_component = rig_component
-        else:
-            rig_component.order = -1
-            rig_component.depth = 0
-
-        for sibling_idx, child_component in enumerate(
-            sorted(
-                rig_component.children,
-                key=lambda comp: comp.sibling_order,
-            )
-        ):
-            child_component.sibling_order = sibling_idx
-            order_idx = self.order_components_recursive(
-                rig_component=child_component, order_idx=order_idx
-            )
 
         return order_idx
+
+
+def get_direct_child_component_pbones(root_pb):
+    component_pbs = []
+    for child_pb in root_pb.children:
+        if child_pb.cloudrig_component.component_type:
+            component_pbs.append(child_pb)
+        else:
+            component_pbs.extend(get_direct_child_component_pbones(child_pb))
+    return component_pbs
 
 
 registry = (

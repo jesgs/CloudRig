@@ -273,7 +273,7 @@ class BoneSetMixin:
         metarig = context.object
         cloudrig = metarig.cloudrig
         active_pb = get_pbone_of_active(context)
-        if not (active_pb and active_pb.cloudrig_component.is_enabled_component):
+        if not (active_pb and active_pb.cloudrig_component.enabled_with_parents):
             return
 
         component = active_pb.cloudrig_component
