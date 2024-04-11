@@ -228,6 +228,9 @@ class Component_FaceChain(Component_ToonChain):
             intersection_control = rig.bone_sets['Intersection Controls'].new(
                 name=bone_name,
                 source=cluster[0],
+                roll_type='ALIGN',
+                roll_bone=cluster[0],
+                roll=0,
                 custom_shape=rig.ensure_widget('Cube'),
                 custom_shape_scale=0.5,
             )
