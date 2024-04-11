@@ -2410,7 +2410,7 @@ class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
         if coll.parent == coll:
             self.report({'ERROR'}, "Cannot set a collection's parent to be itself.")
             return {'CANCELLED'}
-        if not parent.is_editable:
+        if parent and not parent.is_editable:
             self.report(
                 {'ERROR'},
                 "Parenting to a linked collection is currently not supported.",
@@ -2733,10 +2733,11 @@ class POSE_OT_cloudrig_collection_clipboard_paste(bpy.types.Operator):
 
 
 def builtin_collections_draw_override(self, context):
-    self.layout.prop(context.object.cloudrig_prefs, 'collection_ui_type', expand=True)
+    if is_active_cloud_metarig(context) or is_active_cloudrig(context):
+        self.layout.prop(context.object.cloudrig_prefs, 'collection_ui_type', expand=True)
 
-    if context.object.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
-        return draw_cloudrig_collections(self, context)
+        if context.object.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
+            return draw_cloudrig_collections(self, context)
 
     return bpy.types.DATA_PT_bone_collections.draw_bkp(self, context)
 

@@ -84,4 +84,3 @@ def register():
             space_type=space_type,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_specials'},
         )
-        print("Registered the uhhh what is this, specials pie")
