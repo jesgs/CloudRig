@@ -1,5 +1,6 @@
 - Should split up Edit Widget and Assign Widget.
 - Hjalti found a bug where bone collection assignment fails, but I can't repro so far. Check again / ask him to commit his fucking file.
+- Only the eye and select icons of collections with hidden parents should be disabled, not the rest of their UI.
 
 Priority -1: Migration
 	- Migrate to projects.blender.org

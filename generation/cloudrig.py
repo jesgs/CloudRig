@@ -2811,9 +2811,11 @@ def register_hotkey(
         if km.name == key_cat and kmi.idname == bl_idname:
             # NOTE: I'm pretty sure there are cases of corrupted KeyMapItems 
             # where accessing .properties segfaults.
-            # NOTE: This prevents duplicates on the same key combo, even if it's
-            # trying to register a different operator.
-            if kmi.properties and dict(kmi.properties) == hotkey_kwargs:
+            # NOTE: This prevents duplicates of the same operator, even if it's
+            # trying to register a different key combo.
+            if kmi.properties and dict(kmi.properties) == op_kwargs:
+                return
+            elif not kmi.properties and not op_kwargs:
                 return
 
     keymaps = addon_keyconfig.keymaps
