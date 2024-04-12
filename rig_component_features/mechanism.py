@@ -2,8 +2,7 @@ from typing import Tuple, List
 
 import bpy
 from mathutils import Vector
-
-from rigify.utils.misc import copy_attributes
+from bpy.types import ID, FCurve
 
 from ..rig_component_features.bone import BoneInfo
 from ..generation.naming import slice_name, make_name
@@ -200,38 +199,40 @@ def create_dsp_bone(parent, bone_set):
     return dsp_bone
 
 
-def copy_driver(from_fcurve, obj, data_path=None, index=None):
-    if not data_path:
-        data_path = from_fcurve.data_path
+def copy_driver(
+    from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
+) -> FCurve:
+    """Copy an existing FCurve containing a driver to a new ID, by creating a copy
+    of the existing driver on the target ID.
 
-    new_fc = None
+    Args:
+        from_fcurve: FCurve containing a driver
+        target: ID that can have drivers added to it
+        data_path: Data Path of existing driver. Defaults to None.
+        index: array index of the property drive. Defaults to None.
+
+    Returns:
+        FCurve: Fcurve containing copy of driver on target ID
+    """
+
+    # Ensure anim data.
+    if not target.animation_data:
+        target.animation_data_create()
+
+    # Remove old driver if it exists.
+    tgt_drivers = target.animation_data.drivers
     if index:
-        new_fc = obj.driver_add(data_path, index)
+        tgt_drivers.remove(data_path, index)
     else:
-        new_fc = obj.driver_add(data_path)
+        tgt_drivers.remove(data_path)
 
-    copy_attributes(from_fcurve, new_fc)
-    copy_attributes(from_fcurve.driver, new_fc.driver)
+    new_fcurve = tgt_drivers.from_existing(from_fcurve)
+    if data_path:
+        new_fcurve.data_path = data_path
+    if index:
+        new_fcurve.array_index = index
 
-    # Remove default modifiers, variables, etc.
-    for m in new_fc.modifiers:
-        new_fc.modifiers.remove(m)
-    for v in new_fc.driver.variables:
-        new_fc.driver.variables.remove(v)
-
-    # Copy modifiers
-    for m1 in from_fcurve.modifiers:
-        m2 = new_fc.modifiers.new(type=m1.type)
-        copy_attributes(m1, m2)
-
-    # Copy variables
-    for v1 in from_fcurve.driver.variables:
-        v2 = new_fc.driver.variables.new()
-        copy_attributes(v1, v2)
-        for i in range(len(v1.targets)):
-            copy_attributes(v1.targets[i], v2.targets[i])
-
-    return new_fc
+    return new_fcurve
 
 
 def vector_along_bone_chain(
