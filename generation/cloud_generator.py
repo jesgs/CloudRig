@@ -813,6 +813,10 @@ def replace_old_with_new_rig(
             new_bone = new_rig.data.bones.get(old_bone.name)
             if new_bone:
                 new_coll.assign(new_bone)
+        for old_child in old_coll.children:
+            new_child = new_rig.data.collections_all.get(old_child.name)
+            if new_child:
+                new_child.parent = new_coll
         new_coll_idx = new_rig.data.collections_all.find(new_coll.name)
         max_idx = len(new_rig.data.collections)
         try:
