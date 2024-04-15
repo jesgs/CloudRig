@@ -235,10 +235,11 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         layout.separator()
         cls.draw_control_label(layout, "Spline")
-        cls.draw_prop(context, layout, params.spline_ik, 'subdivide')
         cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
 
         cls.draw_prop(context, layout, params.spline_ik, 'deform_setup', expand=True)
+        if params.spline_ik.deform_setup=='CREATE':
+            cls.draw_prop(context, layout, params.spline_ik, 'subdivide')
         # TODO: When this is false, the directions of the curve points and bones
         # don't match, and both of them are unsatisfactory. It would be nice if
         # we would interpolate between the direction of the two bones, using
@@ -260,12 +261,19 @@ class Params(PropertyGroup):
             (
                 'NONE',
                 'None',
-                "Disable deform flag, so this rig can't be used in tandem with Armature modifiers",
+                "Disable deform flag, so this rig component can't be used in tandem with Armature modifiers",
             ),
             ('PRESERVE', 'Preserve', "Preserve deform flag of each bone"),
             ('CREATE', 'Create', "Create deform bones prefixed with DEF-"),
         ],
-        description="How this curve rig should behave with Armature modifiers",
+        description="How this curve rig component should behave with Armature modifiers",
+    )
+    subdivide: IntProperty(
+        name="Subdivide Bones",
+        description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain",
+        default=3,
+        min=1,
+        max=99,
     )
     handle_length: FloatProperty(
         name="Curve Handle Length",
@@ -279,13 +287,6 @@ class Params(PropertyGroup):
         description="Number of controls that will be spaced out evenly across the entire chain",
         default=3,
         min=3,
-        max=99,
-    )
-    subdivide: IntProperty(
-        name="Subdivide Bones",
-        description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain",
-        default=3,
-        min=1,
         max=99,
     )
 
