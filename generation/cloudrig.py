@@ -1928,23 +1928,24 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                     icon='BONE_DATA',
                 )
 
-        row = row.row(align=True)
-        row.operator_context = 'INVOKE_DEFAULT'
-        row.enabled = cloudrig_info.are_parents_visible
+        vis_row = row.row(align=True)
+        vis_row.operator_context = 'INVOKE_DEFAULT'
+        vis_row.enabled = cloudrig_info.are_parents_visible
         if prefs.show_visibility:
             icon = 'HIDE_OFF' if collection.is_visible else 'HIDE_ON'
-            row.prop(collection, 'is_visible', text="", icon=icon)
-        if prefs.show_solo:
-            icon = 'SOLO_ON' if collection.is_solo else 'SOLO_OFF'
-            row.prop(collection, 'is_solo', text="", icon=icon)
+            vis_row.prop(collection, 'is_visible', text="", icon=icon)
         if prefs.show_select:
-            sel_op = row.operator(
+            sel_op = vis_row.operator(
                 POSE_OT_cloudrig_collection_select.bl_idname,
                 text="",
-                icon='RESTRICT_SELECT_OFF',
+                icon='MOUSE_LMB',
             )
             sel_op.collection_name = collection.name
             sel_op.reveal_bones = False
+        row = row.row(align=True)
+        if prefs.show_solo:
+            icon = 'SOLO_ON' if collection.is_solo else 'SOLO_OFF'
+            row.prop(collection, 'is_solo', text="", icon=icon)
         if prefs.show_editing:
             row.separator()
             if collection.is_editable:
@@ -1954,7 +1955,7 @@ class CLOUDRIG_UL_collections(bpy.types.UIList):
                     icon='CON_CHILDOF',
                 ).coll_idx = idx
 
-            icon = 'HEART' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
+            icon = 'RECORD_ON' if cloudrig_info.quick_access else 'RECORD_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             if is_active_cloudrig(context) and find_metarig_of_rig(
                 context, context.active_object
