@@ -186,7 +186,7 @@ class Params(PropertyGroup):
     )
     custom_pivot: BoolProperty(
         name="Create Custom Pivot",
-        description="Create a parent bone whose local translation is not propagated to the main control, but its rotation and scale are",
+        description="Create a parent control whose local translation is not propagated to the main control, but its rotation and scale are",
         default=False,
     )
     ensure_free: BoolProperty(

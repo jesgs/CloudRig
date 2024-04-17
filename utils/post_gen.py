@@ -193,7 +193,7 @@ def auto_assign_bone_gizmo(pb, obs: List[Object]):
     1. Face map matching the bone's name.
     2. Vertex group matching the name `BG_{bone_name}` (for "BoneGizmo").
     3. Vertex group matching the name `FM_{bone_name}` (for "FaceMap").
-    4. Vertex group matching the bone's name.
+    4. Vertex group named "DEF-" and the bone's name after any prefixes separated by `-`.
     """
     for ob in obs:
         if ob.type != 'MESH':

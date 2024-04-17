@@ -257,7 +257,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
     def exit_shape_edit_mode(self, context):
         """Restore rig selection state and mode."""
         bpy.ops.object.mode_set(mode='OBJECT')
-        rig = bpy.data.objects.get(context.scene.widget_edit_armature)
+        rig = bpy.data.objects.get((context.scene.widget_edit_armature, None))
         context.scene.widget_edit_armature = ""
         if not rig:
             return

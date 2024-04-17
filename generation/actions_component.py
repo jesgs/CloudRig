@@ -1,7 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+# Originally designed and implemented by me (Demeter Dzadik), 
+# then re-written without functional changes for Rigify by Alexander Gavrilov.
+# Then I threw away all my code, and modified his to fit into CloudRig again.
+
+# The UI for these features are implemented in ui/actions_ui.py.
+
 from typing import Optional, List, Dict, Tuple
-from bpy.types import Action, Mesh, Armature, Object
+from bpy.types import Action, Mesh, Object
 from bl_math import clamp
 
 from rigify.utils.naming import Side, get_name_side, change_name_side, mirror_name
