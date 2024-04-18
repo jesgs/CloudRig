@@ -79,9 +79,7 @@ Priority 4: Code quality
 			str_bone.tangent_helper
 			main_start.sub_bones
 		This makes the code confusing to read, the main sufferer of this being cloud_face_chain, which should be re-written using the Rigify nodecluster API anyways...
-	We could merge rig_component_ui and rig_component_subpanels into just component_params_ui.py
-	Rename versioning.py to metarig_versioning.py, or move it to metarigs folder instead, actually.
-	find_or_create_constraint should move to mechanism.py
+	Update type annotations to PEP 585 (ie. don't use typing.List/Set/Dict classes anymore)
 
 Priority 5: UI, UX & documentation
 	Sintel metarig should use anchors for the face intersections, to be less terrible.

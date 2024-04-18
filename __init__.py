@@ -3,9 +3,9 @@ import importlib
 import sys
 import os
 from bpy.utils import register_class, unregister_class
+from .metarigs import versioning
 
 from . import (
-    versioning,
     manual,
     operators,
     rig_components,

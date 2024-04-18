@@ -1,11 +1,12 @@
 import bpy
 from bpy.types import Object
-from typing import Any
 from bpy.app.handlers import persistent
-from .generation.cloudrig import is_cloud_metarig
-from .rig_component_features.ui import get_addon_prefs
-from .rig_component_features.object import set_enum_property_by_integer
-from .rig_components import component_modules
+from typing import Any
+
+from ..generation.cloudrig import is_cloud_metarig
+from ..rig_component_features.ui import get_addon_prefs
+from ..rig_component_features.object import set_enum_property_by_integer
+from ..rig_components import component_modules
 
 RIG_TYPE_MAP = {
     key: module.RIG_COMPONENT_CLASS.ui_name

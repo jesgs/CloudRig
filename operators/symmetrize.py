@@ -4,7 +4,7 @@ from typing import Dict
 from bpy.types import Operator, Object, PoseBone, Constraint
 from bpy.utils import flip_name
 
-from ..utils.misc import copy_attributes, find_or_create_constraint
+from ..rig_component_features.mechanism import copy_attributes, find_or_create_constraint
 
 class POSE_OT_symmetrize_rigging(Operator):
     """Mirror constraints to the opposite of all selected bones"""

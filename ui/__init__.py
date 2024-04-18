@@ -1,17 +1,15 @@
 from . import (
-    cloudrig_dropdown_menu,
-    rig_component_subpanels,
+    component_list,
+    menu_3dview,
+    component_params,
     cloudrig_main_panel,
-    rig_component_list,
-    rig_component_ui,
     actions_ui,
 )
 
 modules = [
-    cloudrig_dropdown_menu,
+    menu_3dview,
     cloudrig_main_panel,
-    rig_component_list,
-    rig_component_ui,
-    rig_component_subpanels,
+    component_list,
+    component_params,
     actions_ui,
 ]
