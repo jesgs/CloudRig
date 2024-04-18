@@ -43,7 +43,7 @@ class Component_Lattice(Component_Base):
             name=root_name,
             source=org_bi,
             parent=org_bi.parent,
-            custom_shape=self.ensure_widget("Cube"),
+            custom_shape_name="Cube",
             use_custom_shape_bone_size=True,
         )
         return root_bone
@@ -54,7 +54,7 @@ class Component_Lattice(Component_Base):
             name=hook_name,
             source=root_bone,
             parent=root_bone,
-            custom_shape=self.ensure_widget("Sphere"),
+            custom_shape_name="Sphere",
             use_custom_shape_bone_size=True,
         )
         return hook_bone

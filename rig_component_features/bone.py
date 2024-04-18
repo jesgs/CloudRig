@@ -155,6 +155,7 @@ class BoneInfo:
         # If roll_type=='VECTOR', use this as the vector that the Z axis should point towards. This is equivalent to "Align to Cursor" in Blender.
         self.roll_vector = Vector()
 
+        self.custom_shape_name = ""
         self._source = self
 
         if source:
@@ -352,6 +353,7 @@ class BoneInfo:
     def copy_custom_shape(self, other):
         if not other.custom_shape:
             return
+        self.custom_shape_name = other.custom_shape_name
         self.custom_shape = other.custom_shape
         self.custom_shape_translation = other.custom_shape_translation
         self.custom_shape_rotation_euler = other.custom_shape_rotation_euler
@@ -533,6 +535,9 @@ class BoneInfo:
         assert (
             armature.mode != 'EDIT'
         ), "Armature cannot be in Edit Mode when writing pose data"
+
+        if self.custom_shape_name:
+            self.custom_shape = self.owner_component.ensure_widget(self.custom_shape_name)
 
         # Pose bone data
         for key in pose_bone_properties:

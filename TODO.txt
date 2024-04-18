@@ -22,6 +22,7 @@ Priority 1: Bugs
 	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
+	cloud_spine is generating a P-ROOT bone for no apparent reason? See basic human metarig.
 
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
@@ -65,8 +66,8 @@ Priority 3: Changes that will affect metarigs
 		Eg. "STR-TIP=Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets.
 			No more weird crazy relinking rules
 				although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
+
 Priority 4: Code quality
-	Widgets should only be loaded with ensure_widget() when a bone is actually created, instead of when its BoneInfo is defined.
 	Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
 		This was now done in cloud_chain, but in some cases it's not really possible.
 	In cloudrig.py, unify how Character and Rig properties are displayed?

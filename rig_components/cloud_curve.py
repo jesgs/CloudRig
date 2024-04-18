@@ -113,7 +113,7 @@ class Component_Curve_Hooked(Component_Base):
                     head=loc + loc_delta,
                     tail=loc + loc_delta + dir,
                     parent=self.root_bone,
-                    custom_shape=self.ensure_widget('Cube'),
+                    custom_shape_name='Cube',
                     inherit_scale=self.params.curve.inherit_scale,
                 )
                 spline_root.flatten()
@@ -327,7 +327,7 @@ class Component_Curve_Hooked(Component_Base):
                 use_custom_shape_bone_size=False,
                 custom_shape_scale=0.8,
                 parent=hook_ctr,
-                custom_shape=self.ensure_widget("Circle"),
+                custom_shape_name="Circle",
             )
             radius_control.length *= 0.8
             self.lock_transforms(
@@ -351,7 +351,7 @@ class Component_Curve_Hooked(Component_Base):
                 head=loc,
                 tail=loc_left,
                 parent=hook_ctr,
-                custom_shape=self.ensure_widget("Curve_Handle"),
+                custom_shape_name="Curve_Handle",
                 use_custom_shape_bone_size=False,
                 roll=0,
                 roll_type='ALIGN',
@@ -375,7 +375,7 @@ class Component_Curve_Hooked(Component_Base):
                 roll=0,
                 roll_type='ALIGN',
                 roll_bone=hook_ctr,
-                custom_shape=self.ensure_widget("Curve_Handle"),
+                custom_shape_name="Curve_Handle",
                 use_custom_shape_bone_size=False,
             )
             hook_ctr.right_handle_control = handle_right_ctr

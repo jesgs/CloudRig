@@ -77,7 +77,7 @@ class Component_Aim(Component_Base):
             source=self.bones_org[0],
             head=head,
             tail=tail,
-            custom_shape=self.ensure_widget("Circle"),
+            custom_shape_name="Circle",
             parent=parent,
         )
         target_bone.custom_shape_scale *= self.params.aim.target_size
@@ -96,7 +96,7 @@ class Component_Aim(Component_Base):
             ),
             source=org_bone,
             parent=org_bone.parent,
-            custom_shape=self.ensure_widget("Circle"),
+            custom_shape_name="Circle",
         )
 
         ctr_bone.add_constraint('COPY_ROTATION', subtarget=aim_bone.name)
@@ -140,7 +140,7 @@ class Component_Aim(Component_Base):
             name=self.naming.add_prefix(org_bone.name, 'ROOT'),
             source=org_bone,
             parent=org_bone.parent,
-            custom_shape=self.ensure_widget('Square'),
+            custom_shape_name='Square',
             custom_shape_scale=2,
             custom_shape_along_length=1,
         )
@@ -156,7 +156,7 @@ class Component_Aim(Component_Base):
             name=self.naming.make_name(*name_slices),
             source=ctr_bone,
             parent=ctr_bone,
-            custom_shape=self.ensure_widget("Circle"),
+            custom_shape_name="Circle",
             custom_shape_scale=ctr_bone.custom_shape_scale / 3,
             custom_shape_along_length=1.05,
         )
@@ -327,7 +327,7 @@ class Component_Aim(Component_Base):
             roll_type='VECTOR',
             roll_vector=z_axis,
             roll=0,
-            custom_shape=self.ensure_widget('Circle'),
+            custom_shape_name='Circle',
             use_custom_shape_bone_size=True,
             custom_shape_scale=1,
         )

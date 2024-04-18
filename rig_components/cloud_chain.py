@@ -261,7 +261,7 @@ class Component_ToonChain(Component_Base):
             parent=org_bone,
             head=main_start.head + (unit * index),
             length=vector.length / num_segments / 2,
-            custom_shape=self.ensure_widget("Sphere"),
+            custom_shape_name="Sphere",
             custom_shape_scale=-0.4,
             inherit_scale='AVERAGE',
         )

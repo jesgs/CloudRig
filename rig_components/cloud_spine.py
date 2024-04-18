@@ -57,7 +57,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            custom_shape=self.ensure_widget("Torso_Master"),
+            custom_shape_name="Torso_Master",
         )
         return torso_root_bone
 
@@ -70,7 +70,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
             source=org_chain[0],
             head=org_chain[0].center,
-            custom_shape=self.ensure_widget("Hyperbola"),
+            custom_shape_name="Hyperbola",
             custom_shape_scale_xyz=Vector((0.8, -0.8, 0.8)),
             parent=self.root_bone,
         )
@@ -113,7 +113,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             source=chest_org,
             head=chest_org.center,
             tail=chest_org.center + Vector((0, 0, self.scale)),
-            custom_shape=self.ensure_widget("Hyperbola"),
+            custom_shape_name="Hyperbola",
             custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),
             custom_shape_translation=Vector((0, chest_org.length * 2, 0)),
             parent=self.root_torso,
@@ -131,7 +131,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
                 name=fk_bone.name.replace("FK", "IK-CTR"),
                 source=fk_bone,
-                custom_shape=self.ensure_widget('Circle'),
+                custom_shape_name='Circle',
                 custom_shape_scale_xyz=Vector((1, 1, 0.8)),
             )
 

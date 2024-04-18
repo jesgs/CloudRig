@@ -21,7 +21,7 @@ class Component_Template(Component_Base):
         ctr_bone = self.bone_sets['Template Bones'].new(
             name=bone.name.replace('ORG', "CTR"),
             source=bone,
-            custom_shape=self.ensure_widget('Circle'),
+            custom_shape_name='Circle',
             parent=bone.parent,
         )
         bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)

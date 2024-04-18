@@ -97,7 +97,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             name=root_name,
             source=org_bone,
             parent=org_bone.parent,
-            custom_shape=self.ensure_widget("Cube"),
+            custom_shape_name="Cube",
             inherit_scale=self.params.fk_chain.inherit_scale,
         )
         org_bone.parent = root_bone
@@ -147,7 +147,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         fk_bone = self.bone_sets['FK Controls'].new(
             name=fk_name,
             source=org_bone,
-            custom_shape=self.ensure_widget("Circle_Spiked_2"),
+            custom_shape_name="Circle_Spiked_2",
             inherit_scale=self.params.fk_chain.inherit_scale,
             custom_shape_along_length=self.params.fk_chain.display_center / 2,
             rotation_mode=rot_mode,

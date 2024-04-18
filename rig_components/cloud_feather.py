@@ -30,7 +30,7 @@ class Component_Feather(Component_Chain_FK):
             name=self.naming.add_prefix(org.name, "BEND"),
             source=org,
             parent=org,
-            custom_shape=self.ensure_widget("Feather"),
+            custom_shape_name="Feather",
         )
         self.main_str_bones[-1].parent = bend_ctr
         bend_ctr.custom_shape_along_length = 0.95
@@ -42,7 +42,7 @@ class Component_Feather(Component_Chain_FK):
             parent=bend_ctr,
             head=bend_ctr.head + bend_ctr.vector * 0.95,
             tail=bend_ctr.tail,
-            custom_shape=self.ensure_widget("Line"),
+            custom_shape_name="Line",
             use_custom_shape_bone_size=True,
         )
         bend_ctr.collections = line.collections = self.bone_sets[

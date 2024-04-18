@@ -235,7 +235,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             roll_type='VECTOR',
             roll_vector=toe.z_axis,
             parent=self.ik_mstr,
-            custom_shape=self.ensure_widget('Roll_Flat'),
+            custom_shape_name='Roll_Flat',
             use_custom_shape_bone_size=True,
         )
         self.properties_bone.parent = roll_ctrl
@@ -296,7 +296,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 roll_type='VECTOR',
                 roll_vector=-b.z_axis,
                 parent=heel_pivot,
-                custom_shape=self.ensure_widget("Circle_Spiked_2"),
+                custom_shape_name="Circle_Spiked_2",
             )
             rik_chain.append(rik_bone)
             ik_chain[i].parent = rik_bone

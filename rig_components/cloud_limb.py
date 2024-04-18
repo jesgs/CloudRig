@@ -266,7 +266,7 @@ class Component_Limb(Component_Chain_IKFK):
             name=self.naming.add_prefix(org_lower, "RubberHose"),
             source=org_lower,
             parent=org_lower,
-            custom_shape=self.ensure_widget('Arrow_Two-way'),
+            custom_shape_name='Arrow_Two-way',
         )
 
         # Shift it towards the IK pole or where it would be.

@@ -148,7 +148,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         ik_master = bone_set.new(
             name=bone_name,
             source=source_bone,
-            custom_shape=self.ensure_widget(shape_name),
+            custom_shape_name=shape_name,
             parent=None,
         )
 
@@ -241,7 +241,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             roll_type='VECTOR',
             roll_vector=Vector((0, 0, -1)),
             roll=0,
-            custom_shape=self.ensure_widget('Arrow_Head'),
+            custom_shape_name='Arrow_Head',
             custom_shape_scale=0.5,
             inherit_scale='AVERAGE',
             use_custom_shape_bone_size=True,
@@ -258,7 +258,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             roll_type='ALIGN',
             roll_bone=pole_ctrl,
             roll=0,
-            custom_shape=self.ensure_widget('Line'),
+            custom_shape_name='Line',
             use_custom_shape_bone_size=True,
         )
         pole_line.add_constraint(
