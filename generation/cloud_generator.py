@@ -356,7 +356,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         # ------------------------------------------
 
         if self.params.generate_test_action:
-            self.create_test_animation()  # TODO 4.0: Verify this works.
+            self.create_test_animation()
 
         old_rig = self.params.target_rig
         if old_rig:

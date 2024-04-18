@@ -3,6 +3,7 @@ from . import (
     cloud_generator,
     naming,
     actions_component,
+    test_animation,
 )
 
 modules = [
@@ -10,4 +11,5 @@ modules = [
     cloud_generator,
     naming,
     actions_component,
+    test_animation,
 ]

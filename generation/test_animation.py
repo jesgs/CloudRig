@@ -1,3 +1,5 @@
+import bpy
+
 class TestAnimationGeneratorMixin:
     """Generator code for generating a "test animation", which is an animation 
     riggers can use for weight painting assistance to test deformations.
