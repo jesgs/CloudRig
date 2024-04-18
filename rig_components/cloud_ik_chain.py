@@ -298,7 +298,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             if i == 0:
                 # First IK bone special treatment
                 ik_bone.parent = self.root_bone
-                ik_bone.custom_shape = self.ensure_widget("Squares_2")
+                ik_bone.custom_shape_name = 'Squares_2'
                 ik_bone.custom_shape_scale_xyz = Vector((0.8, 1, 0.8))
                 ik_bone.collections = self.bone_sets['IK Controls'].collections
                 ik_bone.color_palette_base = self.bone_sets['IK Controls'].color_palette

@@ -177,9 +177,9 @@ class Component_ToonChain(Component_Base):
             main_str.custom_shape_scale_xyz *= -1
 
         if not self.is_cyclic and org_i == 0 or at_tip:
-            main_str.custom_shape = self.ensure_widget('Sphere_Half')
+            main_str.custom_shape_name = 'Sphere_Half'
         else:
-            main_str.custom_shape = self.ensure_widget("Sphere")
+            main_str.custom_shape_name = "Sphere"
 
         return main_str
 
@@ -565,7 +565,7 @@ class Component_ToonChain(Component_Base):
                 use_bulge_min=not self.params.chain.preserve_volume,
                 use_bulge_max=not self.params.chain.preserve_volume,
             )
-        def_bone_control.custom_shape = self.ensure_widget('Cube')
+        def_bone_control.custom_shape_name = 'Cube'
         def_bone_control.custom_shape_scale_xyz.y = 0.1
         def_bone_control.collections = self.bone_sets['Deform Controls'].collections
 
@@ -680,9 +680,7 @@ class Component_ToonChain(Component_Base):
             self.bone_sets['Deform Bones'][0].bbone_easein = 0
 
         last_str.next = self.str_chain[0]
-        last_str.custom_shape = self.str_chain[0].custom_shape = self.ensure_widget(
-            'Sphere'
-        )
+        last_str.custom_shape = self.str_chain[0].custom_shape_name = 'Sphere'
         if (
             self.params.chain.shape_key_helpers
             or parent_component.params.chain.shape_key_helpers

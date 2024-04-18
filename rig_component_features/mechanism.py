@@ -23,9 +23,6 @@ class CloudMechanismMixin:
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
         return get_component_bone_chain(pose_bone)
 
-    def ensure_widget(self, name):
-        return self.generator.ensure_widget(name)
-
     def create_parent_bone(self, child, bone_set=None):
         return create_parent_bone(child, bone_set)
 

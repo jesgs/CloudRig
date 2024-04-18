@@ -95,7 +95,7 @@ class Component_CopyBone(Component_Base):
         boneinfo.add_constraint(
             'COPY_LOCATION', subtarget=pivot, invert_xyz=[True, True, True]
         )
-        pivot.custom_shape = self.ensure_widget('Axes_6')
+        pivot.custom_shape_name = 'Axes_6'
         pivot.custom_shape_scale_xyz = Vector(
             [max(boneinfo.custom_shape_scale_xyz)] * 3
         )

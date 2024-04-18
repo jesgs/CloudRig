@@ -82,7 +82,7 @@ class Component_Curve_Hooked(Component_Base):
         if org_bone.custom_shape:
             self.root_bone.copy_custom_shape(org_bone)
         else:
-            self.root_bone.custom_shape = self.ensure_widget('Cube')
+            self.root_bone.custom_shape_name = 'Cube'
 
     def make_ctrls_for_curve_points(self):
         curve_ob = self.params.curve.target
@@ -310,7 +310,7 @@ class Component_Curve_Hooked(Component_Base):
                 hook_ctr, spline_idx, point_idx, loc, loc_left, loc_right, cyclic
             )
 
-        hook_ctr.custom_shape = self.ensure_widget(shape)
+        hook_ctr.custom_shape_name = shape
 
         return hook_ctr
 

@@ -21,7 +21,7 @@ class Component_Feather(Component_Chain_FK):
         super().create_bone_infos(context)
 
         first_fk = self.bone_sets['FK Controls'][0]
-        first_fk.custom_shape = self.ensure_widget("Feather")
+        first_fk.custom_shape_name = "Feather"
         first_fk.custom_shape_along_length = 1
 
         # Create a new bone parented to ORG, and parent the tip control to it.

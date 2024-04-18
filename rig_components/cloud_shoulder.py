@@ -27,7 +27,7 @@ class Component_Shoulder(Component_Chain_FK):
 
     def shoulder_setup(self):
         control = self.bone_sets['FK Controls'][0]
-        control.custom_shape = self.ensure_widget("Clavicle")
+        control.custom_shape_name = 'Clavicle'
         shoulder_rot = radians(int(self.params.shoulder.up_axis) * 90)
 
         control.custom_shape_rotation_euler.y = shoulder_rot

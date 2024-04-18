@@ -1,8 +1,5 @@
 - Should split up Edit Widget and Assign Widget.
-- Hjalti found a bug where bone collection assignment fails, but I can't repro so far. Check again / ask him to commit his fucking file.
-
 - Check if Spline IK parameters work well with each other and do what they should.
-- Continue updating rig component documentation at Lattice and onwards.
 
 Priority -1: Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
@@ -17,22 +14,14 @@ Priority -1: Migration
 Priority 1: Bugs
 	UI data is not added for IK/FK switch of the finger rig, and the ability to switch using a control (which was better) seems to be gone. Did we remove this on purpose? That may have been dumb.
 	cloud_face_chain sample has a wrong constraint, and it looks like intersection controls aren't aligned with the STR controls they should be aligned with...
-	Freshly generated widgets collection gets "NEW" in the name.
 	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
 	cloud_spine is generating a P-ROOT bone for no apparent reason? See basic human metarig.
+	Hjalti found a bug where bone collection assignment fails on some bones in an overridden rig, but I can't repro so far.
 
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
-		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
 
-	Trying to relink a constraint (either with @ or by properly selecting subtarget in the constraint) such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
-		We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
-		Generation should go like this:
-			Duplicate Metarig
-			(DO NOT RENAME BONES TO ORG)
-			Enter edit mode on the duplicate
-			Begin generating rig_components (Each can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
 	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
 	Feature request:

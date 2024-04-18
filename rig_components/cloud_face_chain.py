@@ -231,7 +231,7 @@ class Component_FaceChain(Component_ToonChain):
                 roll_type='ALIGN',
                 roll_bone=cluster[0],
                 roll=0,
-                custom_shape=rig.ensure_widget('Cube'),
+                custom_shape_name = 'Cube',
                 custom_shape_scale=0.5,
             )
 

@@ -69,7 +69,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         properties_bone.roll_type = 'ALIGN'
         properties_bone.roll_bone = self.bones_org[-2]
         properties_bone.roll = 0
-        properties_bone.custom_shape = self.ensure_widget('Cogwheel')
+        properties_bone.custom_shape_name = 'Cogwheel'
         properties_bone.parent = self.bones_org[-2]
         return properties_bone
 

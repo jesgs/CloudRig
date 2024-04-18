@@ -525,7 +525,7 @@ class BoneInfo:
 
             eb.roll += self.roll
 
-    def write_pose_data(self, pose_bone: PoseBone):
+    def write_pose_data(self, context, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
         if not self.create:
             return
@@ -537,7 +537,7 @@ class BoneInfo:
         ), "Armature cannot be in Edit Mode when writing pose data"
 
         if self.custom_shape_name:
-            self.custom_shape = self.owner_component.ensure_widget(self.custom_shape_name)
+            self.custom_shape = self.owner_component.generator.ensure_widget(context, self.custom_shape_name)
 
         # Pose bone data
         for key in pose_bone_properties:

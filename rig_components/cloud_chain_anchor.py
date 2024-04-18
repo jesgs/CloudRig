@@ -19,7 +19,7 @@ class Component_FaceChainAnchor(Component_CopyBone):
         meta_bone = self.get_metarig_pbone(bi.name)
 
         if not meta_bone.custom_shape:
-            bi.custom_shape = self.ensure_widget('Cube')
+            bi.custom_shape_name = 'Cube'
 
     ##############################
     # No parameters for this rig type.

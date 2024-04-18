@@ -8,7 +8,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Object, PropertyGroup
+from bpy.types import Object, PropertyGroup, Collection
 from typing import List, Dict, Tuple, Optional
 
 from bone_selection_sets import from_json, to_json
@@ -317,14 +317,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.metarig = metarig
         self.defaults['rig'] = self.target_rig
 
-        # Create Widget Collection
-        # TODO: It could be argued that this should only happen when the first widget is created.
-        self.ensure_widget_collection(context)
-
         # ------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
         if self.params.ensure_root:
-            self.ensure_root_bone_component(self.metarig, self.params.ensure_root)
+            self.ensure_root_bone_component(context, self.metarig, self.params.ensure_root)
 
         self.component_map = self.instantiate_rig_components()
 
@@ -351,12 +347,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.components_create_helper_objs(context)
         self.metarig.cloudrig_prefs.sync_collection_names()
         self.copy_bone_collections(src=metarig, target=self.target_rig)
-        self.components_write_pbone_data(self.target_rig)
+        self.components_write_pbone_data(context, self.target_rig)
 
         # ------------------------------------------
-
-        if self.params.generate_test_action:
-            self.create_test_animation()
 
         old_rig = self.params.target_rig
         if old_rig:
@@ -369,6 +362,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+
+        if self.params.generate_test_action:
+            self.create_test_animation()
 
         if self.params.action_slots:
             actions = ActionLayerComponent(self)
@@ -383,9 +379,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         ensure_cloudrig_ui(self.target_rig)
         self.params.target_rig = self.target_rig
 
-        if self.params.reload_widgets:
+        if self.params.reload_widgets and self.params.widget_collection:
             for obj in self.params.widget_collection.objects:
-                self.ensure_widget(obj.name.replace("WGT-", ""), overwrite=True)
+                self.ensure_widget(context, obj.name.replace("WGT-", ""), overwrite=True)
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos()
@@ -396,13 +392,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.log_minor_issues()
 
     ### Early generation steps.
-    def ensure_widget_collection(self, context):
+    def ensure_widget_collection(self, context) -> Collection:
         """Create the collection where bone shapes will be linked to."""
         if not self.params.widget_collection:
-            wgts_group_name = "Widgets_" + self.target_rig.name.replace("RIG-", "")
+            wgts_group_name = "Widgets_" + self.target_rig.name.replace("NEW-RIG-", "")
             self.params.widget_collection = ensure_collection(
                 context, wgts_group_name, hidden=True
             )
+
+        return self.params.widget_collection
 
     def instantiate_rig_components(self) -> Dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
@@ -445,7 +443,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         return comp_map
 
-    def ensure_root_bone_component(self, metarig, root_name='root'):
+    def ensure_root_bone_component(self, context, metarig, root_name='root'):
         if root_name in metarig.data.edit_bones:
             return metarig.pose.bones[root_name]
         edit_bone = create_bone(metarig, root_name)
@@ -456,10 +454,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         pose_bone = metarig.pose.bones[name]
         pose_bone.rotation_mode = 'XYZ'
         pose_bone.cloudrig_component.component_type = 'Bone Copy'
-        pose_bone.custom_shape = self.ensure_widget("Root")
+        pose_bone.custom_shape = self.ensure_widget(context, "Root")
         return pose_bone
 
-    def ensure_widget(self, widget_name, overwrite=False):
+    def ensure_widget(self, context, widget_name, overwrite=False):
+        # Ensure Widget Collection
+        self.ensure_widget_collection(context)
         try:
             wgt = cloud_widgets.ensure_widget(
                 widget_name,
@@ -472,7 +472,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
 
         assign_to_collection(
-            wgt, self.params.widget_collection or bpy.context.scene.collection
+            wgt, self.params.widget_collection or context.scene.collection
         )
         return wgt
 
@@ -572,7 +572,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             tgt_coll.is_visible = src_coll.is_visible
         target.data.collections.active_index = src.data.collections.active_index
 
-    def components_write_pbone_data(self, target_rig):
+    def components_write_pbone_data(self, context, target_rig):
         for bone_info in self.bone_infos:
             if not bone_info.create:
                 continue
@@ -602,7 +602,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 continue
 
             # Scale bone shape based on B-Bone scale
-            bone_info.write_pose_data(pose_bone)
+            bone_info.write_pose_data(context, pose_bone)
 
     ### Generation final steps
     def execute_custom_script(self):
@@ -635,7 +635,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         context.view_layer.update()
 
     def log_minor_issues(self):
-        self.logger.report_widgets(self.params.widget_collection)
+        if self.params.widget_collection:
+            self.logger.report_widgets(self.params.widget_collection)
         self.logger.report_unused_bone_collections(self.metarig, self.target_rig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
