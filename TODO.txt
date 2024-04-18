@@ -14,7 +14,6 @@ Priority -1: Migration
 	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
 Priority 1: Bugs
-	Everything without a component type gets marked as an invalid component type, whoops...
 	Generating test animation errors.
 	UI data is not added for IK/FK switch of the finger rig, and the ability to switch using a control (which was better) seems to be gone. Did we remove this on purpose? That may have been dumb.
 	cloud_face_chain sample has a wrong constraint, and it looks like intersection controls aren't aligned with the STR controls they should be aligned with...
@@ -86,8 +85,6 @@ Priority 5: UI, UX & documentation
 	Bunch of operators are probably missing from manual mapping.
 	Might also be cool to add manual mapping into cloudrig.py so it works for animators
 		Then we could add a page to the manual that's specific to the rig UI and targeted at animators rather than riggers.
-	Upstream
-		Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon.
 
 Priority 7: Ideas from Animators/Users
 	From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
