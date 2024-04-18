@@ -11,6 +11,7 @@ from . import (
     toggle_action_constraints,
     toggle_metarig,
     copy_mirror_components,
+    bone_collections_popup,
 )
 
 modules = [
@@ -26,4 +27,5 @@ modules = [
     toggle_action_constraints,
     toggle_metarig,
     copy_mirror_components,
+    bone_collections_popup,
 ]

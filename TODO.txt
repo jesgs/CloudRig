@@ -1,6 +1,8 @@
 - Should split up Edit Widget and Assign Widget.
 - Check if Spline IK parameters work well with each other and do what they should.
 
+- Displaying hotkeys in the addon prefs would be pretty nice.
+
 Priority -1: Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
 	- Update home page: Link to the various wiki pages, and update images.
@@ -108,6 +110,7 @@ Ideas:
 			But wait, the hard part of this is name conflicts. Bone names have to be unique, obviously, but if you just copy over all the bones... hmm... more parameters to handle name replacement? probably a similar deal to the batch rename tool. weird stuff.
 		cloud_ik_chain
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
+				I'd rather put a Limit Distance constraint on the IK control.
 
 	UI:
 		Customizing bone shapes would be pretty neat.
