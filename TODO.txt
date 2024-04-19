@@ -1,69 +1,63 @@
-Check out ebo.align_roll() instead of bpy.ops.armature.calculate_roll().
+- Should split up Edit Widget and Assign Widget.
+- Check if Spline IK parameters work well with each other and do what they should.
 
-Add a warning when the metarig was posed before generating.
-Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
+- Displaying hotkeys in the addon prefs would be pretty nice.
 
-I think we should refactor bone creation and set-up such that each function call is somewhat responsible for a rig parameter.
-	I think it would make the code feel a lot more intuitive to both read and write, but it might have its own complications.
+Priority -1: Migration
+	- Link to CloudRig's new home from the user documentation page of studio.b.o.
+	- Update home page: Link to the various wiki pages, and update images.
+	- Actions page doesn't mention automatic shape key drivers.
+
+- Bone Colls UX
+	- When IK/FK snapping, affected bones should be not only selected but also revealed!! Even if hidden by collection.
+	- Shift+M to bring up a pop-up panel of the bone colls UIList.
+	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
 Priority 1: Bugs
+	UI data is not added for IK/FK switch of the finger rig, and the ability to switch using a control (which was better) seems to be gone. Did we remove this on purpose? That may have been dumb.
+	cloud_face_chain sample has a wrong constraint, and it looks like intersection controls aren't aligned with the STR controls they should be aligned with...
+	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
+	cloud_spine is generating a P-ROOT bone for no apparent reason? See basic human metarig.
+	Hjalti found a bug where bone collection assignment fails on some bones in an overridden rig, but I can't repro so far.
 
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
-		Ruth found a bug in a fannypack shot where she was tring to bake Ellie's arm from IK to FK, and the property would slowly fade from 0 to 1 instead of switching from one moment to the next.
 
-	Trying to relink a constraint (either with @ or by properly selecting subtarget in the constraint) such that it targets an ORG- bone does not work. There is also so much hacking going on because of the ORG bone renaming bullshit.
-		We should rework this so that bone creation relies entirely on loading bones from the metarig into BoneInfo instances.
-		Generation should go like this:
-			Duplicate Metarig
-			(DO NOT RENAME BONES TO ORG)
-			Enter edit mode on the duplicate
-			Begin generating rigs (Rigs can choose to rename bones to ORG, or to delete them by setting a flag which will be applied in write_edit_data)
 Priority 2: New features
-	It would be nice if metarigs could be in orchatedral, after we implement gizmos for setting widget sizes.
+	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
 		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
+		- Add options to customize the activation angles of the foot roll on cloud_leg (for @nsanghra)
 
-	"(Un-)Isolate Character" button in the rig settings that disables all collections except that of this character, saves which collections were disabled by this action, and can then restore the visibility of those collections when clicked again.
 	Scale Inheritance and modifiers
 		Warn when these modifier values don't have a driver, since they should be hooked up to rig scale (root bone world scale would be easiest, but the closer it is to the nearest relevant parent in the hierarchy the better)
 		- Shrinkwrap distance
 		- Corrective Smooth scale
 		- Cast modifier radius
 
-	Perhaps some parameters could belong all the way up in CloudBaseRig.
-		- Create ORG bones (False by default, can force to True for rigs that need it)
 
-	cloud_leg
-		Implement a gizmo to place the heel pivot, is way cooler.
+	If the Gizmo API didn't suck:
+		Gizmo for cloud_leg heel pivot
+		Gizmo for cloud_limb IK distance, like in the past
+		Gizmo for widget size, instead of bbone scale
 	cloud_aim
 		Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
 			Not to mention, the eye target distance should be determined by a gizmo! :(
+	cloud_chain
+		There was at least one user requesting to make DEF- bones optional. Especially makes sense for FK robot limbs, where parts will just be object parented to ORG bones.
+	cloud_shoulder
+		We could auto-detect the correct up axis by checking which axis aligns best with the world. This could be an "Auto" enum option, which would become the default.
 
-	New bone layer preview UI and management:
-		The goal of this design is to make it so that neither the rig author nor the animator ever ever ever has to interact or think about Blender's 32 layer slots while authoring a metarig or animating a Rigify rig.
-		Bone layers are stored in rows which are stored in columns, and are not initialized to 32 entries but 0.
-		Each row has a + button to add a new entry to that row, and the bottom of the UI has a + icon to add a new entry in a new column.
-			If we're at the max of 32 layers, we throw a nice error.
-			Each time we add an entry, the layer number assignments are re-initialized so that the named layers correspond to the real ones from top to bottom and left to right
-			Since all interaction is done through operators, each execution of such an operator should update all Bone Set assignments in the metarig.
-		While each entry has a selection state, there is also an active element, which is whichever was toggled last. This is kept track of by a shared update callback.
-		Next to the active entry appears a pen or pencil button to edit the name of the layer or move it up or down (not sure if we can run operators from another operator's invoke popup window).
 Priority 3: Changes that will affect metarigs
-	Remove cloud_shoulder, and just add bone shape customization to cloud_fk_chain (or all rig types, just apply it to the same bone as constraint relinking)
 	Constraint relinking could be a whole lot simpler if we could use a PREFIX in the constraint name to define which bone the constraint should be moved to.
 		Eg. "STR-TIP=Armature@DEF-Head@DEF-Jaw" would move this constraint to the bone prefixed "STR-TIP", with the rest of the name same as this bone, and put DEF-Head and DEF-Jaw as the targets.
 			No more weird crazy relinking rules
 				although the weird rules can still be used as default, I would rather get rid of them and do backwards comp with metarig versioning.
-	This would mean we don't need a dynamic tooltip, since relinking could adhere to the same rules in all cases.
+
 Priority 4: Code quality
-	Widgets should only be loaded with ensure_widget() when a bone is actually created, instead of when its BoneInfo is defined.
-	write_pose_data and write_edit_data seem to belong in the generator rather than BoneInfo?
-		Alternatively, we could pass the generator, or the scalar if that's all we need, as an argument.
-			Decide which is better and do it cleanly. Also move the special handling of custom_shape_scale_xyz from generator to wherever we decide the rest will go.
 	Reduce uses of `self` and reduce unnecessary class inheritance. Make functions more static where possible, and pass around more parameters.
 		This was now done in cloud_chain, but in some cases it's not really possible.
 	In cloudrig.py, unify how Character and Rig properties are displayed?
@@ -75,47 +69,34 @@ Priority 4: Code quality
 			str_bone.tangent_helper
 			main_start.sub_bones
 		This makes the code confusing to read, the main sufferer of this being cloud_face_chain, which should be re-written using the Rigify nodecluster API anyways...
+	Update type annotations to PEP 585 (ie. don't use typing.List/Set/Dict classes anymore)
 
 Priority 5: UI, UX & documentation
 	Sintel metarig should use anchors for the face intersections, to be less terrible.
+	All metarigs and samples probably generate with some warnings. Should all be fixed.
 	Bunch of operators are probably missing from manual mapping.
 	Might also be cool to add manual mapping into cloudrig.py so it works for animators
 		Then we could add a page to the manual that's specific to the rig UI and targeted at animators rather than riggers.
-	Upstream
-		Hidden layers shouldn't be set by starting them with a dollar$ign but instead with an eye icon.
-Priority 6: Rigify compatibility
-	When enabled, bone groups assigned in cloud_bone seem to get overwritten.
-	- When a Rigify rig is merged into the generated rig, the widgets get "NEW" in their names.
-		This needs to be fixed upstream. It needs the idea of not removing the old rig until the new one is fully generated.
-		But this works best when the generation operator also accounts for the failed rig and auto-deletes it.
-		Not to mention Toggle Metarig/Generated rig.
 
-Priority 7: Ideas from Animators
-	From Javier: Spine IK control with squash&stretch
+Priority 7: Ideas from Animators/Users
 	From Tom: Add a full parent switching set-up to the IK Pole, that is independent from the IK control itself.
 		The available parents could be the same as the IK control, plus the IK control itself.
-	From Rik: Make the Spine rig properties bone appear behind the spine.
-		We could limit the definition of "behind" to being decided by the first two bones. This is already the case for IK poles anyways, so it would just be a matter of making that code more generic, to find which way two bones are pointing at.
 	Make the Quality slider non-animatable (I don't think this is possible to do in a decent way)
 		Add a property registration in cloudrig.py? Don't like it...
 		Attach a new text datablock to the rig that registers the properties from the character bone.
 			Make sure those properties are overridable but not animatable
 			Add those property path changes to the anim curve rename script
+	From various people: Implement a "Game Mode" option, that forces bendy bones to 0 and parents DEF- bones in a chain.
+		Annoying thing about this is that it implies that CloudRig is designed for and tested on a game dev workflow, which is false.
+		I would rather add an FAQ where I explain that you can simply set bendy bones to 0, and re-design cloud_chain so that DEF bones are indeed parented to each other, since IIRC that was always an arbitrary choice.
+	From Johannes Lübke: It might make sense to put the target rig in POSE position in one of the generation stages, so constraints can be applied.
+
 
 Ideas:
 	A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
 	A button to copy a single bone set's settings to all selected bones.
 
 	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
-
-	Layers:
-		Allow saving Layer Presets into a .json file, and loading and applying those layer presets with the Generate CloudRig Layers button - except, that button, along with a Save button, would remain available after the layers have been generated.
-		Disconnect real armature layers from Rigify layers, so that the rig can always generate with the same active layers instead of always the same ones.
-		This would probably require un-registering and the Rigify Layers propertygroup, and registering our modified version instead, which would have these flags:
-		- Layer Enabled
-		- Layer Protected
-		- Layer Visible
-		Better to do this upstream instead.
 
 	cloudrig.py:
 		Import stuff from cloudrig code, then at generation time to some shennanigans to replace the imports with the actual code that they're importing? Is this worth the headache? The only benefit is better code organization.
@@ -125,21 +106,39 @@ Ideas:
 
 		cloud_instance
 			This would be a single bone rig with a single parameter, which is another bone from the metarig which has a rigify type.
-			This bone would act as an instance of that entire rig element, copying all its child rigs and everything. Crazy stuff. Not sure if possible.
+			This bone would act as an instance of that entire rig component, copying all its child components and everything. Crazy stuff. Not sure if possible.
 			But wait, the hard part of this is name conflicts. Bone names have to be unique, obviously, but if you just copy over all the bones... hmm... more parameters to handle name replacement? probably a similar deal to the batch rename tool. weird stuff.
 		cloud_ik_chain
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
+				I'd rather put a Limit Distance constraint on the IK control.
 
-	UI
-	Customizing bone shapes would be pretty neat.
-		I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
-		Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
-		If generating with an empty object, switch it back to the defaults.
+	UI:
+		Customizing bone shapes would be pretty neat.
+			I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
+			Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
+			If generating with an empty object, switch it back to the defaults.
+		Use the lovely new boolean custom properties where it makes sense! (IK/FK toggles shouldn't be sliders!)
 
-	Bring back BoolProperties? Issue is animating them works badly. (doesn't work) because they rely on the update callback which is not called when changed by a keyframe.
-		Maybe after D9697.
+- Rig Samples UX
+	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".
+	- This probably already exists, considering there is already an Add menu in armature edit mode in the header. Probably works the same way as the Object Add Armature menu.
+	- This will mean that rig samples aren't really coupled with rig types, and they essentially become identical to metarigs, which tbh seems reasonable.
+	- Should add the ability for users to add their own metarigs/samples. How?
+		- Move all our current blend files into a "resources" folder:
+			Resources
+				metarigs.blend
+				samples.blend
+				widgets
+					primitives.blend
+					complex_shapes.blend
+		- Then construct relevant menus procedurally, since we can't customize them by passing parameters to them, AFAIK.
+		- So, to construct the menus we add to the Object Add->Armature menu, we would os.walk the metarigs folder, and create a sub-menu for each .blend file and each subfolder... same as current Rigify.
+		- Do the same for samples, which will live in both armature edit mode's Add menu, as well as Object Add->Armature.
+		- Add a "Widgets" menu to the Object Add menu.
 
-Better metarig design for Sprite Fright Face rigs:
-	Mouth
-		This would create the Jaw, the Master Mouth and the "Fake Jaw"(Master Mouth mechanism) that the lower lip can be parented to.
-		Tricky bit is that the Master Mouth usually wants to be in a different position than the Jaw.
+		- Then, also read this folder structure from the user's presets/CloudRig folder.
+
+		- Add a "Store MetaRig" operator that pushes the active CloudRig MetaRig to presets/CloudRig/metarigs.blend.
+		- Add a "Store Sample" operator that pushes the selected edit bones to presets/CloudRig/samples.blend
+		- Add a "Store Widgets" operator that pushes the selected WGT- objects to presets/CloudRig/widgets.blend 
+	- Add the "Add Metarig" menu to the Rig Components List UI as well, under a Specials menu.

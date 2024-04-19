@@ -4,8 +4,10 @@ from mathutils import Vector
 from mathutils.kdtree import KDTree
 from .maths import bounding_box_center
 
+
 def get_spline_points(spline: Spline):
     return spline.bezier_points if spline.type == 'BEZIER' else spline.points
+
 
 def find_opposite_spline(curve, spline_idx):
     spline = curve.splines[spline_idx]
@@ -17,12 +19,14 @@ def find_opposite_spline(curve, spline_idx):
         other_bb_center = get_spline_bounding_box_center(other_spline)
         if (other_bb_center - opp_co).length < 0.01:
             return i, other_spline
-    
+
     return spline_idx, spline
 
 
-def find_opposite_point_on_spline(spline: Spline, point_idx: int) -> Tuple[Vector, int, float]:
-    """Return the position, index, and offset of the closest point on the 
+def find_opposite_point_on_spline(
+    spline: Spline, point_idx: int
+) -> Tuple[Vector, int, float]:
+    """Return the position, index, and offset of the closest point on the
     spline to the coordinate of the given point with its X component inverted."""
 
     points = get_spline_points(spline)
@@ -38,8 +42,11 @@ def find_opposite_point_on_spline(spline: Spline, point_idx: int) -> Tuple[Vecto
     opp_co, opp_idx, offset = kd.find(flipped_co)
     return opp_co, opp_idx, offset
 
-def find_opposite_point_on_curve(curve: Curve, spline_idx: int, point_idx: int) -> Tuple[Vector, int, float]:
-    """Return the spline, point index, and position, of the closest point on the 
+
+def find_opposite_point_on_curve(
+    curve: Curve, spline_idx: int, point_idx: int
+) -> Tuple[Vector, int, float]:
+    """Return the spline, point index, and position, of the closest point on the
     curve to the coordinate of the given point with its X component inverted."""
 
     spline = curve.splines[spline_idx]
@@ -62,6 +69,7 @@ def find_opposite_point_on_curve(curve: Curve, spline_idx: int, point_idx: int) 
 
     opp_spline, opp_point_idx, opp_co = point_list[opp_kd_idx]
     return opp_spline, opp_point_idx, offset
+
 
 def get_spline_bounding_box_center(spline: Spline) -> Vector:
     spline_points = get_spline_points(spline)

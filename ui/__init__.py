@@ -1,7 +1,15 @@
-from . import replace_rigify_ui, rig_types_ui, bone_selection_pie_menu
+from . import (
+    component_list,
+    menu_3dview,
+    component_params,
+    cloudrig_main_panel,
+    actions_ui,
+)
 
 modules = [
-    replace_rigify_ui,
-    rig_types_ui,
-    bone_selection_pie_menu
+    menu_3dview,
+    cloudrig_main_panel,
+    component_list,
+    component_params,
+    actions_ui,
 ]

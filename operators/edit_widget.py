@@ -3,366 +3,413 @@ import bpy
 from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 
-from ..rig_features.object import EnsureVisible
-from ..rig_features.widgets.widgets import ensure_widget
+from ..utils.misc import get_addon_prefs, assign_to_collection
+from ..rig_component_features.object import EnsureVisible
+from ..rig_component_features.widgets.widgets import ensure_widget
 
 widgets_visible = []
 widget_items = []
 
-def restore_all_widgets_visibility():
-	global widgets_visible
 
-	if widgets_visible != []:
-		for w in widgets_visible[:]:
-			try:
-				w.restore()
-			except:
-				pass
-	widgets_visible = []
+def restore_all_widgets_visibility():
+    global widgets_visible
+
+    if widgets_visible != []:
+        for w in widgets_visible[:]:
+            try:
+                w.restore()
+            except:
+                pass
+    widgets_visible = []
+
 
 def assign_to_collection(obj, collection):
-	if not collection:
-		return
-	if obj.name not in collection.objects:
-		collection.objects.link(obj)
+    if not collection:
+        return
+    if obj.name not in collection.objects:
+        collection.objects.link(obj)
 
-def get_widget_blend_path() -> str:
-	filedir = os.path.dirname(os.path.realpath(__file__))
-	blend_path = os.sep.join(filedir.split(os.sep)[:-1] + ['rig_features', 'widgets', 'Widgets.blend'])
-	return blend_path
 
 def get_widget_list(self, context):
-	"""This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
-	which it can only be with a function callback."""
-	global widget_items
+    """This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
+    which it can only be with a function callback."""
+    global widget_items
 
-	local_widgets = []
-	for o in bpy.data.objects:
-		if o.name.startswith("WGT"):
-			ui_name = o.name.replace("WGT-", "").replace("_", " ")
-			item = (o.name, ui_name, ui_name)
-			local_widgets.append(item)
+    local_widgets = []
+    for o in bpy.data.objects:
+        if o.name.startswith("WGT"):
+            ui_name = o.name.replace("WGT-", "").replace("_", " ")
+            item = (o.name, ui_name, ui_name)
+            local_widgets.append(item)
 
-			for existing in widget_items:
-				if existing == item:
-					widget_items.remove(existing)
-					break
+            for existing in widget_items:
+                if existing == item:
+                    widget_items.remove(existing)
+                    break
 
-	local_widgets.append(None)
+    local_widgets.append(None)
 
-	local_widgets.extend(widget_items)
+    local_widgets.extend(widget_items)
 
-	return local_widgets
+    return local_widgets
+
 
 def refresh_widget_list():
-	"""Build a list of available custom shapes by checking inside Widgets.blend."""
+    """Build a list of available custom shapes by checking inside Widgets.blend."""
 
-	global widget_items
-	widget_items = []
+    global widget_items
+    widget_items = []
 
-	with bpy.data.libraries.load(get_widget_blend_path()) as (data_from, data_to):
-		for o in data_from.objects:
-			if o.startswith("WGT-"):
-				ui_name = o.replace("WGT-", "").replace("_", " ")
-				widget_items.append((o, ui_name, ui_name))
+    prefs = get_addon_prefs()
+    blend_path = prefs.widget_library
 
-	return widget_items
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+        for o in data_from.objects:
+            if o.startswith("WGT-"):
+                ui_name = o.replace("WGT-", "").replace("_", " ")
+                widget_items.append((o, ui_name, ui_name))
+
+    return widget_items
+
 
 def transform_widget_to_bone(pb: bpy.types.PoseBone, select=False):
-	"""Transform a pose bone's custom shape object to match the bone's visual transforms."""
-	shape = pb.custom_shape
+    """Transform a pose bone's custom shape object to match the bone's visual transforms."""
+    shape = pb.custom_shape
 
-	assert shape, "Error: No shape to edit."	# This function should only be called when the active bone has a custom shape!
+    assert (
+        shape
+    ), "Error: No shape to edit."  # This function should only be called when the active bone has a custom shape!
 
-	if select:
-		shape.select_set(True)
+    if select:
+        shape.select_set(True)
 
-	transform_bone = pb
-	if pb.custom_shape_transform:
-		transform_bone = pb.custom_shape_transform
+    transform_bone = pb
+    if pb.custom_shape_transform:
+        transform_bone = pb.custom_shape_transform
 
-	# Step 1: Account for additional scaling from use_custom_shape_bone_size, 
-	# which scales the shape by the bone length.
-	scale = pb.custom_shape_scale_xyz.copy()
-	if pb.use_custom_shape_bone_size:
-		scale *= pb.bone.length
+    # Step 1: Account for additional scaling from use_custom_shape_bone_size,
+    # which scales the shape by the bone length.
+    scale = pb.custom_shape_scale_xyz.copy()
+    if pb.use_custom_shape_bone_size:
+        scale *= pb.bone.length
 
-	# Step 2: Create a matrix from the custom shape translation, rotation
-	# and this scale which already accounts for bone length.
-	custom_shape_matrix = Matrix.LocRotScale(pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale)
+    # Step 2: Create a matrix from the custom shape translation, rotation
+    # and this scale which already accounts for bone length.
+    custom_shape_matrix = Matrix.LocRotScale(
+        pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale
+    )
 
-	# Step 3: Multiply the pose bone's world matrix by the custom shape matrix.
-	final_matrix = transform_bone.matrix @ custom_shape_matrix
+    # Step 3: Multiply the pose bone's world matrix by the custom shape matrix.
+    final_matrix = transform_bone.matrix @ custom_shape_matrix
 
-	# Step 4: Apply this matrix to the object. 
-	# It should now match perfectly with the visual transforms of the pose bone, 
-	# unless there is skew.
-	shape.matrix_world = final_matrix
+    # Step 4: Apply this matrix to the object.
+    # It should now match perfectly with the visual transforms of the pose bone,
+    # unless there is skew.
+    shape.matrix_world = final_matrix
+
 
 class POSE_OT_toggle_edit_widget(bpy.types.Operator):
-	"""Assign a widget to all selected bones, or start editing the widget of the active bone, if it is the only bone selected"""
-	bl_idname = "pose.toggle_edit_widget"
-	bl_label = "Assign Widget"
-	bl_options = {'REGISTER', 'UNDO'}
+    """Assign a widget to all selected bones, or start editing the widget of the active bone, if it is the only bone selected"""
 
-	def update_name(self, context):
-		if not self.use_custom_widget_name:
-			self.widget_name = self.widget_shape
-		else:
-			# Use the active bone for the initial naming of the shape.
-			self.widget_name = "WGT-" + context.active_pose_bone.name
+    bl_idname = "pose.toggle_edit_widget"
+    bl_label = "Assign Widget"
+    bl_options = {'REGISTER', 'UNDO'}
 
-	widget_name: StringProperty(name="Widget Name")
-	use_custom_widget_name: BoolProperty(name="Custom Widget", description="Create a new widget object based on the selected shape, so you can modify it without affecting other bones that also use that shape", update=update_name)
-	widget_shape: EnumProperty(
-		name="Widget Shape",
-		description="Choose a widget shape from CloudRig's widget library as well as any objects in the current file prefixed with 'WGT-'",
-		items = get_widget_list,
-		update = update_name,
-	)
-	widget_op: EnumProperty(
-		name="Operation", 
-		description="What to do with the widgets of the selected bones", 
-		items = [
-			('ASSIGN', 'Assign', 'Assign a shape to the selected bones'),
-			('CLEAR', 'Clear', 'Un-assign the shapes of the selected bones')
-		]
-	)
+    def update_name(self, context):
+        if not self.use_custom_widget_name:
+            self.widget_name = self.widget_shape
+        else:
+            # Use the active bone for the initial naming of the shape.
+            self.widget_name = "WGT-" + context.active_pose_bone.name
 
-	@classmethod
-	def poll(cls, context):
-		if context.mode=='EDIT_MESH':
-			if context.scene.widget_edit_armature != "":
-				return True
+    widget_name: StringProperty(name="Widget Name")
+    use_custom_widget_name: BoolProperty(
+        name="Custom Widget",
+        description="Create a new widget object based on the selected shape, so you can modify it without affecting other bones that also use that shape",
+        update=update_name,
+    )
+    widget_shape: EnumProperty(
+        name="Widget Shape",
+        description="Choose a widget shape from CloudRig's widget library as well as any objects in the current file prefixed with 'WGT-'",
+        items=get_widget_list,
+        update=update_name,
+    )
+    widget_op: EnumProperty(
+        name="Operation",
+        description="What to do with the widgets of the selected bones",
+        items=[
+            ('ASSIGN', 'Assign', 'Assign a shape to the selected bones'),
+            ('CLEAR', 'Clear', 'Un-assign the shapes of the selected bones'),
+        ],
+    )
 
-		pb = context.active_pose_bone
-		return context.mode=='POSE' and pb
+    @classmethod
+    def poll(cls, context):
+        if context.mode == 'EDIT_MESH':
+            if context.scene.widget_edit_armature != "":
+                return True
 
-	def invoke(self, context, event):
-		refresh_widget_list()
-		self.widget_shape = 'WGT-Cube'
-		if context.mode=='EDIT_MESH':
-			return self.execute(context)
+        pb = context.active_pose_bone
+        return context.mode == 'POSE' and pb
 
-		if len(context.selected_pose_bones) > 1 or context.active_pose_bone.custom_shape == None:
-			self.update_name(context)
-			wm = context.window_manager
-			return wm.invoke_props_dialog(self)
-		else:
-			return self.execute(context)
+    def invoke(self, context, event):
+        pb = context.active_pose_bone
+        if pb:
+            custom_shape = pb.custom_shape
+            if custom_shape and custom_shape.library:
+                # If the assigned widget is a linked object, we can't edit it.
+                self.report(
+                    {'ERROR'},
+                    f"{custom_shape.name} is a linked object, it cannot be edited locally.",
+                )
+                return {'CANCELLED'}
 
-	def draw(self, context):
-		layout = self.layout
-		layout.use_property_split = True
-		layout.use_property_decorate = False
+        refresh_widget_list()
+        self.widget_shape = 'WGT-Cube'
+        if context.mode == 'EDIT_MESH':
+            return self.execute(context)
 
-		layout.row().prop(self, 'widget_op', expand=True)
-		if self.widget_op == 'CLEAR':
-			return
+        if (
+            len(context.selected_pose_bones) > 1
+            or context.active_pose_bone.custom_shape == None
+        ):
+            self.update_name(context)
+            wm = context.window_manager
+            return wm.invoke_props_dialog(self)
+        else:
+            return self.execute(context)
 
-		# We want to put a textbox and a toggle button underneath an enum drop-down
-		# in a way that they align, which is sadly an absolute nightmare.
-		row1 = layout.row()
-		split1 = row1.split(factor=0.4)
-		split1.alignment = 'RIGHT'
-		split1.label(text="Widget Shape")
-		split1.prop(self, 'widget_shape', text="")
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
-		row2 = layout.row()
-		split2 = row2.split(factor=0.4)
-		split2.alignment = 'RIGHT'
-		split2.label(text="Widget Name")
-		row = split2.row(align=True)
-		sub1 = row.row()
-		sub1.enabled = self.use_custom_widget_name
-		sub1.prop(self, 'widget_name', text="")
+        layout.row().prop(self, 'widget_op', expand=True)
+        if self.widget_op == 'CLEAR':
+            return
 
-		sub2 = row.row()
-		sub2.prop(self, 'use_custom_widget_name', text="", icon='GREASEPENCIL')
+        # We want to put a textbox and a toggle button underneath an enum drop-down
+        # in a way that they align, which is sadly an absolute nightmare.
+        row1 = layout.row()
+        split1 = row1.split(factor=0.4)
+        split1.alignment = 'RIGHT'
+        split1.label(text="Widget Shape")
+        split1.prop(self, 'widget_shape', text="")
 
-	def assign_shape_to_selected_bones(self, context, widget_shape: str, ob_name=""):
-		rig = context.object
-		if hasattr(rig.data, 'rigify_widgets_collection') and rig.data.rigify_widgets_collection:
-			# Rigify integration: If we're on a metarig, use the widget collection.
-			collection = rig.data.rigify_widgets_collection
-		else:
-			collection = context.scene.collection
-		shape = ensure_widget(widget_shape, collection=collection)
+        row2 = layout.row()
+        split2 = row2.split(factor=0.4)
+        split2.alignment = 'RIGHT'
+        split2.label(text="Widget Name")
+        row = split2.row(align=True)
+        sub1 = row.row()
+        sub1.enabled = self.use_custom_widget_name
+        sub1.prop(self, 'widget_name', text="")
 
-		if ob_name:
-			shape = bpy.data.objects.new(name=ob_name, object_data=bpy.data.meshes.new_from_object(shape))
-			shape.data.name = ob_name
-			collection.objects.link(shape)
+        sub2 = row.row()
+        sub2.prop(self, 'use_custom_widget_name', text="", icon='GREASEPENCIL')
 
-		# Assign to all selected bones.
-		for pb in context.selected_pose_bones:
-			pb.custom_shape = shape
+    def assign_shape_to_selected_bones(self, context, widget_shape: str, ob_name=""):
+        rig = context.active_object
+        if (
+            hasattr(rig.data, 'rigify_widgets_collection')
+            and rig.data.rigify_widgets_collection
+        ):
+            # Rigify integration: If we're on a metarig, use the widget collection.
+            collection = rig.data.rigify_widgets_collection
+        elif hasattr(rig, 'cloudrig') and rig.cloudrig.generator.widget_collection:
+            # CloudRig integration: If we're on a metarig, use the widget collection.
+            collection = rig.cloudrig.generator.widget_collection
+        else:
+            collection = context.scene.collection
+        shape = ensure_widget(widget_shape)
+        assign_to_collection(shape, collection=collection)
 
-	def enter_shape_edit_mode_single(self, context):
-		rig = context.object
-		active_pb = context.active_pose_bone
-		shape = active_pb.custom_shape
+        if ob_name:
+            shape = bpy.data.objects.new(
+                name=ob_name, object_data=bpy.data.meshes.new_from_object(shape)
+            )
+            shape.data.name = ob_name
+            collection.objects.link(shape)
 
-		assert shape, "Error: No shape to edit."	# This function should only be called when the active bone has a custom shape!
+        # Assign to all selected bones.
+        for pb in context.selected_pose_bones:
+            pb.custom_shape = shape
 
-		# If active bone has a bone shape, reveal it.
-		global widgets_visible
-		widgets_visible.append(EnsureVisible(shape))
+    def enter_shape_edit_mode_single(self, context):
+        rig = context.active_object
+        active_pb = context.active_pose_bone
+        shape = active_pb.custom_shape
 
-		# Enter mesh edit mode on the now visible bone shape.
-		bpy.ops.object.mode_set(mode='OBJECT')
+        assert (
+            shape
+        ), "Error: No shape to edit."  # This function should only be called when the active bone has a custom shape!
 
-		context.scene.widget_edit_armature = rig.name
-		context.view_layer.objects.active = shape
-		bpy.ops.object.select_all(action='DESELECT')
-		transform_widget_to_bone(active_pb, select=True)
-		context.view_layer.update()
+        # If active bone has a bone shape, reveal it.
+        global widgets_visible
+        widgets_visible.append(EnsureVisible(shape))
 
-		bpy.ops.object.mode_set(mode='EDIT')
+        # Enter mesh edit mode on the now visible bone shape.
+        context.scene.widget_edit_armature = rig.name
+        context.view_layer.objects.active = shape
+        transform_widget_to_bone(active_pb, select=True)
+        bpy.ops.object.mode_set(mode='EDIT')
 
-	def exit_shape_edit_mode(self, context):
-		"""Restore rig selection state and mode."""
-		bpy.ops.object.mode_set(mode='OBJECT')
-		context.view_layer.objects.active = bpy.data.objects.get(context.scene.widget_edit_armature)
-		context.scene.widget_edit_armature = ""
-		bpy.ops.object.mode_set(mode='POSE')
+    def exit_shape_edit_mode(self, context):
+        """Restore rig selection state and mode."""
+        bpy.ops.object.mode_set(mode='OBJECT')
+        rig = bpy.data.objects.get((context.scene.widget_edit_armature, None))
+        context.scene.widget_edit_armature = ""
+        if not rig:
+            return
+        context.view_layer.objects.active = rig
+        rig.select_set(True)
+        bpy.ops.object.mode_set(mode='POSE')
 
-		context.scene.is_widget_edit_mode = not context.scene.is_widget_edit_mode
-		context.view_layer.update()
+    def execute(self, context):
+        if self.widget_op == 'CLEAR':
+            for pb in context.selected_pose_bones:
+                pb.custom_shape = None
+                pb.custom_shape_translation = (0, 0, 0)
+                pb.custom_shape_rotation_euler = (0, 0, 0)
+                pb.custom_shape_scale_xyz = (1, 1, 1)
+            return {'FINISHED'}
 
-	def execute(self, context):
-		restore_all_widgets_visibility()
+        widget_name = ""
+        if self.use_custom_widget_name:
+            widget_name = self.widget_name
 
-		if self.widget_op == 'CLEAR':
-			for pb in context.selected_pose_bones:
-				pb.custom_shape = None
-				pb.custom_shape_translation = (0, 0, 0)
-				pb.custom_shape_rotation_euler = (0, 0, 0)
-				pb.custom_shape_scale_xyz = (1, 1, 1)
-			return {'FINISHED'}
+        if context.mode == 'POSE':
+            restore_all_widgets_visibility()
+            if context.active_pose_bone not in context.selected_pose_bones:
+                self.report(
+                    {'ERROR'},
+                    "Error: User intention unclear. Active bone must be selected.",
+                )
+                return {'CANCELLED'}
 
-		widget_name = ""
-		if self.use_custom_widget_name:
-			widget_name = self.widget_name
+            if len(context.selected_pose_bones) == 1:
+                if context.active_pose_bone.custom_shape:
+                    self.enter_shape_edit_mode_single(context)
+                else:
+                    self.assign_shape_to_selected_bones(
+                        context, self.widget_shape, widget_name
+                    )
+            else:
+                self.assign_shape_to_selected_bones(
+                    context, self.widget_shape, widget_name
+                )
 
-		if context.mode == 'POSE':
-			if context.active_pose_bone not in context.selected_pose_bones:
-				self.report({'ERROR'}, "Error: User intention unclear. Active bone must be selected.")
-				return {'CANCELLED'}
+        elif context.mode == 'EDIT_MESH':
+            self.exit_shape_edit_mode(context)
+            restore_all_widgets_visibility()
 
-			if len(context.selected_pose_bones) == 1:
-				if context.active_pose_bone.custom_shape:
-					self.enter_shape_edit_mode_single(context)
-				else:
-					self.assign_shape_to_selected_bones(context, self.widget_shape, widget_name)
-			else:
-				self.assign_shape_to_selected_bones(context, self.widget_shape, widget_name)
+        return {'FINISHED'}
 
-		elif context.mode == 'EDIT_MESH':
-			self.exit_shape_edit_mode(context)
-
-		return {'FINISHED'}
 
 class POSE_OT_make_widget_unique(bpy.types.Operator):
-	"""Re-assign this bone's shape to a unique duplicate, so it can be edited without affecting other bones using the same widget"""
+    """Re-assign this bone's shape to a unique duplicate, so it can be edited without affecting other bones using the same widget"""
 
-	bl_idname = "pose.make_widget_unique"
-	bl_label = "Make Unique Duplicate of Widget"
-	bl_options = {'REGISTER', 'UNDO'}
+    bl_idname = "pose.make_widget_unique"
+    bl_label = "Make Unique Duplicate of Widget"
+    bl_options = {'REGISTER', 'UNDO'}
 
-	new_name: StringProperty(name="Object Name")
+    new_name: StringProperty(name="Object Name")
 
-	@classmethod
-	def poll(cls, context):
-		pb = context.active_pose_bone
-		return context.mode=='POSE' and pb and pb.custom_shape
+    @classmethod
+    def poll(cls, context):
+        pb = context.active_pose_bone
+        return context.mode == 'POSE' and pb and pb.custom_shape
 
-	def invoke(self, context, event):
-		pb = context.active_pose_bone
-		self.new_name = "WGT-"+pb.name
-		
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
+    def invoke(self, context, event):
+        pb = context.active_pose_bone
+        self.new_name = "WGT-" + pb.name
 
-	def draw(self, context):
-		layout = self.layout
-		layout.use_property_split = True
-		layout.use_property_decorate = False
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
-		layout.row().prop(self, "new_name")
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
-	def execute(self, context):
-		pb = context.active_pose_bone
-		shape = pb.custom_shape
+        layout.row().prop(self, "new_name")
 
-		mesh = bpy.data.meshes.new_from_object(shape)
-		mesh.name = self.new_name
-		obj = bpy.data.objects.new(self.new_name, mesh)
-		for c in shape.users_collection:
-			c.objects.link(obj)
+    def execute(self, context):
+        pb = context.active_pose_bone
+        shape = pb.custom_shape
 
-		pb.custom_shape = obj
+        mesh = bpy.data.meshes.new_from_object(shape)
+        mesh.name = self.new_name
+        obj = bpy.data.objects.new(self.new_name, mesh)
+        for c in shape.users_collection:
+            c.objects.link(obj)
 
-		bpy.ops.pose.toggle_edit_widget()
+        pb.custom_shape = obj
 
-		return {'FINISHED'}
+        bpy.ops.pose.toggle_edit_widget()
+
+        return {'FINISHED'}
+
 
 class POSE_OT_assign_asset_as_widget(bpy.types.Operator):
-	"""Assign this asset as the custom shape for selected bones"""
-	bl_idname = "pose.assign_asset_as_custom_shape"
-	bl_label = "Assign Asset as Custom Shape"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    """Assign this asset as the custom shape for selected bones"""
 
-	ob_name: StringProperty()
+    bl_idname = "pose.assign_asset_as_custom_shape"
+    bl_label = "Assign Asset as Custom Shape"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	@classmethod
-	def poll(cls, context):
-		return context.mode=='POSE'
+    ob_name: StringProperty()
 
-	def execute(self, context):
-		obj = bpy.data.objects.get(self.ob_name)
-		assert obj, "TODO: Automatically append the widget before trying to apply it"
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'POSE'
 
-		for pb in context.selected_pose_bones:
-			pb.custom_shape = obj
-			# Reset any transform values
-			pb.custom_shape_scale_xyz = [1, 1, 1]
-			pb.custom_shape_translation = [0, 0, 0]
-			pb.custom_shape_rotation_euler = [0, 0, 0]
-		
-		return {'FINISHED'}
+    def execute(self, context):
+        obj = bpy.data.objects.get(self.ob_name)
+        assert obj, "TODO: Automatically append the widget before trying to apply it"
+
+        for pb in context.selected_pose_bones:
+            pb.custom_shape = obj
+            # Reset any transform values
+            pb.custom_shape_scale_xyz = [1, 1, 1]
+            pb.custom_shape_translation = [0, 0, 0]
+            pb.custom_shape_rotation_euler = [0, 0, 0]
+
+        return {'FINISHED'}
+
 
 def draw_asset_rightclick_menu(self, context):
-	layout = self.layout
-	ob = context.asset_file_handle.asset_data.id_data
-	if context.asset_file_handle.name.startswith("WGT-") and context.selected_pose_bones:
-		op = layout.operator(POSE_OT_assign_asset_as_widget.bl_idname)
-		op.ob_name = context.asset_file_handle.name
+    layout = self.layout
+    if context.asset.name.startswith("WGT-") and context.selected_pose_bones:
+        op = layout.operator(POSE_OT_assign_asset_as_widget.bl_idname)
+        op.ob_name = context.asset_file_handle.name
+
 
 def draw_button(self, context):
-	layout = self.layout
-	layout.operator(POSE_OT_toggle_edit_widget.bl_idname)
-	layout.operator(POSE_OT_make_widget_unique.bl_idname)
+    layout = self.layout
+    layout.operator(POSE_OT_toggle_edit_widget.bl_idname)
+    layout.operator(POSE_OT_make_widget_unique.bl_idname)
+
 
 registry = [
-	POSE_OT_toggle_edit_widget
-	,POSE_OT_make_widget_unique
-	,POSE_OT_assign_asset_as_widget
+    POSE_OT_toggle_edit_widget,
+    POSE_OT_make_widget_unique,
+    POSE_OT_assign_asset_as_widget,
 ]
 
-def register():
-	bpy.types.ASSETBROWSER_MT_context_menu.append(draw_asset_rightclick_menu)
 
-	bpy.types.VIEW3D_MT_pose.append(draw_button)
-	bpy.types.Scene.is_widget_edit_mode = BoolProperty()
-	bpy.types.Scene.widget_edit_armature = StringProperty()
+def register():
+    bpy.types.ASSETBROWSER_MT_context_menu.append(draw_asset_rightclick_menu)
+
+    bpy.types.VIEW3D_MT_pose.append(draw_button)
+    bpy.types.Scene.widget_edit_armature = StringProperty()
+
 
 def unregister():
-	bpy.types.ASSETBROWSER_MT_context_menu.remove(draw_asset_rightclick_menu)
+    bpy.types.ASSETBROWSER_MT_context_menu.remove(draw_asset_rightclick_menu)
 
-	bpy.types.VIEW3D_MT_pose.remove(draw_button)
-	try:
-		del bpy.types.Scene.is_widget_edit_mode
-		del bpy.types.Scene.widget_edit_armature
-	except AttributeError:
-		pass
+    bpy.types.VIEW3D_MT_pose.remove(draw_button)
+    try:
+        del bpy.types.Scene.widget_edit_armature
+    except AttributeError:
+        pass

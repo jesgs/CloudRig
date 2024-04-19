@@ -1,1901 +1,2977 @@
 """
-This file is executed and loaded into a self-registering text datablock when a
-rig is generated with the CloudRig feature set.
-It's responsible for drawing rig UI and operators such as IK/FK snapping and
-keyframe baking.
-
-Only one instance of this script is required to run in a scene, regardless of how
-many CloudRig characters are in the scene.
+This file is loaded into a self-executing text datablock and attached to all
+CloudRig rigs.
+It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-from typing import List, Dict, Tuple
-import bpy, traceback, json, collections, re
+from typing import List, Dict, Tuple, Iterable, Optional
+import bpy, traceback, json, re, contextlib
+import collections as py_collections
 from bpy.props import (
-						StringProperty, BoolProperty, BoolVectorProperty,
-						EnumProperty, PointerProperty, IntProperty
-					)
-from bpy.types import Object, UILayout
+    StringProperty,
+    BoolProperty,
+    EnumProperty,
+    PointerProperty,
+    IntProperty,
+)
+from bpy.types import Object, PoseBone, FCurve
+from bpy.utils import register_class, unregister_class
 
 from mathutils import Vector, Matrix
 from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
-import copy_global_transform
-get_4d_rotlock = copy_global_transform.AutoKeying.get_4d_rotlock
+from bl_ui.generic_ui_list import draw_ui_list
 
-def is_cloudrig(obj):
-	"""Return whether obj is marked as being compatible with this script file."""
-	return obj.type=='ARMATURE' and (
-			('rig_id' in obj.data and obj.data['rig_id'] == 'cloudrig') or \
-			('cloudrig' in obj.data)
-		)
+from copy_global_transform import AutoKeying
 
-def get_rigs():
-	""" Find all cloudrig armature objects in the file. """
-	return [o for o in bpy.data.objects if o.type=='ARMATURE' and is_cloudrig(o)]
+
+def is_generated_cloudrig(arm_ob):
+    """Return whether obj is marked as being compatible with cloudrig.py."""
+    return (
+        'is_generated_cloudrig' in arm_ob.data and arm_ob.data['is_generated_cloudrig']
+    )
+
+
+def get_all_generated_cloudrigs():
+    """Find all cloudrig armature objects in the file."""
+    return [
+        o for o in bpy.data.objects if o.type == 'ARMATURE' and is_generated_cloudrig(o)
+    ]
+
 
 def is_active_cloudrig(context):
-	""" If the active object is a cloudrig, return it. """
-	rig = context.pose_object or context.object
-	if rig and is_cloudrig(rig):
-		return rig
+    """If the active object is a cloudrig, return it."""
+    if not hasattr(context, 'pose_object'):
+        # Can happen when a file is saved with the UI open,
+        # and that UI is trying to draw during file open, when context isn't
+        # initialized yet.
+        return False
+    rig = context.pose_object or context.active_object
+    if not rig:
+        return False
+    if rig.type != 'ARMATURE':
+        return False
+    if rig and is_generated_cloudrig(rig):
+        return rig
+
+
+def is_cloud_metarig(rig: Object):
+    if not rig:
+        return False
+    if rig.type != 'ARMATURE':
+        return False
+    return hasattr(rig, 'cloudrig') and rig.cloudrig.enabled
+
 
 def is_active_cloud_metarig(context):
-	""" If the active object is a cloud metarig, return it. """
-	rig = context.pose_object or context.object
-	if rig and rig.type=='ARMATURE' and not is_cloudrig(rig):
-		for pb in rig.pose.bones:
-			if not hasattr(pb, 'rigify_type'):
-				return None
-			if 'cloud' in pb.rigify_type:
-				return rig
+    return is_cloud_metarig(context.active_object)
+
+
+def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
+    # First, try to find it by name, which should work most of the time.
+    for prefix in {'RIG-', 'FAILED-RIG-'}:
+        if rig.name.startswith(prefix):
+            metarig = context.scene.objects.get(rig.name.replace(prefix, ""))
+            if not metarig:
+                metarig = context.scene.objects.get(rig.name.replace(prefix, "META-"))
+            if metarig:
+                return metarig
+
+    # If that failed, scan the whole scene.
+    for obj in context.scene.objects:
+        if obj.type != 'ARMATURE':
+            continue
+        if obj.cloudrig.generator.target_rig == rig:
+            return obj
+
 
 #######################################
-###### Keyframe baking framework ######
-###### from Rigify ####################
+############ Keyframe Baking ##########
+#######################################
+
 
 def set_curve_key_interpolation(curves, ipo, key_range=None):
-	"Assign the given interpolation value to all curve keys in range."
-	for key in flatten_curve_key_set(curves, key_range):
-		key.interpolation = ipo
+    "Assign the given interpolation value to all curve keys in range."
+    for key in flatten_curve_key_set(curves, key_range):
+        key.interpolation = ipo
 
-def delete_curve_keys_in_range(curves, key_range=None):
-	"Delete all keys of the given curves within the given range."
-	for curve in flatten_curve_set(curves):
-		points = curve.keyframe_points
-		for i in range(len(points), 0, -1):
-			key = points[i - 1]
-			if key_range is None or key_range[0] <= key.co[0] <= key_range[1]:
-				points.remove(key, fast=True)
-		curve.update()
+
+def delete_curve_keys_in_range(curves: List[FCurve], frame_start: int, frame_end: int):
+    "Delete all keys of the given curves within the given range."
+    for curve in flatten_curve_set(curves):
+        points = curve.keyframe_points
+        for i in range(len(points), 0, -1):
+            key = points[i - 1]
+            if frame_start <= key.co[0] <= frame_end:
+                points.remove(key, fast=True)
+        curve.update()
+
 
 def flatten_curve_set(curves):
-	"Iterate over all FCurves inside a set of nested lists and dictionaries."
-	if curves is None:
-		pass
-	elif isinstance(curves, bpy.types.FCurve):
-		yield curves
-	elif isinstance(curves, dict):
-		for sub in curves.values():
-			yield from flatten_curve_set(sub)
-	else:
-		for sub in curves:
-			yield from flatten_curve_set(sub)
+    "Iterate over all FCurves inside a set of nested lists and dictionaries."
+    if curves is None:
+        pass
+    elif isinstance(curves, bpy.types.FCurve):
+        yield curves
+    elif isinstance(curves, dict):
+        for sub in curves.values():
+            yield from flatten_curve_set(sub)
+    else:
+        for sub in curves:
+            yield from flatten_curve_set(sub)
+
 
 def flatten_curve_key_set(curves, key_range=None):
-	"Iterate over all keys of the given fcurves in the specified range."
-	for curve in flatten_curve_set(curves):
-		for key in curve.keyframe_points:
-			if key_range is None or key_range[0] <= key.co[0] <= key_range[1]:
-				yield key
+    "Iterate over all keys of the given fcurves in the specified range."
+    for curve in flatten_curve_set(curves):
+        for key in curve.keyframe_points:
+            if key_range is None or key_range[0] <= key.co[0] <= key_range[1]:
+                yield key
+
 
 def get_curve_frame_set(curves, key_range=None):
-	"Compute a set of all time values with existing keys in the given curves and range."
-	return set(key.co[0] for key in flatten_curve_key_set(curves, key_range))
+    "Compute a set of all time values with existing keys in the given curves and range."
+    return set(key.co[0] for key in flatten_curve_key_set(curves, key_range))
+
 
 def clean_action_empty_curves(action):
-	"Delete completely empty curves from the given action."
-	action = find_action(action)
-	for curve in list(action.fcurves):
-		if curve.is_empty:
-			action.fcurves.remove(curve)
-	action.update_tag()
+    "Delete all empty curves from the given action."
+    for curve in list(action.fcurves):
+        if curve.is_empty:
+            action.fcurves.remove(curve)
+    action.update_tag()
 
-def find_action(action):
-	if isinstance(action, bpy.types.Object):
-		action = action.animation_data
-	if isinstance(action, bpy.types.AnimData):
-		action = action.action
-	if isinstance(action, bpy.types.Action):
-		return action
-	else:
-		return None
 
 TRANSFORM_PROPS_LOCATION = frozenset(['location'])
-TRANSFORM_PROPS_ROTATION = frozenset(['rotation_euler', 'rotation_quaternion', 'rotation_axis_angle'])
+TRANSFORM_PROPS_ROTATION = frozenset(
+    ['rotation_euler', 'rotation_quaternion', 'rotation_axis_angle']
+)
 TRANSFORM_PROPS_SCALE = frozenset(['scale'])
-TRANSFORM_PROPS_ALL = frozenset(TRANSFORM_PROPS_LOCATION | TRANSFORM_PROPS_ROTATION | TRANSFORM_PROPS_SCALE)
+TRANSFORM_PROPS_ALL = frozenset(
+    TRANSFORM_PROPS_LOCATION | TRANSFORM_PROPS_ROTATION | TRANSFORM_PROPS_SCALE
+)
+
 
 class FCurveTable(object):
-	"Table for efficient lookup of FCurves by properties."
+    "Table for efficient lookup of FCurves by properties."
 
-	def __init__(self):
-		self.curve_map = collections.defaultdict(dict)
+    def __init__(self, action):
+        self.action = action
+        self.curve_map = self.index_curves(self.action.fcurves)
 
-	def index_curves(self, curves):
-		for curve in curves:
-			index = curve.array_index
-			if index < 0:
-				index = 0
-			self.curve_map[curve.data_path][index] = curve
+    def index_curves(self, curves):
+        curve_map = py_collections.defaultdict(dict)
+        for curve in curves:
+            index = curve.array_index
+            if index < 0:
+                index = 0
+            curve_map[curve.data_path][index] = curve
+        return curve_map
 
-	def get_prop_curves(self, ptr, prop_path):
-		"Returns a dictionary from array index to curve for the given property, or Null."
-		return self.curve_map.get(ptr.path_from_id(prop_path))
+    def get_prop_curves(self, ptr, prop_path):
+        "Returns a dictionary from array index to curve for the given property, or Null."
+        return self.curve_map.get(ptr.path_from_id(prop_path))
 
-	def list_all_prop_curves(self, ptr_set, path_set):
-		"Iterates over all FCurves matching the given object(s) and properti(es)."
-		if isinstance(ptr_set, bpy.types.bpy_struct):
-			ptr_set = [ptr_set]
-		for ptr in ptr_set:
-			for path in path_set:
-				curves = self.get_prop_curves(ptr, path)
-				if curves:
-					yield from curves.values()
+    def list_all_prop_curves(self, ptr_set, path_set):
+        "Iterates over all FCurves matching the given object(s) and properti(es)."
+        if isinstance(ptr_set, bpy.types.bpy_struct):
+            ptr_set = [ptr_set]
+        for ptr in ptr_set:
+            for path in path_set:
+                curves = self.get_prop_curves(ptr, path)
+                if curves:
+                    yield from curves.values()
 
-	def get_custom_prop_curves(self, ptr, prop):
-		return self.get_prop_curves(ptr, rna_idprop_quote_path(prop))
+    def get_custom_prop_curves(self, ptr, prop):
+        return self.get_prop_curves(ptr, rna_idprop_quote_path(prop))
 
-class ActionCurveTable(FCurveTable):
-	"Table for efficient lookup of Action FCurves by properties."
-
-	def __init__(self, action):
-		super().__init__()
-		self.action = find_action(action)
-		if self.action:
-			self.index_curves(self.action.fcurves)
 
 def nla_tweak_to_scene(anim_data, frames, invert=False):
-	"Convert a frame value or list between scene and tweaked NLA strip time."
-	if frames is None:
-		return None
-	elif anim_data is None or not anim_data.use_tweak_mode:
-		return frames
-	elif isinstance(frames, (int, float)):
-		return anim_data.nla_tweak_strip_time_to_scene(frames, invert=invert)
-	else:
-		return type(frames)(
-			anim_data.nla_tweak_strip_time_to_scene(v, invert=invert) for v in frames
-		)
+    "Convert a frame value or list between scene and tweaked NLA strip time."
+    if frames is None:
+        return None
+    elif anim_data is None or not anim_data.use_tweak_mode:
+        return frames
+    elif isinstance(frames, (int, float)):
+        return anim_data.nla_tweak_strip_time_to_scene(frames, invert=invert)
+    else:
+        return type(frames)(
+            anim_data.nla_tweak_strip_time_to_scene(v, invert=invert) for v in frames
+        )
+
 
 def add_flags_if_set(base, new_flags):
-	"Add more flags if base is not None."
-	if base is None:
-		return None
-	else:
-		return base | new_flags
+    "Add more flags if base is not None."
+    if base is None:
+        return None
+    else:
+        return base | new_flags
+
 
 def get_keying_flags(context):
-	"Retrieve the general keyframing flags from user preferences."
-	prefs = context.preferences
-	ts = context.scene.tool_settings
-	flags = set()
-	# Not adding INSERTKEY_VISUAL
-	if prefs.edit.use_keyframe_insert_needed:
-		flags.add('INSERTKEY_NEEDED')
-	if prefs.edit.use_insertkey_xyz_to_rgb:
-		flags.add('INSERTKEY_XYZ_TO_RGB')
-	if ts.use_keyframe_cycle_aware:
-		flags.add('INSERTKEY_CYCLE_AWARE')
-	return flags
+    "Retrieve the general keyframing flags from user preferences."
+    prefs = context.preferences
+    ts = context.scene.tool_settings
+    flags = set()
+    # Not adding INSERTKEY_VISUAL
+    if prefs.edit.use_keyframe_insert_needed:
+        flags.add('INSERTKEY_NEEDED')
+    if ts.use_keyframe_cycle_aware:
+        flags.add('INSERTKEY_CYCLE_AWARE')
+    return flags
+
 
 def get_autokey_flags(context, ignore_keyset=False):
-	"Retrieve the Auto Keyframe flags, or None if disabled."
-	ts = context.scene.tool_settings
-	if ts.use_keyframe_insert_auto and (ignore_keyset or not ts.use_keyframe_insert_keyingset):
-		flags = get_keying_flags(context)
-		if context.preferences.edit.use_keyframe_insert_available:
-			flags.add('INSERTKEY_AVAILABLE')
-		if ts.auto_keying_mode == 'REPLACE_KEYS':
-			flags.add('INSERTKEY_REPLACE')
-		return flags
-	else:
-		return None
+    "Retrieve the Auto Keyframe flags, or None if disabled."
+    ts = context.scene.tool_settings
+    if ts.use_keyframe_insert_auto and (
+        ignore_keyset or not ts.use_keyframe_insert_keyingset
+    ):
+        flags = get_keying_flags(context)
+        if context.preferences.edit.use_keyframe_insert_available:
+            flags.add('INSERTKEY_AVAILABLE')
+        if ts.auto_keying_mode == 'REPLACE_KEYS':
+            flags.add('INSERTKEY_REPLACE')
+        return flags
+    else:
+        return None
 
-def keyframe_transform_properties(obj, bone_name, keyflags, *, ignore_locks=False, no_loc=False, no_rot=False, no_scale=False):
-	"Keyframe transformation properties, taking flags and mode into account, and avoiding keying locked channels."
-	bone = obj.pose.bones[bone_name]
 
-	def keyframe_channels(prop, locks):
-		if ignore_locks or not all(locks):
-			if ignore_locks or not any(locks):
-				bone.keyframe_insert(prop, group=bone_name, options=keyflags)
-			else:
-				for i, lock in enumerate(locks):
-					if not lock:
-						bone.keyframe_insert(prop, index=i, group=bone_name, options=keyflags)
+def keyframe_channels(pbone, prop_name):
+    prop_value = getattr(pbone, prop_name)
+    for i, value in enumerate(prop_value):
+        pbone.keyframe_insert(prop_name, index=i, group=pbone.name)
 
-	if not (no_loc or bone.bone.use_connect):
-		keyframe_channels('location', bone.lock_location)
 
-	if not no_rot:
-		if bone.rotation_mode == 'QUATERNION':
-			keyframe_channels('rotation_quaternion', get_4d_rotlock(bone))
-		elif bone.rotation_mode == 'AXIS_ANGLE':
-			keyframe_channels('rotation_axis_angle', get_4d_rotlock(bone))
-		else:
-			keyframe_channels('rotation_euler', bone.lock_rotation)
+def keyframe_transform_properties(
+    obj,
+    bone_name,
+):
+    "Keyframe transformation properties, taking flags and mode into account, and avoiding keying locked channels."
+    bone = obj.pose.bones[bone_name]
 
-	if not no_scale:
-		keyframe_channels('scale', bone.lock_scale)
+    # Location.
+    if not bone.bone.use_connect:
+        keyframe_channels('location', bone.lock_location)
 
-def set_transform_from_matrix(obj, bone_name, target_matrix, *, space='POSE', ignore_locks=False, no_loc=False, no_rot=False, no_scale=False, keyflags=None):
-	"Apply the matrix to the transformation of the bone, taking locked channels, mode and certain constraints into account, and optionally keyframe it."
-	bone = obj.pose.bones[bone_name]
+    # Rotation.
+    if bone.rotation_mode == 'QUATERNION':
+        keyframe_channels('rotation_quaternion')
+    elif bone.rotation_mode == 'AXIS_ANGLE':
+        keyframe_channels('rotation_axis_angle')
+    else:
+        keyframe_channels('rotation_euler', bone.lock_rotation)
 
-	# Save the old values of the local transforms
-	old_loc = Vector(bone.location)
-	old_rot_euler = Vector(bone.rotation_euler)
-	old_rot_quat = Vector(bone.rotation_quaternion)
-	old_rot_axis = Vector(bone.rotation_axis_angle)
-	old_scale = Vector(bone.scale)
+    # Scale.
+    keyframe_channels('scale', bone.lock_scale)
 
-	# Set the bone transforms in pose space in a way that accounts for additive constraints
-	if space != 'POSE':
-		target_matrix = obj.convert_space(pose_bone=bone, matrix=target_matrix, from_space=space, to_space='POSE')
 
-	pose_matrix_pre_constraints = obj.convert_space(pose_bone=bone, matrix=bone.matrix_basis, from_space='LOCAL', to_space='POSE')
-	pose_matrix_post_constraints = bone.matrix
-	constraint_delta = pose_matrix_post_constraints - pose_matrix_pre_constraints
+def set_transform_from_matrix(
+    context,
+    obj,
+    bone_name,
+    target_matrix,
+    *,
+    space='POSE',
+):
+    """Apply the matrix to the transformation of the bone, taking locked channels,
+    mode and certain constraints into account, and optionally keyframe it."""
+    bone = obj.pose.bones[bone_name]
 
-	bone.matrix = target_matrix - constraint_delta
+    # Set the bone transforms in pose space in a way that accounts for additive constraints
+    if space != 'POSE':
+        target_matrix = obj.convert_space(
+            pose_bone=bone, matrix=target_matrix, from_space=space, to_space='POSE'
+        )
 
-	# Restore locked properties
-	def restore_channels(prop, old_vec, locks, extra_lock):
-		if extra_lock or (not ignore_locks and all(locks)):
-			setattr(bone, prop, old_vec)
-		else:
-			if not ignore_locks and any(locks):
-				new_vec = Vector(getattr(bone, prop))
+    pose_matrix_pre_constraints = obj.convert_space(
+        pose_bone=bone, matrix=bone.matrix_basis, from_space='LOCAL', to_space='POSE'
+    )
+    pose_matrix_post_constraints = bone.matrix
+    constraint_delta = pose_matrix_post_constraints - pose_matrix_pre_constraints
 
-				for i, lock in enumerate(locks):
-					if lock:
-						new_vec[i] = old_vec[i]
+    bone.matrix = target_matrix - constraint_delta
 
-				setattr(bone, prop, new_vec)
+    AutoKeying.autokey_transformation(context, obj.pose.bones[bone_name])
 
-	restore_channels('location', old_loc, bone.lock_location, no_loc or bone.bone.use_connect)
-
-	if bone.rotation_mode == 'QUATERNION':
-		restore_channels('rotation_quaternion', old_rot_quat, get_4d_rotlock(bone), no_rot)
-		bone.rotation_axis_angle = old_rot_axis
-		bone.rotation_euler = old_rot_euler
-	elif bone.rotation_mode == 'AXIS_ANGLE':
-		bone.rotation_quaternion = old_rot_quat
-		restore_channels('rotation_axis_angle', old_rot_axis, get_4d_rotlock(bone), no_rot)
-		bone.rotation_euler = old_rot_euler
-	else:
-		bone.rotation_quaternion = old_rot_quat
-		bone.rotation_axis_angle = old_rot_axis
-		restore_channels('rotation_euler', old_rot_euler, bone.lock_rotation, no_rot)
-
-	restore_channels('scale', old_scale, bone.lock_scale, no_scale)
-
-	# Keyframe properties
-	if keyflags is not None:
-		keyframe_transform_properties(
-			obj, bone_name, keyflags, ignore_locks=ignore_locks,
-			no_loc=no_loc, no_rot=no_rot, no_scale=no_scale
-		)
 
 def get_custom_property_value(rig, bone_name, prop_id):
-	prop_bone = rig.pose.bones.get(bone_name)
-	assert prop_bone, f"Bone snapping failed: Properties bone {bone_name} not found.)"
-	assert prop_id in prop_bone, f"Bone snapping failed: Bone {bone_name} has no property {prop_id}"
-	return prop_bone[prop_id]
+    prop_bone = rig.pose.bones.get(bone_name)
+    assert prop_bone, f"Bone snapping failed: Properties bone {bone_name} not found.)"
+    assert (
+        prop_id in prop_bone
+    ), f"Bone snapping failed: Bone {bone_name} has no property {prop_id}"
+    return prop_bone[prop_id]
+
 
 def set_custom_property_value(obj, bone_name, prop, value, *, keyflags=None):
-	"Assign the value of a custom property, and optionally keyframe it."
-	bone = obj.pose.bones[bone_name]
-	bone[prop] = value
-	rna_idprop_ui_prop_update(bone, prop)
-	if keyflags is not None:
-		bone.keyframe_insert(rna_idprop_quote_path(prop), group=bone.name, options=keyflags)
+    "Assign the value of a custom property, and optionally keyframe it."
+    bone = obj.pose.bones[bone_name]
+    bone[prop] = value
+    rna_idprop_ui_prop_update(bone, prop)
+    if keyflags is not None:
+        bone.keyframe_insert(
+            rna_idprop_quote_path(prop), group=bone.name, options=keyflags
+        )
 
-class RigifyOperatorMixinBase:
-	bl_options = {'UNDO', 'INTERNAL'}
 
-	def init_invoke(self, context):
-		"Override to initialize the operator before invoke."
+class SnapBakeOperator:
+    """Change a custom property value, while ensuring certain bones do not move,
+    and that these bones get keyed, optionally in a given frame range"""
 
-	def init_execute(self, context):
-		"Override to initialize the operator before execute."
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	def before_save_state(self, context, rig):
-		"Override to prepare for saving state."
+    do_bake: BoolProperty(
+        name="Bake Keyframes in Range",
+        options={'SKIP_SAVE'},
+        description="Bake keyframes for the affected bones and remove keyframes from the switched property",
+        default=False,
+    )
+    frame_start: IntProperty(name="Start Frame")
+    frame_end: IntProperty(name="End Frame")
+    bake_every_frame: BoolProperty(
+        name="Bake Every Frame",
+        description="Insert a keyframe on every frame of the affected bones, rather than only frames which are keyframed on the source bones. Results in a more accurate bake, but takes longer and is harder to edit afterwards",
+        default=True,
+    )
 
-	def after_save_state(self, context, rig):
-		"Override to undo before_save_state."
+    bones: StringProperty(name="Control Bones")
+    prop_bone: StringProperty(name="Property Bone")
+    prop_id: StringProperty(name="Property")
+    prop_value: IntProperty(
+        name="Property Value",
+        description="If the property value is already set to this, the operator will do nothing.",
+        default=-1,
+    )
 
-class RigifyBakeKeyframesMixin(RigifyOperatorMixinBase):
-	"""Basic framework for an operator that updates a set of keyed frames."""
+    select_bones: BoolProperty(name="Select Affected Bones", default=True)
 
-	@classmethod
-	def poll(cls, context):
-		return context.mode=='POSE'
+    @classmethod
+    def poll(cls, context):
+        return context.pose_object
 
-	def invoke(self, context, event):
-		self.init_invoke(context)
+    def init_bake(self, context):
+        # Override to use operator's frame range instead of Rigify's globally set range.
+        super().init_bake(context)
+        self.bake_frame_range = (self.frame_start, self.frame_end)
+        self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
 
-		self.invoked = True
-		if hasattr(self, 'draw'):
-			return context.window_manager.invoke_props_dialog(self)
-		else:
-			return context.window_manager.invoke_confirm(self, event)
+    def execute_scan_curves(self, context, obj):
+        "Register frames to be baked, and return curves that should be cleared."
+        if self.bake_every_frame:
+            self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
+        else:
+            self.bake_add_bone_frames(self.bone_names)
+        return None
 
-	def init_execute(self, context):
-		if not hasattr(self, 'invoked'):
-			# Ensure init_invoke has run, even if the operator is called from Python.
-			self.init_invoke(context)
+    def set_selection(self, context, bones):
+        if self.select_bones:
+            for b in context.selected_pose_bones:
+                b.bone.select = False
+            for b in bones:
+                b.bone.select = True
 
-	def prop_value_matches(self):
-		prop_value = get_custom_property_value(self.bake_rig, self.prop_bone, self.prop_id)
-		return self.prop_value == prop_value
+    def invoke(self, context, event):
+        self.init_invoke(context)
 
-	def execute(self, context):
-		self.init_execute(context)
-		self.bake_init(context)
+        if hasattr(self, 'draw'):
+            return context.window_manager.invoke_props_dialog(self)
+        else:
+            return context.window_manager.invoke_confirm(self, event)
 
-		if self.prop_value_matches():
-			return {'CANCELLED'}
+    def init_invoke(self, context):
+        self.frame_start = context.scene.frame_start
+        self.frame_end = context.scene.frame_end
+        self.bone_names = json.loads(self.bones)
 
-		curves = self.execute_scan_curves(context, self.bake_rig)
+    def init_execute(self, context):
+        pass
 
-		if self.report_bake_empty():
-			return {'CANCELLED'}
+    def prop_value_matches(self):
+        prop_value = get_custom_property_value(
+            self.bake_rig, self.prop_bone, self.prop_id
+        )
+        return self.prop_value == prop_value
 
-		try:
-			save_state = self.bake_save_state(context)
+    def execute(self, context):
+        self.init_execute(context)
+        self.init_bake(context)
 
-			range, range_raw = self.bake_clean_curves_in_range(context, curves)
+        if self.prop_value_matches():
+            return {'CANCELLED'}
 
-			self.execute_before_apply(context, self.bake_rig, range, range_raw)
+        curves = self.execute_scan_curves(context, self.bake_rig)
 
-			self.bake_apply_state(context, save_state)
+        if self.report_bake_empty():
+            return {'CANCELLED'}
 
-		except Exception as e:
-			traceback.print_exc()
-			self.report({'ERROR'}, 'Exception: ' + str(e))
+        try:
+            save_state = self.bake_save_state(context)
 
-		return {'FINISHED'}
+            context.scene.frame_set(range[0])
+            range = self.get_bake_range()
+            range_raw = self.nla_to_raw(range)
+            range, range_raw = delete_curve_keys_in_range(
+                curves, range_raw[0], range_raw[1]
+            )
 
-	# Default behavior implementation
-	def bake_init(self, context):
-		self.bake_rig = context.active_object
-		self.bake_anim = self.bake_rig.animation_data
-		# self.bake_frame_range = RIGIFY_OT_get_frame_range.get_range(context)
-		# self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
-		self.bake_curve_table = ActionCurveTable(self.bake_rig)
-		self.bake_current_frame = context.scene.frame_current
-		self.bake_frames_raw = set()
+            self.execute_before_apply(context, self.bake_rig, range, range_raw)
 
-		self.keyflags = get_keying_flags(context)
-		self.keyflags_switch = None
+            self.bake_apply_state(context, save_state)
 
-		if False:#context.window_manager.rigify_transfer_use_all_keys:
-			self.bake_add_curve_frames(self.bake_curve_table.curve_map)
+        except Exception as e:
+            traceback.print_exc()
+            self.report({'ERROR'}, 'Exception: ' + str(e))
 
-	def execute_scan_curves(self, context, obj):
-		"Override to register frames to be baked, and return curves that should be cleared."
-		raise NotImplementedError()
+        return {'FINISHED'}
 
-	def bake_save_state(self, context) -> Dict[int, Tuple[List[Matrix], List[Vector]]]:
-		"Scans frames and collects data for baking before changing anything."
-		rig = self.bake_rig
-		scene = context.scene
+    # Default behavior implementation
+    def init_bake(self, context):
+        self.bake_rig = context.active_object
+        self.bake_anim = self.bake_rig.animation_data
+        self.bake_curve_table = FCurveTable(self.bake_rig.animation_data.action)
+        self.bake_current_frame = context.scene.frame_current
+        self.bake_frames_raw = set()
 
-		save_state = dict()
+        self.keyflags = get_keying_flags(context)
+        self.keyflags_switch = None
 
-		try:
-			self.before_save_state(context, rig)
+        if False:  # context.window_manager.rigify_transfer_use_all_keys:
+            self.bake_add_curve_frames(self.bake_curve_table.curve_map)
 
-			for frame in self.bake_frames:
-				scene.frame_set(frame)
-				save_state[frame] = self.save_frame_state(context, rig)
+    def execute_scan_curves(self, context, obj):
+        "Override to register frames to be baked, and return curves that should be cleared."
+        raise NotImplementedError()
 
-		finally:
-			self.after_save_state(context, rig)
+    def bake_save_state(self, context) -> Dict[int, Tuple[List[Matrix], List[Vector]]]:
+        "Scans frames and collects data for baking before changing anything."
+        rig = self.bake_rig
+        scene = context.scene
 
-		return save_state
+        save_state = dict()
 
-	def execute_before_apply(self, context, obj, range, range_raw):
-		"Override to execute code one time before the bake apply frame scan."
-		pass
+        try:
+            self.before_save_state(context, rig)
 
-	def bake_apply_state(self, context, save_state: Dict[int, Tuple[List[Matrix], List[Vector]]]):
-		"Scans frames and applies the baking operation."
-		rig = self.bake_rig
-		scene = context.scene
+            for frame in self.bake_frames:
+                scene.frame_set(frame)
+                save_state[frame] = self.save_frame_state(context, rig)
 
-		for frame in self.bake_frames:
-			scene.frame_set(frame)
-			self.apply_frame_state(context, rig, save_state.get(frame))
+        finally:
+            self.after_save_state(context, rig)
 
-		clean_action_empty_curves(self.bake_rig)
-		scene.frame_set(self.bake_current_frame)
+        return save_state
 
-	# Utilities
+    def execute_before_apply(self, context, obj, range, range_raw):
+        "Override to execute code one time before the bake apply frame scan."
+        pass
 
-	def bake_get_bone(self, bone_name):
-		"Get pose bone by name."
-		return self.bake_rig.pose.bones[bone_name]
+    def bake_apply_state(
+        self, context, save_state: Dict[int, Tuple[List[Matrix], List[Vector]]]
+    ):
+        "Scans frames and applies the baking operation."
+        rig = self.bake_rig
+        scene = context.scene
 
-	def bake_get_bones(self, bone_names):
-		"Get multiple pose bones by name."
-		if isinstance(bone_names, (list, set)):
-			return [self.bake_get_bone(name) for name in bone_names]
-		else:
-			return self.bake_get_bone(bone_names)
+        for frame in self.bake_frames:
+            scene.frame_set(frame)
+            self.apply_frame_state(context, rig, save_state.get(frame))
 
-	def bake_get_all_bone_curves(self, bone_names, props):
-		"Get a list of all curves for the specified properties of the specified bones."
-		return list(self.bake_curve_table.list_all_prop_curves(self.bake_get_bones(bone_names), props))
+        clean_action_empty_curves(self.bake_rig.animation_data.action)
+        scene.frame_set(self.bake_current_frame)
 
-	def bake_get_all_bone_custom_prop_curves(self, bone_names, props):
-		"Get a list of all curves for the specified custom properties of the specified bones."
-		return self.bake_get_all_bone_curves(bone_names, [rna_idprop_quote_path(p) for p in props])
+    # Utilities
 
-	def bake_get_bone_prop_curves(self, bone_name, prop):
-		"Get an index to curve dict for the specified property of the specified bone."
-		return self.bake_curve_table.get_prop_curves(self.bake_get_bone(bone_name), prop)
+    def bake_get_bone(self, bone_name):
+        "Get pose bone by name."
+        return self.bake_rig.pose.bones[bone_name]
 
-	def bake_get_bone_custom_prop_curves(self, bone_name, prop):
-		"Get an index to curve dict for the specified custom property of the specified bone."
-		return self.bake_curve_table.get_custom_prop_curves(self.bake_get_bone(bone_name), prop)
+    def bake_get_bones(self, bone_names):
+        "Get multiple pose bones by name."
+        if isinstance(bone_names, (list, set)):
+            return [self.bake_get_bone(name) for name in bone_names]
+        else:
+            return self.bake_get_bone(bone_names)
 
-	def bake_add_curve_frames(self, curves):
-		"Register frames keyed in the specified curves for baking."
-		self.bake_frames_raw |= get_curve_frame_set(curves, self.bake_frame_range_raw)
+    def bake_get_all_bone_curves(self, bone_names, props):
+        "Get a list of all curves for the specified properties of the specified bones."
+        return list(
+            self.bake_curve_table.list_all_prop_curves(
+                self.bake_get_bones(bone_names), props
+            )
+        )
 
-	def bake_add_bone_frames(self, bone_names, props=TRANSFORM_PROPS_ALL):
-		"Register frames keyed for the specified properties of the specified bones for baking."
-		curves = self.bake_get_all_bone_curves(bone_names, props)
-		self.bake_add_curve_frames(curves)
-		return curves
+    def bake_get_all_bone_custom_prop_curves(self, bone_names, props):
+        "Get a list of all curves for the specified custom properties of the specified bones."
+        return self.bake_get_all_bone_curves(
+            bone_names, [rna_idprop_quote_path(p) for p in props]
+        )
 
-	def bake_replace_custom_prop_keys_constant(self, bone, prop, new_value):
-		"If the property is keyframed, delete keys in bake range and re-key as Constant."
-		prop_curves = self.bake_get_bone_custom_prop_curves(bone, prop)
+    def bake_get_bone_prop_curves(self, bone_name, prop):
+        "Get an index to curve dict for the specified property of the specified bone."
+        return self.bake_curve_table.get_prop_curves(
+            self.bake_get_bone(bone_name), prop
+        )
 
-		if prop_curves and 0 in prop_curves:
-			range_raw = self.nla_to_raw(self.get_bake_range())
-			delete_curve_keys_in_range(prop_curves, range_raw)
-			set_custom_property_value(self.bake_rig, bone, prop, new_value, keyflags={'INSERTKEY_AVAILABLE'})
-			set_curve_key_interpolation(prop_curves, 'CONSTANT', range_raw)
+    def bake_get_bone_custom_prop_curves(self, bone_name, prop):
+        "Get an index to curve dict for the specified custom property of the specified bone."
+        return self.bake_curve_table.get_custom_prop_curves(
+            self.bake_get_bone(bone_name), prop
+        )
 
-	def bake_add_frames_done(self):
-		"Computes and sets the final set of frames to bake."
-		frames = self.nla_from_raw(self.bake_frames_raw)
-		self.bake_frames = sorted(set(map(round, frames)))
+    def bake_add_curve_frames(self, curves):
+        "Register frames keyed in the specified curves for baking."
+        self.bake_frames_raw |= get_curve_frame_set(curves, self.bake_frame_range_raw)
 
-	def nla_from_raw(self, frames):
-		"Convert frame(s) from inner action time to scene time."
-		return nla_tweak_to_scene(self.bake_anim, frames)
+    def bake_add_bone_frames(self, bone_names, props=TRANSFORM_PROPS_ALL):
+        "Register frames keyed for the specified properties of the specified bones for baking."
+        curves = self.bake_get_all_bone_curves(bone_names, props)
+        self.bake_add_curve_frames(curves)
+        return curves
 
-	def nla_to_raw(self, frames):
-		"Convert frame(s) from scene time to inner action time."
-		return nla_tweak_to_scene(self.bake_anim, frames, invert=True)
+    def bake_replace_custom_prop_keys_constant(self, bone, prop, new_value):
+        "If the property is keyframed, delete keys in bake range and re-key as Constant."
+        prop_curves = self.bake_get_bone_custom_prop_curves(bone, prop)
 
-	def is_bake_empty(self):
-		return len(self.bake_frames_raw) == 0
+        if prop_curves and 0 in prop_curves:
+            range_raw = self.nla_to_raw(self.get_bake_range())
+            delete_curve_keys_in_range(prop_curves, range_raw)
+            set_custom_property_value(
+                self.bake_rig, bone, prop, new_value, keyflags={'INSERTKEY_AVAILABLE'}
+            )
+            set_curve_key_interpolation(prop_curves, 'CONSTANT', range_raw)
 
-	def report_bake_empty(self):
-		self.bake_add_frames_done()
-		if self.is_bake_empty():
-			self.report({'WARNING'}, 'No keys to bake.')
-			return True
-		return False
+    def bake_add_frames_done(self):
+        "Computes and sets the final set of frames to bake."
+        frames = self.nla_from_raw(self.bake_frames_raw)
+        self.bake_frames = sorted(set(map(round, frames)))
 
-	def get_bake_range(self):
-		"Returns the frame range that is being baked."
-		if self.bake_frame_range:
-			return self.bake_frame_range
-		else:
-			frames = self.bake_frames
-			return (frames[0], frames[-1])
+    def nla_from_raw(self, frames):
+        "Convert frame(s) from inner action time to scene time."
+        return nla_tweak_to_scene(self.bake_anim, frames)
 
-	def get_bake_range_pair(self):
-		"Returns the frame range that is being baked, both in scene and action time."
-		range = self.get_bake_range()
-		return range, self.nla_to_raw(range)
+    def nla_to_raw(self, frames):
+        "Convert frame(s) from scene time to inner action time."
+        return nla_tweak_to_scene(self.bake_anim, frames, invert=True)
 
-	def bake_clean_curves_in_range(self, context, curves):
-		"Deletes all keys from the given curves in the bake range."
-		range, range_raw = self.get_bake_range_pair()
+    def is_bake_empty(self):
+        return len(self.bake_frames_raw) == 0
 
-		context.scene.frame_set(range[0])
-		delete_curve_keys_in_range(curves, range_raw)
+    def report_bake_empty(self):
+        self.bake_add_frames_done()
+        if self.is_bake_empty():
+            self.report({'WARNING'}, 'No keys to bake.')
+            return True
+        return False
 
-		return range, range_raw
+    def get_bake_range(self):
+        "Returns the frame range that is being baked."
+        if self.bake_frame_range:
+            return self.bake_frame_range
+        else:
+            frames = self.bake_frames
+            return (frames[0], frames[-1])
+
 
 #######################################
 ##### Keyframe Baking Operators #######
 #######################################
 
+
 def get_bones(rig, names):
-	""" Return a list of pose bones from a string of bone names in json format. """
-	return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
+    """Return a list of pose bones from a string of bone names in json format."""
+    return list(filter(None, map(rig.pose.bones.get, json.loads(names))))
 
 
-class CloudRigSnapBakeMixin(RigifyBakeKeyframesMixin):
-	""" Extend Rigify's keyframe baking with the ability to select the frame range
-		as part of the operator, make baking optional,
-		and add the ability to affect more than a single bone.
-	"""
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+class POSE_OT_cloudrig_snap_bake(SnapBakeOperator, bpy.types.Operator):
+    """Toggle a custom property while ensuring that some bones stay in place"""
 
-	do_bake: BoolProperty(
-		name="Bake Keyframes in Range",
-		options={'SKIP_SAVE'},
-		description="Bake keyframes for the affected bones and remove keyframes from the switched property",
-		default=False
-	)
-	frame_start: IntProperty(name="Start Frame")
-	frame_end: IntProperty(name="End Frame")
-	bake_every_frame: BoolProperty(
-		name		 = "Bake Every Frame"
-		,description = "Insert a keyframe on every frame of the affected bones, rather than only frames which are keyframed on the source bones. Results in a more accurate bake, but takes longer and is harder to edit afterwards"
-		,default	 = True
-	)
+    bl_idname = "pose.cloudrig_snap_bake"
+    bl_label = "Snap And Bake Bones"
 
-	bones:		  StringProperty(name="Control Bones")
-	prop_bone:	  StringProperty(name="Property Bone")
-	prop_id:	  StringProperty(name="Property")
-	prop_value:   IntProperty(name="Property Value", description="If the property value is already set to this, the operator will do nothing.", default=-1)
+    def draw_affected_bones(self, layout, context):
+        bone_column = layout.column(align=True)
+        bone_column.label(text="Affected bones:")
+        for b in self.bone_names:
+            bone_column.label(text=f"{' '*10} {b}")
+        # bone_column.label(text=f"Affected property:")
+        # bone_column.label(text=f'    pose.bones["{self.prop_bone}"]["{self.prop_id}"]')
 
-	select_bones: BoolProperty(name="Select Affected Bones", default=True)
-	locks:		  BoolVectorProperty(name="Locked", size=3, default=[False,False,False])
+    def draw(self, context):
+        layout = self.layout
 
-	@classmethod
-	def poll(cls, context):
-		return context.pose_object
+        self.layout.prop(self, 'do_bake')
+        split = layout.split(factor=0.1)
+        split.row()
+        col = split.column()
+        if self.do_bake:
+            time_row = col.row(align=True)
+            time_row.prop(self, 'frame_start')
+            time_row.prop(self, 'frame_end')
+            col.row().prop(self, 'bake_every_frame')
 
-	### Override some inherited functions
-	def init_invoke(self, context):
-		self.frame_start = context.scene.frame_start
-		self.frame_end = context.scene.frame_end
-		self.bone_names = json.loads(self.bones)
+        self.draw_affected_bones(layout, context)
 
-	def bake_init(self, context):
-		# Override to use operator's frame range instead of Rigify's globally set range.
-		super().bake_init(context)
-		self.bake_frame_range = (self.frame_start, self.frame_end)
-		self.bake_frame_range_raw = self.nla_to_raw(self.bake_frame_range)
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        self.keyflags = get_autokey_flags(context, ignore_keyset=True)
+        self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
 
-	def execute_scan_curves(self, context, obj):
-		"Register frames to be baked, and return curves that should be cleared."
-		if self.bake_every_frame:
-			self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
-		else:
-			self.bake_add_bone_frames(self.bone_names)
-		return None
+        ret = {'FINISHED'}
+        if self.do_bake:
+            ret = super().execute(context)
+        else:
+            self.init_execute(context)
+            self.init_bake(context)
 
-	def set_selection(self, context, bones):
-		if self.select_bones:
-			for b in context.selected_pose_bones:
-				b.bone.select = False
-			for b in bones:
-				b.bone.select = True
+            if self.prop_value_matches():
+                return {'CANCELLED'}
 
-class CLOUDRIG_OT_snap_bake(CloudRigSnapBakeMixin, bpy.types.Operator):
-	""" Toggle a custom property while ensuring that some bones stay in place. """
-	bl_idname = "pose.cloudrig_snap_bake"
-	bl_label = "Snap And Bake Bones"
+            try:
+                frame_state = self.save_frame_state(context, rig)
+                self.after_save_state(context, rig)
+                self.apply_frame_state(context, rig, frame_state)
 
-	def draw_affected_bones(self, layout, context):
-		bone_column = layout.column(align=True)
-		bone_column.label(text="Affected bones:")
-		for b in self.bone_names:
-			bone_column.label(text=f"{' '*10} {b}")
-		# bone_column.label(text=f"Affected property:")
-		# bone_column.label(text=f'    pose.bones["{self.prop_bone}"]["{self.prop_id}"]')
+            except Exception as e:
+                traceback.print_exc()
+                self.report({'ERROR'}, 'Exception: ' + str(e))
 
-	def draw(self, context):
-		layout = self.layout
+        bones = get_bones(rig, self.bones)
+        self.set_selection(context, bones)
 
-		self.layout.prop(self, 'do_bake')
-		split = layout.split(factor=0.1)
-		split.row()
-		col = split.column()
-		if self.do_bake:
-			time_row = col.row(align=True)
-			time_row.prop(self, 'frame_start')
-			time_row.prop(self, 'frame_end')
-			col.row().prop(self, 'bake_every_frame')
+        return ret
 
-		self.draw_affected_bones(layout, context)
+    def save_frame_state(
+        self, context, rig, bone_names=None
+    ) -> Tuple[List[Matrix], List[Vector]]:
+        """Return the Pose Space matrices of the affected bones so they can be restored later."""
+        if not bone_names:
+            bone_names = self.bone_names
 
-	def execute(self, context):
+        matrices = []
+        scales = []
+        for bn in bone_names:
+            pb = rig.pose.bones.get(bn)
+            assert pb, "Bone does not exist: " + bn
+            matrices.append(pb.matrix.copy())
+            scales.append(pb.scale.copy())
 
-		rig = context.pose_object or context.active_object
-		self.keyflags = get_autokey_flags(context, ignore_keyset=True)
-		self.keyflags_switch = add_flags_if_set(self.keyflags, {'INSERTKEY_AVAILABLE'})
+        return matrices, scales
 
-		ret = {'FINISHED'}
-		if self.do_bake:
-			ret = super().execute(context)
-		else:
-			self.init_execute(context)
-			self.bake_init(context)
+    def after_save_state(self, context, rig):
+        """After saving the bone matrices, it's time to set the property value.
+        It is expected that the rig has drivers which causes this property value
+        change to affect the bones' transforms."""
+        value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+        if self.do_bake:
+            # If we want the snapping to affect existing animation, rather than just the current pose.
+            any_curves_on_property = self.bake_get_bone_prop_curves(
+                self.prop_bone, f'["{self.prop_id}"]'
+            )
+            if any_curves_on_property:
+                self.bake_replace_custom_prop_keys_constant(
+                    self.prop_bone, self.prop_id, 1 - value
+                )
+        else:
+            set_custom_property_value(
+                rig,
+                self.prop_bone,
+                self.prop_id,
+                1 - value,
+                keyflags=self.keyflags_switch,
+            )
+        context.view_layer.update()
 
-			if self.prop_value_matches():
-				return {'CANCELLED'}
+    def apply_frame_state(
+        self, context, rig, save_state: Tuple[List[Matrix], List[Vector]]
+    ):
+        """Set the transform matrices of the bones to their saved state."""
+        matrices, scales = save_state
+        for i, bone_name in enumerate(self.bone_names):
+            old_matrix = matrices[i]
+            set_transform_from_matrix(
+                context,
+                rig,
+                bone_name,
+                old_matrix,
+            )
+            pb = rig.pose.bones.get(bone_name)
+            # TODO: For some reason, reading and writing the matrix can result in
+            # significant changes to local scale, even when nothing is scaled.
+            # So, just keep a copy of the local scale and restore it after applying the matrix.
+            pb.scale = scales[i]
 
-			try:
-				frame_state = self.save_frame_state(context, rig)
-				self.after_save_state(context, rig)
-				self.apply_frame_state(context, rig, frame_state)
+            context.evaluated_depsgraph_get().update()  # This matters!!!!
 
-			except Exception as e:
-				traceback.print_exc()
-				self.report({'ERROR'}, 'Exception: ' + str(e))
 
-		bones = get_bones(rig, self.bones)
-		self.set_selection(context, bones)
+class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake):
+    """Extend POSE_OT_cloudrig_snap_bake with a parent selector"""
 
-		return ret
+    bl_idname = "pose.cloudrig_switch_parent_bake"
+    bl_label = "Apply Switch Parent To Keyframes"
+    bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	def save_frame_state(self, context, rig, bone_names=None) -> Tuple[List[Matrix], List[Vector]]:
-		"""Return the Pose Space matrices of the affected bones so they can be restored later."""
-		if not bone_names:
-			bone_names = self.bone_names
+    parent_names: StringProperty(name="Parent Names")
 
-		matrices = []
-		scales = []
-		for bn in bone_names:
-			pb = rig.pose.bones.get(bn)
-			assert pb, "Bone does not exist: " + bn
-			matrices.append(pb.matrix.copy())
-			scales.append(pb.scale.copy())
+    def parent_items(self, context):
+        parents = json.loads(self.parent_names)
+        items = [(str(i), name, name) for i, name in enumerate(parents)]
+        return items
 
-		return matrices, scales
+    selected: EnumProperty(name="Selected Parent", items=parent_items)
 
-	def after_save_state(self, context, rig):
-		"""After saving the bone matrices, it's time to set the property value.
-		It is expected that the rig has drivers which causes this property value
-		change to affect the bones' transforms."""
-		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
-		if self.do_bake:
-			# If we want the snapping to affect existing animation, rather than just the current pose.
-			any_curves_on_property = self.bake_get_bone_prop_curves(self.prop_bone, f'["{self.prop_id}"]')
-			if any_curves_on_property:
-				self.bake_replace_custom_prop_keys_constant(
-					self.prop_bone, self.prop_id, 1-value
-				)
-		else:
-			set_custom_property_value(
-				rig, self.prop_bone, self.prop_id, 1-value,
-				keyflags=self.keyflags_switch
-			)
-		context.view_layer.update()
+    def draw(self, context):
+        self.layout.prop(self, 'selected', text='')
+        super().draw(context)
 
-	def apply_frame_state(self, context, rig, save_state: Tuple[List[Matrix], List[Vector]]):
-		"""Set the transform matrices of the bones to their saved state."""
-		matrices, scales = save_state
-		for i, bone_name in enumerate(self.bone_names):
-			old_matrix = matrices[i]
-			set_transform_from_matrix(
-				rig, bone_name, old_matrix, # space='WORLD'
-				keyflags=self.keyflags,
-				no_loc=self.locks[0], no_rot=self.locks[1], no_scale=self.locks[2]
-			)
-			pb = rig.pose.bones.get(bone_name)
-			# For some reason, reading and writing the matrix can result in
-			# significant changes to local scale, even when nothing is scaled.
-			# So, just keep a copy of the local scale and restore it after applying the matrix.
-			pb.scale = scales[i]
-			context.evaluated_depsgraph_get().update()	# This matters!!!!
+    def after_save_state(self, context, rig):
+        """After saving the bone matrices, it's time to set the property value."""
+        # value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+        if self.do_bake:
+            self.bake_replace_custom_prop_keys_constant(
+                self.prop_bone, self.prop_id, int(self.selected)
+            )
+        else:
+            set_custom_property_value(
+                rig,
+                self.prop_bone,
+                self.prop_id,
+                int(self.selected),
+                keyflags=self.keyflags_switch,
+            )
+        context.view_layer.update()
 
-class CLOUDRIG_OT_switch_parent_bake(CLOUDRIG_OT_snap_bake):
-	"""Extend CLOUDRIG_OT_snap_bake with a parent selector."""
-	bl_idname = "pose.cloudrig_switch_parent_bake"
-	bl_label = "Apply Switch Parent To Keyframes"
-	bl_description = "Switch parent over a frame range, adjusting keys to preserve the bone position and orientation"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	parent_names: StringProperty(name="Parent Names")
+class POSE_OT_cloudrig_snap_mapped_bake(POSE_OT_cloudrig_snap_bake):
+    """Extend POSE_OT_cloudrig_snap_bake with the ability to snap a list of bones
+    to another (equal length) list of bones.
+    """
 
-	def parent_items(self, context):
-		parents = json.loads(self.parent_names)
-		items = [(str(i), name, name) for i, name in enumerate(parents)]
-		return items
+    bl_idname = "pose.cloudrig_snap_mapped_bake"
+    bl_label = "Snap And Bake Bones (Mapped)"
+    bl_description = "Toggle a custom property and snap some bones to some other bones"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	selected: EnumProperty(
-		name = "Selected Parent",
-		items = parent_items
-	)
+    map_on: (
+        StringProperty()
+    )  # Bone name dictionary to use when the property is toggled ON.
+    map_off: (
+        StringProperty()
+    )  # Bone name dictionary to use when the property is toggled OFF.
 
-	def draw(self, context):
-		self.layout.prop(self, 'selected', text='')
-		super().draw(context)
+    hide_on: StringProperty()  # List of bone names to hide when property is toggled ON.
+    hide_off: (
+        StringProperty()
+    )  # List of bone names to hide when property is toggled OFF.
 
-	def after_save_state(self, context, rig):
-		"""After saving the bone matrices, it's time to set the property value."""
-		# value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
-		if self.do_bake:
-			self.bake_replace_custom_prop_keys_constant(
-				self.prop_bone, self.prop_id, int(self.selected)
-			)
-		else:
-			set_custom_property_value(
-				rig, self.prop_bone, self.prop_id, int(self.selected),
-				keyflags=self.keyflags_switch
-			)
-		context.view_layer.update()
+    def init_invoke(self, context):
+        rig = context.pose_object or context.active_object
+        value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
 
-class CLOUDRIG_OT_snap_mapped_bake(CLOUDRIG_OT_snap_bake):
-	""" Extend CLOUDRIG_OT_snap_bake with the ability to snap a list of bones
-		to another (equal length) list of bones.
-	"""
+        map_on = json.loads(self.map_on)
+        map_off = json.loads(self.map_off)
 
-	bl_idname = "pose.cloudrig_snap_mapped_bake"
-	bl_label = "Snap And Bake Bones (Mapped)"
-	bl_description = "Toggle a custom property and snap some bones to some other bones"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+        self.bone_map = map_off if value == 1 else map_on
+        bone_names = [t[0] for t in self.bone_map]
+        self.bones = json.dumps(bone_names)
+        super().init_invoke(
+            context
+        )  # This creates self.bone_names based on self.bones.
 
-	map_on:		  StringProperty()		# Bone name dictionary to use when the property is toggled ON.
-	map_off:	  StringProperty()		# Bone name dictionary to use when the property is toggled OFF.
+    def draw_affected_bones(self, layout, context):
+        bone_column = layout.column(align=True)
+        bone_column.label(text="Snapped bones:")
+        for from_bone, to_bone in self.bone_map:
+            bone_column.label(text=f"{' '*10} {from_bone} -> {to_bone}")
 
-	hide_on:	  StringProperty()		# List of bone names to hide when property is toggled ON.
-	hide_off:	  StringProperty()		# List of bone names to hide when property is toggled OFF.
+    def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
+        if not bone_names:
+            bone_names = [t[1] for t in self.bone_map]
+        return super().save_frame_state(context, rig, bone_names)
 
-	def init_invoke(self, context):
-		rig = context.pose_object or context.active_object
-		value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+    def execute_scan_curves(self, context, obj):
+        "Register frames to be baked, and return curves that should be cleared."
 
-		map_on = json.loads(self.map_on)
-		map_off = json.loads(self.map_off)
+        if self.bake_every_frame:
+            self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
+        else:
+            bone_names = [t[1] for t in self.bone_map]
+            self.bake_add_bone_frames(bone_names)
+            bone_names = [t[0] for t in self.bone_map]
+            self.bake_add_bone_frames(bone_names)
+        return None
 
-		self.bone_map = map_off if value==1 else map_on
-		bone_names = [t[0] for t in self.bone_map]
-		self.bones = json.dumps(bone_names)
-		super().init_invoke(context)	# This creates self.bone_names based on self.bones.
 
-	def draw_affected_bones(self, layout, context):
-		bone_column = layout.column(align=True)
-		bone_column.label(text="Snapped bones:")
-		for from_bone, to_bone in self.bone_map:
-			bone_column.label(text=f"{' '*10} {from_bone} -> {to_bone}")
+class POSE_OT_cloudrig_toggle_ikfk_bake(POSE_OT_cloudrig_snap_mapped_bake):
+    """Extends POSE_OT_cloudrig_snap_mapped_bake with special treatment for the IK elbow"""
 
-	def save_frame_state(self, context, rig, bone_names=None) -> List[Matrix]:
-		if not bone_names:
-			bone_names = [t[1] for t in self.bone_map]
-		return super().save_frame_state(context, rig, bone_names)
+    bl_idname = "pose.cloudrig_toggle_ikfk_bake"
+    bl_label = "Toggle And Bake IK/FK"
+    bl_description = "Toggle a custom property and snap some bones to some other bones"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	def execute_scan_curves(self, context, obj):
-		"Register frames to be baked, and return curves that should be cleared."
+    ik_pole: StringProperty()
+    fk_first: StringProperty()
+    fk_last: StringProperty()
 
-		if self.bake_every_frame:
-			self.bake_frames_raw = [i for i in range(self.frame_start, self.frame_end)]
-		else:
-			bone_names = [t[1] for t in self.bone_map]
-			self.bake_add_bone_frames(bone_names)
-			bone_names = [t[0] for t in self.bone_map]
-			self.bake_add_bone_frames(bone_names)
-		return None
+    def init_invoke(self, context):
+        rig = context.active_object
 
-class CLOUDRIG_OT_ikfk_bake(CLOUDRIG_OT_snap_mapped_bake):
-	"""Extends CLOUDRIG_OT_snap_mapped_bake with special treatment for the IK elbow."""
+        self.pole = rig.pose.bones.get(self.ik_pole)  # Can be None.
+        prop_value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
+        self.is_pole = prop_value == 0 and self.pole != None
 
-	bl_idname = "pose.cloudrig_toggle_ikfk_bake"
-	bl_label = "Toggle And Bake IK/FK"
-	bl_description = "Toggle a custom property and snap some bones to some other bones"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+        super().init_invoke(context)
 
-	ik_pole:	StringProperty()
-	fk_first:	StringProperty()
-	fk_last:	StringProperty()
+        if self.is_pole:
+            self.bone_names.append(self.pole.name)
+            self.bones = json.dumps(self.bone_names)
 
-	def init_invoke(self, context):
-		rig = context.object
+    def save_frame_state(
+        self, context, rig, bone_names=None
+    ) -> Tuple[List[Matrix], List[Vector]]:
+        matrices, scales = super().save_frame_state(context, rig)
+        if self.is_pole:
+            matrices.append(self.get_pole_target_matrix())
+            scales.append(rig.pose.bones.get(self.ik_pole).scale)
 
-		self.pole = rig.pose.bones.get(self.ik_pole)	# Can be None.
-		prop_value = get_custom_property_value(rig, self.prop_bone, self.prop_id)
-		self.is_pole = prop_value==0 and self.pole!=None
+        return matrices, scales
 
-		super().init_invoke(context)
+    def get_pole_target_matrix(self):
+        """Find the matrix where the IK pole should be."""
+        """ This is only accurate when the bone chain lies perfectly on a plane
+            and the IK Pole Angle is divisible by 90.
+            This should be the case for a correct IK chain!
+        """
 
-		if self.is_pole:
-			self.bone_names.append(self.pole.name)
-			self.bones = json.dumps(self.bone_names)
+        rig = self.bake_rig
 
-	def save_frame_state(self, context, rig, bone_names=None) -> Tuple[List[Matrix], List[Vector]]:
-		matrices, scales = super().save_frame_state(context, rig)
-		if self.is_pole:
-			matrices.append(self.get_pole_target_matrix())
-			scales.append(rig.pose.bones.get(self.ik_pole).scale)
+        fk_first = rig.pose.bones.get(self.fk_first)
+        fk_last = rig.pose.bones.get(self.fk_last)
+        assert (
+            fk_first and fk_last
+        ), f"Can't calculate pole target location due to one of these FK bones missing: {self.fk_first}, {self.fk_last}"
 
-		return matrices, scales
+        chain_length = fk_first.vector.length + fk_last.vector.length
+        pole_distance = chain_length / 2
 
-	def get_pole_target_matrix(self):
-		""" Find the matrix where the IK pole should be. """
-		""" This is only accurate when the bone chain lies perfectly on a plane
-			and the IK Pole Angle is divisible by 90.
-			This should be the case for a correct IK chain!
-		"""
+        pole_direction = (fk_first.vector - fk_last.vector).normalized()
 
-		rig = self.bake_rig
+        pole_loc = fk_first.tail + pole_direction * pole_distance
 
-		fk_first = rig.pose.bones.get(self.fk_first)
-		fk_last = rig.pose.bones.get(self.fk_last)
-		assert fk_first and fk_last, f"Can't calculate pole target location due to one of these FK bones missing: {self.fk_first}, {self.fk_last}"
+        mat = self.pole.matrix.copy()
+        mat.translation = pole_loc
+        return mat
 
-		chain_length = fk_first.vector.length + fk_last.vector.length
-		pole_distance = chain_length/2
-
-		pole_direction = (fk_first.vector - fk_last.vector).normalized()
-
-		pole_loc = fk_first.tail + pole_direction * pole_distance
-
-		mat = self.pole.matrix.copy()
-		mat.translation = pole_loc
-		return mat
 
 #######################################
 ######## Convenience Operators ########
 #######################################
 
-class CLOUDRIG_OT_copy_property(bpy.types.Operator):
-	"""Set the value of a property on all other CloudRig rigs in the scene"""
-	# Currently used for the rig Quality setting, to easily switch all characters to Render or Animation quality.
-	bl_idname = "object.cloudrig_copy_property"
-	bl_label = "Set Property value on All CloudRigs"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	prop_bone: StringProperty()
-	prop_id: StringProperty()
-
-	@classmethod
-	def poll(cls, context):
-		return (is_active_cloudrig(context) is not None) and (context.pose_object or context.active_object)
-
-	def invoke(self, context, event):
-		# Collect and save references to rigs in the scene which have this property somewhere on the rig.
-		# TODO: Add an assert that prop_bone and prop_id are found in context.object.
-		self.rig_bones = {context.object.name : self.prop_bone}
-		for rig in context.scene.objects:
-			if rig.type!='ARMATURE' or 'cloudrig' not in rig.data: continue
-			for pb in rig.pose.bones:
-				if self.prop_id in pb:
-					self.rig_bones[rig.name] = pb.name
-
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
-
-	def draw(self, context):
-		layout = self.layout
-		rig = context.pose_object or context.active_object
-		prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
-
-		layout.label(text=f"{self.prop_id} property will be set to {prop_value} on these bones:")
-		for rigname, bonename in self.rig_bones.items():
-			split = layout.split(factor=0.4)
-			split.label(text=rigname, icon='ARMATURE_DATA')
-			split.label(text=bonename, icon='BONE_DATA')
-
-	def execute(self, context):
-		rig = context.pose_object or context.active_object
-		prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
-
-		for rigname, bonename in self.rig_bones.items():
-			rig = context.scene.objects[rigname]
-			pb = rig.pose.bones[bonename]
-			pb[self.prop_id] = prop_value
-
-		return {'FINISHED'}
-
-class CLOUDRIG_OT_keyframe_all_settings(bpy.types.Operator):
-	"""Keyframe all rig settings that are being drawn in the below UI"""
-	bl_idname = "pose.cloudrig_keyframe_all_settings"
-	bl_label = "Keyframe CloudRig Settings"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	@classmethod
-	def poll(cls, context):
-		return (is_active_cloudrig(context) is not None) and \
-			(context.pose_object or context.active_object) and \
-			'ui_data' in context.object.data
-
-	def execute(self, context):
-		rig = context.pose_object or context.active_object
-		data = rig.data
-
-		ui_data = data['ui_data'].to_dict()
-
-		for subpanel, label_dicts in ui_data.items():
-			for label_name, row_dicts in label_dicts.items():
-				if label_name == 'NODRAW':
-					continue
-				if type(row_dicts) == str:
-					# TODO: For some reason, cloud_ik_finger seems to put a string "CLOUDRIG_PT_custom_ik" here, which is the sub-panel that has a sub-panel.
-					continue
-				for row_name, col_dicts in row_dicts.items():
-					for col_name, col_dict in col_dicts.items():
-						assert 'prop_bone' in col_dict and 'prop_id' in col_dict, "Rig UI info entry must have prop_bone and prop_id."
-						prop_bone_name = col_dict['prop_bone']
-						prop_id = col_dict['prop_id']
-
-						prop_bone = rig.pose.bones.get(prop_bone_name)
-						assert prop_bone, f"Property bone non-existent: {prop_bone_name}"
-
-						value = prop_bone[prop_id]
-						if type(value) not in (int, float):
-							continue
-						set_custom_property_value(rig, prop_bone.name, prop_id, value, keyflags=get_keying_flags(context))
-
-		return {'FINISHED'}
-
-class CLOUDRIG_OT_reset_rig(bpy.types.Operator):
-	"""Reset all bone transforms and custom properties to their default values"""
-	bl_idname = "pose.cloudrig_reset"
-	bl_label = "Reset Rig"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	reset_transforms: BoolProperty(name="Transforms", default=True, description="Reset bone transforms")
-	reset_props: BoolProperty(name="Properties", default=True, description="Reset custom properties")
-	selection_only: BoolProperty(name="Selected Only", default=False, description="Affect selected bones rather than all bones")
-
-	@classmethod
-	def poll(cls, context):
-		return (context.pose_object or context.active_object)
-
-	def invoke(self, context, event):
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
-
-	def execute(self, context):
-		rig = context.pose_object or context.active_object
-		bones = rig.pose.bones
-		if self.selection_only:
-			bones = context.selected_pose_bones
-		for pb in bones:
-			if self.reset_transforms:
-				pb.location = ((0, 0, 0))
-				pb.rotation_euler = ((0, 0, 0))
-				pb.rotation_quaternion = ((1, 0, 0, 0))
-				pb.scale = ((1, 1, 1))
-
-			if self.reset_props and len(pb.keys()) > 0:
-				rna_properties = [prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime]
-
-				# Reset custom property values to their default value
-				for key in pb.keys():
-					if key.startswith("$"): continue
-					if key in rna_properties: continue	# Addon defined property.
-
-					ui_data = None
-					try:
-						ui_data = pb.id_properties_ui(key)
-						if not ui_data: continue
-						ui_data = ui_data.as_dict()
-						if not 'default' in ui_data: continue
-					except TypeError:
-						# Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
-						pass
-
-					if not ui_data: continue
-
-					if type(pb[key]) not in (float, int, bool): continue
-					pb[key] = ui_data['default']
-
-		return {'FINISHED'}
-
-#######################################
-###### Override Troubleshooting #######
-##### TODO: Remove after Sprites. #####
-#######################################
-
-class CLOUDRIG_OT_delete_override_leftovers(bpy.types.Operator):
-	"""Delete the Override Resync Leftovers (Warning! Might lose your data!)"""
-	bl_idname = "object.cloudrig_delete_leftovers"
-	bl_label = "Delete Override Leftovers"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	@classmethod
-	def poll(cls, context):
-		return 'OVERRIDE_RESYNC_LEFTOVERS' in bpy.data.collections
-
-	def invoke(self, context, event):
-		if context.active_pose_bone and context.active_pose_bone.bone_group:
-			self.bone_group = context.active_pose_bone.bone_group.name
-
-		if len(context.object.pose.bone_groups) == 0:
-			self.operation = 'NEW'
-
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
-
-	def draw(self, context):
-		layout = self.layout
-		col = layout.column()
-		col.alert = True
-		col.row().label(text="This will nuke the OVERRIDE_RESYNC_LEFTOVERS")
-		col.row().label(text="collection and its contents. You could lose data!")
-
-	def execute(self, context):
-		bpy.data.collections.remove(bpy.data.collections['OVERRIDE_RESYNC_LEFTOVERS'])
-		return {'FINISHED'}
-
-class CLOUDRIG_OT_override_fix_name(bpy.types.Operator):
-	"""Try to ensure the name of this object or collection ends with the correct suffix"""
-	# We hijack the Rigify Log for this, why not...
-	bl_idname = "object.cloudrig_fix_name"
-	bl_label = "Fix Name"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	old_name: StringProperty()
-	new_name: StringProperty()
-	is_collection: BoolProperty(default=False, description="Whether the target for renaming is a collection rather than an object")
-
-	def execute(self, context):
-		rig = context.object
-
-		# In all the get() functions here we pass a tuple to make sure we get the LOCAL object based on the name
-		# This is to work around potential clashing names
-		# https://docs.blender.org/api/master/info_gotcha.html#library-collisions
-
-		if not self.is_collection:
-			obj = bpy.data.objects.get((self.old_name, None))
-			occupied = bpy.data.objects.get((self.new_name, None))
-			if occupied:
-				self.report({'ERROR'}, f"Target name {self.new_name} is already taken, cancelling!")
-				return {'CANCELLED'}
-			obj.name = self.new_name
-		else:
-			coll = bpy.data.collections.get((self.old_name, None))
-			occupied = bpy.data.collections.get((self.new_name, None))
-			if occupied:
-				self.report({'ERROR'}, f"Target name {self.new_name} is already taken, cancelling!")
-				return {'CANCELLED'}
-			coll.name = self.new_name
-
-		return {'FINISHED'}
-
-class CLOUDRIG_PT_base(bpy.types.Panel):
-	"""Base class for all CloudRig sidebar panels."""
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'CloudRig'
-	bl_options = {'DEFAULT_CLOSED'}
-
-	@classmethod
-	def poll(cls, context):
-		return is_active_cloudrig(context) is not None
-
-	def draw(self, context):
-		pass
-
-def has_number_suffix(name):
-	return all([char in "0123456789" for char in name[-3:]]) and name[-4]=="."
-
-class CLOUDRIG_PT_troubleshoot_overrides(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_troubleshoot_overrides"
-	bl_label = "Troubleshoot"
-
-	@classmethod
-	def poll(cls, context):
-		return False
-
-		if not super().poll(context):
-			return False
-
-		rig = is_active_cloudrig(context)
-		if rig.override_library: return True
-
-	@staticmethod
-	def draw_override_purge(layout):
-		"""Check if an 'OVERRIDE_RESYNC_LEFTOVERS' collection exists and
-		draw a button to delete it.
-		"""
-		if 'OVERRIDE_RESYNC_LEFTOVERS' in bpy.data.collections:
-			row = layout.row()
-			row.alert=True
-			row.operator(CLOUDRIG_OT_delete_override_leftovers.bl_idname, icon='TRASH')
-
-		purge = layout.operator('outliner.orphans_purge', text="Purge Unused", icon='ORPHAN_DATA')
-		purge.do_recursive=True
-
-	@staticmethod
-	def get_override_collection(obj):
-		"""Find first overridden collection that contains obj."""
-		owner_collection = obj.users_collection[0]
-		while owner_collection.override_library!=None:
-			for c in bpy.data.collections:
-				if owner_collection in c.children[:]:
-					if c.override_library==None:
-						break
-					owner_collection = c
-			break
-		return owner_collection
-
-	@staticmethod
-	def draw_troubleshoot_name(layout, thing, *, suffix, is_collection):
-		icon = 'OUTLINER_COLLECTION' if is_collection else 'OBJECT_DATAMODE'
-		if (suffix=="" and has_number_suffix(thing.name)) or (suffix!="" and not thing.name.endswith(suffix)):
-			split = layout.split(factor=0.3)
-			split.row().label(text="Wrong suffix: ")
-			split = split.row().split(factor=0.9)
-			split.row().label(text=thing.name, icon=icon)
-			op = split.row().operator(
-				CLOUDRIG_OT_override_fix_name.bl_idname
-				,text = ""
-				,icon = 'FILE_TEXT'
-			)
-			op.old_name = thing.name
-			op.new_name = thing.name[:-4] + suffix
-			op.is_collection = is_collection
-
-	@staticmethod
-	def draw_troubleshoot_names(layout, things, *, suffix, is_collection):
-		for thing in things:
-			if thing.name.startswith("WGT-"):
-				# Bone widgets are handled specially by overrides;
-				# They are not overridden, because they don't need to be, but stay linked.
-				# For now let this be handled by naming convention:
-				# Bone shapes should start with "WGT-". Otherwise, we could scan
-				# through every bone and save a list of widget names to ignore here.
-				continue
-			CLOUDRIG_PT_troubleshoot_overrides.draw_troubleshoot_name(
-				layout, thing, suffix=suffix, is_collection=is_collection)
-
-	@staticmethod
-	def draw_troubleshoot_object(layout, ob):
-		for m in ob.modifiers:
-			if hasattr(m, 'object') and m.object==None:
-				split = layout.split(factor=0.3)
-				split.row().label(text="Missing modifier target: ")
-				split = split.row().split(factor=0.9)
-				split.row().label(text=ob.name + ": " + m.name, icon='MODIFIER')
-
-		for c in ob.constraints:
-			if c.type=='ARMATURE':
-				pass
-				# TODO: special treatment
-			if hasattr(c, 'target') and c.target==None:
-				split = layout.split(factor=0.3)
-				split.row().label(text="Missing object constraint target: ")
-				split = split.row().split(factor=0.9)
-				split.row().label(text=ob.name + ": " + c.name, icon='CONSTRAINT')
-
-	@staticmethod
-	def draw_collection_info(layout, rig, coll):
-		lib = rig.override_library.reference.library
-		if not lib.filepath.startswith("//"):
-			row = layout.row()
-			row.alert = True
-			row.prop(rig.override_library.reference, 'library', text="Library", icon='ERROR')
-			row.alert = False
-			row.operator('file.make_paths_relative', icon='CHECKMARK', text="")
-		else:
-			layout.prop(rig.override_library.reference, 'library', text="Library")
-		layout.prop(rig.override_library, 'reference', text="Linked Object: ")
-		layout.prop(rig, 'name', text="Overridden Object", icon='OBJECT_DATAMODE')
-
-		layout.prop(coll, 'name', text="Base Collection", icon='OUTLINER_COLLECTION')
-
-		# Determine if a number suffix is expected on the objects of this collection, and what it is,
-		# based on if the collection has such a suffix.
-
-		suffix = ""
-		if has_number_suffix(coll.name):
-			suffix = coll.name[-4:]
-
-		split=layout.split(factor=0.4)
-		split.row()
-		split.row().label(text="Expected suffix: " + suffix)
-
-		return suffix
-
-	@staticmethod
-	def draw_troubleshoot_rig(layout, rig):
-		for pb in rig.pose.bones:
-			for c in pb.constraints:
-				if c.type=='ARMATURE':
-					pass
-					# TODO: special treatment, de-duplication
-				if hasattr(c, 'target') and c.target==None:
-					split = layout.split(factor=0.3)
-					split.row().label(text="Missing bone constraint target: ")
-					split = split.row().split(factor=0.9)
-					split.row().label(text=pb.name + ": " + c.name, icon='CONSTRAINT_BONE')
-
-	@staticmethod
-	def draw_troubleshoot_collections(layout, coll, *, suffix: str):
-		def get_subcollections_recursive(collection, col_list):
-			col_list.append(collection)
-			for sub_collection in collection.children:
-				get_subcollections_recursive(sub_collection, col_list)
-			return col_list
-
-		all_colls = get_subcollections_recursive(coll, [])
-		CLOUDRIG_PT_troubleshoot_overrides.draw_troubleshoot_names(
-			layout, all_colls, suffix=suffix, is_collection=True)
-
-	def draw(self, context):
-		layout = self.layout
-		col = layout.column()
-		col.use_property_split=True
-		col.use_property_decorate=False
-
-		self.draw_override_purge(layout)
-		layout.separator()
-
-		rig = context.object
-		owner_collection = self.get_override_collection(rig)
-
-		suffix = self.draw_collection_info(layout, rig, owner_collection)
-
-		self.draw_troubleshoot_names(
-			layout, owner_collection.all_objects, suffix=suffix, is_collection=False)
-		for ob in owner_collection.all_objects:
-			self.draw_troubleshoot_object(layout, ob)
-
-		self.draw_troubleshoot_rig(layout, rig)
-		self.draw_troubleshoot_collections(layout, owner_collection, suffix=suffix)
+
+class OBJECT_OT_cloudrig_copy_property(bpy.types.Operator):
+    """Set the value of a property on all other CloudRig rigs in the scene"""
+
+    # Currently used for the rig Quality setting, to easily switch all characters to Render or Animation quality.
+    bl_idname = "object.cloudrig_copy_property"
+    bl_label = "Set Property value on All CloudRigs"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    prop_bone: StringProperty()
+    prop_id: StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return (is_active_cloudrig(context) is not None) and (
+            context.pose_object or context.active_object
+        )
+
+    def invoke(self, context, event):
+        # Collect and save references to rigs in the scene which have this property somewhere on the rig.
+        # TODO: Add an assert that prop_bone and prop_id are found in context.active_object.
+        self.rig_bones = {context.active_object.name: self.prop_bone}
+        for rig in context.scene.objects:
+            if rig.type != 'ARMATURE' or 'cloudrig' not in rig.data:
+                continue
+            for pb in rig.pose.bones:
+                if self.prop_id in pb:
+                    self.rig_bones[rig.name] = pb.name
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        rig = context.pose_object or context.active_object
+        prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
+
+        layout.label(
+            text=f"{self.prop_id} property will be set to {prop_value} on these bones:"
+        )
+        for rigname, bonename in self.rig_bones.items():
+            split = layout.split(factor=0.4)
+            split.alignment = 'RIGHT'
+            split.label(text=rigname, icon='ARMATURE_DATA')
+            split.label(text=bonename, icon='BONE_DATA')
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
+
+        for rigname, bonename in self.rig_bones.items():
+            rig = context.scene.objects[rigname]
+            pb = rig.pose.bones[bonename]
+            pb[self.prop_id] = prop_value
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_keyframe_all_settings(bpy.types.Operator):
+    """Keyframe all rig settings that are being drawn in the below UI"""
+
+    bl_idname = "pose.cloudrig_keyframe_all_settings"
+    bl_label = "Keyframe CloudRig Settings"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        rig = is_active_cloudrig(context)
+        if not rig:
+            return False
+        return 'ui_data' in rig.data
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        data = rig.data
+
+        ui_data = data['ui_data'].to_dict()
+
+        for subpanel, label_dicts in ui_data.items():
+            for label_name, row_dicts in label_dicts.items():
+                if label_name == 'NODRAW':
+                    continue
+                if type(row_dicts) == str:
+                    # TODO: For some reason, cloud_ik_finger seems to put a string "CLOUDRIG_PT_custom_ik" here, which is the sub-panel that has a sub-panel.
+                    continue
+                for row_name, col_dicts in row_dicts.items():
+                    for col_name, col_dict in col_dicts.items():
+                        assert (
+                            'prop_bone' in col_dict and 'prop_id' in col_dict
+                        ), "Rig UI info entry must have prop_bone and prop_id."
+                        prop_bone_name = col_dict['prop_bone']
+                        prop_id = col_dict['prop_id']
+
+                        prop_bone = rig.pose.bones.get(prop_bone_name)
+                        assert (
+                            prop_bone
+                        ), f"Property bone non-existent: {prop_bone_name}"
+
+                        value = prop_bone[prop_id]
+                        if type(value) not in (int, float):
+                            continue
+                        set_custom_property_value(
+                            rig,
+                            prop_bone.name,
+                            prop_id,
+                            value,
+                            keyflags=get_keying_flags(context),
+                        )
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_reset(bpy.types.Operator):
+    """Reset all bone transforms and custom properties to their default values"""
+
+    bl_idname = "pose.cloudrig_reset"
+    bl_label = "Reset Rig"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    reset_transforms: BoolProperty(
+        name="Transforms", default=True, description="Reset bone transforms"
+    )
+    reset_props: BoolProperty(
+        name="Properties", default=True, description="Reset custom properties"
+    )
+    selection_only: BoolProperty(
+        name="Selected Only",
+        default=False,
+        description="Affect selected bones rather than all bones",
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return context.pose_object or context.active_object
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        bones = rig.pose.bones
+        if self.selection_only:
+            bones = context.selected_pose_bones
+        for pb in bones:
+            if self.reset_transforms:
+                pb.location = (0, 0, 0)
+                pb.rotation_euler = (0, 0, 0)
+                pb.rotation_quaternion = (1, 0, 0, 0)
+                pb.scale = (1, 1, 1)
+
+            if not self.reset_props or len(pb.keys()) == 0:
+                continue
+
+            rna_properties = [
+                prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime
+            ]
+
+            # Reset custom property values to their default value
+            for key in pb.keys():
+                if key.startswith("$"):
+                    continue
+                if key in rna_properties:
+                    continue  # Addon defined property.
+
+                ui_data = None
+                try:
+                    ui_data = pb.id_properties_ui(key)
+                    if not ui_data:
+                        continue
+                    ui_data = ui_data.as_dict()
+                    if not 'default' in ui_data:
+                        continue
+                except TypeError:
+                    # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
+                    pass
+
+                if not ui_data:
+                    continue
+
+                if type(pb[key]) not in (float, int, bool):
+                    continue
+                pb[key] = ui_data['default']
+
+        return {'FINISHED'}
+
 
 #######################################
 ############### Rig UI ################
 #######################################
 
-def get_char_bone(rig):
-	for b in rig.pose.bones:
-		if b.name.startswith("Properties_Character"):
-			return b
+
+class CLOUDRIG_PT_base(bpy.types.Panel):
+    """Base class for all CloudRig sidebar panels."""
+
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CloudRig'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    on_metarigs = False
+    on_generated_rigs = True
+
+    @classmethod
+    def poll(cls, context):
+        if not context.active_object:
+            return False
+        obj = context.active_object
+        if context.pose_object:
+            obj = context.pose_object
+        if obj.type != 'ARMATURE':
+            return False
+        if not cls.on_generated_rigs and is_active_cloudrig(context):
+            return False
+        if not cls.on_metarigs and is_active_cloud_metarig(context):
+            return False
+        return True
+
+    def draw(self, context):
+        pass
+
 
 class CloudRig_Properties(bpy.types.PropertyGroup):
-	"""PropertyGroup for special custom properties that rely on callback functions."""
+    """PropertyGroup for special custom properties that rely on callback functions"""
 
-	def get_rig(self):
-		""" Find the armature object that is using this instance (self). """
+    def items_outfit(self, context):
+        """Items callback for outfits EnumProperty.
+        Build and return a list of outfit names based on a bone naming convention.
+        Bones storing an outfit's properties must be named "Properties_Outfit_OutfitName".
+        """
+        rig = self.id_data
+        if not rig:
+            return [(('0', 'Default', 'Default'))]
 
-		for rig in get_rigs():
-			if rig.cloud_rig == self:
-				return rig
+        outfits = []
+        for b in rig.pose.bones:
+            if b.name.startswith("Properties_Outfit_"):
+                outfits.append(b.name.replace("Properties_Outfit_", ""))
 
-	def items_outfit(self, context):
-		""" Items callback for outfits EnumProperty.
-			Build and return a list of outfit names based on a bone naming convention.
-			Bones storing an outfit's properties must be named "Properties_Outfit_OutfitName".
-		"""
-		rig = self.get_rig()
-		if not rig: return [(('0', 'Default', 'Default'))]
+        # Convert the list into what an EnumProperty expects.
+        items = []
+        for i, outfit in enumerate(outfits):
+            items.append(
+                (outfit, outfit, outfit, i)
+            )  # Identifier, name, description, can all be the outfit name.
 
-		outfits = []
-		for b in rig.pose.bones:
-			if b.name.startswith("Properties_Outfit_"):
-				outfits.append(b.name.replace("Properties_Outfit_", ""))
+        # If no outfits were found, don't return an empty list so the console doesn't spam "'0' matches no enum" warnings.
+        if items == []:
+            return [(('0', 'Default', 'Default'))]
 
-		# Convert the list into what an EnumProperty expects.
-		items = []
-		for i, outfit in enumerate(outfits):
-			items.append((outfit, outfit, outfit, i))	# Identifier, name, description, can all be the outfit name.
+        return items
 
-		# If no outfits were found, don't return an empty list so the console doesn't spam "'0' matches no enum" warnings.
-		if items==[]:
-			return [(('0', 'Default', 'Default'))]
+    def change_outfit(self, context):
+        """Update callback of outfits EnumProperty."""
 
-		return items
+        rig = self.id_data
+        if not rig:
+            return
 
-	def change_outfit(self, context):
-		""" Update callback of outfits EnumProperty. """
+        if self.outfit == '':
+            self.outfit = self.items_outfit(context)[0][0]
 
-		rig = self.get_rig()
-		if not rig: return
+        outfit_bone = rig.pose.bones.get("Properties_Outfit_" + self.outfit)
 
-		if self.outfit == '':
-			self.outfit = self.items_outfit(context)[0][0]
+        if outfit_bone:
+            # Reset all settings to default.
+            for key in outfit_bone.keys():
+                value = outfit_bone[key]
+                if type(value) in [float, int]:
+                    pass  # TODO: Can't seem to reset custom properties to their default, or even so much as read their default!?!?
 
-		outfit_bone = rig.pose.bones.get("Properties_Outfit_"+self.outfit)
+            # For outfit properties starting with "_", update the corresponding character property.
+            char_bone = get_char_bone(rig)
+            for key in outfit_bone.keys():
+                if key.startswith("_") and key[1:] in char_bone:
+                    char_bone[key[1:]] = outfit_bone[key]
 
-		if outfit_bone:
-			# Reset all settings to default.
-			for key in outfit_bone.keys():
-				value = outfit_bone[key]
-				if type(value) in [float, int]:
-					pass # TODO: Can't seem to reset custom properties to their default, or even so much as read their default!?!?
+        context.evaluated_depsgraph_get().update()
 
-			# For outfit properties starting with "_", update the corresponding character property.
-			char_bone = get_char_bone(rig)
-			for key in outfit_bone.keys():
-				if key.startswith("_") and key[1:] in char_bone:
-					char_bone[key[1:]] = outfit_bone[key]
-
-		context.evaluated_depsgraph_get().update()
-
-	# TODO: This should be implemented as an operator instead, just like parent switching.
-	outfit: EnumProperty(
-		name	= "Outfit",
-		items	= items_outfit,
-		update	= change_outfit,
-		options	= {"LIBRARY_EDITABLE"}, # Make it not animatable.
-		override	 = {'LIBRARY_OVERRIDABLE'}
-	)
+    # TODO: This should be implemented as an operator instead, just like parent switching.
+    outfit: EnumProperty(
+        name="Outfit",
+        items=items_outfit,
+        update=change_outfit,
+        options={"LIBRARY_EDITABLE"},  # Make it not animatable.
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
 
-def draw_rig_settings_per_label(layout, rig, main_dict):
-	"""Each top-level dictionary within the main dictionary defines a panel.
-	Each panel is split into sub-sections via labels.
-	"""
-	top = layout.column()
-	for label_name in main_dict.keys():
-		ui = layout
-		if label_name == 'parent_id':
-			continue
-		if label_name == 'NODRAW':
-			continue
-		if label_name != "":
-			layout.label(text=label_name)
-		else:
-			# Label-less properties should be at the top of the sub-panel.
-			ui = top
-		draw_rig_settings(ui, rig, main_dict[label_name])
+def get_char_bone(rig):
+    for b in rig.pose.bones:
+        if b.name.startswith("Properties_Character"):
+            return b
 
-def draw_rig_settings(layout: UILayout, rig: Object, ui_data: Dict):
-	"""
-	ui_data: Dictionary containing the UI data, created during rig generation.
-	The top-level represents rows, and each row can contain any number of slider definitions.
 
-	A slider definition must have the following keywords:
-		prop_bone: Name of the pose bone that holds the custom property.
-		prop_id: Name of the custom property on the bone, to be drawn as a slider.
+def draw_rig_settings_per_label(
+    layout: bpy.types.UILayout, rig: Object, main_dict: dict
+):
+    """Each top-level dictionary within the main dictionary defines a panel.
+    Each panel is split into sub-sections via labels.
+    """
+    top = layout.column()
+    for label_name in main_dict.keys():
+        ui = layout
+        if label_name == 'parent_id':
+            continue
+        if label_name == 'NODRAW':
+            continue
+        if label_name != "":
+            layout.label(text=label_name)
+        else:
+            # Label-less properties should be at the top of the sub-panel.
+            ui = top
+        draw_rig_settings(ui, rig, main_dict[label_name])
 
-	Optional keywords:
-		texts: List of strings to display alongside an integer property slider.
-		operator: Specify an operator to draw next to the slider.
-		icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
 
-		Any further arguments will be passed on to the operator button as keyword arguments.
-	"""
+def draw_rig_settings(layout: bpy.types.UILayout, rig: Object, ui_data: Dict):
+    """
+    ui_data: Dictionary containing the UI data, created during rig generation.
+    The top-level represents rows, and each row can contain any number of slider definitions.
 
-	# Sort the rows alphabetically, just so "Arm" always comes before "Leg".
-	# Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
-	# consistent and predictable.
-	row_datas = [(row_name, ui_data[row_name]) for row_name in sorted(ui_data.keys())]
+    A slider definition must have the following keywords:
+            prop_bone: Name of the pose bone that holds the custom property.
+            prop_id: Name of the custom property on the bone, to be drawn as a slider.
 
-	# Each top-level dictionary within the main dictionary defines a row.
-	for row_name, row_entries in row_datas:
-		row = layout.row()
-		# Each second-level dictionary within that defines a slider (and operator, if given).
-		# If there is more than one, they will be drawn next to each other, since they're in the same row.
-		for entry_name in row_entries.keys():
-			info = row_entries[entry_name]		# This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-			if not 'prop_bone' in info and 'prop_id' in info:
-				print(f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{info}")
-				continue
-			prop_bone = rig.pose.bones.get(info['prop_bone'])
-			prop_id = info['prop_id']
-			if not prop_bone and prop_id in prop_bone:
-				print(f"CloudRig UI Error: Properties bone or property does not exist: {info}")
-				continue
-			col = row.column()
-			sub_row = col.row(align=True)
+    Optional keywords:
+            texts: List of strings to display alongside an integer property slider.
+            operator: Specify an operator to draw next to the slider.
+            icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
 
-			prop_value = prop_bone[prop_id]
+            Any further arguments will be passed on to the operator button as keyword arguments.
+    """
 
-			def get_text():
-				text = entry_name
-				if 'texts' in info:
-					texts = json.loads(info['texts'])
-					value = int(prop_value)
-					if len(texts) > value:
-						text = entry_name + ": " + texts[value]
-				return text
+    # Sort the rows alphabetically, just so "Arm" always comes before "Leg".
+    # Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
+    # consistent and predictable.
+    row_datas = [(row_name, ui_data[row_name]) for row_name in sorted(ui_data.keys())]
 
-			if isinstance(prop_value, bpy.types.Object):
-				# Property is an object pointer
-				sub_row.prop_search(prop_bone, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=entry_name)
-			elif type(prop_value) == bool:
-				icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
-				sub_row.prop(prop_bone, f'["{prop_id}"]', toggle=True, text=get_text(), icon=icon)
-			else:
-				# Property is a float/int/color
-				
-				sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=get_text())
+    # Each top-level dictionary within the main dictionary defines a row.
+    for row_name, row_entries in row_datas:
+        row = layout.row()
+        # Each second-level dictionary within that defines a slider (and operator, if given).
+        # If there is more than one, they will be drawn next to each other, since they're in the same row.
+        for entry_name in row_entries.keys():
+            info = row_entries[
+                entry_name
+            ]  # This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
+            if not 'prop_bone' in info and 'prop_id' in info:
+                print(
+                    f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{info}"
+                )
+                continue
+            prop_bone = rig.pose.bones.get(info['prop_bone'])
+            prop_id = info['prop_id']
+            if not prop_bone and prop_id in prop_bone:
+                print(
+                    f"CloudRig UI Error: Properties bone or property does not exist: {info}"
+                )
+                continue
+            col = row.column()
+            sub_row = col.row(align=True)
 
-			# Draw an operator if provided.
-			if 'operator' in info:
-				icon = 'FILE_REFRESH'
-				if 'icon' in info:
-					icon = info['icon']
+            prop_value = prop_bone[prop_id]
 
-				operator = sub_row.operator(info['operator'], text="", icon=icon)
-				# Pass on any paramteres to the operator that it will accept.
-				for param in info.keys():
-					if hasattr(operator, param):
-						value = info[param]
-						# Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-						if type(value) in [list, dict]:
-							value = json.dumps(value)
-						setattr(operator, param, value)
+            def get_text():
+                text = entry_name
+                if 'texts' in info:
+                    texts = json.loads(info['texts'])
+                    value = int(prop_value)
+                    if len(texts) > value:
+                        text = entry_name + ": " + texts[value]
+                return text
+
+            if isinstance(prop_value, bpy.types.Object):
+                # Property is an object pointer
+                sub_row.prop_search(
+                    prop_bone,
+                    f'["{prop_id}"]',
+                    bpy.data,
+                    'objects',
+                    icon='OBJECT_DATAMODE',
+                    text=entry_name,
+                )
+            elif type(prop_value) == bool:
+                icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+                sub_row.prop(
+                    prop_bone, f'["{prop_id}"]', toggle=True, text=get_text(), icon=icon
+                )
+            else:
+                # Property is a float/int/color
+
+                sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=get_text())
+
+            # Draw an operator if provided.
+            if 'operator' in info:
+                icon = 'FILE_REFRESH'
+                if 'icon' in info:
+                    icon = info['icon']
+
+                operator = sub_row.operator(info['operator'], text="", icon=icon)
+                # Pass on any paramteres to the operator that it will accept.
+                for param in info.keys():
+                    if hasattr(operator, param):
+                        value = info[param]
+                        # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+                        if type(value) in [list, dict]:
+                            value = json.dumps(value)
+                        setattr(operator, param, value)
+
 
 def get_text(prop_owner, prop_id, value):
-	"""If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
-	text = prop_id.replace("_", " ")
-	if "$"+prop_id in prop_owner and type(value)==int:
-		names = prop_owner["$"+prop_id]
-		if value > len(names)-1:
-			print(f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}")
-			return text
-		return text + ": " + names[value]
-	else:
-		return text
+    """If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
+    text = prop_id.replace("_", " ")
+    if "$" + prop_id in prop_owner and type(value) == int:
+        names = prop_owner["$" + prop_id]
+        if value > len(names) - 1:
+            print(
+                f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}"
+            )
+            return text
+        return text + ": " + names[value]
+    else:
+        return text
+
 
 def add_operator(layout, op_info: dict):
-	"""Add an operator button to layout.
-	op_info should include a bl_idname, can include an icon, and operator kwargs.
-	"""
+    """Add an operator button to layout.
+    op_info should include a bl_idname, can include an icon, and operator kwargs.
+    """
 
-	icon = 'LAYER_ACTIVE'
-	if 'icon' in op_info:
-		icon = op_info['icon']
+    icon = 'LAYER_ACTIVE'
+    if 'icon' in op_info:
+        icon = op_info['icon']
 
-	operator = layout.operator(op_info['bl_idname'], text="", icon=icon)
-	# Pass on any paramteres to the operator that it will accept.
-	for param in op_info.keys():
-		if param in ['bl_idname', 'icon']: continue
-		if hasattr(operator, param):
-			value = op_info[param]
-			# Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-			if type(value) in [list, dict]:
-				value = json.dumps(value)
-			setattr(operator, param, value)
+    operator = layout.operator(op_info['bl_idname'], text="", icon=icon)
+    # Pass on any paramteres to the operator that it will accept.
+    for param in op_info.keys():
+        if param in ['bl_idname', 'icon']:
+            continue
+        if hasattr(operator, param):
+            value = op_info[param]
+            # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+            if type(value) in [list, dict]:
+                value = json.dumps(value)
+            setattr(operator, param, value)
+
 
 class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_character"
-	bl_label = "Character"
+    bl_idname = "CLOUDRIG_PT_character"
+    bl_label = "Character"
 
-	@classmethod
-	def poll(cls, context):
-		if not super().poll(context):
-			return False
+    @classmethod
+    def poll(cls, context):
+        if not super().poll(context):
+            return False
 
-		# Only display this panel if there is either an outfit with options, multiple outfits, or character options.
-		rig = is_active_cloudrig(context)
-		if not rig: return
-		rig_props = rig.cloud_rig
-		multiple_outfits = len(rig_props.items_outfit(context)) > 1
-		outfit_properties_bone = rig.pose.bones.get("Properties_Outfit_"+rig_props.outfit)
-		char_bone = get_char_bone(rig)
+        # Only display this panel if there is either an outfit with options, multiple outfits, or character options.
+        rig = is_active_cloudrig(context)
+        if not rig:
+            return
+        rig_props = rig.cloud_rig
+        multiple_outfits = len(rig_props.items_outfit(context)) > 1
+        outfit_properties_bone = rig.pose.bones.get(
+            "Properties_Outfit_" + rig_props.outfit
+        )
+        char_bone = get_char_bone(rig)
 
-		return multiple_outfits or outfit_properties_bone or char_bone
+        return multiple_outfits or outfit_properties_bone or char_bone
 
-	def draw(self, context):
-		layout = self.layout
-		rig = context.pose_object or context.object
+    def draw(self, context):
+        layout = self.layout
+        rig = context.pose_object or context.active_object
 
-		rig_props = rig.cloud_rig
+        rig_props = rig.cloud_rig
 
-		def add_props(prop_owner):
-			props_done = []
+        def add_props(prop_owner):
+            props_done = []
 
-			def add_prop(layout, prop_owner, prop_id):
-				row = layout.row()
-				if prop_id in props_done: return
+            def add_prop(layout, prop_owner, prop_id):
+                row = layout.row()
+                if prop_id in props_done:
+                    return
 
-				prop_value = prop_owner[prop_id]
-				if type(prop_value) in [int, float]:
-					row.prop(prop_owner, '["'+prop_id+'"]', slider=True,
-						text = get_text(prop_owner, prop_id, prop_value)
-					)
-					if 'op_'+prop_id in prop_owner or prop_id=='Quality':
-						# HACK: Hard-code behaviour for a property named "Quality", so I don't have to add it on every character manually on Sprite Fright. This needs a more elegant design...
-						if prop_id=='Quality':
-							op_info = {'bl_idname': 'object.cloudrig_copy_property', 'prop_bone':prop_owner.name, 'prop_id':'Quality', 'icon':'WORLD'}
-						else:
-							op_info = prop_owner["op_"+prop_id]
-						if type(op_info)==str:
-							op_info = eval(op_info)
-						add_operator(row, op_info)
-				elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
-					# Vectors
-					row.prop(prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " "))
-				elif type(prop_value) == bool:
-					icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
-					row.prop(prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " "), toggle=True, icon=icon)
-				elif isinstance(prop_value, bpy.types.Object):
-					# Property is a pointer
-					row.prop_search(prop_owner, f'["{prop_id}"]', bpy.data, 'objects', icon='OBJECT_DATAMODE', text=prop_id)
+                prop_value = prop_owner[prop_id]
+                if type(prop_value) in [int, float]:
+                    row.prop(
+                        prop_owner,
+                        '["' + prop_id + '"]',
+                        slider=True,
+                        text=get_text(prop_owner, prop_id, prop_value),
+                    )
+                    if 'op_' + prop_id in prop_owner or prop_id == 'Quality':
+                        # HACK: Hard-code behaviour for a property named "Quality", so I don't have to add it on every character manually on Sprite Fright. This needs a more elegant design...
+                        if prop_id == 'Quality':
+                            op_info = {
+                                'bl_idname': 'object.cloudrig_copy_property',
+                                'prop_bone': prop_owner.name,
+                                'prop_id': 'Quality',
+                                'icon': 'WORLD',
+                            }
+                        else:
+                            op_info = prop_owner["op_" + prop_id]
+                        if type(op_info) == str:
+                            op_info = eval(op_info)
+                        add_operator(row, op_info)
+                elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
+                    # Vectors
+                    row.prop(
+                        prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " ")
+                    )
+                elif type(prop_value) == bool:
+                    icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+                    row.prop(
+                        prop_owner,
+                        f'["{prop_id}"]',
+                        text=prop_id.replace("_", " "),
+                        toggle=True,
+                        icon=icon,
+                    )
+                elif isinstance(prop_value, bpy.types.Object):
+                    # Property is a pointer
+                    row.prop_search(
+                        prop_owner,
+                        f'["{prop_id}"]',
+                        bpy.data,
+                        'objects',
+                        icon='OBJECT_DATAMODE',
+                        text=prop_id,
+                    )
 
-			# Drawing properties with hierarchy
-			if 'prop_hierarchy' in prop_owner:
-				prop_hierarchy = prop_owner['prop_hierarchy']
-				if type(prop_hierarchy)==str:
-					prop_hierarchy = eval(prop_hierarchy)
+            # Drawing properties with hierarchy
+            if 'prop_hierarchy' in prop_owner:
+                prop_hierarchy = prop_owner['prop_hierarchy']
+                if type(prop_hierarchy) == str:
+                    prop_hierarchy = eval(prop_hierarchy)
 
-				for parent_prop_name in prop_hierarchy.keys():
-					parent_prop_name_without_values = parent_prop_name
-					values = [1]	# Values which this property needs to be for its children to show. For bools this is always 1.
-					# Example entry in prop_hierarchy: ['Jacket-23' : ['Hood', 'Belt']] This would mean Hood and Belt are only visible when Jacket is either 2 or 3.
-					if '-' in parent_prop_name:
-						split = parent_prop_name.split('-')
-						parent_prop_name_without_values = split[0]
-						values = [int(val) for val in split[1]]	# Convert them to an int list ( eg. '23' -> [2, 3] )
+                for parent_prop_name in prop_hierarchy.keys():
+                    parent_prop_name_without_values = parent_prop_name
+                    values = [
+                        1
+                    ]  # Values which this property needs to be for its children to show. For bools this is always 1.
+                    # Example entry in prop_hierarchy: ['Jacket-23' : ['Hood', 'Belt']] This would mean Hood and Belt are only visible when Jacket is either 2 or 3.
+                    if '-' in parent_prop_name:
+                        split = parent_prop_name.split('-')
+                        parent_prop_name_without_values = split[0]
+                        values = [
+                            int(val) for val in split[1]
+                        ]  # Convert them to an int list ( eg. '23' -> [2, 3] )
 
-					parent_prop_value = prop_owner[parent_prop_name_without_values]
+                    parent_prop_value = prop_owner[parent_prop_name_without_values]
 
-					# Drawing parent prop, if it wasn't drawn yet.
-					add_prop(layout, prop_owner, parent_prop_name_without_values)
+                    # Drawing parent prop, if it wasn't drawn yet.
+                    add_prop(layout, prop_owner, parent_prop_name_without_values)
 
-					# Marking parent prop as done drawing.
-					props_done.append(parent_prop_name_without_values)
+                    # Marking parent prop as done drawing.
+                    props_done.append(parent_prop_name_without_values)
 
-					# Checking if we should draw children.
-					if parent_prop_value not in values: continue
+                    # Checking if we should draw children.
+                    if parent_prop_value not in values:
+                        continue
 
-					# Drawing children.
-					childrens_box = None
-					for child_prop_name in prop_hierarchy[parent_prop_name]:
-						if not childrens_box:
-							childrens_box = layout.box()
-						add_prop(childrens_box, prop_owner, child_prop_name)
+                    # Drawing children.
+                    childrens_box = None
+                    for child_prop_name in prop_hierarchy[parent_prop_name]:
+                        if not childrens_box:
+                            childrens_box = layout.box()
+                        add_prop(childrens_box, prop_owner, child_prop_name)
 
-				# Marking child props as done drawing. (Regardless of whether they were actually drawn or not, since if the parent is disabled, we don't want to draw them.)
-				for parent in prop_hierarchy.keys():
-					for child in prop_hierarchy[parent]:
-						props_done.append(child)
+                # Marking child props as done drawing. (Regardless of whether they were actually drawn or not, since if the parent is disabled, we don't want to draw them.)
+                for parent in prop_hierarchy.keys():
+                    for child in prop_hierarchy[parent]:
+                        props_done.append(child)
 
-			# Drawing properties without hierarchy
-			for prop_id in sorted(prop_owner.keys()):
-				if prop_id.startswith("_"): continue
-				if prop_id in props_done: continue
-				addon_props = {prop.identifier for prop in prop_owner.bl_rna.properties if prop.is_runtime}
-				if prop_id in addon_props: continue
+            # Drawing properties without hierarchy
+            for prop_id in sorted(prop_owner.keys()):
+                if prop_id.startswith("_"):
+                    continue
+                if prop_id in props_done:
+                    continue
+                addon_props = {
+                    prop.identifier
+                    for prop in prop_owner.bl_rna.properties
+                    if prop.is_runtime
+                }
+                if prop_id in addon_props:
+                    continue
 
-				add_prop(layout, prop_owner, prop_id)
+                add_prop(layout, prop_owner, prop_id)
 
-		# Add character properties to the UI, if any.
-		char_bone = get_char_bone(rig)
-		if char_bone:
-			add_props(char_bone)
-			layout.separator()
+        # Add character properties to the UI, if any.
+        char_bone = get_char_bone(rig)
+        if char_bone:
+            add_props(char_bone)
+            layout.separator()
 
-		# Add outfit properties to the UI, if any.
-		outfit_properties_bone = rig.pose.bones.get("Properties_Outfit_"+rig_props.outfit)
-		if outfit_properties_bone:
-			layout.prop(rig_props, 'outfit')
-			add_props(outfit_properties_bone)
+        # Add outfit properties to the UI, if any.
+        outfit_properties_bone = rig.pose.bones.get(
+            "Properties_Outfit_" + rig_props.outfit
+        )
+        if outfit_properties_bone:
+            layout.prop(rig_props, 'outfit')
+            add_props(outfit_properties_bone)
+
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
-	"""Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()."""
-	bl_parent_id = "CLOUDRIG_PT_settings"
-	bl_options = {'DEFAULT_CLOSED'}
+    """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
 
-	@classmethod
-	def poll(cls, context):
-		rig = is_active_cloudrig(context)
-		if not rig: return
-		if 'ui_data' not in rig.data: return
-		ui_data = rig.data['ui_data'].to_dict()
+    bl_parent_id = "CLOUDRIG_PT_settings"
+    bl_options = {'DEFAULT_CLOSED'}
 
-		if cls.bl_label in ui_data:
-			return True
+    @classmethod
+    def poll(cls, context):
+        rig = is_active_cloudrig(context)
+        if not rig:
+            return
+        if 'ui_data' not in rig.data:
+            return
+        ui_data = rig.data['ui_data'].to_dict()
 
-	def draw(self, context):
-		rig = is_active_cloudrig(context)
-		ui_data = rig.data['ui_data'].to_dict()
-		main_dict = ui_data[self.bl_label]		# bl_label is set in ensure_custom_panel().
+        if cls.bl_label in ui_data:
+            return True
 
-		draw_rig_settings_per_label(self.layout, rig, main_dict)
+    def draw(self, context):
+        rig = is_active_cloudrig(context)
+        ui_data = rig.data['ui_data'].to_dict()
+        main_dict = ui_data[self.bl_label]  # bl_label is set in ensure_custom_panel().
+
+        draw_rig_settings_per_label(self.layout, rig, main_dict)
+
 
 custom_panels = []
 
+
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
-	# Make sure name is alphanumeric
-	sane_name = re.sub(r'\W+', '', name)
-	full_name = "CLOUDRIG_PT_custom_"+sane_name.lower().replace(" ", "")
+    # Make sure name is alphanumeric
+    sane_name = re.sub(r'\W+', '', name)
+    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
 
-	if hasattr(bpy.types, full_name):
-		return
-	if not hasattr(bpy.types, parent_id):
-		parent_id  = "CLOUDRIG_PT_settings"
+    if hasattr(bpy.types, full_name):
+        return
+    if not hasattr(bpy.types, parent_id):
+        parent_id = "CLOUDRIG_PT_settings"
 
-	# Dynamically create a new class, so it can be registered as a sub-panel.
-	new_panel = type(
-		full_name
-		,(CLOUDRIG_PT_custom_panel,)
-		,{'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id}
-	)
+    # Dynamically create a new class, so it can be registered as a sub-panel.
+    new_panel = type(
+        full_name,
+        (CLOUDRIG_PT_custom_panel,),
+        {'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id},
+    )
 
-	bpy.utils.register_class(new_panel)
+    bpy.utils.register_class(new_panel)
 
-	# Save a reference so it can be un-registered, even though unregister() is never called.
-	global custom_panels
-	custom_panels.append(new_panel)
+    # Save a reference so it can be unregistered, even though unregister() is never called.
+    global custom_panels
+    custom_panels.append(new_panel)
+
 
 def ensure_custom_panels(_dummy1, _dummy2):
-	rig = is_active_cloudrig(bpy.context)
-	if not rig:
-		return
-	if 'ui_data' not in rig.data:
-		return
-	custom_panels = rig.data['ui_data'].to_dict()
+    rig = is_active_cloudrig(bpy.context)
+    if not rig:
+        return
+    if 'ui_data' not in rig.data:
+        return
+    custom_panels = rig.data['ui_data'].to_dict()
 
-	# We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
-	for panel_name in custom_panels.keys():
-		parent_id = "CLOUDRIG_PT_settings"
-		if 'parent_id' in custom_panels[panel_name]:
-			parent_id = custom_panels[panel_name]['parent_id']
-		ensure_custom_panel(panel_name, parent_id)
+    # We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
+    for panel_name in custom_panels.keys():
+        parent_id = "CLOUDRIG_PT_settings"
+        if 'parent_id' in custom_panels[panel_name]:
+            parent_id = custom_panels[panel_name]['parent_id']
+        ensure_custom_panel(panel_name, parent_id)
+
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_settings"
-	bl_label = "Settings"
+    bl_idname = "CLOUDRIG_PT_settings"
+    bl_label = "Settings"
 
-	@classmethod
-	def poll(cls, context):
-		return is_active_cloudrig(context)
+    @classmethod
+    def poll(cls, context):
+        return is_active_cloudrig(context)
 
-	def draw(self, context):
-		layout = self.layout
-		rig = is_active_cloudrig(context)
-		if not rig: return
+    def draw(self, context):
+        layout = self.layout
+        rig = is_active_cloudrig(context)
+        if not rig:
+            return
 
-		layout.operator(CLOUDRIG_OT_keyframe_all_settings.bl_idname, text='Keyframe All Settings', icon='KEYFRAME_HLT')
-		layout.operator(CLOUDRIG_OT_reset_rig.bl_idname, text='Reset Rig', icon='LOOP_BACK')
+        layout.operator(
+            POSE_OT_cloudrig_keyframe_all_settings.bl_idname,
+            text='Keyframe All Settings',
+            icon='KEYFRAME_HLT',
+        )
+        layout.operator(
+            POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
+        )
+
 
 #######################################
-############# Rig Layers ##############
+########### Rig Preferences ###########
 #######################################
 
-def draw_layers_ui(
-		layout: UILayout, 
-		rig: Object, 
-		*,
-		show_unnamed_selected_layers = False,
-		show_hidden_checkbox = True, 
-		layer_prop_owner = None, 
-		layer_prop_name = 'layers'
-	):
-	""" Draw rig layer toggles based on data stored in rig.data.rigify_layers. """
-	# This should be able to run even if the Rigify addon is disabled.
 
-	data = rig.data
-	if not hasattr(data, 'layers'):
-		layout.label(text="Rig Layers have been removed in Blender 4.0.")
-		return
-	if not layer_prop_owner:
-		layer_prop_owner = data
+class CloudRig_RigPreferences(bpy.types.PropertyGroup):
+    collection_ui_type: EnumProperty(
+        name="Collections UI Type",
+        description="Whether to use Blender's built-in Collections UI or CloudRig's",
+        items=[
+            ('DEFAULT', 'Default', "Use Blender's built-in collections UI"),
+            ('CLOUDRIG', 'CloudRig', "Use CloudRig's custom collections UI"),
+        ],
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
-	# Hidden layers will only work if CloudRig is enabled.
-	is_cloudrig_enabled = hasattr(data, 'cloudrig_parameters')
-	show_hidden = False
-	if is_cloudrig_enabled:
-		cloudrig = data.cloudrig_parameters
-		if show_hidden_checkbox:
-			layout.prop(cloudrig, 'show_layers_preview_hidden', text="Show Hidden Layers")
-		show_hidden = cloudrig.show_layers_preview_hidden
+    show_visibility: BoolProperty(
+        name="Hide",
+        description="Show the Hide setting",
+        default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_solo: BoolProperty(
+        name="Isolate",
+        description="Show the Isolate operator",
+        default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_select: BoolProperty(
+        name="Select",
+        description="Show the Select operator",
+        default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_editing: BoolProperty(
+        name="Editing",
+        description="Show collection editing functions",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_bone_count: BoolProperty(
+        name="Bone Count",
+        description="Show number of bones selected/assigned (including child collections)",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+    show_local_overrides: BoolProperty(
+        name="Show Link",
+        description="Show an icon indicating whether a collection is a local override. Locally created collections can be renamed, removed, sorted, and parented amongst each other, but the linked collection tree from the original file cannot be modified",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
-	if 'rigify_layers' not in data:
-		row = layout.row()
-		row.alert = True
-		row.label(text="Please initialize layer data in the Rigify Layer Names panel.")
-		return
-	layer_data = data['rigify_layers']
-	rigify_layers = [dict(l) for l in layer_data]
+    def update_collection_filter(self, context=None):
+        self.keep_active_collection_visible()
 
-	for i, l in enumerate(rigify_layers):
-		# When the Rigify addon is not enabled, finding the original index after sorting is impossible, so just store it.
-		l['index'] = i
-		if 'row' not in l:
-			l['row'] = 1
+    collection_filter: bpy.props.StringProperty(
+        name="Collection Filter",
+        description="Search collections by name (case-sensitive)",
+        update=update_collection_filter,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
-	sorted_layers = sorted(rigify_layers, key=lambda l: l['row'])
-	sorted_layers = [l for l in sorted_layers if 'name' in l and l['name']!=" "]
-	current_row_index = 0
-	for rigify_layer in sorted_layers:
-		is_selected = getattr(layer_prop_owner, layer_prop_name)[rigify_layer['index']]
-		if (rigify_layer['name'].strip() == "" \
-			and not (show_unnamed_selected_layers \
-			and is_selected)
-			):
-				continue
-		if rigify_layer['name'].startswith("$") and not show_hidden: 
-			continue
+    def keep_active_collection_visible(self):
+        colls = self.id_data.data.collections
+        all_colls = self.id_data.data.collections_all
+        if not colls:
+            return
 
-		if rigify_layer['row'] > current_row_index:
-			current_row_index = rigify_layer['row']
-			row = layout.row()
-		text = rigify_layer['name'] or "<UNNAMED>"
-		row.prop(layer_prop_owner, layer_prop_name, index=rigify_layer['index'], toggle=True, text=text)
+        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(
+            all_colls, self.collection_filter
+        )
 
-class CLOUDRIG_PT_layers(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_layers"
-	bl_label = "Layers"
+        new_idx = self.active_collection_index
 
-	@classmethod
-	def poll(cls, context):
-		rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
-		if not rig: return False
+        if new_idx == -1:
+            # Means no collection is active, which is allowed, when there is
+            # a name search filter entered, resulting in 0 matches.
+            colls.active_index = -1
+            return
+        if new_idx < 0:
+            new_idx = -1
+        if new_idx > len(all_colls) - 1:
+            new_idx = len(all_colls) - 1
 
-		if 'rigify_layers' in rig.data and len(rig.data['rigify_layers'][:]) > 0:
-			return True
+        if flt_flags[new_idx] == 0:
+            # If the new active element would be hidden, keep going up the list until a visible one is found.
+            while flt_flags[new_idx] == 0 and new_idx > 0:
+                new_idx -= 1
+        if flt_flags[new_idx] == 0:
+            # If that failed, go down the list instead.
+            new_idx = self.active_collection_index + 1
+            while flt_flags[new_idx] == 0 and new_idx < len(all_colls):
+                new_idx += 1
+        if flt_flags[new_idx] == 0:
+            # If that fails too, don't allow an active element.
+            new_idx = -1
 
-	def draw(self, context):
-		rig = is_active_cloudrig(context)
-		if not rig:
-			rig = is_active_cloud_metarig(context)
-		if not rig: return
-		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True)
+        if new_idx != self.active_collection_index:
+            # This will cause this function to get called again, but this time,
+            # none of the if-statements should trigger.
+            self.active_collection_index = new_idx
+            return
 
-class CLOUDRIG_OT_layer_select(bpy.types.Operator):
-	"""Select active layers for this armature using the named Rigify layers"""
-	bl_idname = "pose.cloudrig_select_layers"
-	bl_label = "Select Armature Layers"
-	bl_options = {'REGISTER', 'UNDO'}
+        colls.active_index = self.active_collection_index
 
-	@classmethod
-	def poll(cls, context):
-		return is_active_cloudrig(context) or is_active_cloud_metarig(context)
+    def sync_collection_names(self):
+        for coll in self.id_data.data.collections_all:
+            coll.cloudrig_info.name = coll.name
 
-	def invoke(self, context, event):
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
+    def update_active_collection_index(self, context=None):
+        self.sync_collection_names()
+        self.keep_active_collection_visible()
 
-	def draw(self, context):
-		rig = context.pose_object
-		if not rig:
-			rig = context.object
-		draw_layers_ui(self.layout, rig, show_hidden_checkbox=True)
+    active_collection_index: IntProperty(
+        name="Bone Collections",
+        description="Bone Collections",
+        update=update_active_collection_index,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
 
-	def execute(self, context):
-		return {'FINISHED'}
+
+#######################################
+###### Nested Bone Collections ########
+#######################################
+
+
+class CloudRigBoneCollection(bpy.types.PropertyGroup):
+    """Properties stored on BoneCollection.cloudrig_info.
+    Used for implementing and drawing the nested collections UIList.
+    Also some other functionality like Solo Collection and Preserve on Regenerate.
+    """
+
+    def get_collection(self) -> bpy.types.BoneCollection:
+        """Return the BoneCollection that this instance of this class belongs to."""
+        armature = self.id_data
+        for coll in armature.collections_all:
+            if coll.cloudrig_info == self:
+                return coll
+
+    def update_name(self, context):
+        """Runs when trying to change the name of this instance, which should stay in sync
+        with the collection it's masking."""
+
+        coll = self.get_collection()
+
+        # If the name didn't change, don't do anything.
+        if coll.name == self.name:
+            return
+
+        # If the collection is not editable, don't allow changing the name.
+        if not coll.is_editable:
+            self.name = coll.name
+            return
+
+        # Force the name to be unique.
+        if self.name in self.id_data.collections_all:
+            counter = 1
+            base_name = self.name
+            unique_name = base_name
+            while unique_name in self.id_data.collections_all:
+                unique_name = base_name + "." + str(counter).zfill(3)
+                counter += 1
+            # This will cause update_name() to be called again,
+            # but this time this `if` block won't trigger.
+            self.name = unique_name
+            return
+
+        # Update child collections to refer to the new name.
+        for other_coll in self.id_data.collections_all:
+            if other_coll.cloudrig_info.parent_name == coll.name:
+                other_coll.cloudrig_info.parent_name = self.name
+
+        # Metarig: Update bone sets with this collection assigned to refer to the new name.
+        if is_active_cloud_metarig(context):
+            rig = context.pose_object or context.active_object
+            for pb in rig.pose.bones:
+                comp = pb.cloudrig_component
+                for bone_set_name in comp.params.bone_sets.keys():
+                    bone_set = getattr(comp.params.bone_sets, bone_set_name)
+                    for bone_set_coll in bone_set.collections:
+                        if bone_set_coll.name == coll.name:
+                            bone_set_coll.name = self.name
+                            break
+
+        # Set the actual collection's name to be in sync.
+        coll.name = self.name
+
+    name: StringProperty(
+        name="Name",
+        description="Name of this bone collection",
+        update=update_name,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+
+    @property
+    def are_parents_visible(self):
+        parent = self.parent_collection
+        if not parent:
+            return True
+
+        while parent:
+            if not parent.is_visible:
+                return False
+            parent = parent.cloudrig_info.parent_collection
+
+        return True
+
+    parent_name: StringProperty(
+        name="Parent",
+        description="Parent of this bone collection",
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+
+    @property
+    def parent_collection(self) -> bpy.types.BoneCollection:
+        # TODO 4.2: Redundant, delete.
+        return self.get_collection().parent
+
+    @parent_collection.setter
+    def parent_collection(self, coll: bpy.types.BoneCollection):
+        # TODO 4.2: Redundant, delete.
+        self.get_collection().parent = coll
+        self.parent_name = coll.name
+
+    def unfold_parents(self):
+        # TODO 4.2: Redundant, delete
+        return self.get_collection().is_expanded
+
+    @property
+    def children(self) -> List[bpy.types.BoneCollection]:
+        # TODO 4.2: Redundant, delete.
+        return self.get_collection().children[:]
+
+    @property
+    def siblings(self):
+        """Includes self!"""
+        if not self.parent_collection:
+            all_colls = self.id_data.collections_all
+            return [
+                coll for coll in all_colls if not coll.cloudrig_info.parent_collection
+            ]
+        return self.parent_collection.cloudrig_info.children
+
+    @property
+    def children_recursive(self) -> List[bpy.types.BoneCollection]:
+        children = self.children[:]
+        for child in children:
+            children += child.cloudrig_info.children
+        return children
+
+    @property
+    def parents_recursive(self) -> List[bpy.types.BoneCollection]:
+        parents = []
+        parent = self.parent_collection
+        while parent:
+            parents.append(parent)
+            parent = parent.cloudrig_info.parent_collection
+        return parents
+
+    @property
+    def all_bones(self) -> List[bpy.types.Bone]:
+        # TODO 4.2: Redundant, delete.
+        return self.get_collection().bones_recursive
+
+    quick_access: BoolProperty(
+        name="Quick Access",
+        description="Toggle whether this collection should appear in the quick access list",
+        default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
+    )
+
+    @property
+    def are_parents_unfolded(self):
+        """Return False if any parent up the chain has is_expanded=False"""
+        if not self.parent_collection:
+            return True
+
+        return all([parent.is_expanded for parent in self.parents_recursive])
+
+    @property
+    def hierarchy_depth(self):
+        """Return number of parents"""
+        return len(self.parents_recursive)
+
+    preserve_on_regenerate: BoolProperty(
+        name="Preserve On Regenerate",
+        description="Should be enabled on manually defined collections, to preserve them and their assigned bones on re-generating from the metarig",
+        default=False,
+    )
+
+
+class CLOUDRIG_UL_collections(bpy.types.UIList):
+    """Draw bone collections with nesting support"""
+
+    @staticmethod
+    def draw_collection(context, layout, collection, idx):
+        cloudrig_info = collection.cloudrig_info
+        rig = context.pose_object or context.active_object
+        prefs = rig.cloudrig_prefs
+
+        row = layout.row(align=True)
+        if collection.parent:
+            split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
+            split.row()
+            row = split.row(align=True)
+            row = row.row(align=True)
+        if collection.children:
+            icon = 'DOWNARROW_HLT' if collection.is_expanded else 'RIGHTARROW'
+            row.prop(collection, 'is_expanded', text="", icon=icon, emboss=False)
+        else:
+            row.label(text="", icon='BLANK1')
+
+        if prefs.show_local_overrides and collection.is_local_override:
+            row.prop(
+                cloudrig_info,
+                'name',
+                text="",
+                icon='LIBRARY_DATA_OVERRIDE',
+                emboss=False,
+            )
+        else:
+            row.prop(cloudrig_info, 'name', text="", emboss=False)
+
+        if context.mode != 'EDIT_ARMATURE':
+            direct_selected_bones = [
+                b
+                for b in collection.bones
+                if not b.hide
+                and any([c.is_visible for c in b.collections])
+                and b.select
+            ]
+            indirect_bones = cloudrig_info.all_bones
+            indirect_visible_bones = [
+                b
+                for b in indirect_bones
+                if not b.hide and any([c.is_visible for c in b.collections])
+            ]
+            indirect_selected_bones = [b for b in indirect_visible_bones if b.select]
+
+            if direct_selected_bones:
+                row.label(text="", icon='LAYER_ACTIVE')
+            elif indirect_selected_bones:
+                row.label(text="", icon='LAYER_USED')
+
+            if prefs.show_bone_count:
+                row.label(
+                    text=f"{len(indirect_selected_bones)}/{len(indirect_bones)}",
+                    icon='BONE_DATA',
+                )
+
+        vis_row = row.row(align=True)
+        vis_row.operator_context = 'INVOKE_DEFAULT'
+        vis_row.enabled = cloudrig_info.are_parents_visible
+        if prefs.show_visibility:
+            icon = 'HIDE_OFF' if collection.is_visible else 'HIDE_ON'
+            vis_row.prop(collection, 'is_visible', text="", icon=icon)
+        if prefs.show_select:
+            sel_op = vis_row.operator(
+                POSE_OT_cloudrig_collection_select.bl_idname,
+                text="",
+                icon='MOUSE_LMB',
+            )
+            sel_op.collection_name = collection.name
+            sel_op.reveal_bones = False
+        row = row.row(align=True)
+        if prefs.show_solo:
+            icon = 'SOLO_ON' if collection.is_solo else 'SOLO_OFF'
+            row.prop(collection, 'is_solo', text="", icon=icon)
+        if prefs.show_editing:
+            row.separator()
+            if collection.is_editable:
+                row.operator(
+                    POSE_OT_cloudrig_collection_parent_set.bl_idname,
+                    text="",
+                    icon='CON_CHILDOF',
+                ).coll_idx = idx
+
+            icon = 'RECORD_ON' if cloudrig_info.quick_access else 'RECORD_OFF'
+            row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
+            if is_active_cloudrig(context) and find_metarig_of_rig(
+                context, context.active_object
+            ):
+                icon = (
+                    'FAKE_USER_ON'
+                    if cloudrig_info.preserve_on_regenerate
+                    else 'FAKE_USER_OFF'
+                )
+                row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
+        return row
+
+    def draw_item(
+        self,
+        context,
+        layout,
+        armature,
+        item,
+        _icon_value,
+        _active_data,
+        _active_propname,
+    ):
+        idx = armature.collections_all.find(item.name)
+        self.draw_collection(context, layout, item, idx)
+
+    def draw_filter(self, context, layout):
+        """Don't draw sorting buttons here, since the displayed order should ALWAYS
+        show the order in which the rig components will be executed during generation.
+        """
+        rig = context.pose_object or context.active_object
+        layout.prop(rig.cloudrig_prefs, "collection_filter", text="")
+
+    @staticmethod
+    def get_collection_order(all_collections):
+        # Order collections by CloudRig hierarchy, such that children come after their
+        # parents, but the original order is otherwise preserved.
+
+        # Find collections without any parent
+        root_colls = [coll for coll in all_collections if not coll.parent]
+        sorted_colls = []
+
+        def add_children_recursive(parent_coll):
+            sorted_colls.append(parent_coll)
+            for child in parent_coll.cloudrig_info.children:
+                add_children_recursive(child)
+
+        for root_coll in root_colls:
+            add_children_recursive(root_coll)
+
+        # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
+        return [sorted_colls.index(coll) for coll in all_collections]
+
+    @staticmethod
+    def get_filter_flags(all_collections, filter_name):
+        flt_flags = [1 << 30] * len(all_collections)
+        # Filtering by name search.
+        if filter_name:
+            helper_funcs = bpy.types.UI_UL_list
+            flt_flags = helper_funcs.filter_items_by_name(
+                filter_name,
+                1 << 30,
+                all_collections,
+                "name",
+                reverse=False,
+            )
+
+        # Filter out collections whose parents are collapsed
+        return [
+            flag * int(all_collections[i].cloudrig_info.are_parents_unfolded)
+            for i, flag in enumerate(flt_flags)
+        ]
+
+    def filter_items(self, context, data, propname):
+        all_collections = getattr(data, propname)
+        rig = context.pose_object or context.active_object
+
+        flt_flags = self.get_filter_flags(
+            all_collections, rig.cloudrig_prefs.collection_filter
+        )
+        flt_neworder = self.get_collection_order(all_collections)
+
+        return flt_flags, flt_neworder
+
+
+def draw_cloudrig_collections(self, context):
+    layout = self.layout
+    layout.use_property_split = True
+    layout.use_property_decorate = False
+
+    rig = context.pose_object or context.active_object
+    prefs = rig.cloudrig_prefs
+    active_coll = rig.data.collections.active
+
+    if context.pose_object:
+        prop_owner = 'pose_object'
+    else:
+        prop_owner = 'active_object'
+
+    list_col = draw_ui_list(
+        layout,
+        context,
+        class_name='CLOUDRIG_UL_collections',
+        list_path=prop_owner + ".data.collections_all",
+        active_index_path=prop_owner + '.cloudrig_prefs.active_collection_index',
+        insertion_operators=False,
+        move_operators=False,
+        unique_id='CloudRig Nested Collections UI',
+    )
+    list_col.popover(
+        panel="CLOUDRIG_PT_collections_filter",
+        text="",
+        icon='FILTER',
+    )
+
+    list_col.separator()
+
+    if not prefs.show_editing:
+        list_col.operator(
+            POSE_OT_cloudrig_collections_reveal_all.bl_idname,
+            text="",
+            icon='HIDE_OFF',
+            emboss=False,
+        )
+        list_col.operator(
+            'armature.collection_unsolo_all',
+            text="",
+            icon='SOLO_OFF',
+            emboss=False,
+        )
+        return
+
+    list_col.operator(POSE_OT_cloudrig_collection_add.bl_idname, text="", icon='ADD')
+
+    list_col.operator(
+        POSE_OT_cloudrig_collection_delete.bl_idname, text="", icon='REMOVE'
+    ).mode = 'ACTIVE'
+    list_col.separator()
+
+    row = list_col.row()
+    row.menu(CLOUDRIG_MT_collections_specials.bl_idname, text="", icon='DOWNARROW_HLT')
+
+    list_col.separator()
+
+    if not active_coll:
+        return
+
+    siblings, sibling_idx = (
+        POSE_OT_cloudrig_collection_reorder.get_siblings_and_target_idx(
+            'UP', active_coll
+        )
+    )
+    row = list_col.row()
+    row.enabled = sibling_idx >= 0
+    row.operator(
+        POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon='TRIA_UP'
+    ).direction = 'UP'
+
+    row = list_col.row()
+    row.enabled = sibling_idx + 2 < len(siblings)
+    row.operator(
+        POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon='TRIA_DOWN'
+    ).direction = 'DOWN'
+
+    row = layout.row()
+    if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
+        row.enabled = False
+    sub = row.row(align=True)
+    sub.operator(POSE_OT_cloudrig_collection_assign.bl_idname, text="Assign").assign = (
+        True
+    )
+    sub.operator(
+        POSE_OT_cloudrig_collection_assign.bl_idname, text="Unassign"
+    ).assign = False
+
+    sub = row.row(align=True)
+    sel_op = sub.operator(POSE_OT_cloudrig_collection_select.bl_idname, text="Select")
+    sel_op.select = True
+    sel_op.collection_name = active_coll.name
+
+    desel_op = sub.operator(
+        POSE_OT_cloudrig_collection_select.bl_idname, text="Deselect"
+    )
+    desel_op.select = False
+    desel_op.collection_name = active_coll.name
+
+
+class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_collections_sidebar"
+    bl_label = "Bone Collections"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    on_metarigs = True
+    draw = draw_cloudrig_collections
+
+
+class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'WINDOW'
+    bl_label = "Filter"
+    bl_options = {'INSTANCED'}
+
+    def draw(self, context):
+        layout = self.layout
+        obj = context.pose_object or context.active_object
+        prefs = obj.cloudrig_prefs
+        row = layout.row(align=True)
+        row.prop(prefs, 'show_visibility', text="", icon='HIDE_OFF')
+        row.prop(prefs, 'show_solo', text="", icon='SOLO_OFF')
+        row.prop(prefs, 'show_select', text="", icon='RESTRICT_SELECT_OFF')
+
+        row.separator()
+        row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
+        row.prop(prefs, 'show_bone_count', text="", icon='GROUP_BONE')
+        if obj.data.override_library:
+            row.prop(
+                prefs, 'show_local_overrides', text="", icon='LIBRARY_DATA_OVERRIDE'
+            )
+
+
+class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
+    bl_label = "Collection Operators"
+    bl_idname = 'CLOUDRIG_MT_collections_specials'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator(
+            POSE_OT_cloudrig_collections_reveal_all.bl_idname,
+            text="Show All",
+            icon='HIDE_OFF',
+        )
+        layout.operator(
+            'armature.collection_unsolo_all',
+            text="Unsolo All",
+            icon='SOLO_OFF',
+        )
+        layout.separator()
+        layout.operator(
+            POSE_OT_cloudrig_collection_assign.bl_idname,
+            text="Unassign Selected Bones from All Collections",
+            icon='REMOVE',
+        )
+        layout.operator(
+            POSE_OT_cloudrig_collection_delete.bl_idname,
+            text="Delete Hierarchy of Collections",
+            icon='OUTLINER',
+        ).mode = 'HIERARCHY'
+        layout.operator(
+            POSE_OT_cloudrig_collection_delete.bl_idname,
+            text="Delete All Local Collections",
+            icon='TRASH',
+        ).mode = 'ALL'
+        layout.separator()
+        layout.operator(
+            POSE_OT_cloudrig_collection_clipboard_copy.bl_idname,
+            text="Copy Visible Collections to Clipboard",
+            icon='COPYDOWN',
+        )
+        layout.operator(
+            POSE_OT_cloudrig_collection_clipboard_paste.bl_idname,
+            text="Paste Collections from Clipboard",
+            icon='PASTEDOWN',
+        )
+
+
+class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
+    """Quick select menu, so favourite bone collections can be selected quickly with a hotkey"""
+
+    bl_label = "Quick Select"
+    bl_idname = 'CLOUDRIG_MT_collections_quick_select'
+
+    @classmethod
+    def poll(cls, context):
+        return is_active_cloudrig(context)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator_context = "INVOKE_DEFAULT"
+
+        rig = context.pose_object or context.active_object
+
+        def collections_recursive(colls):
+            """This has a different order from collections_all, which aligns with
+            user expectation (UI top to bottom order)."""
+            for coll in colls:
+                yield coll
+                if coll.children:
+                    yield from collections_recursive(coll.children)
+
+        for coll in collections_recursive(rig.data.collections):
+            if coll.cloudrig_info.quick_access:
+                op = layout.operator(
+                    POSE_OT_cloudrig_collection_select.bl_idname,
+                    text=coll.name,
+                    icon='RESTRICT_SELECT_OFF',
+                )
+                op.collection_name = coll.name
+                op.select = True
+                op.reveal_bones = False
+
+
+class POSE_OT_cloudrig_collections_reveal_all(bpy.types.Operator):
+    """Reveal all collections"""
+
+    bl_idname = "pose.cloudrig_collections_reveal_all"
+    bl_label = "Show All Collections"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        for coll in rig.data.collections_all:
+            coll.is_visible = True
+
+        return {'FINISHED'}
+
+
+@contextlib.contextmanager
+def pose_mode(rig):
+    if rig.mode == 'POSE':
+        yield
+
+    else:
+        mode_bkp = rig.mode
+        bpy.ops.object.mode_set(mode='POSE')
+        yield
+        bpy.ops.object.mode_set(mode=mode_bkp)
+
+
+class POSE_OT_cloudrig_collection_select(bpy.types.Operator):
+    """Reveal and Select this collection, its children, and all bones within.\n\nShift: Extend selection. \nCtrl: Mirror selection. \nAlt: Deselect"""
+
+    bl_idname = "pose.cloudrig_collection_select"
+    bl_label = "Select Bones of Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    collection_name: StringProperty(
+        name="Name",
+        description="Name of the collection to operate on",
+        options={'SKIP_SAVE'},
+    )
+    extend_selection: BoolProperty(
+        name="Expand Selection",
+        description="Whether the existing selection should be preserved",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+    select: BoolProperty(
+        name="Selection State",
+        description="Whether the collection's bones should be selected or deselected",
+        default=True,
+        options={'SKIP_SAVE'},
+    )
+    reveal_bones: BoolProperty(
+        name="Reveal Bones",
+        description="Whether bones of the collection should be un-hidden",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+    flip: BoolProperty(
+        name="Flip",
+        description="Whether to operate on the opposite side of this collection's bones",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+
+    @classmethod
+    def poll(cls, context):
+        ob = context.pose_object or context.active_object
+        return ob and ob.type == 'ARMATURE'
+
+    def invoke(self, context, event):
+        self.extend_selection = event.shift
+        self.select = not event.alt
+        self.flip = event.ctrl
+
+        return self.execute(context)
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+
+        collection = rig.data.collections_all.get(self.collection_name)
+
+        if not collection:
+            collection = rig.data.collections.active
+        if not collection:
+            return {'CANCELLED'}
+
+        reveal_colls = [collection]
+        if self.select and self.reveal_bones:
+            reveal_colls += collection.cloudrig_info.children_recursive
+
+        for reveal_coll in reveal_colls:
+            reveal_coll.is_visible = True
+
+        with pose_mode(rig):
+            if not self.extend_selection and self.select:
+                for bone in rig.data.bones:
+                    bone.select = False
+
+            for bone in collection.cloudrig_info.all_bones:
+                if self.flip:
+                    bone = rig.data.bones.get(bpy.utils.flip_name(bone.name))
+                    if not bone:
+                        continue
+                if self.reveal_bones and self.select:
+                    bone.hide = False
+                bone.select = self.select
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
+    """Set parent collection"""
+
+    bl_idname = "pose.cloudrig_collection_parent_set"
+    bl_label = "Set Parent Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    coll_idx: IntProperty(
+        name="Collection Index",
+        description="Index of the collection to change the parent of",
+        options={'SKIP_SAVE'},
+    )
+    parent_name: StringProperty(
+        name="Parent",
+        description="Parent to set as this bone collection's parent",
+    )
+
+    def invoke(self, context, _event):
+        rig = context.pose_object or context.active_object
+        coll = rig.data.collections_all[self.coll_idx]
+        if not coll.is_editable:
+            self.report({'ERROR'}, "Cannot change the parent of linked collections.")
+            return {'CANCELLED'}
+        if coll.parent:
+            self.parent_name = coll.parent.name
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        rig = context.pose_object or context.active_object
+        layout.prop_search(self, 'parent_name', rig.data, 'collections_all')
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        all_colls = rig.data.collections_all
+        parent = all_colls.get(self.parent_name)
+        coll = all_colls[self.coll_idx]
+
+        if coll.parent == parent:
+            self.report({'INFO'}, "This parent is already set. Nothing was done.")
+            return {'CANCELLED'}
+        if coll.parent == coll:
+            self.report({'ERROR'}, "Cannot set a collection's parent to be itself.")
+            return {'CANCELLED'}
+        if parent and not parent.is_editable:
+            self.report(
+                {'ERROR'},
+                "Parenting to a linked collection is currently not supported.",
+            )
+            return {'CANCELLED'}
+        if not coll.is_editable:
+            self.report(
+                {'ERROR'},
+                "Changing parent of linked collection is currently not supported.",
+            )
+            return {'CANCELLED'}
+
+        coll.parent = parent
+        rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
+
+        self.report({'INFO'}, "Collection parent set.")
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_delete(bpy.types.Operator):
+    """Remove the active bone collection"""
+
+    bl_idname = "pose.cloudrig_collection_delete"
+    bl_label = "Remove Bone Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    mode: EnumProperty(
+        items=[
+            ('ACTIVE', "Active", "Delete the Active collection"),
+            ('HIERARCHY', "Hierarchy", "Delete the Active collection and its children"),
+            ('ALL', "All", "Delete all local collections"),
+        ]
+    )
+
+    @classmethod
+    def poll(cls, context):
+        rig = context.object
+        active_coll = rig.data.collections.active
+        if active_coll:
+            if not active_coll.is_editable:
+                cls.poll_message_set("Cannot delete linked collection")
+                return False
+            return True
+
+    def execute(self, context):
+        if self.mode == 'ACTIVE':
+            return self.delete_active(context)
+        elif self.mode == 'HIERARCHY':
+            return self.delete_hierarchy(context)
+        elif self.mode == 'ALL':
+            return self.delete_all(context)
+
+    def delete_active(self, context):
+        rig = context.pose_object or context.active_object
+        coll = rig.data.collections.active
+        if not coll.is_editable:
+            self.report({'ERROR'}, "Cannot delete linked collection.")
+            return {'CANCELLED'}
+
+        rig.data.collections.remove(coll)
+
+        rig.cloudrig_prefs.active_collection_index -= 1
+        return {'FINISHED'}
+
+    def delete_hierarchy(self, context):
+        rig = context.pose_object or context.active_object
+        colls = rig.data.collections
+        if not colls.active.is_editable:
+            self.report({'ERROR'}, "Cannot remove linked collection.")
+            return {'CANCELLED'}
+
+        for child in colls.active.cloudrig_info.children_recursive:
+            colls.remove(child)
+        colls.remove(colls.active)
+
+        rig.cloudrig_prefs.active_collection_index -= 1
+        return {'FINISHED'}
+
+    def delete_all(self, context):
+        rig = context.pose_object or context.active_object
+
+        for coll in rig.data.collections_all[:]:
+            if coll.is_editable:
+                rig.data.collections.remove(coll)
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_add(bpy.types.Operator):
+    """Add a new bone collection"""
+
+    bl_idname = "pose.cloudrig_collection_add"
+    bl_label = "Add Bone Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+        if rig.data.override_library:
+            rig.data.override_library.is_system_override = False
+        colls = rig.data.collections
+        all_colls = rig.data.collections_all
+        active_coll = colls.active
+        active_idx = colls.active_index
+
+        parent_name = ""
+        if active_coll:
+            parent_name = active_coll.cloudrig_info.parent_name
+
+        coll = colls.new(name="Collection")
+        coll.parent = active_coll.parent
+        coll.cloudrig_info.parent_name = parent_name
+        coll_idx = all_colls.find(coll.name)
+        colls.move(coll_idx, active_idx + 1)
+
+        coll.cloudrig_info.unfold_parents()
+
+        rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_reorder(bpy.types.Operator):
+    """Move the collection in the list"""
+
+    bl_idname = "pose.cloudrig_collection_reorder"
+    bl_label = "Move Active Bone Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    direction: EnumProperty(
+        name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")]
+    )
+
+    @classmethod
+    def poll(cls, context):
+        rig = context.object
+        active_coll = rig.data.collections.active
+        if active_coll:
+            if not active_coll.is_editable:
+                cls.poll_message_set(
+                    "Re-ordering the linked collection tree is currently not supported"
+                )
+                return False
+            return True
+
+    @classmethod
+    def description(cls, context, props):
+        direction = "up" if props.direction == 'UP' else "down"
+        return f"Move active collection {direction} in the list"
+
+    @staticmethod
+    def get_siblings_and_target_idx(direction, coll):
+        siblings = coll.cloudrig_info.siblings
+
+        for sibling_idx, sibling in enumerate(siblings):
+            if sibling == coll:
+                break
+
+        delta = 1 if direction == 'DOWN' else -1
+        sibling_idx += delta
+
+        return siblings, sibling_idx
+
+    def execute(self, context):
+        rig = context.pose_object or context.active_object
+
+        collections = rig.data.collections
+
+        old_idx = collections.active_index
+        new_idx = old_idx + 1
+        if self.direction == 'UP':
+            new_idx = old_idx - 1
+
+        collections.move(old_idx, new_idx)
+
+        rig.cloudrig_prefs.active_collection_index = rig.data.collections_all.find(
+            collections.active.name
+        )
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
+    """Assign to collections"""
+
+    bl_idname = "pose.cloudrig_collection_assign"
+    bl_label = "(Un)Assign Bones to Collection"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    assign: BoolProperty(default=True)
+    all_collections: BoolProperty(default=False)
+    assign_to_children: BoolProperty(default=False)
+
+    @classmethod
+    def poll(cls, context):
+        rig = context.pose_object or context.active_object
+        return rig and rig.type == 'ARMATURE' and rig.data.collections.active
+
+    @classmethod
+    def description(cls, context, props):
+        words = ("Assign", "to") if props.assign else ("Unassign", "from")
+        colls = "all collections" if props.all_collections else "active collection"
+        return f"{words[0]} selected bones {words[1]} {colls}"
+
+    def execute(self, context):
+        rig = context.active_object
+        colls = [rig.data.collections.active]
+        if self.assign_to_children:
+            colls += rig.data.collections.active.cloudrig_info.children_recursive
+
+        if self.all_collections:
+            colls = rig.data.collections_all
+
+        with pose_mode(rig):
+            if context.selected_bones:
+                pbs = [rig.pose.bones.get(eb.name) for eb in context.selected_bones]
+            else:
+                pbs = context.selected_pose_bones
+            for coll in colls:
+                for pb in pbs:
+                    if self.assign:
+                        coll.assign(pb.bone)
+                    else:
+                        coll.unassign(pb.bone)
+
+        # Report pretty info; Assigned/Unassigned, to/from, number of bones and collections,
+        # or use the name if just 1.
+        words = ("Assigned", "to") if self.assign else ("Unassigned", "from")
+        bones = f"{len(pbs)} bones" if len(pbs) > 0 else pbs[0].name
+        colls = f"{len(colls)} collections" if len(colls) > 0 else colls[0].name
+        self.report({'INFO'}, f"{words[0]} {bones} {words[1]} {colls}.")
+
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_clipboard_copy(bpy.types.Operator):
+    """Copy visible collections to Blender clipboard"""
+
+    bl_idname = "pose.cloudrig_collection_clipboard_copy"
+    bl_label = "Copy Visible Collections To Clipboard"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        import json
+
+        rig = context.pose_object or context.active_object
+
+        json_obj = py_collections.defaultdict(dict)
+        counter = 0
+        for coll in rig.data.collections_all:
+            if coll.is_visible:
+                counter += 1
+                json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
+                json_obj[coll.name]['cloudrig_info'] = coll['cloudrig_info'].to_dict()
+
+        if counter == 0:
+            self.report({'ERROR'}, "No visible collections to copy.")
+            return {'CANCELLED'}
+
+        context.window_manager.clipboard = json.dumps(json_obj)
+
+        self.report({'INFO'}, f"Copied {counter} collections to Blender clipboard.")
+        return {'FINISHED'}
+
+
+class POSE_OT_cloudrig_collection_clipboard_paste(bpy.types.Operator):
+    """Paste collections from the Blender clipboard"""
+
+    bl_idname = "pose.cloudrig_collection_clipboard_paste"
+    bl_label = "Paste Collections From Clipboard"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    overwrite_existing: BoolProperty(default=True)
+
+    def execute(self, context):
+        counter = 0
+        try:
+            json_obj = json.loads(context.window_manager.clipboard)
+            rig = context.pose_object or context.active_object
+            collections = rig.data.collections
+            collections_all = rig.data.collections_all
+
+            for coll_name, coll_data in json_obj.items():
+                coll = collections_all.get(coll_name)
+
+                if not coll or not self.overwrite_existing:
+                    coll = collections.new(coll_name)
+                    coll.cloudrig_info.name = coll.name
+
+                if type(coll_data) == list:
+                    # Selection Set.
+                    bone_names = coll_data
+                    coll.cloudrig_info.quick_access = True
+                    coll.cloudrig_info.preserve_on_regenerate = True
+                elif type(coll_data) == dict:
+                    # CloudRig Collection.
+                    cloudrig_info = coll_data['cloudrig_info']
+                    bone_names = coll_data['bone_names']
+                    coll['cloudrig_info'] = cloudrig_info
+
+                for bone_name in bone_names:
+                    pb = rig.pose.bones.get(bone_name)
+                    if not pb:
+                        continue
+                    coll.assign(pb)
+                counter += 1
+
+        except Exception as e:
+            self.report(
+                {'ERROR'},
+                'The clipboard does not contain Bone Collections or Selection Sets.',
+            )
+            raise e
+
+        if counter == 0:
+            self.report({'ERROR'}, "No collections in clipboard to be pasted.")
+            return {'CANCELLED'}
+
+        self.report({'INFO'}, f"Pasted {counter} collections from clipboard.")
+        return {'FINISHED'}
+
+
+def builtin_collections_draw_override(self, context):
+    if is_active_cloud_metarig(context) or is_active_cloudrig(context):
+        self.layout.prop(context.object.cloudrig_prefs, 'collection_ui_type', expand=True)
+
+        if context.object.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
+            return draw_cloudrig_collections(self, context)
+
+    return bpy.types.DATA_PT_bone_collections.draw_bkp(self, context)
+
 
 #######################################
 ############## Hotkeys ################
 #######################################
 
+
 class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
-	bl_idname = "CLOUDRIG_PT_hotkeys"
-	bl_label = "Hotkeys"
+    bl_idname = "CLOUDRIG_PT_hotkeys"
+    bl_label = "Hotkeys"
 
-	@classmethod
-	def poll(cls, context):
-		rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
-		return rig is not None
+    on_metarigs = True
+    keymap_items = []
 
-	@staticmethod
-	def draw_kmi(km, kmi, layout):
-		"""A simplified version of draw_kmi from rna_keymap_ui.py."""
+    @staticmethod
+    def draw_kmi(km, kmi, layout):
+        """A simplified version of draw_kmi from rna_keymap_ui.py."""
 
-		map_type = kmi.map_type
+        map_type = kmi.map_type
 
-		col = layout.column()
+        col = layout.column()
 
-		split = col.split(factor=0.7)
+        split = col.split(factor=0.7)
 
-		# header bar
-		row = split.row(align=True)
-		row.prop(kmi, "active", text="", emboss=False)
-		row.label(text=km.name+": " + kmi.name)
+        # header bar
+        row = split.row(align=True)
+        row.prop(kmi, "active", text="", emboss=False)
+        row.label(text=km.name + ": " + kmi.name)
 
-		row = split.row(align=True)
-		row.enabled = kmi.active
-		row.prop(kmi, "type", text="", full_event=True)
+        row = split.row(align=True)
+        row.enabled = kmi.active
+        row.prop(kmi, "type", text="", full_event=True)
 
-		if kmi.is_user_modified:
-			row.operator("preferences.keyitem_restore", text="", icon='BACK').item_id = kmi.id
+        if kmi.is_user_modified:
+            row.operator(
+                "preferences.keyitem_restore", text="", icon='BACK'
+            ).item_id = kmi.id
 
-	def draw(self, context):
-		layout = self.layout
-		kc = context.window_manager.keyconfigs.user
-		# NOTE: It's very important that we do NOT expose any UI pointing at
-		# keyconfigs.addons. Messing with that copy of the hotkeys after registration
-		# results in ghost hotkeys and very hard to troubleshoot issues.
+    def draw(self, context):
+        layout = self.layout
 
-		for km in kc.keymaps:
-			for kmi in km.keymap_items:
-				if (
-					'cloudrig' in kmi.idname
-					or 'rigify' in kmi.idname
-					or kmi.idname == "wm.call_menu_pie" and 'CLOUDRIG' in kmi.properties.name
-				):
-					col = layout.column()
-					col.context_pointer_set("keymap", km)
-					self.draw_kmi(km, kmi, col)
+        for addon_kc, km, kmi in type(self).keymap_items:
+            user_kc = context.window_manager.keyconfigs.user
 
-def register_hotkey(bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}):
-	wm = bpy.context.window_manager
-	addon_keyconfig = wm.keyconfigs.addon
-	if not addon_keyconfig:
-		# This happens when running Blender in background mode.
-		return
-	keymaps = addon_keyconfig.keymaps
+            user_km = user_kc.keymaps.get(km.name)
+            if not user_km:
+                continue
+            user_kmi = user_km.keymap_items.get(kmi.idname)
+            if not user_kmi:
+                continue
 
-	km = keymaps.get(key_cat)
-	if not km:
-		km = keymaps.new(name=key_cat, space_type=space_type)
+            col = layout.column()
+            col.context_pointer_set("keymap", user_km)
+            self.draw_kmi(user_km, user_kmi, col)
 
-	if bl_idname not in km.keymap_items:
-		kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
 
-		for key in op_kwargs:
-			value = op_kwargs[key]
-			setattr(kmi.properties, key, value)
+def register_hotkey(
+    bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}
+):
+    wm = bpy.context.window_manager
+    addon_keyconfig = wm.keyconfigs.addon
+    if not addon_keyconfig:
+        # This happens when running Blender in background mode.
+        return
 
-# Ensure hotkeys, whether loaded as an addon or part of a rig.
-register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-	,key_cat = 'Pose'
-	,space_type = 'VIEW_3D'
-)
-register_hotkey(CLOUDRIG_OT_layer_select.bl_idname
-	,hotkey_kwargs = {'type': 'M', 'value': 'PRESS', 'shift': True}
-	,key_cat = 'Armature'
-)
+    # If it already exists, don't create it again.
+    for existing_kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+        kc, km, kmi = existing_kmi
+        if km.name == key_cat and kmi.idname == bl_idname:
+            # NOTE: I'm pretty sure there are cases of corrupted KeyMapItems 
+            # where accessing .properties segfaults.
+            # NOTE: This prevents duplicates of the same operator, even if it's
+            # trying to register a different key combo.
+            if kmi.properties and dict(kmi.properties) == op_kwargs:
+                return
+            elif not kmi.properties and not op_kwargs:
+                return
+
+    keymaps = addon_keyconfig.keymaps
+
+    km = keymaps.get(key_cat)
+    if not km:
+        km = keymaps.new(name=key_cat, space_type=space_type)
+
+    kmi = km.keymap_items.new(bl_idname, **hotkey_kwargs)
+    bpy.types.CLOUDRIG_PT_hotkeys.keymap_items.append((addon_keyconfig, km, kmi))
+
+    for key in op_kwargs:
+        value = op_kwargs[key]
+        setattr(kmi.properties, key, value)
+
 
 #######################################
 ############## Register ###############
 #######################################
 
 classes = (
-	CLOUDRIG_OT_switch_parent_bake
-	,CLOUDRIG_OT_ikfk_bake
-	,CLOUDRIG_OT_snap_mapped_bake
-	,CLOUDRIG_OT_snap_bake
-
-	,CLOUDRIG_OT_keyframe_all_settings
-	,CLOUDRIG_OT_copy_property
-	,CLOUDRIG_OT_reset_rig
-
-	,CLOUDRIG_OT_delete_override_leftovers
-	,CLOUDRIG_OT_override_fix_name
-	,CLOUDRIG_PT_troubleshoot_overrides
-
-	,CloudRig_Properties
-
-	,CLOUDRIG_PT_character
-	,CLOUDRIG_PT_layers
-	,CLOUDRIG_OT_layer_select
-	,CLOUDRIG_PT_settings
-
-	,CLOUDRIG_PT_hotkeys
+    CloudRig_Properties,
+    CloudRig_RigPreferences,
+    CloudRigBoneCollection,
+    CLOUDRIG_UL_collections,
+    CLOUDRIG_PT_character,
+    CLOUDRIG_PT_settings,
+    CLOUDRIG_PT_hotkeys,
+    CLOUDRIG_PT_collections_sidebar,
+    CLOUDRIG_PT_collections_filter,
+    CLOUDRIG_MT_collections_specials,
+    CLOUDRIG_MT_collections_quick_select,
+    OBJECT_OT_cloudrig_copy_property,
+    POSE_OT_cloudrig_switch_parent_bake,
+    POSE_OT_cloudrig_toggle_ikfk_bake,
+    POSE_OT_cloudrig_snap_mapped_bake,
+    POSE_OT_cloudrig_snap_bake,
+    POSE_OT_cloudrig_keyframe_all_settings,
+    POSE_OT_cloudrig_reset,
+    POSE_OT_cloudrig_collections_reveal_all,
+    POSE_OT_cloudrig_collection_select,
+    POSE_OT_cloudrig_collection_parent_set,
+    POSE_OT_cloudrig_collection_delete,
+    POSE_OT_cloudrig_collection_add,
+    POSE_OT_cloudrig_collection_reorder,
+    POSE_OT_cloudrig_collection_assign,
+    POSE_OT_cloudrig_collection_clipboard_copy,
+    POSE_OT_cloudrig_collection_clipboard_paste,
 )
 
+
+def is_registered(cls):
+    """Returns whether a BPy class is registered.
+    May not always work, needs more testing..."""
+    if issubclass(cls, bpy.types.Operator):
+        category, op_name = cls.bl_idname.split(".")
+        if hasattr(bpy.ops, category):
+            category = getattr(bpy.ops, category)
+            return op_name in dir(category)
+    if hasattr(bpy.types, cls.__name__):
+        bl_type = getattr(bpy.types, cls.__name__)
+        if bl_type and hasattr(bl_type, 'is_registered'):
+            return bl_type.is_registered
+        return True
+    return False
+
+
 def register():
-	from bpy.utils import register_class
-	for c in classes:
-		if c.__name__ == 'CLOUDRIG_PT_settings' and hasattr(bpy.types, 'CLOUDRIG_PT_settings'):
-			# Don't re-register Settings panel, or sub-panels become top-level...
-			continue
-		register_class(c)
+    """Runs on rig generation, add-on registration, or when this file is executed
+    via the text editor.
+    Should be able to run without errors even if things are already registered.
+    """
 
-	ensure_custom_panels(None, None)
+    for c in classes:
+        if not is_registered(c):
+            register_class(c)
 
-	# Store outfit properties in Object because it can be accessed on Proxies.
-	bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
+    # TODO 4.0: These properties for outfit stuff are legacy, remove!
+    bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
+    bpy.types.Object.cloudrig_prefs = PointerProperty(
+        type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'}
+    )
 
-	bpy.app.handlers.load_post.append(ensure_custom_panels)
-	bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
+    bpy.types.BoneCollection.cloudrig_info = PointerProperty(
+        type=CloudRigBoneCollection, override={'LIBRARY_OVERRIDABLE'}
+    )
+
+    # Ensure custom panels.
+    if __name__ != 'CloudRig.generation.cloudrig':
+        # This doesn't work during add-on registration, since it relies on context.
+        ensure_custom_panels(None, None)
+    bpy.app.handlers.load_post.append(ensure_custom_panels)
+    bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
+
+    # Hide the built-in Bone Collections panel.
+    if not hasattr(bpy.types.DATA_PT_bone_collections, 'draw_bkp'):
+        bpy.types.DATA_PT_bone_collections.draw_bkp = (
+            bpy.types.DATA_PT_bone_collections.draw
+        )
+        bpy.types.DATA_PT_bone_collections.draw = builtin_collections_draw_override
+
+    register_hotkey(
+        bl_idname='wm.call_menu',
+        hotkey_kwargs={
+            'type': 'W',
+            'value': 'PRESS',
+            'shift': True,
+            'alt': True,
+        },
+        key_cat='Pose',
+        op_kwargs={'name': CLOUDRIG_MT_collections_quick_select.bl_idname},
+    )
+
+
+def unregister_hotkeys():
+    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys'):
+        for kc, km, kmi in bpy.types.CLOUDRIG_PT_hotkeys.keymap_items:
+            km.keymap_items.remove(kmi)
+        bpy.types.CLOUDRIG_PT_hotkeys.keymap_items = []
+
 
 def unregister():
-	"""Since this file runs from the Blender Text Editor, unregister() is never
-	called afaik. So this is only here for show.
-	"""
+    """Runs before register() on generation and when executed from the text editor.
+    Should be able to run without errors even before there's anything to unregister.
+    """
 
-	from bpy.utils import unregister_class
-	for c in classes:
-		unregister_class(c)
+    for c in classes:
+        if is_registered(c):
+            try:
+                unregister_class(c)
+            except RuntimeError:
+                pass
 
-	global custom_panels
-	for c in custom_panels:
-		unregister_class(c)
+    global custom_panels
+    for c in custom_panels[:]:
+        if is_registered(c):
+            unregister_class(c)
+    custom_panels = []
 
-	del bpy.types.Object.cloud_rig
+    try:
+        del bpy.types.Object.cloud_rig
+        bpy.app.handlers.load_post.remove(ensure_custom_panels)
+        bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
-	bpy.app.handlers.load_post.remove(ensure_custom_panels)
-	bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
+        # Unhide the built-in Bone Collections panel.
+        bpy.types.DATA_PT_bone_collections.poll = (
+            bpy.types.DATA_PT_bone_collections.poll_bkp
+        )
+    except:
+        pass
 
-if __name__ in ['__main__', 'builtins']:
-	# __name__ is __main__ when the script is executed in the text editor.
-	# __name__ is builtins when the script is executed via exec() in cloud_generator.
-	# This is to make sure that we do NOT register cloudrig.py when the CloudRig module is loaded.
-	# In that case __name__ is "rigify.feature_sets.CloudRig.cloudrig"
-	register()
+
+if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig'] or '.generation.cloudrig' in __name__:
+    # __name__ == `__main__`` when executed in Blender's Text Editor.
+    # __name__ == `builtins`` when executed by cloud_generator.
+    # __name__ == `CloudRig.generation.cloudrig` when executed by Blender add-on registration.
+    unregister()
+    register()

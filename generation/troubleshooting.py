@@ -6,1106 +6,1076 @@ import bpy, os, traceback, sys
 import json, webbrowser, time
 import struct, platform, io, urllib.parse, importlib
 
-from ..rig_features.ui import is_cloud_metarig, draw_label_with_linebreak, is_advanced_mode
-from ..rig_features.object import get_object_hierarchy_recursive
-
-from rigify.utils.errors import MetarigError
-
-# This whole thing could be part of Rigify.
+from ..rig_component_features.ui import draw_label_with_linebreak, is_advanced_mode
+from ..rig_component_features.object import get_object_hierarchy_recursive
+from ..generation.cloudrig import is_cloud_metarig
 
 """
-About generation errors: Fatal errors can happen in 3 distinct ways:
-- Generic execution error: This is a bug, should never happen and should be reported on GitLab.
-	- Raised by: Interpreter
-	- Caught in: generate_rig()
-	- User gets a stack trace in both the pop-up and the Rigify Log; The latter also provides a Report Bug button.
-- Post-generation script error: This is a bug in the code written by the user.
-	- Raised by: Interpreter
-	- Caught in: execute_custom_script()
-	- User gets a stack trace of only their script, both in the pop-up and the Rigify Log.
-- Metarig Error: This is a mistake in the MetaRig's bone setup.
-	- Raised by: self.raise_error() -> logger.log_error()
-	- Caught in: generate_rig()
-	- User gets no stack trace unless they look at the Rigify Log with Advanced Mode enabled.
+Fatal errors can happen in 3 ways:
+- Generic execution error anywhere throughout the generation process including asserts
+    - Should never happen and should be reported as a bug on GitLab.
+    - User should see stack trace in both the pop-up and the Generation Log; The latter also provides a Report Bug button.
+- Post-generation script error: This is a bug in the code written by the user, see execute_custom_script().
+    - User should see a stack trace of only their script, both in the pop-up and the Generation Log.
+- Metarig Error: This is a mistake in the MetaRig's bone setup, raised via self.raise_generation_error()
+    - User gets no stack trace unless they look at the Generation Log with Advanced Mode enabled.
 
-Common to all 3 types:
-	- Since these are fatal errors, any other rig errors are removed from the Rigify Log.
+Common to all types:
+    - Since these are fatal errors, any other rig errors are removed from the Generation Log.
+    - All errors are caught and handled in generate_rig().
+    - All errors should give the user useful information on how to proceed.
 """
 
 """
 TODO: Symmetry warnings:
-	- Symmetrical action setup's transform curves are actually asymmetrical
-	- Symmetrically named rig owners have asymetrical children in the chain
-	- Symmetrically named and transformed rigs have asymmetrical constraints
+    - Symmetrical action setup's transform curves are actually asymmetrical
+    - Symmetrically named rig owners have asymetrical children in the chain
+    - Symmetrically named and transformed components have asymmetrical constraints
 """
 
+
 class LoggerMixin:
-	"""Mix-in class for allowing a class to add entries to the Rigify Log of an armature.
-	This class should come BEFORE BaseRig in the inheritance order.
-	"""
+    """Mix-in class for allowing a class to add entries to the Generation Log of an armature."""
 
-	def add_log(self
-			,description_short
-			,**kwargs
-		):
-		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log(description_short ,**kwargs)
+    def add_log(self, description_short, **kwargs):
+        if 'base_bone_name' not in kwargs:
+            kwargs['base_bone_name'] = self.metarig_base_pbone.name
+        self.generator.logger.log(description_short, **kwargs)
 
-	def add_log_bug(self
-			,description_short
-			,**kwargs
-		):
-		kwargs['owner_bone'] = self.meta_base_bone.name
-		self.generator.logger.log_bug(description_short ,**kwargs)
+    def raise_generation_error(self, description, **kwargs):
+        """For raising non-bug errors that should be fixable by the user."""
+        kwargs['base_bone_name'] = self.base_bone_name
+        self.generator.raise_generation_error(description=description, **kwargs)
 
-	def raise_error(self
-			,description_short = "Metarig Error"
-			,description = ""
-			,**kwargs
-		):
-		"""Overrides BaseRig from Rigify, to raise errors using the Rigify Log panel.
-		This means that this class should come SOONER in the inheritance order.
-		"""
-
-		self.generator.logger.log_error(
-			description_short
-			,description = description
-			,owner_bone = self.meta_base_bone.name
-			,**kwargs
-		)
 
 def cloudrig_last_modified() -> str:
-	"""Return the date at which the most recent CloudRig .py file was modified.
+    """Return the date at which the most recent CloudRig .py file was modified.
 
-	Used in the bug report form pre-fill.
-	"""
-	max_mtime = 0
-	for dirname, subdirs, files in os.walk(os.path.dirname(__file__)):
-		for fname in files:
-			full_path = os.path.join(dirname, fname)
-			mtime = os.path.getmtime(full_path)
-			if mtime > max_mtime:
-				max_mtime = mtime
-				max_file = fname
+    Used in the bug report form pre-fill.
+    """
+    max_mtime = 0
+    for dirname, subdirs, files in os.walk(os.path.dirname(__file__)):
+        for fname in files:
+            full_path = os.path.join(dirname, fname)
+            mtime = os.path.getmtime(full_path)
+            if mtime > max_mtime:
+                max_mtime = mtime
+                max_file = fname
 
-	# For me this is in UTC, I can only hope it is for everyone.
-	return time.strftime('%Y-%m-%d %H:%M', time.gmtime(max_mtime))
+    # For me this is in UTC, I can only hope it is for everyone.
+    return time.strftime('%Y-%m-%d %H:%M', time.gmtime(max_mtime))
+
 
 def url_prefill_from_cloudrig(stack_trace=""):
-	fh = io.StringIO()
+    fh = io.StringIO()
 
-	fh.write("**System Information**\n")
-	fh.write(
-		"Operating system: %s %d Bits\n" % (
-			platform.platform(),
-			struct.calcsize("P") * 8,
-		)
-	)
+    fh.write("**System Information**\n")
+    fh.write(
+        "Operating system: %s %d Bits\n"
+        % (
+            platform.platform(),
+            struct.calcsize("P") * 8,
+        )
+    )
 
-	fh.write(
-		"\n"
-		"**Blender Version**\n"
-	)
-	fh.write(
-		"%s, branch: %s, commit: [%s](https://developer.blender.org/rB%s)\n" % (
-			bpy.app.version_string,
-			bpy.app.build_branch.decode('utf-8', 'replace'),
-			bpy.app.build_commit_date.decode('utf-8', 'replace'),
-			bpy.app.build_hash.decode('ascii'),
-		)
-	)
+    fh.write("\n" "**Blender Version**\n")
+    fh.write(
+        "%s, branch: %s, commit: [%s](https://developer.blender.org/rB%s)\n"
+        % (
+            bpy.app.version_string,
+            bpy.app.build_branch.decode('utf-8', 'replace'),
+            bpy.app.build_commit_date.decode('utf-8', 'replace'),
+            bpy.app.build_hash.decode('ascii'),
+        )
+    )
 
-	cloudrig_folder_name = os.path.dirname(__file__).split(os.sep)[-2]
-	CloudRig = importlib.import_module('rigify.feature_sets.' + cloudrig_folder_name)
-	cloudrig_version = CloudRig.rigify_info['version']
-	last_modified = cloudrig_last_modified()
-	fh.write(
-		f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n"
-	)
+    cloudrig_folder_name = os.path.dirname(__file__).split(os.sep)[-2]
+    from .. import bl_info
 
-	if stack_trace!="":
-		fh.write(
-			"\nStack trace\n```\n" + stack_trace + "\n```\n"
-		)
+    cloudrig_version = bl_info['version']
+    last_modified = cloudrig_last_modified()
+    fh.write(f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n")
 
-	fh.write(
-		"\n"
-		"***************************************"
-	)
+    if stack_trace != "":
+        fh.write("\nStack trace\n```\n" + stack_trace + "\n```\n")
 
-	fh.write(
-		"\n"
-		"Description of the problem:\n"
-		"Attached .blend file to reproduce the problem:\n"
-		"\n"
-	)
+    fh.write("\n" "***************************************")
 
-	fh.seek(0)
+    fh.write(
+        "\n"
+        "Description of the problem:\n"
+        "Attached .blend file to reproduce the problem:\n"
+        "\n"
+    )
 
-	return (
-		"https://gitlab.com/blender/CloudRig/-/issues/new?issue[description]=" +
-		urllib.parse.quote(fh.read())
-	)
+    fh.seek(0)
+
+    return (
+        "https://gitlab.com/blender/CloudRig/-/issues/new?issue[description]="
+        + urllib.parse.quote(fh.read())
+    )
+
 
 def get_pretty_stack() -> str:
-	"""Make a pretty looking string out of the current execution stack,
-	or the exception stack if this is called from a stack which is handling an exception.
-	(Python is cool in that way - We can tell when this function is being called by
-	a stack which originated in a try/except block!)
-	"""
-	ret = ""
+    """Make a pretty looking string out of the current execution stack,
+    or the exception stack if this is called from a stack which is handling an exception.
+    (Python is cool in that way - We can tell when this function is being called by
+    a stack which originated in a try/except block!)
+    """
+    ret = ""
 
-	exc_type, exc_value, tb = sys.exc_info()
-	if exc_value:
-		# If the stack we're currently on is handling an exception, 
-		# use the stack of that exception instead of our stack
-		stack = traceback.extract_tb(exc_value.__traceback__)
-	else:
-		stack = traceback.extract_stack()
+    exc_type, exc_value, tb = sys.exc_info()
+    if exc_value:
+        # If the stack we're currently on is handling an exception,
+        # use the stack of that exception instead of our stack
+        stack = traceback.extract_tb(exc_value.__traceback__)
+    else:
+        stack = traceback.extract_stack()
 
-	lines = []
-	after_generator = False
-	for i, frame in enumerate(stack):
-		if 'generator' in frame.filename:
-			after_generator = True
-		if not after_generator:
-			continue
-		if frame.name in ("log", "add_log", "log_error", "log_bug"):
-			break
+    lines = []
+    after_generator = False
+    for i, frame in enumerate(stack):
+        if 'generator' in frame.filename:
+            after_generator = True
+        if not after_generator:
+            continue
+        if frame.name in (
+            "log",
+            "add_log",
+            "log_fatal_error",
+            "raise_generation_error",
+        ):
+            break
 
-		# Shorten the file name; All files are in blender's "scripts" folder, so
-		# that part of the path contains no useful information, just clutter.
-		short_file = frame.filename
-		if 'scripts' in short_file:
-			short_file = frame.filename.split("scripts")[1]
+        # Shorten the file name; All files are in blender's "scripts" folder, so
+        # that part of the path contains no useful information, just clutter.
+        short_file = frame.filename
+        if 'scripts' in short_file:
+            short_file = frame.filename.split("scripts")[1]
 
-		if i>0 and frame.filename == stack[i-1].filename:
-			short_file = " " * int(len(frame.filename)/2)
+        if i > 0 and frame.filename == stack[i - 1].filename:
+            short_file = " " * int(len(frame.filename) / 2)
 
-		lines.append(f"{short_file} -> {frame.name} -> line {frame.lineno}")
+        lines.append(f"{short_file} -> {frame.name} -> line {frame.lineno}")
 
-	ret += f" {chr(8629)}\n".join(lines)
-	ret += f":\n          {frame.line}\n"
-	if exc_value:
-		ret += f"{exc_type.__name__}: {exc_value}"
-	return ret
+    ret += f" {chr(8629)}\n".join(lines)
+    ret += f":\n          {frame.line}\n"
+    if exc_value:
+        ret += f"{exc_type.__name__}: {exc_value}"
+    return ret
+
 
 def get_datablock_type_icon(datablock):
-	"""Return the icon string representing a datablock type"""
-	# It's beautiful.
-	# There's no proper way to get the icon of a datablock, so we use the
-	# RNA definition of the id_type property of the DriverTarget class,
-	# which is an enum with a mapping of each datablock type to its icon.
-	# TODO: It would unfortunately be nicer to just make my own mapping.
-	if not hasattr(datablock, "type"):
-		# shape keys...
-		return 'NONE'
-	typ = datablock.type
-	if datablock.type == 'SHADER':
-		typ = 'NODETREE'
-	return bpy.types.DriverTarget.bl_rna.properties['id_type'].enum_items[typ].icon
+    """Return the icon string representing a datablock type"""
+    # It's beautiful.
+    # There's no proper way to get the icon of a datablock, so we use the
+    # RNA definition of the id_type property of the DriverTarget class,
+    # which is an enum with a mapping of each datablock type to its icon.
+    # TODO: It would unfortunately be nicer to just make my own mapping.
+    if not hasattr(datablock, "type"):
+        # shape keys...
+        return 'NONE'
+    typ = datablock.type
+    if datablock.type == 'SHADER':
+        typ = 'NODETREE'
+    return bpy.types.DriverTarget.bl_rna.properties['id_type'].enum_items[typ].icon
+
 
 class CloudLogManager:
-	"""Class to manage CloudRigLogEntry CollectionProperty on metarigs.
+    """Class to manage CloudRigLogEntry CollectionProperty on metarigs.
 
-	This class is instanced once per rig generation, by the CloudGenerator class.
-	"""
+    This class is instanced once per rig generation, by the CloudRig_Generator class.
+    """
 
-	def __init__(self, metarig, rig=None):
-		# Storing references to datablocks could be dangerous, be careful!
-		self.metarig = metarig
-		self.rig = rig
+    def __init__(self, metarig, rig=None):
+        # Storing references to datablocks could be dangerous, be careful!
+        self.metarig = metarig
+        self.rig = rig
 
-	def log(self
-			,description_short: str
-			,*
-			,owner_bone = ""
-			,trouble_bone = ""
-			,description = "No description."
-			,display_stack_trace = 'NEVER'
-			,icon = 'ERROR'
-			,note = ""
-			,note_icon = 'NONE'
-			,operator = ''
-			,op_kwargs = {}
-			,op_text = ""
-		):
-		"""Add a log entry to the metarig object's data."""
-		entry = self.metarig.data.cloudrig_parameters.logs.add()
-		entry.pretty_stack = get_pretty_stack()
-		entry.owner_bone = owner_bone
-		entry.trouble_bone = trouble_bone
-		entry.name = owner_bone + " " + trouble_bone + " " + description_short + " " + note + " " + description # For search.
-		entry.description_short = description_short
-		entry.description = description
-		entry.display_stack_trace = display_stack_trace
-		entry.note = note
-		entry.note_icon = note_icon
-		entry.icon = icon
-		entry.operator = operator
-		entry.op_kwargs = json.dumps(op_kwargs)
-		entry.op_text = op_text
-		return entry
+    def log(
+        self,
+        description_short: str,
+        *,
+        base_bone_name="",
+        trouble_bone="",
+        description="No description.",
+        display_stack_trace='NEVER',
+        icon='ERROR',
+        note="",
+        note_icon='NONE',
+        operator='',
+        op_kwargs={},
+        op_text="",
+    ):
+        """Low-level function to add a log entry to the metarig object's data."""
+        entry = self.metarig.cloudrig.generator.logs.add()
+        entry.pretty_stack = get_pretty_stack()
+        entry.base_bone_name = base_bone_name
+        entry.trouble_bone = trouble_bone
+        entry.name = (
+            base_bone_name
+            + " "
+            + trouble_bone
+            + " "
+            + description_short
+            + " "
+            + note
+            + " "
+            + description
+        )  # For search.
+        entry.description_short = description_short
+        entry.description = description
+        entry.display_stack_trace = display_stack_trace
+        entry.note = note
+        entry.note_icon = note_icon
+        entry.icon = icon
+        entry.operator = operator
+        entry.op_kwargs = json.dumps(op_kwargs)
+        entry.op_text = op_text
 
-	def log_bug(self
-			,description_short: str
-			,*
-			,description: str
-			,icon = 'URL'
-			,operator = 'wm.cloudrig_report_bug'
-			,**kwargs
-		):
-		"""This should be used over asserts, especially when something small goes 
-		wrong that shouldn't halt generation.
-		"""
-		if 'op_kwargs' not in kwargs:
-			kwargs['op_kwargs'] = {}
-			kwargs['op_kwargs']['stack_trace'] = get_pretty_stack()
-		self.clear()
-		return self.log(
-			"(Fatal) " + description_short
-			,description = description
-			,display_stack_trace = 'ALWAYS'
-			,icon		 = icon
-			,operator	 = operator
-			,**kwargs
-		)
+        return entry
 
-	def log_error(self
-			,description_short: str
-			,popup_text = ""
-			,pretty_stack = ""
-			,clear_logs = True
-			,*
-			,description = ""
-			,**kwargs
-		):
-		"""This should be used by self.raise_error()."""
-		if clear_logs:
-			self.clear()
-		entry = self.log(
-			"(Fatal) " + description_short
-			,description = description or description_short
-			,display_stack_trace = 'ALWAYS'
-			,**kwargs
-		)
+    def log_fatal_error(
+        self, description_short: str, *, wipe_log=True, description="", **kwargs
+    ):
+        """
+        Wipe all other log entries, and create a log entry for an error that has caused
+        generation to halt.
+        Halting of the generation and raising the exception must be done by the caller.
+        """
+        if wipe_log:
+            self.clear()
+        entry = self.log(
+            "(Fatal) " + description_short,
+            description=description or description_short,
+            display_stack_trace='ALWAYS',
+            **kwargs,
+        )
 
-		if pretty_stack:
-			entry.pretty_stack = pretty_stack
+        return entry
 
-		message = description or description_short
-		if 'owner_bone' in kwargs:
-			owner_bone = kwargs['owner_bone']
-			message = f'"{owner_bone}": {message}'
+    def clear(self):
+        generator = self.metarig.cloudrig.generator
+        generator.logs.clear()
+        generator.active_log_index = 0
 
-		message += "\n" + popup_text
+    ####################################################################
+    # Functions for finding various issues at the end of rig generation.
+    # For these, self.rig is expected to be set.
 
-		raise MetarigError(message)
+    def report_unused_bone_collections(self, metarig, target_rig):
+        for coll in metarig.data.collections_all:
+            target_coll = target_rig.data.collections_all.get(coll.name)
+            if not target_coll or len(target_coll.bones_recursive) == 0:
+                self.log(
+                    "Unused Bone Collection",
+                    note=coll.name,
+                    icon='OUTLINER_COLLECTION',
+                    description=f'Collection "{coll.name}" is not used by any bones.',
+                    operator=CLOUDRIG_OT_delete_collection.bl_idname,
+                    op_kwargs={'coll_name': coll.name},
+                )
 
-	def clear(self):
-		cloudrig = self.metarig.data.cloudrig_parameters
-		cloudrig.logs.clear()
-		cloudrig.active_log_index = 0
+    def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
+        if not datablock:
+            return
+        if not hasattr(datablock, "animation_data"):
+            return
+        if not datablock.animation_data:
+            return
+        for fcurve in datablock.animation_data.drivers:
+            driver = fcurve.driver
+            if not driver.is_valid:
+                owner = owner_datablock or datablock
 
-	####################################################################
-	# Functions for finding various issues at the end of rig generation.
-	# For these, self.rig is expected to be set.
-	def report_unused_named_layers(self):
-		rig = self.rig
-		used_layers = [False]*32
-		for b in rig.data.bones:
-			for i in range(32):
-				used_layers[i] = used_layers[i] or b.layers[i]
+                base_bone_name = ""
+                trouble_bone = ""
+                if 'pose.bones' in fcurve.data_path:
+                    bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
+                    if (
+                        type(datablock) == Object
+                        and datablock.type == 'ARMATURE'
+                        and datablock.cloudrig.generator.target_rig == self.rig
+                    ):
+                        base_bone_name = bone_name
+                    elif datablock == self.rig:
+                        trouble_bone = bone_name
 
-		rigify_layers = rig.data.rigify_layers
-		for i, rigify_layer in enumerate(rigify_layers):
-			if rigify_layer.name!="" and not rigify_layer.name.startswith("$") and not used_layers[i]:
-				self.log("Layer named but empty"
-					,description = f'Named Rigify Layer "{rigify_layer.name}" has no bones assigned so it should be removed or some bones assigned to it.'
-					,icon		 = 'LAYER_USED'
-					,note		 = f"{rigify_layer.name} ({i})"
-					,operator	 = 'object.cloudrig_rename_layer'
-					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : "$" + rigify_layer.name}
-					,op_text	 = "Mark Layer as Hidden"
-				)
+                self.log(
+                    "Invalid Driver",
+                    description=f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}',
+                    icon='DRIVER',
+                    note=owner.name,
+                    note_icon=get_datablock_type_icon(datablock),
+                    base_bone_name=base_bone_name,
+                    trouble_bone=trouble_bone,
+                    operator='screen.drivers_editor_show',
+                )
 
-		for i in range(32):
-			if i > len(rigify_layers)-1:
-				# TODO (upstream): Rigify Layers should be initialized as a list of 32 booleans!!!
-				break
-			if used_layers[i] and rigify_layers[i].name=="":
-				self.log("Layer used but not named"
-					,description = f"Layer {i} has bones on it, but it does not have a Rigify Layer Name, therefore it won't display in the Layers panel."
-					,icon		 = 'LAYER_ACTIVE'
-					,note		 = str(i)
-					,operator	 = 'object.cloudrig_rename_layer'
-					,op_kwargs	 = {'layer_idx' : i, 'layer_name' : ""}
-				)
+    def report_invalid_drivers_on_object_hierarchy(self, object: Object):
+        """Create log entries for invalid drivers of the object or any of its children"""
+        objects = get_object_hierarchy_recursive(object, all_objects=[])
 
-	def report_unused_bone_groups(self):
-		"""Unused bone groups simply won't get created on the generated rig,
-		so all we need to do here is compare the bone groups of the generated rig
-		to those of the metarig.
-		"""
-		for bg in self.metarig.pose.bone_groups:
-			if bg.name not in self.rig.pose.bone_groups:
-				self.log("Unused Bone Group"
-					,description = f'Bone Group "{bg.name}" is never used.'
-					,icon		 = 'GROUP_BONE'
-					,note		 = bg.name
-					,operator	 = 'object.cloudrig_remove_bone_group'
-					,op_kwargs	 = {'bg_name' : bg.name}
-				)
+        for o in objects:
+            self.report_invalid_drivers_on_datablock(o)
+            if hasattr(o, "data") and o.data:
+                self.report_invalid_drivers_on_datablock(o.data, owner_datablock=o)
+            if o.type == 'MESH':
+                self.report_invalid_drivers_on_datablock(
+                    o.data.shape_keys, owner_datablock=o
+                )
 
-	def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
-		if not datablock: return
-		if not hasattr(datablock, "animation_data"): return
-		if not datablock.animation_data: return
-		for fcurve in datablock.animation_data.drivers:
-			driver = fcurve.driver
-			if not driver.is_valid:
-				owner = owner_datablock or datablock
+            for ms in o.material_slots:
+                if ms.material:
+                    self.report_invalid_drivers_on_datablock(ms.material)
+                    self.report_invalid_drivers_on_datablock(
+                        ms.material.node_tree, owner_datablock=ms.material
+                    )
 
-				owner_bone = ""
-				trouble_bone = ""
-				if 'pose.bones' in fcurve.data_path:
-					bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
-					if type(datablock) == Object and datablock.type == 'ARMATURE' and datablock.data.rigify_target_rig == self.rig:
-						owner_bone = bone_name
-					elif datablock == self.rig:
-						trouble_bone = bone_name
+    def report_widgets(self, widget_collection):
+        """Find and log unused and duplicate widgets."""
 
-				self.log("Invalid Driver"
-					,description  = f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}'
-					,icon		  = 'DRIVER'
-					,note		  = owner.name
-					,note_icon	  = get_datablock_type_icon(datablock)
-					,owner_bone	  = owner_bone
-					,trouble_bone = trouble_bone
-					,operator	  = 'screen.drivers_editor_show'
-				)
+        widgets = widget_collection.all_objects
 
-	def report_invalid_drivers_on_object_hierarchy(self, object: Object):
-		"""Create log entries for invalid drivers of the object or any of its children"""
-		objects = get_object_hierarchy_recursive(object, all_objects=[])
+        used_widgets = []
+        for pb in self.rig.pose.bones:
+            if pb.custom_shape and pb.custom_shape.name not in used_widgets:
+                used_widgets.append(pb.custom_shape.name)
 
-		for o in objects:
-			self.report_invalid_drivers_on_datablock(o)
-			if hasattr(o, "data") and o.data:
-				self.report_invalid_drivers_on_datablock(o.data, owner_datablock=o)
-			if o.type=='MESH':
-				self.report_invalid_drivers_on_datablock(o.data.shape_keys, owner_datablock=o)
+        for widget in widgets:
+            unprefixed = widget.name
+            if widget.name[-4] == '.':
+                unprefixed = widget.name[:-4]
 
-			for ms in o.material_slots:
-				if ms.material:
-					self.report_invalid_drivers_on_datablock(ms.material)
-					self.report_invalid_drivers_on_datablock(ms.material.node_tree, owner_datablock=ms.material)
+            if widget.name not in used_widgets and unprefixed not in used_widgets:
+                self.log(
+                    "Unused widget",
+                    note=widget.name,
+                    icon='X',
+                    description=f'Widget "{widget.name}" is not used by any bones.',
+                    operator=CLOUDRIG_OT_Delete_Object.bl_idname,
+                    op_kwargs={'ob_name': widget.name},
+                )
 
-	def report_widgets(self, widget_collection):
-		"""Find and log unused and duplicate widgets."""
+            if unprefixed != widget.name:
+                if unprefixed in bpy.data.objects:
+                    self.log(
+                        "Duplicate widget",
+                        note=widget.name,
+                        icon='DUPLICATE',
+                        description=f'There exists a widget called "{unprefixed}", that should be used instead of "{widget.name}".',
+                        operator=CLOUDRIG_OT_Swap_Bone_Shape.bl_idname,
+                        op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
+                    )
+                else:
+                    self.log(
+                        "Widget with number suffix",
+                        note=widget.name,
+                        icon='FILE_TEXT',
+                        description=f'The "{widget.name[-4:]}" suffix in the name of this widget is not necessary.',
+                        operator=CLOUDRIG_OT_Rename_Object.bl_idname,
+                        op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
+                    )
 
-		widgets = widget_collection.all_objects
+    def report_actions(self):
+        """Test that action ranges are even numbers and the default pose frame
+        has a keyframe and the keyframe has default transform values.
+        """
 
-		used_widgets = []
-		for pb in self.rig.pose.bones:
-			if pb.custom_shape and pb.custom_shape.name not in used_widgets:
-				used_widgets.append(pb.custom_shape.name)
+        action_slots = self.metarig.cloudrig.generator.action_slots
+        for i, action_slot in enumerate(action_slots):
+            if not action_slot.enabled:
+                continue
+            action = action_slot.action
+            if not action:
+                # This is not really worth a log entry imo, because it does no harm,
+                # and is treated by all code as if the action slot was simply disabled.
+                continue
+            if action_slot.trans_min == action_slot.trans_max:
+                self.log(
+                    "Action has no transform range",
+                    note=action_slot.action.name,
+                    icon='ACTION',
+                    description=f'Action slot "{action_slot.action.name}" has no transformation range. This will cause the action to always be in the same state!',
+                    operator=CLOUDRIG_OT_Edit_Action_Slot.bl_idname,
+                    op_kwargs={'action_slot_idx': i},
+                )
+            if action_slot.frame_start == action_slot.frame_end:
+                self.log(
+                    "Action has no frame range",
+                    note=action_slot.action.name,
+                    icon='ACTION',
+                    description=f'Action slot "{action_slot.action.name}" has no frame range. This will cause the action to always be in the same state!',
+                    operator=CLOUDRIG_OT_Edit_Action_Slot.bl_idname,
+                    op_kwargs={'action_slot_idx': i},
+                )
 
-		for widget in widgets:
-			unprefixed = widget.name
-			if widget.name[-4]=='.':
-				unprefixed = widget.name[:-4]
+            default_frame = int(action_slot.get_default_frame())
+            if not action_slot.is_default_frame_integer():
+                self.log(
+                    "Action default frame must be whole",
+                    note=action_slot.action.name,
+                    icon='ACTION',
+                    description=f'Action "{action_slot.action.name}" has a default frame of {default_frame}. The input parameters of the Action Slot should be tweaked such that the "Default Frame" value is a whole number. On that frame, there should be a keyframe of all affected bones in the default position. Otherwise, the rig will be deformed in its default pose.',
+                    operator=CLOUDRIG_OT_Edit_Action_Slot.bl_idname,
+                    op_kwargs={'action_slot_idx': i},
+                )
 
-			if widget.name not in used_widgets and unprefixed not in used_widgets:
-				self.log("Unused widget"
-					,note = widget.name
-					,icon = 'X'
-					,description = f'Widget "{widget.name}" is not used by any bones.'
-					,operator = CLOUDRIG_OT_Delete_Object.bl_idname
-					,op_kwargs = {'ob_name' : widget.name}
-				)
+            # Scan curves for issues (this not as expensive as I expected)
+            wrong_curves = (
+                []
+            )  # Curves which do not have a keyframe on the default frame with their default value
+            single_point_curves = []  # Curves which only have one keyframe
+            for fcurve in action.fcurves:
+                transform = fcurve.data_path.split(".")[-1]
+                if transform not in ['location', 'rotation_euler', 'scale']:
+                    continue
+                if len(fcurve.keyframe_points) < 2:
+                    single_point_curves.append(fcurve)
+                    continue
 
-			if unprefixed != widget.name:
-				if unprefixed in bpy.data.objects:
-					self.log("Duplicate widget"
-						,note		 = widget.name
-						,icon		 = 'DUPLICATE'
-						,description = f'There exists a widget called "{unprefixed}", that should be used instead of "{widget.name}".'
-						,operator	 = CLOUDRIG_OT_Swap_Bone_Shape.bl_idname
-						,op_kwargs	 = {'old_name' : widget.name, 'new_name' : unprefixed}
-					)
-				else:
-					self.log("Widget with number suffix"
-						,note		 = widget.name
-						,icon		 = 'FILE_TEXT'
-						,description = f'The "{widget.name[-4:]}" suffix in the name of this widget is not necessary.'
-						,operator	 = CLOUDRIG_OT_Rename_Object.bl_idname
-						,op_kwargs	 = {'old_name' : widget.name, 'new_name' : unprefixed}
-					)
+                default_value = 1.0 if transform == 'scale' else 0.0
+                has_default_key = False
+                for kp in fcurve.keyframe_points:
+                    if kp.co[0] == default_frame and kp.co[1] == default_value:
+                        has_default_key = True
+                        break
 
-	def report_actions(self):
-		"""Test that action ranges are even numbers and the default pose frame
-		has a keyframe and the keyframe has default transform values.
-		"""
+                if not has_default_key:
+                    wrong_curves.append(fcurve)
 
-		action_slots = self.metarig.data.cloudrig_parameters.action_slots
-		for i, action_slot in enumerate(action_slots):
-			if not action_slot.enabled: continue
-			action = action_slot.action
-			if not action:
-				# This is not really worth a log entry imo, because it does no harm,
-				# and is treated by all code as if the action slot was simply disabled.
-				continue
-			if action_slot.trans_min == action_slot.trans_max:
-				self.log("Action has no transform range"
-					,note		 = action_slot.action.name
-					,icon		 = 'ACTION'
-					,description = f'Action slot "{action_slot.action.name}" has no transformation range. This will cause the action to always be in the same state!'
-					,operator	 = CLOUDRIG_OT_Edit_Action_Slot.bl_idname
-					,op_kwargs	 = {'action_slot_idx' : i}
-				)
-			if action_slot.frame_start == action_slot.frame_end:
-				self.log("Action has no frame range"
-					,note		 = action_slot.action.name
-					,icon		 = 'ACTION'
-					,description = f'Action slot "{action_slot.action.name}" has no frame range. This will cause the action to always be in the same state!'
-					,operator	 = CLOUDRIG_OT_Edit_Action_Slot.bl_idname
-					,op_kwargs	 = {'action_slot_idx' : i}
-				)
+            if single_point_curves:
+                self.log(
+                    "Action with 1-key curves",
+                    note=action_slot.action.name,
+                    icon='ACTION',
+                    description=f'Action slot "{action_slot.action.name}" has {len(single_point_curves)} curves with only a single keyframe. These curves will be ignored by the action set-up!',
+                    operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
+                    op_kwargs={'action_slot_idx': i},
+                )
+            if wrong_curves:
+                self.log(
+                    "Action affects rest pose",
+                    note=action_slot.action.name,
+                    icon='ACTION',
+                    description=f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that aren\'t keyframed to their default values on the action\'s default frame, which is frame {default_frame}.',
+                    operator='object.cloudrig_jump_to_action',
+                    op_kwargs={'action_slot_idx': i},
+                )
 
-			default_frame = int(action_slot.get_default_frame())
-			if not action_slot.is_default_frame_integer():
-				self.log("Action default frame must be whole"
-					,note		 = action_slot.action.name
-					,icon		 = 'ACTION'
-					,description = f'Action "{action_slot.action.name}" has a default frame of {default_frame}. The input parameters of the Action Slot should be tweaked such that the "Default Frame" value is a whole number. On that frame, there should be a keyframe of all affected bones in the default position. Otherwise, the rig will be deformed in its default pose.'
-					,operator	 = CLOUDRIG_OT_Edit_Action_Slot.bl_idname
-					,op_kwargs	 = {'action_slot_idx' : i}
-				)
+    def report_drivers_targetting_armature_constraint(self, rig_obj):
+        if not rig_obj or not rig_obj.animation_data:
+            return
+        for fc in rig_obj.animation_data.drivers:
+            drv = fc.driver
+            for var in drv.variables:
+                if 'PROP' in var.type:
+                    continue
+                for target in var.targets:
+                    if not (
+                        target.id.id_type == 'OBJECT'
+                        and target.id.type == 'ARMATURE'
+                        and target.bone_target
+                    ):
+                        continue
+                    if target.transform_space != 'LOCAL_SPACE':
+                        continue
 
-			# Scan curves for issues (this not as expensive as I expected)
-			wrong_curves = []			# Curves which do not have a keyframe on the default frame with their default value
-			single_point_curves = []	# Curves which only have one keyframe
-			for fcurve in action.fcurves:
-				transform = fcurve.data_path.split(".")[-1]
-				if transform not in ['location', 'rotation_euler', 'scale']:
-					continue
-				if len(fcurve.keyframe_points) < 2:
-					single_point_curves.append(fcurve)
-					continue
+                    target_bone = target.id.pose.bones.get(target.bone_target)
+                    if not target_bone:
+                        continue
+                    if not any(
+                        [con.type == 'ARMATURE' for con in target_bone.constraints]
+                    ):
+                        continue
 
-				default_value = 1.0 if transform=='scale' else 0.0
-				has_default_key = False
-				for kp in fcurve.keyframe_points:
-					if kp.co[0] == default_frame and kp.co[1] == default_value:
-						has_default_key = True
-						break
+                    self.log(
+                        "Misleading Local Transforms",
+                        note=target_bone.name,
+                        trouble_bone=target_bone.name,
+                        icon='DRIVER_TRANSFORM',
+                        description=f'Driver `{fc.data_path}` is trying to read local transforms from bone "{target_bone.name}", but this bone has an Armature constraint, which moves its parenting matrix into its local matrix, making it unviable as a driver target. Move the Armature constraint to a parent, or remove the driver.',
+                    )
 
-				if not has_default_key:
-					wrong_curves.append(fcurve)
-
-			if single_point_curves:
-				self.log("Action with 1-key curves"
-					,note		 = action_slot.action.name
-					,icon		 = 'ACTION'
-					,description = f'Action slot "{action_slot.action.name}" has {len(single_point_curves)} curves with only a single keyframe. These curves will be ignored by the action set-up!'
-					,operator	 = CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname
-					,op_kwargs	 = {'action_slot_idx' : i}
-				)
-			if wrong_curves:
-				self.log("Action affects rest pose"
-					,note		 = action_slot.action.name
-					,icon		 = 'ACTION'
-					,description = f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that aren\'t keyframed to their default values on the action\'s default frame, which is frame {default_frame}.'
-					,operator	 = 'object.cloudrig_jump_to_action'
-					,op_kwargs	 = {'action_slot_idx' : i}
-				)
 
 class CloudRigLogEntry(PropertyGroup):
-	"""Container for storing information about a single metarig warning/error.
+    """Container for storing information about a single metarig warning/error.
 
-	A CollectionProperty of CloudRigLogEntries are added to the armature datablock
-	in cloud_generator.register().
+    A CollectionProperty of CloudRigLogEntries are added to the armature datablock
+    in cloud_generator.register().
 
-	This CollectionProperty is then populated by CloudLogManager via log() and
-	log_bug() functions.
-	"""
+    This CollectionProperty is then populated by a CloudLogManager instance created by
+    CloudRig_Generator, which is created by the Generate operator.
+    """
 
-	icon: StringProperty(
-		name = "Icon"
-		,description = "Icon for this log entry"
-		,default = 'ERROR'
-	)
-	owner_bone: StringProperty(
-		name = "Rig Bone"
-		,description = "Name of the bone on the metarig which owns the rig that created this entry"
-		,default = ""
-	)
-	display_stack_trace: EnumProperty(
-		items = [(s, s, s) for s in {'ADVANCED', 'NEVER', 'ALWAYS'}],
-		description = "Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled"
-	)
-	note: StringProperty(
-		name = "Note"
-		,description = "Extra note that gets displayed in the UIList when there's no owner bone"
-		,default = ""
-	)
-	note_icon: StringProperty(
-		name = "Note Icon"
-		,description = "Icon for the extra note"
-		,default = 'NONE'
-	)
-	trouble_bone: StringProperty(
-		name = "Problem Bone"
-		,description = "Name of the bone on the generated rig which the entry relates to"
-		,default = ""
-	)
-	description_short: StringProperty(
-		name = "Short Description"
-		,description = "Something went wrong!"
-		,default = ""
-	)
-	description: StringProperty(
-		name = "Description"
-		,description = ""
-		,default = ""
-	)
-	pretty_stack: StringProperty(
-		name = "Pretty Stack"
-		,description = "Stack trace in the code of where this log entry was added. For internal use only"
-	)
-	operator: StringProperty(
-		name = "Operator"
-		,description = "Operator that can fix the issue"
-		,default=''
-	)
-	op_kwargs: StringProperty(
-		name = "Operator Arguments"
-		,description = "Keyword arguments that will be passed to the operator. This should be a string that can be eval()'d into a python dict"
-		,default=''
-	)
-	op_text: StringProperty(
-		name = "Operator Text"
-		,description = "Text to display on quick fix button"
-		,default=''
-	)
+    icon: StringProperty(
+        name="Icon", description="Icon for this log entry", default='ERROR'
+    )
+    base_bone_name: StringProperty(
+        name="Rig Bone",
+        description="Name of the bone on the metarig which owns the rig that created this entry",
+        default="",
+    )
+    display_stack_trace: EnumProperty(
+        items=[(s, s, s) for s in {'ADVANCED', 'NEVER', 'ALWAYS'}],
+        description="Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled",
+    )
+    note: StringProperty(
+        name="Note",
+        description="Extra note that gets displayed in the UIList when there's no owner bone",
+        default="",
+    )
+    note_icon: StringProperty(
+        name="Note Icon", description="Icon for the extra note", default='NONE'
+    )
+    trouble_bone: StringProperty(
+        name="Problem Bone",
+        description="Name of the bone on the generated rig which the entry relates to",
+        default="",
+    )
+    description_short: StringProperty(
+        name="Short Description", description="Something went wrong!", default=""
+    )
+    description: StringProperty(name="Description", description="", default="")
+    pretty_stack: StringProperty(
+        name="Pretty Stack",
+        description="Stack trace in the code of where this log entry was added. For internal use only",
+    )
+    operator: StringProperty(
+        name="Operator", description="Operator that can fix the issue", default=''
+    )
+    op_kwargs: StringProperty(
+        name="Operator Arguments",
+        description="Keyword arguments that will be passed to the operator. This should be a string that can be eval()'d into a python dict",
+        default='',
+    )
+    op_text: StringProperty(
+        name="Operator Text",
+        description="Text to display on quick fix button",
+        default='',
+    )
+
 
 class CLOUDRIG_UL_log_entry_slots(UIList):
-	"""CloudRigLogEntry's are displayed under Properties->Armature->Rigify Log,
-	when the active object is a CloudRig Metarig.
-	"""
-	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-		rig = context.object
-		cloudrig = data
-		log = item
-		if self.layout_type in {'DEFAULT', 'COMPACT'}:
-			row = layout.row()
-			row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
-			if log.note != "":
-				row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
-			elif log.owner_bone != "":
-				row.prop(log, 'owner_bone', text="", emboss=False, icon='BONE_DATA')
+    """CloudRigLogEntries are displayed under Properties->Armature->CloudRig->Generation Log,
+    when the active object is a CloudRig Metarig.
+    """
 
-		elif self.layout_type in {'GRID'}:
-			layout.alignment = 'CENTER'
-			layout.label(text="", icon_value=icon)
+    def draw_item(
+        self, _context, layout, _data, item, icon_value, _active_data, _active_propname
+    ):
+        log = item
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            row = layout.row()
+            row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
+            if log.note != "":
+                row.prop(
+                    log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE'
+                )
+            elif log.base_bone_name != "":
+                row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
+
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon_value=icon_value)
+
 
 class CLOUDRIG_PT_log(Panel):
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = 'data'
-	bl_label = "Generation Log"
-	bl_parent_id = "DATA_PT_rigify"
-	bl_options = {'DEFAULT_CLOSED'}
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+    bl_label = "Generation Log"
+    bl_parent_id = "POSE_PT_CloudRig"
+    bl_options = {'DEFAULT_CLOSED'}
 
-	@classmethod
-	def poll(cls, context):
-		obj = context.object
-		return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
+    @classmethod
+    def poll(cls, context):
+        obj = context.object
+        return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
 
-	def draw(self, context):
-		metarig = context.object
-		cloudrig = metarig.data.cloudrig_parameters
-		logs = cloudrig.logs
-		layout = self.layout
-		row = layout.row()
+    def draw_header(self, context):
+        metarig = context.object
+        generator = metarig.cloudrig.generator
+        logs = generator.logs
+        layout = self.layout
 
-		row.template_list(
-			'CLOUDRIG_UL_log_entry_slots',
-			'',
-			cloudrig,
-			'logs',
-			cloudrig,
-			'active_log_index',
-		)
+        if len(logs) == 0:
+            layout.label(text="", icon='CHECKMARK')
+        else:
+            layout.label(text="", icon='ERROR')
 
-		if len(logs)==0:
-			return
+    def draw(self, context):
+        metarig = context.object
+        generator = metarig.cloudrig.generator
+        logs = generator.logs
+        layout = self.layout
 
-		log = cloudrig.active_log
+        if len(logs) == 0:
+            layout.label(text="No generation issues detected!", icon='CHECKMARK')
+            return
 
-		layout.use_property_split = False
+        row = layout.row()
+        row.template_list(
+            'CLOUDRIG_UL_log_entry_slots',
+            '',
+            generator,
+            'logs',
+            generator,
+            'active_log_index',
+        )
 
-		# It is optional for the log entry to provide a bone from the metarig, in case
-		# the log entry relates to a rigify type.
-		if log.owner_bone != "":
-			split = layout.row().split(factor=0.3)
-			split.label(text="Rig Element:")
-			main_row = split.column().row(align=True)
-			row = main_row.row(align=True)
-			row.prop_search(log, 'owner_bone', metarig.data, 'bones', text="")
-			row.enabled = False
-			row = main_row.row(align=True)
-			op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
-			op.use_target_rig = False
-			op.target_bone = log.owner_bone
+        log = generator.active_log
 
-		if log.trouble_bone != "":
-			split = layout.row().split(factor=0.3)
-			split.label(text="Generated Bone:")
-			main_row = split.column().row(align=True)
-			row = main_row.row(align=True)
-			row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
-			row.enabled = False
-			row = main_row.row(align=True)
-			op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
-			op.use_target_rig = True
-			op.target_bone = log.trouble_bone
+        layout.use_property_split = False
 
-		desc = log.description_short
-		if log.description != "":
-			desc = log.description
-		draw_label_with_linebreak(layout, desc)
+        # It is optional for the log entry to provide a bone from the metarig, in case
+        # the log entry relates to a rig component.
+        if log.base_bone_name != "":
+            split = layout.row().split(factor=0.3)
+            split.label(text="Rig Component:")
+            main_row = split.column().row(align=True)
+            row = main_row.row(align=True)
+            row.prop_search(log, 'base_bone_name', metarig.data, 'bones', text="")
+            row.enabled = False
+            row = main_row.row(align=True)
+            op = row.operator(
+                CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
+            )
+            op.use_target_rig = False
+            op.target_bone = log.base_bone_name
 
-		if log.operator != '':
-			row = layout.row()
-			split = row.split(factor=0.2)
-			split.label(text="Quick Fix:")
-			if log.op_text:
-				op = split.operator(log.operator, text=log.op_text)
-			else:
-				op = split.operator(log.operator)
-			kwargs = json.loads(log.op_kwargs)
-			for key in kwargs.keys():
-				setattr(op, key, kwargs[key])
+        if log.trouble_bone != "":
+            split = layout.row().split(factor=0.3)
+            split.label(text="Generated Bone:")
+            main_row = split.column().row(align=True)
+            row = main_row.row(align=True)
+            row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
+            row.enabled = False
+            row = main_row.row(align=True)
+            op = row.operator(
+                CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
+            )
+            op.use_target_rig = True
+            op.target_bone = log.trouble_bone
+
+        desc = log.description_short
+        if log.description != "":
+            desc = log.description
+        draw_label_with_linebreak(context, layout, desc)
+
+        if log.operator != '':
+            row = layout.row()
+            split = row.split(factor=0.2)
+            split.label(text="Quick Fix:")
+            if log.op_text:
+                op = split.operator(log.operator, text=log.op_text)
+            else:
+                op = split.operator(log.operator)
+            kwargs = json.loads(log.op_kwargs)
+            for key in kwargs.keys():
+                setattr(op, key, kwargs[key])
+
 
 class CLOUDRIG_PT_stack_trace(Panel):
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_parent_id = 'CLOUDRIG_PT_log'
-	bl_label = "Python Stack Trace"
-	bl_options = {'DEFAULT_CLOSED'}
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_parent_id = 'CLOUDRIG_PT_log'
+    bl_label = "Python Stack Trace"
+    bl_options = {'DEFAULT_CLOSED'}
 
-	@classmethod
-	def poll(cls, context):
-		cloudrig = context.object.data.cloudrig_parameters
-		if not cloudrig.active_log:
-			return False
-		display_mode = cloudrig.active_log.display_stack_trace
-		return display_mode == 'ALWAYS' or display_mode == 'ADVANCED' and is_advanced_mode(context)
+    @classmethod
+    def poll(cls, context):
+        generator = context.object.cloudrig.generator
+        if not generator.active_log:
+            return False
+        display_mode = generator.active_log.display_stack_trace
+        return display_mode == 'ALWAYS' or (
+            display_mode == 'ADVANCED' and is_advanced_mode(context)
+        )
 
-	def draw(self, context):
-		cloudrig = context.object.data.cloudrig_parameters
-		draw_label_with_linebreak(self.layout, cloudrig.active_log.pretty_stack, alert=True)
+    def draw(self, context):
+        generator = context.object.cloudrig.generator
+        draw_label_with_linebreak(
+            context, self.layout, generator.active_log.pretty_stack, alert=True
+        )
+
 
 class CLOUDRIG_OT_Jump_To_Bone(Operator):
-	"""Change context to make a bone visible and active in the metarig or generated rig."""
+    """Change context to make a bone visible and active in the metarig or generated rig."""
 
-	bl_idname = "ui.jump_to_target"
-	bl_label = "Jump to Target"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "ui.jump_to_target"
+    bl_label = "Jump to Target"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	use_target_rig: BoolProperty(
-		name		 = "Jump to Target Rig"
-		,description = "Toggle to the generated rig before focusing bone"
-		,default	 = False
-		)
-	target_bone: StringProperty(
-		name		 = "Target Bone"
-		,description = "Use a specific bone as the beginning of the chain, rather than the active bone"
-	)
+    use_target_rig: BoolProperty(
+        name="Jump to Target Rig",
+        description="Toggle to the generated rig before focusing bone",
+        default=False,
+    )
+    target_bone: StringProperty(
+        name="Target Bone",
+        description="Use a specific bone as the beginning of the chain, rather than the active bone",
+    )
 
-	def execute(self, context):
-		rig = context.object
+    def execute(self, context):
+        rig = context.object
 
-		if self.use_target_rig:
-			rig = rig.data.rigify_target_rig
-			bpy.ops.object.cloudrig_metarig_toggle()
+        if self.use_target_rig:
+            rig = rig.cloudrig.generator.target_rig
+            bpy.ops.object.cloudrig_metarig_toggle()
 
-		bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode='POSE')
 
-		bone = rig.data.bones.get(self.target_bone)
-		assert bone, f'Bone "{self.target_bone}" not in armature "{rig.name}".'
+        bone = rig.data.bones.get(self.target_bone)
+        assert bone, f'Bone "{self.target_bone}" not in armature "{rig.name}".'
 
-		bpy.ops.pose.select_all(action='DESELECT')
-		bone.hide = False
-		bone.select = True
-		bone_is_visible = any([bone.layers[i] == rig.data.layers[i]==True for i in range(32)])
-		if not bone_is_visible:
-			for i, l in enumerate(bone.layers):
-				if l:
-					rig.data.layers[i] = True
-					break
+        bpy.ops.pose.select_all(action='DESELECT')
+        bone.hide = False
+        bone.select = True
+        bone_is_visible = any([coll.is_visible for coll in bone.collections])
+        if not bone_is_visible:
+            bone.collections[0].is_visible = True
 
-		rig.data.bones.active = bone
+        rig.data.bones.active = bone
 
-		return { 'FINISHED' }
+        return {'FINISHED'}
+
 
 ########################################
 ######### Quick-Fix Operators ##########
 ########################################
 class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
-	"""Change rotation mode of a bone"""
+    """Change rotation mode of a bone"""
 
-	bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
-	bl_label = "Change Rotation Mode"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
+    bl_label = "Change Rotation Mode"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	bone_name: StringProperty()
+    bone_name: StringProperty()
 
-	def invoke(self, context, event):
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
-	def draw(self, context):
-		layout = self.layout
-		metarig = context.object
-		pbone = metarig.pose.bones.get(self.bone_name)
-		layout.prop(pbone, 'rotation_mode')
+    def draw(self, context):
+        layout = self.layout
+        metarig = context.object
+        pbone = metarig.pose.bones.get(self.bone_name)
+        layout.prop(pbone, 'rotation_mode')
 
-	def execute(self, context):
-		metarig = context.object
-		pbone = metarig.pose.bones.get(self.bone_name)
-		if not pbone or pbone.rotation_mode=='QUATERNION':
-			return {'CANCELLED'}
+    def execute(self, context):
+        metarig = context.object
+        pbone = metarig.pose.bones.get(self.bone_name)
+        if not pbone or pbone.rotation_mode == 'QUATERNION':
+            return {'CANCELLED'}
 
-		remove_active_log(metarig)
-		return { 'FINISHED' }
+        metarig.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_Report_Bug(Operator):
-	"""Report a bug on the CloudRig repository"""
+    """Report a bug on the CloudRig repository"""
 
-	bl_idname = "wm.cloudrig_report_bug"
-	bl_label = "Report Bug (Requires GitLab Account)"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "wm.cloudrig_report_bug"
+    bl_label = "Report Bug (Requires GitLab Account)"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	stack_trace: StringProperty()
+    def execute(self, context):
+        pretty_stack = context.object.cloudrig.generator.active_log.pretty_stack
+        webbrowser.open(url_prefill_from_cloudrig(pretty_stack))
 
-	def execute(self, context):
-		webbrowser.open(url_prefill_from_cloudrig(self.stack_trace))
+        return {'FINISHED'}
 
-		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Rename_Bone(Operator):
-	"""Rename a bone"""
+    """Rename a bone"""
 
-	bl_idname = "object.cloudrig_rename_bone"
-	bl_label = "Rename Bone"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_rename_bone"
+    bl_label = "Rename Bone"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	old_name: StringProperty() # Should be provided to the operator by the UI, and not changed!
-	new_name: StringProperty(name="Name") # Exposed to user
+    old_name: (
+        StringProperty()
+    )  # Should be provided to the operator by the UI, and not changed!
+    new_name: StringProperty(name="Name")  # Exposed to user
 
-	def invoke(self, context, event):
-		wm = context.window_manager
-		self.new_name = self.old_name
-		return wm.invoke_props_dialog(self)
+    def invoke(self, context, event):
+        wm = context.window_manager
+        self.new_name = self.old_name
+        return wm.invoke_props_dialog(self)
 
-	def draw(self, context):
-		layout = self.layout
-		metarig = context.object
-		if self.new_name in metarig.data.bones:
-			layout.prop(self, 'new_name', icon='ERROR')
-			layout.label(text="This bone name is taken!")
-		else:
-			layout.prop(self, 'new_name')
-			layout.label(text="Bone name available!")
+    def draw(self, context):
+        layout = self.layout
+        metarig = context.object
+        if self.new_name in metarig.data.bones:
+            layout.prop(self, 'new_name', icon='ERROR')
+            layout.label(text="This bone name is taken!")
+        else:
+            layout.prop(self, 'new_name')
+            layout.label(text="Bone name available!")
 
-	def execute(self, context):
-		metarig = context.object
-		bone = metarig.data.bones.get(self.old_name)
-		if self.new_name in metarig.data.bones:
-			self.report({'ERROR'}, "That bone name is already taken!")
-			return {'CANCELLED'}
-		if not bone:
-			self.report({'ERROR'}, f'Old bone "{self.old_name}" not found or not provided!')
-			return {'CANCELLED'}
+    def execute(self, context):
+        metarig = context.object
+        bone = metarig.data.bones.get(self.old_name)
+        if self.new_name in metarig.data.bones:
+            self.report({'ERROR'}, "That bone name is already taken!")
+            return {'CANCELLED'}
+        if not bone:
+            self.report(
+                {'ERROR'}, f'Old bone "{self.old_name}" not found or not provided!'
+            )
+            return {'CANCELLED'}
 
-		bone.name = self.new_name
-		if bone.name == self.new_name:
-			remove_active_log(metarig)
-		return { 'FINISHED' }
+        bone.name = self.new_name
+        if bone.name == self.new_name:
+            metarig.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
-	"""Redirect custom bone shape references from one object to another"""
+    """Redirect custom bone shape references from one object to another"""
 
-	bl_idname = "object.cloudrig_swap_bone_shape"
-	bl_label = "Swap Bone Shapes"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_swap_bone_shape"
+    bl_label = "Swap Bone Shapes"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Both of these should be provided by the UI.
-	old_name: StringProperty()
-	new_name: StringProperty()
+    # Both of these should be provided by the UI.
+    old_name: StringProperty()
+    new_name: StringProperty()
 
-	def execute(self, context):
-		metarig = context.object
-		old_obj = bpy.data.objects.get((self.old_name, None))
-		new_obj = bpy.data.objects.get((self.new_name, None))
+    def execute(self, context):
+        metarig = context.object
+        old_obj = bpy.data.objects.get((self.old_name, None))
+        new_obj = bpy.data.objects.get((self.new_name, None))
 
-		if not old_obj and new_obj:
-			self.report({'ERROR'}, f'Error! One of "{self.old_name}" or "{self.new_name}" was not found!')
-			return {'CANCELLED'}
+        if not old_obj and new_obj:
+            self.report(
+                {'ERROR'},
+                f'Error! One of "{self.old_name}" or "{self.new_name}" was not found!',
+            )
+            return {'CANCELLED'}
 
-		rigs = [metarig]
+        rigs = [metarig]
 
-		rig = metarig.data.rigify_target_rig
-		if rig:
-			rigs.append(rig)
+        rig = metarig.cloudrig.generator.target_rig
+        if rig:
+            rigs.append(rig)
 
-		for rig in rigs:
-			for pb in rig.pose.bones:
-				if pb.custom_shape == old_obj:
-					pb.custom_shape = new_obj
+        for rig in rigs:
+            for pb in rig.pose.bones:
+                if pb.custom_shape == old_obj:
+                    pb.custom_shape = new_obj
 
-		bpy.data.objects.remove(old_obj)
-		widget_collection = metarig.data.rigify_widgets_collection
-		if widget_collection and new_obj.name not in widget_collection.objects:
-			widget_collection.objects.link(new_obj)
+        bpy.data.objects.remove(old_obj)
+        widget_collection = metarig.cloudrig.generator.widget_collection
+        if widget_collection and new_obj.name not in widget_collection.objects:
+            widget_collection.objects.link(new_obj)
 
-		remove_active_log(metarig)
-		self.report({'INFO'}, f'Replaced all references of "{self.old_name}" to "{self.new_name}".')
-		return {'FINISHED'}
+        metarig.cloudrig.generator.remove_active_log()
+        self.report(
+            {'INFO'},
+            f'Replaced all references of "{self.old_name}" to "{self.new_name}".',
+        )
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_Rename_Object(Operator):
-	"""Rename an object"""
+    """Rename an object"""
 
-	bl_idname = "object.cloudrig_rename_object"
-	bl_label = "Rename Object"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_rename_object"
+    bl_label = "Rename Object"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	old_name: StringProperty() # Should be provided to the operator by the UI, and not changed!
-	new_name: StringProperty(name="Name") # Exposed to user
+    old_name: (
+        StringProperty()
+    )  # Should be provided to the operator by the UI, and not changed!
+    new_name: StringProperty(name="Name")  # Exposed to user
 
-	def invoke(self, context, event):
-		wm = context.window_manager
-		if self.new_name=='':
-			self.new_name = self.old_name
-		return wm.invoke_props_dialog(self)
+    def invoke(self, context, event):
+        wm = context.window_manager
+        if self.new_name == '':
+            self.new_name = self.old_name
+        return wm.invoke_props_dialog(self)
 
-	def draw(self, context):
-		layout = self.layout
-		if self.new_name in bpy.data.objects:
-			layout.prop(self, 'new_name', icon='ERROR')
-			layout.label(text="This object name is taken!")
-		else:
-			layout.prop(self, 'new_name')
-			layout.label(text="Object name available!")
+    def draw(self, context):
+        layout = self.layout
+        if self.new_name in bpy.data.objects:
+            layout.prop(self, 'new_name', icon='ERROR')
+            layout.label(text="This object name is taken!")
+        else:
+            layout.prop(self, 'new_name')
+            layout.label(text="Object name available!")
 
-	def execute(self, context):
-		metarig = context.object
-		obj = bpy.data.objects.get((self.old_name, None))
+    def execute(self, context):
+        metarig = context.object
+        obj = bpy.data.objects.get((self.old_name, None))
 
-		if self.new_name in bpy.data.objects:
-			self.report({'ERROR'}, "That object name is already taken!")
-			return {'CANCELLED'}
+        if self.new_name in bpy.data.objects:
+            self.report({'ERROR'}, "That object name is already taken!")
+            return {'CANCELLED'}
 
-		if not obj:
-			self.report({'ERROR'}, f'Error! Old object "{self.old_name}" not found or not provided!')
-			return {'CANCELLED'}
+        if not obj:
+            self.report(
+                {'ERROR'},
+                f'Error! Old object "{self.old_name}" not found or not provided!',
+            )
+            return {'CANCELLED'}
 
-		obj.name = self.new_name
-		if obj.name == self.new_name:
-			remove_active_log(metarig)
-		return { 'FINISHED' }
+        obj.name = self.new_name
+        if obj.name == self.new_name:
+            metarig.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_Delete_Object(Operator):
-	"""Delete an object"""
+    """Delete an object"""
 
-	bl_idname = "object.cloudrig_delete_object"
-	bl_label = "Delete Object"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_delete_object"
+    bl_label = "Delete Object"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Should be provided by the UI.
-	ob_name: StringProperty()
+    # Should be provided by the UI.
+    ob_name: StringProperty()
 
-	def execute(self, context):
-		metarig = context.object
-		ob = bpy.data.objects.get((self.ob_name, None))
+    def execute(self, context):
+        metarig = context.object
+        ob = bpy.data.objects.get((self.ob_name, None))
 
-		remove_active_log(metarig)
+        metarig.cloudrig.generator.remove_active_log()
 
-		if not ob:
-			self.report({'WARNING'}, f'"{self.ob_name}" not found! It must have already been deleted.')
-			return {'FINISHED'}
+        if not ob:
+            self.report(
+                {'WARNING'},
+                f'"{self.ob_name}" not found! It must have already been deleted.',
+            )
+            return {'FINISHED'}
 
-		bpy.data.objects.remove(ob)
+        bpy.data.objects.remove(ob)
 
-		self.report({'INFO'}, f'Deleted "{self.ob_name}".')
-		return { 'FINISHED' }
+        self.report({'INFO'}, f'Deleted "{self.ob_name}".')
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_Clear_Pointer(Operator):
-	"""Set a datablock pointer parameter to None"""
+    """Set a datablock pointer parameter to None"""
 
-	bl_idname = "object.cloudrig_clear_pointer_param"
-	bl_label = "Clear Pointer Parameter"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_clear_pointer_param"
+    bl_label = "Clear Pointer Parameter"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Should be provided by the UI.
-	bone_name: StringProperty()
-	param_name: StringProperty()
+    # Should be provided by the UI.
+    bone_name: StringProperty()
+    param_name: StringProperty()
 
-	def execute(self, context):
-		metarig = context.object
-		bone = metarig.pose.bones.get(self.bone_name)
-		old_ref = getattr(bone.rigify_parameters, self.param_name)
-		setattr(bone.rigify_parameters, self.param_name, None)
+    def execute(self, context):
+        metarig = context.object
+        pbone = metarig.pose.bones.get(self.bone_name)
+        param_split = self.param_name.split(".")
+        param_category = getattr(pbone.cloudrig_component.params, param_split[0])
+        old_ref = getattr(pbone.cloudrig_component.params, param_split[1])
+        setattr(param_category, param_split[1], None)
 
-		self.report({'INFO'}, f'Cleared reference to "{old_ref.name}" on "{bone.name}".')
-		remove_active_log(metarig)
-		return { 'FINISHED' }
+        self.report(
+            {'INFO'}, f'Cleared reference to "{old_ref.name}" on "{pbone.name}".'
+        )
+        metarig.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
 
-class CLOUDRIG_OT_Rename_Rigify_Layer(Operator):
-	"""Rename a Rigify Layer"""
-
-	bl_idname = "object.cloudrig_rename_layer"
-	bl_label = "Rename Rigify Layer"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# Should be provided by the UI.
-	layer_idx: IntProperty()
-	layer_name: StringProperty(name="Layer Name")
-
-	def invoke(self, context, event):
-		if self.layer_name == '':
-			wm = context.window_manager
-			return wm.invoke_props_dialog(self)
-
-		return self.execute(context)
-
-	def draw(self, context):
-		self.layout.prop(self, 'layer_name')
-
-	def execute(self, context):
-		metarig = context.object
-
-		old_name = metarig.data.rigify_layers[self.layer_idx].name
-		metarig.data.rigify_layers[self.layer_idx].name = self.layer_name
-
-		self.report({'INFO'}, f'Renamed layer from "{old_name}" to "{self.layer_name}".')
-		remove_active_log(metarig)
-		return { 'FINISHED' }
-
-class CLOUDRIG_OT_Remove_Bone_Group(Operator):
-	"""Remove a Bone Group"""
-
-	bl_idname = "object.cloudrig_remove_bone_group"
-	bl_label = "Remove Bone Group"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-	# Should be provided by the UI.
-	bg_name: StringProperty(name="Group Name")
-
-	def execute(self, context):
-		metarig = context.object
-
-		bg = metarig.pose.bone_groups.get(self.bg_name)
-		if not bg:
-			self.report({'ERROR'}, f'Bone Group "{self.bg_name}" was already removed.')
-		else:
-			metarig.pose.bone_groups.remove(bg)
-			self.report({'INFO'}, f'Removed Bone Group "{self.bg_name}".')
-
-		remove_active_log(metarig)
-		return { 'FINISHED' }
 
 class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
-	"""Remove curves with only one keyframe"""
+    """Remove curves with only one keyframe"""
 
-	bl_idname = "object.cloudrig_clear_single_keyframes"
-	bl_label = "Remove Single Keyframes"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_clear_single_keyframes"
+    bl_label = "Remove Single Keyframes"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Should be provided by the UI.
-	action_slot_idx: IntProperty(name="Action Slot Index")
+    # Should be provided by the UI.
+    action_slot_idx: IntProperty(name="Action Slot Index")
 
-	def execute(self, context):
-		metarig = context.object
-		action_slots = metarig.data.cloudrig_parameters.action_slots
-		action_slot = action_slots[self.action_slot_idx]
+    def execute(self, context):
+        metarig = context.object
+        action_slots = metarig.cloudrig.generator.action_slots
+        action_slot = action_slots[self.action_slot_idx]
 
-		curves_removed = 0
-		for fcurve in action_slot.action.fcurves[:]:
-			if len(fcurve.keyframe_points) < 2:
-				action_slot.action.fcurves.remove(fcurve)
-				curves_removed += 1
+        curves_removed = 0
+        for fcurve in action_slot.action.fcurves[:]:
+            if len(fcurve.keyframe_points) < 2:
+                action_slot.action.fcurves.remove(fcurve)
+                curves_removed += 1
 
-		self.report({'INFO'}, f'Removed {curves_removed} curves.')
-		remove_active_log(metarig)
-		return { 'FINISHED' }
+        self.report({'INFO'}, f'Removed {curves_removed} curves.')
+        metarig.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_Edit_Action_Slot(Operator):
-	"""Directly edit an action slot in a pop-up panel"""
+    """Directly edit an action slot in a pop-up panel"""
 
-	bl_idname = "object.cloudrig_edit_action_slot_popup"
-	bl_label = "Edit Action Slot"
-	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    bl_idname = "object.cloudrig_edit_action_slot_popup"
+    bl_label = "Edit Action Slot"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	# Should be provided by the UI.
-	action_slot_idx: IntProperty(name="Action Slot Index")
+    # Should be provided by the UI.
+    action_slot_idx: IntProperty(name="Action Slot Index")
 
-	def invoke(self, context, event):
-		wm = context.window_manager
-		return wm.invoke_props_dialog(self)
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
-	def draw(self, context):
-		metarig = context.object
-		rig = metarig.data.rigify_target_rig
+    def draw(self, context):
+        metarig = context.object
+        rig = metarig.cloudrig.generator.target_rig
 
-		action_slots = metarig.data.cloudrig_parameters.action_slots
-		action_slot = action_slots[self.action_slot_idx]
+        action_slots = metarig.cloudrig.generator.action_slots
+        action_slot = action_slots[self.action_slot_idx]
 
-		layout = self.layout
-		layout.use_property_split = True
-		layout.use_property_decorate = False
-		action_slot.draw_ui(layout, rig.data)
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        action_slot.draw_ui(layout, rig.data)
 
-	def execute(self, context):
-		return {'FINISHED'}
+    def execute(self, context):
+        return {'FINISHED'}
 
 
-def remove_active_log(metarig: Object):
-	cloudrig = metarig.data.cloudrig_parameters
-	logs = cloudrig.logs
+class CLOUDRIG_OT_delete_collection(Operator):
+    """Remove a bone collection"""
 
-	active_index = cloudrig.active_log_index
-	# This behaviour is inconsistent with other UILists in Blender, but I am right and they are wrong!
-	to_index = active_index
-	if to_index > len(logs)-2:
-		to_index = len(logs)-2
+    bl_idname = "object.cloudrig_delete_bone_collection"
+    bl_label = "Delete Bone Collection"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-	cloudrig.logs.remove(active_index)
-	cloudrig.active_log_index = to_index
+    # Should be provided by the UI.
+    coll_name: StringProperty()
+
+    def execute(self, context):
+        metarig = context.object
+        if self.coll_name in metarig.data.collections_all:
+            coll = metarig.data.collections_all.get(self.coll_name)
+            metarig.data.collections.remove(coll)
+            self.report({'INFO'}, f"Deleted '{self.coll_name}' collection.")
+        else:
+            self.report({'INFO'}, f"Collection {self.coll_name} not found.")
+
+        metarig.cloudrig.generator.remove_active_log()
+
+        return {'FINISHED'}
+
 
 registry = [
-	CLOUDRIG_UL_log_entry_slots
-	,CloudRigLogEntry
-	,CLOUDRIG_PT_log
-	,CLOUDRIG_PT_stack_trace
-
-	,CLOUDRIG_OT_Jump_To_Bone
-
-	,CLOUDRIG_OT_Change_Rotation_Mode
-	,CLOUDRIG_OT_Report_Bug
-	,CLOUDRIG_OT_Rename_Bone
-
-	,CLOUDRIG_OT_Swap_Bone_Shape
-	,CLOUDRIG_OT_Rename_Object
-	,CLOUDRIG_OT_Delete_Object
-
-	,CLOUDRIG_OT_Clear_Pointer
-	,CLOUDRIG_OT_Rename_Rigify_Layer
-	,CLOUDRIG_OT_Remove_Bone_Group
-
-	,CLOUDRIG_OT_Clear_Single_Keyframes
-	,CLOUDRIG_OT_Edit_Action_Slot
+    CLOUDRIG_UL_log_entry_slots,
+    CloudRigLogEntry,
+    CLOUDRIG_PT_log,
+    CLOUDRIG_PT_stack_trace,
+    CLOUDRIG_OT_Jump_To_Bone,
+    CLOUDRIG_OT_Change_Rotation_Mode,
+    CLOUDRIG_OT_Report_Bug,
+    CLOUDRIG_OT_Rename_Bone,
+    CLOUDRIG_OT_Swap_Bone_Shape,
+    CLOUDRIG_OT_Rename_Object,
+    CLOUDRIG_OT_Delete_Object,
+    CLOUDRIG_OT_Clear_Pointer,
+    CLOUDRIG_OT_Clear_Single_Keyframes,
+    CLOUDRIG_OT_Edit_Action_Slot,
+    CLOUDRIG_OT_delete_collection,
 ]
