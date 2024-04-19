@@ -61,7 +61,9 @@ class POSE_OT_symmetrize_rigging(Operator):
         rig = context.object
 
         bone_map = self.get_symmetrize_bone_mapping(context)
+        bone_map_str = {key.name: value.name for key, value in bone_map.items()}
         if type(bone_map) == set:
+            # If the function returns an operator return value.
             return bone_map
 
         for to_pb in bone_map.values():
@@ -76,7 +78,9 @@ class POSE_OT_symmetrize_rigging(Operator):
         bpy.ops.armature.symmetrize()
         bpy.ops.object.mode_set(mode='POSE')
 
-        for from_pb, to_pb in bone_map.items():
+        for from_name, to_name in bone_map_str.items():
+            from_pb = rig.pose.bones[from_name]
+            to_pb = rig.pose.bones[to_name]
             # Mirror drivers on bone properties.
             mirror_drivers(context.object, from_pb, to_pb)
 
