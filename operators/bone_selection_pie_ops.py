@@ -27,7 +27,6 @@ def ensure_visible_bone_collection(bone: Bone or EditBone or PoseBone):
     if not any([coll.is_visible for coll in bone.collections]):
         bone.collections[0].is_visible = True
 
-
 def get_selected_bones(context):
     """Return a list of Bones or EditBones depending on context."""
     if context.mode == 'EDIT_ARMATURE':
@@ -51,6 +50,21 @@ def get_bone_by_name(rig, bone_name: str):
     else:
         return rig.pose.bones.get(bone_name)
 
+
+def get_active_bone(context):
+	"""Return active PoseBone or EditBone, depending on context."""
+	if context.mode == 'EDIT_ARMATURE':
+		return context.active_bone
+	else:
+		return context.active_pose_bone
+
+def get_bone_by_name(context, bone_name: str):
+	"""Return PoseBone or EditBone with the given name, depending on context."""
+	obj = context.pose_object or context.object
+	if context.mode == 'EDIT_ARMATURE':
+		return obj.data.edit_bones.get(bone_name)
+	else:
+		return obj.pose.bones.get(bone_name)
 
 def is_active_bone(context, bone: Bone or EditBone or PoseBone):
     """Return whether the passed bone is the active one"""
@@ -331,6 +345,45 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
 
         return {'FINISHED'}
 
+
+class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
+	"""Search for a bone name to select"""
+	bl_idname = "bone.select_by_name_search"
+	bl_label = "Search Bone"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	bone_name: StringProperty(name="Bone")
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	def invoke(self, context, _event):
+		bone = get_active_bone(context)
+		if bone:
+			self.bone_name = bone.name
+		return context.window_manager.invoke_props_dialog(self)
+
+	def draw(self, context):
+		layout = self.layout
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		rig = context.pose_object or context.object
+		if context.mode == 'EDIT_ARMATURE':
+			layout.prop_search(self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA')
+		else:
+			layout.prop_search(self, 'bone_name', rig.data, 'bones', icon='BONE_DATA')
+		layout.prop(self, 'extend_selection')
+
+	def execute(self, context):
+		bone = get_bone_by_name(context, self.bone_name)
+		if not self.extend_selection:
+			deselect_all_bones(context)
+
+		ensure_visible_bone_layer(bone)
+		reveal_and_select(context, bone)
+
+		return {'FINISHED'}
 
 registry = [
     POSE_OT_select_bone_by_name,
