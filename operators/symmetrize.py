@@ -80,9 +80,9 @@ class POSE_OT_symmetrize_rigging(Operator):
             # Mirror drivers on bone properties.
             mirror_drivers(context.object, from_pb, to_pb)
 
-            # Mirror constraints and their drivers.
+            # Mirror Actions and constraint drivers.
             for from_con in from_pb.constraints:
-                mirror_constraint(rig, from_pb, from_con)
+                symmetrize_additional(rig, from_pb, from_con)
 
             # Mirror bone collections.
             for coll in to_pb.bone.collections[:]:
@@ -116,7 +116,7 @@ def remove_constraint_with_drivers(
     pbone.constraints.remove(con)
 
 
-def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
+def symmetrize_additional(armature: Object, pbone: PoseBone, con: Constraint):
     """Apply some additional mirroring logic that the Symmetrize operator doesn't do for us."""
     flipped_con_name = flip_name(con.name)
     flipped_bone_name = flip_name(pbone.name)
@@ -129,11 +129,12 @@ def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         # No opposite bone found and the constraint name could not be flipped, so we skip.
         return
 
-    opp_c = find_or_create_constraint(opp_pb, con.type, con.name)
-    if not opp_c:
-        opp_c = find_or_create_constraint(opp_pb, con.type, flipped_con_name)
-    copy_attributes(con, opp_c, skip=['name', 'subtarget'])
-    opp_c.name = flipped_con_name
+    symmetrized_con = find_or_create_constraint(opp_pb, con.type, con.name)
+    if not symmetrized_con:
+        # Looks like this constraint didn't get copied by the Symmetrize operator. This shouldn't happen.
+        print("ERROR: Constraint not created by Symmetrize operator: ", pbone.name, con.name)
+        return
+    symmetrized_con.name = flipped_con_name
 
     if con.type == 'ACTION' and pbone != opp_pb:
         # Need to mirror the curves in the action to the opposite bone.
@@ -174,28 +175,16 @@ def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
                     opp_kf.handle_left[1] *= -1
                     opp_kf.handle_right[1] *= -1
 
-    elif con.type == 'LIMIT_LOCATION':
-        # X: Flipped and inverted.
-        opp_c.min_x = con.max_x * -1
-        opp_c.max_x = con.min_x * -1
-
     elif con.type == 'DAMPED_TRACK':
-        # NOTE: Not sure why this isn't in the Symmetrize operator, I think it always applies?
+        # TODO: Report this as missing from Blender's Symmetrize operator.
         axis_mapping = {
             'TRACK_NEGATIVE_X': 'TRACK_X',
             'TRACK_X': 'TRACK_NEGATIVE_X',
         }
-        if opp_c.track_axis in axis_mapping.keys():
-            opp_c.track_axis = axis_mapping[con.track_axis]
+        if symmetrized_con.track_axis in axis_mapping.keys():
+            symmetrized_con.track_axis = axis_mapping[con.track_axis]
 
-    elif con.type == 'ARMATURE':
-        for from_tar in con.targets:
-            to_tar = opp_c.targets.new()
-            to_tar.target = from_tar.target
-            to_tar.subtarget = flip_name(from_tar.subtarget)
-            to_tar.weight = from_tar.weight
-
-    mirror_drivers(armature, pbone, opp_pb, con, opp_c)
+    mirror_drivers(armature, pbone, opp_pb, con, symmetrized_con)
 
 
 def mirror_drivers(
