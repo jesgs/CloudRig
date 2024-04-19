@@ -1,14 +1,14 @@
 # Installing into Blender 4.1 and above
 
 Same as any other Blender add-on:
-1. Download the appropriate version from the [**Releases**](releases) page. For bleeding edge, [download the repo](archive/master.zip) instead.
-2. In Blender, open **Preferences->Addons->Install...**.
+1. [Download the repo as a .zip](../../../archive/master.zip).
+2. In Blender, open **Preferences->Add-ons->Install...** and browse the .zip.
 3. Enable CloudRig.
 
 # What is CloudRig?
-CloudRig is a rig generation system, basically my take on Rigify. It is being developed for and by our small team, the Blender Studio, for the needs of our Open Movies and our animators.
+CloudRig is a rig generation add-on for Blender, developed by the Blender Studio for our Open Movies.
 
-You can support the development of CloudRig by subscribing to the [Blender Studio](https://studio.blender.org/)!
+You can support the development of CloudRig by [becoming a Blender Studio subscriber](https://studio.blender.org/)!
 
 # Getting Started
 Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Human**.
@@ -59,10 +59,10 @@ And bam, you have a rig!
 </ul>
 
 # Report problems
-If you encounter a bug or have suggestions on how something could be improved, feel free to [open an issue](issues/new).
+If you encounter a bug or have a suggestion, feel free to [open an issue](../../../issues/new).
 
 # Contribute
-Contributions are welcome! You may find some useful notes [here](wiki/Code)
+Contributions are welcome! You may find some useful notes [here](../../../wiki/Code)
 
 # Show me your work!
 Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [blender.chat](https://blender.chat/direct/met) or add "metemer" on Discord!
