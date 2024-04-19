@@ -62,7 +62,7 @@ And bam, you have a rig!
 If you encounter a bug or have a suggestion, feel free to [open an issue](../../../issues/new).
 
 # Contribute
-Contributions are welcome! You may find some useful notes [here](../../wiki/Code)
+Contributions are welcome! You may find some useful notes [here](../../../wiki/Code)
 
 # Show me your work!
 Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [blender.chat](https://blender.chat/direct/met) or add "metemer" on Discord!
