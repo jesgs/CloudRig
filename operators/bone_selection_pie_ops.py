@@ -380,7 +380,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
 		if not self.extend_selection:
 			deselect_all_bones(context)
 
-		ensure_visible_bone_layer(bone)
+		ensure_visible_bone_collection(bone)
 		reveal_and_select(context, bone)
 
 		return {'FINISHED'}
