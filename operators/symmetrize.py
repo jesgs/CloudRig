@@ -18,9 +18,6 @@ class POSE_OT_symmetrize_rigging(Operator):
         if not context.object or context.object.type != 'ARMATURE':
             cls.poll_message_set("No active armature")
             return False
-        if not context.object.mode == 'POSE':
-            cls.poll_message_set("Armature must be in pose mode")
-            return False
 
         for bone in context.selected_bones or context.selected_pose_bones:
             if bone.name != flip_name(bone.name):
@@ -60,11 +57,15 @@ class POSE_OT_symmetrize_rigging(Operator):
     def execute(self, context):
         rig = context.object
 
+        org_mode = rig.mode
+        if rig.mode != 'POSE':
+            bpy.ops.object.mode_set(mode='POSE')
+
         bone_map = self.get_symmetrize_bone_mapping(context)
-        bone_map_str = {key.name: value.name for key, value in bone_map.items()}
         if type(bone_map) == set:
             # If the function returns an operator return value.
             return bone_map
+        bone_map_str = {key.name: value.name for key, value in bone_map.items()}
 
         for to_pb in bone_map.values():
             for to_con in to_pb.constraints:
@@ -76,7 +77,7 @@ class POSE_OT_symmetrize_rigging(Operator):
             eb.hide = False
             eb.select = True
         bpy.ops.armature.symmetrize()
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode=org_mode)
 
         for from_name, to_name in bone_map_str.items():
             from_pb = rig.pose.bones[from_name]
@@ -180,7 +181,7 @@ def symmetrize_additional(armature: Object, pbone: PoseBone, con: Constraint):
                     opp_kf.handle_right[1] *= -1
 
     elif con.type == 'DAMPED_TRACK':
-        # TODO: Report this as missing from Blender's Symmetrize operator.
+        # TODO: There is a patch to include this in Blender. This code can be removed after projects.blender.org/blender/blender/pulls/120979 lands.
         axis_mapping = {
             'TRACK_NEGATIVE_X': 'TRACK_X',
             'TRACK_X': 'TRACK_NEGATIVE_X',
