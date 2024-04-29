@@ -212,7 +212,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             "prop_bone": prop_bone,
             "prop_id": prop_name,
             "operator": "pose.cloudrig_snap_bake",
-            "bones": [bone.name],
+            "bone_names": [bone.name],
         }
 
         # Store UI info

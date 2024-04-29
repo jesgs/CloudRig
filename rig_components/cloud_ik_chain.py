@@ -334,44 +334,29 @@ class Component_Chain_IKFK(Component_Chain_FK):
         """Store UI data for FK/IK switching and snapping."""
 
         # List of bone tuples to snap (from, to).
-        map_on = (
-            []
-        )  # Which bone will be snapped to which when the custom property is set to 1.
-        map_off = (
-            []
-        )  # Which bone will be snapped to which when the custom property is set to 0.
+        # Which bone will be snapped to which when the custom property is set to 1.
+        map_ik_to_fk = []
+        # Which bone will be snapped to which when the custom property is set to 0.
+        map_fk_to_ik = []  
 
-        hide_on = [
-            b.name for b in fk_chain
-        ]  # Which bones will be hidden when the custom property is set to 1.
-        hide_off = [
-            ik_mstr.name
-        ]  # Which bones will be hidden when the custom property is set to 0.
-        if ik_pole:
-            hide_off.append(ik_pole.name)
-
-        map_on.append((ik_mstr.name, fk_chain[-1].name))
-        map_on.append((ik_chain[0].name, fk_chain[0].name))
+        map_ik_to_fk.append((ik_mstr.name, fk_chain[-1].name))
+        map_ik_to_fk.append((ik_chain[0].name, fk_chain[0].name))
 
         if self.params.fk_chain.double_first:
-            hide_on.append((fk_chain[0].parent.name))
-            map_off.append((fk_chain[0].parent.name, ik_chain[0].name))
+            map_fk_to_ik.append((fk_chain[0].parent.name, ik_chain[0].name))
 
         for i in range(len(fk_chain)):
-            map_off.append((fk_chain[i].name, ik_chain[i].name))
+            map_fk_to_ik.append((fk_chain[i].name, ik_chain[i].name))
 
         ui_data = {
             'operator': 'pose.cloudrig_toggle_ikfk_bake',
             'prop_bone': self.properties_bone,
             'prop_id': self.ikfk_name,
-            'map_on': map_on,
-            'map_off': map_off,
-            'hide_on': hide_on,
-            'hide_off': hide_off,
+            'map_fk_to_ik': map_fk_to_ik,
+            'map_ik_to_fk': map_ik_to_fk,
             'ik_pole': ik_pole.name if ik_pole else '',
-            'fk_first': self.bone_sets['FK Controls'][0].name,
-            'fk_last': self.bone_sets['FK Controls'][1].name,
         }
+
         return ui_data
 
     def make_ik_stretch(self):
@@ -652,8 +637,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "prop_bone": self.properties_bone,
             "prop_id": ik_pole_follow_name,
             "operator": "pose.cloudrig_snap_bake",
-            "bones": [ik_pole.name],
-            "select_bones": True,
+            "bone_names": [ik_pole.name],
         }
         self.add_ui_data(
             "IK",

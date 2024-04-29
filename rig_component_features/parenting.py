@@ -133,7 +133,7 @@ class CloudParentingMixin:
             "operator": "pose.cloudrig_switch_parent_bake",
             "icon": "COLLAPSEMENU",
             "parent_names": parent_ui_names,
-            "bones": [child_bone.name],
+            "bone_names": [child_bone.name],
         }
         if len(parent_bone_names) > 1:
             # Only add UI slider if there's more than 1 parent option.
