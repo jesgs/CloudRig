@@ -743,7 +743,7 @@ class CLOUDRIG_PT_base(bpy.types.Panel):
         pass
 
 
-class CloudRig_Properties(bpy.types.PropertyGroup):
+class CloudRig_Properties_legacy(bpy.types.PropertyGroup):
     """PropertyGroup for special custom properties that rely on callback functions"""
 
     def items_outfit(self, context):
@@ -793,7 +793,7 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
                     pass  # TODO: Can't seem to reset custom properties to their default, or even so much as read their default!?!?
 
             # For outfit properties starting with "_", update the corresponding character property.
-            char_bone = get_char_bone(rig)
+            char_bone = CLOUDRIG_PT_character_legacy.get_char_bone(rig)
             for key in outfit_bone.keys():
                 if key.startswith("_") and key[1:] in char_bone:
                     char_bone[key[1:]] = outfit_bone[key]
@@ -809,168 +809,15 @@ class CloudRig_Properties(bpy.types.PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
+class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_character_legacy"
+    bl_label = "Character (Legacy)"
 
-def get_char_bone(rig):
-    for b in rig.pose.bones:
-        if b.name.startswith("Properties_Character"):
-            return b
-
-
-def draw_rig_settings_per_label(
-    layout: bpy.types.UILayout, rig: Object, main_dict: dict
-):
-    """Each top-level dictionary within the main dictionary defines a panel.
-    Each panel is split into sub-sections via labels.
-    """
-    top = layout.column()
-    for label_name in main_dict.keys():
-        ui = layout
-        if label_name == 'parent_id':
-            continue
-        if label_name == 'NODRAW':
-            continue
-        if label_name != "":
-            layout.label(text=label_name)
-        else:
-            # Label-less properties should be at the top of the sub-panel.
-            ui = top
-        draw_rig_settings(ui, rig, main_dict[label_name])
-
-
-def draw_rig_settings(layout: bpy.types.UILayout, rig: Object, ui_data: Dict):
-    """
-    ui_data: Dictionary containing the UI data, created during rig generation.
-    The top-level represents rows, and each row can contain any number of slider definitions.
-
-    A slider definition must have the following keywords:
-            prop_bone: Name of the pose bone that holds the custom property.
-            prop_id: Name of the custom property on the bone, to be drawn as a slider.
-
-    Optional keywords:
-            texts: List of strings to display alongside an integer property slider.
-            operator: Specify an operator to draw next to the slider.
-            icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
-
-            Any further arguments will be passed on to the operator button as keyword arguments.
-    """
-
-    # Sort the rows alphabetically, just so "Arm" always comes before "Leg".
-    # Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
-    # consistent and predictable.
-    row_datas = [(row_name, ui_data[row_name]) for row_name in sorted(ui_data.keys())]
-
-    # Each top-level dictionary within the main dictionary defines a row.
-    for row_name, row_entries in row_datas:
-        row = layout.row()
-        # Each second-level dictionary within that defines a slider (and operator, if given).
-        # If there is more than one, they will be drawn next to each other, since they're in the same row.
-        for entry_name in row_entries.keys():
-            info = row_entries[
-                entry_name
-            ]  # This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-            if not 'prop_bone' in info and 'prop_id' in info:
-                print(
-                    f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{info}"
-                )
-                continue
-            prop_bone = rig.pose.bones.get(info['prop_bone'])
-            prop_id = info['prop_id']
-            if not prop_bone and prop_id in prop_bone:
-                print(
-                    f"CloudRig UI Error: Properties bone or property does not exist: {info}"
-                )
-                continue
-            col = row.column()
-            sub_row = col.row(align=True)
-
-            prop_value = prop_bone[prop_id]
-
-            def get_text():
-                text = entry_name
-                if 'texts' in info:
-                    texts = json.loads(info['texts'])
-                    value = int(prop_value)
-                    if len(texts) > value:
-                        text = entry_name + ": " + texts[value]
-                return text
-
-            if isinstance(prop_value, bpy.types.Object):
-                # Property is an object pointer
-                sub_row.prop_search(
-                    prop_bone,
-                    f'["{prop_id}"]',
-                    bpy.data,
-                    'objects',
-                    icon='OBJECT_DATAMODE',
-                    text=entry_name,
-                )
-            elif type(prop_value) == bool:
-                icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
-                sub_row.prop(
-                    prop_bone, f'["{prop_id}"]', toggle=True, text=get_text(), icon=icon
-                )
-            else:
-                # Property is a float/int/color
-
-                sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=get_text())
-
-            # Draw an operator if provided.
-            if 'operator' in info:
-                icon = 'FILE_REFRESH'
-                if 'icon' in info:
-                    icon = info['icon']
-
-                operator = sub_row.operator(info['operator'], text="", icon=icon)
-                # Pass on any paramteres to the operator that it will accept.
-                for param in info.keys():
-                    if hasattr(operator, param):
-                        value = info[param]
-                        # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-                        if type(value) in [list, dict]:
-                            value = json.dumps(value)
-                        setattr(operator, param, value)
-
-
-def get_text(prop_owner, prop_id, value):
-    """If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
-    text = prop_id.replace("_", " ")
-    if "$" + prop_id in prop_owner and type(value) == int:
-        names = prop_owner["$" + prop_id]
-        if value > len(names) - 1:
-            print(
-                f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}"
-            )
-            return text
-        return text + ": " + names[value]
-    else:
-        return text
-
-
-def add_operator(layout, op_info: dict):
-    """Add an operator button to layout.
-    op_info should include a bl_idname, can include an icon, and operator kwargs.
-    """
-
-    icon = 'LAYER_ACTIVE'
-    if 'icon' in op_info:
-        icon = op_info['icon']
-
-    operator = layout.operator(op_info['bl_idname'], text="", icon=icon)
-    # Pass on any paramteres to the operator that it will accept.
-    for param in op_info.keys():
-        if param in ['bl_idname', 'icon']:
-            continue
-        if hasattr(operator, param):
-            value = op_info[param]
-            # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-            if type(value) in [list, dict]:
-                value = json.dumps(value)
-            setattr(operator, param, value)
-
-
-class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
-    bl_idname = "CLOUDRIG_PT_character"
-    bl_label = "Character"
+    @staticmethod
+    def get_char_bone(rig):
+        for b in rig.pose.bones:
+            if b.name.startswith("Properties_Character"):
+                return b
 
     @classmethod
     def poll(cls, context):
@@ -986,9 +833,24 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
         outfit_properties_bone = rig.pose.bones.get(
             "Properties_Outfit_" + rig_props.outfit
         )
-        char_bone = get_char_bone(rig)
+        char_bone = cls.get_char_bone(rig)
 
         return multiple_outfits or outfit_properties_bone or char_bone
+
+
+    def get_text(self, prop_owner, prop_id, value):
+        """If there is a property on prop_owner named $prop_id, expect it to be a list of strings and return the valueth element."""
+        text = prop_id.replace("_", " ")
+        if "$" + prop_id in prop_owner and type(value) == int:
+            names = prop_owner["$" + prop_id]
+            if value > len(names) - 1:
+                print(
+                    f"cloudrig.py Warning: Name list for this property is not long enough for current value: {prop_id}"
+                )
+                return text
+            return text + ": " + names[value]
+        else:
+            return text
 
     def draw(self, context):
         layout = self.layout
@@ -996,124 +858,10 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
 
         rig_props = rig.cloud_rig
 
-        def add_props(prop_owner):
-            props_done = []
-
-            def add_prop(layout, prop_owner, prop_id):
-                row = layout.row()
-                if prop_id in props_done:
-                    return
-
-                prop_value = prop_owner[prop_id]
-                if type(prop_value) in [int, float]:
-                    row.prop(
-                        prop_owner,
-                        '["' + prop_id + '"]',
-                        slider=True,
-                        text=get_text(prop_owner, prop_id, prop_value),
-                    )
-                    if 'op_' + prop_id in prop_owner or prop_id == 'Quality':
-                        # HACK: Hard-code behaviour for a property named "Quality", so I don't have to add it on every character manually on Sprite Fright. This needs a more elegant design...
-                        if prop_id == 'Quality':
-                            op_info = {
-                                'bl_idname': 'object.cloudrig_copy_property',
-                                'prop_bone': prop_owner.name,
-                                'prop_id': 'Quality',
-                                'icon': 'WORLD',
-                            }
-                        else:
-                            op_info = prop_owner["op_" + prop_id]
-                        if type(op_info) == str:
-                            op_info = eval(op_info)
-                        add_operator(row, op_info)
-                elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
-                    # Vectors
-                    row.prop(
-                        prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " ")
-                    )
-                elif type(prop_value) == bool:
-                    icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
-                    row.prop(
-                        prop_owner,
-                        f'["{prop_id}"]',
-                        text=prop_id.replace("_", " "),
-                        toggle=True,
-                        icon=icon,
-                    )
-                elif isinstance(prop_value, bpy.types.Object):
-                    # Property is a pointer
-                    row.prop_search(
-                        prop_owner,
-                        f'["{prop_id}"]',
-                        bpy.data,
-                        'objects',
-                        icon='OBJECT_DATAMODE',
-                        text=prop_id,
-                    )
-
-            # Drawing properties with hierarchy
-            if 'prop_hierarchy' in prop_owner:
-                prop_hierarchy = prop_owner['prop_hierarchy']
-                if type(prop_hierarchy) == str:
-                    prop_hierarchy = eval(prop_hierarchy)
-
-                for parent_prop_name in prop_hierarchy.keys():
-                    parent_prop_name_without_values = parent_prop_name
-                    values = [
-                        1
-                    ]  # Values which this property needs to be for its children to show. For bools this is always 1.
-                    # Example entry in prop_hierarchy: ['Jacket-23' : ['Hood', 'Belt']] This would mean Hood and Belt are only visible when Jacket is either 2 or 3.
-                    if '-' in parent_prop_name:
-                        split = parent_prop_name.split('-')
-                        parent_prop_name_without_values = split[0]
-                        values = [
-                            int(val) for val in split[1]
-                        ]  # Convert them to an int list ( eg. '23' -> [2, 3] )
-
-                    parent_prop_value = prop_owner[parent_prop_name_without_values]
-
-                    # Drawing parent prop, if it wasn't drawn yet.
-                    add_prop(layout, prop_owner, parent_prop_name_without_values)
-
-                    # Marking parent prop as done drawing.
-                    props_done.append(parent_prop_name_without_values)
-
-                    # Checking if we should draw children.
-                    if parent_prop_value not in values:
-                        continue
-
-                    # Drawing children.
-                    childrens_box = None
-                    for child_prop_name in prop_hierarchy[parent_prop_name]:
-                        if not childrens_box:
-                            childrens_box = layout.box()
-                        add_prop(childrens_box, prop_owner, child_prop_name)
-
-                # Marking child props as done drawing. (Regardless of whether they were actually drawn or not, since if the parent is disabled, we don't want to draw them.)
-                for parent in prop_hierarchy.keys():
-                    for child in prop_hierarchy[parent]:
-                        props_done.append(child)
-
-            # Drawing properties without hierarchy
-            for prop_id in sorted(prop_owner.keys()):
-                if prop_id.startswith("_"):
-                    continue
-                if prop_id in props_done:
-                    continue
-                addon_props = {
-                    prop.identifier
-                    for prop in prop_owner.bl_rna.properties
-                    if prop.is_runtime
-                }
-                if prop_id in addon_props:
-                    continue
-
-                add_prop(layout, prop_owner, prop_id)
-
         # Add character properties to the UI, if any.
-        char_bone = get_char_bone(rig)
+        char_bone = self.get_char_bone(rig)
         if char_bone:
-            add_props(char_bone)
+            self.add_props(layout, context, char_bone)
             layout.separator()
 
         # Add outfit properties to the UI, if any.
@@ -1122,8 +870,141 @@ class CLOUDRIG_PT_character(CLOUDRIG_PT_base):
         )
         if outfit_properties_bone:
             layout.prop(rig_props, 'outfit')
-            add_props(outfit_properties_bone)
+            self.add_props(layout, context, outfit_properties_bone)
 
+    def add_props(self, layout, context, prop_owner):
+        props_done = []
+
+        # Drawing properties with hierarchy
+        if 'prop_hierarchy' in prop_owner:
+            prop_hierarchy = prop_owner['prop_hierarchy']
+            if type(prop_hierarchy) == str:
+                prop_hierarchy = eval(prop_hierarchy)
+
+            for parent_prop_name in prop_hierarchy.keys():
+                parent_prop_name_without_values = parent_prop_name
+                # Values which this property needs to be for its children to show. For bools this is always 1.
+                values = [1]
+                # Example entry in prop_hierarchy: ['Jacket-23' : ['Hood', 'Belt']] This would mean Hood and Belt are only visible when Jacket is either 2 or 3.
+                if '-' in parent_prop_name:
+                    split = parent_prop_name.split('-')
+                    parent_prop_name_without_values = split[0]
+                    # Convert them to an int list ( eg. '23' -> [2, 3] )
+                    values = [int(val) for val in split[1]]
+
+                parent_prop_value = prop_owner[parent_prop_name_without_values]
+
+                # Drawing parent prop, if it wasn't drawn yet.
+                self.add_prop(layout, prop_owner, props_done, parent_prop_name_without_values)
+
+                # Marking parent prop as done drawing.
+                props_done.append(parent_prop_name_without_values)
+
+                # Checking if we should draw children.
+                if parent_prop_value not in values:
+                    continue
+
+                # Drawing children.
+                childrens_box = None
+                for child_prop_name in prop_hierarchy[parent_prop_name]:
+                    if not childrens_box:
+                        childrens_box = layout.box()
+                    self.add_prop(childrens_box, prop_owner, props_done, child_prop_name)
+
+            # Marking child props as done drawing. (Regardless of whether they were actually drawn or not, since if the parent is disabled, we don't want to draw them.)
+            for parent in prop_hierarchy.keys():
+                for child in prop_hierarchy[parent]:
+                    props_done.append(child)
+
+        # Drawing properties without hierarchy
+        for prop_id in sorted(prop_owner.keys()):
+            if prop_id.startswith("_"):
+                continue
+            if prop_id in props_done:
+                continue
+            addon_props = {
+                prop.identifier
+                for prop in prop_owner.bl_rna.properties
+                if prop.is_runtime
+            }
+            if prop_id in addon_props:
+                continue
+
+            self.add_prop(layout, prop_owner, props_done, prop_id)
+
+    def add_prop(self, layout, prop_owner, props_done, prop_id):
+        row = layout.row()
+        if prop_id in props_done:
+            return
+
+        prop_value = prop_owner[prop_id]
+        if type(prop_value) in [int, float]:
+            row.prop(
+                prop_owner,
+                '["' + prop_id + '"]',
+                slider=True,
+                text=self.get_text(prop_owner, prop_id, prop_value),
+            )
+            if 'op_' + prop_id in prop_owner or prop_id == 'Quality':
+                # HACK: Hard-code behaviour for a property named "Quality", so I don't have to add it on every character manually on Sprite Fright. This needs a more elegant design...
+                if prop_id == 'Quality':
+                    op_info = {
+                        'bl_idname': 'object.cloudrig_copy_property',
+                        'prop_bone': prop_owner.name,
+                        'prop_id': 'Quality',
+                        'icon': 'WORLD',
+                    }
+                else:
+                    op_info = prop_owner["op_" + prop_id]
+                if type(op_info) == str:
+                    op_info = eval(op_info)
+                self.add_operator(row, op_info)
+        elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
+            # Vectors
+            row.prop(
+                prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " ")
+            )
+        elif type(prop_value) == bool:
+            icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+            row.prop(
+                prop_owner,
+                f'["{prop_id}"]',
+                text=prop_id.replace("_", " "),
+                toggle=True,
+                icon=icon,
+            )
+        elif isinstance(prop_value, bpy.types.Object):
+            # Property is a pointer
+            row.prop_search(
+                prop_owner,
+                f'["{prop_id}"]',
+                bpy.data,
+                'objects',
+                icon='OBJECT_DATAMODE',
+                text=prop_id,
+            )
+
+    @staticmethod
+    def add_operator(layout, op_info: dict):
+        """Add an operator button to layout.
+        op_info should include a bl_idname, can include an icon, and operator kwargs.
+        """
+
+        icon = 'LAYER_ACTIVE'
+        if 'icon' in op_info:
+            icon = op_info['icon']
+
+        operator = layout.operator(op_info['bl_idname'], text="", icon=icon)
+        # Pass on any paramteres to the operator that it will accept.
+        for param in op_info.keys():
+            if param in ['bl_idname', 'icon']:
+                continue
+            if hasattr(operator, param):
+                value = op_info[param]
+                # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+                if type(value) in [list, dict]:
+                    value = json.dumps(value)
+                setattr(operator, param, value)
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
@@ -1148,11 +1029,135 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         ui_data = rig.data['ui_data'].to_dict()
         main_dict = ui_data[self.bl_label]  # bl_label is set in ensure_custom_panel().
 
-        draw_rig_settings_per_label(self.layout, rig, main_dict)
+        self.draw_rig_settings_per_label(self.layout, rig, main_dict)
+
+    def draw_rig_settings_per_label(self,
+        layout: bpy.types.UILayout, rig: Object, main_dict: dict
+    ):
+        """Each top-level dictionary within the main dictionary defines a panel.
+        Each panel is split into sub-sections via labels.
+        """
+        top = layout.column()
+        for label_name in main_dict.keys():
+            ui = layout
+            if label_name == 'parent_id':
+                continue
+            if label_name == 'NODRAW':
+                continue
+            if label_name != "":
+                layout.label(text=label_name)
+            else:
+                # Label-less properties should be at the top of the sub-panel.
+                ui = top
+            self.draw_rig_settings(ui, rig, main_dict[label_name])
+
+    def draw_rig_settings(self, layout: bpy.types.UILayout, rig: Object, ui_data: Dict):
+        """
+        ui_data: Dictionary containing the UI data, created during rig generation.
+        The top-level represents rows, and each row can contain any number of slider definitions.
+
+        A slider definition must have the following keywords:
+                prop_bone: Name of the pose bone that holds the custom property.
+                prop_id: Name of the custom property on the bone, to be drawn as a slider.
+
+        Optional keywords:
+                texts: List of strings to display alongside an integer property slider.
+                operator: Specify an operator to draw next to the slider.
+                icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
+
+                Any further arguments will be passed on to the operator button as keyword arguments.
+        """
+
+        # Sort the rows alphabetically, just so "Arm" always comes before "Leg".
+        # Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
+        # consistent and predictable.
+        row_datas = [(row_name, ui_data[row_name]) for row_name in sorted(ui_data.keys())]
+
+        # Each top-level dictionary within the main dictionary defines a row.
+        for row_name, row_entries in row_datas:
+            row = layout.row()
+            # Each second-level dictionary within that defines a slider (and operator, if given).
+            # If there is more than one, they will be drawn next to each other, since they're in the same row.
+            for entry_name in row_entries.keys():
+                info = row_entries[
+                    entry_name
+                ]  # This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
+                if not 'prop_bone' in info and 'prop_id' in info:
+                    print(
+                        f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{info}"
+                    )
+                    continue
+                prop_bone = rig.pose.bones.get(info['prop_bone'])
+                prop_id = info['prop_id']
+                if not prop_bone and prop_id in prop_bone:
+                    print(
+                        f"CloudRig UI Error: Properties bone or property does not exist: {info}"
+                    )
+                    continue
+                col = row.column()
+                sub_row = col.row(align=True)
+
+                prop_value = prop_bone[prop_id]
+
+                text = entry_name
+                if 'texts' in info:
+                    texts = json.loads(info['texts'])
+                    value = int(prop_value)
+                    if len(texts) > value:
+                        text = entry_name + ": " + texts[value]
+
+                if isinstance(prop_value, bpy.types.Object):
+                    # Property is an object pointer
+                    sub_row.prop_search(
+                        prop_bone,
+                        f'["{prop_id}"]',
+                        bpy.data,
+                        'objects',
+                        icon='OBJECT_DATAMODE',
+                        text=text,
+                    )
+                elif type(prop_value) == bool:
+                    icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+                    sub_row.prop(
+                        prop_bone, f'["{prop_id}"]', toggle=True, text=text, icon=icon
+                    )
+                else:
+                    # Property is a float/int/color
+                    sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=text)
+
+                # Draw an operator if provided.
+                if 'operator' in info:
+                    icon = 'FILE_REFRESH'
+                    if 'icon' in info:
+                        icon = info['icon']
+
+                    operator = sub_row.operator(info['operator'], text="", icon=icon)
+                    # Pass on any paramteres to the operator that it will accept.
+                    for param in info.keys():
+                        if hasattr(operator, param):
+                            value = info[param]
+                            # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+                            if type(value) in [list, dict]:
+                                value = json.dumps(value)
+                            setattr(operator, param, value)
 
 
 custom_panels = []
 
+def ensure_custom_panels(_dummy1, _dummy2):
+    rig = is_active_cloudrig(bpy.context)
+    if not rig:
+        return
+    if 'ui_data' not in rig.data:
+        return
+    custom_panels = rig.data['ui_data'].to_dict()
+
+    # We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
+    for panel_name in custom_panels.keys():
+        parent_id = "CLOUDRIG_PT_settings"
+        if 'parent_id' in custom_panels[panel_name]:
+            parent_id = custom_panels[panel_name]['parent_id']
+        ensure_custom_panel(panel_name, parent_id)
 
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     # Make sure name is alphanumeric
@@ -1176,23 +1181,6 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     # Save a reference so it can be unregistered, even though unregister() is never called.
     global custom_panels
     custom_panels.append(new_panel)
-
-
-def ensure_custom_panels(_dummy1, _dummy2):
-    rig = is_active_cloudrig(bpy.context)
-    if not rig:
-        return
-    if 'ui_data' not in rig.data:
-        return
-    custom_panels = rig.data['ui_data'].to_dict()
-
-    # We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
-    for panel_name in custom_panels.keys():
-        parent_id = "CLOUDRIG_PT_settings"
-        if 'parent_id' in custom_panels[panel_name]:
-            parent_id = custom_panels[panel_name]['parent_id']
-        ensure_custom_panel(panel_name, parent_id)
-
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_settings"
@@ -2491,11 +2479,11 @@ def register_hotkey(
 #######################################
 
 classes = (
-    CloudRig_Properties,
+    CloudRig_Properties_legacy,
     CloudRig_RigPreferences,
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
-    CLOUDRIG_PT_character,
+    CLOUDRIG_PT_character_legacy,
     CLOUDRIG_PT_settings,
     CLOUDRIG_PT_hotkeys,
     CLOUDRIG_PT_collections_sidebar,
@@ -2546,8 +2534,8 @@ def register():
         if not is_registered(c):
             register_class(c)
 
-    # TODO 4.0: These properties for outfit stuff are legacy, remove!
-    bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties)
+    # TODO: Replace the legacy outfit system with something new.
+    bpy.types.Object.cloud_rig = PointerProperty(type=CloudRig_Properties_legacy)
     bpy.types.Object.cloudrig_prefs = PointerProperty(
         type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'}
     )
