@@ -15,14 +15,12 @@ from bpy.props import (
     PointerProperty,
     IntProperty,
 )
-from bpy.types import Object, PoseBone, FCurve
+from bpy.types import Object, PoseBone
 from bpy.utils import register_class, unregister_class
 
-from mathutils import Vector, Matrix
-from rna_prop_ui import rna_idprop_quote_path, rna_idprop_ui_prop_update
+from mathutils import Matrix
+from rna_prop_ui import rna_idprop_quote_path
 from bl_ui.generic_ui_list import draw_ui_list
-
-from copy_global_transform import AutoKeying
 
 
 def is_generated_cloudrig(arm_ob):
@@ -628,13 +626,9 @@ class POSE_OT_cloudrig_keyframe_all_settings(bpy.types.Operator):
                         value = prop_bone[prop_id]
                         if type(value) not in (int, float):
                             continue
-                        set_custom_property_value(
-                            rig,
-                            prop_bone.name,
-                            prop_id,
-                            value,
-                            keyflags=get_keying_flags(context),
-                        )
+
+                        prop_bone.keyframe_insert(rna_idprop_quote_path(prop_id), group=prop_bone.name)
+
 
         return {'FINISHED'}
 
