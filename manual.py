@@ -6,68 +6,49 @@ from . import rig_components
 
 # This allows you to right click on a button and link to documentation
 def cloudrig_manual_map():
-    url_manual_prefix = "https://gitlab.com/blender/CloudRig/-/wikis/"
-    params_pref = "bpy.types.rigifyparameters.cr_"
-    generator_params_pref = (
-        "bpy.types.generatorproperties."  # TODO: This is probably wrong.
-    )
-
-    cloud_types_pref = "CloudRig-Types#cloud_"
+    url_manual_prefix = "https://projects.blender.org/Mets/CloudRig/wiki/"
+    prefs_path = "bpy.types.cloudrigpreferences."   # Add-on preferences don't seem to be supported at all by manual mapping.
+    params_path = "bpy.types.rigcomponent." # This doesn't seem to work with nested PropertyGroups, it just results in `bpy.types.bpy_struct` :(
+    generator_path = "bpy.types.generatorproperties."
+    generator_params = {
+        "target_rig": "", 
+        "widget_collection": "", 
+        "reload_widgets": "widget-collection", 
+        "ensure_root": "", 
+        "properties_bone": "", 
+        "custom_script": "post-generation-script", 
+        "generate_test_action": "", 
+        "test_action": "generate-test-action",
+    }
 
     cloud_types = [
         name.replace("cloud_", "") for name in dir(rig_components) if "cloud" in name
     ]
 
-    # All CloudRig type parameters are expected to be prefixed with
-    # CR_<rig_type>_, eg. CR_chain_segments for cloud_chain.
-
-    # Also on the wiki, all CloudRig types should have a paragraph in the
-    # CloudRig-Types page with the name of the type.
-
-    # Knowing this, we can build a URL mapping automatically, which also
-    # enables us to add or remove parameters in the future without having to
-    # worry about keeping the URL mapping up to date, as long as we stick to the
-    # naming conventions above.
     url_map = []
-    for t in cloud_types:
-        url_map.append((params_pref + t + "_*", cloud_types_pref + t))
+    # for cloud_type in cloud_types:
+    #     url_map.append((params_path + cloud_type + "_*", "CloudRig-Types"))
 
-    # The following mapping has to be kept updated manually however.
-    # IMPORTANT: More specific data paths have to come FIRST before data paths with wildcards!
+    # NOTE: More specific data paths have to come FIRST before data paths with wildcards!
     url_map.extend(
         [
+            (prefs_path + "advanced_mode", "CloudRig-Types#shared-parameters"), # Doesn't work, see above.
+            (prefs_path + "*", "CloudRig-Types#shared-parameters"),             # Doesn't work, see above.
+            ("bpy.ops.pose.cloudrig_assign_component_type", "CloudRig-Types"),
             # Generator Parameters
             ("bpy.ops.pose.cloudrig_generate", "Generator-Parameters"),
-            (generator_params_pref + "create_root", "Generator-Parameters#create-root"),
-            (generator_params_pref + "double_root", "Generator-Parameters#double-root"),
+            *[(generator_path + param, "Generator-Parameters#"+(redirect or param).replace("_", "-")) 
+            for param, redirect in generator_params.items()],
+            (generator_path + "*", "Generator-Parameters"),
             # Organizing Bones
-            (
-                "bpy.ops.pose.cloudrig_layer_init",
-                "Organizing-Bones#customizing-bone-layers",
-            ),
-            (generator_params_pref + "root_bone_group", "Organizing-Bones#bone-sets"),
-            (generator_params_pref + "root_layers", "Organizing-Bones#bone-sets"),
-            (generator_params_pref + "root_parent_group", "Organizing-Bones#bone-sets"),
-            (
-                generator_params_pref + "root_parent_layers",
-                "Organizing-Bones#bone-sets",
-            ),
-            (
-                generator_params_pref + "show_secret_collections",
-                "Organizing-Bones#bone-sets",
-            ),
-            (params_pref + "show_bone_sets", "Organizing-Bones#bone-sets"),
-            (params_pref + "show_advanced_bone_sets", "Organizing-Bones#bone-sets"),
-            (params_pref + "active_bone_set_index", "Organizing-Bones#bone-sets"),
-            (params_pref + "bg_*", "Organizing-Bones#bone-sets"),
+            (prefs_path + "bone_set_show_advanced", "Organizing-Bones#bone-collections"),
+            ("bpy.types.boneset*", "Organizing-Bones#bone-collections"),
+            ("bpy.types.rigcomponent.bone_sets*", "Organizing-Bones#bone-collections"),
             # Actions
-            (generator_params_pref + "active_action_slot_index", "Actions"),
-            ("bpy.types.actionslot.*", "Actions"),
+            (generator_path + "action*", "Actions"),
             ("bpy.ops.object.cloudrig_action*", "Actions"),
-            # Catch-alls
-            (generator_params_pref + "*", "Generator-Parameters"),
-            (params_pref + "*", "CloudRig-Types"),
-            ("bpy.types.cloudrig_properties.*", "Custom-Properties"),
+
+            (params_path + "*", "CloudRig-Types"),
         ]
     )
     return url_manual_prefix, url_map

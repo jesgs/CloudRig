@@ -1,3 +1,5 @@
+- Squashy spine doesn't work at all, isn't documented, etc.
+
 - Should split up Edit Widget and Assign Widget.
 - Check if Spline IK parameters work well with each other and do what they should.
 
