@@ -287,10 +287,3 @@ def register():
             space_type=space_type,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_select_bone'},
         )
-        register_hotkey(
-            'wm.call_menu_pie',
-            hotkey_kwargs={'type': "P", 'value': "PRESS"},
-            key_cat=key_cat,
-            space_type=space_type,
-            op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_parenting'},
-        )

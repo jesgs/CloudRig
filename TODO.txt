@@ -9,8 +9,6 @@ Priority -1: Migration
 	- Actions page doesn't mention automatic shape key drivers.
 
 - Bone Colls UX
-	- When IK/FK snapping, affected bones should be not only selected but also revealed!! Even if hidden by collection.
-	- Shift+M to bring up a pop-up panel of the bone colls UIList.
 	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
 Priority 1: Bugs
@@ -38,6 +36,9 @@ Priority 2: New features
 		- Corrective Smooth scale
 		- Cast modifier radius
 
+	- Some cool stuff in here: https://blendermarket.com/products/rig-ui
+		- Could bring back the old grid-based layer UI as an option, by just adding a row/col int on collections and then drawing them like that.
+			- And a modal operator to position/remove/rename them
 
 	If the Gizmo API didn't suck:
 		Gizmo for cloud_leg heel pivot
