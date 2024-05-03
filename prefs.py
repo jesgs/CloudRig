@@ -4,6 +4,7 @@ import bpy
 import os
 
 from . import rig_components
+from .generation import cloudrig
 
 
 def get_default_widgets_path():
@@ -85,17 +86,46 @@ class CloudRigPreferences(AddonPreferences):
         description="Whether widget objects should be linked or appended",
     )
 
+    show_hotkeys: BoolProperty(
+        name="Show Hotkeys",
+        default=False,
+        description="Reveal the hotkey list. You may customize or disable these hotkeys"
+    )
+    show_widget_prefs: BoolProperty(
+        name="Show Widget Preferences",
+        default=False,
+        description="Reveal the hotkey list. You may customize or disable these hotkeys"
+    )
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.prop(self, 'advanced_mode')
-        lib_row = layout.row()
+        main_col = layout.column(align=True)
+        main_col.row(align=True).prop(self, 'advanced_mode')
+        main_col.separator()
+        
+        lib_row = main_col.row(align=True)
         if not os.path.exists(self.widget_library):
             lib_row.alert = True
         lib_row.prop(self, 'widget_library')
-        layout.row().prop(self, 'widget_import_method', expand=True)
+        main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
+        main_col.separator()
+
+        icon = 'TRIA_DOWN' if self.show_hotkeys else 'TRIA_RIGHT'
+        row = main_col.row()
+        row.prop(self, 'show_hotkeys', icon=icon, emboss=False, text="")
+        row.label(text="Hotkeys")
+        split = main_col.split(factor=0.1)
+        split.row()
+        hotkey_row = split.row()
+        hotkey_col = hotkey_row.column()
+        row = hotkey_col.row()
+        row.use_property_split=False
+        if self.show_hotkeys:
+            cloudrig.CLOUDRIG_PT_hotkeys_panel.draw_hotkey_list(hotkey_col, context)
+
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]

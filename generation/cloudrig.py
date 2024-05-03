@@ -2389,18 +2389,22 @@ def builtin_collections_draw_override(self, context):
 #######################################
 
 
-class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
-    bl_idname = "CLOUDRIG_PT_hotkeys"
-    bl_label = "Keymap"
+class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_hotkeys_panel"
+    bl_label = "Hotkeys"
 
     on_metarigs = True
     cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem"]] = {}
 
     def draw(self, context):
-        layout = self.layout
+        type(self).draw_hotkey_list(self.layout.column(), context)
+
+    @classmethod
+    def draw_hotkey_list(cls, layout, context):
+        hotkey_class = cls
         user_kc = context.window_manager.keyconfigs.user
 
-        keymap_data = list(type(self).cloudrig_keymap_items.items())
+        keymap_data = list(hotkey_class.cloudrig_keymap_items.items())
         keymap_data = sorted(keymap_data, key=lambda tup: tup[1][2].name)
 
         prev_kmi = None
@@ -2411,11 +2415,11 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
             if not user_km:
                 # This really shouldn't happen.
                 continue
-            user_kmi = self.find_kmi_in_km_by_hash(user_km, kmi_hash)
+            user_kmi = hotkey_class.find_kmi_in_km_by_hash(user_km, kmi_hash)
 
             col = layout.column()
             col.context_pointer_set("keymap", user_km)
-            if prev_kmi and prev_kmi.name != user_kmi.name:
+            if user_kmi and prev_kmi and prev_kmi.name != user_kmi.name:
                 col.separator()
             user_row = col.row()
 
@@ -2424,13 +2428,13 @@ class CLOUDRIG_PT_hotkeys(CLOUDRIG_PT_base):
                 split = user_row.split(factor=0.5)
                 addon_row = split.row()
                 user_row = split.row()
-                self.draw_kmi(addon_km, addon_kmi, addon_row) 
+                hotkey_class.draw_kmi(addon_km, addon_kmi, addon_row) 
             if not user_kmi:
-                # This should never happen anymore.
+                # This should only happen for one frame during Reload Scripts.
                 print("CloudRig: Can't find this hotkey to draw: ", addon_kmi.name, addon_kmi.to_string(), kmi_hash)
                 continue
 
-            self.draw_kmi(user_km, user_kmi, user_row)
+            hotkey_class.draw_kmi(user_km, user_kmi, user_row)
             prev_kmi = user_kmi
 
 
@@ -2505,7 +2509,7 @@ def register_hotkey(
     kmi_hash = hash(json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs])) % 1000000
 
     # If it already exists, don't create it again.
-    for existing_kmi_hash, existing_kmi_tup in bpy.types.CLOUDRIG_PT_hotkeys.cloudrig_keymap_items.items():
+    for existing_kmi_hash, existing_kmi_tup in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
         existing_addon_kc, existing_addon_km, existing_kmi = existing_kmi_tup
         if kmi_hash == existing_kmi_hash:
             # The hash we just calculated matches one that is in storage.
@@ -2515,7 +2519,7 @@ def register_hotkey(
             # but are unregistered by Blender for no reason.
             # I noticed this particularly in the Weight Paint keymap.
             # So it's not enough to check if a KMI with a hash is in storage, we also need to check if a corresponding user KMI exists.
-            user_kmi = CLOUDRIG_PT_hotkeys.find_kmi_in_km_by_hash(user_km, kmi_hash)
+            user_kmi = CLOUDRIG_PT_hotkeys_panel.find_kmi_in_km_by_hash(user_km, kmi_hash)
             if user_kmi:
                 # print("Hotkey already exists, skipping: ", existing_kmi.name, existing_kmi.to_string(), kmi_hash)
                 return
@@ -2534,7 +2538,7 @@ def register_hotkey(
 
     addon_kmi.properties['hash'] = kmi_hash
 
-    bpy.types.CLOUDRIG_PT_hotkeys.cloudrig_keymap_items[kmi_hash] = (addon_keyconfig, addon_km, addon_kmi)
+    bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items[kmi_hash] = (addon_keyconfig, addon_km, addon_kmi)
     # print("CloudRig: Registered Hotkey: ", addon_kmi.idname, addon_kmi.to_string(), kmi_hash)
 
 
@@ -2549,7 +2553,7 @@ classes = (
     CLOUDRIG_UL_collections,
     CLOUDRIG_PT_character_legacy,
     CLOUDRIG_PT_settings,
-    CLOUDRIG_PT_hotkeys,
+    CLOUDRIG_PT_hotkeys_panel,
     CLOUDRIG_PT_collections_sidebar,
     CLOUDRIG_PT_collections_filter,
     CLOUDRIG_MT_collections_specials,
@@ -2636,11 +2640,11 @@ def register():
 
 
 def unregister_hotkeys():
-    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys'):
-        for kmi_hash, kmi_tup in bpy.types.CLOUDRIG_PT_hotkeys.cloudrig_keymap_items.items():
+    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys_panel'):
+        for kmi_hash, kmi_tup in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
             kc, km, kmi = kmi_tup
             km.keymap_items.remove(kmi)
-        bpy.types.CLOUDRIG_PT_hotkeys.cloudrig_keymap_items = {}
+        bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items = {}
     print("CloudRig: Unregistered Hotkeys.")
 
 
