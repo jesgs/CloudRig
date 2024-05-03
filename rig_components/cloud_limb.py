@@ -146,14 +146,9 @@ class Component_Limb(Component_Chain_IKFK):
         )
 
         if self.params.limb.double_ik:
-            ui_data['hide_off'].append(ik_mstr.parent.name)
-            map_on = []
-            # Need to awkwardly insert IK master parent->last FK bone switching BEFORE IK master parent.
-            for mapping in ui_data['map_on']:
-                if mapping[0] == ik_mstr.name:
-                    map_on.append((ik_mstr.parent.name, fk_chain[-1].name))
-                map_on.append(mapping)
-            ui_data['map_on'] = map_on
+            # Need to insert IK master parent->last FK bone switching BEFORE IK master parent.
+            ui_data['map_ik_to_fk'].insert(0, (ik_mstr.parent.name, fk_chain[-1].name))
+
         return ui_data
 
     ##############################

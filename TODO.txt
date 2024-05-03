@@ -14,6 +14,7 @@ Priority -1: Migration
 	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
 Priority 1: Bugs
+	It is possible to have the "FAILED-" rig be the only one remaining. I think it's when the post-gen script fails.
 	UI data is not added for IK/FK switch of the finger rig, and the ability to switch using a control (which was better) seems to be gone. Did we remove this on purpose? That may have been dumb.
 	cloud_face_chain sample has a wrong constraint, and it looks like intersection controls aren't aligned with the STR controls they should be aligned with...
 	cloud_eye custom parent doesn't work unless Root Control is enabled.

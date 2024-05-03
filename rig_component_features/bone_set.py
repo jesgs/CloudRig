@@ -312,7 +312,7 @@ class BoneSetMixin:
 
         if not any(CLOUDRIG_UL_bone_sets.flt_flags):
             layout.label(
-                text="No bone sets to show. Clear the search filter or regenerate the rig."
+                text="No bone sets to show. Clear the search filter, enable mechanism collections via the eye icon to the right, or regenerate the rig."
             )
             return
         elif not CLOUDRIG_UL_bone_sets.flt_flags[component.bone_sets_active_index]:

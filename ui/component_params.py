@@ -152,7 +152,7 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
                 context,
                 context.object,
                 pb.cloudrig_component.params,
-                bone_set_def['ui_name'],
+                bone_set_def['name'],
             ):
                 return True
 
