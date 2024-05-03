@@ -77,10 +77,9 @@ def url_prefill_from_cloudrig(stack_trace=""):
             struct.calcsize("P") * 8,
         )
     )
-
     fh.write("\n" "**Blender Version**\n")
     fh.write(
-        "%s, branch: %s, commit: [%s](https://developer.blender.org/rB%s)\n"
+        "%s, branch: %s, commit: [%s](https://projects.blender.org/blender/blender/commit/%s)\n"
         % (
             bpy.app.version_string,
             bpy.app.build_branch.decode('utf-8', 'replace'),
@@ -111,7 +110,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
     fh.seek(0)
 
     return (
-        "https://gitlab.com/blender/CloudRig/-/issues/new?issue[description]="
+        "https://projects.blender.org/Mets/CloudRig/issues/new?template=.gitea/issue_template/bug.yaml&field:body="
         + urllib.parse.quote(fh.read())
     )
 

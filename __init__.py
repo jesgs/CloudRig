@@ -1,4 +1,3 @@
-from typing import List
 import importlib
 import sys
 import os
@@ -23,14 +22,16 @@ max_blender_version = (10, 0, 0)
 
 bl_info = {
     'name': "CloudRig",
+    'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'author': 'Demeter Dzadik',
     'version': (2, 0, 0),
     # This should be the lowest Blender version that is currently compatible.
     'blender': (4, 1, 0),
-    'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'location': "Properties->Armature Data",
+    'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
+    'tracker_url': "https://projects.blender.org/Mets/CloudRig/issues/new?template=.gitea/issue_template/bug.yaml",
+    'support' : 'OFFICIAL',
     'category': 'Rigging',
-    'doc_url': "https://gitlab.com/blender/CloudRig/",
 }
 
 modules = [
@@ -53,7 +54,7 @@ modules = [
 ]
 
 
-def register_unregister_modules(modules: List, register: bool):
+def register_unregister_modules(modules: list, register: bool):
     """Recursively register or unregister modules by looking for either
     un/register() functions or lists named `registry` which should be a list of
     registerable classes.

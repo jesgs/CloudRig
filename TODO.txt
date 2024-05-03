@@ -1,8 +1,6 @@
 - Should split up Edit Widget and Assign Widget.
 - Check if Spline IK parameters work well with each other and do what they should.
 
-- Displaying hotkeys in the addon prefs would be pretty nice.
-
 Priority -1: Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
 	- Update home page: Link to the various wiki pages, and update images.
