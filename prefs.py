@@ -115,8 +115,11 @@ class CloudRigPreferences(AddonPreferences):
 
         icon = 'TRIA_DOWN' if self.show_hotkeys else 'TRIA_RIGHT'
         row = main_col.row()
-        row.prop(self, 'show_hotkeys', icon=icon, emboss=False, text="")
-        row.label(text="Hotkeys")
+        split = row.split(factor=0.1)
+        split.row()
+        split = split.split(factor=0.3333)
+        split.use_property_split=False
+        split.prop(self, 'show_hotkeys', icon=icon, emboss=True, text="Hotkeys")
         split = main_col.split(factor=0.1)
         split.row()
         hotkey_row = split.row()
