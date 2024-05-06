@@ -144,8 +144,12 @@ def version_blender3_metarig(metarig):
 
     # 4: Actions
     action_slots = cloudrig.generator.action_slots
-    if len(action_slots) == 0 and 'rigify_action_slots' in metarig.data:
-        for slot_dict in metarig.data['rigify_action_slots']:
+    if len(action_slots) == 0:
+        if 'rigify_action_slots' in metarig.data:
+            old_slots = metarig.data['rigify_action_slots']
+        if 'cloudrig_parameters' in metarig.data and 'action_slots' in metarig.data['cloudrig_parameters']:
+            old_slots = metarig.data['cloudrig_parameters']['action_slots']
+        for slot_dict in old_slots:
             act_slot = action_slots.add()
             for key, value in slot_dict.items():
                 try:
