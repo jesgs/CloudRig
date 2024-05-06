@@ -73,13 +73,13 @@ def relink_driver(metarig, rig, driver_info):
     for var_info in driver_info['variables']:
         if type(var_info) == tuple:
             break
-        if '@' in var_info['name']:
+        if 'name' in var_info and '@' in var_info['name']:
             splits = var_info['name'].split("@")
             var_info['name'] = splits[0]
             for i, t in enumerate(var_info['targets']):
                 var_info['targets'][i]['bone_target'] = splits[i + 1]
         for i, t in enumerate(var_info['targets']):
-            if t['id'] == None or t['id'] == metarig:
+            if 'id' in t and (t['id'] == None or t['id'] == metarig):
                 t['id'] = rig
 
 

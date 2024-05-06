@@ -1,3 +1,8 @@
+Metarigs:
+	- Clean up the Generation Log of all metarigs and rig samples.
+	- Probably update the Sintel metarig based on an actual Sintel mesh, with a blink and some lip actions.
+	- Maybe include a simplified Mikassa metarig?
+
 - Squashy spine doesn't work at all, isn't documented, etc.
 
 - Should split up Edit Widget and Assign Widget.
@@ -24,6 +29,7 @@ Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 
 Priority 2: New features
+	See if adding a warning is necessary to get the correct order of corrective action activation.
 	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
