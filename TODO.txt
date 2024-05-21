@@ -109,13 +109,9 @@ Ideas:
 	cloudrig.py:
 		Import stuff from cloudrig code, then at generation time to some shennanigans to replace the imports with the actual code that they're importing? Is this worth the headache? The only benefit is better code organization.
 
-	Rigs:
+	Component Types:
 		Try implementing the full body IK systems from angavrilov?
 
-		cloud_instance
-			This would be a single bone rig with a single parameter, which is another bone from the metarig which has a rigify type.
-			This bone would act as an instance of that entire rig component, copying all its child components and everything. Crazy stuff. Not sure if possible.
-			But wait, the hard part of this is name conflicts. Bone names have to be unique, obviously, but if you just copy over all the bones... hmm... more parameters to handle name replacement? probably a similar deal to the batch rename tool. weird stuff.
 		cloud_ik_chain
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
 				I'd rather put a Limit Distance constraint on the IK control.
@@ -140,9 +136,7 @@ Ideas:
 					primitives.blend
 					complex_shapes.blend
 		- Then construct relevant menus procedurally, since we can't customize them by passing parameters to them, AFAIK.
-		- So, to construct the menus we add to the Object Add->Armature menu, we would os.walk the metarigs folder, and create a sub-menu for each .blend file and each subfolder... same as current Rigify.
-		- Do the same for samples, which will live in both armature edit mode's Add menu, as well as Object Add->Armature.
-		- Add a "Widgets" menu to the Object Add menu.
+		- Add a "Widgets" menu to the Object Add menu that works identically to the Metarig armature list.
 
 		- Then, also read this folder structure from the user's presets/CloudRig folder.
 

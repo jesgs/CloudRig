@@ -10,8 +10,9 @@ from typing import Optional, List, Dict, Tuple
 from bpy.types import Action, Mesh, Object
 from bl_math import clamp
 
-from rigify.utils.naming import Side, get_name_side, change_name_side, mirror_name
-from rigify.utils.mechanism import (
+from bpy.utils import flip_name as mirror_name
+from ..utils.external.naming import Side, get_name_side, change_name_side
+from ..utils.external.mechanism import (
     driver_var_transform,
     quote_property,
     make_property,
@@ -366,7 +367,6 @@ class ActionLayerComponent:
     def initialize(self):
         if self.slot_list:
             self.action_map = {}
-            self.rigify_sub_objects = []
 
             # Generate layers for active valid slots
             action_slots = [

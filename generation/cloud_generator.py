@@ -11,13 +11,12 @@ from bpy.props import (
 from bpy.types import Object, PropertyGroup, Collection
 from typing import List, Dict, Tuple, Optional
 
-from bone_selection_sets import from_json, to_json
 from mathutils import Matrix
 from datetime import datetime
 
 from ..ui.actions_ui import ActionSlot
-from rigify.utils.mechanism import refresh_all_drivers
-from rigify.utils.collections import ensure_collection
+from ..utils.external.mechanism import refresh_all_drivers
+from ..utils.external.collections import ensure_collection
 
 # TODO: All of these imports are suspiciously NOT rig component features if they are being used by the generator.
 from ..rig_component_features.widgets import widgets as cloud_widgets
@@ -222,7 +221,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
         # Set flag to handle Selection Sets.
-        self.do_sel_sets = check_addon(context, 'bone_selection_sets')
+        self.preserve_sel_sets = check_addon(context, 'bone_selection_sets')
 
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
@@ -357,7 +356,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 context,
                 old_rig,
                 self.target_rig,
-                preserve_sel_sets=self.do_sel_sets,
+                preserve_sel_sets=self.preserve_sel_sets,
                 preserve_gizmos=self.use_gizmos,
             )
         else:
@@ -692,8 +691,6 @@ def create_target_rig_obj(context, metarig) -> Object:
         f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
     )
 
-    # Make sure this flag is saved in the generated rig, so it
-    # remains even if the Rigify addon is disabled.
     target_rig.cloudrig.generator.show_secret_collections = False
 
     # By default, use B-Bone display type since it's the most useful
@@ -749,6 +746,7 @@ def replace_old_with_new_rig(
 
     # Save Selection Sets.
     if preserve_sel_sets:
+        from bone_selection_sets import to_json
         context.view_layer.objects.active = old_rig
         for selset in old_rig.selection_sets:
             selset.is_selected = True
@@ -833,6 +831,7 @@ def replace_old_with_new_rig(
 
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
+        from bone_selection_sets import from_json
         from_json(context, selsets)
 
     # Swap all references pointing at the old rig to the new rig.

@@ -5,7 +5,7 @@
 import bpy
 from bpy.utils import flip_name
 
-from rigify.utils.misc import property_to_python
+from ..utils.external.misc import property_to_python
 
 
 class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):

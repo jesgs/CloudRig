@@ -136,7 +136,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         return phys_obj
 
     def phys_name(self, thing):
-        return "PSX-" + self.naming.strip_org(thing)
+        return "PSX-" + thing.name
 
     def make_physics_chain(self, phys_ob, from_chain):
         # Make a chain of bones to control the physics object.

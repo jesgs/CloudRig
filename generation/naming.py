@@ -71,11 +71,6 @@ class CloudNameManager:
         sliced_name[0].append(new_prefix)
         return self.make_name(*sliced_name)
 
-    def strip_org(self, thing):
-        from rigify.utils.naming import strip_org
-
-        return strip_org(get_name(thing))
-
 
 def get_name(thing: Any) -> str:
     """Return any PyObject's "name" attribute if it has one, else cast it to a string."""

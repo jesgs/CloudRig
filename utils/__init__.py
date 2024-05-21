@@ -1,4 +1,4 @@
-from . import curve, lattice, maths, misc, post_gen
+from . import curve, lattice, maths, misc, post_gen, external
 
 modules = [
     curve,
@@ -6,4 +6,5 @@ modules = [
     maths,
     misc,
     post_gen,
+    external,
 ]

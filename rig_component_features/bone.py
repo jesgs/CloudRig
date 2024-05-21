@@ -1,12 +1,11 @@
 import bpy
-import traceback
 from typing import List, Tuple
-from bpy.types import EditBone, PoseBone, Constraint, Context, Object
+from bpy.types import EditBone, PoseBone, Constraint, Object
 
 from mathutils import Vector, Matrix
 
 from ..utils.maths import flat
-from rigify.utils.mechanism import make_constraint, make_driver, make_property
+from ..utils.external.mechanism import make_constraint, make_driver, make_property
 
 # These values should match Blender's defaults, otherwise they won't be written.
 edit_bone_properties = {
@@ -366,15 +365,15 @@ class BoneInfo:
             if ci.name == name:
                 return ci
 
-    def add_constraint(self, contype: str, index: int = None, **kwargs):
+    def add_constraint(self, con_type: str, index: int = None, **kwargs):
         """Store constraint information about a constraint in this BoneInfo.
-        contype: Type of constraint, eg. 'STRETCH_TO'.
+        con_type: Type of constraint, eg. 'STRETCH_TO'.
         kwargs: Dictionary of properties and values.
         true_defaults: When False, we use a set of arbitrary default values that
                 I consider better than Blender's defaults.
         """
 
-        con_info = ConstraintInfo(self, contype, **kwargs)
+        con_info = ConstraintInfo(self, con_type, **kwargs)
         if index != None:
             self.constraint_infos.insert(index, con_info)
         else:
@@ -708,7 +707,7 @@ class BoneInfo:
 
 class ConstraintInfo(dict):
     """Helper class to store and manage constraint info before it's passed to
-    Rigify's make_constraint()."""
+    make_constraint()."""
 
     def __init__(
         self, bone_info, con_type, target=None, use_preferred_defaults=True, **kwargs
@@ -720,6 +719,8 @@ class ConstraintInfo(dict):
         self.type = con_type
         self.bone_info = bone_info  # BoneInfo to which this constraint is being added.
         self.target = target
+        if con_type == 'ARMATURE':
+            self.targets = [{'target' : target, 'subtarget' : "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
         self.drivers = []
 
@@ -793,7 +794,7 @@ class ConstraintInfo(dict):
             self.chain_count = 2
 
     def relink(self):
-        """Allow the Rigify relink naming convention of an @ symbol separating
+        """Allow the naming convention of an @ symbol separating
         the constraint name from a list of subtargets separated by commas."""
 
         rig_component = self.bone_info.bone_set.rig_component
