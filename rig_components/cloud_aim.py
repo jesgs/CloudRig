@@ -161,32 +161,34 @@ class Component_Aim(Component_Base):
             custom_shape_along_length=1.05,
         )
 
-        prop_name = "follow_eye"
-        info = {
-            'prop_bone': highlight_ctr,
-            'prop_id': prop_name,
-        }
-        self.add_ui_data(
-            "Face",
-            "Eye Highlights",
-            info,
-            label_name="Eye Highlights Follow",
-            entry_name=self.side_prefix + " Eye",
-            default=1.0,
-        )
-        arm_con = highlight_ctr.add_constraint(
-            'ARMATURE',
-            targets=[{'subtarget': ctr_bone.name}, {'subtarget': ctr_bone.parent.name}],
-        )
-        driver = {
-            'prop': 'targets[0].weight',
-            'variables': [(highlight_ctr.name, prop_name)],
-        }
-        arm_con.drivers.append(driver)
-        driver = dict(driver)
-        driver['prop'] = 'targets[1].weight'
-        driver['expression'] = '1-var'
-        arm_con.drivers.append(driver)
+        if ctr_bone.parent:
+            prop_name = "follow_eye"
+            info = {
+                'prop_bone': highlight_ctr,
+                'prop_id': prop_name,
+            }
+            self.add_ui_data(
+                "Face",
+                "Eye Highlights",
+                info,
+                label_name="Eye Highlights Follow",
+                entry_name=self.side_prefix + " Eye",
+                default=1.0,
+            )
+
+            arm_con = highlight_ctr.add_constraint(
+                'ARMATURE',
+                targets=[{'subtarget': ctr_bone.name}, {'subtarget': ctr_bone.parent.name}],
+            )
+            driver = {
+                'prop': 'targets[0].weight',
+                'variables': [(highlight_ctr.name, prop_name)],
+            }
+            arm_con.drivers.append(driver)
+            driver = dict(driver)
+            driver['prop'] = 'targets[1].weight'
+            driver['expression'] = '1-var'
+            arm_con.drivers.append(driver)
 
         self.lock_transforms(
             highlight_ctr,
@@ -194,7 +196,9 @@ class Component_Aim(Component_Base):
             rot=False,
             scale=[False, True, False],
         )
-        self.make_def_bone(highlight_ctr, self.bones_def)
+
+        if self.params.aim.deform:
+            self.make_def_bone(highlight_ctr, self.bones_def)
 
     def relink(self):
         """Override cloud_base.
