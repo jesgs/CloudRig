@@ -242,14 +242,7 @@ class CLOUDRIG_UL_action_slots(UIList):
 
         row.prop(action_slot.action, 'name', text="", emboss=False, icon=icon)
 
-        # Highlight various errors
-
-        if generator.find_duplicate_action_slot(action_slot):
-            # Multiple entries for the same action
-            row.alert = True
-            row.label(text="Duplicate", icon='ERROR')
-
-        elif action_slot.is_corrective:
+        if action_slot.is_corrective:
             text = "Corrective"
             icon = 'RESTRICT_INSTANCED_OFF'
 
@@ -267,7 +260,6 @@ class CLOUDRIG_UL_action_slots(UIList):
                     break
 
             row.label(text=text, icon=icon)
-
         else:
             text = action_slot.subtarget
             icon = 'BONE_DATA'
@@ -321,7 +313,7 @@ class DATA_PT_cloudrig_actions(Panel):
             layout,
             context,
             class_name='CLOUDRIG_UL_action_slots',
-            unique_id = 'CloudRig Action Slots',
+            unique_id='CloudRig Action Slots',
             list_path='object.cloudrig.generator.action_slots',
             active_index_path='object.cloudrig.generator.active_action_index',
         )

@@ -156,15 +156,6 @@ class GeneratorProperties(PropertyGroup):
         else:
             return None, -1
 
-    def find_duplicate_action_slot(self, slot: ActionSlot) -> Optional[ActionSlot]:
-        """Find a different ActionSlot in the rig which has the same action."""
-
-        for other_slot in self.action_slots:
-            if other_slot.action == slot.action and other_slot != slot:
-                return other_slot
-
-        return None
-
 
 class CloudGeneratorError(Exception):
     """Exception raised for errors."""
