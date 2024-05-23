@@ -570,6 +570,7 @@ class BoneInfo:
             if value in [None, ""]:
                 continue
             if 'bbone_custom_handle' in key:
+                value.name # Fascinatingly, this avoids a weird UnicodeDecodeError. See #138.
                 value = armature.data.bones.get(value.name)
             if key in ['bbone_x', 'bbone_z']:
                 # TODO: To write bone shape scale data properly, we would need a reference to the generator.scale.
