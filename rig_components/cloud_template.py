@@ -45,7 +45,7 @@ class Component_Template(Component_Base):
 
 
 class Params(PropertyGroup):
-    use_control = BoolProperty(
+    use_control: BoolProperty(
         name="Make Control", description="Create a Control bone", default=True
     )
 
