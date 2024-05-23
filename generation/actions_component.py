@@ -24,125 +24,11 @@ from ..utils.external.mechanism import (
 class MetarigError(Exception):
     pass
 
-
-class ActionSlotBase:
-    """Abstract non-RNA base for the action list slots."""
-
-    action: Optional[Action]
-    enabled: bool
-    symmetrical: bool
-    subtarget: str
-    transform_channel: str
-    target_space: str
-    frame_start: int
-    frame_end: int
-    trans_min: float
-    trans_max: float
-    is_corrective: bool
-    trigger_action_a: Optional[Action]
-    trigger_action_b: Optional[Action]
-
-    ############################################
-    # Action Constraint Setup
-
-    @property
-    def keyed_bone_names(self) -> List[str]:
-        """Return a list of bone names that have keyframes in the Action of this Slot."""
-        keyed_bones = []
-
-        for fc in self.action.fcurves:
-            # Extracting bone name from fcurve data path
-            if fc.data_path.startswith('pose.bones["'):
-                bone_name = fc.data_path[12:].split('"]')[0]
-
-                if bone_name not in keyed_bones:
-                    keyed_bones.append(bone_name)
-
-        return keyed_bones
-
-    @property
-    def do_symmetry(self) -> bool:
-        return self.symmetrical and get_name_side(self.subtarget) != Side.MIDDLE
-
-    @property
-    def default_side(self):
-        return get_name_side(self.subtarget)
-
-    def get_min_max(self, side=Side.MIDDLE) -> Tuple[float, float]:
-        if side == -self.default_side:
-            # Flip min/max in some cases - based on code of Paste Pose Flipped
-            if self.transform_channel in ['LOCATION_X', 'ROTATION_Z', 'ROTATION_Y']:
-                return -self.trans_min, -self.trans_max
-        return self.trans_min, self.trans_max
-
-    def get_factor_expression(self, var, side=Side.MIDDLE):
-        assert not self.is_corrective
-
-        trans_min, trans_max = self.get_min_max(side)
-
-        if 'ROTATION' in self.transform_channel:
-            var = f'({var}*180/pi)'
-
-        return f'clamp(({var} - {trans_min:.4}) / {trans_max - trans_min:.4})'
-
-    def get_trigger_expression(self, var_a, var_b):
-        assert self.is_corrective
-
-        return f'clamp({var_a} * {var_b})'
-
-    ##################################
-    # Default Frame
-
-    def get_default_channel_value(self) -> float:
-        # The default transformation value for rotation and location is 0, but for scale it's 1.
-        return 1.0 if 'SCALE' in self.transform_channel else 0.0
-
-    def get_default_factor(self, side=Side.MIDDLE, *, triggers=None) -> float:
-        """Based on the transform channel, and transform range,
-        calculate the evaluation factor in the default pose.
-        """
-        if self.is_corrective:
-            if not triggers or None in triggers:
-                return 0
-
-            val_a, val_b = [trigger.get_default_factor(side) for trigger in triggers]
-
-            return clamp(val_a * val_b)
-
-        else:
-            trans_min, trans_max = self.get_min_max(side)
-
-            if trans_min == trans_max:
-                # Avoid division by zero
-                return 0
-
-            def_val = self.get_default_channel_value()
-            factor = (def_val - trans_min) / (trans_max - trans_min)
-
-            return clamp(factor)
-
-    def get_default_frame(self, side=Side.MIDDLE, *, triggers=None) -> float:
-        """Based on the transform channel, frame range and transform range,
-        we can calculate which frame within the action should have the keyframe
-        which has the default pose.
-        This is the frame which will be read when the transformation is at its default
-        (so 1.0 for scale and 0.0 for loc/rot)
-        """
-        factor = self.get_default_factor(side, triggers=triggers)
-
-        return self.frame_start * (1 - factor) + self.frame_end * factor
-
-    def is_default_frame_integer(self) -> bool:
-        default_frame = self.get_default_frame()
-
-        return abs(default_frame - round(default_frame)) < 0.001
-
-
 class ActionLayer:
     """An action constraint layer instance, applying an action to a symmetry side."""
 
     owner: 'ActionLayerComponent'
-    slot: ActionSlotBase
+    slot: "ActionSlot"
     side: Side
 
     def __init__(self, owner, slot, side):
@@ -156,8 +42,8 @@ class ActionLayer:
         self.use_trigger = False
 
         if slot.is_corrective:
-            trigger_a = self.owner.action_map[slot.trigger_action_a.name]
-            trigger_b = self.owner.action_map[slot.trigger_action_b.name]
+            trigger_a = self.owner.action_map[slot.trigger_slot_a]
+            trigger_b = self.owner.action_map[slot.trigger_slot_b]
 
             self.trigger_a = trigger_a.get(side) or trigger_a.get(Side.MIDDLE)
             self.trigger_b = trigger_b.get(side) or trigger_b.get(Side.MIDDLE)
@@ -353,16 +239,16 @@ class ActionLayerComponent:
     Implements centralized generation of action layer constraints.
     """
 
-    slot_list: List[ActionSlotBase]
+    slot_list: List["ActionSlot"]
     layers: List[ActionLayer]
-    action_map: Dict[str, Dict[Side, ActionLayer]]
+    action_map: Dict["ActionSlot", Dict[Side, ActionLayer]]
     child_meshes: List[Object]
 
     def __init__(self, generator):
-        self.generator = generator
-        metarig_data = generator.metarig.data
         self.slot_list = generator.params.action_slots
         self.layers = []
+        self.generator = generator
+        metarig_data = generator.metarig.data
 
     def initialize(self):
         if self.slot_list:
@@ -382,13 +268,13 @@ class ActionLayerComponent:
         self.store_child_meshes()
 
     @staticmethod
-    def sort_slots(slots: List[ActionSlotBase]):
+    def sort_slots(slots: List["ActionSlot"]):
         indices = {slot.action.name: i for i, slot in enumerate(slots)}
 
         def action_key(action: Action):
             return indices.get(action.name, -1) if action else -1
 
-        def slot_key(slot: ActionSlotBase):
+        def slot_key(slot: "ActionSlot"):
             # Ensure corrective actions are added after their triggers.
             if slot.is_corrective:
                 return max(
@@ -401,36 +287,39 @@ class ActionLayerComponent:
 
         return sorted(slots, key=slot_key)
 
+    def get_slots_by_action(self, action: Action) -> list["ActionSlot"]:
+        for slot in self.slot_list:
+            if slot.action == action:
+                yield slot
+
+
     def spawn_slot_layers(self, act_slot):
         name = act_slot.action.name
 
-        if name in self.action_map:
-            raise MetarigError(f"Action slot with duplicate action: {name}")
-
         if act_slot.is_corrective:
             if not act_slot.trigger_action_a or not act_slot.trigger_action_b:
-                raise MetarigError(f"Action slot has missing triggers: {name}")
+                raise MetarigError(f"Action slot has missing trigger action: {name}")
 
-            trigger_a = self.action_map.get(act_slot.trigger_action_a.name)
-            trigger_b = self.action_map.get(act_slot.trigger_action_b.name)
+            trigger_a = act_slot.trigger_slot_a
+            trigger_b = act_slot.trigger_slot_b
 
             if not trigger_a or not trigger_b:
                 raise MetarigError(
-                    f"Action slot references missing trigger slot(s): {name}"
+                    f"Action slot references missing trigger slot: {name}"
                 )
 
-            symmetry = Side.LEFT in trigger_a or Side.LEFT in trigger_b
+            symmetry = trigger_a.do_symmetry or trigger_b.do_symmetry
 
         else:
             symmetry = act_slot.do_symmetry
 
         if symmetry:
-            self.action_map[name] = {
+            self.action_map[act_slot] = {
                 Side.LEFT: ActionLayer(self, act_slot, Side.LEFT),
                 Side.RIGHT: ActionLayer(self, act_slot, Side.RIGHT),
             }
         else:
-            self.action_map[name] = {
+            self.action_map[act_slot] = {
                 Side.MIDDLE: ActionLayer(self, act_slot, Side.MIDDLE)
             }
 

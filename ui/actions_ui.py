@@ -2,7 +2,12 @@
 
 import bpy
 
-from typing import Tuple, Optional, Sequence, Any
+from typing import Tuple
+
+from bpy.types import Action
+from bl_math import clamp
+
+from ..utils.external.naming import Side, get_name_side
 
 from bpy.types import (
     PropertyGroup,
@@ -22,16 +27,14 @@ from bpy.props import (
     StringProperty,
     FloatProperty,
     PointerProperty,
-    CollectionProperty,
 )
 
 from bl_ui.generic_ui_list import draw_ui_list
 
 from bpy.utils import flip_name
-from ..generation.actions_component import ActionSlotBase
 
 
-class ActionSlot(PropertyGroup, ActionSlotBase):
+class ActionSlot(PropertyGroup):
     action: PointerProperty(
         name="Action",
         type=Action,
@@ -122,11 +125,16 @@ class ActionSlot(PropertyGroup, ActionSlotBase):
         "to the last frame. Rotations are in degrees",
     )
 
+    def update_is_corrective(self, context):
+        if not self.is_corrective:
+            self.trigger_action_a = None
+            self.trigger_action_b = None
     is_corrective: BoolProperty(
         name="Corrective",
         description="Indicate that this is a corrective action. Corrective actions will activate "
         "based on the activation of two other actions (using End Frame if both inputs "
         "are at their End Frame, and Start Frame if either is at Start Frame)",
+        update=update_is_corrective
     )
 
     def poll_trigger_action(self, action):
@@ -161,8 +169,141 @@ class ActionSlot(PropertyGroup, ActionSlotBase):
         poll=poll_trigger_action,
     )
 
+    @property
+    def generator(self):
+        return self.id_data.cloudrig.generator
+
+    def next_slot_with_action(self, action, reversed=False):
+        """Return next or previous slot in the list with the given action."""
+        generator = self.generator
+        found_self = False
+        found_slot = None
+        slots = generator.action_slots
+        if reversed:
+            slots = reversed(slots)
+        for slot in slots:
+            if slot == self:
+                found_self = True
+            if slot.action == action:
+                found_slot = slot
+                if found_self:
+                    break
+        return found_slot
+
+    @property
+    def trigger_slot_a(self) -> "ActionSlot":
+        """Return the next Action Slot after this one, that has the "A" trigger Action."""
+        return self.next_slot_with_action(self.trigger_action_a)
+
+    @property
+    def trigger_slot_b(self) -> "ActionSlot":
+        """Return the next Action Slot after this one, that has the "B" trigger Action."""
+        return self.next_slot_with_action(self.trigger_action_b)
+
+    @property
+    def corrective_slots(self) -> list["ActionSlot"]:
+        """Return all corrective action slots targetting this slot."""
+        for slot in self.generator.action_slots:
+            if slot.trigger_slot_a == self:
+                yield slot
+            if slot.trigger_slot_b == self:
+                yield slot
+
+
     show_action_a: BoolProperty(name="Show Settings")
     show_action_b: BoolProperty(name="Show Settings")
+
+    @property
+    def keyed_bone_names(self) -> list[str]:
+        """Return a list of bone names that have keyframes in the Action of this Slot."""
+        keyed_bones = []
+
+        for fc in self.action.fcurves:
+            # Extracting bone name from fcurve data path
+            if fc.data_path.startswith('pose.bones["'):
+                bone_name = fc.data_path[12:].split('"]')[0]
+
+                if bone_name not in keyed_bones:
+                    keyed_bones.append(bone_name)
+
+        return keyed_bones
+
+    @property
+    def do_symmetry(self) -> bool:
+        return self.symmetrical and get_name_side(self.subtarget) != Side.MIDDLE
+
+    @property
+    def default_side(self):
+        return get_name_side(self.subtarget)
+
+    def get_min_max(self, side=Side.MIDDLE) -> Tuple[float, float]:
+        if side == -self.default_side:
+            # Flip min/max in some cases - based on code of Paste Pose Flipped
+            if self.transform_channel in ['LOCATION_X', 'ROTATION_Z', 'ROTATION_Y']:
+                return -self.trans_min, -self.trans_max
+        return self.trans_min, self.trans_max
+
+    def get_factor_expression(self, var, side=Side.MIDDLE):
+        assert not self.is_corrective
+
+        trans_min, trans_max = self.get_min_max(side)
+
+        if 'ROTATION' in self.transform_channel:
+            var = f'({var}*180/pi)'
+
+        return f'clamp(({var} - {trans_min:.4}) / {trans_max - trans_min:.4})'
+
+    def get_trigger_expression(self, var_a, var_b):
+        assert self.is_corrective
+
+        return f'clamp({var_a} * {var_b})'
+
+    ##################################
+    # Default Frame
+
+    def get_default_channel_value(self) -> float:
+        # The default transformation value for rotation and location is 0, but for scale it's 1.
+        return 1.0 if 'SCALE' in self.transform_channel else 0.0
+
+    def get_default_factor(self, side=Side.MIDDLE, *, triggers=None) -> float:
+        """Based on the transform channel, and transform range,
+        calculate the evaluation factor in the default pose.
+        """
+        if self.is_corrective:
+            if not triggers or None in triggers:
+                return 0
+
+            val_a, val_b = [trigger.get_default_factor(side) for trigger in triggers]
+
+            return clamp(val_a * val_b)
+
+        else:
+            trans_min, trans_max = self.get_min_max(side)
+
+            if trans_min == trans_max:
+                # Avoid division by zero
+                return 0
+
+            def_val = self.get_default_channel_value()
+            factor = (def_val - trans_min) / (trans_max - trans_min)
+
+            return clamp(factor)
+
+    def get_default_frame(self, side=Side.MIDDLE, *, triggers=None) -> float:
+        """Based on the transform channel, frame range and transform range,
+        we can calculate which frame within the action should have the keyframe
+        which has the default pose.
+        This is the frame which will be read when the transformation is at its default
+        (so 1.0 for scale and 0.0 for loc/rot)
+        """
+        factor = self.get_default_factor(side, triggers=triggers)
+
+        return self.frame_start * (1 - factor) + self.frame_end * factor
+
+    def is_default_frame_integer(self) -> bool:
+        default_frame = self.get_default_frame()
+
+        return abs(default_frame - round(default_frame)) < 0.001
 
 
 class CLOUDRIG_OT_action_new(Operator):
@@ -227,17 +368,7 @@ class CLOUDRIG_UL_action_slots(UIList):
         icon = 'ACTION'
 
         # Check if this action is a trigger for the active corrective action
-        if active_slot.is_corrective and action_slot.action in [
-            active_slot.trigger_action_a,
-            active_slot.trigger_action_b,
-        ]:
-            icon = 'RESTRICT_INSTANCED_OFF'
-
-        # Check if the active action is a trigger for this corrective action.
-        if action_slot.is_corrective and active_slot.action in [
-            action_slot.trigger_action_a,
-            action_slot.trigger_action_b,
-        ]:
+        if action_slot in {active_slot.trigger_slot_a, active_slot.trigger_slot_b, *active_slot.corrective_slots}:
             icon = 'RESTRICT_INSTANCED_OFF'
 
         row.prop(action_slot.action, 'name', text="", emboss=False, icon=icon)
