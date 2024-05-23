@@ -155,7 +155,12 @@ def version_blender3_metarig(metarig):
                 try:
                     setattr(act_slot, key, value)
                 except TypeError:
-                    set_enum_property_by_integer(act_slot, key, value)
+                    if type(value) == int:
+                        set_enum_property_by_integer(act_slot, key, value)
+                    elif "trigger_action" in key:
+                        # For some reason when accessing a null PointerProperty via dictionary syntax,
+                        # it returns a <bpy id prop> instead of None.
+                        pass
 
 
 def version_cloud_metarig(metarig):
