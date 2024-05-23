@@ -380,6 +380,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         if self.params.reload_widgets and self.params.widget_collection:
             for obj in self.params.widget_collection.objects:
+                if not obj.name.startswith("WGT-"):
+                    # This is a custom widget and it's not even following naming convention, so we're
+                    # not gonna be able to reload it anyways.
+                    continue
                 self.ensure_widget(context, obj.name.replace("WGT-", ""), overwrite=True)
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
