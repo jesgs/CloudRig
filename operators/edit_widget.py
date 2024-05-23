@@ -338,9 +338,15 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
         pb = context.active_pose_bone
         shape = pb.custom_shape
 
-        mesh = bpy.data.meshes.new_from_object(shape)
-        mesh.name = self.new_name
-        obj = bpy.data.objects.new(self.new_name, mesh)
+        if shape.type == 'MESH':
+            mesh = bpy.data.meshes.new_from_object(shape)
+            mesh.name = self.new_name
+            obj = bpy.data.objects.new(self.new_name, mesh)
+        else:
+            obj = shape.copy()
+            obj.data = obj.data.copy()
+            obj.name = obj.data.name = self.new_name
+
         for c in shape.users_collection:
             c.objects.link(obj)
 

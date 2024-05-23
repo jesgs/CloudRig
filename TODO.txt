@@ -1,3 +1,13 @@
+- Every operator with a shortcut needs to implement draw() so as not to draw the hash on the redo panel...
+- Remove CloudRig from the shipped Rigify feature sets
+- Add built-in hotkey for Edit Widget (Ctrl Alt E)
+	- But also make it a pie menu (except in mesh/curve edit modes, where it just drops you back to pose mode without a pie menu):
+		- Edit Widget
+		- Unassign Widget
+		- Make Widget Unique
+		- Copy Widget to Selected
+		- Reload Widget?
+
 Metarigs:
 	- Clean up the Generation Log of all metarigs and rig samples.
 	- Probably update the Sintel metarig based on an actual Sintel mesh, with a blink and some lip actions.
