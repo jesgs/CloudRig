@@ -37,6 +37,9 @@ class Component_Base(
 
     keep_original_bones = True
 
+    def __str__(self):
+        return f'{self.base_bone_name}: {type(self).ui_name}'
+
     def __init__(
         self, generator: 'CloudRig_Generator', bone_name: str, parent_instance=None
     ):

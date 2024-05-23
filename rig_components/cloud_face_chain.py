@@ -17,13 +17,13 @@ def has_tangent_helpers(rig) -> bool:
 
 
 def parent_cluster_to_intersection(
-    cluster: List[BoneInfo], intersection: BoneInfo, have_anchor: bool
+    cluster: List[BoneInfo], intersection: BoneInfo
 ):
     for str_bone in cluster:
         component = str_bone.owner_component
         str_bone.parent = intersection
         str_bone.intersection_ctrl = intersection
-        if has_tangent_helpers(component) and not have_anchor:
+        if has_tangent_helpers(component):
             str_bone.tangent_helper.constraint_infos[-1].subtarget = intersection.name
             str_bone.tangent_helper.constraint_infos[-1].name = "Copy STR-I Transforms"
             str_bone.tangent_helper.parent = intersection
@@ -123,8 +123,8 @@ class Component_FaceChain(Component_ToonChain):
         for component in self.generator.all_components:
             if any(
                 [
-                    rig_class in str(type(component))
-                    for rig_class in ["Component_FaceChain", "Component_Eyelid"]
+                    class_name == type(component).__name__
+                    for class_name in ["Component_FaceChain", "Component_Eyelid"]
                 ]
             ):
                 # NOTE: I don't know why isinstance() doesn't work here. It works when cloud_eyelid is testing itself, but not when cloud_face_chain is testing cloud_eyelid.
@@ -135,7 +135,7 @@ class Component_FaceChain(Component_ToonChain):
         ### Following code is only run ONCE by the LAST face_chain_rig.
         if not self.is_last_chain_rig:
             return
-
+        
         # Create and set up intersection controls.
 
         str_bone_clusters = get_bone_clusters(self.chain_rigs)
@@ -204,7 +204,7 @@ class Component_FaceChain(Component_ToonChain):
         rig = cluster[0].owner_component
 
         intersection_control = None
-        have_anchor = False
+        is_anchor = False
         # Search for an anchor rig
         anchor_components = [
             component
@@ -215,7 +215,7 @@ class Component_FaceChain(Component_ToonChain):
             distance = (anchor_rig.bones_org[0].head - cluster[0].head).length
             if distance < 0.000001:
                 intersection_control = anchor_rig.bones_org[0]
-                have_anchor = True
+                is_anchor = True
                 break
 
         if not intersection_control:
@@ -236,10 +236,10 @@ class Component_FaceChain(Component_ToonChain):
             )
 
         if abs(intersection_control.head.x) < 0.001:
-            do_centered_cluster(cluster, intersection_control, have_anchor)
+            do_centered_cluster(cluster, intersection_control, is_anchor)
 
         # Parent the bones
-        parent_cluster_to_intersection(cluster, intersection_control, have_anchor)
+        parent_cluster_to_intersection(cluster, intersection_control)
 
         intersection_control.str_bones = cluster
         return intersection_control
