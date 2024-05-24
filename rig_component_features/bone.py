@@ -8,6 +8,8 @@ from ..utils.maths import flat
 from ..utils.external.mechanism import make_constraint, make_driver, make_property
 
 # These values should match Blender's defaults, otherwise they won't be written.
+# It is very confusing what belongs where because some properties exist on both EditBone and Bone,
+# but are kept in sync by Blender, whereas others (bbone shape properties) are deliberately NOT kept in sync.
 edit_bone_properties = {
     'head': Vector((0, 0, 0)),
     'tail': Vector((0, 1, 0)),
@@ -17,6 +19,8 @@ edit_bone_properties = {
     'use_connect': False,
     'bbone_curveinx': 0,
     'bbone_curveinz': 0,
+    'bbone_rollin': 0,
+    'bbone_rollout': 0,
     'bbone_curveoutx': 0,
     'bbone_curveoutz': 0,
     'bbone_easein': 1,
@@ -37,20 +41,35 @@ bone_properties = {
     'hide': False,
     'use_deform': False,
     'show_wire': False,
+
+    'bbone_segments': 1,
     'bbone_x': 0.1,  # NOTE: These two are wrapped by bbone_width @property.
     'bbone_z': 0.1,
-    'bbone_segments': 1,
     'bbone_mapping_mode': 'CURVED',
+    'bbone_curveinx': 0,
+    'bbone_curveinz': 0,
+    'bbone_curveoutx': 0,
+    'bbone_curveoutz': 0,
+    'bbone_rollin': 0,
+    'bbone_rollout': 0,
     'use_endroll_as_inroll': False,
+
+    'bbone_easein': 1,
+    'bbone_easeout': 1,
+    'bbone_scalein': Vector((1, 1, 1)),
+    'bbone_scaleout': Vector((1, 1, 1)),
     'use_scale_easing': False,
+
     'bbone_handle_type_start': 'AUTO',
-    'bbone_handle_type_end': 'AUTO',
     'bbone_custom_handle_start': None,  # BoneInfo
-    'bbone_custom_handle_end': None,  # BoneInfo
     'bbone_handle_use_scale_start': [False, False, False],
-    'bbone_handle_use_scale_end': [False, False, False],
     'bbone_handle_use_ease_start': False,
+
+    'bbone_handle_type_end': 'AUTO',
+    'bbone_custom_handle_end': None,  # BoneInfo
+    'bbone_handle_use_scale_end': [False, False, False],
     'bbone_handle_use_ease_end': False,
+
     'envelope_distance': 0.25,
     'envelope_weight': 1.0,
     'use_envelope_multiply': False,
@@ -571,8 +590,9 @@ class BoneInfo:
             if value in [None, ""]:
                 continue
             if 'bbone_custom_handle' in key:
-                value.name # Fascinatingly, this avoids a weird UnicodeDecodeError. See #138.
-                value = armature.data.bones.get(value.name)
+                if hasattr(value, 'name'):
+                    value = value.name
+                value = armature.data.bones.get(value)
             if key in ['bbone_x', 'bbone_z']:
                 # TODO: To write bone shape scale data properly, we would need a reference to the generator.scale.
                 # This would best be done if this function was in the generator rather than BoneInfo.

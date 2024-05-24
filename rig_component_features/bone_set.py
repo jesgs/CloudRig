@@ -1,8 +1,8 @@
 from typing import Dict
 
 import bpy
-from bpy.props import StringProperty, BoolVectorProperty, BoolProperty, IntProperty
-from bpy.types import PropertyGroup, UIList, UI_UL_list, Operator
+from bpy.props import StringProperty
+from bpy.types import UIList, UI_UL_list, Operator, bpy_prop_array, PoseBone, Bone, EditBone
 from rna_prop_ui import rna_idprop_has_properties
 
 from mathutils import Vector, Matrix
@@ -145,6 +145,10 @@ class BoneSet(LinkedList):
                     value = [coll.name for coll in value]
                 if type(value) in [Vector, Matrix]:
                     value = value.copy()
+                if type(value) == bpy_prop_array:
+                    value = value[:]
+                if type(value) in {EditBone, Bone, PoseBone}:
+                    value = value.name
                 setattr(bone_info, key, value)
 
         # The default value of use_deform in Blender is True, but for CloudRig, False makes a LOT more sense.
