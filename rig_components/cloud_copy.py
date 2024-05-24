@@ -112,8 +112,6 @@ class Component_CopyBone(Component_Base):
         This will be displayed in the Sidebar->CloudRig->Settings.
         """
         for prop_name, prop in bone.custom_props.items():
-            prop_value = prop['default']
-
             # For the row names, we want each property to have its own row,
             # but matching properties from opposite side bones should be in
             # the same row.
@@ -144,7 +142,7 @@ class Component_CopyBone(Component_Base):
                 panel_name,
                 row_name,
                 info=info,
-                default=prop_value,
+                default=prop.get('default', None),
                 entry_name=entry_name,
                 label_name=label_name,
             )

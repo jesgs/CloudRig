@@ -4,10 +4,9 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-from typing import List, Dict, Tuple, Iterable, Optional
-import bpy, traceback, json, re, contextlib
-import collections as py_collections
-from collections import OrderedDict
+from typing import List, Dict, Optional
+import bpy, json, re, contextlib
+from collections import OrderedDict, defaultdict
 from bpy.props import (
     StringProperty,
     BoolProperty,
@@ -15,11 +14,11 @@ from bpy.props import (
     PointerProperty,
     IntProperty,
 )
-from bpy.types import Object, PoseBone
+from bpy.types import Object, PoseBone, UILayout, ID
+from rna_prop_ui import IDPropertyArray, rna_idprop_quote_path, rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 
 from mathutils import Matrix
-from rna_prop_ui import rna_idprop_quote_path
 from bl_ui.generic_ui_list import draw_ui_list
 
 
@@ -629,7 +628,6 @@ class POSE_OT_cloudrig_keyframe_all_settings(bpy.types.Operator):
 
                         prop_bone.keyframe_insert(rna_idprop_quote_path(prop_id), group=prop_bone.name)
 
-
         return {'FINISHED'}
 
 
@@ -959,7 +957,7 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 if type(op_info) == str:
                     op_info = eval(op_info)
                 self.add_operator(row, op_info)
-        elif str(type(prop_value)) == "<class 'IDPropertyArray'>":
+        elif type(prop_value) == IDPropertyArray:
             # Vectors
             row.prop(
                 prop_owner, f'["{prop_id}"]', text=prop_id.replace("_", " ")
@@ -1097,49 +1095,53 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 col = row.column()
                 sub_row = col.row(align=True)
 
-                prop_value = prop_bone[prop_id]
-
-                text = entry_name
-                if 'texts' in info:
-                    texts = json.loads(info['texts'])
-                    value = int(prop_value)
-                    if len(texts) > value:
-                        text = entry_name + ": " + texts[value]
-
-                if isinstance(prop_value, bpy.types.Object):
-                    # Property is an object pointer
-                    sub_row.prop_search(
-                        prop_bone,
-                        f'["{prop_id}"]',
-                        bpy.data,
-                        'objects',
-                        icon='OBJECT_DATAMODE',
-                        text=text,
-                    )
-                elif type(prop_value) == bool:
-                    icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
-                    sub_row.prop(
-                        prop_bone, f'["{prop_id}"]', toggle=True, text=text, icon=icon
-                    )
-                else:
-                    # Property is a float/int/color
-                    sub_row.prop(prop_bone, f'["{prop_id}"]', slider=True, text=text)
-
-                # Draw an operator if provided.
+                texts = json.loads(info.get('texts', "[]"))
+                self.draw_property(sub_row, prop_bone, prop_id, ui_name=entry_name, texts=texts)
                 if 'operator' in info:
-                    icon = 'FILE_REFRESH'
-                    if 'icon' in info:
-                        icon = info['icon']
+                    self.draw_operator(sub_row, bl_idname=info['operator'], **info)
 
-                    operator = sub_row.operator(info['operator'], text="", icon=icon)
-                    # Pass on any paramteres to the operator that it will accept.
-                    for param in info.keys():
-                        if hasattr(operator, param):
-                            value = info[param]
-                            # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-                            if type(value) in [list, dict]:
-                                value = json.dumps(value)
-                            setattr(operator, param, value)
+    def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, ui_name="", icon="", texts=[]):
+        prop_value = prop_owner[prop_name]
+        try:
+            prop_settings = prop_owner.id_properties_ui(prop_name).as_dict()
+        except TypeError:
+            # This happens for Python properties. There's no point drawing them.
+            return
+
+        bracketed_prop_name = f'["{prop_name}"]'
+
+        ui_text = ui_name or prop_name
+
+        value_type, _is_array = rna_idprop_value_item_type(prop_value)
+
+        if value_type is type(None) or issubclass(value_type, bpy.types.ID):
+            # Property is a Datablock Pointer.
+            layout.prop(prop_owner, bracketed_prop_name, text=ui_text)
+        elif value_type == bool:
+            icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
+            layout.prop(prop_owner, bracketed_prop_name, toggle=True, text=ui_text, icon=icon)
+        elif value_type in {int, float}:
+            if texts:
+                value = int(prop_value)
+                if len(texts) > value:
+                    ui_text += ": " + texts[value]
+            # Property is a float/int/color
+            # For large ranges, a slider doesn't make sense.
+            slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+            layout.prop(prop_owner, bracketed_prop_name, slider=slider, text=ui_text)
+        elif value_type == str:
+            layout.prop(prop_owner, bracketed_prop_name)
+
+    def draw_operator(self, layout: UILayout, bl_idname: str, icon="BLANK1", **kwargs):
+        op_props = layout.operator(bl_idname, text="", icon=icon)
+        # Pass on any paramteres to the operator that it will accept.
+        for key, value in kwargs.items():
+            if hasattr(op_props, key):
+                # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+                if type(value) in {list, dict}:
+                    value = json.dumps(value)
+                setattr(op_props, key, value)
+        return op_props
 
 
 custom_panels = []
@@ -2295,11 +2297,9 @@ class POSE_OT_cloudrig_collection_clipboard_copy(bpy.types.Operator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        import json
-
         rig = context.pose_object or context.active_object
 
-        json_obj = py_collections.defaultdict(dict)
+        json_obj = defaultdict(dict)
         counter = 0
         for coll in rig.data.collections_all:
             if coll.is_visible:

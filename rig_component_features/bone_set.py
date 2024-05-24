@@ -160,7 +160,7 @@ class BoneSet(LinkedList):
         else:
             bone_info.color_palette_base = self.color_palette
 
-        # Load collections
+        # Load Collections.
         if keep_collections:
             bone_info.collections = [coll.name for coll in data_bone.collections]
         else:
@@ -200,17 +200,16 @@ class BoneSet(LinkedList):
             }
             for prop_name in pose_bone.keys():
                 if prop_name in rna_properties:
-                    # We don't want to reset addon-defined properties.
+                    # We don't want to copy addon-defined properties.
                     continue
                 if 'rigify' in prop_name:
                     # Legacy stuff, don't need it.
                     continue
-                if prop_name[0] in "_$":
-                    continue
                 try:
                     prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
                 except TypeError:
-                    # This should only happen with python dictionaries, let's just ignore them for now. TODO.
+                    # This should only happen with python dictionaries.
+                    # Just store the value to be able to copy the property over to the generated rig.
                     prop_data = {'default': pose_bone[prop_name]}
 
                 value = pose_bone[prop_name]
@@ -225,6 +224,8 @@ class BoneSet(LinkedList):
                 prop_data['overridable'] = pose_bone.is_property_overridable_library(
                     f'["{prop_name}"]'
                 )
+                if 'description' not in prop_data:
+                    prop_data['description'] = ""
                 bone_info.custom_props[prop_name] = prop_data
 
         return bone_info

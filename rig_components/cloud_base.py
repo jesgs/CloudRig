@@ -99,13 +99,14 @@ class Component_Base(
         self.bones_def = self.bone_sets['Deform Bones']
         self.bones_mch = self.bone_sets['Mechanism Bones']
 
-    def load_metarig_bone_infos(self, metarig: Object) -> Dict[str, BoneInfo]:
+    def load_metarig_bone_infos(self) -> Dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
         which will be turned into real bones by the CloudRig generator.
 
         This function requires the metarig in edit mode.
-        TODO RNA: Once component types are entirely on rna, they can access the metarig via self.id_data.
         """
+
+        metarig = self.params.id_data
 
         assert (
             metarig.type == 'ARMATURE' and metarig.mode == 'EDIT'

@@ -481,7 +481,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         for bone_name, component in component_map.items():
             if hasattr(component, 'load_metarig_bone_infos'):
-                bone_infos.update(component.load_metarig_bone_infos(metarig))
+                bone_infos.update(component.load_metarig_bone_infos())
 
         # Parent has to be stored in a separate loop, after all BoneInfos are loaded.
         for bone_name, bone_info in bone_infos.items():

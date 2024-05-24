@@ -643,7 +643,7 @@ class BoneInfo:
                 )
                 make_driver_safe(armature, target_id=armature, **driver_info)
 
-        # Custom Properties. TODO: This is somewhat redundant with ensure_custom_property().
+        # Custom Properties.
         for prop_name, prop in self.custom_props.items():
             ensure_custom_property(pose_bone, prop_name, **prop)
 
@@ -698,9 +698,6 @@ class BoneInfo:
             return rig.data.edit_bones.get(self.name)
         else:
             return rig.pose.bones.get(self.name)
-
-    def __repr__(self):
-        return self.name
 
     def __str__(self):
         return self.name
@@ -894,39 +891,14 @@ class ConstraintInfo(dict):
         return con
 
 
-def ensure_custom_property(prop_bone, prop_id, **kwargs):
-    if 'default' not in kwargs:
-        kwargs['default'] = 0.0
-    if 'overridable' not in kwargs:
-        kwargs['overridable'] = True
-
+def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
     if str(type(prop_bone)) == str(BoneInfo):
+        kwargs['default'] = default
         # Let this function work for BoneInfo objects during the generation process.
         if prop_id not in prop_bone.custom_props:
             prop_bone.custom_props[prop_id] = kwargs
         else:
             prop_bone.custom_props[prop_id].update(kwargs)
+
     else:
-        if type(kwargs['default']) in {int, float}:
-            if 'min' not in kwargs:
-                kwargs['min'] = 0
-            if 'max' not in kwargs:
-                kwargs['max'] = 1
-        if prop_id in prop_bone:
-            # If the property already exists, don't update it.
-            return
-        prop_bone[prop_id] = kwargs['default']
-
-        prop_bone.property_overridable_library_set(
-            f'["{prop_id}"]', kwargs['overridable']
-        )
-        del kwargs['overridable']
-        if 'value' in kwargs:
-            prop_bone[prop_id] = kwargs['value']
-            del kwargs['value']
-
-        try:
-            prop_bone.id_properties_ui(prop_id).update(**kwargs)
-        except TypeError:
-            # This can happen for dictionaries and such, eg. created by other add-ons.
-            pass
+        make_property(prop_bone, prop_id, default, **kwargs)

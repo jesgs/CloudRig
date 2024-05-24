@@ -144,14 +144,14 @@ def draw_prop_search(
 def add_ui_data(
     obj,
     panel_name: str,  # Name of the sub-panel that the property should be drawn in. These are created dynamically, so this can be anything.
-    row_name: str,  # For drawing multiple properties in one row. TODO: Should be optional param?
+    row_name: str,  # For drawing multiple properties in one row. TODO: Should be optional param.
     info: Dict[
         str, Any
     ],  # The dictionary to store in the rig data. See cloudrig.py -> draw_rig_settings()
     entry_name="",  # Name of the property to display in the UI. Defaults to the property name.
     label_name="",  # Allows organizing properties within sub-panels by labels.
-    parent_id="",  # Allows creating nested sub-panels. TODO: Seems a bit wrong to have this here.
-    **custom_prop_dict,  # Properties of the custom property to be created. TODO: In cloud_copy we want to call this function without re-creating the custom property.
+    parent_id="",  # Allows creating nested sub-panels. NOTE: Seems a bit wrong to have this here.
+    **custom_prop_dict,  # Properties of the custom property to be created.
 ):
     """Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI."""
     # TODO: This function is a bit convoluted because it accepts both BoneInfo and a str as the target bone,
