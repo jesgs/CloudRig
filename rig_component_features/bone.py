@@ -37,10 +37,12 @@ bone_properties = {
     'hide': False,
     'use_deform': False,
     'show_wire': False,
-    'use_endroll_as_inroll': False,
     'bbone_x': 0.1,  # NOTE: These two are wrapped by bbone_width @property.
     'bbone_z': 0.1,
     'bbone_segments': 1,
+    'bbone_mapping_mode': 'CURVED',
+    'use_endroll_as_inroll': False,
+    'use_scale_easing': False,
     'bbone_handle_type_start': 'AUTO',
     'bbone_handle_type_end': 'AUTO',
     'bbone_custom_handle_start': None,  # BoneInfo
@@ -478,7 +480,6 @@ class BoneInfo:
                 # For performance, don't write default values.
                 continue
             setattr(eb, key, value)
-        eb.use_connect = False  # NOTE: Without this, ORG- bones' Copy Transforms constraints can't work properly.
 
         scale = generator.scale
         eb.bbone_x = self.bbone_width * scale
