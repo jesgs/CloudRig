@@ -1,6 +1,6 @@
 import bpy
 from typing import List, Tuple
-from bpy.types import EditBone, PoseBone, Constraint, Object
+from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
 
 from mathutils import Vector, Matrix
 
@@ -141,17 +141,22 @@ class BoneInfo:
         self.gizmo_vgroup = ""  # For CloudRig Gizmos
         self.gizmo_operator = 'transform.translate'
 
-        # {"name" : {kwargs}} where kwargs will be passed to Rigify's make_property().
+        # {"name" : {kwargs}} where kwargs will be passed to make_property().
         self.custom_props = {}
         self.custom_props_edit = {}
-        # List of dictionaries that will be passed to Rigify's make_driver().
+
+        # List of dictionaries that will be passed to make_driver(). This is where we define drivers during rig generation.
         self.drivers = []
         # Same but for data bone properties.
         self.drivers_data = []
 
+        # Data path & array index of drivers that should be copied from the metarig.
+        # This supports keyframes and curve modifiers.
+        self.drivers_to_copy: list[tuple[str, int]] = []
+
         self.color_palette_base = 'DEFAULT'
         self.color_palette_pose = 'DEFAULT'
-        # List of ConstraintInfo objects. Their __dict__ will be passed to Rigify's make_constraint().
+        # List of ConstraintInfo objects. Their __dict__ will be passed to make_constraint().
         self.constraint_infos = []
 
         self._name = name
@@ -453,14 +458,14 @@ class BoneInfo:
         """Relinking a bone just means relinking its drivers, constraints and
         constraint drivers."""
         # Relink bone drivers
-        for d in self.drivers:
-            self.bone_set.rig_component.relink_driver(d)
+        for drv in self.drivers:
+            self.bone_set.rig_component.relink_driver_info(drv)
 
-        for c in self.constraint_infos:
-            c.relink()
+        for con_inf in self.constraint_infos:
+            con_inf.relink()
             # Relink constraint drivers
-            for d in c.drivers:
-                self.bone_set.rig_component.relink_driver(d)
+            for drv in con_inf.drivers:
+                self.bone_set.rig_component.relink_driver_info(drv)
 
     def write_edit_data(self, generator, eb: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
@@ -544,15 +549,15 @@ class BoneInfo:
 
             eb.roll += self.roll
 
-    def write_pose_data(self, context, pose_bone: PoseBone):
+    def write_pose_data(self, context, metarig, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
         if not self.create:
             return
 
-        armature = pose_bone.id_data
+        arm_ob = pose_bone.id_data
 
         assert (
-            armature.mode != 'EDIT'
+            arm_ob.mode != 'EDIT'
         ), "Armature cannot be in Edit Mode when writing pose data"
 
         if self.custom_shape_name:
@@ -571,7 +576,7 @@ class BoneInfo:
             if value in [None, ""]:
                 continue
             if key == 'custom_shape_transform':
-                value = armature.pose.bones.get(value.name)
+                value = arm_ob.pose.bones.get(value.name)
             setattr(pose_bone, key, value)
         
 
@@ -592,14 +597,14 @@ class BoneInfo:
             if 'bbone_custom_handle' in key:
                 if hasattr(value, 'name'):
                     value = value.name
-                value = armature.data.bones.get(value)
+                value = arm_ob.data.bones.get(value)
             if key in ['bbone_x', 'bbone_z']:
                 # TODO: To write bone shape scale data properly, we would need a reference to the generator.scale.
                 # This would best be done if this function was in the generator rather than BoneInfo.
                 continue
             if key == 'collections':
                 for coll_name in value:
-                    coll = armature.data.collections_all.get(coll_name)
+                    coll = arm_ob.data.collections_all.get(coll_name)
                     coll.assign(pose_bone)
                 continue
             setattr(bone, key, value)
@@ -662,7 +667,11 @@ class BoneInfo:
                 driver_info['prop'] = (
                     f'pose.bones["{pose_bone.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
                 )
-                make_driver_safe(armature, target_id=armature, **driver_info)
+                make_driver_safe(arm_ob, target_id=arm_ob, **driver_info)
+            # Copied constraint drivers
+            for data_path, array_index in ci.drivers_to_copy:
+                fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
+                copy_relink_real_driver(metarig, arm_ob, fcurve)
 
         # Custom Properties.
         for prop_name, prop in self.custom_props.items():
@@ -673,14 +682,19 @@ class BoneInfo:
             driver_info['prop'] = (
                 f'pose.bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
             )
-            make_driver_safe(armature, target_id=armature, **driver_info)
+            make_driver_safe(arm_ob, target_id=arm_ob, **driver_info)
 
         # Data Bone Drivers.
         for driver_info in self.drivers_data:
             driver_info['prop'] = (
                 f'bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
             )
-            make_driver_safe(armature.data, target_id=armature, **driver_info)
+            make_driver_safe(arm_ob.data, target_id=arm_ob, **driver_info)
+
+        # Copied drivers
+        for data_path, array_index in self.drivers_to_copy:
+            fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
+            copy_relink_real_driver(metarig, arm_ob, fcurve)
 
     def clone(self, new_name=None, bone_set=None):
         """Return a clone of self."""
@@ -742,6 +756,10 @@ class ConstraintInfo(dict):
             self.targets = [{'target' : target, 'subtarget' : "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
         self.drivers = []
+
+        # Data path & array index of drivers that should be copied from the metarig.
+        # This supports keyframes and curve modifiers.
+        self.drivers_to_copy: list[tuple[str, int]] = []
 
         self.is_from_real = (
             False  # Whether this constraint was read from a real bpy.types.Constraint.
@@ -857,7 +875,7 @@ class ConstraintInfo(dict):
     def make_real(self, pose_bone):
         """Create a constraint based on this ConstraintInfo on a given pose bone."""
         con_info = self.__dict__.copy()
-        for key in ['type', 'bone_info', 'drivers', 'is_from_real', 'is_override_data']:
+        for key in ['type', 'bone_info', 'drivers', 'drivers_to_copy', 'is_from_real', 'is_override_data']:
             if key in con_info:
                 del con_info[key]
 
@@ -923,3 +941,51 @@ def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
 
     else:
         make_property(prop_bone, prop_id, default, **kwargs)
+
+
+def copy_relink_real_driver(metarig, rig, fcurve):
+    """Adjust a real driver by simply replacing references to the metarig with the generated rig."""
+    copy_driver(fcurve, rig, fcurve.data_path)
+    for var in fcurve.driver.variables:
+        for tgt in var.targets:
+            if tgt.id == metarig:
+                tgt.id = rig
+
+
+def copy_driver(
+    from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
+) -> FCurve:
+    """Copy an existing FCurve containing a driver to a new ID, by creating a copy
+    of the existing driver on the target ID.
+
+    Args:
+        from_fcurve: FCurve containing a driver
+        target: ID that can have drivers added to it
+        data_path: Data Path of new driver. Defaults to copying the passed fcurve
+        index: array index of the property to drive. Defaults to copying the passed fcurve
+
+    Returns:
+        FCurve: Fcurve with new driver on target ID
+    """
+
+    # Ensure anim data.
+    if not target.animation_data:
+        target.animation_data_create()
+
+    # Remove old driver if it exists.
+    tgt_drivers = target.animation_data.drivers
+    if index:
+        old_fcurve = tgt_drivers.find(data_path, index=index)
+    else:
+        old_fcurve = tgt_drivers.find(data_path)
+
+    if old_fcurve:
+        tgt_drivers.remove(old_fcurve)
+
+    new_fcurve = tgt_drivers.from_existing(src_driver=from_fcurve)
+    if data_path:
+        new_fcurve.data_path = data_path
+    if index != None:
+        new_fcurve.array_index = index
+
+    return new_fcurve

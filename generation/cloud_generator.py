@@ -596,7 +596,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 continue
 
             # Scale bone shape based on B-Bone scale
-            bone_info.write_pose_data(context, pose_bone)
+            bone_info.write_pose_data(context, self.metarig, pose_bone)
 
     ### Generation final steps
     def execute_custom_script(self):

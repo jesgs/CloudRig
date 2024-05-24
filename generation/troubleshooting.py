@@ -471,7 +471,7 @@ class CloudLogManager:
                 if 'PROP' in var.type:
                     continue
                 for target in var.targets:
-                    if not (
+                    if not target.id or not (
                         target.id.id_type == 'OBJECT'
                         and target.id.type == 'ARMATURE'
                         and target.bone_target

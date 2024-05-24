@@ -51,7 +51,7 @@ class Component_TweakBone(Component_Base):
             tweak_bone.bbone_z = org_bi.bbone_z
 
         # Transfer and relink bone drivers
-        self.transfer_relink_drivers(org_bi, tweak_bone)
+        self.transfer_relink_driver_info(org_bi, tweak_bone)
 
         if self.params.tweak.locks:
             tweak_bone.lock_location = org_bi.lock_location[:]
@@ -128,7 +128,7 @@ class Component_TweakBone(Component_Base):
             c.relink()
             # Relink constraint drivers
             for d in c.drivers:
-                self.relink_driver(d)
+                self.relink_driver_info(d)
             org_bi.constraint_infos.remove(c)
 
     ##############################

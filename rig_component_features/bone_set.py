@@ -171,10 +171,10 @@ class BoneSet(LinkedList):
             bone_info.collections = self.collections
 
         # Load Constraints.
-        for c in pose_bone.constraints:
-            ci = bone_info.add_constraint_from_real(c)
+        for constr in pose_bone.constraints:
+            bone_info.add_constraint_from_real(constr)
 
-        # Load Drivers.
+        # Load Drivers to be copied later.
         if rig_ob.animation_data:
             driver_map = self.rig_component.generator.driver_map
             if bone_info.name in driver_map:
@@ -182,18 +182,13 @@ class BoneSet(LinkedList):
                     fcurve = rig_ob.animation_data.drivers.find(
                         data_path, index=array_index
                     )
-                    path_from_last = "." + data_path.split('"].')[-1]
-                    if path_from_last.endswith('"]'):
-                        path_from_last = "[" + path_from_last.split("][")[-1]
-                    driver_info = driver_from_real(fcurve)
-                    driver_info['prop'] = path_from_last
                     if 'constraints' in fcurve.data_path:
                         con_name = data_path.split('constraints["')[-1].split('"]')[0]
                         constraint_info = bone_info.get_constraint(con_name)
                         if constraint_info:
-                            constraint_info.drivers.append(driver_info)
+                            constraint_info.drivers_to_copy.append((data_path, array_index))
                     else:
-                        bone_info.drivers.append(driver_info)
+                        bone_info.drivers_to_copy.append((data_path, array_index))
 
         # Load Custom Properties.
         if rna_idprop_has_properties(pose_bone):

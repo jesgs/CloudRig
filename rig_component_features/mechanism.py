@@ -51,18 +51,18 @@ class CloudMechanismMixin:
     def vector_along_bone_chain(self, chain, length=0, index=-1):
         return vector_along_bone_chain(chain, length, index)
 
-    def relink_driver(self, driver_info):
-        relink_driver(self.metarig, self.target_rig, driver_info)
+    def relink_driver_info(self, driver_info):
+        relink_driver_info(self.metarig, self.target_rig, driver_info)
 
-    def transfer_relink_drivers(self, from_bone: BoneInfo, to_bone: BoneInfo):
+    def transfer_relink_driver_info(self, from_bone: BoneInfo, to_bone: BoneInfo):
         """Transfer and relink drivers from one bone to another."""
         for d in from_bone.drivers[:]:
             to_bone.drivers.append(d)
             from_bone.drivers.remove(d)
-            self.relink_driver(d)
+            self.relink_driver_info(d)
 
 
-def relink_driver(metarig, rig, driver_info):
+def relink_driver_info(metarig, rig, driver_info):
     """Adjust drivers read from the metarig according to some conventions:
 
     An empty target object or the metarig as the target object will be replaced
@@ -194,43 +194,6 @@ def create_dsp_bone(parent, bone_set):
     )
     parent.custom_shape_transform = dsp_bone
     return dsp_bone
-
-
-def copy_driver(
-    from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
-) -> FCurve:
-    """Copy an existing FCurve containing a driver to a new ID, by creating a copy
-    of the existing driver on the target ID.
-
-    Args:
-        from_fcurve: FCurve containing a driver
-        target: ID that can have drivers added to it
-        data_path: Data Path of existing driver. Defaults to None.
-        index: array index of the property drive. Defaults to None.
-
-    Returns:
-        FCurve: Fcurve containing copy of driver on target ID
-    """
-
-    # Ensure anim data.
-    if not target.animation_data:
-        target.animation_data_create()
-
-    # Remove old driver if it exists.
-    tgt_drivers = target.animation_data.drivers
-    if index:
-        tgt_drivers.remove(data_path, index)
-    else:
-        tgt_drivers.remove(data_path)
-
-    new_fcurve = tgt_drivers.from_existing(from_fcurve)
-    if data_path:
-        new_fcurve.data_path = data_path
-    if index:
-        new_fcurve.array_index = index
-
-    return new_fcurve
-
 
 def copy_attributes(from_thing, to_thing, skip=[""], recursive=False):
     """Copy attributes from one thing to another.
