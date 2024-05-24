@@ -1,3 +1,6 @@
+- Do we actually work on 4.1? Did Bone Collections API change? Should test!
+- Maybe there's even a version somewhere in the history that worked with 4.0 Need to check the timeline of changes between CloudRig and the bone collections API.
+
 - Every operator with a shortcut needs to implement draw() so as not to draw the hash on the redo panel...
 - Remove CloudRig from the shipped Rigify feature sets
 - Add built-in hotkey for Edit Widget (Ctrl Alt E)
@@ -8,6 +11,8 @@
 		- Copy Widget to Selected
 		- Reload Widget?
 
+Shift+T could take us from a mesh to the metarig if the mesh is being deformed by the generated rig with an armature modifier.
+
 Metarigs:
 	- Clean up the Generation Log of all metarigs and rig samples.
 	- Probably update the Sintel metarig based on an actual Sintel mesh, with a blink and some lip actions.
@@ -17,6 +22,9 @@ Metarigs:
 
 - Should split up Edit Widget and Assign Widget.
 - Check if Spline IK parameters work well with each other and do what they should.
+
+- Check on Bone Gizmos add-on. Does it still function? It probably needs updates.
+	- Beg Campbell to add a scale parameter to the function that lets me use face attributes without getting z-fighting or having to worry about caching and such crap.
 
 Priority -1: Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
