@@ -7,6 +7,7 @@ from mathutils import Vector
 from math import radians as rad
 from math import pow
 from copy import deepcopy
+from mathutils import Vector
 
 from .cloud_ik_chain import Component_Chain_IKFK
 
@@ -501,11 +502,11 @@ class Component_Limb(Component_Chain_IKFK):
     ##############################
     # Overlay
     @classmethod
-    def draw_overlay(cls, context, buffer) -> list((Vector, Vector)):
+    def draw_overlay(cls, context, buffer) -> list[tuple[Vector, Vector]]:
         active_pb = context.active_pose_bone
-        rig_chain = cls.find_chain_of_pbone(active_pb)
+        rig_chain = cls.find_component_chain_of_pbone(active_pb)
 
-        pole_angle, pole_vector, pole_location = cls.calculate_ik_info_static(
+        _pole_angle, _pole_vector, pole_location = cls.calculate_ik_info_static(
             rig_chain[0], rig_chain[1]
         )
 

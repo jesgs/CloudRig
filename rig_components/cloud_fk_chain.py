@@ -285,6 +285,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             return
 
         for org_bone, fk_bone in zip(org_bones, fk_bones):
+            org_bone.use_connect = False
             org_bone.add_constraint(
                 'COPY_TRANSFORMS',
                 space='WORLD',

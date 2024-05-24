@@ -60,7 +60,7 @@ class Component_Base(
         self.initialize()  # TODO 4.0: __init__ and initialize() should probably be merged.
 
     def initialize(self):
-        self.bone_count = len(self.get_component_bone_chain())
+        self.bone_count = len(self.get_component_pbone_chain())
 
         ### Quick access to the generator's log manager
         self.logger = self.generator.logger
@@ -113,7 +113,7 @@ class Component_Base(
         ), "Metarig must be an edit mode armature."
 
         bone_infos = {}
-        for pbone in self.get_component_bone_chain():
+        for pbone in self.get_component_pbone_chain():
             ebone = metarig.data.edit_bones.get(pbone.name)
 
             if self.naming.has_trailing_zeroes(pbone):
@@ -153,7 +153,6 @@ class Component_Base(
                     description_short=f'Bone name "{bone_info.name}" was used twice!',
                 )
             bone_info.bbone_width = ebone.bbone_x / self.scale
-            bone_info.use_connect = False
             bone_info.create = self.keep_original_bones
             bone_infos[bone_info.name] = bone_info
 

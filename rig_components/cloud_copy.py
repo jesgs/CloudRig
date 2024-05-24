@@ -35,57 +35,56 @@ class Component_CopyBone(Component_Base):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        bone_info = self.bones_org[0]
 
-        if (
-            not bone_info.use_custom_shape_bone_size
-        ):  # TODO 4.0 I think this can be removed?
-            bone_info.custom_shape_scale_xyz /= bone_info.bbone_width * 10 * self.scale
+        for bone_info in self.bones_org:
+            if (
+                not bone_info.use_custom_shape_bone_size
+            ):  # TODO 4.0 I think this can be removed?
+                bone_info.custom_shape_scale_xyz /= bone_info.bbone_width * 10 * self.scale
 
-        if bone_info.custom_shape:
-            self.add_to_widget_collection(context, bone_info.custom_shape)
+            if bone_info.custom_shape:
+                self.add_to_widget_collection(context, bone_info.custom_shape)
 
-        if bone_info.rotation_mode == 'QUATERNION':
-            self.add_log(
-                "Quaternion rotation",
-                trouble_bone=self.base_bone_name,
-                description=f'"{bone_info.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!',
-                icon='GIZMO',
-                operator='pose.cloudrig_troubleshoot_rotationmode',
-                op_kwargs={'bone_name': self.base_bone_name},
-                op_text=f"Set {bone_info.name} to Euler",
-            )
-            bone_info.rotation_mode = 'XYZ'
+            if bone_info.rotation_mode == 'QUATERNION':
+                self.add_log(
+                    "Quaternion rotation",
+                    trouble_bone=self.base_bone_name,
+                    description=f'"{bone_info.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!',
+                    icon='GIZMO',
+                    operator='pose.cloudrig_troubleshoot_rotationmode',
+                    op_kwargs={'bone_name': self.base_bone_name},
+                    op_text=f"Set {bone_info.name} to Euler",
+                )
+                bone_info.rotation_mode = 'XYZ'
 
-        if self.params.copy.create_deform:
-            # Make a copy with DEF- prefix, as our deform bone.
-            def_bone = self.make_def_bone(bone_info, self.bones_def)
-            def_bone.parent = bone_info
+            if self.params.copy.create_deform:
+                # Make a copy with DEF- prefix, as our deform bone.
+                def_bone = self.make_def_bone(bone_info, self.bones_def)
+                def_bone.parent = bone_info
 
-        if self.params.copy.property_ui_subpanel:
-            self.add_ui_data_of_bone(
-                bone_info,
-                self.params.copy.property_ui_subpanel,
-                self.params.copy.property_ui_label,
-            )
+            if self.params.copy.property_ui_subpanel:
+                self.add_ui_data_of_bone(
+                    bone_info,
+                    self.params.copy.property_ui_subpanel,
+                    self.params.copy.property_ui_label,
+                )
 
-        self.root_bone = bone_info
+        first_bone = self.root_bone = self.bones_org[0]
         if self.params.copy.custom_pivot:
-            self.root_bone = self.create_custom_pivot(bone_info)
+            self.root_bone = self.create_custom_pivot(first_bone)
 
-        if self.params.copy.ensure_free and len(bone_info.constraint_infos) > 0:
-            constrained_parent = self.create_parent_bone(
+        if self.params.copy.ensure_free and len(first_bone.constraint_infos) > 0:
+            self.root_bone = constrained_parent = self.create_parent_bone(
                 self.root_bone,  # If custom pivot enabled, this should own that...
                 bone_set=self.bone_sets['Mechanism Bones'],
             )
             constrained_parent.name = "CON-" + self.base_bone_name
-            for con_info in bone_info.constraint_infos[:]:
+            for con_info in first_bone.constraint_infos[:]:
                 if 'KEEP' not in con_info['name']:
                     constrained_parent.constraint_infos.append(
                         con_info
                     )  # ...but we always take the constraints from the bone, not from the custom pivot!
-                    bone_info.constraint_infos.remove(con_info)
-            self.root_bone = constrained_parent
+                    first_bone.constraint_infos.remove(con_info)
 
     def create_custom_pivot(self, boneinfo, bone_set=None):
         if not bone_set:

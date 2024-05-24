@@ -15,13 +15,13 @@ class CloudMechanismMixin:
         return self.generator.find_bone_info(name)
 
     @staticmethod
-    def find_chain_of_pbone(pose_bone):
-        return find_chain_of_pbone(pose_bone)
+    def find_component_chain_of_pbone(pose_bone):
+        return find_component_chain_of_pbone(pose_bone)
 
-    def get_component_bone_chain(self):
+    def get_component_pbone_chain(self):
         # TODO 4.0: This could be moved to the RigComponent RNA class.
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
-        return get_component_bone_chain(pose_bone)
+        return get_component_pbone_chain(pose_bone)
 
     def create_parent_bone(self, child, bone_set=None):
         return create_parent_bone(child, bone_set)
@@ -83,16 +83,16 @@ def relink_driver(metarig, rig, driver_info):
                 t['id'] = rig
 
 
-def find_chain_of_pbone(pose_bone) -> List[bpy.types.PoseBone]:
+def find_component_chain_of_pbone(pose_bone) -> List[bpy.types.PoseBone]:
     if pose_bone.cloudrig_component.component_type:
-        return get_component_bone_chain(pose_bone)
+        return get_component_pbone_chain(pose_bone)
     if not pose_bone:
         return None
 
-    return find_chain_of_pbone(pose_bone.parent)
+    return find_component_chain_of_pbone(pose_bone.parent)
 
 
-def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
+def get_component_pbone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
     """Find the chain of bones constituting a rig component that this pose bone belongs to."""
 
     # We start building a chain with the current bone, prepending bones as we go
@@ -116,23 +116,23 @@ def get_component_bone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
     # a component type, the chain becomes ambiguous. This case is not supported!
     cur_pb = chain[-1]
     while cur_pb and len(cur_pb.children) > 0:
-        next_bone = None
+        next_pb = None
         for child_pb in cur_pb.children:
             if child_pb.cloudrig_component.component_type == "":
                 if connected and not child_pb.bone.use_connect:
                     continue
-                if next_bone != None:
+                if next_pb != None:
                     print(
                         f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
-                        \tChain could continue with either {next_bone.name} or {c.name}. \n
+                        \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
                         \tPicking the first one arbitrarily! \n
                         \tDisconnect the bone or assign a component type to make it unambiguous."""
                     )
                 else:
-                    next_bone = child_pb
-        if next_bone:
-            chain.append(next_bone)
-        cur_pb = next_bone
+                    next_pb = child_pb
+        if next_pb:
+            chain.append(next_pb)
+        cur_pb = next_pb
     return chain
 
 
