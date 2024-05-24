@@ -18,8 +18,8 @@ class Component_TweakBone(Component_Base):
     def initialize(self):
         super().initialize()
 
-    def load_metarig_bone_infos(self, metarig: Object) -> Dict[str, BoneInfo]:
-        bone_infos = super().load_metarig_bone_infos(metarig)
+    def load_metarig_bone_infos(self) -> Dict[str, BoneInfo]:
+        bone_infos = super().load_metarig_bone_infos()
         assert len(bone_infos) == 1
 
         bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
