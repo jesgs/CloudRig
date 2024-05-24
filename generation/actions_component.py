@@ -51,7 +51,7 @@ class ActionLayer:
             self.trigger_a.use_trigger = True
             self.trigger_b.use_trigger = True
 
-            self.bone_name = self.trigger_a.slot.subtarget
+            self.bone_name = change_name_side(self.trigger_a.slot.subtarget, side)
         else:
             self.bone_name = change_name_side(slot.subtarget, side)
 
@@ -100,6 +100,7 @@ class ActionLayer:
 
             owner = self.generator.target_rig.pose.bones.get(self.bone_name)
 
+            print("Make action property: ", self.name, owner)
             make_property(
                 owner=owner,
                 name=self.name,
