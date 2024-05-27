@@ -238,7 +238,8 @@ class Component_Limb_BipedLeg(Component_Limb):
             custom_shape_name='Roll_Flat',
             use_custom_shape_bone_size=True,
         )
-        self.properties_bone.parent = roll_ctrl
+        if self.params.custom_props.props_storage == "GENERATED":
+            self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms
         self.lock_transforms(roll_ctrl, rot=False)
         roll_ctrl.add_constraint(
