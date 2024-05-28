@@ -698,24 +698,24 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
                 if key in rna_properties:
                     continue  # Addon defined property.
 
-                ui_data = None
+                property_settings = None
                 try:
-                    ui_data = pb.id_properties_ui(key)
-                    if not ui_data:
+                    property_settings = pb.id_properties_ui(key)
+                    if not property_settings:
                         continue
-                    ui_data = ui_data.as_dict()
-                    if not 'default' in ui_data:
+                    property_settings = property_settings.as_dict()
+                    if not 'default' in property_settings:
                         continue
                 except TypeError:
                     # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
                     pass
 
-                if not ui_data:
+                if not property_settings:
                     continue
 
                 if type(pb[key]) not in (float, int, bool):
                     continue
-                pb[key] = ui_data['default']
+                pb[key] = property_settings['default']
 
         return {'FINISHED'}
 
@@ -1018,6 +1018,32 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                     value = json.dumps(value)
                 setattr(operator, param, value)
 
+def get_rig_ui_data(rig: Object):
+    if 'ui_data' not in rig.data:
+        return
+    ui_data_prop = rig.data['ui_data']
+    if hasattr(ui_data_prop, 'to_list'):
+        return ui_data_prop.to_list()
+    elif hasattr(ui_data_prop, 'to_dict'):
+        # Old rigs used to store their UI data as dicts, and we want to be backwards compatible.
+        # The old rig UI data structure had 4 levels of nesting where order might matter,
+        # the 5th level is still a dictionary but the order there shouldn't matter.
+        ui_data_dict = ui_data_prop.to_dict()
+        list1 = []
+        for key1, value1 in ui_data_dict.items():
+            list2 = []
+            for key2, value2 in value1.items():
+                list3 = []
+                for key3, value3 in value2.items():
+                    list4 = []
+                    for key4, value4 in value3.items():
+                        list4.append((key4, value4))
+                    list3.append((key3, list4))
+                list2.append((key2, list3))
+            list1.append((key1, list2))
+    return list1
+
+
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
 
@@ -1031,88 +1057,87 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             return
         if 'ui_data' not in rig.data:
             return
-        ui_data = rig.data['ui_data'].to_dict()
+        ui_data = get_rig_ui_data(rig)
 
-        if cls.bl_label in ui_data:
-            return True
+        for panel_name, panel_data in ui_data:
+            if panel_name == cls.bl_label:
+                return True
 
     def draw(self, context):
         rig = is_active_cloudrig(context)
-        ui_data = rig.data['ui_data'].to_dict()
-        main_dict = ui_data[self.bl_label]  # bl_label is set in ensure_custom_panel().
+        ui_data = get_rig_ui_data(rig)
 
-        self.draw_rig_settings_per_label(self.layout, rig, main_dict)
+        for panel_name, panel_data in ui_data:
+            if panel_name == self.bl_label:
+                self.draw_rig_settings_subpanel(self.layout, rig, panel_data)
+                break
 
-    def draw_rig_settings_per_label(self,
-        layout: bpy.types.UILayout, rig: Object, main_dict: dict
+    def draw_rig_settings_subpanel(self,
+        layout: bpy.types.UILayout, rig: Object, panel_data: list[tuple]
     ):
         """Each top-level dictionary within the main dictionary defines a panel.
         Each panel is split into sub-sections via labels.
         """
         top = layout.column()
-        for label_name in main_dict.keys():
+        for category_name, category_data in panel_data:
             ui = layout
-            if label_name == 'parent_id':
+            if category_name == 'parent_id':
                 continue
-            if label_name == 'NODRAW':
+            if category_name == 'NODRAW':
                 continue
-            if label_name != "":
-                layout.label(text=label_name)
+            if category_name != "":
+                layout.label(text=category_name)
             else:
                 # Label-less properties should be at the top of the sub-panel.
                 ui = top
-            self.draw_rig_settings(ui, rig, main_dict[label_name])
+            self.draw_rig_settings(ui, rig, category_data)
 
-    def draw_rig_settings(self, layout: bpy.types.UILayout, rig: Object, ui_data: Dict):
+    def draw_rig_settings(self, layout: bpy.types.UILayout, rig: Object, category_data: list[tuple]):
         """
-        ui_data: Dictionary containing the UI data, created during rig generation.
+        category_data: List of tuples containing the UI data, created during rig generation.
         The top-level represents rows, and each row can contain any number of slider definitions.
 
-        A slider definition must have the following keywords:
-                prop_bone: Name of the pose bone that holds the custom property.
-                prop_id: Name of the custom property on the bone, to be drawn as a slider.
+        Each slider definition must contain:
+                prop_bone (str): Name of the pose bone that holds the custom property.
+                prop_id (str): Name of the custom property on the bone, to be drawn as a slider.
 
-        Optional keywords:
-                texts: List of strings to display alongside an integer property slider.
-                operator: Specify an operator to draw next to the slider.
-                icon: Override the icon of the operator. If not specified, default to 'FILE_REFRESH'.
-
+        Each slider definition may contain:
+                texts (list[str]): List of strings to display alongside an integer property slider.
+                operator (str): Specify an operator to draw next to the slider.
+                icon (str): Override the icon of the operator. If not specified, default to 'BLANK1'
+                children (list[tuple]): More slider definitions, which should only be visible when the integer property matches the index in the list.
                 Any further arguments will be passed on to the operator button as keyword arguments.
         """
 
         # Sort the rows alphabetically, just so "Arm" always comes before "Leg".
         # Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
         # consistent and predictable.
-        row_datas = [(row_name, ui_data[row_name]) for row_name in sorted(ui_data.keys())]
 
         # Each top-level dictionary within the main dictionary defines a row.
-        for row_name, row_entries in row_datas:
+        for row_name, row_data in category_data:
             row = layout.row()
             # Each second-level dictionary within that defines a slider (and operator, if given).
             # If there is more than one, they will be drawn next to each other, since they're in the same row.
-            for entry_name in row_entries.keys():
-                info = row_entries[
-                    entry_name
-                ]  # This is the lowest level dictionary that contains the parameters for the slider and its operator, if given.
-                if not 'prop_bone' in info and 'prop_id' in info:
+            for slider_name, slider_data in row_data:
+                if not 'prop_bone' in slider_data and 'prop_id' in slider_data:
                     print(
-                        f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{info}"
+                        f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{slider_data}"
                     )
                     continue
-                prop_bone = rig.pose.bones.get(info['prop_bone'])
-                prop_id = info['prop_id']
+                prop_bone = rig.pose.bones.get(slider_data['prop_bone'])
+                prop_id = slider_data['prop_id']
                 if not prop_bone and prop_id in prop_bone:
                     print(
-                        f"CloudRig UI Error: Properties bone or property does not exist: {info}"
+                        f"CloudRig UI Error: Properties bone or property does not exist: {slider_data}"
                     )
                     continue
                 col = row.column()
                 sub_row = col.row(align=True)
 
-                texts = json.loads(info.get('texts', "[]"))
-                self.draw_property(sub_row, prop_bone, prop_id, ui_name=entry_name, texts=texts)
-                if 'operator' in info:
-                    self.draw_operator(sub_row, bl_idname=info['operator'], **info)
+                texts = json.loads(slider_data.get('texts', "[]"))
+                self.draw_property(sub_row, prop_bone, prop_id, ui_name=slider_name, texts=texts)
+                if 'operator' in slider_data:
+                    self.draw_operator(sub_row, bl_idname=slider_data['operator'], **slider_data)
 
     def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, ui_name="", icon="", texts=[]):
         prop_value = prop_owner[prop_name]
