@@ -1,10 +1,4 @@
-- Remove CloudRig from the shipped Rigify feature sets
-
-Metarigs:
-	- Clean up the Generation Log of all metarigs and rig samples.
-	- Probably update the Sintel metarig based on an actual Sintel mesh, with a blink and some lip actions.
-	- Maybe include a simplified Mikassa metarig?
-
+- Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
 
 Priority -1: Migration
