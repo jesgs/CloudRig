@@ -821,6 +821,7 @@ class CloudRig_Properties_legacy(bpy.types.PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
+
 class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_character_legacy"
     bl_label = "Character (Legacy)"
@@ -1105,39 +1106,57 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 texts (list[str]): List of strings to display alongside an integer property slider.
                 operator (str): Specify an operator to draw next to the slider.
                 icon (str): Override the icon of the operator. If not specified, default to 'BLANK1'
-                children (list[tuple]): More slider definitions, which should only be visible when the integer property matches the index in the list.
+                children (list[tuple]): Another list of list of slider definitions, which should only be visible when the integer property matches the index in the list. Infinite child nesting is supported, but multiple children in a single row is not supported.
                 Any further arguments will be passed on to the operator button as keyword arguments.
         """
 
-        # Sort the rows alphabetically, just so "Arm" always comes before "Leg".
-        # Can get unlucky with "Upperarm" and "Thigh" though, but at least alphabtical is
-        # consistent and predictable.
-
         # Each top-level dictionary within the main dictionary defines a row.
         for row_name, row_data in category_data:
-            row = layout.row()
+            main = layout
+            if len(row_data) > 1:
+                main = layout.row()
             # Each second-level dictionary within that defines a slider (and operator, if given).
             # If there is more than one, they will be drawn next to each other, since they're in the same row.
             for slider_name, slider_data in row_data:
-                if not 'prop_bone' in slider_data and 'prop_id' in slider_data:
-                    print(
-                        f"CloudRig UI Error: Limb definition lacks properties bone or prop ID: {row_name}\n{slider_data}"
-                    )
-                    continue
-                prop_bone = rig.pose.bones.get(slider_data['prop_bone'])
-                prop_id = slider_data['prop_id']
-                if not prop_bone and prop_id in prop_bone:
-                    print(
-                        f"CloudRig UI Error: Properties bone or property does not exist: {slider_data}"
-                    )
-                    continue
-                col = row.column()
-                sub_row = col.row(align=True)
+                sub = main
+                if len(row_data) > 1:
+                    # This leaves a nice gap between two sliders in the same row.
+                    sub = main.column().row(align=True)
+                self.draw_slider(rig, sub, slider_name, slider_data)
 
-                texts = json.loads(slider_data.get('texts', "[]"))
-                self.draw_property(sub_row, prop_bone, prop_id, ui_name=slider_name, texts=texts)
-                if 'operator' in slider_data:
-                    self.draw_operator(sub_row, bl_idname=slider_data['operator'], **slider_data)
+    def draw_slider(self, rig, layout: UILayout, slider_name: str, slider_data: dict[str]):
+        if not 'prop_bone' in slider_data and 'prop_id' in slider_data:
+            print(
+                f"CloudRig UI Error: Slider definition lacks properties bone or prop ID: {slider_name}\n{slider_data}"
+            )
+            return
+        prop_pbone = rig.pose.bones.get(slider_data['prop_bone'])
+        prop_id = slider_data['prop_id']
+        if not prop_pbone and prop_id in prop_pbone:
+            print(
+                f"CloudRig UI Error: Slider definition property bone or property does not exist: {slider_name}\n{slider_data}"
+            )
+            return
+
+        sub_row = layout
+
+        texts = json.loads(slider_data.get('texts', "[]"))
+        if not texts:
+            texts = prop_pbone.get(f"${prop_id}")
+        self.draw_property(sub_row, prop_pbone, prop_id, ui_name=slider_name, texts=texts)
+        operator = slider_data.get('operator')
+        if operator:
+            self.draw_operator(sub_row, bl_idname=operator, **slider_data)
+
+        children_data = slider_data.get('children')
+        if children_data:
+            prop_value = prop_pbone[prop_id]
+            if len(children_data)-1 >= prop_value:
+                current_children = children_data[int(prop_value)]
+                if current_children:
+                    box_col = sub_row.box().column()
+                    for child_slider_name, child_slider_data in current_children:
+                        self.draw_slider(rig, box_col, child_slider_name, child_slider_data)
 
     def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, ui_name="", icon="", texts=[]):
         prop_value = prop_owner[prop_name]
