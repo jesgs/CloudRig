@@ -266,11 +266,18 @@ class BoneInfo:
 
     @parent.setter
     def parent(self, value):
+        if self.parent == value:
+            return
         if self._parent and isinstance(self._parent, BoneInfo):
             self._parent.children.remove(self)
         self._parent = value
         if value and isinstance(value, BoneInfo):
             value.children.append(self)
+
+        # If we want to use connected parenting, do it explicitly, after setting the parent.
+        # Otherwise, this is a lot more intuitive, since otherwise changing the parent
+        # of a connected bone will also move the bone, which is quite unexpected.
+        self.use_connect = False
 
     @property
     def bbone_width(self):
