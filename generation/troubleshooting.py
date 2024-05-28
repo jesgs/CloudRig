@@ -1,10 +1,9 @@
-from typing import List
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
 
 import bpy, os, traceback, sys
 import json, webbrowser, time
-import struct, platform, io, urllib.parse, importlib
+import struct, platform, io, urllib.parse
 
 from ..rig_component_features.ui import draw_label_with_linebreak, is_advanced_mode
 from ..rig_component_features.object import get_object_hierarchy_recursive

@@ -4,11 +4,11 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Operator, Menu
+from bpy.types import Menu
 from bpy.props import BoolProperty
 from typing import Set, List
 from bpy.utils import flip_name
-from ..generation.cloudrig import register_hotkey
+from ..generation.cloudrig import register_hotkey, CloudRigOperator
 
 
 def get_active_bone(context):
@@ -101,7 +101,7 @@ class GenericBoneOperator:
         raise NotImplementedError
 
 
-class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
+class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
     """Disconnect selected bones"""
 
     bl_idname = "pose.disconnect_selected"
@@ -131,7 +131,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
+class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
     """Unparent selected bones"""
 
     bl_idname = "pose.unparent_selected"
@@ -161,7 +161,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
+class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, CloudRigOperator):
     """Parent active bone to all selected bones using Armature constraint"""
 
     bl_idname = "pose.parent_active_to_all_selected"
@@ -209,7 +209,7 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
+class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
     """Parent selected bones to the active one"""
 
     bl_idname = "pose.parent_selected_to_active"
@@ -275,7 +275,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_parent_object_to_selected_bones(Operator):
+class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
     """Parent object to selected bones"""
 
     bl_idname = "pose.parent_object_to_selected_bones"

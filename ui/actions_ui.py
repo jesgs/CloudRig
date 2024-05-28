@@ -8,6 +8,7 @@ from bpy.types import Action
 from bl_math import clamp
 
 from ..utils.external.naming import Side, get_name_side
+from ..generation.cloudrig import CloudRigOperator
 
 from bpy.types import (
     PropertyGroup,
@@ -16,9 +17,7 @@ from bpy.types import (
     UILayout,
     Context,
     Panel,
-    Operator,
     Armature,
-    Object,
 )
 from bpy.props import (
     EnumProperty,
@@ -306,7 +305,7 @@ class ActionSlot(PropertyGroup):
         return abs(default_frame - round(default_frame)) < 0.001
 
 
-class CLOUDRIG_OT_action_new(Operator):
+class CLOUDRIG_OT_action_new(CloudRigOperator):
     """Create new Action"""
 
     # This is needed because bpy.ops.action.new() has a poll function that blocks
@@ -325,7 +324,7 @@ class CLOUDRIG_OT_action_new(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_jump_to_action_slot(Operator):
+class CLOUDRIG_OT_jump_to_action_slot(CloudRigOperator):
     """Set Active Action Slot Index"""
 
     bl_idname = "object.cloudrig_jump_to_action_slot"

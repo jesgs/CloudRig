@@ -6,9 +6,9 @@ import bpy
 from bpy.utils import flip_name
 
 from ..utils.external.misc import property_to_python
+from ..generation.cloudrig import CloudRigOperator
 
-
-class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):
+class POSE_OT_cloudrig_symmetrize_components(CloudRigOperator):
     """Mirror rig component type and parameters of selected bones to the opposite side. Names should end in L/R"""
 
     bl_idname = "pose.cloudrig_symmetrize_components"
@@ -64,7 +64,7 @@ class POSE_OT_cloudrig_symmetrize_components(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_copy_component(bpy.types.Operator):
+class POSE_OT_cloudrig_copy_component(CloudRigOperator):
     """Copy rig component type parameters from active to selected bones"""
 
     bl_idname = "pose.cloudrig_copy_component"

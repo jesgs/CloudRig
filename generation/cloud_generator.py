@@ -41,6 +41,7 @@ from .cloudrig import (
     is_active_cloud_metarig,
     is_active_cloudrig,
     is_cloud_metarig,
+    CloudRigOperator,
 )
 from .test_animation import TestAnimationGeneratorMixin
 
@@ -48,7 +49,7 @@ from ..rig_components.cloud_base import Component_Base
 from .actions_component import ActionLayerComponent
 
 import bpy, sys, os, traceback
-from bpy.types import Object, Operator
+from bpy.types import Object
 from bpy.props import BoolProperty
 
 
@@ -851,12 +852,12 @@ def refresh_constraints(rig: Object):
                     t.target = t.target
 
 
-class CLOUDRIG_OT_generate(Operator):
+class CLOUDRIG_OT_generate(CloudRigOperator):
     """Generates a rig from the active metarig armature using the CloudRig generator"""
 
     bl_idname = "pose.cloudrig_generate"
     bl_label = "Generate CloudRig"
-    bl_options = {'UNDO'}
+    bl_options = {'REGISTER', 'UNDO'}
     bl_description = (
         'Generates a rig from the active metarig armature using the CloudRig generator'
     )

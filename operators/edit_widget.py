@@ -6,6 +6,7 @@ from bpy.props import BoolProperty, StringProperty, EnumProperty
 from ..utils.misc import get_addon_prefs, assign_to_collection
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.widgets.widgets import ensure_widget
+from ..generation.cloudrig import CloudRigOperator
 
 widgets_visible = []
 widget_items = []
@@ -108,7 +109,7 @@ def transform_widget_to_bone(pb: bpy.types.PoseBone, select=False):
     shape.matrix_world = final_matrix
 
 
-class POSE_OT_toggle_edit_widget(bpy.types.Operator):
+class POSE_OT_toggle_edit_widget(CloudRigOperator):
     """Assign a widget to all selected bones, or start editing the widget of the active bone, if it is the only bone selected"""
 
     bl_idname = "pose.toggle_edit_widget"
@@ -306,7 +307,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_make_widget_unique(bpy.types.Operator):
+class POSE_OT_make_widget_unique(CloudRigOperator):
     """Re-assign this bone's shape to a unique duplicate, so it can be edited without affecting other bones using the same widget"""
 
     bl_idname = "pose.make_widget_unique"
@@ -357,7 +358,7 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_assign_asset_as_widget(bpy.types.Operator):
+class POSE_OT_assign_asset_as_widget(CloudRigOperator):
     """Assign this asset as the custom shape for selected bones"""
 
     bl_idname = "pose.assign_asset_as_custom_shape"

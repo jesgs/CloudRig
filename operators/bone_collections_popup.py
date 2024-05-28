@@ -7,7 +7,7 @@ class CLOUDRIG_OT_bone_collections_popup(bpy.types.Operator):
     """Bone Collections pop-up"""
     bl_idname = "armature.bone_collections_popup"
     bl_label = "Bone Collections"
-    bl_options = {'REGISTER'}
+    bl_options = {'REGISTER'} # Undo step is omitted, since this is just a UI pop-up.
 
     @classmethod
     def poll(cls, context):

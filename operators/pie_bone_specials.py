@@ -1,9 +1,9 @@
 from .pie_bone_parenting import GenericBoneOperator
-from bpy.types import Operator, Menu
-from ..generation.cloudrig import register_hotkey
+from bpy.types import Menu
+from ..generation.cloudrig import register_hotkey, CloudRigOperator
 
 
-class POSE_OT_delete_bones(GenericBoneOperator, Operator):
+class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
     """Delete selected bones"""
 
     bl_idname = "pose.delete_selected"

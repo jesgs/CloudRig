@@ -2,7 +2,7 @@ from typing import Dict
 
 import bpy
 from bpy.props import StringProperty
-from bpy.types import UIList, UI_UL_list, Operator, bpy_prop_array, PoseBone, Bone, EditBone
+from bpy.types import UIList, UI_UL_list, bpy_prop_array, PoseBone, Bone, EditBone
 from rna_prop_ui import rna_idprop_has_properties
 
 from mathutils import Vector, Matrix
@@ -11,6 +11,7 @@ from collections import OrderedDict
 from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
 from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
+from ..generation.cloudrig import CloudRigOperator
 
 
 def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
@@ -479,7 +480,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         row.prop(bone_set, 'color_palette', text="")
 
 
-class CLOUDRIG_OT_bone_set_collection_add(Operator):
+class CLOUDRIG_OT_bone_set_collection_add(CloudRigOperator):
     """Add bone set collection"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_add"
@@ -494,7 +495,7 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_bone_set_collection_remove(Operator):
+class CLOUDRIG_OT_bone_set_collection_remove(CloudRigOperator):
     """Remove bone set collection"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_remove"
@@ -526,7 +527,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_bone_set_collection_reset(Operator):
+class CLOUDRIG_OT_bone_set_collection_reset(CloudRigOperator):
     """Reset collection assignments of this Bone Set to the default list"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_reset"
@@ -544,7 +545,7 @@ class CLOUDRIG_OT_bone_set_collection_reset(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_bone_set_collection_rename(Operator):
+class CLOUDRIG_OT_bone_set_collection_rename(CloudRigOperator):
     """Rename a collection across all Bone Sets and the metarig. This is how you should rename collections in CloudRig"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_rename"

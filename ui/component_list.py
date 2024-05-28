@@ -4,7 +4,7 @@ from bpy.types import Panel, UIList
 from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
 from ..rig_component_features.ui import redraw_viewport
-from ..generation.cloudrig import is_cloud_metarig
+from ..generation.cloudrig import is_cloud_metarig, CloudRigOperator
 
 
 class CLOUDRIG_UL_rig_components(UIList):
@@ -103,7 +103,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         return flt_flags, flt_neworder
 
 
-class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
+class CLOUDRIG_OT_add_rig_component(CloudRigOperator):
     """Assign a CloudRig Component Type to a bone"""
 
     bl_idname = "pose.cloudrig_assign_component_type"
@@ -190,7 +190,7 @@ class CLOUDRIG_OT_add_rig_component(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_remove_rig_component(bpy.types.Operator):
+class CLOUDRIG_OT_remove_rig_component(CloudRigOperator):
     """Remove active rig component"""
 
     bl_idname = "pose.cloudrig_remove_component_type"
@@ -227,7 +227,7 @@ class CLOUDRIG_OT_remove_rig_component(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_reorder_rig_component(bpy.types.Operator):
+class CLOUDRIG_OT_reorder_rig_component(CloudRigOperator):
     """Reorder active rig component"""
 
     bl_idname = "pose.cloudrig_reorder_component"

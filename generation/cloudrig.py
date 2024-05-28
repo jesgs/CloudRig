@@ -82,12 +82,26 @@ def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
             return obj
 
 
+class CloudRigOperator(bpy.types.Operator):
+    """This class implements a basic draw function that just draws all the operator properties.
+    This is necessary because of our hotkey system and UI.
+    In order to avoid creating duplicate keymap entries, we insert a "hash" value in each keymap's
+    operator properties. But normally, this "hash" value gets drawn in the redo panel, which we don't want.
+
+    So, by letting every class inherit this draw function, we can fix that.
+    """
+    def draw(self, context):
+        layout = self.layout
+        props = type(self).__annotations__
+        for prop in props:
+            layout.prop(self, prop)
+
 #######################################
 ############ Keyframe Baking ##########
 #######################################
 
 
-class SnappingOperator:
+class SnappingOpMixin:
     bone_names: StringProperty(
         name="Bone Names",
         description="A python list converted to a string with json.dumps(). The order of the bone names matters, as dependents should come after their dependencies (ie. children after parents)",
@@ -191,7 +205,7 @@ class SnappingOperator:
             pb.matrix = mat.copy()
 
 
-class SnapBakeOperator(SnappingOperator):
+class SnapBakeOpMixin(SnappingOpMixin):
     do_bake: BoolProperty(name="Bake", default=False)
     frame_start: IntProperty(name="Start Frame")
     frame_end: IntProperty(name="End Frame")
@@ -319,7 +333,7 @@ class SnapBakeOperator(SnappingOperator):
                 bpy.ops.anim.keyframe_insert()
 
 
-class POSE_OT_cloudrig_snap_bake(SnapBakeOperator, bpy.types.Operator):
+class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
     bl_idname = "pose.cloudrig_snap_bake"
     bl_label = "Snap & Bake Bones"
     bl_description = "Flip a custom property's value while preserving the world-matrix of some bones"
@@ -378,7 +392,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOperator, bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POST_OT_cloudrig_switch_parent_bake(SnapBakeOperator, bpy.types.Operator):
+class POST_OT_cloudrig_switch_parent_bake(SnapBakeOpMixin, CloudRigOperator):
     bl_idname = "pose.cloudrig_switch_parent_bake"
     bl_label = "Switch Parents & Preserve Transforms"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -400,7 +414,7 @@ class POST_OT_cloudrig_switch_parent_bake(SnapBakeOperator, bpy.types.Operator):
     def get_prop_target_value(self, prop_pb, prop_id) -> int:
         return int(self.selected)
 
-class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOperator, bpy.types.Operator):
+class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
     bl_idname = "pose.cloudrig_toggle_ikfk_bake"
     bl_label = "Snap & Bake Bones to Other Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -525,7 +539,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOperator, bpy.types.Operator):
 #######################################
 
 
-class OBJECT_OT_cloudrig_copy_property(bpy.types.Operator):
+class OBJECT_OT_cloudrig_copy_property(CloudRigOperator):
     """Set the value of a property on all other CloudRig rigs in the scene"""
 
     # Currently used for the rig Quality setting, to easily switch all characters to Render or Animation quality.
@@ -582,7 +596,7 @@ class OBJECT_OT_cloudrig_copy_property(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_keyframe_all_settings(bpy.types.Operator):
+class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
     """Keyframe all rig settings that are being drawn in the below UI"""
 
     bl_idname = "pose.cloudrig_keyframe_all_settings"
@@ -631,7 +645,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_reset(bpy.types.Operator):
+class POSE_OT_cloudrig_reset(CloudRigOperator):
     """Reset all bone transforms and custom properties to their default values"""
 
     bl_idname = "pose.cloudrig_reset"
@@ -1899,7 +1913,7 @@ class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
                 op.reveal_bones = False
 
 
-class POSE_OT_cloudrig_collections_reveal_all(bpy.types.Operator):
+class POSE_OT_cloudrig_collections_reveal_all(CloudRigOperator):
     """Reveal all collections"""
 
     bl_idname = "pose.cloudrig_collections_reveal_all"
@@ -1910,6 +1924,7 @@ class POSE_OT_cloudrig_collections_reveal_all(bpy.types.Operator):
         rig = context.pose_object or context.active_object
         for coll in rig.data.collections_all:
             coll.is_visible = True
+            coll.is_solo = False
 
         return {'FINISHED'}
 
@@ -1926,7 +1941,7 @@ def pose_mode(rig):
         bpy.ops.object.mode_set(mode=mode_bkp)
 
 
-class POSE_OT_cloudrig_collection_select(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_select(CloudRigOperator):
     """Reveal and Select this collection, its children, and all bones within.\n\nShift: Extend selection. \nCtrl: Mirror selection. \nAlt: Deselect"""
 
     bl_idname = "pose.cloudrig_collection_select"
@@ -2009,7 +2024,7 @@ class POSE_OT_cloudrig_collection_select(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_parent_set(CloudRigOperator):
     """Set parent collection"""
 
     bl_idname = "pose.cloudrig_collection_parent_set"
@@ -2074,7 +2089,7 @@ class POSE_OT_cloudrig_collection_parent_set(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_delete(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
     """Remove the active bone collection"""
 
     bl_idname = "pose.cloudrig_collection_delete"
@@ -2143,7 +2158,7 @@ class POSE_OT_cloudrig_collection_delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_add(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_add(CloudRigOperator):
     """Add a new bone collection"""
 
     bl_idname = "pose.cloudrig_collection_add"
@@ -2176,7 +2191,7 @@ class POSE_OT_cloudrig_collection_add(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_reorder(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
     """Move the collection in the list"""
 
     bl_idname = "pose.cloudrig_collection_reorder"
@@ -2236,7 +2251,7 @@ class POSE_OT_cloudrig_collection_reorder(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
     """Assign to collections"""
 
     bl_idname = "pose.cloudrig_collection_assign"
@@ -2289,7 +2304,7 @@ class POSE_OT_cloudrig_collection_assign(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_clipboard_copy(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
     """Copy visible collections to Blender clipboard"""
 
     bl_idname = "pose.cloudrig_collection_clipboard_copy"
@@ -2317,7 +2332,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_clipboard_paste(bpy.types.Operator):
+class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
     """Paste collections from the Blender clipboard"""
 
     bl_idname = "pose.cloudrig_collection_clipboard_paste"
@@ -2387,7 +2402,6 @@ def builtin_collections_draw_override(self, context):
 #######################################
 ############## Hotkeys ################
 #######################################
-
 
 class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys_panel"

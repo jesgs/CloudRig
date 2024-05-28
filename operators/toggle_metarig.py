@@ -1,9 +1,9 @@
-from bpy.types import Armature, Bone, Object, Operator
+from bpy.types import Armature, Bone, Object
 
 import bpy
 from bpy.props import BoolProperty
 from ..generation.naming import slice_name
-from ..generation.cloudrig import register_hotkey, find_metarig_of_rig
+from ..generation.cloudrig import register_hotkey, find_metarig_of_rig, CloudRigOperator
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -16,7 +16,7 @@ from ..generation.cloudrig import register_hotkey, find_metarig_of_rig
 PREFIX_PRIORITY = ['FK', 'IK', 'DEF', 'STR', 'ORG']
 
 
-class CLOUDRIG_OT_MetarigToggle(Operator):
+class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
     """Switch the active object between the generated rig and the metarig"""
 
     bl_idname = "object.cloudrig_metarig_toggle"

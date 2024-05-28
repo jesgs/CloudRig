@@ -1,19 +1,17 @@
 import bpy
-from bpy.utils import flip_name
-from ..generation.naming import increment_name, uniqify
-from ..generation.cloudrig import register_hotkey
+from ..generation.naming import uniqify
+from ..generation.cloudrig import register_hotkey, CloudRigOperator
 
 
-class BoneDuplicateOperatorBase:
-    def bone_operation(self, context):
-        # Extrude it!
-        bpy.ops.armature.extrude_move()
+class BoneDuplicateOpMixin:
+    def bone_operation(self):
+        raise NotImplemented
 
     def execute(self, context):
         rig = context.active_object
 
         original_bones = set(rig.data.edit_bones[:])
-        self.bone_operation(context)
+        self.bone_operation()
         new_bones = set(rig.data.edit_bones[:]) - original_bones
 
         for new_bone in sorted(new_bones, key=lambda b: b.name):
@@ -30,10 +28,10 @@ class BoneDuplicateOperatorBase:
         return {'FINISHED'}
 
 
-class ARMATURE_OT_better_bone_extrude(BoneDuplicateOperatorBase, bpy.types.Operator):
+class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
     bl_idname = "armature.better_extrude"
     bl_description = "Extrude a bone and increment its name"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'} # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_label = "Better Extrude Bone"
 
     @classmethod
@@ -42,11 +40,15 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOperatorBase, bpy.types.Opera
             return False
         return [b for b in context.object.data.edit_bones if b.select_tail]
 
+    def bone_operation(self):
+        # Extrude it!
+        bpy.ops.armature.extrude_move()
 
-class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOperatorBase, bpy.types.Operator):
+
+class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
     bl_idname = "armature.better_duplicate"
     bl_description = "Duplicate a bone and increment its name"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'} # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_label = "Better Duplicate Bone"
 
     @classmethod
@@ -55,7 +57,7 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOperatorBase, bpy.types.Ope
             return False
         return [b for b in context.object.data.edit_bones if b.select]
 
-    def bone_operation(self, context):
+    def bone_operation(self):
         # Duplicate it!
         bpy.ops.armature.duplicate_move()
 

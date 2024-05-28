@@ -1,12 +1,13 @@
 import bpy
 from typing import Dict
 
-from bpy.types import Operator, Object, PoseBone, Constraint
+from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name
 
 from ..rig_component_features.mechanism import copy_attributes, find_or_create_constraint
+from ..generation.cloudrig import CloudRigOperator
 
-class POSE_OT_symmetrize_rigging(Operator):
+class POSE_OT_symmetrize_rigging(CloudRigOperator):
     """Mirror constraints to the opposite of all selected bones"""
 
     bl_idname = "pose.symmetrize_rigging"

@@ -1,12 +1,12 @@
 from typing import List, Tuple
 
 import bpy
-from bpy.types import EditBone, Operator
+from bpy.types import EditBone
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
 from ..rig_component_features.mechanism import get_bone_chain
-
+from ..generation.cloudrig import CloudRigOperator
 
 def is_chain_flat(chain: List[EditBone]) -> bool:
     """Determine whether a chain of bones is ideal for IK."""
@@ -62,7 +62,7 @@ def get_flattened_coords(chain: List[EditBone]) -> List[Tuple[Vector]]:
     return ret
 
 
-class CLOUDRIG_OT_FlattenChain(Operator):
+class CLOUDRIG_OT_FlattenChain(CloudRigOperator):
     """Flatten a chain of bones on a plane. Useful for perfect IK chains"""
 
     bl_idname = "armature.flatten_chain"

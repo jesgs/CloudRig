@@ -1,8 +1,8 @@
 import bpy
 from bpy.props import BoolProperty
+from ..generation.cloudrig import CloudRigOperator
 
-
-class CLOUDRIG_OT_Toggle_Action_Constraints(bpy.types.Operator):
+class CLOUDRIG_OT_Toggle_Action_Constraints(CloudRigOperator):
     """Toggle Action constraints of the active action on all bones of the armature"""
 
     bl_idname = "armature.toggle_action_constraints"

@@ -1,6 +1,7 @@
-from bpy.types import Operator, Bone, EditBone, PoseBone
+from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
+from ..generation.cloudrig import CloudRigOperator
 from ..utils.misc import get_pbone_of_active
 
 
@@ -160,7 +161,7 @@ class BoneSelectOperatorMixin:
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
     """Select this bone. Hold Shift to extend selection"""
 
     bl_idname = "pose.select_bone_by_name"
@@ -195,7 +196,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name_relation(CloudRigOperator, BoneSelectOperatorMixin):
     """Select a bone with a name relation. Intended to be used with user-defined shortcuts"""
 
     bl_idname = "pose.select_bone_by_name_relation"
@@ -294,7 +295,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
+class POSE_OT_select_parent_bone(CloudRigOperator, BoneSelectOperatorMixin):
     """Select parent of the current bone"""
 
     bl_idname = "pose.select_parent_bone"
@@ -317,7 +318,7 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMixin):
     """Search for a bone name to select"""
 
     bl_idname = "bone.select_by_name_search"
@@ -359,7 +360,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMixin):
     """Search for a bone name to select"""
 
     bl_idname = "bone.select_by_name_search"
