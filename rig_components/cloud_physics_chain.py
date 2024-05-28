@@ -2,13 +2,14 @@ import bpy, bmesh
 from bpy.types import PropertyGroup
 from typing import List
 from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.object import lock_transforms
 
-from mathutils import Matrix
 from math import sqrt
 
 from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
 from .cloud_fk_chain import Component_Chain_FK
 
+PHYS_PREFIX = "PSX"
 
 class CloudPhysicsChainRig(Component_Chain_FK):
     """FK Chain with cloth physics."""
@@ -16,6 +17,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     ui_name = "Chain: Physics"
     forced_params = {
         'fk_chain.double_first': False,
+        'fk_chain.root': True,
         'fk_chain.hinge': False,
         'fk_chain.position_along_bone': 0,
     }
@@ -28,7 +30,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
         phys_ob = self.ensure_physics_object(self.bone_sets['FK Controls'])
         if self.params.physics_chain.make_ctrl:
-            self.make_physics_chain(phys_ob, self.bone_sets['FK Controls'])
+            self.make_physics_chain(self.bone_sets['FK Controls'])
         self.constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
 
     def relink(self):
@@ -51,18 +53,34 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
 
-        cloth_mesh = bpy.data.meshes.new(name=self.phys_name(self.base_bone_name))
+        cloth_mesh = bpy.data.meshes.new(name=self.naming.add_prefix(self.base_bone_name, PHYS_PREFIX))
         if not phys_obj:
             # Create physics object.
             phys_obj = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
             context.scene.collection.objects.link(phys_obj)
             phys_obj.parent = self.target_rig
+            lock_transforms(phys_obj)
+            
         else:
             phys_obj.data = cloth_mesh
 
         # Wipe modifiers & vertex groups
         phys_obj.modifiers.clear()
+        phys_obj.constraints.clear()
         phys_obj.vertex_groups.clear()
+
+        # Parent physics object.
+        phys_obj.parent = self.target_rig
+
+        # Add Armature modifier on physics object
+        if self.params.physics_chain.make_ctrl:
+            arm_mod = phys_obj.modifiers.new(type='ARMATURE', name="Armature")
+            arm_mod.object = self.target_rig
+        else:
+            arm_con = phys_obj.constraints.new(type='ARMATURE')
+            tgt = arm_con.targets.new()
+            tgt.target = self.target_rig
+            tgt.subtarget = self.root_bone.name
 
         # Create verts and edges using bmesh.
         bm = bmesh.new()
@@ -97,7 +115,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             if i == 0:
                 continue
             pin_weight = 1
-            name = self.phys_name(bone_chain[i - 1])
+            name = self.naming.add_prefix(bone_chain[i - 1], PHYS_PREFIX)
             # Determine pin weight on this vertex.
             cum_length += bone_chain[i - 1].length
             ratio = (
@@ -135,18 +153,16 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         self.params.physics_chain.phys_obj = phys_obj
         return phys_obj
 
-    def phys_name(self, thing):
-        return "PSX-" + thing.name
-
-    def make_physics_chain(self, phys_ob, from_chain):
+    def make_physics_chain(self, from_chain: list[BoneInfo]):
         # Make a chain of bones to control the physics object.
         next_parent = from_chain[0].parent
         for fk_ctrl in from_chain:
             phys_ctrl = self.bone_sets['Physics Bones'].new(
-                name=self.phys_name(fk_ctrl),
+                name=self.naming.add_prefix(fk_ctrl, PHYS_PREFIX),
                 source=fk_ctrl,
-                custom_shape=fk_ctrl.custom_shape,
+                custom_shape_name=fk_ctrl.custom_shape_name,
                 custom_shape_scale=fk_ctrl.custom_shape_scale * 1.2,
+                custom_shape_along_length = fk_ctrl.custom_shape_along_length,
                 parent=next_parent,
                 use_deform=True,
             )
@@ -154,56 +170,41 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
         pin_bone = self.bone_sets['Physics Bones'].new(
             name="PIN-" + self.params.physics_chain.phys_obj.name,
+            custom_shape_name='Cube',
             source=self.bone_sets['Physics Bones'][0],
             parent=self.bone_sets['Physics Bones'][0],
             use_deform=True,
         )
-
-        # Add Armature modifier on physics object.
-        if phys_ob.modifiers.find('Armature') == -1:
-            arm_mod = phys_ob.modifiers.new(type='ARMATURE', name="Armature")
-            arm_mod.object = self.target_rig
 
         # Parent first FK control to first PSX control.
         self.bone_sets['FK Controls'][0].parent = self.bone_sets['Physics Bones'][0]
 
         # Set first PSX control as the limb root bone, for correct parent switch
         # and root parenting behaviours
-        self.limb_root_bone = self.bone_sets['Physics Bones'][0]
+        self.root_bone = self.bone_sets['Physics Bones'][0]
 
     def constrain_chain_to_phys_ob(
         self, phys_ob: bpy.types.Object, bone_chain: List[BoneInfo]
     ):
         # For the moment, let's just slap some constraints on the FK chain.
-        for fk_ctrl in self.bone_sets['FK Controls']:
+        for fk_ctrl in bone_chain:
             fk_ctrl.add_constraint(
                 'DAMPED_TRACK',
                 use_preferred_defaults=False,
                 target=phys_ob,
-                subtarget=self.phys_name(fk_ctrl),
+                subtarget=self.naming.add_prefix(fk_ctrl, PHYS_PREFIX),
             )
 
-    def finalize(self):
+    def create_helper_objects(self, context):
+        """This is called by the generator. In this case, the helper object
+        needed to be created earlier, so that was already done at the create_bone_infos() stage.
+        But here we still need to poke the Armature constraint to wake up, 
+        because we initialized it before the real bone existed..."""
+        context.view_layer.update()
         phys_obj = self.params.physics_chain.phys_obj
-        context = bpy.context
+        for c in phys_obj.constraints:
+            c.influence = c.influence
 
-        if self.params.physics_chain.make_ctrl:
-            # Move armature modifier to top of the stack
-            context.view_layer.objects.active = phys_obj
-            bpy.ops.object.modifier_move_to_index(modifier='Armature', index=0)
-            context.view_layer.objects.active = self.target_rig
-            phys_obj.parent = None
-        else:
-            # Parent physics object.
-            phys_obj.parent = self.target_rig
-            phys_obj.parent_type = 'BONE'
-            parent = self.bones_org[0].parent
-            if not parent:
-                parent = self.root_bone
-            phys_obj.parent_bone = parent.name
-
-            phys_obj.matrix_parent_inverse = phys_obj.matrix_world.inverted()
-            phys_obj.matrix_world = Matrix.Identity((4))
 
     ##############################
     # Parameters

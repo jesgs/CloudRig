@@ -375,7 +375,7 @@ class BoneInfo:
         """Get custom widget display position as a factor along the bone's length."""
         if self.custom_shape_translation.y < 0.00001:
             return 0
-        return self.length / self.custom_shape_translation.y
+        return self.custom_shape_translation.y / self.length
 
     @custom_shape_along_length.setter
     def custom_shape_along_length(self, value):
