@@ -1,9 +1,14 @@
-# Installing into Blender 4.1 and above
+# Installing into Blender:
 
+**Blender 4.2**: You don't need to download anything via browser. Just open Blender's Extensions panel, and search for CloudRig.  
+**Blender 4.1**:
 Same as any other Blender add-on:
 1. [Download the repo as a .zip](../../../archive/master.zip).
 2. In Blender, open **Preferences->Add-ons->Install...** and browse the .zip.
 3. Enable CloudRig.
+
+**Blender 4.0**: This version of Blender is not supported.  
+**Blender 3.6 and lower**: Grab the appropriate version from the [Releases](Releases) page. These need to be installed through Rigify.
 
 # What is CloudRig?
 CloudRig is a rig generation add-on for Blender, developed by the Blender Studio for our Open Movies.

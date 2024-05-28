@@ -1,4 +1,3 @@
-- Make sure everything works on 4.1 (ie bone collection operators)
 - Maybe there's even a version somewhere in the history that worked with 4.0 Need to check the timeline of changes between CloudRig and the bone collections API.
 
 - Every operator with a shortcut needs to implement draw() so as not to draw the hash on the redo panel...
