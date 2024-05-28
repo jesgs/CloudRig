@@ -167,6 +167,7 @@ def create_parent_bone(child, bone_set=None):
         roll_type='ALIGN',
         roll_bone=child,
         roll=0,
+        custom_shape_name = child.custom_shape_name,
         custom_shape=child.custom_shape,
         custom_shape_scale_xyz=Vector(child.custom_shape_scale_xyz) * 1.2,
         custom_shape_translation=Vector(child.custom_shape_translation),

@@ -1,38 +1,18 @@
-- Do we actually work on 4.1? Did Bone Collections API change? Should test!
+- Make sure everything works on 4.1 (ie bone collection operators)
 - Maybe there's even a version somewhere in the history that worked with 4.0 Need to check the timeline of changes between CloudRig and the bone collections API.
 
 - Every operator with a shortcut needs to implement draw() so as not to draw the hash on the redo panel...
 - Remove CloudRig from the shipped Rigify feature sets
-- Add built-in hotkey for Edit Widget (Ctrl Alt E)
-	- But also make it a pie menu (except in mesh/curve edit modes, where it just drops you back to pose mode without a pie menu):
-		- Edit Widget
-		- Unassign Widget
-		- Make Widget Unique
-		- Copy Widget to Selected
-		- Reload Widget?
-
-Shift+T could take us from a mesh to the metarig if the mesh is being deformed by the generated rig with an armature modifier.
 
 Metarigs:
 	- Clean up the Generation Log of all metarigs and rig samples.
 	- Probably update the Sintel metarig based on an actual Sintel mesh, with a blink and some lip actions.
 	- Maybe include a simplified Mikassa metarig?
 
-- Squashy spine doesn't work at all, isn't documented, etc.
-
-- Should split up Edit Widget and Assign Widget.
 - Check if Spline IK parameters work well with each other and do what they should.
-
-- Check on Bone Gizmos add-on. Does it still function? It probably needs updates.
-	- Beg Campbell to add a scale parameter to the function that lets me use face attributes without getting z-fighting or having to worry about caching and such crap.
 
 Priority -1: Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
-	- Update home page: Link to the various wiki pages, and update images.
-	- Actions page doesn't mention automatic shape key drivers.
-
-- Bone Colls UX
-	- Add a button to clear unused collections. (Show pop-up list of the groups that will be removed.)
 
 Priority 1: Bugs
 	It is possible to have the "FAILED-" rig be the only one remaining. I think it's when the post-gen script fails.
@@ -47,8 +27,22 @@ Priority 1: Bugs
 	- Keyframe baking doesn't switch the property value at all if it doesn't have a keyframe already.
 
 Priority 2: New features
-	See if adding a warning is necessary to get the correct order of corrective action activation.
-	Add a warning when the metarig was posed before generating. Beginner users might try to change character proportions in pose mode, and then wonder why it's not working.
+	- I've wanted this for a long time https://blender.community/c/rightclickselect/ovAz/?sorting=hot
+	- Add a button to clear unused collections in the CloudRig BoneCollections context menu. 
+		(Show pop-up list of the groups that will be removed.)
+
+	- Add built-in hotkey for Edit Widget (Ctrl Alt E)
+		- But also make it a pie menu (except in mesh/curve edit modes, where it just drops you back to pose mode without a pie menu):
+			- Edit Widget
+			- Unassign Widget
+			- Make Widget Unique
+			- Copy Widget to Selected
+			- Reload Widget?
+	Shift+T could take us from a mesh to the metarig if the mesh is being deformed by the generated rig with an armature modifier.
+	- Alt+R pie:
+		- Alt+R: Reset Rot or Loc or Scale or all or a whole rig (like CloudRig's Reset Rig operator).
+		- This frees up Alt+S and Alt+G.
+		- Editor switch pie could move to Alt+S, so it works in pose mode.
 	Feature request:
 		- Parent swithcing for FK bones when Hinge is enabled could affect the hinge helper's armature constraint instead of the root.
 		- Scaling the Spine IK chest master should do something remotely useful. (ideally something that could function as breathing)
@@ -64,10 +58,13 @@ Priority 2: New features
 		- Could bring back the old grid-based layer UI as an option, by just adding a row/col int on collections and then drawing them like that.
 			- And a modal operator to position/remove/rename them
 
-	If the Gizmo API didn't suck:
-		Gizmo for cloud_leg heel pivot
-		Gizmo for cloud_limb IK distance, like in the past
-		Gizmo for widget size, instead of bbone scale
+
+	- Check on Bone Gizmos add-on. Does it still function? It probably needs updates.
+		- Beg Campbell to add a scale parameter to the function that lets me use face attributes without getting z-fighting or having to worry about caching and such crap.
+		If the Gizmo API didn't suck:
+			Gizmo for cloud_leg heel pivot
+			Gizmo for cloud_limb IK distance, like in the past
+			Gizmo for widget size, instead of bbone scale
 	cloud_aim
 		Generator scale should be determined as if there was always a bone at 0,0,0 in pose space, so we should make our own calculation for it that goes through every bone and makes a bounding box with 0,0,0 included. Then the eye scale will make sense even without the rest of the rig existing.
 			This might screw up though if there is a single cloud_chain that's just moved away from the origin... it will act as if it is being scaled. God dangit.
