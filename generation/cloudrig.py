@@ -1020,13 +1020,28 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 setattr(operator, param, value)
 
 def get_rig_ui_data(rig: Object):
-    panel_data = OrderedDict()
     if 'ui_data' in rig.data:
-        panel_data.update(convert_ui_data(rig.data['ui_data'].to_dict()))
-    if 'ui_panels' in rig.data:
-        panel_data.update(OrderedDict(rig.data['ui_panels'].to_dict()['panels']))
+        return tuples_to_dict(rig.data['ui_data'].to_dict()['panels'])
 
-    return panel_data
+def dict_to_tuples(ordered_dict: OrderedDict):
+    tuples = []
+    for key, value in ordered_dict.items():
+        if type(value) in {dict, OrderedDict}:
+            value = dict_to_tuples(value)
+        tuples.append((key, value))
+    return tuples
+
+def tuples_to_dict(tuples: list[tuple]):
+    ordered_dict = OrderedDict()
+    for key, value in tuples:
+        if type(value) == dict:
+            # We also want to convert regular dicts to OrderedDict,
+            # especially because they might contain tuple-lists.
+            value = [(key, value) for key, value in value.items()]
+        if type(value) == list:
+            value = tuples_to_dict(value)
+        ordered_dict[key] = value
+    return ordered_dict
 
 def convert_ui_data(ui_data: dict):
     converted_ui = OrderedDict()
@@ -1078,8 +1093,9 @@ def convert_ui_data(ui_data: dict):
                 elif len(row_data) == 2:
                     converted_panel.append(('properties', sliders))
 
-    # print(json.dumps(converted_ui, indent=4))
-    return converted_ui
+    result = {'panels' : list(converted_ui.items())}
+
+    return result
 
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
@@ -1109,25 +1125,32 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             self.draw_rig_settings_subpanel(self.layout, rig, panel_data)
 
     def draw_rig_settings_subpanel(self,
-        layout: bpy.types.UILayout, rig: Object, panel_data: list[tuple]
+        layout: bpy.types.UILayout, rig: Object, panel_data: OrderedDict
     ):
         """Panel data contains a list of tuples.
         The first entry of each tuple is a string telling us the type of UI element to draw.
         The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
         """
-        for ui_type, ui_data in panel_data:
-            if ui_type == 'header':
-                layout.label(text=ui_data)
-            elif ui_type == 'operator':
-                self.draw_operator(layout, **ui_data)
-            elif ui_type == 'property':
-                self.draw_slider(rig, layout, **ui_data)
-            elif ui_type == 'properties':
-                # This is intended for displaying two properties side-by-side on one row.
-                row = layout.row()
-                for slider_data in ui_data:
-                    self.draw_slider(rig, row, **slider_data)
 
+        # print("Panel data: ", panel_data)
+        for label_name, label_data in panel_data.items():
+            self.draw_rig_settings_per_label(layout, rig, label_name, label_data)
+
+    def draw_rig_settings_per_label(self, layout, rig, label_name, label_data):
+            if label_name:
+                layout.label(text=label_name)
+            for row_name, row_data in label_data.items():
+                sub_layout = layout
+                if len(row_data) > 1:
+                    # To draw multiple sliders side-by-side, they need a higher level row to share.
+                    # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
+                    sub_layout = layout.row()
+                for slider_name, slider_data in row_data.items():
+                    if slider_data.get('owner_path'):
+                        self.draw_slider(rig, sub_layout, ui_name=slider_name, **slider_data)
+                    elif slider_data.get('operator'):
+                        # Allow drawing an operator, even without a property.
+                        self.draw_operator(sub_layout, **slider_data)
 
     def draw_slider(self, rig, layout: UILayout, owner_path: str, prop_name: str, *, ui_name="", texts={}, operator="", op_icon='BLANK1', op_kwargs={}, children={}):
         owner = rig.path_resolve(owner_path)
@@ -1144,12 +1167,13 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         if operator:
             self.draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
 
-        prop_value = str(owner.path_resolve(prop_name))
-        if children and prop_value in children:
-            current_children_data = children[prop_value]
-            if current_children_data:
-                box_col = layout.box().column()
-                self.draw_rig_settings_subpanel(box_col, rig, current_children_data)
+        prop_value_str = str(owner.path_resolve(prop_name))
+        if children and prop_value_str in children:
+            current_children_ui = children[prop_value_str]
+            if current_children_ui:
+                for label_name, label_data in current_children_ui.items():
+                    box_col = layout.box().column()
+                    self.draw_rig_settings_per_label(box_col, rig, label_name, label_data)
 
     def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, ui_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
         prop_value = prop_owner.path_resolve(prop_name)
@@ -1183,8 +1207,8 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         elif value_type == str:
             layout.prop(prop_owner, prop_name)
 
-    def draw_operator(self, layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}):
-        op_props = layout.operator(bl_idname, text="", icon=op_icon)
+    def draw_operator(self, layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
+        op_props = layout.operator(bl_idname, text=text, icon=op_icon)
         # Pass on any paramteres to the operator that it will accept.
         for key, value in op_kwargs.items():
             if hasattr(op_props, key):
@@ -1193,7 +1217,6 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                     value = json.dumps(value)
                 setattr(op_props, key, value)
         return op_props
-
 
 custom_panels = []
 
