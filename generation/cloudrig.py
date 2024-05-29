@@ -1020,29 +1020,66 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 setattr(operator, param, value)
 
 def get_rig_ui_data(rig: Object):
-    if 'ui_data' not in rig.data:
-        return
-    ui_data_prop = rig.data['ui_data']
-    if hasattr(ui_data_prop, 'to_list'):
-        return ui_data_prop.to_list()
-    elif hasattr(ui_data_prop, 'to_dict'):
-        # Old rigs used to store their UI data as dicts, and we want to be backwards compatible.
-        # The old rig UI data structure had 4 levels of nesting where order might matter,
-        # the 5th level is still a dictionary but the order there shouldn't matter.
-        ui_data_dict = ui_data_prop.to_dict()
-        list1 = []
-        for key1, value1 in ui_data_dict.items():
-            list2 = []
-            for key2, value2 in value1.items():
-                list3 = []
-                for key3, value3 in value2.items():
-                    list4 = []
-                    for key4, value4 in value3.items():
-                        list4.append((key4, value4))
-                    list3.append((key3, list4))
-                list2.append((key2, list3))
-            list1.append((key1, list2))
-    return list1
+    panel_data = OrderedDict()
+    if 'ui_data' in rig.data:
+        panel_data.update(convert_ui_data(rig.data['ui_data'].to_dict()))
+    if 'ui_panels' in rig.data:
+        panel_data.update(OrderedDict(rig.data['ui_panels'].to_dict()['panels']))
+
+    return panel_data
+
+def convert_ui_data(ui_data: dict):
+    converted_ui = OrderedDict()
+    for panel_name, panel_data in ui_data.items():
+        if panel_name not in converted_ui:
+            converted_ui[panel_name] = []
+
+        converted_panel = converted_ui[panel_name]
+
+        headers = OrderedDict()
+
+        for header_name, header_data in panel_data.items():
+            if header_name not in headers:
+                headers[header_name] = OrderedDict()
+
+            header = headers[header_name]
+
+            for row_name, row_data in header_data.items():
+                if row_name not in header:
+                    header[row_name] = OrderedDict()
+                row = header[row_name]
+
+                for slider_name, slider_data in row_data.items():
+                    row[slider_name] = slider_data
+
+        def convert_sliders(row_data):
+            sliders = []
+            for slider_name, slider_data in row_data.items():
+                prop_bone = slider_data['prop_bone']
+                prop_id = slider_data['prop_id']
+                sliders.append({
+                    'ui_name' : slider_name,
+                    'owner_path' : f'pose.bones["{prop_bone}"]',
+                    'prop_name' : f'["{prop_id}"]',
+                    'operator' : slider_data.get('operator'),
+                    'op_kwargs' : slider_data,
+                    'texts': slider_data.get('texts', {}),
+                    'op_icon' : slider_data.get('icon', 'BLANK1'),
+                })
+            return sliders
+
+        for header_name, header_data in headers.items():
+            if header_name:
+                converted_panel.append(('header', header_name))
+            for row_name, row_data in header_data.items():
+                sliders = convert_sliders(row_data)
+                if len(sliders) == 1:
+                    converted_panel.append(('property', sliders[0]))
+                elif len(row_data) == 2:
+                    converted_panel.append(('properties', sliders))
+
+    # print(json.dumps(converted_ui, indent=4))
+    return converted_ui
 
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
@@ -1060,140 +1097,96 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             return
         ui_data = get_rig_ui_data(rig)
 
-        for panel_name, panel_data in ui_data:
-            if panel_name == cls.bl_label:
-                return True
+        if cls.bl_label in ui_data:
+            return True
 
     def draw(self, context):
         rig = is_active_cloudrig(context)
         ui_data = get_rig_ui_data(rig)
 
-        for panel_name, panel_data in ui_data:
-            if panel_name == self.bl_label:
-                self.draw_rig_settings_subpanel(self.layout, rig, panel_data)
-                break
+        panel_data = ui_data.get(self.bl_label)
+        if panel_data:
+            self.draw_rig_settings_subpanel(self.layout, rig, panel_data)
 
     def draw_rig_settings_subpanel(self,
         layout: bpy.types.UILayout, rig: Object, panel_data: list[tuple]
     ):
-        """Each top-level dictionary within the main dictionary defines a panel.
-        Each panel is split into sub-sections via labels.
+        """Panel data contains a list of tuples.
+        The first entry of each tuple is a string telling us the type of UI element to draw.
+        The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
         """
-        top = layout.column()
-        for category_name, category_data in panel_data:
-            ui = layout
-            if category_name == 'parent_id':
-                continue
-            if category_name == 'NODRAW':
-                continue
-            if category_name != "":
-                layout.label(text=category_name)
-            else:
-                # Label-less properties should be at the top of the sub-panel.
-                ui = top
-            self.draw_rig_settings(ui, rig, category_data)
+        for ui_type, ui_data in panel_data:
+            if ui_type == 'header':
+                layout.label(text=ui_data)
+            elif ui_type == 'operator':
+                self.draw_operator(layout, **ui_data)
+            elif ui_type == 'property':
+                self.draw_slider(rig, layout, **ui_data)
+            elif ui_type == 'properties':
+                # This is intended for displaying two properties side-by-side on one row.
+                row = layout.row()
+                for slider_data in ui_data:
+                    self.draw_slider(rig, row, **slider_data)
 
-    def draw_rig_settings(self, layout: bpy.types.UILayout, rig: Object, category_data: list[tuple]):
-        """
-        category_data: List of tuples containing the UI data, created during rig generation.
-        The top-level represents rows, and each row can contain any number of slider definitions.
 
-        Each slider definition must contain:
-                prop_bone (str): Name of the pose bone that holds the custom property.
-                prop_id (str): Name of the custom property on the bone, to be drawn as a slider.
-
-        Each slider definition may contain:
-                texts (list[str]): List of strings to display alongside an integer property slider.
-                operator (str): Specify an operator to draw next to the slider.
-                icon (str): Override the icon of the operator. If not specified, default to 'BLANK1'
-                children (list[tuple]): Another list of list of slider definitions, which should only be visible when the integer property matches the index in the list. Infinite child nesting is supported, but multiple children in a single row is not supported.
-                Any further arguments will be passed on to the operator button as keyword arguments.
-        """
-
-        # Each top-level dictionary within the main dictionary defines a row.
-        for row_name, row_data in category_data:
-            main = layout
-            if len(row_data) > 1:
-                main = layout.row()
-            # Each second-level dictionary within that defines a slider (and operator, if given).
-            # If there is more than one, they will be drawn next to each other, since they're in the same row.
-            for slider_name, slider_data in row_data:
-                sub = main
-                if len(row_data) > 1:
-                    # This leaves a nice gap between two sliders in the same row.
-                    sub = main.column().row(align=True)
-                self.draw_slider(rig, sub, slider_name, slider_data)
-
-    def draw_slider(self, rig, layout: UILayout, slider_name: str, slider_data: dict[str]):
-        if not 'prop_bone' in slider_data and 'prop_id' in slider_data:
-            print(
-                f"CloudRig UI Error: Slider definition lacks properties bone or prop ID: {slider_name}\n{slider_data}"
-            )
-            return
-        prop_pbone = rig.pose.bones.get(slider_data['prop_bone'])
-        prop_id = slider_data['prop_id']
-        if not prop_pbone and prop_id in prop_pbone:
-            print(
-                f"CloudRig UI Error: Slider definition property bone or property does not exist: {slider_name}\n{slider_data}"
-            )
-            return
-
-        sub_row = layout
-
-        texts = json.loads(slider_data.get('texts', "[]"))
-        if not texts:
-            texts = prop_pbone.get(f"${prop_id}")
-        self.draw_property(sub_row, prop_pbone, prop_id, ui_name=slider_name, texts=texts)
-        operator = slider_data.get('operator')
-        if operator:
-            self.draw_operator(sub_row, bl_idname=operator, **slider_data)
-
-        children_data = slider_data.get('children')
-        if children_data:
-            prop_value = prop_pbone[prop_id]
-            if len(children_data)-1 >= prop_value:
-                current_children = children_data[int(prop_value)]
-                if current_children:
-                    box_col = sub_row.box().column()
-                    for child_slider_name, child_slider_data in current_children:
-                        self.draw_slider(rig, box_col, child_slider_name, child_slider_data)
-
-    def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, ui_name="", icon="", texts=[]):
-        prop_value = prop_owner[prop_name]
+    def draw_slider(self, rig, layout: UILayout, owner_path: str, prop_name: str, *, ui_name="", texts={}, operator="", op_icon='BLANK1', op_kwargs={}, children={}):
+        owner = rig.path_resolve(owner_path)
+        if not owner:
+            print(f"CloudRig UI Error: Couldn't find property owner: {owner_path}")
         try:
-            prop_settings = prop_owner.id_properties_ui(prop_name).as_dict()
+            value = owner.path_resolve(prop_name)
+        except ValueError:
+            print(f"CloudRIg UI Error: Couldn't evaluate property {prop_name} of owner {owner_path}")
+            return
+
+        sub_row = layout.row(align=True)
+        self.draw_property(sub_row, owner, prop_name, ui_name=ui_name, texts=texts)
+        if operator:
+            self.draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
+
+        prop_value = str(owner.path_resolve(prop_name))
+        if children and prop_value in children:
+            current_children_data = children[prop_value]
+            if current_children_data:
+                box_col = layout.box().column()
+                self.draw_rig_settings_subpanel(box_col, rig, current_children_data)
+
+    def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, ui_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
+        prop_value = prop_owner.path_resolve(prop_name)
+        try:
+            bracketless_prop_name = prop_name
+            if prop_name.startswith('["') or prop_name.startswith("['"):
+                bracketless_prop_name = prop_name[2:-2]
+            prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
         except TypeError:
             # This happens for Python properties. There's no point drawing them.
             return
 
-        bracketed_prop_name = f'["{prop_name}"]'
-
-        ui_text = ui_name or prop_name
+        if not ui_name:
+            ui_name = bracketless_prop_name
 
         value_type, _is_array = rna_idprop_value_item_type(prop_value)
 
         if value_type is type(None) or issubclass(value_type, bpy.types.ID):
             # Property is a Datablock Pointer.
-            layout.prop(prop_owner, bracketed_prop_name, text=ui_text)
+            layout.prop(prop_owner, prop_name, text=ui_name)
         elif value_type == bool:
-            icon = 'CHECKBOX_HLT' if prop_value else 'CHECKBOX_DEHLT'
-            layout.prop(prop_owner, bracketed_prop_name, toggle=True, text=ui_text, icon=icon)
+            icon = icon_true if prop_value else icon_false
+            layout.prop(prop_owner, prop_name, toggle=True, text=ui_name, icon=icon)
         elif value_type in {int, float}:
-            if texts:
-                value = int(prop_value)
-                if len(texts) > value:
-                    ui_text += ": " + texts[value]
+            if texts and str(prop_value) in texts:
+                ui_name += ": " + texts[str(prop_value)]
             # Property is a float/int/color
             # For large ranges, a slider doesn't make sense.
             slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
-            layout.prop(prop_owner, bracketed_prop_name, slider=slider, text=ui_text)
+            layout.prop(prop_owner, prop_name, slider=slider, text=ui_name)
         elif value_type == str:
-            layout.prop(prop_owner, bracketed_prop_name)
+            layout.prop(prop_owner, prop_name)
 
-    def draw_operator(self, layout: UILayout, bl_idname: str, icon="BLANK1", **kwargs):
-        op_props = layout.operator(bl_idname, text="", icon=icon)
+    def draw_operator(self, layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}):
+        op_props = layout.operator(bl_idname, text="", icon=op_icon)
         # Pass on any paramteres to the operator that it will accept.
-        for key, value in kwargs.items():
+        for key, value in op_kwargs.items():
             if hasattr(op_props, key):
                 # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
                 if type(value) in {list, dict}:
@@ -1208,16 +1201,10 @@ def ensure_custom_panels(_dummy1, _dummy2):
     rig = is_active_cloudrig(bpy.context)
     if not rig:
         return
-    if 'ui_data' not in rig.data:
-        return
-    custom_panels = rig.data['ui_data'].to_dict()
+    ui_data = get_rig_ui_data(rig)
 
-    # We expect a dictionary of {"Panel Name" : {UI data, see draw_rig_settings.}}
-    for panel_name in custom_panels.keys():
-        parent_id = "CLOUDRIG_PT_settings"
-        if 'parent_id' in custom_panels[panel_name]:
-            parent_id = custom_panels[panel_name]['parent_id']
-        ensure_custom_panel(panel_name, parent_id)
+    for panel_name, panel_data in ui_data.items():
+        ensure_custom_panel(panel_name)
 
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     # Make sure name is alphanumeric
@@ -1225,8 +1212,10 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
 
     if hasattr(bpy.types, full_name):
+        # It was already registered, so we skip.
         return
     if not hasattr(bpy.types, parent_id):
+        print(f"CloudRig Custom Panel Error: Parent ID {parent_id} not found for {name}. Fell back to default.")
         parent_id = "CLOUDRIG_PT_settings"
 
     # Dynamically create a new class, so it can be registered as a sub-panel.
@@ -2657,7 +2646,7 @@ def register():
     """
 
     for c in classes:
-        if not is_registered(c):
+        if not is_registered(c) or True:
             register_class(c)
 
     # TODO: Replace the legacy outfit system with something new.

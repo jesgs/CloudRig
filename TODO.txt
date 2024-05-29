@@ -1,3 +1,7 @@
+- Convert ui data to new format at end of generation
+- refactor add_ui_data to use new format natively
+- Add operators to inject new ui_data on the generated rig, and preserve that. (so probably a separate custom property storage dictionary)
+
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
 
