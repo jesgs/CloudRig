@@ -392,9 +392,10 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
         return {'FINISHED'}
 
 
-class POST_OT_cloudrig_switch_parent_bake(SnapBakeOpMixin, CloudRigOperator):
+class POST_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
     bl_idname = "pose.cloudrig_switch_parent_bake"
     bl_label = "Switch Parents & Preserve Transforms"
+    bl_description = "Change the parent while preserving the world-matrix of the affected bones, even in a frame range"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     parent_names: StringProperty(name="Parent Names")
@@ -410,9 +411,9 @@ class POST_OT_cloudrig_switch_parent_bake(SnapBakeOpMixin, CloudRigOperator):
         self.layout.prop(self, 'selected', text='')
         super().draw(context)
 
-
     def get_prop_target_value(self, prop_pb, prop_id) -> int:
         return int(self.selected)
+
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
     bl_idname = "pose.cloudrig_toggle_ikfk_bake"
@@ -1034,12 +1035,14 @@ def dict_to_tuples(ordered_dict: OrderedDict):
 def tuples_to_dict(tuples: list[tuple]):
     ordered_dict = OrderedDict()
     for key, value in tuples:
-        if type(value) == dict:
-            # We also want to convert regular dicts to OrderedDict,
-            # especially because they might contain tuple-lists.
-            value = [(key, value) for key, value in value.items()]
-        if type(value) == list:
-            value = tuples_to_dict(value)
+        if key not in {'op_kwargs'}:
+            if type(value) == dict:
+                # We also want to convert regular dicts to OrderedDict,
+                # especially because they might contain tuple-lists.
+                value = [(k, v) for k, v in value.items()]
+            if type(value) == list:
+                value = tuples_to_dict(value)
+        
         ordered_dict[key] = value
     return ordered_dict
 
@@ -1132,7 +1135,6 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
         """
 
-        # print("Panel data: ", panel_data)
         for label_name, label_data in panel_data.items():
             self.draw_rig_settings_per_label(layout, rig, label_name, label_data)
 
@@ -1210,7 +1212,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     def draw_operator(self, layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
         # Pass on any paramteres to the operator that it will accept.
-        for key, value in op_kwargs.items():
+        for key, value in op_kwargs:
             if hasattr(op_props, key):
                 # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
                 if type(value) in {list, dict}:
@@ -1225,6 +1227,8 @@ def ensure_custom_panels(_dummy1, _dummy2):
     if not rig:
         return
     ui_data = get_rig_ui_data(rig)
+    if not ui_data:
+        return
 
     for panel_name, panel_data in ui_data.items():
         ensure_custom_panel(panel_name)
@@ -2669,7 +2673,9 @@ def register():
     """
 
     for c in classes:
-        if not is_registered(c) or True:
+        if not is_registered(c):
+            # This if statement is important to avoid re-registering UI panels,
+            # which would cause them to lose their sub-panels. (They would become top-level.)
             register_class(c)
 
     # TODO: Replace the legacy outfit system with something new.

@@ -4,33 +4,53 @@ from bpy.types import Object
 from ..utils.misc import get_addon_prefs
 from .bone import BoneInfo, ensure_custom_property
 
+from collections import OrderedDict
 import bpy, sys, os
 import json
 
-from ..generation.cloudrig import is_cloud_metarig
+from ..generation.cloudrig import is_cloud_metarig, tuples_to_dict, dict_to_tuples
 
 
 class CloudUIMixin:
     forced_params = dict()
 
-    def add_ui_data(
+    def add_bone_property_with_ui(
         self,
-        panel_name,
-        row_name,
-        info,
-        *,
-        label_name="",
-        entry_name="",
-        **custom_prop_dict,
+        prop_bone: BoneInfo,
+        prop_id: str,
+
+        panel_name: str,
+        label_name: str,
+        row_name: str,
+        slider_name="",
+        texts=[],
+
+        custom_prop_settings={},
+        operator="",
+        op_icon='BLANK1',
+        op_kwargs={},
     ):
+        ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
+
+        op_kwargs.update({'prop_bone': prop_bone.name, 'prop_id': prop_id})
+
+        if not slider_name:
+            slider_name = prop_id
+
         add_ui_data(
             self.target_rig,
-            panel_name,
-            row_name,
-            info,
-            entry_name,
-            label_name,
-            **custom_prop_dict,
+            owner_path=f'pose.bones["{prop_bone.name}"]',
+            prop_name=f'["{prop_id}"]',
+            texts={i: value for i, value in enumerate(texts)},
+
+            panel_name=panel_name,
+            label_name=label_name,
+            row_name=row_name,
+            slider_name=slider_name,
+
+            operator=operator,
+            op_icon=op_icon,
+            op_kwargs=op_kwargs,
         )
 
     @staticmethod
@@ -143,72 +163,41 @@ def draw_prop_search(
 
 def add_ui_data(
     obj,
-    panel_name: str,  # Name of the sub-panel that the property should be drawn in. These are created dynamically, so this can be anything.
-    row_name: str,  # For drawing multiple properties in one row. TODO: Should be optional param.
-    info: Dict[
-        str, Any
-    ],  # The dictionary to store in the rig data. See cloudrig.py -> draw_rig_settings()
-    entry_name="",  # Name of the property to display in the UI. Defaults to the property name.
-    label_name="",  # Allows organizing properties within sub-panels by labels.
-    parent_id="",  # Allows creating nested sub-panels. NOTE: Seems a bit wrong to have this here.
-    **custom_prop_dict,  # Properties of the custom property to be created.
+    owner_path: str,
+    prop_name: str,
+    *,
+    texts={},
+    children={},
+
+    panel_name: str,
+    label_name="",
+    row_name="",
+    slider_name="",
+
+    operator="",
+    op_icon='BLANK1',
+    op_kwargs={}
 ):
-    """Store a dict in the rig data, which is used by cloudrig.py to draw the CloudRig UI."""
-    # TODO: This function is a bit convoluted because it accepts both BoneInfo and a str as the target bone,
-    # and uses a PoseBone when it gets an str.
-    # This is handy so that UI data and properties can be added both before and after generation,
-    # but it might make more sense to make this two separate functions; Maybe one should be in
-    # the BoneInfo class, and the other in rig_component_features/custom_props.
+    # Convert existing UI data to an OrderedDict for easy operations.
+    if 'ui_data' not in obj.data:
+        obj.data['ui_data'] = {'panels' : []}
+    panels = obj.data['ui_data'].to_dict()['panels']
+    panels = tuples_to_dict(panels)
 
-    # Also, it not only adds UI data but also creates the custom property.
-    # Although this is handy because when adding UI data we also always want to create a property,
-    # it would still make sense to split into two functions and just always call both of them.
+    panel = panels.setdefault(panel_name, OrderedDict())
+    header = panel.setdefault(label_name, OrderedDict())
+    row = header.setdefault(row_name, OrderedDict())
 
-    assert ('prop_bone' in info) and (
-        'prop_id' in info
-    ), f'Expected an info dict with at least "prop_bone" and "prop_id" keys. Instead got: {info}'
+    if not slider_name:
+        slider_name = prop_name
 
-    if entry_name == "":
-        entry_name = info['prop_id'].replace("_", " ").title()
+    texts = {str(key): value for key, value in texts.items()}
+    children = {str(key): value for key, value in children.items()}
+    row[slider_name] = {'owner_path':owner_path, 'prop_name':prop_name, 'texts':texts, 'children':children, 'operator': operator, 'op_icon': op_icon, 'op_kwargs': op_kwargs}
 
-    for key in info.keys():
-        value = info[key]
-        if type(value) in (list, dict):
-            info[key] = json.dumps(value)
-
-    # Read existing CloudRig UI data
-    ui_data = {}
-    if 'ui_data' in obj.data:
-        ui_data = obj.data['ui_data'].to_dict()
-
-    if panel_name not in ui_data:
-        ui_data[panel_name] = {}
-    if parent_id != "":
-        ui_data[panel_name]['parent_id'] = parent_id
-
-    if label_name not in ui_data[panel_name]:
-        ui_data[panel_name][label_name] = {}
-    if row_name not in ui_data[panel_name][label_name]:
-        ui_data[panel_name][label_name][row_name] = {}
-    if entry_name not in ui_data[panel_name][label_name][row_name]:
-        ui_data[panel_name][label_name][row_name][entry_name] = {}
-
-    prop_bone = info['prop_bone']
-    if str(type(prop_bone)) == str(BoneInfo):
-        info['prop_bone'] = prop_bone.name
-    elif type(prop_bone) == str:
-        prop_bone = obj.pose.bones.get(prop_bone)
-        assert prop_bone, "Properties bone doesn't exist: " + info['prop_bone']
-
-    ui_data[panel_name][label_name][row_name][entry_name] = info
-
-    # Update CloudRig UI data with the changes
-    obj.data['ui_data'] = ui_data
-
-    # Create custom property, unless it already exists.
-    prop_id = info['prop_id']
-    ensure_custom_property(prop_bone, prop_id, **custom_prop_dict)
-
+    # Convert back to a list of tuples so Blender can store it without mangling it.
+    panels = {'panels' : dict_to_tuples(panels)}
+    obj.data['ui_data'] = panels
 
 class HiddenPrints:
     def write(*args):

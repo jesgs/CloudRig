@@ -74,12 +74,13 @@ def draw_cloudrig_parents(layout, context, text=""):
     row.label(text="Is Default")
 
     if context.mode != 'EDIT_ARMATURE':
+        active_bone = context.active_bone
         draw_ui_list(
             layout,
             context,
             class_name='CLOUDRIG_UL_parent_slots',
-            list_path='active_pose_bone.cloudrig_component.params.parenting.parent_slots',
-            active_index_path='active_pose_bone.cloudrig_component.params.parenting.active_parent_index',
+            list_path=f'object.pose.bones["{active_bone.name}"].cloudrig_component.params.parenting.parent_slots',
+            active_index_path=f'object.pose.bones["{active_bone.name}"].cloudrig_component.params.parenting.active_parent_index',
             unique_id='CloudRig Parent Slots',
         )
 
@@ -98,21 +99,16 @@ class CloudParentingMixin:
         prop_bone=None,
         prop_name="",
         panel_name="Space Switch",
-        row_name="",
         label_name="",
+        row_name="",
         entry_name="",
     ):
         """Rig a bone with multiple switchable parents, using Armature constraint and drivers."""
-        if not child_bone:
-            child_bone = self.root_bone
-        if not prop_bone:
-            prop_bone = self.properties_bone
-        if prop_name == "":
-            prop_name = "parents_" + child_bone.name
-        if row_name == "":
-            row_name = child_bone.name.split(".")[0]
-        if entry_name == "":
-            entry_name = child_bone.name
+        child_bone = child_bone or self.root_bone
+        prop_bone = prop_bone or self.properties_bone
+        prop_name = prop_name or "parents_" + child_bone.name
+        row_name = row_name or child_bone.name.split(".")[0]
+        entry_name = entry_name or child_bone.name
 
         # Create parent bone that will hold the Armature constraint.
         arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
@@ -126,28 +122,31 @@ class CloudParentingMixin:
         targets = [{'subtarget': bone_name} for bone_name in parent_bone_names]
 
         # Create custom property
-        info = {
-            "prop_bone": prop_bone,
-            "prop_id": prop_name,
-            "texts": parent_ui_names,
-            "operator": "pose.cloudrig_switch_parent_bake",
-            "icon": "COLLAPSEMENU",
-            "parent_names": parent_ui_names,
-            "bone_names": [child_bone.name],
-        }
         if len(parent_bone_names) > 1:
             # Only add UI slider if there's more than 1 parent option.
             # For some components, it might make sense to only supply 1 parent,
             # eg. for cloud_ik_chain, since there the parent swithcing setup
             # relates to the IK master and pole target rather than the root bone.
-            self.add_ui_data(
-                panel_name,
-                row_name,
-                info,
+            self.add_bone_property_with_ui(
+                prop_bone=prop_bone,
+                prop_id=prop_name,
+
+                panel_name=panel_name,
                 label_name=label_name,
-                entry_name=entry_name,
-                default=self.get_default_parent_index(parent_bone_names, parent_slots),
-                max=len(parent_ui_names) - 1,
+                row_name=row_name,
+                slider_name=entry_name,
+                texts=parent_ui_names,
+
+                custom_prop_settings={
+                    'default': self.get_default_parent_index(parent_bone_names, parent_slots),
+                    'max': len(parent_ui_names) - 1,
+                },
+                operator="pose.cloudrig_switch_parent_bake",
+                op_icon="COLLAPSEMENU",
+                op_kwargs={
+                    "parent_names": parent_ui_names,
+                    "bone_names": [child_bone.name],
+                },
             )
 
         # Add armature constraint
