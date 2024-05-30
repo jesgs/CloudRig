@@ -109,7 +109,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
     fh.seek(0)
 
     return (
-        "https://projects.blender.org/Mets/CloudRig/issues/new?template=.gitea/issue_template/bug.yaml&field:body="
+        "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml&field:body="
         + urllib.parse.quote(fh.read())
     )
 

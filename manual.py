@@ -6,9 +6,10 @@ from . import rig_components
 
 # This allows you to right click on a button and link to documentation
 def cloudrig_manual_map():
-    url_manual_prefix = "https://projects.blender.org/Mets/CloudRig/wiki/"
-    prefs_path = "bpy.types.cloudrigpreferences."   # Add-on preferences don't seem to be supported at all by manual mapping.
-    params_path = "bpy.types.rigcomponent." # This doesn't seem to work with nested PropertyGroups, it just results in `bpy.types.bpy_struct` :(
+    url_manual_prefix = "https://studio.blender.org/pipeline/addons/cloudrig/"
+    addon_prefs_path = "bpy.types.cloudrigpreferences."   # Add-on preferences don't seem to be supported at all by manual mapping.
+    rig_prefs_path = "bpy.types.cloudrig_rigpreferences"
+    params_path = "bpy.types.rigcomponent." # This doesn't seem to work with nested PropertyGroups, it just results in `bpy.types.bpy_struct`. This makes this whole manual mapping pretty pointless. :(
     generator_path = "bpy.types.generatorproperties."
     generator_params = {
         "target_rig": "", 
@@ -27,28 +28,31 @@ def cloudrig_manual_map():
 
     url_map = []
     # for cloud_type in cloud_types:
-    #     url_map.append((params_path + cloud_type + "_*", "CloudRig-Types"))
+    #     url_map.append((params_path + cloud_type + "_*", "cloudrig-types"))
 
     # NOTE: More specific data paths have to come FIRST before data paths with wildcards!
     url_map.extend(
         [
-            (prefs_path + "advanced_mode", "CloudRig-Types#shared-parameters"), # Doesn't work, see above.
-            (prefs_path + "*", "CloudRig-Types#shared-parameters"),             # Doesn't work, see above.
-            ("bpy.ops.pose.cloudrig_assign_component_type", "CloudRig-Types"),
-            # Generator Parameters
-            ("bpy.ops.pose.cloudrig_generate", "Generator-Parameters"),
-            *[(generator_path + param, "Generator-Parameters#"+(redirect or param).replace("_", "-")) 
-            for param, redirect in generator_params.items()],
-            (generator_path + "*", "Generator-Parameters"),
-            # Organizing Bones
-            (prefs_path + "bone_set_show_advanced", "Organizing-Bones#bone-collections"),
-            ("bpy.types.boneset*", "Organizing-Bones#bone-collections"),
-            ("bpy.types.rigcomponent.bone_sets*", "Organizing-Bones#bone-collections"),
-            # Actions
-            (generator_path + "action*", "Actions"),
-            ("bpy.ops.object.cloudrig_action*", "Actions"),
+            (rig_prefs_path+".active_collection_index", "bone-organization"),
+            ("bpy.ops.pose.cloudrig_collections_reveal_all", "bone-organization"),
 
-            (params_path + "*", "CloudRig-Types"),
+            (addon_prefs_path + "advanced_mode", "cloudrig-types#shared-parameters"), # Doesn't work, see above.
+            (addon_prefs_path + "*", "cloudrig-types#shared-parameters"),             # Doesn't work, see above.
+            ("bpy.ops.pose.cloudrig_assign_component_type", "cloudrig-types"),
+            # Generator Parameters
+            ("bpy.ops.pose.cloudrig_generate", "generator-parameters"),
+            *[(generator_path + param, "generator-parameters#"+(redirect or param).replace("_", "-")) 
+            for param, redirect in generator_params.items()],
+            (generator_path + "*", "generator-parameters"),
+            # Organizing Bones
+            (addon_prefs_path + "bone_set_show_advanced", "organizing-bones#bone-collections"),
+            ("bpy.types.boneset*", "organizing-bones#bone-collections"),
+            ("bpy.types.rigcomponent.bone_sets*", "organizing-bones#bone-collections"),
+            # Actions
+            (generator_path + "action*", "actions"),
+            ("bpy.ops.object.cloudrig_action*", "actions"),
+
+            (params_path + "*", "cloudrig-types"),  # Doesn't work, see above.
         ]
     )
     return url_manual_prefix, url_map
