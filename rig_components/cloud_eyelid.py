@@ -111,7 +111,20 @@ class Component_Eyelid(Component_FaceChain):
 
     def create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
         info = {'prop_bone': eye_rig.properties_bone, 'prop_id': sticky_prop_name}
-        self.add_ui_data('Face', eye_rig.params.aim.group, info, default=0.1)
+        
+        self.add_bone_property_with_ui(
+            prop_bone=eye_rig.properties_bone,
+            prop_id=sticky_prop_name,
+
+            panel_name="Face",
+            label_name="Sticky Eyelids",
+            row_name = eye_rig.params.aim.group,
+            slider_name=self.parent_component.bones_org[0].name,
+
+            custom_prop_settings={
+                'default': 1.0,
+            },
+        )
 
     ##############################
     # Parameters

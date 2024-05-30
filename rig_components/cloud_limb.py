@@ -136,7 +136,6 @@ class Component_Limb(Component_Chain_IKFK):
         """Overrides cloud_ik_chain."""
         if self.params.limb.double_ik:
             ik_mstr = ik_mstr.parent
-            # TODO: These checks for limb.double_ik should be replaced with a @property.
 
         super().setup_ik_pole_parent_switch(ik_pole, ik_mstr)
 
@@ -148,7 +147,7 @@ class Component_Limb(Component_Chain_IKFK):
 
         if self.params.limb.double_ik:
             # Need to insert IK master parent->last FK bone switching BEFORE IK master parent.
-            ui_data['map_ik_to_fk'].insert(0, (ik_mstr.parent.name, fk_chain[-1].name))
+            ui_data['op_kwargs']['map_ik_to_fk'].insert(0, (ik_mstr.parent.name, fk_chain[-1].name))
 
         return ui_data
 
@@ -212,12 +211,7 @@ class Component_Limb(Component_Chain_IKFK):
         elbow or the knee.
         """
 
-        # Create UI property
         prop_name = "auto_rubber_hose_" + self.limb_name_props
-        info = {
-            "prop_bone": self.properties_bone,
-            "prop_id": prop_name,
-        }
 
         control_bone = None
         if self.params.limb.auto_hose_control:
@@ -244,9 +238,15 @@ class Component_Limb(Component_Chain_IKFK):
             )
         else:
             # Don't create a control bone, instead just add a slider in the UI.
-            self.add_ui_data(
-                "Auto Rubber Hose", self.limb_name, info, entry_name=self.limb_ui_name
+            self.add_bone_property_with_ui(
+                prop_bone=self.properties_bone,
+                prop_id=prop_name,
+
+                panel_name="Auto Rubber Hose",
+                row_name=self.limb_name,
+                slider_name=self.limb_ui_name,
             )
+            
 
         self.make_rubber_hose_constraints(
             org_upper,

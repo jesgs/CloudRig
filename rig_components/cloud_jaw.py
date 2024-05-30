@@ -122,13 +122,18 @@ class Component_Jaw(Component_CopyBone):
         stretch_con = lower_face_squasher.add_constraint(
             'STRETCH_TO', subtarget=face_squash_bi
         )
-        # Create custom property for face squash volume preservation (a toggle for now)
-        info = {
-            "prop_bone": jaw_bi,
-            "prop_id": 'preserve_volume',
-        }
-        # Store UI info & create custom prop
-        self.add_ui_data("Face", "Preserve Volume", info, default=1)
+        # Store UI info & create custom prop for face squash volume preservation (a toggle for now)
+        self.add_bone_property_with_ui(
+            prop_bone=jaw_bi,
+            prop_id='preserve_volume',
+
+            panel_name="Face",
+            slider_name="Preserve Volume",
+
+            custom_prop_settings={
+                'default': True,
+            },
+        )
         for prop in ['use_bulge_min', 'use_bulge_max']:
             stretch_con.drivers.append(
                 {
@@ -142,8 +147,17 @@ class Component_Jaw(Component_CopyBone):
 
     def setup_teeth_follow_mouth(self, jaw_bi, lower_face_bi, mouth_bi, lower_jaw):
         # Set up Teeth Follow Mouth toggle
-        info = {'prop_bone': jaw_bi, 'prop_id': 'teeth_follow_mouth'}
-        self.add_ui_data("Face", "Teeth Follow Mouth", info, default=1.0)
+        self.add_bone_property_with_ui(
+            prop_bone=jaw_bi,
+            prop_id='teeth_follow_mouth',
+
+            panel_name="Face",
+            slider_name="Teeth Follow Mouth",
+
+            custom_prop_settings={
+                'default': 1.0,
+            },
+        )
         teeth_upper_root = self.generator.find_bone_info(
             self.params.jaw.teeth_upper_bone
         )

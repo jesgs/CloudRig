@@ -153,10 +153,12 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.ik_chain.world_aligned and self.params.leg.use_foot_roll:
             # In the case of world aligned IK control + footroll, we must
             # snap the FK foot to a specialized helper bone rather than any IK bone.
-            ui_data['map_ik_to_fk'][-1] = (
-                ui_data['map_ik_to_fk'][-1][0],
+            ui_data['op_kwargs']['map_fk_to_ik'][-1] = (
+                fk_chain[2].name,
                 self.foot_snap_bone.name,
             )
+
+        print(self.params.ik_chain.world_aligned, self.params.leg.use_foot_roll, self.foot_snap_bone)
 
         return ui_data
 

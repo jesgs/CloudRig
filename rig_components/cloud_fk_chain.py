@@ -208,21 +208,24 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if bone_set == None:
             bone_set = bone.bone_set
 
-        info = {
-            "prop_bone": prop_bone,
-            "prop_id": prop_name,
-            "operator": "pose.cloudrig_snap_bake",
-            "bone_names": [bone.name],
-        }
-
         # Store UI info
-        self.add_ui_data(
-            "FK",
-            category,
-            info,
+        self.add_bone_property_with_ui(
+            prop_bone=prop_bone,
+            prop_id=prop_name,
+
+            panel_name="FK",
             label_name="Hinge",
-            entry_name=limb_name,
-            default=default_value,
+            row_name=category,
+            slider_name=limb_name,
+
+            custom_prop_settings={
+                'default': default_value,
+            },
+            operator='pose.cloudrig_snap_bake',
+            op_icon='FILE_REFRESH',
+            op_kwargs={
+                "bone_names": [bone.name],
+            }
         )
 
         # Create Hinge helper bone

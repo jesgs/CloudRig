@@ -19,9 +19,11 @@ class CloudUIMixin:
         prop_bone: BoneInfo,
         prop_id: str,
 
-        panel_name: str,
-        label_name: str,
-        row_name: str,
+        *,
+
+        panel_name="Settings",
+        label_name="",
+        row_name="",
         slider_name="",
         texts=[],
 
@@ -29,7 +31,9 @@ class CloudUIMixin:
         operator="",
         op_icon='BLANK1',
         op_kwargs={},
-    ):
+
+        parent_id="",
+    ) -> OrderedDict:
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
 
         op_kwargs.update({'prop_bone': prop_bone.name, 'prop_id': prop_id})
@@ -37,7 +41,7 @@ class CloudUIMixin:
         if not slider_name:
             slider_name = prop_id
 
-        add_ui_data(
+        return add_ui_data(
             self.target_rig,
             owner_path=f'pose.bones["{prop_bone.name}"]',
             prop_name=f'["{prop_id}"]',
@@ -51,6 +55,8 @@ class CloudUIMixin:
             operator=operator,
             op_icon=op_icon,
             op_kwargs=op_kwargs,
+
+            parent_id=parent_id,
         )
 
     @staticmethod
@@ -176,8 +182,10 @@ def add_ui_data(
 
     operator="",
     op_icon='BLANK1',
-    op_kwargs={}
-):
+    op_kwargs={},
+
+    parent_id="",
+) -> OrderedDict:
     # Convert existing UI data to an OrderedDict for easy operations.
     if 'ui_data' not in obj.data:
         obj.data['ui_data'] = {'panels' : []}
@@ -185,6 +193,7 @@ def add_ui_data(
     panels = tuples_to_dict(panels)
 
     panel = panels.setdefault(panel_name, OrderedDict())
+    panel['parent_id'] = parent_id
     header = panel.setdefault(label_name, OrderedDict())
     row = header.setdefault(row_name, OrderedDict())
 
@@ -198,6 +207,8 @@ def add_ui_data(
     # Convert back to a list of tuples so Blender can store it without mangling it.
     panels = {'panels' : dict_to_tuples(panels)}
     obj.data['ui_data'] = panels
+
+    return panels
 
 class HiddenPrints:
     def write(*args):

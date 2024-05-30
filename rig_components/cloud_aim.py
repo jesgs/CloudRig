@@ -163,17 +163,23 @@ class Component_Aim(Component_Base):
 
         if ctr_bone.parent:
             prop_name = "follow_eye"
-            info = {
-                'prop_bone': highlight_ctr,
-                'prop_id': prop_name,
-            }
-            self.add_ui_data(
-                "Face",
-                "Eye Highlights",
-                info,
-                label_name="Eye Highlights Follow",
-                entry_name=self.side_prefix + " Eye",
-                default=1.0,
+            self.add_bone_property_with_ui(
+                prop_bone=highlight_ctr,
+                prop_id=prop_name,
+
+                panel_name="Face",
+                label_name=label_name,
+                row_name="Eye Highlights",
+                slider_name=self.side_prefix + " Eye",
+
+                custom_prop_settings={
+                    'default': 1.0,
+                },
+                operator="pose.cloudrig_snap_bake",
+                op_icon="FILE_REFRESH",
+                op_kwargs={
+                    "bone_names": [bone.name],
+                },
             )
 
             arm_con = highlight_ctr.add_constraint(

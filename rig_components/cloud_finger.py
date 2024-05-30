@@ -28,30 +28,31 @@ class Component_Finger(Component_Chain_IKFK):
         ik_pole.parent = ik_mstr
         pass
 
-    def add_ui_data(
+    def add_bone_property_with_ui(
         self,
-        panel_name,
-        row_name,
-        info,
+        prop_bone: BoneInfo,
+        prop_id: str,
+
+        panel_name: str,
         label_name="",
-        entry_name="",
-        **custom_prop_dict
+        custom_prop_settings={},
+        **kwargs
     ):
         if panel_name == "FK/IK Switch":
-            custom_prop_dict['default'] = 0.0
+            label_name = "FK/IK Switch"
+            custom_prop_settings['default'] = 0.0
 
         panel_name = "Fingers"
         if label_name == "IK Pole Follow":
             return
 
-        super().add_ui_data(
-            panel_name,
-            row_name,
-            info,
+        super().add_bone_property_with_ui(
+            prop_bone=prop_bone,
+            prop_id=prop_id,
+            panel_name=panel_name,
             label_name=label_name,
-            entry_name=entry_name,
             parent_id='CLOUDRIG_PT_custom_ik',
-            **custom_prop_dict
+            **kwargs
         )
 
     def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
@@ -133,17 +134,19 @@ class Component_Finger(Component_Chain_IKFK):
         last_ik2.parent = ik2_rot
 
         # Add UI data for switching between the two IK types
-        info = {
-            "prop_bone": self.properties_bone,
-            "prop_id": self.full_length_ik_name,
-        }
-        self.add_ui_data(
-            "IK",
-            self.limb_name,
-            info,
+
+        self.add_bone_property_with_ui(
+            prop_bone=self.properties_bone,
+            prop_id=self.full_length_ik_name,
+
+            panel_name="IK",
             label_name="Full IK",
-            entry_name=self.limb_ui_name,
-            default=1.0,
+            row_name=self.limb_name,
+            slider_name=self.limb_ui_name,
+
+            custom_prop_settings={
+                'default': 1.0,
+            },
         )
 
         # Add driver to switch between the two IK types
@@ -175,7 +178,7 @@ class Component_Finger(Component_Chain_IKFK):
 
         map_on = [(ik_mstr.name, snap_helper.name)]
 
-        ui_data["map_on"] = map_on
+        ui_data['op_kwargs']['map_on'] = map_on
         return ui_data
 
 

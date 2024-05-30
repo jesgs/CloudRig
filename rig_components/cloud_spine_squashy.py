@@ -270,21 +270,30 @@ class Component_Spine_Squashy(Component_Chain_FK):
         )
 
         # Store info for UI
-        info = {'prop_bone': self.properties_bone, 'prop_id': self.squashy_name}
-        self.add_ui_data(
-            "FK/IK Switch",
-            self.limb_name,
-            info,
-            entry_name=self.spine_name,
-            default=1.0,
+        self.add_bone_property_with_ui(
+            prop_bone=self.properties_bone,
+            prop_id=self.squashy_name,
+
+            panel_name="FK/IK Switch",
+            row_name=self.limb_name,
+            slider_name=self.spine_name,
+
+            custom_prop_settings={
+                'default': 1.0,
+            },
         )
-        info = {'prop_bone': self.properties_bone, 'prop_id': self.squashy_volume_name}
-        self.add_ui_data(
-            "IK",
-            self.limb_name,
-            info,
-            entry_name=self.spine_name + " Volume",
-            default=0.0,
+
+        self.add_bone_property_with_ui(
+            prop_bone=self.properties_bone,
+            prop_id=self.squashy_volume_name,
+
+            panel_name="IK",
+            row_name=self.limb_name,
+            slider_name=self.spine_name + " Volume",
+
+            custom_prop_settings={
+                'default': 0.0,
+            },
         )
 
     def parent_str_to_fk(self, fk_chain, org_chain, str_chain):

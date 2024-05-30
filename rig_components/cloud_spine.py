@@ -263,29 +263,31 @@ class Component_Spine_IKFK(Component_Chain_FK):
             )
 
         # Store info for UI
-        info = {
-            "prop_bone": self.properties_bone,
-            "prop_id": self.ik_stretch_name,
-        }
-        self.add_ui_data(
-            "IK",
-            self.limb_name,
-            info,
+        self.add_bone_property_with_ui(
+            prop_bone=self.properties_bone,
+            prop_id=self.ik_stretch_name,
+
+            panel_name="IK",
             label_name="IK Stretch",
-            entry_name=self.spine_name,
-            default=1.0,
+            row_name=self.limb_name,
+            slider_name=self.spine_name,
+
+            custom_prop_settings={
+                'default': 1.0,
+            },
         )
 
-        info = {
-            "prop_bone": self.properties_bone,
-            "prop_id": self.ik_prop_name,
-        }
-        self.add_ui_data(
-            "FK/IK Switch",
-            self.limb_name,
-            info,
-            entry_name=self.spine_name,
-            default=0.0,
+        self.add_bone_property_with_ui(
+            prop_bone=self.properties_bone,
+            prop_id=self.ik_prop_name,
+
+            panel_name="FK/IK Switch",
+            row_name=self.limb_name,
+            slider_name=self.spine_name,
+
+            custom_prop_settings={
+                'default': 0.0,
+            },
         )
 
     def tweak_str_spine(self):

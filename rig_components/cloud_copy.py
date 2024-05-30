@@ -125,26 +125,28 @@ class Component_CopyBone(Component_Base):
                 # (User should NOT add a side indicator to the property name!)
                 entry_name = self.side_prefix + " " + prop_name
 
-            info = {
-                'prop_bone': bone,
-                'prop_id': prop_name,
-            }
-
             if "$" + prop_name in self.metarig_base_pbone:
                 # Rigger can specify strings for integer properties with a
                 # property whose name starts with $. This property is expected
                 # to be a list of strings, where the first strings matches with the value 0.
                 # Negative integers are not supported for this.
-                info['texts'] = self.metarig_base_pbone["$" + prop_name]
+                texts = self.metarig_base_pbone["$" + prop_name]
 
-            self.add_ui_data(
-                panel_name,
-                row_name,
-                info=info,
-                default=prop.get('default', None),
-                entry_name=entry_name,
+            self.add_bone_property_with_ui(
+                prop_bone=bone,
+                prop_id=prop_name,
+
+                panel_name=panel_name,
                 label_name=label_name,
+                row_name=row_name,
+                slider_name=entry_name,
+                texts=texts,
+
+                custom_prop_settings={
+                    'default': prop.get('default', None),
+                },
             )
+
 
     ##############################
     # Parameters
