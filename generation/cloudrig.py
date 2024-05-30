@@ -1047,60 +1047,6 @@ def tuples_to_dict(tuples: list[tuple]):
         ordered_dict[key] = value
     return ordered_dict
 
-def convert_ui_data(ui_data: dict):
-    converted_ui = OrderedDict()
-    for panel_name, panel_data in ui_data.items():
-        if panel_name not in converted_ui:
-            converted_ui[panel_name] = []
-
-        converted_panel = converted_ui[panel_name]
-
-        headers = OrderedDict()
-
-        for header_name, header_data in panel_data.items():
-            if header_name not in headers:
-                headers[header_name] = OrderedDict()
-
-            header = headers[header_name]
-
-            for row_name, row_data in header_data.items():
-                if row_name not in header:
-                    header[row_name] = OrderedDict()
-                row = header[row_name]
-
-                for slider_name, slider_data in row_data.items():
-                    row[slider_name] = slider_data
-
-        def convert_sliders(row_data):
-            sliders = []
-            for slider_name, slider_data in row_data.items():
-                prop_bone = slider_data['prop_bone']
-                prop_id = slider_data['prop_id']
-                sliders.append({
-                    'ui_name' : slider_name,
-                    'owner_path' : f'pose.bones["{prop_bone}"]',
-                    'prop_name' : f'["{prop_id}"]',
-                    'operator' : slider_data.get('operator'),
-                    'op_kwargs' : slider_data,
-                    'texts': slider_data.get('texts', {}),
-                    'op_icon' : slider_data.get('icon', 'BLANK1'),
-                })
-            return sliders
-
-        for header_name, header_data in headers.items():
-            if header_name:
-                converted_panel.append(('header', header_name))
-            for row_name, row_data in header_data.items():
-                sliders = convert_sliders(row_data)
-                if len(sliders) == 1:
-                    converted_panel.append(('property', sliders[0]))
-                elif len(row_data) == 2:
-                    converted_panel.append(('properties', sliders))
-
-    result = {'panels' : list(converted_ui.items())}
-
-    return result
-
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
@@ -1137,6 +1083,8 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         """
 
         for label_name, label_data in panel_data.items():
+            if label_name == 'parent_id':
+                continue
             self.draw_rig_settings_per_label(layout, rig, label_name, label_data)
 
     def draw_rig_settings_per_label(self, layout, rig, label_name, label_data):
@@ -1232,7 +1180,10 @@ def ensure_custom_panels(_dummy1, _dummy2):
         return
 
     for panel_name, panel_data in ui_data.items():
-        ensure_custom_panel(panel_name)
+        parent_id = panel_data.get('parent_id')
+        if not parent_id:
+            parent_id = "CLOUDRIG_PT_settings"
+        ensure_custom_panel(panel_name, parent_id)
 
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     # Make sure name is alphanumeric
