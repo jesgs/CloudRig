@@ -199,10 +199,11 @@ class SnappingOpMixin:
     def set_bone_matrices(
         self, context, rig: Object, pbone_matrix_map: dict[str, Matrix]
     ):
-        for bone_name, mat in pbone_matrix_map.items():
-            context.view_layer.update()
-            pb = rig.pose.bones[bone_name]
-            pb.matrix = mat.copy()
+            for bone_name, mat in pbone_matrix_map.items():
+                pb = rig.pose.bones[bone_name]
+                pb.matrix = mat.copy()
+                context.view_layer.update()
+                pb.matrix = mat.copy()
 
 
 class SnapBakeOpMixin(SnappingOpMixin):
