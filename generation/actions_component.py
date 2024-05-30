@@ -15,10 +15,10 @@ from ..utils.external.naming import Side, get_name_side, change_name_side
 from ..utils.external.mechanism import (
     driver_var_transform,
     quote_property,
-    make_property,
     make_driver,
     make_constraint,
 )
+from ..rig_component_features.properties_ui import make_property
 
 
 class MetarigError(Exception):
@@ -100,7 +100,6 @@ class ActionLayer:
 
             owner = self.generator.target_rig.pose.bones.get(self.bone_name)
 
-            print("Make action property: ", self.name, owner)
             make_property(
                 owner=owner,
                 name=self.name,

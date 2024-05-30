@@ -7,6 +7,7 @@ from . import (
     mechanism,
     object,
     parenting,
+    properties_ui,
     ui,
 )
 
@@ -20,6 +21,7 @@ modules = [
     mechanism,
     object,
     parenting,
+    properties_ui,
     ui,
 ]
 

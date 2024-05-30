@@ -5,7 +5,8 @@ from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
 from mathutils import Vector, Matrix
 
 from ..utils.maths import flat
-from ..utils.external.mechanism import make_constraint, make_driver, make_property
+from ..utils.external.mechanism import make_constraint, make_driver
+from .properties_ui import ensure_custom_property, make_property
 
 # These values should match Blender's defaults, otherwise they won't be written.
 # It is very confusing what belongs where because some properties exist on both EditBone and Bone,
@@ -935,19 +936,6 @@ class ConstraintInfo(dict):
         con = make_constraint(pose_bone, self.type, **con_info)
 
         return con
-
-
-def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
-    if str(type(prop_bone)) == str(BoneInfo):
-        kwargs['default'] = default
-        # Let this function work for BoneInfo objects during the generation process.
-        if prop_id not in prop_bone.custom_props:
-            prop_bone.custom_props[prop_id] = kwargs
-        else:
-            prop_bone.custom_props[prop_id].update(kwargs)
-
-    else:
-        make_property(prop_bone, prop_id, default, **kwargs)
 
 
 def copy_relink_real_driver(metarig, rig, fcurve):

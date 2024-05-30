@@ -111,45 +111,6 @@ def _set_default_attr(obj, options, attr, value):
     if hasattr(obj, attr):
         options.setdefault(attr, value)
 
-def make_property(
-        owner: bpy_struct, name: str, default, *,
-        min: float = 0, max: float = 1, soft_min=None, soft_max=None,
-        description: Optional[str] = None, overridable=True, 
-        subtype: Optional[str] = None, id_type=None,
-        value=None,
-        **options):
-    """
-    Creates and initializes a custom property of owner.
-
-    The soft_min and soft_max parameters default to min and max.
-    Description defaults to the property name.
-    """
-
-    value = value or default
-
-    # Some keyword argument defaults differ
-    try:
-        rna_idprop_ui_create(
-            owner, name, default=default,
-            min=min, max=max, soft_min=soft_min, soft_max=soft_max,
-            description=description or name,
-            overridable=overridable,
-            subtype=subtype,
-            id_type=id_type,
-            **options
-        )
-
-        owner.property_overridable_library_set(
-            f'["{name}"]', overridable
-        )
-    except TypeError:
-        # Python custom properties will throw an error when trying to call update() on them, but it doesn't matter.
-        pass
-
-    if value and value != default:
-        owner[name] = value
-
-
 def make_driver(owner: bpy_struct, prop: str, *, index=-1, type='SUM',
                 expression: Optional[str] = None,
                 variables: Iterable | dict = (),

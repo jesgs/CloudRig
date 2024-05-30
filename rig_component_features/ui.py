@@ -9,6 +9,7 @@ import bpy, sys, os
 import json
 
 from ..generation.cloudrig import is_cloud_metarig, tuples_to_dict, dict_to_tuples
+from .properties_ui import add_property_to_ui
 
 
 class CloudUIMixin:
@@ -41,7 +42,7 @@ class CloudUIMixin:
         if not slider_name:
             slider_name = prop_id
 
-        return add_ui_data(
+        return add_property_to_ui(
             self.target_rig,
             owner_path=f'pose.bones["{prop_bone.name}"]',
             prop_name=f'["{prop_id}"]',
@@ -165,50 +166,6 @@ def draw_prop_search(
     row = layout.row()
     row.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
     return row
-
-
-def add_ui_data(
-    obj,
-    owner_path: str,
-    prop_name: str,
-    *,
-    texts={},
-    children={},
-
-    panel_name: str,
-    label_name="",
-    row_name="",
-    slider_name="",
-
-    operator="",
-    op_icon='BLANK1',
-    op_kwargs={},
-
-    parent_id="",
-) -> OrderedDict:
-    # Convert existing UI data to an OrderedDict for easy operations.
-    if 'ui_data' not in obj.data:
-        obj.data['ui_data'] = {'panels' : []}
-    panels = obj.data['ui_data'].to_dict()['panels']
-    panels = tuples_to_dict(panels)
-
-    panel = panels.setdefault(panel_name, OrderedDict())
-    panel['parent_id'] = parent_id
-    header = panel.setdefault(label_name, OrderedDict())
-    row = header.setdefault(row_name, OrderedDict())
-
-    if not slider_name:
-        slider_name = prop_name
-
-    texts = {str(key): value for key, value in texts.items()}
-    children = {str(key): value for key, value in children.items()}
-    row[slider_name] = {'owner_path':owner_path, 'prop_name':prop_name, 'texts':texts, 'children':children, 'operator': operator, 'op_icon': op_icon, 'op_kwargs': op_kwargs}
-
-    # Convert back to a list of tuples so Blender can store it without mangling it.
-    panels = {'panels' : dict_to_tuples(panels)}
-    obj.data['ui_data'] = panels
-
-    return panels
 
 class HiddenPrints:
     def write(*args):

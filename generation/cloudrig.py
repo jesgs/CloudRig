@@ -14,7 +14,7 @@ from bpy.props import (
     PointerProperty,
     IntProperty,
 )
-from bpy.types import Object, PoseBone, UILayout, ID
+from bpy.types import Object, PoseBone, UILayout, UIList, ID, Panel, Menu, Operator, PropertyGroup, BoneCollection, Bone
 from rna_prop_ui import IDPropertyArray, rna_idprop_quote_path, rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 
@@ -82,7 +82,7 @@ def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
             return obj
 
 
-class CloudRigOperator(bpy.types.Operator):
+class CloudRigOperator(Operator):
     """This class implements a basic draw function that just draws all the operator properties.
     This is necessary because of our hotkey system and UI.
     In order to avoid creating duplicate keymap entries, we insert a "hash" value in each keymap's
@@ -727,7 +727,7 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
 #######################################
 
 
-class CLOUDRIG_PT_base(bpy.types.Panel):
+class CLOUDRIG_PT_base(Panel):
     """Base class for all CloudRig sidebar panels."""
 
     bl_space_type = 'VIEW_3D'
@@ -757,7 +757,7 @@ class CLOUDRIG_PT_base(bpy.types.Panel):
         pass
 
 
-class CloudRig_Properties_legacy(bpy.types.PropertyGroup):
+class CloudRig_Properties_legacy(PropertyGroup):
     """PropertyGroup for special custom properties that rely on callback functions"""
 
     def items_outfit(self, context):
@@ -988,7 +988,7 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 toggle=True,
                 icon=icon,
             )
-        elif isinstance(prop_value, bpy.types.Object):
+        elif isinstance(prop_value, Object):
             # Property is a pointer
             row.prop_search(
                 prop_owner,
@@ -1020,6 +1020,10 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 if type(value) in [list, dict]:
                     value = json.dumps(value)
                 setattr(operator, param, value)
+
+
+
+
 
 def get_rig_ui_data(rig: Object):
     if 'ui_data' in rig.data:
@@ -1075,7 +1079,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             self.draw_rig_settings_subpanel(self.layout, rig, panel_data)
 
     def draw_rig_settings_subpanel(self,
-        layout: bpy.types.UILayout, rig: Object, panel_data: OrderedDict
+        layout: UILayout, rig: Object, panel_data: OrderedDict
     ):
         """Panel data contains a list of tuples.
         The first entry of each tuple is a string telling us the type of UI element to draw.
@@ -1128,21 +1132,13 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
 
     def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, ui_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
         prop_value = prop_owner.path_resolve(prop_name)
-        try:
-            bracketless_prop_name = prop_name
-            if prop_name.startswith('["') or prop_name.startswith("['"):
-                bracketless_prop_name = prop_name[2:-2]
-            prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
-        except TypeError:
-            # This happens for Python properties. There's no point drawing them.
-            return
 
         if not ui_name:
             ui_name = bracketless_prop_name
 
         value_type, _is_array = rna_idprop_value_item_type(prop_value)
 
-        if value_type is type(None) or issubclass(value_type, bpy.types.ID):
+        if value_type is type(None) or issubclass(value_type, ID):
             # Property is a Datablock Pointer.
             layout.prop(prop_owner, prop_name, text=ui_name)
         elif value_type == bool:
@@ -1153,6 +1149,15 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 ui_name += ": " + texts[str(prop_value)]
             # Property is a float/int/color
             # For large ranges, a slider doesn't make sense.
+            try:
+                bracketless_prop_name = prop_name
+                if prop_name.startswith('["') or prop_name.startswith("['"):
+                    bracketless_prop_name = prop_name[2:-2]
+                if bracketless_prop_name in prop_owner:
+                    prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
+            except TypeError:
+                # This happens for Python properties. There's no point drawing them.
+                return
             slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
             layout.prop(prop_owner, prop_name, slider=slider, text=ui_name)
         elif value_type == str:
@@ -1232,6 +1237,10 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         layout.operator(
             POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
         )
+        if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
+            layout.operator(
+                'pose.cloudrig_add_property_to_ui', text='Add Property To UI', icon='PROPERTIES'
+            )
 
 
 #######################################
@@ -1239,7 +1248,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 #######################################
 
 
-class CloudRig_RigPreferences(bpy.types.PropertyGroup):
+class CloudRig_RigPreferences(PropertyGroup):
     collection_ui_type: EnumProperty(
         name="Collections UI Type",
         description="Whether to use Blender's built-in Collections UI or CloudRig's",
@@ -1370,13 +1379,13 @@ class CloudRig_RigPreferences(bpy.types.PropertyGroup):
 #######################################
 
 
-class CloudRigBoneCollection(bpy.types.PropertyGroup):
+class CloudRigBoneCollection(PropertyGroup):
     """Properties stored on BoneCollection.cloudrig_info.
     Used for implementing and drawing the nested collections UIList.
     Also some other functionality like Solo Collection and Preserve on Regenerate.
     """
 
-    def get_collection(self) -> bpy.types.BoneCollection:
+    def get_collection(self) -> BoneCollection:
         """Return the BoneCollection that this instance of this class belongs to."""
         armature = self.id_data
         for coll in armature.collections_all:
@@ -1460,12 +1469,12 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     )
 
     @property
-    def parent_collection(self) -> bpy.types.BoneCollection:
+    def parent_collection(self) -> BoneCollection:
         # TODO 4.2: Redundant, delete.
         return self.get_collection().parent
 
     @parent_collection.setter
-    def parent_collection(self, coll: bpy.types.BoneCollection):
+    def parent_collection(self, coll: BoneCollection):
         # TODO 4.2: Redundant, delete.
         self.get_collection().parent = coll
         self.parent_name = coll.name
@@ -1475,7 +1484,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         return self.get_collection().is_expanded
 
     @property
-    def children(self) -> List[bpy.types.BoneCollection]:
+    def children(self) -> List[BoneCollection]:
         # TODO 4.2: Redundant, delete.
         return self.get_collection().children[:]
 
@@ -1490,14 +1499,14 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         return self.parent_collection.cloudrig_info.children
 
     @property
-    def children_recursive(self) -> List[bpy.types.BoneCollection]:
+    def children_recursive(self) -> List[BoneCollection]:
         children = self.children[:]
         for child in children:
             children += child.cloudrig_info.children
         return children
 
     @property
-    def parents_recursive(self) -> List[bpy.types.BoneCollection]:
+    def parents_recursive(self) -> List[BoneCollection]:
         parents = []
         parent = self.parent_collection
         while parent:
@@ -1506,7 +1515,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
         return parents
 
     @property
-    def all_bones(self) -> List[bpy.types.Bone]:
+    def all_bones(self) -> List[Bone]:
         # TODO 4.2: Redundant, delete.
         return self.get_collection().bones_recursive
 
@@ -1538,7 +1547,7 @@ class CloudRigBoneCollection(bpy.types.PropertyGroup):
     )
 
 
-class CLOUDRIG_UL_collections(bpy.types.UIList):
+class CLOUDRIG_UL_collections(UIList):
     """Draw bone collections with nesting support"""
 
     @staticmethod
@@ -1820,7 +1829,7 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
     draw = draw_cloudrig_collections
 
 
-class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
+class CLOUDRIG_PT_collections_filter(Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'WINDOW'
     bl_label = "Filter"
@@ -1844,7 +1853,7 @@ class CLOUDRIG_PT_collections_filter(bpy.types.Panel):
             )
 
 
-class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
+class CLOUDRIG_MT_collections_specials(Menu):
     bl_label = "Collection Operators"
     bl_idname = 'CLOUDRIG_MT_collections_specials'
 
@@ -1889,7 +1898,7 @@ class CLOUDRIG_MT_collections_specials(bpy.types.Menu):
         )
 
 
-class CLOUDRIG_MT_collections_quick_select(bpy.types.Menu):
+class CLOUDRIG_MT_collections_quick_select(Menu):
     """Quick select menu, so favourite bone collections can be selected quickly with a hotkey"""
 
     bl_label = "Quick Select"
@@ -2605,7 +2614,7 @@ classes = (
 def is_registered(cls):
     """Returns whether a BPy class is registered.
     May not always work, needs more testing..."""
-    if issubclass(cls, bpy.types.Operator):
+    if issubclass(cls, Operator):
         category, op_name = cls.bl_idname.split(".")
         if hasattr(bpy.ops, category):
             category = getattr(bpy.ops, category)
