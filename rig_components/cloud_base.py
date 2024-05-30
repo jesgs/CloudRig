@@ -172,7 +172,7 @@ class Component_Base(
         if self.params.parenting.parent_switching:
             self.apply_parent_switching(self.params.parenting.parent_slots)
         self.relink()
-        self.add_gizmo_interactions()
+        # self.add_gizmo_interactions()
 
     def create_helper_objects(self, context):
         # Called by the generator. Subclasses can use this to create
