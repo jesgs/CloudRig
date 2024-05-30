@@ -511,7 +511,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         if self.target_value == 1 and self.ik_pole:
             # Snap IK pole
             pole_pb = self.rig.pose.bones[self.ik_pole]
-            fk_upperarm = snap_to_bones[1]
+            fk_upperarm = snap_to_bones[-1]
             pbone_matrix_map[pole_pb.name] = self.get_pole_target_matrix(
                 pole_pb, fk_upperarm
             )
