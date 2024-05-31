@@ -64,6 +64,7 @@ class Component_TweakBone(Component_Base):
 
         if self.params.tweak.shape:
             tweak_bone.custom_shape = org_bi.custom_shape
+            tweak_bone.custom_shape_name = org_bi.custom_shape_name
             tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
             if tweak_bone.use_custom_shape_bone_size:
                 scalar = tweak_bone.length / org_bi.length
