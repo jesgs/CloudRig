@@ -1,7 +1,3 @@
-- Convert ui data to new format at end of generation
-- refactor add_ui_data to use new format natively
-- Add operators to inject new ui_data on the generated rig, and preserve that. (so probably a separate custom property storage dictionary)
-
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
 
@@ -115,21 +111,30 @@ Ideas:
 	A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
 	A button to copy a single bone set's settings to all selected bones.
 
-	Use python's `with` keyword with the `__enter__()` and `__exit__()` built-in functions on the generator to run the cleanup function that restores things to how they were. This should run on both successful and unsuccessful generations.
-
-	cloudrig.py:
-		Import stuff from cloudrig code, then at generation time to some shennanigans to replace the imports with the actual code that they're importing? Is this worth the headache? The only benefit is better code organization.
-
 	Component Types:
-		Try implementing the full body IK systems from angavrilov?
+		A rig type for animal legs. This would probably let us create equivalent metarigs to Rigify.
+		Try implementing the full body IK systems from angavrilov? But I'm not super sold on their usefulness and simplicity.
 
 		cloud_ik_chain
 			Add display helpers for IK master controls. This display helper should stick to the end of the IK chain when IK stretch is disabled. This is so that the IK control doesn't get lost.
 				I'd rather put a Limit Distance constraint on the IK control.
 
+	Face Rig/Mesh-based metarig system
+		(inspired by what I saw on BlenRig's page)
+		- User spawns a pre-made mesh.
+		- Under the hood there's an armature that's copying vertex positions on this mesh
+		- Shape this mesh to their own character
+		- Press a button that "generates" a metarig from the bones, by just applying the pose, removing some constraints, and revealing the armature.
+		- Have pre-made Actions
+		- Operator to merge Armatures without losing Action Slots.
+		- This system can be used for body rigs too, but those are already pretty easy to adjust anyways.
+		- Bone rolls and eyeballs might pose minor issues
+
 	UI:
-		Customizing bone shapes would be pretty neat.
+		Customizing bone shapes would be pretty neat, but not really important.
 			I'm thinking an enum dropdown where we list out all the available widget names from Widgets.blend.
+				- If we can make a prop_search for enum_items and we can dynamically define the items of an enum, then we can make a prop search of anything!!!
+					- We could try using this already in the Assign Widget operator.
 			Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
 			If generating with an empty object, switch it back to the defaults.
 		Use the lovely new boolean custom properties where it makes sense! (IK/FK toggles shouldn't be sliders!)
