@@ -29,7 +29,7 @@ bl_info = {
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",
     'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
-    'tracker_url': "https://projects.blender.org/Mets/CloudRig/issues/new?template=.gitea/issue_template/bug.yaml",
+    'tracker_url': "https://projects.blender.org/studio/blender-studio-pipelineq/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",
     'support' : 'OFFICIAL',
     'category': 'Rigging',
 }
