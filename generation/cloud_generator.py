@@ -1042,8 +1042,9 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
         target_rig.hide_set(False)
 
         # Make target rig visible, selected, active.
-        context.view_layer.objects.active = target_rig
-        target_rig.select_set(True)
+        if target_rig in context.view_layer.objects[:]:
+            context.view_layer.objects.active = target_rig
+            target_rig.select_set(True)
 
         # Restore object's mode.
         if target_rig.mode != mode:
