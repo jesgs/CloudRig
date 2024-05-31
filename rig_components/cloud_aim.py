@@ -168,7 +168,7 @@ class Component_Aim(Component_Base):
                 prop_id=prop_name,
 
                 panel_name="Face",
-                label_name=label_name,
+                label_name="Eye Highlights Follow",
                 row_name="Eye Highlights",
                 slider_name=self.side_prefix + " Eye",
 
@@ -178,7 +178,7 @@ class Component_Aim(Component_Base):
                 operator="pose.cloudrig_snap_bake",
                 op_icon="FILE_REFRESH",
                 op_kwargs={
-                    "bone_names": [bone.name],
+                    "bone_names": [highlight_ctr.name],
                 },
             )
 
