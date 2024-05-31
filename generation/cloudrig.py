@@ -1133,6 +1133,9 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, ui_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
         prop_value = prop_owner.path_resolve(prop_name)
 
+        bracketless_prop_name = prop_name
+        if prop_name.startswith('["') or prop_name.startswith("['"):
+            bracketless_prop_name = prop_name[2:-2]
         if not ui_name:
             ui_name = bracketless_prop_name
 
@@ -1150,9 +1153,6 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             # Property is a float/int/color
             # For large ranges, a slider doesn't make sense.
             try:
-                bracketless_prop_name = prop_name
-                if prop_name.startswith('["') or prop_name.startswith("['"):
-                    bracketless_prop_name = prop_name[2:-2]
                 if bracketless_prop_name in prop_owner:
                     prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
             except TypeError:
@@ -1168,9 +1168,12 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         # Pass on any paramteres to the operator that it will accept.
         for key, value in op_kwargs:
             if hasattr(op_props, key):
+                desired_type = type(getattr(op_props, key))
                 # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
                 if type(value) in {list, dict}:
                     value = json.dumps(value)
+                if desired_type == bool:
+                    value = bool(value)
                 setattr(op_props, key, value)
         return op_props
 
