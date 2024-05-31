@@ -1,4 +1,4 @@
-import bpy
+import bpy, re
 from typing import List, Tuple
 from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
 
@@ -679,7 +679,14 @@ class BoneInfo:
             # Copied constraint drivers
             for data_path, array_index in ci.drivers_to_copy:
                 fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
-                copy_relink_real_driver(metarig, arm_ob, fcurve)
+                if self.name not in data_path:
+                    # If the bone's name has changed, fix it in the data path.
+                    data_path = re.sub(r'bones\[".*?"\]', f'bones["{self.name}"]', data_path)
+                if ci.name not in data_path:
+                    # If the constraint's name has changed, fix it in the data path.
+                    data_path = re.sub(r'constraints\[".*?"\]', f'constraints["{ci.name}"]', data_path)
+
+                copy_relink_real_driver(metarig, arm_ob, fcurve, data_path)
 
         # Custom Properties.
         for prop_name, prop in self.custom_props.items():
@@ -702,6 +709,9 @@ class BoneInfo:
         # Copied drivers
         for data_path, array_index in self.drivers_to_copy:
             fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
+            if self.name not in data_path:
+                # If the bone's name has changed, fix it in the data path.
+                data_path = re.sub(r'bones\[".*?"\]', f'bones["{self.name}"]', data_path)
             copy_relink_real_driver(metarig, arm_ob, fcurve)
 
     def clone(self, new_name=None, bone_set=None):
@@ -938,9 +948,12 @@ class ConstraintInfo(dict):
         return con
 
 
-def copy_relink_real_driver(metarig, rig, fcurve):
-    """Adjust a real driver by simply replacing references to the metarig with the generated rig."""
-    copy_driver(fcurve, rig, fcurve.data_path)
+def copy_relink_real_driver(metarig, rig, fcurve, data_path=""):
+    """Copy a real driver to the target rig.
+    Replace references to the metarig with the generated rig.
+    May copy to a different data path than the source.
+    """
+    copy_driver(fcurve, rig, data_path)
     for var in fcurve.driver.variables:
         for tgt in var.targets:
             if tgt.id == metarig:
@@ -955,7 +968,7 @@ def copy_driver(
 
     Args:
         from_fcurve: FCurve containing a driver
-        target: ID that can have drivers added to it
+        target: ID that can have AnimationData
         data_path: Data Path of new driver. Defaults to copying the passed fcurve
         index: array index of the property to drive. Defaults to copying the passed fcurve
 

@@ -188,8 +188,9 @@ class BoneSet(LinkedList):
                         constraint_info = bone_info.get_constraint(con_name)
                         if constraint_info:
                             constraint_info.drivers_to_copy.append((data_path, array_index))
-                    else:
-                        bone_info.drivers_to_copy.append((data_path, array_index))
+                            continue
+
+                    bone_info.drivers_to_copy.append((data_path, array_index))
 
         # Load Custom Properties.
         if rna_idprop_has_properties(pose_bone):
