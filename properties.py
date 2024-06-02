@@ -492,7 +492,6 @@ class Properties_CloudRig(PropertyGroup):
         for pbone in parentless_pbones:
             order_idx = self.order_components_recursive(pbone, order_idx=order_idx, depth=0)
 
-
     def order_components_recursive(self, pbone, order_idx=0, depth=0):
         component = pbone.cloudrig_component
         component.order = order_idx
@@ -513,6 +512,12 @@ class Properties_CloudRig(PropertyGroup):
             order_idx = self.order_components_recursive(child_pb, order_idx, depth+1)
 
         return order_idx
+
+    ui_edit_mode: BoolProperty(
+        name="UI Edit Mode",
+        description="Reveal Rig UI editing operations",
+        default=False,
+    )
 
 
 def get_direct_child_component_pbones(root_pb):

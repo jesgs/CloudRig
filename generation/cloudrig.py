@@ -1022,9 +1022,6 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 setattr(operator, param, value)
 
 
-
-
-
 def get_rig_ui_data(rig: Object):
     if 'ui_data' in rig.data:
         return tuples_to_dict(rig.data['ui_data'].to_dict()['panels'])
@@ -1174,7 +1171,8 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         )
         if operator:
             self.draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
-        if True: # if property UI editing mode is enabled
+        if rig.cloudrig.ui_edit_mode:
+            sub_row.separator()
             self.draw_operator(
                 sub_row, 
                 bl_idname='pose.cloudrig_remove_property_from_ui', 
@@ -1310,10 +1308,15 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         layout.operator(
             POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
         )
-        if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
-            layout.operator(
-                'pose.cloudrig_add_property_to_ui', text='Add Property To UI', icon='PROPERTIES'
-            )
+        if hasattr(rig, 'cloudrig'):
+            # If CloudRig add-on is enabled.
+            layout.separator()
+            layout.prop(rig.cloudrig, 'ui_edit_mode', icon='GREASEPENCIL')
+            if rig.cloudrig.ui_edit_mode:
+                if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
+                    layout.operator(
+                        'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
+                    )
 
 
 #######################################
