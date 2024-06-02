@@ -193,7 +193,7 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
     bl_label = "Remove Property from UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name")
+    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name")
     delete_actual_prop: BoolProperty(name="Delete Actual Property", description="Instead of just removing the property from the interface, actually remove it from its owner. Only for Custom Properties")
 
     def invoke(self, context, event):
@@ -228,6 +228,24 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
 
         return {'FINISHED'}
 
+class CLOUDRIG_OT_reorder_rows(Operator):
+    """Rearrange this row in the UI"""
+    bl_idname = "pose.cloudrig_reorder_rows"
+    bl_label = "Reorder UI Rows"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    direction: EnumProperty(items=[
+        ('UP', 'Up', 'Up'),
+        ('DOWN', 'Down', 'Down')
+    ])
+    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name")
+
+    def execute(self, context):
+        ui_path = json.loads(self.ui_path)
+        reorder_ui_row(context.active_object, ui_path, self.direction)
+
+        self.report({'INFO'}, f'Moved {ui_path[-1]} {self.direction.lower()}.')
+        return {'FINISHED'}
 
 def path_resolve_safe(owner, data_path):
     try:
@@ -387,7 +405,76 @@ def remove_property_from_ui(
     write_rig_panels(obj, panels)
     return ui_entry_data
 
+def reorder_ui_row(
+    obj,
+    ui_path: list[str],
+    direction: str,
+):
+    panels = read_rig_panels(obj)
+
+    # For debugging, this variable pairs the UI element's data to its name.
+    parent_name = "Panels"
+    parents = []
+
+    ui_element = panels
+    for child_name in ui_path:
+        next_ui = ui_element.get(child_name)
+        if not next_ui:
+            return
+
+        parents.append((ui_element, parent_name, child_name))
+        ui_element = next_ui
+        parent_name = child_name
+
+    label_data, _label_name, row_name = parents.pop()
+    from_idx = ordereddict_get_index(label_data, row_name)
+
+    if direction == 'UP':
+        to_idx = from_idx - 1
+    else:
+        to_idx = from_idx + 1
+    
+    to_idx = min(to_idx, len(label_data)-1)
+    to_idx = max(0, to_idx)
+
+    reordered_dict = ordereddict_move_to_index(label_data, from_idx, to_idx)
+    panel, _panel_name, label_name = parents.pop()
+    panel[label_name] = reordered_dict
+
+    write_rig_panels(obj, panels)
+
+
+def ordereddict_get_index(od: OrderedDict, key):
+    for i, tup in enumerate(od.items()):
+        name, value = tup
+        if name == key:
+            return i
+
+def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
+    # I'm pretty annoyed this isn't a built-in functionality...
+    keys = list(od.keys())
+    values = list(od.values())
+
+    reordered_dict = OrderedDict()
+    for idx, tup in enumerate(od.items()):
+        name, value = tup
+        source_idx = idx
+        if idx == from_idx:
+            source_idx = to_idx
+        elif idx == to_idx:
+            source_idx = from_idx
+
+        key = keys[source_idx]
+        value = values[source_idx]
+        reordered_dict[key] = value
+
+    return reordered_dict
+
+
+
+
 registry = [
     CLOUDRIG_OT_add_property_to_ui,
     CLOUDRIG_OT_remove_property_from_ui,
+    CLOUDRIG_OT_reorder_rows,
 ]

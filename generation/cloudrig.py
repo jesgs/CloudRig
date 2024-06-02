@@ -1210,6 +1210,14 @@ def draw_slider(
             props.data_path = data_path
             props.property_name = bracketless_prop_name
 
+        if not sub_row.alert:
+            op = sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='TRIA_UP')
+            op.ui_path = json.dumps(ui_path[:-1])
+            op.direction='UP'
+            op = sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='TRIA_DOWN')
+            op.ui_path = json.dumps(ui_path[:-1])
+            op.direction='DOWN'
+
         draw_operator(
             sub_row, 
             bl_idname='pose.cloudrig_remove_property_from_ui', 
