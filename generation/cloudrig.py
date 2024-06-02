@@ -1096,9 +1096,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         """
 
         for label_name, label_data in panel_data.items():
-            if label_name == 'parent_id':
-                continue
-            self.draw_rig_settings_per_label(
+            draw_rig_settings_per_label(
                 layout=layout, 
                 rig=rig, 
                 ui_path=ui_path + [label_name], 
@@ -1106,35 +1104,36 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 label_data=label_data,
             )
 
-    def draw_rig_settings_per_label(
-                self, 
-                layout: UILayout, 
-                rig: Object, 
-                ui_path: list[str],
-                label_name: str, 
-                label_data: dict,
-            ):
-        if label_name:
-            layout.label(text=label_name)
-        for row_name, row_data in label_data.items():
-            sub_layout = layout
-            if len(row_data) > 1:
-                # To draw multiple sliders side-by-side, they need a higher level row to share.
-                # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
-                sub_layout = layout.row()
-            for slider_name, slider_data in row_data.items():
-                if slider_data.get('owner_path'):
-                    self.draw_slider(
-                        rig=rig, 
-                        layout=sub_layout, 
-                        ui_path=ui_path + [row_name, slider_name],
-                        slider_name=slider_name, 
-                        **slider_data
-                    )
-                elif slider_data.get('operator'):
-                    # Allow drawing an operator, even without a property.
-                    # TODO: Test this.
-                    self.draw_operator(sub_layout, **slider_data)
+def draw_rig_settings_per_label(
+            layout: UILayout, 
+            rig: Object, 
+            ui_path: list[str],
+            label_name: str, 
+            label_data: dict,
+        ):
+    if label_name == 'parent_id':
+        return
+    if label_name:
+        layout.label(text=label_name)
+    for row_name, row_data in label_data.items():
+        sub_layout = layout
+        if len(row_data) > 1:
+            # To draw multiple sliders side-by-side, they need a higher level row to share.
+            # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
+            sub_layout = layout.row()
+        for slider_name, slider_data in row_data.items():
+            if slider_data.get('owner_path'):
+                draw_slider(
+                    rig=rig, 
+                    layout=sub_layout, 
+                    ui_path=ui_path + [row_name, slider_name],
+                    slider_name=slider_name, 
+                    **slider_data
+                )
+            elif slider_data.get('operator'):
+                # Allow drawing an operator, even without a property.
+                # TODO: Test this.
+                draw_operator(sub_layout, **slider_data)
 
 def draw_slider(
         rig, 
@@ -1265,6 +1264,8 @@ def ensure_custom_panels(_dummy1, _dummy2):
         return
 
     for panel_name, panel_data in ui_data.items():
+        if panel_name == "":
+            continue
         parent_id = panel_data.get('parent_id')
         if not parent_id:
             parent_id = "CLOUDRIG_PT_settings"
@@ -1326,6 +1327,18 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                     layout.operator(
                         'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
                     )
+        
+        base_panel = get_rig_ui_data(rig).get("")
+        if base_panel:
+            layout.separator()
+            for label_name, label_data in base_panel.items():
+                draw_rig_settings_per_label(
+                    layout=layout, 
+                    rig=rig, 
+                    ui_path=["", label_name], 
+                    label_name=label_name,
+                    label_data=label_data,
+                )
 
 
 #######################################
