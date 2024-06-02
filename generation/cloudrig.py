@@ -1194,6 +1194,17 @@ def draw_slider(
 
     if rig.cloudrig.ui_edit_mode or sub_row.alert:
         sub_row.separator()
+
+        if not sub_row.alert:
+            data_path = "active_object"
+            if owner_path.startswith('['):
+                data_path += owner_path
+            else:
+                data_path += "."+owner_path
+            props = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
+            props.data_path = data_path
+            props.property_name = unquote_custom_prop_name(prop_name)
+
         draw_operator(
             sub_row, 
             bl_idname='pose.cloudrig_remove_property_from_ui', 
@@ -1207,9 +1218,7 @@ def draw_slider(
 def draw_property(layout: UILayout, prop_owner: ID, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
     prop_value = prop_owner.path_resolve(prop_name)
 
-    bracketless_prop_name = prop_name
-    if prop_name.startswith('["') or prop_name.startswith("['"):
-        bracketless_prop_name = prop_name[2:-2]
+    bracketless_prop_name = unquote_custom_prop_name(prop_name)
     if not slider_name:
         slider_name = bracketless_prop_name
 
@@ -1252,6 +1261,11 @@ def draw_operator(layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs=
                     value = bool(value)
                 setattr(op_props, key, value)
         return op_props
+
+def unquote_custom_prop_name(prop_name: str) -> str:
+    if prop_name.startswith('["') or prop_name.startswith("['"):
+        return prop_name[2:-2]
+    return prop_name
 
 custom_panels = []
 
