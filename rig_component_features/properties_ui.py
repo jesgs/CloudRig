@@ -3,7 +3,7 @@ from bpy.types import Operator, ID, bpy_struct, UILayout
 from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from collections import OrderedDict
-from ..generation.cloudrig import is_active_cloudrig, is_active_cloud_metarig, tuples_to_dict, dict_to_tuples
+from ..generation.cloudrig import is_active_cloudrig, is_active_cloud_metarig, tuples_to_dict, dict_to_tuples, unquote_custom_prop_name
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
 
@@ -37,13 +37,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     def poll(cls, context):
         return is_active_cloudrig(context) or is_active_cloud_metarig(context)
 
-    @staticmethod
-    def path_resolve_safe(owner, data_path):
-        try:
-            return owner.path_resolve(data_path)
-        except:
-            return
-
     def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
         data_path = bone_name = self.owner_path
         prop_name = self.prop_name
@@ -55,7 +48,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # If there's a dot in the property name, move the parts before the last dot to the end of the data path instead.
             split = prop_name.split(".")
             data_path += "." + ".".join(split[:-1])
-            prop_owner = self.path_resolve_safe(obj, data_path)
+            prop_owner = path_resolve_safe(obj, data_path)
             prop_name = split[-1]
 
         if data_path:
@@ -195,23 +188,52 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         return {'FINISHED'}
 
 class CLOUDRIG_OT_remove_property_from_ui(Operator):
-    """Remove this property from the interface"""
+    """Remove this property from the interface. Hold Shift to also remove the property itself"""
     bl_idname = "pose.cloudrig_remove_property_from_ui"
     bl_label = "Remove Property from UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name")
+    delete_actual_prop: BoolProperty(name="Delete Actual Property", description="Instead of just removing the property from the interface, actually remove it from its owner. Only for Custom Properties")
+
+    def invoke(self, context, event):
+        self.delete_actual_prop = event.shift
+        return self.execute(context)
 
     def execute(self, context):
+        rig = context.active_object
         ui_path = json.loads(self.ui_path)
-        remove_property_from_ui(
-            context.active_object,
+        ui_data = remove_property_from_ui(
+            rig,
             ui_path=ui_path,
         )
 
-        self.report({'INFO'}, f'Removed "{ui_path[-1]}" from the rig UI.')
+        message = f'Removed "{ui_path[-1]}" from UI'
+
+        if self.delete_actual_prop:
+            owner_path = ui_data.get('owner_path')
+            prop_name = unquote_custom_prop_name(ui_data.get('prop_name'))
+            if owner_path == "":
+                owner = rig
+            elif owner_path:
+                owner = path_resolve_safe(rig, owner_path)
+            
+            if prop_name in owner:
+                del owner[prop_name]
+                message += f' and deleted "{prop_name}" property'
+            else:
+                message += f' but failed to delete "{prop_name}" property'
+
+        self.report({'INFO'}, message+".")
 
         return {'FINISHED'}
+
+
+def path_resolve_safe(owner, data_path):
+    try:
+        return owner.path_resolve(data_path)
+    except:
+        return
 
 def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
     if 'BoneInfo' in str(type(prop_bone)):
@@ -318,7 +340,7 @@ def add_property_to_ui(
 def remove_property_from_ui(
     obj,
     ui_path: list[str],
-):
+) -> OrderedDict:
     """Remove an element of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 
@@ -326,6 +348,8 @@ def remove_property_from_ui(
     we will remove the `HairPin.L` slider from the `Hairpin` row of the `Headwear` label of the `Outfits` panel.
 
     If any of those elements become empty from this removal, the empty element will also be removed.
+
+    Returns the sub-dictionary that was removed from the nested dictionary.
     """
 
     panels = read_rig_panels(obj)
@@ -340,13 +364,14 @@ def remove_property_from_ui(
         next_ui = ui_element.get(child_name)
         if not next_ui:
             return
-        
+
         parents.append((ui_element, parent_name, child_name))
         ui_element = next_ui
         parent_name = child_name
 
     # Remove the deepest entry from its parent.
     parent, parent_name, child_name = parents.pop()
+    ui_entry_data = parent[child_name]
     del parent[child_name]
 
     # Now go up the tree, and keep removing elements if they have become empty.
@@ -360,7 +385,7 @@ def remove_property_from_ui(
             del parent[child_name]
 
     write_rig_panels(obj, panels)
-
+    return ui_entry_data
 
 registry = [
     CLOUDRIG_OT_add_property_to_ui,
