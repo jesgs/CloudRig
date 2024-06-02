@@ -1076,11 +1076,20 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
 
         panel_data = ui_data.get(self.bl_label)
         if panel_data:
-            self.draw_rig_settings_subpanel(self.layout, rig, panel_data)
+            self.draw_rig_settings_subpanel(
+                layout=self.layout, 
+                rig=rig, 
+                ui_path=[self.bl_label],
+                panel_data=panel_data,
+            )
 
-    def draw_rig_settings_subpanel(self,
-        layout: UILayout, rig: Object, panel_data: OrderedDict
-    ):
+    def draw_rig_settings_subpanel(
+                self,
+                layout: UILayout, 
+                rig: Object, 
+                ui_path: list[str], 
+                panel_data: OrderedDict,
+            ):
         """Panel data contains a list of tuples.
         The first entry of each tuple is a string telling us the type of UI element to draw.
         The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
@@ -1089,25 +1098,62 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         for label_name, label_data in panel_data.items():
             if label_name == 'parent_id':
                 continue
-            self.draw_rig_settings_per_label(layout, rig, label_name, label_data)
+            self.draw_rig_settings_per_label(
+                layout=layout, 
+                rig=rig, 
+                ui_path=ui_path + [label_name], 
+                label_name=label_name,
+                label_data=label_data,
+            )
 
-    def draw_rig_settings_per_label(self, layout, rig, label_name, label_data):
-            if label_name:
-                layout.label(text=label_name)
-            for row_name, row_data in label_data.items():
-                sub_layout = layout
-                if len(row_data) > 1:
-                    # To draw multiple sliders side-by-side, they need a higher level row to share.
-                    # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
-                    sub_layout = layout.row()
-                for slider_name, slider_data in row_data.items():
-                    if slider_data.get('owner_path'):
-                        self.draw_slider(rig, sub_layout, ui_name=slider_name, **slider_data)
-                    elif slider_data.get('operator'):
-                        # Allow drawing an operator, even without a property.
-                        self.draw_operator(sub_layout, **slider_data)
+    def draw_rig_settings_per_label(
+                self, 
+                layout: UILayout, 
+                rig: Object, 
+                ui_path: list[str],
+                label_name: str, 
+                label_data: dict,
+            ):
+        if label_name:
+            layout.label(text=label_name)
+        for row_name, row_data in label_data.items():
+            sub_layout = layout
+            if len(row_data) > 1:
+                # To draw multiple sliders side-by-side, they need a higher level row to share.
+                # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
+                sub_layout = layout.row()
+            for slider_name, slider_data in row_data.items():
+                if slider_data.get('owner_path'):
+                    self.draw_slider(
+                        rig=rig, 
+                        layout=sub_layout, 
+                        ui_path=ui_path + [row_name, slider_name],
+                        slider_name=slider_name, 
+                        **slider_data
+                    )
+                elif slider_data.get('operator'):
+                    # Allow drawing an operator, even without a property.
+                    # TODO: Test this.
+                    self.draw_operator(sub_layout, **slider_data)
 
-    def draw_slider(self, rig, layout: UILayout, owner_path: str, prop_name: str, *, ui_name="", texts={}, operator="", op_icon='BLANK1', op_kwargs={}, children={}):
+    def draw_slider(
+            self, 
+            rig, 
+            layout: UILayout, 
+            owner_path: str, 
+            prop_name: str, 
+            *, 
+
+            ui_path: list[str]=[],
+            slider_name="", 
+
+            texts={}, 
+            operator="", 
+            op_icon='BLANK1', 
+            op_kwargs={}, 
+
+            children={}
+        ):
         owner = rig.path_resolve(owner_path)
         if not owner:
             print(f"CloudRig UI Error: Couldn't find property owner: {owner_path}")
@@ -1118,9 +1164,25 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             return
 
         sub_row = layout.row(align=True)
-        self.draw_property(sub_row, owner, prop_name, ui_name=ui_name, texts=texts)
+        self.draw_property(
+            layout=sub_row, 
+            prop_owner=owner, 
+            prop_name=prop_name, 
+            
+            slider_name=slider_name, 
+            texts=texts
+        )
         if operator:
             self.draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
+        if True: # if property UI editing mode is enabled
+            self.draw_operator(
+                sub_row, 
+                bl_idname='pose.cloudrig_remove_property_from_ui', 
+                op_icon='X', 
+                op_kwargs={
+                    'ui_path': json.dumps(ui_path),
+                }
+            )
 
         prop_value_str = str(owner.path_resolve(prop_name))
         if children and prop_value_str in children:
@@ -1128,28 +1190,34 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             if current_children_ui:
                 for label_name, label_data in current_children_ui.items():
                     box_col = layout.box().column()
-                    self.draw_rig_settings_per_label(box_col, rig, label_name, label_data)
+                    self.draw_rig_settings_per_label(
+                        layout=box_col, 
+                        rig=rig, 
+                        ui_path= ui_path + ['children', prop_value_str, label_name],
+                        label_name=label_name, 
+                        label_data=label_data,
+                    )
 
-    def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, ui_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
+    def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
         prop_value = prop_owner.path_resolve(prop_name)
 
         bracketless_prop_name = prop_name
         if prop_name.startswith('["') or prop_name.startswith("['"):
             bracketless_prop_name = prop_name[2:-2]
-        if not ui_name:
-            ui_name = bracketless_prop_name
+        if not slider_name:
+            slider_name = bracketless_prop_name
 
         value_type, _is_array = rna_idprop_value_item_type(prop_value)
 
         if value_type is type(None) or issubclass(value_type, ID):
             # Property is a Datablock Pointer.
-            layout.prop(prop_owner, prop_name, text=ui_name)
+            layout.prop(prop_owner, prop_name, text=slider_name)
         elif value_type == bool:
             icon = icon_true if prop_value else icon_false
-            layout.prop(prop_owner, prop_name, toggle=True, text=ui_name, icon=icon)
+            layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
         elif value_type in {int, float}:
             if texts and str(prop_value) in texts:
-                ui_name += ": " + texts[str(prop_value)]
+                slider_name += ": " + texts[str(prop_value)]
             # Property is a float/int/color
             # For large ranges, a slider doesn't make sense.
             try:
@@ -1159,11 +1227,13 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 # This happens for Python properties. There's no point drawing them.
                 return
             slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
-            layout.prop(prop_owner, prop_name, slider=slider, text=ui_name)
+            layout.prop(prop_owner, prop_name, slider=slider, text=slider_name)
         elif value_type == str:
             layout.prop(prop_owner, prop_name)
 
     def draw_operator(self, layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
+        if type(op_kwargs) == dict:
+            op_kwargs = [(key, value) for key, value in op_kwargs.items()]
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
         # Pass on any paramteres to the operator that it will accept.
         for key, value in op_kwargs:

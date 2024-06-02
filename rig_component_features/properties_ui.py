@@ -1,4 +1,4 @@
-import bpy
+import bpy, json
 from bpy.types import Operator, ID, bpy_struct, UILayout
 from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty
@@ -8,8 +8,9 @@ from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
 
 class CLOUDRIG_OT_add_property_to_ui(Operator):
+    """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created with a value of 1.0. It can also have an operator next to it"""
     bl_idname = "pose.cloudrig_add_property_to_ui"
-    bl_label = "Add Property To UI"
+    bl_label = "Add Property to UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     owner_path: StringProperty(name="Property Owner", description="Python path from the rig to the owner of the property")
@@ -185,6 +186,25 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         return {'FINISHED'}
 
+class CLOUDRIG_OT_remove_property_from_ui(Operator):
+    """Remove this property from the interface"""
+    bl_idname = "pose.cloudrig_remove_property_from_ui"
+    bl_label = "Remove Property from UI"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name")
+
+    def execute(self, context):
+        ui_path = json.loads(self.ui_path)
+        remove_property_from_ui(
+            context.active_object,
+            ui_path=ui_path,
+        )
+
+        self.report({'INFO'}, f'Removed "{ui_path[-1]}" from the rig UI.')
+
+        return {'FINISHED'}
+
 def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
     if 'BoneInfo' in str(type(prop_bone)):
         kwargs['default'] = default
@@ -235,6 +255,18 @@ def make_property(
     if value and value != default:
         owner[name] = value
 
+def read_rig_panels(obj) -> OrderedDict:
+    if 'ui_data' not in obj.data:
+        obj.data['ui_data'] = {'panels' : []}
+    panels = obj.data['ui_data'].to_dict()['panels']
+    return tuples_to_dict(panels)
+
+def write_rig_panels(obj, panels) -> OrderedDict:
+    # Convert back to a list of tuples so Blender can store it without mangling it.
+    panels = {'panels' : dict_to_tuples(panels)}
+    obj.data['ui_data'] = panels
+
+
 def add_property_to_ui(
     obj,
     owner_path: str,
@@ -255,10 +287,8 @@ def add_property_to_ui(
     parent_id="",
 ) -> OrderedDict:
     # Convert existing UI data to an OrderedDict for easy operations.
-    if 'ui_data' not in obj.data:
-        obj.data['ui_data'] = {'panels' : []}
-    panels = obj.data['ui_data'].to_dict()['panels']
-    panels = tuples_to_dict(panels)
+
+    panels = read_rig_panels(obj)
 
     panel = panels.setdefault(panel_name, OrderedDict())
     panel['parent_id'] = parent_id
@@ -272,12 +302,60 @@ def add_property_to_ui(
     children = {str(key): value for key, value in children.items()}
     row[slider_name] = {'owner_path':owner_path, 'prop_name':prop_name, 'texts':texts, 'children':children, 'operator': operator, 'op_icon': op_icon, 'op_kwargs': op_kwargs}
 
-    # Convert back to a list of tuples so Blender can store it without mangling it.
-    panels = {'panels' : dict_to_tuples(panels)}
-    obj.data['ui_data'] = panels
+    write_rig_panels(obj, panels)
 
     return panels
 
+
+def remove_property_from_ui(
+    obj,
+    ui_path: list[str],
+):
+    """Remove an element of the rig UI, provided a list of names representing the path of
+    nesting to follow in the UI data which is a nested OrderedDict.
+
+    For example, if `ui_path = ['Outfits', 'Headwear', 'Hairpin', 'Hairpin.L']`,
+    we will remove the `HairPin.L` slider from the `Hairpin` row of the `Headwear` label of the `Outfits` panel.
+
+    If any of those elements become empty from this removal, the empty element will also be removed.
+    """
+
+    panels = read_rig_panels(obj)
+
+    ui_element = panels
+
+    # For debugging, this variable pairs the UI element's data to its name.
+    parent_name = "Panels"
+    parents = []
+
+    for child_name in ui_path:
+        next_ui = ui_element.get(child_name)
+        if not next_ui:
+            print("Failed to find UI element to remove: ", ui_path)
+            return
+        
+        parents.append((ui_element, parent_name, child_name))
+        ui_element = next_ui
+        parent_name = child_name
+
+    # Remove the deepest entry from its parent.
+    parent, parent_name, child_name = parents.pop()
+    del parent[child_name]
+
+    # Now go up the tree, and keep removing elements if they have become empty.
+    # So empty row, label, panels, and children data does not get left behind after removing their last elements.
+    for parent, parent_name, child_name in reversed(parents):
+        child_data = parent[child_name]
+        if (
+            len(child_data) == 0 or 
+            ( len(child_data) == 1 and 'parent_id' in child_data)
+        ):
+            del parent[child_name]
+
+    write_rig_panels(obj, panels)
+
+
 registry = [
-    CLOUDRIG_OT_add_property_to_ui
+    CLOUDRIG_OT_add_property_to_ui,
+    CLOUDRIG_OT_remove_property_from_ui,
 ]
