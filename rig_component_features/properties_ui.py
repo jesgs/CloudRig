@@ -1,14 +1,21 @@
 import bpy, json, sys, os
-from bpy.types import Operator, ID, bpy_struct, UILayout
+from bpy.types import Operator, ID, bpy_struct, PoseBone, Bone, UILayout
 from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from collections import OrderedDict
-from ..generation.cloudrig import is_active_cloudrig, is_active_cloud_metarig, tuples_to_dict, dict_to_tuples, unquote_custom_prop_name, ensure_custom_panels
+from ..generation.cloudrig import (
+    is_active_cloudrig, 
+    is_active_cloud_metarig, 
+    tuples_to_dict, 
+    dict_to_tuples, 
+    unquote_custom_prop_name, 
+    ensure_custom_panels
+)
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
 
 class CLOUDRIG_OT_add_property_to_ui(Operator):
-    """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created with a value of 1.0. It can also have an operator next to it"""
+    """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
     bl_idname = "pose.cloudrig_add_property_to_ui"
     bl_label = "Add Property to UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
@@ -19,11 +26,11 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
-        else:
+        elif self.owner_path != '':
             self.owner_path = f'pose.bones["{self.owner_path}"]'
 
-    owner_path: StringProperty(name="Property Owner", description="Python path from the rig to the owner of the property")
-    use_bone_selector: BoolProperty(name="Use Bone", description="Display a bone selector", default=True, update=update_use_bone_selector)
+    owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
+    use_bone_selector: BoolProperty(name="Use Bone Selector", description="Display a bone selector. If disabled, you can manually type in a data path", default=True, update=update_use_bone_selector)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
 
     panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
@@ -44,6 +51,11 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         # In case a data path wasn't provided, the default property owner is the object itself.
         prop_owner = obj
 
+        if data_path and self.use_bone_selector:
+            # If user wants to use the bone search selector, 
+            # we need to help them get the data path to the selected pose bone.
+            data_path = f'pose.bones["{bone_name}"]'
+
         if "." in prop_name:
             # If there's a dot in the property name, move the parts before the last dot to the end of the data path instead.
             split = prop_name.split(".")
@@ -52,11 +64,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             prop_name = split[-1]
 
         if data_path:
-            if self.use_bone_selector:
-                # If user wants to use the bone search selector, 
-                # we need to help them get the data path to the selected pose bone.
-                data_path = f'pose.bones["{bone_name}"]'
-
             prop_owner = path_resolve_safe(obj, data_path)
 
         if not prop_owner:
@@ -83,6 +90,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # Can be useful to re-assure the user that we have the property they intend.
             prop_value = path_resolve_safe(obj, full_path)
 
+        if prop_name and not prop_value:
+            prop_value = path_resolve_safe(obj, full_path)
+
         return prop_owner, full_path, data_path, prop_name, prop_value
 
     def invoke(self, context, _event):
@@ -93,54 +103,78 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         return context.window_manager.invoke_props_dialog(self, width=600)
 
     def draw(self, context):
-        layout = self.layout
+        layout = self.layout.column()
         rig = context.active_object
-        row = layout.row(align=True)
+
+        owner_box = layout.box()
+        owner_row = owner_box.row(align=True)
+        if self.use_bone_selector:
+            owner_row.prop_search(self, 'owner_path', rig.pose, 'bones', text="Property Bone")
+        else:
+            owner_row.prop(self, 'owner_path')
+        owner_row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
 
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
 
-        if not prop_owner:
-            row.alert = True
-
-        if self.use_bone_selector:
-            row.prop_search(self, 'owner_path', rig.pose, 'bones')
-        else:
-            row.prop(self, 'owner_path')
-        row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
-        layout.prop(self, 'prop_name')
-        if prop_owner:
-            text = f'Owner: {type(prop_owner).__name__} '
-            if hasattr(prop_owner, 'name'):
-                text += prop_owner.name
-            else:
-                text += str(prop_owner)
-            layout.label(text=text)
-        else:
-            layout.label(text=f'Data path "{self.owner_path}" failed to resolve on {rig.name}.')
+        if self.owner_path and not prop_owner:
+            # User tried providing a data path, but it didn't path_resolve() to anything.
+            owner_row.alert = True
+            alert_row = owner_box.row()
+            alert_row.alert=True
+            alert_row.label(text=f"No property owner at '{self.owner_path}' found.", icon='ERROR')
             return
 
-        if self.owner_path and not prop_owner:
-            row = layout.row(alert=True)
-            row.label(text=f"No property owner at '{self.owner_path}' found.", icon='ERROR')
+        text = f'{type(prop_owner).__name__}'
+        if hasattr(prop_owner, 'name'):
+            text += f" ('{prop_owner.name}')"
+        else:
+            text += str(prop_owner)
+        try:
+            icon_value = UILayout.icon(prop_owner)
+            owner_box.label(text=text, icon_value=icon_value)
+        except:
+            owner_box.label(text=text, icon='INFO')
+
+        prop_box = layout.box()
+        prop_box.prop(self, 'prop_name')
+
+        if not prop_owner:
+            prop_box.label(text=f'Data path failed to resolve on {rig.name}.')
+            return
 
         if not self.prop_name:
+            # User hasn't typed in a property name yet. Don't overwhelm them with the rest of the UI.
             return
-        layout.label(text="Data Path: " + full_path)
-        if prop_value:
-            if type(prop_value) == bpy_struct:
-                layout.label(text="Please specify a property name.")
+
+        if prop_value != None:
+            if isinstance(prop_value, bpy_struct):
+                row = prop_box.row()
+                row.alert=True
+                row.label(text="This is a struct, not a property.", icon='ERROR')
+                return
             else:
-                layout.label(text=f"Existing property found with a current value of {prop_value}.")
+                prop_box.label(text=f"Property found.", icon='CHECKMARK')
+                prop_box.prop(prop_owner, brackets_prop_name)
+        elif type(prop_owner) in {ID, PoseBone, Bone}:
+            prop_box.label(text="Property will be created with a value of 1.0.", icon='CHECKMARK')
         else:
-            layout.label(text="Property will be created with a value of 1.0.")
+            row = prop_box.row()
+            row.alert = True
+            row.label(text="Property not found.", icon='ERROR')
+            return
 
         layout.separator()
-        layout.prop(self, 'panel_name')
-        layout.prop(self, 'label_name')
-        layout.prop(self, 'row_name')
-        layout.prop(self, 'slider_name')
+
+        panel_box = layout.box()
+        panel_box.prop(self, 'panel_name')
+        panel_box.prop(self, 'label_name')
+        panel_box.prop(self, 'row_name')
+        panel_box.prop(self, 'slider_name')
+
         layout.separator()
-        layout.prop(self.temp_kmi, 'idname', text="Operator")
+
+        op_box = layout.box().column()
+        op_box.prop(self.temp_kmi, 'idname', text="Operator")
         self.op_kwargs = {}
         if self.temp_kmi.idname:
             box = None
@@ -149,21 +183,27 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 if key == 'rna_type':
                     continue
                 if not box:
-                    box = layout.box().column(align=True)
+                    box = op_box.box().column(align=True)
                 box.prop(self.temp_kmi.properties, key)
                 self.op_kwargs[key] = str(getattr(self.temp_kmi.properties, key))
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
-            layout.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon)
+            op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon)
 
     def execute(self, context):
         owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(context.active_object)
 
-        if self.prop_name not in owner and self.prop_name not in owner.__dir__():
-            # Target is a custom property that doesn't exist yet, so let's create it.
-            ensure_custom_property(
-                owner,
-                self.prop_name
-            )
+        if self.prop_name != brackets_prop_name:
+            if type(owner) in {ID, PoseBone, Bone}:
+                # Owner supports custom props.
+                if self.prop_name not in owner:
+                    # Target is a custom property that doesn't exist yet, so let's create it.
+                    ensure_custom_property(
+                        owner,
+                        self.prop_name
+                    )
+            else:
+                self.report({'ERROR'}, f'{type(owner)} does not support custom properties.')
+                return {'CANCELLED'}
 
         if not self.slider_name:
             self.slider_name = self.prop_name

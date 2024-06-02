@@ -14,7 +14,7 @@ from bpy.props import (
     PointerProperty,
     IntProperty,
 )
-from bpy.types import Object, PoseBone, UILayout, UIList, ID, Panel, Menu, Operator, PropertyGroup, BoneCollection, Bone
+from bpy.types import bpy_struct, ID, Object, PoseBone, UILayout, UIList, Panel, Menu, Operator, PropertyGroup, BoneCollection, Bone
 from rna_prop_ui import IDPropertyArray, rna_idprop_quote_path, rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 
@@ -1155,13 +1155,18 @@ def draw_slider(
     if owner_path == "":
         owner = rig
     else:
-        owner = rig.path_resolve(owner_path)
+        try:
+            owner = rig.path_resolve(owner_path)
+        except ValueError:
+            # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
+            owner = None
+            pass
 
     sub_row = layout.row(align=True)
 
     if not owner:
         sub_row.alert=True
-        sub_row.label(text=f"Missing find property owner: '{owner_path}' for property '{prop_name}'.", icon='ERROR')
+        sub_row.label(text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.", icon='ERROR')
     else:
         try:
             value = owner.path_resolve(prop_name)
@@ -1202,7 +1207,7 @@ def draw_slider(
         bracketless_prop_name = unquote_custom_prop_name(prop_name)
 
         if not sub_row.alert:
-            if bracketless_prop_name in owner:
+            if bracketless_prop_name not in owner.__dir__() and bracketless_prop_name in owner:
                 data_path = "active_object"
                 if owner_path.startswith('['):
                     data_path += owner_path
@@ -1217,7 +1222,7 @@ def draw_slider(
         sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = json.dumps(ui_path)
 
 
-def draw_property(layout: UILayout, prop_owner: ID, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
+def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
     prop_value = prop_owner.path_resolve(prop_name)
 
     bracketless_prop_name = unquote_custom_prop_name(prop_name)
@@ -1233,18 +1238,23 @@ def draw_property(layout: UILayout, prop_owner: ID, prop_name: str, *, slider_na
         icon = icon_true if prop_value else icon_false
         layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
     elif value_type in {int, float}:
-        if texts and str(prop_value) in texts:
-            slider_name += ": " + texts[str(prop_value)]
-        # Property is a float/int/color
-        # For large ranges, a slider doesn't make sense.
-        try:
-            if bracketless_prop_name in prop_owner:
-                prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
-        except TypeError:
-            # This happens for Python properties. There's no point drawing them.
-            return
-        slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
-        layout.prop(prop_owner, prop_name, slider=slider, text=slider_name)
+        if bracketless_prop_name != prop_name:
+            # If this is a custom property.
+
+            if texts and str(prop_value) in texts:
+                slider_name += ": " + texts[str(prop_value)]
+            # Property is a float/int/color
+            # For large ranges, a slider doesn't make sense.
+            try:
+                if bracketless_prop_name in prop_owner:
+                    prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
+            except TypeError:
+                # This happens for Python properties. There's no point drawing them.
+                return
+            is_slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+            layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)
+        else:
+            layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type == str:
         layout.prop(prop_owner, prop_name)
 
