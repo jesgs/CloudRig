@@ -17,10 +17,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     use_bone: BoolProperty(name="Use Bone", description="Display a bone selector", default=True)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
 
-    panel_name: StringProperty(name="Panel Name", default="Properties", description="The sub-panel that this property should be displayed in")
-    label_name: StringProperty(name="Label Name", description="Optional: Place this property under a text label")
-    row_name: StringProperty(name="Row Name", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row Name, they will be drawn in the same row")
-    slider_name: StringProperty(name="Slider Name", description="Optional: Override the display name of the property")
+    panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
+    label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
+    row_name: StringProperty(name="Row Identifier", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row Name, they will be drawn in the same row")
+    slider_name: StringProperty(name="UI Text", description="Optional: Override the display text of the property")
 
     op_icon: StringProperty(name="Operator Icon", default='BLANK1', description="Operator Icon")
 
@@ -292,8 +292,8 @@ def add_property_to_ui(
 
     panel = panels.setdefault(panel_name, OrderedDict())
     panel['parent_id'] = parent_id
-    header = panel.setdefault(label_name, OrderedDict())
-    row = header.setdefault(row_name, OrderedDict())
+    label = panel.setdefault(label_name, OrderedDict())
+    row = label.setdefault(row_name, OrderedDict())
 
     if not slider_name:
         slider_name = prop_name
@@ -331,7 +331,6 @@ def remove_property_from_ui(
     for child_name in ui_path:
         next_ui = ui_element.get(child_name)
         if not next_ui:
-            print("Failed to find UI element to remove: ", ui_path)
             return
         
         parents.append((ui_element, parent_name, child_name))

@@ -1022,11 +1022,13 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                 setattr(operator, param, value)
 
 
-def get_rig_ui_data(rig: Object):
+def get_rig_ui_data(rig: Object) -> OrderedDict:
+    """Return the rig's UI data as a nested OrderedDict."""
     if 'ui_data' in rig.data:
         return tuples_to_dict(rig.data['ui_data'].to_dict()['panels'])
 
-def dict_to_tuples(ordered_dict: OrderedDict):
+def dict_to_tuples(ordered_dict: OrderedDict) -> list[tuple[str, list]]:
+    """Convert a nested OrderedDict to a nested list of tuples."""
     tuples = []
     for key, value in ordered_dict.items():
         if type(value) in {dict, OrderedDict}:
@@ -1034,7 +1036,8 @@ def dict_to_tuples(ordered_dict: OrderedDict):
         tuples.append((key, value))
     return tuples
 
-def tuples_to_dict(tuples: list[tuple]):
+def tuples_to_dict(tuples: list[tuple[str, list]]) -> OrderedDict:
+    """Convert a nested list of (string, data) tuples to a nested OrderedDict."""
     ordered_dict = OrderedDict()
     for key, value in tuples:
         if key not in {'op_kwargs'}:
@@ -1133,35 +1136,39 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                     # TODO: Test this.
                     self.draw_operator(sub_layout, **slider_data)
 
-    def draw_slider(
-            self, 
-            rig, 
-            layout: UILayout, 
-            owner_path: str, 
-            prop_name: str, 
-            *, 
+def draw_slider(
+        rig, 
+        layout: UILayout, 
+        owner_path: str, 
+        prop_name: str, 
+        *, 
 
-            ui_path: list[str]=[],
-            slider_name="", 
+        ui_path: list[str]=[],
+        slider_name="", 
 
-            texts={}, 
-            operator="", 
-            op_icon='BLANK1', 
-            op_kwargs={}, 
+        texts={}, 
+        operator="", 
+        op_icon='BLANK1', 
+        op_kwargs={}, 
 
-            children={}
-        ):
-        owner = rig.path_resolve(owner_path)
-        if not owner:
-            print(f"CloudRig UI Error: Couldn't find property owner: {owner_path}")
+        children={}
+    ):
+    owner = rig.path_resolve(owner_path)
+    sub_row = layout.row(align=True)
+
+    if not owner:
+        sub_row.alert=True
+        sub_row.label(text=f"Missing find property owner: '{owner_path}' for property '{prop_name}'.", icon='ERROR')
+    else:
         try:
             value = owner.path_resolve(prop_name)
         except ValueError:
-            print(f"CloudRIg UI Error: Couldn't evaluate property {prop_name} of owner {owner_path}")
-            return
+            sub_row.alert=True
+            sub_row.label(text=f"Missing property '{prop_name}' of owner '{owner_path}'.", icon='ERROR')
 
-        sub_row = layout.row(align=True)
-        self.draw_property(
+
+    if not sub_row.alert:
+        draw_property(
             layout=sub_row, 
             prop_owner=owner, 
             prop_name=prop_name, 
@@ -1170,17 +1177,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             texts=texts
         )
         if operator:
-            self.draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
-        if rig.cloudrig.ui_edit_mode:
-            sub_row.separator()
-            self.draw_operator(
-                sub_row, 
-                bl_idname='pose.cloudrig_remove_property_from_ui', 
-                op_icon='X', 
-                op_kwargs={
-                    'ui_path': json.dumps(ui_path),
-                }
-            )
+            draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
 
         prop_value_str = str(owner.path_resolve(prop_name))
         if children and prop_value_str in children:
@@ -1188,7 +1185,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             if current_children_ui:
                 for label_name, label_data in current_children_ui.items():
                     box_col = layout.box().column()
-                    self.draw_rig_settings_per_label(
+                    draw_rig_settings_per_label(
                         layout=box_col, 
                         rig=rig, 
                         ui_path= ui_path + ['children', prop_value_str, label_name],
@@ -1196,40 +1193,52 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                         label_data=label_data,
                     )
 
-    def draw_property(self, layout: UILayout, prop_owner: ID, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
-        prop_value = prop_owner.path_resolve(prop_name)
+    if rig.cloudrig.ui_edit_mode or sub_row.alert:
+        sub_row.separator()
+        draw_operator(
+            sub_row, 
+            bl_idname='pose.cloudrig_remove_property_from_ui', 
+            op_icon='X', 
+            op_kwargs={
+                'ui_path': json.dumps(ui_path),
+            }
+        )
 
-        bracketless_prop_name = prop_name
-        if prop_name.startswith('["') or prop_name.startswith("['"):
-            bracketless_prop_name = prop_name[2:-2]
-        if not slider_name:
-            slider_name = bracketless_prop_name
 
-        value_type, _is_array = rna_idprop_value_item_type(prop_value)
+def draw_property(layout: UILayout, prop_owner: ID, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
+    prop_value = prop_owner.path_resolve(prop_name)
 
-        if value_type is type(None) or issubclass(value_type, ID):
-            # Property is a Datablock Pointer.
-            layout.prop(prop_owner, prop_name, text=slider_name)
-        elif value_type == bool:
-            icon = icon_true if prop_value else icon_false
-            layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
-        elif value_type in {int, float}:
-            if texts and str(prop_value) in texts:
-                slider_name += ": " + texts[str(prop_value)]
-            # Property is a float/int/color
-            # For large ranges, a slider doesn't make sense.
-            try:
-                if bracketless_prop_name in prop_owner:
-                    prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
-            except TypeError:
-                # This happens for Python properties. There's no point drawing them.
-                return
-            slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
-            layout.prop(prop_owner, prop_name, slider=slider, text=slider_name)
-        elif value_type == str:
-            layout.prop(prop_owner, prop_name)
+    bracketless_prop_name = prop_name
+    if prop_name.startswith('["') or prop_name.startswith("['"):
+        bracketless_prop_name = prop_name[2:-2]
+    if not slider_name:
+        slider_name = bracketless_prop_name
 
-    def draw_operator(self, layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
+    value_type, _is_array = rna_idprop_value_item_type(prop_value)
+
+    if value_type is type(None) or issubclass(value_type, ID):
+        # Property is a Datablock Pointer.
+        layout.prop(prop_owner, prop_name, text=slider_name)
+    elif value_type == bool:
+        icon = icon_true if prop_value else icon_false
+        layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
+    elif value_type in {int, float}:
+        if texts and str(prop_value) in texts:
+            slider_name += ": " + texts[str(prop_value)]
+        # Property is a float/int/color
+        # For large ranges, a slider doesn't make sense.
+        try:
+            if bracketless_prop_name in prop_owner:
+                prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
+        except TypeError:
+            # This happens for Python properties. There's no point drawing them.
+            return
+        slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+        layout.prop(prop_owner, prop_name, slider=slider, text=slider_name)
+    elif value_type == str:
+        layout.prop(prop_owner, prop_name)
+
+def draw_operator(layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
         if type(op_kwargs) == dict:
             op_kwargs = [(key, value) for key, value in op_kwargs.items()]
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
