@@ -5,11 +5,9 @@ from ..utils.misc import get_addon_prefs
 from .bone import BoneInfo, ensure_custom_property
 
 from collections import OrderedDict
-import bpy, sys, os
-import json
 
 from ..generation.cloudrig import is_cloud_metarig, tuples_to_dict, dict_to_tuples
-from .properties_ui import add_property_to_ui
+from .properties_ui import add_property_to_ui, redraw_viewport
 
 
 class CloudUIMixin:
@@ -166,26 +164,3 @@ def draw_prop_search(
     row = layout.row()
     row.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
     return row
-
-class HiddenPrints:
-    def write(*args):
-        # This is a workaround to /issues/83 based on
-        # https://stackoverflow.com/questions/6735917/redirecting-stdout-to-nothing-in-python
-        pass
-
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        try:
-            sys.stdout = open(os.devnull, 'w')
-        except FileNotFoundError:
-            # Workaround, relies on this class having a write() method.
-            sys.stdout = self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
-
-
-def redraw_viewport():
-    with HiddenPrints():
-        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)

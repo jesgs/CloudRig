@@ -1,9 +1,9 @@
-import bpy, json
+import bpy, json, sys, os
 from bpy.types import Operator, ID, bpy_struct, UILayout
 from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from collections import OrderedDict
-from ..generation.cloudrig import is_active_cloudrig, is_active_cloud_metarig, tuples_to_dict, dict_to_tuples, unquote_custom_prop_name
+from ..generation.cloudrig import is_active_cloudrig, is_active_cloud_metarig, tuples_to_dict, dict_to_tuples, unquote_custom_prop_name, ensure_custom_panels
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
 
@@ -57,7 +57,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 # we need to help them get the data path to the selected pose bone.
                 data_path = f'pose.bones["{bone_name}"]'
 
-            prop_owner = self.path_resolve_safe(obj, data_path)
+            prop_owner = path_resolve_safe(obj, data_path)
 
         if not prop_owner:
             # If a nonsense data path was provided, return empty values.
@@ -81,7 +81,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if not prop_value:
             # If we didn't get the property value yet, grab it. 
             # Can be useful to re-assure the user that we have the property they intend.
-            prop_value = self.path_resolve_safe(obj, full_path)
+            prop_value = path_resolve_safe(obj, full_path)
 
         return prop_owner, full_path, data_path, prop_name, prop_value
 
@@ -183,6 +183,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             op_kwargs=self.op_kwargs
         )
 
+        ensure_custom_panels(None, None)
+        redraw_viewport()
+
         self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
 
         return {'FINISHED'}
@@ -229,23 +232,45 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
         return {'FINISHED'}
 
 class CLOUDRIG_OT_reorder_rows(Operator):
-    """Rearrange this row in the UI"""
+    """Rearrange this UI row by moving the mouse up and down. Left-click to confirm, right-click to cancel"""
     bl_idname = "pose.cloudrig_reorder_rows"
     bl_label = "Reorder UI Rows"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    direction: EnumProperty(items=[
-        ('UP', 'Up', 'Up'),
-        ('DOWN', 'Down', 'Down')
-    ])
     ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name")
+
+    def invoke(self, context, event):
+        self.mouse_initial = event.mouse_y
+        self.index_offset = 0
+        self.initial_panel_data = read_rig_panels(context.active_object)
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        if event.type == 'MOUSEMOVE':
+            self.index_offset = int((event.mouse_y - self.mouse_initial) / -20)
+            if self.index_offset != 0:
+                ret = self.execute(context)
+                if ret == {'FINISHED'}:
+                    redraw_viewport()
+                    self.mouse_initial = event.mouse_y
+        elif event.type == 'LEFTMOUSE':
+            return {'FINISHED'}
+        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            write_rig_panels(context.active_object, self.initial_panel_data)
+            redraw_viewport()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         ui_path = json.loads(self.ui_path)
-        reorder_ui_row(context.active_object, ui_path, self.direction)
-
-        self.report({'INFO'}, f'Moved {ui_path[-1]} {self.direction.lower()}.')
-        return {'FINISHED'}
+        
+        if reorder_ui_row(context.active_object, ui_path, self.index_offset):
+            return {'FINISHED'}
+        else:
+            return {'CANCELLED'}
 
 def path_resolve_safe(owner, data_path):
     try:
@@ -408,8 +433,20 @@ def remove_property_from_ui(
 def reorder_ui_row(
     obj,
     ui_path: list[str],
-    direction: str,
-):
+    index_offset = 1,
+) -> bool:
+    """Re-order a row of the rig UI, provided a list of names representing the path of
+    nesting to follow in the UI data which is a nested OrderedDict.
+
+    For example, if `ui_path = ['Outfits', 'Headwear', 'Hairpin']`,
+    we will move the `HairPin` row in the the `Headwear` label of the `Outfits` panel 
+    by the provided index_offset.
+
+    If the index gets clamped and therefore we don't need to perform any re-ordering, we
+    don't.
+    Return a bool of whether any re-ordering was actually performed.
+    """
+
     panels = read_rig_panels(obj)
 
     # For debugging, this variable pairs the UI element's data to its name.
@@ -429,28 +466,28 @@ def reorder_ui_row(
     label_data, _label_name, row_name = parents.pop()
     from_idx = ordereddict_get_index(label_data, row_name)
 
-    if direction == 'UP':
-        to_idx = from_idx - 1
-    else:
-        to_idx = from_idx + 1
-    
+    to_idx = from_idx + index_offset
     to_idx = min(to_idx, len(label_data)-1)
     to_idx = max(0, to_idx)
 
-    reordered_dict = ordereddict_move_to_index(label_data, from_idx, to_idx)
-    panel, _panel_name, label_name = parents.pop()
-    panel[label_name] = reordered_dict
+    if from_idx != to_idx:
+        reordered_dict = ordereddict_move_to_index(label_data, from_idx, to_idx)
+        panel, _panel_name, label_name = parents.pop()
+        panel[label_name] = reordered_dict
 
-    write_rig_panels(obj, panels)
+        write_rig_panels(obj, panels)
+        return True
+
+    return False
 
 
-def ordereddict_get_index(od: OrderedDict, key):
+def ordereddict_get_index(od: OrderedDict, key) -> int:
     for i, tup in enumerate(od.items()):
         name, value = tup
         if name == key:
             return i
 
-def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
+def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int) -> OrderedDict:
     # I'm pretty annoyed this isn't a built-in functionality...
     keys = list(od.keys())
     values = list(od.values())
@@ -471,6 +508,28 @@ def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
     return reordered_dict
 
 
+class HiddenPrints:
+    def write(*args):
+        # This is a workaround to /issues/83 based on
+        # https://stackoverflow.com/questions/6735917/redirecting-stdout-to-nothing-in-python
+        pass
+
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        try:
+            sys.stdout = open(os.devnull, 'w')
+        except FileNotFoundError:
+            # Workaround, relies on this class having a write() method.
+            sys.stdout = self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
+
+def redraw_viewport():
+    with HiddenPrints():
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 
 registry = [

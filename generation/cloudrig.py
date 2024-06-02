@@ -1195,37 +1195,26 @@ def draw_slider(
                         label_data=label_data,
                     )
 
-    if rig.cloudrig.ui_edit_mode or sub_row.alert:
+    addon_present = hasattr(rig, 'cloudrig')
+    if addon_present and (rig.cloudrig.ui_edit_mode or sub_row.alert):
         sub_row.separator()
 
         bracketless_prop_name = unquote_custom_prop_name(prop_name)
 
-        if not sub_row.alert and bracketless_prop_name in owner:
-            data_path = "active_object"
-            if owner_path.startswith('['):
-                data_path += owner_path
-            elif owner_path != "":
-                data_path += "."+owner_path
-            props = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
-            props.data_path = data_path
-            props.property_name = bracketless_prop_name
-
         if not sub_row.alert:
-            op = sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='TRIA_UP')
-            op.ui_path = json.dumps(ui_path[:-1])
-            op.direction='UP'
-            op = sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='TRIA_DOWN')
-            op.ui_path = json.dumps(ui_path[:-1])
-            op.direction='DOWN'
+            if bracketless_prop_name in owner:
+                data_path = "active_object"
+                if owner_path.startswith('['):
+                    data_path += owner_path
+                elif owner_path != "":
+                    data_path += "."+owner_path
+                edit_op = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
+                edit_op.data_path = data_path
+                edit_op.property_name = bracketless_prop_name
 
-        draw_operator(
-            sub_row, 
-            bl_idname='pose.cloudrig_remove_property_from_ui', 
-            op_icon='X', 
-            op_kwargs={
-                'ui_path': json.dumps(ui_path),
-            }
-        )
+            sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
+
+        sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = json.dumps(ui_path)
 
 
 def draw_property(layout: UILayout, prop_owner: ID, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):

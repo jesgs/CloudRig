@@ -20,7 +20,7 @@ from ..utils.external.collections import ensure_collection
 
 # TODO: All of these imports are suspiciously NOT rig component features if they are being used by the generator.
 from ..rig_component_features.widgets import widgets as cloud_widgets
-from ..rig_component_features.ui import redraw_viewport, get_addon_prefs
+from ..rig_component_features.ui import get_addon_prefs
 from ..rig_component_features import mechanism
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
