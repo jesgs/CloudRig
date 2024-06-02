@@ -13,8 +13,17 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     bl_label = "Add Property to UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
+    def update_use_bone_selector(self, context):
+        if self.use_bone_selector:
+            if self.owner_path.startswith("pose.bones"):
+                self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
+            else:
+                self.owner_path = ""
+        else:
+            self.owner_path = f'pose.bones["{self.owner_path}"]'
+
     owner_path: StringProperty(name="Property Owner", description="Python path from the rig to the owner of the property")
-    use_bone: BoolProperty(name="Use Bone", description="Display a bone selector", default=True)
+    use_bone_selector: BoolProperty(name="Use Bone", description="Display a bone selector", default=True, update=update_use_bone_selector)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
 
     panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
@@ -44,14 +53,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         if "." in prop_name:
             # If there's a dot in the property name, move the parts before the last dot to the end of the data path instead.
-            # Note that this part of the code must come after 
             split = prop_name.split(".")
             data_path += "." + ".".join(split[:-1])
             prop_owner = self.path_resolve_safe(obj, data_path)
             prop_name = split[-1]
 
         if data_path:
-            if self.use_bone:
+            if self.use_bone_selector:
                 # If user wants to use the bone search selector, 
                 # we need to help them get the data path to the selected pose bone.
                 data_path = f'pose.bones["{bone_name}"]'
@@ -101,11 +109,11 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if not prop_owner:
             row.alert = True
 
-        if self.use_bone:
+        if self.use_bone_selector:
             row.prop_search(self, 'owner_path', rig.pose, 'bones')
         else:
             row.prop(self, 'owner_path')
-        row.prop(self, 'use_bone', icon='BONE_DATA', text="")
+        row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
         layout.prop(self, 'prop_name')
         if prop_owner:
             text = f'Owner: {type(prop_owner).__name__} '
