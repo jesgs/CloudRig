@@ -1122,7 +1122,7 @@ def draw_rig_settings_per_label(
             # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
             sub_layout = layout.row()
         for slider_name, slider_data in row_data.items():
-            if slider_data.get('owner_path'):
+            if slider_data.get('owner_path') != None:
                 draw_slider(
                     rig=rig, 
                     layout=sub_layout, 
@@ -1152,7 +1152,11 @@ def draw_slider(
 
         children={}
     ):
-    owner = rig.path_resolve(owner_path)
+    if owner_path == "":
+        owner = rig
+    else:
+        owner = rig.path_resolve(owner_path)
+
     sub_row = layout.row(align=True)
 
     if not owner:
@@ -1164,7 +1168,6 @@ def draw_slider(
         except ValueError:
             sub_row.alert=True
             sub_row.label(text=f"Missing property '{prop_name}' of owner '{owner_path}'.", icon='ERROR')
-
 
     if not sub_row.alert:
         draw_property(
@@ -1195,15 +1198,17 @@ def draw_slider(
     if rig.cloudrig.ui_edit_mode or sub_row.alert:
         sub_row.separator()
 
-        if not sub_row.alert:
+        bracketless_prop_name = unquote_custom_prop_name(prop_name)
+
+        if not sub_row.alert and bracketless_prop_name in owner:
             data_path = "active_object"
             if owner_path.startswith('['):
                 data_path += owner_path
-            else:
+            elif owner_path != "":
                 data_path += "."+owner_path
             props = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
             props.data_path = data_path
-            props.property_name = unquote_custom_prop_name(prop_name)
+            props.property_name = bracketless_prop_name
 
         draw_operator(
             sub_row, 
