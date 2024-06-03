@@ -1128,6 +1128,7 @@ def draw_rig_settings_per_label(
                     layout=sub_layout, 
                     ui_path=ui_path + [row_name, slider_name],
                     slider_name=slider_name, 
+                    show_reorder_operator = len(label_data) > 1,
                     **slider_data
                 )
             elif slider_data.get('operator'):
@@ -1150,9 +1151,10 @@ def draw_slider(
         op_icon='BLANK1', 
         op_kwargs={}, 
 
-        children={}
-    ):
+        children={},
 
+        show_reorder_operator=False,
+    ):
 
     if owner_path == "":
         owner = rig
@@ -1227,7 +1229,8 @@ def draw_slider(
                 edit_op.data_path = data_path
                 edit_op.property_name = bracketless_prop_name
 
-            sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
+            if show_reorder_operator:
+                sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
 
         sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = json.dumps(ui_path)
 
