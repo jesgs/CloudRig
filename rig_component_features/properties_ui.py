@@ -48,7 +48,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     op_kwargs: StringProperty(name="Operator Arguments", default="{}", description="Internal. Only used by the Edit operator, to feed kwargs to the temp KeyMapItem")
     op_icon: StringProperty(name="Operator Icon", default='BLANK1', description="Operator Icon")
 
-    children: StringProperty(name="UI Children", default="{}", description="Internal. Only used by the Edit operator, to preserve children")
+    children: StringProperty(name="UI Children", options={'SKIP_SAVE'}, default="{}", description="Internal. Only used by the Edit operator, to preserve children")
 
     @classmethod
     def poll(cls, context):
