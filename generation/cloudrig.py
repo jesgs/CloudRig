@@ -1127,15 +1127,25 @@ def draw_rig_settings_per_label(
         for slider_name, slider_data in row_data.items():
             if slider_data.get('owner_path') != None:
                 draw_slider(
-                    rig=rig, 
-                    layout=sub_layout, 
+                    rig=rig,
+                    layout=sub_layout,
+                    owner_path=slider_data.get('owner_path'),
+                    prop_name=slider_data.get('prop_name'),
+
                     ui_path=ui_path + [row_name, slider_name],
                     panel_name=panel_name,
                     label_name=label_name,
                     row_name=row_name,
-                    slider_name=slider_name, 
+                    slider_name=slider_name,
+
+                    texts=[t.strip() for t in json.loads(slider_data.get('texts', ''))],
+                    operator=slider_data.get('operator'),
+                    op_icon=slider_data.get('op_icon'),
+                    op_kwargs=slider_data.get('op_kwargs'),
+
+                    children=slider_data.get('children'),
+
                     show_reorder_operator = len(label_data) > 1,
-                    **slider_data
                 )
             elif slider_data.get('operator'):
                 # Allow drawing an operator, even without a property.
@@ -1143,22 +1153,22 @@ def draw_rig_settings_per_label(
                 draw_operator(sub_layout, **slider_data)
 
 def draw_slider(
-        rig, 
-        layout: UILayout, 
-        owner_path: str, 
-        prop_name: str, 
-        *, 
+        *,
+        rig,
+        layout: UILayout,
+        owner_path: str,
+        prop_name: str,
 
         ui_path: list[str]=[],
         panel_name="",
         label_name="",
         row_name="",
-        slider_name="", 
+        slider_name="",
 
-        texts={}, 
-        operator="", 
-        op_icon='BLANK1', 
-        op_kwargs={}, 
+        texts=[],
+        operator="",
+        op_icon='BLANK1',
+        op_kwargs={},
 
         children={},
 
@@ -1243,6 +1253,8 @@ def draw_slider(
                 sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
 
         edit_op = sub_row.operator('pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL')
+        edit_op.owner_path = owner_path
+        edit_op.prop_name = bracketless_prop_name
         ui_path_str = json.dumps(ui_path)
         edit_op.ui_path = ui_path_str
         if 'children' in ui_path:
@@ -1250,18 +1262,20 @@ def draw_slider(
             edit_op.parent_value = str(ui_path[-4])
         else:
             edit_op.panel_name = panel_name
-        edit_op.owner_path = owner_path
-        edit_op.prop_name = bracketless_prop_name
         edit_op.label_name = label_name
         edit_op.row_name = row_name
         edit_op.slider_name = slider_name
-        edit_op.operator = operator
-        edit_op.op_icon = op_icon
-        edit_op.op_kwargs = json.dumps(op_kwargs)
-        edit_op.children = json.dumps(children)
+        if operator:
+            edit_op.operator = operator
+            edit_op.op_icon = op_icon
+            edit_op.op_kwargs = json.dumps(op_kwargs)
+        if children:
+            edit_op.children = json.dumps(children)
+        if texts:
+            edit_op.texts = ", ".join(texts)
         sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = ui_path_str
 
-def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
+def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts=[]):
     prop_value = prop_owner.path_resolve(prop_name)
 
     bracketless_prop_name = unquote_custom_prop_name(prop_name)
@@ -1280,8 +1294,8 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
         if bracketless_prop_name != prop_name:
             # If this is a custom property.
 
-            if texts and str(prop_value) in texts:
-                slider_name += ": " + texts[str(prop_value)]
+            if texts and len(texts)-1 >= int(prop_value):
+                slider_name += ": " + texts[int(prop_value)]
             # Property is a float/int/color
             # For large ranges, a slider doesn't make sense.
             try:

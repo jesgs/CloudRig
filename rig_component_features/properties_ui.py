@@ -11,6 +11,7 @@ from ..generation.cloudrig import (
     unquote_custom_prop_name, 
     ensure_custom_panels,
     feed_op_props,
+    draw_property,
 )
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
@@ -38,8 +39,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
     row_name: StringProperty(name="Row Identifier", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row Name, they will be drawn in the same row")
     slider_name: StringProperty(name="UI Text", default="", options={'SKIP_SAVE'}, description="Optional: Override the display text of the property")
+    texts: StringProperty(name="Texts", options={'SKIP_SAVE'}, description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on")
 
-    parent_ui_path: StringProperty(name="Parent UI Path", description="Internal. Used only by the Add Child operator, to identify the parent")
+    parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. Used only by the Add Child operator, to identify the parent")
     parent_value: StringProperty(name="Parent Value", description="Display this child property only when the parent property matches this value")
 
     operator: StringProperty(name="Operator ID", description="Internal. Only used by the Edit operator, to initialize the temp KeyMapItem")
@@ -115,6 +117,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 feed_op_props(op_props, self.op_kwargs)
         if self.owner_path:
             self.use_bone_selector = False
+        
         return context.window_manager.invoke_props_dialog(self, width=600)
 
     def draw(self, context):
@@ -169,7 +172,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 return
             else:
                 prop_box.label(text=f"Property found.", icon='CHECKMARK')
-                prop_box.prop(prop_owner, brackets_prop_name)
+                draw_property(prop_box, prop_owner, brackets_prop_name, slider_name=self.slider_name, texts=[t.strip() for t in self.texts.split(",")])
         elif type(prop_owner) in {ID, PoseBone, Bone}:
             prop_box.label(text="Property will be created with a value of 1.0.", icon='CHECKMARK')
         else:
@@ -181,13 +184,15 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         layout.separator()
 
         panel_box = layout.box()
-        if self.parent_ui_path:
+        if self.parent_ui_path != "[]":
             panel_box.prop(self, 'parent_value')
         else:
             panel_box.prop(self, 'panel_name')
         panel_box.prop(self, 'label_name')
         panel_box.prop(self, 'row_name')
         panel_box.prop(self, 'slider_name')
+        if type(prop_value) in {bool, int}:
+            panel_box.prop(self, 'texts')
 
         layout.separator()
 
@@ -220,6 +225,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                         owner,
                         self.prop_name
                     )
+                # Make the property library overridable.
+                owner.property_overridable_library_set(brackets_prop_name, True)
             else:
                 self.report({'ERROR'}, f'{type(owner)} does not support custom properties.')
                 return {'CANCELLED'}
@@ -227,45 +234,30 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if not self.slider_name:
             self.slider_name = self.prop_name
 
-        if not self.parent_ui_path:
-            add_property_to_ui(
-                obj=rig,
-                owner_path=owner_path,
-                prop_name=brackets_prop_name,
+        add_property_to_ui(
+            obj=rig,
+            owner_path=owner_path,
+            prop_name=brackets_prop_name,
 
-                panel_name=self.panel_name,
-                label_name=self.label_name,
-                row_name=self.row_name or self.prop_name,
-                slider_name=self.slider_name,
+            panel_name=self.panel_name,
+            label_name=self.label_name,
+            row_name=self.row_name,
+            slider_name=self.slider_name,
 
-                operator=self.temp_kmi.idname,
-                op_icon=self.op_icon,
-                op_kwargs=self.op_kwargs_dict,
+            texts=[t.strip() for t in self.texts.split(",")],
+            children=json.loads(self.children),
 
-                children=json.loads(self.children),
-            )
+            ui_path=json.loads(self.parent_ui_path),
+            parent_value = self.parent_value,
 
-            ensure_custom_panels(None, None)
-            self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
-        else:
-            add_child_property_to_ui(
-                obj=rig,
-                owner_path=owner_path,
-                prop_name=brackets_prop_name,
+            operator=self.temp_kmi.idname,
+            op_icon=self.op_icon,
+            op_kwargs=self.op_kwargs_dict,
 
-                ui_path=json.loads(self.parent_ui_path),
-                parent_value = self.parent_value,
+        )
 
-                label_name=self.label_name,
-                row_name=self.row_name,
-                slider_name=self.slider_name,
-
-                operator=self.temp_kmi.idname,
-                op_icon=self.op_icon,
-                op_kwargs=self.op_kwargs,
-            )
-
-            self.report({'INFO'}, f"Added child property {brackets_prop_name} to the rig UI")
+        ensure_custom_panels(None, None)
+        self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
 
         redraw_viewport()
 
@@ -277,7 +269,6 @@ class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
     bl_idname = "pose.cloudrig_add_child_property_to_ui"
     bl_label = "Add Child Property to UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
-
 
 class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
     """Edit how a property is displayed in the UI."""
@@ -300,7 +291,6 @@ class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
 
         # self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI")
         return {'FINISHED'}
-
 
 class CLOUDRIG_OT_remove_property_from_ui(Operator):
     """Remove this property from the interface. Hold Shift to also remove the property itself"""
@@ -446,7 +436,7 @@ def make_property(
 
 def read_rig_panels(obj) -> OrderedDict:
     if 'ui_data' not in obj.data:
-        obj.data['ui_data'] = {'panels' : []}
+        return OrderedDict()
     panels = obj.data['ui_data'].to_dict()['panels']
     return tuples_to_dict(panels)
 
@@ -461,13 +451,16 @@ def add_property_to_ui(
     owner_path: str,
     prop_name: str,
 
-    texts={},
-    children={},
-
     panel_name: str,
     label_name="",
     row_name="",
     slider_name="",
+
+    texts: list[str]=[],
+    children={},
+
+    ui_path: list[str] = None,
+    parent_value: str = None,
 
     operator="",
     op_icon='BLANK1',
@@ -475,62 +468,51 @@ def add_property_to_ui(
 
     parent_id="",
 ) -> OrderedDict:
-    # Convert existing UI data to an OrderedDict for easy operations.
-
+    """Add a UI slider to the object's UI data."""
     panels = read_rig_panels(obj)
 
-    panel = panels.setdefault(panel_name, OrderedDict())
-    panel['parent_id'] = parent_id
+    if ui_path:
+        parents = get_ui_element_chain(panels, ui_path)
+
+        parent, parent_name, child_name = parents.pop()
+        slider_data = parent[child_name]
+        slider_children = slider_data.setdefault('children', OrderedDict())
+        panel = slider_children.setdefault(parent_value, OrderedDict())
+    else:
+        panel = panels.setdefault(panel_name, OrderedDict())
+        panel['parent_id'] = parent_id
+
     label = panel.setdefault(label_name, OrderedDict())
+
+    if not row_name:
+        row_name = owner_path + " " + prop_name
     row = label.setdefault(row_name, OrderedDict())
 
     if not slider_name:
         slider_name = prop_name
 
-    texts = {str(key): value for key, value in texts.items()}
-    children = {str(key): value for key, value in children.items()}
-    row[slider_name] = {'owner_path':owner_path, 'prop_name':prop_name, 'texts':texts, 'children':children, 'operator': operator, 'op_icon': op_icon, 'op_kwargs': op_kwargs}
+    slider_dict = {
+        'owner_path': owner_path, 
+        'prop_name': prop_name, 
+    }
+
+    if children:
+        slider_dict['children'] = {str(key): value for key, value in children.items()}
+    
+    if texts:
+        slider_dict['texts'] = json.dumps(texts)
+
+    if operator:
+        slider_dict['operator'] = operator
+        slider_dict['op_icon'] = op_icon
+        op_kwargs = {str(key): str(value) for key, value in op_kwargs.items()}
+        slider_dict['op_kwargs'] = op_kwargs
+
+    row[slider_name] = slider_dict
 
     write_rig_panels(obj, panels)
 
     return panels
-
-def add_child_property_to_ui(
-    *,
-    obj,
-    owner_path: str,
-    prop_name: str,
-
-    ui_path: list[str],
-    parent_value: str,
-
-    texts={},
-    label_name="",
-    row_name="",
-    slider_name="",
-
-    operator="",
-    op_icon='BLANK1',
-    op_kwargs={},
-):
-    panels = read_rig_panels(obj)
-    parents = get_ui_element_chain(panels, ui_path)
-
-    parent, parent_name, child_name = parents.pop()
-    slider_data = parent[child_name]
-    children = slider_data.setdefault('children', OrderedDict())
-    child = children.setdefault(parent_value, OrderedDict())
-    label = child.setdefault(label_name, OrderedDict())
-    row = label.setdefault(row_name, OrderedDict())
-    slider = row.setdefault(slider_name, OrderedDict())
-    slider['texts'] = texts
-    slider['owner_path'] = owner_path
-    slider['prop_name'] = prop_name
-    slider['operator'] = operator
-    slider['op_icon'] = op_icon
-    slider['op_kwargs'] = op_kwargs
-
-    write_rig_panels(obj, panels)
 
 def remove_property_from_ui(
     obj,
