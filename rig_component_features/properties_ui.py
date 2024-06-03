@@ -109,6 +109,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         # We create a keymap item to help us draw the operator set-up UI.
         # KeymapItems in the default keymap will not be stored by Blender, 
         # so we don't need to worry about making a mess there.
+        self.panels = read_rig_panels(context.active_object)
         self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new('', 'NUMPAD_5', 'PRESS')
         if self.operator:
             self.temp_kmi.idname = self.operator
@@ -213,6 +214,14 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon)
 
     def execute(self, context):
+        ret = self.execute_add_property(context)
+        if ret:
+            return ret
+        self.report({'INFO'}, f"Added property {self.slider_name} to the rig UI")
+        redraw_viewport()
+        return {'FINISHED'}
+
+    def execute_add_property(self, context):
         rig = context.active_object
         owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
 
@@ -254,14 +263,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             op_icon=self.op_icon,
             op_kwargs=self.op_kwargs_dict,
 
+            panels=self.panels,
         )
 
         ensure_custom_panels(None, None)
-        self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
-
-        redraw_viewport()
-
-        return {'FINISHED'}
 
 
 class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
@@ -282,14 +287,32 @@ class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
         rig = context.active_object
         ui_path = json.loads(self.ui_path)
 
-        remove_property_from_ui(
+        _ui_data, parents, index = remove_property_from_ui(
             rig,
             ui_path=ui_path,
+            panels=self.panels
         )
 
-        super().execute(context)
+        if parents:
+            parent, parent_name, child_name = parents.pop()
+            ui_elem = parent[child_name]
+            count = len(list(ui_elem.keys()))
 
-        # self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI")
+        super().execute_add_property(context)
+
+        if parents:
+            ui_elem = parent[child_name]
+            new_count = len(list(ui_elem.keys()))
+
+            if new_count == count+1:
+                # When the UI element was added to the same parent element that it was in before, 
+                # let's preserve its vertical position.
+                ordereddict_move_to_index(ui_elem, new_count-1, index)
+
+        write_rig_panels(rig, self.panels)
+        redraw_viewport()
+
+        self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI")
         return {'FINISHED'}
 
 class CLOUDRIG_OT_remove_property_from_ui(Operator):
@@ -308,7 +331,7 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
     def execute(self, context):
         rig = context.active_object
         ui_path = json.loads(self.ui_path)
-        ui_data = remove_property_from_ui(
+        ui_data, _parents, _index = remove_property_from_ui(
             rig,
             ui_path=ui_path,
         )
@@ -467,9 +490,12 @@ def add_property_to_ui(
     op_kwargs={},
 
     parent_id="",
+
+    panels=None,
 ) -> OrderedDict:
     """Add a UI slider to the object's UI data."""
-    panels = read_rig_panels(obj)
+    if panels == None:
+        panels = read_rig_panels(obj)
 
     if ui_path:
         parents = get_ui_element_chain(panels, ui_path)
@@ -517,7 +543,8 @@ def add_property_to_ui(
 def remove_property_from_ui(
     obj,
     ui_path: list[str],
-) -> OrderedDict:
+    panels=None,
+) -> tuple[OrderedDict, OrderedDict, int, list[str]]:
     """Remove an element of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 
@@ -526,15 +553,19 @@ def remove_property_from_ui(
 
     If any of those elements become empty from this removal, the empty element will also be removed.
 
-    Returns the sub-dictionary that was removed from the nested dictionary.
+    Returns the sub-dictionary that was removed from the nested dictionary, 
+    the UI element chain up to the top-most removed element,
+    and the index among its siblings of the highest element that was removed.
     """
 
-    panels = read_rig_panels(obj)
+    if not panels:
+        panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 
     # Remove the deepest entry from its parent.
     parent, parent_name, child_name = parents.pop()
     ui_entry_data = parent[child_name]
+    index = ordereddict_get_index(parent, child_name)
     del parent[child_name]
 
     # Now go up the tree, and keep removing elements if they have become empty.
@@ -545,10 +576,12 @@ def remove_property_from_ui(
             len(child_data) == 0 or 
             ( len(child_data) == 1 and 'parent_id' in child_data)
         ):
+            index = ordereddict_get_index(parent, child_name)
             del parent[child_name]
+            parents.pop()
 
     write_rig_panels(obj, panels)
-    return ui_entry_data
+    return ui_entry_data, parents, index
 
 def reorder_ui_row(
     *,
@@ -579,9 +612,7 @@ def reorder_ui_row(
     to_idx = max(0, to_idx)
 
     if from_idx != to_idx:
-        reordered_dict = ordereddict_move_to_index(label_data, from_idx, to_idx)
-        panel, _panel_name, label_name = parents.pop()
-        panel[label_name] = reordered_dict
+        ordereddict_move_to_index(label_data, from_idx, to_idx)
 
         write_rig_panels(obj, panels)
         return True
@@ -618,25 +649,19 @@ def ordereddict_get_index(od: OrderedDict, key: str) -> int:
         if name == key:
             return i
 
-def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int) -> OrderedDict:
+def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
     """Return a new OrderedDictionary, where an element was moved from one index to another."""
-    keys = list(od.keys())
-    values = list(od.values())
+    # This function was initially written poorly by me, then written flawlessly by ChatGPT.
+    items = list(od.items())
 
-    reordered_dict = OrderedDict()
-    for idx, tup in enumerate(od.items()):
-        name, value = tup
-        source_idx = idx
-        if idx == from_idx:
-            source_idx = to_idx
-        elif idx == to_idx:
-            source_idx = from_idx
+    key, value = items.pop(from_idx)
 
-        key = keys[source_idx]
-        value = values[source_idx]
-        reordered_dict[key] = value
+    items.insert(to_idx, (key, value))
 
-    return reordered_dict
+    reordered_dict = OrderedDict(items)
+
+    od.clear()
+    od.update(reordered_dict)
 
 
 class HiddenPrints:

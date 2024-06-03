@@ -1,6 +1,3 @@
-- Properties UX:
-	- Things get re-ordered when editing due to the fact that we remove/re-add stuff, let's see if we can fix that...
-
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
 
