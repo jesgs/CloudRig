@@ -57,7 +57,8 @@ def is_cloud_metarig(rig: Object):
         return False
     if rig.type != 'ARMATURE':
         return False
-    return hasattr(rig, 'cloudrig') and rig.cloudrig.enabled
+    if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
+        return rig
 
 
 def is_active_cloud_metarig(context):
@@ -1060,7 +1061,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        rig = is_active_cloudrig(context)
+        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
         if not rig:
             return
         if 'ui_data' not in rig.data:
@@ -1071,7 +1072,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             return True
 
     def draw(self, context):
-        rig = is_active_cloudrig(context)
+        rig = context.active_object
         ui_data = get_rig_ui_data(rig)
 
         panel_data = ui_data.get(self.bl_label)
@@ -1206,7 +1207,7 @@ def draw_slider(
                     )
 
     addon_present = hasattr(rig, 'cloudrig')
-    if addon_present and (rig.cloudrig.ui_edit_mode or sub_row.alert):
+    if addon_present and rig.cloudrig.enabled and (rig.cloudrig.ui_edit_mode or sub_row.alert):
         sub_row.separator()
 
         bracketless_prop_name = unquote_custom_prop_name(prop_name)
@@ -1296,7 +1297,7 @@ def unquote_custom_prop_name(prop_name: str) -> str:
 custom_panels = []
 
 def ensure_custom_panels(_dummy1, _dummy2):
-    rig = is_active_cloudrig(bpy.context)
+    rig = is_active_cloudrig(bpy.context) or is_active_cloud_metarig(bpy.context)
     if not rig:
         return
     ui_data = get_rig_ui_data(rig)
@@ -1330,6 +1331,8 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
         {'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id},
     )
 
+    print("REGISTER CUSTOM PANEL: ", full_name)
+
     bpy.utils.register_class(new_panel)
 
     # Save a reference so it can be unregistered, even though unregister() is never called.
@@ -1342,11 +1345,11 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        return is_active_cloudrig(context)
+        return is_active_cloudrig(context) or is_active_cloud_metarig(context)
 
     def draw(self, context):
         layout = self.layout
-        rig = is_active_cloudrig(context)
+        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
         if not rig:
             return
 
@@ -1368,17 +1371,19 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                         'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
                     )
         
-        base_panel = get_rig_ui_data(rig).get("")
-        if base_panel:
-            layout.separator()
-            for label_name, label_data in base_panel.items():
-                draw_rig_settings_per_label(
-                    layout=layout, 
-                    rig=rig, 
-                    ui_path=["", label_name], 
-                    label_name=label_name,
-                    label_data=label_data,
-                )
+        ui_data = get_rig_ui_data(rig)
+        if ui_data:
+            base_panel = ui_data.get("")
+            if base_panel:
+                layout.separator()
+                for label_name, label_data in base_panel.items():
+                    draw_rig_settings_per_label(
+                        layout=layout, 
+                        rig=rig, 
+                        ui_path=["", label_name], 
+                        label_name=label_name,
+                        label_data=label_data,
+                    )
 
 
 #######################################

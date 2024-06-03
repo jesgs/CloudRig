@@ -39,7 +39,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
     label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
     row_name: StringProperty(name="Row Identifier", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row Name, they will be drawn in the same row")
-    slider_name: StringProperty(name="UI Text", description="Optional: Override the display text of the property")
+    slider_name: StringProperty(name="UI Text", default="", options={'SKIP_SAVE'}, description="Optional: Override the display text of the property")
 
     op_icon: StringProperty(name="Operator Icon", default='BLANK1', description="Operator Icon")
 

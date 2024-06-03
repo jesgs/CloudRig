@@ -41,7 +41,7 @@ class CloudUIMixin:
             slider_name = prop_id
 
         return add_property_to_ui(
-            self.target_rig,
+            obj=self.target_rig,
             owner_path=f'pose.bones["{prop_bone.name}"]',
             prop_name=f'["{prop_id}"]',
             texts={i: value for i, value in enumerate(texts)},

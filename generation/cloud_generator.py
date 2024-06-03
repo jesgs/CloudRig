@@ -304,6 +304,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # Prepare the target rig.
         self.target_rig = create_target_rig_obj(context, metarig)
+        if 'ui_data' in self.metarig.data:
+            self.target_rig.data['ui_data'] = self.metarig.data['ui_data']
         self.logger.rig = self.target_rig
         self.logger.metarig = metarig
         self.defaults['rig'] = self.target_rig
