@@ -2840,7 +2840,7 @@ def register():
     )
 
     # Ensure custom panels.
-    if __name__ != 'CloudRig.generation.cloudrig':
+    if not __name__.endswith('CloudRig.generation.cloudrig'):
         # This doesn't work during add-on registration, since it relies on context.
         ensure_custom_panels(None, None)
     bpy.app.handlers.load_post.append(ensure_custom_panels)
