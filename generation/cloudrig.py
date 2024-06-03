@@ -1080,7 +1080,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             self.draw_rig_settings_subpanel(
                 layout=self.layout, 
                 rig=rig, 
-                ui_path=[self.bl_label],
+                panel_name=self.bl_label,
                 panel_data=panel_data,
             )
 
@@ -1088,7 +1088,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 self,
                 layout: UILayout, 
                 rig: Object, 
-                ui_path: list[str], 
+                panel_name: str, 
                 panel_data: OrderedDict,
             ):
         """Panel data contains a list of tuples.
@@ -1100,7 +1100,8 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             draw_rig_settings_per_label(
                 layout=layout, 
                 rig=rig, 
-                ui_path=ui_path + [label_name], 
+                ui_path=[panel_name, label_name], 
+                panel_name=panel_name,
                 label_name=label_name,
                 label_data=label_data,
             )
@@ -1109,6 +1110,7 @@ def draw_rig_settings_per_label(
             layout: UILayout, 
             rig: Object, 
             ui_path: list[str],
+            panel_name: str,
             label_name: str, 
             label_data: dict,
         ):
@@ -1128,6 +1130,9 @@ def draw_rig_settings_per_label(
                     rig=rig, 
                     layout=sub_layout, 
                     ui_path=ui_path + [row_name, slider_name],
+                    panel_name=panel_name,
+                    label_name=label_name,
+                    row_name=row_name,
                     slider_name=slider_name, 
                     show_reorder_operator = len(label_data) > 1,
                     **slider_data
@@ -1145,6 +1150,9 @@ def draw_slider(
         *, 
 
         ui_path: list[str]=[],
+        panel_name="",
+        label_name="",
+        row_name="",
         slider_name="", 
 
         texts={}, 
@@ -1196,14 +1204,15 @@ def draw_slider(
         if children and prop_value_str in children:
             current_children_ui = children[prop_value_str]
             if current_children_ui:
-                for label_name, label_data in current_children_ui.items():
+                for child_label_name, child_label_data in current_children_ui.items():
                     box_col = layout.box().column()
                     draw_rig_settings_per_label(
                         layout=box_col, 
                         rig=rig, 
-                        ui_path= ui_path + ['children', prop_value_str, label_name],
-                        label_name=label_name, 
-                        label_data=label_data,
+                        ui_path= ui_path + ['children', prop_value_str, child_label_name],
+                        panel_name=panel_name,
+                        label_name=child_label_name, 
+                        label_data=child_label_data,
                     )
 
     addon_present = hasattr(rig, 'cloudrig')
@@ -1214,7 +1223,7 @@ def draw_slider(
 
         if not sub_row.alert:
             if type(prop_value) in {int, bool}:
-                child_op = sub_row.operator('pose.cloudrig_add_property_to_ui', icon='OUTLINER', text="")
+                child_op = sub_row.operator('pose.cloudrig_add_child_property_to_ui', icon='OUTLINER', text="")
                 child_op.parent_value = prop_value_str
                 child_op.parent_ui_path=json.dumps(ui_path)
                 if type(owner) == PoseBone:
@@ -1233,7 +1242,24 @@ def draw_slider(
             if show_reorder_operator:
                 sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
 
-        sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = json.dumps(ui_path)
+        edit_op = sub_row.operator('pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL')
+        ui_path_str = json.dumps(ui_path)
+        edit_op.ui_path = ui_path_str
+        if 'children' in ui_path:
+            edit_op.parent_ui_path = json.dumps(ui_path[:-5])
+            edit_op.parent_value = str(ui_path[-4])
+        else:
+            edit_op.panel_name = panel_name
+        edit_op.owner_path = owner_path
+        edit_op.prop_name = bracketless_prop_name
+        edit_op.label_name = label_name
+        edit_op.row_name = row_name
+        edit_op.slider_name = slider_name
+        edit_op.operator = operator
+        edit_op.op_icon = op_icon
+        edit_op.op_kwargs = json.dumps(op_kwargs)
+        edit_op.children = json.dumps(children)
+        sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = ui_path_str
 
 def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
     prop_value = prop_owner.path_resolve(prop_name)
@@ -1273,21 +1299,29 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
     else:
         layout.prop(prop_owner, prop_name, text=slider_name)
 
-def draw_operator(layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
-        if type(op_kwargs) == dict:
-            op_kwargs = [(key, value) for key, value in op_kwargs.items()]
+def draw_operator(layout: UILayout, bl_idname: str, op_icon='BLANK1', op_kwargs={}, text=""):
+        if not op_icon or op_icon == 'NONE':
+            op_icon = 'BLANK1'
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
-        # Pass on any paramteres to the operator that it will accept.
-        for key, value in op_kwargs:
-            if hasattr(op_props, key):
-                desired_type = type(getattr(op_props, key))
-                # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
-                if type(value) in {list, dict}:
-                    value = json.dumps(value)
-                if desired_type == bool:
-                    value = bool(value)
-                setattr(op_props, key, value)
+        feed_op_props(op_props, op_kwargs)
         return op_props
+
+def feed_op_props(op_props, op_kwargs: str or dict or list):
+    if type(op_kwargs) == str:
+        op_kwargs = json.loads(op_kwargs)
+    if type(op_kwargs) == dict:
+        op_kwargs = [(key, value) for key, value in op_kwargs.items()]
+
+    # Pass on any paramteres to the operator that it will accept.
+    for key, value in op_kwargs:
+        if hasattr(op_props, key):
+            desired_type = type(getattr(op_props, key))
+            # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
+            if type(value) in {list, dict}:
+                value = json.dumps(value)
+            if desired_type != type(value):
+                value = desired_type(value)
+            setattr(op_props, key, value)
 
 def unquote_custom_prop_name(prop_name: str) -> str:
     if prop_name.startswith('["') or prop_name.startswith("['"):
@@ -1330,8 +1364,6 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
         (CLOUDRIG_PT_custom_panel,),
         {'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id},
     )
-
-    print("REGISTER CUSTOM PANEL: ", full_name)
 
     bpy.utils.register_class(new_panel)
 
@@ -1381,6 +1413,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                         layout=layout, 
                         rig=rig, 
                         ui_path=["", label_name], 
+                        panel_name="",
                         label_name=label_name,
                         label_data=label_data,
                     )

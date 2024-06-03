@@ -9,7 +9,8 @@ from ..generation.cloudrig import (
     tuples_to_dict, 
     dict_to_tuples, 
     unquote_custom_prop_name, 
-    ensure_custom_panels
+    ensure_custom_panels,
+    feed_op_props,
 )
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
@@ -26,22 +27,26 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
-        elif self.owner_path != '':
+        elif self.owner_path != '' and not self.owner_path.startswith('pose.bones'):
             self.owner_path = f'pose.bones["{self.owner_path}"]'
 
     owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
     use_bone_selector: BoolProperty(name="Use Bone Selector", description="Display a bone selector. If disabled, you can manually type in a data path", default=True, update=update_use_bone_selector)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
 
-    parent_ui_path: StringProperty(name="Parent UI Path", description="Used internatlly when adding child properties, to identify the parent")
-    parent_value: StringProperty(name="Parent Value", description="Display this child property only when the parent property matches this value")
-
     panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
     label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
     row_name: StringProperty(name="Row Identifier", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row Name, they will be drawn in the same row")
     slider_name: StringProperty(name="UI Text", default="", options={'SKIP_SAVE'}, description="Optional: Override the display text of the property")
 
+    parent_ui_path: StringProperty(name="Parent UI Path", description="Internal. Used only by the Add Child operator, to identify the parent")
+    parent_value: StringProperty(name="Parent Value", description="Display this child property only when the parent property matches this value")
+
+    operator: StringProperty(name="Operator ID", description="Internal. Only used by the Edit operator, to initialize the temp KeyMapItem")
+    op_kwargs: StringProperty(name="Operator Arguments", default="{}", description="Internal. Only used by the Edit operator, to feed kwargs to the temp KeyMapItem")
     op_icon: StringProperty(name="Operator Icon", default='BLANK1', description="Operator Icon")
+
+    children: StringProperty(name="UI Children", default="{}", description="Internal. Only used by the Edit operator, to preserve children")
 
     @classmethod
     def poll(cls, context):
@@ -103,6 +108,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         # KeymapItems in the default keymap will not be stored by Blender, 
         # so we don't need to worry about making a mess there.
         self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new('', 'NUMPAD_5', 'PRESS')
+        if self.operator:
+            self.temp_kmi.idname = self.operator
+            if self.op_kwargs:
+                op_props = self.temp_kmi.properties
+                feed_op_props(op_props, self.op_kwargs)
+        if self.owner_path:
+            self.use_bone_selector = False
         return context.window_manager.invoke_props_dialog(self, width=600)
 
     def draw(self, context):
@@ -181,7 +193,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         op_box = layout.box().column()
         op_box.prop(self.temp_kmi, 'idname', text="Operator")
-        self.op_kwargs = {}
+        self.op_kwargs_dict = {}
         if self.temp_kmi.idname:
             box = None
             op_rna = eval("bpy.ops."+self.temp_kmi.idname).get_rna_type()
@@ -191,7 +203,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 if not box:
                     box = op_box.box().column(align=True)
                 box.prop(self.temp_kmi.properties, key)
-                self.op_kwargs[key] = str(getattr(self.temp_kmi.properties, key))
+                self.op_kwargs_dict[key] = str(getattr(self.temp_kmi.properties, key))
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
             op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon)
 
@@ -228,10 +240,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
                 operator=self.temp_kmi.idname,
                 op_icon=self.op_icon,
-                op_kwargs=self.op_kwargs,
+                op_kwargs=self.op_kwargs_dict,
+
+                children=json.loads(self.children),
             )
 
             ensure_custom_panels(None, None)
+            self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
         else:
             add_child_property_to_ui(
                 obj=rig,
@@ -249,11 +264,43 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 op_icon=self.op_icon,
                 op_kwargs=self.op_kwargs,
             )
+
+            self.report({'INFO'}, f"Added child property {brackets_prop_name} to the rig UI")
+
         redraw_viewport()
 
-        self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
-
         return {'FINISHED'}
+
+
+class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
+    """Add a child property to the rig UI."""
+    bl_idname = "pose.cloudrig_add_child_property_to_ui"
+    bl_label = "Add Child Property to UI"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+
+class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
+    """Edit how a property is displayed in the UI."""
+    bl_idname = "pose.cloudrig_edit_property_in_ui"
+    bl_label = "Edit Property in UI"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name")
+
+    def execute(self, context):
+        rig = context.active_object
+        ui_path = json.loads(self.ui_path)
+
+        remove_property_from_ui(
+            rig,
+            ui_path=ui_path,
+        )
+
+        super().execute(context)
+
+        # self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI")
+        return {'FINISHED'}
+
 
 class CLOUDRIG_OT_remove_property_from_ui(Operator):
     """Remove this property from the interface. Hold Shift to also remove the property itself"""
@@ -408,7 +455,6 @@ def write_rig_panels(obj, panels) -> OrderedDict:
     panels = {'panels' : dict_to_tuples(panels)}
     obj.data['ui_data'] = panels
 
-
 def add_property_to_ui(
     *,
     obj,
@@ -470,8 +516,8 @@ def add_child_property_to_ui(
     panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 
-    parent, parent_name, slider_name = parents.pop()
-    slider_data = parent[slider_name]
+    parent, parent_name, child_name = parents.pop()
+    slider_data = parent[child_name]
     children = slider_data.setdefault('children', OrderedDict())
     child = children.setdefault(parent_value, OrderedDict())
     label = child.setdefault(label_name, OrderedDict())
@@ -485,7 +531,6 @@ def add_child_property_to_ui(
     slider['op_kwargs'] = op_kwargs
 
     write_rig_panels(obj, panels)
-
 
 def remove_property_from_ui(
     obj,
@@ -637,6 +682,8 @@ def redraw_viewport():
 
 
 registry = [
+    CLOUDRIG_OT_add_child_property_to_ui,
+    CLOUDRIG_OT_edit_property_in_ui,
     CLOUDRIG_OT_add_property_to_ui,
     CLOUDRIG_OT_remove_property_from_ui,
     CLOUDRIG_OT_reorder_rows,

@@ -1,3 +1,10 @@
+- Properties UX:
+	- When adding several children, they seem to overwrite each other, so they're probably using the same Row Name, when they shouldn't.
+		- It's falling back to the slider_name, but when slider_name is not provided, I forgot to make it fall back to the prop_name in some cases I think.
+
+	- Need a way to provide texts for integers.
+	- A way to edit things like label names and panel names would be cool, but maybe it's overkill
+
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
 
