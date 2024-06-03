@@ -18,7 +18,7 @@ from bpy.types import bpy_struct, ID, Object, PoseBone, UILayout, UIList, Panel,
 from rna_prop_ui import IDPropertyArray, rna_idprop_quote_path, rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 
-from mathutils import Matrix
+from mathutils import Matrix, Color
 from bl_ui.generic_ui_list import draw_ui_list
 
 
@@ -1152,6 +1152,8 @@ def draw_slider(
 
         children={}
     ):
+
+
     if owner_path == "":
         owner = rig
     else:
@@ -1169,11 +1171,13 @@ def draw_slider(
         sub_row.label(text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.", icon='ERROR')
     else:
         try:
-            value = owner.path_resolve(prop_name)
+            prop_value = owner.path_resolve(prop_name)
         except ValueError:
+            prop_value = None
             sub_row.alert=True
             sub_row.label(text=f"Missing property '{prop_name}' of owner '{owner_path}'.", icon='ERROR')
 
+    prop_value_str = str(prop_value)
     if not sub_row.alert:
         draw_property(
             layout=sub_row, 
@@ -1186,7 +1190,6 @@ def draw_slider(
         if operator:
             draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
 
-        prop_value_str = str(owner.path_resolve(prop_name))
         if children and prop_value_str in children:
             current_children_ui = children[prop_value_str]
             if current_children_ui:
@@ -1207,6 +1210,13 @@ def draw_slider(
         bracketless_prop_name = unquote_custom_prop_name(prop_name)
 
         if not sub_row.alert:
+            if type(prop_value) in {int, bool}:
+                child_op = sub_row.operator('pose.cloudrig_add_property_to_ui', icon='OUTLINER', text="")
+                child_op.parent_value = prop_value_str
+                child_op.parent_ui_path=json.dumps(ui_path)
+                if type(owner) == PoseBone:
+                    child_op.owner_path = owner.name
+
             if bracketless_prop_name not in owner.__dir__() and bracketless_prop_name in owner:
                 data_path = "active_object"
                 if owner_path.startswith('['):
@@ -1220,7 +1230,6 @@ def draw_slider(
             sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
 
         sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = json.dumps(ui_path)
-
 
 def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts={}):
     prop_value = prop_owner.path_resolve(prop_name)
@@ -1251,12 +1260,14 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
             except TypeError:
                 # This happens for Python properties. There's no point drawing them.
                 return
-            is_slider = prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+            is_slider = not _is_array and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
             layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)
         else:
             layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type == str:
         layout.prop(prop_owner, prop_name)
+    else:
+        layout.prop(prop_owner, prop_name, text=slider_name)
 
 def draw_operator(layout: UILayout, bl_idname: str, op_icon="BLANK1", op_kwargs={}, text=""):
         if type(op_kwargs) == dict:

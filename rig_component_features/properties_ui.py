@@ -33,6 +33,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     use_bone_selector: BoolProperty(name="Use Bone Selector", description="Display a bone selector. If disabled, you can manually type in a data path", default=True, update=update_use_bone_selector)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
 
+    parent_ui_path: StringProperty(name="Parent UI Path", description="Used internatlly when adding child properties, to identify the parent")
+    parent_value: StringProperty(name="Parent Value", description="Display this child property only when the parent property matches this value")
+
     panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
     label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
     row_name: StringProperty(name="Row Identifier", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row Name, they will be drawn in the same row")
@@ -166,7 +169,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         layout.separator()
 
         panel_box = layout.box()
-        panel_box.prop(self, 'panel_name')
+        if self.parent_ui_path:
+            panel_box.prop(self, 'parent_value')
+        else:
+            panel_box.prop(self, 'panel_name')
         panel_box.prop(self, 'label_name')
         panel_box.prop(self, 'row_name')
         panel_box.prop(self, 'slider_name')
@@ -190,10 +196,11 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon)
 
     def execute(self, context):
-        owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(context.active_object)
+        rig = context.active_object
+        owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
 
         if self.prop_name != brackets_prop_name:
-            if type(owner) in {ID, PoseBone, Bone}:
+            if issubclass(type(owner), ID) or type(owner) in {PoseBone, Bone}:
                 # Owner supports custom props.
                 if self.prop_name not in owner:
                     # Target is a custom property that doesn't exist yet, so let's create it.
@@ -208,22 +215,40 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if not self.slider_name:
             self.slider_name = self.prop_name
 
-        add_property_to_ui(
-            context.active_object,
-            owner_path=owner_path,
-            prop_name=brackets_prop_name,
+        if not self.parent_ui_path:
+            add_property_to_ui(
+                obj=rig,
+                owner_path=owner_path,
+                prop_name=brackets_prop_name,
 
-            panel_name=self.panel_name,
-            label_name=self.label_name,
-            row_name=self.row_name or self.prop_name,
-            slider_name=self.slider_name,
+                panel_name=self.panel_name,
+                label_name=self.label_name,
+                row_name=self.row_name or self.prop_name,
+                slider_name=self.slider_name,
 
-            operator=self.temp_kmi.idname,
-            op_icon=self.op_icon,
-            op_kwargs=self.op_kwargs
-        )
+                operator=self.temp_kmi.idname,
+                op_icon=self.op_icon,
+                op_kwargs=self.op_kwargs,
+            )
 
-        ensure_custom_panels(None, None)
+            ensure_custom_panels(None, None)
+        else:
+            add_child_property_to_ui(
+                obj=rig,
+                owner_path=owner_path,
+                prop_name=brackets_prop_name,
+
+                ui_path=json.loads(self.parent_ui_path),
+                parent_value = self.parent_value,
+
+                label_name=self.label_name,
+                row_name=self.row_name,
+                slider_name=self.slider_name,
+
+                operator=self.temp_kmi.idname,
+                op_icon=self.op_icon,
+                op_kwargs=self.op_kwargs,
+            )
         redraw_viewport()
 
         self.report({'INFO'}, f"Added property {brackets_prop_name} to the rig UI")
@@ -307,7 +332,11 @@ class CLOUDRIG_OT_reorder_rows(Operator):
     def execute(self, context):
         ui_path = json.loads(self.ui_path)
         
-        if reorder_ui_row(context.active_object, ui_path, self.index_offset):
+        if reorder_ui_row(
+            obj=context.active_object, 
+            ui_path=ui_path, 
+            index_offset=self.index_offset
+        ):
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
@@ -381,10 +410,11 @@ def write_rig_panels(obj, panels) -> OrderedDict:
 
 
 def add_property_to_ui(
+    *,
     obj,
     owner_path: str,
     prop_name: str,
-    *,
+
     texts={},
     children={},
 
@@ -419,6 +449,43 @@ def add_property_to_ui(
 
     return panels
 
+def add_child_property_to_ui(
+    *,
+    obj,
+    owner_path: str,
+    prop_name: str,
+
+    ui_path: list[str],
+    parent_value: str,
+
+    texts={},
+    label_name="",
+    row_name="",
+    slider_name="",
+
+    operator="",
+    op_icon='BLANK1',
+    op_kwargs={},
+):
+    panels = read_rig_panels(obj)
+    parents = get_ui_element_chain(panels, ui_path)
+
+    parent, parent_name, slider_name = parents.pop()
+    slider_data = parent[slider_name]
+    children = slider_data.setdefault('children', OrderedDict())
+    child = children.setdefault(parent_value, OrderedDict())
+    label = child.setdefault(label_name, OrderedDict())
+    row = label.setdefault(row_name, OrderedDict())
+    slider = row.setdefault(slider_name, OrderedDict())
+    slider['texts'] = texts
+    slider['owner_path'] = owner_path
+    slider['prop_name'] = prop_name
+    slider['operator'] = operator
+    slider['op_icon'] = op_icon
+    slider['op_kwargs'] = op_kwargs
+
+    write_rig_panels(obj, panels)
+
 
 def remove_property_from_ui(
     obj,
@@ -436,21 +503,7 @@ def remove_property_from_ui(
     """
 
     panels = read_rig_panels(obj)
-
-    ui_element = panels
-
-    # For debugging, this variable pairs the UI element's data to its name.
-    parent_name = "Panels"
-    parents = []
-
-    for child_name in ui_path:
-        next_ui = ui_element.get(child_name)
-        if not next_ui:
-            return
-
-        parents.append((ui_element, parent_name, child_name))
-        ui_element = next_ui
-        parent_name = child_name
+    parents = get_ui_element_chain(panels, ui_path)
 
     # Remove the deepest entry from its parent.
     parent, parent_name, child_name = parents.pop()
@@ -471,6 +524,7 @@ def remove_property_from_ui(
     return ui_entry_data
 
 def reorder_ui_row(
+    *,
     obj,
     ui_path: list[str],
     index_offset = 1,
@@ -488,20 +542,7 @@ def reorder_ui_row(
     """
 
     panels = read_rig_panels(obj)
-
-    # For debugging, this variable pairs the UI element's data to its name.
-    parent_name = "Panels"
-    parents = []
-
-    ui_element = panels
-    for child_name in ui_path:
-        next_ui = ui_element.get(child_name)
-        if not next_ui:
-            return
-
-        parents.append((ui_element, parent_name, child_name))
-        ui_element = next_ui
-        parent_name = child_name
+    parents = get_ui_element_chain(panels, ui_path)
 
     label_data, _label_name, row_name = parents.pop()
     from_idx = ordereddict_get_index(label_data, row_name)
@@ -520,15 +561,38 @@ def reorder_ui_row(
 
     return False
 
+def get_ui_element_chain(
+    root_element: OrderedDict,
+    ui_path: list[str]
+) -> list[tuple[OrderedDict, str, str]]:
+    """Provided a deeply nested OrderedDict where all keys are strings, and a list of names
+    that describe a path down the branches of the tree,
+    return a list of (OrderedDict, dict_name, child_name) tuples.
 
-def ordereddict_get_index(od: OrderedDict, key) -> int:
-    for i, tup in enumerate(od.items()):
-        name, value = tup
+    This is used to uniquely identify and find an element in the rig UI.
+    """
+    chain = []
+    # For debugging, this variable pairs the UI element's data to its name.
+    parent_name = "Panels"
+    ui_element = root_element
+    for child_name in ui_path:
+        next_ui = ui_element.get(child_name)
+        if not next_ui:
+            return
+
+        chain.append((ui_element, parent_name, child_name))
+        ui_element = next_ui
+        parent_name = child_name
+    return chain
+
+def ordereddict_get_index(od: OrderedDict, key: str) -> int:
+    """Return the index of a key in an OrderedDictionary."""
+    for i, name in enumerate(od.keys()):
         if name == key:
             return i
 
 def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int) -> OrderedDict:
-    # I'm pretty annoyed this isn't a built-in functionality...
+    """Return a new OrderedDictionary, where an element was moved from one index to another."""
     keys = list(od.keys())
     values = list(od.values())
 
