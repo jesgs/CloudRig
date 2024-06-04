@@ -1123,12 +1123,17 @@ def draw_rig_settings_per_label(
         sub_row = column.row(align=True)
 
         if len(label_data) > 1 and is_ui_edit_mode(rig):
-            icon = 'GRIP'
             is_dragged = row_data.get('is_dragged', False)
             if is_dragged:
                 icon = 'VIEW_PAN'
-            sub_row.operator('pose.cloudrig_reorder_rows', text="", icon=icon).ui_path = json.dumps(ui_path+[row_name])
+                icon_value = 0
+            else:
+                icon = 'NONE'
+                from CloudRig import icons
+                icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
+            sub_row.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value).ui_path = json.dumps(ui_path+[row_name])
             sub_row.separator()
+
         for slider_name, slider_data in row_data.items():
             if type(slider_data) == str:
                 # It's a row flag, not a slider.

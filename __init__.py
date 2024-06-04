@@ -15,6 +15,7 @@ from . import (
     prefs,
     generation,
     metarigs,
+    icons,
 )
 
 # This should be set for in commits that will be tagged as a release.
@@ -51,6 +52,7 @@ modules = [
     operators,
     properties,
     metarigs,
+    icons,
 ]
 
 

@@ -4,9 +4,6 @@
 	- Ability to re-order labels and panels (the latter would mean un-registering and re-registering the panels every time, but maybe that just works.)
 	- Ability to add and re-order separators
 	- Ability to add "all" properties of a posebone/ID. (Unless they start with $, _, or are Python properties. But Datablock Pointers should be allowed.)
-	- Should hide the Add Child operator when there are more than one sliders in a row.
-	- Should use a different icon for the Drag&Drop operator, so it doesn't set the wrong expectation that you can ACTUALLY drag&drop it.
-		- Maybe a custom icon. (Two-way vertical arrow.)
 	- Preset system:
 		- "Store Preset" button asks for a preset name, then saves all currently drawn properties (owner_path, prop_name, prop_value).
 		- "Apply Preset" button asks you to select one of the saved presets and applies it.
