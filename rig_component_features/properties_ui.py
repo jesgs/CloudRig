@@ -1,5 +1,5 @@
 import bpy, json, sys, os
-from bpy.types import Operator, ID, bpy_struct, PoseBone, Bone, UILayout, PropertyGroup
+from bpy.types import Operator, ID, bpy_struct, PoseBone, Bone, UILayout, PropertyGroup, BoneCollection
 from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty
 from collections import OrderedDict
@@ -18,6 +18,51 @@ from ..generation.cloudrig import (
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
 
+def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
+    data_path = bone_name = self.owner_path
+    prop_name = self.prop_name
+
+    # In case a data path wasn't provided, the default property owner is the object itself.
+    prop_owner = obj
+
+    if data_path and self.use_bone_selector:
+        # If user wants to use the bone search selector, 
+        # we need to help them get the data path to the selected pose bone.
+        data_path = f'pose.bones["{bone_name}"]'
+
+    if data_path:
+        prop_owner = path_resolve_safe(obj, data_path)
+
+    if not prop_owner:
+        # If a nonsense data path was provided, return empty values.
+        return None, "", data_path, prop_name, None
+
+    prop_value = None
+    dot = ""
+    # Let's figure out if the user wants to specify a custom property or a regular one.
+    if prop_name:
+        try:
+            # If it evaluates with a dot without error, then we keep the dot!
+            # We don't want to use the safe path resolve here, we need the error.
+            prop_value = obj.path_resolve(data_path + "." + prop_name)
+            dot = "."
+        except ValueError:
+            # If we fail to evaluate to a value with the `.`, use custom property syntax instead.
+            prop_name = f'["{prop_name}"]'
+            dot = ""
+
+    full_path = data_path + dot + prop_name
+    if not prop_value:
+        # If we didn't get the property value yet, grab it. 
+        # Can be useful to re-assure the user that we have the property they intend.
+        prop_value = path_resolve_safe(obj, full_path)
+
+    if prop_name and not prop_value:
+        prop_value = path_resolve_safe(obj, full_path)
+
+    return prop_owner, full_path, data_path, prop_name, prop_value
+
+
 class CLOUDRIG_OT_add_property_to_ui(Operator):
     """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
     bl_idname = "pose.cloudrig_add_property_to_ui"
@@ -33,9 +78,29 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         elif self.owner_path != '' and not self.owner_path.startswith('pose.bones'):
             self.owner_path = f'pose.bones["{self.owner_path}"]'
 
-    owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
+    def update_owner_path(self, context):
+        context.scene.cloudrig_property_name_selector.clear()
+
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, context.active_object)
+        if not supports_custom_props(prop_owner):
+            return
+
+        for key in prop_owner.keys():
+            value = prop_owner[key]
+            try:
+                prop_settings = prop_owner.id_properties_ui(key).as_dict()
+            except TypeError:
+                # This happens for Python properties. There's no point drawing them.
+                return
+
+            name_entry = context.scene.cloudrig_property_name_selector.add()
+            name_entry.name = key
+
+    init_owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
+    owner_path: StringProperty(name="Data Path", update=update_owner_path, description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
     use_bone_selector: BoolProperty(name="Use Bone Selector", options={'SKIP_SAVE'}, description="Display a bone selector. If disabled, you can manually type in a data path", default=True, update=update_use_bone_selector)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
+    use_manual_prop_name: BoolProperty(name="Custom Property", default=False, description="Enter any custom property name instead of searching existing ones. If it doesn't exist, it will be created")
 
     panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
     label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
@@ -43,8 +108,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     slider_name: StringProperty(name="Display Name", default="", options={'SKIP_SAVE'}, description="Optional: Override the display text of the property")
     texts: StringProperty(name="Value Names", options={'SKIP_SAVE'}, description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on")
 
-    parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. Used only by the Add Child operator, to identify the parent")
-    parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'})
+    parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. The UI Path of the selected parent slider. Used by the Add Child and Edit operators")
+    parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'}, description="The child will only be visible when this parent slider has a certain value, specified below")
     parent_value: StringProperty(name="Parent Value", default="1", description="Display this child property only when the parent property matches this value")
 
     show_internals: BoolProperty(name="Internals", default=False, description="Show internal data")
@@ -59,50 +124,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     def poll(cls, context):
         return is_active_cloudrig(context) or is_active_cloud_metarig(context)
 
-    def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
-        data_path = bone_name = self.owner_path
-        prop_name = self.prop_name
-
-        # In case a data path wasn't provided, the default property owner is the object itself.
-        prop_owner = obj
-
-        if data_path and self.use_bone_selector:
-            # If user wants to use the bone search selector, 
-            # we need to help them get the data path to the selected pose bone.
-            data_path = f'pose.bones["{bone_name}"]'
-
-        if data_path:
-            prop_owner = path_resolve_safe(obj, data_path)
-
-        if not prop_owner:
-            # If a nonsense data path was provided, return empty values.
-            return None, "", data_path, prop_name, None
-
-        prop_value = None
-        dot = ""
-        # Let's figure out if the user wants to specify a custom property or a regular one.
-        if prop_name:
-            try:
-                # If it evaluates with a dot without error, then we keep the dot!
-                # We don't want to use the safe path resolve here, we need the error.
-                prop_value = obj.path_resolve(data_path + "." + prop_name)
-                dot = "."
-            except ValueError:
-                # If we fail to evaluate to a value with the `.`, use custom property syntax instead.
-                prop_name = f'["{prop_name}"]'
-                dot = ""
-
-        full_path = data_path + dot + prop_name
-        if not prop_value:
-            # If we didn't get the property value yet, grab it. 
-            # Can be useful to re-assure the user that we have the property they intend.
-            prop_value = path_resolve_safe(obj, full_path)
-
-        if prop_name and not prop_value:
-            prop_value = path_resolve_safe(obj, full_path)
-
-        return prop_owner, full_path, data_path, prop_name, prop_value
-
     def invoke(self, context, _event):
         # We create a keymap item to help us draw the operator set-up UI.
         # KeymapItems in the default keymap will not be stored by Blender, 
@@ -114,7 +135,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             if self.op_kwargs:
                 op_props = self.temp_kmi.properties
                 feed_op_props(op_props, self.op_kwargs)
-        if self.owner_path:
+        if self.init_owner_path:
+            self.owner_path = self.init_owner_path
             self.use_bone_selector = self.owner_path.startswith('pose.bones')
 
         self.update_property_parent_selector(context)
@@ -132,6 +154,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         self.draw_owner_box(layout, context)
         self.draw_prop_box(layout, context)
+        if not self.prop_name:
+            return
         self.draw_placement_box(layout, context)
         layout.separator()
 
@@ -142,7 +166,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw_owner_box(self, layout, context):
         rig = context.active_object
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         owner_box = layout.box()
         owner_row = owner_box.row(align=True)
@@ -173,10 +197,19 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw_prop_box(self, layout, context):
         rig = context.active_object
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+
+        has_custom_props = len(context.scene.cloudrig_property_name_selector) > 0
 
         prop_box = layout.box()
-        prop_box.prop(self, 'prop_name')
+        prop_row = prop_box.row(align=True)
+        if self.use_manual_prop_name or not has_custom_props:
+            prop_row.prop(self, 'prop_name')
+        else:
+            prop_row.prop_search(self, 'prop_name', context.scene, 'cloudrig_property_name_selector', icon='BLANK1')
+
+        if has_custom_props:
+            prop_row.prop(self, 'use_manual_prop_name', icon='ADD', text="")
 
         if not prop_owner:
             prop_box.label(text=f'Data path failed to resolve on {rig.name}.')
@@ -187,7 +220,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             return
 
         if prop_value != None:
-            if isinstance(prop_value, bpy_struct):
+            if isinstance(prop_value, bpy_struct) and not isinstance(prop_value, ID):
                 row = prop_box.row()
                 row.alert=True
                 row.label(text="This is a struct, not a property.", icon='ERROR')
@@ -205,7 +238,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw_placement_box(self, layout, context):
         rig = context.active_object
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         panel_box = layout.box()
         if self.parent_ui_path != "[]":
@@ -284,8 +317,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         return {'FINISHED'}
 
     def execute_add_property(self, context):
+        if not self.prop_name:
+            self.report({'ERROR'}, "You didn't specify a property.")
+            return {'CANCELLED'}
+
         rig = context.active_object
-        owner, full_path, owner_path, brackets_prop_name, prop_value = self.get_data_paths(rig)
+        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         if self.prop_name != brackets_prop_name:
             if issubclass(type(owner), ID) or type(owner) in {PoseBone, Bone}:
@@ -309,7 +346,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if parent_option:
             ui_path = parent_option.ui_path
         else:
-            ui_path = self.parent_ui_path   # I think this only happens when using the Add operator, and it is always '[]'. parent_ui_path property can probably be phased out soon.
+            ui_path = self.parent_ui_path
 
         add_property_to_ui(
             obj=rig,
@@ -338,6 +375,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         if 'cloudrig_property_parent_selector' in context.scene:
             del context.scene['cloudrig_property_parent_selector']
+        if 'cloudrig_property_name_selector' in context.scene:
+            del context.scene['cloudrig_property_name_selector']
 
 class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
     """Add a child property to the rig UI"""
@@ -758,6 +797,9 @@ def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
     od.clear()
     od.update(reordered_dict)
 
+def supports_custom_props(prop_owner):
+    return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}
+
 
 class HiddenPrints:
     def write(*args):
@@ -799,3 +841,4 @@ registry = [
 
 def register():
     bpy.types.Scene.cloudrig_property_parent_selector = CollectionProperty(type=UIPathProperty)
+    bpy.types.Scene.cloudrig_property_name_selector = CollectionProperty(type=UIPathProperty)

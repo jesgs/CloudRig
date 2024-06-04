@@ -113,12 +113,10 @@ class CloudRigPreferences(AddonPreferences):
         main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
         main_col.separator()
 
-        icon = 'TRIA_DOWN' if self.show_hotkeys else 'TRIA_RIGHT'
-        main_col.label(text=str(context.area.width))
-        width = context.area.width
         row = main_col.row()
         split = row.split(factor=0.12)
         split.use_property_split=False
+        icon = 'TRIA_DOWN' if self.show_hotkeys else 'TRIA_RIGHT'
         split.prop(self, 'show_hotkeys', icon=icon, emboss=False, text="Hotkeys")
         split.prop(self, 'show_hotkeys', icon='BLANK1', emboss=False, text="")
         split = main_col.split(factor=0.012)

@@ -1273,7 +1273,7 @@ def draw_slider(
                 child_op.parent_value = prop_value_str
                 child_op.parent_ui_path=json.dumps(ui_path)
                 if type(owner) == PoseBone:
-                    child_op.owner_path = f'pose.bones["{owner.name}"]'
+                    child_op.init_owner_path = f'pose.bones["{owner.name}"]'
 
             if bracketless_prop_name not in owner.__dir__() and bracketless_prop_name in owner:
                 data_path = "active_object"
@@ -1286,7 +1286,7 @@ def draw_slider(
                 edit_op.property_name = bracketless_prop_name
 
         edit_op = sub_row.operator('pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL')
-        edit_op.owner_path = owner_path
+        edit_op.init_owner_path = owner_path
         edit_op.prop_name = bracketless_prop_name
         ui_path_str = json.dumps(ui_path)
         edit_op.ui_path = ui_path_str
