@@ -598,7 +598,7 @@ def remove_property_from_ui(
     # So empty row, label, panels, and children data does not get left behind after removing their last elements.
     for parent, parent_name, child_name in reversed(parents):
         child_data = parent[child_name]
-        if (not any([type(value)!=str for key, value in child_data.items()])):
+        if (not any([key=='owner_path' or type(value)!=str for key, value in child_data.items()])):
             index = ordereddict_get_index(parent, child_name)
             del parent[child_name]
             parents.pop()
