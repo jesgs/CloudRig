@@ -158,8 +158,6 @@ class Component_Limb_BipedLeg(Component_Limb):
                 self.foot_snap_bone.name,
             )
 
-        print(self.params.ik_chain.world_aligned, self.params.leg.use_foot_roll, self.foot_snap_bone)
-
         return ui_data
 
     def make_fk_chain(self, org_chain) -> List[BoneInfo]:

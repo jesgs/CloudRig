@@ -1126,6 +1126,11 @@ def draw_rig_settings_per_label(
             sub_layout = layout.row()
         for slider_name, slider_data in row_data.items():
             if slider_data.get('owner_path') != None:
+                texts = slider_data.get('texts', '')
+                if texts.startswith("["):
+                    texts = json.loads(texts)
+                else:
+                    texts = [t.strip() for t in texts]
                 draw_slider(
                     rig=rig,
                     layout=sub_layout,
@@ -1138,7 +1143,7 @@ def draw_rig_settings_per_label(
                     row_name=row_name,
                     slider_name=slider_name,
 
-                    texts=[t.strip() for t in json.loads(slider_data.get('texts', ''))],
+                    texts=texts,
                     operator=slider_data.get('operator'),
                     op_icon=slider_data.get('op_icon'),
                     op_kwargs=slider_data.get('op_kwargs'),

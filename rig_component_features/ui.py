@@ -40,11 +40,17 @@ class CloudUIMixin:
         if not slider_name:
             slider_name = prop_id
 
+        if type(texts) == str:
+            if texts.startswith("["):
+                texts = json.loads(texts)
+            else:
+                texts = [t.strip() for t in texts.split(",")]
+
         return add_property_to_ui(
             obj=self.target_rig,
             owner_path=f'pose.bones["{prop_bone.name}"]',
             prop_name=f'["{prop_id}"]',
-            texts={i: value for i, value in enumerate(texts)},
+            texts=texts,
 
             panel_name=panel_name,
             label_name=label_name,

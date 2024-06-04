@@ -111,6 +111,10 @@ class Component_CopyBone(Component_Base):
         This will be displayed in the Sidebar->CloudRig->Settings.
         """
         for prop_name, prop in bone.custom_props.items():
+            if prop_name.startswith("_"):
+                # In the past, underscore indicated that this is a value for a preset.
+                # Now, let's just say underscore means don't draw this property.
+                continue
             # For the row names, we want each property to have its own row,
             # but matching properties from opposite side bones should be in
             # the same row.
@@ -125,6 +129,7 @@ class Component_CopyBone(Component_Base):
                 # (User should NOT add a side indicator to the property name!)
                 entry_name = self.side_prefix + " " + prop_name
 
+            texts = []
             if "$" + prop_name in self.metarig_base_pbone:
                 # Rigger can specify strings for integer properties with a
                 # property whose name starts with $. This property is expected
