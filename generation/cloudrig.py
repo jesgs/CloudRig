@@ -1273,7 +1273,7 @@ def draw_slider(
                 child_op.parent_value = prop_value_str
                 child_op.parent_ui_path=json.dumps(ui_path)
                 if type(owner) == PoseBone:
-                    child_op.owner_path = owner.name
+                    child_op.owner_path = f'pose.bones["{owner.name}"]'
 
             if bracketless_prop_name not in owner.__dir__() and bracketless_prop_name in owner:
                 data_path = "active_object"
