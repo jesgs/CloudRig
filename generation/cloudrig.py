@@ -1291,27 +1291,28 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
     if value_type is type(None) or issubclass(value_type, ID):
         # Property is a Datablock Pointer.
         layout.prop(prop_owner, prop_name, text=slider_name)
-    elif value_type == bool:
-        icon = icon_true if prop_value else icon_false
-        layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
-    elif value_type in {int, float}:
-        if bracketless_prop_name != prop_name:
-            # If this is a custom property.
+    elif value_type in {int, float, bool}:
+        if texts and len(texts)-1 >= int(prop_value):
+            slider_name += ": " + texts[int(prop_value)]
+        if value_type == bool:
+            icon = icon_true if prop_value else icon_false
+            layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
+        elif value_type in {int, float}:
+            if bracketless_prop_name != prop_name:
+                # If this is a custom property.
 
-            if texts and len(texts)-1 >= int(prop_value):
-                slider_name += ": " + texts[int(prop_value)]
-            # Property is a float/int/color
-            # For large ranges, a slider doesn't make sense.
-            try:
-                if bracketless_prop_name in prop_owner:
-                    prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
-            except TypeError:
-                # This happens for Python properties. There's no point drawing them.
-                return
-            is_slider = not _is_array and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
-            layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)
-        else:
-            layout.prop(prop_owner, prop_name, text=slider_name)
+                # Property is a float/int/color
+                # For large ranges, a slider doesn't make sense.
+                try:
+                    if bracketless_prop_name in prop_owner:
+                        prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
+                except TypeError:
+                    # This happens for Python properties. There's no point drawing them.
+                    return
+                is_slider = not _is_array and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+                layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)
+            else:
+                layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type == str:
         layout.prop(prop_owner, prop_name)
     else:

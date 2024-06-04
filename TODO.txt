@@ -1,5 +1,4 @@
 - Properties UI
-	- Texts doesn't work for bools?
 	- Write documentation.
 	- Make Keyframe All Settings work again
 	- Ability to re-order labels and panels (the latter would mean un-registering and re-registering the panels every time, but maybe that just works.)
