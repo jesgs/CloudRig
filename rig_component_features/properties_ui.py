@@ -57,7 +57,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 identifier = json.dumps(new_ui_path)
                 if hasattr(self, 'ui_path') and identifier == self.ui_path:
                     return
-                named_entries = [elem for elem in new_ui_path if elem]
                 new_display_name = display_name or elem_name
                 if 'owner_path' in elem_data:
                     # This is a slider, so it is a potential parent, add it to `items`.
@@ -70,7 +69,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
         return items
 
-    parent_selector: EnumProperty(name="Parent Slider", items=get_sliders)
+    parent_selector: EnumProperty(name="Parent Slider", options={'SKIP_SAVE'}, items=get_sliders)
     parent_value: StringProperty(name="Parent Value", default="1", description="Display this child property only when the parent property matches this value")
     show_internals: BoolProperty(name="Internals", default=False, description="Show internal data")
 
@@ -95,13 +94,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # If user wants to use the bone search selector, 
             # we need to help them get the data path to the selected pose bone.
             data_path = f'pose.bones["{bone_name}"]'
-
-        if "." in prop_name:
-            # If there's a dot in the property name, move the parts before the last dot to the end of the data path instead.
-            split = prop_name.split(".")
-            data_path += "." + ".".join(split[:-1])
-            prop_owner = path_resolve_safe(obj, data_path)
-            prop_name = split[-1]
 
         if data_path:
             prop_owner = path_resolve_safe(obj, data_path)
