@@ -1,7 +1,7 @@
 import bpy, json, sys, os
-from bpy.types import Operator, ID, bpy_struct, PoseBone, Bone, UILayout
+from bpy.types import Operator, ID, bpy_struct, PoseBone, Bone, UILayout, PropertyGroup
 from typing import Optional
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
     is_active_cloudrig,
@@ -44,33 +44,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     texts: StringProperty(name="Value Names", options={'SKIP_SAVE'}, description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on")
 
     parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. Used only by the Add Child operator, to identify the parent")
-
-    def get_sliders(self, context):
-        ui_data = read_rig_panels(context.active_object)
-        items = []
-
-        def add_slider_ui_paths_recursive(ui_data: OrderedDict, ui_path: list[str], display_name: str):
-            for elem_name, elem_data in ui_data.items():
-                if type(elem_data) == str:
-                    continue
-                new_ui_path = ui_path + [elem_name]
-                identifier = json.dumps(new_ui_path)
-                if hasattr(self, 'ui_path') and identifier == self.ui_path:
-                    return
-                new_display_name = display_name or elem_name
-                if 'owner_path' in elem_data:
-                    # This is a slider, so it is a potential parent, add it to `items`.
-                    if elem_name:
-                        new_display_name += " -> " + elem_name
-                    items.append((identifier, new_display_name, ""))
-
-                add_slider_ui_paths_recursive(elem_data, new_ui_path[:], new_display_name)
-
-        add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
-        return items
-
-    parent_selector: EnumProperty(name="Parent Slider", options={'SKIP_SAVE'}, items=get_sliders)
+    parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'})
     parent_value: StringProperty(name="Parent Value", default="1", description="Display this child property only when the parent property matches this value")
+
     show_internals: BoolProperty(name="Internals", default=False, description="Show internal data")
 
     operator: StringProperty(name="Operator ID", description="Internal. Only used by the Edit operator, to initialize the temp KeyMapItem")
@@ -141,8 +117,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if self.owner_path:
             self.use_bone_selector = self.owner_path.startswith('pose.bones')
 
+        self.update_property_parent_selector(context)
+
         if self.parent_ui_path != '[]':
-            self.parent_selector = self.parent_ui_path
+            for entry in context.scene.cloudrig_property_parent_selector:
+                if entry.ui_path == self.parent_ui_path:
+                    self.parent_selector = entry.name
 
         return context.window_manager.invoke_props_dialog(self, width=600)
 
@@ -229,7 +209,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         panel_box = layout.box()
         if self.parent_ui_path != "[]":
-            panel_box.prop(self, 'parent_selector')
+            panel_box.prop_search(self, 'parent_selector', context.scene, 'cloudrig_property_parent_selector', icon='BLANK1')
             # panel_box.label(text=self.parent_selector)
             panel_box.prop(self, 'parent_value')
         else:
@@ -270,6 +250,31 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 row.enabled=False
                 row.prop(self, 'ui_path')
 
+    def update_property_parent_selector(self, context):
+        ui_data = read_rig_panels(context.active_object)
+        context.scene.cloudrig_property_parent_selector.clear()
+
+        def add_slider_ui_paths_recursive(ui_data: OrderedDict, ui_path: list[str], display_name: str):
+            for elem_name, elem_data in ui_data.items():
+                if type(elem_data) == str:
+                    continue
+                new_ui_path = ui_path + [elem_name]
+                identifier = json.dumps(new_ui_path)
+                if hasattr(self, 'ui_path') and identifier == self.ui_path:
+                    return
+                new_display_name = display_name or elem_name
+                if 'owner_path' in elem_data:
+                    # This is a slider, so it is a potential parent, add it to `items`.
+                    if elem_name:
+                        new_display_name += " -> " + elem_name
+                    parent_option = context.scene.cloudrig_property_parent_selector.add()
+                    parent_option.name = new_display_name
+                    parent_option.ui_path = identifier
+
+                add_slider_ui_paths_recursive(elem_data, new_ui_path[:], new_display_name)
+
+        add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
+
     def execute(self, context):
         ret = self.execute_add_property(context)
         if ret:
@@ -300,6 +305,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if not self.slider_name:
             self.slider_name = self.prop_name
 
+        parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
+        if parent_option:
+            ui_path = parent_option.ui_path
+        else:
+            ui_path = self.parent_ui_path   # I think this only happens when using the Add operator, and it is always '[]'. parent_ui_path property can probably be phased out soon.
+
         add_property_to_ui(
             obj=rig,
             owner_path=owner_path,
@@ -313,7 +324,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             texts=[t.strip() for t in self.texts.split(",")],
             children=json.loads(self.children),
 
-            ui_path=json.loads(self.parent_selector),
+            ui_path=json.loads(ui_path),
             parent_value = self.parent_value,
 
             operator=self.temp_kmi.idname,
@@ -324,6 +335,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         )
 
         ensure_custom_panels(None, None)
+
+        if 'cloudrig_property_parent_selector' in context.scene:
+            del context.scene['cloudrig_property_parent_selector']
 
 class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
     """Add a child property to the rig UI"""
@@ -769,10 +783,19 @@ def redraw_viewport():
         bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
 
+class UIPathProperty(PropertyGroup):
+    name: StringProperty()
+    ui_path: StringProperty()
+
 registry = [
+    UIPathProperty,
     CLOUDRIG_OT_add_child_property_to_ui,
     CLOUDRIG_OT_edit_property_in_ui,
     CLOUDRIG_OT_add_property_to_ui,
     CLOUDRIG_OT_remove_property_from_ui,
     CLOUDRIG_OT_reorder_rows,
 ]
+
+
+def register():
+    bpy.types.Scene.cloudrig_property_parent_selector = CollectionProperty(type=UIPathProperty)
