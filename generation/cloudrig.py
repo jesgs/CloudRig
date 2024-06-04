@@ -1022,11 +1022,17 @@ class CLOUDRIG_PT_character_legacy(CLOUDRIG_PT_base):
                     value = json.dumps(value)
                 setattr(operator, param, value)
 
-
-def get_rig_ui_data(rig: Object) -> OrderedDict:
+def read_rig_panels(obj) -> OrderedDict:
     """Return the rig's UI data as a nested OrderedDict."""
-    if 'ui_data' in rig.data:
-        return tuples_to_dict(rig.data['ui_data'].to_dict()['panels'])
+    if 'ui_data' not in obj.data:
+        return OrderedDict()
+    panels = obj.data['ui_data'].to_dict()['panels']
+    return tuples_to_dict(panels)
+
+def write_rig_panels(obj, panels) -> OrderedDict:
+    # Convert back to a list of tuples so Blender can store it without mangling it.
+    panels = {'panels' : dict_to_tuples(panels)}
+    obj.data['ui_data'] = panels
 
 def dict_to_tuples(ordered_dict: OrderedDict) -> list[tuple[str, list]]:
     """Convert a nested OrderedDict to a nested list of tuples."""
@@ -1066,14 +1072,32 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             return
         if 'ui_data' not in rig.data:
             return
-        ui_data = get_rig_ui_data(rig)
+        ui_data = read_rig_panels(rig)
 
         if cls.bl_label in ui_data:
             return True
 
+    def draw_header(self, context):
+        rig = context.active_object
+        ui_data = read_rig_panels(rig)
+        panel_data = ui_data[self.bl_label]
+        layout = self.layout
+        if len(ui_data) > 1 and is_ui_edit_mode(rig):
+            is_dragged = panel_data.get('is_dragged', False)
+            if is_dragged:
+                icon = 'VIEW_PAN'
+                icon_value = 0
+            else:
+                icon = 'NONE'
+                from CloudRig import icons
+                icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
+            reorder_panel = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
+            reorder_panel.ui_path = json.dumps([self.bl_label])
+            reorder_panel.reset_panels = True
+
     def draw(self, context):
         rig = context.active_object
-        ui_data = get_rig_ui_data(rig)
+        ui_data = read_rig_panels(rig)
 
         panel_data = ui_data.get(self.bl_label)
         if panel_data:
@@ -1097,6 +1121,9 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         """
 
         for label_name, label_data in panel_data.items():
+            if type(label_data) == str:
+                # This is a flag, not a label.
+                continue
             draw_rig_settings_per_label(
                 layout=layout, 
                 rig=rig, 
@@ -1114,8 +1141,6 @@ def draw_rig_settings_per_label(
             label_name: str, 
             label_data: dict,
         ):
-    if label_name == 'parent_id':
-        return
     if label_name:
         layout.label(text=label_name)
     for row_name, row_data in label_data.items():
@@ -1357,23 +1382,8 @@ def unquote_custom_prop_name(prop_name: str) -> str:
         return prop_name[2:-2]
     return prop_name
 
-custom_panels = []
-
 def ensure_custom_panels(_dummy1, _dummy2):
-    rig = is_active_cloudrig(bpy.context) or is_active_cloud_metarig(bpy.context)
-    if not rig:
-        return
-    ui_data = get_rig_ui_data(rig)
-    if not ui_data:
-        return
-
-    for panel_name, panel_data in ui_data.items():
-        if panel_name == "":
-            continue
-        parent_id = panel_data.get('parent_id')
-        if not parent_id:
-            parent_id = "CLOUDRIG_PT_settings"
-        ensure_custom_panel(panel_name, parent_id)
+    bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(bpy.context)
 
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     # Make sure name is alphanumeric
@@ -1397,12 +1407,37 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     bpy.utils.register_class(new_panel)
 
     # Save a reference so it can be unregistered, even though unregister() is never called.
-    global custom_panels
-    custom_panels.append(new_panel)
+    bpy.types.CLOUDRIG_PT_settings.subpanels.append(new_panel)
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_settings"
     bl_label = "Settings"
+
+    subpanels = []
+
+    @classmethod
+    def ensure_custom_panels(cls, context):
+        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
+        if not rig:
+            return
+        ui_data = read_rig_panels(rig)
+        if not ui_data:
+            return
+
+        for panel_name, panel_data in ui_data.items():
+            if panel_name == "":
+                continue
+            parent_id = panel_data.get('parent_id')
+            if not parent_id:
+                parent_id = cls.bl_idname
+            ensure_custom_panel(panel_name, parent_id)
+
+    @classmethod
+    def unregister_subpanels(cls):
+        for panel in cls.subpanels:
+            if is_registered(panel):
+                unregister_class(panel)
+        cls.subpanels = []
 
     @classmethod
     def poll(cls, context):
@@ -1432,7 +1467,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                         'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
                     )
         
-        ui_data = get_rig_ui_data(rig)
+        ui_data = read_rig_panels(rig)
         if ui_data:
             base_panel = ui_data.get("")
             if base_panel:
@@ -2898,6 +2933,8 @@ def unregister():
     # This would also unregister add-on hotkeys.
     # unregister_hotkeys()
 
+    bpy.types.CLOUDRIG_PT_settings.unregister_subpanels()
+
     for c in classes:
         reg = is_registered(c)
         if reg:
@@ -2906,12 +2943,6 @@ def unregister():
             except RuntimeError as e:
                 print("Failed to unregister ", c, str(e))
                 pass
-
-    global custom_panels
-    for c in custom_panels[:]:
-        if is_registered(c):
-            unregister_class(c)
-    custom_panels = []
 
     try:
         del bpy.types.Object.cloud_rig

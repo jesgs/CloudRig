@@ -4,14 +4,16 @@ from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
-    is_active_cloudrig, 
-    is_active_cloud_metarig, 
-    tuples_to_dict, 
-    dict_to_tuples, 
-    unquote_custom_prop_name, 
+    is_active_cloudrig,
+    is_active_cloud_metarig,
+    unquote_custom_prop_name,
     ensure_custom_panels,
     feed_op_props,
     draw_property,
+    read_rig_panels,
+    write_rig_panels,
+    tuples_to_dict,
+    dict_to_tuples,
 )
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
@@ -363,6 +365,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name")
+    reset_panels: BoolProperty(name="Reset Panels", default=False, options={'SKIP_SAVE'}, description="Internal. When re-ordering panels, they need to be re-registered. Set this to True when this operator is re-ordering panels")
 
     def invoke(self, context, event):
         self.mouse_initial = event.mouse_y
@@ -390,6 +393,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
                 if ret == {'FINISHED'}:
                     redraw_viewport()
                     self.mouse_initial = event.mouse_y
+                    self.update_ui_data(context, self.modified_panel_data)
         elif event.type == 'LEFTMOUSE':
             if self.row_data and 'is_dragged' in self.row_data:
                 del self.row_data['is_dragged']
@@ -397,11 +401,23 @@ class CLOUDRIG_OT_reorder_rows(Operator):
                 redraw_viewport()
             return {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            self.update_ui_data(context, self.initial_panel_data)
             write_rig_panels(context.active_object, self.initial_panel_data)
             redraw_viewport()
             return {'CANCELLED'}
 
         return {'RUNNING_MODAL'}
+
+    def update_ui_data(self, context, ui_data):
+        rig = context.active_object
+        if not self.reset_panels:
+            write_rig_panels(rig, ui_data)
+            return
+        bpy.types.CLOUDRIG_PT_settings.unregister_subpanels()
+        redraw_viewport()
+        write_rig_panels(rig, ui_data)
+        bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(context)
+        redraw_viewport()
 
     def execute(self, context):
         ui_path = json.loads(self.ui_path)
@@ -477,17 +493,6 @@ def make_property(
 
     if value and value != default:
         owner[name] = value
-
-def read_rig_panels(obj) -> OrderedDict:
-    if 'ui_data' not in obj.data:
-        return OrderedDict()
-    panels = obj.data['ui_data'].to_dict()['panels']
-    return tuples_to_dict(panels)
-
-def write_rig_panels(obj, panels) -> OrderedDict:
-    # Convert back to a list of tuples so Blender can store it without mangling it.
-    panels = {'panels' : dict_to_tuples(panels)}
-    obj.data['ui_data'] = panels
 
 def add_property_to_ui(
     *,
@@ -593,10 +598,7 @@ def remove_property_from_ui(
     # So empty row, label, panels, and children data does not get left behind after removing their last elements.
     for parent, parent_name, child_name in reversed(parents):
         child_data = parent[child_name]
-        if (
-            len(child_data) == 0 or 
-            ( len(child_data) == 1 and 'parent_id' in child_data)
-        ):
+        if (not any([type(value)!=str for key, value in child_data.items()])):
             index = ordereddict_get_index(parent, child_name)
             del parent[child_name]
             parents.pop()
@@ -643,7 +645,7 @@ def reorder_ui_row(
         # write_rig_panels(obj, panels)
         return label_data[row_name], True
 
-    return label_data, False
+    return label_data[row_name], False
 
 def get_ui_element_chain(
     root_element: OrderedDict,

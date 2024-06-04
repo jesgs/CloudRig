@@ -1,7 +1,7 @@
 - Properties UI
 	- Write documentation.
 	- Make Keyframe All Settings work again
-	- Ability to re-order labels and panels (the latter would mean un-registering and re-registering the panels every time, but maybe that just works.)
+	- Ability to re-order labels
 	- Ability to add and re-order separators
 	- Ability to add "all" properties of a posebone/ID. (Unless they start with $, _, or are Python properties. But Datablock Pointers should be allowed.)
 	- Preset system:
