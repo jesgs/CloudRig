@@ -55,7 +55,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                     continue
                 new_ui_path = ui_path + [elem_name]
                 identifier = json.dumps(new_ui_path)
-                if identifier == ui_path:
+                if hasattr(self, 'ui_path') and identifier == self.ui_path:
                     return
                 named_entries = [elem for elem in new_ui_path if elem]
                 new_display_name = display_name or elem_name
@@ -238,7 +238,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         panel_box = layout.box()
         if self.parent_ui_path != "[]":
             panel_box.prop(self, 'parent_selector')
-            panel_box.label(text=self.parent_selector)
+            # panel_box.label(text=self.parent_selector)
             panel_box.prop(self, 'parent_value')
         else:
             panel_box.prop(self, 'panel_name')
