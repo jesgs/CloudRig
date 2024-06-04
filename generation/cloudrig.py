@@ -1082,18 +1082,10 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         ui_data = read_rig_panels(rig)
         panel_data = ui_data[self.bl_label]
         layout = self.layout
-        if len(ui_data) > 1 and is_ui_edit_mode(rig):
-            is_dragged = panel_data.get('is_dragged', False)
-            if is_dragged:
-                icon = 'VIEW_PAN'
-                icon_value = 0
-            else:
-                icon = 'NONE'
-                from CloudRig import icons
-                icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
-            reorder_panel = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
-            reorder_panel.ui_path = json.dumps([self.bl_label])
-            reorder_panel.reset_panels = True
+
+        op = draw_drag_operator(rig, ui_data, panel_data, self.bl_label, [], layout)
+        if op:
+            op.reset_panels=True
 
     def draw(self, context):
         rig = context.active_object
@@ -1127,37 +1119,52 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             draw_rig_settings_per_label(
                 layout=layout, 
                 rig=rig, 
-                ui_path=[panel_name, label_name], 
+                ui_path=[panel_name], 
                 panel_name=panel_name,
+                panel_data=panel_data,
                 label_name=label_name,
                 label_data=label_data,
             )
+
+def draw_drag_operator(rig: Object, parent_ui_data: OrderedDict, ui_data: OrderedDict, ui_name: str, ui_path: list[str], layout: UILayout):
+    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem)!=str]
+    if len(sub_elements) > 1 and is_ui_edit_mode(rig):
+        is_dragged = ui_data.get('is_dragged', False)
+        if is_dragged:
+            icon = 'VIEW_PAN'
+            icon_value = 0
+        else:
+            icon = 'NONE'
+            from CloudRig import icons
+            icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
+        op = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
+        op.ui_path = json.dumps(ui_path+[ui_name])
+        return op
 
 def draw_rig_settings_per_label(
             layout: UILayout, 
             rig: Object, 
             ui_path: list[str],
             panel_name: str,
+            panel_data: OrderedDict,
             label_name: str, 
-            label_data: dict,
+            label_data: OrderedDict,
         ):
     if label_name:
-        layout.label(text=label_name)
+        row = layout.row()
+        draw_drag_operator(rig, panel_data, label_data, label_name, ui_path, row)
+        row.label(text=label_name)
+
+    ui_path += [label_name]
+
     for row_name, row_data in label_data.items():
+        if type(row_data)==str:
+            # It's a flag, not a UI element.
+            continue
         column = layout
         sub_row = column.row(align=True)
-
-        if len(label_data) > 1 and is_ui_edit_mode(rig):
-            is_dragged = row_data.get('is_dragged', False)
-            if is_dragged:
-                icon = 'VIEW_PAN'
-                icon_value = 0
-            else:
-                icon = 'NONE'
-                from CloudRig import icons
-                icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
-            sub_row.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value).ui_path = json.dumps(ui_path+[row_name])
-            sub_row.separator()
+        draw_drag_operator(rig, label_data, row_data, row_name, ui_path, sub_row)
+        sub_row.separator()
 
         for slider_name, slider_data in row_data.items():
             if type(slider_data) == str:
@@ -1258,8 +1265,9 @@ def draw_slider(
                     draw_rig_settings_per_label(
                         layout=box_col, 
                         rig=rig, 
-                        ui_path= ui_path + ['children', prop_value_str, child_label_name],
+                        ui_path= ui_path + ['children', prop_value_str],
                         panel_name=panel_name,
+                        panel_data=current_children_ui,
                         label_name=child_label_name, 
                         label_data=child_label_data,
                     )
@@ -1476,8 +1484,9 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                     draw_rig_settings_per_label(
                         layout=layout, 
                         rig=rig, 
-                        ui_path=["", label_name], 
+                        ui_path=[""], 
                         panel_name="",
+                        panel_data=base_panel,
                         label_name=label_name,
                         label_data=label_data,
                     )

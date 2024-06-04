@@ -19,6 +19,8 @@ from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
 
 def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
+    """For some reason when this function is inside the class, it doesn't get inherited... 
+    Blender Python class inheritance is weird."""
     data_path = bone_name = self.owner_path
     prop_name = self.prop_name
 
@@ -62,7 +64,6 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
 
     return prop_owner, full_path, data_path, prop_name, prop_value
 
-
 class CLOUDRIG_OT_add_property_to_ui(Operator):
     """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
     bl_idname = "pose.cloudrig_add_property_to_ui"
@@ -96,6 +97,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             name_entry = context.scene.cloudrig_property_name_selector.add()
             name_entry.name = key
 
+    # We need a separate init_owner_path where UI code can feed us an owner path without triggering the update callback.
     init_owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
     owner_path: StringProperty(name="Data Path", update=update_owner_path, description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
     use_bone_selector: BoolProperty(name="Use Bone Selector", options={'SKIP_SAVE'}, description="Display a bone selector. If disabled, you can manually type in a data path", default=True, update=update_use_bone_selector)
