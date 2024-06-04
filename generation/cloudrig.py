@@ -1119,12 +1119,20 @@ def draw_rig_settings_per_label(
     if label_name:
         layout.label(text=label_name)
     for row_name, row_data in label_data.items():
-        sub_layout = layout
-        if len(row_data) > 1:
-            # To draw multiple sliders side-by-side, they need a higher level row to share.
-            # NOTE: This breaks child properties, but those should never be used when multiple properties are drawn side by side!
-            sub_layout = layout.row()
+        column = layout
+        sub_row = column.row(align=True)
+
+        if len(label_data) > 1 and is_ui_edit_mode(rig):
+            icon = 'GRIP'
+            is_dragged = row_data.get('is_dragged', False)
+            if is_dragged:
+                icon = 'VIEW_PAN'
+            sub_row.operator('pose.cloudrig_reorder_rows', text="", icon=icon).ui_path = json.dumps(ui_path+[row_name])
+            sub_row.separator()
         for slider_name, slider_data in row_data.items():
+            if type(slider_data) == str:
+                # It's a row flag, not a slider.
+                continue
             if slider_data.get('owner_path') != None:
                 texts = slider_data.get('texts', '')
                 if texts.startswith("["):
@@ -1133,7 +1141,8 @@ def draw_rig_settings_per_label(
                     texts = [t.strip() for t in texts]
                 draw_slider(
                     rig=rig,
-                    layout=sub_layout,
+                    column=column,
+                    sub_row=sub_row,
                     owner_path=slider_data.get('owner_path'),
                     prop_name=slider_data.get('prop_name'),
 
@@ -1149,8 +1158,6 @@ def draw_rig_settings_per_label(
                     op_kwargs=slider_data.get('op_kwargs'),
 
                     children=slider_data.get('children'),
-
-                    show_reorder_operator = len(label_data) > 1,
                 )
             elif slider_data.get('operator'):
                 # Allow drawing an operator, even without a property.
@@ -1160,7 +1167,8 @@ def draw_rig_settings_per_label(
 def draw_slider(
         *,
         rig,
-        layout: UILayout,
+        column: UILayout,
+        sub_row: UILayout,
         owner_path: str,
         prop_name: str,
 
@@ -1176,8 +1184,6 @@ def draw_slider(
         op_kwargs={},
 
         children={},
-
-        show_reorder_operator=False,
     ):
 
     if owner_path == "":
@@ -1189,8 +1195,6 @@ def draw_slider(
             # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
             owner = None
             pass
-
-    sub_row = layout.row(align=True)
 
     if not owner:
         sub_row.alert=True
@@ -1220,7 +1224,7 @@ def draw_slider(
             current_children_ui = children[prop_value_str]
             if current_children_ui:
                 for child_label_name, child_label_data in current_children_ui.items():
-                    box_col = layout.box().column()
+                    box_col = column.box().column()
                     draw_rig_settings_per_label(
                         layout=box_col, 
                         rig=rig, 
@@ -1230,10 +1234,7 @@ def draw_slider(
                         label_data=child_label_data,
                     )
 
-    addon_present = hasattr(rig, 'cloudrig')
-    if addon_present and rig.cloudrig.enabled and (rig.cloudrig.ui_edit_mode or sub_row.alert):
-        sub_row.separator()
-
+    if is_ui_edit_mode(rig):
         bracketless_prop_name = unquote_custom_prop_name(prop_name)
 
         if not sub_row.alert:
@@ -1253,9 +1254,6 @@ def draw_slider(
                 edit_op = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
                 edit_op.data_path = data_path
                 edit_op.property_name = bracketless_prop_name
-
-            if show_reorder_operator:
-                sub_row.operator('pose.cloudrig_reorder_rows', text="", icon='GRIP').ui_path = json.dumps(ui_path[:-1])
 
         edit_op = sub_row.operator('pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL')
         edit_op.owner_path = owner_path
@@ -1279,6 +1277,7 @@ def draw_slider(
         if texts:
             edit_op.texts = ", ".join(texts)
         sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = ui_path_str
+    sub_row.separator()
 
 def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts=[]):
     prop_value = prop_owner.path_resolve(prop_name)
@@ -1324,6 +1323,11 @@ def draw_operator(layout: UILayout, bl_idname: str, op_icon='BLANK1', op_kwargs=
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
         feed_op_props(op_props, op_kwargs)
         return op_props
+
+def is_ui_edit_mode(obj):
+    return hasattr(obj, 'cloudrig') and \
+        obj.cloudrig.enabled and \
+        obj.cloudrig.ui_edit_mode
 
 def feed_op_props(op_props, op_kwargs: str or dict or list):
     if type(op_kwargs) == str:

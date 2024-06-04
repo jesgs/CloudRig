@@ -368,6 +368,16 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         self.mouse_initial = event.mouse_y
         self.index_offset = 0
         self.initial_panel_data = read_rig_panels(context.active_object)
+        self.modified_panel_data = read_rig_panels(context.active_object)
+
+        self.row_data, has_moved = reorder_ui_row(
+            obj=context.active_object, 
+            ui_path=json.loads(self.ui_path), 
+            index_offset=self.index_offset,
+
+            panels=self.modified_panel_data
+        )
+        write_rig_panels(context.active_object, self.modified_panel_data)
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
@@ -381,6 +391,10 @@ class CLOUDRIG_OT_reorder_rows(Operator):
                     redraw_viewport()
                     self.mouse_initial = event.mouse_y
         elif event.type == 'LEFTMOUSE':
+            if self.row_data and 'is_dragged' in self.row_data:
+                del self.row_data['is_dragged']
+                write_rig_panels(context.active_object, self.modified_panel_data)
+                redraw_viewport()
             return {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             write_rig_panels(context.active_object, self.initial_panel_data)
@@ -391,12 +405,19 @@ class CLOUDRIG_OT_reorder_rows(Operator):
 
     def execute(self, context):
         ui_path = json.loads(self.ui_path)
-        
-        if reorder_ui_row(
+
+        self.row_data, has_moved = reorder_ui_row(
             obj=context.active_object, 
             ui_path=ui_path, 
-            index_offset=self.index_offset
-        ):
+            index_offset=self.index_offset,
+
+            panels=self.modified_panel_data
+        )
+
+        if has_moved:
+            write_rig_panels(context.active_object, self.modified_panel_data)
+            redraw_viewport()
+
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
@@ -588,7 +609,9 @@ def reorder_ui_row(
     obj,
     ui_path: list[str],
     index_offset = 1,
-) -> bool:
+
+    panels=None
+) -> tuple[OrderedDict, bool]:
     """Re-order a row of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 
@@ -598,10 +621,11 @@ def reorder_ui_row(
 
     If the index gets clamped and therefore we don't need to perform any re-ordering, we
     don't.
-    Return a bool of whether any re-ordering was actually performed.
+    Return the row_data of the row that was targetted, and a bool of it was actually moved.
     """
 
-    panels = read_rig_panels(obj)
+    if not panels:
+        panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 
     label_data, _label_name, row_name = parents.pop()
@@ -611,13 +635,15 @@ def reorder_ui_row(
     to_idx = min(to_idx, len(label_data)-1)
     to_idx = max(0, to_idx)
 
+    label_data[row_name]['is_dragged'] = "True"
+
     if from_idx != to_idx:
         ordereddict_move_to_index(label_data, from_idx, to_idx)
 
-        write_rig_panels(obj, panels)
-        return True
+        # write_rig_panels(obj, panels)
+        return label_data[row_name], True
 
-    return False
+    return label_data, False
 
 def get_ui_element_chain(
     root_element: OrderedDict,

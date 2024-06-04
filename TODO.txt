@@ -1,4 +1,5 @@
 - Properties UI
+	- Texts doesn't work for bools?
 	- Write documentation.
 	- Make Keyframe All Settings work again
 	- Ability to re-order labels and panels (the latter would mean un-registering and re-registering the panels every time, but maybe that just works.)
@@ -14,6 +15,9 @@
 
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
+- Could improve the driver mirroring in Symmetrize, and we should mention that in the documentation as well.
+- Documentation typo: `button indicates When Armature`
+- Could also document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 
 Priority -1: Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
