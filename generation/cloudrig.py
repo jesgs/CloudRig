@@ -1412,8 +1412,8 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         layout.operator(
             POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
         )
-        if hasattr(rig, 'cloudrig'):
-            # If CloudRig add-on is enabled.
+        if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
+            # If CloudRig add-on is enabled, and this is a metarig.
             layout.separator()
             layout.prop(rig.cloudrig, 'ui_edit_mode', icon='GREASEPENCIL')
             if rig.cloudrig.ui_edit_mode:
