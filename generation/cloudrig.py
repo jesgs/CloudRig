@@ -617,33 +617,29 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
         rig = context.pose_object or context.active_object
         data = rig.data
 
-        ui_data = data['ui_data'].to_dict()
+        ui_data = read_rig_panels(rig)
 
-        for subpanel, label_dicts in ui_data.items():
-            for label_name, row_dicts in label_dicts.items():
-                if label_name == 'NODRAW':
+        props_to_key: list[tuple[ID, str]] = []
+        def add_props_to_key_recursive(ui_data: OrderedDict):
+            for elem_name, elem_data in ui_data.items():
+                if type(elem_data) == str:
                     continue
-                if type(row_dicts) == str:
-                    # TODO: For some reason, cloud_ik_finger seems to put a string "CLOUDRIG_PT_custom_ik" here, which is the sub-panel that has a sub-panel.
-                    continue
-                for row_name, col_dicts in row_dicts.items():
-                    for col_name, col_dict in col_dicts.items():
-                        assert (
-                            'prop_bone' in col_dict and 'prop_id' in col_dict
-                        ), "Rig UI info entry must have prop_bone and prop_id."
-                        prop_bone_name = col_dict['prop_bone']
-                        prop_id = col_dict['prop_id']
+                if 'owner_path' in elem_data:
+                    # This is a property, so it can be keyed.
+                    try:
+                        owner = rig.path_resolve(elem_data['owner_path'])
+                    except ValueError:
+                        # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
+                        continue
 
-                        prop_bone = rig.pose.bones.get(prop_bone_name)
-                        assert (
-                            prop_bone
-                        ), f"Property bone non-existent: {prop_bone_name}"
+                    props_to_key.append((owner, elem_data['prop_name']))
 
-                        value = prop_bone[prop_id]
-                        if type(value) not in (int, float):
-                            continue
+                add_props_to_key_recursive(elem_data)
 
-                        prop_bone.keyframe_insert(rna_idprop_quote_path(prop_id), group=prop_bone.name)
+        add_props_to_key_recursive(ui_data)
+
+        for prop_owner, prop_name in props_to_key:
+            prop_owner.keyframe_insert(prop_name, group=prop_owner.name)
 
         return {'FINISHED'}
 

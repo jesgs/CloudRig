@@ -1,14 +1,7 @@
 - Properties UI
-	- Make Keyframe All Settings work again
+	- Allow adding an operator without a property
 	- Write documentation.
 
-	Luxury stuff:
-	- Ability to add and re-order separators
-	- Ability to add "all" properties of a posebone/ID. (Unless they start with $, _, or are Python properties. But Datablock Pointers should be allowed.)
-	- Preset system:
-		- "Store Preset" button asks for a preset name, then saves all currently drawn properties (owner_path, prop_name, prop_value).
-		- "Apply Preset" button asks you to select one of the saved presets and applies it.
-		- "Remove Preset" button asks you to select one of the saved presets and removes it.
 
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
@@ -121,6 +114,10 @@ Priority 7: Ideas from Animators/Users
 		I would rather add an FAQ where I explain that you can simply set bendy bones to 0, and re-design cloud_chain so that DEF bones are indeed parented to each other, since IIRC that was always an arbitrary choice.
 	From Johannes Lübke: It might make sense to put the target rig in POSE position in one of the generation stages, so constraints can be applied.
 
+	- Properties UI Preset system:
+		- "Store Preset" button asks for a preset name, then saves all currently drawn properties (owner_path, prop_name, prop_value).
+		- "Apply Preset" button asks you to select one of the saved presets and applies it.
+		- "Remove Preset" button asks you to select one of the saved presets and removes it.
 
 Ideas:
 	A system to list which bones were created by each bone set, maybe. Maybe it's feature creep tho.
