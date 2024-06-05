@@ -102,7 +102,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def update_parent_selector(self, context):
         parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
-        self.parent_value = parent_option.current
+        if parent_option:
+            self.parent_value = parent_option.current
 
     # We need a separate init_owner_path where UI code can feed us an owner path without triggering the update callback.
     init_owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
@@ -388,9 +389,14 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
         if parent_option:
-            ui_path = parent_option.ui_path
+            ui_path = json.loads(parent_option.ui_path)
+        elif self.parent_selector == "" and len(self.parent_ui_path)>2:
+            ui_path = json.loads(self.parent_ui_path)
+            self.panel_name = ui_path[0]
+            self.label_name = ui_path[1]
+            ui_path = []
         else:
-            ui_path = self.parent_ui_path
+            ui_path = json.loads(self.parent_ui_path)
 
         add_property_to_ui(
             obj=rig,
@@ -405,7 +411,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             texts=[t.strip() for t in self.texts.split(",")],
             children=json.loads(self.children),
 
-            ui_path=json.loads(ui_path),
+            ui_path=ui_path,
             parent_value = self.parent_value,
 
             operator=self.temp_kmi.idname,

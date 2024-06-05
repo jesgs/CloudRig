@@ -2,7 +2,7 @@
 	- Allow adding an operator without a property
 	- Write documentation.
 
-
+- Disconnect Bone actually un-parents...
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
 - Check if Spline IK parameters work well with each other and do what they should.
 - Could improve the driver mirroring in Symmetrize, and we should mention that in the documentation as well.
