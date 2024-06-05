@@ -1327,7 +1327,9 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
         layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type in {int, float, bool}:
         if texts and len(texts)-1 >= int(prop_value) >= 0:
-            slider_name += ": " + texts[int(prop_value)]
+            text = texts[int(prop_value)].strip()
+            if text:
+                slider_name += ": " + text
         if value_type == bool:
             icon = icon_true if prop_value else icon_false
             layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
