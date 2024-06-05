@@ -119,6 +119,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     texts: StringProperty(name="Value Names", options={'SKIP_SAVE'}, description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on")
     use_batch_add: BoolProperty(name="Batch Add", options={'SKIP_SAVE'}, default=False, description="Add all custom properties of the selected ID to the UI")
 
+    use_parenting: BoolProperty(name="Parenting", options={'SKIP_SAVE'}, description="Instead of putting this property in a sub-panel directly, parent it to another property, so it's only visible when that parent property has a specific value")
     parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. The UI Path of the selected parent slider. Used by the Add Child and Edit operators")
     parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'}, update=update_parent_selector, description="The child will only be visible when this parent slider has a certain value, specified below")
     parent_value: StringProperty(name="Parent Value", default="1", description="Display this child property only when the parent property matches this value")
@@ -152,6 +153,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             if owner_path.startswith('pose.bones'):
                 self.use_bone_selector = True
 
+        self.use_parenting = self.parent_ui_path != "[]"
         self.update_property_parent_selector(context)
 
         if self.parent_ui_path != '[]':
@@ -262,12 +264,16 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         panel_box = layout.box()
-        if self.parent_ui_path != "[]":
-            panel_box.prop_search(self, 'parent_selector', context.scene, 'cloudrig_property_parent_selector', icon='BLANK1')
+        panel_row = panel_box.row()
+        panel_row_left = panel_row.row()
+        panel_row_right = panel_row.row()
+        panel_row_right.prop(self, 'use_parenting', text="", icon='OUTLINER')
+        if self.use_parenting:
+            panel_row_left.prop_search(self, 'parent_selector', context.scene, 'cloudrig_property_parent_selector', icon='BLANK1')
             # panel_box.label(text=self.parent_selector)
             panel_box.prop(self, 'parent_value')
         else:
-            panel_box.prop(self, 'panel_name')
+            panel_row_left.prop(self, 'panel_name')
         panel_box.prop(self, 'label_name')
         if self.use_batch_add:
             return
