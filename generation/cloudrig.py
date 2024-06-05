@@ -1229,6 +1229,7 @@ def draw_slider(
             owner = None
             pass
 
+    prop_value = None
     if not owner:
         sub_row.alert=True
         sub_row.label(text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.", icon='ERROR')
@@ -1236,37 +1237,39 @@ def draw_slider(
         try:
             prop_value = owner.path_resolve(prop_name)
         except ValueError:
-            prop_value = None
             sub_row.alert=True
             sub_row.label(text=f"Missing property '{prop_name}' of owner '{owner_path}'.", icon='ERROR')
 
-    prop_value_str = str(prop_value)
     if not sub_row.alert:
         draw_property(
             layout=sub_row, 
             prop_owner=owner, 
             prop_name=prop_name, 
-            
+
             slider_name=slider_name, 
             texts=texts
         )
         if operator:
             draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
 
-        if children and prop_value_str in children:
-            current_children_ui = children[prop_value_str]
-            if current_children_ui:
-                for child_label_name, child_label_data in current_children_ui.items():
-                    box_col = column.box().column()
-                    draw_rig_settings_per_label(
-                        layout=box_col, 
-                        rig=rig, 
-                        ui_path= ui_path + ['children', prop_value_str],
-                        panel_name=panel_name,
-                        panel_data=current_children_ui,
-                        label_name=child_label_name, 
-                        label_data=child_label_data,
-                    )
+        prop_value_str = str(prop_value)
+        if children:
+            box_col = None
+            for child_value, child_data in children.items():
+                child_values = [v.strip() for v in child_value.split(",")]
+                if prop_value_str in child_values:
+                    for child_label_name, child_label_data in child_data.items():
+                        if not box_col:
+                            box_col = column.box().column()
+                        draw_rig_settings_per_label(
+                            layout=box_col, 
+                            rig=rig, 
+                            ui_path= ui_path + ['children', child_value],
+                            panel_name=panel_name,
+                            panel_data=child_data,
+                            label_name=child_label_name, 
+                            label_data=child_label_data,
+                        )
 
     if is_ui_edit_mode(rig):
         bracketless_prop_name = unquote_custom_prop_name(prop_name)

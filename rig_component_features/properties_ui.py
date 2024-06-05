@@ -331,6 +331,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 if 'owner_path' in elem_data:
                     # This is a slider, so it is a potential parent, add it to `items`.
                     if elem_name:
+                        if 'children' in ui_path and ui_path[-4] == 'children':
+                            parent_value = ui_path[-3]
+                            new_display_name += f" ({parent_value})"
                         new_display_name += " -> " + elem_name
                     parent_option = context.scene.cloudrig_property_parent_selector.add()
                     parent_option.name = new_display_name
