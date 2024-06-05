@@ -71,13 +71,16 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     def update_use_bone_selector(self, context):
+        owner_path = self.owner_path or self.init_owner_path
         if self.use_bone_selector:
-            if self.owner_path.startswith("pose.bones"):
+            # If the use_bone_selector was just turned on, extract the bone name from the data path.
+            if owner_path.startswith("pose.bones"):
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
-        elif self.owner_path != '' and not self.owner_path.startswith('pose.bones'):
-            self.owner_path = f'pose.bones["{self.owner_path}"]'
+        elif owner_path != '' and not owner_path.startswith('pose.bones'):
+            # If the use_bone_selector was just turned off, turn the bone name into a data path.
+            self.owner_path = f'pose.bones["{owner_path}"]'
 
     def update_owner_path(self, context):
         context.scene.cloudrig_property_name_selector.clear()
@@ -137,9 +140,11 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             if self.op_kwargs:
                 op_props = self.temp_kmi.properties
                 feed_op_props(op_props, self.op_kwargs)
-        if self.init_owner_path:
-            self.owner_path = self.init_owner_path
-            self.use_bone_selector = self.owner_path.startswith('pose.bones')
+        owner_path = self.init_owner_path or self.owner_path
+        if owner_path:
+            self.owner_path = owner_path
+            if owner_path.startswith('pose.bones'):
+                self.use_bone_selector = True
 
         self.update_property_parent_selector(context)
 
