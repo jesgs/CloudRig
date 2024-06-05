@@ -100,6 +100,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             name_entry = context.scene.cloudrig_property_name_selector.add()
             name_entry.name = key
 
+    def update_parent_selector(self, context):
+        parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
+        self.parent_value = parent_option.current
+
     # We need a separate init_owner_path where UI code can feed us an owner path without triggering the update callback.
     init_owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
     owner_path: StringProperty(name="Data Path", update=update_owner_path, description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
@@ -112,9 +116,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     row_name: StringProperty(name="Row ID", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row ID, they will be drawn in the same row. However, the Row ID itself is not shown in the interface")
     slider_name: StringProperty(name="Display Name", default="", options={'SKIP_SAVE'}, description="Optional: Override the display text of the property")
     texts: StringProperty(name="Value Names", options={'SKIP_SAVE'}, description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on")
+    use_batch_add: BoolProperty(name="Batch Add", options={'SKIP_SAVE'}, default=False, description="Add all custom properties of the selected ID to the UI")
 
     parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. The UI Path of the selected parent slider. Used by the Add Child and Edit operators")
-    parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'}, description="The child will only be visible when this parent slider has a certain value, specified below")
+    parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'}, update=update_parent_selector, description="The child will only be visible when this parent slider has a certain value, specified below")
     parent_value: StringProperty(name="Parent Value", default="1", description="Display this child property only when the parent property matches this value")
 
     show_internals: BoolProperty(name="Internals", default=False, description="Show internal data")
@@ -161,7 +166,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         self.draw_owner_box(layout, context)
         self.draw_prop_box(layout, context)
-        if not self.prop_name:
+        if not self.prop_name and not self.use_batch_add:
             return
         self.draw_placement_box(layout, context)
         layout.separator()
@@ -206,21 +211,29 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         rig = context.active_object
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
-        has_custom_props = len(context.scene.cloudrig_property_name_selector) > 0
-
         prop_box = layout.box()
-        prop_row = prop_box.row(align=True)
-        if self.use_manual_prop_name or not has_custom_props:
-            prop_row.prop(self, 'prop_name')
-        else:
-            prop_row.prop_search(self, 'prop_name', context.scene, 'cloudrig_property_name_selector', icon='BLANK1')
-
-        if has_custom_props:
-            prop_row.prop(self, 'use_manual_prop_name', icon='ADD', text="")
-
         if not prop_owner:
             prop_box.label(text=f'Data path failed to resolve on {rig.name}.')
             return
+
+        has_custom_props = len(context.scene.cloudrig_property_name_selector) > 0
+
+        prop_row = prop_box.row(align=True)
+        left_side = prop_row.row()
+        batch_add_row = prop_row.row()
+        batch_add_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
+
+        if self.use_batch_add:
+            left_side.label(text=f"Add all {len(prop_owner.keys())} custom properties to the UI")
+            return
+
+        if self.use_manual_prop_name or not has_custom_props:
+            left_side.prop(self, 'prop_name')
+        else:
+            left_side.prop_search(self, 'prop_name', context.scene, 'cloudrig_property_name_selector', icon='BLANK1')
+
+        if has_custom_props:
+            left_side.prop(self, 'use_manual_prop_name', icon='ADD', text="")
 
         if not self.prop_name:
             # User hasn't typed in a property name yet. Don't overwhelm them with the rest of the UI.
@@ -255,12 +268,16 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         else:
             panel_box.prop(self, 'panel_name')
         panel_box.prop(self, 'label_name')
+        if self.use_batch_add:
+            return
         panel_box.prop(self, 'row_name')
         panel_box.prop(self, 'slider_name')
         if type(prop_value) in {bool, int}:
             panel_box.prop(self, 'texts')
 
     def draw_op_box(self, layout, context):
+        if self.use_batch_add:
+            return
         op_box = layout.box().column()
         op_box.prop(self.temp_kmi, 'idname', text="Operator")
         self.op_kwargs_dict = {}
@@ -291,7 +308,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 row.prop(self, 'ui_path')
 
     def update_property_parent_selector(self, context):
-        ui_data = read_rig_panels(context.active_object)
+        rig = context.active_object
+        ui_data = read_rig_panels(rig)
         context.scene.cloudrig_property_parent_selector.clear()
 
         def add_slider_ui_paths_recursive(ui_data: OrderedDict, ui_path: list[str], display_name: str):
@@ -310,16 +328,35 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                     parent_option = context.scene.cloudrig_property_parent_selector.add()
                     parent_option.name = new_display_name
                     parent_option.ui_path = identifier
+                    parent_option.current = str(path_resolve_safe(rig, elem_data['owner_path']+elem_data['prop_name']))
 
                 add_slider_ui_paths_recursive(elem_data, new_ui_path[:], new_display_name)
 
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
     def execute(self, context):
-        ret = self.execute_add_property(context)
-        if ret:
-            return ret
-        self.report({'INFO'}, f"Added property {self.slider_name} to the rig UI")
+        rig=context.active_object
+        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+
+        if self.use_batch_add:
+            self.temp_kmi.idname = ""
+            self.op_icon = ""
+            self.op_kwargs_dict = {}
+            self.texts = ""
+            for key in owner.keys():
+                self.row_name = ""
+                self.slider_name = ""
+                self.prop_name = key
+                ret = self.execute_add_property(context)
+                if ret:
+                    return ret
+            self.report({'INFO'}, f"Added {len(owner.keys())} properties to the rig UI")
+        else:
+            ret = self.execute_add_property(context)
+            if ret:
+                return ret
+            self.report({'INFO'}, f"Added property {self.slider_name} to the rig UI")
+
         redraw_viewport()
         return {'FINISHED'}
 
@@ -835,6 +872,7 @@ def redraw_viewport():
 class UIPathProperty(PropertyGroup):
     name: StringProperty()
     ui_path: StringProperty()
+    current: StringProperty()
 
 registry = [
     UIPathProperty,
