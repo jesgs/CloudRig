@@ -1326,7 +1326,7 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
         # Property is a Datablock Pointer.
         layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type in {int, float, bool}:
-        if texts and len(texts)-1 >= int(prop_value):
+        if texts and len(texts)-1 >= int(prop_value) >= 0:
             slider_name += ": " + texts[int(prop_value)]
         if value_type == bool:
             icon = icon_true if prop_value else icon_false
