@@ -978,11 +978,12 @@ def draw_rig_settings_per_label(
                 # It's a flag, not a UI element.
                 continue
             if slider_data.get('owner_path') != None:
-                texts = slider_data.get('texts', '')
-                if texts.startswith("["):
-                    texts = json.loads(texts)
-                else:
-                    texts = [t.strip() for t in texts]
+                texts = slider_data.get('texts', [])
+                if texts:
+                    if texts.startswith("["):
+                        texts = json.loads(texts)
+                    else:
+                        texts = [t.strip() for t in texts]
                 draw_slider(
                     rig=rig,
                     column=column,
@@ -1156,20 +1157,18 @@ def draw_property(
     texts=[],
 ):
     prop_value = prop_owner.path_resolve(prop_name)
-    if prop_value == None:
-        return
 
     bracketless_prop_name = unquote_custom_prop_name(prop_name)
     if not slider_name:
         slider_name = bracketless_prop_name
 
-    value_type, _is_array = rna_idprop_value_item_type(prop_value)
+    value_type, is_array = rna_idprop_value_item_type(prop_value)
 
     if value_type is type(None) or issubclass(value_type, ID):
         # Property is a Datablock Pointer.
         layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type in {int, float, bool}:
-        if texts and len(texts) - 1 >= int(prop_value) >= 0:
+        if texts and not is_array and len(texts) - 1 >= int(prop_value) >= 0:
             text = texts[int(prop_value)].strip()
             if text:
                 slider_name += ": " + text
@@ -1191,7 +1190,7 @@ def draw_property(
                     # This happens for Python properties. There's no point drawing them.
                     return
                 is_slider = (
-                    not _is_array
+                    not is_array
                     and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
                 )
                 layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)

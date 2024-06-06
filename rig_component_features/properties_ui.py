@@ -9,6 +9,7 @@ from bpy.types import (
     PropertyGroup,
     BoneCollection,
 )
+from typing import Any
 from bpy.props import StringProperty, BoolProperty, CollectionProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
@@ -23,7 +24,7 @@ from ..generation.cloudrig import (
 from rna_prop_ui import rna_idprop_ui_create
 
 
-def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
+def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
     """For some reason when this function is inside the class, it doesn't get inherited...
     Blender Python class inheritance is weird."""
     data_path = bone_name = self.owner_path
@@ -98,12 +99,11 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             return
 
         for key in prop_owner.keys():
-            value = prop_owner[key]
             try:
                 prop_settings = prop_owner.id_properties_ui(key).as_dict()
             except TypeError:
-                # This happens for Python properties. There's no point drawing them.
-                return
+                # This happens for Python properties. There's not much point in adding them.
+                continue
 
             name_entry = context.scene.cloudrig_property_name_selector.add()
             name_entry.name = key
@@ -177,7 +177,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     use_parenting: BoolProperty(
         name="Parenting",
         options={'SKIP_SAVE'},
-        description="Instead of putting this property in a sub-panel directly, parent it to another property, so it's only visible when that parent property has a specific value",
+        description="Instead of putting this property in a sub-panel directly, parent it to another property (int/bool), so it's only visible when that parent property has specific values",
     )
     parent_ui_path: StringProperty(
         name="Parent UI Path",
@@ -194,7 +194,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     parent_value: StringProperty(
         name="Parent Value",
         default="1",
-        description="Display this child property only when the parent property matches this value",
+        description="Display this child property only when the parent property matches one of these comma-separated values",
     )
 
     show_internals: BoolProperty(
@@ -242,7 +242,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 feed_op_props(op_props, self.op_kwargs)
         owner_path = self.init_owner_path or self.owner_path
         self.owner_path = owner_path
-        if owner_path == "" or owner_path.startswith('pose.bones'):
+        if owner_path == "" or owner_path.startswith('pose.bones') or owner_path in rig.pose.bones:
             self.use_bone_selector = True
 
         self.use_parenting = self.parent_ui_path != "[]"
