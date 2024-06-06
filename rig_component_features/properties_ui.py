@@ -11,8 +11,6 @@ from ..generation.cloudrig import (
     read_rig_panels,
     get_rig_and_ui,
     write_rig_panels,
-    tuples_to_dict,
-    dict_to_tuples,
 )
 from rna_prop_ui import rna_idprop_ui_create
 from rna_prop_ui import rna_idprop_quote_path as quote_property
@@ -428,7 +426,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             panels=self.panels,
         )
 
-        ensure_custom_panels(None, None)
+        ensure_custom_panels()
 
         if 'cloudrig_property_parent_selector' in context.scene:
             del context.scene['cloudrig_property_parent_selector']

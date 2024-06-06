@@ -383,7 +383,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos()
 
-        ensure_custom_panels(None, None)
+        ensure_custom_panels()
 
         self.restore_rig_states(context)
         self.log_minor_issues()

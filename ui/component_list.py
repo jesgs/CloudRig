@@ -3,7 +3,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Panel, UIList
 from bl_ui.generic_ui_list import draw_ui_list
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
-from ..rig_component_features.ui import redraw_viewport
+from ..rig_component_features.properties_ui import redraw_viewport
 from ..generation.cloudrig import is_cloud_metarig, CloudRigOperator
 
 

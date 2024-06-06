@@ -6,8 +6,8 @@ from .bone import BoneInfo, ensure_custom_property
 
 from collections import OrderedDict
 
-from ..generation.cloudrig import is_cloud_metarig, tuples_to_dict, dict_to_tuples
-from .properties_ui import add_property_to_ui, redraw_viewport
+from ..generation.cloudrig import is_cloud_metarig
+from .properties_ui import add_property_to_ui
 
 
 class CloudUIMixin:

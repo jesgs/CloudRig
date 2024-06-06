@@ -21,31 +21,11 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Matrix, Color
 from bl_ui.generic_ui_list import draw_ui_list
 
+#######################################
+############ Context Checks ###########
+#######################################
 
-def is_generated_cloudrig(rig: Object):
-    """Return whether rig is marked as being compatible with cloudrig.py."""
-    return (
-        'is_generated_cloudrig' in rig.data and rig.data['is_generated_cloudrig']
-    )
-
-
-def is_cloud_metarig(rig: Object):
-    if not rig:
-        return False
-    if rig.type != 'ARMATURE':
-        return False
-    if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
-        return rig
-
-
-def get_all_generated_cloudrigs():
-    """Find all cloudrig armature objects in the file."""
-    return [
-        o for o in bpy.data.objects if o.type == 'ARMATURE' and is_generated_cloudrig(o)
-    ]
-
-
-def is_active_cloudrig(context):
+def is_active_cloudrig(context) -> bool:
     """If the active object is a cloudrig, return it."""
     if not hasattr(context, 'pose_object'):
         # Can happen when a file is saved with the UI open,
@@ -61,8 +41,24 @@ def is_active_cloudrig(context):
         return rig
 
 
-def is_active_cloud_metarig(context):
+def is_generated_cloudrig(rig: Object):
+    """Return whether rig is marked as being compatible with cloudrig.py."""
+    return (
+        'is_generated_cloudrig' in rig.data and rig.data['is_generated_cloudrig']
+    )
+
+
+def is_active_cloud_metarig(context) -> bool:
     return is_cloud_metarig(context.active_object)
+
+
+def is_cloud_metarig(rig: Object) -> bool:
+    if not rig:
+        return False
+    if rig.type != 'ARMATURE':
+        return False
+    if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
+        return bool(rig)
 
 
 def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
@@ -83,6 +79,28 @@ def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
             return obj
 
 
+def find_cloudrig(context, allow_metarigs=True) -> Object or None:
+    """Find the CloudRig metarig or generated rig most relevant to the current context.
+    For example, if the active object is a mesh which is deformed by a generated rig, return that generated rig.
+    """
+
+    active = context.active_object
+    if active:
+        if is_generated_cloudrig(active) or (allow_metarigs and is_cloud_metarig(active)):
+            return active
+        if active.parent and (is_generated_cloudrig(active.parent) or (allow_metarigs and is_cloud_metarig(active.parent))):
+            return active.parent
+
+    pose_ob = context.pose_object
+    if pose_ob and is_generated_cloudrig(pose_ob) or (allow_metarigs and is_cloud_metarig(pose_ob)):
+        return pose_ob
+
+        if active.type == 'MESH':
+            for m in active.modifiers:
+                if m.type == 'ARMATURE' and m.target and (is_generated_cloudrig(m.target) or (allow_metarigs and is_cloud_metarig(m.target))):
+                    return m.target
+
+
 class CloudRigOperator(Operator):
     """This class implements a basic draw function that just draws all the operator properties.
     This is necessary because of our hotkey system and UI.
@@ -98,7 +116,7 @@ class CloudRigOperator(Operator):
             layout.prop(self, prop)
 
 #######################################
-############ Keyframe Baking ##########
+########## Snapping & Baking ##########
 #######################################
 
 
@@ -661,7 +679,7 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
 
 
 #######################################
-############### Rig UI ################
+########### Dynamic Rig UI ############
 #######################################
 
 class CLOUDRIG_PT_base(Panel):
@@ -679,67 +697,76 @@ class CLOUDRIG_PT_base(Panel):
     def draw(self, context):
         pass
 
-def read_rig_panels(obj) -> OrderedDict:
-    """Return the rig's UI data as a nested OrderedDict."""
-    if 'ui_data' not in obj.data:
-        return OrderedDict()
-    panels = obj.data['ui_data'].to_dict()['panels']
-    return tuples_to_dict(panels)
+class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_settings"
+    bl_label = "Settings"
 
-def find_cloudrig(context, allow_metarigs=True) -> Object or None:
-    active = context.active_object
-    if active:
-        if is_generated_cloudrig(active) or (allow_metarigs and is_cloud_metarig(active)):
-            return active
-        if active.parent and (is_generated_cloudrig(active.parent) or (allow_metarigs and is_cloud_metarig(active.parent))):
-            return active.parent
+    subpanels = []
 
-    pose_ob = context.pose_object
-    if pose_ob and is_generated_cloudrig(pose_ob) or (allow_metarigs and is_cloud_metarig(pose_ob)):
-        return pose_ob
+    @classmethod
+    def ensure_custom_panels(cls, context):
+        rig, ui_data = get_rig_and_ui(context)
+        if not rig:
+            return
+        if not ui_data:
+            return
 
-        if active.type == 'MESH':
-            for m in active.modifiers:
-                if m.type == 'ARMATURE' and m.target and (is_generated_cloudrig(m.target) or (allow_metarigs and is_cloud_metarig(m.target))):
-                    return m.target
+        for panel_name, panel_data in ui_data.items():
+            if panel_name == "":
+                continue
+            parent_id = panel_data.get('parent_id')
+            if not parent_id:
+                parent_id = cls.bl_idname
+            ensure_custom_panel(panel_name, parent_id)
 
-def get_rig_and_ui(context) -> OrderedDict:
-    """Find the most relevant CloudRig in the context, return it and its UI."""
-    rig = find_cloudrig(context)
+    @classmethod
+    def unregister_subpanels(cls):
+        for panel in cls.subpanels:
+            if is_registered(panel):
+                unregister_class(panel)
+        cls.subpanels = []
 
-    if not rig:
-        return None, None
+    def draw(self, context):
+        layout = self.layout
+        rig, ui_data = get_rig_and_ui(context)
+        if not rig:
+            return
 
-    return rig, read_rig_panels(rig)
+        layout.operator(
+            POSE_OT_cloudrig_keyframe_all_settings.bl_idname,
+            text='Keyframe All Settings',
+            icon='KEYFRAME_HLT',
+        )
+        layout.operator(
+            POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
+        )
+        if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
+            # If CloudRig add-on is enabled, and this is a metarig.
+            layout.separator()
+            layout.prop(rig.cloudrig, 'ui_edit_mode', icon='GREASEPENCIL')
+            if rig.cloudrig.ui_edit_mode:
+                if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
+                    layout.operator(
+                        'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
+                    )
 
-def write_rig_panels(obj, panels) -> OrderedDict:
-    # Convert back to a list of tuples so Blender can store it without mangling it.
-    panels = {'panels' : dict_to_tuples(panels)}
-    obj.data['ui_data'] = panels
-
-def dict_to_tuples(ordered_dict: OrderedDict) -> list[tuple[str, list]]:
-    """Convert a nested OrderedDict to a nested list of tuples."""
-    tuples = []
-    for key, value in ordered_dict.items():
-        if type(value) in {dict, OrderedDict}:
-            value = dict_to_tuples(value)
-        tuples.append((key, value))
-    return tuples
-
-def tuples_to_dict(tuples: list[tuple[str, list]]) -> OrderedDict:
-    """Convert a nested list of (string, data) tuples to a nested OrderedDict."""
-    ordered_dict = OrderedDict()
-    for key, value in tuples:
-        if key not in {'op_kwargs'}:
-            if type(value) == dict:
-                # We also want to convert regular dicts to OrderedDict,
-                # especially because they might contain tuple-lists.
-                value = [(k, v) for k, v in value.items()]
-            if type(value) == list:
-                value = tuples_to_dict(value)
-        
-        ordered_dict[key] = value
-    return ordered_dict
+        if ui_data:
+            base_panel = ui_data.get("")
+            if base_panel:
+                layout.separator()
+                for label_name, label_data in base_panel.items():
+                    if type(label_data) == str:
+                        # It's a flag, not a UI element...
+                        continue
+                    draw_rig_settings_per_label(
+                        layout=layout, 
+                        rig=rig, 
+                        ui_path=[""], 
+                        panel_name="",
+                        panel_data=base_panel,
+                        label_name=label_name,
+                        label_data=label_data,
+                    )
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
@@ -803,20 +830,84 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 label_data=label_data,
             )
 
-def draw_drag_operator(rig: Object, parent_ui_data: OrderedDict, ui_data: OrderedDict, ui_name: str, ui_path: list[str], layout: UILayout):
-    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem)!=str]
-    if len(sub_elements) > 1 and is_ui_edit_mode(rig):
-        is_dragged = ui_data.get('is_dragged', False)
-        if is_dragged:
-            icon = 'VIEW_PAN'
-            icon_value = 0
-        else:
-            icon = 'NONE'
-            from CloudRig import icons
-            icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
-        op = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
-        op.ui_path = json.dumps(ui_path+[ui_name])
-        return op
+def ensure_custom_panels(_dummy1=None, _dummy2=None):
+    # Since this function gets registered as an app_handler, it must have 2 parameters defined.
+    bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(bpy.context)
+
+def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
+    # Make sure name is alphanumeric
+    sane_name = re.sub(r'\W+', '', name)
+    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
+
+    if hasattr(bpy.types, full_name):
+        # It was already registered, so we skip.
+        return
+    if not hasattr(bpy.types, parent_id):
+        print(f"CloudRig Custom Panel Error: Parent ID {parent_id} not found for {name}. Fell back to default.")
+        parent_id = "CLOUDRIG_PT_settings"
+
+    # Dynamically create a new class, so it can be registered as a sub-panel.
+    new_panel = type(
+        full_name,
+        (CLOUDRIG_PT_custom_panel,),
+        {'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id},
+    )
+
+    bpy.utils.register_class(new_panel)
+
+    # Save a reference so it can be unregistered, even though unregister() is never called.
+    bpy.types.CLOUDRIG_PT_settings.subpanels.append(new_panel)
+
+def read_rig_panels(obj) -> OrderedDict:
+    """Return the rig's UI data as a nested OrderedDict."""
+
+    def tuples_to_dict(tuples: list[tuple[str, list]]) -> OrderedDict:
+        """Convert a nested list of (string, data) tuples to a nested OrderedDict."""
+        ordered_dict = OrderedDict()
+        for key, value in tuples:
+            if key not in {'op_kwargs'}:
+                if type(value) == dict:
+                    # We also want to convert regular dicts to OrderedDict,
+                    # especially because they might contain tuple-lists.
+                    value = [(k, v) for k, v in value.items()]
+                if type(value) == list:
+                    value = tuples_to_dict(value)
+            
+            ordered_dict[key] = value
+        return ordered_dict
+
+    if 'ui_data' not in obj.data:
+        return OrderedDict()
+    panels = obj.data['ui_data'].to_dict()['panels']
+    return tuples_to_dict(panels)
+
+def write_rig_panels(obj, panels: OrderedDict):
+    # Convert back to a list of tuples so Blender can store it without mangling it.
+
+    def dict_to_tuples(ordered_dict: OrderedDict) -> list[tuple[str, list]]:
+        """Convert a nested OrderedDict to a nested list of tuples."""
+        tuples = []
+        for key, value in ordered_dict.items():
+            if type(value) in {dict, OrderedDict}:
+                value = dict_to_tuples(value)
+            tuples.append((key, value))
+        return tuples
+
+    # If we store it in a custom property as a list, each element gets 
+    # converted to a weird type by Blender.
+    # So, just put it in a dictionary with a single 'panels' key.
+    # Then it can easily be converted back to python, see read_rig_panels().
+    panels = {'panels' : dict_to_tuples(panels)}
+    obj.data['ui_data'] = panels
+
+def get_rig_and_ui(context) -> tuple[Object, OrderedDict]:
+    """Find the most relevant CloudRig in the context, return it and its UI."""
+    rig = find_cloudrig(context)
+
+    if not rig:
+        return None, None
+
+    return rig, read_rig_panels(rig)
 
 def draw_rig_settings_per_label(
             layout: UILayout, 
@@ -1045,12 +1136,31 @@ def draw_operator(layout: UILayout, bl_idname: str, op_icon='BLANK1', op_kwargs=
         feed_op_props(op_props, op_kwargs)
         return op_props
 
+def draw_drag_operator(rig: Object, parent_ui_data: OrderedDict, ui_data: OrderedDict, ui_name: str, ui_path: list[str], layout: UILayout):
+    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem)!=str]
+    if len(sub_elements) > 1 and is_ui_edit_mode(rig):
+        is_dragged = ui_data.get('is_dragged', False)
+        if is_dragged:
+            icon = 'VIEW_PAN'
+            icon_value = 0
+        else:
+            icon = 'NONE'
+            from CloudRig import icons
+            icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
+        op = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
+        op.ui_path = json.dumps(ui_path+[ui_name])
+        return op
+
 def is_ui_edit_mode(obj):
     return hasattr(obj, 'cloudrig') and \
         obj.cloudrig.enabled and \
         obj.cloudrig.ui_edit_mode
 
 def feed_op_props(op_props, op_kwargs: str or dict or list):
+    """Set the arguments of an OperatorProperties instance, such as one returned by
+    `UILayout.operator()`.
+    """
+
     if type(op_kwargs) == str:
         op_kwargs = json.loads(op_kwargs)
     if type(op_kwargs) == dict:
@@ -1071,104 +1181,6 @@ def unquote_custom_prop_name(prop_name: str) -> str:
     if prop_name.startswith('["') or prop_name.startswith("['"):
         return prop_name[2:-2]
     return prop_name
-
-def ensure_custom_panels(_dummy1, _dummy2):
-    bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(bpy.context)
-
-def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
-    # Make sure name is alphanumeric
-    sane_name = re.sub(r'\W+', '', name)
-    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
-
-    if hasattr(bpy.types, full_name):
-        # It was already registered, so we skip.
-        return
-    if not hasattr(bpy.types, parent_id):
-        print(f"CloudRig Custom Panel Error: Parent ID {parent_id} not found for {name}. Fell back to default.")
-        parent_id = "CLOUDRIG_PT_settings"
-
-    # Dynamically create a new class, so it can be registered as a sub-panel.
-    new_panel = type(
-        full_name,
-        (CLOUDRIG_PT_custom_panel,),
-        {'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id},
-    )
-
-    bpy.utils.register_class(new_panel)
-
-    # Save a reference so it can be unregistered, even though unregister() is never called.
-    bpy.types.CLOUDRIG_PT_settings.subpanels.append(new_panel)
-
-class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
-    bl_idname = "CLOUDRIG_PT_settings"
-    bl_label = "Settings"
-
-    subpanels = []
-
-    @classmethod
-    def ensure_custom_panels(cls, context):
-        rig, ui_data = get_rig_and_ui(context)
-        if not rig:
-            return
-        if not ui_data:
-            return
-
-        for panel_name, panel_data in ui_data.items():
-            if panel_name == "":
-                continue
-            parent_id = panel_data.get('parent_id')
-            if not parent_id:
-                parent_id = cls.bl_idname
-            ensure_custom_panel(panel_name, parent_id)
-
-    @classmethod
-    def unregister_subpanels(cls):
-        for panel in cls.subpanels:
-            if is_registered(panel):
-                unregister_class(panel)
-        cls.subpanels = []
-
-    def draw(self, context):
-        layout = self.layout
-        rig, ui_data = get_rig_and_ui(context)
-        if not rig:
-            return
-
-        layout.operator(
-            POSE_OT_cloudrig_keyframe_all_settings.bl_idname,
-            text='Keyframe All Settings',
-            icon='KEYFRAME_HLT',
-        )
-        layout.operator(
-            POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
-        )
-        if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
-            # If CloudRig add-on is enabled, and this is a metarig.
-            layout.separator()
-            layout.prop(rig.cloudrig, 'ui_edit_mode', icon='GREASEPENCIL')
-            if rig.cloudrig.ui_edit_mode:
-                if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
-                    layout.operator(
-                        'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
-                    )
-
-        if ui_data:
-            base_panel = ui_data.get("")
-            if base_panel:
-                layout.separator()
-                for label_name, label_data in base_panel.items():
-                    if type(label_data) == str:
-                        # It's a flag, not a UI element...
-                        continue
-                    draw_rig_settings_per_label(
-                        layout=layout, 
-                        rig=rig, 
-                        ui_path=[""], 
-                        panel_name="",
-                        panel_data=base_panel,
-                        label_name=label_name,
-                        label_data=label_data,
-                    )
 
 
 #######################################
@@ -2576,12 +2588,12 @@ def register():
 
     # Ensure custom panels.
     if not __name__.endswith('.generation.cloudrig'):
-        # This doesn't work during add-on registration, since it relies on context.
-        ensure_custom_panels(None, None)
+        # We avoid running this during add-on registration, since it relies on context.
+        ensure_custom_panels()
     bpy.app.handlers.load_post.append(ensure_custom_panels)
     bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
 
-    # Hide the built-in Bone Collections panel.
+    # Inject our custom Bone Collections panel.
     if not hasattr(bpy.types.DATA_PT_bone_collections, 'draw_bkp'):
         bpy.types.DATA_PT_bone_collections.draw_bkp = (
             bpy.types.DATA_PT_bone_collections.draw
@@ -2626,15 +2638,16 @@ def unregister():
             try:
                 unregister_class(reg)
             except RuntimeError as e:
-                print("Failed to unregister ", c, str(e))
+                print("Failed to unregister ", c.__name__, str(e))
                 pass
+        else:
+            print("Class was not registered ", c.__name__)
 
     try:
-        del bpy.types.Object.cloud_rig
         bpy.app.handlers.load_post.remove(ensure_custom_panels)
         bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
 
-        # Unhide the built-in Bone Collections panel.
+        # Un-inject our collection UI override.
         bpy.types.DATA_PT_bone_collections.poll = (
             bpy.types.DATA_PT_bone_collections.poll_bkp
         )
