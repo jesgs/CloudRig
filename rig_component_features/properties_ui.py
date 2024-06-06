@@ -4,13 +4,12 @@ from typing import Optional
 from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
-    is_active_cloudrig,
-    is_active_cloud_metarig,
     unquote_custom_prop_name,
     ensure_custom_panels,
     feed_op_props,
     draw_property,
     read_rig_panels,
+    get_rig_and_ui,
     write_rig_panels,
     tuples_to_dict,
     dict_to_tuples,
@@ -71,16 +70,15 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     def update_use_bone_selector(self, context):
-        owner_path = self.owner_path or self.init_owner_path
         if self.use_bone_selector:
             # If the use_bone_selector was just turned on, extract the bone name from the data path.
-            if owner_path.startswith("pose.bones"):
+            if self.owner_path.startswith("pose.bones"):
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
-        elif owner_path != '' and not owner_path.startswith('pose.bones'):
+        elif self.owner_path != '':
             # If the use_bone_selector was just turned off, turn the bone name into a data path.
-            self.owner_path = f'pose.bones["{owner_path}"]'
+            self.owner_path = f'pose.bones["{self.owner_path}"]'
 
     def update_owner_path(self, context):
         context.scene.cloudrig_property_name_selector.clear()
@@ -108,7 +106,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     # We need a separate init_owner_path where UI code can feed us an owner path without triggering the update callback.
     init_owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
     owner_path: StringProperty(name="Data Path", update=update_owner_path, description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
-    use_bone_selector: BoolProperty(name="Use Bone Selector", options={'SKIP_SAVE'}, description="Display a bone selector. If disabled, you can manually type in a data path", default=True, update=update_use_bone_selector)
+    use_bone_selector: BoolProperty(name="Use Bone Selector", options={'SKIP_SAVE'}, description="Display a bone selector. If disabled, you can manually type in a data path", default=False, update=update_use_bone_selector)
     prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
     use_manual_prop_name: BoolProperty(name="Custom Property", default=False, description="Enter any custom property name instead of searching existing ones. If it doesn't exist, it will be created")
 
@@ -134,13 +132,15 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     @classmethod
     def poll(cls, context):
-        return is_active_cloudrig(context) or is_active_cloud_metarig(context)
+        rig, ui_data = get_rig_and_ui(context)
+        return rig
 
     def invoke(self, context, _event):
         # We create a keymap item to help us draw the operator set-up UI.
         # KeymapItems in the default keymap will not be stored by Blender, 
         # so we don't need to worry about making a mess there.
-        self.panels = read_rig_panels(context.active_object)
+        rig, ui_data = get_rig_and_ui(context)
+        self.panels = ui_data
         self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new('', 'NUMPAD_5', 'PRESS')
         if self.operator:
             self.temp_kmi.idname = self.operator
@@ -148,10 +148,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 op_props = self.temp_kmi.properties
                 feed_op_props(op_props, self.op_kwargs)
         owner_path = self.init_owner_path or self.owner_path
-        if owner_path:
-            self.owner_path = owner_path
-            if owner_path.startswith('pose.bones'):
-                self.use_bone_selector = True
+        self.owner_path = owner_path
+        if owner_path == "" or owner_path.startswith('pose.bones'):
+            self.use_bone_selector = True
 
         self.use_parenting = self.parent_ui_path != "[]"
         self.update_property_parent_selector(context)
@@ -315,8 +314,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 row.prop(self, 'ui_path')
 
     def update_property_parent_selector(self, context):
-        rig = context.active_object
-        ui_data = read_rig_panels(rig)
+        rig, ui_data = get_rig_and_ui(context)
         context.scene.cloudrig_property_parent_selector.clear()
 
         def add_slider_ui_paths_recursive(ui_data: OrderedDict, ui_path: list[str], display_name: str):
@@ -536,8 +534,9 @@ class CLOUDRIG_OT_reorder_rows(Operator):
     def invoke(self, context, event):
         self.mouse_initial = event.mouse_y
         self.index_offset = 0
-        self.initial_panel_data = read_rig_panels(context.active_object)
-        self.modified_panel_data = read_rig_panels(context.active_object)
+        rig, ui_data = get_rig_and_ui(context)
+        self.initial_panel_data = ui_data
+        self.modified_panel_data = read_rig_panels(rig)
 
         self.row_data, has_moved = reorder_ui_row(
             obj=context.active_object, 
@@ -749,7 +748,7 @@ def remove_property_from_ui(
     and the index among its siblings of the highest element that was removed.
     """
 
-    if not panels:
+    if panels == None:
         panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 
@@ -791,7 +790,7 @@ def reorder_ui_row(
     Return the row_data of the row that was targetted, and a bool of it was actually moved.
     """
 
-    if not panels:
+    if panels == None:
         panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 

@@ -22,11 +22,20 @@ from mathutils import Matrix, Color
 from bl_ui.generic_ui_list import draw_ui_list
 
 
-def is_generated_cloudrig(arm_ob):
-    """Return whether obj is marked as being compatible with cloudrig.py."""
+def is_generated_cloudrig(rig: Object):
+    """Return whether rig is marked as being compatible with cloudrig.py."""
     return (
-        'is_generated_cloudrig' in arm_ob.data and arm_ob.data['is_generated_cloudrig']
+        'is_generated_cloudrig' in rig.data and rig.data['is_generated_cloudrig']
     )
+
+
+def is_cloud_metarig(rig: Object):
+    if not rig:
+        return False
+    if rig.type != 'ARMATURE':
+        return False
+    if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
+        return rig
 
 
 def get_all_generated_cloudrigs():
@@ -49,15 +58,6 @@ def is_active_cloudrig(context):
     if rig.type != 'ARMATURE':
         return False
     if rig and is_generated_cloudrig(rig):
-        return rig
-
-
-def is_cloud_metarig(rig: Object):
-    if not rig:
-        return False
-    if rig.type != 'ARMATURE':
-        return False
-    if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
         return rig
 
 
@@ -555,9 +555,7 @@ class OBJECT_OT_cloudrig_copy_property(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return (is_active_cloudrig(context) is not None) and (
-            context.pose_object or context.active_object
-        )
+        return find_cloudrig(context)
 
     def invoke(self, context, event):
         # Collect and save references to rigs in the scene which have this property somewhere on the rig.
@@ -575,7 +573,7 @@ class OBJECT_OT_cloudrig_copy_property(CloudRigOperator):
 
     def draw(self, context):
         layout = self.layout
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
 
         layout.label(
@@ -588,7 +586,7 @@ class OBJECT_OT_cloudrig_copy_property(CloudRigOperator):
             split.label(text=bonename, icon='BONE_DATA')
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         prop_value = rig.pose.bones[self.prop_bone][self.prop_id]
 
         for rigname, bonename in self.rig_bones.items():
@@ -608,16 +606,14 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = is_active_cloudrig(context)
+        rig = find_cloudrig(context, allow_metarigs=False)
         if not rig:
             return False
         return 'ui_data' in rig.data
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig, ui_data = get_rig_and_ui(context)
         data = rig.data
-
-        ui_data = read_rig_panels(rig)
 
         props_to_key: list[tuple[ID, str]] = []
         def add_props_to_key_recursive(ui_data: OrderedDict):
@@ -665,14 +661,14 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return context.pose_object or context.active_object
+        return find_cloudrig(context)
 
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         bones = rig.pose.bones
         if self.selection_only:
             bones = context.selected_pose_bones
@@ -732,23 +728,9 @@ class CLOUDRIG_PT_base(Panel):
     bl_category = 'CloudRig'
     bl_options = {'DEFAULT_CLOSED'}
 
-    on_metarigs = False
-    on_generated_rigs = True
-
     @classmethod
     def poll(cls, context):
-        if not context.active_object:
-            return False
-        obj = context.active_object
-        if context.pose_object:
-            obj = context.pose_object
-        if obj.type != 'ARMATURE':
-            return False
-        if not cls.on_generated_rigs and is_active_cloudrig(context):
-            return False
-        if not cls.on_metarigs and is_active_cloud_metarig(context):
-            return False
-        return True
+        return find_cloudrig(context)
 
     def draw(self, context):
         pass
@@ -1025,6 +1007,32 @@ def read_rig_panels(obj) -> OrderedDict:
     panels = obj.data['ui_data'].to_dict()['panels']
     return tuples_to_dict(panels)
 
+def find_cloudrig(context, allow_metarigs=True) -> Object or None:
+    active = context.active_object
+    if active:
+        if is_generated_cloudrig(active) or (allow_metarigs and is_cloud_metarig(active)):
+            return active
+        if active.parent and (is_generated_cloudrig(active.parent) or (allow_metarigs and is_cloud_metarig(active.parent))):
+            return active.parent
+
+    pose_ob = context.pose_object
+    if pose_ob and is_generated_cloudrig(pose_ob) or (allow_metarigs and is_cloud_metarig(pose_ob)):
+        return pose_ob
+
+        if active.type == 'MESH':
+            for m in active.modifiers:
+                if m.type == 'ARMATURE' and m.target and (is_generated_cloudrig(m.target) or (allow_metarigs and is_cloud_metarig(m.target))):
+                    return m.target
+
+def get_rig_and_ui(context) -> OrderedDict:
+    """Find the most relevant CloudRig in the context, return it and its UI."""
+    rig = find_cloudrig(context)
+
+    if not rig:
+        return None, None
+
+    return rig, read_rig_panels(rig)
+
 def write_rig_panels(obj, panels) -> OrderedDict:
     # Convert back to a list of tuples so Blender can store it without mangling it.
     panels = {'panels' : dict_to_tuples(panels)}
@@ -1063,19 +1071,15 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
+        rig, ui_data = get_rig_and_ui(context)
         if not rig:
             return
-        if 'ui_data' not in rig.data:
-            return
-        ui_data = read_rig_panels(rig)
 
         if cls.bl_label in ui_data:
             return True
 
     def draw_header(self, context):
-        rig = context.active_object
-        ui_data = read_rig_panels(rig)
+        rig, ui_data = get_rig_and_ui(context)
         panel_data = ui_data[self.bl_label]
         layout = self.layout
 
@@ -1084,8 +1088,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
             op.reset_panels=True
 
     def draw(self, context):
-        rig = context.active_object
-        ui_data = read_rig_panels(rig)
+        rig, ui_data = get_rig_and_ui(context)
 
         panel_data = ui_data.get(self.bl_label)
         if panel_data:
@@ -1164,7 +1167,7 @@ def draw_rig_settings_per_label(
 
         for slider_name, slider_data in row_data.items():
             if type(slider_data) == str:
-                # It's a row flag, not a slider.
+                # It's a flag, not a UI element.
                 continue
             if slider_data.get('owner_path') != None:
                 texts = slider_data.get('texts', '')
@@ -1426,10 +1429,9 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
     @classmethod
     def ensure_custom_panels(cls, context):
-        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
+        rig, ui_data = get_rig_and_ui(context)
         if not rig:
             return
-        ui_data = read_rig_panels(rig)
         if not ui_data:
             return
 
@@ -1448,13 +1450,9 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                 unregister_class(panel)
         cls.subpanels = []
 
-    @classmethod
-    def poll(cls, context):
-        return is_active_cloudrig(context) or is_active_cloud_metarig(context)
-
     def draw(self, context):
         layout = self.layout
-        rig = is_active_cloudrig(context) or is_active_cloud_metarig(context)
+        rig, ui_data = get_rig_and_ui(context)
         if not rig:
             return
 
@@ -1475,13 +1473,15 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                     layout.operator(
                         'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
                     )
-        
-        ui_data = read_rig_panels(rig)
+
         if ui_data:
             base_panel = ui_data.get("")
             if base_panel:
                 layout.separator()
                 for label_name, label_data in base_panel.items():
+                    if type(label_data) == str:
+                        # It's a flag, not a UI element...
+                        continue
                     draw_rig_settings_per_label(
                         layout=layout, 
                         rig=rig, 
@@ -2075,7 +2075,10 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
     bl_label = "Bone Collections"
     bl_options = {'DEFAULT_CLOSED'}
 
-    on_metarigs = True
+    @classmethod
+    def poll(cls, context):
+        return is_active_cloud_metarig(context) or is_active_cloudrig(context)
+
     draw = draw_cloudrig_collections
 
 
@@ -2535,7 +2538,7 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object or context.active_object
+        rig = context.pose_object
         return rig and rig.type == 'ARMATURE' and rig.data.collections.active
 
     @classmethod
@@ -2545,7 +2548,7 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
         return f"{words[0]} selected bones {words[1]} {colls}"
 
     def execute(self, context):
-        rig = context.active_object
+        rig = context.pose_object
         colls = [rig.data.collections.active]
         if self.assign_to_children:
             colls += rig.data.collections.active.cloudrig_info.children_recursive
@@ -2678,7 +2681,6 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys_panel"
     bl_label = "Hotkeys"
 
-    on_metarigs = True
     cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem"]] = {}
 
     def draw(self, context):
