@@ -1,7 +1,15 @@
 import bpy, json, sys, os
-from bpy.types import Operator, ID, bpy_struct, PoseBone, Bone, UILayout, PropertyGroup, BoneCollection
-from typing import Optional
-from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty
+from bpy.types import (
+    Operator,
+    ID,
+    bpy_struct,
+    PoseBone,
+    Bone,
+    UILayout,
+    PropertyGroup,
+    BoneCollection,
+)
+from bpy.props import StringProperty, BoolProperty, CollectionProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
     unquote_custom_prop_name,
@@ -13,10 +21,10 @@ from ..generation.cloudrig import (
     write_rig_panels,
 )
 from rna_prop_ui import rna_idprop_ui_create
-from rna_prop_ui import rna_idprop_quote_path as quote_property
+
 
 def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
-    """For some reason when this function is inside the class, it doesn't get inherited... 
+    """For some reason when this function is inside the class, it doesn't get inherited...
     Blender Python class inheritance is weird."""
     data_path = bone_name = self.owner_path
     prop_name = self.prop_name
@@ -25,7 +33,7 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
     prop_owner = obj
 
     if data_path and self.use_bone_selector:
-        # If user wants to use the bone search selector, 
+        # If user wants to use the bone search selector,
         # we need to help them get the data path to the selected pose bone.
         data_path = f'pose.bones["{bone_name}"]'
 
@@ -52,7 +60,7 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
 
     full_path = data_path + dot + prop_name
     if not prop_value:
-        # If we didn't get the property value yet, grab it. 
+        # If we didn't get the property value yet, grab it.
         # Can be useful to re-assure the user that we have the property they intend.
         prop_value = path_resolve_safe(obj, full_path)
 
@@ -61,8 +69,10 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, any]:
 
     return prop_owner, full_path, data_path, prop_name, prop_value
 
+
 class CLOUDRIG_OT_add_property_to_ui(Operator):
     """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
+
     bl_idname = "pose.cloudrig_add_property_to_ui"
     bl_label = "Add Property to UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
@@ -81,7 +91,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     def update_owner_path(self, context):
         context.scene.cloudrig_property_name_selector.clear()
 
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, context.active_object)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
+            get_data_paths(self, context.active_object)
+        )
         if not supports_custom_props(prop_owner):
             return
 
@@ -97,36 +109,117 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             name_entry.name = key
 
     def update_parent_selector(self, context):
-        parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
+        parent_option = context.scene.cloudrig_property_parent_selector.get(
+            self.parent_selector
+        )
         if parent_option:
             self.parent_value = parent_option.current
 
     # We need a separate init_owner_path where UI code can feed us an owner path without triggering the update callback.
-    init_owner_path: StringProperty(name="Data Path", description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
-    owner_path: StringProperty(name="Data Path", update=update_owner_path, description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself")
-    use_bone_selector: BoolProperty(name="Use Bone Selector", options={'SKIP_SAVE'}, description="Display a bone selector. If disabled, you can manually type in a data path", default=False, update=update_use_bone_selector)
-    prop_name: StringProperty(name="Property Name", description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0")
-    use_manual_prop_name: BoolProperty(name="Custom Property", default=False, description="Enter any custom property name instead of searching existing ones. If it doesn't exist, it will be created")
+    init_owner_path: StringProperty(
+        name="Data Path",
+        description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself",
+    )
+    owner_path: StringProperty(
+        name="Data Path",
+        update=update_owner_path,
+        description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself",
+    )
+    use_bone_selector: BoolProperty(
+        name="Use Bone Selector",
+        options={'SKIP_SAVE'},
+        description="Display a bone selector. If disabled, you can manually type in a data path",
+        default=False,
+        update=update_use_bone_selector,
+    )
+    prop_name: StringProperty(
+        name="Property Name",
+        description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0",
+    )
+    use_manual_prop_name: BoolProperty(
+        name="Custom Property",
+        default=False,
+        description="Enter any custom property name instead of searching existing ones. If it doesn't exist, it will be created",
+    )
 
-    panel_name: StringProperty(name="Subpanel", default="Properties", description="Optional: The sub-panel that this property should be displayed in")
-    label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
-    row_name: StringProperty(name="Row ID", default="", options={'SKIP_SAVE'}, description="Optional: If two sliders share the same Row ID, they will be drawn in the same row. However, the Row ID itself is not shown in the interface")
-    slider_name: StringProperty(name="Display Name", default="", options={'SKIP_SAVE'}, description="Optional: Override the display text of the property")
-    texts: StringProperty(name="Value Names", options={'SKIP_SAVE'}, description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on")
-    use_batch_add: BoolProperty(name="Batch Add", options={'SKIP_SAVE'}, default=False, description="Add all custom properties of the selected ID to the UI")
+    panel_name: StringProperty(
+        name="Subpanel",
+        default="Properties",
+        description="Optional: The sub-panel that this property should be displayed in",
+    )
+    label_name: StringProperty(
+        name="Label", description="Optional: Place this property under a text label"
+    )
+    row_name: StringProperty(
+        name="Row ID",
+        default="",
+        options={'SKIP_SAVE'},
+        description="Optional: If two sliders share the same Row ID, they will be drawn in the same row. However, the Row ID itself is not shown in the interface",
+    )
+    slider_name: StringProperty(
+        name="Display Name",
+        default="",
+        options={'SKIP_SAVE'},
+        description="Optional: Override the display text of the property",
+    )
+    texts: StringProperty(
+        name="Value Names",
+        options={'SKIP_SAVE'},
+        description="Optional: Comma-separated list of strings to display based on the property value. The first string is displayed when the value is 0, and so on",
+    )
+    use_batch_add: BoolProperty(
+        name="Batch Add",
+        options={'SKIP_SAVE'},
+        default=False,
+        description="Add all custom properties of the selected ID to the UI",
+    )
 
-    use_parenting: BoolProperty(name="Parenting", options={'SKIP_SAVE'}, description="Instead of putting this property in a sub-panel directly, parent it to another property, so it's only visible when that parent property has a specific value")
-    parent_ui_path: StringProperty(name="Parent UI Path", options={'SKIP_SAVE'}, default="[]", description="Internal. The UI Path of the selected parent slider. Used by the Add Child and Edit operators")
-    parent_selector: StringProperty(name="Parent Slider", options={'SKIP_SAVE'}, update=update_parent_selector, description="The child will only be visible when this parent slider has a certain value, specified below")
-    parent_value: StringProperty(name="Parent Value", default="1", description="Display this child property only when the parent property matches this value")
+    use_parenting: BoolProperty(
+        name="Parenting",
+        options={'SKIP_SAVE'},
+        description="Instead of putting this property in a sub-panel directly, parent it to another property, so it's only visible when that parent property has a specific value",
+    )
+    parent_ui_path: StringProperty(
+        name="Parent UI Path",
+        options={'SKIP_SAVE'},
+        default="[]",
+        description="Internal. The UI Path of the selected parent slider. Used by the Add Child and Edit operators",
+    )
+    parent_selector: StringProperty(
+        name="Parent Slider",
+        options={'SKIP_SAVE'},
+        update=update_parent_selector,
+        description="The child will only be visible when this parent slider has a certain value, specified below",
+    )
+    parent_value: StringProperty(
+        name="Parent Value",
+        default="1",
+        description="Display this child property only when the parent property matches this value",
+    )
 
-    show_internals: BoolProperty(name="Internals", default=False, description="Show internal data")
+    show_internals: BoolProperty(
+        name="Internals", default=False, description="Show internal data"
+    )
 
-    operator: StringProperty(name="Operator ID", description="Internal. Only used by the Edit operator, to initialize the temp KeyMapItem")
-    op_kwargs: StringProperty(name="Operator Arguments", default="{}", description="Internal. Only used by the Edit operator, to feed kwargs to the temp KeyMapItem")
-    op_icon: StringProperty(name="Operator Icon", default='BLANK1', description="Operator Icon")
+    operator: StringProperty(
+        name="Operator ID",
+        description="Internal. Only used by the Edit operator, to initialize the temp KeyMapItem",
+    )
+    op_kwargs: StringProperty(
+        name="Operator Arguments",
+        default="{}",
+        description="Internal. Only used by the Edit operator, to feed kwargs to the temp KeyMapItem",
+    )
+    op_icon: StringProperty(
+        name="Operator Icon", default='BLANK1', description="Operator Icon"
+    )
 
-    children: StringProperty(name="UI Children", options={'SKIP_SAVE'}, default="{}", description="Internal. Only used by the Edit operator, to preserve children")
+    children: StringProperty(
+        name="UI Children",
+        options={'SKIP_SAVE'},
+        default="{}",
+        description="Internal. Only used by the Edit operator, to preserve children",
+    )
 
     @classmethod
     def poll(cls, context):
@@ -135,11 +228,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def invoke(self, context, _event):
         # We create a keymap item to help us draw the operator set-up UI.
-        # KeymapItems in the default keymap will not be stored by Blender, 
+        # KeymapItems in the default keymap will not be stored by Blender,
         # so we don't need to worry about making a mess there.
         rig, ui_data = get_rig_and_ui(context)
         self.panels = ui_data
-        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new('', 'NUMPAD_5', 'PRESS')
+        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps[
+            'Info'
+        ].keymap_items.new('', 'NUMPAD_5', 'PRESS')
         if self.operator:
             self.temp_kmi.idname = self.operator
             if self.op_kwargs:
@@ -178,12 +273,16 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw_owner_box(self, layout, context):
         rig = context.active_object
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
+            get_data_paths(self, rig)
+        )
 
         owner_box = layout.box()
         owner_row = owner_box.row(align=True)
         if self.use_bone_selector:
-            owner_row.prop_search(self, 'owner_path', rig.pose, 'bones', text="Property Bone")
+            owner_row.prop_search(
+                self, 'owner_path', rig.pose, 'bones', text="Property Bone"
+            )
         else:
             owner_row.prop(self, 'owner_path')
         owner_row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
@@ -192,8 +291,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # User tried providing a data path, but it didn't path_resolve() to anything.
             owner_row.alert = True
             alert_row = owner_box.row()
-            alert_row.alert=True
-            alert_row.label(text=f"No property owner at '{self.owner_path}' found.", icon='ERROR')
+            alert_row.alert = True
+            alert_row.label(
+                text=f"No property owner at '{self.owner_path}' found.", icon='ERROR'
+            )
             return
 
         text = f'{type(prop_owner).__name__}'
@@ -209,7 +310,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw_prop_box(self, layout, context):
         rig = context.active_object
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
+            get_data_paths(self, rig)
+        )
 
         prop_box = layout.box()
         if not prop_owner:
@@ -224,13 +327,21 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         batch_add_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
 
         if self.use_batch_add:
-            left_side.label(text=f"Add all {len(prop_owner.keys())} custom properties to the UI")
+            left_side.label(
+                text=f"Add all {len(prop_owner.keys())} custom properties to the UI"
+            )
             return
 
         if self.use_manual_prop_name or not has_custom_props:
             left_side.prop(self, 'prop_name')
         else:
-            left_side.prop_search(self, 'prop_name', context.scene, 'cloudrig_property_name_selector', icon='BLANK1')
+            left_side.prop_search(
+                self,
+                'prop_name',
+                context.scene,
+                'cloudrig_property_name_selector',
+                icon='BLANK1',
+            )
 
         if has_custom_props:
             left_side.prop(self, 'use_manual_prop_name', icon='ADD', text="")
@@ -242,14 +353,22 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if prop_value != None:
             if isinstance(prop_value, bpy_struct) and not isinstance(prop_value, ID):
                 row = prop_box.row()
-                row.alert=True
+                row.alert = True
                 row.label(text="This is a struct, not a property.", icon='ERROR')
                 return
             else:
                 prop_box.label(text=f"Property found.", icon='CHECKMARK')
-                draw_property(prop_box, prop_owner, brackets_prop_name, slider_name=self.slider_name, texts=[t.strip() for t in self.texts.split(",")])
+                draw_property(
+                    prop_box,
+                    prop_owner,
+                    brackets_prop_name,
+                    slider_name=self.slider_name,
+                    texts=[t.strip() for t in self.texts.split(",")],
+                )
         elif type(prop_owner) in {ID, PoseBone, Bone}:
-            prop_box.label(text="Property will be created with a value of 1.0.", icon='CHECKMARK')
+            prop_box.label(
+                text="Property will be created with a value of 1.0.", icon='CHECKMARK'
+            )
         else:
             row = prop_box.row()
             row.alert = True
@@ -258,7 +377,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw_placement_box(self, layout, context):
         rig = context.active_object
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
+            get_data_paths(self, rig)
+        )
 
         panel_box = layout.box()
         panel_row = panel_box.row()
@@ -266,7 +387,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         panel_row_right = panel_row.row()
         panel_row_right.prop(self, 'use_parenting', text="", icon='OUTLINER')
         if self.use_parenting:
-            panel_row_left.prop_search(self, 'parent_selector', context.scene, 'cloudrig_property_parent_selector', icon='BLANK1')
+            panel_row_left.prop_search(
+                self,
+                'parent_selector',
+                context.scene,
+                'cloudrig_property_parent_selector',
+                icon='BLANK1',
+            )
             # panel_box.label(text=self.parent_selector)
             panel_box.prop(self, 'parent_value')
         else:
@@ -287,7 +414,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         self.op_kwargs_dict = {}
         if self.temp_kmi.idname:
             box = None
-            op_rna = eval("bpy.ops."+self.temp_kmi.idname).get_rna_type()
+            op_rna = eval("bpy.ops." + self.temp_kmi.idname).get_rna_type()
             for key, value in op_rna.properties.items():
                 if key == 'rna_type':
                     continue
@@ -303,19 +430,23 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         split = int_box.row().split(factor=0.15, align=True)
         icon = 'TRIA_DOWN' if self.show_internals else 'TRIA_RIGHT'
         split.prop(self, 'show_internals', icon=icon, toggle=False, emboss=False)
-        split.prop(self, 'show_internals', icon='BLANK1', toggle=False, emboss=False, text="")
+        split.prop(
+            self, 'show_internals', icon='BLANK1', toggle=False, emboss=False, text=""
+        )
         if self.show_internals:
             int_box.prop(self, 'parent_ui_path')
             if hasattr(self, 'ui_path'):
                 row = int_box.row()
-                row.enabled=False
+                row.enabled = False
                 row.prop(self, 'ui_path')
 
     def update_property_parent_selector(self, context):
         rig, ui_data = get_rig_and_ui(context)
         context.scene.cloudrig_property_parent_selector.clear()
 
-        def add_slider_ui_paths_recursive(ui_data: OrderedDict, ui_path: list[str], display_name: str):
+        def add_slider_ui_paths_recursive(
+            ui_data: OrderedDict, ui_path: list[str], display_name: str
+        ):
             for elem_name, elem_data in ui_data.items():
                 if type(elem_data) == str:
                     continue
@@ -331,18 +462,28 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                             parent_value = ui_path[-3]
                             new_display_name += f" ({parent_value})"
                         new_display_name += " -> " + elem_name
-                    parent_option = context.scene.cloudrig_property_parent_selector.add()
+                    parent_option = (
+                        context.scene.cloudrig_property_parent_selector.add()
+                    )
                     parent_option.name = new_display_name
                     parent_option.ui_path = identifier
-                    parent_option.current = str(path_resolve_safe(rig, elem_data['owner_path']+elem_data['prop_name']))
+                    parent_option.current = str(
+                        path_resolve_safe(
+                            rig, elem_data['owner_path'] + elem_data['prop_name']
+                        )
+                    )
 
-                add_slider_ui_paths_recursive(elem_data, new_ui_path[:], new_display_name)
+                add_slider_ui_paths_recursive(
+                    elem_data, new_ui_path[:], new_display_name
+                )
 
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
     def execute(self, context):
-        rig=context.active_object
-        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+        rig = context.active_object
+        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(
+            self, rig
+        )
 
         if self.use_batch_add:
             self.temp_kmi.idname = ""
@@ -372,30 +513,33 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             return {'CANCELLED'}
 
         rig = context.active_object
-        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(
+            self, rig
+        )
 
         if self.prop_name != brackets_prop_name:
             if issubclass(type(owner), ID) or type(owner) in {PoseBone, Bone}:
                 # Owner supports custom props.
                 if self.prop_name not in owner:
                     # Target is a custom property that doesn't exist yet, so let's create it.
-                    ensure_custom_property(
-                        owner,
-                        self.prop_name
-                    )
+                    ensure_custom_property(owner, self.prop_name)
                 # Make the property library overridable.
                 owner.property_overridable_library_set(brackets_prop_name, True)
             else:
-                self.report({'ERROR'}, f'{type(owner)} does not support custom properties.')
+                self.report(
+                    {'ERROR'}, f'{type(owner)} does not support custom properties.'
+                )
                 return {'CANCELLED'}
 
         if not self.slider_name:
             self.slider_name = self.prop_name
 
-        parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
+        parent_option = context.scene.cloudrig_property_parent_selector.get(
+            self.parent_selector
+        )
         if parent_option:
             ui_path = json.loads(parent_option.ui_path)
-        elif self.parent_selector == "" and len(self.parent_ui_path)>2:
+        elif self.parent_selector == "" and len(self.parent_ui_path) > 2:
             ui_path = json.loads(self.parent_ui_path)
             self.panel_name = ui_path[0]
             self.label_name = ui_path[1]
@@ -407,22 +551,17 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             obj=rig,
             owner_path=owner_path,
             prop_name=brackets_prop_name,
-
             panel_name=self.panel_name,
             label_name=self.label_name,
             row_name=self.row_name,
             slider_name=self.slider_name,
-
             texts=[t.strip() for t in self.texts.split(",")],
             children=json.loads(self.children),
-
             ui_path=ui_path,
-            parent_value = self.parent_value,
-
+            parent_value=self.parent_value,
             operator=self.temp_kmi.idname,
             op_icon=self.op_icon,
             op_kwargs=self.op_kwargs_dict,
-
             panels=self.panels,
         )
 
@@ -433,28 +572,34 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if 'cloudrig_property_name_selector' in context.scene:
             del context.scene['cloudrig_property_name_selector']
 
+
 class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
     """Add a child property to the rig UI"""
+
     bl_idname = "pose.cloudrig_add_child_property_to_ui"
     bl_label = "Add Child Property to UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
+
 class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
     """Edit how a property is displayed in the UI"""
+
     bl_idname = "pose.cloudrig_edit_property_in_ui"
     bl_label = "Edit Property in UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    ui_path: StringProperty(name="UI Path", default="", description="Internal. List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name")
+    ui_path: StringProperty(
+        name="UI Path",
+        default="",
+        description="Internal. List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name",
+    )
 
     def execute(self, context):
         rig = context.active_object
         ui_path = json.loads(self.ui_path)
 
         _ui_data, parents, index = remove_property_from_ui(
-            rig,
-            ui_path=ui_path,
-            panels=self.panels
+            rig, ui_path=ui_path, panels=self.panels
         )
 
         if parents:
@@ -468,10 +613,10 @@ class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
             ui_elem = parent[child_name]
             new_count = len(list(ui_elem.keys()))
 
-            if new_count == count+1:
-                # When the UI element was added to the same parent element that it was in before, 
+            if new_count == count + 1:
+                # When the UI element was added to the same parent element that it was in before,
                 # let's preserve its vertical position.
-                ordereddict_move_to_index(ui_elem, new_count-1, index)
+                ordereddict_move_to_index(ui_elem, new_count - 1, index)
 
         write_rig_panels(rig, self.panels)
         redraw_viewport()
@@ -479,14 +624,23 @@ class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
         self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI")
         return {'FINISHED'}
 
+
 class CLOUDRIG_OT_remove_property_from_ui(Operator):
     """Remove this property from the interface. Hold Shift to also remove the property itself"""
+
     bl_idname = "pose.cloudrig_remove_property_from_ui"
     bl_label = "Remove Property from UI"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name")
-    delete_actual_prop: BoolProperty(name="Delete Actual Property", description="Instead of just removing the property from the interface, actually remove it from its owner. Only for Custom Properties")
+    ui_path: StringProperty(
+        name="UI Path",
+        default="",
+        description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name",
+    )
+    delete_actual_prop: BoolProperty(
+        name="Delete Actual Property",
+        description="Instead of just removing the property from the interface, actually remove it from its owner. Only for Custom Properties",
+    )
 
     def invoke(self, context, event):
         self.delete_actual_prop = event.shift
@@ -509,25 +663,36 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
                 owner = rig
             elif owner_path:
                 owner = path_resolve_safe(rig, owner_path)
-            
+
             if prop_name in owner:
                 del owner[prop_name]
                 message += f' and deleted "{prop_name}" property'
             else:
                 message += f' but failed to delete "{prop_name}" property'
 
-        self.report({'INFO'}, message+".")
+        self.report({'INFO'}, message + ".")
 
         return {'FINISHED'}
 
+
 class CLOUDRIG_OT_reorder_rows(Operator):
     """Rearrange this UI row by moving the mouse up and down. Left-click to confirm, right-click to cancel"""
+
     bl_idname = "pose.cloudrig_reorder_rows"
     bl_label = "Reorder UI Rows"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
-    ui_path: StringProperty(name="UI Path", default="", description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name")
-    reset_panels: BoolProperty(name="Reset Panels", default=False, options={'SKIP_SAVE'}, description="Internal. When re-ordering panels, they need to be re-registered. Set this to True when this operator is re-ordering panels")
+    ui_path: StringProperty(
+        name="UI Path",
+        default="",
+        description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name",
+    )
+    reset_panels: BoolProperty(
+        name="Reset Panels",
+        default=False,
+        options={'SKIP_SAVE'},
+        description="Internal. When re-ordering panels, they need to be re-registered. Set this to True when this operator is re-ordering panels",
+    )
 
     def invoke(self, context, event):
         self.mouse_initial = event.mouse_y
@@ -537,11 +702,10 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         self.modified_panel_data = read_rig_panels(rig)
 
         self.row_data, has_moved = reorder_ui_row(
-            obj=context.active_object, 
-            ui_path=json.loads(self.ui_path), 
+            obj=context.active_object,
+            ui_path=json.loads(self.ui_path),
             index_offset=self.index_offset,
-
-            panels=self.modified_panel_data
+            panels=self.modified_panel_data,
         )
         write_rig_panels(context.active_object, self.modified_panel_data)
 
@@ -586,11 +750,10 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         ui_path = json.loads(self.ui_path)
 
         self.row_data, has_moved = reorder_ui_row(
-            obj=context.active_object, 
-            ui_path=ui_path, 
+            obj=context.active_object,
+            ui_path=ui_path,
             index_offset=self.index_offset,
-
-            panels=self.modified_panel_data
+            panels=self.modified_panel_data,
         )
 
         if has_moved:
@@ -601,11 +764,13 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         else:
             return {'CANCELLED'}
 
+
 def path_resolve_safe(owner, data_path):
     try:
         return owner.path_resolve(data_path)
     except:
         return
+
 
 def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
     if 'BoneInfo' in str(type(prop_bone)):
@@ -619,13 +784,26 @@ def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
     else:
         make_property(prop_bone, prop_id, default, **kwargs)
 
+
 def make_property(
-        owner: bpy_struct, name: str, default, *,
-        min: float = 0, max: float = 1, soft_min=None, soft_max=None,
-        description: Optional[str] = None, overridable=True, 
-        subtype: Optional[str] = None, id_type=None,
-        value=None,
-        **options):
+    owner: bpy_struct,
+    name: str,
+    default,
+    *,
+    value=None,
+    id_type=None,
+    subtype: str | None = None,
+    ###
+    description: str | None = None,
+    overridable=True,
+    ###
+    min: float = 0,
+    max: float = 1,
+    soft_min=None,
+    soft_max=None,
+    ###
+    **options,
+):
     """
     Creates and initializes a custom property of owner.
 
@@ -638,18 +816,21 @@ def make_property(
     # Some keyword argument defaults differ
     try:
         rna_idprop_ui_create(
-            owner, name, default=default,
-            min=min, max=max, soft_min=soft_min, soft_max=soft_max,
+            owner,
+            name,
+            default=default,
+            min=min,
+            max=max,
+            soft_min=soft_min,
+            soft_max=soft_max,
             description=description or name,
             overridable=overridable,
             subtype=subtype,
             id_type=id_type,
-            **options
+            **options,
         )
 
-        owner.property_overridable_library_set(
-            f'["{name}"]', overridable
-        )
+        owner.property_overridable_library_set(f'["{name}"]', overridable)
     except TypeError:
         # Python custom properties will throw an error when trying to call update() on them, but it doesn't matter.
         pass
@@ -657,29 +838,29 @@ def make_property(
     if value and value != default:
         owner[name] = value
 
+
 def add_property_to_ui(
     *,
     obj,
     owner_path: str,
     prop_name: str,
-
+    ###
     panel_name: str,
     label_name="",
     row_name="",
     slider_name="",
-
-    texts: list[str]=[],
+    texts: list[str] = [],
+    ###
     children={},
-
     ui_path: list[str] = None,
     parent_value: str = None,
-
+    ###
     operator="",
     op_icon='BLANK1',
     op_kwargs={},
-
+    ###
     parent_id="",
-
+    ###
     panels=None,
 ) -> OrderedDict:
     """Add a UI slider to the object's UI data."""
@@ -706,13 +887,13 @@ def add_property_to_ui(
     row = label.setdefault(row_name, OrderedDict())
 
     slider_dict = {
-        'owner_path': owner_path, 
-        'prop_name': prop_name, 
+        'owner_path': owner_path,
+        'prop_name': prop_name,
     }
 
     if children:
         slider_dict['children'] = {str(key): value for key, value in children.items()}
-    
+
     if texts:
         slider_dict['texts'] = json.dumps(texts)
 
@@ -728,6 +909,7 @@ def add_property_to_ui(
 
     return panels
 
+
 def remove_property_from_ui(
     obj,
     ui_path: list[str],
@@ -741,7 +923,7 @@ def remove_property_from_ui(
 
     If any of those elements become empty from this removal, the empty element will also be removed.
 
-    Returns the sub-dictionary that was removed from the nested dictionary, 
+    Returns the sub-dictionary that was removed from the nested dictionary,
     the UI element chain up to the top-most removed element,
     and the index among its siblings of the highest element that was removed.
     """
@@ -760,7 +942,12 @@ def remove_property_from_ui(
     # So empty row, label, panels, and children data does not get left behind after removing their last elements.
     for parent, parent_name, child_name in reversed(parents):
         child_data = parent[child_name]
-        if (not any([key=='owner_path' or type(value)!=str for key, value in child_data.items()])):
+        if not any(
+            [
+                key == 'owner_path' or type(value) != str
+                for key, value in child_data.items()
+            ]
+        ):
             index = ordereddict_get_index(parent, child_name)
             del parent[child_name]
             parents.pop()
@@ -768,19 +955,15 @@ def remove_property_from_ui(
     write_rig_panels(obj, panels)
     return ui_entry_data, parents, index
 
-def reorder_ui_row(
-    *,
-    obj,
-    ui_path: list[str],
-    index_offset = 1,
 
-    panels=None
+def reorder_ui_row(
+    *, obj, ui_path: list[str], index_offset=1, panels=None
 ) -> tuple[OrderedDict, bool]:
     """Re-order a row of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 
     For example, if `ui_path = ['Outfits', 'Headwear', 'Hairpin']`,
-    we will move the `HairPin` row in the the `Headwear` label of the `Outfits` panel 
+    we will move the `HairPin` row in the the `Headwear` label of the `Outfits` panel
     by the provided index_offset.
 
     If the index gets clamped and therefore we don't need to perform any re-ordering, we
@@ -796,7 +979,7 @@ def reorder_ui_row(
     from_idx = ordereddict_get_index(label_data, row_name)
 
     to_idx = from_idx + index_offset
-    to_idx = min(to_idx, len(label_data)-1)
+    to_idx = min(to_idx, len(label_data) - 1)
     to_idx = max(0, to_idx)
 
     label_data[row_name]['is_dragged'] = "True"
@@ -809,9 +992,9 @@ def reorder_ui_row(
 
     return label_data[row_name], False
 
+
 def get_ui_element_chain(
-    root_element: OrderedDict,
-    ui_path: list[str]
+    root_element: OrderedDict, ui_path: list[str]
 ) -> list[tuple[OrderedDict, str, str]]:
     """Provided a deeply nested OrderedDict where all keys are strings, and a list of names
     that describe a path down the branches of the tree,
@@ -826,18 +1009,22 @@ def get_ui_element_chain(
     for child_name in ui_path:
         next_ui = ui_element.get(child_name)
         if not next_ui:
-            raise Exception(f"Failed to get element chain for UI path:\n{ui_path}\nThis should only happen when internal values are set to non-existent elements.")
+            raise Exception(
+                f"Failed to get element chain for UI path:\n{ui_path}\nThis should only happen when internal values are set to non-existent elements."
+            )
 
         chain.append((ui_element, parent_name, child_name))
         ui_element = next_ui
         parent_name = child_name
     return chain
 
+
 def ordereddict_get_index(od: OrderedDict, key: str) -> int:
     """Return the index of a key in an OrderedDictionary."""
     for i, name in enumerate(od.keys()):
         if name == key:
             return i
+
 
 def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
     """Return a new OrderedDictionary, where an element was moved from one index to another."""
@@ -852,6 +1039,7 @@ def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
 
     od.clear()
     od.update(reordered_dict)
+
 
 def supports_custom_props(prop_owner):
     return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}
@@ -886,6 +1074,7 @@ class UIPathProperty(PropertyGroup):
     ui_path: StringProperty()
     current: StringProperty()
 
+
 registry = [
     UIPathProperty,
     CLOUDRIG_OT_add_child_property_to_ui,
@@ -897,5 +1086,9 @@ registry = [
 
 
 def register():
-    bpy.types.Scene.cloudrig_property_parent_selector = CollectionProperty(type=UIPathProperty)
-    bpy.types.Scene.cloudrig_property_name_selector = CollectionProperty(type=UIPathProperty)
+    bpy.types.Scene.cloudrig_property_parent_selector = CollectionProperty(
+        type=UIPathProperty
+    )
+    bpy.types.Scene.cloudrig_property_name_selector = CollectionProperty(
+        type=UIPathProperty
+    )

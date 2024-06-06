@@ -1,9 +1,8 @@
+from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
-from bpy.types import PropertyGroup, Object
-from typing import Dict
-from .cloud_base import Component_Base
+
 from ..rig_component_features.bone import BoneInfo
-from ..rig_component_features.bone_set import BoneSet
+from .cloud_base import Component_Base
 
 
 class Component_TweakBone(Component_Base):
@@ -18,7 +17,7 @@ class Component_TweakBone(Component_Base):
     def initialize(self):
         super().initialize()
 
-    def load_metarig_bone_infos(self) -> Dict[str, BoneInfo]:
+    def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:
         bone_infos = super().load_metarig_bone_infos()
         assert len(bone_infos) == 1
 

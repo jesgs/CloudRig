@@ -1,8 +1,14 @@
-from typing import Dict
-
-import bpy
 from bpy.props import StringProperty
-from bpy.types import UIList, UI_UL_list, bpy_prop_array, PoseBone, Bone, EditBone
+from bpy.types import (
+    UIList,
+    UI_UL_list,
+    bpy_prop_array,
+    PoseBone,
+    Bone,
+    EditBone,
+    FCurve,
+    Object,
+)
 from rna_prop_ui import rna_idprop_has_properties
 
 from mathutils import Vector, Matrix
@@ -14,7 +20,7 @@ from .bone import BoneInfo, pose_bone_properties, edit_bone_properties, bone_pro
 from ..generation.cloudrig import CloudRigOperator
 
 
-def driver_from_real(fcurve: bpy.types.FCurve) -> dict:
+def driver_from_real(fcurve: FCurve) -> dict:
     """Return a dictionary describing the driver."""
     driver = fcurve.driver
     driver_info = {'type': driver.type, 'variables': [], 'index': fcurve.array_index}
@@ -118,8 +124,8 @@ class BoneSet(LinkedList):
 
     def new_from_real(
         self,
-        rig_ob: bpy.types.Object,
-        edit_bone: bpy.types.EditBone,
+        rig_ob: Object,
+        edit_bone: EditBone,
         keep_collections=False,
         keep_colors=False,
     ):
@@ -187,7 +193,9 @@ class BoneSet(LinkedList):
                         con_name = data_path.split('constraints["')[-1].split('"]')[0]
                         constraint_info = bone_info.get_constraint(con_name)
                         if constraint_info:
-                            constraint_info.drivers_to_copy.append((data_path, array_index))
+                            constraint_info.drivers_to_copy.append(
+                                (data_path, array_index)
+                            )
                             continue
 
                     bone_info.drivers_to_copy.append((data_path, array_index))
@@ -385,7 +393,7 @@ class BoneSetMixin:
 
         # This needs to be defined in a function, otherwise every class shares a single instance of this dict.
         # We want each class to have its own instance, so they only store the bone sets they actually define.
-        cls.bone_set_defs: Dict[str, str] = OrderedDict()
+        cls.bone_set_defs: OrderedDict[str, str] = OrderedDict()
         pass
 
 

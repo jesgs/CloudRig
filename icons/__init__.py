@@ -5,6 +5,7 @@ import bpy
 # however in this example we only store "main"
 cloudrig_icons = {}
 
+
 def get_cloudrig_icon_id(icon_name) -> int:
     pcoll = cloudrig_icons["main"]
     icon_id = -1
@@ -12,6 +13,7 @@ def get_cloudrig_icon_id(icon_name) -> int:
     if icon:
         icon_id = icon.icon_id
     return icon_id
+
 
 def load_icon(icon_name):
     icons_dir = os.path.dirname(__file__)
@@ -21,10 +23,12 @@ def load_icon(icon_name):
 
     return pcoll
 
+
 def register():
     pcoll = bpy.utils.previews.new()
     cloudrig_icons["main"] = pcoll
     load_icon("vertical_twoway_arrows")
+
 
 def unregister():
     for pcoll in cloudrig_icons.values():

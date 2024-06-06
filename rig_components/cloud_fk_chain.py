@@ -1,7 +1,4 @@
-from typing import List
 from bpy.types import PropertyGroup
-from ..rig_component_features.bone import BoneInfo
-
 from bpy.props import (
     BoolProperty,
     IntVectorProperty,
@@ -9,8 +6,9 @@ from bpy.props import (
     FloatProperty,
 )
 
-from .cloud_chain import Component_ToonChain
+from ..rig_component_features.bone import BoneInfo
 from ..rig_component_features.animation import CloudAnimationMixin
+from .cloud_chain import Component_ToonChain
 
 
 class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
@@ -103,7 +101,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         org_bone.parent = root_bone
         return root_bone
 
-    def make_fk_chain(self, org_chain) -> List[BoneInfo]:
+    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
         fk_name = ""
 
         hng_child = None  # For keeping track of which bone will need to be parented to the Hinge helper bone.
@@ -212,12 +210,10 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         self.add_bone_property_with_ui(
             prop_bone=prop_bone,
             prop_id=prop_name,
-
             panel_name="FK",
             label_name="Hinge",
             row_name=category,
             slider_name=limb_name,
-
             custom_prop_settings={
                 'default': default_value,
             },
@@ -225,7 +221,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             op_icon='FILE_REFRESH',
             op_kwargs={
                 "bone_names": [bone.name],
-            }
+            },
         )
 
         # Create Hinge helper bone
@@ -261,7 +257,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         bone.parent = hng_bone
         return hng_bone
 
-    def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+    def make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
         """Extend cloud_chain by tweaking some bbone values."""
         def_chain = super().make_def_chain(str_chain)
 

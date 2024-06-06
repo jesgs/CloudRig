@@ -1,17 +1,18 @@
 import bpy, os
-from typing import List, Tuple, Optional
-from bpy.types import Object
+from bpy.types import Object, Operator, Menu
+from bpy.props import StringProperty
 
 # Global storage of available metarigs. List of UI name and object name tuples.
-metarig_names: List[Tuple[str, str]] = []
-sample_names: List[Tuple[str, str]] = []
+metarig_names: list[tuple[str, str]] = []
+sample_names: list[tuple[str, str]] = []
 
-class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
+
+class CLOUDRIG_OT_metarig_add(Operator):
     bl_idname = "object.cloudrig_metarig_add"
     bl_label = "Add CloudRig Meta-Rig"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    metarig_name: bpy.props.StringProperty()
+    metarig_name: StringProperty()
 
     def execute(self, context):
         metarig = append_metarig(context, self.metarig_name)
@@ -23,12 +24,12 @@ class CLOUDRIG_OT_metarig_add(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_sample_add(bpy.types.Operator):
+class CLOUDRIG_OT_sample_add(Operator):
     bl_idname = "object.cloudrig_sample_add"
     bl_label = "Add CloudRig Sample"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    sample_name: bpy.props.StringProperty()
+    sample_name: StringProperty()
 
     def execute(self, context):
         if context.mode == 'EDIT_ARMATURE':
@@ -43,7 +44,7 @@ class CLOUDRIG_OT_sample_add(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_MT_metarigs(bpy.types.Menu):
+class CLOUDRIG_MT_metarigs(Menu):
     bl_label = "CloudRig Metarigs"
 
     def draw(self, context):
@@ -56,7 +57,7 @@ class CLOUDRIG_MT_metarigs(bpy.types.Menu):
             ).metarig_name = obj_name
 
 
-class CLOUDRIG_MT_rig_samples(bpy.types.Menu):
+class CLOUDRIG_MT_rig_samples(Menu):
     bl_label = "CloudRig Samples"
 
     def draw(self, context):
@@ -85,7 +86,9 @@ def get_available_object_name(obj_name: str) -> str:
     return numbered_name
 
 
-def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, select=True, use_cursor=True) -> Object:
+def append_obj_from_file(
+    context, blend_path, obj_name, link_to_scene=True, select=True, use_cursor=True
+) -> Object:
     """Append an object from a .blend file and return it."""
     available_name = get_available_object_name(obj_name)
 
@@ -109,7 +112,7 @@ def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, sele
     return new_obj
 
 
-def append_metarig(context, metarig_name) -> Optional[Object]:
+def append_metarig(context, metarig_name) -> Object | None:
     """Append a metarig from MetaRigs.blend."""
     bpy.ops.object.select_all(action='DESELECT')
     new_metarig = append_obj_from_file(context, get_metarig_blend_path(), metarig_name)
@@ -124,7 +127,7 @@ def append_sample(context, sample_name):
     return append_obj_from_file(context, get_metarig_blend_path(), sample_name)
 
 
-def add_sample_to_current_rig(context, sample_name: str):
+def add_sample_to_current_rig(context, sample_name: str) -> Object:
     """Append a rig sample from MetaRigs.blend, then join it into the currently active armature."""
 
     rig = context.active_object
@@ -181,7 +184,12 @@ def draw_cloudrig_metarig_menu(self, context):
     self.layout.menu('CLOUDRIG_MT_rig_samples', icon='OUTLINER_OB_ARMATURE')
 
 
-registry = [CLOUDRIG_OT_metarig_add, CLOUDRIG_OT_sample_add, CLOUDRIG_MT_metarigs, CLOUDRIG_MT_rig_samples]
+registry = [
+    CLOUDRIG_OT_metarig_add,
+    CLOUDRIG_OT_sample_add,
+    CLOUDRIG_MT_metarigs,
+    CLOUDRIG_MT_rig_samples,
+]
 
 
 # Registering is a bit tricky because we need to load a resource .blend file,

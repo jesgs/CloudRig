@@ -1,35 +1,46 @@
 import bpy
-
-from typing import Optional, Sequence, Iterable
-
-from bpy.types import (bpy_prop_collection, Object, PoseBone, Driver, FCurve,
-                       DriverTarget, ID, bpy_struct, FModifierGenerator,
-                       ArmatureConstraint, AnimData)
-
-from rna_prop_ui import rna_idprop_ui_create
+from bpy.types import (
+    bpy_prop_collection,
+    Object,
+    PoseBone,
+    Driver,
+    FCurve,
+    DriverTarget,
+    ID,
+    bpy_struct,
+    FModifierGenerator,
+    ArmatureConstraint,
+)
 from rna_prop_ui import rna_idprop_quote_path as quote_property
+from typing import Sequence, Iterable
 
 from .misc import force_lazy, Lazy, OptionalLazy
 
 _TRACK_AXIS_MAP = {
-    'X': 'TRACK_X', '-X': 'TRACK_NEGATIVE_X',
-    'Y': 'TRACK_Y', '-Y': 'TRACK_NEGATIVE_Y',
-    'Z': 'TRACK_Z', '-Z': 'TRACK_NEGATIVE_Z',
+    'X': 'TRACK_X',
+    '-X': 'TRACK_NEGATIVE_X',
+    'Y': 'TRACK_Y',
+    '-Y': 'TRACK_NEGATIVE_Y',
+    'Z': 'TRACK_Z',
+    '-Z': 'TRACK_NEGATIVE_Z',
 }
 
 
 def make_constraint(
-        owner: Object | PoseBone, con_type: str,
-        target: Optional[Object] = None,
-        subtarget: OptionalLazy[str] = None, *,
-        insert_index: Optional[int] = None,
-        space: Optional[str] = None,
-        track_axis: Optional[str] = None,
-        use_xyz: Optional[Sequence[bool]] = None,
-        use_limit_xyz: Optional[Sequence[bool]] = None,
-        invert_xyz: Optional[Sequence[bool]] = None,
-        targets: Optional[list[Lazy[str | tuple | dict]]] = None,
-        **options):
+    owner: Object | PoseBone,
+    con_type: str,
+    target: Object | None = None,
+    subtarget: OptionalLazy[str] = None,
+    *,
+    insert_index: int | None = None,
+    space: str | None = None,
+    track_axis: str | None = None,
+    use_xyz: Sequence[bool] | None = None,
+    use_limit_xyz: Sequence[bool] | None = None,
+    invert_xyz: Sequence[bool] | None = None,
+    targets: list[Lazy[str | tuple | dict]] | None = None,
+    **options,
+):
     """
     Creates and initializes constraint of the specified type for the owner bone.
 
@@ -64,16 +75,20 @@ def make_constraint(
                 con_target.subtarget = target_info
             elif isinstance(target_info, tuple):
                 if len(target_info) == 2:
-                    con_target.subtarget, con_target.weight = map(force_lazy, target_info)
+                    con_target.subtarget, con_target.weight = map(
+                        force_lazy, target_info
+                    )
                 else:
-                    con_target.target, con_target.subtarget, con_target.weight = map(force_lazy, target_info)
+                    con_target.target, con_target.subtarget, con_target.weight = map(
+                        force_lazy, target_info
+                    )
             else:
                 assert isinstance(target_info, dict)
                 for key, val in target_info.items():
                     setattr(con_target, key, force_lazy(val))
 
     if insert_index is not None:
-        owner.constraints.move(len(owner.constraints)-1, insert_index)
+        owner.constraints.move(len(owner.constraints) - 1, insert_index)
 
     if target is not None and hasattr(con, 'target'):
         con.target = target
@@ -99,23 +114,31 @@ def make_constraint(
 
     for key in ['min_x', 'max_x', 'min_y', 'max_y', 'min_z', 'max_z']:
         if key in options:
-            _set_default_attr(con, options, 'use_'+key, True)
-            _set_default_attr(con, options, 'use_limit_'+key[-1], True)
+            _set_default_attr(con, options, 'use_' + key, True)
+            _set_default_attr(con, options, 'use_limit_' + key[-1], True)
 
     for p, v in options.items():
         setattr(con, p, force_lazy(v))
 
     return con
 
+
 def _set_default_attr(obj, options, attr, value):
     if hasattr(obj, attr):
         options.setdefault(attr, value)
 
-def make_driver(owner: bpy_struct, prop: str, *, index=-1, type='SUM',
-                expression: Optional[str] = None,
-                variables: Iterable | dict = (),
-                polynomial: Optional[list[float]] = None,
-                target_id: Optional[ID] = None) -> FCurve:
+
+def make_driver(
+    owner: bpy_struct,
+    prop: str,
+    *,
+    index=-1,
+    type='SUM',
+    expression: str | None = None,
+    variables: Iterable | dict = (),
+    polynomial: list[float] | None = None,
+    target_id: ID | None = None,
+) -> FCurve:
     """
     Creates and initializes a driver for the 'prop' property of owner.
 
@@ -199,13 +222,14 @@ def make_driver(owner: bpy_struct, prop: str, *, index=-1, type='SUM',
         drv_modifier = fcu.modifiers.new('GENERATOR')
         assert isinstance(drv_modifier, FModifierGenerator)
         drv_modifier.mode = 'POLYNOMIAL'
-        drv_modifier.poly_order = len(polynomial)-1
+        drv_modifier.poly_order = len(polynomial) - 1
         for i, v in enumerate(polynomial):
             drv_modifier.coefficients[i] = v
 
     return fcu
 
-def _add_driver_variable(drv: Driver, var_name: str, var_info, target_id: Optional[ID]):
+
+def _add_driver_variable(drv: Driver, var_name: str, var_info, target_id: ID | None):
     """Add and initialize a driver variable."""
 
     var = drv.variables.new()
@@ -230,7 +254,8 @@ def _add_driver_variable(drv: Driver, var_name: str, var_info, target_id: Option
             elif p != 'type':
                 setattr(var, p, force_lazy(v))
 
-def _init_driver_target(drv_target: DriverTarget, var_info, target_id: Optional[ID]):
+
+def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None):
     """Initialize a driver variable target from a specification."""
 
     # Parse the simple list format for the common case.
@@ -238,7 +263,7 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: Optional[
         # [ (target_id,) subtarget, ...path ]
 
         # If target_id is supplied as parameter, allow omitting it
-        if target_id is None or isinstance(var_info[0], bpy.types.ID):
+        if target_id is None or isinstance(var_info[0], ID):
             target_id, subtarget, *refs = var_info
         else:
             subtarget, *refs = var_info
@@ -282,8 +307,15 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: Optional[
         for tp, tv in var_info.items():
             setattr(drv_target, tp, force_lazy(tv))
 
-def driver_var_transform(target: ID, bone: Optional[str] = None, *,
-                         type='LOC_X', space='WORLD', rotation_mode='AUTO'):
+
+def driver_var_transform(
+    target: ID,
+    bone: str | None = None,
+    *,
+    type='LOC_X',
+    space='WORLD',
+    rotation_mode='AUTO',
+):
     """
     Create a Transform Channel driver variable specification.
 
@@ -307,11 +339,12 @@ def driver_var_transform(target: ID, bone: Optional[str] = None, *,
 
     return {'type': 'TRANSFORMS', 'targets': [target_map]}
 
+
 def refresh_drivers(obj):
     """Cause all drivers belonging to the object to be re-evaluated, clearing any errors."""
 
     # Refresh object's own drivers if any
-    anim_data: Optional[AnimData] = getattr(obj, 'animation_data', None)
+    anim_data = getattr(obj, 'animation_data', None)
 
     if anim_data:
         for fcu in anim_data.drivers:

@@ -4,9 +4,8 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Menu
+from bpy.types import Menu, Bone, EditBone
 from bpy.props import BoolProperty
-from typing import Set, List
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 
@@ -21,7 +20,7 @@ def get_active_bone(context):
         return context.active_bone
 
 
-def get_selected_bones(context, exclude_active=False) -> List[bpy.types.Bone]:
+def get_selected_bones(context, exclude_active=False) -> list[Bone]:
     if not context.object or not context.object.type == 'ARMATURE':
         return []
     bones = []
@@ -58,7 +57,7 @@ class GenericBoneOperator:
                 if eb.name in context.object.data.bones
             ]
 
-    def get_bones_to_affect(self, context) -> Set[str]:
+    def get_bones_to_affect(self, context) -> set[str]:
         rig = context.active_object
         mode = rig.mode
         bone_names = {b.name for b in get_selected_bones(context)}
@@ -79,8 +78,7 @@ class GenericBoneOperator:
 
         return bone_names
 
-
-    def affect_bones(self, context) -> Set[str]:
+    def affect_bones(self, context) -> set[str]:
         """Returns list of bone names that were actually affected."""
         rig = context.active_object
         mode = rig.mode
@@ -96,7 +94,7 @@ class GenericBoneOperator:
         bpy.ops.object.mode_set(mode=mode)
         return affected_bones
 
-    def affect_bone(self, eb) -> bool:
+    def affect_bone(self, eb: EditBone) -> bool:
         """Return whether the bone was indeed affected."""
         raise NotImplementedError
 
@@ -118,7 +116,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
         else:
             return False
 
-    def affect_bone(self, eb) -> bool:
+    def affect_bone(self, eb: EditBone) -> bool:
         if eb.parent:
             eb.parent = None
             return True
@@ -148,7 +146,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
 
         return False
 
-    def affect_bone(self, eb) -> bool:
+    def affect_bone(self, eb: EditBone) -> bool:
         if eb.parent:
             eb.parent = None
             return True

@@ -1,14 +1,10 @@
-from bpy.types import PoseBone, GizmoGroup, PropertyGroup
-from typing import Tuple
-
-from bpy.props import BoolProperty, FloatProperty
-from mathutils import Vector, Matrix, Euler
+from bpy.types import PoseBone, PropertyGroup
+from bpy.props import BoolProperty
+from mathutils import Vector
 from math import radians as rad
 
-from ..utils.maths import flat
-from .cloud_fk_chain import Component_Chain_FK
-from ..generation.cloudrig import is_active_cloud_metarig
 from ..operators.flatten_chain import is_chain_flat
+from .cloud_fk_chain import Component_Chain_FK
 
 """Ideas to improve this:
 Allow disabling IK stretch functionality.
@@ -158,7 +154,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     @staticmethod
     def calculate_ik_info_static(
         meta_first: PoseBone, meta_second: PoseBone
-    ) -> Tuple[float, Vector, Vector]:
+    ) -> tuple[float, Vector, Vector]:
         chain_vector = meta_second.tail - meta_first.head
 
         first_tail = meta_second.head

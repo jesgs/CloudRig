@@ -1,11 +1,13 @@
 import bpy
-from typing import Dict
-
 from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name
 
-from ..rig_component_features.mechanism import copy_attributes, find_or_create_constraint
+from ..rig_component_features.mechanism import (
+    copy_attributes,
+    find_or_create_constraint,
+)
 from ..generation.cloudrig import CloudRigOperator
+
 
 class POSE_OT_symmetrize_rigging(CloudRigOperator):
     """Mirror constraints to the opposite of all selected bones"""
@@ -27,7 +29,7 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
         cls.poll_message_set("No selected flippable bones")
         return False
 
-    def get_symmetrize_bone_mapping(self, context) -> Dict[PoseBone, PoseBone]:
+    def get_symmetrize_bone_mapping(self, context) -> dict[PoseBone, PoseBone]:
         bone_map = {}
         rig = context.object
         selected_pose_bones = context.selected_pose_bones[:]
@@ -138,7 +140,11 @@ def symmetrize_additional(armature: Object, pbone: PoseBone, con: Constraint):
     symmetrized_con = find_or_create_constraint(opp_pb, con.type, con.name)
     if not symmetrized_con:
         # Looks like this constraint didn't get copied by the Symmetrize operator. This shouldn't happen.
-        print("ERROR: Constraint not created by Symmetrize operator: ", pbone.name, con.name)
+        print(
+            "ERROR: Constraint not created by Symmetrize operator: ",
+            pbone.name,
+            con.name,
+        )
         return
     symmetrized_con.name = flipped_con_name
 
@@ -296,9 +302,8 @@ def draw_menu_entry(self, context):
     self.layout.operator(POSE_OT_symmetrize_rigging.bl_idname, icon='MOD_MIRROR')
 
 
-registry = [
-    POSE_OT_symmetrize_rigging
-]
+registry = [POSE_OT_symmetrize_rigging]
+
 
 def register():
     bpy.types.VIEW3D_MT_pose.append(draw_menu_entry)

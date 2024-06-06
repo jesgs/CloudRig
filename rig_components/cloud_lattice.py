@@ -4,7 +4,6 @@ from bpy.props import BoolProperty, PointerProperty
 from mathutils import Matrix
 
 from ..utils.lattice import ensure_falloff_vgroup
-
 from .cloud_base import Component_Base
 
 
@@ -63,7 +62,7 @@ class Component_Lattice(Component_Base):
         super().create_helper_objects(context)
         root_pb = self.target_rig.pose.bones.get(self.lattice_root.name)
         hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
-        lattice_ob = self.params.lattice.lattice = self.ensure_lattice(hook_pb.name)
+        lattice_ob = self.params.lattice.lattice = self.ensure_lattice(context, hook_pb.name)
         if self.params.lattice.regenerate:
             self.reset_lattice(self.params.lattice.lattice, root_pb, hook_pb)
         else:
@@ -72,14 +71,14 @@ class Component_Lattice(Component_Base):
                 if m.type == 'HOOK':
                     m.subtarget = m.subtarget
 
-    def ensure_lattice(self, lattice_name="Lattice") -> Object:
+    def ensure_lattice(self, context, lattice_name="Lattice") -> Object:
         lattice_ob = self.params.lattice.lattice
         if lattice_ob:
             return lattice_ob
 
         lattice = bpy.data.lattices.new(lattice_name)
         lattice_ob = bpy.data.objects.new(lattice_name, lattice)
-        bpy.context.scene.collection.objects.link(lattice_ob)
+        context.scene.collection.objects.link(lattice_ob)
         return lattice_ob
 
     def reset_lattice(
@@ -177,7 +176,7 @@ class Component_Lattice(Component_Base):
 
 class Params(PropertyGroup):
     lattice: PointerProperty(
-        type=bpy.types.Object,
+        type=Object,
         name="Lattice",
         description="Lattice Object that will be hooked up to this control. If not left empty, the already existing lattice will not be affected in any way, unless Regenerate Lattice is enabled",
     )

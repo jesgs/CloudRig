@@ -1,16 +1,12 @@
 # These functions are copied from my Lattice Magic addon: https://gitlab.com/blender/lattice_magic
 # So they should probably be kept in sync.
 
-import bpy
-from typing import List
-
+from bpy.types import Lattice, Object, VertexGroup
 from .maths import clamp
 from mathutils import Vector
 
 
-def get_lattice_vertex_index(
-    lattice: bpy.types.Lattice, xyz: List[int], do_clamp=True
-) -> int:
+def get_lattice_vertex_index(lattice: Lattice, xyz: list[int], do_clamp=True) -> int:
     """Get the index of a lattice vertex based on its position on the XYZ axes."""
 
     # The lattice vertex indicies start in the -Y, -X, -Z corner,
@@ -31,8 +27,8 @@ def get_lattice_vertex_index(
 
 
 def ensure_falloff_vgroup(
-    lattice_ob: bpy.types.Object, vg_name="Group", multiplier=1
-) -> bpy.types.VertexGroup:
+    lattice_ob: Object, vg_name="Group", multiplier=1
+) -> VertexGroup:
     lattice = lattice_ob.data
     res_x, res_y, res_z = lattice.points_u, lattice.points_v, lattice.points_w
 

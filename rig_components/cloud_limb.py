@@ -1,5 +1,3 @@
-from typing import List
-from ..rig_component_features.bone import BoneInfo
 
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
@@ -9,6 +7,7 @@ from math import pow
 from copy import deepcopy
 from mathutils import Vector
 
+from ..rig_component_features.bone import BoneInfo
 from .cloud_ik_chain import Component_Chain_IKFK
 
 
@@ -163,7 +162,7 @@ class Component_Limb(Component_Chain_IKFK):
                 str_h_bone = b.parent
                 str_h_bone.constraint_infos[2].mute = True
 
-    def add_counterrotate_constraints(self, str_chain: List[BoneInfo]):
+    def add_counterrotate_constraints(self, str_chain: list[BoneInfo]):
         """Counter-Rotate setup for the first section of STR bones.
         This is done because, eg., when twisting the wrist, we want that twist
         to fade out gradually towards the elbow.
@@ -203,8 +202,8 @@ class Component_Limb(Component_Chain_IKFK):
         self,
         org_upper: BoneInfo,
         org_lower: BoneInfo,
-        str_upper_section: List[BoneInfo],
-        str_lower_section: List[BoneInfo],
+        str_upper_section: list[BoneInfo],
+        str_lower_section: list[BoneInfo],
     ):
         """Add translating Transformation constraints to str_upper_section and
         str_lower_section controls, driven by org_lower, which would be the
@@ -298,8 +297,8 @@ class Component_Limb(Component_Chain_IKFK):
         self,
         org_upper: BoneInfo,
         org_lower: BoneInfo,
-        str_upper_section: List[BoneInfo],
-        str_lower_section: List[BoneInfo],
+        str_upper_section: list[BoneInfo],
+        str_lower_section: list[BoneInfo],
         prop_name: str,
         hose_type: str,
     ):

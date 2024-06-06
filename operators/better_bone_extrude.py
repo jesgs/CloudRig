@@ -31,7 +31,8 @@ class BoneDuplicateOpMixin:
 class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
     bl_idname = "armature.better_extrude"
     bl_description = "Extrude a bone and increment its name"
-    bl_options = {'REGISTER'} # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
+    # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
+    bl_options = {'REGISTER'}
     bl_label = "Better Extrude Bone"
 
     @classmethod
@@ -48,7 +49,8 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
     bl_idname = "armature.better_duplicate"
     bl_description = "Duplicate a bone and increment its name"
-    bl_options = {'REGISTER'} # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
+    # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
+    bl_options = {'REGISTER'}
     bl_label = "Better Duplicate Bone"
 
     @classmethod

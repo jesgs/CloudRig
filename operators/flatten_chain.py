@@ -1,14 +1,14 @@
-from typing import List, Tuple
-
 import bpy
 from bpy.types import EditBone
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
+
 from ..rig_component_features.mechanism import get_bone_chain
 from ..generation.cloudrig import CloudRigOperator
 
-def is_chain_flat(chain: List[EditBone]) -> bool:
+
+def is_chain_flat(chain: list[EditBone]) -> bool:
     """Determine whether a chain of bones is ideal for IK."""
     coords = get_flattened_coords(chain)
 
@@ -24,7 +24,7 @@ def is_chain_flat(chain: List[EditBone]) -> bool:
     return True
 
 
-def get_flattened_coords(chain: List[EditBone]) -> List[Tuple[Vector]]:
+def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector]]:
     """Return a list of head+tail coordinates flattened along a plane."""
 
     # We need 3 points to define a plane. 2 of these are the head of the first and the tail of the last bone.

@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional, Any
+from typing import Any
 import re
 
 SEPARATORS = "._-"
@@ -41,10 +41,10 @@ class CloudNameManager:
     def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
         return make_name(prefixes, base, suffixes)
 
-    def slice_name(self, thing) -> Tuple[List[str], str, List[str]]:
+    def slice_name(self, thing) -> tuple[list[str], str, list[str]]:
         return slice_name(get_name(thing))
 
-    def strip_trailing_numbers(self, thing) -> Tuple[str, str]:
+    def strip_trailing_numbers(self, thing) -> tuple[str, str]:
         return strip_trailing_numbers(get_name(thing))
 
     def flipped_name(self, thing) -> str:
@@ -57,7 +57,7 @@ class CloudNameManager:
 
         return combine_bone_names(names)
 
-    def side_is_left(self, thing) -> Optional[bool]:
+    def side_is_left(self, thing) -> bool|None:
         return side_is_left(get_name(thing))
 
     def increment_name(self, thing, increment=1) -> str:
@@ -153,7 +153,7 @@ def side_is_suffix(thing: Any) -> bool:
     return True
 
 
-def strip_trailing_numbers(name: str) -> Tuple[str, str]:
+def strip_trailing_numbers(name: str) -> tuple[str, str]:
     if "." in name:
         # Check if there are only digits after the last period
         slices = name.split(".")
@@ -230,7 +230,7 @@ def combine_bone_names(names: str) -> str:
     return combined_name
 
 
-def get_side_lists(with_separators=False) -> Tuple[List[str], List[str], List[str]]:
+def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[str]]:
     left = [
         'left',
         'Left',
@@ -306,7 +306,7 @@ def flip_name(from_name: str, ignore_base=True, must_change=False) -> str:
     return new_name
 
 
-def side_is_left(name) -> Optional[bool]:
+def side_is_left(name) -> bool|None:
     """Identify whether a name belongs to the left or right side or neither."""
 
     flipped_name = flip_name(name)
@@ -389,7 +389,7 @@ def strip_blender_zeroes(name):
     return name
 
 
-def uniqify(name, collprop: List, strip_first=True):
+def uniqify(name, collprop: list, strip_first=True):
     if strip_first:
         name = strip_blender_zeroes(name)
     while name in collprop:

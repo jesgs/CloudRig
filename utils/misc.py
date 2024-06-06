@@ -1,15 +1,12 @@
 # Not a fan of a file called utils/misc.py but man, these functions
 # really don't fit anywhere.
 
-import addon_utils
-import bpy, os
-from typing import Tuple, Optional
-from bpy.types import PoseBone
-import time
+import bpy, os, time, addon_utils
+from bpy.types import PoseBone, Text
 
 # Written by __init__.py at register time. (No other way to access bl_info)
-version_min: Tuple = ()
-version_max: Tuple = ()
+version_min: tuple = ()
+version_max: tuple = ()
 
 
 def is_blender_version_compatible() -> bool:
@@ -28,7 +25,7 @@ def is_blender_version_compatible() -> bool:
 
 def load_script(
     file_path="", file_name="cloudrig.py", datablock=None, execute=True
-) -> bpy.types.Text:
+) -> Text:
     """Load a text file into a text datablock, enable register checkbox and execute it.
     Also run an optional search and replace on the file content.
     """
@@ -81,7 +78,7 @@ def assign_to_collection(obj, collection):
         collection.objects.link(obj)
 
 
-def get_pbone_of_active(context) -> Optional[PoseBone]:
+def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """

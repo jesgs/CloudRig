@@ -1,7 +1,7 @@
-import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty
-from bpy.types import Panel, UIList
+from bpy.types import Panel, UIList, UI_UL_list
 from bl_ui.generic_ui_list import draw_ui_list
+
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
 from ..rig_component_features.properties_ui import redraw_viewport
 from ..generation.cloudrig import is_cloud_metarig, CloudRigOperator
@@ -37,7 +37,9 @@ class CLOUDRIG_UL_rig_components(UIList):
         else:
             row.label(text="", icon='BLANK1')
         row = row.row()
-        row.enabled = rig_component.enabled_with_parents and rig_component.enabled_toggle
+        row.enabled = (
+            rig_component.enabled_with_parents and rig_component.enabled_toggle
+        )
         row.label(text=pose_bone.name)
 
         icon = 'ARMATURE_DATA'
@@ -73,7 +75,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         flt_flags = [self.bitflag_filter_item] * len(pbones)
         flt_neworder = []
 
-        helper_funcs = bpy.types.UI_UL_list
+        helper_funcs = UI_UL_list
 
         # Filtering by name search.
         if self.filter_name:

@@ -1,7 +1,9 @@
 import bpy
+from bpy.types import Object
+
 
 class TestAnimationGeneratorMixin:
-    """Generator code for generating a "test animation", which is an animation 
+    """Generator code for generating a "test animation", which is an animation
     riggers can use for weight painting assistance to test deformations.
     Rig components can define what keyframes they want to add to this animation.
     """
@@ -71,7 +73,7 @@ class TestAnimationGeneratorMixin:
                 return other_component
 
 
-def ensure_test_action(metarig, target_rig):
+def ensure_test_action(metarig: Object, target_rig: Object):
     # Ensure test action exists
     test_action = metarig.cloudrig.generator.test_action
     if not test_action:

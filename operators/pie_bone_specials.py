@@ -54,13 +54,25 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
         pie.separator()
 
         # 5) <^ Toggle Armature Symmetry.
-        pie.prop(rig.data, 'use_mirror_x', toggle=True, icon='MOD_MIRROR', text="Toggle Armature X-Mirror")
+        pie.prop(
+            rig.data,
+            'use_mirror_x',
+            toggle=True,
+            icon='MOD_MIRROR',
+            text="Toggle Armature X-Mirror",
+        )
 
         # 6) ^> Also empty.
         pie.separator()
 
         # 7) <v Toggle Pose Symmetry.
-        pie.prop(rig.pose, 'use_mirror_x', toggle=True, icon='MOD_MIRROR', text="Toggle Pose X-Mirror")
+        pie.prop(
+            rig.pose,
+            'use_mirror_x',
+            toggle=True,
+            icon='MOD_MIRROR',
+            text="Toggle Pose X-Mirror",
+        )
 
         # 8) v> Leave empty.
         pie.separator()
@@ -70,6 +82,7 @@ registry = [
     POSE_OT_delete_bones,
     CLOUDRIG_MT_PIE_bone_specials,
 ]
+
 
 def register():
     for key_cat, space_type in {

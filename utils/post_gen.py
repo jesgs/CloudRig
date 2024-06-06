@@ -4,8 +4,7 @@ post-generation scripts.
 """
 
 import bpy
-from typing import List
-from bpy.types import Object
+from bpy.types import Object, ID, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
 from .. import rig_component_features
 
@@ -19,7 +18,9 @@ def add_ui_data(*args, **kwargs):
     return rig_component_features.ui.add_ui_data(*args, **kwargs)
 
 
-def set_custom_property_value(rig, bone_name, prop, value):
+def set_custom_property_value(
+    rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID
+):
     """Assign the value of a custom property."""
     bone = rig.pose.bones.get(bone_name)
     if not bone:
@@ -30,7 +31,9 @@ def set_custom_property_value(rig, bone_name, prop, value):
     rna_idprop_ui_prop_update(bone, prop)
 
 
-def set_custom_property_default(rig, bone_name, prop, value):
+def set_custom_property_default(
+    rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID
+):
     """Assign the value of a custom property as the default and current values."""
     bone = rig.pose.bones.get(bone_name)
     if not bone:
@@ -42,7 +45,7 @@ def set_custom_property_default(rig, bone_name, prop, value):
     set_custom_property_value(rig, bone_name, prop, value)
 
 
-def link_script(rig, prop_name: str, filepath: str, script_name: str):
+def link_script(rig: Object, prop_name: str, filepath: str, script_name: str):
     """Load a text datablock by linking from a blend file, and attach it to the rig."""
     if script_name in bpy.data.texts:  # If already loaded, don't reload it.
         text = bpy.data.texts[script_name]
@@ -58,7 +61,7 @@ def link_script(rig, prop_name: str, filepath: str, script_name: str):
     exec(text.as_string(), {})
 
 
-def rename_bone(rig, name_from, name_to):
+def rename_bone(rig: Object, name_from: str, name_to: str):
     """Rename a bone and account for all the things that could break when doing so.
     This means also replacing the bone's name in the rig's UI data and in driver
     data paths.
@@ -71,7 +74,7 @@ def rename_bone(rig, name_from, name_to):
     replace_driver_var_path(rig, name_from, name_to, data_only=True)
 
 
-def rename_custom_property(rig, bone_name, name_from, name_to):
+def rename_custom_property(rig: Object, bone_name: str, name_from: str, name_to: str):
     """Rename a bone custom property, and account for all the things that could
     break when doing so. This means also replacing the bone's name in the rig's
     UI data and in driver data paths."""
@@ -87,10 +90,10 @@ def rename_custom_property(rig, bone_name, name_from, name_to):
     del pb[name_from]
 
 
-def replace_in_ui_data(rig, from_str, to_str):
+def replace_in_ui_data(rig: Object, from_str: str, to_str: str):
     """Replace occurrences of a string in the rig's UI Data"""
 
-    def replace_data(prop_owner, prop_name):
+    def replace_data(prop_owner: ID | PoseBone, prop_name: str):
         if prop_name not in prop_owner:
             return
         data_str = str(prop_owner[prop_name].to_dict())
@@ -101,7 +104,7 @@ def replace_in_ui_data(rig, from_str, to_str):
     replace_data(rig.data, 'gizmo_interactions')
 
 
-def replace_driver_var_path(rig, from_str, to_str, data_only=False):
+def replace_driver_var_path(rig: Object, from_str: str, to_str: str, data_only=False):
     """Replace a string in all driver data paths of a rig."""
     datablocks = [rig.data]
     if not data_only:
@@ -172,11 +175,12 @@ def GLOBAL_rename_obdatas():
         ob.data.shape_keys.name = ob.name
 
 
-def auto_assign_bone_gizmo_maps(old_rig, new_rig, *, bone_collection: str):
+def auto_assign_bone_gizmo_maps(
+    old_rig: Object, new_rig: Object, *, bone_collection: str
+):
     """Auto-assign vertex groups/face maps for the Bone Gizmo addon for bones
     of the passed collection."""
 
-    obs = rig_component_features.object.get_object_hierarchy_recursive(old_rig)[1:]
     coll = new_rig.data.collections_all.get(bone_collection)
     if not coll:
         return
@@ -184,10 +188,10 @@ def auto_assign_bone_gizmo_maps(old_rig, new_rig, *, bone_collection: str):
         if pb.enable_bone_gizmo:
             continue
 
-        auto_assign_bone_gizmo(pb, obs)
+        auto_assign_bone_gizmo(pb, old_rig.children_recursive)
 
 
-def auto_assign_bone_gizmo(pb, obs: List[Object]):
+def auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
     """Auto-assign vgroups/facemaps for the Bone Gizmo addon for a single bone.
     This is done based on a naming convention basis, with these priorities:
     1. Face map matching the bone's name.

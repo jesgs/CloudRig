@@ -1,7 +1,7 @@
-import os
 import bpy
-from mathutils import Matrix
+from bpy.types import PoseBone
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+from mathutils import Matrix
 
 from ..utils.misc import get_addon_prefs, assign_to_collection
 from ..rig_component_features.object import EnsureVisible
@@ -73,7 +73,7 @@ def refresh_widget_list():
     return widget_items
 
 
-def transform_widget_to_bone(pb: bpy.types.PoseBone, select=False):
+def transform_widget_to_bone(pb: PoseBone, select=False):
     """Transform a pose bone's custom shape object to match the bone's visual transforms."""
     shape = pb.custom_shape
 

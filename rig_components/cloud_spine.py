@@ -1,10 +1,8 @@
-from typing import List
 from bpy.types import PropertyGroup
-from ..rig_component_features.bone import BoneInfo
-
 from bpy.props import BoolProperty
 from mathutils import Vector
 
+from ..rig_component_features.bone import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
 
 """TODO
@@ -61,7 +59,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         )
         return torso_root_bone
 
-    def make_fk_chain(self, org_chain) -> List[BoneInfo]:
+    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
         """Overrides cloud_fk_chain."""
         fk_chain = super().make_fk_chain(org_chain)
 
@@ -266,12 +264,10 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.add_bone_property_with_ui(
             prop_bone=self.properties_bone,
             prop_id=self.ik_stretch_name,
-
             panel_name="IK",
             label_name="IK Stretch",
             row_name=self.limb_name,
             slider_name=self.spine_name,
-
             custom_prop_settings={
                 'default': 1.0,
             },
@@ -280,11 +276,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.add_bone_property_with_ui(
             prop_bone=self.properties_bone,
             prop_id=self.ik_prop_name,
-
             panel_name="FK/IK Switch",
             row_name=self.limb_name,
             slider_name=self.spine_name,
-
             custom_prop_settings={
                 'default': 0.0,
             },

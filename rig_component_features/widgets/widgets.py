@@ -1,8 +1,9 @@
-import bpy
-import os
+import bpy, os
+from bpy.types import Object
+
 from ...utils.misc import get_addon_prefs
 
-def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> bpy.types.Object:
+def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
     """Load custom shapes by appending them from Widgets.blend, unless they already exist in this file."""
     prefs = get_addon_prefs()
     link = prefs.widget_import_method == 'LINK'

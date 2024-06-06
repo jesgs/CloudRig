@@ -1,11 +1,10 @@
-from typing import List, Dict
 from bpy.types import Object
 from .bone import BoneInfo
 
 
 def map_vgroups_to_most_significant_object(
-    group_names: List[str], objects: List[Object]
-) -> Dict[str, Object]:
+    group_names: list[str], objects: list[Object]
+) -> dict[str, Object]:
     """Create a dictionary, mapping each vertex group name to the object
     which has the vertex group with the most vertices in it.
     This is expected to be pretty damn slow.
@@ -32,7 +31,7 @@ def map_vgroups_to_most_significant_object(
     return {vg_name: tup[0] for vg_name, tup in vgroup_map.items()}
 
 
-def auto_initialize_gizmos(target_rig: Object, bone_infos: List[BoneInfo]):
+def auto_initialize_gizmos(target_rig: Object, bone_infos: list[BoneInfo]):
     """Enable and set up custom gizmos for those bones whose BoneInfo
     contains the neccessary data.
     This is not done on a per-bone basis due to performance.
@@ -70,7 +69,7 @@ class BoneGizmoMixin:
     # https://developer.blender.org/diffusion/BSTS/browse/master/bone-gizmos/
 
     def add_gizmo_interaction(
-        self, bone_names: List[str], operator: str, op_kwargs: Dict
+        self, bone_names: list[str], operator: str, op_kwargs: dict
     ):
         """Whenever any of this list of bone names are interacted with through
         BoneGizmos addon, execute an operator with the given arguments.

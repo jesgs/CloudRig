@@ -1,7 +1,6 @@
 import bpy
-from bpy.types import Object
+from bpy.types import Object, ID, PoseBone
 from bpy.app.handlers import persistent
-from typing import Any
 
 from ..generation.cloudrig import is_cloud_metarig
 from ..rig_component_features.ui import get_addon_prefs
@@ -9,18 +8,23 @@ from ..rig_component_features.object import set_enum_property_by_integer
 from ..rig_components import component_modules
 
 RIG_TYPE_MAP = {
-    key: module.RIG_COMPONENT_CLASS.ui_name
-    for key, module in component_modules.items()
+    key: module.RIG_COMPONENT_CLASS.ui_name for key, module in component_modules.items()
 }
 
-def update_enum_property(owner, old_key, new_key, int_value):
-    enum_string_value = set_enum_property_by_integer(owner, new_key, int_value)
+
+def update_enum_property(
+    owner: ID | PoseBone,
+    old_key: str,
+    new_key: str,
+    value: int,
+):
+    enum_string_value = set_enum_property_by_integer(owner, new_key, value)
     if enum_string_value:
         print(f"Updated enum property {old_key}->{new_key}, value: {enum_string_value}")
     else:
         # If an enum property's definition is lost, their string value is lost
         # and is left with an int. In this case, just back up that int.
-        owner[new_key] = int_value
+        owner[new_key] = value
 
 
 def rename_blender3_parameters(metarig, dictionary):
@@ -40,7 +44,11 @@ def rename_blender3_parameters(metarig, dictionary):
                     update_enum_property(pb.rigify_parameters, old_key, new_key, value)
 
 
-def preserve_old_default(metarig: Object, param_name: str, old_default: Any):
+def preserve_old_default(
+    metarig: Object, 
+    param_name: str, 
+    old_default: float | int | bool | str
+):
     for pb in metarig.pose.bones:
         if param_name not in pb.cloudrig_component.params:
             setattr(pb.cloudrig_component.params, param_name, old_default)
@@ -66,7 +74,9 @@ def copy_property(from_thing, from_name, to_thing, to_name=None):
 
 def version_blender3_metarig(metarig):
     cloudrig = metarig.cloudrig
-    print("Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig.")
+    print(
+        "Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig."
+    )
     # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
 
     # 1: Generator properties
@@ -122,7 +132,7 @@ def version_blender3_metarig(metarig):
                 for rig_type in RIG_TYPE_MAP.keys():
                     rig_type = rig_type.replace("cloud_", "")
                     if key.startswith(rig_type):
-                        key = key.replace(rig_type+"_", "")
+                        key = key.replace(rig_type + "_", "")
                         break
                 if not hasattr(pb.cloudrig_component.params, rig_type):
                     print("Can't version param: ", old_key, rig_type)
@@ -148,7 +158,10 @@ def version_blender3_metarig(metarig):
         old_slots = []
         if 'rigify_action_slots' in metarig.data:
             old_slots = metarig.data['rigify_action_slots']
-        if 'cloudrig_parameters' in metarig.data and 'action_slots' in metarig.data['cloudrig_parameters']:
+        if (
+            'cloudrig_parameters' in metarig.data
+            and 'action_slots' in metarig.data['cloudrig_parameters']
+        ):
             old_slots = metarig.data['cloudrig_parameters']['action_slots']
         for slot_dict in old_slots:
             act_slot = action_slots.add()
@@ -181,7 +194,6 @@ def version_cloud_metarig(metarig):
         pass
 
 
-
 def get_old_cloud_metarigs():
     return [
         o
@@ -192,6 +204,7 @@ def get_old_cloud_metarigs():
         and any(['rigify_type' in pb and pb['rigify_type'] for pb in o.pose.bones])
         and not any([pb.cloudrig_component.component_type for pb in o.pose.bones])
     ]
+
 
 @persistent
 def update_all_metarigs(dummy):

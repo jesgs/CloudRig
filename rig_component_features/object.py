@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import ID, Object, LayerCollection
+from bpy.types import ID, LayerCollection, Collection, PropertyGroup
 
 
 class EnsureVisible:
@@ -89,49 +89,41 @@ def lock_transforms(obj, loc=True, rot=True, scale=True):
         obj.lock_scale = [scale, scale, scale]
 
 
-def set_enum_property_by_integer(owner: ID, key: str, int_value) -> str or False:
+def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
     """Attempt setting an EnumProperty by its integer value.
     This can only work if that EnumProperty is registered in the current running instance of Blender.
     On success, return name of the enum value, otherwise, return False.
     """
     property_group_class_name = type(owner).__name__
-    rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(
+    rna_class = PropertyGroup.bl_rna_get_subclass_py(
         property_group_class_name
     )
     enum_prop = rna_class.bl_rna.properties.get(key)
     if enum_prop:
         # This will only work for the current version
-        enum_string_value = str(enum_prop.enum_items[int_value]).split('"')[1]
+        enum_string_value = str(enum_prop.enum_items[value]).split('"')[1]
         setattr(owner, key, enum_string_value)
         return enum_string_value
     return False
 
 
-def recursive_search_layer_collection(collName, layerColl=None) -> LayerCollection:
+def recursive_search_layer_collection(
+    coll_name: str, layer_coll: LayerCollection = None
+) -> LayerCollection:
     # Recursivly transverse layer_collection for a particular name
     # This is the only way to set active collection as of 14-04-2020.
-    if not layerColl:
-        layerColl = bpy.context.view_layer.layer_collection
+    if not layer_coll:
+        layer_coll = bpy.context.view_layer.layer_collection
 
     found = None
-    if layerColl.name == collName:
-        return layerColl
-    for layer in layerColl.children:
-        found = recursive_search_layer_collection(collName, layer)
+    if layer_coll.name == coll_name:
+        return layer_coll
+    for layer in layer_coll.children:
+        found = recursive_search_layer_collection(coll_name, layer)
         if found:
             return found
 
 
-def get_object_hierarchy_recursive(obj: Object, all_objects=[]):
-    if obj not in all_objects:
-        all_objects.append(obj)
-
-    for c in obj.children:
-        get_object_hierarchy_recursive(c, all_objects)
-
-    return all_objects
-
-
-def set_active_collection(collection):
+def set_active_collection(collection: Collection):
     layer_collection = recursive_search_layer_collection(collection.name)
     bpy.context.view_layer.active_layer_collection = layer_collection

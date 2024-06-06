@@ -1,6 +1,4 @@
-import bpy
-from bpy.types import Panel, UIList, UI_UL_list
-from bl_ui.generic_ui_list import draw_ui_list
+from bpy.types import Panel
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
 
 
@@ -42,7 +40,7 @@ class CLOUDRIG_PT_rig_component(Panel):
         layout.prop(prefs, 'advanced_mode')
 
 
-class CloudParamSubPanel(bpy.types.Panel):
+class CloudParamSubPanel(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_parent_id = "CLOUDRIG_PT_rig_component"

@@ -6,7 +6,6 @@ import json, webbrowser, time
 import struct, platform, io, urllib.parse
 
 from ..rig_component_features.ui import draw_label_with_linebreak, is_advanced_mode
-from ..rig_component_features.object import get_object_hierarchy_recursive
 from ..generation.cloudrig import is_cloud_metarig
 
 """
@@ -312,18 +311,17 @@ class CloudLogManager:
 
     def report_invalid_drivers_on_object_hierarchy(self, object: Object):
         """Create log entries for invalid drivers of the object or any of its children"""
-        objects = get_object_hierarchy_recursive(object, all_objects=[])
 
-        for o in objects:
-            self.report_invalid_drivers_on_datablock(o)
-            if hasattr(o, "data") and o.data:
-                self.report_invalid_drivers_on_datablock(o.data, owner_datablock=o)
-            if o.type == 'MESH':
+        for obj in [object] + object.children_recursive:
+            self.report_invalid_drivers_on_datablock(obj)
+            if hasattr(obj, "data") and obj.data:
+                self.report_invalid_drivers_on_datablock(obj.data, owner_datablock=obj)
+            if obj.type == 'MESH':
                 self.report_invalid_drivers_on_datablock(
-                    o.data.shape_keys, owner_datablock=o
+                    obj.data.shape_keys, owner_datablock=obj
                 )
 
-            for ms in o.material_slots:
+            for ms in obj.material_slots:
                 if ms.material:
                     self.report_invalid_drivers_on_datablock(ms.material)
                     self.report_invalid_drivers_on_datablock(

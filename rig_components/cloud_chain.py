@@ -1,10 +1,8 @@
-from typing import Tuple, List, Dict
-from ..rig_component_features.bone import BoneInfo
-from ..rig_component_features.bone_set import BoneSet
-
 from bpy.props import BoolProperty, IntProperty
 from bpy.types import PropertyGroup
 
+from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_set import BoneSet
 from .cloud_base import Component_Base
 
 
@@ -20,10 +18,10 @@ class Component_ToonChain(Component_Base):
         self.chain_length = 0
 
         # Other components may want to access some bones, so we store them.
-        self.main_str_bones: List[BoneInfo]
-        self.str_chain: List[BoneInfo]
-        self.tangent_helpers: List[BoneInfo]
-        self.def_bones_of_org: Dict[BoneInfo, List[BoneInfo]]
+        self.main_str_bones: list[BoneInfo]
+        self.str_chain: list[BoneInfo]
+        self.tangent_helpers: list[BoneInfo]
+        self.def_bones_of_org: dict[BoneInfo, list[BoneInfo]]
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
@@ -62,8 +60,8 @@ class Component_ToonChain(Component_Base):
         self.connect_parent_chain_component()
 
     def sort_str_sections_into_chain(
-        self, str_sections: List[Tuple[BoneInfo, List[BoneInfo]]], is_cyclic: bool
-    ) -> List[BoneInfo]:
+        self, str_sections: list[tuple[BoneInfo, list[BoneInfo]]], is_cyclic: bool
+    ) -> list[BoneInfo]:
         """Sort the main and sub STR bones into a chain, so each one knows
         which one comes before and after it."""
         str_chain = []
@@ -121,7 +119,7 @@ class Component_ToonChain(Component_Base):
                 org.constraint_infos.remove(c)
                 c.relink()
 
-    def make_main_str_bones(self, org_chain: BoneSet) -> List[BoneInfo]:
+    def make_main_str_bones(self, org_chain: BoneSet) -> list[BoneInfo]:
         """Create the main stretch controls:
         One for each ORG bone, plus optionally one more at the end of the chain."""
         main_str_bones = []
@@ -193,8 +191,8 @@ class Component_ToonChain(Component_Base):
         return self.params.chain.segments
 
     def make_sub_str_sections(
-        self, main_str_bones: List[BoneInfo], org_chain: BoneSet
-    ) -> List[Tuple[BoneInfo, List[BoneInfo]]]:
+        self, main_str_bones: list[BoneInfo], org_chain: BoneSet
+    ) -> list[tuple[BoneInfo, list[BoneInfo]]]:
         """Create sub-STR controls inbetween the main ones.
         Return a list of (main STR, [sub STRs]) tuples.
         """
@@ -225,7 +223,7 @@ class Component_ToonChain(Component_Base):
 
     def make_sub_str_section(
         self, org_bone: BoneInfo, main_start: BoneInfo, main_end: BoneInfo
-    ) -> List[BoneInfo]:
+    ) -> list[BoneInfo]:
         """Create sub-STR controls using two others as anchor points."""
 
         num_segments = self.get_num_segments_of_section(org_bone)
@@ -302,7 +300,7 @@ class Component_ToonChain(Component_Base):
 
         return str_h_bone
 
-    def make_tangent_helpers(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+    def make_tangent_helpers(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
         """Create tangent helpers for each STR bone."""
         tangent_helpers = []
 
@@ -370,7 +368,7 @@ class Component_ToonChain(Component_Base):
 
         return handle_bone
 
-    def make_def_chain(self, str_chain: List[BoneInfo]) -> List[BoneInfo]:
+    def make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
         """Create a deform chain stretching from one STR bone to the next."""
 
         # For each STR control, create a deform bone between it and the next one.

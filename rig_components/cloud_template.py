@@ -1,8 +1,8 @@
-from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
-from .cloud_base import Component_Base
+from bpy.props import BoolProperty
 
 from ..rig_component_features.bone import BoneInfo
+from .cloud_base import Component_Base
 
 
 class Component_Template(Component_Base):

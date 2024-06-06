@@ -1,14 +1,10 @@
-from typing import Optional, List, Dict
-
-import bpy
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, PoseBone
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
 
+from ..utils.maths import bounding_box_center, bounding_box
 from ..rig_component_features.bone import BoneInfo
 from .cloud_base import Component_Base
-
-from ..utils.maths import bounding_box_center, bounding_box
 
 
 class Component_Aim(Component_Base):
@@ -256,7 +252,7 @@ class Component_Aim(Component_Base):
             entry_name=entry_name or self.params.aim.group + " Parent",
         )
 
-    def find_aim_bones_in_group(self, group_name) -> List[bpy.types.PoseBone]:
+    def find_aim_bones_in_group(self, group_name) -> list[PoseBone]:
         """Return a list of all cloud_aim components with a matching Aim Group."""
         aim_bones = []
         for component in self.generator.all_components:
@@ -268,7 +264,7 @@ class Component_Aim(Component_Base):
                 aim_bones.append(aim_bone)
         return aim_bones
 
-    def ensure_group_master(self) -> Optional[BoneInfo]:
+    def ensure_group_master(self) -> BoneInfo | None:
         """This function will be called by each aim rig, but we want to make sure
         it only runs once per aim group.
         """

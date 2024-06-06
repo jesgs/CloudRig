@@ -1,13 +1,9 @@
 import bpy
-
-from bpy.types import Object, Curve, PropertyGroup, SplinePoint, BezierSplinePoint
-from typing import List
-from ..rig_component_features.bone import BoneInfo
-
+from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
 from bpy.props import BoolProperty, StringProperty, PointerProperty
 from mathutils import Matrix, Vector
-from math import pi
 
+from ..rig_component_features.bone import BoneInfo
 from .cloud_base import Component_Base
 from ..utils import curve as curve_utils
 
@@ -94,7 +90,7 @@ class Component_Curve_Hooked(Component_Base):
             curve_ob.matrix_basis @ Matrix.Translation(loc)
         ).to_translation()
 
-        self.all_hooks: List[List[BoneInfo]] = []
+        self.all_hooks: list[list[BoneInfo]] = []
         for spline_idx, spline in enumerate(curve_ob.data.splines):
             parent_bone = self.root_bone
             if self.params.curve.root_per_spline:
@@ -467,7 +463,7 @@ class Component_Curve_Hooked(Component_Base):
         self.setup_curve(self.all_hooks)
         super().create_helper_objects(context)
 
-    def setup_curve(self, all_hooks: List[List[BoneInfo]]):
+    def setup_curve(self, all_hooks: list[list[BoneInfo]]):
         """Configure the Hook Modifiers for the curve.
         all_hooks: List of List of BoneInfo objects that were created with make_ctrls_for_curve_point().
                         Each list corresponds to one curve spline.
@@ -490,7 +486,7 @@ class Component_Curve_Hooked(Component_Base):
 
         self.params.curve.target = curve_ob
 
-    def setup_spline(self, curve_ob: Object, spline_i: int, hooks: List[BoneInfo]):
+    def setup_spline(self, curve_ob: Object, spline_i: int, hooks: list[BoneInfo]):
         spline = curve_ob.data.splines[spline_i]
         points = get_points(spline)
         num_points = len(points)
@@ -687,7 +683,7 @@ class Params(PropertyGroup):
         can_propagate=False,
     )
 
-    target: PointerProperty(name="Curve", type=bpy.types.Object, poll=is_curve)
+    target: PointerProperty(name="Curve", type=Object, poll=is_curve)
 
 
 RIG_COMPONENT_CLASS = Component_Curve_Hooked

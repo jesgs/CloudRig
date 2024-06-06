@@ -3,10 +3,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
+from bpy.types import PoseBone
 from bpy.utils import flip_name
 
 from ..utils.external.misc import property_to_python
 from ..generation.cloudrig import CloudRigOperator
+
 
 class POSE_OT_cloudrig_symmetrize_components(CloudRigOperator):
     """Mirror rig component type and parameters of selected bones to the opposite side. Names should end in L/R"""
@@ -114,8 +116,8 @@ class POSE_OT_cloudrig_copy_component(CloudRigOperator):
 
 
 def copy_cloudrig_component(
-    from_bone: bpy.types.PoseBone,
-    to_bone: bpy.types.PoseBone,
+    from_bone: PoseBone,
+    to_bone: PoseBone,
     *,
     match_type=False,
     x_mirror=False,

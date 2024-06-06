@@ -1,12 +1,10 @@
 import bpy, bmesh
-from bpy.types import PropertyGroup
-from typing import List
-from ..rig_component_features.bone import BoneInfo
-from ..rig_component_features.object import lock_transforms
-
+from bpy.types import Object, PropertyGroup
+from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
 from math import sqrt
 
-from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
+from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.object import lock_transforms
 from .cloud_fk_chain import Component_Chain_FK
 
 PHYS_PREFIX = "PSX"
@@ -28,7 +26,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
-        phys_ob = self.ensure_physics_object(self.bone_sets['FK Controls'])
+        phys_ob = self.ensure_physics_object(context, self.bone_sets['FK Controls'])
         if self.params.physics_chain.make_ctrl:
             self.make_physics_chain(self.bone_sets['FK Controls'])
         self.constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
@@ -46,9 +44,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
                 org.constraint_infos.remove(c)
                 c.relink()
 
-    def ensure_physics_object(self, bone_chain: List[BoneInfo]):
-        context = bpy.context
-
+    def ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
         phys_obj = self.params.physics_chain.phys_obj
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
@@ -184,7 +180,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         self.root_bone = self.bone_sets['Physics Bones'][0]
 
     def constrain_chain_to_phys_ob(
-        self, phys_ob: bpy.types.Object, bone_chain: List[BoneInfo]
+        self, phys_ob: Object, bone_chain: list[BoneInfo]
     ):
         # For the moment, let's just slap some constraints on the FK chain.
         for fk_ctrl in bone_chain:
@@ -239,7 +235,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
 class Params(PropertyGroup):
     phys_obj: PointerProperty(
-        type=bpy.types.Object,
+        type=Object,
         name="Cloth Object",
         description="Select an object which has vertex groups corresponding to the bone names of the chain, prefixed with 'phys_'. Leave empty to generate the object",
     )

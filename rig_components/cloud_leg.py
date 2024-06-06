@@ -1,9 +1,5 @@
-from typing import List, Tuple
-
-from ..rig_component_features.bone import BoneInfo
-
 import bpy
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, Bone
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
@@ -11,9 +7,10 @@ from math import radians as rad
 from math import pi
 from copy import deepcopy
 
-from .cloud_limb import Component_Limb
+from ..rig_component_features.bone import BoneInfo
 from ..utils.maths import flat
 from ..rig_component_features.ui import ensure_custom_property
+from .cloud_limb import Component_Limb
 
 
 class Component_Limb_BipedLeg(Component_Limb):
@@ -160,7 +157,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         return ui_data
 
-    def make_fk_chain(self, org_chain) -> List[BoneInfo]:
+    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
         """Overrides cloud_fk_chain."""
         fk_chain = super().make_fk_chain(org_chain)
         self.fk_toe = org_chain[-1].fk_bone
@@ -172,9 +169,9 @@ class Component_Limb_BipedLeg(Component_Limb):
         """
         self.make_world_aligned_control(self.bones_org[-2].fk_bone)
 
-    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
-        """Override the default to be 1.0, so that leg IK poles follow the IK
-        master by default."""
+    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, _default=0.0):
+        """Override cloud_ik_chain to set the default to be 1.0, so that leg IK poles
+        follow the IK master by default."""
         super().setup_ik_pole_follow_slider(ik_pole, ik_mstr, stretch_bone, 1.0)
 
     ##############################
@@ -183,7 +180,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     @staticmethod
     def calc_footroll_headtail(
         knee: BoneInfo, toe: BoneInfo, scale: float
-    ) -> Tuple[Vector, Vector]:
+    ) -> tuple[Vector, Vector]:
         scalar = knee.bbone_width * scale
 
         # Project a line along the knee bone, and find the point on that line closest to the toe tail
@@ -375,7 +372,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == 'GENERATED':
             self.properties_bone.custom_shape_transform = roll_ctrl
 
-    def get_heel_pivot_meta_bone(self) -> bpy.types.Bone:
+    def get_heel_pivot_meta_bone(self) -> Bone:
         heel_pivot_name = self.params.leg.heel_bone
         if heel_pivot_name == "":
             heel_pivot_name = self.bones_org[-2].name.replace("ORG-", "")

@@ -89,12 +89,12 @@ class CloudRigPreferences(AddonPreferences):
     show_hotkeys: BoolProperty(
         name="Show Hotkeys",
         default=False,
-        description="Reveal the hotkey list. You may customize or disable these hotkeys"
+        description="Reveal the hotkey list. You may customize or disable these hotkeys",
     )
     show_widget_prefs: BoolProperty(
         name="Show Widget Preferences",
         default=False,
-        description="Reveal the hotkey list. You may customize or disable these hotkeys"
+        description="Reveal the hotkey list. You may customize or disable these hotkeys",
     )
 
     def draw(self, context):
@@ -105,7 +105,7 @@ class CloudRigPreferences(AddonPreferences):
         main_col = layout.column(align=True)
         main_col.row(align=True).prop(self, 'advanced_mode')
         main_col.separator()
-        
+
         lib_row = main_col.row(align=True)
         if not os.path.exists(self.widget_library):
             lib_row.alert = True
@@ -115,7 +115,7 @@ class CloudRigPreferences(AddonPreferences):
 
         row = main_col.row()
         split = row.split(factor=0.12)
-        split.use_property_split=False
+        split.use_property_split = False
         icon = 'TRIA_DOWN' if self.show_hotkeys else 'TRIA_RIGHT'
         split.prop(self, 'show_hotkeys', icon=icon, emboss=False, text="Hotkeys")
         split.prop(self, 'show_hotkeys', icon='BLANK1', emboss=False, text="")
@@ -124,10 +124,9 @@ class CloudRigPreferences(AddonPreferences):
         hotkey_row = split.row()
         hotkey_col = hotkey_row.column()
         row = hotkey_col.row()
-        row.use_property_split=False
+        row.use_property_split = False
         if self.show_hotkeys:
             cloudrig.CLOUDRIG_PT_hotkeys_panel.draw_hotkey_list(hotkey_col, context)
-
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]

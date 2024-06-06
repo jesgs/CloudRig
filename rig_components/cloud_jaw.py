@@ -1,5 +1,6 @@
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
+
 from .cloud_copy import Component_CopyBone
 from ..rig_component_features.bone import BoneInfo
 
@@ -126,10 +127,8 @@ class Component_Jaw(Component_CopyBone):
         self.add_bone_property_with_ui(
             prop_bone=jaw_bi,
             prop_id='preserve_volume',
-
             panel_name="Face",
             slider_name="Preserve Volume",
-
             custom_prop_settings={
                 'default': True,
             },
@@ -150,10 +149,8 @@ class Component_Jaw(Component_CopyBone):
         self.add_bone_property_with_ui(
             prop_bone=jaw_bi,
             prop_id='teeth_follow_mouth',
-
             panel_name="Face",
             slider_name="Teeth Follow Mouth",
-
             custom_prop_settings={
                 'default': 1.0,
             },

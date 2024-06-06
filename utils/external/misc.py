@@ -13,7 +13,8 @@ def force_lazy(value: OptionalLazy[T]) -> T:
         return value()
     else:
         return value
-    
+
+
 def property_to_python(value) -> typing.Any:
     value = rna_idprop_value_to_python(value)
 

@@ -1,12 +1,8 @@
-from typing import Dict, Any
-from bpy.types import Object
-
-from ..utils.misc import get_addon_prefs
-from .bone import BoneInfo, ensure_custom_property
-
 from collections import OrderedDict
 
+from ..utils.misc import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
+from .bone import BoneInfo, ensure_custom_property
 from .properties_ui import add_property_to_ui
 
 
@@ -17,20 +13,19 @@ class CloudUIMixin:
         self,
         prop_bone: BoneInfo,
         prop_id: str,
-
         *,
-
         panel_name="Settings",
         label_name="",
         row_name="",
         slider_name="",
         texts=[],
-
+        ###
         custom_prop_settings={},
+        ###
         operator="",
         op_icon='BLANK1',
         op_kwargs={},
-
+        ###
         parent_id="",
     ) -> OrderedDict:
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
@@ -51,16 +46,13 @@ class CloudUIMixin:
             owner_path=f'pose.bones["{prop_bone.name}"]',
             prop_name=f'["{prop_id}"]',
             texts=texts,
-
             panel_name=panel_name,
             label_name=label_name,
             row_name=row_name,
             slider_name=slider_name,
-
             operator=operator,
             op_icon=op_icon,
             op_kwargs=op_kwargs,
-
             parent_id=parent_id,
         )
 

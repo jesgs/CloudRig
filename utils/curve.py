@@ -1,4 +1,3 @@
-from typing import Tuple, List
 from bpy.types import Spline, Curve
 from mathutils import Vector
 from mathutils.kdtree import KDTree
@@ -25,7 +24,7 @@ def find_opposite_spline(curve, spline_idx):
 
 def find_opposite_point_on_spline(
     spline: Spline, point_idx: int
-) -> Tuple[Vector, int, float]:
+) -> tuple[Vector, int, float]:
     """Return the position, index, and offset of the closest point on the
     spline to the coordinate of the given point with its X component inverted."""
 
@@ -45,13 +44,13 @@ def find_opposite_point_on_spline(
 
 def find_opposite_point_on_curve(
     curve: Curve, spline_idx: int, point_idx: int
-) -> Tuple[Vector, int, float]:
+) -> tuple[Vector, int, float]:
     """Return the spline, point index, and position, of the closest point on the
     curve to the coordinate of the given point with its X component inverted."""
 
     spline = curve.splines[spline_idx]
 
-    point_list: List[Tuple[int, int, Vector]] = []
+    point_list: list[tuple[int, int, Vector]] = []
     for spl in curve.splines:
         for point_i, point in enumerate(get_spline_points(spl)):
             point_list.append((spl, point_i, point.co))

@@ -1,6 +1,4 @@
-# Typing
-import bpy
-from typing import List, Dict
+from bpy.types import Action, FCurve
 from ..rig_component_features.bone import BoneInfo
 
 from math import radians as rad
@@ -10,8 +8,8 @@ class CloudAnimationMixin:
     """Mixin class for rig classes who want to generate actions to test out deformations."""
 
     def test_action_create_fcurves(
-        self, action: bpy.types.Action, bones: List[BoneInfo], data_path: str
-    ) -> Dict[str, List[bpy.types.FCurve]]:
+        self, action: Action, bones: list[BoneInfo], data_path: str
+    ) -> dict[str, list[FCurve]]:
         curve_map = {}
         for b in bones:
             full_data_path = f'pose.bones["{b.name}"].{data_path}'
@@ -24,7 +22,7 @@ class CloudAnimationMixin:
 
     def create_keyframes_on_curves(
         self,
-        curve_map: Dict[str, List[bpy.types.FCurve]],
+        curve_map: dict[str, list[FCurve]],
         start_frame=1,
         frame_step=15,
         values=[0, 90, 0],

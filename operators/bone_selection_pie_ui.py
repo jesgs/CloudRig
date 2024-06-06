@@ -1,6 +1,5 @@
-import bpy
 from bpy.types import Menu, Constraint, PoseBone, UILayout
-from typing import List, Tuple
+
 from ..generation import naming
 from ..generation.cloudrig import register_hotkey
 from ..utils.misc import get_pbone_of_active
@@ -12,12 +11,12 @@ def get_constraint_icon(constraint: Constraint) -> str:
         return 'ACTION'
 
     icons = (
-        bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
+        UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
     )
-    return icons[bpy.types.UILayout.icon(constraint) - 48]
+    return icons[UILayout.icon(constraint) - 48]
 
 
-def get_constrained_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
+def get_constrained_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
     entries = []
     rig = pose_bone.id_data
     for pb in rig.pose.bones:
@@ -40,7 +39,7 @@ def get_constrained_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
     return entries
 
 
-def get_target_bones(pose_bone: PoseBone) -> List[Tuple[Constraint, str]]:
+def get_target_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
     rig = pose_bone.id_data
     entries = []
     for con in pose_bone.constraints:

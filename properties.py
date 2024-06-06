@@ -7,15 +7,14 @@ from bpy.props import (
     CollectionProperty,
     IntProperty,
 )
-from bpy.types import PropertyGroup, Object
-from typing import Dict, Optional, List
-from . import rig_components
-from . import rig_component_features
+from bpy.types import PropertyGroup, Object, PoseBone, ID, BoneColor
+
+from . import rig_components, rig_component_features
 from .generation.cloud_generator import GeneratorProperties
 from .utils.misc import get_addon_prefs
 
 
-def get_param_classes() -> Dict:
+def get_param_classes() -> dict:
     param_classes = {}
     module_dicts = (
         rig_components.component_modules,
@@ -113,9 +112,7 @@ class BoneSets(PropertyGroup):
                         item.icon,
                         item.value,
                     )
-                    for item in bpy.types.BoneColor.bl_rna.properties[
-                        'palette'
-                    ].enum_items[:-1]
+                    for item in BoneColor.bl_rna.properties['palette'].enum_items[:-1]
                 ],
                 default=bone_set_definition.get('color_palette') or 'DEFAULT',
             ),
@@ -139,7 +136,7 @@ class BoneSets(PropertyGroup):
 
         return bone_set_class
 
-    def make_bone_set_property_groups() -> Dict[str, type]:
+    def make_bone_set_property_groups() -> dict[str, type]:
         classes = {}
         for rigcomp_name, rigcomp_module in rig_components.component_modules.items():
             rig_class = getattr(rigcomp_module, 'RIG_COMPONENT_CLASS')
@@ -178,7 +175,11 @@ class RigComponent(PropertyGroup):
 
     def update_caches(self, context):
         for child_comp in self.children:
-            child_comp.enabled_with_parents = self.enabled_toggle and self.enabled_with_parents and child_comp.enabled_toggle
+            child_comp.enabled_with_parents = (
+                self.enabled_toggle
+                and self.enabled_with_parents
+                and child_comp.enabled_toggle
+            )
             child_comp.should_draw = self.show_child_components and self.should_draw
             child_comp.update_caches(context)
 
@@ -186,14 +187,15 @@ class RigComponent(PropertyGroup):
         name="Enabled",
         description="Whether this rig component and its children should be generated",
         default=True,
-        update=update_caches
+        update=update_caches,
     )
 
     enabled_with_parents: BoolProperty(
         name="Cache: Enabled",
         description="Whether this rig component is enabled, based on the enabled state of its parents. This is cached because calculating it on redraw is expensive",
-        default=True
+        default=True,
     )
+
     @property
     def is_enabled_component(self):
         return self.enabled_toggle and self.enabled_with_parents
@@ -210,7 +212,11 @@ class RigComponent(PropertyGroup):
         if not self.component_type:
             return
         # TODO: This causes incredibly bad performance when the Rig Components UI List is being drawn for a lot of bones.
-        return {pb.cloudrig_component : pb for pb in metarig.pose.bones if pb.cloudrig_component}[self]
+        return {
+            pb.cloudrig_component: pb
+            for pb in metarig.pose.bones
+            if pb.cloudrig_component
+        }[self]
 
     @property
     def active_bone_set(self):
@@ -286,7 +292,7 @@ class RigComponent(PropertyGroup):
             component_type_params = getattr(self.params, comp_type_name)
             for param_key in list(component_type_params.keys()):
                 param_value = getattr(component_type_params, param_key)
-                if isinstance(param_value, bpy.types.ID):
+                if isinstance(param_value, ID):
                     setattr(component_type_params, param_key, None)
 
     # This could be an EnumProp, but a StringProp allows us to use prop_search,
@@ -298,7 +304,7 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def component_module(self) -> Optional['ModuleType']:
+    def component_module(self) -> 'ModuleType|None':
         prefs = get_addon_prefs(bpy.context)
         component_type_info = prefs.component_types.get(self.component_type)
         if not component_type_info:
@@ -311,12 +317,12 @@ class RigComponent(PropertyGroup):
         return module
 
     @property
-    def rig_class(self) -> Optional[type]:
+    def rig_class(self) -> type | None:
         if not self.component_module:
             return
         return getattr(self.component_module, 'RIG_COMPONENT_CLASS')
 
-    def instantiate(self, generator, parent_instance=None) -> Optional['RigComponent']:
+    def instantiate(self, generator, parent_instance=None) -> 'RigComponent|None':
         if not self.rig_class:
             return
 
@@ -360,7 +366,7 @@ class RigComponent(PropertyGroup):
         return parent_component
 
     @property
-    def sibling_components(self) -> List['RigComponent']:
+    def sibling_components(self) -> list['RigComponent']:
         parent = self.parent
         if not parent:
             return [
@@ -374,7 +380,7 @@ class RigComponent(PropertyGroup):
     def should_draw(self) -> bool:
         """Return False if any parent up the chain has show_children=False"""
         parent = self.parent
-        
+
         if not parent:
             return True
 
@@ -387,7 +393,7 @@ class RigComponent(PropertyGroup):
         name="Show Children",
         description="Show child components in the list",
         default=False,
-        update=update_caches
+        update=update_caches,
     )
     should_draw: BoolProperty(
         name="Cache: Draw In List",
@@ -396,16 +402,19 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def children(self) -> List['RigComponent']:
-        child_component_pbs = [pb for pb in get_direct_child_component_pbones(self.owner_pose_bone)]
+    def children(self) -> list['RigComponent']:
+        child_component_pbs = [
+            pb for pb in get_direct_child_component_pbones(self.owner_pose_bone)
+        ]
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
         return [pb.cloudrig_component for pb in child_component_pbs]
 
     has_children: BoolProperty(
         name="Has Children",
         description="Cache to improve UI drawing performance",
-        default=False
+        default=False,
     )
+
 
 class Properties_CloudRig(PropertyGroup):
     def active_component_update_callback(self, context=None):
@@ -480,17 +489,15 @@ class Properties_CloudRig(PropertyGroup):
         metarig_ob = self.id_data
 
         # Find pbones that have no parents.
-        parentless_pbones = [
-            pb
-            for pb in metarig_ob.pose.bones
-            if not pb.bone.parent
-        ]
+        parentless_pbones = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
         # parentless_components.sort(key=lambda comp: comp.sibling_order)
 
         # Number them hierarchically
         order_idx = 0
         for pbone in parentless_pbones:
-            order_idx = self.order_components_recursive(pbone, order_idx=order_idx, depth=0)
+            order_idx = self.order_components_recursive(
+                pbone, order_idx=order_idx, depth=0
+            )
 
     def order_components_recursive(self, pbone, order_idx=0, depth=0):
         component = pbone.cloudrig_component
@@ -509,7 +516,7 @@ class Properties_CloudRig(PropertyGroup):
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
         for child_pb in child_component_pbs:
             order_idx += 1
-            order_idx = self.order_components_recursive(child_pb, order_idx, depth+1)
+            order_idx = self.order_components_recursive(child_pb, order_idx, depth + 1)
 
         return order_idx
 
@@ -543,10 +550,10 @@ def register():
     # has these benefits:
     # 1. Can have multi-user Armature datablock with different CloudRig parameters
     # 2. All code dealing with CloudRig can use `.id_data` to access the Object
-    bpy.types.Object.cloudrig = PointerProperty(type=Properties_CloudRig)
-    bpy.types.PoseBone.cloudrig_component = PointerProperty(type=RigComponent)
+    Object.cloudrig = PointerProperty(type=Properties_CloudRig)
+    PoseBone.cloudrig_component = PointerProperty(type=RigComponent)
 
 
 def unregister():
-    del bpy.types.Object.cloudrig
-    del bpy.types.PoseBone.cloudrig_component
+    del Object.cloudrig
+    del PoseBone.cloudrig_component

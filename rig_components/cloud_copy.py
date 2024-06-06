@@ -2,8 +2,7 @@ from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 
-from ..rig_component_features.bone_set import BoneInfo, BoneSet
-
+from ..rig_component_features.bone_set import BoneInfo
 from .cloud_base import Component_Base
 
 
@@ -40,7 +39,9 @@ class Component_CopyBone(Component_Base):
             if (
                 not bone_info.use_custom_shape_bone_size
             ):  # TODO 4.0 I think this can be removed?
-                bone_info.custom_shape_scale_xyz /= bone_info.bbone_width * 10 * self.scale
+                bone_info.custom_shape_scale_xyz /= (
+                    bone_info.bbone_width * 10 * self.scale
+                )
 
             if bone_info.custom_shape:
                 self.add_to_widget_collection(context, bone_info.custom_shape)
@@ -140,18 +141,15 @@ class Component_CopyBone(Component_Base):
             self.add_bone_property_with_ui(
                 prop_bone=bone,
                 prop_id=prop_name,
-
                 panel_name=panel_name,
                 label_name=label_name,
                 row_name=row_name,
                 slider_name=entry_name,
                 texts=texts,
-
                 custom_prop_settings={
                     'default': prop.get('default', None),
                 },
             )
-
 
     ##############################
     # Parameters

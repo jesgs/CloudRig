@@ -1,14 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-# Originally designed and implemented by me (Demeter Dzadik), 
+# Originally designed and implemented by me (Demeter Dzadik),
 # then re-written without functional changes for Rigify by Alexander Gavrilov.
 # Then I threw away all my code, and modified his to fit into CloudRig again.
 
 # The UI for these features are implemented in ui/actions_ui.py.
 
-from typing import Optional, List, Dict, Tuple
 from bpy.types import Action, Mesh, Object
-from bl_math import clamp
 
 from bpy.utils import flip_name as mirror_name
 from ..utils.external.naming import Side, get_name_side, change_name_side
@@ -23,6 +21,7 @@ from ..rig_component_features.properties_ui import make_property
 
 class MetarigError(Exception):
     pass
+
 
 class ActionLayer:
     """An action constraint layer instance, applying an action to a symmetry side."""
@@ -239,10 +238,10 @@ class ActionLayerComponent:
     Implements centralized generation of action layer constraints.
     """
 
-    slot_list: List["ActionSlot"]
-    layers: List[ActionLayer]
-    action_map: Dict["ActionSlot", Dict[Side, ActionLayer]]
-    child_meshes: List[Object]
+    slot_list: list["ActionSlot"]
+    layers: list[ActionLayer]
+    action_map: dict["ActionSlot", dict[Side, ActionLayer]]
+    child_meshes: list[Object]
 
     def __init__(self, generator):
         self.slot_list = generator.params.action_slots
@@ -268,7 +267,7 @@ class ActionLayerComponent:
         self.store_child_meshes()
 
     @staticmethod
-    def sort_slots(slots: List["ActionSlot"]):
+    def sort_slots(slots: list["ActionSlot"]):
         indices = {slot.action.name: i for i, slot in enumerate(slots)}
 
         def action_key(action: Action):
@@ -291,7 +290,6 @@ class ActionLayerComponent:
         for slot in self.slot_list:
             if slot.action == action:
                 yield slot
-
 
     def spawn_slot_layers(self, act_slot):
         name = act_slot.action.name

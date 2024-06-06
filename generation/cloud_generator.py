@@ -1,6 +1,5 @@
-import bpy, sys, os, traceback, time
-from collections import OrderedDict
-
+import bpy, os, traceback
+from bpy.types import Object, PropertyGroup, Collection, Text, Action
 from bpy.props import (
     BoolProperty,
     PointerProperty,
@@ -8,9 +7,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Object, PropertyGroup, Collection
-from typing import List, Dict, Tuple, Optional
-
+from collections import OrderedDict
 from mathutils import Matrix
 from datetime import datetime
 
@@ -18,17 +15,15 @@ from ..ui.actions_ui import ActionSlot
 from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
 
-# TODO: All of these imports are suspiciously NOT rig component features if they are being used by the generator.
 from ..rig_component_features.widgets import widgets as cloud_widgets
 from ..rig_component_features.ui import get_addon_prefs
-from ..rig_component_features import mechanism
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
+from ..rig_components.cloud_base import Component_Base
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
 
-# from ..operators.assign_bone_layers import init_cloudrig_layers
 from ..utils.misc import (
     check_addon,
     load_script,
@@ -44,13 +39,7 @@ from .cloudrig import (
     CloudRigOperator,
 )
 from .test_animation import TestAnimationGeneratorMixin
-
-from ..rig_components.cloud_base import Component_Base
 from .actions_component import ActionLayerComponent
-
-import bpy, sys, os, traceback
-from bpy.types import Object
-from bpy.props import BoolProperty
 
 
 class GeneratorProperties(PropertyGroup):
@@ -66,7 +55,7 @@ class GeneratorProperties(PropertyGroup):
     target_rig: PointerProperty(
         name="Target Rig",
         description="Rig to re-genreate based on this metarig when the Generate button is used",
-        type=bpy.types.Object,
+        type=Object,
     )
     ensure_root: StringProperty(
         name="Ensure Root",
@@ -81,12 +70,12 @@ class GeneratorProperties(PropertyGroup):
 
     custom_script: PointerProperty(
         name="Post-Generation Script",
-        type=bpy.types.Text,
+        type=Text,
         description="Execute a python script after the rig is generated",
     )
     widget_collection: PointerProperty(
         name="Widget Collection",
-        type=bpy.types.Collection,
+        type=Collection,
         description="Collection dedicated to storing nothing but the widgets used by this rig. Additional objects will result in warnings, and missing widgets will be re-linked during generation",
     )
     reload_widgets: BoolProperty(
@@ -102,7 +91,7 @@ class GeneratorProperties(PropertyGroup):
     )
     test_action: PointerProperty(
         name="Test Action",
-        type=bpy.types.Action,
+        type=Action,
         description="Action which will be generated with the keyframes neccessary to test the rig's deformations",
     )
 
@@ -142,11 +131,11 @@ class GeneratorProperties(PropertyGroup):
     active_action_index: IntProperty(min=0)
 
     @property
-    def active_action_slot(self) -> Optional[ActionSlot]:
+    def active_action_slot(self) -> ActionSlot | None:
         if len(self.action_slots) > 0:
             return self.action_slots[self.active_action_index]
 
-    def find_slot_by_action(self, action) -> Tuple[Optional[ActionSlot], int]:
+    def find_slot_by_action(self, action) -> tuple[ActionSlot | None, int]:
         """Find the ActionSlot in the rig which targets this action."""
         if not action:
             return None, -1
@@ -313,7 +302,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         # ------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
         if self.params.ensure_root:
-            self.ensure_root_bone_component(context, self.metarig, self.params.ensure_root)
+            self.ensure_root_bone_component(
+                context, self.metarig, self.params.ensure_root
+            )
 
         self.component_map = self.instantiate_rig_components()
 
@@ -378,7 +369,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     # This is a custom widget and it's not even following naming convention, so we're
                     # not gonna be able to reload it anyways.
                     continue
-                self.ensure_widget(context, obj.name.replace("WGT-", ""), overwrite=True)
+                self.ensure_widget(
+                    context, obj.name.replace("WGT-", ""), overwrite=True
+                )
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos()
@@ -399,7 +392,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         return self.params.widget_collection
 
-    def instantiate_rig_components(self) -> Dict[str, Component_Base]:
+    def instantiate_rig_components(self) -> dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
         self.metarig.cloudrig.refresh_generation_order()
@@ -409,7 +402,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             for pb in sorted(
                 self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
             )
-            if pb.cloudrig_component.component_type and pb.cloudrig_component.enabled_with_parents
+            if pb.cloudrig_component.component_type
+            and pb.cloudrig_component.enabled_with_parents
         ]
 
         comp_map = OrderedDict()
@@ -704,7 +698,7 @@ def create_target_rig_obj(context, metarig) -> Object:
     return target_rig
 
 
-def map_pbones_to_drivers(armature_ob) -> Dict[str, Tuple[str, int]]:
+def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
     """Create a dictionary matching bone names to full data paths of drivers
     that belong to those bones. This is to speed up loading drivers into BoneInfos."""
     driver_map = {}
@@ -745,6 +739,7 @@ def replace_old_with_new_rig(
     # Save Selection Sets.
     if preserve_sel_sets:
         from bone_selection_sets import to_json
+
         context.view_layer.objects.active = old_rig
         for selset in old_rig.selection_sets:
             selset.is_selected = True
@@ -752,7 +747,7 @@ def replace_old_with_new_rig(
 
     # Save Custom Gizmo settings.
     if preserve_gizmos:
-        gizmo_properties_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(
+        gizmo_properties_class = PropertyGroup.bl_rna_get_subclass_py(
             'BoneGizmoProperties'
         )
         for old_pb in old_rig.pose.bones:
@@ -830,6 +825,7 @@ def replace_old_with_new_rig(
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
         from bone_selection_sets import from_json
+
         from_json(context, selsets)
 
     # Swap all references pointing at the old rig to the new rig.
@@ -876,7 +872,7 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
     )
 
     @staticmethod
-    def get_metarig_to_generate(context) -> Optional[Object]:
+    def get_metarig_to_generate(context) -> Object | None:
         """Finds the metarig the user wants to generate.
         If there are more than one metarigs in the scene, use the active one,
         or the one referencing the active one.

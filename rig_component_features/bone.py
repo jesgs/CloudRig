@@ -1,5 +1,4 @@
 import bpy, re
-from typing import List, Tuple
 from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
 
 from mathutils import Vector, Matrix
@@ -42,7 +41,6 @@ bone_properties = {
     'hide': False,
     'use_deform': False,
     'show_wire': False,
-
     'bbone_segments': 1,
     'bbone_x': 0.1,  # NOTE: These two are wrapped by bbone_width @property.
     'bbone_z': 0.1,
@@ -54,23 +52,19 @@ bone_properties = {
     'bbone_rollin': 0,
     'bbone_rollout': 0,
     'use_endroll_as_inroll': False,
-
     'bbone_easein': 1,
     'bbone_easeout': 1,
     'bbone_scalein': Vector((1, 1, 1)),
     'bbone_scaleout': Vector((1, 1, 1)),
     'use_scale_easing': False,
-
     'bbone_handle_type_start': 'AUTO',
     'bbone_custom_handle_start': None,  # BoneInfo
     'bbone_handle_use_scale_start': [False, False, False],
     'bbone_handle_use_ease_start': False,
-
     'bbone_handle_type_end': 'AUTO',
     'bbone_custom_handle_end': None,  # BoneInfo
     'bbone_handle_use_scale_end': [False, False, False],
     'bbone_handle_use_ease_end': False,
-
     'envelope_distance': 0.25,
     'envelope_weight': 1.0,
     'use_envelope_multiply': False,
@@ -115,8 +109,7 @@ pose_bone_properties = {
 
 class BoneInfo:
     """
-    The purpose of this class is to abstract bpy.types.Bone, bpy.types.PoseBone
-    and bpy.types.EditBone into a single concept.
+    The class tries to abstract bpy.types.Bone/PoseBone/EditBone.
 
     This class does not concern itself with posing the bone, only creating and
     rigging it. Eg, it does not store transformations such as loc/rot/scale.
@@ -162,7 +155,7 @@ class BoneInfo:
 
         self._name = name
         self._parent = None
-        self.children: List[BoneInfo] = []
+        self.children: list[BoneInfo] = []
 
         self.init_variables(edit_bone_properties)
         self.init_variables(bone_properties)
@@ -486,11 +479,11 @@ class BoneInfo:
         ), "Armature must be in Edit Mode when writing edit bone data."
 
         # Check for 0-length bones.
-        if (self.head-self.tail).length == 0:
+        if (self.head - self.tail).length == 0:
             self.bone_set.rig_component.add_log(
                 "Zero-length bone",
                 trouble_bone=self.name,
-                description=f'Bone "{self.name}" had zero length. Its length was set to 1 to avoid a fatal error.'
+                description=f'Bone "{self.name}" had zero length. Its length was set to 1 to avoid a fatal error.',
             )
             self.tail.y += 1
         assert (
@@ -569,7 +562,9 @@ class BoneInfo:
         ), "Armature cannot be in Edit Mode when writing pose data"
 
         if self.custom_shape_name:
-            self.custom_shape = self.owner_component.generator.ensure_widget(context, self.custom_shape_name)
+            self.custom_shape = self.owner_component.generator.ensure_widget(
+                context, self.custom_shape_name
+            )
 
         # Pose bone data
         for key in pose_bone_properties:
@@ -586,7 +581,6 @@ class BoneInfo:
             if key == 'custom_shape_transform':
                 value = arm_ob.pose.bones.get(value.name)
             setattr(pose_bone, key, value)
-        
 
         if (
             not pose_bone.use_custom_shape_bone_size
@@ -678,13 +672,19 @@ class BoneInfo:
                 make_driver_safe(arm_ob, target_id=arm_ob, **driver_info)
             # Copied constraint drivers
             for data_path, array_index in ci.drivers_to_copy:
-                fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
+                fcurve = metarig.animation_data.drivers.find(
+                    data_path, index=array_index
+                )
                 if self.name not in data_path:
                     # If the bone's name has changed, fix it in the data path.
-                    data_path = re.sub(r'bones\[".*?"\]', f'bones["{self.name}"]', data_path)
+                    data_path = re.sub(
+                        r'bones\[".*?"\]', f'bones["{self.name}"]', data_path
+                    )
                 if ci.name not in data_path:
                     # If the constraint's name has changed, fix it in the data path.
-                    data_path = re.sub(r'constraints\[".*?"\]', f'constraints["{ci.name}"]', data_path)
+                    data_path = re.sub(
+                        r'constraints\[".*?"\]', f'constraints["{ci.name}"]', data_path
+                    )
 
                 copy_relink_real_driver(metarig, arm_ob, fcurve, data_path)
 
@@ -711,7 +711,9 @@ class BoneInfo:
             fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
             if self.name not in data_path:
                 # If the bone's name has changed, fix it in the data path.
-                data_path = re.sub(r'bones\[".*?"\]', f'bones["{self.name}"]', data_path)
+                data_path = re.sub(
+                    r'bones\[".*?"\]', f'bones["{self.name}"]', data_path
+                )
             copy_relink_real_driver(metarig, arm_ob, fcurve)
 
     def clone(self, new_name=None, bone_set=None):
@@ -771,7 +773,7 @@ class ConstraintInfo(dict):
         self.bone_info = bone_info  # BoneInfo to which this constraint is being added.
         self.target = target
         if con_type == 'ARMATURE':
-            self.targets = [{'target' : target, 'subtarget' : "", 'weight': 1.0}]
+            self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
         self.drivers = []
 
@@ -893,13 +895,20 @@ class ConstraintInfo(dict):
     def make_real(self, pose_bone):
         """Create a constraint based on this ConstraintInfo on a given pose bone."""
         con_info = self.__dict__.copy()
-        for key in ['type', 'bone_info', 'drivers', 'drivers_to_copy', 'is_from_real', 'is_override_data']:
+        for key in [
+            'type',
+            'bone_info',
+            'drivers',
+            'drivers_to_copy',
+            'is_from_real',
+            'is_override_data',
+        ]:
             if key in con_info:
                 del con_info[key]
 
         # List of ID + string tuples that define a constraint target.
         # The string is an optional "subtarget" (bone or vgroup name)
-        target_pairs: List[Tuple["bpy.types.ID", str]] = []
+        target_pairs: list[tuple[ID, str]] = []
         if 'targets' in con_info:
             for target_info in con_info['targets']:
                 assert (

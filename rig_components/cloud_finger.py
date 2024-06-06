@@ -1,8 +1,5 @@
-from typing import List
 from ..rig_component_features.bone import BoneInfo
-from bpy.props import BoolProperty
 from .cloud_ik_chain import Component_Chain_IKFK
-from math import radians
 
 
 class Component_Finger(Component_Chain_IKFK):
@@ -23,8 +20,11 @@ class Component_Finger(Component_Chain_IKFK):
 
         self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 
-    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone):
-        """Overwrite cloud_ik_chain."""
+    def setup_ik_pole_follow_slider(
+        self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
+    ):
+        """Overrides cloud_ik_chain to avoid creating this complex set-up.
+        Just parent the pole to the master."""
         ik_pole.parent = ik_mstr
         pass
 
@@ -32,7 +32,6 @@ class Component_Finger(Component_Chain_IKFK):
         self,
         prop_bone: BoneInfo,
         prop_id: str,
-
         panel_name: str,
         label_name="",
         custom_prop_settings={},
@@ -65,9 +64,6 @@ class Component_Finger(Component_Chain_IKFK):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        last_org = self.bones_org[
-            -(1 + self.params.ik_chain.at_tip)
-        ]  # TODO: Tip bone shouldn't create an extra ORG bone, name it something else, put it in IK mechanism instead.
 
         self.ik_mstr.parent = self.root_bone
 
@@ -76,26 +72,21 @@ class Component_Finger(Component_Chain_IKFK):
             self.pole_ctrl.parent = self.stretch_bone
 
         self.create_two_bone_ik_chain(
-            self.bones_org[:-1], self.ik_chain, self.ik_mstr, self.pole_ctrl
+            self.bones_org[:-1], self.ik_chain, self.pole_ctrl
         )
 
     def create_two_bone_ik_chain(
         self,
-        org_chain: List[BoneInfo],
-        ik_chain: List[BoneInfo],
-        ik_mstr: BoneInfo,
+        org_chain: list[BoneInfo],
+        ik_chain: list[BoneInfo],
         pole_target: BoneInfo,
-        ik_pole_direction=0,
-    ) -> List[BoneInfo]:
+    ) -> list[BoneInfo]:
         """We create an additional IK chain (besides what's inherited from cloud_ik_chain)
         for the 2-length IK behaviour.
         """
 
-        # We need a bone that copies only the location of the IK master.
-        last_org = org_chain[-1]
-
         ik2_chain = []
-        for i, org_bone in enumerate(org_chain):
+        for org_bone in org_chain:
             ik2_bone = self.bone_sets['IK Mechanism'].new(
                 name=self.naming.add_prefix(org_bone.name, "IK2"),
                 source=org_bone,
@@ -138,12 +129,10 @@ class Component_Finger(Component_Chain_IKFK):
         self.add_bone_property_with_ui(
             prop_bone=self.properties_bone,
             prop_id=self.full_length_ik_name,
-
             panel_name="IK",
             label_name="Full IK",
             row_name=self.limb_name,
             slider_name=self.limb_ui_name,
-
             custom_prop_settings={
                 'default': 1.0,
             },

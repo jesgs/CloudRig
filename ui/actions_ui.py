@@ -2,9 +2,6 @@
 
 import bpy
 
-from typing import Tuple
-
-from bpy.types import Action
 from bl_math import clamp
 
 from ..utils.external.naming import Side, get_name_side
@@ -128,12 +125,13 @@ class ActionSlot(PropertyGroup):
         if not self.is_corrective:
             self.trigger_action_a = None
             self.trigger_action_b = None
+
     is_corrective: BoolProperty(
         name="Corrective",
         description="Indicate that this is a corrective action. Corrective actions will activate "
         "based on the activation of two other actions (using End Frame if both inputs "
         "are at their End Frame, and Start Frame if either is at Start Frame)",
-        update=update_is_corrective
+        update=update_is_corrective,
     )
 
     def poll_trigger_action(self, action):
@@ -208,7 +206,6 @@ class ActionSlot(PropertyGroup):
             if slot.trigger_slot_b == self:
                 yield slot
 
-
     show_action_a: BoolProperty(name="Show Settings")
     show_action_b: BoolProperty(name="Show Settings")
 
@@ -235,7 +232,7 @@ class ActionSlot(PropertyGroup):
     def default_side(self):
         return get_name_side(self.subtarget)
 
-    def get_min_max(self, side=Side.MIDDLE) -> Tuple[float, float]:
+    def get_min_max(self, side=Side.MIDDLE) -> tuple[float, float]:
         if side == -self.default_side:
             # Flip min/max in some cases - based on code of Paste Pose Flipped
             if self.transform_channel in ['LOCATION_X', 'ROTATION_Z', 'ROTATION_Y']:
@@ -367,7 +364,11 @@ class CLOUDRIG_UL_action_slots(UIList):
         icon = 'ACTION'
 
         # Check if this action is a trigger for the active corrective action
-        if action_slot in {active_slot.trigger_slot_a, active_slot.trigger_slot_b, *active_slot.corrective_slots}:
+        if action_slot in {
+            active_slot.trigger_slot_a,
+            active_slot.trigger_slot_b,
+            *active_slot.corrective_slots,
+        }:
             icon = 'RESTRICT_INSTANCED_OFF'
 
         row.prop(action_slot.action, 'name', text="", emboss=False, icon=icon)

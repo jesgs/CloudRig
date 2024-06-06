@@ -1,10 +1,5 @@
-# Typing
-import bpy
-from bpy.types import Object, PropertyGroup
-from bpy.props import BoolProperty
-from typing import List, Tuple, Dict
+from bpy.props import EnumProperty
 
-# Component_Base parent classes
 from ..generation.troubleshooting import LoggerMixin
 from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.bone import BoneInfo
@@ -99,7 +94,7 @@ class Component_Base(
         self.bones_def = self.bone_sets['Deform Bones']
         self.bones_mch = self.bone_sets['Mechanism Bones']
 
-    def load_metarig_bone_infos(self) -> Dict[str, BoneInfo]:
+    def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
         which will be turned into real bones by the CloudRig generator.
 
@@ -239,7 +234,7 @@ class Component_Base(
                 ),
             )
 
-        return bpy.props.EnumProperty(
+        return EnumProperty(
             name=name, description=description, items=items, default=default
         )
 
@@ -279,6 +274,6 @@ class Component_Base(
                 )
             )
 
-        return bpy.props.EnumProperty(
+        return EnumProperty(
             name=name, description=description, items=items, default=default
         )

@@ -1,11 +1,9 @@
-import os, importlib
-from typing import Dict
-import bpy
+import bpy, os, importlib
 
 component_modules = {}
 
 
-def load_component_modules(dir_path: str) -> Dict:
+def load_component_modules(dir_path: str) -> dict:
     """Manualy imports the rig modules, since they don't get automatically
     loaded because they aren't referenced by the code directly.
     """

@@ -1,10 +1,8 @@
-from typing import Tuple, List
-
 from mathutils import Vector
 from math import atan2
 
 
-def bounding_box(points: List[Vector]) -> Tuple[Vector, Vector]:
+def bounding_box(points: list[Vector]) -> tuple[Vector, Vector]:
     """Return two vectors representing the lowest and highest coordinates of
     the bounding box of the passed points.
     """
@@ -21,13 +19,13 @@ def bounding_box(points: List[Vector]) -> Tuple[Vector, Vector]:
     return lowest, highest
 
 
-def bounding_box_center(points: List[Vector]) -> Vector:
+def bounding_box_center(points: list[Vector]) -> Vector:
     """Find the bounding box center of some points."""
     bbox_low, bbox_high = bounding_box(points)
     return bbox_low + (bbox_high - bbox_low) / 2
 
 
-def scale_points_from_center(points, scale) -> List[Vector]:
+def scale_points_from_center(points, scale) -> list[Vector]:
     """Scale some points from their bounding box center."""
     center = bounding_box_center(points)
     new_points = []
@@ -50,8 +48,8 @@ def project_vector_on_plane(
 
 
 def project_points_on_plane(
-    points: List[Vector], projection_axis: Vector
-) -> List[Vector]:
+    points: list[Vector], projection_axis: Vector
+) -> list[Vector]:
     """Return points that are flattened onto a plane.
     projection_axis is the plane's normal, and the plane's depth is the
     average depth of the points along this axis."""

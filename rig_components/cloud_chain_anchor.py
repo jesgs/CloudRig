@@ -1,7 +1,4 @@
-from bpy.props import BoolProperty
-
 from .cloud_copy import Component_CopyBone
-from .cloud_base import Component_Base
 
 
 class Component_FaceChainAnchor(Component_CopyBone):

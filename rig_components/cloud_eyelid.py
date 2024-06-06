@@ -1,8 +1,6 @@
-# It is important to import it this way due to type comparisons with isinstance()!
+from ..utils.maths import project_vector_on_plane
 from .cloud_face_chain import Component_FaceChain
 from .cloud_aim import Component_Aim
-
-from ..utils.maths import project_vector_on_plane
 
 
 class Component_Eyelid(Component_FaceChain):
@@ -111,16 +109,14 @@ class Component_Eyelid(Component_FaceChain):
 
     def create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
         info = {'prop_bone': eye_rig.properties_bone, 'prop_id': sticky_prop_name}
-        
+
         self.add_bone_property_with_ui(
             prop_bone=eye_rig.properties_bone,
             prop_id=sticky_prop_name,
-
             panel_name="Face",
             label_name="Sticky Eyelids",
-            row_name = eye_rig.params.aim.group,
+            row_name=eye_rig.params.aim.group,
             slider_name=self.parent_component.bones_org[0].name,
-
             custom_prop_settings={
                 'default': 1.0,
             },

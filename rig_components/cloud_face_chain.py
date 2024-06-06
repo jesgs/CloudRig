@@ -1,10 +1,8 @@
-from typing import List
 from bpy.types import PropertyGroup
-from ..rig_component_features.bone import BoneInfo
-
 from bpy.props import BoolProperty
 from mathutils import Vector
 
+from ..rig_component_features.bone import BoneInfo
 from .cloud_chain import Component_ToonChain
 from .cloud_chain_anchor import Component_FaceChainAnchor
 
@@ -17,7 +15,7 @@ def has_tangent_helpers(rig) -> bool:
 
 
 def parent_cluster_to_intersection(
-    cluster: List[BoneInfo], intersection: BoneInfo
+    cluster: list[BoneInfo], intersection: BoneInfo
 ):
     for str_bone in cluster:
         component = str_bone.owner_component
@@ -31,7 +29,7 @@ def parent_cluster_to_intersection(
         str_bone.color_palette_base = component.bone_sets['Sub Controls'].color_palette
 
 
-def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
+def get_bone_clusters(chain_rigs) -> list[list[BoneInfo]]:
     """Gather a list of lists of more than one STR bones that are in the same
     location as another STR bone from another face_chain rig with
     params.face_chain.merge==True.
@@ -65,7 +63,7 @@ def get_bone_clusters(chain_rigs) -> List[List[BoneInfo]]:
 
 
 def do_centered_cluster(
-    cluster: List[BoneInfo], intersection: BoneInfo, is_anchor=False
+    cluster: list[BoneInfo], intersection: BoneInfo, is_anchor=False
 ):
     # If bones are in the center, flatten them along the X axis to make sure
     # they produce a clean curvature. This is important for things like the
@@ -196,7 +194,7 @@ class Component_FaceChain(Component_ToonChain):
         return relink_bone
 
     @staticmethod
-    def create_intersection_for_cluster(cluster: List[BoneInfo]) -> BoneInfo:
+    def create_intersection_for_cluster(cluster: list[BoneInfo]) -> BoneInfo:
         """Try to find a Component_FaceChainAnchor to parent the cluster to.
         If it doesn't exist, create one.
         """

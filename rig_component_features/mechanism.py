@@ -1,8 +1,5 @@
-from typing import Tuple, List
-
-import bpy
 from mathutils import Vector
-from bpy.types import ID, FCurve
+from bpy.types import PoseBone, Bone
 
 from ..rig_component_features.bone import BoneInfo
 from ..generation.naming import slice_name, make_name
@@ -83,7 +80,7 @@ def relink_driver_info(metarig, rig, driver_info):
                 t['id'] = rig
 
 
-def find_component_chain_of_pbone(pose_bone) -> List[bpy.types.PoseBone]:
+def find_component_chain_of_pbone(pose_bone) -> list[PoseBone]:
     if pose_bone.cloudrig_component.component_type:
         return get_component_pbone_chain(pose_bone)
     if not pose_bone:
@@ -92,7 +89,7 @@ def find_component_chain_of_pbone(pose_bone) -> List[bpy.types.PoseBone]:
     return find_component_chain_of_pbone(pose_bone.parent)
 
 
-def get_component_pbone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]:
+def get_component_pbone_chain(pose_bone, connected=True) -> list[Bone]:
     """Find the chain of bones constituting a rig component that this pose bone belongs to."""
 
     # We start building a chain with the current bone, prepending bones as we go
@@ -138,7 +135,7 @@ def get_component_pbone_chain(pose_bone, connected=True) -> List[bpy.types.Bone]
 
 def get_bone_chain(start_bone):
     bones = [start_bone]
-    if type(start_bone) == bpy.types.PoseBone:
+    if type(start_bone) == PoseBone:
         bones = [start_bone.bone]
     has_connected_children = True
     while has_connected_children:
@@ -167,7 +164,7 @@ def create_parent_bone(child, bone_set=None):
         roll_type='ALIGN',
         roll_bone=child,
         roll=0,
-        custom_shape_name = child.custom_shape_name,
+        custom_shape_name=child.custom_shape_name,
         custom_shape=child.custom_shape,
         custom_shape_scale_xyz=Vector(child.custom_shape_scale_xyz) * 1.2,
         custom_shape_translation=Vector(child.custom_shape_translation),
@@ -195,6 +192,7 @@ def create_dsp_bone(parent, bone_set):
     )
     parent.custom_shape_transform = dsp_bone
     return dsp_bone
+
 
 def copy_attributes(from_thing, to_thing, skip=[""], recursive=False):
     """Copy attributes from one thing to another.
@@ -272,8 +270,8 @@ def find_or_create_constraint(pb, con_type, name=None):
 
 
 def vector_along_bone_chain(
-    chain: List[BoneInfo], length=0, index=-1
-) -> Tuple[Vector, Vector]:
+    chain: list[BoneInfo], length=0, index=-1
+) -> tuple[Vector, Vector]:
     """On a bone chain, find the point a given length down the chain. Return its position and direction."""
     if index > -1:
         # Instead of using bone length, simply return the location and direction of a bone at a given index.

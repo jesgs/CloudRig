@@ -1,9 +1,7 @@
-from typing import List, Tuple
-
-import bpy
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, UIList
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from bl_ui.generic_ui_list import draw_ui_list
+
 from ..utils.misc import get_pbone_of_active
 from ..rig_component_features.ui import draw_label_with_linebreak
 
@@ -11,7 +9,7 @@ from ..rig_component_features.ui import draw_label_with_linebreak
 # not just for bendy bone parenting.
 
 
-class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
+class CLOUDRIG_UL_parent_slots(UIList):
     def draw_item(
         self, context, layout, _data, item, icon_value, _active_data, _active_propname
     ):
@@ -28,7 +26,7 @@ class CLOUDRIG_UL_parent_slots(bpy.types.UIList):
             layout.label(text="", icon_value=icon_value)
 
 
-class ParentSlot(bpy.types.PropertyGroup):
+class ParentSlot(PropertyGroup):
     name: StringProperty(
         name="Name", description="Name to display in the UI for this parent option"
     )
@@ -130,15 +128,15 @@ class CloudParentingMixin:
             self.add_bone_property_with_ui(
                 prop_bone=prop_bone,
                 prop_id=prop_name,
-
                 panel_name=panel_name,
                 label_name=label_name,
                 row_name=row_name,
                 slider_name=entry_name,
                 texts=parent_ui_names,
-
                 custom_prop_settings={
-                    'default': self.get_default_parent_index(parent_bone_names, parent_slots),
+                    'default': self.get_default_parent_index(
+                        parent_bone_names, parent_slots
+                    ),
                     'max': len(parent_ui_names) - 1,
                 },
                 operator="pose.cloudrig_switch_parent_bake",
@@ -175,8 +173,8 @@ class CloudParentingMixin:
             )
 
     def sanitize_parent_list(
-        self, parent_slots: List[ParentSlot]
-    ) -> Tuple[List[str], List[str]]:
+        self, parent_slots: list[ParentSlot]
+    ) -> tuple[list[str], list[str]]:
         """Gather parent information and check for issues.
         Returns two lists of equal length, first one is the UI name second is
         the bone name of each parent.
@@ -212,7 +210,7 @@ class CloudParentingMixin:
         return parent_ui_names, parent_bone_names
 
     def get_default_parent_index(
-        self, parent_bone_names: List[str], parent_slots: List[ParentSlot]
+        self, parent_bone_names: list[str], parent_slots: list[ParentSlot]
     ) -> int:
         for ps in parent_slots:
             if ps.is_default:

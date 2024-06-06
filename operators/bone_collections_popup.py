@@ -1,13 +1,15 @@
 # TODO: Move to cloudrig.py so animators can have access to this as well.
 
-import bpy
+from bpy.types import Operator
 from ..generation.cloudrig import register_hotkey
 
-class CLOUDRIG_OT_bone_collections_popup(bpy.types.Operator):
+
+class CLOUDRIG_OT_bone_collections_popup(Operator):
     """Bone Collections pop-up"""
+
     bl_idname = "armature.bone_collections_popup"
     bl_label = "Bone Collections"
-    bl_options = {'REGISTER'} # Undo step is omitted, since this is just a UI pop-up.
+    bl_options = {'REGISTER'}  # Undo step is omitted, since this is just a UI pop-up.
 
     @classmethod
     def poll(cls, context):
@@ -24,8 +26,10 @@ class CLOUDRIG_OT_bone_collections_popup(bpy.types.Operator):
         layout.row().template_list(
             'CLOUDRIG_UL_collections',
             'Bone Collections Popover List',
-            rig.data, 'collections_all',
-            rig.cloudrig_prefs, 'active_collection_index',
+            rig.data,
+            'collections_all',
+            rig.cloudrig_prefs,
+            'active_collection_index',
             rows=15 if rig.data.collections_all else 1,
         )
 
@@ -36,9 +40,8 @@ class CLOUDRIG_OT_bone_collections_popup(bpy.types.Operator):
     def execute(self, context):
         return {'FINISHED'}
 
-registry = [
-    CLOUDRIG_OT_bone_collections_popup
-]
+
+registry = [CLOUDRIG_OT_bone_collections_popup]
 
 
 def register():

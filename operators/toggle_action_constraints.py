@@ -1,6 +1,9 @@
 import bpy
 from bpy.props import BoolProperty
+from bpy.types import Constraint, Action
+
 from ..generation.cloudrig import CloudRigOperator
+
 
 class CLOUDRIG_OT_Toggle_Action_Constraints(CloudRigOperator):
     """Toggle Action constraints of the active action on all bones of the armature"""
@@ -13,8 +16,8 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(CloudRigOperator):
 
     @staticmethod
     def get_first_referencing_constraint(
-        rig, action: bpy.types.Action
-    ) -> bpy.types.Constraint:
+        rig, action: Action
+    ) -> Constraint:
         for pb in rig.pose.bones:
             for c in pb.constraints:
                 if c.type == 'ACTION' and c.action == action:

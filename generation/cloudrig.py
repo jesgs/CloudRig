@@ -4,7 +4,6 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-from typing import List, Dict, Optional
 import bpy, json, re, contextlib
 from collections import OrderedDict, defaultdict
 from bpy.props import (
@@ -14,18 +13,32 @@ from bpy.props import (
     PointerProperty,
     IntProperty,
 )
-from bpy.types import bpy_struct, ID, Object, PoseBone, UILayout, UIList, Panel, Menu, Operator, PropertyGroup, BoneCollection, Bone
-from rna_prop_ui import IDPropertyArray, rna_idprop_quote_path, rna_idprop_value_item_type
+from bpy.types import (
+    bpy_struct,
+    ID,
+    Object,
+    PoseBone,
+    UILayout,
+    UIList,
+    Panel,
+    Menu,
+    Operator,
+    PropertyGroup,
+    BoneCollection,
+    Bone,
+)
+from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 
-from mathutils import Matrix, Color
+from mathutils import Matrix
 from bl_ui.generic_ui_list import draw_ui_list
 
 #######################################
 ############ Context Checks ###########
 #######################################
 
-def is_active_cloudrig(context) -> bool:
+
+def is_active_cloudrig(context) -> Object|bool:
     """If the active object is a cloudrig, return it."""
     if not hasattr(context, 'pose_object'):
         # Can happen when a file is saved with the UI open,
@@ -39,29 +52,29 @@ def is_active_cloudrig(context) -> bool:
         return False
     if rig and is_generated_cloudrig(rig):
         return rig
+    return False
 
 
-def is_generated_cloudrig(rig: Object):
+def is_generated_cloudrig(rig: Object) -> bool:
     """Return whether rig is marked as being compatible with cloudrig.py."""
-    return (
-        'is_generated_cloudrig' in rig.data and rig.data['is_generated_cloudrig']
-    )
+    return 'is_generated_cloudrig' in rig.data and rig.data['is_generated_cloudrig']
 
 
 def is_active_cloud_metarig(context) -> bool:
     return is_cloud_metarig(context.active_object)
 
 
-def is_cloud_metarig(rig: Object) -> bool:
-    if not rig:
+def is_cloud_metarig(obj: Object) -> bool:
+    if not obj:
         return False
-    if rig.type != 'ARMATURE':
+    if obj.type != 'ARMATURE':
         return False
-    if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
-        return bool(rig)
+    if hasattr(obj, 'cloudrig') and obj.cloudrig.enabled:
+        return bool(obj)
+    return False
 
 
-def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
+def find_metarig_of_rig(context, rig: Object) -> Object | None:
     # First, try to find it by name, which should work most of the time.
     for prefix in {'RIG-', 'FAILED-RIG-'}:
         if rig.name.startswith(prefix):
@@ -79,25 +92,41 @@ def find_metarig_of_rig(context, rig: Object) -> Optional[Object]:
             return obj
 
 
-def find_cloudrig(context, allow_metarigs=True) -> Object or None:
+def find_cloudrig(context, allow_metarigs=True) -> Object | None:
     """Find the CloudRig metarig or generated rig most relevant to the current context.
     For example, if the active object is a mesh which is deformed by a generated rig, return that generated rig.
     """
 
     active = context.active_object
     if active:
-        if is_generated_cloudrig(active) or (allow_metarigs and is_cloud_metarig(active)):
+        if is_generated_cloudrig(active) or (
+            allow_metarigs and is_cloud_metarig(active)
+        ):
             return active
-        if active.parent and (is_generated_cloudrig(active.parent) or (allow_metarigs and is_cloud_metarig(active.parent))):
+        if active.parent and (
+            is_generated_cloudrig(active.parent)
+            or (allow_metarigs and is_cloud_metarig(active.parent))
+        ):
             return active.parent
 
     pose_ob = context.pose_object
-    if pose_ob and is_generated_cloudrig(pose_ob) or (allow_metarigs and is_cloud_metarig(pose_ob)):
+    if (
+        pose_ob
+        and is_generated_cloudrig(pose_ob)
+        or (allow_metarigs and is_cloud_metarig(pose_ob))
+    ):
         return pose_ob
 
         if active.type == 'MESH':
             for m in active.modifiers:
-                if m.type == 'ARMATURE' and m.target and (is_generated_cloudrig(m.target) or (allow_metarigs and is_cloud_metarig(m.target))):
+                if (
+                    m.type == 'ARMATURE'
+                    and m.target
+                    and (
+                        is_generated_cloudrig(m.target)
+                        or (allow_metarigs and is_cloud_metarig(m.target))
+                    )
+                ):
                     return m.target
 
 
@@ -109,11 +138,13 @@ class CloudRigOperator(Operator):
 
     So, by letting every class inherit this draw function, we can fix that.
     """
+
     def draw(self, context):
         layout = self.layout
         props = type(self).__annotations__
         for prop in props:
             layout.prop(self, prop)
+
 
 #######################################
 ########## Snapping & Baking ##########
@@ -134,17 +165,9 @@ class SnappingOpMixin:
         description="Name of the custom property on the pose bone, which will be toggled by this operator",
     )
 
-    @staticmethod
-    def get_context_rig(context) -> Object | None:
-        if context.pose_object:
-            return context.pose_object
-
-        if context.active_object.type == 'ARMATURE':
-            return context.active_object
-
     @classmethod
     def poll(cls, context) -> bool:
-        rig = cls.get_context_rig(context)
+        rig = find_cloudrig(context)
         if not rig:
             return False
         return True
@@ -173,7 +196,7 @@ class SnappingOpMixin:
 
         return prop_pb
 
-    def get_affected_pbones(self, rig: Object) -> list[PoseBone]:
+    def get_affected_pbones(self, rig: Object) -> set[PoseBone]:
         affected_pbones = set()
         for bone_name in json.loads(self.bone_names):
             pb = rig.pose.bones.get(bone_name)
@@ -218,19 +241,25 @@ class SnappingOpMixin:
     def set_bone_matrices(
         self, context, rig: Object, pbone_matrix_map: dict[str, Matrix]
     ):
-            for bone_name, mat in pbone_matrix_map.items():
-                pb = rig.pose.bones[bone_name]
-                pb.matrix = mat.copy()
-                context.view_layer.update()
-                pb.matrix = mat.copy()
+        for bone_name, mat in pbone_matrix_map.items():
+            pb = rig.pose.bones[bone_name]
+            pb.matrix = mat.copy()
+            context.view_layer.update()
+            pb.matrix = mat.copy()
 
 
 class SnapBakeOpMixin(SnappingOpMixin):
     do_bake: BoolProperty(name="Bake", default=False)
     frame_start: IntProperty(name="Start Frame")
     frame_end: IntProperty(name="End Frame")
-    key_before_start: BoolProperty(name="Key Before Start", description="Insert a keyframe of the original values one frame before the bake range. This is to avoid undesired interpolation towards the bake")
-    key_after_end: BoolProperty(name="Key After End", description="Insert a keyframe of the original values one frame after the bake range. This is to avoid undesired interpolation after the bake")
+    key_before_start: BoolProperty(
+        name="Key Before Start",
+        description="Insert a keyframe of the original values one frame before the bake range. This is to avoid undesired interpolation towards the bake",
+    )
+    key_after_end: BoolProperty(
+        name="Key After End",
+        description="Insert a keyframe of the original values one frame after the bake range. This is to avoid undesired interpolation after the bake",
+    )
 
     def invoke(self, context, _event):
         self.frame_start = context.scene.frame_start
@@ -252,11 +281,13 @@ class SnapBakeOpMixin(SnappingOpMixin):
             fix_row = col.row(align=True)
             fix_row.prop(self, 'key_before_start')
             fix_row.prop(self, 'key_after_end')
-        
+
         self.draw_affected_bones(layout, context)
 
     def draw_affected_bones(self, layout, context):
-        rig = self.get_context_rig(context)
+        rig = find_cloudrig(context)
+        if not rig:
+            return
         affected_pbones = self.get_affected_pbones(rig)
         bone_column = layout.column(align=True)
         bone_column.label(text="Affected bones:")
@@ -267,14 +298,14 @@ class SnapBakeOpMixin(SnappingOpMixin):
         if not self.do_bake:
             return [context.scene.frame_current]
 
-        return range(self.frame_start, self.frame_end+1)
+        return list(range(self.frame_start, self.frame_end + 1))
 
     @staticmethod
     def ensure_action(rig: Object):
         if not rig.animation_data:
             rig.animation_data_create()
         if not rig.animation_data.action:
-            rig.animation_data.aciton = bpy.data.actions.new("ACT-" + rig.name)
+            rig.animation_data.action = bpy.data.actions.new("ACT-" + rig.name)
 
     def map_frames_to_bone_matrices(
         self,
@@ -302,16 +333,15 @@ class SnapBakeOpMixin(SnappingOpMixin):
         frame_number: int,
         bones_to_snap: list[PoseBone],
         snap_to_bones: list[PoseBone] = [],
-    ):
+    ) -> OrderedDict[str, Matrix]:
         context.scene.frame_set(frame_number)
         context.view_layer.update()
 
         return self.get_pbone_matrix_map(bones_to_snap, snap_to_bones)
 
     def keyframe_bones(
-        self, context, frame_matrix_map: dict[int, dict[str, Matrix]], prop_pb: PoseBone
+        self, context, rig: Object, frame_matrix_map: OrderedDict[int, OrderedDict[str, Matrix]], prop_pb: PoseBone
     ):
-        rig = self.get_context_rig(context)
         pbones = [
             rig.pose.bones[name]
             for name in list(list(frame_matrix_map.values())[0].keys())
@@ -327,13 +357,13 @@ class SnapBakeOpMixin(SnappingOpMixin):
         if self.key_before_start:
             # Key original value and transforms one frame before the selected bake range.
             # This is to avoid our bake causing undesired interpolation before the bake range.
-            context.scene.frame_set(frame_numbers[0]-1)
+            context.scene.frame_set(frame_numbers[0] - 1)
             prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
             bpy.ops.anim.keyframe_insert()
 
         if self.key_after_end:
             # Key original value and transforms one frame after the selected bake range.
-            context.scene.frame_set(frame_numbers[-1]+1)
+            context.scene.frame_set(frame_numbers[-1] + 1)
             prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
             bpy.ops.anim.keyframe_insert()
 
@@ -356,15 +386,18 @@ class SnapBakeOpMixin(SnappingOpMixin):
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
     bl_idname = "pose.cloudrig_snap_bake"
     bl_label = "Snap & Bake Bones"
-    bl_description = "Flip a custom property's value while preserving the world-matrix of some bones"
+    bl_description = (
+        "Flip a custom property's value while preserving the world-matrix of some bones"
+    )
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        return self.execute_bone_snap_bake(self, context)
+        return self.execute_bone_snap_bake(context)
 
-    @staticmethod
-    def execute_bone_snap_bake(self, context):
-        rig = self.get_context_rig(context)
+    def execute_bone_snap_bake(self, context) -> set:
+        rig = find_cloudrig(context)
+        if not rig:
+            return {'CANCELLED'}
         try:
             prop_pb = self.get_properties_bone(rig)
             affected_pbones = self.get_affected_pbones(rig)
@@ -379,7 +412,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
 
         if self.do_bake:
             self.ensure_action(rig)
-            self.keyframe_bones(context, frame_matrix_map, prop_pb)
+            self.keyframe_bones(context, rig, frame_matrix_map, prop_pb)
             context.scene.frame_set(active_frame_bkp)
             self.report({'INFO'}, "Finished baking.")
             return {'FINISHED'}
@@ -399,7 +432,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
         # Restore world matrices.
         self.set_bone_matrices(context, rig, pbone_matrix_map)
 
-        # If property value is no longer what it should be, change it again, 
+        # If property value is no longer what it should be, change it again,
         # and this time keyframe it.
         if prop_pb[self.prop_id] != target_value:
             # This happens when the property was already keyed, and the depsgraph update
@@ -449,14 +482,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
     ik_pole: StringProperty(
         description="Name of IK pole vector bone, for snapping IK to FK"
     )
-
-    def draw_affected_bones(self, layout, context):
-        rig = self.get_context_rig(context)
-        affected_pbones = self.get_affected_pbones(rig)
-        bone_column = layout.column(align=True)
-        bone_column.label(text="Affected bones:")
-        for pbone in affected_pbones:
-            bone_column.label(text=f"{' '*10} {pbone.name}")
 
     def invoke(self, context, _event):
         self.rig = self.get_context_rig(context)
@@ -516,7 +541,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         """
         mat = ik_pole.matrix.copy()
         # Ultra simple solution, we just project the upperarm FK bone an extra length.
-        mat.translation = fk_first.tail + fk_first.vector/2
+        mat.translation = fk_first.tail + fk_first.vector / 2
         return mat
 
     def map_single_frame_to_bone_matrices(
@@ -576,17 +601,19 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
 
     def execute(self, context):
         rig, ui_data = get_rig_and_ui(context)
-        data = rig.data
 
-        props_to_key: list[tuple[ID, str]] = []
+        props_to_key: list[tuple[ID|PoseBone, str]] = []
+
         def add_props_to_key_recursive(ui_data: OrderedDict):
-            for elem_name, elem_data in ui_data.items():
+            for _elem_name, elem_data in ui_data.items():
                 if type(elem_data) == str:
                     continue
                 if 'owner_path' in elem_data:
                     # This is a property, so it can be keyed.
                     try:
                         owner = rig.path_resolve(elem_data['owner_path'])
+                        if not owner:
+                            continue
                     except ValueError:
                         # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
                         continue
@@ -682,6 +709,7 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
 ########### Dynamic Rig UI ############
 #######################################
 
+
 class CLOUDRIG_PT_base(Panel):
     """Base class for all CloudRig sidebar panels."""
 
@@ -696,6 +724,7 @@ class CLOUDRIG_PT_base(Panel):
 
     def draw(self, context):
         pass
+
 
 class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_settings"
@@ -759,14 +788,15 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                         # It's a flag, not a UI element...
                         continue
                     draw_rig_settings_per_label(
-                        layout=layout, 
-                        rig=rig, 
-                        ui_path=[""], 
+                        layout=layout,
+                        rig=rig,
+                        ui_path=[""],
                         panel_name="",
                         panel_data=base_panel,
                         label_name=label_name,
                         label_data=label_data,
                     )
+
 
 class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
     """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
@@ -790,7 +820,7 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
 
         op = draw_drag_operator(rig, ui_data, panel_data, self.bl_label, [], layout)
         if op:
-            op.reset_panels=True
+            op.reset_panels = True
 
     def draw(self, context):
         rig, ui_data = get_rig_and_ui(context)
@@ -798,19 +828,19 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
         panel_data = ui_data.get(self.bl_label)
         if panel_data:
             self.draw_rig_settings_subpanel(
-                layout=self.layout, 
-                rig=rig, 
+                layout=self.layout,
+                rig=rig,
                 panel_name=self.bl_label,
                 panel_data=panel_data,
             )
 
     def draw_rig_settings_subpanel(
-                self,
-                layout: UILayout, 
-                rig: Object, 
-                panel_name: str, 
-                panel_data: OrderedDict,
-            ):
+        self,
+        layout: UILayout,
+        rig: Object,
+        panel_name: str,
+        panel_data: OrderedDict,
+    ):
         """Panel data contains a list of tuples.
         The first entry of each tuple is a string telling us the type of UI element to draw.
         The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
@@ -821,18 +851,20 @@ class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
                 # This is a flag, not a label.
                 continue
             draw_rig_settings_per_label(
-                layout=layout, 
-                rig=rig, 
-                ui_path=[panel_name], 
+                layout=layout,
+                rig=rig,
+                ui_path=[panel_name],
                 panel_name=panel_name,
                 panel_data=panel_data,
                 label_name=label_name,
                 label_data=label_data,
             )
 
+
 def ensure_custom_panels(_dummy1=None, _dummy2=None):
     # Since this function gets registered as an app_handler, it must have 2 parameters defined.
     bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(bpy.context)
+
 
 def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
     # Make sure name is alphanumeric
@@ -843,7 +875,9 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
         # It was already registered, so we skip.
         return
     if not hasattr(bpy.types, parent_id):
-        print(f"CloudRig Custom Panel Error: Parent ID {parent_id} not found for {name}. Fell back to default.")
+        print(
+            f"CloudRig Custom Panel Error: Parent ID {parent_id} not found for {name}. Fell back to default."
+        )
         parent_id = "CLOUDRIG_PT_settings"
 
     # Dynamically create a new class, so it can be registered as a sub-panel.
@@ -857,6 +891,7 @@ def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
 
     # Save a reference so it can be unregistered, even though unregister() is never called.
     bpy.types.CLOUDRIG_PT_settings.subpanels.append(new_panel)
+
 
 def read_rig_panels(obj) -> OrderedDict:
     """Return the rig's UI data as a nested OrderedDict."""
@@ -872,7 +907,7 @@ def read_rig_panels(obj) -> OrderedDict:
                     value = [(k, v) for k, v in value.items()]
                 if type(value) == list:
                     value = tuples_to_dict(value)
-            
+
             ordered_dict[key] = value
         return ordered_dict
 
@@ -880,6 +915,7 @@ def read_rig_panels(obj) -> OrderedDict:
         return OrderedDict()
     panels = obj.data['ui_data'].to_dict()['panels']
     return tuples_to_dict(panels)
+
 
 def write_rig_panels(obj, panels: OrderedDict):
     # Convert back to a list of tuples so Blender can store it without mangling it.
@@ -893,14 +929,15 @@ def write_rig_panels(obj, panels: OrderedDict):
             tuples.append((key, value))
         return tuples
 
-    # If we store it in a custom property as a list, each element gets 
+    # If we store it in a custom property as a list, each element gets
     # converted to a weird type by Blender.
     # So, just put it in a dictionary with a single 'panels' key.
     # Then it can easily be converted back to python, see read_rig_panels().
-    panels = {'panels' : dict_to_tuples(panels)}
+    panels = {'panels': dict_to_tuples(panels)}
     obj.data['ui_data'] = panels
 
-def get_rig_and_ui(context) -> tuple[Object, OrderedDict]:
+
+def get_rig_and_ui(context) -> tuple[Object, OrderedDict] | tuple[None, None]:
     """Find the most relevant CloudRig in the context, return it and its UI."""
     rig = find_cloudrig(context)
 
@@ -909,15 +946,17 @@ def get_rig_and_ui(context) -> tuple[Object, OrderedDict]:
 
     return rig, read_rig_panels(rig)
 
+
 def draw_rig_settings_per_label(
-            layout: UILayout, 
-            rig: Object, 
-            ui_path: list[str],
-            panel_name: str,
-            panel_data: OrderedDict,
-            label_name: str, 
-            label_data: OrderedDict,
-        ):
+    layout: UILayout,
+    rig: Object,
+    ###
+    ui_path: list[str],
+    panel_name: str,
+    panel_data: OrderedDict,
+    label_name: str,
+    label_data: OrderedDict,
+):
     if label_name:
         row = layout.row()
         draw_drag_operator(rig, panel_data, label_data, label_name, ui_path, row)
@@ -926,7 +965,7 @@ def draw_rig_settings_per_label(
     ui_path += [label_name]
 
     for row_name, row_data in label_data.items():
-        if type(row_data)==str:
+        if type(row_data) == str:
             # It's a flag, not a UI element.
             continue
         column = layout
@@ -950,46 +989,45 @@ def draw_rig_settings_per_label(
                     sub_row=sub_row,
                     owner_path=slider_data.get('owner_path'),
                     prop_name=slider_data.get('prop_name'),
-
                     ui_path=ui_path + [row_name, slider_name],
                     panel_name=panel_name,
                     label_name=label_name,
                     row_name=row_name,
                     slider_name=slider_name,
-
                     texts=texts,
                     operator=slider_data.get('operator'),
                     op_icon=slider_data.get('op_icon'),
                     op_kwargs=slider_data.get('op_kwargs'),
-
                     children=slider_data.get('children'),
                 )
             elif slider_data.get('operator'):
                 # Allow drawing an operator, even without a property.
                 # TODO: Test this.
-                draw_operator(sub_layout, **slider_data)
+                draw_operator(sub_row, **slider_data)
+
 
 def draw_slider(
-        *,
-        rig,
-        column: UILayout,
-        sub_row: UILayout,
-        owner_path: str,
-        prop_name: str,
-
-        ui_path: list[str]=[],
-        panel_name="",
-        label_name="",
-        row_name="",
-        slider_name="",
-
-        texts=[],
-        operator="",
-        op_icon='BLANK1',
-        op_kwargs={},
-
-        children={},
-    ):
+    *,
+    rig,
+    column: UILayout,
+    sub_row: UILayout,
+    ###
+    owner_path: str,
+    prop_name: str,
+    ###
+    ui_path: list[str] = [],
+    panel_name="",
+    label_name="",
+    row_name="",
+    slider_name="",
+    ###
+    texts=[],
+    operator="",
+    op_icon='BLANK1',
+    op_kwargs={},
+    ###
+    children={},
+):
 
     if owner_path == "":
         owner = rig
@@ -1003,26 +1041,33 @@ def draw_slider(
 
     prop_value = None
     if not owner:
-        sub_row.alert=True
-        sub_row.label(text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.", icon='ERROR')
+        sub_row.alert = True
+        sub_row.label(
+            text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.",
+            icon='ERROR',
+        )
     else:
         try:
             prop_value = owner.path_resolve(prop_name)
         except ValueError:
-            sub_row.alert=True
-            sub_row.label(text=f"Missing property '{prop_name}' of owner '{owner_path}'.", icon='ERROR')
+            sub_row.alert = True
+            sub_row.label(
+                text=f"Missing property '{prop_name}' of owner '{owner_path}'.",
+                icon='ERROR',
+            )
 
     if not sub_row.alert:
         draw_property(
-            layout=sub_row, 
-            prop_owner=owner, 
-            prop_name=prop_name, 
-
-            slider_name=slider_name, 
-            texts=texts
+            layout=sub_row,
+            prop_owner=owner,
+            prop_name=prop_name,
+            slider_name=slider_name,
+            texts=texts,
         )
         if operator:
-            draw_operator(sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
+            draw_operator(
+                sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs
+            )
 
         prop_value_str = str(prop_value)
         if children:
@@ -1034,12 +1079,12 @@ def draw_slider(
                         if not box_col:
                             box_col = column.box().column()
                         draw_rig_settings_per_label(
-                            layout=box_col, 
-                            rig=rig, 
-                            ui_path= ui_path + ['children', child_value],
+                            layout=box_col,
+                            rig=rig,
+                            ui_path=ui_path + ['children', child_value],
                             panel_name=panel_name,
                             panel_data=child_data,
-                            label_name=child_label_name, 
+                            label_name=child_label_name,
                             label_data=child_label_data,
                         )
 
@@ -1048,23 +1093,32 @@ def draw_slider(
 
         if not sub_row.alert:
             if type(prop_value) in {int, bool}:
-                child_op = sub_row.operator('pose.cloudrig_add_child_property_to_ui', icon='OUTLINER', text="")
+                child_op = sub_row.operator(
+                    'pose.cloudrig_add_child_property_to_ui', icon='OUTLINER', text=""
+                )
                 child_op.parent_value = prop_value_str
-                child_op.parent_ui_path=json.dumps(ui_path)
+                child_op.parent_ui_path = json.dumps(ui_path)
                 if type(owner) == PoseBone:
                     child_op.init_owner_path = f'pose.bones["{owner.name}"]'
 
-            if bracketless_prop_name not in owner.__dir__() and bracketless_prop_name in owner:
+            if (
+                bracketless_prop_name not in owner.__dir__()
+                and bracketless_prop_name in owner
+            ):
                 data_path = "active_object"
                 if owner_path.startswith('['):
                     data_path += owner_path
                 elif owner_path != "":
-                    data_path += "."+owner_path
-                edit_op = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
+                    data_path += "." + owner_path
+                edit_op = sub_row.operator(
+                    "wm.properties_edit", text="", icon='PREFERENCES'
+                )
                 edit_op.data_path = data_path
                 edit_op.property_name = bracketless_prop_name
 
-        edit_op = sub_row.operator('pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL')
+        edit_op = sub_row.operator(
+            'pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL'
+        )
         edit_op.init_owner_path = owner_path
         edit_op.prop_name = bracketless_prop_name
         ui_path_str = json.dumps(ui_path)
@@ -1085,11 +1139,25 @@ def draw_slider(
             edit_op.children = json.dumps(children)
         if texts:
             edit_op.texts = ", ".join(texts)
-        sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = ui_path_str
+        sub_row.operator(
+            'pose.cloudrig_remove_property_from_ui', text="", icon='X'
+        ).ui_path = ui_path_str
     sub_row.separator()
 
-def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, slider_name="", icon_true="CHECKBOX_HLT", icon_false='CHECKBOX_DEHLT', texts=[]):
+
+def draw_property(
+    layout: UILayout,
+    prop_owner: bpy_struct,
+    prop_name: str,
+    *,
+    slider_name="",
+    icon_true="CHECKBOX_HLT",
+    icon_false='CHECKBOX_DEHLT',
+    texts=[],
+):
     prop_value = prop_owner.path_resolve(prop_name)
+    if prop_value == None:
+        return
 
     bracketless_prop_name = unquote_custom_prop_name(prop_name)
     if not slider_name:
@@ -1101,7 +1169,7 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
         # Property is a Datablock Pointer.
         layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type in {int, float, bool}:
-        if texts and len(texts)-1 >= int(prop_value) >= 0:
+        if texts and len(texts) - 1 >= int(prop_value) >= 0:
             text = texts[int(prop_value)].strip()
             if text:
                 slider_name += ": " + text
@@ -1116,11 +1184,16 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
                 # For large ranges, a slider doesn't make sense.
                 try:
                     if bracketless_prop_name in prop_owner:
-                        prop_settings = prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
+                        prop_settings = prop_owner.id_properties_ui(
+                            bracketless_prop_name
+                        ).as_dict()
                 except TypeError:
                     # This happens for Python properties. There's no point drawing them.
                     return
-                is_slider = not _is_array and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+                is_slider = (
+                    not _is_array
+                    and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+                )
                 layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)
             else:
                 layout.prop(prop_owner, prop_name, text=slider_name)
@@ -1129,15 +1202,30 @@ def draw_property(layout: UILayout, prop_owner: bpy_struct, prop_name: str, *, s
     else:
         layout.prop(prop_owner, prop_name, text=slider_name)
 
-def draw_operator(layout: UILayout, bl_idname: str, op_icon='BLANK1', op_kwargs={}, text=""):
-        if not op_icon or op_icon == 'NONE':
-            op_icon = 'BLANK1'
-        op_props = layout.operator(bl_idname, text=text, icon=op_icon)
-        feed_op_props(op_props, op_kwargs)
-        return op_props
 
-def draw_drag_operator(rig: Object, parent_ui_data: OrderedDict, ui_data: OrderedDict, ui_name: str, ui_path: list[str], layout: UILayout):
-    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem)!=str]
+def draw_operator(
+    layout: UILayout, 
+    bl_idname: str, 
+    op_icon='BLANK1', 
+    op_kwargs={}, 
+    text="",
+):
+    if not op_icon or op_icon == 'NONE':
+        op_icon = 'BLANK1'
+    op_props = layout.operator(bl_idname, text=text, icon=op_icon)
+    feed_op_props(op_props, op_kwargs)
+    return op_props
+
+
+def draw_drag_operator(
+    rig: Object,
+    parent_ui_data: OrderedDict,
+    ui_data: OrderedDict,
+    ui_name: str,
+    ui_path: list[str],
+    layout: UILayout,
+):
+    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem) != str]
     if len(sub_elements) > 1 and is_ui_edit_mode(rig):
         is_dragged = ui_data.get('is_dragged', False)
         if is_dragged:
@@ -1146,15 +1234,20 @@ def draw_drag_operator(rig: Object, parent_ui_data: OrderedDict, ui_data: Ordere
         else:
             icon = 'NONE'
             from CloudRig import icons
+
             icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
-        op = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
-        op.ui_path = json.dumps(ui_path+[ui_name])
+        op = layout.operator(
+            'pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value
+        )
+        op.ui_path = json.dumps(ui_path + [ui_name])
         return op
 
+
 def is_ui_edit_mode(obj):
-    return hasattr(obj, 'cloudrig') and \
-        obj.cloudrig.enabled and \
-        obj.cloudrig.ui_edit_mode
+    return (
+        hasattr(obj, 'cloudrig') and obj.cloudrig.enabled and obj.cloudrig.ui_edit_mode
+    )
+
 
 def feed_op_props(op_props, op_kwargs: str or dict or list):
     """Set the arguments of an OperatorProperties instance, such as one returned by
@@ -1176,6 +1269,7 @@ def feed_op_props(op_props, op_kwargs: str or dict or list):
             if desired_type != type(value):
                 value = desired_type(value)
             setattr(op_props, key, value)
+
 
 def unquote_custom_prop_name(prop_name: str) -> str:
     if prop_name.startswith('["') or prop_name.startswith("['"):
@@ -1424,7 +1518,7 @@ class CloudRigBoneCollection(PropertyGroup):
         return self.get_collection().is_expanded
 
     @property
-    def children(self) -> List[BoneCollection]:
+    def children(self) -> list[BoneCollection]:
         # TODO 4.2: Redundant, delete.
         return self.get_collection().children[:]
 
@@ -1439,14 +1533,14 @@ class CloudRigBoneCollection(PropertyGroup):
         return self.parent_collection.cloudrig_info.children
 
     @property
-    def children_recursive(self) -> List[BoneCollection]:
+    def children_recursive(self) -> list[BoneCollection]:
         children = self.children[:]
         for child in children:
             children += child.cloudrig_info.children
         return children
 
     @property
-    def parents_recursive(self) -> List[BoneCollection]:
+    def parents_recursive(self) -> list[BoneCollection]:
         parents = []
         parent = self.parent_collection
         while parent:
@@ -1455,7 +1549,7 @@ class CloudRigBoneCollection(PropertyGroup):
         return parents
 
     @property
-    def all_bones(self) -> List[Bone]:
+    def all_bones(self) -> list[Bone]:
         # TODO 4.2: Redundant, delete.
         return self.get_collection().bones_recursive
 
@@ -2355,7 +2449,9 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
 
 def builtin_collections_draw_override(self, context):
     if is_active_cloud_metarig(context) or is_active_cloudrig(context):
-        self.layout.prop(context.object.cloudrig_prefs, 'collection_ui_type', expand=True)
+        self.layout.prop(
+            context.object.cloudrig_prefs, 'collection_ui_type', expand=True
+        )
 
         if context.object.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
             return draw_cloudrig_collections(self, context)
@@ -2366,6 +2462,7 @@ def builtin_collections_draw_override(self, context):
 #######################################
 ############## Hotkeys ################
 #######################################
+
 
 class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys_panel"
@@ -2405,15 +2502,19 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
                 split = user_row.split(factor=0.5)
                 addon_row = split.row()
                 user_row = split.row()
-                hotkey_class.draw_kmi(addon_km, addon_kmi, addon_row) 
+                hotkey_class.draw_kmi(addon_km, addon_kmi, addon_row)
             if not user_kmi:
                 # This should only happen for one frame during Reload Scripts.
-                print("CloudRig: Can't find this hotkey to draw: ", addon_kmi.name, addon_kmi.to_string(), kmi_hash)
+                print(
+                    "CloudRig: Can't find this hotkey to draw: ",
+                    addon_kmi.name,
+                    addon_kmi.to_string(),
+                    kmi_hash,
+                )
                 continue
 
             hotkey_class.draw_kmi(user_km, user_kmi, user_row)
             prev_kmi = user_kmi
-
 
     @staticmethod
     def draw_kmi(km, kmi, layout):
@@ -2470,6 +2571,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
             if kmi.properties['hash'] == kmi_hash:
                 return kmi
 
+
 def register_hotkey(
     bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}
 ):
@@ -2483,20 +2585,28 @@ def register_hotkey(
         return
 
     # We limit the hash to a few digits, otherwise it errors when trying to store it.
-    kmi_hash = hash(json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs])) % 1000000
+    kmi_hash = (
+        hash(json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs]))
+        % 1000000
+    )
 
     # If it already exists, don't create it again.
-    for existing_kmi_hash, existing_kmi_tup in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
+    for (
+        existing_kmi_hash,
+        existing_kmi_tup,
+    ) in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
         existing_addon_kc, existing_addon_km, existing_kmi = existing_kmi_tup
         if kmi_hash == existing_kmi_hash:
             # The hash we just calculated matches one that is in storage.
             user_kc = wm.keyconfigs.user
             user_km = user_kc.keymaps.get(existing_addon_km.name)
-            # NOTE: It's possible on Reload Scripts that some KeyMapItems remain in storage, 
+            # NOTE: It's possible on Reload Scripts that some KeyMapItems remain in storage,
             # but are unregistered by Blender for no reason.
             # I noticed this particularly in the Weight Paint keymap.
             # So it's not enough to check if a KMI with a hash is in storage, we also need to check if a corresponding user KMI exists.
-            user_kmi = CLOUDRIG_PT_hotkeys_panel.find_kmi_in_km_by_hash(user_km, kmi_hash)
+            user_kmi = CLOUDRIG_PT_hotkeys_panel.find_kmi_in_km_by_hash(
+                user_km, kmi_hash
+            )
             if user_kmi:
                 # print("Hotkey already exists, skipping: ", existing_kmi.name, existing_kmi.to_string(), kmi_hash)
                 return
@@ -2515,7 +2625,11 @@ def register_hotkey(
 
     addon_kmi.properties['hash'] = kmi_hash
 
-    bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items[kmi_hash] = (addon_keyconfig, addon_km, addon_kmi)
+    bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items[kmi_hash] = (
+        addon_keyconfig,
+        addon_km,
+        addon_kmi,
+    )
     # print("CloudRig: Registered Hotkey: ", addon_kmi.idname, addon_kmi.to_string(), kmi_hash)
 
 
@@ -2615,7 +2729,10 @@ def register():
 
 def unregister_hotkeys():
     if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys_panel'):
-        for kmi_hash, kmi_tup in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
+        for (
+            kmi_hash,
+            kmi_tup,
+        ) in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
             kc, km, kmi = kmi_tup
             km.keymap_items.remove(kmi)
         bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items = {}
@@ -2655,7 +2772,10 @@ def unregister():
         pass
 
 
-if __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig'] or '.generation.cloudrig' in __name__:
+if (
+    __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']
+    or '.generation.cloudrig' in __name__
+):
     # __name__ == `__main__` when executed in Blender's Text Editor.
     # __name__ == `builtins` when executed by cloud_generator.
     # __name__ == `CloudRig.generation.cloudrig` when executed by Blender add-on registration.

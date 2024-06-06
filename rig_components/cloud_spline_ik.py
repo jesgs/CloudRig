@@ -50,7 +50,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         if self.params.curve.create_root:
             self.make_curve_root_ctrl()
         if not self.params.curve.target:
-            self.create_bezier_curve_obj()
+            self.create_bezier_curve_obj(context)
         self.make_ctrls_for_curve_points()
 
         ik_chain = self.bones_org
@@ -70,7 +70,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         # TODO: This could perhaps be better done with a callback of some kind.
         pass
 
-    def create_bezier_curve_obj(self):
+    def create_bezier_curve_obj(self, context):
         """Find or create the Bezier Curve that will be used by the rig."""
 
         curve_ob = self.params.curve.target
@@ -96,7 +96,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             # Create and name curve object.
             curve = bpy.data.curves.new(curve_name, 'CURVE')
             curve_ob = bpy.data.objects.new(curve_name, curve)
-            bpy.context.scene.collection.objects.link(curve_ob)
+            context.scene.collection.objects.link(curve_ob)
             spline = curve.splines.new(type='BEZIER')
             self.lock_transforms(curve_ob)
 
@@ -238,7 +238,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
 
         cls.draw_prop(context, layout, params.spline_ik, 'deform_setup', expand=True)
-        if params.spline_ik.deform_setup=='CREATE':
+        if params.spline_ik.deform_setup == 'CREATE':
             cls.draw_prop(context, layout, params.spline_ik, 'subdivide')
         # TODO: When this is false, the directions of the curve points and bones
         # don't match, and both of them are unsatisfactory. It would be nice if
