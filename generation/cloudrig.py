@@ -57,7 +57,12 @@ def is_active_cloudrig(context) -> Object | bool:
 
 def is_generated_cloudrig(obj: Object) -> bool:
     """Return whether obj is a rig marked as being compatible with cloudrig.py."""
-    return obj and obj.type=='ARMATURE' and 'is_generated_cloudrig' in obj.data and obj.data['is_generated_cloudrig']
+    return (
+        obj
+        and obj.type == 'ARMATURE'
+        and 'is_generated_cloudrig' in obj.data
+        and obj.data['is_generated_cloudrig']
+    )
 
 
 def is_active_cloud_metarig(context) -> bool:
@@ -65,7 +70,12 @@ def is_active_cloud_metarig(context) -> bool:
 
 
 def is_cloud_metarig(obj: Object) -> bool:
-    return obj and obj.type == 'ARMATURE' and hasattr(obj, 'cloudrig') and obj.cloudrig.enabled
+    return (
+        obj
+        and obj.type == 'ARMATURE'
+        and hasattr(obj, 'cloudrig')
+        and obj.cloudrig.enabled
+    )
 
 
 def find_metarig_of_rig(context, rig: Object) -> Object | None:
@@ -91,37 +101,34 @@ def find_cloudrig(context, allow_metarigs=True) -> Object | None:
     For example, if the active object is a mesh which is deformed by a generated rig, return that generated rig.
     """
 
+    def is_good_rig(rig):
+        return (
+            rig
+            and is_generated_cloudrig(rig)
+            or (allow_metarigs and is_cloud_metarig(rig))
+        )
+
     active = context.active_object
-    if active:
-        if is_generated_cloudrig(active) or (
-            allow_metarigs and is_cloud_metarig(active)
-        ):
-            return active
-        if active.parent and (
-            is_generated_cloudrig(active.parent)
-            or (allow_metarigs and is_cloud_metarig(active.parent))
-        ):
-            return active.parent
+    if is_good_rig(active):
+        return active
+
+    if active.parent and is_good_rig(active.parent):
+        return active.parent
 
     pose_ob = context.pose_object
-    if (
-        pose_ob
-        and is_generated_cloudrig(pose_ob)
-        or (allow_metarigs and is_cloud_metarig(pose_ob))
-    ):
+    if is_good_rig(pose_ob):
         return pose_ob
 
-        if active.type == 'MESH':
-            for m in active.modifiers:
-                if (
-                    m.type == 'ARMATURE'
-                    and m.target
-                    and (
-                        is_generated_cloudrig(m.target)
-                        or (allow_metarigs and is_cloud_metarig(m.target))
-                    )
-                ):
-                    return m.target
+    if active.type == 'MESH':
+        return get_cloudrig_of_mesh(active)[0]
+
+
+def get_cloudrig_of_mesh(meshob: Object) -> tuple[Object | None, str | None]:
+    """If this mesh is being deformed by a CloudRig rig, return it, and the name of the modifier."""
+    for m in meshob.modifiers:
+        if m.type == 'ARMATURE' and m.object and (is_generated_cloudrig(m.object)):
+            return m.object, m.name
+    return None, None
 
 
 class CloudRigOperator(Operator):
@@ -1758,19 +1765,18 @@ class CLOUDRIG_UL_collections(UIList):
         return flt_flags, flt_neworder
 
 
-def draw_cloudrig_collections(self, context):
+def draw_cloudrig_collections(self, context, rig: Object):
     layout = self.layout
     layout.use_property_split = True
     layout.use_property_decorate = False
 
-    rig = context.pose_object or context.active_object
-    prefs = rig.cloudrig_prefs
-    active_coll = rig.data.collections.active
-
-    if context.pose_object:
-        prop_owner = 'pose_object'
-    else:
+    prop_owner = 'pose_object'
+    if context.active_object:
         prop_owner = 'active_object'
+        if context.active_object != rig:
+            _rig, modifier_name = get_cloudrig_of_mesh(context.active_object)
+            if modifier_name:
+                prop_owner = f'active_object.modifiers["{modifier_name}"].object'
 
     list_col = draw_ui_list(
         layout,
@@ -1790,6 +1796,7 @@ def draw_cloudrig_collections(self, context):
 
     list_col.separator()
 
+    prefs = rig.cloudrig_prefs
     if not prefs.show_editing:
         list_col.operator(
             POSE_OT_cloudrig_collections_reveal_all.bl_idname,
@@ -1817,6 +1824,7 @@ def draw_cloudrig_collections(self, context):
 
     list_col.separator()
 
+    active_coll = rig.data.collections.active
     if not active_coll:
         return
 
@@ -1838,7 +1846,7 @@ def draw_cloudrig_collections(self, context):
     ).direction = 'DOWN'
 
     row = layout.row()
-    if context.mode not in {'POSE', 'EDIT_ARMATURE'}:
+    if context.mode not in {'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'}:
         row.enabled = False
     sub = row.row(align=True)
     sub.operator(POSE_OT_cloudrig_collection_assign.bl_idname, text="Assign").assign = (
@@ -1867,9 +1875,11 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        return is_active_cloud_metarig(context) or is_active_cloudrig(context)
+        return bool(find_cloudrig(context))
 
-    draw = draw_cloudrig_collections
+    def draw(self, context):
+        rig = find_cloudrig(context)
+        draw_cloudrig_collections(self, context, rig)
 
 
 class CLOUDRIG_PT_collections_filter(Panel):
@@ -1880,8 +1890,8 @@ class CLOUDRIG_PT_collections_filter(Panel):
 
     def draw(self, context):
         layout = self.layout
-        obj = context.pose_object or context.active_object
-        prefs = obj.cloudrig_prefs
+        rig = find_cloudrig(context)
+        prefs = rig.cloudrig_prefs
         row = layout.row(align=True)
         row.prop(prefs, 'show_visibility', text="", icon='HIDE_OFF')
         row.prop(prefs, 'show_solo', text="", icon='SOLO_OFF')
@@ -1890,7 +1900,7 @@ class CLOUDRIG_PT_collections_filter(Panel):
         row.separator()
         row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
         row.prop(prefs, 'show_bone_count', text="", icon='GROUP_BONE')
-        if obj.data.override_library:
+        if rig.data.override_library:
             row.prop(
                 prefs, 'show_local_overrides', text="", icon='LIBRARY_DATA_OVERRIDE'
             )
@@ -1949,13 +1959,13 @@ class CLOUDRIG_MT_collections_quick_select(Menu):
 
     @classmethod
     def poll(cls, context):
-        return is_active_cloudrig(context)
+        return find_cloudrig(context, allow_metarigs=False)
 
     def draw(self, context):
         layout = self.layout
         layout.operator_context = "INVOKE_DEFAULT"
 
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context, allow_metarigs=False)
 
         def collections_recursive(colls):
             """This has a different order from collections_all, which aligns with
@@ -1985,7 +1995,7 @@ class POSE_OT_cloudrig_collections_reveal_all(CloudRigOperator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context, allow_metarigs=False)
         for coll in rig.data.collections_all:
             coll.is_visible = True
             coll.is_solo = False
@@ -2044,8 +2054,7 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        ob = context.pose_object or context.active_object
-        return ob and ob.type == 'ARMATURE'
+        return bool(find_cloudrig(context))
 
     def invoke(self, context, event):
         self.extend_selection = event.shift
@@ -2055,7 +2064,7 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
         return self.execute(context)
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
 
         collection = rig.data.collections_all.get(self.collection_name)
 
@@ -2105,8 +2114,12 @@ class POSE_OT_cloudrig_collection_parent_set(CloudRigOperator):
         description="Parent to set as this bone collection's parent",
     )
 
+    @classmethod
+    def poll(cls, context):
+        return bool(find_cloudrig(context))
+
     def invoke(self, context, _event):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         coll = rig.data.collections_all[self.coll_idx]
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot change the parent of linked collections.")
@@ -2118,11 +2131,11 @@ class POSE_OT_cloudrig_collection_parent_set(CloudRigOperator):
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         layout.prop_search(self, 'parent_name', rig.data, 'collections_all')
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         all_colls = rig.data.collections_all
         parent = all_colls.get(self.parent_name)
         coll = all_colls[self.coll_idx]
@@ -2170,7 +2183,9 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.object
+        rig = find_cloudrig(context)
+        if not rig:
+            return False
         active_coll = rig.data.collections.active
         if active_coll:
             if not active_coll.is_editable:
@@ -2179,15 +2194,15 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
             return True
 
     def execute(self, context):
+        rig = find_cloudrig(context)
         if self.mode == 'ACTIVE':
-            return self.delete_active(context)
+            return self.delete_active(rig)
         elif self.mode == 'HIERARCHY':
-            return self.delete_hierarchy(context)
+            return self.delete_hierarchy(rig)
         elif self.mode == 'ALL':
-            return self.delete_all(context)
+            return self.delete_all(rig)
 
-    def delete_active(self, context):
-        rig = context.pose_object or context.active_object
+    def delete_active(self, rig):
         coll = rig.data.collections.active
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot delete linked collection.")
@@ -2198,8 +2213,7 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
         rig.cloudrig_prefs.active_collection_index -= 1
         return {'FINISHED'}
 
-    def delete_hierarchy(self, context):
-        rig = context.pose_object or context.active_object
+    def delete_hierarchy(self, rig):
         colls = rig.data.collections
         if not colls.active.is_editable:
             self.report({'ERROR'}, "Cannot remove linked collection.")
@@ -2212,9 +2226,7 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
         rig.cloudrig_prefs.active_collection_index -= 1
         return {'FINISHED'}
 
-    def delete_all(self, context):
-        rig = context.pose_object or context.active_object
-
+    def delete_all(self, rig):
         for coll in rig.data.collections_all[:]:
             if coll.is_editable:
                 rig.data.collections.remove(coll)
@@ -2229,8 +2241,12 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
     bl_label = "Add Bone Collection"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
+    @classmethod
+    def poll(cls, context):
+        return bool(find_cloudrig(context))
+
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
         if rig.data.override_library:
             rig.data.override_library.is_system_override = False
         colls = rig.data.collections
@@ -2268,7 +2284,9 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.object
+        rig = find_cloudrig(context)
+        if not rig:
+            return False
         active_coll = rig.data.collections.active
         if active_coll:
             if not active_coll.is_editable:
@@ -2297,7 +2315,7 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
         return siblings, sibling_idx
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
 
         collections = rig.data.collections
 
@@ -2328,8 +2346,8 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object
-        return rig and rig.type == 'ARMATURE' and rig.data.collections.active
+        rig = find_cloudrig(context)
+        return bool(rig and rig.data.collections.active)
 
     @classmethod
     def description(cls, context, props):
@@ -2338,7 +2356,7 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
         return f"{words[0]} selected bones {words[1]} {colls}"
 
     def execute(self, context):
-        rig = context.pose_object
+        rig = find_cloudrig(context)
         colls = [rig.data.collections.active]
         if self.assign_to_children:
             colls += rig.data.collections.active.cloudrig_info.children_recursive
@@ -2375,8 +2393,12 @@ class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
     bl_label = "Copy Visible Collections To Clipboard"
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
+    @classmethod
+    def poll(cls, context):
+        return bool(find_cloudrig(context))
+
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
 
         json_obj = defaultdict(dict)
         counter = 0
@@ -2405,11 +2427,15 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
 
     overwrite_existing: BoolProperty(default=True)
 
+    @classmethod
+    def poll(cls, context):
+        return bool(find_cloudrig(context))
+
     def execute(self, context):
         counter = 0
         try:
             json_obj = json.loads(context.window_manager.clipboard)
-            rig = context.pose_object or context.active_object
+            rig = find_cloudrig(context)
             collections = rig.data.collections
             collections_all = rig.data.collections_all
 
@@ -2454,13 +2480,15 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
 
 
 def builtin_collections_draw_override(self, context):
-    if is_active_cloud_metarig(context) or is_active_cloudrig(context):
-        self.layout.prop(
-            context.object.cloudrig_prefs, 'collection_ui_type', expand=True
-        )
+    """Override the Bone Collections ui in the Properties Editor.
+    Editor drawing code should use context.object, since this accounts for pinning.
+    """
+    pinned_obj = context.object
+    if is_cloud_metarig(pinned_obj) or is_generated_cloudrig(pinned_obj):
+        self.layout.prop(pinned_obj.cloudrig_prefs, 'collection_ui_type', expand=True)
 
-        if context.object.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
-            return draw_cloudrig_collections(self, context)
+        if pinned_obj.cloudrig_prefs.collection_ui_type == 'CLOUDRIG':
+            return draw_cloudrig_collections(self, context, pinned_obj)
 
     return bpy.types.DATA_PT_bone_collections.draw_bkp(self, context)
 
