@@ -1,7 +1,7 @@
-from bpy.types import Armature, Bone, Object
-
 import bpy
+from bpy.types import Armature, Bone, Object
 from bpy.props import BoolProperty
+
 from ..generation.naming import slice_name
 from ..generation.cloudrig import register_hotkey, find_metarig_of_rig, CloudRigOperator
 
@@ -67,43 +67,51 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
     def switch_rig_focus(
         self,
         context,
-        from_arm: Object,
-        to_arm: Object,
+        ###
+        from_rig: Object,
+        to_rig: Object,
+        ###
         match_collections=True,
         match_selection=True,
     ):
-        org_mode = from_arm.mode
+        org_mode = from_rig.mode
 
-        to_arm.hide_set(False)
-        if not to_arm.visible_get():
+        to_rig.hide_set(False)
+        if not to_rig.visible_get():
             self.report(
                 {'ERROR'},
-                f'Could not make "{to_arm.name}" visible. Make sure it is enabled, and in an enabled collection!',
+                f'Could not make "{to_rig.name}" visible. Make sure it is enabled, and in an enabled collection!',
             )
             return {'CANCELLED'}
 
         bpy.ops.object.mode_set(mode='OBJECT')
-        from_arm.hide_set(True)
+        from_rig.hide_set(True)
 
-        context.view_layer.objects.active = to_arm
-        to_arm.select_set(True)
+        context.view_layer.objects.active = to_rig
+        to_rig.select_set(True)
         bpy.ops.object.mode_set(mode=org_mode)
 
         if match_collections:
-            for to_coll in to_arm.data.collections_all:
-                from_coll = from_arm.data.collections_all.get(to_coll.name)
+            for to_coll in to_rig.data.collections_all:
+                from_coll = from_rig.data.collections_all.get(to_coll.name)
                 if from_coll:
                     to_coll.is_visible = from_coll.is_visible
+                    to_coll.is_solo = from_coll.is_solo
+            from_active = from_rig.data.collections.active
+            if from_active:
+                to_active = to_rig.data.collections_all.get(from_active.name)
+                if to_active:
+                    to_rig.data.collections.active = to_active
 
         # When switching between the metarig and the generated rig,
         # match the bone selection as much as possible, unless a lot of bones are selected.
-        selected = [b for b in from_arm.data.bones if b.select]
+        selected = [b for b in from_rig.data.bones if b.select]
         if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected) < 10:
-            self.match_bone_selection(from_arm, to_arm)
+            self.match_bone_selection(from_rig, to_rig)
 
-    def match_bone_selection(self, from_arm: Object, to_arm: Object):
-        self.deselect_all_bones(to_arm)
-        self.match_active_bone(from_arm, to_arm)
+    def match_bone_selection(self, from_rig: Object, to_rig: Object):
+        self.deselect_all_bones(to_rig)
+        self.match_active_bone(from_rig, to_rig)
 
         # Match selected bones, without affecting bone visibilities, and using a prefix priority system.
         # This means that for each selected bone in the source armature,
@@ -114,27 +122,27 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
 
         # If multiple matches are found, one is chosen based on its prefix
         # (higher priority prefix wins).
-        selected_names = [b.name for b in from_arm.data.bones if b.select]
+        selected_names = [b.name for b in from_rig.data.bones if b.select]
         for bone_name in selected_names:
-            bone = self.get_visible_bone_with_similar_name(to_arm.data, bone_name)
+            bone = self.get_visible_bone_with_similar_name(to_rig.data, bone_name)
             if bone:
                 bone.select = True
 
-    def deselect_all_bones(self, armature: Armature):
+    def deselect_all_bones(self, armature: Object):
         for b in armature.data.bones:
             b.select = False
 
-    def match_active_bone(self, from_arm: Object, to_arm: Object):
+    def match_active_bone(self, from_rig: Object, to_rig: Object):
         """If there is an exact match for the active bone, make the matching bone active."""
-        active = from_arm.data.bones.active
+        active = from_rig.data.bones.active
         if active:
-            to_active = to_arm.data.bones.get(active.name)
+            to_active = to_rig.data.bones.get(active.name)
             if to_active:
-                to_arm.data.bones.active = to_active
+                to_rig.data.bones.active = to_active
 
     def get_visible_bone_with_similar_name(
         self, armature: Armature, bone_name: str
-    ) -> Bone:
+    ) -> Bone | None:
         bone_is_visible = lambda b: not b.hide and any(
             [coll.is_visible for coll in b.collections]
         )

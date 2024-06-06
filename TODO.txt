@@ -2,15 +2,17 @@
 	- Allow adding an operator without a property
 	- Write documentation.
 
-- Shift+T doesn't copy solo setting and active collection
+- Parenting or opening a collection should make that collection active.
 - Disconnect Bone actually un-parents...
 - Bone X pie delete doesn't work in edit mode with multiple armatures.
+
 - Check if Spline IK parameters work well with each other and do what they should.
 - Could improve the driver mirroring in Symmetrize, and we should mention that in the documentation as well.
 - Documentation typo: `button indicates When Armature`
 - Could also document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 
 Priority -1: Migration
+	- Merge CloudRig into blender-studio-pipeline?
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
 
 Priority 1: Bugs
