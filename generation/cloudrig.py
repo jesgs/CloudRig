@@ -38,7 +38,7 @@ from bl_ui.generic_ui_list import draw_ui_list
 #######################################
 
 
-def is_active_cloudrig(context) -> Object|bool:
+def is_active_cloudrig(context) -> Object | bool:
     """If the active object is a cloudrig, return it."""
     if not hasattr(context, 'pose_object'):
         # Can happen when a file is saved with the UI open,
@@ -340,7 +340,11 @@ class SnapBakeOpMixin(SnappingOpMixin):
         return self.get_pbone_matrix_map(bones_to_snap, snap_to_bones)
 
     def keyframe_bones(
-        self, context, rig: Object, frame_matrix_map: OrderedDict[int, OrderedDict[str, Matrix]], prop_pb: PoseBone
+        self,
+        context,
+        rig: Object,
+        frame_matrix_map: OrderedDict[int, OrderedDict[str, Matrix]],
+        prop_pb: PoseBone,
     ):
         pbones = [
             rig.pose.bones[name]
@@ -602,7 +606,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
     def execute(self, context):
         rig, ui_data = get_rig_and_ui(context)
 
-        props_to_key: list[tuple[ID|PoseBone, str]] = []
+        props_to_key: list[tuple[ID | PoseBone, str]] = []
 
         def add_props_to_key_recursive(ui_data: OrderedDict):
             for _elem_name, elem_data in ui_data.items():
@@ -1197,16 +1201,25 @@ def draw_property(
             else:
                 layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type == str:
-        layout.prop(prop_owner, prop_name)
+        if (
+            issubclass(type(prop_owner), bpy.types.Constraint)
+            and prop_name == 'subtarget'
+            and prop_owner.target
+            and prop_owner.target.type == 'ARMATURE'
+        ):
+            # Special case for nice constraint sub-target selectors.
+            layout.prop_search(prop_owner, prop_name, prop_owner.target.pose, 'bones')
+        else:
+            layout.prop(prop_owner, prop_name)
     else:
         layout.prop(prop_owner, prop_name, text=slider_name)
 
 
 def draw_operator(
-    layout: UILayout, 
-    bl_idname: str, 
-    op_icon='BLANK1', 
-    op_kwargs={}, 
+    layout: UILayout,
+    bl_idname: str,
+    op_icon='BLANK1',
+    op_kwargs={},
     text="",
 ):
     if not op_icon or op_icon == 'NONE':

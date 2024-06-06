@@ -664,7 +664,7 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
             elif owner_path:
                 owner = path_resolve_safe(rig, owner_path)
 
-            if prop_name in owner:
+            if supports_custom_props(owner) and prop_name in owner:
                 del owner[prop_name]
                 message += f' and deleted "{prop_name}" property'
             else:
