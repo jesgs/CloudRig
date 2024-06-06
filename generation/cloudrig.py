@@ -55,9 +55,9 @@ def is_active_cloudrig(context) -> Object | bool:
     return False
 
 
-def is_generated_cloudrig(rig: Object) -> bool:
-    """Return whether rig is marked as being compatible with cloudrig.py."""
-    return 'is_generated_cloudrig' in rig.data and rig.data['is_generated_cloudrig']
+def is_generated_cloudrig(obj: Object) -> bool:
+    """Return whether obj is a rig marked as being compatible with cloudrig.py."""
+    return obj and obj.type=='ARMATURE' and 'is_generated_cloudrig' in obj.data and obj.data['is_generated_cloudrig']
 
 
 def is_active_cloud_metarig(context) -> bool:
@@ -65,13 +65,7 @@ def is_active_cloud_metarig(context) -> bool:
 
 
 def is_cloud_metarig(obj: Object) -> bool:
-    if not obj:
-        return False
-    if obj.type != 'ARMATURE':
-        return False
-    if hasattr(obj, 'cloudrig') and obj.cloudrig.enabled:
-        return bool(obj)
-    return False
+    return obj and obj.type == 'ARMATURE' and hasattr(obj, 'cloudrig') and obj.cloudrig.enabled
 
 
 def find_metarig_of_rig(context, rig: Object) -> Object | None:
