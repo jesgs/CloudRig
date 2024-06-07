@@ -203,6 +203,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     operator: StringProperty(
         name="Operator ID",
+        options={'SKIP_SAVE'},
         description="Internal. Only used by the Edit operator, to initialize the temp KeyMapItem",
     )
     op_kwargs: StringProperty(
@@ -448,8 +449,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             ui_data: OrderedDict, ui_path: list[str], display_name: str
         ):
             for elem_name, elem_data in ui_data.items():
-                if type(elem_data) == str:
-                    continue
                 new_ui_path = ui_path + [elem_name]
                 identifier = json.dumps(new_ui_path)
                 if hasattr(self, 'ui_path') and identifier == self.ui_path:
@@ -473,9 +472,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                         )
                     )
 
-                add_slider_ui_paths_recursive(
-                    elem_data, new_ui_path[:], new_display_name
-                )
+                if type(elem_data) == OrderedDict:
+                    add_slider_ui_paths_recursive(
+                        elem_data, new_ui_path[:], new_display_name
+                    )
 
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
