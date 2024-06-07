@@ -4,7 +4,7 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Menu, Bone, EditBone
+from bpy.types import Menu, EditBone, Bone
 from bpy.props import BoolProperty
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
@@ -20,16 +20,15 @@ def get_active_bone(context):
         return context.active_bone
 
 
-def get_selected_bones(context, exclude_active=False) -> list[Bone]:
-    if not context.object or not context.object.type == 'ARMATURE':
-        return []
+def get_selected_bones(context, exclude_active=False) -> list[Bone | EditBone]:
     bones = []
-    if context.object.mode == 'POSE':
+    if context.mode == 'POSE':
         bones = [pb.bone for pb in context.selected_pose_bones]
-    elif context.object.mode == 'EDIT':
-        # We can't use context.selected_editable_bones because
-        # it actually includes non-selected bones when use_mirror_x==True.
-        bones = [eb for eb in context.object.data.edit_bones if eb.select]
+    elif context.mode == 'EDIT_ARMATURE':
+        for rig in get_current_rigs(context):
+            # We can't use context.selected_editable_bones because
+            # it actually includes non-selected bones when use_mirror_x==True.
+            bones += [eb for eb in rig.data.edit_bones if eb.select]
 
     if exclude_active:
         bones.remove(get_active_bone(context))
@@ -37,62 +36,56 @@ def get_selected_bones(context, exclude_active=False) -> list[Bone]:
     return bones
 
 
+def get_current_rigs(context):
+    objs = set(context.selected_objects)
+    objs.add(context.active_object)
+
+    for obj in objs:
+        if context.mode in {'POSE', 'EDIT_ARMATURE'} and obj.type == 'ARMATURE':
+            yield obj
+
+
 class GenericBoneOperator:
     @classmethod
     def poll(cls, context):
         return (
-            context.object
-            and context.object.type == 'ARMATURE'
-            and context.object.mode in {'POSE', 'EDIT'}
+            context.active_object
+            and context.active_object.type == 'ARMATURE'
+            and context.active_object.mode in {'POSE', 'EDIT'}
         )
 
-    @staticmethod
-    def get_selected_pose_bones(context):
-        if context.object.mode == 'POSE':
-            return context.selected_pose_bones
-        elif context.object.mode == 'EDIT':
-            return [
-                context.object.data.bones.get(eb.name)
-                for eb in context.selected_editable_bones
-                if eb.name in context.object.data.bones
-            ]
-
-    def get_bones_to_affect(self, context) -> set[str]:
-        rig = context.active_object
-        mode = rig.mode
-        bone_names = {b.name for b in get_selected_bones(context)}
-        if mode != 'EDIT':
+    def get_bones_to_affect(self, context) -> list[EditBone]:
+        if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
-        if rig.data.use_mirror_x:
-            for bone_name in set(bone_names):
-                flipped_name = flip_name(bone_name)
-                if bone_name == flipped_name:
+        ebones = get_selected_bones(context)
+        for ebone in list(ebones):
+            rig_data = ebone.id_data
+            if rig_data.use_mirror_x:
+                flipped_name = flip_name(ebone.name)
+                if ebone.name == flipped_name:
                     continue
-                if flipped_name in bone_names:
-                    continue
-                flipped_bone = rig.data.bones.get(flipped_name)
+                flipped_bone = rig_data.bones.get(flipped_name)
                 if not flipped_bone:
                     continue
-                bone_names.add(flipped_name)
+                ebones.append(flipped_name)
 
-        return bone_names
+        return ebones
 
     def affect_bones(self, context) -> set[str]:
         """Returns list of bone names that were actually affected."""
-        rig = context.active_object
-        mode = rig.mode
-        bones_to_affect = self.get_bones_to_affect(context)
+        mode = context.active_object.mode
+        ebones_to_affect = self.get_bones_to_affect(context)
 
-        affected_bones = set()
-        for bone_name in bones_to_affect:
-            eb = context.object.data.edit_bones[bone_name]
-            was_affected = self.affect_bone(eb)
+        affected_bones_names = set()
+        for ebone in list(ebones_to_affect):
+            bone_name = ebone.name
+            was_affected = self.affect_bone(ebone)
             if was_affected:
-                affected_bones.add(bone_name)
+                affected_bones_names.add(bone_name)
 
         bpy.ops.object.mode_set(mode=mode)
-        return affected_bones
+        return affected_bones_names
 
     def affect_bone(self, eb: EditBone) -> bool:
         """Return whether the bone was indeed affected."""
@@ -110,15 +103,15 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        for b in get_selected_bones(context):
-            if b.use_connect:
+        for eb in get_selected_bones(context):
+            if eb.use_connect:
                 return True
         else:
             return False
 
     def affect_bone(self, eb: EditBone) -> bool:
-        if eb.parent:
-            eb.parent = None
+        if eb.use_connect:
+            eb.use_connect = False
             return True
         return False
 
@@ -194,10 +187,12 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, CloudRigOperato
         if not arm_con:
             arm_con = active_pb.constraints.new(type='ARMATURE')
 
-        for bone in get_selected_bones(context, exclude_active=True):
+        for pbone in context.selected_pose_bones:
+            if pbone == active_pb:
+                continue
             target = arm_con.targets.new()
-            target.target = rig
-            target.subtarget = bone.name
+            target.target = pbone.id_data
+            target.subtarget = pbone.name
 
         plural = "s" if len(arm_con.targets) != 1 else ""
         self.report(
@@ -220,7 +215,13 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        return len(get_selected_bones(context)) > 1 and get_active_bone(context)
+        selected_bones = get_selected_bones(context)
+        active_bone = get_active_bone(context)
+        if not len(selected_bones) > 1 and active_bone:
+            return False
+        if any([b.id_data != active_bone.id_data for b in selected_bones]):
+            return False
+        return True
 
     def parent_edit_bones(self, parent, bones_to_parent):
         parent.hide = False
@@ -288,11 +289,11 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
 
     def execute(self, context):
         rig = context.object
-        target_objs = [o for o in context.selected_objects if o != rig]
+        target_objs = [o for o in context.selected_objects if o.mode != 'POSE']
         if not target_objs:
             return {'CANCELLED'}
 
-        bones = get_selected_bones(context, exclude_active=False)
+        pbones = context.selected_pose_bones
         for obj in target_objs:
             arm_con = None
             for c in obj.constraints:
@@ -303,16 +304,16 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
             if not arm_con:
                 arm_con = obj.constraints.new(type='ARMATURE')
 
-            for bone in bones:
+            for pbone in pbones:
                 target = arm_con.targets.new()
-                target.target = rig
-                target.subtarget = bone.name
+                target.target = pbone.id_data
+                target.subtarget = pbone.name
             obj.parent = rig
             obj.parent_type = 'OBJECT'
 
         objs = obj.name if len(target_objs) == 1 else f"{len(target_objs)} objects"
-        plural_bone = "s" if len(bones) != 1 else ""
-        self.report({'INFO'}, f"Parented {objs} to {len(bones)} bone{plural_bone}.")
+        plural_bone = "s" if len(pbones) != 1 else ""
+        self.report({'INFO'}, f"Parented {objs} to {len(pbones)} bone{plural_bone}.")
         return {'FINISHED'}
 
 
