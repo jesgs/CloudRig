@@ -112,14 +112,14 @@ def find_cloudrig(context, allow_metarigs=True) -> Object | None:
     if is_good_rig(active):
         return active
 
-    if active.parent and is_good_rig(active.parent):
+    if active and active.parent and is_good_rig(active.parent):
         return active.parent
 
     pose_ob = context.pose_object
     if is_good_rig(pose_ob):
         return pose_ob
 
-    if active.type == 'MESH':
+    if active and active.type == 'MESH':
         return get_cloudrig_of_mesh(active)[0]
 
 
@@ -1527,8 +1527,16 @@ class CloudRigBoneCollection(PropertyGroup):
         self.parent_name = coll.name
 
     def unfold_parents(self):
-        # TODO 4.2: Redundant, delete
+        for parent in self.parents_recursive:
+            parent.is_expanded = True
+
+    @property
+    def is_expanded(self):
         return self.get_collection().is_expanded
+
+    @is_expanded.setter
+    def is_expanded(self, value):
+        self.get_collection.is_expanded = value
 
     @property
     def children(self) -> list[BoneCollection]:
@@ -1714,11 +1722,9 @@ class CLOUDRIG_UL_collections(UIList):
         layout.prop(rig.cloudrig_prefs, "collection_filter", text="")
 
     @staticmethod
-    def get_collection_order(all_collections):
-        # Order collections by CloudRig hierarchy, such that children come after their
-        # parents, but the original order is otherwise preserved.
-
+    def get_visual_collection_order(rig, filtered=False) -> list[BoneCollection]:
         # Find collections without any parent
+        all_collections = rig.data.collections_all
         root_colls = [coll for coll in all_collections if not coll.parent]
         sorted_colls = []
 
@@ -1730,8 +1736,25 @@ class CLOUDRIG_UL_collections(UIList):
         for root_coll in root_colls:
             add_children_recursive(root_coll)
 
+        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(
+            all_collections, rig.cloudrig_prefs.collection_filter
+        )
+
+        if filtered:
+            for i, flag in enumerate(flt_flags):
+                if flag == 0:
+                    sorted_colls.remove(all_collections[i])
+
+        return sorted_colls
+
+    @staticmethod
+    def get_collection_order(rig) -> list[int]:
+        # Order collections by CloudRig hierarchy, such that children come after their
+        # parents, but the original order is otherwise preserved.
+
+        sorted_colls = CLOUDRIG_UL_collections.get_visual_collection_order(rig)
         # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
-        return [sorted_colls.index(coll) for coll in all_collections]
+        return [sorted_colls.index(coll) for coll in rig.data.collections_all]
 
     @staticmethod
     def get_filter_flags(all_collections, filter_name):
@@ -1755,12 +1778,12 @@ class CLOUDRIG_UL_collections(UIList):
 
     def filter_items(self, context, data, propname):
         all_collections = getattr(data, propname)
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context)
 
         flt_flags = self.get_filter_flags(
             all_collections, rig.cloudrig_prefs.collection_filter
         )
-        flt_neworder = self.get_collection_order(all_collections)
+        flt_neworder = self.get_collection_order(rig)
 
         return flt_flags, flt_neworder
 
@@ -2160,14 +2183,17 @@ class POSE_OT_cloudrig_collection_parent_set(CloudRigOperator):
             return {'CANCELLED'}
 
         coll.parent = parent
-        rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
+
+        coll.cloudrig_info.unfold_parents()
+        index = all_colls.find(coll.name)
+        rig.cloudrig_prefs.active_collection_index = index
 
         self.report({'INFO'}, "Collection parent set.")
         return {'FINISHED'}
 
 
 class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
-    """Remove the active bone collection"""
+    """Remove the active bone collection. Shift+Click to delete hierarchy"""
 
     bl_idname = "pose.cloudrig_collection_delete"
     bl_label = "Remove Bone Collection"
@@ -2193,14 +2219,55 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
                 return False
             return True
 
+    def invoke(self, context, event):
+        if self.mode == 'ACTIVE' and event.shift:
+            self.mode = 'HIERARCHY'
+        return self.execute(context)
+
     def execute(self, context):
         rig = find_cloudrig(context)
+        visual_index = self.get_visual_active_index(rig)
+
+        if self.mode == 'ALL':
+            self.delete_all(rig)
+            self.report({'INFO'}, "Deleted all editable bone collections.")
+            return {'FINISHED'}
+
         if self.mode == 'ACTIVE':
-            return self.delete_active(rig)
+            ret = self.delete_active(rig)
+            if ret:
+                return ret
+            self.report({'INFO'}, "Deleted active collection.")
+
         elif self.mode == 'HIERARCHY':
-            return self.delete_hierarchy(rig)
-        elif self.mode == 'ALL':
-            return self.delete_all(rig)
+            ret = self.delete_hierarchy(rig)
+            if ret:
+                return ret
+            self.report(
+                {'INFO'}, "Deleted editable bone collections of selected hierarchy."
+            )
+
+        self.set_visual_active_index(rig, visual_index)
+
+        return {'FINISHED'}
+
+    def get_visual_active_index(self, rig):
+        sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
+            rig, filtered=True
+        )
+        return sorted_collections.index(rig.data.collections.active)
+
+    def set_visual_active_index(self, rig, index):
+        sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
+            rig, filtered=True
+        )
+        if index <= len(sorted_collections) - 1:
+            coll = sorted_collections[index]
+        elif len(sorted_collections) > 0:
+            coll = sorted_collections[index - 1]
+        else:
+            return
+        rig.cloudrig_prefs.active_collection_index = coll.index
 
     def delete_active(self, rig):
         coll = rig.data.collections.active
@@ -2210,21 +2277,14 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
 
         rig.data.collections.remove(coll)
 
-        rig.cloudrig_prefs.active_collection_index -= 1
-        return {'FINISHED'}
-
     def delete_hierarchy(self, rig):
         colls = rig.data.collections
-        if not colls.active.is_editable:
-            self.report({'ERROR'}, "Cannot remove linked collection.")
-            return {'CANCELLED'}
+        active = colls.active
 
-        for child in colls.active.cloudrig_info.children_recursive:
-            colls.remove(child)
-        colls.remove(colls.active)
-
-        rig.cloudrig_prefs.active_collection_index -= 1
-        return {'FINISHED'}
+        for child in active.cloudrig_info.children_recursive:
+            if child.is_editable:
+                colls.remove(child)
+        colls.remove(active)
 
     def delete_all(self, rig):
         for coll in rig.data.collections_all[:]:
@@ -2265,7 +2325,6 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
         colls.move(coll_idx, active_idx + 1)
 
         coll.cloudrig_info.unfold_parents()
-
         rig.cloudrig_prefs.active_collection_index = all_colls.find(coll.name)
 
         return {'FINISHED'}
