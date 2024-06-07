@@ -1530,13 +1530,14 @@ class CloudRigBoneCollection(PropertyGroup):
         for parent in self.parents_recursive:
             parent.is_expanded = True
 
-    @property
-    def is_expanded(self):
-        return self.get_collection().is_expanded
+    def update_is_expanded(self, context):
+        coll = self.get_collection()
+        coll.is_expanded = self.is_expanded
+        rig = find_cloudrig(context)
+        if rig:
+            rig.cloudrig_prefs.active_collection_index = coll.index
 
-    @is_expanded.setter
-    def is_expanded(self, value):
-        self.get_collection.is_expanded = value
+    is_expanded: BoolProperty(name="Is Expanded", description="Whether to show the children of this collection", default=False, update=update_is_expanded)
 
     @property
     def children(self) -> list[BoneCollection]:
@@ -1619,7 +1620,7 @@ class CLOUDRIG_UL_collections(UIList):
             row = row.row(align=True)
         if collection.children:
             icon = 'DOWNARROW_HLT' if collection.is_expanded else 'RIGHTARROW'
-            row.prop(collection, 'is_expanded', text="", icon=icon, emboss=False)
+            row.prop(collection.cloudrig_info, 'is_expanded', text="", icon=icon, emboss=False)
         else:
             row.label(text="", icon='BLANK1')
 
