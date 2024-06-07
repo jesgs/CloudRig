@@ -169,7 +169,7 @@ class SnappingOpMixin:
     @classmethod
     def poll(cls, context) -> bool:
         rig = find_cloudrig(context)
-        if not rig:
+        if not rig or rig.mode != 'POSE':
             return False
         return True
 
@@ -489,19 +489,15 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
     )
 
     def invoke(self, context, _event):
-        self.rig = self.get_context_rig(context)
-        try:
-            self.prop_pb = self.get_properties_bone(self.rig)
-            self.current_value = self.prop_pb[self.prop_id]
-            self.target_value = self.get_prop_target_value(self.prop_pb, self.prop_id)
-            self.bone_map = self.get_bone_map(self.current_value)
-        except Exception as exc:
-            # NOTE: This doesn't show line number of the error.
-            self.report({'ERROR'}, str(exc))
-            return {'CANCELLED'}
+        self.rig = context.active_object
+        self.prop_pb = self.get_properties_bone(self.rig)
+        self.current_value = self.prop_pb[self.prop_id]
+        self.target_value = self.get_prop_target_value(self.prop_pb, self.prop_id)
+        self.bone_map = self.get_bone_map(self.current_value)
         return super().invoke(context, _event)
 
     def execute(self, context):
+        rig = context.active_object
         active_frame_bkp = context.scene.frame_current
 
         # Store (copies!) of world matrices.
@@ -512,7 +508,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         )
 
         if self.do_bake:
-            self.keyframe_bones(context, frame_matrix_map, self.prop_pb)
+            self.keyframe_bones(context, rig, frame_matrix_map, self.prop_pb)
             context.scene.frame_set(active_frame_bkp)
             self.report({'INFO'}, "Finished baking.")
             return {'FINISHED'}
