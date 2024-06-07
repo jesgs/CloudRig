@@ -3,7 +3,7 @@ from bpy.types import Armature, Bone, Object
 from bpy.props import BoolProperty
 
 from ..generation.naming import slice_name
-from ..generation.cloudrig import register_hotkey, find_metarig_of_rig, CloudRigOperator
+from ..generation.cloudrig import register_hotkey, find_metarig_of_rig, find_cloudrig, CloudRigOperator
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -36,13 +36,23 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.active_object
-        return rig and rig.type == 'ARMATURE' and rig.visible_get()
+        rig = find_cloudrig(context)
+        return rig and rig.visible_get()
 
     def execute(self, context):
-        rig = context.active_object
-        metarig = None
+        rig = find_cloudrig(context)
+        if rig and rig != context.active_object:
+            # If the active object is a mesh deformed by the generated rig,
+            # focus the generated rig.
+            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.object.select_all(action='DESELECT')
+            rig.hide_set(False)
+            rig.select_set(True)
+            context.view_layer.objects.active = rig
+            bpy.ops.object.mode_set(mode='POSE')
+            return {'FINISHED'}
 
+        metarig = None
         if rig.cloudrig.generator.target_rig:
             # If the active object is a metarig, switch to the generated rig.
             metarig = rig

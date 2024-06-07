@@ -781,7 +781,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             if rig.cloudrig.ui_edit_mode:
                 if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
                     layout.operator(
-                        'pose.cloudrig_add_property_to_ui', icon='PROPERTIES'
+                        'pose.cloudrig_add_property_to_ui', icon='ADD'
                     )
 
         if ui_data:
@@ -1100,7 +1100,7 @@ def draw_slider(
         if not sub_row.alert:
             if type(prop_value) in {int, bool}:
                 child_op = sub_row.operator(
-                    'pose.cloudrig_add_child_property_to_ui', icon='OUTLINER', text=""
+                    'pose.cloudrig_add_child_property_to_ui', icon='ADD', text=""
                 )
                 child_op.parent_value = prop_value_str
                 child_op.parent_ui_path = json.dumps(ui_path)
@@ -2841,13 +2841,14 @@ def unregister():
     # This would also unregister add-on hotkeys.
     # unregister_hotkeys()
 
-    bpy.types.CLOUDRIG_PT_settings.unregister_subpanels()
+    if hasattr(bpy.types, 'CLOUDRIG_PT_settings'):
+        bpy.types.CLOUDRIG_PT_settings.unregister_subpanels()
 
     for c in classes:
         reg = is_registered(c)
         if reg:
             try:
-                unregister_class(reg)
+                unregister_class(c)
             except RuntimeError as e:
                 print("Failed to unregister ", c.__name__, str(e))
                 pass
