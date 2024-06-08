@@ -579,7 +579,8 @@ class BoneInfo:
             if value in [None, ""]:
                 continue
             if key == 'custom_shape_transform':
-                value = arm_ob.pose.bones.get(value.name)
+                name = self.owner_component.naming.get_name(value)
+                value = arm_ob.pose.bones.get(name)
             setattr(pose_bone, key, value)
 
         if (
