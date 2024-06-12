@@ -30,7 +30,7 @@ bl_info = {
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",
     'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
-    'tracker_url': "https://projects.blender.org/studio/blender-studio-pipelineq/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",
+    'tracker_url': "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",
     'support' : 'OFFICIAL',
     'category': 'Rigging',
 }
@@ -87,9 +87,9 @@ def register_unregister_modules(modules: list, register: bool):
 
 
 def ensure_importable_modules():
-    """This function is to fix GitLab/GitHub downloads that rename the add-on's 
+    """This function is to fix branch downloads that rename the add-on's 
     root folder (and thereby python module name) from MyAddOn to MyAddOn-master.
-    
+
     We do this by populating the sys.modules dictionary with references to the 
     existing modules, pointed to by the correct names.
     """

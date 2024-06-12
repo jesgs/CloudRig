@@ -540,7 +540,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def components_write_ebone_data(self):
         # Write edit bone data for BoneInfos.
-
+        assert False
         for bone_info in self.bone_infos_sorted_by_roll_dependency:
             edit_bone = self.target_rig.data.edit_bones.get(bone_info.name)
             bone_info.write_edit_data(self, edit_bone)

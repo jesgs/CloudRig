@@ -11,7 +11,7 @@ from ..generation.cloudrig import is_cloud_metarig
 """
 Fatal errors can happen in 3 ways:
 - Generic execution error anywhere throughout the generation process including asserts
-    - Should never happen and should be reported as a bug on GitLab.
+    - Should never happen and should be reported as a bug.
     - User should see stack trace in both the pop-up and the Generation Log; The latter also provides a Report Bug button.
 - Post-generation script error: This is a bug in the code written by the user, see execute_custom_script().
     - User should see a stack trace of only their script, both in the pop-up and the Generation Log.
@@ -773,7 +773,7 @@ class CLOUDRIG_OT_Report_Bug(Operator):
     """Report a bug on the CloudRig repository"""
 
     bl_idname = "wm.cloudrig_report_bug"
-    bl_label = "Report Bug (Requires GitLab Account)"
+    bl_label = "Report Bug"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):

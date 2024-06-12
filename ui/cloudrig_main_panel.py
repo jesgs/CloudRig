@@ -19,7 +19,7 @@ def draw_version_check(context, layout: UILayout) -> bool:
             context, layout, f"Find CloudRig for your Blender version here:", alert=True
         )
         op = layout.operator('wm.url_open', text="Releases", icon='URL')
-        op.url = "https://gitlab.com/blender/CloudRig/-/releases"
+        op.url = "https://extensions.blender.org/add-ons/cloudrig/"
         return False
 
     return True
