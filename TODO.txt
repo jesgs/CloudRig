@@ -1,5 +1,4 @@
 - Properties UI
-	- Allow adding an operator without a property
 	- Allow specifying icons for boolean on/off states.
 	- Write documentation.
 
@@ -7,7 +6,8 @@
 - Documentation typo: `button indicates When Armature`
 - Could also document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 - Ability to use the Action system without generating a rig.
-
+- Drag and drop bone collections, including parenting? (Drag right to parent to the above sibling, left to not?)
+- Apparently layout.panel() exists as of 4.1 or so.
 
 Priority -1: Migration
 	- Merge CloudRig into blender-studio-pipeline?
@@ -133,6 +133,10 @@ Ideas:
 			Next to it, a toggle button. When enabled, it switches to an object selector, from the local file.
 			If generating with an empty object, switch it back to the defaults.
 		Use the lovely new boolean custom properties where it makes sense! (IK/FK toggles shouldn't be sliders!)
+
+	Properties UX:
+		- Allow adding an operator without a property
+		This would require refactoring to store UI data in classes, which may be slower.
 
 - Rig Samples UX
 	- Add a hotkey in Armature Edit mode to Shift+A, that brings up a list menu with all the rig samples and "Single Bone".

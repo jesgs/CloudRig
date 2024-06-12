@@ -1,16 +1,20 @@
 schema_version = "1.0.0"
 
 id = "cloudrig"
-version = "2.0.0"
+version = "2.0.1"
 name = "CloudRig"
 tagline = "Rig Generation & Rigging Workflow Tools"
 maintainer = "Demeter Dzadik <demeter@blender.org>"
 type = "add-on"
-permissions = ["files", "clipboard"]
+
+[permissions]
+files = "Loads widgets and metarigs from .blend files"
+clipboard = "Uses the clipboard to copy and paste Bone Collections between armatures"
+
 website = "https://projects.blender.org/Mets/CloudRig"
 tags = ["Rigging"]
 
-blender_version_min = "4.2.0"
+blender_version_min = "4.1.0"
 
 license = [
   "SPDX:GPL-3.0-or-later",
