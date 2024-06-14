@@ -687,7 +687,7 @@ class BoneInfo:
                         r'constraints\[".*?"\]', f'constraints["{ci.name}"]', data_path
                     )
 
-                copy_relink_real_driver(metarig, arm_ob, fcurve, data_path)
+                copy_relink_real_driver(metarig, arm_ob, fcurve, data_path, array_index)
 
         # Custom Properties.
         for prop_name, prop in self.custom_props.items():
@@ -958,12 +958,14 @@ class ConstraintInfo(dict):
         return con
 
 
-def copy_relink_real_driver(metarig, rig, fcurve, data_path=""):
+def copy_relink_real_driver(
+    metarig, rig, fcurve, data_path: str = None, index: int = None
+):
     """Copy a real driver to the target rig.
     Replace references to the metarig with the generated rig.
     May copy to a different data path than the source.
     """
-    copy_driver(fcurve, rig, data_path)
+    copy_driver(fcurve, rig, data_path, index)
     for var in fcurve.driver.variables:
         for tgt in var.targets:
             if tgt.id == metarig:
@@ -992,7 +994,9 @@ def copy_driver(
 
     # Remove old driver if it exists.
     tgt_drivers = target.animation_data.drivers
-    if index:
+    if not data_path:
+        data_path = from_fcurve.data_path
+    if index not in {-1, None}:
         old_fcurve = tgt_drivers.find(data_path, index=index)
     else:
         old_fcurve = tgt_drivers.find(data_path)
@@ -1001,9 +1005,8 @@ def copy_driver(
         tgt_drivers.remove(old_fcurve)
 
     new_fcurve = tgt_drivers.from_existing(src_driver=from_fcurve)
-    if data_path:
-        new_fcurve.data_path = data_path
-    if index != None:
+    new_fcurve.data_path = data_path
+    if index not in {None, -1}:
         new_fcurve.array_index = index
 
     return new_fcurve
