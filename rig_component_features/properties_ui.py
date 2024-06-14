@@ -14,7 +14,6 @@ from bpy.props import StringProperty, BoolProperty, CollectionProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
     unquote_custom_prop_name,
-    ensure_custom_panels,
     feed_op_props,
     draw_property,
     read_rig_panels,
@@ -565,8 +564,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             panels=self.panels,
         )
 
-        ensure_custom_panels()
-
         if 'cloudrig_property_parent_selector' in context.scene:
             del context.scene['cloudrig_property_parent_selector']
         if 'cloudrig_property_name_selector' in context.scene:
@@ -713,38 +710,33 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
-        if event.type == 'MOUSEMOVE':
+        rig = context.active_object
+        self.index_offset = 0
+        if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+            self.index_offset = -1
+        elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+            self.index_offset = 1
+        elif event.type == 'MOUSEMOVE':
             self.index_offset = int((event.mouse_y - self.mouse_initial) / -20)
-            if self.index_offset != 0:
-                ret = self.execute(context)
-                if ret == {'FINISHED'}:
-                    redraw_viewport()
-                    self.mouse_initial = event.mouse_y
-                    self.update_ui_data(context, self.modified_panel_data)
-        elif event.type == 'LEFTMOUSE':
+        elif event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET'}:
             if self.row_data and 'is_dragged' in self.row_data:
                 del self.row_data['is_dragged']
                 write_rig_panels(context.active_object, self.modified_panel_data)
                 redraw_viewport()
             return {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            self.update_ui_data(context, self.initial_panel_data)
             write_rig_panels(context.active_object, self.initial_panel_data)
             redraw_viewport()
             return {'CANCELLED'}
 
-        return {'RUNNING_MODAL'}
+        if self.index_offset != 0:
+            ret = self.execute(context)
+            if ret == {'FINISHED'}:
+                self.mouse_initial = event.mouse_y
+                write_rig_panels(rig, self.modified_panel_data)
+                redraw_viewport()
 
-    def update_ui_data(self, context, ui_data):
-        rig = context.active_object
-        if not self.reset_panels:
-            write_rig_panels(rig, ui_data)
-            return
-        bpy.types.CLOUDRIG_PT_settings.unregister_subpanels()
-        redraw_viewport()
-        write_rig_panels(rig, ui_data)
-        bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(context)
-        redraw_viewport()
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         ui_path = json.loads(self.ui_path)

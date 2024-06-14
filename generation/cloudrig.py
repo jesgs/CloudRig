@@ -731,31 +731,6 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_settings"
     bl_label = "Settings"
 
-    subpanels = []
-
-    @classmethod
-    def ensure_custom_panels(cls, context):
-        rig, ui_data = get_rig_and_ui(context)
-        if not rig:
-            return
-        if not ui_data:
-            return
-
-        for panel_name, panel_data in ui_data.items():
-            if panel_name == "":
-                continue
-            parent_id = panel_data.get('parent_id')
-            if not parent_id:
-                parent_id = cls.bl_idname
-            ensure_custom_panel(panel_name, parent_id)
-
-    @classmethod
-    def unregister_subpanels(cls):
-        for panel in cls.subpanels:
-            if is_registered(panel):
-                unregister_class(panel)
-        cls.subpanels = []
-
     def draw(self, context):
         layout = self.layout
         rig, ui_data = get_rig_and_ui(context)
@@ -781,117 +756,62 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                     )
 
         if ui_data:
-            base_panel = ui_data.get("")
-            if base_panel:
-                layout.separator()
-                for label_name, label_data in base_panel.items():
-                    if type(label_data) == str:
-                        # It's a flag, not a UI element...
-                        continue
-                    draw_rig_settings_per_label(
-                        layout=layout,
-                        rig=rig,
-                        ui_path=[""],
-                        panel_name="",
-                        panel_data=base_panel,
-                        label_name=label_name,
-                        label_data=label_data,
-                    )
-
-
-class CLOUDRIG_PT_custom_panel(CLOUDRIG_PT_base):
-    """Base class for dynamically created sub-panels for the rig UI, created in ensure_custom_panel()"""
-
-    bl_parent_id = "CLOUDRIG_PT_settings"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
+            for panel_name, panel_data in ui_data.items():
+                if panel_name == "":
+                    layout.separator()
+                    for label_name, label_data in panel_data.items():
+                        if type(label_data) == str:
+                            # It's a flag, not a UI element...
+                            continue
+                        draw_rig_settings_per_label(
+                            layout=layout,
+                            rig=rig,
+                            ui_path=[""],
+                            panel_name="",
+                            panel_data=panel_data,
+                            label_name=label_name,
+                            label_data=label_data,
+                        )
+                else:
+                    sane_name = re.sub(r'\W+', '', panel_name)
+                    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
+                    header, body = layout.panel(full_name)
+                    self.draw_panel_header(context, header, panel_name)
+                    if body:
+                        self.draw_panel_contents(context, body, panel_name)
+    
+    def draw_panel_header(self, context, layout, panel_name):
         rig, ui_data = get_rig_and_ui(context)
-        if not rig:
-            return
+        panel_data = ui_data[panel_name]
 
-        if cls.bl_label in ui_data:
-            return True
-
-    def draw_header(self, context):
-        rig, ui_data = get_rig_and_ui(context)
-        panel_data = ui_data[self.bl_label]
-        layout = self.layout
-
-        op = draw_drag_operator(rig, ui_data, panel_data, self.bl_label, [], layout)
+        op = draw_drag_operator(rig, ui_data, panel_data, panel_name, [], layout)
         if op:
             op.reset_panels = True
 
-    def draw(self, context):
+        layout.label(text=panel_name)
+    
+    def draw_panel_contents(self, context, layout, panel_name):
         rig, ui_data = get_rig_and_ui(context)
 
-        panel_data = ui_data.get(self.bl_label)
+        panel_data = ui_data.get(panel_name)
         if panel_data:
-            self.draw_rig_settings_subpanel(
-                layout=self.layout,
-                rig=rig,
-                panel_name=self.bl_label,
-                panel_data=panel_data,
-            )
-
-    def draw_rig_settings_subpanel(
-        self,
-        layout: UILayout,
-        rig: Object,
-        panel_name: str,
-        panel_data: OrderedDict,
-    ):
-        """Panel data contains a list of tuples.
-        The first entry of each tuple is a string telling us the type of UI element to draw.
-        The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
-        """
-
-        for label_name, label_data in panel_data.items():
-            if type(label_data) == str:
-                # This is a flag, not a label.
-                continue
-            draw_rig_settings_per_label(
-                layout=layout,
-                rig=rig,
-                ui_path=[panel_name],
-                panel_name=panel_name,
-                panel_data=panel_data,
-                label_name=label_name,
-                label_data=label_data,
-            )
-
-
-def ensure_custom_panels(_dummy1=None, _dummy2=None):
-    # Since this function gets registered as an app_handler, it must have 2 parameters defined.
-    bpy.types.CLOUDRIG_PT_settings.ensure_custom_panels(bpy.context)
-
-
-def ensure_custom_panel(name, parent_id="CLOUDRIG_PT_settings"):
-    # Make sure name is alphanumeric
-    sane_name = re.sub(r'\W+', '', name)
-    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
-
-    if hasattr(bpy.types, full_name):
-        # It was already registered, so we skip.
-        return
-    if not hasattr(bpy.types, parent_id):
-        print(
-            f"CloudRig Custom Panel Error: Parent ID {parent_id} not found for {name}. Fell back to default."
-        )
-        parent_id = "CLOUDRIG_PT_settings"
-
-    # Dynamically create a new class, so it can be registered as a sub-panel.
-    new_panel = type(
-        full_name,
-        (CLOUDRIG_PT_custom_panel,),
-        {'bl_idname': full_name, 'bl_label': name, 'bl_parent_id': parent_id},
-    )
-
-    bpy.utils.register_class(new_panel)
-
-    # Save a reference so it can be unregistered, even though unregister() is never called.
-    bpy.types.CLOUDRIG_PT_settings.subpanels.append(new_panel)
+            """Panel data contains a list of tuples.
+            The first entry of each tuple is a string telling us the type of UI element to draw.
+            The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
+            """
+            for label_name, label_data in panel_data.items():
+                if type(label_data) == str:
+                    # This is a flag, not a label.
+                    continue
+                draw_rig_settings_per_label(
+                    layout=layout,
+                    rig=rig,
+                    ui_path=[panel_name],
+                    panel_name=panel_name,
+                    panel_data=panel_data,
+                    label_name=label_name,
+                    label_data=label_data,
+                )
 
 
 def read_rig_panels(obj) -> OrderedDict:
@@ -2790,13 +2710,6 @@ def register():
         type=CloudRigBoneCollection, override={'LIBRARY_OVERRIDABLE'}
     )
 
-    # Ensure custom panels.
-    if not __name__.endswith('.generation.cloudrig'):
-        # We avoid running this during add-on registration, since it relies on context.
-        ensure_custom_panels()
-    bpy.app.handlers.load_post.append(ensure_custom_panels)
-    bpy.app.handlers.depsgraph_update_post.append(ensure_custom_panels)
-
     # Inject our custom Bone Collections panel.
     if not hasattr(bpy.types.DATA_PT_bone_collections, 'draw_bkp'):
         bpy.types.DATA_PT_bone_collections.draw_bkp = (
@@ -2837,9 +2750,6 @@ def unregister():
     # This would also unregister add-on hotkeys.
     # unregister_hotkeys()
 
-    if hasattr(bpy.types, 'CLOUDRIG_PT_settings'):
-        bpy.types.CLOUDRIG_PT_settings.unregister_subpanels()
-
     for c in classes:
         reg = is_registered(c)
         if reg:
@@ -2852,9 +2762,6 @@ def unregister():
             print("Class was not registered ", c.__name__)
 
     try:
-        bpy.app.handlers.load_post.remove(ensure_custom_panels)
-        bpy.app.handlers.depsgraph_update_post.remove(ensure_custom_panels)
-
         # Un-inject our collection UI override.
         bpy.types.DATA_PT_bone_collections.poll = (
             bpy.types.DATA_PT_bone_collections.poll_bkp

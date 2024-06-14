@@ -31,7 +31,6 @@ from ..utils.misc import (
     assign_to_collection,
 )
 from .cloudrig import (
-    ensure_custom_panels,
     register_hotkey,
     is_active_cloud_metarig,
     is_active_cloudrig,
@@ -375,8 +374,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos()
-
-        ensure_custom_panels()
 
         self.restore_rig_states(context)
         self.log_minor_issues()
