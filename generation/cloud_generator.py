@@ -334,17 +334,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # ------------------------------------------
 
-        old_rig = self.params.target_rig
-        if old_rig:
-            replace_old_with_new_rig(
-                context,
-                old_rig,
-                self.target_rig,
-                preserve_sel_sets=self.preserve_sel_sets,
-                preserve_gizmos=self.use_gizmos,
-            )
-        else:
-            self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+        self.execute_custom_script()
 
         if self.params.generate_test_action:
             self.create_test_animation()
@@ -357,10 +347,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     action_layer.create_custom_property()
                     action_layer.rig_bones_and_shape_keys()
 
-        self.execute_custom_script()
-
         ensure_cloudrig_ui(self.target_rig)
-        self.params.target_rig = self.target_rig
 
         if self.params.reload_widgets and self.params.widget_collection:
             for obj in self.params.widget_collection.objects:
@@ -373,7 +360,20 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 )
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
-            auto_initialize_gizmos()
+            auto_initialize_gizmos(self.target_rig, self.bone_infos)
+
+        old_rig = self.params.target_rig
+        if old_rig:
+            replace_old_with_new_rig(
+                context,
+                old_rig,
+                self.target_rig,
+                preserve_sel_sets=self.preserve_sel_sets,
+                preserve_gizmos=self.use_gizmos,
+            )
+        else:
+            self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+        self.params.target_rig = self.target_rig
 
         self.restore_rig_states(context)
         self.log_minor_issues()
@@ -814,10 +814,6 @@ def replace_old_with_new_rig(
             pass
     new_rig.data.collections.active_index = 0
 
-    # Select and make active the new rig.
-    new_rig.select_set(True)
-    context.view_layer.objects.active = new_rig
-
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
         from bone_selection_sets import from_json
@@ -828,6 +824,10 @@ def replace_old_with_new_rig(
     old_rig.id_data.user_remap(new_rig)
     old_name = old_rig.name
 
+    # Select and make active the new rig.
+    new_rig.select_set(True)
+    context.view_layer.objects.active = new_rig
+    
     # Delete the old rig.
     bpy.data.objects.remove(old_rig)
 
@@ -900,6 +900,13 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
         target_rig = metarig.cloudrig.generator.target_rig
+        
+        # If the old rig isn't part of the scene, it needs to be. 
+        # The generation process works fine without this, 
+        # but it could confuse users if the generated rig isn't focused.
+        if target_rig and target_rig not in set(context.view_layer.objects):
+            self.report({'ERROR'}, f"Target rig '{target_rig.name}' cannot be re-generated because it is not in the current view layer.")
+            return {'CANCELLED'}
 
         # Save state so it can be restored for convenience.
         state_mode = 'OBJECT'
