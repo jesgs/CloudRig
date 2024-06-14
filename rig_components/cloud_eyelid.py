@@ -118,7 +118,7 @@ class Component_Eyelid(Component_FaceChain):
             row_name=eye_rig.params.aim.group,
             slider_name=self.parent_component.bones_org[0].name,
             custom_prop_settings={
-                'default': 1.0,
+                'default': 0.1,
             },
         )
 
