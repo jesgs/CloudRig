@@ -1624,7 +1624,7 @@ class CLOUDRIG_UL_collections(UIList):
             icon = 'TRACKER'
             if collection.cloudrig_info.is_dragged:
                 icon = 'VIEW_PAN'
-            row.operator(CLOUDRIG_OT_reorder_collections.bl_idname, text="", icon=icon).collection_name=collection.name
+            row.operator(POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon=icon).collection_name=collection.name
 
         return row
 
@@ -1780,23 +1780,6 @@ def draw_cloudrig_collections(self, context, rig: Object):
     active_coll = rig.data.collections.active
     if not active_coll:
         return
-
-    siblings, sibling_idx = (
-        POSE_OT_cloudrig_collection_reorder.get_siblings_and_target_idx(
-            'UP', active_coll
-        )
-    )
-    row = list_col.row()
-    row.enabled = sibling_idx >= 0
-    row.operator(
-        POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon='TRIA_UP'
-    ).direction = 'UP'
-
-    row = list_col.row()
-    row.enabled = sibling_idx + 2 < len(siblings)
-    row.operator(
-        POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon='TRIA_DOWN'
-    ).direction = 'DOWN'
 
     row = layout.row()
     if context.mode not in {'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'}:
@@ -2268,70 +2251,7 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
 
         return {'FINISHED'}
 
-
 class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
-    """Move the collection in the list"""
-
-    bl_idname = "pose.cloudrig_collection_reorder"
-    bl_label = "Move Active Bone Collection"
-    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
-
-    direction: EnumProperty(
-        name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")]
-    )
-
-    @classmethod
-    def poll(cls, context):
-        rig = find_cloudrig(context)
-        if not rig:
-            return False
-        active_coll = rig.data.collections.active
-        if active_coll:
-            if not active_coll.is_editable:
-                cls.poll_message_set(
-                    "Re-ordering the linked collection tree is currently not supported"
-                )
-                return False
-            return True
-
-    @classmethod
-    def description(cls, context, props):
-        direction = "up" if props.direction == 'UP' else "down"
-        return f"Move active collection {direction} in the list"
-
-    @staticmethod
-    def get_siblings_and_target_idx(direction, coll):
-        siblings = coll.cloudrig_info.siblings
-
-        for sibling_idx, sibling in enumerate(siblings):
-            if sibling == coll:
-                break
-
-        delta = 1 if direction == 'DOWN' else -1
-        sibling_idx += delta
-
-        return siblings, sibling_idx
-
-    def execute(self, context):
-        rig = find_cloudrig(context)
-
-        collections = rig.data.collections
-
-        old_idx = collections.active_index
-        new_idx = old_idx + 1
-        if self.direction == 'UP':
-            new_idx = old_idx - 1
-
-        collections.move(old_idx, new_idx)
-
-        rig.cloudrig_prefs.active_collection_index = rig.data.collections_all.find(
-            collections.active.name
-        )
-
-        return {'FINISHED'}
-
-
-class CLOUDRIG_OT_reorder_collections(CloudRigOperator):
     """Rearrange and re-parent this collection by moving the mouse in all directions. Left-click to confirm, right-click to cancel. May also use arrow keys or WASD instead of mouse"""
 
     bl_idname = "pose.cloudrig_reorder_collections"
@@ -2808,7 +2728,6 @@ classes = (
     POSE_OT_cloudrig_collection_delete,
     POSE_OT_cloudrig_collection_add,
     POSE_OT_cloudrig_collection_reorder,
-    CLOUDRIG_OT_reorder_collections,
     POSE_OT_cloudrig_collection_assign,
     POSE_OT_cloudrig_collection_clipboard_copy,
     POSE_OT_cloudrig_collection_clipboard_paste,
