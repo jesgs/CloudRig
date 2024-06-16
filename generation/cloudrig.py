@@ -2332,7 +2332,7 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
 
 
 class CLOUDRIG_OT_reorder_collections(CloudRigOperator):
-    """Rearrange this collection by moving the mouse up and down. Left-click to confirm, right-click to cancel"""
+    """Rearrange and re-parent this collection by moving the mouse in all directions. Left-click to confirm, right-click to cancel. May also use arrow keys or WASD instead of mouse"""
 
     bl_idname = "pose.cloudrig_reorder_collections"
     bl_label = "Reorder Collections"
@@ -2341,13 +2341,15 @@ class CLOUDRIG_OT_reorder_collections(CloudRigOperator):
     collection_name: StringProperty()
 
     def invoke(self, context, event):
-        self.mouse_initial = event.mouse_y
+        self.mouse_anchor_y = event.mouse_y
+        self.mouse_anchor_x = event.mouse_x
         self.index_offset = 0
 
         rig = find_cloudrig(context)
         self.collection = rig.data.collections.get(self.collection_name)
         if not self.collection:
             return {'CANCELLED'}
+        self.initial_parent = self.collection.parent
         self.collection.cloudrig_info.is_dragged = True
         rig.cloudrig_prefs.active_collection_index = self.initial_index = self.collection.index
 
@@ -2362,48 +2364,89 @@ class CLOUDRIG_OT_reorder_collections(CloudRigOperator):
         elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.index_offset = 1
         elif event.type == 'MOUSEMOVE':
-            self.index_offset = int((event.mouse_y - self.mouse_initial) / -20)
+            self.index_offset = int((event.mouse_y - self.mouse_anchor_y) / -20)
+            if int((event.mouse_x - self.mouse_anchor_x) / 20) > 0:
+                self.parent_active_coll_to_prev_sibling(rig)
+                self.mouse_anchor_x = event.mouse_x
+            elif int((event.mouse_x - self.mouse_anchor_x) / -20) > 0:
+                self.unparent_active_coll_by_one(rig)
+                self.mouse_anchor_x = event.mouse_x
         elif event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET'}:
             self.collection.cloudrig_info.is_dragged = False
-            # redraw_viewport()
             return {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             self.collection.cloudrig_info.is_dragged = False
+            self.collection.parent = self.initial_parent
             rig.data.collections.move(self.collection.index, self.initial_index)
             rig.cloudrig_prefs.active_collection_index = self.collection.index
-
-            # TODO: Restore the collection order, somehow.
-            # redraw_viewport()
             return {'CANCELLED'}
+        elif event.type in {'RIGHT_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+            self.parent_active_coll_to_prev_sibling(rig)
+        elif event.type in {'LEFT_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+            self.unparent_active_coll_by_one(rig)
 
         if self.index_offset != 0:
-            ret = self.execute(context)
+            ret = self.move_active_coll_up_down(rig, self.index_offset)
             if ret == {'FINISHED'}:
-                self.mouse_initial = event.mouse_y
-                # redraw_viewport()
+                self.mouse_anchor_y = event.mouse_y
 
         return {'RUNNING_MODAL'}
 
-    def execute(self, context):
-        rig = find_cloudrig(context)
+    def unparent_active_coll_by_one(self, rig):
+        active_coll = rig.data.collections.active
+        if not active_coll.parent:
+            return {'CANCELLED'}
+        old_parent = active_coll.parent
+        
+        old_parent.is_expanded = False
+        active_coll.parent = old_parent.parent
+        rig.data.collections.move(active_coll.index, old_parent.index+1)
+        rig.cloudrig_prefs.active_collection_index = active_coll.index
+        
+        if active_coll.parent:
+            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'")
+        else:
+            self.report({'INFO'}, f"Set parent to None")
+        return {'FINISHED'}
 
+    def parent_active_coll_to_prev_sibling(self, rig):
+        active_coll = rig.data.collections.active
+        prev_sibling = self.get_sibling_of_active_coll(rig, -1)
+        if not prev_sibling:
+            return {'CANCELLED'}
+
+        prev_sibling.is_expanded = True
+        active_coll.parent = prev_sibling
+
+        rig.cloudrig_prefs.active_collection_index = active_coll.index
+
+        if active_coll.parent:
+            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'")
+        else:
+            self.report({'INFO'}, f"Set parent to None")
+        return {'FINISHED'}
+
+    def get_sibling_of_active_coll(self, rig, index_offset=-1) -> BoneCollection | None:
         visual_order = CLOUDRIG_UL_collections.get_visual_collection_order(rig, filtered=True)
         visual_index = POSE_OT_cloudrig_collection_delete.get_visual_active_index(rig)
 
-        done = False
-        while not done:
-            visual_index += self.index_offset
+        while True:
+            visual_index += index_offset
             if visual_index < 0 or visual_index > len(visual_order)-1:
-                return {'CANCELLED'}
+                return None
 
             other_coll = visual_order[visual_index]
             if other_coll.parent == self.collection.parent:
-                done = True
+                return other_coll
 
-        rig.data.collections.move(self.collection.index, other_coll.index)
-        rig.cloudrig_prefs.active_collection_index = self.collection.index
-        # redraw_viewport()
+    def move_active_coll_up_down(self, rig, index_offset=-1):
+        active_coll = rig.data.collections.active
+        sibling_coll = self.get_sibling_of_active_coll(rig, index_offset)
+        if not sibling_coll:
+            return {'CANCELLED'}
 
+        rig.data.collections.move(active_coll.index, sibling_coll.index)
+        rig.cloudrig_prefs.active_collection_index = active_coll.index
         return {'FINISHED'}
 
 class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
