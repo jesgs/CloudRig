@@ -684,12 +684,6 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         default="",
         description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name",
     )
-    reset_panels: BoolProperty(
-        name="Reset Panels",
-        default=False,
-        options={'SKIP_SAVE'},
-        description="Internal. When re-ordering panels, they need to be re-registered. Set this to True when this operator is re-ordering panels",
-    )
 
     def invoke(self, context, event):
         self.mouse_initial = event.mouse_y

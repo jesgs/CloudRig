@@ -784,9 +784,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         rig, ui_data = get_rig_and_ui(context)
         panel_data = ui_data[panel_name]
 
-        op = draw_drag_operator(rig, ui_data, panel_data, panel_name, [], layout)
-        if op:
-            op.reset_panels = True
+        draw_drag_operator(rig, ui_data, panel_data, panel_name, [], layout)
 
         layout.label(text=panel_name)
     
@@ -1411,6 +1409,12 @@ class CloudRigBoneCollection(PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
 
+    is_dragged: BoolProperty(
+        name="Is Dragged",
+        description="Internal. Flag to mark that this collection is currently dragged by the reorder operator. Used to change the icon",
+        default=False
+    )
+
     @property
     def are_parents_visible(self):
         parent = self.parent_collection
@@ -1616,6 +1620,12 @@ class CLOUDRIG_UL_collections(UIList):
                     else 'FAKE_USER_OFF'
                 )
                 row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
+
+            icon = 'TRACKER'
+            if collection.cloudrig_info.is_dragged:
+                icon = 'VIEW_PAN'
+            row.operator(CLOUDRIG_OT_reorder_collections.bl_idname, text="", icon=icon).collection_name=collection.name
+
         return row
 
     def draw_item(
@@ -1640,6 +1650,9 @@ class CLOUDRIG_UL_collections(UIList):
 
     @staticmethod
     def get_visual_collection_order(rig, filtered=False) -> list[BoneCollection]:
+        """Return the collections of the rig in the order they are currently to be displayed in the UIList.
+        If filtered, only include those collections in the list which aren't being filtered, eg. by collapsing parents, or search."""
+
         # Find collections without any parent
         all_collections = rig.data.collections_all
         root_colls = [coll for coll in all_collections if not coll.parent]
@@ -2150,11 +2163,8 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
             self.report({'INFO'}, "Deleted all editable bone collections.")
             return {'FINISHED'}
 
-        if self.mode == 'ACTIVE':
-            ret = self.delete_active(rig)
-            if ret:
-                return ret
-            self.report({'INFO'}, "Deleted active collection.")
+        if self.mode == 'ACTIVE' and not self.delete_active(rig):
+            return {'CANCELLED'}
 
         elif self.mode == 'HIERARCHY':
             ret = self.delete_hierarchy(rig)
@@ -2168,13 +2178,18 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
 
         return {'FINISHED'}
 
-    def get_visual_active_index(self, rig):
+    @staticmethod
+    def get_visual_active_index(rig) -> int:
+        """Get the index of the active collection as it is in the current UIList. 
+        Eg., if the active collection is the 3rd one that is drawn, this will return 2."""
         sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
             rig, filtered=True
         )
         return sorted_collections.index(rig.data.collections.active)
 
     def set_visual_active_index(self, rig, index):
+        """Set the index of the active collection as they appear in the UIList.
+        Eg., if index==2, the 3rd collection from the top of the list will become active."""
         sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
             rig, filtered=True
         )
@@ -2186,13 +2201,20 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
             return
         rig.cloudrig_prefs.active_collection_index = coll.index
 
-    def delete_active(self, rig):
+    def delete_active(self, rig) -> bool:
+        """Try to delete the active bone collection, and return success state."""
         coll = rig.data.collections.active
+        if not coll:
+            self.report({'ERROR'}, "There is no active collection.")
+            return False
         if not coll.is_editable:
             self.report({'ERROR'}, "Cannot delete linked collection.")
-            return {'CANCELLED'}
+            return False
 
+        coll_name = coll.name
         rig.data.collections.remove(coll)
+        self.report({'INFO'}, f"Deleted active collection: '{coll_name}'")
+        return True
 
     def delete_hierarchy(self, rig):
         colls = rig.data.collections
@@ -2308,6 +2330,81 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
 
         return {'FINISHED'}
 
+
+class CLOUDRIG_OT_reorder_collections(CloudRigOperator):
+    """Rearrange this collection by moving the mouse up and down. Left-click to confirm, right-click to cancel"""
+
+    bl_idname = "pose.cloudrig_reorder_collections"
+    bl_label = "Reorder Collections"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    collection_name: StringProperty()
+
+    def invoke(self, context, event):
+        self.mouse_initial = event.mouse_y
+        self.index_offset = 0
+
+        rig = find_cloudrig(context)
+        self.collection = rig.data.collections.get(self.collection_name)
+        if not self.collection:
+            return {'CANCELLED'}
+        self.collection.cloudrig_info.is_dragged = True
+        rig.cloudrig_prefs.active_collection_index = self.initial_index = self.collection.index
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        rig = find_cloudrig(context)
+        self.index_offset = 0
+        if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+            self.index_offset = -1
+        elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+            self.index_offset = 1
+        elif event.type == 'MOUSEMOVE':
+            self.index_offset = int((event.mouse_y - self.mouse_initial) / -20)
+        elif event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET'}:
+            self.collection.cloudrig_info.is_dragged = False
+            # redraw_viewport()
+            return {'FINISHED'}
+        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            self.collection.cloudrig_info.is_dragged = False
+            rig.data.collections.move(self.collection.index, self.initial_index)
+            rig.cloudrig_prefs.active_collection_index = self.collection.index
+
+            # TODO: Restore the collection order, somehow.
+            # redraw_viewport()
+            return {'CANCELLED'}
+
+        if self.index_offset != 0:
+            ret = self.execute(context)
+            if ret == {'FINISHED'}:
+                self.mouse_initial = event.mouse_y
+                # redraw_viewport()
+
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        rig = find_cloudrig(context)
+
+        visual_order = CLOUDRIG_UL_collections.get_visual_collection_order(rig, filtered=True)
+        visual_index = POSE_OT_cloudrig_collection_delete.get_visual_active_index(rig)
+
+        done = False
+        while not done:
+            visual_index += self.index_offset
+            if visual_index < 0 or visual_index > len(visual_order)-1:
+                return {'CANCELLED'}
+
+            other_coll = visual_order[visual_index]
+            if other_coll.parent == self.collection.parent:
+                done = True
+
+        rig.data.collections.move(self.collection.index, other_coll.index)
+        rig.cloudrig_prefs.active_collection_index = self.collection.index
+        # redraw_viewport()
+
+        return {'FINISHED'}
 
 class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
     """Assign to collections"""
@@ -2668,6 +2765,7 @@ classes = (
     POSE_OT_cloudrig_collection_delete,
     POSE_OT_cloudrig_collection_add,
     POSE_OT_cloudrig_collection_reorder,
+    CLOUDRIG_OT_reorder_collections,
     POSE_OT_cloudrig_collection_assign,
     POSE_OT_cloudrig_collection_clipboard_copy,
     POSE_OT_cloudrig_collection_clipboard_paste,
