@@ -751,9 +751,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             layout.prop(rig.cloudrig, 'ui_edit_mode', icon='GREASEPENCIL')
             if rig.cloudrig.ui_edit_mode:
                 if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
-                    layout.operator(
-                        'pose.cloudrig_add_property_to_ui', icon='ADD'
-                    )
+                    layout.operator('pose.cloudrig_add_property_to_ui', icon='ADD')
 
         if ui_data:
             for panel_name, panel_data in ui_data.items():
@@ -774,12 +772,14 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                         )
                 else:
                     sane_name = re.sub(r'\W+', '', panel_name)
-                    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
+                    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(
+                        " ", ""
+                    )
                     header, body = layout.panel(full_name)
                     self.draw_panel_header(context, header, panel_name)
                     if body:
                         self.draw_panel_contents(context, body, panel_name)
-    
+
     def draw_panel_header(self, context, layout, panel_name):
         rig, ui_data = get_rig_and_ui(context)
         panel_data = ui_data[panel_name]
@@ -787,7 +787,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         draw_drag_operator(rig, ui_data, panel_data, panel_name, [], layout)
 
         layout.label(text=panel_name)
-    
+
     def draw_panel_contents(self, context, layout, panel_name):
         rig, ui_data = get_rig_and_ui(context)
 
@@ -1412,7 +1412,7 @@ class CloudRigBoneCollection(PropertyGroup):
     is_dragged: BoolProperty(
         name="Is Dragged",
         description="Internal. Flag to mark that this collection is currently dragged by the reorder operator. Used to change the icon",
-        default=False
+        default=False,
     )
 
     @property
@@ -1457,7 +1457,12 @@ class CloudRigBoneCollection(PropertyGroup):
         if rig:
             rig.cloudrig_prefs.active_collection_index = coll.index
 
-    is_expanded: BoolProperty(name="Is Expanded", description="Whether to show the children of this collection", default=False, update=update_is_expanded)
+    is_expanded: BoolProperty(
+        name="Is Expanded",
+        description="Whether to show the children of this collection",
+        default=False,
+        update=update_is_expanded,
+    )
 
     @property
     def children(self) -> list[BoneCollection]:
@@ -1540,7 +1545,13 @@ class CLOUDRIG_UL_collections(UIList):
             row = row.row(align=True)
         if collection.children:
             icon = 'DOWNARROW_HLT' if collection.is_expanded else 'RIGHTARROW'
-            row.prop(collection.cloudrig_info, 'is_expanded', text="", icon=icon, emboss=False)
+            row.prop(
+                collection.cloudrig_info,
+                'is_expanded',
+                text="",
+                icon=icon,
+                emboss=False,
+            )
         else:
             row.label(text="", icon='BLANK1')
 
@@ -1602,12 +1613,6 @@ class CLOUDRIG_UL_collections(UIList):
             row.prop(collection, 'is_solo', text="", icon=icon)
         if prefs.show_editing:
             row.separator()
-            if collection.is_editable:
-                row.operator(
-                    POSE_OT_cloudrig_collection_parent_set.bl_idname,
-                    text="",
-                    icon='CON_CHILDOF',
-                ).coll_idx = idx
 
             icon = 'RECORD_ON' if cloudrig_info.quick_access else 'RECORD_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
@@ -1621,10 +1626,13 @@ class CLOUDRIG_UL_collections(UIList):
                 )
                 row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
 
-            icon = 'TRACKER'
-            if collection.cloudrig_info.is_dragged:
-                icon = 'VIEW_PAN'
-            row.operator(POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon=icon).collection_name=collection.name
+            if collection.is_editable:
+                icon = 'TRACKER'
+                if collection.cloudrig_info.is_dragged:
+                    icon = 'VIEW_PAN'
+                row.operator(
+                    POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon=icon
+                ).collection_name = collection.name
 
         return row
 
@@ -1651,7 +1659,8 @@ class CLOUDRIG_UL_collections(UIList):
     @staticmethod
     def get_visual_collection_order(rig, filtered=False) -> list[BoneCollection]:
         """Return the collections of the rig in the order they are currently to be displayed in the UIList.
-        If filtered, only include those collections in the list which aren't being filtered, eg. by collapsing parents, or search."""
+        If filtered, only include those collections in the list which aren't being filtered, eg. by collapsing parents, or search.
+        """
 
         # Find collections without any parent
         all_collections = rig.data.collections_all
@@ -2033,78 +2042,6 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_parent_set(CloudRigOperator):
-    """Set parent collection"""
-
-    bl_idname = "pose.cloudrig_collection_parent_set"
-    bl_label = "Set Parent Collection"
-    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
-
-    coll_idx: IntProperty(
-        name="Collection Index",
-        description="Index of the collection to change the parent of",
-        options={'SKIP_SAVE'},
-    )
-    parent_name: StringProperty(
-        name="Parent",
-        description="Parent to set as this bone collection's parent",
-    )
-
-    @classmethod
-    def poll(cls, context):
-        return bool(find_cloudrig(context))
-
-    def invoke(self, context, _event):
-        rig = find_cloudrig(context)
-        coll = rig.data.collections_all[self.coll_idx]
-        if not coll.is_editable:
-            self.report({'ERROR'}, "Cannot change the parent of linked collections.")
-            return {'CANCELLED'}
-        if coll.parent:
-            self.parent_name = coll.parent.name
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = False
-        rig = find_cloudrig(context)
-        layout.prop_search(self, 'parent_name', rig.data, 'collections_all')
-
-    def execute(self, context):
-        rig = find_cloudrig(context)
-        all_colls = rig.data.collections_all
-        parent = all_colls.get(self.parent_name)
-        coll = all_colls[self.coll_idx]
-
-        if coll.parent == parent:
-            self.report({'INFO'}, "This parent is already set. Nothing was done.")
-            return {'CANCELLED'}
-        if coll.parent == coll:
-            self.report({'ERROR'}, "Cannot set a collection's parent to be itself.")
-            return {'CANCELLED'}
-        if parent and not parent.is_editable:
-            self.report(
-                {'ERROR'},
-                "Parenting to a linked collection is currently not supported.",
-            )
-            return {'CANCELLED'}
-        if not coll.is_editable:
-            self.report(
-                {'ERROR'},
-                "Changing parent of linked collection is currently not supported.",
-            )
-            return {'CANCELLED'}
-
-        coll.parent = parent
-
-        coll.cloudrig_info.unfold_parents()
-        index = all_colls.find(coll.name)
-        rig.cloudrig_prefs.active_collection_index = index
-
-        self.report({'INFO'}, "Collection parent set.")
-        return {'FINISHED'}
-
-
 class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
     """Remove the active bone collection. Shift+Click to delete hierarchy"""
 
@@ -2163,8 +2100,9 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
 
     @staticmethod
     def get_visual_active_index(rig) -> int:
-        """Get the index of the active collection as it is in the current UIList. 
-        Eg., if the active collection is the 3rd one that is drawn, this will return 2."""
+        """Get the index of the active collection as it is in the current UIList.
+        Eg., if the active collection is the 3rd one that is drawn, this will return 2.
+        """
         sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
             rig, filtered=True
         )
@@ -2172,7 +2110,8 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
 
     def set_visual_active_index(self, rig, index):
         """Set the index of the active collection as they appear in the UIList.
-        Eg., if index==2, the 3rd collection from the top of the list will become active."""
+        Eg., if index==2, the 3rd collection from the top of the list will become active.
+        """
         sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
             rig, filtered=True
         )
@@ -2251,6 +2190,7 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
 
         return {'FINISHED'}
 
+
 class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
     """Rearrange and re-parent this collection by moving the mouse in all directions. Left-click to confirm, right-click to cancel. May also use arrow keys or WASD instead of mouse"""
 
@@ -2271,7 +2211,9 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
             return {'CANCELLED'}
         self.initial_parent = self.collection.parent
         self.collection.cloudrig_info.is_dragged = True
-        rig.cloudrig_prefs.active_collection_index = self.initial_index = self.collection.index
+        rig.cloudrig_prefs.active_collection_index = self.initial_index = (
+            self.collection.index
+        )
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
@@ -2279,9 +2221,17 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
     def modal(self, context, event):
         rig = find_cloudrig(context)
         self.index_offset = 0
-        if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+        if (
+            event.type in {'W', 'UP_ARROW'}
+            and not event.is_repeat
+            and event.value != 'RELEASE'
+        ):
             self.index_offset = -1
-        elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+        elif (
+            event.type in {'S', 'DOWN_ARROW'}
+            and not event.is_repeat
+            and event.value != 'RELEASE'
+        ):
             self.index_offset = 1
         elif event.type == 'MOUSEMOVE':
             self.index_offset = int((event.mouse_y - self.mouse_anchor_y) / -20)
@@ -2300,9 +2250,17 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
             rig.data.collections.move(self.collection.index, self.initial_index)
             rig.cloudrig_prefs.active_collection_index = self.collection.index
             return {'CANCELLED'}
-        elif event.type in {'RIGHT_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+        elif (
+            event.type in {'RIGHT_ARROW'}
+            and not event.is_repeat
+            and event.value != 'RELEASE'
+        ):
             self.parent_active_coll_to_prev_sibling(rig)
-        elif event.type in {'LEFT_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+        elif (
+            event.type in {'LEFT_ARROW'}
+            and not event.is_repeat
+            and event.value != 'RELEASE'
+        ):
             self.unparent_active_coll_by_one(rig)
 
         if self.index_offset != 0:
@@ -2317,12 +2275,12 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
         if not active_coll.parent:
             return {'CANCELLED'}
         old_parent = active_coll.parent
-        
+
         old_parent.is_expanded = False
         active_coll.parent = old_parent.parent
-        rig.data.collections.move(active_coll.index, old_parent.index+1)
+        rig.data.collections.move(active_coll.index, old_parent.index + 1)
         rig.cloudrig_prefs.active_collection_index = active_coll.index
-        
+
         if active_coll.parent:
             self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'")
         else:
@@ -2331,7 +2289,9 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
 
     def parent_active_coll_to_prev_sibling(self, rig):
         active_coll = rig.data.collections.active
-        prev_sibling = self.get_sibling_of_active_coll(rig, -1)
+        prev_sibling = self.get_sibling_of_active_coll(
+            rig, index_offset=-1, only_editable=True
+        )
         if not prev_sibling:
             return {'CANCELLED'}
 
@@ -2346,28 +2306,35 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
             self.report({'INFO'}, f"Set parent to None")
         return {'FINISHED'}
 
-    def get_sibling_of_active_coll(self, rig, index_offset=-1) -> BoneCollection | None:
-        visual_order = CLOUDRIG_UL_collections.get_visual_collection_order(rig, filtered=True)
+    def get_sibling_of_active_coll(
+        self, rig, *, index_offset=-1, only_editable=False
+    ) -> BoneCollection | None:
+        visual_order = CLOUDRIG_UL_collections.get_visual_collection_order(
+            rig, filtered=True
+        )
         visual_index = POSE_OT_cloudrig_collection_delete.get_visual_active_index(rig)
 
         while True:
             visual_index += index_offset
-            if visual_index < 0 or visual_index > len(visual_order)-1:
+            if visual_index < 0 or visual_index > len(visual_order) - 1:
                 return None
 
             other_coll = visual_order[visual_index]
+            if only_editable and not other_coll.is_editable:
+                continue
             if other_coll.parent == self.collection.parent:
                 return other_coll
 
     def move_active_coll_up_down(self, rig, index_offset=-1):
         active_coll = rig.data.collections.active
-        sibling_coll = self.get_sibling_of_active_coll(rig, index_offset)
+        sibling_coll = self.get_sibling_of_active_coll(rig, index_offset=index_offset)
         if not sibling_coll:
             return {'CANCELLED'}
 
         rig.data.collections.move(active_coll.index, sibling_coll.index)
         rig.cloudrig_prefs.active_collection_index = active_coll.index
         return {'FINISHED'}
+
 
 class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
     """Assign to collections"""
@@ -2724,7 +2691,6 @@ classes = (
     POSE_OT_cloudrig_reset,
     POSE_OT_cloudrig_collections_reveal_all,
     POSE_OT_cloudrig_collection_select,
-    POSE_OT_cloudrig_collection_parent_set,
     POSE_OT_cloudrig_collection_delete,
     POSE_OT_cloudrig_collection_add,
     POSE_OT_cloudrig_collection_reorder,

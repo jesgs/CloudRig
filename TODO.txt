@@ -6,7 +6,6 @@
 - Documentation typo: `button indicates When Armature`
 - Could also document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 - Ability to use the Action system without generating a rig.
-- Drag and drop bone collections, including parenting? (Drag right to parent to the above sibling, left to not?)
 
 Priority -1: Migration
 	- Merge CloudRig into blender-studio-pipeline?
