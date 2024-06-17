@@ -213,6 +213,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     op_icon: StringProperty(
         name="Operator Icon", default='BLANK1', description="Operator Icon"
     )
+    icon_true: StringProperty(
+        name="True Icon", default='CHECKBOX_HLT', description="Property icon when value is True"
+    )
+    icon_false: StringProperty(
+        name="False Icon", default='CHECKBOX_DEHLT', description="Property icon when value is False"
+    )
 
     children: StringProperty(
         name="UI Children",
@@ -405,6 +411,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         panel_box.prop(self, 'slider_name')
         if type(prop_value) in {bool, int}:
             panel_box.prop(self, 'texts')
+        if type(prop_value) == bool:
+            icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
+            panel_box.prop_search(self, 'icon_true', icons, 'enum_items', icon=self.icon_true)
+            panel_box.prop_search(self, 'icon_false', icons, 'enum_items', icon=self.icon_false)
 
     def draw_op_box(self, layout, context):
         if self.use_batch_add:
@@ -550,17 +560,23 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             obj=rig,
             owner_path=owner_path,
             prop_name=brackets_prop_name,
+            ###
             panel_name=self.panel_name,
             label_name=self.label_name,
             row_name=self.row_name,
             slider_name=self.slider_name,
             texts=[t.strip() for t in self.texts.split(",")],
+            icon_true=self.icon_true,
+            icon_false=self.icon_false,
+            ###
             children=json.loads(self.children),
             ui_path=ui_path,
             parent_value=self.parent_value,
+            ###
             operator=self.temp_kmi.idname,
             op_icon=self.op_icon,
             op_kwargs=self.op_kwargs_dict,
+            ###
             panels=self.panels,
         )
 
@@ -836,6 +852,8 @@ def add_property_to_ui(
     row_name="",
     slider_name="",
     texts: list[str] = [],
+    icon_true = 'CHECKBOX_HLT',
+    icon_false = 'CHECKBOX_DEHLT',
     ###
     children={},
     ui_path: list[str] = None,
@@ -876,6 +894,11 @@ def add_property_to_ui(
         'owner_path': owner_path,
         'prop_name': prop_name,
     }
+
+    if icon_true != 'CHECKBOX_HLT':
+        slider_dict['icon_true'] = icon_true
+    if icon_false != 'CHECKBOX_DEHLT':
+        slider_dict['icon_false'] = icon_false
 
     if children:
         slider_dict['children'] = {str(key): value for key, value in children.items()}

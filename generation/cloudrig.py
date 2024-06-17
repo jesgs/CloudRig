@@ -907,14 +907,19 @@ def draw_rig_settings_per_label(
                     rig=rig,
                     column=column,
                     sub_row=sub_row,
+                    ###
                     owner_path=slider_data.get('owner_path'),
                     prop_name=slider_data.get('prop_name'),
+                    ###
                     ui_path=ui_path + [row_name, slider_name],
                     panel_name=panel_name,
                     label_name=label_name,
                     row_name=row_name,
                     slider_name=slider_name,
+                    ###
                     texts=texts,
+                    icon_true = slider_data.get('icon_true', 'CHECKBOX_HLT'),
+                    icon_false = slider_data.get('icon_false', 'CHECKBOX_DEHLT'),
                     operator=slider_data.get('operator'),
                     op_icon=slider_data.get('op_icon'),
                     op_kwargs=slider_data.get('op_kwargs'),
@@ -940,6 +945,8 @@ def draw_slider(
     label_name="",
     row_name="",
     slider_name="",
+    icon_true='CHECKBOX_HLT',
+    icon_false='CHECKBOX_DEHLT',
     ###
     texts=[],
     operator="",
@@ -982,6 +989,8 @@ def draw_slider(
             prop_owner=owner,
             prop_name=prop_name,
             slider_name=slider_name,
+            icon_true=icon_true,
+            icon_false=icon_false,
             texts=texts,
         )
         if operator:

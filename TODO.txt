@@ -1,11 +1,10 @@
 - Properties UI
-	- Allow specifying icons for boolean on/off states.
 	- Write documentation.
 
 - Could improve the driver mirroring in Symmetrize, and we should mention that in the documentation as well.
 - Documentation typo: `button indicates When Armature`
-- Could also document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 - Ability to use the Action system without generating a rig.
+- Could also document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 
 Priority -1: Migration
 	- Merge CloudRig into blender-studio-pipeline?
