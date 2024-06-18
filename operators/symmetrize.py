@@ -1,3 +1,4 @@
+from re import X
 import bpy
 from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name
@@ -7,10 +8,11 @@ from ..rig_component_features.mechanism import (
     find_or_create_constraint,
 )
 from ..generation.cloudrig import CloudRigOperator
+from rna_prop_ui import rna_idprop_value_item_type
 
 
 class POSE_OT_symmetrize_rigging(CloudRigOperator):
-    """Mirror constraints to the opposite of all selected bones"""
+    """Mirror selected bones, their constraints, their drivers, and the animation of Actions used by Action constraints"""
 
     bl_idname = "pose.symmetrize_rigging"
     bl_label = "Symmetrize Selected Bones"
@@ -86,7 +88,7 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             from_pb = rig.pose.bones[from_name]
             to_pb = rig.pose.bones[to_name]
             # Mirror drivers on bone properties.
-            mirror_drivers(context.object, from_pb, to_pb)
+            symmetrize_drivers(context.object, from_pb, to_pb)
 
             # Mirror Actions and constraint drivers.
             for from_con in from_pb.constraints:
@@ -149,152 +151,257 @@ def symmetrize_additional(armature: Object, pbone: PoseBone, con: Constraint):
     symmetrized_con.name = flipped_con_name
 
     if con.type == 'ACTION' and pbone != opp_pb:
-        # Need to mirror the curves in the action to the opposite bone.
-        # TODO: Something's wrong when the control bone's X translation axis is the global up/down axis.
-        action = con.action
+        symmetrize_action_for_pbone(con.action, pbone)
 
-        curves = []
-        for cur in action.fcurves:
-            if pbone.name in cur.data_path:
-                curves.append(cur)
-        for cur in curves:
-            opp_data_path = cur.data_path.replace(pbone.name, opp_pb.name)
-
-            # Nuke opposite curves, just to be safe.
-            while True:
-                # While this should never happen, theoretically there can be an unlimited.
-                # number of curves corresponding to a single channel of a single bone.
-                opp_cur = action.fcurves.find(opp_data_path, index=cur.array_index)
-                if not opp_cur:
-                    break
-                action.fcurves.remove(opp_cur)
-
-            # Create opposite curve.
-            opp_cur = action.fcurves.new(
-                opp_data_path, index=cur.array_index, action_group=opp_pb.name
-            )
-            copy_attributes(cur, opp_cur, skip=["data_path", "group"])
-
-            # Copy keyframes.
-            for kf in cur.keyframe_points:
-                opp_kf = opp_cur.keyframe_points.insert(kf.co[0], kf.co[1])
-                copy_attributes(kf, opp_kf, skip=["data_path"])
-                # Flip X location, Y and Z rotation.
-                if ("location" in cur.data_path and cur.array_index == 0) or (
-                    "rotation" in cur.data_path and cur.array_index in [1, 2]
-                ):
-                    opp_kf.co[1] *= -1
-                    opp_kf.handle_left[1] *= -1
-                    opp_kf.handle_right[1] *= -1
-
-    elif con.type == 'DAMPED_TRACK':
-        # TODO: There is a patch to include this in Blender. This code can be removed after projects.blender.org/blender/blender/pulls/120979 lands.
-        axis_mapping = {
-            'TRACK_NEGATIVE_X': 'TRACK_X',
-            'TRACK_X': 'TRACK_NEGATIVE_X',
-        }
-        if symmetrized_con.track_axis in axis_mapping.keys():
-            symmetrized_con.track_axis = axis_mapping[con.track_axis]
-
-    mirror_drivers(armature, pbone, opp_pb, con, symmetrized_con)
+    symmetrize_drivers(armature, pbone, opp_pb, con, symmetrized_con)
 
 
-def mirror_drivers(
+def symmetrize_action_for_pbone(action, pbone):
+    """Symmetrize the curves of a single PoseBone in an Action."""
+    # TODO: Something's wrong when the control bone's X translation axis is the global up/down axis.
+    # TODO: This seems like Blender's Symmetrize operator actually also got implemented, wow! Test and remove this if so.
+    opp_pb_name = flip_name(pbone.name)
+    opp_pb = pbone.id_data.pose.bones.get(opp_pb_name)
+    if not opp_pb:
+        # Since the opposite pbone doesn't exist, don't mirror the fcurves after all.
+        return
+
+    curves = []
+    for cur in action.fcurves:
+        if pbone.name in cur.data_path:
+            curves.append(cur)
+    for cur in curves:
+        opp_data_path = cur.data_path.replace(pbone.name, opp_pb.name)
+
+        # Nuke opposite curves, just to be safe.
+        while True:
+            # While this should never happen, theoretically there can be an unlimited.
+            # number of curves corresponding to a single channel of a single bone.
+            opp_cur = action.fcurves.find(opp_data_path, index=cur.array_index)
+            if not opp_cur:
+                break
+            action.fcurves.remove(opp_cur)
+
+        # Create opposite curve.
+        opp_cur = action.fcurves.new(
+            opp_data_path, index=cur.array_index, action_group=opp_pb.name
+        )
+        copy_attributes(cur, opp_cur, skip=["data_path", "group"])
+
+        # Copy keyframes.
+        for kf in cur.keyframe_points:
+            opp_kf = opp_cur.keyframe_points.insert(kf.co[0], kf.co[1])
+            copy_attributes(kf, opp_kf, skip=["data_path"])
+            # Flip X location, Y and Z rotation.
+            if ("location" in cur.data_path and cur.array_index == 0) or (
+                "rotation" in cur.data_path and cur.array_index in [1, 2]
+            ):
+                opp_kf.co[1] *= -1
+                opp_kf.handle_left[1] *= -1
+                opp_kf.handle_right[1] *= -1
+
+
+def symmetrize_drivers(
     armature: Object,
-    from_bone: PoseBone,
-    to_bone: PoseBone,
-    from_constraint: Constraint = None,
-    to_constraint: Constraint = None,
+    src_bone: PoseBone,
+    dst_bone: PoseBone,
+    src_constraint: Constraint = None,
+    dst_constraint: Constraint = None,
 ):
     """Mirrors all drivers from one bone to another.
-    If from_constraint is specified, to_constraint also must be, and then copy and mirror
+    If src_constraint is specified, dst_constraint also must be, and then copy and mirror
     drivers between constraints instead of bones.
+    
+    Drivers of certain values of certain constraint types will also be attempted to be inverted and 
+    axes swapped as appropriate, based on the C implementation of the Symmetrize operator.
+    NOTE: I never bothered testing this for Transform constraints.
     """
+
+    invert_values, datapath_swap_maps = get_driver_mirror_logic(src_constraint)
 
     if not armature.animation_data:
         # No drivers to mirror.
         return
 
-    for d in armature.animation_data.drivers:
-        if not 'pose.bones["' + from_bone.name + '"]' in d.data_path:
+    for src_fc in armature.animation_data.drivers:
+        if not f'pose.bones["{src_bone.name}"]' in src_fc.data_path:
             # Driver doesn't belong to source bone, skip.
             continue
-        if "constraints[" in d.data_path and not from_constraint:
+        if "constraints[" in src_fc.data_path and not src_constraint:
             # Driver is on a constraint, but no source constraint was given, skip.
             continue
-        if from_constraint and from_constraint.name not in d.data_path:
-            # Driver is on a constraint other than the given source constraint, skip.
+        if src_constraint and src_constraint.name not in src_fc.data_path:
+            # Driver is not on the given source constraint, skip.
             continue
 
         ### Copying mirrored driver to target bone.
 
-        # Managing drivers through bpy is weird:
-        # Even though bones and constraints have driver_add() and driver_remove()
-        # functions that take a data path relative to themselves, you can't actually
-        # access drivers from sub-IDs, only through real IDs, like Objects or Armature datablocks.
+        # Managing drivers through bpy is a bit tricky:
+        # Bones & Constraints have driver_add() and driver_remove() functions
+        # that take a data path relative to themselves, but they don't have anything
+        # along the lines of driver_find(). For that you have to use the ID's AnimData.
 
-        data_path_from_bone = d.data_path.split("]", 1)[1]
+        data_path_from_bone = src_fc.data_path.split("]", 1)[1]
         if data_path_from_bone.startswith("."):
             data_path_from_bone = data_path_from_bone[1:]
-        new_d = None
+        new_fc = None
         if "constraints[" in data_path_from_bone:
             data_path_from_constraint = data_path_from_bone.split("]", 1)[1]
             if data_path_from_constraint.startswith("."):
                 data_path_from_constraint = data_path_from_constraint[1:]
+            swap_map = datapath_swap_maps.get(src_constraint.type)
+            if swap_map:
+                for key, value in swap_map.items():
+                    if key in data_path_from_constraint:
+                        data_path_from_constraint = data_path_from_constraint.replace(key, value)
+                    elif value in data_path_from_constraint:
+                        data_path_from_constraint = data_path_from_constraint.replace(value, key)
             # Armature constraints need special special treatment...
             if (
-                from_constraint.type == 'ARMATURE'
+                src_constraint.type == 'ARMATURE'
                 and "targets[" in data_path_from_constraint
             ):
                 target_idx = int(data_path_from_constraint.split("targets[")[1][0])
-                target = to_constraint.targets[target_idx]
+                target = dst_constraint.targets[target_idx]
                 # Weight is the only property that can have a driver on an Armature constraint's Target.
                 target.driver_remove("weight")
-                new_d = target.driver_add("weight")
+                new_fc = target.driver_add("weight")
             else:
-                to_constraint.driver_remove(data_path_from_constraint)
-                new_d = to_constraint.driver_add(data_path_from_constraint)
+                dst_constraint.driver_remove(data_path_from_constraint)
+                new_fc = dst_constraint.driver_add(data_path_from_constraint)
         else:
-            to_bone.driver_remove(data_path_from_bone, d.array_index)
+            dst_bone.driver_remove(data_path_from_bone, src_fc.array_index)
             try:
-                new_d = to_bone.driver_add(data_path_from_bone, d.array_index)
+                new_fc = dst_bone.driver_add(data_path_from_bone, src_fc.array_index)
             except:
-                new_d = to_bone.driver_add(data_path_from_bone)
-                # TODO: This can error sometimes, not sure why yet.
+                new_fc = dst_bone.driver_add(data_path_from_bone)
 
-        expression = d.driver.expression
+        expression = src_fc.driver.expression
 
         # Copy the driver variables.
-        for from_var in d.driver.variables:
-            to_var = new_d.driver.variables.new()
-            to_var.type = from_var.type
-            to_var.name = from_var.name
+        for src_var in src_fc.driver.variables:
+            dst_var = new_fc.driver.variables.new()
+            dst_var.type = src_var.type
+            dst_var.name = src_var.name
 
-            for i in range(len(from_var.targets)):
-                target_bone = from_var.targets[i].bone_target
+            for src_tgt, dst_tgt in zip(src_var.targets, dst_var.targets):
+                if src_tgt.transform_space != 'LOCAL_SPACE':
+                    # NOTE: Non-euler rotation modes might also be off when mirroring drivers.
+                    print("WARNING: Only local space is supported for mirroring driver variables. Result may be unexpected for ", src_fc.data_path)
+
+                target_bone = src_tgt.bone_target
                 new_target_bone = flip_name(target_bone)
-                if to_var.type == 'SINGLE_PROP':
-                    to_var.targets[i].id_type = from_var.targets[i].id_type
-                to_var.targets[i].id = from_var.targets[i].id
-                to_var.targets[i].rotation_mode = from_var.targets[i].rotation_mode
-                to_var.targets[i].bone_target = new_target_bone
-                data_path = from_var.targets[i].data_path
-                if "pose.bones" in data_path:
-                    bone_name = data_path.split('pose.bones["')[1].split('"')[0]
+                if dst_var.type == 'SINGLE_PROP':
+                    dst_tgt.id_type = src_tgt.id_type
+                dst_tgt.id = src_tgt.id
+                dst_tgt.rotation_mode = src_tgt.rotation_mode
+                dst_tgt.bone_target = new_target_bone
+                dst_data_path = src_tgt.data_path
+                if "pose.bones" in dst_data_path:
+                    # Flip bone name in data
+                    bone_name = dst_data_path.split('pose.bones["')[1].split('"')[0]
                     flipped_name = flip_name(bone_name)
-                    data_path = data_path.replace(bone_name, flipped_name)
-                # HACK
-                if "left" in data_path:
-                    data_path = data_path.replace("left", "right")
-                elif "right" in data_path:
-                    data_path = data_path.replace("right", "left")
-                to_var.targets[i].data_path = data_path
-                to_var.targets[i].transform_type = from_var.targets[i].transform_type
-                to_var.targets[i].transform_space = from_var.targets[i].transform_space
-                # TODO: If transform is X Rotation, have a "mirror" option, to invert it in the expression. Better yet, detect if the new_target_bone is the opposite of the original.
+                    dst_data_path = dst_data_path.replace(bone_name, flipped_name)
+
+                    # If the data path is referring to a custom property, flip the custom property name, too.
+                    prop_name = dst_data_path.split('"[')[-1].split('"')[0]
+                    dst_data_path = dst_data_path.replace(prop_name, flip_name(prop_name))
+
+                dst_tgt.data_path = dst_data_path
+                dst_tgt.transform_type = src_tgt.transform_type
+                dst_tgt.transform_space = src_tgt.transform_space
+
+                # If one of the driving values is something that needs to be inverted, invert only that value in the expression.
+                if (dst_var.type == 'TRANSFORM' and dst_tgt.transform_type in {'ROT_Y', 'ROT_Z', 'LOC_X'}) or \
+                    (dst_var.type == 'SINGLE_PROP' and any([dst_tgt.data_path.endswith(thing) for thing in invert_values])):
+                    expression = expression.replace(dst_var.name, f"-({dst_var.name})")
+
+            # If the driven value is something that needs to be inverted, invert the entire expression.
+            driven_value = armature.path_resolve(new_fc.data_path)
+            _value_type, is_array = rna_idprop_value_item_type(driven_value)
+            data_path_with_index = new_fc.data_path
+            if is_array and new_fc.array_index > -1:
+                data_path_with_index += f"[{new_fc.array_index}]"
+
+            if any([data_path_with_index.endswith(key) for key in invert_values]):
+                expression = f"-({expression})"
+            
+            if new_fc.data_path.endswith('pole_angle'):
+                # If the IK pole angle is driven, add 180 degrees in a way that loops it around to keep it in -180->180 range.
+                # NOTE: This will coincidentally work around the -180->180 range limitation, which technically makes it assymetrical, 
+                # but I'll ignore that for the sake of keeping the expression simple.
+                # Why would anyone drive this value anyways?
+                expression = f"-({expression}) % (2 * pi) - pi"
 
         # Copy the driver expression.
-        new_d.driver.expression = expression
+        new_fc.driver.expression = expression
+
+def get_driver_mirror_logic(src_constraint):
+    transforms_to_invert = ['location[0]', 'rotation_euler[1]', 'rotation_euler[2]']
+    invert_values = {
+        'LIMIT_LOCATION' : ['min_x', 'max_x'],
+        'LIMIT_ROTATION' : ['min_y', 'max_y', 'min_z', 'max_z'],
+        'TRANSFORM' : ['from_min_x', 'from_max_x', 'from_min_y_rot', 'from_max_y_rot', 'from_min_z_rot', 'from_max_z_rot', 'to_min_x', 'to_max_x', 'to_min_z_rot', 'to_max_z_rot']
+    }
+
+    datapath_swap_maps = {
+        'LIMIT_LOCATION' : {
+            'min_x' : 'max_x',
+        },
+        'LIMIT_ROTATION' : {
+            'min_y': 'max_y',
+            'min_z': 'max_z',
+        },
+        'TRANSFORM' : {
+            'from_min_x': 'from_max_x',
+            'from_min_y_rot': 'from_max_y_rot',
+            'from_min_z_rot': 'from_max_z_rot'
+        }
+    }
+    for axis in "xyz":
+        if src_constraint and src_constraint.type == 'TRANSFORM':
+            from_axis = getattr(src_constraint, f'map_to_{axis}_from')
+            if (src_constraint.map_from == 'LOCATION' and from_axis == 'X') or \
+                (src_constraint.map_from == 'ROTATION' and from_axis != 'X'):
+                # X Loc to X/Y/Z Scale: Min/Max Flipped
+                # Y Rot to X/Y/Z Scale: Min/Max Flipped
+                # Z Rot to X/Y/Z Scale: Min/Max Flipped
+
+                # X Loc to X/Y/Z Loc: Min/Max Flipped
+                # Y Rot to X/Y/Z Loc: Min/Max Flipped
+                # Z Rot to X/Y/Z Loc: Min/Max Flipped
+                datapath_swap_maps['TRANSFORM'].update({
+                    f"to_min_{axis}_scale" : f"to_max_{axis}_scale",
+                    f"to_min_{axis}" : f"to_max_{axis}",
+                })
+            if (src_constraint.map_from == 'LOCATION' and from_axis == 'X' and axis != 'Y') or \
+                (src_constraint.map_from == 'ROTATION' and from_axis == 'Y' and axis != 'Y') or \
+                (src_constraint.map_from == 'ROTATION' and from_axis == 'Z'):
+                # X Loc to X/Z Rot: Flipped
+                # Y Rot to X/Z Rot: Flipped
+                # Z Rot to X/Y/Z rot: Flipped
+
+                datapath_swap_maps['TRANSFORM'].update({
+                    f"to_min_{axis}_rot" : f"to_max_{axis}_rot"
+                })
+            if (src_constraint.map_from == 'ROTATION' and from_axis == 'Y'):
+                # If source is Y rot, flip and invert Y rot
+                datapath_swap_maps['TRANSFORM'].update({
+                    'to_min_y_rot': 'to_max_y_rot'
+                })
+                invert_values['TRANSFORM'] += ['to_min_rot_y', 'to_max_rot_y']
+
+    if src_constraint and src_constraint.type == 'TRANSFORM':
+        from_axis = getattr(src_constraint, f'map_to_{axis}_from')
+        if (src_constraint.map_from == 'LOCATION' and from_axis != 'X') or \
+            (src_constraint.map_from == 'ROTATION' and from_axis != 'Y') or \
+            src_constraint.map_from == 'SCALE':
+            invert_values['TRANSFORM'] += ['to_min_rot_y', 'to_max_rot_y']
+
+    if src_constraint and src_constraint.type == 'ACTION' and src_constraint.transform_channel in {'LOCATION_X', 'ROTATION_Y', 'ROTATION_Z'}:
+        invert_values['ACTION'] = ['min', 'max']
+    
+    return transforms_to_invert + invert_values.get(src_constraint.type, []), datapath_swap_maps.get(src_constraint.type, {})
 
 
 def draw_menu_entry(self, context):
