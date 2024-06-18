@@ -182,13 +182,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         name="Parent UI Path",
         options={'SKIP_SAVE'},
         default="[]",
-        description="Internal. The UI Path of the selected parent slider. Used by the Add Child and Edit operators",
+        description="Internal. The UI Path of the selected parent element. Used by the Add Child and Edit operators",
     )
     parent_selector: StringProperty(
-        name="Parent Slider",
+        name="Parent Element",
         options={'SKIP_SAVE'},
         update=update_parent_selector,
-        description="The child will only be visible when this parent slider has a certain value, specified below",
+        description="The child will only be visible when this parent element has a certain value, specified below",
     )
     parent_value: StringProperty(
         name="Parent Value",
@@ -328,20 +328,17 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         has_custom_props = len(context.scene.cloudrig_property_name_selector) > 0
 
         prop_row = prop_box.row(align=True)
-        left_side = prop_row.row()
-        batch_add_row = prop_row.row()
-        batch_add_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
 
         if self.use_batch_add:
-            left_side.label(
+            prop_row.label(
                 text=f"Add all {len(prop_owner.keys())} custom properties to the UI"
             )
             return
 
         if self.use_manual_prop_name or not has_custom_props:
-            left_side.prop(self, 'prop_name')
+            prop_row.prop(self, 'prop_name')
         else:
-            left_side.prop_search(
+            prop_row.prop_search(
                 self,
                 'prop_name',
                 context.scene,
@@ -350,7 +347,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             )
 
         if has_custom_props:
-            left_side.prop(self, 'use_manual_prop_name', icon='ADD', text="")
+            prop_row.prop(self, 'use_manual_prop_name', icon='ADD', text="")
+            prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
 
         if not self.prop_name:
             # User hasn't typed in a property name yet. Don't overwhelm them with the rest of the UI.
