@@ -399,9 +399,12 @@ def get_driver_mirror_logic(src_constraint):
     ):
         invert_values['ACTION'] = ['min', 'max']
 
-    return transforms_to_invert + invert_values.get(
-        src_constraint.type, []
-    ), datapath_swap_maps.get(src_constraint.type, {})
+    swap_map = {}
+    if src_constraint:
+        transforms_to_invert += invert_values.get(src_constraint.type, [])
+        swap_map = datapath_swap_maps.get(src_constraint.type, {})
+
+    return transforms_to_invert, swap_map
 
 
 def draw_menu_entry(self, context):
