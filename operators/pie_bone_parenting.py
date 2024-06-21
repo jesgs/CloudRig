@@ -4,7 +4,7 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Menu, EditBone, Bone
+from bpy.types import Menu, EditBone, Bone, Object
 from bpy.props import BoolProperty
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
@@ -20,15 +20,17 @@ def get_active_bone(context):
         return context.active_bone
 
 
-def get_selected_bones(context, exclude_active=False) -> list[Bone | EditBone]:
+def get_selected_bones(
+    context, exclude_active=False
+) -> list[tuple[Object, Bone | EditBone]]:
     bones = []
     if context.mode == 'POSE':
-        bones = [pb.bone for pb in context.selected_pose_bones]
+        bones = [(pb.id_data, pb.bone) for pb in context.selected_pose_bones]
     elif context.mode == 'EDIT_ARMATURE':
         for rig in get_current_rigs(context):
             # We can't use context.selected_editable_bones because
             # it actually includes non-selected bones when use_mirror_x==True.
-            bones += [eb for eb in rig.data.edit_bones if eb.select]
+            bones += [(rig, eb) for eb in rig.data.edit_bones if eb.select]
 
     if exclude_active:
         bones.remove(get_active_bone(context))
@@ -54,12 +56,12 @@ class GenericBoneOperator:
             and context.active_object.mode in {'POSE', 'EDIT'}
         )
 
-    def get_bones_to_affect(self, context) -> list[EditBone]:
+    def get_bones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
         ebones = get_selected_bones(context)
-        for ebone in list(ebones):
+        for rig, ebone in ebones:
             rig_data = ebone.id_data
             if rig_data.use_mirror_x:
                 flipped_name = flip_name(ebone.name)
@@ -78,16 +80,16 @@ class GenericBoneOperator:
         ebones_to_affect = self.get_bones_to_affect(context)
 
         affected_bones_names = set()
-        for ebone in list(ebones_to_affect):
+        for rig, ebone in list(ebones_to_affect):
             bone_name = ebone.name
-            was_affected = self.affect_bone(ebone)
+            was_affected = self.affect_bone(rig, ebone)
             if was_affected:
                 affected_bones_names.add(bone_name)
 
         bpy.ops.object.mode_set(mode=mode)
         return affected_bones_names
 
-    def affect_bone(self, eb: EditBone) -> bool:
+    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
         """Return whether the bone was indeed affected."""
         raise NotImplementedError
 
@@ -103,13 +105,13 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        for eb in get_selected_bones(context):
+        for rig, eb in get_selected_bones(context):
             if eb.use_connect:
                 return True
         else:
             return False
 
-    def affect_bone(self, eb: EditBone) -> bool:
+    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
         if eb.use_connect:
             eb.use_connect = False
             return True
@@ -133,13 +135,14 @@ class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        for b in get_selected_bones(context):
-            if b.parent:
+        for rig, bone in get_selected_bones(context):
+            # Could be EditBone or regular bone here, doesn't matter.
+            if bone.parent:
                 return True
 
         return False
 
-    def affect_bone(self, eb: EditBone) -> bool:
+    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
         if eb.parent:
             eb.parent = None
             return True
@@ -219,13 +222,13 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
         active_bone = get_active_bone(context)
         if not len(selected_bones) > 1 and active_bone:
             return False
-        if any([b.id_data != active_bone.id_data for b in selected_bones]):
+        if any([b.id_data != active_bone.id_data for rig, b in selected_bones]):
             return False
         return True
 
-    def parent_edit_bones(self, parent, bones_to_parent):
+    def parent_edit_bones(self, parent, bones_to_parent: list[tuple[Object, EditBone]]):
         parent.hide = False
-        for eb in bones_to_parent:
+        for rig, eb in bones_to_parent:
             eb.hide = False
             if parent.parent == eb:
                 # When inverting a parenting relationship (child becomes the parent),

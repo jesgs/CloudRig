@@ -245,14 +245,13 @@ class POSE_OT_select_bone_by_name_relation(CloudRigOperator, BoneSelectOperatorM
     )
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
         active_target_bone = None
 
         selected_bones = get_selected_bones(context)
 
         super().execute(context)
 
-        for bone in selected_bones:
+        for rig, bone in selected_bones:
             bone_name = bone.name
             bone_name = bone_name[self.strip_start :]
             if self.strip_end > 0:

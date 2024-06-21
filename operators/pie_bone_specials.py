@@ -1,5 +1,5 @@
 from .pie_bone_parenting import GenericBoneOperator
-from bpy.types import Menu
+from bpy.types import Menu, EditBone, Object
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 
 
@@ -10,8 +10,9 @@ class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
     bl_label = "Delete Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def affect_bone(self, eb) -> bool:
+    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
         eb.hide = False
+        remove_drivers_of_bone(rig, eb.name)
         eb.id_data.edit_bones.remove(eb)
         return True
 
@@ -20,6 +21,23 @@ class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
         plural = "s" if len(affected) != 1 else ""
         self.report({'INFO'}, f"Deleted {len(affected)} bone{plural}.")
         return {'FINISHED'}
+
+
+def remove_drivers_of_bone(
+    rig: Object,
+    bone_name: str,
+):
+    datablocks = []
+
+    if rig.animation_data:
+        datablocks.append(rig)
+    if rig.data.animation_data:
+        datablocks.append(rig.data)
+
+    for db in datablocks:
+        for fc in db.animation_data.drivers[:]:
+            if f'.bones["{bone_name}"]' in fc.data_path:
+                db.animation_data.drivers.remove(fc)
 
 
 class CLOUDRIG_MT_PIE_bone_specials(Menu):
