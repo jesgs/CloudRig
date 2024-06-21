@@ -1471,6 +1471,8 @@ class CloudRigBoneCollection(PropertyGroup):
         description="Whether to show the children of this collection",
         default=False,
         update=update_is_expanded,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
 
     @property

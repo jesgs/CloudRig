@@ -1,10 +1,8 @@
-- is_expanded is not overridable.
-
 - Ability to use the Action system without generating a rig.
 - Document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 
-- Since we're already overriding Shift+D for duplicate, we should also duplicate Drivers.
-- Since we're already overriding X for delete, we should also delete Drivers.
+- Since we're already overriding Shift+D for duplicate, we should also duplicate Drivers. (Document this)
+- Since we're already overriding X for delete, we should also delete Drivers. (Document this)
 
 Priority -1: Migration
 	- Merge CloudRig into blender-studio-pipeline?
