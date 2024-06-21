@@ -1,6 +1,5 @@
 - is_expanded is not overridable.
 
-- Could implement proper driver mirroring in Symmetrize.
 - Ability to use the Action system without generating a rig.
 - Document that you can benefit from CloudRig without generating a rig. Just enabling the CloudRig checkbox already gives you the CloudRig side panel, which has the bone collections and properties.
 
