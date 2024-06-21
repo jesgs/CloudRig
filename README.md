@@ -24,8 +24,7 @@ And bam, you have a rig!
 
 ## Learning Resources
 <ul>
-<li>Check out the <a href="CloudRig/wiki">wiki</a>!</li>
-<li>Up to date videos for the new standalone CloudRig in Blender 4.1 will be created soon™.
+<li>Check out the <a href="https://studio.blender.org/pipeline/addons/cloudrig/introduction">wiki</a>!</li>
 <li>For Blender 3.6 and below, check out my old <a href="https://studio.blender.org/training/blender-studio-rigging-tools/">video documentation series</a>. (for Studio supporters)</li>
 <li>I have some <a href="https://www.youtube.com/watch?v=SB3qIbwvq8Y&list=PLav47HAVZMjnA3P7yQvneyQPiVxZ6erFS">live streams</a> of creating the rig for the free <a href="https://studio.blender.org/characters/snow/">Snow</a> character.
 <li> <details><summary>Example Production Rigs</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes for supporters, sometimes for everyone), there is a whole host of CloudRig character rigs available for you to download: 
