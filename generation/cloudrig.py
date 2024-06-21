@@ -4,7 +4,7 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-import bpy, json, re, contextlib
+import bpy, json, ast, re, contextlib
 from collections import OrderedDict, defaultdict
 from bpy.props import (
     StringProperty,
@@ -199,7 +199,7 @@ class SnappingOpMixin:
 
     def get_affected_pbones(self, rig: Object) -> set[PoseBone]:
         affected_pbones = set()
-        for bone_name in json.loads(self.bone_names):
+        for bone_name in ast.literal_eval(self.bone_names):
             pb = rig.pose.bones.get(bone_name)
             if pb:
                 affected_pbones.add(pb)
@@ -459,7 +459,7 @@ class POST_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOp
     parent_names: StringProperty(name="Parent Names")
 
     def parent_items(self, context):
-        parents = json.loads(self.parent_names)
+        parents = ast.literal_eval(self.parent_names)
         items = [(str(i), name, name) for i, name in enumerate(parents)]
         return items
 
@@ -564,8 +564,8 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         return pbone_matrix_map
 
     def get_bone_map(self, ik_value: float) -> OrderedDict[str, str]:
-        map_fk_to_ik = OrderedDict(json.loads(self.map_fk_to_ik))
-        map_ik_to_fk = OrderedDict(json.loads(self.map_ik_to_fk))
+        map_fk_to_ik = OrderedDict(ast.literal_eval(self.map_fk_to_ik))
+        map_ik_to_fk = OrderedDict(ast.literal_eval(self.map_ik_to_fk))
 
         bone_map = map_fk_to_ik if ik_value == 1 else map_ik_to_fk
 
@@ -900,7 +900,7 @@ def draw_rig_settings_per_label(
                 texts = slider_data.get('texts', [])
                 if texts:
                     if texts.startswith("["):
-                        texts = json.loads(texts)
+                        texts = ast.literal_eval(texts)
                     else:
                         texts = [t.strip() for t in texts]
                 draw_slider(
@@ -1191,7 +1191,7 @@ def feed_op_props(op_props, op_kwargs: str or dict or list):
     """
 
     if type(op_kwargs) == str:
-        op_kwargs = json.loads(op_kwargs)
+        op_kwargs = ast.literal_eval(op_kwargs)
     if type(op_kwargs) == dict:
         op_kwargs = [(key, value) for key, value in op_kwargs.items()]
 
