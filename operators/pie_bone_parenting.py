@@ -8,43 +8,8 @@ from bpy.types import Menu, EditBone, Bone, Object
 from bpy.props import BoolProperty
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
-
-
-def get_active_bone(context):
-    if context.object.mode == 'POSE':
-        if context.active_pose_bone:
-            return context.active_pose_bone.bone
-        else:
-            return context.active_bone
-    elif context.object.mode == 'EDIT':
-        return context.active_bone
-
-
-def get_selected_bones(
-    context, exclude_active=False
-) -> list[tuple[Object, Bone | EditBone]]:
-    bones = []
-    if context.mode == 'POSE':
-        bones = [(pb.id_data, pb.bone) for pb in context.selected_pose_bones]
-    elif context.mode == 'EDIT_ARMATURE':
-        for rig in get_current_rigs(context):
-            # We can't use context.selected_editable_bones because
-            # it actually includes non-selected bones when use_mirror_x==True.
-            bones += [(rig, eb) for eb in rig.data.edit_bones if eb.select]
-
-    if exclude_active:
-        bones.remove(get_active_bone(context))
-
-    return bones
-
-
-def get_current_rigs(context):
-    objs = set(context.selected_objects)
-    objs.add(context.active_object)
-
-    for obj in objs:
-        if context.mode in {'POSE', 'EDIT_ARMATURE'} and obj.type == 'ARMATURE':
-            yield obj
+from .bone_selection_pie_ops import get_active_bone
+from ..utils.misc import get_selected_bones
 
 
 class GenericBoneOperator:
@@ -60,19 +25,21 @@ class GenericBoneOperator:
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
-        ebones = get_selected_bones(context)
-        for rig, ebone in ebones:
+        ebones_to_affect = get_selected_bones(context)
+        for rig, ebone in ebones_to_affect[:]:
             rig_data = ebone.id_data
             if rig_data.use_mirror_x:
                 flipped_name = flip_name(ebone.name)
                 if ebone.name == flipped_name:
                     continue
-                flipped_bone = rig_data.bones.get(flipped_name)
-                if not flipped_bone:
+                flipped_ebone = rig_data.edit_bones.get(flipped_name)
+                if not flipped_ebone:
                     continue
-                ebones.append(flipped_name)
+                tup = (rig, flipped_ebone)
+                if tup not in ebones_to_affect:
+                    ebones_to_affect.append((rig, flipped_ebone))
 
-        return ebones
+        return ebones_to_affect
 
     def affect_bones(self, context) -> set[str]:
         """Returns list of bone names that were actually affected."""

@@ -1,8 +1,7 @@
-- Since we're already overriding Shift+D for duplicate, we should also duplicate Drivers. (Document this)
-
 Priority -1: Migration
 	- Merge CloudRig into blender-studio-pipeline?
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
+	- The ReadMe should just link to s.b.o. because otherwise image/video embeds don't work for shit.
 
 Priority 1: Bugs
 	- Check if Spline IK parameters work well with each other and do what they should.

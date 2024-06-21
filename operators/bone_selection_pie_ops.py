@@ -2,7 +2,7 @@ from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
 from ..generation.cloudrig import CloudRigOperator
-from ..utils.misc import get_pbone_of_active
+from ..utils.misc import get_selected_bones, get_active_bone
 
 
 def deselect_all_bones(context):
@@ -38,46 +38,12 @@ def ensure_visible_bone_collection(bone: Bone or EditBone or PoseBone):
             coll = coll.parent
 
 
-def get_selected_bones(context):
-    """Return a list of Bones or EditBones depending on context."""
-    if context.mode == 'EDIT_ARMATURE':
-        return context.selected_editable_bones[:]
-    else:
-        return [pb.bone for pb in context.selected_pose_bones]
-
-
-def get_active_bone(context):
-    """Return active PoseBone or EditBone, depending on context."""
-    if context.mode == 'EDIT_ARMATURE':
-        return context.active_bone
-    else:
-        return get_pbone_of_active(context)
-
-
 def get_bone_by_name(rig, bone_name: str):
     """Return PoseBone or EditBone with the given name, depending on context."""
     if rig.mode == 'EDIT_ARMATURE':
         return rig.data.edit_bones.get(bone_name)
     else:
         return rig.pose.bones.get(bone_name)
-
-
-def get_active_bone(context):
-    """Return active PoseBone or EditBone, depending on context."""
-    if context.mode == 'EDIT_ARMATURE':
-        return context.active_bone
-    else:
-        return context.active_pose_bone
-
-
-def get_bone_by_name(context, bone_name: str):
-    """Return PoseBone or EditBone with the given name, depending on context."""
-    obj = context.pose_object or context.object
-    if context.mode == 'EDIT_ARMATURE':
-        return obj.data.edit_bones.get(bone_name)
-    else:
-        return obj.pose.bones.get(bone_name)
-
 
 def is_active_bone(context, bone: Bone or EditBone or PoseBone):
     """Return whether the passed bone is the active one"""
@@ -340,48 +306,6 @@ class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMix
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
-        rig = context.pose_object or context.active_object
-        if context.mode == 'EDIT_ARMATURE':
-            layout.prop_search(
-                self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA'
-            )
-        else:
-            layout.prop_search(self, 'bone_name', rig.data, 'bones', icon='BONE_DATA')
-        layout.prop(self, 'extend_selection')
-
-    def execute(self, context):
-        bone = get_bone_by_name(context.active_object, self.bone_name)
-        if not self.extend_selection:
-            deselect_all_bones(context)
-
-        reveal_and_select(context, bone, set_active=True)
-
-        return {'FINISHED'}
-
-
-class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMixin):
-    """Search for a bone name to select"""
-
-    bl_idname = "bone.select_by_name_search"
-    bl_label = "Search Bone"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    bone_name: StringProperty(name="Bone")
-
-    @classmethod
-    def poll(cls, context):
-        return True
-
-    def invoke(self, context, _event):
-        bone = get_active_bone(context)
-        if bone:
-            self.bone_name = bone.name
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
         rig = context.pose_object or context.object
         if context.mode == 'EDIT_ARMATURE':
             layout.prop_search(
@@ -392,7 +316,7 @@ class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMix
         layout.prop(self, 'extend_selection')
 
     def execute(self, context):
-        bone = get_bone_by_name(context, self.bone_name)
+        bone = get_bone_by_name(context.active_object, self.bone_name)
         if not self.extend_selection:
             deselect_all_bones(context)
 
