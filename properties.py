@@ -121,7 +121,7 @@ class BoneSets(PropertyGroup):
                 description="If True, this Bone Set will only be displayed in the UI when the 'Show Advanced Bone Sets' toggle is checked",
                 default=bone_set_definition.get('is_advanced') or False,
             ),
-            'generated_bones': CollectionProperty(  # TODO 4.0: Implement this, so bone sets store which bones they generated. Although, might be more useful to store this on the RigComponent instead, actually.
+            'generated_bones': CollectionProperty(  # TODO: Implement this, so bone sets store which bones they generated. Although, might be more useful to store this on the RigComponent instead, actually.
                 name="Generated Bones",
                 description="List of bone names generated in this Bone Set during the last time the target rig was generated",
                 type=NameProperty,
@@ -211,7 +211,10 @@ class RigComponent(PropertyGroup):
         metarig = self.id_data
         if not self.component_type:
             return
-        # TODO: This causes incredibly bad performance when the Rig Components UI List is being drawn for a lot of bones.
+        # XXX: This causes poor performance when the Components List has lot of bones.
+        # Cache solution doesn't work because we can't write to properties during re-draw.
+        # And the msgbus API is so terrible that I don't want to use it.
+        # So, it is what it is.
         return {
             pb.cloudrig_component: pb
             for pb in metarig.pose.bones

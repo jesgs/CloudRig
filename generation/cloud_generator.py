@@ -42,10 +42,7 @@ from .actions_component import ActionLayerComponent
 
 
 class GeneratorProperties(PropertyGroup):
-    # TODO: I see no reason why this class couldn't be merged with the one that
-    # holds the generate() function, making a unified `Generator` class that
-    # lives in RNA, giving us the ability to just to `my_metarig.cloudrig.generator.generate()`,
-    # which would be pretty neat I think.
+    # RNA data used by the CloudRig Generator.
     metarig_version: IntProperty(
         name="Metarig Version",
         description="Used for automatic versioning of metarigs",
@@ -92,13 +89,6 @@ class GeneratorProperties(PropertyGroup):
         name="Test Action",
         type=Action,
         description="Action which will be generated with the keyframes neccessary to test the rig's deformations",
-    )
-
-    show_secret_collections: BoolProperty(  # TODO 4.0 implement this.
-        name="Show Secret Collections",
-        description="Show collections whose names contain $ and will be hidden on the rig UI",
-        default=True,
-        override={'LIBRARY_OVERRIDABLE'},
     )
 
     auto_setup_gizmos: BoolProperty(
@@ -171,7 +161,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         self.custom_script_failure = False
 
-        # TODO 4.0: __init__ should only be assigning stuff to self. This should be moved to generate().
         # Reset the metarig; This will be un-done when generation ends (even if it fails).
         self.loc_bkp = metarig.matrix_world.to_translation()
         self.rot_bkp = metarig.matrix_world.to_euler()
@@ -180,7 +169,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         metarig.data.pose_position = 'REST'
         metarig.matrix_world = Matrix.Identity(4)
 
-        # Needed to make sure we get the correct scale # TODO: Is this really necessary?
+        # Needed to make sure we get the correct scale
         context.view_layer.update()
 
         # Used to calculate sizes and distances in a rig-size-agnostic way.
@@ -300,6 +289,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # ------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
+
         if self.params.ensure_root:
             self.ensure_root_bone_component(
                 context, self.metarig, self.params.ensure_root
@@ -579,7 +569,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
             if not pose_bone:
-                # TODO: This should never happen. Should be treated as a bug, probably.
+                # XXX: This should never happen. Should be treated as a bug, probably.
                 self.logger.log(
                     "Bone creation failed",
                     base_bone_name=bone_info.owner_component.base_bone_name,
@@ -657,7 +647,10 @@ def create_bone(rig_ob, bone_name: str):
 
 def create_target_rig_obj(context, metarig) -> Object:
     """Create a new empty Armature object that will get populated throughout
-    the generation process."""
+    the generation process.
+    We start with a duplicate of the Metarig object, but a blank Armature datablock.
+    This means that object-level data on the Metarig such as custom properties and constraints, will be preserved.
+    """
     metaname = metarig.name
     final_name = metaname.replace("META", "RIG")
     if 'META' not in metaname:
@@ -666,7 +659,12 @@ def create_target_rig_obj(context, metarig) -> Object:
     rig_name = "NEW-" + final_name
 
     armature = bpy.data.armatures.new(name=rig_name)
-    target_rig = bpy.data.objects.new(rig_name, armature)
+    target_rig = metarig.copy()
+    target_rig.name = rig_name
+    target_rig.data = armature
+
+    # Remove duplicated CloudRig data to clear ID references used by the metarig.
+    del target_rig['cloudrig']
     context.scene.collection.objects.link(target_rig)
     # Mark rig for cloudrig.py compatibility checks
     target_rig.data['is_generated_cloudrig'] = True
@@ -678,8 +676,6 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data['generation_time'] = (
         f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
     )
-
-    target_rig.cloudrig.generator.show_secret_collections = False
 
     # By default, use B-Bone display type since it's the most useful
     target_rig.data.display_type = 'BBONE'
@@ -716,11 +712,6 @@ def replace_old_with_new_rig(
 ):
     """Preserve useful user-inputted information from the previous rig,
     then delete it and remap users to the new rig.
-
-    TODO: Instead of starting a fresh object from scratch, we could duplicate the old target rig,
-    and just delete the bones. That way everything we don't explicitly delete gets implicitly preserved.
-    For example, right now we are not preserving arbitrary custom properties, even though that might be nice.
-    This approach could also eventually enable us to regenerate only parts of a rig.
     """
 
     # If cloudrig.py is linked, save that reference. This will be checked for
@@ -827,7 +818,7 @@ def replace_old_with_new_rig(
     # Select and make active the new rig.
     new_rig.select_set(True)
     context.view_layer.objects.active = new_rig
-    
+
     # Delete the old rig.
     bpy.data.objects.remove(old_rig)
 
@@ -900,12 +891,15 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
         target_rig = metarig.cloudrig.generator.target_rig
-        
-        # If the old rig isn't part of the scene, it needs to be. 
-        # The generation process works fine without this, 
+
+        # If the old rig isn't part of the scene, it needs to be.
+        # The generation process works fine without this,
         # but it could confuse users if the generated rig isn't focused.
         if target_rig and target_rig not in set(context.view_layer.objects):
-            self.report({'ERROR'}, f"Target rig '{target_rig.name}' cannot be re-generated because it is not in the current view layer.")
+            self.report(
+                {'ERROR'},
+                f"Target rig '{target_rig.name}' cannot be re-generated because it is not in the current view layer.",
+            )
             return {'CANCELLED'}
 
         # Save state so it can be restored for convenience.
