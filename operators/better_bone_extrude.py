@@ -16,6 +16,7 @@ class BoneDuplicateOpMixin:
             original_bones[rig] = set(rig.data.edit_bones[:])
 
         self.bone_operation()
+        bpy.ops.transform.translate(value=(0, 0, 0.1))
 
         new_drivers = []
 
@@ -42,6 +43,7 @@ class BoneDuplicateOpMixin:
         for fc in new_drivers:
             fc.driver.expression = fc.driver.expression
 
+        bpy.ops.transform.translate(value=(0, 0, -0.1))
         bpy.ops.transform.translate('INVOKE_DEFAULT')
 
         return {'FINISHED'}
