@@ -168,7 +168,6 @@ def get_datablock_type_icon(datablock):
     # There's no proper way to get the icon of a datablock, so we use the
     # RNA definition of the id_type property of the DriverTarget class,
     # which is an enum with a mapping of each datablock type to its icon.
-    # TODO: It would unfortunately be nicer to just make my own mapping.
     if not hasattr(datablock, "type"):
         # shape keys...
         return 'NONE'

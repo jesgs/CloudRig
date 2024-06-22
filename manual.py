@@ -1,9 +1,6 @@
 import bpy
 from . import rig_components
 
-# TODO 4.1: Update all of this.
-
-
 # This allows you to right click on a button and link to documentation
 def cloudrig_manual_map():
     url_manual_prefix = "https://studio.blender.org/pipeline/addons/cloudrig/"
@@ -19,31 +16,35 @@ def cloudrig_manual_map():
         "properties_bone": "",
         "custom_script": "post-generation-script",
         "generate_test_action": "",
-        "test_action": "generate-test-action",
+        "test_action": "generate-action",
     }
 
-    cloud_types = [
-        name.replace("cloud_", "") for name in dir(rig_components) if "cloud" in name
-    ]
+    if False:
+        # This is currently not working due to a bug in Blender, where
+        # PropertyGroups within PropertyGroups don't resolve correctly
+        # in the Online Manual operator.
+        cloud_types = [
+            name.replace("cloud_", "") for name in dir(rig_components) if "cloud" in name
+        ]
+        for cloud_type in cloud_types:
+            url_map.append((params_path + cloud_type + "_*", "cloudrig-types"))
 
     url_map = []
-    # for cloud_type in cloud_types:
-    #     url_map.append((params_path + cloud_type + "_*", "cloudrig-types"))
 
     # NOTE: More specific data paths have to come FIRST before data paths with wildcards!
     url_map.extend(
         [
             (rig_prefs_path + ".active_collection_index", "bone-organization"),
             ("bpy.ops.pose.cloudrig_collections_reveal_all", "bone-organization"),
-            (
-                addon_prefs_path + "advanced_mode",
-                "cloudrig-types#shared-parameters",
-            ),  # Doesn't work, see above.
-            (
-                addon_prefs_path + "*",
-                "cloudrig-types#shared-parameters",
-            ),  # Doesn't work, see above.
+
+            # Troubleshooting
+            ("bpy.types.generatorproperties.active_log_index", "troubleshooting"),
+
+            # Addon Prefs also don't work due to a similar bug... https://projects.blender.org/blender/blender/issues/121408
+            (addon_prefs_path + "advanced_mode", "cloudrig-types#shared-parameters"),
+            (addon_prefs_path + "*", "cloudrig-types#shared-parameters"),
             ("bpy.ops.pose.cloudrig_assign_component_type", "cloudrig-types"),
+
             # Generator Parameters
             ("bpy.ops.pose.cloudrig_generate", "generator-parameters"),
             *[
@@ -54,13 +55,16 @@ def cloudrig_manual_map():
                 for param, redirect in generator_params.items()
             ],
             (generator_path + "*", "generator-parameters"),
+
             # Organizing Bones
-            (
-                addon_prefs_path + "bone_set_show_advanced",
-                "organizing-bones#bone-collections",
-            ),
-            ("bpy.types.boneset*", "organizing-bones#bone-collections"),
+            (addon_prefs_path + "bone_set_show_advanced", "organizing-bones#bone-collections"),
+            ("bpy.types.boneset*", "organizing-bones#organizing-bones-1"),
             ("bpy.types.rigcomponent.bone_sets*", "organizing-bones#bone-collections"),
+            ("bpy.ops.pose.cloudrig_bone_set_collection_rename", "organizing-bones#organizing-bones-1"),
+            ("bpy.ops.pose.cloudrig_bone_set_collection_add", "organizing-bones#organizing-bones-1"),
+            ("bpy.ops.pose.cloudrig_bone_set_collection_remove", "organizing-bones#organizing-bones-1"),
+            ("bpy.ops.pose.cloudrig_bone_set_collection_reset", "organizing-bones#organizing-bones-1"),
+
             # Actions
             (generator_path + "action*", "actions"),
             ("bpy.ops.object.cloudrig_action*", "actions"),
