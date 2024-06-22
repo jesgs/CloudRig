@@ -896,40 +896,38 @@ def draw_rig_settings_per_label(
             if type(slider_data) == str:
                 # It's a flag, not a UI element.
                 continue
-            if slider_data.get('owner_path') != None:
-                texts = slider_data.get('texts', [])
-                if texts:
-                    if texts.startswith("["):
-                        texts = ast.literal_eval(texts)
-                    else:
-                        texts = [t.strip() for t in texts]
-                draw_slider(
-                    rig=rig,
-                    column=column,
-                    sub_row=sub_row,
-                    ###
-                    owner_path=slider_data.get('owner_path'),
-                    prop_name=slider_data.get('prop_name'),
-                    ###
-                    ui_path=ui_path + [row_name, slider_name],
-                    panel_name=panel_name,
-                    label_name=label_name,
-                    row_name=row_name,
-                    slider_name=slider_name,
-                    ###
-                    texts=texts,
-                    icon_true = slider_data.get('icon_true', 'CHECKBOX_HLT'),
-                    icon_false = slider_data.get('icon_false', 'CHECKBOX_DEHLT'),
-                    operator=slider_data.get('operator'),
-                    op_icon=slider_data.get('op_icon'),
-                    op_kwargs=slider_data.get('op_kwargs'),
-                    children=slider_data.get('children'),
-                )
-            elif slider_data.get('operator'):
-                # Allow drawing an operator, even without a property.
-                # TODO: Test this.
-                draw_operator(sub_row, **slider_data)
-
+            if slider_data.get('owner_path') == None:
+                # Currently, all UI elements must have a property, and therefore a path to the property owner.
+                # Note though that this path is allowed to be an empty string.
+                continue
+            texts = slider_data.get('texts', [])
+            if texts:
+                if texts.startswith("["):
+                    texts = ast.literal_eval(texts)
+                else:
+                    texts = [t.strip() for t in texts]
+            draw_slider(
+                rig=rig,
+                column=column,
+                sub_row=sub_row,
+                ###
+                owner_path=slider_data.get('owner_path'),
+                prop_name=slider_data.get('prop_name'),
+                ###
+                ui_path=ui_path + [row_name, slider_name],
+                panel_name=panel_name,
+                label_name=label_name,
+                row_name=row_name,
+                slider_name=slider_name,
+                ###
+                texts=texts,
+                icon_true = slider_data.get('icon_true', 'CHECKBOX_HLT'),
+                icon_false = slider_data.get('icon_false', 'CHECKBOX_DEHLT'),
+                operator=slider_data.get('operator'),
+                op_icon=slider_data.get('op_icon'),
+                op_kwargs=slider_data.get('op_kwargs'),
+                children=slider_data.get('children'),
+            )
 
 def draw_slider(
     *,
@@ -1446,12 +1444,10 @@ class CloudRigBoneCollection(PropertyGroup):
 
     @property
     def parent_collection(self) -> BoneCollection:
-        # TODO 4.2: Redundant, delete.
         return self.get_collection().parent
 
     @parent_collection.setter
     def parent_collection(self, coll: BoneCollection):
-        # TODO 4.2: Redundant, delete.
         self.get_collection().parent = coll
         self.parent_name = coll.name
 
@@ -1476,11 +1472,6 @@ class CloudRigBoneCollection(PropertyGroup):
     )
 
     @property
-    def children(self) -> list[BoneCollection]:
-        # TODO 4.2: Redundant, delete.
-        return self.get_collection().children[:]
-
-    @property
     def siblings(self):
         """Includes self!"""
         if not self.parent_collection:
@@ -1488,14 +1479,14 @@ class CloudRigBoneCollection(PropertyGroup):
             return [
                 coll for coll in all_colls if not coll.cloudrig_info.parent_collection
             ]
-        return self.parent_collection.cloudrig_info.children
+        return self.parent_collection.children
 
     @property
     def children_recursive(self) -> list[BoneCollection]:
-        children = self.children[:]
-        for child in children:
-            children += child.cloudrig_info.children
-        return children
+        all_children = self.get_collection().children[:]
+        for child in all_children:
+            all_children += child.children
+        return all_children
 
     @property
     def parents_recursive(self) -> list[BoneCollection]:
@@ -1505,11 +1496,6 @@ class CloudRigBoneCollection(PropertyGroup):
             parents.append(parent)
             parent = parent.cloudrig_info.parent_collection
         return parents
-
-    @property
-    def all_bones(self) -> list[Bone]:
-        # TODO 4.2: Redundant, delete.
-        return self.get_collection().bones_recursive
 
     quick_access: BoolProperty(
         name="Quick Access",
@@ -1585,7 +1571,7 @@ class CLOUDRIG_UL_collections(UIList):
                 and any([c.is_visible for c in b.collections])
                 and b.select
             ]
-            indirect_bones = cloudrig_info.all_bones
+            indirect_bones = collection.bones_recursive
             indirect_visible_bones = [
                 b
                 for b in indirect_bones
@@ -1680,7 +1666,7 @@ class CLOUDRIG_UL_collections(UIList):
 
         def add_children_recursive(parent_coll):
             sorted_colls.append(parent_coll)
-            for child in parent_coll.cloudrig_info.children:
+            for child in parent_coll.children:
                 add_children_recursive(child)
 
         for root_coll in root_colls:
