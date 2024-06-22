@@ -3,23 +3,18 @@ from bpy.types import ID, LayerCollection, Collection, PropertyGroup
 
 
 class EnsureVisible:
-    # TODO: Nick has a nicer version of this that uses `yield`, which works with the `with` statement. Steal it.
-    """Ensure an object is visible, then reset it to how it was before."""
+    """Ensure an object is visible, then later reset it to how it was before."""
 
-    def __init__(self, obj, do_collection=True):
+    def __init__(self, context, obj, do_collection=True):
         """Ensure an object is visible, and create this small object to manage that object's visibility-ensured-ness."""
         self.obj_name = obj.name
         self.obj_hide = obj.hide_get()
         self.obj_hide_viewport = obj.hide_viewport
         self.moved_to_root_coll = False
 
-        context = bpy.context
-
-        # If we are in local view, get out of it. TODO: Might be better to instead move the object into local view, but is that possible?
+        # If we are in local view, get out of it.
         area = context.area
-        if (
-            area
-        ):  # TODO: This can sometimes be None, I don't know why, and I don't know how to get the active space in that case!
+        if area:
             space = context.area.spaces.active
             if hasattr(space, 'local_view') and space.local_view:
                 bpy.ops.view3d.localview()
@@ -33,13 +28,11 @@ class EnsureVisible:
             context.scene.collection.objects.link(obj)
             self.moved_to_root_coll = True
 
-    def restore(self):
+    def restore(self, context):
         """Restore visibility settings to their original state."""
         obj = bpy.data.objects.get((self.obj_name, None))
         if not obj:
             return
-
-        context = bpy.context
 
         obj.hide_set(self.obj_hide)
         obj.hide_viewport = self.obj_hide_viewport
@@ -55,8 +48,8 @@ class CloudObjectUtilitiesMixin:
         return lock_transforms(obj, loc, rot, scale)
 
     @staticmethod
-    def ensure_visible(obj) -> EnsureVisible:
-        return EnsureVisible(obj)
+    def ensure_visible(context, obj) -> EnsureVisible:
+        return EnsureVisible(context, obj)
 
     def add_to_widget_collection(self, context, widget_ob):
         generator = self.generator
@@ -108,13 +101,10 @@ def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
 
 
 def recursive_search_layer_collection(
-    coll_name: str, layer_coll: LayerCollection = None
+    coll_name: str, layer_coll: LayerCollection
 ) -> LayerCollection:
     # Recursivly transverse layer_collection for a particular name
     # This is the only way to set active collection as of 14-04-2020.
-    if not layer_coll:
-        layer_coll = bpy.context.view_layer.layer_collection
-
     found = None
     if layer_coll.name == coll_name:
         return layer_coll
@@ -124,6 +114,8 @@ def recursive_search_layer_collection(
             return found
 
 
-def set_active_collection(collection: Collection):
-    layer_collection = recursive_search_layer_collection(collection.name)
-    bpy.context.view_layer.active_layer_collection = layer_collection
+def set_active_collection(context, collection: Collection):
+    layer_coll = context.view_layer.layer_collection
+
+    layer_collection = recursive_search_layer_collection(collection.name, layer_coll)
+    context.view_layer.active_layer_collection = layer_collection

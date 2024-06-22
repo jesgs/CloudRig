@@ -64,7 +64,7 @@ class Component_Lattice(Component_Base):
         hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
         lattice_ob = self.params.lattice.lattice = self.ensure_lattice(context, hook_pb.name)
         if self.params.lattice.regenerate:
-            self.reset_lattice(self.params.lattice.lattice, root_pb, hook_pb)
+            self.reset_lattice(context, self.params.lattice.lattice, root_pb, hook_pb)
         else:
             # Reset Hook inverse matrices
             for m in lattice_ob.modifiers:
@@ -82,14 +82,14 @@ class Component_Lattice(Component_Base):
         return lattice_ob
 
     def reset_lattice(
-        self, lattice_ob: Object, root_bone: PoseBone, hook_bone: PoseBone
+        self, context, lattice_ob: Object, root_bone: PoseBone, hook_bone: PoseBone
     ):
         # If lattice doesn't exist, create it.
         if not lattice_ob:
             lattice_name = hook_bone.name
             lattice = bpy.data.lattices.new(lattice_name)
             lattice_ob = bpy.data.objects.new(lattice_name, lattice)
-            bpy.context.scene.collection.objects.link(lattice_ob)
+            context.scene.collection.objects.link(lattice_ob)
         else:
             lattice_ob.modifiers.clear()
             lattice_ob.constraints.clear()

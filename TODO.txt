@@ -3,13 +3,6 @@ Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
 
 Preferred Feature Ideas
-	- Better rename on F2: Warn if bone name is taken, support Symmetry.
-	- Add an example to the Properties UI Documentation on how it can be used to create a bone collection panel
-	- Operator that pops up a UI panel of choice, by name? So it can be hotkeyed? But then it's no guarantee that it works for all rigs... hmmm...
-	- Add a button to clear unused collections in the CloudRig BoneCollections context menu. 
-		(Show pop-up list of the groups that will be removed.)
-		A button to copy a single bone set's settings to all selected bones.
-
 	- Add built-in hotkey for Edit Widget (Ctrl Alt E)
 		- But also make it a pie menu (except in mesh/curve edit modes, where it just drops you back to pose mode without a pie menu):
 			- Edit Widget
@@ -17,6 +10,13 @@ Preferred Feature Ideas
 			- Make Widget Unique
 			- Copy Widget to Selected
 			- Reload Widget?
+
+
+	- Better rename on F2: Warn if bone name is taken, support Symmetry.
+	- Add a button to clear unused collections in the CloudRig BoneCollections context menu. 
+		(Show pop-up list of the groups that will be removed.)
+		A button to copy a single bone set's settings to all selected bones.
+
 	- Alt+R pie:
 		- Alt+R: Reset Rot or Loc or Scale or all or a whole rig (like CloudRig's Reset Rig operator).
 		- This frees up Alt+S and Alt+G.

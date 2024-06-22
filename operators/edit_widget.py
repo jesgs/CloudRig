@@ -12,13 +12,13 @@ widgets_visible = []
 widget_items = []
 
 
-def restore_all_widgets_visibility():
+def restore_all_widgets_visibility(context):
     global widgets_visible
 
     if widgets_visible != []:
         for w in widgets_visible[:]:
             try:
-                w.restore()
+                w.restore(context)
             except:
                 pass
     widgets_visible = []
@@ -247,7 +247,7 @@ class POSE_OT_toggle_edit_widget(CloudRigOperator):
 
         # If active bone has a bone shape, reveal it.
         global widgets_visible
-        widgets_visible.append(EnsureVisible(shape))
+        widgets_visible.append(EnsureVisible(context, shape))
 
         # Enter mesh edit mode on the now visible bone shape.
         context.scene.widget_edit_armature = rig.name
@@ -280,7 +280,7 @@ class POSE_OT_toggle_edit_widget(CloudRigOperator):
             widget_name = self.widget_name
 
         if context.mode == 'POSE':
-            restore_all_widgets_visibility()
+            restore_all_widgets_visibility(context)
             if context.active_pose_bone not in context.selected_pose_bones:
                 self.report(
                     {'ERROR'},
@@ -302,7 +302,7 @@ class POSE_OT_toggle_edit_widget(CloudRigOperator):
 
         elif context.mode == 'EDIT_MESH':
             self.exit_shape_edit_mode(context)
-            restore_all_widgets_visibility()
+            restore_all_widgets_visibility(context)
 
         return {'FINISHED'}
 

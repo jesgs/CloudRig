@@ -166,7 +166,6 @@ class BoneInfo:
         self.use_custom_shape_bbone_scaling = True
 
         ### Recalculate Roll
-        # TODO: Refactor this so that roll_type is gone, and just the existence of roll_bone or roll_vector indicates what should be done.
         # Whether the roll_bone or roll_vector should be used to calculate bone roll..
         self.roll_type = ""
         # If roll_type=='ALIGN', use this as the bone to align with. This is a BoneInfo instance or a string. This is equivalent to the "Active Bone" alignment in Blender.
@@ -616,17 +615,12 @@ class BoneInfo:
         bone.color.palette = self.color_palette_base
         pose_bone.color.palette = self.color_palette_pose
 
-        # TODO 4.1: Remove this
         # Convert theme colors to custom colors, so the rigger's theme colors
         # propagate to all users.
         # This is because we dropped support for custom colors expecting better
         # theme colors to drop in 4.0, but that didn't happen.
-        # TODO DOCS: Document that the way to add custom colors in CloudRig
-        # currently, is by customizing your theme colors, and mention that
-        # hopefully 4.1 will have the new theme colors.
         if self.color_palette_base not in {'DEFAULT', 'CUSTOM'}:
-            palette = self.color_palette_base
-            theme_color = bpy.context.preferences.themes[0].bone_color_sets[
+            theme_color = context.preferences.themes[0].bone_color_sets[
                 int(self.color_palette_base[-2:]) - 1
             ]
             self.color_palette_base = 'CUSTOM'
@@ -720,9 +714,9 @@ class BoneInfo:
     def clone(self, new_name=None, bone_set=None):
         """Return a clone of self."""
         if not new_name:
-            new_name = (
-                self.name + ".001"
-            )  # TODO: Properly find an avilable name (there's uniqify() for this in the Selection Sets addon, would be nice to move that to master.)
+            new_name = self.owner_component.naming.uniqify(
+                self.name, list(self.owner_component.generator.bone_infos)
+            )
 
         if not bone_set:
             bone_set = self.bone_set

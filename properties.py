@@ -308,7 +308,7 @@ class RigComponent(PropertyGroup):
 
     @property
     def component_module(self) -> 'ModuleType|None':
-        prefs = get_addon_prefs(bpy.context)
+        prefs = get_addon_prefs()
         component_type_info = prefs.component_types.get(self.component_type)
         if not component_type_info:
             return
@@ -467,7 +467,7 @@ class Properties_CloudRig(PropertyGroup):
 
     @property
     def rig_component_bones(self):
-        rig = bpy.context.object
+        rig = self.id_data
         return [
             pb.cloudrig_component
             for pb in rig.pose.bones

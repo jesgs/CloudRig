@@ -928,20 +928,19 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
             self.preserve_state = False
 
         # Ensure required visibility and active states.
-        # TODO: Replace EnsureVisible with context overriding.
-        meta_visible = EnsureVisible(metarig)
+        meta_visible = EnsureVisible(context, metarig)
         rig_visible = None
         if target_rig:
-            rig_visible = EnsureVisible(target_rig)
+            rig_visible = EnsureVisible(context, target_rig)
         context.view_layer.objects.active = metarig
 
         # Try to generate a rig based on the metarig.
         target_rig = self.generate_rig(context, metarig)
 
         # Restore states.
-        meta_visible.restore()
+        meta_visible.restore(context)
         if rig_visible:
-            rig_visible.restore()
+            rig_visible.restore(context)
 
         if not target_rig:
             # This means an error has occurred. It was already handled in generate_rig().
@@ -1102,7 +1101,6 @@ registry = [
 
 
 def register():
-    # TODO: These would be better organized into a single hotkeys.py file.
     register_hotkey(
         CLOUDRIG_OT_generate.bl_idname,
         hotkey_kwargs={'type': "R", 'value': "PRESS", 'ctrl': True, 'alt': True},

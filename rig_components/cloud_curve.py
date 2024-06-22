@@ -457,10 +457,10 @@ class Component_Curve_Hooked(Component_Base):
         hook_m.subtarget = bonename
 
     def create_helper_objects(self, context):
-        self.setup_curve(self.all_hooks)
+        self.setup_curve(context, self.all_hooks)
         super().create_helper_objects(context)
 
-    def setup_curve(self, all_hooks: list[list[BoneInfo]]):
+    def setup_curve(self, context, all_hooks: list[list[BoneInfo]]):
         """Configure the Hook Modifiers for the curve.
         all_hooks: List of List of BoneInfo objects that were created with make_ctrls_for_curve_point().
                         Each list corresponds to one curve spline.
@@ -469,7 +469,7 @@ class Component_Curve_Hooked(Component_Base):
         curve_ob = self.params.curve.target
         if not curve_ob:
             self.raise_generation_error("Curve object not found!")
-        curve_visible = self.ensure_visible(curve_ob)
+        curve_visible = self.ensure_visible(context, curve_ob)
 
         if not curve_ob.visible_get():
             self.raise_generation_error(
@@ -477,13 +477,13 @@ class Component_Curve_Hooked(Component_Base):
             )
 
         for spline_i, hooks in enumerate(all_hooks):
-            self.setup_spline(curve_ob, spline_i, hooks)
+            self.setup_spline(context, curve_ob, spline_i, hooks)
 
-        curve_visible.restore()
+        curve_visible.restore(context)
 
         self.params.curve.target = curve_ob
 
-    def setup_spline(self, curve_ob: Object, spline_i: int, hooks: list[BoneInfo]):
+    def setup_spline(self, context, curve_ob: Object, spline_i: int, hooks: list[BoneInfo]):
         spline = curve_ob.data.splines[spline_i]
         points = get_points(spline)
         num_points = len(points)
@@ -504,7 +504,7 @@ class Component_Curve_Hooked(Component_Base):
             constraint_vis_backup[c.name] = c.mute
             c.mute = True
 
-        bpy.context.view_layer.update()
+        context.view_layer.update()
 
         for point_i in range(0, num_points):
             hook_b = hooks[point_i]
@@ -685,13 +685,3 @@ class Params(PropertyGroup):
 
 
 RIG_COMPONENT_CLASS = Component_Curve_Hooked
-
-
-def create_sample(obj):
-    # load_sample_by_file(__file__)
-    # load_sample_by_file() does not deal with additional dependent objects,
-    # so we have to bring the curve object into the scene collection.
-    curve_ob = bpy.data.objects.get(("cloud_curve", None))
-    context = bpy.context
-    context.scene.collection.objects.link(curve_ob)
-    curve_ob.location = context.scene.cursor.location

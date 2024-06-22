@@ -5,7 +5,7 @@ import os
 
 from . import rig_components
 from .generation import cloudrig
-
+from .utils.misc import get_addon_prefs
 
 def get_default_widgets_path():
     filedir = os.path.dirname(os.path.realpath(__file__))
@@ -16,9 +16,7 @@ def get_default_widgets_path():
 
 
 def init_component_module_list(context=None):
-    if not context:
-        context = bpy.context
-    prefs = context.preferences.addons[__package__].preferences
+    prefs = get_addon_prefs()
     prefs.component_types.clear()
 
     module_infos = []
