@@ -12,6 +12,7 @@ from . import (
     toggle_metarig,
     copy_mirror_components,
     bone_collections_popup,
+    apply_bone_color_preset,
 )
 
 modules = [
@@ -28,4 +29,5 @@ modules = [
     toggle_metarig,
     copy_mirror_components,
     bone_collections_popup,
+    apply_bone_color_preset,
 ]

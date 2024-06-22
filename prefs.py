@@ -96,6 +96,11 @@ class CloudRigPreferences(AddonPreferences):
         default=False,
         description="Reveal the hotkey list. You may customize or disable these hotkeys",
     )
+    show_color_presets: BoolProperty(
+        name="Show Color Presets",
+        default=False,
+        description="Reveal the color preset operators",
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -113,20 +118,53 @@ class CloudRigPreferences(AddonPreferences):
         main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
         main_col.separator()
 
-        row = main_col.row()
-        split = row.split(factor=0.12)
-        split.use_property_split = False
-        icon = 'TRIA_DOWN' if self.show_hotkeys else 'TRIA_RIGHT'
-        split.prop(self, 'show_hotkeys', icon=icon, emboss=False, text="Hotkeys")
-        split.prop(self, 'show_hotkeys', icon='BLANK1', emboss=False, text="")
-        split = main_col.split(factor=0.012)
-        split.row()
-        hotkey_row = split.row()
-        hotkey_col = hotkey_row.column()
-        row = hotkey_col.row()
-        row.use_property_split = False
+        hotkey_col = self.draw_fake_dropdown(main_col, self, 'show_hotkeys', "Hotkeys")
         if self.show_hotkeys:
             cloudrig.CLOUDRIG_PT_hotkeys_panel.draw_hotkey_list(hotkey_col, context)
+
+        preset_col = self.draw_fake_dropdown(
+            main_col, self, 'show_color_presets', "Bone Colors"
+        )
+        if self.show_color_presets:
+            split = preset_col.split(factor=0.4)
+            row = split.row()
+            row.alignment = 'RIGHT'
+            row.label(text="Apply Color Presets: ")
+            row = split.row()
+            row.operator(
+                'preferences.set_bone_color_presets',
+                text='Blender',
+                icon='RESTRICT_COLOR_OFF',
+            ).preset = 'BLENDER'
+            row.operator(
+                'preferences.set_bone_color_presets',
+                text='CloudRig',
+                icon='RESTRICT_COLOR_ON',
+            ).preset = 'CLOUDRIG'
+            preview_row = preset_col.row(align=True)
+            split = preview_row.split(factor=0.4)
+            split.row()
+            row = split.row()
+            for i in range(20):
+                icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
+                row.label(text="", icon=icon)
+
+    def draw_fake_dropdown(self, layout, prop_owner, prop_name, dropdown_text):
+        row = layout.row()
+        split = row.split(factor=0.20)
+        split.use_property_split = False
+        prop_value = prop_owner.path_resolve(prop_name)
+        icon = 'TRIA_DOWN' if prop_value else 'TRIA_RIGHT'
+        split.prop(prop_owner, prop_name, icon=icon, emboss=False, text=dropdown_text)
+        split.prop(prop_owner, prop_name, icon='BLANK1', emboss=False, text="")
+        split = layout.split(factor=0.012)
+        split.row()
+        dropdown_row = split.row()
+        dropdown_col = dropdown_row.column()
+        row = dropdown_col.row()
+        row.use_property_split = False
+
+        return dropdown_col
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]

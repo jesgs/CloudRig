@@ -162,7 +162,7 @@ class BoneSet(LinkedList):
         bone_info.use_deform = False
 
         # Load color palettes (only presets are supported, no custom colors)
-        # TODO 4.1: Drop support for custom colors.
+        # TODO: If one day Blender's color presets are fixed, drop support for custom colors.
         if keep_colors:
             if data_bone.color.palette == 'CUSTOM' and False:
                 self.rig_component.add_log("Custom Colors must not be used.")
