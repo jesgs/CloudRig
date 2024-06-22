@@ -1066,6 +1066,10 @@ def draw_slider(
             edit_op.children = json.dumps(children)
         if texts:
             edit_op.texts = ", ".join(texts)
+        if icon_true != 'CHECKBOX_HLT':
+            edit_op.icon_true = icon_true
+        if icon_false != 'CHECKBOX_DEHLT':
+            edit_op.icon_false = icon_false
         sub_row.operator(
             'pose.cloudrig_remove_property_from_ui', text="", icon='X'
         ).ui_path = ui_path_str
