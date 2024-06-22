@@ -13,7 +13,9 @@ def get_constraint_icon(constraint: Constraint) -> str:
     icons = (
         UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
     )
-    return icons[UILayout.icon(constraint) - 48]
+    # This magic number can change between blender versions. Last updated: 4.1.1
+    constraint_icon_magic_offset = 42
+    return icons[UILayout.icon(constraint) - constraint_icon_magic_offset]
 
 
 def get_constrained_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:

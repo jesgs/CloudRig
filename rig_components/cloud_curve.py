@@ -299,9 +299,9 @@ class Component_Curve_Hooked(Component_Base):
         hook_ctr.left_handle_control = None
         hook_ctr.right_handle_control = None
 
-        shape = 'Circle'
+        shape = 'Curve_Point'
         if is_bezier and self.params.curve.controls_for_handles:
-            shape = 'Curve_Point'
+            shape = 'Circle'
             self.make_bezier_handle_controls(
                 hook_ctr, spline_idx, point_idx, loc, loc_left, loc_right, cyclic
             )
@@ -633,8 +633,9 @@ class Component_Curve_Hooked(Component_Base):
         if curve_ob and len(curve_ob.data.splines) > 1:
             cls.draw_prop(context, layout, params.curve, "root_per_spline")
 
-        cls.draw_prop(context, layout, params.curve, "hook_name")
-        cls.draw_prop(context, layout, params.curve, "inherit_scale")
+        if cls.is_advanced_mode(context):
+            cls.draw_prop(context, layout, params.curve, "hook_name")
+            cls.draw_prop(context, layout, params.curve, "inherit_scale")
         cls.draw_prop(context, layout, params.curve, "x_axis_symmetry")
         cls.draw_prop(context, layout, params.curve, "controls_for_handles")
         if params.curve.controls_for_handles:

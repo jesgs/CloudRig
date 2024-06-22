@@ -91,7 +91,6 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 def reveal_and_select(context, bone: Bone or EditBone or PoseBone, set_active=True):
     if type(bone) == PoseBone:
         bone = bone.bone
-    print("Reveal and select: ", bone.name)
     ensure_visible_bone_collection(bone)
     bone.hide = False
     bone.select = True

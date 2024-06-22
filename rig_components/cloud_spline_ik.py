@@ -50,7 +50,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         if self.params.curve.create_root:
             self.make_curve_root_ctrl()
         if not self.params.curve.target:
-            self.create_bezier_curve_obj(context)
+            self.ensure_curve_obj(context)
+        self.reset_curve_obj(self.params.curve.target)
         self.make_ctrls_for_curve_points()
 
         ik_chain = self.bones_org
@@ -70,11 +71,14 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         # TODO: This could perhaps be better done with a callback of some kind.
         pass
 
-    def create_bezier_curve_obj(self, context):
+    def ensure_curve_obj(self, context):
         """Find or create the Bezier Curve that will be used by the rig."""
 
         curve_ob = self.params.curve.target
+        if curve_ob:
+            return curve_ob
 
+        # Create and name curve object.
         curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
         curve_name += "_" + (
             self.params.curve.hook_name
@@ -82,23 +86,23 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             else self.base_bone_name.replace("ORG-", "")
         )
 
-        if curve_ob:
-            # Remove all splines, then add a new one.
-            for spline in curve_ob.data.splines[:]:
-                curve_ob.data.splines.remove(spline)
-            spline = curve_ob.data.splines.new(type='BEZIER')
-            # Remove all Hook modifiers. They seem to cause an issue where deform bones get created at 0,0,0...
-            # Blows my mind, don't ask me.
-            for m in curve_ob.modifiers[:]:
-                if m.type == 'HOOK':
-                    curve_ob.modifiers.remove(m)
-        else:
-            # Create and name curve object.
-            curve = bpy.data.curves.new(curve_name, 'CURVE')
-            curve_ob = bpy.data.objects.new(curve_name, curve)
-            context.scene.collection.objects.link(curve_ob)
-            spline = curve.splines.new(type='BEZIER')
-            self.lock_transforms(curve_ob)
+        curve = bpy.data.curves.new(curve_name, 'CURVE')
+        curve_ob = bpy.data.objects.new(curve_name, curve)
+        context.scene.collection.objects.link(curve_ob)
+        self.lock_transforms(curve_ob)
+        self.params.curve.target = curve_ob
+        return curve_ob
+
+    def reset_curve_obj(self, curve_ob):
+        # Remove all splines, then add a new one.
+        for spline in curve_ob.data.splines[:]:
+            curve_ob.data.splines.remove(spline)
+        spline = curve_ob.data.splines.new(type='BEZIER')
+        # Remove all Hook modifiers. They seem to cause an issue where deform bones get created at 0,0,0...
+        # Blows my mind, don't ask me.
+        for m in curve_ob.modifiers[:]:
+            if m.type == 'HOOK':
+                curve_ob.modifiers.remove(m)
 
         curve_ob.data.dimensions = '3D'
         sum_bone_length = sum([b.length for b in self.bones_org])
@@ -226,7 +230,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         row = cls.draw_prop(
             context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE'
         )
-        row.enabled = False
+        if row:
+            row.enabled = False
 
     @classmethod
     def draw_control_params(cls, layout, context, params):
@@ -234,8 +239,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         super().draw_control_params(layout, context, params)
 
         layout.separator()
-        cls.draw_control_label(layout, "Spline")
-        cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
+        cls.draw_control_label(layout, "Spline IK")
+
+        if cls.is_advanced_mode(context):
+            cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
 
         cls.draw_prop(context, layout, params.spline_ik, 'deform_setup', expand=True)
         if params.spline_ik.deform_setup == 'CREATE':
@@ -258,11 +265,7 @@ class Params(PropertyGroup):
     deform_setup: EnumProperty(
         name="Deform Setup",
         items=[
-            (
-                'NONE',
-                'None',
-                "Disable deform flag, so this rig component can't be used in tandem with Armature modifiers",
-            ),
+            ('NONE', 'None', "Disable deform flag, so this component won't work with Armature modifiers"),
             ('PRESERVE', 'Preserve', "Preserve deform flag of each bone"),
             ('CREATE', 'Create', "Create deform bones prefixed with DEF-"),
         ],

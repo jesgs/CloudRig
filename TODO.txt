@@ -3,7 +3,6 @@ Migration
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
 
 Known Bugs
-	- Check if Spline IK parameters work well with each other and do what they should.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
 	cloud_spine is generating a P-ROOT bone for no apparent reason? See basic human metarig.
 
