@@ -60,7 +60,6 @@ def cloudrig_manual_map():
             (addon_prefs_path + "bone_set_show_advanced", "organizing-bones#bone-collections"),
             ("bpy.types.boneset*", "organizing-bones#organizing-bones-1"),
             ("bpy.types.rigcomponent.bone_sets*", "organizing-bones#bone-collections"),
-            ("bpy.ops.pose.cloudrig_bone_set_collection_rename", "organizing-bones#organizing-bones-1"),
             ("bpy.ops.pose.cloudrig_bone_set_collection_add", "organizing-bones#organizing-bones-1"),
             ("bpy.ops.pose.cloudrig_bone_set_collection_remove", "organizing-bones#organizing-bones-1"),
             ("bpy.ops.pose.cloudrig_bone_set_collection_reset", "organizing-bones#organizing-bones-1"),

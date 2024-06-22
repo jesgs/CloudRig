@@ -420,11 +420,6 @@ class CLOUDRIG_UL_bone_set_collections(UIList):
             icon='OUTLINER_COLLECTION',
             text="",
         )
-        row.operator(
-            CLOUDRIG_OT_bone_set_collection_rename.bl_idname,
-            icon='GREASEPENCIL',
-            text="",
-        ).old_name = collection.name
 
 
 class CLOUDRIG_UL_bone_sets(UIList):
@@ -554,47 +549,10 @@ class CLOUDRIG_OT_bone_set_collection_reset(CloudRigOperator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_bone_set_collection_rename(CloudRigOperator):
-    """Rename a collection across all Bone Sets and the metarig. This is how you should rename collections in CloudRig"""
-
-    bl_idname = "pose.cloudrig_bone_set_collection_rename"
-    bl_label = "Rename Collection"
-    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-    old_name: StringProperty(name="Old Name")
-    new_name: StringProperty(name="Name")
-
-    def invoke(self, context, _event):
-        self.new_name = self.old_name
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-        self.layout.prop(self, 'new_name')
-
-    def execute(self, context):
-        metarig = context.object
-        for pbone in metarig.pose.bones:
-            for bone_set in pbone.cloudrig_component.bone_set_dict.values():
-                for coll_entry in bone_set.collections:
-                    if coll_entry.name == self.old_name:
-                        coll_entry.name = self.new_name
-        if self.old_name in metarig.data.collections_all:
-            metarig.data.collections_all[self.old_name].name = self.new_name
-
-        self.report(
-            {'INFO'},
-            f"Renamed `{self.old_name}` to `{self.new_name}` throughout the whole metarig",
-        )
-        return {'FINISHED'}
-
-
 registry = [
     CLOUDRIG_UL_bone_sets,
     CLOUDRIG_OT_bone_set_collection_add,
     CLOUDRIG_OT_bone_set_collection_remove,
     CLOUDRIG_OT_bone_set_collection_reset,
-    CLOUDRIG_OT_bone_set_collection_rename,
     CLOUDRIG_UL_bone_set_collections,
 ]
