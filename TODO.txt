@@ -4,7 +4,6 @@ Priority -1: Migration
 
 Priority 1: Bugs
 	- Check if Spline IK parameters work well with each other and do what they should.
-	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
 	cloud_spine is generating a P-ROOT bone for no apparent reason? See basic human metarig.

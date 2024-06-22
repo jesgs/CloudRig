@@ -91,7 +91,7 @@ class Component_Aim(Component_Base):
                 ["CTR"], *self.naming.slice_name(org_bone.name)[1:]
             ),
             source=org_bone,
-            parent=org_bone.parent,
+            parent=org_bone.parent if self.params.aim.root else org_bone,
             custom_shape_name="Circle",
         )
 
@@ -350,6 +350,8 @@ class Component_Aim(Component_Base):
     def is_bone_set_used(cls, context, rig, params, set_name):
         if set_name == 'deform_bones':
             return params.aim.deform
+        if set_name == 'aim_root_control':
+            return params.aim.root
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
