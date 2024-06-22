@@ -4,8 +4,6 @@ Priority -1: Migration
 
 Priority 1: Bugs
 	- Check if Spline IK parameters work well with each other and do what they should.
-	UI data is not added for IK/FK switch of the finger rig, and the ability to switch using a control (which was better) seems to be gone. Did we remove this on purpose? That may have been dumb.
-	cloud_face_chain sample has a wrong constraint, and it looks like intersection controls aren't aligned with the STR controls they should be aligned with...
 	cloud_eye custom parent doesn't work unless Root Control is enabled.
 	cloud_curve seems to generate wrong when the metarig and/or rig (or the curve?) is off of the world origin.
 	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.

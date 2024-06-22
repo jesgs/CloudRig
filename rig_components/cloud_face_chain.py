@@ -14,9 +14,7 @@ def has_tangent_helpers(rig) -> bool:
     return rig.params.chain.smooth_spline and rig.params.chain.bbone_density > 0
 
 
-def parent_cluster_to_intersection(
-    cluster: list[BoneInfo], intersection: BoneInfo
-):
+def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneInfo):
     for str_bone in cluster:
         component = str_bone.owner_component
         str_bone.parent = intersection
@@ -133,7 +131,7 @@ class Component_FaceChain(Component_ToonChain):
         ### Following code is only run ONCE by the LAST face_chain_rig.
         if not self.is_last_chain_rig:
             return
-        
+
         # Create and set up intersection controls.
 
         str_bone_clusters = get_bone_clusters(self.chain_rigs)
@@ -199,14 +197,14 @@ class Component_FaceChain(Component_ToonChain):
         If it doesn't exist, create one.
         """
 
-        rig = cluster[0].owner_component
+        rig_component = cluster[0].owner_component
 
         intersection_control = None
         is_anchor = False
         # Search for an anchor rig
         anchor_components = [
             component
-            for component in rig.generator.all_components
+            for component in rig_component.generator.all_components
             if isinstance(component, Component_FaceChainAnchor)
         ]
         for anchor_rig in anchor_components:
@@ -217,19 +215,21 @@ class Component_FaceChain(Component_ToonChain):
                 break
 
         if not intersection_control:
-            combined_name = rig.naming.combine_names(cluster)
+            combined_name = rig_component.naming.combine_names(cluster)
 
-            slices = rig.naming.slice_name(combined_name)
+            slices = rig_component.naming.slice_name(combined_name)
             # Discard prefixes, put STR-I.
-            bone_name = rig.naming.make_name(["STR", "I"], slices[1], slices[2])
+            bone_name = rig_component.naming.make_name(
+                ["STR", "I"], slices[1], slices[2]
+            )
 
-            intersection_control = rig.bone_sets['Intersection Controls'].new(
+            intersection_control = rig_component.bone_sets['Intersection Controls'].new(
                 name=bone_name,
                 source=cluster[0],
                 roll_type='ALIGN',
                 roll_bone=cluster[0],
                 roll=0,
-                custom_shape_name = 'Cube',
+                custom_shape_name='Cube',
                 custom_shape_scale=0.5,
             )
 
