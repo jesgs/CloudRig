@@ -105,7 +105,10 @@ def ensure_importable_modules():
 
 def register():
     """Called by Blender when enabling the CloudRig add-on."""
-    # TODO 4.1: Throw a useful error when trying to use as a Rigify extension.
+
+    if __name__.startswith("rigify"):
+        # If trying to register as a Rigify feature-set, throw useful error.
+        raise Exception("CloudRig is no longer a Rigify feature set. Install it as a regular add-on.")
 
     ensure_importable_modules()
     register_unregister_modules(modules, True)
@@ -114,4 +117,8 @@ def register():
 
 
 def unregister():
+    if __name__.startswith("rigify"):
+        # If trying to register as a Rigify feature-set, throw useful error.
+        raise Exception("CloudRig is no longer a Rigify feature set. Install it as a regular add-on.")
+
     register_unregister_modules(modules, False)

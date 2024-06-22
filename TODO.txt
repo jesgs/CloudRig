@@ -2,10 +2,6 @@ Migration
 	- Merge CloudRig into blender-studio-pipeline?
 	- Link to CloudRig's new home from the user documentation page of studio.b.o.
 
-Known Bugs
-	cloud_physics_chain should object-parent the physics object to the armature when it first gets created.
-	cloud_spine is generating a P-ROOT bone for no apparent reason? See basic human metarig.
-
 Preferred Feature Ideas
 	- Better rename on F2: Warn if bone name is taken, support Symmetry.
 	- Add an example to the Properties UI Documentation on how it can be used to create a bone collection panel

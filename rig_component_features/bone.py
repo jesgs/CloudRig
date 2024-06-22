@@ -950,7 +950,7 @@ class ConstraintInfo(dict):
                     "Invalid constraint target!",
                     base_bone_name=self.bone_info.name,
                     trouble_bone=subtarget,
-                    description=f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone {subtarget} in {target}.',
+                    description=f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone "{subtarget}".',
                 )
 
         con = make_constraint(pose_bone, self.type, **con_info)
