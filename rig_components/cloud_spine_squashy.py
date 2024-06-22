@@ -6,12 +6,6 @@ from math import pi
 from ..rig_component_features.bone import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
 
-"""TODO
-Re-implement FK-C bones (maybe under a param)
-    Their values would probably have to be dependent on the length of the bone.
-    Ie., longer bones slide more when rotated.
-"""
-
 
 class Component_Spine_Squashy(Component_Chain_FK):
     """Spine setup that can squash and not just stretch."""

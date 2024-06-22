@@ -50,7 +50,9 @@ class Component_Curve_Hooked(Component_Base):
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
-        self.make_curve_controls()
+        if self.params.curve.create_root:
+            self.make_curve_root_ctrl()
+        self.make_ctrls_for_curve_points()
 
     def relink(self):
         """Override cloud_base.
@@ -61,11 +63,6 @@ class Component_Curve_Hooked(Component_Base):
             self.root_bone.constraint_infos.append(c)
             org.constraint_infos.remove(c)
             c.relink()
-
-    def make_curve_controls(self):
-        if self.params.curve.create_root:
-            self.make_curve_root_ctrl()
-        self.make_ctrls_for_curve_points()
 
     def make_curve_root_ctrl(self):
         org_bone = self.bones_org[0]

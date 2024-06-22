@@ -4,11 +4,6 @@ from bpy.types import PropertyGroup
 
 from .cloud_curve import Component_Curve_Hooked, get_points
 
-"""TODO:
-"Subdivide Bones" param should be re-implemented as "number of bones", since it has to max out at 255 anyways. And the bones should be distributed evenly anyways. It just makes a lot more sense.
-
-"""
-
 
 class Component_Curve_SplineIK(Component_Curve_Hooked):
     """Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
@@ -46,7 +41,11 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         )
 
     def create_bone_infos(self, context):
-        super().create_bone_infos(context)
+        # Skip the parent class's create_bone_infos() function, but call the grandparent's.
+        # This is because we need to do things in a different order than cloud_curve:
+        # The curve object is created based on the controls, rather than the other way around.
+        super(Component_Curve_Hooked, self).create_bone_infos(context)
+        self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
         if self.params.curve.create_root:
             self.make_curve_root_ctrl()
         if not self.params.curve.target:
@@ -58,18 +57,6 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         if self.params.spline_ik.deform_setup == 'CREATE':
             ik_chain = self.make_def_chain()
         self.add_spline_ik(ik_chain)
-
-    def make_curve_controls(self):
-        """Overrides.
-        This rig's create_bezier_curve_obj() relies on Component_Base.create_bone_infos()
-        having already run. But if we simply call super().create_bone_infos(context),
-        it will run make_ctrls_for_curve_points(), which, for this class,
-        relies on create_bezier_curve_obj() running beforehand.
-        So, we override this with nothing, and we put the calls in the
-        correct order in our own create_bone_infos().
-        """
-        # TODO: This could perhaps be better done with a callback of some kind.
-        pass
 
     def ensure_curve_obj(self, context):
         """Find or create the Bezier Curve that will be used by the rig."""
@@ -265,7 +252,11 @@ class Params(PropertyGroup):
     deform_setup: EnumProperty(
         name="Deform Setup",
         items=[
-            ('NONE', 'None', "Disable deform flag, so this component won't work with Armature modifiers"),
+            (
+                'NONE',
+                'None',
+                "Disable deform flag, so this component won't work with Armature modifiers",
+            ),
             ('PRESERVE', 'Preserve', "Preserve deform flag of each bone"),
             ('CREATE', 'Create', "Create deform bones prefixed with DEF-"),
         ],
