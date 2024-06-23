@@ -158,13 +158,14 @@ class Component_ToonChain(Component_Base):
             str_name = self.naming.make_name(*sliced)
         while self.generator.find_bone_info(str_name):
             str_name = self.naming.increment_name(str_name)
+        roll_bone = org_bone.prev or org_bone
         main_str = self.bone_sets['Stretch Controls'].new(
             name=str_name,
             source=org_bone,
             vector=direction,
             roll=0,
             roll_type='VECTOR',
-            roll_vector=org_bone.z_axis.copy(),
+            roll_vector=roll_bone.z_axis,
             length=org_bone.length / segments / 2,
             custom_shape_scale=-0.6,
             parent=org_bone,
