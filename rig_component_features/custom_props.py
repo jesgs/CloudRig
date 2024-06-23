@@ -32,6 +32,10 @@ class CloudCustomPropertiesMixin:
 
         if storage == 'DEFAULT':
             bone_name = self.generator.params.properties_bone
+            if not bone_name:
+                # User has cleared the input field.
+                # Default Properties bone is the last fallback, so clearing it is not allowed.
+                self.generator.params.properties_bone = "Properties"
             properties_bone = self.generator.find_bone_info(bone_name)
             if properties_bone:
                 return properties_bone
