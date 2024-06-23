@@ -277,9 +277,9 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None
         else:
             # If subtarget is a string, look up a bone in the target
             if isinstance(subtarget, str):
-                subtarget = target_id.pose.bones[subtarget]
+                subtarget = target_id.pose.bones.get(subtarget)
 
-            if subtarget == target_id:
+            if subtarget in {target_id, None}:
                 path = ''
             else:
                 path = subtarget.path_from_id()
