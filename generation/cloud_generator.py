@@ -660,6 +660,13 @@ def create_target_rig_obj(context, metarig) -> Object:
 
     armature = bpy.data.armatures.new(name=rig_name)
     target_rig = metarig.copy()
+
+    # Nuke drivers targetting the Pose. (ie. PoseBone drivers)
+    if target_rig.animation_data:
+        for fc in target_rig.animation_data.drivers[:]:
+            if fc.data_path.startswith('pose'):
+                target_rig.animation_data.drivers.remove(fc)
+
     target_rig.name = rig_name
     target_rig.data = armature
 
