@@ -3,6 +3,7 @@
 
 import bpy, os, time, addon_utils
 from bpy.types import PoseBone, Text, Object, EditBone, Bone
+from .. import __package__ as base_package
 
 # Written by __init__.py at register time. (No other way to access bl_info)
 version_min: tuple = ()
@@ -140,4 +141,8 @@ def check_addon(context, addon_name: str) -> bool:
 def get_addon_prefs(context=None):
     if not context:
         context = bpy.context
-    return context.preferences.addons[__package__.split(".")[0]].preferences
+    if base_package.startswith('bl_ext'):
+        # 4.2
+        return context.preferences.addons[base_package].preferences
+    else:
+        return context.preferences.addons[base_package.split(".")[0]].preferences

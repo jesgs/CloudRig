@@ -25,15 +25,16 @@ bl_info = {
     'name': "CloudRig",
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'author': 'Demeter Dzadik',
-    'version': (2, 0, 0),
+    'version': (2, 1, 0),
     # This should be the lowest Blender version that is currently compatible.
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",
     'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
     'tracker_url': "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",
-    'support' : 'OFFICIAL',
+    'support' : 'COMMUNITY',
     'category': 'Rigging',
 }
+bl_info_copy = bl_info.copy()
 
 modules = [
     ui,
@@ -93,7 +94,7 @@ def ensure_importable_modules():
     We do this by populating the sys.modules dictionary with references to the 
     existing modules, pointed to by the correct names.
     """
-    addon_name = bl_info['name']
+    addon_name = bl_info_copy['name']
     if addon_name not in sys.modules:
         dirname = __file__.split(os.sep)[-2]
         stuff = {}
@@ -112,7 +113,7 @@ def register():
 
     ensure_importable_modules()
     register_unregister_modules(modules, True)
-    utils.misc.version_min = bl_info['blender']
+    utils.misc.version_min = bl_info_copy['blender']
     utils.misc.version_max = max_blender_version
 
 
