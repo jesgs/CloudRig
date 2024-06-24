@@ -2,8 +2,13 @@ import bpy
 from bpy.types import Armature, Bone, Object
 from bpy.props import BoolProperty
 
-from ..generation.naming import slice_name
 from ..generation.cloudrig import register_hotkey, find_metarig_of_rig, find_cloudrig, CloudRigOperator
+from ..generation.naming import slice_name
+from ..generation.cloudrig import (
+    find_cloudrig,
+    find_metarig_of_rig, 
+    CloudRigOperator,
+)
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -36,24 +41,34 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = find_cloudrig(context)
-        return rig and rig.visible_get()
+        return context.active_object
 
     def execute(self, context):
         rig = find_cloudrig(context)
-        if rig and rig != context.active_object:
+        active = context.active_object
+        if rig and rig != active:
             # If the active object is a mesh deformed by the generated rig,
             # focus the generated rig.
-            bpy.ops.object.mode_set(mode='OBJECT')
-            bpy.ops.object.select_all(action='DESELECT')
-            rig.hide_set(False)
-            rig.select_set(True)
-            context.view_layer.objects.active = rig
-            bpy.ops.object.mode_set(mode='POSE')
+            self.focus_rig(context, rig)
             return {'FINISHED'}
+        elif active:
+            if active.parent and active.parent.type == 'ARMATURE':
+                # If active object is parented to an armature, focus that.
+                # (Even non-CloudRig armatures.)
+                self.focus_rig(context, active.parent)
+            for m in active.modifiers:
+                if m.type == 'ARMATURE' and m.object:
+                    # If active object is deformed by an armature, focus that.
+                    # (Even non-CloudRig armatures.)
+                    self.focus_rig(context, m.object)
+                    return {'FINISHED'}
+
+        if not rig:
+            self.report({'ERROR'}, "No armature found to switch to.")
+            return {'CANCELLED'}
 
         metarig = None
-        if rig.cloudrig.generator.target_rig:
+        if rig and rig.cloudrig.generator.target_rig:
             # If the active object is a metarig, switch to the generated rig.
             metarig = rig
             rig = metarig.cloudrig.generator.target_rig
@@ -73,6 +88,14 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
             context, rig, metarig, self.match_collections, self.match_selection
         )
         return {'FINISHED'}
+
+    def focus_rig(self, context, rig):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
+        rig.hide_set(False)
+        rig.select_set(True)
+        context.view_layer.objects.active = rig
+        bpy.ops.object.mode_set(mode='POSE')
 
     def switch_rig_focus(
         self,

@@ -96,7 +96,7 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
             return obj
 
 
-def find_cloudrig(context, allow_metarigs=True) -> Object | None:
+def find_cloudrig(context, allow_metarigs=True, filter_func: callable=None) -> Object | None:
     """Find the CloudRig metarig or generated rig most relevant to the current context.
     For example, if the active object is a mesh which is deformed by a generated rig, return that generated rig.
     """
@@ -107,16 +107,19 @@ def find_cloudrig(context, allow_metarigs=True) -> Object | None:
             and is_generated_cloudrig(rig)
             or (allow_metarigs and is_cloud_metarig(rig))
         )
+    
+    if not filter_func:
+        filter_func = is_good_rig
 
     active = context.active_object
-    if is_good_rig(active):
+    if filter_func(active):
         return active
 
-    if active and active.parent and is_good_rig(active.parent):
+    if active and active.parent and filter_func(active.parent):
         return active.parent
 
     pose_ob = context.pose_object
-    if is_good_rig(pose_ob):
+    if filter_func(pose_ob):
         return pose_ob
 
     if active and active.type == 'MESH':
@@ -125,11 +128,13 @@ def find_cloudrig(context, allow_metarigs=True) -> Object | None:
 
 def get_cloudrig_of_mesh(meshob: Object) -> tuple[Object | None, str | None]:
     """If this mesh is being deformed by a CloudRig rig, return it, and the name of the modifier."""
+    return get_deforming_armature(meshob, is_generated_cloudrig)
+
+def get_deforming_armature(meshob: Object, filter_func=lambda o: True):
     for m in meshob.modifiers:
-        if m.type == 'ARMATURE' and m.object and (is_generated_cloudrig(m.object)):
+        if m.type == 'ARMATURE' and m.object and (filter_func(m.object)):
             return m.object, m.name
     return None, None
-
 
 class CloudRigOperator(Operator):
     """This class implements a basic draw function that just draws all the operator properties.
