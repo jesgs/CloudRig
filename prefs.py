@@ -1,6 +1,5 @@
 from bpy.types import PropertyGroup, AddonPreferences
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
-import bpy
 import os
 
 from . import rig_components

@@ -20,7 +20,7 @@ Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Hu
 Generate the rig via **Properties->Object Data->CloudRig->Generate CloudRig**.
 And bam, you have a rig!  
 
-![](docs/armature_generate.gif)
+<video controls src="docs/metarig_generate.mp4" title="Spawning the basic human metarig and generating it"></video>
 
 ## Learning Resources
 <ul>
