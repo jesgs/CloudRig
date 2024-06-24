@@ -9,7 +9,7 @@ from bpy.props import BoolProperty
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 from .bone_selection_pie_ops import get_active_bone
-from ..utils.misc import get_selected_bones
+from ..utils.misc import get_selected_bones, get_current_rigs
 
 
 class GenericBoneOperator:
@@ -287,6 +287,47 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
         return {'FINISHED'}
 
 
+class POSE_OT_separate_selected_bones(CloudRigOperator):
+    """Separate the selected bones into a new armature object"""
+
+    bl_idname = "pose.separate_selected_bones"
+    bl_label = "Separate Selected"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        if len(list(get_current_rigs(context))) != 1:
+            cls.poll_message_set("Only one selected armature is supported.")
+            return False
+        if len(get_selected_bones(context)) == 0:
+            cls.poll_message_set("No bones are selected.")
+            return False
+        return True
+
+    def execute(self, context):
+        selected_bones = get_selected_bones(context)
+        if context.mode != 'EDIT_ARMATURE':
+            bpy.ops.object.mode_set(mode='EDIT')
+
+        for rig, bone in selected_bones:
+            edit_bone = rig.data.edit_bones.get(bone.name)
+            edit_bone.hide=False
+            edit_bone.select=True
+
+        selected_objects = set(context.selected_objects)
+        bpy.ops.armature.separate()
+        bpy.ops.object.mode_set(mode='OBJECT')
+        new_selected_objects = set(context.selected_objects)
+        bpy.ops.object.select_all(action='DESELECT')
+
+        for obj in new_selected_objects:
+            if obj not in selected_objects:
+                context.view_layer.objects.active = obj
+                obj.select_set(True)
+                break
+
+        return {'FINISHED'}
+
 class CLOUDRIG_MT_PIE_bone_parenting(Menu):
     bl_label = "Bone Parenting"
 
@@ -308,8 +349,14 @@ class CLOUDRIG_MT_PIE_bone_parenting(Menu):
             icon='CON_CHILDOF',
         ).use_connect = False
 
-        # 3) V & ^ Leave empty.
-        pie.separator()
+        # 3) V Separate
+        pie.operator(
+            'pose.separate_selected_bones', 
+            text="Separate Selected", 
+            icon='UNLINKED'
+        )
+
+        # 4) ^ Leave empty.
         pie.separator()
 
         # 5) <^ Disconnect Bones.
@@ -347,6 +394,7 @@ registry = [
     POSE_OT_parent_active_to_all_selected,
     POSE_OT_parent_selected_to_active,
     POSE_OT_parent_object_to_selected_bones,
+    POSE_OT_separate_selected_bones,
     CLOUDRIG_MT_PIE_bone_parenting,
 ]
 
