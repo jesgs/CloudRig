@@ -297,4 +297,4 @@ class Params(PropertyGroup):
     )
 
 
-RIG_COMPONENT_CLASS = Component_Jaw
+# RIG_COMPONENT_CLASS = Component_Jaw
