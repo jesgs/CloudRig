@@ -2066,7 +2066,7 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
         active_coll = rig.data.collections.active
         if active_coll:
             if not active_coll.is_editable:
-                cls.poll_message_set("Cannot delete linked collection")
+                cls.poll_message_set("Cannot delete linked collection.")
                 return False
             return True
 

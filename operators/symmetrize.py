@@ -21,14 +21,14 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
     @classmethod
     def poll(cls, context):
         if not context.object or context.object.type != 'ARMATURE':
-            cls.poll_message_set("No active armature")
+            cls.poll_message_set("No active armature.")
             return False
 
         for bone in context.selected_bones or context.selected_pose_bones:
             if bone.name != flip_name(bone.name):
                 return True
 
-        cls.poll_message_set("No selected flippable bones")
+        cls.poll_message_set("No selected flippable bones.")
         return False
 
     def get_symmetrize_bone_mapping(self, context) -> dict[PoseBone, PoseBone]:
