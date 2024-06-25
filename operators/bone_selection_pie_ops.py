@@ -1,7 +1,7 @@
 from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
-from ..generation.cloudrig import CloudRigOperator
+from ..generation.cloudrig import CloudRigOperator, find_cloudrig
 from ..utils.misc import get_selected_bones, get_active_bone
 
 
@@ -44,6 +44,7 @@ def get_bone_by_name(rig, bone_name: str):
         return rig.data.edit_bones.get(bone_name)
     else:
         return rig.pose.bones.get(bone_name)
+
 
 def is_active_bone(context, bone: Bone or EditBone or PoseBone):
     """Return whether the passed bone is the active one"""
@@ -139,12 +140,11 @@ class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
 
     @classmethod
     def poll(cls, context):
-        return context.pose_object or (
-            context.active_object and context.active_object.type == 'ARMATURE'
-        )
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        return rig and rig.type == 'ARMATURE'
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
         if rig.mode == 'EDIT':
             bone = rig.data.edit_bones.get(self.bone_name)
         else:
@@ -305,7 +305,7 @@ class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMix
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
-        rig = context.pose_object or context.object
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
         if context.mode == 'EDIT_ARMATURE':
             layout.prop_search(
                 self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA'
@@ -315,7 +315,8 @@ class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMix
         layout.prop(self, 'extend_selection')
 
     def execute(self, context):
-        bone = get_bone_by_name(context.active_object, self.bone_name)
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        bone = get_bone_by_name(rig, self.bone_name)
         if not self.extend_selection:
             deselect_all_bones(context)
 

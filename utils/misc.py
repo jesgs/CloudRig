@@ -83,9 +83,10 @@ def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """
-    if not context.active_bone:
+    bone = context.active_pose_bone or context.active_bone
+    if not bone:
         return
-    return context.object.pose.bones.get(context.active_bone.name)
+    return context.pose_object.pose.bones.get(bone.name)
 
 
 def get_selected_bones(

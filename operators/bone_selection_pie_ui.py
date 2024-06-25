@@ -1,7 +1,7 @@
 from bpy.types import Menu, Constraint, PoseBone, UILayout
 
 from ..generation import naming
-from ..generation.cloudrig import register_hotkey
+from ..generation.cloudrig import register_hotkey, find_cloudrig
 from ..utils.misc import get_pbone_of_active
 
 
@@ -10,9 +10,7 @@ def get_constraint_icon(constraint: Constraint) -> str:
     if constraint.type == 'ACTION':
         return 'ACTION'
 
-    icons = (
-        UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
-    )
+    icons = UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
     # This magic number can change between blender versions. Last updated: 4.1.1
     constraint_icon_magic_offset = 42
     return icons[UILayout.icon(constraint) - constraint_icon_magic_offset]
@@ -142,7 +140,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rig = context.pose_object or context.active_object
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
         active_pb = get_pbone_of_active(context)
 
         pie = layout.menu_pie()
