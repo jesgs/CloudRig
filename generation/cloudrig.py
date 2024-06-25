@@ -2036,7 +2036,7 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
                 for bone in rig.data.bones:
                     bone.select = False
 
-            for bone in collection.cloudrig_info.all_bones:
+            for bone in collection.bones_recursive:
                 if self.flip:
                     bone = rig.data.bones.get(bpy.utils.flip_name(bone.name))
                     if not bone:
