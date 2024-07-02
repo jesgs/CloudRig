@@ -96,7 +96,9 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
             return obj
 
 
-def find_cloudrig(context, allow_metarigs=True, filter_func: callable=None) -> Object | None:
+def find_cloudrig(
+    context, allow_metarigs=True, filter_func: callable = None
+) -> Object | None:
     """Find the CloudRig metarig or generated rig most relevant to the current context.
     For example, if the active object is a mesh which is deformed by a generated rig, return that generated rig.
     """
@@ -107,7 +109,7 @@ def find_cloudrig(context, allow_metarigs=True, filter_func: callable=None) -> O
             and is_generated_cloudrig(rig)
             or (allow_metarigs and is_cloud_metarig(rig))
         )
-    
+
     if not filter_func:
         filter_func = is_good_rig
 
@@ -130,11 +132,13 @@ def get_cloudrig_of_mesh(meshob: Object) -> tuple[Object | None, str | None]:
     """If this mesh is being deformed by a CloudRig rig, return it, and the name of the modifier."""
     return get_deforming_armature(meshob, is_generated_cloudrig)
 
+
 def get_deforming_armature(meshob: Object, filter_func=lambda o: True):
     for m in meshob.modifiers:
         if m.type == 'ARMATURE' and m.object and (filter_func(m.object)):
             return m.object, m.name
     return None, None
+
 
 class CloudRigOperator(Operator):
     """This class implements a basic draw function that just draws all the operator properties.
@@ -665,50 +669,62 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
 
     def execute(self, context):
         rig = find_cloudrig(context)
-        bones = rig.pose.bones
+        pbones = rig.pose.bones
         if self.selection_only:
-            bones = context.selected_pose_bones
-        for pb in bones:
-            if self.reset_transforms:
-                pb.location = (0, 0, 0)
-                pb.rotation_euler = (0, 0, 0)
-                pb.rotation_quaternion = (1, 0, 0, 0)
-                pb.scale = (1, 1, 1)
+            pbones = context.selected_pose_bones
 
-            if not self.reset_props or len(pb.keys()) == 0:
-                continue
-
-            rna_properties = [
-                prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime
-            ]
-
-            # Reset custom property values to their default value
-            for key in pb.keys():
-                if key.startswith("$"):
-                    continue
-                if key in rna_properties:
-                    continue  # Addon defined property.
-
-                property_settings = None
-                try:
-                    property_settings = pb.id_properties_ui(key)
-                    if not property_settings:
-                        continue
-                    property_settings = property_settings.as_dict()
-                    if not 'default' in property_settings:
-                        continue
-                except TypeError:
-                    # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
-                    pass
-
-                if not property_settings:
-                    continue
-
-                if type(pb[key]) not in (float, int, bool):
-                    continue
-                pb[key] = property_settings['default']
+        reset_rig(
+            rig,
+            reset_transforms=self.reset_transforms,
+            reset_props=self.reset_props,
+            pbones=pbones,
+        )
 
         return {'FINISHED'}
+
+
+def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
+    if not pbones:
+        pbones = rig.pose.bones
+    for pb in pbones:
+        if reset_transforms:
+            pb.location = (0, 0, 0)
+            pb.rotation_euler = (0, 0, 0)
+            pb.rotation_quaternion = (1, 0, 0, 0)
+            pb.scale = (1, 1, 1)
+
+        if not reset_props or len(pb.keys()) == 0:
+            continue
+
+        rna_properties = [
+            prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime
+        ]
+
+        # Reset custom property values to their default value
+        for key in pb.keys():
+            if key.startswith("$"):
+                continue
+            if key in rna_properties:
+                continue  # Addon defined property.
+
+            property_settings = None
+            try:
+                property_settings = pb.id_properties_ui(key)
+                if not property_settings:
+                    continue
+                property_settings = property_settings.as_dict()
+                if not 'default' in property_settings:
+                    continue
+            except TypeError:
+                # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
+                pass
+
+            if not property_settings:
+                continue
+
+            if type(pb[key]) not in (float, int, bool):
+                continue
+            pb[key] = property_settings['default']
 
 
 #######################################
@@ -926,13 +942,14 @@ def draw_rig_settings_per_label(
                 slider_name=slider_name,
                 ###
                 texts=texts,
-                icon_true = slider_data.get('icon_true', 'CHECKBOX_HLT'),
-                icon_false = slider_data.get('icon_false', 'CHECKBOX_DEHLT'),
+                icon_true=slider_data.get('icon_true', 'CHECKBOX_HLT'),
+                icon_false=slider_data.get('icon_false', 'CHECKBOX_DEHLT'),
                 operator=slider_data.get('operator'),
                 op_icon=slider_data.get('op_icon'),
                 op_kwargs=slider_data.get('op_kwargs'),
                 children=slider_data.get('children'),
             )
+
 
 def draw_slider(
     *,
