@@ -86,7 +86,8 @@ def get_pbone_of_active(context) -> PoseBone | None:
     bone = context.active_pose_bone or context.active_bone
     if not bone:
         return
-    return context.pose_object.pose.bones.get(bone.name)
+    rig = context.pose_object or context.active_object
+    return rig.pose.bones.get(bone.name)
 
 
 def get_selected_bones(
