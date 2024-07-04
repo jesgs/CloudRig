@@ -51,7 +51,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rig = context.active_object
+        rig = context.pose_object or context.active_object
         pie = layout.menu_pie()
 
         # 1) < Symmetrize Rigging

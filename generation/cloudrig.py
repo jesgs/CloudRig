@@ -1059,6 +1059,7 @@ def draw_slider(
                     data_path += owner_path
                 elif owner_path != "":
                     data_path += "." + owner_path
+                # XXX: This doesn't work when the rig isn't the active object. We would need to pass context to check.
                 edit_op = sub_row.operator(
                     "wm.properties_edit", text="", icon='PREFERENCES'
                 )
@@ -2229,7 +2230,7 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
         self.index_offset = 0
 
         rig = find_cloudrig(context)
-        self.collection = rig.data.collections.get(self.collection_name)
+        self.collection = rig.data.collections_all.get(self.collection_name)
         if not self.collection:
             return {'CANCELLED'}
         self.initial_parent = self.collection.parent

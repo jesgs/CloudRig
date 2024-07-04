@@ -19,6 +19,7 @@ from ..generation.cloudrig import (
     read_rig_panels,
     get_rig_and_ui,
     write_rig_panels,
+    find_cloudrig
 )
 from rna_prop_ui import rna_idprop_ui_create
 
@@ -91,8 +92,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     def update_owner_path(self, context):
         context.scene.cloudrig_property_name_selector.clear()
 
+        rig = find_cloudrig(context)
+
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
-            get_data_paths(self, context.active_object)
+            get_data_paths(self, rig)
         )
         if not supports_custom_props(prop_owner):
             return
@@ -263,7 +266,6 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def draw(self, context):
         layout = self.layout.column()
-        rig = context.active_object
 
         self.draw_owner_box(layout, context)
         self.draw_prop_box(layout, context)
@@ -278,7 +280,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         # self.draw_debug_box(layout, context)
 
     def draw_owner_box(self, layout, context):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
             get_data_paths(self, rig)
         )
@@ -315,7 +317,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             owner_box.label(text=text, icon='INFO')
 
     def draw_prop_box(self, layout, context):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
             get_data_paths(self, rig)
         )
@@ -380,7 +382,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             return
 
     def draw_placement_box(self, layout, context):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
             get_data_paths(self, rig)
         )
@@ -487,7 +489,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
     def execute(self, context):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(
             self, rig
         )
@@ -519,7 +521,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             self.report({'ERROR'}, "You didn't specify a property.")
             return {'CANCELLED'}
 
-        rig = context.active_object
+        rig = find_cloudrig(context)
         owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(
             self, rig
         )
@@ -606,7 +608,7 @@ class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
     )
 
     def execute(self, context):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         ui_path = json.loads(self.ui_path)
 
         _ui_data, parents, index = remove_property_from_ui(
@@ -658,7 +660,7 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
         return self.execute(context)
 
     def execute(self, context):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         ui_path = json.loads(self.ui_path)
         ui_data, _parents, _index = remove_property_from_ui(
             rig,
@@ -706,19 +708,21 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         self.initial_panel_data = ui_data
         self.modified_panel_data = read_rig_panels(rig)
 
+        rig = find_cloudrig(context)
+
         self.row_data, has_moved = reorder_ui_row(
-            obj=context.active_object,
+            obj=rig,
             ui_path=json.loads(self.ui_path),
             index_offset=self.index_offset,
             panels=self.modified_panel_data,
         )
-        write_rig_panels(context.active_object, self.modified_panel_data)
+        write_rig_panels(rig, self.modified_panel_data)
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
-        rig = context.active_object
+        rig = find_cloudrig(context)
         self.index_offset = 0
         if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.index_offset = -1
@@ -729,11 +733,11 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         elif event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET'}:
             if self.row_data and 'is_dragged' in self.row_data:
                 del self.row_data['is_dragged']
-                write_rig_panels(context.active_object, self.modified_panel_data)
+                write_rig_panels(rig, self.modified_panel_data)
                 redraw_viewport()
             return {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            write_rig_panels(context.active_object, self.initial_panel_data)
+            write_rig_panels(rig, self.initial_panel_data)
             redraw_viewport()
             return {'CANCELLED'}
 
@@ -747,17 +751,18 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
+        rig = find_cloudrig(context)
         ui_path = json.loads(self.ui_path)
 
         self.row_data, has_moved = reorder_ui_row(
-            obj=context.active_object,
+            obj=rig,
             ui_path=ui_path,
             index_offset=self.index_offset,
             panels=self.modified_panel_data,
         )
 
         if has_moved:
-            write_rig_panels(context.active_object, self.modified_panel_data)
+            write_rig_panels(rig, self.modified_panel_data)
             redraw_viewport()
 
             return {'FINISHED'}
