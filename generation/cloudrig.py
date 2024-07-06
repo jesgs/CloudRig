@@ -106,8 +106,10 @@ def find_cloudrig(
     def is_good_rig(rig):
         return (
             rig
-            and is_generated_cloudrig(rig)
-            or (allow_metarigs and is_cloud_metarig(rig))
+            and (
+                is_generated_cloudrig(rig)
+                or (allow_metarigs and is_cloud_metarig(rig))
+            )
         )
 
     if not filter_func:
@@ -1964,7 +1966,7 @@ class POSE_OT_cloudrig_collections_reveal_all(CloudRigOperator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        rig = find_cloudrig(context, allow_metarigs=False)
+        rig = find_cloudrig(context)
         for coll in rig.data.collections_all:
             coll.is_visible = True
             coll.is_solo = False
