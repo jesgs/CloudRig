@@ -85,6 +85,16 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
             metarig = context.scene.objects.get(rig.name.replace(prefix, ""))
             if not metarig:
                 metarig = context.scene.objects.get(rig.name.replace(prefix, "META-"))
+
+            if (
+                metarig
+                and metarig.cloudrig.generator.target_rig
+                and metarig.cloudrig.generator.target_rig != rig
+            ):
+                # Edge case: The names match, but this metarig is targetting another rig.
+                # In this case, don't match the metarig.
+                metarig = None
+
             if metarig:
                 return metarig
 
@@ -104,12 +114,8 @@ def find_cloudrig(
     """
 
     def is_good_rig(rig):
-        return (
-            rig
-            and (
-                is_generated_cloudrig(rig)
-                or (allow_metarigs and is_cloud_metarig(rig))
-            )
+        return rig and (
+            is_generated_cloudrig(rig) or (allow_metarigs and is_cloud_metarig(rig))
         )
 
     if not filter_func:
