@@ -4,12 +4,12 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Menu, EditBone, Bone, Object
+from bpy.types import Menu, EditBone, Bone, PoseBone, Object, Armature
 from bpy.props import BoolProperty
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 from .bone_selection_pie_ops import get_active_bone
-from ..utils.misc import get_selected_bones, get_current_rigs
+from ..utils.misc import get_selected_bone_tuples, get_current_rigs
 
 
 class GenericBoneOperator:
@@ -25,8 +25,8 @@ class GenericBoneOperator:
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
-        ebones_to_affect = get_selected_bones(context)
-        for rig, ebone in ebones_to_affect[:]:
+        ebone_tuples = get_selected_bone_tuples(context)
+        for rig, ebone in ebone_tuples[:]:
             rig_data = ebone.id_data
             if rig_data.use_mirror_x:
                 flipped_name = flip_name(ebone.name)
@@ -36,10 +36,10 @@ class GenericBoneOperator:
                 if not flipped_ebone:
                     continue
                 tup = (rig, flipped_ebone)
-                if tup not in ebones_to_affect:
-                    ebones_to_affect.append((rig, flipped_ebone))
+                if tup not in ebone_tuples:
+                    ebone_tuples.append((rig, flipped_ebone))
 
-        return ebones_to_affect
+        return ebone_tuples
 
     def affect_bones(self, context) -> set[str]:
         """Returns list of bone names that were actually affected."""
@@ -72,7 +72,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        for rig, eb in get_selected_bones(context):
+        for rig, eb in get_selected_bone_tuples(context):
             if eb.use_connect:
                 return True
         else:
@@ -102,7 +102,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        for rig, bone in get_selected_bones(context):
+        for rig, bone in get_selected_bone_tuples(context):
             # Could be EditBone or regular bone here, doesn't matter.
             if bone.parent:
                 return True
@@ -133,7 +133,7 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, CloudRigOperato
     def poll(cls, context):
         if not super().poll(context):
             return False
-        return len(get_selected_bones(context)) > 1 and get_active_bone(context)
+        return len(get_selected_bone_tuples(context)) > 1 and get_active_bone(context)
 
     def execute(self, context):
         mode = context.object.mode
@@ -185,17 +185,24 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        selected_bones = get_selected_bones(context)
         active_bone = get_active_bone(context)
-        if not len(selected_bones) > 1 and active_bone:
+        if type(active_bone) == PoseBone:
+            active_bone = active_bone.bone
+        if not active_bone:
+            cls.poll_message_set("There is no active bone.")
             return False
-        if any([b.id_data != active_bone.id_data for rig, b in selected_bones]):
+        bone_tuples = get_selected_bone_tuples(context)
+        if len(bone_tuples) < 2:
+            cls.poll_message_set("At least two bones must be selected.")
+            return False
+        if any([b.id_data != active_bone.id_data for rig, b in bone_tuples]):
+            cls.poll_message_set("All selected bones must be from the same armature.")
             return False
         return True
 
-    def parent_edit_bones(self, parent, bones_to_parent: list[tuple[Object, EditBone]]):
+    def parent_edit_bones(self, parent, bone_tuples_to_parent: list[tuple[Object, EditBone]]):
         parent.hide = False
-        for rig, eb in bones_to_parent:
+        for rig, eb in bone_tuples_to_parent:
             eb.hide = False
             if parent.parent == eb:
                 # When inverting a parenting relationship (child becomes the parent),
@@ -219,22 +226,22 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
         parent = get_active_bone(context)
         parent_name = parent.name
 
-        bones_to_parent = get_selected_bones(context, exclude_active=True)
-        self.parent_edit_bones(parent, bones_to_parent)
+        bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
+        self.parent_edit_bones(parent, bone_tuples_to_parent)
 
         if rig.data.use_mirror_x:
             flipped_parent = rig.data.edit_bones.get(flip_name(parent.name))
             if flipped_parent:
-                flipped_bones_to_parent = {
-                    rig.data.edit_bones.get(flip_name(eb.name))
-                    for eb in bones_to_parent
-                }
-                flipped_bones_to_parent = [eb for eb in flipped_bones_to_parent if eb]
-                self.parent_edit_bones(flipped_parent, flipped_bones_to_parent)
+                flipped_bone_tuples_to_parent = [
+                    (r, r.data.edit_bones.get(flip_name(eb.name)))
+                    for r, eb in bone_tuples_to_parent
+                ]
+                flipped_bone_tuples_to_parent = [eb for eb in flipped_bone_tuples_to_parent if eb]
+                self.parent_edit_bones(flipped_parent, flipped_bone_tuples_to_parent)
 
         bpy.ops.object.mode_set(mode=mode)
-        plural = "s" if len(bones_to_parent) != 1 else ""
-        message = f'Parented {len(bones_to_parent)} bone{plural} to "{parent_name}".'
+        plural = "s" if len(bone_tuples_to_parent) != 1 else ""
+        message = f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
         if rig.data.use_mirror_x:
             message += "(Symmetrized!)"
         self.report(
@@ -254,7 +261,7 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
     @classmethod
     def poll(cls, context):
         return (
-            len(get_selected_bones(context)) > 0 and len(context.selected_objects) > 1
+            len(get_selected_bone_tuples(context)) > 0 and len(context.selected_objects) > 1
         )
 
     def execute(self, context):
@@ -299,17 +306,17 @@ class POSE_OT_separate_selected_bones(CloudRigOperator):
         if len(list(get_current_rigs(context))) != 1:
             cls.poll_message_set("Only one selected armature is supported.")
             return False
-        if len(get_selected_bones(context)) == 0:
+        if len(get_selected_bone_tuples(context)) == 0:
             cls.poll_message_set("No bones are selected.")
             return False
         return True
 
     def execute(self, context):
-        selected_bones = get_selected_bones(context)
+        bone_tuples = get_selected_bone_tuples(context)
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
-        for rig, bone in selected_bones:
+        for rig, bone in bone_tuples:
             edit_bone = rig.data.edit_bones.get(bone.name)
             edit_bone.hide=False
             edit_bone.select=True

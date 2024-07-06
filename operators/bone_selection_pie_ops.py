@@ -2,7 +2,7 @@ from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
 from ..generation.cloudrig import CloudRigOperator, find_cloudrig
-from ..utils.misc import get_selected_bones, get_active_bone
+from ..utils.misc import get_selected_bone_tuples, get_active_bone
 
 
 def deselect_all_bones(context):
@@ -212,11 +212,11 @@ class POSE_OT_select_bone_by_name_relation(CloudRigOperator, BoneSelectOperatorM
     def execute(self, context):
         active_target_bone = None
 
-        selected_bones = get_selected_bones(context)
+        bone_tuples = get_selected_bone_tuples(context)
 
         super().execute(context)
 
-        for rig, bone in selected_bones:
+        for rig, bone in bone_tuples:
             bone_name = bone.name
             bone_name = bone_name[self.strip_start :]
             if self.strip_end > 0:

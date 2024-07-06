@@ -90,24 +90,24 @@ def get_pbone_of_active(context) -> PoseBone | None:
     return rig.pose.bones.get(bone.name)
 
 
-def get_selected_bones(
+def get_selected_bone_tuples(
     context, exclude_active=False
 ) -> list[tuple[Object, Bone | EditBone]]:
     """Return a list of Bones or EditBones depending on context."""
-    bones = []
+    bone_tuples = []
     if context.mode == 'POSE':
-        bones = [(pb.id_data, pb.bone) for pb in context.selected_pose_bones]
+        bone_tuples = [(pb.id_data, pb.bone) for pb in context.selected_pose_bones]
     elif context.mode == 'EDIT_ARMATURE':
         for rig in get_current_rigs(context):
             # We can't use context.selected_editable_bones because
             # it actually includes non-selected bones when use_mirror_x==True.
-            bones += [(rig, eb) for eb in rig.data.edit_bones if eb.select]
+            bone_tuples += [(rig, eb) for eb in rig.data.edit_bones if eb.select]
 
     if exclude_active:
         active_rig = context.pose_object or context.active_object
-        bones.remove((active_rig, get_active_bone(context)))
+        bone_tuples.remove((active_rig, get_active_bone(context)))
 
-    return bones
+    return bone_tuples
 
 
 def get_current_rigs(context):
