@@ -211,19 +211,21 @@ class POSE_OT_toggle_edit_widget(CloudRigOperator):
 
     def assign_shape_to_selected_bones(self, context, widget_shape: str, ob_name=""):
         rig = context.active_object
+        shape = ensure_widget(widget_shape)
         if (
             hasattr(rig.data, 'rigify_widgets_collection')
             and rig.data.rigify_widgets_collection
         ):
             # Rigify integration: If we're on a metarig, use the widget collection.
             collection = rig.data.rigify_widgets_collection
+            assign_to_collection(shape, collection=collection)
         elif hasattr(rig, 'cloudrig') and rig.cloudrig.generator.widget_collection:
             # CloudRig integration: If we're on a metarig, use the widget collection.
             collection = rig.cloudrig.generator.widget_collection
-        else:
+            assign_to_collection(shape, collection=collection)
+        elif shape not in set(context.scene.collection.all_objects):
             collection = context.scene.collection
-        shape = ensure_widget(widget_shape)
-        assign_to_collection(shape, collection=collection)
+            assign_to_collection(shape, collection=collection)
 
         if ob_name:
             shape = bpy.data.objects.new(
