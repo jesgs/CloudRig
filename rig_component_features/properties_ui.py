@@ -8,6 +8,7 @@ from bpy.types import (
     UILayout,
     PropertyGroup,
     BoneCollection,
+    Modifier,
 )
 from typing import Any
 from bpy.props import StringProperty, BoolProperty, CollectionProperty
@@ -63,9 +64,6 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
     if not prop_value:
         # If we didn't get the property value yet, grab it.
         # Can be useful to re-assure the user that we have the property they intend.
-        prop_value = path_resolve_safe(obj, full_path)
-
-    if prop_name and not prop_value:
         prop_value = path_resolve_safe(obj, full_path)
 
     return prop_owner, full_path, data_path, prop_name, prop_value
@@ -254,7 +252,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 feed_op_props(op_props, self.op_kwargs)
         owner_path = self.init_owner_path or self.owner_path
         self.owner_path = owner_path
-        if owner_path == "" or owner_path.startswith('pose.bones') or owner_path in rig.pose.bones:
+
+        if owner_path.startswith('pose.bones'):
+            prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(self, rig)
+            if prop_owner and type(prop_owner) == PoseBone:
+                owner_path = prop_owner.name
+
+        if owner_path == "" or owner_path in rig.pose.bones:
             self.use_bone_selector = True
 
         self.use_parenting = self.parent_ui_path != "[]"
@@ -359,8 +363,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # User hasn't typed in a property name yet. Don't overwhelm them with the rest of the UI.
             return
 
-        if prop_value != None:
-            if isinstance(prop_value, bpy_struct) and not isinstance(prop_value, ID):
+        if prop_value != None or issubclass(type(prop_owner), Modifier):
+            if prop_value != None and isinstance(prop_value, bpy_struct) and not isinstance(prop_value, ID):
+                # Checking for prop_value!=None again is deliberate, 
+                # as modifier inputs are allowed to be None and still be drawn.
                 row = prop_box.row()
                 row.alert = True
                 row.label(text="This is a struct, not a property.", icon='ERROR')
@@ -537,7 +543,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                     ensure_custom_property(owner, self.prop_name)
                 # Make the property library overridable.
                 owner.property_overridable_library_set(brackets_prop_name, True)
-            else:
+            elif not issubclass(type(owner), Modifier):
                 self.report(
                     {'ERROR'}, f'{type(owner)} does not support custom properties.'
                 )
