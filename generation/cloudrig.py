@@ -910,6 +910,11 @@ def draw_rig_settings_per_label(
         draw_drag_operator(rig, panel_data, label_data, label_name, ui_path, row)
         row.label(text=label_name)
 
+    # We need to figure out and pass the parent value string for the edit button.
+    parent_value = ""
+    if 'children' in ui_path and ui_path[-2] == 'children':
+        parent_value = ui_path[-1]
+
     ui_path += [label_name]
 
     for row_name, row_data in label_data.items():
@@ -956,6 +961,7 @@ def draw_rig_settings_per_label(
                 op_icon=slider_data.get('op_icon'),
                 op_kwargs=slider_data.get('op_kwargs'),
                 children=slider_data.get('children'),
+                parent_value=parent_value,
             )
 
 
@@ -982,6 +988,7 @@ def draw_slider(
     op_kwargs={},
     ###
     children={},
+    parent_value="",
 ):
 
     if owner_path == "":
@@ -1029,16 +1036,16 @@ def draw_slider(
         prop_value_str = str(prop_value)
         if children:
             box_col = None
-            for child_value, child_data in children.items():
-                child_values = [v.strip() for v in child_value.split(",")]
-                if prop_value_str in child_values:
+            for comma_separated_values, child_data in children.items():
+                prop_values_as_str = [v.strip() for v in comma_separated_values.split(",")]
+                if prop_value_str in prop_values_as_str:
                     for child_label_name, child_label_data in child_data.items():
                         if not box_col:
                             box_col = column.box().column()
                         draw_rig_settings_per_label(
                             layout=box_col,
                             rig=rig,
-                            ui_path=ui_path + ['children', child_value],
+                            ui_path=ui_path + ['children', comma_separated_values],
                             panel_name=panel_name,
                             panel_data=child_data,
                             label_name=child_label_name,
@@ -1083,7 +1090,7 @@ def draw_slider(
         edit_op.ui_path = ui_path_str
         if 'children' in ui_path:
             edit_op.parent_ui_path = json.dumps(ui_path[:-5])
-            edit_op.parent_value = str(ui_path[-4])
+            edit_op.parent_value = parent_value or ""
         else:
             edit_op.panel_name = panel_name
         edit_op.label_name = label_name

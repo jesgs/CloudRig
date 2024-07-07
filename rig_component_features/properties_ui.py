@@ -114,7 +114,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         parent_option = context.scene.cloudrig_property_parent_selector.get(
             self.parent_selector
         )
-        if parent_option:
+        if parent_option and parent_option.current not in self.parent_value:
+            # When user selects a parent property from the drop-down, 
+            # we want to make life easy by setting the parent value to the current value of the chosen property.
+            # But don't do this if the current parent value is `1, 2, 3` and the actual value is eg. 2.
             self.parent_value = parent_option.current
 
     # We need a separate init_owner_path where UI code can feed us an owner path without triggering the update callback.
