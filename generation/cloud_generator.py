@@ -190,7 +190,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
         # Set flag to handle Selection Sets.
-        self.preserve_sel_sets = check_addon(context, 'bone_selection_sets')
+        # Need to check in two ways, first for pre-4.2, then post-4.2
+        # (Selection Sets became built-in.)
+        self.preserve_sel_sets = check_addon(context, 'bone_selection_sets') or hasattr(metarig, 'selection_sets')
 
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
@@ -732,7 +734,12 @@ def replace_old_with_new_rig(
 
     # Save Selection Sets.
     if preserve_sel_sets:
-        from bone_selection_sets import to_json
+        try:
+            # pre-4.2
+            from bone_selection_sets import to_json
+        except ModuleNotFoundError:
+            # post-4.2
+            from bl_operators.bone_selection_sets import _to_json as to_json
 
         context.view_layer.objects.active = old_rig
         for selset in old_rig.selection_sets:
@@ -812,19 +819,24 @@ def replace_old_with_new_rig(
             pass
     new_rig.data.collections.active_index = 0
 
+    # Select and make active the new rig.
+    new_rig.select_set(True)
+    context.view_layer.objects.active = new_rig
+
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
-        from bone_selection_sets import from_json
+        try:
+            # pre-4.2
+            from bone_selection_sets import from_json
+        except ModuleNotFoundError:
+            # post-4.2
+            from bl_operators.bone_selection_sets import _from_json as from_json
 
         from_json(context, selsets)
 
     # Swap all references pointing at the old rig to the new rig.
     old_rig.id_data.user_remap(new_rig)
     old_name = old_rig.name
-
-    # Select and make active the new rig.
-    new_rig.select_set(True)
-    context.view_layer.objects.active = new_rig
 
     # Delete the old rig.
     bpy.data.objects.remove(old_rig)
