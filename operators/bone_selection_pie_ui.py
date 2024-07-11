@@ -204,7 +204,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         else:
             pie.separator()
 
-        # 5) ^> Bone(s) with constraints that target this bone.
+        # 5) <^ Bone(s) with constraints that target this bone.
         constrained_bones = get_constrained_bones(active_pb)
         if len(constrained_bones) == 1:
             con, bone_name = constrained_bones[0]
@@ -216,7 +216,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         else:
             pie.separator()
 
-        # 6) <^ Bone(s) targeted by this bone's constraints.
+        # 6) ^> Bone(s) targeted by this bone's constraints.
         target_bones = get_target_bones(active_pb)
         if len(target_bones) == 1:
             con, bone_name = target_bones[0]

@@ -13,6 +13,7 @@ from . import (
     copy_mirror_components,
     bone_collections_popup,
     apply_bone_color_preset,
+    edit_custom_shape_pie,
 )
 
 modules = [
@@ -30,4 +31,5 @@ modules = [
     copy_mirror_components,
     bone_collections_popup,
     apply_bone_color_preset,
+    edit_custom_shape_pie,
 ]

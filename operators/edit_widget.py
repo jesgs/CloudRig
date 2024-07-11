@@ -411,7 +411,7 @@ def register():
     bpy.types.ASSETBROWSER_MT_context_menu.append(draw_asset_rightclick_menu)
 
     bpy.types.VIEW3D_MT_pose.append(draw_button)
-    bpy.types.Scene.widget_edit_armature = StringProperty()
+    # bpy.types.Scene.widget_edit_armature = StringProperty()
 
 
 def unregister():

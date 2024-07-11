@@ -1,0 +1,434 @@
+import bpy
+from bpy.types import Menu, PoseBone
+from bpy.props import EnumProperty
+from mathutils import Matrix
+
+from ..generation.cloudrig import register_hotkey, CloudRigOperator
+from ..utils.misc import get_pbone_of_active, get_addon_prefs
+from ..rig_component_features.widgets.widgets import ensure_widget
+from ..rig_component_features.object import EnsureVisible
+
+CLOUDRIG_WIDGETS = []
+def init_widget_list():
+    """Build a list of available custom shapes by checking inside Widgets.blend."""
+
+    global CLOUDRIG_WIDGETS
+    CLOUDRIG_WIDGETS = []
+
+    prefs = get_addon_prefs()
+    blend_path = prefs.widget_library
+
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+        for o in data_from.objects:
+            if o.startswith("WGT-"):
+                ui_name = o.replace("WGT-", "").replace("_", " ")
+                CLOUDRIG_WIDGETS.append((o, ui_name, ui_name))
+
+    return CLOUDRIG_WIDGETS
+
+
+# Registering is a bit tricky because we need to load a resource .blend file,
+# which is not allowed by bpy during registration, so we have to do it with a delay.
+def delayed_init_widget_list():
+    init_widget_list()
+
+class POSE_OT_unassign_custom_shape(CloudRigOperator):
+    """Unassign custom shapes from all selected pose bones"""
+
+    bl_idname = "pose.unassign_custom_shape"
+    bl_label = "Unassign Custom Shape"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        for pb in context.selected_pose_bones:
+            if pb.custom_shape:
+                return True
+            
+        cls.poll_message_set("No selected bones have a custom shape.")
+        return False
+
+    def execute(self, context):
+        counter = 0
+        for pb in context.selected_pose_bones:
+            if pb.custom_shape:
+                counter += 1
+                pb.custom_shape = None
+
+        self.report({'INFO'}, f"Bone shapes unassigned: {counter}.")
+
+        return {'FINISHED'}
+
+class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
+    """Assign a CloudRig custom shape or an object whose name starts with WGT- to the selected pose bones"""
+
+    bl_idname = "pose.assign_selected_custom_shape"
+    bl_label = "Select Custom Shape"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def get_widget_list(self, context):
+        """This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
+        which it can only be with a function callback."""
+        global CLOUDRIG_WIDGETS
+
+        local_widgets = CLOUDRIG_WIDGETS[:]
+        local_widgets.append(None)
+        for o in bpy.data.objects:
+            if o.name.startswith("WGT"):
+                ui_name = o.name.replace("WGT-", "").replace("_", " ")
+                item = (o.name, ui_name, ui_name)
+                if item not in local_widgets:
+                    local_widgets.append(item)
+
+        return local_widgets
+
+    widget_shape: EnumProperty(
+        name="Widget Shape",
+        description="Choose a widget shape from CloudRig's widget library as well as any objects in the current file prefixed with 'WGT-'",
+        items=get_widget_list,
+    )
+
+    def invoke(self, context, _event):
+        self.widget_shape = 'WGT-Cube'
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(self, 'widget_shape')
+
+    @classmethod
+    def poll(cls, context):
+        if not context.selected_pose_bones:
+            cls.poll_message_set("No selected pose bones.")
+            return False
+        return True
+
+    def execute(self, context):
+        widget = ensure_widget(self.widget_shape, overwrite=False)
+        coll = context.scene.collection
+        if widget not in set(coll.all_objects):
+            context.scene.collection.objects.link(widget)
+        counter = 0
+        for pb in context.selected_pose_bones:
+            if pb.custom_shape != widget:
+                pb.custom_shape = widget
+                counter +=1
+
+        self.report({'INFO'}, f"Widget assigned to bones: {counter}.")
+
+        return {'FINISHED'}
+
+class POSE_OT_reload_selected_custom_shape(CloudRigOperator):
+    """Reload custom shapes of selected pose bones from the Widgets.blend file"""
+
+    bl_idname = "pose.reload_custom_shapes"
+    bl_label = "Reload Custom Shapes"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @staticmethod
+    def get_bones_to_reload(context):
+        for pb in context.selected_pose_bones:
+            if (pb.custom_shape and \
+                not pb.custom_shape.library and \
+                pb.custom_shape.name in [wgt_tup[0] for wgt_tup in CLOUDRIG_WIDGETS]
+            ):
+                yield pb
+
+    @classmethod
+    def poll(cls, context):
+        if any(cls.get_bones_to_reload(context)):
+            return True
+
+        cls.poll_message_set("No selected bones use a CloudRig widget.")
+        return False
+
+    def execute(self, context):
+        for i, pb in enumerate(self.get_bones_to_reload(context)):
+            pb.custom_shape = ensure_widget(pb.custom_shape.name, overwrite=True)
+
+        self.report({'INFO'}, f"Bone shapes reloaded: {i+1}.")
+
+        return {'FINISHED'}
+
+class POSE_OT_copy_custom_shape_to_selected_bones(CloudRigOperator):
+    """Reload custom shapes of selected pose bones from the Widgets.blend file"""
+
+    bl_idname = "pose.copy_custom_shape_to_selected_bones"
+    bl_label = "Copy to Selected"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def execute(self, context):
+        active_pb = context.active_pose_bone
+        for i, pb in enumerate(context.selected_pose_bones):
+            pb.custom_shape = active_pb.custom_shape
+
+        self.report({'INFO'}, f"Copied shape to bones: {i}.")
+
+        return {'FINISHED'}
+
+widgets_visible = []
+class POSE_OT_edit_widget_of_active_bone(CloudRigOperator):
+    """Edit custom shape of the active bone"""
+
+    bl_idname = "pose.edit_widget_of_active_bone"
+    bl_label = "Edit Custom Shape"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll_without_linked_check(cls, context):
+        pb = context.active_pose_bone
+        if context.mode != 'POSE':
+            cls.poll_message_set("Must be in pose mode.")
+            return False
+        if not pb:
+            cls.poll_message_set("Must have an active pose bone.")
+            return False
+        if not pb.custom_shape:
+            cls.poll_message_set("Active bone must have a custom shape.")
+            return False
+        return True
+
+    @classmethod
+    def poll(cls, context):
+        if not cls.poll_without_linked_check(context):
+            return False
+
+        pb = context.active_pose_bone
+        if pb.custom_shape.library:
+            cls.poll_message_set("Active bone's widget is linked, it cannot be edited.")
+            return False
+
+        return True
+    
+    def enter_single_custom_shape_edit_mode(self, context):
+        rig = context.active_object
+        active_pb = context.active_pose_bone
+        shape = active_pb.custom_shape
+        assert shape, "No shape to edit."
+
+        # If active bone has a bone shape, reveal it.
+        global widgets_visible
+        widgets_visible.append(EnsureVisible(context, shape))
+
+        # Enter mesh edit mode on the now visible bone shape.
+        context.scene['widget_edit_armature'] = rig.name
+        context.view_layer.objects.active = shape
+        self.transform_widget_to_bone(active_pb, select=True)
+        bpy.ops.object.mode_set(mode='EDIT')
+
+    @staticmethod
+    def transform_widget_to_bone(pb: PoseBone, select=False):
+        """Transform a pose bone's custom shape object to match the bone's visual transforms."""
+        shape = pb.custom_shape
+        assert shape, "No shape to edit." 
+
+        if select:
+            shape.select_set(True)
+
+        # Step 1: Account for Override Transform
+        transform_bone = pb
+        if pb.custom_shape_transform:
+            transform_bone = pb.custom_shape_transform
+
+        # Step 2: Account for additional scaling from use_custom_shape_bone_size,
+        # which scales the shape by the bone length.
+        scale = pb.custom_shape_scale_xyz.copy()
+        if pb.use_custom_shape_bone_size:
+            scale *= pb.bone.length
+
+        # Step 3: Create a matrix from the custom shape translation, rotation
+        # and this scale which already accounts for bone length.
+        custom_shape_matrix = Matrix.LocRotScale(
+            pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale
+        )
+
+        # Step 4: Multiply the pose bone's world matrix by the custom shape matrix.
+        final_matrix = transform_bone.matrix @ custom_shape_matrix
+
+        # Step 5: Apply this matrix to the object.
+        # It should now match perfectly with the visual transforms of the pose bone,
+        # unless there is skew.
+        shape.matrix_world = final_matrix
+
+    def execute(self, context):
+        self.enter_single_custom_shape_edit_mode(context)
+
+        return {'FINISHED'}
+
+class MESH_OT_return_to_pose_mode(CloudRigOperator):
+    """Return from custom shape editing back to the rig"""
+
+    bl_idname = "mesh.return_to_pose_mode"
+    bl_label = "Return to Pose Mode"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        if not 'widget_edit_armature' in context.scene:
+            cls.poll_message_set("Cannot return to rig (No name stored).")
+            return False
+        rig = bpy.data.objects.get(context.scene['widget_edit_armature'])
+        if not rig:
+            cls.poll_message_set("Cannot return to rig (Stored name is invalid).")
+            return False
+
+        return True
+
+    @staticmethod
+    def restore_all_widgets_visibility(context):
+        global widgets_visible
+
+        if widgets_visible != []:
+            for w in widgets_visible[:]:
+                try:
+                    w.restore(context)
+                except:
+                    pass
+        widgets_visible = []
+
+    def execute(self, context):
+        shape_obj = context.active_object
+        shape_obj.select_set(False)
+        self.restore_all_widgets_visibility(context)
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        rig = bpy.data.objects.get((context.scene['widget_edit_armature'], None))
+        del context.scene['widget_edit_armature']
+        context.view_layer.objects.active = rig
+        rig.select_set(True)
+        bpy.ops.object.mode_set(mode='POSE')
+
+        return {'FINISHED'}
+
+class POSE_OT_duplicate_and_edit_widget_of_active_bone(POSE_OT_edit_widget_of_active_bone):
+    """Duplicate, then edit custom shape of the active bone"""
+
+    bl_idname = "pose.duplicate_and_edit_widget_of_active_bone"
+    bl_label = "Duplicate & Edit Custom Shape"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        if not cls.poll_without_linked_check(context):
+            return False
+        return True
+
+    def execute(self, context):
+        pb = context.active_pose_bone
+        shape = pb.custom_shape
+        new_shape = shape.copy()
+        new_shape.make_local()
+        new_shape.data = new_shape.data.copy()
+        new_shape.asset_clear()
+        new_shape.name = "WGT-"+pb.name
+
+        for coll in shape.users_collection:
+            coll.objects.link(new_shape)
+        
+        pb.custom_shape = new_shape
+        return super().execute(context)
+
+class POSE_OT_assign_selected_object_as_custom_shape(CloudRigOperator):
+    """Assign selected mesh object to all selected bones"""
+
+    bl_idname = "pose.assign_selected_object_as_custom_shape"
+    bl_label = "Assign Selected Object"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.mode != 'POSE':
+            cls.poll_message_set("Must be in pose mode.")
+            return False
+        if len(context.selected_pose_bones) == 0:
+            cls.poll_message_set("Must have selected pose bones.")
+            return False
+        if len([o for o in context.selected_objects if o.type=='MESH']) != 1:
+            cls.poll_message_set("Exactly one mesh object must be selected.")
+            return False
+        return True
+    
+    def execute(self, context):
+        shape = [o for o in context.selected_objects if o.type=='MESH'][0]
+        counter = 0
+        for pb in context.selected_pose_bones:
+            if pb.custom_shape != shape:
+                pb.custom_shape = shape
+                counter += 1
+        
+        self.report({'INFO'}, f"{shape.name} assigned to bones: {counter}.")
+        return {'FINISHED'}
+
+class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
+    bl_label = "Edit Custom Shape"
+
+    def draw(self, context):
+        layout = self.layout
+        rig = context.pose_object or context.active_object
+        active_pb = get_pbone_of_active(context)
+        active_bone = active_pb.bone
+
+        pie = layout.menu_pie()
+
+        # 1) < Unassign Widget.
+        pie.operator(POSE_OT_unassign_custom_shape.bl_idname, icon='X')
+
+        # 2) > Assign Widget from list.
+        pie.operator(POSE_OT_assign_selected_custom_shape.bl_idname, icon='MESH_UVSPHERE')
+
+        # 3) v Reload Widget? (If it's in Widgets.blend).
+        pie.operator(POSE_OT_reload_selected_custom_shape.bl_idname, icon='FILE_REFRESH')
+
+        # 4) ^ Copy Widget to Selected.
+        pie.operator(POSE_OT_copy_custom_shape_to_selected_bones.bl_idname, icon='COPYDOWN')
+
+        # 5) <^ Empty.
+        pie.separator()
+
+        # 6) ^> Duplicate & Edit Widget.
+        pie.operator(POSE_OT_duplicate_and_edit_widget_of_active_bone.bl_idname, icon='DUPLICATE')
+
+        # 7) <v Assign selected object as widget (if there's only 1 mesh selected)
+        pie.operator(POSE_OT_assign_selected_object_as_custom_shape.bl_idname, icon='OBJECT_DATA')
+
+        # 8) v> Edit Widget (if ob isn't linked).
+        pie.operator(POSE_OT_edit_widget_of_active_bone.bl_idname, icon='GREASEPENCIL')
+
+
+registry = [
+    POSE_OT_unassign_custom_shape,
+    POSE_OT_assign_selected_custom_shape,
+    POSE_OT_reload_selected_custom_shape,
+    POSE_OT_copy_custom_shape_to_selected_bones,
+    POSE_OT_duplicate_and_edit_widget_of_active_bone,
+    POSE_OT_edit_widget_of_active_bone,
+    MESH_OT_return_to_pose_mode,
+    POSE_OT_assign_selected_object_as_custom_shape,
+    CLOUDRIG_MT_PIE_edit_custom_shape,
+]
+
+
+def register():
+    for key_cat, space_type in {
+        ('Pose', 'VIEW_3D'),
+        ('Weight Paint', 'EMPTY'),
+    }:
+        register_hotkey(
+            'wm.call_menu_pie',
+            hotkey_kwargs={'type': "E", 'value': "PRESS", 'alt': True, 'ctrl': True},
+            key_cat=key_cat,
+            space_type=space_type,
+            op_kwargs={'name': 'CLOUDRIG_MT_PIE_edit_custom_shape'},
+        )
+    
+    register_hotkey(
+        'mesh.return_to_pose_mode',
+        hotkey_kwargs={'type': "E", 'value': "PRESS", 'alt': True, 'ctrl': True},
+        key_cat="Mesh",
+        space_type='EMPTY',
+    )
+
+    bpy.app.timers.register(delayed_init_widget_list)
