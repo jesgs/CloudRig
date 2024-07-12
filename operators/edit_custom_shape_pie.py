@@ -88,7 +88,7 @@ class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
 
     widget_shape: EnumProperty(
         name="Widget Shape",
-        description="Choose a widget shape from CloudRig's widget library as well as any objects in the current file prefixed with 'WGT-'",
+        description="Choose a custom shape from CloudRig's library as well as any objects in the current file prefixed with 'WGT-'",
         items=get_widget_list,
     )
 
@@ -121,7 +121,7 @@ class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
                 pb.custom_shape = widget
                 counter += 1
 
-        self.report({'INFO'}, f"Widget assigned to bones: {counter}.")
+        self.report({'INFO'}, f"Shapes assigned to bones: {counter}.")
 
         return {'FINISHED'}
 
@@ -148,7 +148,7 @@ class POSE_OT_reload_selected_custom_shape(CloudRigOperator):
         if any(cls.get_bones_to_reload(context)):
             return True
 
-        cls.poll_message_set("No selected bones use a CloudRig widget.")
+        cls.poll_message_set("No selected bones use a CloudRig custom shape.")
         return False
 
     def execute(self, context):
@@ -410,6 +410,48 @@ class POSE_OT_assign_selected_object_as_custom_shape(CloudRigOperator):
         return {'FINISHED'}
 
 
+class POSE_OT_edit_custom_shape_transforms(CloudRigOperator):
+    """Edit custom shape transforms. Like with any Blender property, you can hold Alt while dragging, to affect all selected bones"""
+
+    bl_idname = "pose.edit_custom_shape_transforms"
+    bl_label = "Edit Transforms"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        if not context.active_pose_bone:
+            cls.poll_message_set("No active bone.")
+            return False
+        return True
+
+    def invoke(self, context, _event):
+        return context.window_manager.invoke_props_dialog(self, width=400)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        pb = context.active_pose_bone
+
+        layout.prop(pb, 'custom_shape_translation', text="Location")
+        layout.prop(pb, 'custom_shape_rotation_euler', text="Rotation")
+        layout.prop(pb, 'custom_shape_scale_xyz', text="Scale")
+
+        length = pb.bone.length
+        layout.prop(
+            pb,
+            'use_custom_shape_bone_size',
+            text=f"Scale to Bone Length (x{length:.2f})",
+        )
+        layout.prop_search(
+            pb, 'custom_shape_transform', pb.id_data.pose, 'bones', text="Override"
+        )
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
 class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
     bl_label = "Edit Custom Shape"
 
@@ -435,8 +477,8 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
             POSE_OT_copy_custom_shape_to_selected_bones.bl_idname, icon='COPYDOWN'
         )
 
-        # 5) <^ Empty.
-        pie.separator()
+        # 5) <^ Edit Custom Shape Transforms.
+        pie.operator(POSE_OT_edit_custom_shape_transforms.bl_idname, icon='CON_LOCLIKE')
 
         # 6) ^> Duplicate & Edit Widget.
         pie.operator(
@@ -464,6 +506,7 @@ registry = [
     POSE_OT_edit_widget_of_selected_bones,
     MESH_OT_return_to_pose_mode,
     POSE_OT_assign_selected_object_as_custom_shape,
+    POSE_OT_edit_custom_shape_transforms,
     CLOUDRIG_MT_PIE_edit_custom_shape,
 ]
 
