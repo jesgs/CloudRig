@@ -161,16 +161,32 @@ class POSE_OT_reload_selected_custom_shape(CloudRigOperator):
 
 
 class POSE_OT_copy_custom_shape_to_selected_bones(CloudRigOperator):
-    """Reload custom shapes of selected pose bones from the Widgets.blend file"""
+    """Copy custom shape of the active bone to all selected bones"""
 
     bl_idname = "pose.copy_custom_shape_to_selected_bones"
     bl_label = "Copy to Selected"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
+    @classmethod
+    def poll(cls, context):
+        if not context.active_pose_bone:
+            cls.poll_message_set("No active pose bone.")
+            return False
+        if len(context.selected_pose_bones) < 2:
+            cls.poll_message_set("At least two bones must be selected.")
+            return False
+        return True
+
     def execute(self, context):
         active_pb = context.active_pose_bone
         for i, pb in enumerate(context.selected_pose_bones):
             pb.custom_shape = active_pb.custom_shape
+            pb.custom_shape_scale_xyz = active_pb.custom_shape_scale_xyz
+            pb.custom_shape_translation = active_pb.custom_shape_translation
+            pb.custom_shape_rotation_euler = active_pb.custom_shape_rotation_euler
+            pb.custom_shape_transform = active_pb.custom_shape_transform
+            pb.use_custom_shape_bone_size = active_pb.use_custom_shape_bone_size
+            pb.bone.show_wire = active_pb.bone.show_wire
 
         self.report({'INFO'}, f"Copied shape to bones: {i}.")
 
@@ -399,10 +415,6 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rig = context.pose_object or context.active_object
-        active_pb = get_pbone_of_active(context)
-        active_bone = active_pb.bone
-
         pie = layout.menu_pie()
 
         # 1) < Unassign Widget.
