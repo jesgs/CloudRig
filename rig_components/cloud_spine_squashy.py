@@ -58,9 +58,10 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
             source=org_chain[0],
-            head=org_chain[0].center,
+            head=org_chain[0].tail,
+            tail=org_chain[0].head,
             custom_shape_name="Hyperbola",
-            custom_shape_scale_xyz=Vector((0.8, -0.8, 0.8)),
+            custom_shape_scale_xyz=Vector((0.8, 0.8, 0.8)),
             parent=self.root_bone,
         )
 
@@ -79,7 +80,6 @@ class Component_Spine_Squashy(Component_Chain_FK):
         Furthermore, we parent each FK control to the previous FK control's child helper.
         """
         fk_bone = super().make_fk_bone(org_bone)
-        fk_bone.head = fk_bone.center.copy()
         fk_child = self.bone_sets['FK Helpers'].new(
             name=fk_bone.name.replace("FK-", "FKO-"), source=org_bone, parent=fk_bone
         )
@@ -160,7 +160,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         stretch_con.drivers.append(
             {
                 'prop': 'bulge',
-                'expression': '1+var',
+                'expression': 'var*2',
                 'variables': [(self.properties_bone.name, self.squashy_volume_name)],
             }
         )

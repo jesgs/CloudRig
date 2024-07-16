@@ -68,12 +68,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
             self.root_bone.flatten()
             self.mstr_hips.flatten()
 
-        # Shift FK controls to their center.
-        for fk_bone in self.bone_sets['FK Controls']:
-            fk_bone.head = fk_bone.center
-            if fk_bone.prev:
-                fk_bone.prev.tail = fk_bone.head
-
         # Parent the first FK control to ROOT.
         self.bone_sets['FK Controls'][0].parent = self.root_bone
 

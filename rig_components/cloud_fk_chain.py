@@ -102,8 +102,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return root_bone
 
     def make_fk_chain(self, org_chain) -> list[BoneInfo]:
-        fk_name = ""
-
         hng_child = None  # For keeping track of which bone will need to be parented to the Hinge helper bone.
         for i, org_bone in enumerate(org_chain):
             fk_bone = self.make_fk_bone(org_bone)
@@ -122,7 +120,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         # Create Hinge helper
         if self.params.fk_chain.hinge:
-            hng_bone = self.make_hinge_setup(
+            self.make_hinge_setup(
                 bone=hng_child,
                 bone_set=self.bone_sets['FK Helpers'],
                 category=self.limb_name,
