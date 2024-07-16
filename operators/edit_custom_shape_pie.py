@@ -328,9 +328,9 @@ class MESH_OT_return_to_pose_mode(CloudRigOperator):
         shape_objs = [obj for obj in context.selected_objects if obj.type == 'MESH']
         for shape_obj in shape_objs:
             shape_obj.select_set(False)
+        bpy.ops.object.mode_set(mode='OBJECT')
         self.restore_all_widgets_visibility(context)
 
-        bpy.ops.object.mode_set(mode='OBJECT')
         rig = bpy.data.objects.get((context.scene['widget_edit_armature'], None))
         del context.scene['widget_edit_armature']
         context.view_layer.objects.active = rig
