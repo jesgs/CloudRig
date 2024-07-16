@@ -1,31 +1,37 @@
 import bpy
 from bpy.types import Object, FCurve
+from bpy.props import BoolProperty
+
 from ..generation.naming import uniqify
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 from ..utils.misc import get_current_rigs
 
 class BoneDuplicateOpMixin:
+
+    increment_names: BoolProperty(name="Increment Names", description="Whether to increment numbers in bone names. If False, use Blender's .001 naming instead", default=True)
+
     def bone_operation(self):
         raise NotImplemented
 
     def execute(self, context):
-
         original_bones = {}
         rigs = list(get_current_rigs(context))
         for rig in rigs:
             original_bones[rig] = set(rig.data.edit_bones[:])
 
         self.bone_operation()
-        bpy.ops.transform.translate(value=(0, 0, 0.1))
+        bpy.ops.transform.translate(False, value=(0, 0, 0.1))
 
         new_drivers = []
 
         for rig in rigs:
             new_bones = set(rig.data.edit_bones[:]) - original_bones[rig]
             for new_bone in sorted(new_bones, key=lambda b: b.name):
-                new_name = uniqify(
-                    new_bone.name, rig.data.edit_bones, strip_first=True
-                )
+                new_name = new_bone.name
+                if self.increment_names:
+                    new_name = uniqify(
+                        new_bone.name, rig.data.edit_bones, strip_first=True
+                    )
                 if new_bone.name.endswith(".001"):
                     # Driver duplication is only unambiguous when this is the first duplicate of a bone.
                     # Otherwise we can't tell which bone is the original that got duplicated.
@@ -38,13 +44,13 @@ class BoneDuplicateOpMixin:
                 new_bone.select_tail = True
 
         # Refresh the copied drivers
-        bpy.ops.object.mode_set(mode='POSE')
-        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.object.mode_set(False, mode='POSE')
+        bpy.ops.object.mode_set(False, mode='EDIT')
         for fc in new_drivers:
             fc.driver.expression = fc.driver.expression
 
-        bpy.ops.transform.translate(value=(0, 0, -0.1))
-        bpy.ops.transform.translate('INVOKE_DEFAULT')
+        bpy.ops.transform.translate(False, value=(0, 0, -0.1))
+        bpy.ops.transform.translate('INVOKE_DEFAULT', False)
 
         return {'FINISHED'}
 
@@ -78,12 +84,13 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
     @classmethod
     def poll(cls, context):
         if not context.mode == 'EDIT_ARMATURE':
+            cls.poll_message_set("Active Armature must be in edit mode.")
             return False
-        return [b for b in context.object.data.edit_bones if b.select_tail]
+        return [b for b in context.object.data.edit_bones if b.select_tail or b.select_head]
 
     def bone_operation(self):
         # Extrude it!
-        bpy.ops.armature.extrude_move()
+        bpy.ops.armature.extrude_move(False)
 
 
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
@@ -96,12 +103,13 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
     @classmethod
     def poll(cls, context):
         if not context.mode == 'EDIT_ARMATURE':
+            cls.poll_message_set("Active Armature must be in edit mode.")
             return False
         return [b for b in context.object.data.edit_bones if b.select]
 
     def bone_operation(self):
         # Duplicate it!
-        bpy.ops.armature.duplicate_move()
+        bpy.ops.armature.duplicate_move(False)
 
 
 registry = [ARMATURE_OT_better_bone_extrude, ARMATURE_OT_better_bone_duplicate]

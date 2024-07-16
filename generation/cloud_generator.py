@@ -905,7 +905,11 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
     def poll(cls, context):
         """This operator is available when we can deduce from the context which
         metarig the user wants to generate. See docstring of the called func."""
-        return cls.get_metarig_to_generate(context)
+        metarig = cls.get_metarig_to_generate(context)
+        if not metarig:
+            cls.poll_message_set("Could not find a metarig in the current context.")
+            return False
+        return True
 
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
