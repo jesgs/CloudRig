@@ -177,6 +177,9 @@ class BoneInfo:
         self.custom_shape_name = ""
         self._source = self
 
+        # If True, this bone won't be auto-parented to the root if it doesn't have a parent.
+        self.ignore_orphan = False
+
         if source:
             self.head = source.head.copy()
             self.tail = source.tail.copy()
@@ -255,6 +258,9 @@ class BoneInfo:
         for con_info in self.constraint_infos:
             if con_info.type == 'ARMATURE':
                 return False
+
+        if self.ignore_orphan:
+            return False
 
         return True
 

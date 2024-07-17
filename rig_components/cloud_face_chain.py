@@ -149,12 +149,25 @@ class Component_FaceChain(Component_ToonChain):
         self.setup_all_intersections()
 
     def setup_all_intersections(self):
-        # This is ugly, but any STR controls with the Smooth Spline param need
-        # their tangent_helper to be parented to the intersection control's parent.
         for intersection in self.intersection_bones:
+            # Parenting must be done with an Armature constraint so that 
+            # transforms propagate to TAN bones.
+            if intersection.parent and len(intersection.constraint_infos) == 0:
+                intersection.add_constraint('ARMATURE', targets=[{'subtarget': intersection.parent}])
+
+            # Also, sub STR controls must have no parent at all, 
+            # otherwise they would double transform.
             for str_bone in intersection.str_bones:
-                if has_tangent_helpers(str_bone.owner_component):
-                    str_bone.tangent_helper.parent = intersection.parent
+                str_bone.parent = None
+                str_bone.ignore_orphan = True
+
+
+            # This is ugly, but any STR controls with the Smooth Spline param need
+            # their tangent_helper to be parented to the intersection control's parent.
+            # Nvm, Smooth Spline is just not supported for now.
+            # for str_bone in intersection.str_bones:
+            #     if has_tangent_helpers(str_bone.owner_component):
+            #         str_bone.tangent_helper.parent = intersection.parent
 
         # HACK: We can't ensure that the last chain rig to be executed is a cloud_eyelid,
         # so we have to make sure the eyelid set-up function runs even when that's not the case...
@@ -183,15 +196,21 @@ class Component_FaceChain(Component_ToonChain):
         else:
             relink_bone = self.main_str_bones[org_i]
 
+        is_intersection=False
         if hasattr(relink_bone, 'intersection_ctrl'):
             relink_bone = relink_bone.intersection_ctrl
+            is_intersection=True
 
         if con.type == 'ARMATURE':
-            if not hasattr(relink_bone, "parent_helper"):
+            if is_intersection:
+                for i, con_info in enumerate(relink_bone.constraint_infos):
+                    if con_info.type == 'ARMATURE':
+                        relink_bone.constraint_infos.pop(i)
+            if not hasattr(relink_bone, "parent_helper") and not is_intersection:
                 relink_bone = relink_bone.parent_helper = self.create_parent_bone(
                     relink_bone, self.bones_mch
                 )
-            else:
+            elif not is_intersection:
                 relink_bone = relink_bone.parent_helper
                 print("SKIPPED " + relink_bone.parent_helper.name)
 
