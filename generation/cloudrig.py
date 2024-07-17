@@ -147,7 +147,7 @@ def get_deforming_armature(meshob: Object, filter_func=lambda o: True):
             return m.object, m.name
     return None, None
 
-def poll_cloudrig(operator, context, modes={}, **kwargs):
+def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
     if modes and context.mode not in modes:
         operator.poll_message_set(f"Must be in mode: {modes}")
         return False
@@ -194,7 +194,7 @@ class SnappingOpMixin:
 
     @classmethod
     def poll(cls, context) -> bool:
-        rig = poll_cloudrig(cls, context, modes={'POSE'})
+        rig = poll_cloudrig_operator(cls, context, modes={'POSE'})
         if not rig:
             return False
         return True
@@ -621,7 +621,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = poll_cloudrig(cls, context, allow_metarigs=False)
+        rig = poll_cloudrig_operator(cls, context, allow_metarigs=False)
         if not rig:
             return False
         if 'ui_data' not in rig.data:
@@ -681,7 +681,7 @@ class POSE_OT_cloudrig_reset(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context)
+        return poll_cloudrig_operator(cls, context)
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -762,7 +762,7 @@ class CLOUDRIG_PT_base(Panel):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context)
+        return find_cloudrig(context)
 
     def draw(self, context):
         pass
@@ -1869,7 +1869,7 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context)
+        return find_cloudrig(context)
 
     def draw(self, context):
         rig = find_cloudrig(context)
@@ -1953,7 +1953,7 @@ class CLOUDRIG_MT_collections_quick_select(Menu):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context, allow_metarigs=False)
+        return find_cloudrig(context, allow_metarigs=False)
 
     def draw(self, context):
         layout = self.layout
@@ -2048,7 +2048,7 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
+        return poll_cloudrig_operator(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
 
     def invoke(self, context, event):
         self.extend_selection = event.shift
@@ -2090,8 +2090,8 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
 
         return {'FINISHED'}
 
-def poll_cloudrig_collection(operator, context):
-    rig = poll_cloudrig(operator, context)
+def poll_cloudrig_operator_collection(operator, context):
+    rig = poll_cloudrig_operator(operator, context)
     if not rig:
         return False
     active_coll = rig.data.collections.active
@@ -2120,7 +2120,7 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = poll_cloudrig_collection(cls, context)
+        rig = poll_cloudrig_operator_collection(cls, context)
         if not rig:
             return False
         return True
@@ -2220,7 +2220,7 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context)
+        return poll_cloudrig_operator(cls, context)
 
     def execute(self, context):
         rig = find_cloudrig(context)
@@ -2405,7 +2405,7 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = poll_cloudrig(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
+        rig = poll_cloudrig_operator(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
         if not rig:
             return False
         if not rig.data.collections.active:
@@ -2459,7 +2459,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context)
+        return poll_cloudrig_operator(cls, context)
 
     def execute(self, context):
         rig = find_cloudrig(context)
@@ -2493,7 +2493,7 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig(cls, context)
+        return poll_cloudrig_operator(cls, context)
 
     def execute(self, context):
         counter = 0
