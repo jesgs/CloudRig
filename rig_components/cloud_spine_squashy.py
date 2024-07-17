@@ -218,7 +218,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         super().define_bone_sets()
         """Create parameters for this rig's bone sets."""
         cls.define_bone_set(
-            'Spine Main Controls', color_palette='THEME03', collections=['IK Controls']
+            'Spine Main Controls', color_palette='THEME12', collections=['IK Controls']
         )
         cls.define_bone_set(
             'Spine Parent Controls',

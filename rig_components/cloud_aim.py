@@ -364,10 +364,10 @@ class Component_Aim(Component_Base):
             color_palette='THEME02',
         )
         cls.define_bone_set(
-            "Aim Target Control", collections=['Face Main'], color_palette='THEME03'
+            "Aim Target Control", collections=['Face Main'], color_palette='THEME12'
         )
         cls.define_bone_set(
-            "Aim Root Control", collections=['Face Secondary'], color_palette='THEME03'
+            "Aim Root Control", collections=['Face Secondary'], color_palette='THEME12'
         )
         cls.define_bone_set(
             "Aim Deform", collections=['Deform Bones'], is_advanced=True

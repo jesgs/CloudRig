@@ -203,7 +203,7 @@ class Component_Jaw(Component_CopyBone):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'Jaw Controls', color_palette='THEME03', collections=['Face Main']
+            'Jaw Controls', color_palette='THEME12', collections=['Face Main']
         )
 
     @classmethod

@@ -601,7 +601,7 @@ class Component_Curve_Hooked(Component_Base):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set('Curve Root', color_palette='THEME02')
-        cls.define_bone_set('Spline Roots', color_palette='THEME03')
+        cls.define_bone_set('Spline Roots', color_palette='THEME12')
         cls.define_bone_set('Curve Hooks', color_palette='THEME01')
         cls.define_bone_set('Curve Handles', color_palette='THEME09')
 

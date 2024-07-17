@@ -429,7 +429,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         super().define_bone_sets()
         cls.define_bone_set(
             'Foot Reverse IK Controls',
-            color_palette='THEME03',
+            color_palette='THEME12',
             collections=['IK Secondary'],
         )
 

@@ -738,10 +738,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'IK Controls', color_palette='THEME03', collections=['IK Controls']
+            'IK Controls', color_palette='THEME12', collections=['IK Controls']
         )
         cls.define_bone_set(
-            'IK Extra Controls', color_palette='THEME03', collections=['IK Secondary']
+            'IK Extra Controls', color_palette='THEME12', collections=['IK Secondary']
         )
         cls.define_bone_set(
             'IK Mechanism', collections=['Mechanism Bones'], is_advanced=True
