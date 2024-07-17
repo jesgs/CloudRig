@@ -27,13 +27,7 @@ class Component_ToonChain(Component_Base):
         super().create_bone_infos(context)
         self.def_bones_of_org = {org: [] for org in self.bones_org}
 
-        # Determine if this is a cyclic chain rig (last bone touches first)
-        self.is_cyclic = (
-            self.bones_org[-1].tail - self.bones_org[0].head
-        ).length < 0.001 and not self.params.chain.tip_control
-        if self.is_cyclic:
-            self.bones_org[0].prev = self.bones_org[-1]
-            self.bones_org[-1].next = self.bones_org[0]
+        self.is_cyclic = self.determine_if_cyclic()
 
         # Calculate total bone length
         for org in self.bones_org:
@@ -61,6 +55,16 @@ class Component_ToonChain(Component_Base):
         self.make_def_chain(str_chain=self.str_chain)
 
         self.connect_parent_chain_component()
+
+    def determine_if_cyclic(self) -> bool:
+        # Determine if this is a cyclic chain rig (last bone touches first)
+        is_cyclic = (
+            self.bones_org[-1].tail - self.bones_org[0].head
+        ).length < 0.001 and not self.params.chain.tip_control
+        if is_cyclic:
+            self.bones_org[0].prev = self.bones_org[-1]
+            self.bones_org[-1].next = self.bones_org[0]
+        return is_cyclic
 
     def sort_str_sections_into_chain(
         self, str_sections: list[tuple[BoneInfo, list[BoneInfo]]], is_cyclic: bool
@@ -143,11 +147,9 @@ class Component_ToonChain(Component_Base):
         org_bone = org_chain[org_i]
         segments = self.params.chain.segments
         direction = org_bone.vector
-        if not at_tip and org_bone.prev:
+        if org_bone.prev:
             # Make bone parallel to line from previous bone's head to current bone's tail.
             direction = (org_bone.tail - org_bone.prev.head).normalized()
-        if org_i == 0 and self.is_cyclic:
-            direction = (org_bone.tail - self.bones_org[-1].head).normalized()
 
         str_name = self.naming.add_prefix(org_bone, 'STR')
 
