@@ -1,7 +1,6 @@
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
 from mathutils import Vector
-from math import pi
 
 from ..rig_component_features.bone import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
@@ -14,10 +13,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
     forced_params = {
         'chain.segments': 1,
         'chain.tip_control': True,
-        'fk_chain.position_along_bone': 0.5,
-        'fk_chain.double_first': False,
         'fk_chain.hinge': False,
-        'fk_chain.display_center': False,
         'fk_chain.root': True,
     }
     always_use_custom_props = True
@@ -42,7 +38,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         # Create Torso Master control
         root_bone = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["ROOT"], self.spine_name, [self.side_suffix]),
+            name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
@@ -65,6 +61,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
             parent=self.root_bone,
         )
 
+        # First STR bone should by owned by the hips.
+        self.str_chain[0].parent = self.mstr_hips
+
         if self.params.spine_squashy.world_align:
             self.root_bone.flatten()
             self.mstr_hips.flatten()
@@ -76,6 +75,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
+
         # If we want to parent things to the root bone, we use self.root_torso.
         # However, for spine.double to work, self.root_bone must be the bone
         # returned from create_parent_bone().
@@ -94,9 +94,12 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.add_prefix(self.spine_name, "CHST"),
             source=chest_org,
+            head=chest_org.prev.center,
             custom_shape_name="Hyperbola",
             custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),
-            custom_shape_translation=Vector((0, chest_org.length, 0)),
+            custom_shape_translation=Vector(
+                (0, chest_org.length + chest_org.prev.length / 2, 0)
+            ),
             parent=self.root_torso,
         )
 
@@ -109,12 +112,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.squash_helper = self.bone_sets['Spine Mechanism'].new(
             name=f"SQS-{self.spine_name}",
             source=self.bones_org[0],
-            head=self.mstr_hips.head.copy(),
-            tail=self.mstr_chest.head.copy(),
-            parent=self.root_torso,
-        )
-        copy_loc = self.squash_helper.add_constraint(
-            'COPY_LOCATION', subtarget=self.mstr_hips, space='WORLD'
+            head=self.fk_chain[0].head,
+            tail=self.mstr_chest.head,
+            parent=self.mstr_hips,
         )
         stretch_con = self.squash_helper.add_constraint(
             'STRETCH_TO',
@@ -131,11 +131,19 @@ class Component_Spine_Squashy(Component_Chain_FK):
             }
         )
 
-        squash_constraints = [copy_loc, stretch_con]
-
         # Attach FK
-        self.fk_chain[0].parent = self.squash_helper
-        arm_con1 = self.fk_chain[-1].add_constraint(
+        arm_cons_fk = []
+        for fk_bone in self.fk_chain[:-1]:
+            arm_con_fk = fk_bone.add_constraint(
+                'ARMATURE',
+                targets=[
+                    {'subtarget': fk_bone.parent.name},
+                    {'subtarget': self.squash_helper.name},
+                ],
+            )
+            arm_cons_fk.append(arm_con_fk)
+
+        arm_con_last_fk = self.fk_chain[-1].add_constraint(
             'ARMATURE',
             targets=[
                 {'subtarget': self.fk_chain[-1].parent.name},
@@ -143,32 +151,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             ],
         )
 
-        # Create a parent helper for the 2nd to last STR bone for counter-rotation.
-        str_bone = self.main_str_bones[-2]
-        copy_rot_helper = self.create_parent_bone(
-            str_bone, bone_set=self.bone_sets['Spine Mechanism']
-        )
-        con_rot_counter = copy_rot_helper.add_constraint(
-            'COPY_ROTATION',
-            subtarget=self.mstr_chest,
-            use_xyz=[True, False, True],
-            invert_xyz=[True, False, True],
-            influence=0.5,
-        )
-
-        parent_helper = self.create_parent_bone(
-            copy_rot_helper, bone_set=self.bone_sets['Spine Mechanism']
-        )
-        # Parent 2nd to last STR to Torso when Squash is enabled
-        arm_con2 = parent_helper.add_constraint(
-            'ARMATURE',
-            targets=[
-                {'subtarget': self.bones_org[-2].name},
-                {'subtarget': self.mstr_chest.name},
-            ],
-        )
-
-        for arm_con in [arm_con1, arm_con2]:
+        for arm_con in arm_cons_fk + [arm_con_last_fk]:
             arm_con.drivers.append(
                 {
                     'prop': 'targets[0].weight',
@@ -183,49 +166,26 @@ class Component_Spine_Squashy(Component_Chain_FK):
                 }
             )
 
-        con_trans_fwd = str_bone.add_constraint(
-            'TRANSFORM',
-            name="Transform (Bend Fwd)",
-            subtarget=self.mstr_chest,
-            map_from='ROTATION',
-            from_rotation_mode='SWING_TWIST_Y',
-            from_min_x_rot=-pi / 2,
-            from_max_x_rot=pi / 2,
-            map_to='LOCATION',
-            map_to_z_from='X',
-            to_min_z=-0.04,
-            to_max_z=0.04,
-        )
-        con_trans_side = str_bone.add_constraint(
-            'TRANSFORM',
-            name="Transform (Bend Sideways)",
-            subtarget=self.mstr_chest,
-            map_from='ROTATION',
-            from_rotation_mode='SWING_TWIST_Y',
-            from_min_z_rot=-pi / 2,
-            from_max_z_rot=pi / 2,
-            map_to='LOCATION',
-            map_to_x_from='Z',
-            to_min_x=0.04,
-            to_max_x=-0.04,
-        )
-        squash_constraints.extend([con_rot_counter, con_trans_fwd, con_trans_side])
-
         squash_toggle_driver = {
             'prop': 'influence',
             'variables': [(self.properties_bone.name, self.squashy_name)],
         }
-        for con in squash_constraints:
+        influence_driven_constraints = [
+            stretch_con
+        ]  # con_rot_counter, con_trans_fwd, con_trans_side
+        for con in influence_driven_constraints:
             con.drivers.append(squash_toggle_driver.copy())
-        con_rot_counter.drivers[0]['expression'] = 'var/2'
 
         # Make the hip twisting affect the belly
-        self.main_str_bones[1].add_constraint(
+        counter_rotate = self.main_str_bones[1].add_constraint(
             'COPY_ROTATION',
             subtarget=self.mstr_hips,
             use_xyz=[False, True, False],
             influence=0.5,
         )
+        counter_rotate_driver = squash_toggle_driver.copy()
+        counter_rotate_driver['expression'] = 'var*0.5'
+        counter_rotate.drivers.append(counter_rotate_driver)
 
         # Store info for UI
         self.add_bone_property_with_ui(
@@ -244,17 +204,11 @@ class Component_Spine_Squashy(Component_Chain_FK):
             prop_id=self.squashy_volume_name,
             panel_name="IK",
             row_name=self.limb_name,
-            slider_name=self.spine_name + " Volume",
+            slider_name=self.spine_name + " Squash & Stretch",
             custom_prop_settings={
                 'default': 0.0,
             },
         )
-
-    def parent_str_to_fk(self, fk_chain, org_chain, str_chain):
-        """Overrides cloud_fk_chain."""
-        super().parent_str_to_fk(fk_chain, org_chain, str_chain)
-        # First STR bone should by owned by the hips.
-        str_chain[0].parent = self.mstr_hips
 
     ##############################
     # Parameters
@@ -302,7 +256,7 @@ class Params(PropertyGroup):
     double: BoolProperty(
         name="Duplicate Controls",
         description="Make duplicates of the main spine controls",
-        default=True,
+        default=False,
     )
 
 
