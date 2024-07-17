@@ -517,9 +517,10 @@ class Properties_CloudRig(PropertyGroup):
         # Sort the children by their sibling order value,
         # which is controlled by the user with the up/down arrows.
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
-        for child_pb in child_component_pbs:
+        for i, child_pb in enumerate(child_component_pbs):
             order_idx += 1
             order_idx = self.order_components_recursive(child_pb, order_idx, depth + 1)
+            child_pb.cloudrig_component.sibling_order = i
 
         return order_idx
 
