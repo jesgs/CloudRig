@@ -813,11 +813,11 @@ class CLOUDRIG_OT_Rename_Bone(Operator):
         metarig = context.object
         bone = metarig.data.bones.get(self.old_name)
         if self.new_name in metarig.data.bones:
-            self.report({'ERROR'}, "That bone name is already taken!")
+            self.report({'ERROR'}, "That bone name is already taken.")
             return {'CANCELLED'}
         if not bone:
             self.report(
-                {'ERROR'}, f'Old bone "{self.old_name}" not found or not provided!'
+                {'ERROR'}, f'Old bone "{self.old_name}" not found or not provided.'
             )
             return {'CANCELLED'}
 
@@ -846,7 +846,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         if not old_obj and new_obj:
             self.report(
                 {'ERROR'},
-                f'Error! One of "{self.old_name}" or "{self.new_name}" was not found!',
+                f'Error: One of "{self.old_name}" or "{self.new_name}" was not found.',
             )
             return {'CANCELLED'}
 
@@ -906,13 +906,13 @@ class CLOUDRIG_OT_Rename_Object(Operator):
         obj = bpy.data.objects.get((self.old_name, None))
 
         if self.new_name in bpy.data.objects:
-            self.report({'ERROR'}, "That object name is already taken!")
+            self.report({'ERROR'}, "That object name is already taken.")
             return {'CANCELLED'}
 
         if not obj:
             self.report(
                 {'ERROR'},
-                f'Error! Old object "{self.old_name}" not found or not provided!',
+                f'Error: Old object "{self.old_name}" not found or not provided.',
             )
             return {'CANCELLED'}
 
@@ -941,7 +941,7 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         if not ob:
             self.report(
                 {'WARNING'},
-                f'"{self.ob_name}" not found! It must have already been deleted.',
+                f'"{self.ob_name}" not found. It must have already been deleted.',
             )
             return {'FINISHED'}
 

@@ -515,12 +515,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 ret = self.execute_add_property(context)
                 if ret:
                     return ret
-            self.report({'INFO'}, f"Added {len(owner.keys())} properties to the rig UI")
+            self.report({'INFO'}, f"Added {len(owner.keys())} properties to the rig UI.")
         else:
             ret = self.execute_add_property(context)
             if ret:
                 return ret
-            self.report({'INFO'}, f"Added property {self.slider_name} to the rig UI")
+            self.report({'INFO'}, f"Added property {self.slider_name} to the rig UI.")
 
         redraw_viewport()
         return {'FINISHED'}
@@ -643,7 +643,7 @@ class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
         write_rig_panels(rig, self.panels)
         redraw_viewport()
 
-        self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI")
+        self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI.")
         return {'FINISHED'}
 
 

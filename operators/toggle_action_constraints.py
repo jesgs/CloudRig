@@ -47,7 +47,7 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(CloudRigOperator):
 
         word = "Enabled" if self.enable else "Disabled"
         self.report(
-            {'INFO'}, f'{word} {con_count} constraints referencing "{action.name}"'
+            {'INFO'}, f'{word} {con_count} constraints referencing "{action.name}".'
         )
 
         return {'FINISHED'}

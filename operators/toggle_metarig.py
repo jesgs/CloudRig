@@ -113,7 +113,7 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
         if not to_rig.visible_get():
             self.report(
                 {'ERROR'},
-                f'Could not make "{to_rig.name}" visible. Make sure it is enabled, and in an enabled collection!',
+                f'Could not make "{to_rig.name}" visible. It must be enabled, and in an enabled collection.',
             )
             return {'CANCELLED'}
 

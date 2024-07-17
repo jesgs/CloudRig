@@ -2338,9 +2338,9 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'")
+            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'.")
         else:
-            self.report({'INFO'}, f"Set parent to None")
+            self.report({'INFO'}, f"Set parent to None.")
         return {'FINISHED'}
 
     def parent_active_coll_to_prev_sibling(self, rig):
@@ -2357,9 +2357,9 @@ class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'")
+            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'.")
         else:
-            self.report({'INFO'}, f"Set parent to None")
+            self.report({'INFO'}, f"Set parent to None.")
         return {'FINISHED'}
 
     def get_sibling_of_active_coll(

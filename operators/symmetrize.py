@@ -43,7 +43,7 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             if opp_pb in selected_pose_bones:
                 self.report(
                     {'ERROR'},
-                    f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction',
+                    f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction.',
                 )
                 return {'CANCELLED'}
             if opp_pb == pb:

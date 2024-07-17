@@ -165,10 +165,10 @@ class CLOUDRIG_OT_add_rig_component(CloudRigOperator):
     def execute(self, context):
         rig = context.object
         if not self.bone_name:
-            self.report({'ERROR'}, "Cancelled: No bone selected.")
+            self.report({'ERROR'}, "A bone must be selected.")
             return {'CANCELLED'}
         if not self.component_type:
-            self.report({'ERROR'}, "Cancelled: No component type selected.")
+            self.report({'ERROR'}, "A component type must be selected.")
             return {'CANCELLED'}
         if self.bone_name not in rig.pose.bones:
             self.report({'ERROR'}, "Bone not found in rig: " + self.bone_name)
