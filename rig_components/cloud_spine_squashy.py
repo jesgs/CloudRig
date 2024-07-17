@@ -74,40 +74,6 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         return fk_chain
 
-    def make_fk_bone(self, org_bone) -> BoneInfo:
-        """Overrides cloud_fk_chain.
-        We offset each FK bone to its center point, and create a child helper at the original position.
-        Furthermore, we parent each FK control to the previous FK control's child helper.
-        """
-        fk_bone = super().make_fk_bone(org_bone)
-        fk_child = self.bone_sets['FK Helpers'].new(
-            name=fk_bone.name.replace("FK-", "FKO-"), source=org_bone, parent=fk_bone
-        )
-        fk_bone.fk_child = fk_child
-
-        if fk_bone.prev:
-            fk_bone.parent = fk_bone.prev.fk_child
-
-        return fk_bone
-
-    def attach_org_to_fk(self, org_bones, fk_bones):
-        """Overrides cloud_fk_chain.
-        We want to attach the ORG bones to the fk_child helper rather than the fk_bone.
-        """
-        for org_bone, fk_bone in zip(org_bones, fk_bones):
-            org_bone.add_constraint(
-                'COPY_TRANSFORMS',
-                space='WORLD',
-                subtarget=fk_bone.fk_child.name,
-                name="Copy Transforms FK Child",
-            )
-
-        # We also need the STR bones to be parented one step lower in the ORG chain.
-        str_bones = self.main_str_bones
-        str_bones[0].parent = self.mstr_hips
-        for org_bone, str_bone in zip(org_bones, str_bones[1:]):
-            str_bone.parent = org_bone
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         # If we want to parent things to the root bone, we use self.root_torso.

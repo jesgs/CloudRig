@@ -42,6 +42,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.root_bone = self.make_root_bone()
 
         self.fk_chain = self.make_fk_chain(self.bones_org)
+        if self.params.fk_chain.position_along_bone > 0:
+            self.make_fk_offset_chain(self.fk_chain)
         self.attach_org_to_fk(self.bones_org, self.fk_chain)
 
         if self.root_bone == self.bones_org[0]:
@@ -151,14 +153,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             gizmo_operator='transform.rotate',
         )
 
-        if self.params.fk_chain.position_along_bone > 0:
-            position = (
-                org_bone.head
-                + (org_bone.tail - org_bone.head)
-                * self.params.fk_chain.position_along_bone
-            )
-            fk_bone.put(position)
-
         org_bone.fk_bone = fk_bone
         # Parent FK bone to previous FK bone.
         if org_bone.prev:
@@ -167,6 +161,35 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             # Parent first FK to the root.
             fk_bone.parent = org_bone.parent
         return fk_bone
+
+    def make_fk_offset_chain(self, fk_chain) -> list[BoneInfo]:
+        fk_offset_chain = []
+        for fk_bone in fk_chain:
+            # Create a child that is offset along the bone by the specified amount.
+            org_bone = fk_bone.source
+
+            if fk_offset_chain:
+                fk_bone.parent = fk_offset_chain[-1]
+
+            if not self.params.chain.tip_control and org_bone == self.bones_org[-1]:
+                # Don't create unnecessary offset control for the last FK bone
+                # when the Tip Control param is disabled.
+                continue
+
+            position = (
+                org_bone.head
+                + (org_bone.tail - org_bone.head)
+                * self.params.fk_chain.position_along_bone
+            )
+
+            fk_offset_bone = self.bone_sets['FK Helpers'].new(
+                name=fk_bone.name.replace("FK-", "FK-OS-"),
+                source=org_bone,
+                parent=fk_bone,
+                head=position,
+                custom_shape_name='WGT-Circle_Spiked_2',
+            )
+            fk_offset_chain.append(fk_offset_bone)
 
     def make_hinge_setup(
         self,
@@ -263,24 +286,14 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if last_def == def_chain[0]:
             return
 
-        # If we didn't put a stretch constraint on the final deform bone,
-        # it must mean there is no cap control.
-        if len(last_def.constraint_infos) == 0 and not self.params.chain.unlock_deform:
-            if last_def.prev:
-                # In this case, set the previous def_bone's easeout to 0.
-                last_def.prev.bbone_easeout = 0
-            # Also, parent this to the ORG bone. This is so that scaling
-            # the last STR control doesn't affect this deform bone.
-            if not self.params.chain.unlock_deform:
-                last_def.parent = self.bones_org[-1]
+        # If there's no tip control, parent DEF to ORG.
+        # Useful for example for an arm rig.
+        # Then again, makes me wonder if this should just be in cloud_limb then.
+        if not self.params.chain.tip_control and not self.params.chain.unlock_deform:
+            last_def.parent = self.bones_org[-1]
 
     def attach_org_to_fk(self, org_bones, fk_bones):
         """Make ORG bones Copy Transforms of FK bones."""
-        if self.params.fk_chain.position_along_bone > 0:
-            for str_bone, fk_bone in zip(self.main_str_bones[1:], fk_bones):
-                str_bone.parent = fk_bone
-            return
-
         for org_bone, fk_bone in zip(org_bones, fk_bones):
             org_bone.use_connect = False
             org_bone.add_constraint(
