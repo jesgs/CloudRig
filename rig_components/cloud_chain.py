@@ -335,37 +335,51 @@ class Component_ToonChain(Component_Base):
             length=str_bone.length * 0.2,
         )
         handle_bone.bbone_width = str_bone.bbone_width * 1.5
+        handle_bone.inherit_scale = 'NONE'
 
         if smooth:
             assert (
                 prev_str and next_str
             ), "Previous and next STR can only be None if smooth=False. Otherwise, pass str_bone."
-            handle_bone.add_constraint(
-                'DAMPED_TRACK',
-                name="Damped Track Next",
-                subtarget=next_str.name,
-                track_axis='TRACK_Y',
-            )
+            
             handle_bone.add_constraint(
                 'COPY_LOCATION',
-                index=0,
-                name="Copy Location Prev",
+                name="Copy Location Prev (Smooth Spline)",
                 subtarget=prev_str.name,
                 space='WORLD',
+            )
+            handle_bone.add_constraint(
+                'DAMPED_TRACK',
+                name="Damped Track Next (Smooth Spline)",
+                subtarget=next_str.name,
+                track_axis='TRACK_Y',
             )
 
             handle_bone.add_constraint(
                 'COPY_TRANSFORMS',
-                name="Copy STR Transforms",
+                name="Copy STR Transforms (Smooth Spline)",
                 subtarget=str_bone.name,
                 target_space='LOCAL_OWNER_ORIENT',
             )
+            handle_bone.add_constraint(
+                'COPY_LOCATION',
+                name="Copy Location For Display (Smooth Spline)",
+                subtarget=str_bone.name,
+                space='WORLD',
+            )
+            handle_bone.add_constraint(
+                'COPY_SCALE',
+                name="Copy Scale (Smooth Spline)",
+                subtarget=str_bone.name,
+                space='POSE',
+                use_offset=False,
+            )
+            str_bone.custom_shape_transform = handle_bone
         else:
             handle_bone.parent = str_bone
             handle_bone.add_constraint(
-                'COPY_SCALE', subtarget=str_bone.name, space='LOCAL'
+                'COPY_SCALE', subtarget=str_bone.name, space='POSE'
             )
-            handle_bone.inherit_scale = 'NONE'
 
         return handle_bone
 
@@ -375,16 +389,16 @@ class Component_ToonChain(Component_Base):
         # For each STR control, create a deform bone between it and the next one.
         parent = str_chain[0].parent
         for i, str_bone in enumerate(str_chain):
-            if i == len(str_chain) - 1 and self.params.chain.tip_control:
-                # Don't create the last one when it's the tip control.
+            if self.params.chain.tip_control and i == len(str_chain)-1:
+                # Don't create a deform bone for the STR control at the tip of the chain.
                 continue
-
+            org_bone = str_bone.source
             if not str_bone.next:
-                # This happens when tip_control=False.
-                tail = str_bone.source.tail
+                # This happens for the last deform bone when tip_control=False.
+                # In this case, the deform bone should just match the metarig bone.
+                tail = org_bone.tail
             else:
                 tail = str_bone.next.head
-            org_bone = str_bone.source
 
             def_name = str_bone.name.replace("STR", "DEF")
             def_bone = self.bones_def.new(
@@ -394,24 +408,30 @@ class Component_ToonChain(Component_Base):
                 head=str_bone.head,
                 tail=tail,
                 use_deform=True,
-                inherit_scale='ALIGNED',
+                inherit_scale='NONE',
             )
             parent = def_bone
             if i == 0:
-                def_bone.add_constraint(
-                    'COPY_LOCATION', subtarget=str_bone, space='WORLD'
-                )
+                # The deform chain is parented to each other, but that means the 
+                # first DEF bone needs to follow the first stretch bone.
+                # Using CopyLoc doesn't work with Create Deform Bones, 
+                # since then the DEF bone doesn't follow DEF-CTR.
+                # So, we just parent it.
+                def_bone.parent = str_bone
 
             self.def_bones_of_org[org_bone].append(def_bone)
 
-            if i == len(str_chain) - 1 and not self.is_cyclic:
-                # Don't set up the last one unless we're a cyclic rig, since it has no next STR.
-                def_bone.tail = org_bone.tail
-                def_bone.inherit_scale = 'ALIGNED'  # TODO: In FK chain components, this last lonely deform bone should be parented to FK for good scaling behaviour.
-                continue
-
             if self.params.chain.unlock_deform:
                 self.make_def_control(str_bone, def_bone)
+
+            if i == len(str_chain)-1 and not self.is_cyclic:
+                # The last deform bone when there's no STR control at the tip of the chain
+                # can skip the setup_deform_bone() phase, but needs some special treatment.
+                def_bone.tail = org_bone.tail
+                def_bone.parent = str_bone
+                # TODO: In FK chain components, this last lonely deform bone might need to be parented to FK for good scaling behaviour.
+                def_bone.inherit_scale = 'ALIGNED'
+                continue
 
             self.setup_deform_bone(
                 def_bone=def_bone, org_bone=org_bone, str_bone=str_bone
@@ -433,7 +453,6 @@ class Component_ToonChain(Component_Base):
 
         # Stretch to next STR bone.
         if not self.params.chain.unlock_deform:
-            def_bone.add_constraint('COPY_SCALE', subtarget=org_bone, space='WORLD')
             def_bone.add_constraint(
                 'STRETCH_TO',
                 subtarget=next_str_bone,

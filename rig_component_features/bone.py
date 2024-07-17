@@ -842,7 +842,7 @@ class ConstraintInfo(dict):
                 self.mix_mode = 'BEFORE'
                 self.use_offset = True
         elif self.type in ['COPY_TRANSFORMS', 'ACTION']:
-            if self.space != 'WORLD':
+            if self.space not in {'WORLD', 'POSE'}:
                 self.mix_mode = 'BEFORE'
         elif self.type == 'LIMIT_SCALE':
             self.max_x = 1

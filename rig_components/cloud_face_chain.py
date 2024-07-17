@@ -17,12 +17,14 @@ def has_tangent_helpers(rig) -> bool:
 def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneInfo):
     for str_bone in cluster:
         component = str_bone.owner_component
-        str_bone.parent = intersection
         str_bone.intersection_ctrl = intersection
-        if has_tangent_helpers(component):
-            str_bone.tangent_helper.constraint_infos[-1].subtarget = intersection.name
-            str_bone.tangent_helper.constraint_infos[-1].name = "Copy STR-I Transforms"
-            str_bone.tangent_helper.parent = intersection
+
+        str_bone.add_constraint(
+            'COPY_TRANSFORMS',
+            name="Copy STR-I Transforms",
+            subtarget=intersection.name,
+            target_space='LOCAL_OWNER_ORIENT',
+        )
         str_bone.collections = component.bone_sets['Sub Controls'].collections
         str_bone.color_palette_base = component.bone_sets['Sub Controls'].color_palette
 
@@ -107,6 +109,10 @@ class Component_FaceChain(Component_ToonChain):
 
     relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone's head, or tail if the constraint name is prefixed with \"TAIL-\". If the STR bone is part of an intersection, the constraint is moved to the STR-I intersection control instead."
     ui_name = "Chain: Face Grid"
+
+    # forced_params = {
+    #     'chain.smooth_spline' : False
+    # }
 
     def initialize(self):
         super().initialize()
