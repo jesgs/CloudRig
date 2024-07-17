@@ -15,11 +15,13 @@ from ..utils.misc import get_selected_bone_tuples, get_current_rigs
 class GenericBoneOperator:
     @classmethod
     def poll(cls, context):
-        return (
-            context.active_object
-            and context.active_object.type == 'ARMATURE'
-            and context.active_object.mode in {'POSE', 'EDIT'}
-        )
+        if not (context.active_object and context.active_object.type == 'ARMATURE'):
+            cls.poll_message_set("No active armature.")
+            return False
+        if not context.active_object.mode in {'POSE', 'EDIT'}:
+            cls.poll_message_set("Must be in Pose or Edit mode.")
+            return False
+        return True
 
     def get_bones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
         if context.mode != 'EDIT_ARMATURE':
@@ -179,10 +181,8 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
     bl_label = "Parent Selected Bones To Active"
     bl_options = {'REGISTER', 'UNDO'}
 
-    use_connect: BoolProperty(default=False)
-
     @classmethod
-    def poll(cls, context):
+    def poll_parenting(cls, context):
         if not super().poll(context):
             return False
         active_bone = get_active_bone(context)
@@ -191,33 +191,52 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
         if not active_bone:
             cls.poll_message_set("There is no active bone.")
             return False
-        bone_tuples = get_selected_bone_tuples(context)
-        if len(bone_tuples) < 2:
+        bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
+        if len(bone_tuples_to_parent) < 1:
             cls.poll_message_set("At least two bones must be selected.")
             return False
-        if any([b.id_data != active_bone.id_data for rig, b in bone_tuples]):
+        if any([b.id_data != active_bone.id_data for rig, b in bone_tuples_to_parent]):
             cls.poll_message_set("All selected bones must be from the same armature.")
             return False
         return True
 
-    def parent_edit_bones(self, parent, bone_tuples_to_parent: list[tuple[Object, EditBone]]):
-        parent.hide = False
-        for rig, eb in bone_tuples_to_parent:
-            eb.hide = False
-            if parent.parent == eb:
-                # When inverting a parenting relationship (child becomes the parent),
-                # set the old child's parent as the new parent's parent.
-                # Otherwise, the parent will become parentless, which is usually not desired.
-                parent.use_connect = False
-                parent.parent = eb.parent
-            if (eb.head - parent.tail).length > 0.0001:
-                # If use_connect of this child was previously True, but now the parent is
-                # somewhere far away, set that flag to False, so the child doesn't move.
-                eb.use_connect = False
-            if self.use_connect:
-                # If the user explicitly asked for connecting the child to the parent, do so.
-                eb.use_connect = True
-            eb.parent = parent
+    @classmethod
+    def poll(cls, context):
+        poll_parenting = cls.poll_parenting(context)
+        if not poll_parenting:
+            return False
+
+        active_bone = get_active_bone(context)
+        if type(active_bone) == PoseBone:
+            active_bone = active_bone.bone
+        bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
+        if all([b.parent == active_bone for rig, b in bone_tuples_to_parent]):
+            cls.poll_message_set(
+                "Selected bones are already parented to the active one."
+            )
+            return False
+        return True
+
+    def parent_edit_bones(
+        self, parent_eb, bone_tuples_to_parent: list[tuple[Object, EditBone]]
+    ):
+        parent_eb.hide = False
+        for rig, child_eb in bone_tuples_to_parent:
+            self.parent_edit_bone(parent_eb, child_eb)
+
+    def parent_edit_bone(self, parent_eb, child_eb):
+        child_eb.hide = False
+        if parent_eb.parent == child_eb:
+            # When inverting a parenting relationship (child becomes the parent),
+            # set the old child's parent as the new parent's parent.
+            # Otherwise, the parent will become parentless, which is usually not desired.
+            parent_eb.use_connect = False
+            parent_eb.parent = child_eb.parent
+        if (child_eb.head - parent_eb.tail).length > 0.0001:
+            # If use_connect of this child was previously True, but now the parent is
+            # somewhere far away, set that flag to False, so the child doesn't move.
+            child_eb.use_connect = False
+        child_eb.parent = parent_eb
 
     def execute(self, context):
         rig = context.object
@@ -229,26 +248,67 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
         self.parent_edit_bones(parent, bone_tuples_to_parent)
 
+        flipped_bone_tuples_to_parent = []
         if rig.data.use_mirror_x:
             flipped_parent = rig.data.edit_bones.get(flip_name(parent.name))
             if flipped_parent:
-                flipped_bone_tuples_to_parent = [
-                    (r, r.data.edit_bones.get(flip_name(eb.name)))
-                    for r, eb in bone_tuples_to_parent
-                ]
-                flipped_bone_tuples_to_parent = [eb for eb in flipped_bone_tuples_to_parent if eb]
+                flipped_bone_tuples_to_parent = []
+                for rig, eb in bone_tuples_to_parent:
+                    flipped_eb = rig.data.edit_bones.get(flip_name(eb.name))
+                    if not flipped_eb or flipped_eb == eb:
+                        continue
+                    flipped_bone_tuples_to_parent.append((rig, flipped_eb))
                 self.parent_edit_bones(flipped_parent, flipped_bone_tuples_to_parent)
 
         bpy.ops.object.mode_set(mode=mode)
         plural = "s" if len(bone_tuples_to_parent) != 1 else ""
-        message = f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
-        if rig.data.use_mirror_x:
+        message = (
+            f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
+        )
+        if rig.data.use_mirror_x and flipped_bone_tuples_to_parent:
             message += "(Symmetrized!)"
         self.report(
             {'INFO'},
             message,
         )
         return {'FINISHED'}
+
+
+class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
+    """Parent and connect selected bones to the active one"""
+
+    bl_idname = "pose.parent_and_connect"
+    bl_label = "Parent & Connect Selected Bones To Active"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        poll_parenting = cls.poll_parenting(context)
+        if not poll_parenting:
+            return False
+
+        active_bone = get_active_bone(context)
+        if type(active_bone) == PoseBone:
+            active_bone = active_bone.bone
+        bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
+        if all(
+            [
+                b.parent == active_bone and b.use_connect
+                for rig, b in bone_tuples_to_parent
+            ]
+        ):
+            cls.poll_message_set(
+                "Selected bones are already parented and connected to the active one."
+            )
+            return False
+        return True
+
+    def parent_edit_bone(self, parent_eb, child_eb):
+        super().parent_edit_bone(parent_eb, child_eb)
+        offset = parent_eb.tail - child_eb.head
+        child_eb.tail += offset
+        child_eb.head += offset
+        child_eb.use_connect = True
 
 
 class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
@@ -261,7 +321,8 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
     @classmethod
     def poll(cls, context):
         return (
-            len(get_selected_bone_tuples(context)) > 0 and len(context.selected_objects) > 1
+            len(get_selected_bone_tuples(context)) > 0
+            and len(context.selected_objects) > 1
         )
 
     def execute(self, context):
@@ -318,8 +379,8 @@ class POSE_OT_separate_selected_bones(CloudRigOperator):
 
         for rig, bone in bone_tuples:
             edit_bone = rig.data.edit_bones.get(bone.name)
-            edit_bone.hide=False
-            edit_bone.select=True
+            edit_bone.hide = False
+            edit_bone.select = True
 
         selected_objects = set(context.selected_objects)
         bpy.ops.armature.separate()
@@ -334,6 +395,7 @@ class POSE_OT_separate_selected_bones(CloudRigOperator):
                 break
 
         return {'FINISHED'}
+
 
 class CLOUDRIG_MT_PIE_bone_parenting(Menu):
     bl_label = "Bone Parenting"
@@ -354,13 +416,11 @@ class CLOUDRIG_MT_PIE_bone_parenting(Menu):
             'pose.parent_selected_to_active',
             text="Selected to Active",
             icon='CON_CHILDOF',
-        ).use_connect = False
+        )
 
         # 3) V Separate
         pie.operator(
-            'pose.separate_selected_bones', 
-            text="Separate Selected", 
-            icon='UNLINKED'
+            'pose.separate_selected_bones', text="Separate Selected", icon='UNLINKED'
         )
 
         # 4) ^ Leave empty.
@@ -389,16 +449,17 @@ class CLOUDRIG_MT_PIE_bone_parenting(Menu):
 
         # 8) v> Parent and Connect.
         pie.operator(
-            'pose.parent_selected_to_active',
+            'pose.parent_and_connect',
             text="Parent & Connect",
             icon='LINKED',
-        ).use_connect = True
+        )
 
 
 registry = [
     POSE_OT_disconnect_bones,
     POSE_OT_unparent_bones,
     POSE_OT_parent_active_to_all_selected,
+    POSE_OT_parent_and_connect,
     POSE_OT_parent_selected_to_active,
     POSE_OT_parent_object_to_selected_bones,
     POSE_OT_separate_selected_bones,
