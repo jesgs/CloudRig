@@ -87,7 +87,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         # IK Foot setup, including Foot Roll
         if self.params.leg.use_foot_roll:
-            self.make_footroll(self.ik_tgt_bone, self.ik_chain[-2:], self.bones_org)
+            self.make_footroll(self.ik_tgt_bone, self.ik_chain, self.bones_org)
 
             # For FK->IK snapping to work properly when the IK control is world-aligned,
             # we need a world-aligned child of the IK bone.
@@ -201,17 +201,17 @@ class Component_Limb_BipedLeg(Component_Limb):
         return head, tail
 
     def make_footroll(self, ik_tgt, ik_chain, org_chain):
-        ik_foot = ik_chain[0]
+        ik_foot_chain = ik_chain[-2:]
         thigh, knee, foot, toe = org_chain
 
         rolly_stretchy = self.bone_sets['IK Mechanism'].new(
             name=self.naming.add_prefix(thigh, "IK-STR-ROLL"),
             source=thigh,
             tail=self.ik_mstr.head.copy(),
-            parent=self.root_bone,
+            parent=ik_chain[0],
         )
         rolly_stretchy.scale_width(0.4)
-        rolly_stretchy.add_constraint('STRETCH_TO', subtarget=self.ik_chain[-2].name)
+        rolly_stretchy.add_constraint('STRETCH_TO', subtarget=ik_chain[-2].name)
 
         _prefixes, base_name, suffixes = self.naming.slice_name(foot.name)
         master_name = self.naming.make_name(["ROLL"], base_name, suffixes)
@@ -297,7 +297,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 custom_shape_name="Circle_Spiked_2",
             )
             rik_chain.append(rik_bone)
-            ik_chain[i].parent = rik_bone
+            ik_foot_chain[i].parent = rik_bone
 
             if i == 1:
                 # Toe bone's roll
