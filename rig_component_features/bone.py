@@ -758,7 +758,7 @@ class ConstraintInfo(dict):
     make_constraint()."""
 
     def __init__(
-        self, bone_info, con_type, target=None, use_preferred_defaults=True, **kwargs
+        self, bone_info, con_type, target=None, use_preferred_defaults=True, use_min_xyz=[], use_max_xyz=[], **kwargs
     ):
         # Blame this guy https://stackoverflow.com/a/14620633/1527672
         super(ConstraintInfo, self).__init__(**kwargs)
@@ -771,6 +771,15 @@ class ConstraintInfo(dict):
             self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
         self.drivers = []
+
+        if use_min_xyz:
+            if type(use_min_xyz) == bool:
+                use_min_xyz = [use_min_xyz] * 3
+                self.use_min_x, self.use_min_y, self.use_min_z = use_min_xyz
+        if use_max_xyz:
+            if type(use_max_xyz) == bool:
+                use_max_xyz = [use_max_xyz] * 3
+                self.use_max_x, self.use_max_y, self.use_max_z = use_max_xyz
 
         # Data path & array index of drivers that should be copied from the metarig.
         # This supports keyframes and curve modifiers.

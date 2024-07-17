@@ -112,10 +112,10 @@ def make_constraint(
     if invert_xyz is not None:
         con.invert_x, con.invert_y, con.invert_z = invert_xyz[0:3]
 
-    for key in ['min_x', 'max_x', 'min_y', 'max_y', 'min_z', 'max_z']:
-        if key in options:
-            _set_default_attr(con, options, 'use_' + key, True)
-            _set_default_attr(con, options, 'use_limit_' + key[-1], True)
+    # for key in ['min_x', 'max_x', 'min_y', 'max_y', 'min_z', 'max_z']:
+    #     if key in options:
+    #         _set_default_attr(con, options, 'use_' + key, True)
+    #         _set_default_attr(con, options, 'use_limit_' + key[-1], True)
 
     for p, v in options.items():
         setattr(con, p, force_lazy(v))

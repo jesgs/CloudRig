@@ -50,6 +50,9 @@ class Component_ToonChain(Component_Base):
         # bones in order.
         self.str_chain = self.sort_str_sections_into_chain(str_sections, self.is_cyclic)
 
+        for str_bone in self.str_chain:
+            str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
+
         self.tangent_helpers = []
         if self.params.chain.bbone_density > 0:
             # Create tangent helpers that will control bendy bone curvature
@@ -467,28 +470,17 @@ class Component_ToonChain(Component_Base):
             def_bone.drivers.append(
                 {
                     'prop': prop,
-                    'expression': "max(0, (scale_y/scale_avg)-1)",
+                    'expression': "abs(scale_y/((scale_x+scale_z)/2)) - 1",
                     'variables': {
-                        'scale_y': {
-                            'type': 'TRANSFORMS',
+                        f'scale_{axis}': {
+                            'type': 'SINGLE_PROP',
                             'targets': [
                                 {
-                                    'bone_target': str_b.name,
-                                    'transform_space': 'LOCAL_SPACE',
-                                    'transform_type': 'SCALE_Y',
+                                    'data_path': f'pose.bones["{str_b.name}"].scale.{axis}',
                                 }
                             ],
-                        },
-                        'scale_avg': {
-                            'type': 'TRANSFORMS',
-                            'targets': [
-                                {
-                                    'bone_target': str_b.name,
-                                    'transform_space': 'LOCAL_SPACE',
-                                    'transform_type': 'SCALE_AVG',
-                                }
-                            ],
-                        },
+                        }
+                        for axis in "xyz"
                     },
                 }
             )
