@@ -289,14 +289,11 @@ class Component_ToonChain(Component_Base):
 
         influence_unit = 1 / num_segments
         influence = index * influence_unit
-        str_h_bone.add_constraint('COPY_LOCATION', space='WORLD', subtarget=main_start)
+        str_h_bone.add_constraint('COPY_TRANSFORMS', space='WORLD', subtarget=main_start)
         str_h_bone.add_constraint(
-            'COPY_LOCATION', space='WORLD', subtarget=main_end, influence=influence
+            'COPY_TRANSFORMS', space='WORLD', subtarget=main_end, influence=influence
         )
-        str_h_bone.add_constraint('COPY_ROTATION', space='WORLD', subtarget=main_start)
-        str_h_bone.add_constraint(
-            'COPY_ROTATION', space='WORLD', subtarget=main_end, influence=influence
-        )
+        str_h_bone.add_constraint('LIMIT_SCALE', use_min_y=True, use_max_x=False, use_max_y=True, use_max_z=False)
         str_h_bone.add_constraint('DAMPED_TRACK', subtarget=main_end)
 
         return str_h_bone
