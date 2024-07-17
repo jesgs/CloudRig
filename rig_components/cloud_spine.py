@@ -1,9 +1,11 @@
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
 from mathutils import Vector
+from math import pi
 
 from ..rig_component_features.bone import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
+
 
 class Component_Spine_IKFK(Component_Chain_FK):
     """Spine setup with FK, IK-like and stretchy IK controls."""
@@ -38,6 +40,18 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         self.root_torso = None
 
+        # The main chest control.
+        self.mstr_chest = None
+        # The main hip control.
+        self.mstr_hips = None
+
+        # IK Controls for the reverse chain.
+        self.ik_ctr_chain = []
+        # The Reverse IK Chain, which aims at the controls, and are aimed at by the IK bones.
+        self.ik_r_chain = []
+        # The lowest level IK mechanism bones, which aim at the reverse bones and own the FK bones.
+        self.ik_chain = []
+
     def make_root_bone(self):
         """Overrides cloud_fk_chain."""
 
@@ -59,9 +73,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
             source=org_chain[0],
-            head=org_chain[0].center,
+            head=org_chain[0].tail,
+            tail=org_chain[0].head,
             custom_shape_name="Hyperbola",
-            custom_shape_scale_xyz=Vector((0.8, -0.8, 0.8)),
             parent=self.root_bone,
         )
         if self.params.spine.world_align:
@@ -82,7 +96,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         if self.params.spine.use_ik:
             self.make_ik_spine()
-        self.tweak_str_spine()
 
         if self.params.spine.double:
             self.root_bone = self.create_parent_bone(
@@ -90,16 +103,21 @@ class Component_Spine_IKFK(Component_Chain_FK):
             )
 
     def make_ik_spine(self):
-        ### Create master chest control
+        ### Create master chest control.
         chest_org = self.bones_org[-2]
+        head = chest_org.center
+        if self.params.spine.world_align:
+            tail = head + Vector((0, 0, self.scale))
+        else:
+            tail = self.bones_org[-1].tail
         self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.add_prefix(self.spine_name, "CHST"),
             source=chest_org,
-            head=chest_org.center,
-            tail=chest_org.center + Vector((0, 0, self.scale)),
+            head=head,
+            tail=tail,
             custom_shape_name="Hyperbola",
             custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),
-            custom_shape_translation=Vector((0, chest_org.length * 2, 0)),
+            custom_shape_translation=Vector((0, (tail - head).length * 1.8, 0)),
             parent=self.root_torso,
         )
 
@@ -109,91 +127,87 @@ class Component_Spine_IKFK(Component_Chain_FK):
             )
 
         ### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
-        self.ik_ctr_chain = []
         for i, org_bone in enumerate(self.bones_org):
-            fk_bone = org_bone.fk_bone
             ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
-                name=fk_bone.name.replace("FK", "IK-CTR"),
-                source=fk_bone,
-                custom_shape_name='Circle',
+                name="IK-CTR-" + org_bone.name,
+                source=org_bone,
+                custom_shape_name='Square',
+                custom_shape_rotation_euler=((0, pi / 4, 0)),
                 custom_shape_scale_xyz=Vector((1, 1, 0.8)),
             )
 
-            # if i == 0:
-            #     ik_ctr_bone.add_constraint(
-            #         'COPY_ROTATION',
-            #         subtarget=self.mstr_hips.name,
-            #         influence=0.5,
-            #         use_xyz=[False, True, False],
-            #     )
-            if i == len(self.bones_org) - 3:
+            if len(self.bones_org) - 1 > i > 0:
+                influence_unit = 1 / (len(self.bones_org) - 1)
+                influence = influence_unit * i
                 ik_ctr_bone.add_constraint(
                     'COPY_ROTATION',
-                    subtarget=self.mstr_chest.name,
-                    influence=0.5,
+                    mix_mode='ADD',  # Flips later than Before Original.
+                    subtarget=self.mstr_chest,
+                    influence=influence,
                     use_xyz=[False, True, False],
+                )
+                ik_ctr_bone.add_constraint(
+                    'COPY_ROTATION',
+                    mix_mode='ADD',  # Flips later than Before Original.
+                    subtarget=self.mstr_hips,
+                    influence=1 - influence,
+                    use_xyz=[False, True, False],
+                    invert_xyz=[False, True, False],
                 )
 
             if i == 0:
                 # First spine control should be parented to the hip control.
                 ik_ctr_bone.parent = self.mstr_hips
-            elif i >= len(self.bones_org) - 2:
-                # Last two spine controls should be parented to the chest control.
+            elif i == len(self.bones_org) - 1:
+                # Last spine control should be parented to the chest control.
                 ik_ctr_bone.parent = self.mstr_chest
             else:
                 # The rest to the torso root.
                 ik_ctr_bone.parent = self.root_torso
             self.ik_ctr_chain.append(ik_ctr_bone)
 
-        ### Reverse IK (IK-R) chain. Damped track to IK-CTR of one lower index.
+        # Reverse IK (IK-R) chain. Switch bone direction, and Damped Track to IK-CTR.
+        # We iterate in reverse to make the parenting easier.
         next_parent = self.mstr_chest
-        self.ik_r_chain = []
-        for i, org_bone in enumerate(
-            reversed(self.bones_org[1:])
-        ):  # We skip the first spine.
-            fk_bone = org_bone.fk_bone
-            ik_r_name = fk_bone.name.replace("FK", "IK-R")
-            org_bone.ik_r_bone = ik_r_bone = self.bone_sets['Spine Mechanism'].new(
+        for i, ik_ctr_bone in enumerate(reversed(self.ik_ctr_chain)):
+            ik_r_name = ik_ctr_bone.name.replace("IK-CTR", "IK-R")
+            ik_r_bone = self.bone_sets['Spine Mechanism'].new(
                 name=ik_r_name,
-                source=fk_bone,
-                head=fk_bone.head,
-                tail=fk_bone.prev.head,
+                head=ik_ctr_bone.tail,
+                tail=ik_ctr_bone.head,
                 parent=next_parent,
+                custom_shape_name='Arrow',
+                use_custom_shape_bone_size=True,
             )
             next_parent = ik_r_bone
             self.ik_r_chain.append(ik_r_bone)
             ik_r_bone.add_constraint(
                 'DAMPED_TRACK',
-                subtarget=self.ik_ctr_chain[len(self.bones_org) - i - 2].name,
+                subtarget=ik_ctr_bone,
             )
+            # if i > 0:
+            # To give a decent behaviour to scaling mstr_chest, let's not
+            # inherit scale for the IK-R bones that aren't stuck to it.
+            # ik_r_bone.inherit_scale = 'NONE'
+        self.ik_r_chain.reverse()
 
-        # IK chain
-        next_parent = self.mstr_hips  # First IK bone is parented to HIP.
-        self.ik_chain = []
-        for i, org_bone in enumerate(self.bones_org):
-            fk_bone = org_bone.fk_bone
-            ik_name = fk_bone.name.replace("FK", "IK")
+        # IK chain. Aims at the IK-R bones, and owns the FK bones.
+        # Also does the stretching.
+        next_parent = self.ik_ctr_chain[0]
+        for i, (org_bone, ik_r_bone, ik_ctr_bone) in enumerate(
+            zip(self.bones_org, self.ik_r_chain, self.ik_ctr_chain)
+        ):
+            ik_name = ik_r_bone.name.replace("IK-R", "IK-M")
             ik_bone = self.bone_sets['Spine Mechanism'].new(
                 name=ik_name,
-                source=fk_bone,
-                head=fk_bone.prev.head if i > 0 else self.bones_def[0].head,
-                tail=fk_bone.head if i > 0 else self.bone_sets['FK Controls'][0].head,
+                source=org_bone,
                 parent=next_parent,
+                custom_shape_name='Arrow',
+                use_custom_shape_bone_size=True,
             )
             self.ik_chain.append(ik_bone)
             next_parent = ik_bone
-
-            damped_track_target = None
-            head_tail = 1
-            if i == len(self.bones_org) - 1:
-                # Special treatment for last IK bone...
-                damped_track_target = self.ik_ctr_chain[-1].name
-                head_tail = 0
-                self.mstr_chest.custom_shape_transform = ik_bone
-                if self.params.spine.double:
-                    self.mstr_chest.parent.custom_shape_transform = ik_bone
-            else:
-                damped_track_target = self.ik_r_chain[-i - 1].name
+            ik_ctr_bone.custom_shape_transform = ik_bone
 
             if i > 0:
                 # IK Stretch Copy Location
@@ -202,7 +216,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
                     'COPY_LOCATION',
                     space='WORLD',
                     name=con_name,
-                    subtarget=org_bone.ik_r_bone.name,
+                    subtarget=ik_r_bone.name,
                     head_tail=1,
                 )
 
@@ -223,20 +237,21 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 ik_bone.add_constraint(
                     'COPY_ROTATION',
                     space='WORLD',
-                    subtarget=self.ik_ctr_chain[i - 1].name,
+                    subtarget=ik_ctr_bone,
                 )
-                self.ik_ctr_chain[i - 1].custom_shape_transform = ik_bone
+                ik_bone.add_constraint(
+                    'COPY_SCALE',
+                    space='WORLD',
+                    subtarget=ik_ctr_bone,
+                )
 
-            ik_bone.add_constraint(
-                'DAMPED_TRACK', subtarget=damped_track_target, head_tail=head_tail
-            )
+            ik_bone.add_constraint('DAMPED_TRACK', subtarget=ik_r_bone)
 
         # Attach FK to IK
-        for i, ik_bone in enumerate(self.ik_chain[1:]):
-            fk_bone = self.bone_sets['FK Controls'][i]
+        for fk_bone, ik_bone in zip(self.fk_chain, self.ik_chain):
             con_name = "Copy Transforms IK"
             ct_con = fk_bone.add_constraint(
-                'COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone.name
+                'COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone
             )
 
             ct_con.drivers.append(
@@ -270,34 +285,43 @@ class Component_Spine_IKFK(Component_Chain_FK):
             },
         )
 
-    def tweak_str_spine(self):
-        """We need to parent the last non-tip STR control to the 2nd-to-last FK control,
-        otherwise that FK control's rotation disconnects the spine from itself."""
-        # TODO: Why isn't this parenting done in the same place where STR bones get parented normally?
-        for i, str_bone in enumerate(self.main_str_bones):
-            if i == len(self.main_str_bones) - 1 - self.params.chain.tip_control:
-                str_bone.parent = self.bone_sets['FK Controls'][-2]
+    def make_main_str_bone(
+        self, org_chain: BoneInfo, org_i: int, at_tip=False
+    ) -> BoneInfo:
+        str_bone = super().make_main_str_bone(org_chain, org_i, at_tip)
+        if self.params.chain.smooth_spline:
+            # If Smooth Spline is enabled, we don't need to fix the spine's curvature.
+            return str_bone
+
+        if org_i == 0 or at_tip:
+            # The first STR bone and the tip STR bone don't need corrections.
+            return str_bone
+
+        counter_rot = str_bone.add_constraint(
+            'COPY_ROTATION',
+            name="Counter Rotate IK",
+            subtarget=str_bone.parent,
+            use_xyz=[True, False, True],
+            invert_xyz=[True, False, True],
+            influence=0.5,
+        )
+        counter_rot.drivers.append(
+            {
+                'prop': 'influence',
+                'expression': "var * 0.5",
+                'variables': [(self.properties_bone.name, self.ik_prop_name)],
+            }
+        )
+
+        return str_bone
 
     def attach_org_to_fk(self, org_bones, fk_bones):
         """Overrides cloud_fk_chain.
-        Parent ORG to FK. This is important because STR- bones are owned by ORG- bones.
-        We want each FK bone to control the STR- bone of one higher index,
-        eg. FK-Spine0 would control STR-Spine1.
+        First STR bone should be owned by the hips (via first ORG bone).
         """
-        fk_bones = self.bone_sets[
-            'FK Controls'
-        ]  # TODO: Why does it error without this?
-        for i, org_bone in enumerate(org_bones):
-            if i == 0:
-                # First STR bone should by owned by the hips.
-                org_bone.parent = self.mstr_hips
-            elif i == len(org_bones) - 1:
-                org_bone.parent = fk_bones[-1]
-            else:
-                org_bone.parent = fk_bones[i - 1]
-
-        if self.params.chain.tip_control:
-            self.main_str_bones[-1].parent = fk_bones[-1]
+        super().attach_org_to_fk(org_bones, fk_bones)
+        org_bones[0].parent = self.mstr_hips
+        org_bones[0].constraint_infos.pop()
 
     ##############################
     # Parameters
@@ -318,7 +342,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             'Spine IK Secondary', color_palette='THEME11', collections=['IK Secondary']
         )
         cls.define_bone_set(
-            'Spine Mechanism', collections=['Mechanism Bones'], is_advanced=True
+            'Spine Mechanism', collections=['Mechanism: Spine IK'], is_advanced=True
         )
 
     @classmethod
