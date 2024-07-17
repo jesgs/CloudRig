@@ -57,7 +57,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         # Create Torso Master control
         torso_root_bone = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["ROOT"], self.spine_name, [self.side_suffix]),
+            name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
@@ -375,7 +375,7 @@ class Params(PropertyGroup):
     double: BoolProperty(
         name="Duplicate Controls",
         description="Make duplicates of the main spine controls",
-        default=True,
+        default=False,
     )
     world_align: BoolProperty(
         name="World-Align Controls",
