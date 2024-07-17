@@ -82,6 +82,7 @@ pose_bone_properties = {
     'custom_shape_scale_xyz': Vector((1.0, 1.0, 1.0)),
     'custom_shape_translation': Vector((0.0, 0.0, 0.0)),
     'custom_shape_rotation_euler': Vector((0.0, 0.0, 0.0)),
+    'custom_shape_wire_width' : 1.0,
     'use_custom_shape_bone_size': True,
     'rotation_mode': 'QUATERNION',
     'lock_location': [False, False, False],
