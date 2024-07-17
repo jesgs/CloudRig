@@ -294,6 +294,10 @@ class RigComponent(PropertyGroup):
 
             component_type_params = getattr(self.params, comp_type_name)
             for param_key in list(component_type_params.keys()):
+                if not hasattr(component_type_params, param_key):
+                    # More leftover garbage.
+                    del component_type_params[param_key]
+                    continue
                 param_value = getattr(component_type_params, param_key)
                 if isinstance(param_value, ID):
                     setattr(component_type_params, param_key, None)
