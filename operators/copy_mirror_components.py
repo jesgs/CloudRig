@@ -21,9 +21,11 @@ class POSE_OT_cloudrig_symmetrize_components(CloudRigOperator):
     def poll(cls, context):
         obj = context.object
         if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
+            cls.poll_message_set("An active armature must be in pose mode.")
             return False
         sel_bones = context.selected_pose_bones
         if not sel_bones:
+            cls.poll_message_set("At least one bone must be selected.")
             return False
         for pb in sel_bones:
             mirrored_name = flip_name(pb.name)
@@ -132,10 +134,9 @@ def copy_cloudrig_component(
             src_component_type
         )
 
-    from_params = from_bone.get('cloudrig_component')
-    if from_params and tgt_component_type:
-        param_dict = property_to_python(from_params)
 
+    if 'cloudrig_component' in from_bone:
+        param_dict = from_bone['cloudrig_component'].to_dict()#.get('cloudrig_component')
         if x_mirror:
             to_bone['cloudrig_component'] = recursive_mirror(param_dict)
         else:

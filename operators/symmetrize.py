@@ -3,10 +3,8 @@ import bpy
 from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name
 
-from ..rig_component_features.mechanism import (
-    copy_attributes,
-    find_or_create_constraint,
-)
+from ..rig_component_features.mechanism import find_or_create_constraint
+from .copy_mirror_components import copy_cloudrig_component
 from ..generation.cloudrig import CloudRigOperator
 from rna_prop_ui import rna_idprop_value_item_type
 
@@ -24,7 +22,12 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             cls.poll_message_set("No active armature.")
             return False
 
-        for bone in context.selected_bones or context.selected_pose_bones:
+        sel_bones = (context.selected_bones or context.selected_pose_bones)
+        if not sel_bones:
+            cls.poll_message_set("No selected bones.")
+            return False
+
+        for bone in sel_bones:
             if bone.name != flip_name(bone.name):
                 return True
 
@@ -90,9 +93,11 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             # Mirror drivers on bone properties.
             symmetrize_drivers(context.object, from_pb, to_pb)
 
-            # Mirror Actions and constraint drivers.
+            # Mirror constraint names and drivers.
             for from_con in from_pb.constraints:
-                symmetrize_additional(rig, from_pb, from_con)
+                symmetrize_constraint(rig, from_pb, from_con)
+
+            copy_cloudrig_component(from_pb, to_pb, x_mirror=True)
 
             # Mirror bone collections.
             for coll in to_pb.bone.collections[:]:
@@ -126,7 +131,7 @@ def remove_constraint_with_drivers(
     pbone.constraints.remove(con)
 
 
-def symmetrize_additional(armature: Object, pbone: PoseBone, con: Constraint):
+def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
     """Apply some additional mirroring logic that the Symmetrize operator doesn't do for us."""
     flipped_con_name = flip_name(con.name)
     flipped_bone_name = flip_name(pbone.name)
