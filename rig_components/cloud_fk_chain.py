@@ -161,6 +161,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
         org_bone.fk_bone = fk_bone
+
         # Parent FK bone to previous FK bone.
         if org_bone.prev:
             fk_bone.parent = org_bone.prev.fk_bone
@@ -177,6 +178,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
             if fk_offset_chain:
                 fk_bone.parent = fk_offset_chain[-1]
+                fk_bone.collections = self.bone_sets['FK Controls Extra'].collections
 
             if not self.params.chain.tip_control and org_bone == self.bones_org[-1]:
                 # Don't create unnecessary offset control for the last FK bone
@@ -189,7 +191,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 * self.params.fk_chain.position_along_bone
             )
 
-            fk_offset_bone = self.bone_sets['FK Helpers'].new(
+            fk_offset_bone = self.bone_sets['FK Offset Controls'].new(
                 name=fk_bone.name.replace("FK-", "FK-OS-"),
                 source=org_bone,
                 parent=fk_bone,
@@ -362,6 +364,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         super().define_bone_sets()
         cls.define_bone_set(
             'FK Controls', color_palette='THEME02', collections=['FK Controls']
+        )
+        cls.define_bone_set(
+            'FK Offset Controls', color_palette='THEME02', collections=['FK Controls']
         )
         cls.define_bone_set(
             'FK Controls Extra', color_palette='THEME02', collections=['FK Secondary']
