@@ -647,7 +647,8 @@ class BoneInfo:
             try:
                 make_driver(ob, target_id=target_id, **kwargs)
             except:
-                del kwargs['index']
+                if 'index' in kwargs:
+                    del kwargs['index']
                 try:
                     make_driver(ob, target_id=target_id, **kwargs)
                 except Exception as e:
