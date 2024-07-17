@@ -198,6 +198,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             )
             fk_offset_chain.append(fk_offset_bone)
 
+        # STR controls are normally parented to ORG, including the tip STR.
+        # But the FK-OS controls don't own the ORG bones (and shouldn't),
+        # so the tip STR control must be parented to the FK-OS control here.
+        if self.params.chain.tip_control:
+            self.main_str_bones[-1].parent = fk_offset_chain[-1]
+
     def make_hinge_setup(
         self,
         bone,
