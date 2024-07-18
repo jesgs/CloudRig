@@ -18,19 +18,40 @@ class BoneDuplicateOpMixin:
     def bone_operation(self):
         raise NotImplemented
 
-    def execute(self, context):
-        original_bones = {}
+    def invoke(self, context, event):
+        self.original_bones = {}
         rigs = list(get_current_rigs(context))
         for rig in rigs:
-            original_bones[rig] = set(rig.data.edit_bones[:])
+            self.original_bones[rig] = set(rig.data.edit_bones[:])
 
         self.bone_operation()
-        bpy.ops.transform.translate(False, value=(0, 0, 0.1))
+        bpy.ops.transform.translate('INVOKE_DEFAULT', False)
 
+        self.translate_done = False
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        self.increment_name = not event.shift
+
+        if event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET'}:
+            if not self.translate_done:
+                self.translate_done = True
+                return {'PASS_THROUGH'}
+            elif self.increment_name:
+                return self.execute(context)
+            else:
+                return {'FINISHED'}
+
+        return {'PASS_THROUGH'}
+
+    def execute(self, context):
         new_drivers = []
 
+        rigs = list(get_current_rigs(context))
         for rig in rigs:
-            new_bones = set(rig.data.edit_bones[:]) - original_bones[rig]
+            new_bones = set(rig.data.edit_bones[:]) - self.original_bones[rig]
             for new_bone in sorted(new_bones, key=lambda b: b.name):
                 new_name = new_bone.name
                 if self.increment_names:
@@ -55,9 +76,6 @@ class BoneDuplicateOpMixin:
         bpy.ops.object.mode_set(False, mode='EDIT')
         for fc in new_drivers:
             fc.driver.expression = fc.driver.expression
-
-        bpy.ops.transform.translate(False, value=(0, 0, -0.1))
-        bpy.ops.transform.translate('INVOKE_DEFAULT', False)
 
         return {'FINISHED'}
 
@@ -88,7 +106,7 @@ def copy_drivers_of_bone(
 
 class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
     bl_idname = "armature.better_bone_extrude"
-    bl_description = "Extrude a bone and increment its name"
+    bl_description = "Extrude a bone and increment its name. Hold Shift when confirming the extrusion to leave the name as it is"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_options = {'REGISTER'}
     bl_label = "Better Extrude Bone"
@@ -109,7 +127,7 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
 
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
     bl_idname = "armature.better_bone_duplicate"
-    bl_description = "Duplicate a bone and increment its name"
+    bl_description = "Duplicate a bone and increment its name. Hold Shift to leave the name as it is"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_options = {'REGISTER'}
     bl_label = "Better Duplicate Bone"
