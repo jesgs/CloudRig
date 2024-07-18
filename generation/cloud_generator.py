@@ -364,6 +364,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+
+        self.target_rig.data.name = self.target_rig.name
+            
         self.params.target_rig = self.target_rig
 
         self.restore_rig_states(context)
