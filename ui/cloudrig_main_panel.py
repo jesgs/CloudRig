@@ -102,11 +102,6 @@ class POSE_PT_CloudRig_Generation(Panel):
         widget_row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
         layout.prop(generator, 'custom_script')
 
-        layout.separator()
-
-        layout.prop(generator, 'ensure_root', icon='BONE_DATA')
-        layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
-
         # Test Animation Parameters
         if self.metarig_contains_fk_chain(metarig):
             heading = "Generate Action"
@@ -123,6 +118,12 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         if check_addon(context, 'bone_gizmos'):
             layout.prop(generator, 'auto_setup_gizmos')
+
+        layout.separator()
+
+        layout.prop(generator, 'ensure_root', icon='BONE_DATA')
+        layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
+
 
 
 registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation]

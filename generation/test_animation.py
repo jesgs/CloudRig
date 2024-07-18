@@ -77,7 +77,7 @@ def ensure_test_action(metarig: Object, target_rig: Object):
     # Ensure test action exists
     test_action = metarig.cloudrig.generator.test_action
     if not test_action:
-        test_action = bpy.data.actions.new("DeformTest-" + target_rig.name)
+        test_action = bpy.data.actions.new("DeformTest-" + target_rig.name.replace("NEW-", ""))
         metarig.cloudrig.generator.test_action = test_action
 
     # Nuke all curves
