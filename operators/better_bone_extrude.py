@@ -87,7 +87,7 @@ def copy_drivers_of_bone(
 
 
 class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
-    bl_idname = "armature.better_extrude"
+    bl_idname = "armature.better_bone_extrude"
     bl_description = "Extrude a bone and increment its name"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_options = {'REGISTER'}
@@ -108,7 +108,7 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
 
 
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
-    bl_idname = "armature.better_duplicate"
+    bl_idname = "armature.better_bone_duplicate"
     bl_description = "Duplicate a bone and increment its name"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_options = {'REGISTER'}
