@@ -348,7 +348,7 @@ class CloudLogManager:
                     note=widget.name,
                     icon='X',
                     description=f'Widget "{widget.name}" is not used by any bones.',
-                    operator=CLOUDRIG_OT_Delete_Object.bl_idname,
+                    operator=CLOUDRIG_OT_Unlink_Widget.bl_idname,
                     op_kwargs={'ob_name': widget.name},
                 )
 
@@ -951,6 +951,40 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_Unlink_Widget(Operator):
+    """Unlink a widget from the Widget Collection"""
+
+    bl_idname = "object.cloudrig_unlink_widget"
+    bl_label = "Unlink Widget"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    # Should be provided by the UI.
+    ob_name: StringProperty()
+
+    def execute(self, context):
+        metarig = context.object
+        widget_collection = metarig.cloudrig.generator.widget_collection
+
+        metarig.cloudrig.generator.remove_active_log()
+
+        if not widget_collection:
+            self.report({'ERROR'}, "Widget Collection had been removed.")
+            return {'FINISHED'}
+
+        obj = widget_collection.all_objects.get(self.ob_name)
+
+        if not obj:
+            self.report({'ERROR'}, "Object had already been removed.")
+            return {'FINISHED'}
+        
+        for coll in [widget_collection] + widget_collection.children_recursive:
+            if obj in set(coll.objects):
+                coll.objects.unlink(obj)
+
+        self.report({'INFO'}, f"Unlinked Widget: {self.ob_name}")
+        return {'FINISHED'}
+
+
 class CLOUDRIG_OT_Clear_Pointer(Operator):
     """Set a datablock pointer parameter to None"""
 
@@ -1069,6 +1103,7 @@ registry = [
     CLOUDRIG_OT_Swap_Bone_Shape,
     CLOUDRIG_OT_Rename_Object,
     CLOUDRIG_OT_Delete_Object,
+    CLOUDRIG_OT_Unlink_Widget,
     CLOUDRIG_OT_Clear_Pointer,
     CLOUDRIG_OT_Clear_Single_Keyframes,
     CLOUDRIG_OT_Edit_Action_Slot,
