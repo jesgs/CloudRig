@@ -2931,8 +2931,8 @@ def unregister():
 
     try:
         # Un-inject our collection UI override.
-        bpy.types.DATA_PT_bone_collections.poll = (
-            bpy.types.DATA_PT_bone_collections.poll_bkp
+        bpy.types.DATA_PT_bone_collections.draw = (
+            bpy.types.DATA_PT_bone_collections.draw_bkp
         )
     except:
         pass
