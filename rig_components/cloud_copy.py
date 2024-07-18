@@ -38,12 +38,21 @@ class Component_CopyBone(Component_Base):
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
-        for bone_info in self.bones_org:
+        for pbone, bone_info in zip(self.get_component_pbone_chain(), self.bones_org):
             if (not bone_info.use_custom_shape_bone_size):  
                 # TODO 4.0 I think this can be removed?
                 bone_info.custom_shape_scale_xyz /= (
                     bone_info.bbone_width * 10 * self.scale
                 )
+
+            # NOTE: Custom colors are deliberately not supported here.
+            for color, prop_name in zip([pbone.bone.color, pbone.color], ["color_palette_base", "color_palette_pose"]):
+                if color.palette == 'DEFAULT':
+                    continue
+                if color.palette == 'CUSTOM':
+                    self.add_log("Custom Colors Forbidden!", icon='COLORSET_01_VEC', trouble_bone=bone_info.name, description="Custom Colors are not supported in Metarigs. Please choose one of the preset colors. If you hate them, try applying the CloudRig presets in the Preferences.")
+                    continue
+                setattr(bone_info, prop_name, color.palette)
 
             if bone_info.custom_shape:
                 self.add_to_widget_collection(context, bone_info.custom_shape)
@@ -190,11 +199,11 @@ class Component_CopyBone(Component_Base):
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
-    @classmethod
-    def define_bone_sets(cls):
-        """Create parameters for this rig's bone sets."""
-        super().define_bone_sets()
-        cls.define_bone_set('Pivot Control', color_palette='THEME02')
+    # @classmethod
+    # def define_bone_sets(cls):
+    #     """Create parameters for this rig's bone sets."""
+    #     super().define_bone_sets()
+    #     cls.define_bone_set('Pivot Control', color_palette='THEME02')
 
 class Params(PropertyGroup):
     create_deform: BoolProperty(
