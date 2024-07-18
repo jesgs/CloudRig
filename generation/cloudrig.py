@@ -2839,6 +2839,13 @@ def register():
     Should be able to run without errors even if things are already registered.
     """
 
+    # It's necessary to call unregister() in case a user
+    # opens a .blend file where cloudrig.py is registered, then they try to
+    # enable the CloudRig add-on.
+    # The unregister() function already needs to be safe, so it can be called 
+    # even when there's nothing to unregister.
+    unregister()
+
     for c in classes:
         if not is_registered(c):
             # This if statement is important to avoid re-registering UI panels,
@@ -2938,5 +2945,4 @@ if __name__ in ['__main__', 'builtins']:
     # __name__ == `__main__` when executed in Blender's Text Editor.
     # __name__ == `builtins` when executed by cloud_generator.
 
-    unregister()
     register()
