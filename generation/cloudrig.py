@@ -2882,10 +2882,10 @@ def register():
     for key_cat, space_type in {
         ('Pose', 'VIEW_3D'),
         ('Weight Paint', 'EMPTY'),
-        ('Armature', 'VIEW_3D'),
+        ('Armature', 'EMPTY'),
     }:
         register_hotkey(
-            'armature.bone_collections_popup',
+            bl_idname='armature.bone_collections_popup',
             hotkey_kwargs={'type': "M", 'value': "PRESS", 'shift': True},
             key_cat=key_cat,
             space_type=space_type,
