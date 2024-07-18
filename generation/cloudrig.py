@@ -2674,7 +2674,10 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         # header bar
         row = split.row(align=True)
         row.prop(kmi, "active", text="", emboss=False)
-        row.label(text=f'{kmi.name} ({km.name})')
+        km_name = km.name
+        if km_name == 'Armature':
+            km_name = 'Armature Edit'
+        row.label(text=f'{kmi.name} ({km_name})')
 
         row = split.row(align=True)
         sub = row.row(align=True)

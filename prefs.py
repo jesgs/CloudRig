@@ -120,6 +120,8 @@ class CloudRigPreferences(AddonPreferences):
         if self.show_hotkeys:
             cloudrig.CLOUDRIG_PT_hotkeys_panel.draw_hotkey_list(hotkey_col, context)
 
+        main_col.separator()
+
         preset_col = self.draw_fake_dropdown(
             main_col, self, 'show_color_presets', "Bone Colors"
         )
