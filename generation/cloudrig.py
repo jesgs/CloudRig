@@ -415,7 +415,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
-    bl_idname = "pose.cloudrig_snap_bake"
+    bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
     bl_description = (
         "Flip a custom property's value while preserving the world-matrix of some bones"
@@ -476,8 +476,8 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
         return {'FINISHED'}
 
 
-class POST_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
-    bl_idname = "pose.cloudrig_switch_parent_bake"
+class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
+    bl_idname = 'pose.cloudrig_switch_parent_bake'
     bl_label = "Switch Parents & Preserve Transforms"
     bl_description = "Change the parent while preserving the world-matrix of the affected bones, even in a frame range"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -500,7 +500,7 @@ class POST_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOp
 
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
-    bl_idname = "pose.cloudrig_toggle_ikfk_bake"
+    bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
     bl_label = "Snap & Bake Bones to Other Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -615,7 +615,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
 class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
     """Keyframe all rig settings that are being drawn in the below UI"""
 
-    bl_idname = "pose.cloudrig_keyframe_all_settings"
+    bl_idname = 'pose.cloudrig_keyframe_all_settings'
     bl_label = "Keyframe CloudRig Settings"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
@@ -663,7 +663,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
 class POSE_OT_cloudrig_reset(CloudRigOperator):
     """Reset all bone transforms and custom properties to their default values"""
 
-    bl_idname = "pose.cloudrig_reset"
+    bl_idname = 'pose.cloudrig_reset'
     bl_label = "Reset Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -784,7 +784,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             icon='KEYFRAME_HLT',
         )
         layout.operator(
-            POSE_OT_cloudrig_reset.bl_idname, text='Reset Rig', icon='LOOP_BACK'
+            POSE_OT_cloudrig_reset.bl_idname, icon='LOOP_BACK'
         )
         if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
             # If CloudRig add-on is enabled, and this is a metarig.
@@ -1682,7 +1682,7 @@ class CLOUDRIG_UL_collections(UIList):
                 if collection.cloudrig_info.is_dragged:
                     icon = 'VIEW_PAN'
                 row.operator(
-                    POSE_OT_cloudrig_collection_reorder.bl_idname, text="", icon=icon
+                    POSE_OT_cloudrig_reorder_collections.bl_idname, text="", icon=icon
                 ).collection_name = collection.name
 
         return row
@@ -2099,7 +2099,7 @@ def poll_cloudrig_operator_collection(operator, context):
         operator.poll_message_set("No active operator.")
         return False
     if not active_coll.is_editable:
-        cls.poll_message_set("Cannot delete linked collection.")
+        operator.poll_message_set("Cannot delete linked collection.")
         return False
     return True
 
@@ -2143,9 +2143,7 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
             return {'CANCELLED'}
 
         elif self.mode == 'HIERARCHY':
-            ret = self.delete_hierarchy(rig)
-            if ret:
-                return ret
+            self.delete_hierarchy(rig)
             self.report(
                 {'INFO'}, "Deleted editable bone collections of selected hierarchy."
             )
@@ -2247,7 +2245,7 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_reorder(CloudRigOperator):
+class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
     """Rearrange and re-parent this collection by moving the mouse in all directions. Left-click to confirm, right-click to cancel. May also use arrow keys or WASD instead of mouse"""
 
     bl_idname = "pose.cloudrig_reorder_collections"
@@ -2745,7 +2743,7 @@ classes = (
     CLOUDRIG_PT_collections_filter,
     CLOUDRIG_MT_collections_specials,
     CLOUDRIG_MT_collections_quick_select,
-    POST_OT_cloudrig_switch_parent_bake,
+    POSE_OT_cloudrig_switch_parent_bake,
     POSE_OT_cloudrig_snap_bake,
     POSE_OT_cloudrig_toggle_ikfk_bake,
     POSE_OT_cloudrig_keyframe_all_settings,
@@ -2754,7 +2752,7 @@ classes = (
     POSE_OT_cloudrig_collection_select,
     POSE_OT_cloudrig_collection_delete,
     POSE_OT_cloudrig_collection_add,
-    POSE_OT_cloudrig_collection_reorder,
+    POSE_OT_cloudrig_reorder_collections,
     POSE_OT_cloudrig_collection_assign,
     POSE_OT_cloudrig_collection_clipboard_copy,
     POSE_OT_cloudrig_collection_clipboard_paste,
@@ -2764,16 +2762,24 @@ classes = (
 def is_registered(cls):
     """Returns whether a BPy class is registered.
     May not always work, needs more testing..."""
-    if issubclass(cls, Operator):
-        category, op_name = cls.bl_idname.split(".")
-        if hasattr(bpy.ops, category):
-            category = getattr(bpy.ops, category)
-            return op_name in dir(category)
+    # NOTE: For Operators, this is tricky!
+    # It will work, but ONLY if you adhere perfectly to Blender's operator class 
+    # naming conventions!
+    # If an operator's bl_idname is `pose.my_operator`, its registered bpy.type will be called
+    # `POSE_OT_my_operator`, NO MATTER WHAT THE ACTUAL CLASS NAME YOU DEFINED WAS!
     if hasattr(bpy.types, cls.__name__):
         bl_type = getattr(bpy.types, cls.__name__)
-        if bl_type and hasattr(bl_type, 'is_registered'):
-            return bl_type.is_registered
-        return bl_type
+        if bl_type and hasattr(bl_type, 'is_registered') and bl_type.is_registered:
+            return bl_type
+    if issubclass(cls, bpy.types.PropertyGroup):
+        existing = bpy.types.PropertyGroup.bl_rna_get_subclass_py(cls.__name__)
+        if existing and existing.is_registered:
+            return existing
+    if issubclass(cls, bpy.types.AddonPreferences):
+        subclasses = bpy.types.AddonPreferences.__subclasses__()
+        if cls in subclasses and cls.is_registered:
+            return cls
+
     return False
 
 
@@ -2782,6 +2788,7 @@ def register():
     via the text editor.
     Should be able to run without errors even if things are already registered.
     """
+
 
     for c in classes:
         if not is_registered(c):
@@ -2834,14 +2841,22 @@ def unregister():
     Should be able to run without errors even before there's anything to unregister.
     """
 
-    # This would also unregister add-on hotkeys.
+    # TODO: This also unregisters add-on hotkeys, which we don't want when this script
+    # is executed via the text editor. Need to categorize the hotkeys somehow, and un-register
+    # according to execution context!
     # unregister_hotkeys()
+
+    try:
+        del bpy.types.Object.cloudrig_prefs
+        del bpy.types.BoneCollection.cloudrig_info
+    except AttributeError:
+        pass
 
     for c in classes:
         reg = is_registered(c)
         if reg:
             try:
-                unregister_class(c)
+                unregister_class(reg)
             except RuntimeError as e:
                 print("Failed to unregister ", c.__name__, str(e))
                 pass
@@ -2857,12 +2872,12 @@ def unregister():
         pass
 
 
-if (
-    __name__ in ['__main__', 'builtins', 'CloudRig.generation.cloudrig']
-    or '.generation.cloudrig' in __name__
-):
+if __name__ in ['__main__', 'builtins']:
+    # __name__ == `CloudRig.generation.cloudrig` when executed by Blender python import statement.
+        # We don't want to run in this case, since register() will be called explicitly by __init__.py.
+
     # __name__ == `__main__` when executed in Blender's Text Editor.
     # __name__ == `builtins` when executed by cloud_generator.
-    # __name__ == `CloudRig.generation.cloudrig` when executed by Blender add-on registration.
-    # unregister()
+
+    unregister()
     register()
