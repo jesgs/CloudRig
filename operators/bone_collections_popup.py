@@ -13,7 +13,8 @@ class CLOUDRIG_OT_bone_collections_popup(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.object and context.object.type == 'ARMATURE'
+        rig = context.pose_object or context.active_object
+        return rig and rig.type == 'ARMATURE'
 
     def draw(self, context):
         layout = self.layout
