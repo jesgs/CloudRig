@@ -2551,6 +2551,45 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
         return {'FINISHED'}
 
 
+class ARMATURE_OT_bone_collections_popup(Operator):
+    """Bone Collections pop-up"""
+
+    bl_idname = "armature.bone_collections_popup"
+    bl_label = "Bone Collections"
+    # Undo step is omitted, since this is just a UI pop-up.
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        rig = context.pose_object or context.active_object
+        return rig and rig.type == 'ARMATURE'
+
+    def draw(self, context):
+        layout = self.layout
+
+        if context.pose_object:
+            rig = context.pose_object
+        else:
+            rig = context.active_object
+
+        layout.row().template_list(
+            'CLOUDRIG_UL_collections',
+            'Bone Collections Popover List',
+            rig.data,
+            'collections_all',
+            rig.cloudrig_prefs,
+            'active_collection_index',
+            rows=15 if rig.data.collections_all else 1,
+        )
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=500)
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
 def builtin_collections_draw_override(self, context):
     """Override the Bone Collections ui in the Properties Editor.
     Editor drawing code should use context.object, since this accounts for pinning.
@@ -2766,6 +2805,7 @@ classes = (
     POSE_OT_cloudrig_collection_assign,
     POSE_OT_cloudrig_collection_clipboard_copy,
     POSE_OT_cloudrig_collection_clipboard_paste,
+    ARMATURE_OT_bone_collections_popup,
 )
 
 
@@ -2832,6 +2872,18 @@ def register():
         op_kwargs={'name': CLOUDRIG_MT_collections_quick_select.bl_idname},
     )
 
+    for key_cat, space_type in {
+        ('Pose', 'VIEW_3D'),
+        ('Weight Paint', 'EMPTY'),
+        ('Armature', 'VIEW_3D'),
+    }:
+        register_hotkey(
+            'armature.bone_collections_popup',
+            hotkey_kwargs={'type': "M", 'value': "PRESS", 'shift': True},
+            key_cat=key_cat,
+            space_type=space_type,
+        )
+
 
 def unregister_hotkeys():
     if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys_panel'):
@@ -2869,8 +2921,6 @@ def unregister():
             except RuntimeError as e:
                 print("Failed to unregister ", c.__name__, str(e))
                 pass
-        else:
-            print("Class was not registered ", c.__name__)
 
     try:
         # Un-inject our collection UI override.

@@ -1,5 +1,4 @@
 from . import (
-    # assign_bone_layers,
     better_bone_extrude,
     bone_selection_pie_ops,
     bone_selection_pie_ui,
@@ -10,13 +9,11 @@ from . import (
     toggle_action_constraints,
     toggle_metarig,
     copy_mirror_components,
-    bone_collections_popup,
     apply_bone_color_preset,
     edit_custom_shape_pie,
 )
 
 modules = [
-    # assign_bone_layers,
     better_bone_extrude,
     bone_selection_pie_ops,
     bone_selection_pie_ui,
@@ -27,7 +24,6 @@ modules = [
     toggle_action_constraints,
     toggle_metarig,
     copy_mirror_components,
-    bone_collections_popup,
     apply_bone_color_preset,
     edit_custom_shape_pie,
 ]
