@@ -238,7 +238,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
     @classmethod
     def poll(cls, context):
         rig, ui_data = get_rig_and_ui(context)
-        return rig
+        if not rig:
+            cls.poll_message_set("No active CloudRig found in this context.")
+            return False
+        return True
 
     def invoke(self, context, _event):
         # We create a keymap item to help us draw the operator set-up UI.

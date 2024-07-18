@@ -25,12 +25,17 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(CloudRigOperator):
     def poll(cls, context):
         rig = context.active_object
         if not rig or rig.type != 'ARMATURE' or rig.mode not in ['POSE', 'OBJECT']:
+            cls.poll_message_set("There must be an active armature in pose or object mode.")
             return
         if not (rig.animation_data and rig.animation_data.action):
+            cls.poll_message_set("Armature must have an action assigned.")
             return
         action = rig.animation_data.action
         con = cls.get_first_referencing_constraint(rig, action)
-        return con != None
+        if not con:
+            cls.poll_message_set("No constraints in this armature are referencing the active Action.")
+            return False
+        return True
 
     def execute(self, context):
         rig = context.active_object

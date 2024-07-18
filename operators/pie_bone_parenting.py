@@ -18,8 +18,8 @@ class GenericBoneOperator:
         if not (context.active_object and context.active_object.type == 'ARMATURE'):
             cls.poll_message_set("No active armature.")
             return False
-        if not context.active_object.mode in {'POSE', 'EDIT'}:
-            cls.poll_message_set("Must be in Pose or Edit mode.")
+        if not context.active_object.mode in {'POSE', 'EDIT', 'WEIGHT_PAINT'}:
+            cls.poll_message_set("Must be in Pose / Edit / Weight Paint mode.")
             return False
         return True
 
@@ -74,11 +74,12 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        for rig, eb in get_selected_bone_tuples(context):
-            if eb.use_connect:
+        for rig, bone in get_selected_bone_tuples(context):
+            if bone.use_connect:
                 return True
-        else:
-            return False
+
+        cls.poll_message_set("None of the selected bones are connected.")
+        return False
 
     def affect_bone(self, rig: Object, eb: EditBone) -> bool:
         if eb.use_connect:
@@ -109,6 +110,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
             if bone.parent:
                 return True
 
+        cls.poll_message_set("None of the selected bones have a parent.")
         return False
 
     def affect_bone(self, rig: Object, eb: EditBone) -> bool:
@@ -135,7 +137,13 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, CloudRigOperato
     def poll(cls, context):
         if not super().poll(context):
             return False
-        return len(get_selected_bone_tuples(context)) > 1 and get_active_bone(context)
+        if not len(get_selected_bone_tuples(context)) > 1:
+            cls.poll_message_set("At least two bones must be selected.")
+            return False
+        if not get_active_bone(context):
+            cls.poll_message_set("There is no active bone.")
+            return False
+        return True
 
     def execute(self, context):
         mode = context.object.mode
@@ -320,10 +328,13 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            len(get_selected_bone_tuples(context)) > 0
-            and len(context.selected_objects) > 1
-        )
+        if not len(get_selected_bone_tuples(context)) > 0:
+            cls.poll_message_set("At least one bone must be selected.")
+            return False
+        if not len(context.selected_objects) > 1:
+            cls.poll_message_set("At least one object outside of the armature must be selected.")
+            return False
+        return True
 
     def execute(self, context):
         rig = context.object

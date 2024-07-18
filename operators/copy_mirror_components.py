@@ -86,14 +86,21 @@ class POSE_OT_cloudrig_copy_component(CloudRigOperator):
     def poll(cls, context):
         obj = context.object
         if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
+            cls.poll_message_set("Active armature must be in pose mode.")
             return False
 
         active = context.active_pose_bone
         if not active or not active.cloudrig_component.component_type:
+            cls.poll_message_set("Active bone has no CloudRig Component assigned.")
             return False
 
         select = context.selected_pose_bones
-        if len(select) < 2 or active not in select:
+        if len(select) < 2:
+            cls.poll_message_set("At least two bones must be selected.")
+            return False
+
+        if active not in select:
+            cls.poll_message_set("Make sure the active bone is also selected.")
             return False
 
         return True

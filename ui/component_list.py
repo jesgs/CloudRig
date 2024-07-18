@@ -125,7 +125,10 @@ class CLOUDRIG_OT_add_rig_component(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return is_cloud_metarig(context.object)
+        if not is_cloud_metarig(context.object):
+            cls.poll_message_set("This button should only be visible on CloudRig metarigs!")
+            return False
+        return True
 
     def invoke(self, context, _event):
         if not self.bone_name:
@@ -200,10 +203,10 @@ class CLOUDRIG_OT_remove_rig_component(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            is_cloud_metarig(context.object)
-            and context.object.cloudrig.active_component
-        )
+        if not is_cloud_metarig(context.object) and context.object.cloudrig.active_component:
+            cls.poll_message_set("Select a component.")
+            return False
+        return True
 
     def execute(self, context):
         rig = context.object

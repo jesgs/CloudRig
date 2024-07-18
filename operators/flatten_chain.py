@@ -79,7 +79,10 @@ class CLOUDRIG_OT_FlattenChain(CloudRigOperator):
     @classmethod
     def poll(cls, context):
         rig = context.active_object
-        return rig and rig.type == 'ARMATURE' and rig.mode == 'POSE'
+        if not rig or rig.type != 'ARMATURE' or rig.mode != 'POSE':
+            cls.poll_message_set("Active armature must be in pose mode.")
+            return False
+        return True
 
     def execute(self, context):
         rig = context.active_object

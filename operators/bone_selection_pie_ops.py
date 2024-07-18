@@ -118,7 +118,10 @@ class BoneSelectOperatorMixin:
 
     @classmethod
     def poll(cls, context):
-        return context.active_bone or context.active_pose_bone
+        if not context.active_bone or context.active_pose_bone:
+            cls.poll_message_set("No active bone.")
+            return False
+        return True
 
     def execute(self, context):
         if not self.extend_selection:
@@ -128,7 +131,8 @@ class BoneSelectOperatorMixin:
 
 
 class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
-    """Select this bone. Hold Shift to extend selection"""
+    "Select this bone.\n\n" \
+    "Shift: Extend selection"
 
     bl_idname = "pose.select_bone_by_name"
     bl_label = "Select Bone By Name"
@@ -141,7 +145,10 @@ class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
     @classmethod
     def poll(cls, context):
         rig = find_cloudrig(context) or context.pose_object or context.active_object
-        return rig and rig.type == 'ARMATURE'
+        if not rig or rig.type != 'ARMATURE':
+            cls.poll_message_set("No active armature.")
+            return False
+        return True
 
     def execute(self, context):
         rig = find_cloudrig(context) or context.pose_object or context.active_object
@@ -265,11 +272,6 @@ class POSE_OT_select_parent_bone(CloudRigOperator, BoneSelectOperatorMixin):
     bl_idname = "pose.select_parent_bone"
     bl_label = "Select Parent Bone"
     bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        bone = context.active_bone or context.active_pose_bone
-        return bone and bone.parent
 
     def execute(self, context):
         super().execute(context)
