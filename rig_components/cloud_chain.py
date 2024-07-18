@@ -722,6 +722,8 @@ class Component_ToonChain(Component_Base):
         # We only want to draw this bone set UI if the option for it is enabled.
         if set_name in ["deform_controls", "deform_helpers"]:
             return params.chain.unlock_deform
+        if set_name == 'shape_key_helpers':
+            return params.chain.shape_key_helpers
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod

@@ -31,6 +31,8 @@ class Component_Base(
     ui_name = "Cloud Base (Should not be visible in UI!)"
 
     keep_original_bones = True
+    keep_original_bones_collections = False
+    keep_original_bones_colors = False
 
     def __str__(self):
         return f'{self.base_bone_name}: {type(self).ui_name}'
@@ -140,7 +142,10 @@ class Component_Base(
             # if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already
             # exists on any other component of this metarig.
             bone_info = self.bones_org.new_from_real(
-                self.metarig, ebone, keep_collections=False, keep_colors=True
+                self.metarig,
+                ebone,
+                keep_collections=self.keep_original_bones_collections,
+                keep_colors=self.keep_original_bones_colors,
             )
             if not bone_info:
                 self.raise_generation_error(

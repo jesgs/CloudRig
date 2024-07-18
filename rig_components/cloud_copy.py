@@ -17,6 +17,9 @@ class Component_CopyBone(Component_Base):
         'custom_props.props_storage_bone': "",
     }
 
+    keep_original_bones_collections = True
+    keep_original_bones_colors = False
+
     def initialize(self):
         super().initialize()
 
@@ -36,9 +39,8 @@ class Component_CopyBone(Component_Base):
         super().create_bone_infos(context)
 
         for bone_info in self.bones_org:
-            if (
-                not bone_info.use_custom_shape_bone_size
-            ):  # TODO 4.0 I think this can be removed?
+            if (not bone_info.use_custom_shape_bone_size):  
+                # TODO 4.0 I think this can be removed?
                 bone_info.custom_shape_scale_xyz /= (
                     bone_info.bbone_width * 10 * self.scale
                 )
@@ -72,11 +74,11 @@ class Component_CopyBone(Component_Base):
 
         first_bone = self.root_bone = self.bones_org[0]
         if self.params.copy.custom_pivot:
-            self.root_bone = self.create_custom_pivot(first_bone)
+            self.root_bone = self.create_custom_pivot(first_bone, bone_set=self.bone_sets['Pivot Control'])
 
         if self.params.copy.ensure_free and len(first_bone.constraint_infos) > 0:
             self.root_bone = constrained_parent = self.create_parent_bone(
-                self.root_bone,  # If custom pivot enabled, this should own that...
+                first_bone,
                 bone_set=self.bone_sets['Mechanism Bones'],
             )
             constrained_parent.name = "CON-" + self.base_bone_name
@@ -157,9 +159,9 @@ class Component_CopyBone(Component_Base):
     @classmethod
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the rig parameters."""
+        cls.draw_prop(context, layout, params.copy, 'ensure_free')
         cls.draw_prop(context, layout, params.copy, 'custom_pivot')
         cls.draw_prop(context, layout, params.copy, 'create_deform')
-        cls.draw_prop(context, layout, params.copy, 'ensure_free')
 
     @classmethod
     def draw_custom_prop_params(cls, layout, context, params):
@@ -177,8 +179,22 @@ class Component_CopyBone(Component_Base):
         if set_name == 'deform_bones':
             return params.copy.create_deform
 
+        if set_name == 'mechanism_bones':
+            return params.copy.ensure_free
+
+        if set_name == 'pivot_control':
+            return params.copy.custom_pivot
+
+        if set_name == 'original_bones':
+            return True
+
         return super().is_bone_set_used(context, rig, params, set_name)
 
+    @classmethod
+    def define_bone_sets(cls):
+        """Create parameters for this rig's bone sets."""
+        super().define_bone_sets()
+        cls.define_bone_set('Pivot Control', color_palette='THEME02')
 
 class Params(PropertyGroup):
     create_deform: BoolProperty(

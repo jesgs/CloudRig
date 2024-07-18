@@ -734,9 +734,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
             'IK Controls', color_palette='THEME12', collections=['IK Controls']
         )
         cls.define_bone_set(
-            'IK Extra Controls', color_palette='THEME12', collections=['IK Secondary']
-        )
-        cls.define_bone_set(
             'IK Mechanism', collections=['Mechanism Bones'], is_advanced=True
         )
 
