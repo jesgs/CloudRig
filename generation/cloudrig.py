@@ -25,7 +25,6 @@ from bpy.types import (
     Operator,
     PropertyGroup,
     BoneCollection,
-    Bone,
 )
 from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
@@ -419,11 +418,10 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
+    "Flip a custom property's value while preserving the world-matrix " \
+    "of some bones"
     bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
-    bl_description = (
-        "Flip a custom property's value while preserving the world-matrix of some bones"
-    )
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
@@ -481,9 +479,11 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
 
 
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
+    "Change the parent while preserving the world-matrix of the affected " \
+    "bones, even in a frame range"
+    
     bl_idname = 'pose.cloudrig_switch_parent_bake'
     bl_label = "Switch Parents & Preserve Transforms"
-    bl_description = "Change the parent while preserving the world-matrix of the affected bones, even in a frame range"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     parent_names: StringProperty(name="Parent Names")
@@ -504,6 +504,10 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOp
 
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
+    "Toggle the rig component between IK and FK modes. Snap the affected" \
+    "bones so you can continue animating. Can also snap & bake the affected" \
+    "bones over a frame range"
+
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
     bl_label = "Snap & Bake Bones to Other Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -2014,7 +2018,10 @@ def pose_mode(rig):
 
 
 class POSE_OT_cloudrig_collection_select(CloudRigOperator):
-    """Reveal and Select this collection, its children, and all bones within.\n\nShift: Extend selection. \nCtrl: Mirror selection. \nAlt: Deselect"""
+    "Select all bones in this collection.\n\n" \
+    "Shift: Extend selection.\n" \
+    "Ctrl: Mirror selection.\n" \
+    "Alt: Deselect"
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
@@ -2049,6 +2056,11 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
         default=False,
         options={'SKIP_SAVE'},
     )
+
+    @classmethod
+    def description(cls, context, props):
+        if not props.select:
+            return "Deselect the bones of this collection"
 
     @classmethod
     def poll(cls, context):
@@ -2112,7 +2124,8 @@ def poll_cloudrig_operator_collection(operator, context):
 
 
 class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
-    """Remove the active bone collection. Shift+Click to delete hierarchy"""
+    "Remove the active bone collection.\n" \
+    "Shift: Delete whole hierarchy"""
 
     bl_idname = "pose.cloudrig_collection_delete"
     bl_label = "Remove Bone Collection"
@@ -2254,7 +2267,12 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
 
 
 class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
-    """Rearrange and re-parent this collection by moving the mouse in all directions. Left-click to confirm, right-click to cancel. May also use arrow keys or WASD instead of mouse"""
+    "Rearrange and re-parent this collection with the arrow keys, WASD, or by " \
+    "moving the mouse.\n\n" \
+    "Left-click/Enter: Confirm.\n" \
+    "Right-click/Esc: Cancel.\n" \
+    "Up/Down: Move Collection up/down.\n" \
+    "Left/Right: Parent/Unparent collection to the one above"
 
     bl_idname = "pose.cloudrig_reorder_collections"
     bl_label = "Reorder Collections"
@@ -2399,7 +2417,10 @@ class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
 
 
 class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
-    """Assign to collections"""
+    "Assign selected bones to active collection.\n\n" \
+    "Alt: Un-assign.\n" \
+    "Shift: To active collection & children.\n" \
+    "Shift+Ctrl: To all collections"
 
     bl_idname = "pose.cloudrig_collection_assign"
     bl_label = "(Un)Assign Bones to Collection"
@@ -2423,9 +2444,16 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
 
     @classmethod
     def description(cls, context, props):
-        words = ("Assign", "to") if props.assign else ("Unassign", "from")
-        colls = "all collections" if props.all_collections else "active collection"
-        return f"{words[0]} selected bones {words[1]} {colls}"
+        if not props.assign:
+            words = ("Assign", "to") if props.assign else ("Unassign", "from")
+            colls = "all collections" if props.all_collections else "active collection"
+            return f"{words[0]} selected bones {words[1]} {colls}"
+
+    def invoke(self, context, event):
+        self.assign = not event.alt
+        self.assign_to_children = event.shift
+        self.all_collections = event.shift and event.ctrl
+        return self.execute(context)
 
     def execute(self, context):
         rig = find_cloudrig(context)
@@ -2845,7 +2873,7 @@ def register():
     # It's necessary to call unregister() in case a user
     # opens a .blend file where cloudrig.py is registered, then they try to
     # enable the CloudRig add-on.
-    # The unregister() function already needs to be safe, so it can be called 
+    # The unregister() function already needs to be safe, so it can be called
     # even when there's nothing to unregister.
     unregister()
 
@@ -2937,6 +2965,7 @@ def unregister():
         bpy.types.DATA_PT_bone_collections.draw = (
             bpy.types.DATA_PT_bone_collections.draw_bkp
         )
+        del bpy.types.DATA_PT_bone_collections.draw_bkp
     except:
         pass
 
