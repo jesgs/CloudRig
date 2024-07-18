@@ -108,7 +108,9 @@ def get_selected_bone_tuples(
         active_bone = get_active_bone(context)
         if type(active_bone) == PoseBone:
             active_bone = active_bone.bone
-        bone_tuples.remove((active_rig, active_bone))
+        active_tup = (active_rig, active_bone)
+        if active_tup in bone_tuples:
+            bone_tuples.remove(active_tup)
 
     return bone_tuples
 
