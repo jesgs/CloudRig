@@ -54,8 +54,8 @@ class GeneratorProperties(PropertyGroup):
         type=Object,
     )
     ensure_root: StringProperty(
-        name="Ensure Root",
-        description="Create a default root bone with the given name on the metarig before generating. Bones that would otherwise be orphaned will be parented to this bone",
+        name="Root Bone",
+        description="Bones that would otherwise be orphaned will be parented to this bone. If the bone doesn't exist, it will be created",
         default='root',
     )
     properties_bone: StringProperty(
@@ -373,7 +373,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     def ensure_widget_collection(self, context) -> Collection:
         """Create the collection where bone shapes will be linked to."""
         if not self.params.widget_collection:
-            wgts_group_name = "Widgets_" + self.target_rig.name.replace("NEW-RIG-", "")
+            wgts_group_name = self.target_rig.name.replace("NEW-RIG-", "") + "-widgets"
             self.params.widget_collection = ensure_collection(
                 context, wgts_group_name, hidden=True
             )
@@ -424,6 +424,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def ensure_root_bone_component(self, context, metarig, root_name='root'):
         if root_name in metarig.data.edit_bones:
+            edit_bone = metarig.data.edit_bones[root_name]
+            if edit_bone.parent:
+                self.logger.log("Root Bone has a parent!", base_bone_name=edit_bone.parent.name, description="If you've added an additional root parent, make sure to set that as the Root Bone under the Generation panel")
             return metarig.pose.bones[root_name]
         edit_bone = create_bone(metarig, root_name)
         name = edit_bone.name

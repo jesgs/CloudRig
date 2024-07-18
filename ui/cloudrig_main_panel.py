@@ -100,10 +100,12 @@ class POSE_PT_CloudRig_Generation(Panel):
         widget_row = layout.row()
         widget_row.prop(generator, 'widget_collection')
         widget_row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
+        layout.prop(generator, 'custom_script')
+
+        layout.separator()
 
         layout.prop(generator, 'ensure_root', icon='BONE_DATA')
         layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
-        layout.prop(generator, 'custom_script')
 
         # Test Animation Parameters
         if self.metarig_contains_fk_chain(metarig):
