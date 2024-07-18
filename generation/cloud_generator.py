@@ -304,10 +304,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.components_load_bone_infos(self.component_map, self.metarig)
 
         # ------------------------------------------
-        bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.ops.object.select_all(action='DESELECT')
-        self.target_rig.select_set(True)
-        context.view_layer.objects.active = self.target_rig
+        focus_select_obj(context, self.target_rig)
         bpy.ops.object.mode_set(mode='EDIT')
 
         self.components_create_bone_infos(context)
@@ -858,6 +855,13 @@ def refresh_constraints(rig: Object):
                     t.target = t.target
 
 
+def focus_select_obj(context, obj):
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+
+
 class CLOUDRIG_OT_generate(CloudRigOperator):
     """Generates a rig from the active metarig armature using the CloudRig generator"""
 
@@ -915,15 +919,15 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
 
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
-        target_rig = metarig.cloudrig.generator.target_rig
+        prev_generated_rig = metarig.cloudrig.generator.target_rig
 
         # If the old rig isn't part of the scene, it needs to be.
         # The generation process works fine without this,
         # but it could confuse users if the generated rig isn't focused.
-        if target_rig and target_rig not in set(context.view_layer.objects):
+        if prev_generated_rig and prev_generated_rig not in set(context.view_layer.objects):
             self.report(
                 {'ERROR'},
-                f"Target rig '{target_rig.name}' cannot be re-generated because it is not in the current view layer.",
+                f"Target rig '{prev_generated_rig.name}' cannot be re-generated because it is not in the current view layer.",
             )
             return {'CANCELLED'}
 
@@ -931,23 +935,23 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
         state_mode = 'OBJECT'
         if metarig is context.active_object:
             state_mode = metarig.mode
-        elif target_rig and target_rig is context.active_object:
-            state_mode = target_rig.mode
+        elif prev_generated_rig and prev_generated_rig is context.active_object:
+            state_mode = prev_generated_rig.mode
         active_pb = get_pbone_of_active(context)
         state_active_bone = active_pb.name if active_pb else ""
-        if target_rig:
+        if prev_generated_rig:
             bones = (
-                target_rig.data.edit_bones
-                if target_rig.mode == 'EDIT'
-                else target_rig.data.bones
+                prev_generated_rig.data.edit_bones
+                if prev_generated_rig.mode == 'EDIT'
+                else prev_generated_rig.data.bones
             )
             state_bone_selection = {
                 bone.name: (bone.select, bone.select_head, bone.select_tail)
                 for bone in bones
             }
-            state_bones_hide = {bone.name: bone.hide for bone in target_rig.data.bones}
+            state_bones_hide = {bone.name: bone.hide for bone in prev_generated_rig.data.bones}
             state_visible_collections = {
-                coll.name: coll.is_visible for coll in target_rig.data.collections_all
+                coll.name: coll.is_visible for coll in prev_generated_rig.data.collections_all
             }
         else:
             self.preserve_state = False
@@ -955,30 +959,35 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
         # Ensure required visibility and active states.
         meta_visible = EnsureVisible(context, metarig)
         rig_visible = None
-        if target_rig:
-            rig_visible = EnsureVisible(context, target_rig)
+        if prev_generated_rig:
+            rig_visible = EnsureVisible(context, prev_generated_rig)
         context.view_layer.objects.active = metarig
 
         # Try to generate a rig based on the metarig.
-        target_rig = self.generate_rig(context, metarig)
+        new_rig = self.generate_rig(context, metarig)
 
         # Restore states.
         meta_visible.restore(context)
         if rig_visible:
             rig_visible.restore(context)
 
-        if not target_rig:
-            # This means an error has occurred. It was already handled in generate_rig().
-            self.preserve_state = False
-            self.report({'ERROR'}, f"Generation of {metarig.name} has failed.")
-            return {'FINISHED'}
+        if not new_rig:
+            # if 'failed_rig' in metarig and metarig['failed_rig']:
+            #     metarig['failed_rig'].select_set(False)
+            #     metarig.select_set(True)
 
-        if self.focus_generated:
+            # This means an error has occurred. It was already handled in generate_rig().
+            self.report(
+                {'ERROR'},
+                f"Generation of {metarig.name} has failed. See the Generation Log for more info.",
+            )
+            return {'FINISHED'}
+        elif self.focus_generated:
             self.focus_generated_rig(context, metarig, state_mode)
 
-        if self.preserve_state and target_rig:
+        if self.preserve_state and new_rig:
             self.restore_state(
-                target_rig,
+                new_rig,
                 mode=state_mode,
                 active_bone_name=state_active_bone,
                 bone_selection=state_bone_selection,
@@ -986,18 +995,13 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
                 visible_collections=state_visible_collections,
             )
 
-        if 'failed_rig' in metarig:
-            self.report(
-                {'ERROR'},
-                f"Generation of {metarig.name} has failed. See the Generation Log for more info.",
-            )
-        elif len(metarig.cloudrig.generator.logs) > 0:
+        if len(metarig.cloudrig.generator.logs) > 0:
             self.report(
                 {'WARNING'},
-                f"Generation of {target_rig.name} successful with {len(metarig.cloudrig.generator.logs)} warnings.",
+                f"Generation of {new_rig.name} successful with {len(metarig.cloudrig.generator.logs)} warnings.",
             )
         else:
-            self.report({'INFO'}, f"Generation of {target_rig.name} successful.")
+            self.report({'INFO'}, f"Generation of {new_rig.name} successful.")
 
         return {'FINISHED'}
 
@@ -1016,9 +1020,15 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
             generator.generate(context)
         except Exception as exception:
             generator.restore_rig_states(context)
+
+            focus_select_obj(context, generator.target_rig)
+
             generator.target_rig.name = "FAILED-" + generator.target_rig.name
             generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
             metarig['failed_rig'] = generator.target_rig
+            # Leave a reference to the Metarig, so the Toggle Metarig operator 
+            # can find its way back to it.
+            generator.target_rig['metarig'] = metarig
 
             if type(exception) == CloudGeneratorError:
                 # A MetaRig error means the user didn't follow instructions correctly.
@@ -1045,6 +1055,8 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
                     {'ERROR'},
                     f"A bug has occurred. You can report it through the Generation Log interface.\n{traceback.format_exc()}",
                 )
+
+            return
 
         return generator_properties.target_rig
 

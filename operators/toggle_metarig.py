@@ -51,6 +51,11 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
     def execute(self, context):
         rig = find_cloudrig(context)
         active = context.active_object
+
+        if 'metarig' in active and active['metarig']:
+            self.focus_rig(context, active['metarig'])
+            return {'FINISHED'}
+
         if rig and rig != active:
             # If the active object is a mesh deformed by the generated rig,
             # focus the generated rig.
@@ -94,13 +99,13 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
         )
         return {'FINISHED'}
 
-    def focus_rig(self, context, rig):
+    def focus_rig(self, context, rig, mode='POSE'):
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
         rig.hide_set(False)
         rig.select_set(True)
         context.view_layer.objects.active = rig
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode=mode)
 
     def switch_rig_focus(
         self,
@@ -181,10 +186,12 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
     def get_visible_bone_with_similar_name(
         self, armature: Armature, bone_name: str
     ) -> Bone | None:
-        bone_is_visible = lambda b: not b.hide and any(
-            [coll.is_visible for coll in b.collections]
-        )
-        names_match = lambda a, b: a in b or b in a
+
+        def bone_is_visible(bone):
+            return not bone.hide and any([coll.is_visible_effectively for coll in bone.collections])
+
+        def names_match(a, b):
+            return (a in b) or (b in a)
 
         if bone_name in armature.bones and bone_is_visible(armature.bones[bone_name]):
             # If we have an exact match and it's visible, return it.
