@@ -294,11 +294,19 @@ class Component_ToonChain(Component_Base):
 
         influence_unit = 1 / num_segments
         influence = index * influence_unit
-        str_h_bone.add_constraint('COPY_TRANSFORMS', space='WORLD', subtarget=main_start)
+        str_h_bone.add_constraint(
+            'COPY_TRANSFORMS', space='WORLD', subtarget=main_start
+        )
         str_h_bone.add_constraint(
             'COPY_TRANSFORMS', space='WORLD', subtarget=main_end, influence=influence
         )
-        str_h_bone.add_constraint('LIMIT_SCALE', use_min_y=True, use_max_x=False, use_max_y=True, use_max_z=False)
+        str_h_bone.add_constraint(
+            'LIMIT_SCALE',
+            use_min_y=True,
+            use_max_x=False,
+            use_max_y=True,
+            use_max_z=False,
+        )
         str_h_bone.add_constraint('DAMPED_TRACK', subtarget=main_end)
 
         return str_h_bone
@@ -343,7 +351,7 @@ class Component_ToonChain(Component_Base):
             assert (
                 prev_str and next_str
             ), "Previous and next STR can only be None if smooth=False. Otherwise, pass str_bone."
-            
+
             handle_bone.add_constraint(
                 'COPY_LOCATION',
                 name="Copy Location Prev (Smooth Spline)",
@@ -391,7 +399,7 @@ class Component_ToonChain(Component_Base):
         # For each STR control, create a deform bone between it and the next one.
         parent = str_chain[0].parent
         for i, str_bone in enumerate(str_chain):
-            if self.params.chain.tip_control and i == len(str_chain)-1:
+            if self.params.chain.tip_control and i == len(str_chain) - 1:
                 # Don't create a deform bone for the STR control at the tip of the chain.
                 continue
             org_bone = str_bone.source
@@ -414,9 +422,9 @@ class Component_ToonChain(Component_Base):
             )
             parent = def_bone
             if i == 0:
-                # The deform chain is parented to each other, but that means the 
+                # The deform chain is parented to each other, but that means the
                 # first DEF bone needs to follow the first stretch bone.
-                # Using CopyLoc doesn't work with Create Deform Bones, 
+                # Using CopyLoc doesn't work with Create Deform Bones,
                 # since then the DEF bone doesn't follow DEF-CTR.
                 # So, we just parent it.
                 def_bone.parent = str_bone
@@ -426,7 +434,7 @@ class Component_ToonChain(Component_Base):
             if self.params.chain.unlock_deform:
                 self.make_def_control(str_bone, def_bone)
 
-            if i == len(str_chain)-1 and not self.is_cyclic:
+            if i == len(str_chain) - 1 and not self.is_cyclic:
                 # The last deform bone when there's no STR control at the tip of the chain
                 # can skip the setup_deform_bone() phase, but needs some special treatment.
                 def_bone.tail = org_bone.tail

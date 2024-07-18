@@ -31,7 +31,7 @@ bl_info = {
     'location': "Properties->Armature Data",
     'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
     'tracker_url': "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",
-    'support' : 'COMMUNITY',
+    'support': 'COMMUNITY',
     'category': 'Rigging',
 }
 bl_info_copy = bl_info.copy()
@@ -88,10 +88,10 @@ def register_unregister_modules(modules: list, register: bool):
 
 
 def ensure_importable_modules():
-    """This function is to fix branch downloads that rename the add-on's 
+    """This function is to fix branch downloads that rename the add-on's
     root folder (and thereby python module name) from MyAddOn to MyAddOn-master.
 
-    We do this by populating the sys.modules dictionary with references to the 
+    We do this by populating the sys.modules dictionary with references to the
     existing modules, pointed to by the correct names.
     """
     addon_name = bl_info_copy['name']
@@ -109,7 +109,9 @@ def register():
 
     if __name__.startswith("rigify"):
         # If trying to register as a Rigify feature-set, throw useful error.
-        raise Exception("CloudRig is no longer a Rigify feature set. Install it as a regular add-on.")
+        raise Exception(
+            "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
+        )
 
     ensure_importable_modules()
     register_unregister_modules(modules, True)
@@ -120,6 +122,8 @@ def register():
 def unregister():
     if __name__.startswith("rigify"):
         # If trying to register as a Rigify feature-set, throw useful error.
-        raise Exception("CloudRig is no longer a Rigify feature set. Install it as a regular add-on.")
+        raise Exception(
+            "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
+        )
 
     register_unregister_modules(modules, False)

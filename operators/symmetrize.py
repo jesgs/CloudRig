@@ -22,7 +22,7 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             cls.poll_message_set("No active armature.")
             return False
 
-        sel_bones = (context.selected_bones or context.selected_pose_bones)
+        sel_bones = context.selected_bones or context.selected_pose_bones
         if not sel_bones:
             cls.poll_message_set("No selected bones.")
             return False

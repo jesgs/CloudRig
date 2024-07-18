@@ -88,9 +88,7 @@ def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
     On success, return name of the enum value, otherwise, return False.
     """
     property_group_class_name = type(owner).__name__
-    rna_class = PropertyGroup.bl_rna_get_subclass_py(
-        property_group_class_name
-    )
+    rna_class = PropertyGroup.bl_rna_get_subclass_py(property_group_class_name)
     enum_prop = rna_class.bl_rna.properties.get(key)
     if enum_prop:
         # This will only work for the current version

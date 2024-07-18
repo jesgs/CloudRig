@@ -147,15 +147,19 @@ def get_deforming_armature(meshob: Object, filter_func=lambda o: True):
             return m.object, m.name
     return None, None
 
+
 def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
     if modes and context.mode not in modes:
         operator.poll_message_set(f"Must be in mode: {modes}")
         return False
     rig = find_cloudrig(context, **kwargs)
     if not rig:
-        operator.poll_message_set("Could not find a CloudRig metarig or generated rig in this context.")
+        operator.poll_message_set(
+            "Could not find a CloudRig metarig or generated rig in this context."
+        )
         return False
     return rig
+
 
 class CloudRigOperator(Operator):
     """This class implements a basic draw function that just draws all the operator properties.
@@ -783,9 +787,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             text='Keyframe All Settings',
             icon='KEYFRAME_HLT',
         )
-        layout.operator(
-            POSE_OT_cloudrig_reset.bl_idname, icon='LOOP_BACK'
-        )
+        layout.operator(POSE_OT_cloudrig_reset.bl_idname, icon='LOOP_BACK')
         if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
             # If CloudRig add-on is enabled, and this is a metarig.
             layout.separator()
@@ -1049,7 +1051,9 @@ def draw_slider(
         if children:
             box_col = None
             for comma_separated_values, child_data in children.items():
-                prop_values_as_str = [v.strip() for v in comma_separated_values.split(",")]
+                prop_values_as_str = [
+                    v.strip() for v in comma_separated_values.split(",")
+                ]
                 if prop_value_str in prop_values_as_str:
                     for child_label_name, child_label_data in child_data.items():
                         if not box_col:
@@ -2048,7 +2052,9 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig_operator(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
+        return poll_cloudrig_operator(
+            cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'}
+        )
 
     def invoke(self, context, event):
         self.extend_selection = event.shift
@@ -2090,6 +2096,7 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
 
         return {'FINISHED'}
 
+
 def poll_cloudrig_operator_collection(operator, context):
     rig = poll_cloudrig_operator(operator, context)
     if not rig:
@@ -2102,6 +2109,7 @@ def poll_cloudrig_operator_collection(operator, context):
         operator.poll_message_set("Cannot delete linked collection.")
         return False
     return True
+
 
 class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
     """Remove the active bone collection. Shift+Click to delete hierarchy"""
@@ -2403,7 +2411,9 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        rig = poll_cloudrig_operator(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
+        rig = poll_cloudrig_operator(
+            cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'}
+        )
         if not rig:
             return False
         if not rig.data.collections.active:
@@ -2763,7 +2773,7 @@ def is_registered(cls):
     """Returns whether a BPy class is registered.
     May not always work, needs more testing..."""
     # NOTE: For Operators, this is tricky!
-    # It will work, but ONLY if you adhere perfectly to Blender's operator class 
+    # It will work, but ONLY if you adhere perfectly to Blender's operator class
     # naming conventions!
     # If an operator's bl_idname is `pose.my_operator`, its registered bpy.type will be called
     # `POSE_OT_my_operator`, NO MATTER WHAT THE ACTUAL CLASS NAME YOU DEFINED WAS!
@@ -2788,7 +2798,6 @@ def register():
     via the text editor.
     Should be able to run without errors even if things are already registered.
     """
-
 
     for c in classes:
         if not is_registered(c):
@@ -2874,7 +2883,7 @@ def unregister():
 
 if __name__ in ['__main__', 'builtins']:
     # __name__ == `CloudRig.generation.cloudrig` when executed by Blender python import statement.
-        # We don't want to run in this case, since register() will be called explicitly by __init__.py.
+    # We don't want to run in this case, since register() will be called explicitly by __init__.py.
 
     # __name__ == `__main__` when executed in Blender's Text Editor.
     # __name__ == `builtins` when executed by cloud_generator.

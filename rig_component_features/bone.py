@@ -82,7 +82,7 @@ pose_bone_properties = {
     'custom_shape_scale_xyz': Vector((1.0, 1.0, 1.0)),
     'custom_shape_translation': Vector((0.0, 0.0, 0.0)),
     'custom_shape_rotation_euler': Vector((0.0, 0.0, 0.0)),
-    'custom_shape_wire_width' : 1.0,
+    'custom_shape_wire_width': 1.0,
     'use_custom_shape_bone_size': True,
     'rotation_mode': 'QUATERNION',
     'lock_location': [False, False, False],
@@ -766,7 +766,14 @@ class ConstraintInfo(dict):
     make_constraint()."""
 
     def __init__(
-        self, bone_info, con_type, target=None, use_preferred_defaults=True, use_min_xyz=[], use_max_xyz=[], **kwargs
+        self,
+        bone_info,
+        con_type,
+        target=None,
+        use_preferred_defaults=True,
+        use_min_xyz=[],
+        use_max_xyz=[],
+        **kwargs,
     ):
         # Blame this guy https://stackoverflow.com/a/14620633/1527672
         super(ConstraintInfo, self).__init__(**kwargs)

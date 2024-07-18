@@ -327,7 +327,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Which bone will be snapped to which when the custom property is set to 1.
         map_ik_to_fk = []
         # Which bone will be snapped to which when the custom property is set to 0.
-        map_fk_to_ik = []  
+        map_fk_to_ik = []
 
         map_ik_to_fk.append((ik_mstr.name, fk_chain[-1].name))
         map_ik_to_fk.append((ik_chain[0].name, fk_chain[0].name))
@@ -341,11 +341,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
         return {
             'prop_bone': self.properties_bone,
             'prop_id': self.ikfk_name,
-
             'panel_name': "FK/IK Switch",
             'row_name': self.limb_name,
             'slider_name': self.limb_ui_name,
-
             'custom_prop_settings': {
                 'default': 1.0,
             },
@@ -414,12 +412,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.add_bone_property_with_ui(
             prop_bone=self.properties_bone,
             prop_id=self.ik_stretch_name,
-
             panel_name="IK",
             label_name="IK Stretch",
             row_name=self.limb_name,
             slider_name=self.limb_ui_name,
-
             custom_prop_settings={
                 'default': 1.0,
             },
@@ -636,21 +632,18 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.add_bone_property_with_ui(
             prop_bone=self.properties_bone,
             prop_id=ik_pole_follow_name,
-
             panel_name="IK",
             label_name="IK Pole Follow",
             row_name=self.limb_name,
             slider_name=self.limb_ui_name,
-
             custom_prop_settings={
                 'default': default,
             },
-
             operator='pose.cloudrig_snap_bake',
             op_icon='FILE_REFRESH',
             op_kwargs={
                 'bone_names': [ik_pole.name],
-            }
+            },
         )
 
     def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):

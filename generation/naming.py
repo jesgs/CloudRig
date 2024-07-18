@@ -57,7 +57,7 @@ class CloudNameManager:
 
         return combine_bone_names(names)
 
-    def side_is_left(self, thing) -> bool|None:
+    def side_is_left(self, thing) -> bool | None:
         return side_is_left(get_name(thing))
 
     def increment_name(self, thing, increment=1) -> str:
@@ -306,7 +306,7 @@ def flip_name(from_name: str, ignore_base=True, must_change=False) -> str:
     return new_name
 
 
-def side_is_left(name) -> bool|None:
+def side_is_left(name) -> bool | None:
     """Identify whether a name belongs to the left or right side or neither."""
 
     flipped_name = flip_name(name)

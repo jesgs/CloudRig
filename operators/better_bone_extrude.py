@@ -6,9 +6,14 @@ from ..generation.naming import uniqify
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 from ..utils.misc import get_current_rigs
 
+
 class BoneDuplicateOpMixin:
 
-    increment_names: BoolProperty(name="Increment Names", description="Whether to increment numbers in bone names. If False, use Blender's .001 naming instead", default=True)
+    increment_names: BoolProperty(
+        name="Increment Names",
+        description="Whether to increment numbers in bone names. If False, use Blender's .001 naming instead",
+        default=True,
+    )
 
     def bone_operation(self):
         raise NotImplemented
@@ -36,7 +41,9 @@ class BoneDuplicateOpMixin:
                     # Driver duplication is only unambiguous when this is the first duplicate of a bone.
                     # Otherwise we can't tell which bone is the original that got duplicated.
                     old_bone = rig.data.edit_bones[new_bone.name[:-4]]
-                    new_drivers.extend(copy_drivers_of_bone(rig, old_bone.name, new_name))
+                    new_drivers.extend(
+                        copy_drivers_of_bone(rig, old_bone.name, new_name)
+                    )
                 # Fix the name!
                 new_bone.name = new_name
 
@@ -54,7 +61,10 @@ class BoneDuplicateOpMixin:
 
         return {'FINISHED'}
 
-def copy_drivers_of_bone(rig: Object, old_bone_name:str, new_bone_name: str) -> list[FCurve]:
+
+def copy_drivers_of_bone(
+    rig: Object, old_bone_name: str, new_bone_name: str
+) -> list[FCurve]:
     datablocks = []
     if rig.animation_data:
         datablocks.append(rig)
@@ -67,7 +77,9 @@ def copy_drivers_of_bone(rig: Object, old_bone_name:str, new_bone_name: str) -> 
         for fc in db.animation_data.drivers:
             if f'bones["{old_bone_name}"]' in fc.data_path:
                 new_fc = db.animation_data.drivers.from_existing(src_driver=fc)
-                new_fc.data_path = new_fc.data_path.replace(old_bone_name, new_bone_name)
+                new_fc.data_path = new_fc.data_path.replace(
+                    old_bone_name, new_bone_name
+                )
                 new_fc.driver.expression = new_fc.driver.expression
                 new_drivers.append(new_fc)
 
@@ -86,7 +98,9 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
         if not context.mode == 'EDIT_ARMATURE':
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
-        return [b for b in context.object.data.edit_bones if b.select_tail or b.select_head]
+        return [
+            b for b in context.object.data.edit_bones if b.select_tail or b.select_head
+        ]
 
     def bone_operation(self):
         # Extrude it!

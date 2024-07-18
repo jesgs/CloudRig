@@ -9,6 +9,7 @@ from .cloud_fk_chain import Component_Chain_FK
 
 PHYS_PREFIX = "PSX"
 
+
 class CloudPhysicsChainRig(Component_Chain_FK):
     """FK Chain with cloth physics."""
 
@@ -49,14 +50,16 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
 
-        cloth_mesh = bpy.data.meshes.new(name=self.naming.add_prefix(self.base_bone_name, PHYS_PREFIX))
+        cloth_mesh = bpy.data.meshes.new(
+            name=self.naming.add_prefix(self.base_bone_name, PHYS_PREFIX)
+        )
         if not phys_obj:
             # Create physics object.
             phys_obj = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
             context.scene.collection.objects.link(phys_obj)
             phys_obj.parent = self.target_rig
             lock_transforms(phys_obj)
-            
+
         else:
             phys_obj.data = cloth_mesh
 
@@ -158,7 +161,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
                 source=fk_ctrl,
                 custom_shape_name=fk_ctrl.custom_shape_name,
                 custom_shape_scale=fk_ctrl.custom_shape_scale * 1.2,
-                custom_shape_along_length = fk_ctrl.custom_shape_along_length,
+                custom_shape_along_length=fk_ctrl.custom_shape_along_length,
                 parent=next_parent,
                 use_deform=True,
             )
@@ -179,9 +182,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         # and root parenting behaviours
         self.root_bone = self.bone_sets['Physics Bones'][0]
 
-    def constrain_chain_to_phys_ob(
-        self, phys_ob: Object, bone_chain: list[BoneInfo]
-    ):
+    def constrain_chain_to_phys_ob(self, phys_ob: Object, bone_chain: list[BoneInfo]):
         # For the moment, let's just slap some constraints on the FK chain.
         for fk_ctrl in bone_chain:
             fk_ctrl.add_constraint(
@@ -194,13 +195,12 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     def create_helper_objects(self, context):
         """This is called by the generator. In this case, the helper object
         needed to be created earlier, so that was already done at the create_bone_infos() stage.
-        But here we still need to poke the Armature constraint to wake up, 
+        But here we still need to poke the Armature constraint to wake up,
         because we initialized it before the real bone existed..."""
         context.view_layer.update()
         phys_obj = self.params.physics_chain.phys_obj
         for c in phys_obj.constraints:
             c.influence = c.influence
-
 
     ##############################
     # Parameters

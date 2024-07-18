@@ -1,4 +1,3 @@
-
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -146,7 +145,9 @@ class Component_Limb(Component_Chain_IKFK):
 
         if self.params.limb.double_ik:
             # Need to insert IK master parent->last FK bone switching BEFORE IK master parent.
-            ui_data['op_kwargs']['map_ik_to_fk'].insert(0, (ik_mstr.parent.name, fk_chain[-1].name))
+            ui_data['op_kwargs']['map_ik_to_fk'].insert(
+                0, (ik_mstr.parent.name, fk_chain[-1].name)
+            )
 
         return ui_data
 
@@ -240,12 +241,10 @@ class Component_Limb(Component_Chain_IKFK):
             self.add_bone_property_with_ui(
                 prop_bone=self.properties_bone,
                 prop_id=prop_name,
-
                 panel_name="Auto Rubber Hose",
                 row_name=self.limb_name,
                 slider_name=self.limb_ui_name,
             )
-            
 
         self.make_rubber_hose_constraints(
             org_upper,

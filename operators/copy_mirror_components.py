@@ -134,9 +134,10 @@ def copy_cloudrig_component(
             src_component_type
         )
 
-
     if 'cloudrig_component' in from_bone:
-        param_dict = from_bone['cloudrig_component'].to_dict()#.get('cloudrig_component')
+        param_dict = from_bone[
+            'cloudrig_component'
+        ].to_dict()  # .get('cloudrig_component')
         if x_mirror:
             to_bone['cloudrig_component'] = recursive_mirror(param_dict)
         else:

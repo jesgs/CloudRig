@@ -6,6 +6,7 @@ from . import rig_components
 from .generation import cloudrig
 from .utils.misc import get_addon_prefs
 
+
 def get_default_widgets_path():
     filedir = os.path.dirname(os.path.realpath(__file__))
     blend_path = os.sep.join(

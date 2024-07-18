@@ -20,7 +20,7 @@ from ..generation.cloudrig import (
     read_rig_panels,
     get_rig_and_ui,
     write_rig_panels,
-    find_cloudrig
+    find_cloudrig,
 )
 from rna_prop_ui import rna_idprop_ui_create
 
@@ -113,7 +113,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             self.parent_selector
         )
         if parent_option and parent_option.current not in self.parent_value:
-            # When user selects a parent property from the drop-down, 
+            # When user selects a parent property from the drop-down,
             # we want to make life easy by setting the parent value to the current value of the chosen property.
             # But don't do this if the current parent value is `1, 2, 3` and the actual value is eg. 2.
             self.parent_value = parent_option.current
@@ -218,10 +218,14 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         name="Operator Icon", default='BLANK1', description="Operator Icon"
     )
     icon_true: StringProperty(
-        name="True Icon", default='CHECKBOX_HLT', description="Property icon when value is True"
+        name="True Icon",
+        default='CHECKBOX_HLT',
+        description="Property icon when value is True",
     )
     icon_false: StringProperty(
-        name="False Icon", default='CHECKBOX_DEHLT', description="Property icon when value is False"
+        name="False Icon",
+        default='CHECKBOX_DEHLT',
+        description="Property icon when value is False",
     )
 
     children: StringProperty(
@@ -254,7 +258,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         self.owner_path = owner_path
 
         if owner_path.startswith('pose.bones'):
-            prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(self, rig)
+            prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(
+                self, rig
+            )
             if prop_owner and type(prop_owner) == PoseBone:
                 owner_path = prop_owner.name
 
@@ -364,8 +370,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             return
 
         if prop_value != None or issubclass(type(prop_owner), Modifier):
-            if prop_value != None and isinstance(prop_value, bpy_struct) and not isinstance(prop_value, ID):
-                # Checking for prop_value!=None again is deliberate, 
+            if (
+                prop_value != None
+                and isinstance(prop_value, bpy_struct)
+                and not isinstance(prop_value, ID)
+            ):
+                # Checking for prop_value!=None again is deliberate,
                 # as modifier inputs are allowed to be None and still be drawn.
                 row = prop_box.row()
                 row.alert = True
@@ -422,8 +432,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             panel_box.prop(self, 'texts')
         if type(prop_value) == bool:
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
-            panel_box.prop_search(self, 'icon_true', icons, 'enum_items', icon=self.icon_true)
-            panel_box.prop_search(self, 'icon_false', icons, 'enum_items', icon=self.icon_false)
+            panel_box.prop_search(
+                self, 'icon_true', icons, 'enum_items', icon=self.icon_true
+            )
+            panel_box.prop_search(
+                self, 'icon_false', icons, 'enum_items', icon=self.icon_false
+            )
 
     def draw_op_box(self, layout, context):
         if self.use_batch_add:
@@ -515,7 +529,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 ret = self.execute_add_property(context)
                 if ret:
                     return ret
-            self.report({'INFO'}, f"Added {len(owner.keys())} properties to the rig UI.")
+            self.report(
+                {'INFO'}, f"Added {len(owner.keys())} properties to the rig UI."
+            )
         else:
             ret = self.execute_add_property(context)
             if ret:
@@ -733,9 +749,17 @@ class CLOUDRIG_OT_reorder_rows(Operator):
     def modal(self, context, event):
         rig = find_cloudrig(context)
         self.index_offset = 0
-        if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+        if (
+            event.type in {'W', 'UP_ARROW'}
+            and not event.is_repeat
+            and event.value != 'RELEASE'
+        ):
             self.index_offset = -1
-        elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
+        elif (
+            event.type in {'S', 'DOWN_ARROW'}
+            and not event.is_repeat
+            and event.value != 'RELEASE'
+        ):
             self.index_offset = 1
         elif event.type == 'MOUSEMOVE':
             self.index_offset = int((event.mouse_y - self.mouse_initial) / -20)
@@ -864,8 +888,8 @@ def add_property_to_ui(
     row_name="",
     slider_name="",
     texts: list[str] = [],
-    icon_true = 'CHECKBOX_HLT',
-    icon_false = 'CHECKBOX_DEHLT',
+    icon_true='CHECKBOX_HLT',
+    icon_false='CHECKBOX_DEHLT',
     ###
     children={},
     ui_path: list[str] = None,

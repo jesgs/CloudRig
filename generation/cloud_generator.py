@@ -192,7 +192,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         # Set flag to handle Selection Sets.
         # Need to check in two ways, first for pre-4.2, then post-4.2
         # (Selection Sets became built-in.)
-        self.preserve_sel_sets = check_addon(context, 'bone_selection_sets') or hasattr(metarig, 'selection_sets')
+        self.preserve_sel_sets = check_addon(context, 'bone_selection_sets') or hasattr(
+            metarig, 'selection_sets'
+        )
 
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs

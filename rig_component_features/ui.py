@@ -7,6 +7,7 @@ from ..generation.cloudrig import is_cloud_metarig
 from .bone import BoneInfo, ensure_custom_property
 from .properties_ui import add_property_to_ui
 
+
 class CloudUIMixin:
     forced_params = dict()
 
@@ -75,7 +76,9 @@ class CloudUIMixin:
         return False
 
     @classmethod
-    def draw_prop(cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs) -> UILayout | None:
+    def draw_prop(
+        cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs
+    ) -> UILayout | None:
         is_forced = cls.is_forced_param(prop_name)
         if is_forced and not cls.is_advanced_mode(context):
             return

@@ -2,11 +2,16 @@ import bpy
 from bpy.types import Armature, Bone, Object
 from bpy.props import BoolProperty
 
-from ..generation.cloudrig import register_hotkey, find_metarig_of_rig, find_cloudrig, CloudRigOperator
+from ..generation.cloudrig import (
+    register_hotkey,
+    find_metarig_of_rig,
+    find_cloudrig,
+    CloudRigOperator,
+)
 from ..generation.naming import slice_name
 from ..generation.cloudrig import (
     find_cloudrig,
-    find_metarig_of_rig, 
+    find_metarig_of_rig,
     CloudRigOperator,
 )
 

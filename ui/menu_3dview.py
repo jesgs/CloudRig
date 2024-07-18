@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import Menu
 
+
 class VIEW3D_MT_cloudrig(Menu):
     bl_label = "CloudRig"
     bl_idname = "VIEW3D_MT_cloudrig"

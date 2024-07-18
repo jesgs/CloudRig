@@ -50,7 +50,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.root_bone = self.bone_sets['FK Controls'][0]
 
     def determine_if_cyclic(self) -> bool:
-        """Overrides cloud_chain. 
+        """Overrides cloud_chain.
         Cyclic rigs are not supported beyond just the toon chain, since
         FK chains cannot be cyclic.
         """

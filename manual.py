@@ -1,6 +1,7 @@
 import bpy
 from . import rig_components
 
+
 # This allows you to right click on a button and link to documentation
 def cloudrig_manual_map():
     url_manual_prefix = "https://studio.blender.org/pipeline/addons/cloudrig/"
@@ -24,7 +25,9 @@ def cloudrig_manual_map():
         # PropertyGroups within PropertyGroups don't resolve correctly
         # in the Online Manual operator.
         cloud_types = [
-            name.replace("cloud_", "") for name in dir(rig_components) if "cloud" in name
+            name.replace("cloud_", "")
+            for name in dir(rig_components)
+            if "cloud" in name
         ]
         for cloud_type in cloud_types:
             url_map.append((params_path + cloud_type + "_*", "cloudrig-types"))
@@ -36,15 +39,12 @@ def cloudrig_manual_map():
         [
             (rig_prefs_path + ".active_collection_index", "bone-organization"),
             ("bpy.ops.pose.cloudrig_collections_reveal_all", "bone-organization"),
-
             # Troubleshooting
             ("bpy.types.generatorproperties.active_log_index", "troubleshooting"),
-
             # Addon Prefs also don't work due to a similar bug... https://projects.blender.org/blender/blender/issues/121408
             (addon_prefs_path + "advanced_mode", "cloudrig-types#shared-parameters"),
             (addon_prefs_path + "*", "cloudrig-types#shared-parameters"),
             ("bpy.ops.pose.cloudrig_assign_component_type", "cloudrig-types"),
-
             # Generator Parameters
             ("bpy.ops.pose.cloudrig_generate", "generator-parameters"),
             *[
@@ -55,15 +55,25 @@ def cloudrig_manual_map():
                 for param, redirect in generator_params.items()
             ],
             (generator_path + "*", "generator-parameters"),
-
             # Organizing Bones
-            (addon_prefs_path + "bone_set_show_advanced", "organizing-bones#bone-collections"),
+            (
+                addon_prefs_path + "bone_set_show_advanced",
+                "organizing-bones#bone-collections",
+            ),
             ("bpy.types.boneset*", "organizing-bones#organizing-bones-1"),
             ("bpy.types.rigcomponent.bone_sets*", "organizing-bones#bone-collections"),
-            ("bpy.ops.pose.cloudrig_bone_set_collection_add", "organizing-bones#organizing-bones-1"),
-            ("bpy.ops.pose.cloudrig_bone_set_collection_remove", "organizing-bones#organizing-bones-1"),
-            ("bpy.ops.pose.cloudrig_bone_set_collection_reset", "organizing-bones#organizing-bones-1"),
-
+            (
+                "bpy.ops.pose.cloudrig_bone_set_collection_add",
+                "organizing-bones#organizing-bones-1",
+            ),
+            (
+                "bpy.ops.pose.cloudrig_bone_set_collection_remove",
+                "organizing-bones#organizing-bones-1",
+            ),
+            (
+                "bpy.ops.pose.cloudrig_bone_set_collection_reset",
+                "organizing-bones#organizing-bones-1",
+            ),
             # Actions
             (generator_path + "action*", "actions"),
             ("bpy.ops.object.cloudrig_action*", "actions"),

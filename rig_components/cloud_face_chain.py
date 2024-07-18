@@ -150,17 +150,18 @@ class Component_FaceChain(Component_ToonChain):
 
     def setup_all_intersections(self):
         for intersection in self.intersection_bones:
-            # Parenting must be done with an Armature constraint so that 
+            # Parenting must be done with an Armature constraint so that
             # transforms propagate to TAN bones.
             if intersection.parent and len(intersection.constraint_infos) == 0:
-                intersection.add_constraint('ARMATURE', targets=[{'subtarget': intersection.parent}])
+                intersection.add_constraint(
+                    'ARMATURE', targets=[{'subtarget': intersection.parent}]
+                )
 
-            # Also, sub STR controls must have no parent at all, 
+            # Also, sub STR controls must have no parent at all,
             # otherwise they would double transform.
             for str_bone in intersection.str_bones:
                 str_bone.parent = None
                 str_bone.ignore_orphan = True
-
 
             # This is ugly, but any STR controls with the Smooth Spline param need
             # their tangent_helper to be parented to the intersection control's parent.
@@ -196,10 +197,10 @@ class Component_FaceChain(Component_ToonChain):
         else:
             relink_bone = self.main_str_bones[org_i]
 
-        is_intersection=False
+        is_intersection = False
         if hasattr(relink_bone, 'intersection_ctrl'):
             relink_bone = relink_bone.intersection_ctrl
-            is_intersection=True
+            is_intersection = True
 
         if con.type == 'ARMATURE':
             if is_intersection:

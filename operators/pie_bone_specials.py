@@ -3,6 +3,7 @@ from bpy.types import Menu, EditBone, Object
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
 from ..utils.misc import get_current_rigs
 
+
 class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
     """Delete selected bones"""
 

@@ -45,9 +45,7 @@ def rename_blender3_parameters(metarig, dictionary):
 
 
 def preserve_old_default(
-    metarig: Object, 
-    param_name: str, 
-    old_default: float | int | bool | str
+    metarig: Object, param_name: str, old_default: float | int | bool | str
 ):
     for pb in metarig.pose.bones:
         if param_name not in pb.cloudrig_component.params:
