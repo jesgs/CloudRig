@@ -29,7 +29,8 @@ from bpy.types import (
 from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 
-from mathutils import Matrix
+from mathutils import Matrix, Vector
+from math import acos, pi
 from bl_ui.generic_ui_list import draw_ui_list
 
 cloudrig_addon = False
@@ -258,8 +259,7 @@ class SnappingOpMixin:
             ]
         )
 
-    @staticmethod
-    def set_bone_selection(rig, select=False, pbones: list[PoseBone] = []):
+    def set_bone_selection(self, rig, select=False, pbones: list[PoseBone] = None):
         if not pbones:
             pbones = rig.pose.bones
         for pb in pbones:
@@ -525,6 +525,12 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
     ik_pole: StringProperty(
         description="Name of IK pole vector bone, for snapping IK to FK"
     )
+    ik_first: StringProperty(
+        description="Name of the first bone in the IK chain. Necessary for IK pole snapping logic"
+    )
+    fk_first: StringProperty(
+        description="Name of the first bone in the FK chain. Necessary for IK pole snapping logic"
+    )
 
     def invoke(self, context, _event):
         self.rig = context.active_object
@@ -545,6 +551,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
             context, bones_to_snap, snap_to_bones
         )
 
+        self.ik_last = bones_to_snap[0]
         if self.do_bake:
             self.keyframe_bones(context, rig, frame_matrix_map, self.prop_pb)
             context.scene.frame_set(active_frame_bkp)
@@ -563,25 +570,149 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         # Restore world matrices.
         self.set_bone_matrices(context, self.rig, pbone_matrix_map)
 
-        # Reveal & select affected bones.
         if self.target_value == 1 and self.ik_pole:
-            bones_to_snap.append(self.rig.pose.bones[self.ik_pole])
+            self.snap_pole_target()
+
+        # Reveal & select affected bones.
         self.reveal_bones(bones_to_snap)
         self.set_bone_selection(self.rig, True, bones_to_snap)
 
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
 
-    def get_pole_target_matrix(self, ik_pole: PoseBone, fk_first: PoseBone) -> Matrix:
-        """Find the matrix where the IK pole should be."""
-        """ This is only accurate when the bone chain lies perfectly on a plane
-            and the IK Pole Angle is divisible by 90.
-            This should be the case for a correct IK chain!
+
+    def set_bone_selection(self, rig, select=False, pbones: list[PoseBone]=None):
+        """Overrides SnapBakeOpMixin to also select the IK pole before keying."""
+        print("PBONES:", pbones, select)
+        if select and self.target_value == 1 and self.ik_pole:
+            pbones.append(rig.pose.bones[self.ik_pole])
+        super().set_bone_selection(rig, select, pbones)
+
+    def set_bone_matrices(
+        self, context, rig: Object, pbone_matrix_map: dict[str, Matrix]
+    ):
+        """Overrides SnapBakeOpMixin."""
+        super().set_bone_matrices(context, rig, pbone_matrix_map)
+        if self.target_value == 1 and self.ik_pole:
+            self.snap_pole_target()
+
+
+    def snap_pole_target(self) -> Matrix:
+        """Snap the pole target based on the first IK bone.
+        This needs to run after the IK wrist control had already been snapped.
+        It's not perfect, but to make this work as best as possible, ensure:
+            - IK chain lies flat on a plane (Else, Generator Log warns you.)
+            - FK and IK rolls match perfectly. (Generator makes sure.)
+            - FK elbow has Y/Z rotation locked. (See "limit_elbow_axes" param.)
         """
-        mat = ik_pole.matrix.copy()
-        # Ultra simple solution, we just project the upperarm FK bone an extra length.
-        mat.translation = fk_first.tail + fk_first.vector / 2
-        return mat
+
+        # CloudRig's IK pole snapping is based on code by revolt_randy:
+        # https://blenderartists.org/t/what-is-the-best-way-to-do-fk-ik-snapping/1427362/30
+        # Which was based on code by Nathan Vegdahl aka Cessen:
+        # https://blenderartists.org/t/visual-transform-helper-functions-for-2-5/500965
+
+        def perpendicular_vector(v):
+            """ Returns a vector that is perpendicular to the one given.
+                The returned vector is _not_ guaranteed to be normalized.
+            """
+            # Create a vector that is not aligned with v.
+            # It doesn't matter what vector.  Just any vector
+            # that's guaranteed to not be pointing in the same
+            # direction.
+            if abs(v[0]) < abs(v[1]):
+                tv = Vector((1,0,0))
+            else:
+                tv = Vector((0,1,0))
+
+            # Use cross prouct to generate a vector perpendicular to
+            # both tv and (more importantly) v.
+            return v.cross(tv)
+
+        def rotation_difference(mat1, mat2):
+            """ Returns the shortest-path rotational difference between two
+                matrices.
+            """
+            q1 = mat1.to_quaternion()
+            q2 = mat2.to_quaternion()
+            angle = acos(min(1,max(-1,q1.dot(q2)))) * 2
+            if angle > pi:
+                angle = -angle + (2*pi)
+            return angle
+
+        def get_pose_matrix_in_other_space(mat, pose_bone):
+            """ Returns the transform matrix relative to pose_bone's current
+                transform space.  In other words, presuming that mat is in
+                armature space, slapping the returned matrix onto pose_bone
+                should give it the armature-space transforms of mat.
+            """
+            return pose_bone.id_data.convert_space(matrix=mat, pose_bone=pose_bone, from_space='POSE', to_space='LOCAL')
+
+        def set_pose_translation(pose_bone, mat):
+            """ Sets the pose bone's translation to the same translation as the given matrix.
+                Matrix should be given in bone's local space.
+            """
+            pose_bone.location = mat.to_translation()
+
+        def match_pole_target(ik_first, ik_last, pole, match_bone):
+            """ Places an IK chain's pole target to match ik_first's
+                transforms to match_bone.  All bones should be given as pose bones.
+                You need to be in pose mode on the relevant armature object.
+                ik_first: first bone in the IK chain
+                ik_last:  last bone in the IK chain
+                pole:  pole target bone for the IK chain
+                match_bone:  bone to match ik_first to (probably first bone in a matching FK chain)
+                length:  distance pole target should be placed from the chain center
+            """
+            a = ik_first.matrix.to_translation()
+            b = ik_last.matrix.to_translation() + ik_last.vector
+
+            # Vector from the head of ik_first to the
+            # tip of ik_last
+            ikv = b - a
+
+            length = ik_first.length + match_bone.length
+
+            # Get a vector perpendicular to ikv
+            pv = perpendicular_vector(ikv).normalized() * length
+
+            def set_pole(pvi):
+                """ Set pole target's position based on a vector
+                    from the arm center line.
+                """
+                # Translate pvi into armature space
+                ploc = a + (ikv/2) + pvi
+
+                # Set pole target to location
+                mat = get_pose_matrix_in_other_space(Matrix.Translation(ploc), pole)
+                set_pose_translation(pole, mat)
+
+                bpy.context.view_layer.update()
+
+            set_pole(pv)
+
+            # Get the rotation difference between ik_first and match_bone
+            angle = rotation_difference(ik_first.matrix, match_bone.matrix)
+
+            # Try compensating for the rotation difference in both directions
+            pv1 = Matrix.Rotation(angle, 4, ikv) @ pv
+            set_pole(pv1)
+            ang1 = rotation_difference(ik_first.matrix, match_bone.matrix)
+
+            pv2 = Matrix.Rotation(-angle, 4, ikv) @ pv
+            set_pole(pv2)
+            ang2 = rotation_difference(ik_first.matrix, match_bone.matrix)
+
+            # Do the one with the smaller angle
+            if ang1 < ang2:
+                set_pole(pv1)
+
+        ik_pole = self.rig.pose.bones[self.ik_pole]
+        fk_first = self.rig.pose.bones[self.fk_first]
+        ik_first = self.rig.pose.bones[self.ik_first]
+        match_pole_target(ik_first, self.ik_last, ik_pole, fk_first)
+        return ik_pole.matrix
+
+
 
     def map_single_frame_to_bone_matrices(
         self, context, frame_number, bones_to_snap, snap_to_bones
@@ -590,14 +721,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         context.view_layer.update()
 
         pbone_matrix_map = self.get_pbone_matrix_map(bones_to_snap, snap_to_bones)
-
-        if self.target_value == 1 and self.ik_pole:
-            # Snap IK pole
-            pole_pb = self.rig.pose.bones[self.ik_pole]
-            fk_upperarm = snap_to_bones[-1]
-            pbone_matrix_map[pole_pb.name] = self.get_pole_target_matrix(
-                pole_pb, fk_upperarm
-            )
 
         return pbone_matrix_map
 
@@ -617,6 +740,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
 
         if self.current_value < 1:
             bone_column.label(text=f"{' '*10} {self.ik_pole}")
+
 
 
 #######################################

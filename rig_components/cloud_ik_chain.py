@@ -330,7 +330,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
         map_fk_to_ik = []
 
         map_ik_to_fk.append((ik_mstr.name, fk_chain[-1].name))
-        map_ik_to_fk.append((ik_chain[0].name, fk_chain[0].name))
 
         if self.params.fk_chain.double_first:
             map_fk_to_ik.append((fk_chain[0].parent.name, ik_chain[0].name))
@@ -353,6 +352,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 'map_fk_to_ik': map_fk_to_ik,
                 'map_ik_to_fk': map_ik_to_fk,
                 'ik_pole': ik_pole.name if ik_pole else '',
+                'ik_first' : ik_chain[0].name,
+                'fk_first' : fk_chain[0].name,
             },
         }
 
