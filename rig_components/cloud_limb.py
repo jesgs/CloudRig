@@ -99,7 +99,7 @@ class Component_Limb(Component_Chain_IKFK):
                 double_control.collections,
             )
 
-        self.add_counterrotate_constraints(self.str_chain[: self.params.chain.segments])
+        self.add_counterrotate_constraint(self.str_chain[: self.params.chain.segments])
 
         # Lock IK axes
         if self.params.limb.limit_elbow_axes:
@@ -178,41 +178,37 @@ class Component_Limb(Component_Chain_IKFK):
                 str_h_bone = b.parent
                 str_h_bone.constraint_infos[2].mute = True
 
-    def add_counterrotate_constraints(self, str_chain: list[BoneInfo]):
-        """Counter-Rotate setup for the first section of STR bones.
-        This is done because, eg., when twisting the wrist, we want that twist
-        to fade out gradually towards the elbow.
+    def add_counterrotate_constraint(self, str_chain: list[BoneInfo]):
+        """Counter-Rotate constraint for the first main STR bone.
+        This is so that the twisting fades in starting at the shoulder, towards the elbow.
         """
-        for i in range(0, len(str_chain)):
-            factor_unit = 0.9 / len(str_chain)
-            factor = 0.9 - factor_unit * i
-            str_bone = str_chain[i]
-            trans_con = str_bone.add_constraint(
-                'TRANSFORM',
-                name="Transformation (Counter-Rotate)",
-                subtarget=str_bone.source.name,
-                influence=factor,
-                map_to='ROTATION',
-            )
-            trans_con.drivers.append(
-                {
-                    'prop': f'to_min_y_rot',
-                    'expression': "-var",
-                    'variables': [
-                        {
-                            'type': 'TRANSFORMS',
-                            'targets': [
-                                {
-                                    'bone_target': str_bone.source.name,
-                                    'transform_space': 'LOCAL_SPACE',
-                                    'transform_type': 'ROT_Y',
-                                    'rotation_mode': 'SWING_TWIST_Y',
-                                }
-                            ],
-                        }
-                    ],
-                }
-            )
+        str_bone = str_chain[0]
+        trans_con = str_bone.add_constraint(
+            'TRANSFORM',
+            name="Transformation (Counter-Rotate)",
+            subtarget=str_bone.source.name,
+            influence=0.9,
+            map_to='ROTATION',
+        )
+        trans_con.drivers.append(
+            {
+                'prop': f'to_min_y_rot',
+                'expression': "-var",
+                'variables': [
+                    {
+                        'type': 'TRANSFORMS',
+                        'targets': [
+                            {
+                                'bone_target': str_bone.source.name,
+                                'transform_space': 'LOCAL_SPACE',
+                                'transform_type': 'ROT_Y',
+                                'rotation_mode': 'SWING_TWIST_Y',
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
 
     def setup_rubber_hose(
         self,

@@ -44,8 +44,9 @@ class Component_ToonChain(Component_Base):
         # bones in order.
         self.str_chain = self.sort_str_sections_into_chain(str_sections, self.is_cyclic)
 
-        for str_bone in self.str_chain:
-            str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
+        # for str_bone in self.str_chain:
+            # It would be nice to prevent STR bones from being scaled negatively, but it can't be done.
+        #     str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
 
         self.tangent_helpers = []
         if self.params.chain.bbone_density > 0:
