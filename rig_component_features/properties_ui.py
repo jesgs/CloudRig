@@ -372,7 +372,13 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # User hasn't typed in a property name yet. Don't overwhelm them with the rest of the UI.
             return
 
-        if prop_value != None or issubclass(type(prop_owner), Modifier):
+        prop_settings = None
+        if hasattr(prop_owner, 'id_properties_ui'):
+            prop_settings = prop_owner.id_properties_ui(self.prop_name)
+            if prop_settings:
+                prop_settings = prop_settings.as_dict()
+
+        if prop_value != None or issubclass(type(prop_owner), Modifier) or prop_settings and 'id_type' in prop_settings:
             if (
                 prop_value != None
                 and isinstance(prop_value, bpy_struct)
