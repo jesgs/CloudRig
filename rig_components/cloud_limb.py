@@ -71,6 +71,16 @@ class Component_Limb(Component_Chain_IKFK):
             return 1
         return self.params.chain.segments
 
+    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
+        fk_chain = super().make_fk_chain(org_chain)
+        if self.params.limb.limit_elbow_axes:
+            # Locking the FK elbow/knee's Y/Z rotation is necessary for accurate
+            # IK/FK snapping. But it might be an annoying limitation for more cartoony
+            # characters.
+            fk_elbow = fk_chain[1]
+            fk_elbow.lock_rotation = [False, True, True]
+        return fk_chain
+
     def make_ik_setup(self):
         """Override."""
         super().make_ik_setup()
@@ -90,6 +100,11 @@ class Component_Limb(Component_Chain_IKFK):
             )
 
         self.add_counterrotate_constraints(self.str_chain[: self.params.chain.segments])
+
+        # Lock IK axes
+        if self.params.limb.limit_elbow_axes:
+            ik_elbow = self.ik_chain[1]
+            ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
 
     def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
         """Override."""
@@ -481,6 +496,7 @@ class Component_Limb(Component_Chain_IKFK):
         super().draw_control_params(layout, context, params)
 
         cls.draw_prop(context, layout, params.limb, 'double_ik')
+        cls.draw_prop(context, layout, params.limb, 'limit_elbow_axes')
 
         layout.separator()
         cls.draw_control_label(layout, "Limb")
@@ -537,6 +553,12 @@ class Params(PropertyGroup):
                 "Shift the elbow STR bone towards the elbow bending direction, and counter-shift the mid-limb STR bones so they stay roughly in place. As a result, the limb becomes shorter",
             ),
         ],
+    )
+
+    limit_elbow_axes: BoolProperty(
+        name="Limit Elbow Axes",
+        description="Lock the Y and Z rotation of the elbow/knee bone, only allowing realistic rotations. This is limiting for cartoony characters, but it's necessary for accurate FK->IK snapping. For realistic characters, this should be enabled",
+        default=True
     )
 
     double_ik: BoolProperty(

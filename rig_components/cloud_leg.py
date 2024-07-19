@@ -158,7 +158,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         return ui_data
 
     def make_fk_chain(self, org_chain) -> list[BoneInfo]:
-        """Overrides cloud_fk_chain."""
+        """Overrides cloud_limb."""
         fk_chain = super().make_fk_chain(org_chain)
         self.fk_toe = org_chain[-1].fk_bone
         return fk_chain
