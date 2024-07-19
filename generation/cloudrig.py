@@ -32,6 +32,14 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from bl_ui.generic_ui_list import draw_ui_list
 
+cloudrig_addon = False
+if __package__ and "CloudRig" in __package__:
+    cloudrig_addon = True
+
+if cloudrig_addon:
+    from .. import icons
+
+
 #######################################
 ############ Context Checks ###########
 #######################################
@@ -418,8 +426,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
-    "Flip a custom property's value while preserving the world-matrix " \
-    "of some bones"
+    "Flip a custom property's value while preserving the world-matrix " "of some bones"
     bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -479,9 +486,8 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
 
 
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
-    "Change the parent while preserving the world-matrix of the affected " \
-    "bones, even in a frame range"
-    
+    "Change the parent while preserving the world-matrix of the affected " "bones, even in a frame range"
+
     bl_idname = 'pose.cloudrig_switch_parent_bake'
     bl_label = "Switch Parents & Preserve Transforms"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -504,9 +510,7 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOp
 
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
-    "Toggle the rig component between IK and FK modes. Snap the affected" \
-    "bones so you can continue animating. Can also snap & bake the affected" \
-    "bones over a frame range"
+    "Toggle the rig component between IK and FK modes. Snap the affected" "bones so you can continue animating. Can also snap & bake the affected" "bones over a frame range"
 
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
     bl_label = "Snap & Bake Bones to Other Bones"
@@ -1224,13 +1228,13 @@ def draw_drag_operator(
     sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem) != str]
     if len(sub_elements) > 1 and is_ui_edit_mode(rig):
         is_dragged = ui_data.get('is_dragged', False)
+        icon = 'TRACKER'
+        icon_value = 0
         if is_dragged:
             icon = 'VIEW_PAN'
             icon_value = 0
-        else:
+        elif cloudrig_addon:
             icon = 'NONE'
-            from CloudRig import icons
-
             icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
         op = layout.operator(
             'pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value
@@ -2018,10 +2022,7 @@ def pose_mode(rig):
 
 
 class POSE_OT_cloudrig_collection_select(CloudRigOperator):
-    "Select all bones in this collection.\n\n" \
-    "Shift: Extend selection.\n" \
-    "Ctrl: Mirror selection.\n" \
-    "Alt: Deselect"
+    "Select all bones in this collection.\n\n" "Shift: Extend selection.\n" "Ctrl: Mirror selection.\n" "Alt: Deselect"
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
@@ -2124,8 +2125,7 @@ def poll_cloudrig_operator_collection(operator, context):
 
 
 class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
-    "Remove the active bone collection.\n" \
-    "Shift: Delete whole hierarchy"""
+    "Remove the active bone collection.\n" "Shift: Delete whole hierarchy" ""
 
     bl_idname = "pose.cloudrig_collection_delete"
     bl_label = "Remove Bone Collection"
@@ -2267,12 +2267,7 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
 
 
 class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
-    "Rearrange and re-parent this collection with the arrow keys, WASD, or by " \
-    "moving the mouse.\n\n" \
-    "Left-click/Enter: Confirm.\n" \
-    "Right-click/Esc: Cancel.\n" \
-    "Up/Down: Move Collection up/down.\n" \
-    "Left/Right: Parent/Unparent collection to the one above"
+    "Rearrange and re-parent this collection with the arrow keys, WASD, or by " "moving the mouse.\n\n" "Left-click/Enter: Confirm.\n" "Right-click/Esc: Cancel.\n" "Up/Down: Move Collection up/down.\n" "Left/Right: Parent/Unparent collection to the one above"
 
     bl_idname = "pose.cloudrig_reorder_collections"
     bl_label = "Reorder Collections"
@@ -2417,10 +2412,7 @@ class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
 
 
 class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
-    "Assign selected bones to active collection.\n\n" \
-    "Alt: Un-assign.\n" \
-    "Shift: To active collection & children.\n" \
-    "Shift+Ctrl: To all collections"
+    "Assign selected bones to active collection.\n\n" "Alt: Un-assign.\n" "Shift: To active collection & children.\n" "Shift+Ctrl: To all collections"
 
     bl_idname = "pose.cloudrig_collection_assign"
     bl_label = "(Un)Assign Bones to Collection"
