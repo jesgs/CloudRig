@@ -118,7 +118,7 @@ class BoneSelectOperatorMixin:
 
     @classmethod
     def poll(cls, context):
-        if not context.active_bone or context.active_pose_bone:
+        if not (context.active_bone or context.active_pose_bone):
             cls.poll_message_set("No active bone.")
             return False
         return True
