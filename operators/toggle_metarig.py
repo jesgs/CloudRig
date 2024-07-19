@@ -48,6 +48,8 @@ class CLOUDRIG_OT_MetarigToggle(CloudRigOperator):
     def poll(cls, context):
         if not context.active_object:
             cls.poll_message_set("No active object.")
+            return False
+        return True
 
     def execute(self, context):
         rig = find_cloudrig(context)
