@@ -145,6 +145,11 @@ class BoneSet(LinkedList):
 
         for source, prop_list in sources.items():
             for key in prop_list:
+                if not hasattr(source, key):
+                    # This can happen when a new property is introduced in Blender, eg.
+                    # custom_shape_wire_width in 4.2.
+                    # Ignore such values in older versions, to preserve compatibility.
+                    continue
                 value = getattr(source, key)
                 if value in [None, ""]:
                     continue

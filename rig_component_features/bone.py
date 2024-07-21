@@ -474,7 +474,7 @@ class BoneInfo:
             for drv in con_inf.drivers:
                 self.bone_set.rig_component.relink_driver_info(drv)
 
-    def write_edit_data(self, generator, eb: EditBone):
+    def write_edit_data(self, generator, edit_bone: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
         if not self.create:
             return
@@ -494,10 +494,16 @@ class BoneInfo:
             self.tail.y += 1
         assert (
             self.head - self.tail
-        ).length > 0, f'Bone "{eb.name}" cannot be created with a length of 0.'
+        ).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
 
         ### Edit Bone properties
         for key in edit_bone_properties:
+            if not hasattr(edit_bone, key):
+                # This can happen when a new property is introduced in Blender, eg.
+                # custom_shape_wire_width in 4.2.
+                # Ignore such values in older versions, to preserve compatibility.
+                continue
+
             # Allow bbone properties to specify if they are only for EditBone
             key = key.replace("edit_", "")
 
@@ -510,14 +516,14 @@ class BoneInfo:
             if value == default_value:
                 # For performance, don't write default values.
                 continue
-            setattr(eb, key, value)
+            setattr(edit_bone, key, value)
 
         scale = generator.scale
-        eb.bbone_x = self.bbone_width * scale
-        eb.bbone_z = self.bbone_width * scale
-        eb.envelope_distance = self.bbone_width * scale
-        eb.head_radius = self.bbone_width * scale
-        eb.tail_radius = self.bbone_width * scale
+        edit_bone.bbone_x = self.bbone_width * scale
+        edit_bone.bbone_z = self.bbone_width * scale
+        edit_bone.envelope_distance = self.bbone_width * scale
+        edit_bone.head_radius = self.bbone_width * scale
+        edit_bone.tail_radius = self.bbone_width * scale
 
         # Parenting - If an Armature Constraint is present, don't allow double parenting.
         for con in self.constraint_infos:
@@ -525,8 +531,8 @@ class BoneInfo:
                 self.parent = None
 
         if self.parent:
-            eb.parent = armature.data.edit_bones.get(str(self.parent))
-            if not eb.parent:
+            edit_bone.parent = armature.data.edit_bones.get(str(self.parent))
+            if not edit_bone.parent:
                 self.bone_set.rig_component.add_log(
                     "Parent not found",
                     trouble_bone=self.name,
@@ -535,7 +541,7 @@ class BoneInfo:
 
         # Custom Properties.
         for prop_name, prop in self.custom_props_edit.items():
-            make_property(eb, prop_name, **prop)
+            make_property(edit_bone, prop_name, **prop)
 
         # Recalculate roll.
         if self.roll_type != "":
@@ -547,14 +553,14 @@ class BoneInfo:
                 align_bone = armature.data.edit_bones.get(str(self.roll_bone))
                 if not align_bone:
                     self.owner_component.raise_generation_error(
-                        f"Could not find bone {self.roll_bone} to calculate roll of {eb.name}."
+                        f"Could not find bone {self.roll_bone} to calculate roll of {edit_bone.name}."
                     )
                 else:
-                    eb.align_roll(align_bone.z_axis)
+                    edit_bone.align_roll(align_bone.z_axis)
             elif self.roll_type == 'VECTOR':
-                eb.align_roll(self.roll_vector)
+                edit_bone.align_roll(self.roll_vector)
 
-            eb.roll += self.roll
+            edit_bone.roll += self.roll
 
     def write_pose_data(self, context, metarig, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
@@ -577,6 +583,11 @@ class BoneInfo:
             key = key.replace(
                 "pose_", ""
             )  # Allows bbone properties to specify if they are only for pose bone version
+            if not hasattr(pose_bone, key):
+                # This can happen when a new property is introduced in Blender, eg.
+                # custom_shape_wire_width in 4.2.
+                # Ignore such values in older versions, to preserve compatibility.
+                continue
             value = self.__dict__[key]
             default_value = pose_bone_properties[key]
             if value == default_value:
@@ -600,6 +611,11 @@ class BoneInfo:
         # Bone data
         bone = pose_bone.bone
         for key in bone_properties:
+            if not hasattr(bone, key):
+                # This can happen when a new property is introduced in Blender, eg.
+                # custom_shape_wire_width in 4.2.
+                # Ignore such values in older versions, to preserve compatibility.
+                continue
             value = self.__dict__[key]
             if value in [None, ""]:
                 continue
