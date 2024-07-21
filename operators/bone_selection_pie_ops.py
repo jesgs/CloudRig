@@ -1,7 +1,7 @@
 from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
-from ..generation.cloudrig import CloudRigOperator, find_cloudrig
+from ..generation.cloudrig import CloudRigOperator
 from ..utils.misc import get_selected_bone_tuples, get_active_bone
 
 
@@ -144,14 +144,14 @@ class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
 
     @classmethod
     def poll(cls, context):
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        rig = context.pose_object or context.active_object
         if not rig or rig.type != 'ARMATURE':
             cls.poll_message_set("No active armature.")
             return False
         return True
 
     def execute(self, context):
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        rig = context.pose_object or context.active_object
         if rig.mode == 'EDIT':
             bone = rig.data.edit_bones.get(self.bone_name)
         else:
@@ -307,7 +307,7 @@ class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMix
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        rig = context.pose_object or context.active_object
         if context.mode == 'EDIT_ARMATURE':
             layout.prop_search(
                 self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA'
@@ -317,7 +317,7 @@ class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMix
         layout.prop(self, 'extend_selection')
 
     def execute(self, context):
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        rig = context.pose_object or context.active_object
         bone = get_bone_by_name(rig, self.bone_name)
         if not self.extend_selection:
             deselect_all_bones(context)

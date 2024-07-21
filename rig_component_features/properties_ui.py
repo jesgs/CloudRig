@@ -100,7 +100,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         for key in prop_owner.keys():
             try:
-                prop_settings = prop_owner.id_properties_ui(key).as_dict()
+                prop_owner.id_properties_ui(key).as_dict()
             except TypeError:
                 # This happens for Python properties. There's not much point in adding them.
                 continue
@@ -374,7 +374,14 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
         prop_settings = None
         if hasattr(prop_owner, 'id_properties_ui'):
-            prop_settings = prop_owner.id_properties_ui(self.prop_name)
+            try:
+                prop_settings = prop_owner.id_properties_ui(self.prop_name)
+            except KeyError:
+                pass
+            except TypeError:
+                # This happens for Python properties.
+                pass
+
             if prop_settings:
                 prop_settings = prop_settings.as_dict()
 
