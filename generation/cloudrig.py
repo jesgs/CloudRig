@@ -1578,16 +1578,28 @@ class CloudRigBoneCollection(PropertyGroup):
             self.name = unique_name
             return
 
+        def cleanup_garbage_bone_sets(component):
+            # Clean up old bone set data.
+            for bone_set_name in list(component.params.bone_sets.keys()):
+                if not hasattr(component.params.bone_sets, bone_set_name):
+                    del component.params.bone_sets[bone_set_name]
+            for bone_set_name in list(component.ui_bone_sets.keys()):
+                if not hasattr(component.params.bone_sets, bone_set_name):
+                    entry_idx = component.ui_bone_sets.find(bone_set_name)
+                    component.ui_bone_sets.remove(entry_idx)
+            if not component.active_bone_set:
+                component.bone_sets_active_index = 0
+
+
         # Metarig: Update bone sets with this collection assigned to refer to the new name.
         if is_active_cloud_metarig(context):
             rig = context.pose_object or context.active_object
             for pb in rig.pose.bones:
                 comp = pb.cloudrig_component
+                if not comp or not comp.component_type:
+                    continue
+                cleanup_garbage_bone_sets(comp)
                 for bone_set_name in list(comp.params.bone_sets.keys()):
-                    if not hasattr(comp.params.bone_sets, bone_set_name):
-                        # Clean up old bone set data.
-                        del comp.params.bone_sets[bone_set_name]
-                        continue
                     bone_set = getattr(comp.params.bone_sets, bone_set_name)
                     for bone_set_coll in bone_set.collections:
                         if bone_set_coll.name == coll.name:
@@ -2678,9 +2690,6 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
             # because collections_all is not in hierarchy order.
             for coll_name, coll_data in json_obj.items():
                 coll = collections_all.get(coll_name)
-                print("??")
-                print(coll_name)
-                print(coll_data)
                 if 'parent_name' not in coll_data:
                     continue
                 parent = collections_all.get(coll_data['parent_name'])
