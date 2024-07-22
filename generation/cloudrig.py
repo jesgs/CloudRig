@@ -1578,17 +1578,16 @@ class CloudRigBoneCollection(PropertyGroup):
             self.name = unique_name
             return
 
-        # Update child collections to refer to the new name.
-        for other_coll in self.id_data.collections_all:
-            if other_coll.cloudrig_info.parent_name == coll.name:
-                other_coll.cloudrig_info.parent_name = self.name
-
         # Metarig: Update bone sets with this collection assigned to refer to the new name.
         if is_active_cloud_metarig(context):
             rig = context.pose_object or context.active_object
             for pb in rig.pose.bones:
                 comp = pb.cloudrig_component
-                for bone_set_name in comp.params.bone_sets.keys():
+                for bone_set_name in list(comp.params.bone_sets.keys()):
+                    if not hasattr(comp.params.bone_sets, bone_set_name):
+                        # Clean up old bone set data.
+                        del comp.params.bone_sets[bone_set_name]
+                        continue
                     bone_set = getattr(comp.params.bone_sets, bone_set_name)
                     for bone_set_coll in bone_set.collections:
                         if bone_set_coll.name == coll.name:
@@ -1625,13 +1624,6 @@ class CloudRigBoneCollection(PropertyGroup):
 
         return True
 
-    parent_name: StringProperty(
-        name="Parent",
-        description="Parent of this bone collection",
-        options={'LIBRARY_EDITABLE'},
-        override={'LIBRARY_OVERRIDABLE'},
-    )
-
     @property
     def parent_collection(self) -> BoneCollection:
         return self.get_collection().parent
@@ -1639,7 +1631,6 @@ class CloudRigBoneCollection(PropertyGroup):
     @parent_collection.setter
     def parent_collection(self, coll: BoneCollection):
         self.get_collection().parent = coll
-        self.parent_name = coll.name
 
     def unfold_parents(self):
         for parent in self.parents_recursive:
@@ -2374,13 +2365,13 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
         active_coll = colls.active
         active_idx = colls.active_index
 
-        parent_name = ""
+        parent_coll = None
         if active_coll:
-            parent_name = active_coll.cloudrig_info.parent_name
+            parent_coll = active_coll.parent
 
         coll = colls.new(name="Collection")
         coll.parent = active_coll.parent
-        coll.cloudrig_info.parent_name = parent_name
+        coll.parent = parent_coll
         coll_idx = all_colls.find(coll.name)
         colls.move(coll_idx, active_idx + 1)
 
@@ -2623,6 +2614,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
                 counter += 1
                 json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
                 json_obj[coll.name]['cloudrig_info'] = coll['cloudrig_info'].to_dict()
+                json_obj[coll.name]['parent_name'] = coll.parent.name if coll.parent else ""
 
         if counter == 0:
             self.report({'ERROR'}, "No visible collections to copy.")
@@ -2671,7 +2663,9 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
                     # CloudRig Collection.
                     cloudrig_info = coll_data['cloudrig_info']
                     bone_names = coll_data['bone_names']
-                    coll['cloudrig_info'] = cloudrig_info
+
+                    for key, value in cloudrig_info.items():
+                        setattr(coll.cloudrig_info, key, value)
 
                 for bone_name in bone_names:
                     pb = rig.pose.bones.get(bone_name)
@@ -2679,6 +2673,18 @@ class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
                         continue
                     coll.assign(pb)
                 counter += 1
+
+            # Iterate over everything again to assign the parents,
+            # because collections_all is not in hierarchy order.
+            for coll_name, coll_data in json_obj.items():
+                coll = collections_all.get(coll_name)
+                print("??")
+                print(coll_name)
+                print(coll_data)
+                if 'parent_name' not in coll_data:
+                    continue
+                parent = collections_all.get(coll_data['parent_name'])
+                coll.parent = parent
 
         except Exception as e:
             self.report(
