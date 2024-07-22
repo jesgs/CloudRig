@@ -80,6 +80,14 @@ def relink_driver_info(metarig, rig, driver_info):
                 t['id'] = rig
 
 
+def relink_real_driver(driver, metarig, target_rig):
+    """Swaps references to the metarig with references to the target rig in driver variables."""
+    for var in driver.variables:
+        for tgt in var.targets:
+            if tgt.id == metarig:
+                tgt.id = target_rig
+
+
 def find_component_chain_of_pbone(pose_bone) -> list[PoseBone]:
     if pose_bone.cloudrig_component.component_type:
         return get_component_pbone_chain(pose_bone)

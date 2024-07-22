@@ -19,6 +19,7 @@ from ..rig_component_features.widgets import widgets as cloud_widgets
 from ..rig_component_features.ui import get_addon_prefs
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
+from ..rig_component_features.mechanism import relink_real_driver
 from ..rig_components.cloud_base import Component_Base
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
@@ -320,7 +321,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         self.components_create_helper_objs(context)
         self.metarig.cloudrig_prefs.sync_collection_names()
-        self.copy_bone_collections(src=metarig, target=self.target_rig)
+        self.copy_bone_collections(src_armature_obj=metarig, target_armature_obj=self.target_rig)
         self.components_write_pbone_data(context, self.target_rig)
 
         # ------------------------------------------
@@ -544,17 +545,35 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             component.create_helper_objects(context)
 
     @staticmethod
-    def copy_bone_collections(src, target):
-        for src_coll in src.data.collections_all:
-            tgt_coll = target.data.collections_all.get(src_coll.name)
+    def copy_bone_collections(src_armature_obj, target_armature_obj):
+        for src_coll in src_armature_obj.data.collections_all:
+            print(src_coll.name)
+            tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
             if not tgt_coll:
-                parent = None
-                if src_coll.parent:
-                    parent = target.data.collections_all.get(src_coll.parent.name)
-                tgt_coll = target.data.collections.new(src_coll.name, parent=parent)
+                tgt_coll = target_armature_obj.data.collections.new(src_coll.name)
                 tgt_coll['cloudrig_info'] = src_coll['cloudrig_info'].to_dict()
             tgt_coll.is_visible = src_coll.is_visible
-        target.data.collections.active_index = src.data.collections.active_index
+
+            # Copy the driver on is_visible, if there is one.
+            if src_armature_obj.data.animation_data:
+                src_driver = src_armature_obj.data.animation_data.drivers.find(data_path=f'collections_all["{src_coll.name}"].is_visible')
+                if src_driver:
+                    target_armature_obj.data.animation_data_create()
+                    drv = target_armature_obj.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
+                    relink_real_driver(drv, src_armature_obj, target_armature_obj)
+
+        target_armature_obj.data.collections.active_index = src_armature_obj.data.collections.active_index
+
+        # Parenting has to be done as a separate loop because `collections_all` 
+        # appears to be in creation order, not hierarchy order.
+        for src_coll in src_armature_obj.data.collections_all:
+            tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
+            if not tgt_coll:
+                continue
+
+            if src_coll.parent:
+                parent = target_armature_obj.data.collections_all.get(src_coll.parent.name)
+                tgt_coll.parent = parent
 
     def components_write_pbone_data(self, context, target_rig):
         for bone_info in self.bone_infos:
