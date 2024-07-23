@@ -375,8 +375,8 @@ class BoneSetMixin:
         This function is responsible for creating the data, which will be used by
         class BoneSets(PropertyGroup) to automagically populate itself during add-on registration.
 
-        For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Main" bone set.
-        The "FK Main" bone set's collections and color can be customized via the parameters under
+        For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Controls" bone set.
+        The "FK Controls" bone set's collections and color can be customized via the parameters under
         my_pose_bone.cloudrig_component.bone_sets.fk_main.color_palette/collections.
         """
 

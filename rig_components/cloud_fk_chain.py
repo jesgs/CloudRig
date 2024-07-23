@@ -376,6 +376,13 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
     @classmethod
+    def is_bone_set_used(cls, context, rig, params, set_name):
+        if set_name == 'fk_offset_controls':
+            return params.fk_chain.position_along_bone > 0
+
+        return super().is_bone_set_used(context, rig, params, set_name)
+
+    @classmethod
     def draw_appearance_params(cls, layout, context, params):
         cls.draw_prop(context, layout, params.fk_chain, 'display_center')
 

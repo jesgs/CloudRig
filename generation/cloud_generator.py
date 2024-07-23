@@ -367,8 +367,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
 
         self.target_rig.data.name = self.target_rig.name
-            
-        self.params.target_rig = self.target_rig
 
         self.restore_rig_states(context)
         self.log_minor_issues()
@@ -501,7 +499,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def components_create_real_bones(self):
         """Create real bones from all BoneInfos.
-        No bone data is written yet beside the name."""
+        No bone data is written yet beside the name.
+        It's useful to create the bones before write_edit_bone_data()
+        so that setting the parents can be done hassle-free.
+        """
 
         bones_created = []
 
@@ -580,6 +581,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if not bone_info.create:
                 continue
             # Ensure bone collections in both the metarig and the target rig.
+            # IS THIS STILL NEEDED?
             for collection_name in bone_info.collections:
                 meta_coll = self.metarig.data.collections_all.get(collection_name)
                 if not meta_coll:
