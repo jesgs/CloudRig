@@ -6,17 +6,9 @@ post-generation scripts.
 import bpy
 from bpy.types import Object, ID, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
-from .. import rig_component_features
 
 sides = {'.L': 'Left', '.R': 'Right'}
 suffixes = list(sides.keys())
-
-
-def add_ui_data(*args, **kwargs):
-    # Without this weird hack, CloudRig fails to properly register without error due to some
-    # perceived circular dependency which I fail to see...
-    return rig_component_features.ui.add_ui_data(*args, **kwargs)
-
 
 def set_custom_property_value(
     rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID

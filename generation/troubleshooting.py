@@ -5,7 +5,7 @@ import bpy, os, traceback, sys
 import json, webbrowser, time
 import struct, platform, io, urllib.parse
 
-from ..rig_component_features.ui import draw_label_with_linebreak, is_advanced_mode
+from ..rig_component_features.component_params_ui import draw_label_with_linebreak, is_advanced_mode
 from ..generation.cloudrig import is_cloud_metarig
 
 """

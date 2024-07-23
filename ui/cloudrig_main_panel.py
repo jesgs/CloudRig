@@ -1,9 +1,9 @@
 from bpy.types import UILayout, Panel, Object
 
-from ..rig_component_features.ui import draw_label_with_linebreak
+from ..rig_component_features.component_params_ui import draw_label_with_linebreak
 from ..generation.cloudrig import is_generated_cloudrig
 from ..utils.misc import is_blender_version_compatible, check_addon
-from ..rig_component_features.ui import get_addon_prefs
+from ..rig_component_features.component_params_ui import get_addon_prefs
 
 
 def draw_version_check(context, layout: UILayout) -> bool:

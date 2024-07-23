@@ -4,7 +4,7 @@ import json
 
 from ..utils.misc import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
-from .bone import BoneInfo, ensure_custom_property
+from .bone_info import BoneInfo, ensure_custom_property
 from .properties_ui import add_property_to_ui
 
 

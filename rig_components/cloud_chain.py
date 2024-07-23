@@ -1,7 +1,7 @@
 from bpy.props import BoolProperty, IntProperty
 from bpy.types import PropertyGroup
 
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.bone_set import BoneSet
 from .cloud_base import Component_Base
 

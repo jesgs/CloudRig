@@ -1,5 +1,5 @@
 from bpy.types import Object
-from .bone import BoneInfo
+from .bone_info import BoneInfo
 
 
 def map_vgroups_to_most_significant_object(

@@ -1,7 +1,7 @@
 from mathutils import Vector
 from bpy.types import PoseBone, Bone
 
-from ..rig_component_features.bone import BoneInfo
+from .bone_info import BoneInfo
 from ..generation.naming import slice_name, make_name
 
 

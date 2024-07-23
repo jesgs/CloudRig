@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from .metarigs import versioning
 
 from . import (
-    manual,
+    manual_mapping,
     operators,
     rig_components,
     rig_component_features,
@@ -38,7 +38,7 @@ bl_info_copy = bl_info.copy()
 
 modules = [
     ui,
-    manual,
+    manual_mapping,
     utils,
     # NOTE: Beyond this point, registration order matters!
     # - For CollectionProperties and PointerProperties, their type must

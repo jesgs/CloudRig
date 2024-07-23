@@ -8,7 +8,7 @@ from bpy.types import Menu, EditBone, Bone, PoseBone, Object, Armature
 from bpy.props import BoolProperty
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
-from .bone_selection_pie_ops import get_active_bone
+from .pie_bone_selection_ops import get_active_bone
 from ..utils.misc import get_selected_bone_tuples, get_current_rigs
 
 

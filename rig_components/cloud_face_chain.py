@@ -2,7 +2,7 @@ from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
 from mathutils import Vector
 
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 from .cloud_chain import Component_ToonChain
 from .cloud_chain_anchor import Component_FaceChainAnchor
 

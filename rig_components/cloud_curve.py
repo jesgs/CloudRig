@@ -3,7 +3,7 @@ from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
 from bpy.props import BoolProperty, StringProperty, PointerProperty
 from mathutils import Matrix, Vector
 
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 from .cloud_base import Component_Base
 from ..utils import curve as curve_utils
 

@@ -1,4 +1,4 @@
-from .bone import BoneInfo
+from .bone_info import BoneInfo
 from bpy.types import PropertyGroup
 from bpy.props import EnumProperty, StringProperty
 from mathutils import Vector

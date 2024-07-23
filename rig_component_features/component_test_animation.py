@@ -1,5 +1,5 @@
 from bpy.types import Action, FCurve
-from ..rig_component_features.bone import BoneInfo
+from .bone_info import BoneInfo
 
 from math import radians as rad
 

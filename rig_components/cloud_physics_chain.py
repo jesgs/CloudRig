@@ -3,7 +3,7 @@ from bpy.types import Object, PropertyGroup
 from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
 from math import sqrt
 
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.object import lock_transforms
 from .cloud_fk_chain import Component_Chain_FK
 

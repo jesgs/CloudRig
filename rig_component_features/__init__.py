@@ -1,28 +1,28 @@
 from . import (
-    animation,
     bone_gizmos,
+    bone_info,
     bone_set,
-    bone,
+    component_params_ui,
     custom_props,
+    component_test_animation,
     mechanism,
     object,
     parenting,
     properties_ui,
-    ui,
 )
 
 
 modules = [
-    animation,
+    component_test_animation,
     bone_gizmos,
     bone_set,
-    bone,
+    bone_info,
     custom_props,
     mechanism,
     object,
     parenting,
     properties_ui,
-    ui,
+    component_params_ui,
 ]
 
 # Dictionary of modules that have a Params class, and want to register

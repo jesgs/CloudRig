@@ -2,7 +2,7 @@ from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 
 from .cloud_copy import Component_CopyBone
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 
 
 class Component_Jaw(Component_CopyBone):

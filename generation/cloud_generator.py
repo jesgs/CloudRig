@@ -16,7 +16,7 @@ from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
 
 from ..rig_component_features.widgets import widgets as cloud_widgets
-from ..rig_component_features.ui import get_addon_prefs
+from ..rig_component_features.component_params_ui import get_addon_prefs
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.mechanism import relink_real_driver
@@ -38,7 +38,7 @@ from .cloudrig import (
     is_cloud_metarig,
     CloudRigOperator,
 )
-from .test_animation import TestAnimationGeneratorMixin
+from .generate_test_animation import TestAnimationGeneratorMixin
 from .actions_component import ActionLayerComponent
 
 

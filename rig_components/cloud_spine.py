@@ -3,7 +3,7 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 from math import pi
 
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
 
 

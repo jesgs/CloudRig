@@ -6,8 +6,8 @@ from bpy.props import (
     FloatProperty,
 )
 
-from ..rig_component_features.bone import BoneInfo
-from ..rig_component_features.animation import CloudAnimationMixin
+from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.component_test_animation import CloudAnimationMixin
 from .cloud_chain import Component_ToonChain
 
 

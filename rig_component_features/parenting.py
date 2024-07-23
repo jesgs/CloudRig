@@ -3,7 +3,7 @@ from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolPrope
 from bl_ui.generic_ui_list import draw_ui_list
 
 from ..utils.misc import get_pbone_of_active
-from ..rig_component_features.ui import draw_label_with_linebreak
+from .component_params_ui import draw_label_with_linebreak
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching,
 # not just for bendy bone parenting.

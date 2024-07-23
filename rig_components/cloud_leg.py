@@ -7,9 +7,9 @@ from math import radians as rad
 from math import pi
 from copy import deepcopy
 
-from ..rig_component_features.bone import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo
 from ..utils.maths import flat
-from ..rig_component_features.ui import ensure_custom_property
+from ..rig_component_features.component_params_ui import ensure_custom_property
 from .cloud_limb import Component_Limb
 
 
