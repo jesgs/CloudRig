@@ -45,7 +45,7 @@ class Component_ToonChain(Component_Base):
         self.str_chain = self.sort_str_sections_into_chain(str_sections, self.is_cyclic)
 
         # for str_bone in self.str_chain:
-            # It would be nice to prevent STR bones from being scaled negatively, but it can't be done.
+        # It would be nice to prevent STR bones from being scaled negatively, but it can't be done.
         #     str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
 
         self.tangent_helpers = []
@@ -669,8 +669,15 @@ class Component_ToonChain(Component_Base):
         make the last DEF bone of that rig stretch to this rig's first STR.
         """
 
-        # Check if we can connect into the parent rig
         parent_component = self.parent_component
+
+        if (
+            hasattr(parent_component, 'make_fk_offset_chain')
+            and parent_component.params.fk_chain.position_along_bone > 0
+            and self.root_bone.parent == parent_component.bones_org[-1]
+        ):
+            self.root_bone.parent = parent_component.bone_sets['FK Offset Controls'][-1]
+        # Check if we can connect into the parent rig
         if not isinstance(parent_component, Component_ToonChain):
             return
         if parent_component.params.chain.tip_control:
