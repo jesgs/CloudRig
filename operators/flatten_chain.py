@@ -13,12 +13,11 @@ def is_chain_flat(chain: list[EditBone]) -> bool:
     coords = get_flattened_coords(chain)
 
     THRESHOLD = 0.01
-    for i, eb in enumerate(chain):
-        head, tail = coords[i]
+    for (head, tail), ebone in zip(coords, chain):
         if not head:
             # This happens when several bones are perfectly straight. intersect_line_plane() will return None.
             continue
-        if (head - eb.head).length > THRESHOLD or (tail - eb.tail).length > THRESHOLD:
+        if (head - ebone.head).length > THRESHOLD or (tail - ebone.tail).length > THRESHOLD:
             return False
 
     return True
