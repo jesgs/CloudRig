@@ -2718,6 +2718,10 @@ class ARMATURE_OT_bone_collections_popup(Operator):
     # Undo step is omitted, since this is just a UI pop-up.
     bl_options = {'REGISTER'}
 
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=400)
+
     @classmethod
     def poll(cls, context):
         rig = context.pose_object or context.active_object
@@ -2738,12 +2742,8 @@ class ARMATURE_OT_bone_collections_popup(Operator):
             'collections_all',
             rig.cloudrig_prefs,
             'active_collection_index',
-            rows=15 if rig.data.collections_all else 1,
+            rows=10 if rig.data.collections_all else 1,
         )
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=500)
 
     def execute(self, context):
         return {'FINISHED'}
