@@ -500,6 +500,7 @@ class CLOUDRIG_OT_bone_set_collection_add(CloudRigOperator):
         active_pb = get_pbone_of_active(context)
         bone_set = active_pb.cloudrig_component.active_bone_set
         bone_set.collections.add()
+        bone_set.collections_active_index = len(bone_set.collections)-1
         self.report({'INFO'}, f"Added collection slot to {bone_set.ui_name}.")
         return {'FINISHED'}
 
@@ -521,6 +522,9 @@ class CLOUDRIG_OT_bone_set_collection_remove(CloudRigOperator):
                 "Collection list cannot be empty. You can reset it with the button below."
             )
             return False
+        if len(bone_set.collections)-1 < bone_set.collections_active_index:
+            cls.poll_message_set("No active collection slot.")
+            return False
         return True
 
     def execute(self, context):
@@ -533,6 +537,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(CloudRigOperator):
             {'INFO'},
             f"{bone_set.ui_name} will not be assigned to '{coll_name}' collection.",
         )
+        bone_set.collections_active_index -= 1
         return {'FINISHED'}
 
 
@@ -551,6 +556,9 @@ class CLOUDRIG_OT_bone_set_collection_reset(CloudRigOperator):
             {'INFO'},
             f"{component.active_bone_set.ui_name} collection assignments reset to default.",
         )
+        bone_set = component.active_bone_set
+        if bone_set:
+            bone_set.collections_active_index = 0
         return {'FINISHED'}
 
 
