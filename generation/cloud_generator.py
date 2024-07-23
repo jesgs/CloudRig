@@ -366,6 +366,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
 
+        # Set the param as the target rig.
+        # Important for first generation.
+        self.params.target_rig = self.target_rig
+
         self.target_rig.data.name = self.target_rig.name
 
         self.restore_rig_states(context)
@@ -548,7 +552,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     @staticmethod
     def copy_bone_collections(src_armature_obj, target_armature_obj):
         for src_coll in src_armature_obj.data.collections_all:
-            print(src_coll.name)
             tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
             if not tgt_coll:
                 tgt_coll = target_armature_obj.data.collections.new(src_coll.name)

@@ -268,10 +268,10 @@ class BoneInfo:
     def parent(self, value):
         if self.parent == value:
             return
-        if self._parent and isinstance(self._parent, BoneInfo):
+        if self._parent and type(self) == type(value):
             self._parent.children.remove(self)
         self._parent = value
-        if value and isinstance(value, BoneInfo):
+        if value and type(self) == type(value):
             value.children.append(self)
 
         # If we want to use connected parenting, do it explicitly, after setting the parent.

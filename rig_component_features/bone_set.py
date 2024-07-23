@@ -129,7 +129,8 @@ class BoneSet(LinkedList):
         keep_collections=False,
         keep_colors=False,
     ):
-        """Load a bpy bone into a BoneInfo instance along with its constraints, drivers, custom properties."""
+        """Load a bpy bone into a BoneInfo instance along with its constraints, 
+        drivers, custom properties."""
         # NOTE: Parenting should be done outside of this function,
         # since parent bone info is not guaranteed to exist.
 
