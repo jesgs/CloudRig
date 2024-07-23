@@ -115,8 +115,6 @@ def register():
 
     ensure_importable_modules()
     register_unregister_modules(modules, True)
-    utils.misc.version_min = bl_info_copy['blender']
-    utils.misc.version_max = max_blender_version
 
 
 def unregister():

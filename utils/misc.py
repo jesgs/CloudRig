@@ -5,24 +5,6 @@ import bpy, os, time, addon_utils
 from bpy.types import PoseBone, Text, Object, EditBone, Bone
 from .. import __package__ as base_package
 
-# Written by __init__.py at register time. (No other way to access bl_info)
-version_min: tuple = ()
-version_max: tuple = ()
-
-
-def is_blender_version_compatible() -> bool:
-    """Return whether current Blender version is compatible
-    with current CloudRig version."""
-
-    tuple_to_version = lambda v: v[0] * 1000 + v[1] * 100 + v[2]
-
-    ver_blender = tuple_to_version(bpy.app.version)
-
-    ver_min = tuple_to_version(version_min)
-    ver_max = tuple_to_version(version_max)
-
-    return ver_max >= ver_blender >= ver_min
-
 
 def load_script(
     file_path="", file_name="cloudrig.py", datablock=None, execute=True

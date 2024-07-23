@@ -1,28 +1,8 @@
-from bpy.types import UILayout, Panel, Object
+from bpy.types import Panel, Object
 
-from ..rig_component_features.component_params_ui import draw_label_with_linebreak
 from ..generation.cloudrig import is_generated_cloudrig
-from ..utils.misc import is_blender_version_compatible, check_addon
+from ..utils.misc import check_addon
 from ..rig_component_features.component_params_ui import get_addon_prefs
-
-
-def draw_version_check(context, layout: UILayout) -> bool:
-    """If Blender is too old or new, draw a link to download
-    another version of CloudRig.
-    """
-
-    if not is_blender_version_compatible():
-        draw_label_with_linebreak(
-            context, layout, f"Version mismatch detected.", alert=True
-        )
-        draw_label_with_linebreak(
-            context, layout, f"Find CloudRig for your Blender version here:", alert=True
-        )
-        op = layout.operator('wm.url_open', text="Releases", icon='URL')
-        op.url = "https://extensions.blender.org/add-ons/cloudrig/"
-        return False
-
-    return True
 
 
 class POSE_PT_CloudRig(Panel):
@@ -50,9 +30,6 @@ class POSE_PT_CloudRig(Panel):
         cloudrig = metarig.cloudrig
 
         layout.enabled = cloudrig.enabled
-
-        if not draw_version_check(context, layout):
-            return
 
         text = "Generate CloudRig"
         if metarig.cloudrig.generator.target_rig:
