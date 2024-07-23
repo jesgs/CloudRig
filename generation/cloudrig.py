@@ -2569,7 +2569,8 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
             return f"{words[0]} selected bones {words[1]} {colls}"
 
     def invoke(self, context, event):
-        self.assign = not event.alt
+        if self.assign:
+            self.assign = not event.alt
         self.assign_to_children = event.shift
         self.all_collections = event.shift and event.ctrl
         return self.execute(context)
