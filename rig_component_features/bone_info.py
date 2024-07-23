@@ -1,4 +1,6 @@
-import bpy, re
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+import re
 from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
 
 from mathutils import Vector, Matrix

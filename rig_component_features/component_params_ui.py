@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import UILayout
 from collections import OrderedDict
 import json

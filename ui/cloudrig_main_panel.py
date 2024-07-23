@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import Panel, Object
 
 from ..generation.cloudrig import is_generated_cloudrig

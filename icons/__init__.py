@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 import os
 import bpy
 import bpy.utils.previews # Do not remove. Seems necessary for some python versions... Wtf.

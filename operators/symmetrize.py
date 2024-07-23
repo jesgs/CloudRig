@@ -1,4 +1,5 @@
-from re import X
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 import bpy
 from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name

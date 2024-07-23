@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming

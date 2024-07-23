@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import Panel
 from ..utils.misc import get_addon_prefs, get_pbone_of_active
 

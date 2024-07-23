@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 import bpy, os
 from bpy.types import Object, Operator, Menu
 from bpy.props import StringProperty

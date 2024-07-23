@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from .pie_bone_parenting import GenericBoneOperator
 from bpy.types import Menu, EditBone, Object
 from ..generation.cloudrig import register_hotkey, CloudRigOperator

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Panel, UIList, UI_UL_list
 from bl_ui.generic_ui_list import draw_ui_list

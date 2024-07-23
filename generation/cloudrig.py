@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 """
 This file is loaded into a self-executing text datablock and attached to all
 CloudRig rigs.

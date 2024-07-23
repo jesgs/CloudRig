@@ -1,4 +1,5 @@
-from bpy.props import StringProperty
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import (
     UIList,
     UI_UL_list,

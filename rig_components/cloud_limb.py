@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector

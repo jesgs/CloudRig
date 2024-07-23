@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 import bpy, os, traceback
 from bpy.types import Object, PropertyGroup, Collection, Text, Action
 from bpy.props import (

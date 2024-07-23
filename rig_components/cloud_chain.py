@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.props import BoolProperty, IntProperty
 from bpy.types import PropertyGroup
 

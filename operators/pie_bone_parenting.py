@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 """
 This is currently intended to be used with the Pie Menu Editor add-on.
 In future, we could create our own pie menu and hotkey UI.

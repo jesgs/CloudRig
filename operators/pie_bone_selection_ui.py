@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import Menu, Constraint, PoseBone, UILayout
 
 from ..generation import naming

@@ -1,4 +1,5 @@
-import bpy
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
 from bpy.props import BoolProperty, StringProperty, PointerProperty
 from mathutils import Matrix, Vector

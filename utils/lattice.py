@@ -1,4 +1,7 @@
-# These functions are copied from my Lattice Magic addon: https://projects.blender.org/studio/blender-studio-pipeline/src/branch/main/scripts-blender/addons/lattice_magic
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+# These functions are copied from my Lattice Magic addon: 
+# https://projects.blender.org/studio/blender-studio-pipeline/src/branch/main/scripts-blender/addons/lattice_magic
 # So they should probably be kept in sync.
 
 from bpy.types import Lattice, Object, VertexGroup

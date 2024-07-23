@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import Spline, Curve
 from mathutils import Vector
 from mathutils.kdtree import KDTree

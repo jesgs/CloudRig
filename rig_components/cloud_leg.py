@@ -1,4 +1,5 @@
-import bpy
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 from bpy.types import PropertyGroup, Bone
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector

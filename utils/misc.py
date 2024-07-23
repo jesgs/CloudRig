@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Not a fan of a file called utils/misc.py but man, these functions
 # really don't fit anywhere.
 
