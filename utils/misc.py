@@ -8,6 +8,17 @@ from bpy.types import PoseBone, Text, Object, EditBone, Bone
 from .. import __package__ as base_package
 
 
+def copy_prop_group(source_owner, target_owner, prop_group_name):
+    if prop_group_name not in source_owner:
+        if prop_group_name in target_owner:
+            del target_owner[prop_group_name]
+        return
+
+    prop_dict = source_owner[prop_group_name].to_dict()
+    if prop_group_name in target_owner:
+        del target_owner[prop_group_name]
+    target_owner[prop_group_name] = prop_dict
+
 def load_script(
     file_path="", file_name="cloudrig.py", datablock=None, execute=True
 ) -> Text:

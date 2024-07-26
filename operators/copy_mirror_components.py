@@ -140,20 +140,16 @@ def copy_cloudrig_component(
         )
 
     if 'cloudrig_component' in from_bone:
-        param_dict = from_bone[
-            'cloudrig_component'
-        ].to_dict()  # .get('cloudrig_component')
+        param_dict = from_bone['cloudrig_component'].to_dict()
         if 'cloudrig_component' in to_bone:
             del to_bone['cloudrig_component']
         if x_mirror:
             to_bone['cloudrig_component'] = recursive_mirror(param_dict)
         else:
             to_bone['cloudrig_component'] = param_dict
-    else:
-        try:
-            del to_bone['cloudrig_component']
-        except KeyError:
-            pass
+    elif 'cloudrig_component' in to_bone:
+        del to_bone['cloudrig_component']
+
     return True
 
 

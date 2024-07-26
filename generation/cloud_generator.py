@@ -32,6 +32,7 @@ from ..utils.misc import (
     load_script,
     get_pbone_of_active,
     assign_to_collection,
+    copy_prop_group,
 )
 from .cloudrig import (
     register_hotkey,
@@ -557,7 +558,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
             if not tgt_coll:
                 tgt_coll = target_armature_obj.data.collections.new(src_coll.name)
-                tgt_coll['cloudrig_info'] = src_coll['cloudrig_info'].to_dict()
+                copy_prop_group(src_coll, tgt_coll, 'cloudrig_info')
             tgt_coll.is_visible = src_coll.is_visible
 
             # Copy the driver on is_visible, if there is one.
@@ -831,7 +832,7 @@ def replace_old_with_new_rig(
             if old_coll.parent:
                 parent = new_rig.data.collections_all.get(old_coll.parent.name)
             new_coll = new_rig.data.collections.new(old_coll.name, parent=parent)
-        new_coll['cloudrig_info'] = old_coll['cloudrig_info'].to_dict()
+        copy_prop_group(old_coll, new_coll, 'cloudrig_info')
         new_coll.is_visible = old_coll.is_visible
         for old_bone in old_coll.bones:
             new_bone = new_rig.data.bones.get(old_bone.name)

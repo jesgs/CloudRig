@@ -91,6 +91,8 @@ class BoneGizmoMixin:
         op_data = gizmo_dict[operator]
         op_data.append((bone_names, op_kwargs))
 
+        if 'gizmo_interactions' in self.target_rig.data:
+            del self.target_rig.data['gizmo_interactions']
         self.target_rig.data['gizmo_interactions'] = gizmo_dict
 
     def add_gizmo_interactions(self):
