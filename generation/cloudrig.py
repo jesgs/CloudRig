@@ -772,8 +772,13 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
 
         props_to_key: list[tuple[ID | PoseBone, str]] = []
 
-        def add_props_to_key_recursive(ui_data: OrderedDict):
-            for _elem_name, elem_data in ui_data.items():
+        def add_props_to_key_recursive(ui_data: OrderedDict | list):
+            if hasattr(ui_data, 'items'):
+                elem_list = [data for _name, data in ui_data.items()]
+            elif type(ui_data) == list:
+                elem_list = ui_data
+
+            for elem_data in elem_list:
                 if type(elem_data) == str:
                     continue
                 if 'owner_path' in elem_data:
@@ -786,7 +791,12 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
                         # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
                         continue
 
-                    props_to_key.append((owner, elem_data['prop_name']))
+                    if type(owner) == BoneCollection:
+                        # Let's not keyframe bone visibilities.
+                        continue
+
+                    prop_name = elem_data['prop_name']
+                    props_to_key.append((owner, prop_name))
 
                 add_props_to_key_recursive(elem_data)
 
