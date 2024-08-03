@@ -803,7 +803,11 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
         add_props_to_key_recursive(ui_data)
 
         for prop_owner, prop_name in props_to_key:
-            prop_owner.keyframe_insert(prop_name, group=prop_owner.name)
+            try:
+                prop_owner.keyframe_insert(prop_name, group=prop_owner.name)
+            except TypeError:
+                # Happens if property is not animatable.
+                pass
 
         return {'FINISHED'}
 
