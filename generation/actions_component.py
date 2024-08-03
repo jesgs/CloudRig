@@ -322,9 +322,9 @@ class ActionLayerComponent:
             }
 
     def store_child_meshes(self):
-        if self.layers:
+        if self.layers and self.generator.params.target_rig:
             self.child_meshes = [
                 child
-                for child in self.generator.target_rig.children_recursive
+                for child in self.generator.params.target_rig.children_recursive
                 if child.type == 'MESH'
             ]

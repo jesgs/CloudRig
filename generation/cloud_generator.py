@@ -325,8 +325,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # ------------------------------------------
 
-        self.execute_custom_script()
-
         if self.params.generate_test_action:
             self.create_test_animation()
 
@@ -353,6 +351,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos(self.target_rig, self.bone_infos)
 
+        self.log_minor_issues()
+        self.execute_custom_script()
+
         old_rig = self.params.target_rig
         if old_rig:
             replace_old_with_new_rig(
@@ -365,6 +366,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
 
+        # NOTE: Any errors arising after replacing the rigs is really bad,
+        # because then the user gets an error even though their old rig has been
+        # overwritten. They can't be sure if their rig is in a clean state or not.
+        # So, keep these final pieces of generation code simple!
+
         # Set the param as the target rig.
         # Important for first generation.
         self.params.target_rig = self.target_rig
@@ -372,7 +378,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.target_rig.data.name = self.target_rig.name
 
         self.restore_rig_states(context)
-        self.log_minor_issues()
 
     ### Early generation steps.
     def ensure_widget_collection(self, context) -> Collection:
