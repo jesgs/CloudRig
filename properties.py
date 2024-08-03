@@ -279,9 +279,10 @@ class RigComponent(PropertyGroup):
     )
 
     def component_type_update_callback(self, context):
-        self.id_data.cloudrig.active_component_index = self.id_data.pose.bones.find(
-            context.active_bone.name
-        )
+        # Update component order (used for sorting the UIList as well as generation order).
+        self.id_data.cloudrig.refresh_generator_data()
+        # Ensure this component has UI bone sets
+        self.update_ui_bone_sets()
 
         # Clear any PointerProperties that are not of the new component type.
         for comp_type_name in list(self.params.keys()):
@@ -289,14 +290,14 @@ class RigComponent(PropertyGroup):
                 # Don't reset pointers of the current component type.
                 continue
             if "." in comp_type_name:
-                # Leftover garbage, I think?
+                # Leftover garbage, from old versions.
                 del self.params[comp_type_name]
                 continue
 
             component_type_params = getattr(self.params, comp_type_name)
             for param_key in list(component_type_params.keys()):
                 if not hasattr(component_type_params, param_key):
-                    # More leftover garbage.
+                    # More leftover garbage from old versions.
                     del component_type_params[param_key]
                     continue
                 param_value = getattr(component_type_params, param_key)
@@ -426,19 +427,17 @@ class RigComponent(PropertyGroup):
 
 class Properties_CloudRig(PropertyGroup):
     def active_component_update_callback(self, context=None):
-        # Update component order (used for sorting the UIList as well as generation order).
-        self.refresh_generator_data()
-
         if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
             return
+
         # Select the bone of this rig component
         rig = self.id_data
         for bone in rig.data.bones:
             bone.select = False
         rig.data.bones.active = rig.data.bones[self.active_component_index]
 
-        # Ensure this component has UI bone sets
-        self.active_component.update_ui_bone_sets()
+        if self.active_component:
+            self.active_component.component_type = self.active_component.component_type
 
     active_component_index: IntProperty(
         description="Active CloudRig Component", update=active_component_update_callback
