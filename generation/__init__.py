@@ -5,6 +5,7 @@ from . import (
     cloud_generator,
     naming,
     actions_component,
+    selection_sets,
 )
 
 modules = [
@@ -14,4 +15,5 @@ modules = [
     naming,
     actions_component,
     generate_test_animation,
+    selection_sets,
 ]

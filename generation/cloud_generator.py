@@ -43,7 +43,7 @@ from .cloudrig import (
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
 from .actions_component import ActionLayerComponent
-
+from . import selection_sets
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
@@ -194,11 +194,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
         # Set flag to handle Selection Sets.
-        # Need to check in two ways, first for pre-4.2, then post-4.2
-        # (Selection Sets became built-in.)
-        self.preserve_sel_sets = check_addon(context, 'bone_selection_sets') or hasattr(
-            metarig, 'selection_sets'
-        )
+        self.preserve_sel_sets = selection_sets.check(context, metarig)
 
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
@@ -710,6 +706,9 @@ def create_target_rig_obj(context, metarig) -> Object:
     # Mark rig for cloudrig.py compatibility checks
     target_rig.data['is_generated_cloudrig'] = True
 
+    # Wipe selection sets.
+    selection_sets.wipe(target_rig)
+
     # Save generation timestamp to a custom property
     today = datetime.today()
     now = datetime.now()
@@ -766,18 +765,7 @@ def replace_old_with_new_rig(
 
     # Save Selection Sets.
     if preserve_sel_sets:
-        try:
-            # pre-4.2
-            from bone_selection_sets import to_json
-        except ModuleNotFoundError:
-            # post-4.2
-            from bl_operators.bone_selection_sets import _to_json as to_json
-
-        context.view_layer.objects.active = old_rig
-        for selset in old_rig.selection_sets:
-            selset.is_selected = True
-        selsets = to_json(context)
-
+        stored_selsets = selection_sets.store(context, old_rig)
     # Save Custom Gizmo settings.
     if preserve_gizmos:
         gizmo_properties_class = PropertyGroup.bl_rna_get_subclass_py(
@@ -857,14 +845,7 @@ def replace_old_with_new_rig(
 
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
-        try:
-            # pre-4.2
-            from bone_selection_sets import from_json
-        except ModuleNotFoundError:
-            # post-4.2
-            from bl_operators.bone_selection_sets import _from_json as from_json
-
-        from_json(context, selsets)
+        selection_sets.load(context, new_rig, stored_selsets)
 
     # Swap all references pointing at the old rig to the new rig.
     old_rig.id_data.user_remap(new_rig)
