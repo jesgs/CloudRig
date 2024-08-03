@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-import importlib
-import sys
 import os
+import importlib
 from bpy.utils import register_class, unregister_class
 from .metarigs import versioning
 
@@ -89,41 +88,45 @@ def register_unregister_modules(modules: list, register: bool):
             m.unregister()
 
 
-def ensure_importable_modules():
-    """This function is to fix branch downloads that rename the add-on's
-    root folder (and thereby python module name) from MyAddOn to MyAddOn-master.
 
-    We do this by populating the sys.modules dictionary with references to the
-    existing modules, pointed to by the correct names.
-    """
-    addon_name = bl_info_copy['name']
-    if addon_name not in sys.modules:
-        dirname = __file__.split(os.sep)[-2]
-        stuff = {}
-        for name, module in sys.modules.items():
-            if dirname in name:
-                stuff[name.replace(dirname, addon_name)] = module
-        sys.modules.update(stuff)
+def do_backwards_comp_stuff():
+    def ensure_importable_modules():
+        """This function is to fix branch downloads that rename the add-on's
+        root folder (and thereby python module name) from MyAddOn to MyAddOn-master.
+
+        We do this by populating the sys.modules dictionary with references to the
+        existing modules, pointed to by the correct names.
+        """
+        import sys
+        addon_name = bl_info_copy['name']
+        if addon_name not in sys.modules:
+            dirname = __file__.split(os.sep)[-2]
+            stuff = {}
+            for name, module in sys.modules.items():
+                if dirname in name:
+                    stuff[name.replace(dirname, addon_name)] = module
+            sys.modules.update(stuff)
+
+    import bpy
+    version = bpy.app.version
+    if version < (4, 2, 0):
+        ensure_importable_modules()
+
+
+        if __name__.startswith("rigify"):
+            # If trying to register as a Rigify feature-set, throw useful error.
+            raise Exception(
+                "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
+            )
 
 
 def register():
-    """Called by Blender when enabling the CloudRig add-on."""
-
-    if __name__.startswith("rigify"):
-        # If trying to register as a Rigify feature-set, throw useful error.
-        raise Exception(
-            "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
-        )
-
-    ensure_importable_modules()
+    """Called by Blender when enabling the CloudRig add-on, or on Blender launch if already enabled."""
+    do_backwards_comp_stuff()
     register_unregister_modules(modules, True)
 
 
-def unregister():
-    if __name__.startswith("rigify"):
-        # If trying to register as a Rigify feature-set, throw useful error.
-        raise Exception(
-            "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
-        )
 
+def unregister():
+    """Called by Blender when disabling the CloudRig add-on."""
     register_unregister_modules(modules, False)
