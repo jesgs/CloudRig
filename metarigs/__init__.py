@@ -3,6 +3,7 @@
 import bpy, os
 from bpy.types import Object, Operator, Menu
 from bpy.props import StringProperty
+from . import versioning
 
 # Global storage of available metarigs. List of UI name and object name tuples.
 metarig_names: list[tuple[str, str]] = []
@@ -193,6 +194,7 @@ registry = [
     CLOUDRIG_MT_rig_samples,
 ]
 
+modules = [versioning]
 
 # Registering is a bit tricky because we need to load a resource .blend file,
 # which is not allowed by bpy during registration, so we have to do it with a delay.
@@ -204,7 +206,7 @@ def delayed_refresh_metarig_list():
 def register():
     bpy.app.timers.register(delayed_refresh_metarig_list)
     bpy.types.VIEW3D_MT_armature_add.append(draw_cloudrig_metarig_menu)
-
+    versioning.update_all_metarigs()
 
 def unregister():
     bpy.types.VIEW3D_MT_armature_add.remove(draw_cloudrig_metarig_menu)

@@ -3,7 +3,6 @@
 import os
 import importlib
 from bpy.utils import register_class, unregister_class
-from .metarigs import versioning
 
 from . import (
     manual_mapping,
@@ -48,7 +47,6 @@ modules = [
     # - Hotkeys must come after `cloudrig`, since we're storing them on a panel.
     rig_component_features,
     rig_components,
-    versioning,
     prefs,
     generation,
     operators,
@@ -111,7 +109,6 @@ def do_backwards_comp_stuff():
     version = bpy.app.version
     if version < (4, 2, 0):
         ensure_importable_modules()
-
 
         if __name__.startswith("rigify"):
             # If trying to register as a Rigify feature-set, throw useful error.

@@ -207,7 +207,13 @@ def get_old_cloud_metarigs():
 
 
 @persistent
-def update_all_metarigs(dummy):
+def update_all_metarigs(dummy=None):
+    if not hasattr(bpy.data, 'objects'):
+        # We want this function to run on Register, because we want to version metarigs in current scene
+        # when user enables CloudRig. But this is not allowed by PyAPI, so we defer the call to until after 
+        # add-on registration completes, using a timer.
+        bpy.app.timers.register(update_all_metarigs)
+        return
     metarig_version = get_addon_prefs().cloud_metarig_version
     pre_blender4_metarigs = get_old_cloud_metarigs()
     for metarig in pre_blender4_metarigs:
