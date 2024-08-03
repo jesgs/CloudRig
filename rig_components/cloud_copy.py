@@ -191,21 +191,21 @@ class Component_CopyBone(Component_Base):
             return params.copy.create_deform
 
         if set_name == 'mechanism_bones':
-            return params.copy.ensure_free
+            return params.copy.ensure_free or params.parenting.parent_switching
 
         if set_name == 'pivot_control':
             return params.copy.custom_pivot
 
         if set_name == 'original_bones':
-            return True
+            return False
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
-    # @classmethod
-    # def define_bone_sets(cls):
-    #     """Create parameters for this rig's bone sets."""
-    #     super().define_bone_sets()
-    #     cls.define_bone_set('Pivot Control', color_palette='THEME02')
+    @classmethod
+    def define_bone_sets(cls):
+        """Create parameters for this rig's bone sets."""
+        super().define_bone_sets()
+        cls.define_bone_set('Pivot Control', color_palette='THEME02')
 
 class Params(PropertyGroup):
     create_deform: BoolProperty(
