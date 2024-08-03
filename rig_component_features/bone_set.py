@@ -486,7 +486,10 @@ class CLOUDRIG_UL_bone_sets(UIList):
         bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
 
         row = layout.row()
-        row.label(text=ui_bone_set.ui_name)
+        icon = 'BLANK1'
+        if bone_set.is_advanced:
+            icon='SETTINGS'
+        row.label(text=ui_bone_set.ui_name, icon=icon)
         row.prop(bone_set, 'color_palette', text="")
 
 
