@@ -382,6 +382,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if set_name == 'fk_offset_controls':
             return params.fk_chain.position_along_bone > 0
 
+        if set_name == 'fk_controls_extra':
+            return params.fk_chain.root or params.fk_chain.position_along_bone > 0
+
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod

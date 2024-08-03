@@ -60,6 +60,13 @@ class Component_Feather(Component_Chain_FK):
             'COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4
         )
 
+    @classmethod
+    def is_bone_set_used(cls, context, rig, params, set_name):
+        if set_name == 'fk_controls_extra':
+            return True
+
+        return super().is_bone_set_used(context, rig, params, set_name)
+
     ##############################
     # No parameters for this rig type.
 
