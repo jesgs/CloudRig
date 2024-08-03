@@ -235,6 +235,10 @@ def update_all_metarigs(dummy):
             continue
         version_cloud_metarig(metarig)
         metarig.cloudrig.metarig_version = metarig_version
+        # Trigger component type update callbacks to update_ui_bone_sets(). 
+        # Bit of a hack, but harmless, I swear.
+        for pb in metarig.pose.bones:
+            pb.cloudrig_component.component_type = pb.cloudrig_component.component_type
 
 
 def register():
