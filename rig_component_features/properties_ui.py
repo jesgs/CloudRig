@@ -100,6 +100,12 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         if not supports_custom_props(prop_owner):
             return
 
+        # Help initialize BoneCollection visibility toggles.
+        if type(prop_owner) == BoneCollection:
+            if self.prop_name == "":
+                self.prop_name = "is_visible"
+
+        # Populate the custom property drop-down selector with available custom properties.
         for key in prop_owner.keys():
             try:
                 prop_owner.id_properties_ui(key).as_dict()
@@ -137,9 +143,25 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
         default=False,
         update=update_use_bone_selector,
     )
+    def update_prop_name(self, context):
+        rig = find_cloudrig(context)
+
+        # Help initialize Bone Collection toggles.
+        prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(self, rig)
+        if type(prop_owner) == BoneCollection and self.prop_name == 'is_visible':
+            if self.icon_true == 'CHECKBOX_HLT':
+                self.icon_true = 'HIDE_OFF'
+            if self.icon_false == 'CHECKBOX_DEHLT':
+                self.icon_false = 'HIDE_ON'
+            if self.slider_name == "":
+                self.slider_name = prop_owner.name
+            if self.panel_name == "Properties":
+                self.panel_name = "Bone Collections"
+
     prop_name: StringProperty(
         name="Property Name",
         description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0",
+        update=update_prop_name
     )
     use_manual_prop_name: BoolProperty(
         name="Custom Property",
@@ -406,6 +428,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                     prop_owner,
                     brackets_prop_name,
                     slider_name=self.slider_name,
+                    icon_true=self.icon_true,
+                    icon_false=self.icon_false,
                     texts=[t.strip() for t in self.texts.split(",")],
                 )
         elif type(prop_owner) in {ID, PoseBone, Bone}:
