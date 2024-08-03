@@ -140,6 +140,7 @@ class CloudParentingMixin:
                         parent_bone_names, parent_slots
                     ),
                     'max': len(parent_ui_names) - 1,
+                    'description': f'Changes the parent bone of "{child_bone.name}"',
                 },
                 operator="pose.cloudrig_switch_parent_bake",
                 op_icon="COLLAPSEMENU",

@@ -172,6 +172,7 @@ class Component_Aim(Component_Base):
 
                 custom_prop_settings={
                     'default': 1.0,
+                    'description': f'Makes "{highlight_ctr.name}" follow "{ctr_bone.name}"',
                 },
                 operator="pose.cloudrig_snap_bake",
                 op_icon="FILE_REFRESH",

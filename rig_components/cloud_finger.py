@@ -53,6 +53,7 @@ class Component_Finger(Component_Chain_IKFK):
             panel_name=panel_name,
             label_name=label_name,
             parent_id='CLOUDRIG_PT_custom_ik',
+            custom_prop_settings=custom_prop_settings,
             **kwargs
         )
 
@@ -137,6 +138,7 @@ class Component_Finger(Component_Chain_IKFK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 'default': 1.0,
+                'description': 'When enabled, the last bone in the chain is also considered part of the IK chain',
             },
         )
 

@@ -124,7 +124,7 @@ class Component_CopyBone(Component_Base):
         Properties of the bone will be displayed under the provided sub-panel and label.
         This will be displayed in the Sidebar->CloudRig->Settings.
         """
-        for prop_name, prop in bone.custom_props.items():
+        for prop_name, prop_settings in bone.custom_props.items():
             if prop_name.startswith("_"):
                 # In the past, underscore indicated that this is a value for a preset.
                 # Now, let's just say underscore means don't draw this property.
@@ -159,9 +159,7 @@ class Component_CopyBone(Component_Base):
                 row_name=row_name,
                 slider_name=entry_name,
                 texts=texts,
-                custom_prop_settings={
-                    'default': prop.get('default', None),
-                },
+                custom_prop_settings=prop_settings
             )
 
     ##############################

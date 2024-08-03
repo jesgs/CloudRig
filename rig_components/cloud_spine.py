@@ -273,6 +273,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             slider_name=self.spine_name,
             custom_prop_settings={
                 'default': 1.0,
+                'description': "Allow the spine to stretch beyond its normal length while in IK mode, for a cartoony effect",
             },
         )
 
@@ -284,6 +285,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             slider_name=self.spine_name,
             custom_prop_settings={
                 'default': 0.0,
+                'description': "Switch to an IK-like posing mode. Instead of posing the spine from bottom to top, this lets you control the two end points in an intuitive way"
             },
         )
 

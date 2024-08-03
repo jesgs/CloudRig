@@ -254,6 +254,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             slider_name=limb_name,
             custom_prop_settings={
                 'default': default_value,
+                'description': "When enabled, rotation is not inherited, except from the armature's root",
             },
             operator='pose.cloudrig_snap_bake',
             op_icon='FILE_REFRESH',

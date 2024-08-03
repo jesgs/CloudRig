@@ -121,6 +121,7 @@ class Component_Eyelid(Component_FaceChain):
             slider_name=self.parent_component.bones_org[0].name,
             custom_prop_settings={
                 'default': 0.1,
+                'description': 'How much the eyelids should follow the movements of the eyeball',
             },
         )
 

@@ -347,6 +347,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             'slider_name': self.limb_ui_name,
             'custom_prop_settings': {
                 'default': 1.0,
+                'description': f'Switch {self.limb_name} to Inverse Kinematics posing mode',
             },
             'operator': "pose.cloudrig_toggle_ikfk_bake",
             'op_icon': "FILE_REFRESH",
@@ -421,6 +422,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 'default': 1.0,
+                'description': f'Allow the limb to stretch beyond its normal maximum reach for a cartoony effect',
             },
         )
 
@@ -641,6 +643,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 'default': default,
+                'description': f'Make "{ik_pole.name}" follow "{ik_mstr.name}"',
             },
             operator='pose.cloudrig_snap_bake',
             op_icon='FILE_REFRESH',

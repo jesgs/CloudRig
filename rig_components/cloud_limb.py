@@ -255,6 +255,10 @@ class Component_Limb(Component_Chain_IKFK):
                 prop_bone=self.properties_bone,
                 prop_id=prop_name,
                 panel_name="Auto Rubber Hose",
+                custom_prop_settings={
+                    'default': 0.0,
+                    'description': f'Automatically smoothen the curvature of the limb and avoid sharp angles, for a cartoony effect',
+                },
                 row_name=self.limb_name,
                 slider_name=self.limb_ui_name,
             )
