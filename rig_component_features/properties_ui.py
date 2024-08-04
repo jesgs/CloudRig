@@ -25,11 +25,10 @@ from ..generation.cloudrig import (
     find_cloudrig,
 )
 from rna_prop_ui import rna_idprop_ui_create
+from rna_prop_ui import rna_idprop_value_item_type
 
 
 def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
-    """For some reason when this function is inside the class, it doesn't get inherited...
-    Blender Python class inheritance is weird."""
     data_path = bone_name = self.owner_path
     prop_name = self.prop_name
 
@@ -71,12 +70,29 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
     return prop_owner, full_path, data_path, prop_name, prop_value
 
 
-class CLOUDRIG_OT_add_property_to_ui(Operator):
-    """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
+def update_property_selector(self, context):
+    rig = find_cloudrig(context)
 
-    bl_idname = "pose.cloudrig_add_property_to_ui"
-    bl_label = "Add Property to UI"
-    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+    context.scene.cloudrig_property_name_selector.clear()
+
+    prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
+        get_data_paths(self, rig)
+    )
+
+    # Populate the property drop-down selector with available custom properties.
+    for key in get_drawable_custom_properties(prop_owner):
+        name_entry = context.scene.cloudrig_property_name_selector.add()
+        name_entry.name = key
+    
+    if len(context.scene.cloudrig_property_name_selector) == 0:
+        # If that failed, populate it with built-in properties instead.
+        for key in get_drawable_builtin_properties(prop_owner):
+            name_entry = context.scene.cloudrig_property_name_selector.add()
+            name_entry.name = key
+
+
+class CloudRigUIEditOpMixin:
+    """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
 
     def update_use_bone_selector(self, context):
         if self.use_bone_selector:
@@ -89,32 +105,19 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             # If the use_bone_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'pose.bones["{self.owner_path}"]'
 
+
     def update_owner_path(self, context):
-        context.scene.cloudrig_property_name_selector.clear()
+        update_property_selector(self, context)
 
         rig = find_cloudrig(context)
-
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
             get_data_paths(self, rig)
         )
-        if not supports_custom_props(prop_owner):
-            return
 
         # Help initialize BoneCollection visibility toggles.
         if type(prop_owner) == BoneCollection:
             if self.prop_name == "":
                 self.prop_name = "is_visible"
-
-        # Populate the custom property drop-down selector with available custom properties.
-        for key in prop_owner.keys():
-            try:
-                prop_owner.id_properties_ui(key).as_dict()
-            except TypeError:
-                # This happens for Python properties. There's not much point in adding them.
-                continue
-
-            name_entry = context.scene.cloudrig_property_name_selector.add()
-            name_entry.name = key
 
     def update_parent_selector(self, context):
         parent_option = context.scene.cloudrig_property_parent_selector.get(
@@ -367,7 +370,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             prop_box.label(text=f'Data path failed to resolve on {rig.name}.')
             return
 
-        has_custom_props = len(context.scene.cloudrig_property_name_selector) > 0
+        any_selectable_props = len(context.scene.cloudrig_property_name_selector) > 0
+        any_custom_props = has_custom_props(prop_owner)
 
         prop_row = prop_box.row(align=True)
 
@@ -375,9 +379,10 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             prop_row.label(
                 text=f"Add all {len(prop_owner.keys())} custom properties to the UI"
             )
+            prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
             return
 
-        if self.use_manual_prop_name or not has_custom_props:
+        if self.use_manual_prop_name or not any_selectable_props:
             prop_row.prop(self, 'prop_name')
         else:
             prop_row.prop_search(
@@ -388,8 +393,9 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 icon='BLANK1',
             )
 
-        if has_custom_props:
-            prop_row.prop(self, 'use_manual_prop_name', icon='ADD', text="")
+        prop_row.prop(self, 'use_manual_prop_name', icon='ADD', text="")
+
+        if any_custom_props:
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
 
         if not self.prop_name:
@@ -424,7 +430,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             else:
                 prop_box.label(text=f"Property found.", icon='CHECKMARK')
                 draw_property(
-                    prop_box,
+                    prop_box.row(),
                     prop_owner,
                     brackets_prop_name,
                     slider_name=self.slider_name,
@@ -517,6 +523,8 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
 
     def update_property_parent_selector(self, context):
         rig, ui_data = get_rig_and_ui(context)
+        if not rig or not ui_data:
+            return
         context.scene.cloudrig_property_parent_selector.clear()
 
         def add_slider_ui_paths_recursive(
@@ -526,6 +534,7 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
                 new_ui_path = ui_path + [elem_name]
                 identifier = json.dumps(new_ui_path)
                 if hasattr(self, 'ui_path') and identifier == self.ui_path:
+                    # Skip our own child UI elements!
                     return
                 new_display_name = display_name or elem_name
                 if 'owner_path' in elem_data:
@@ -653,7 +662,15 @@ class CLOUDRIG_OT_add_property_to_ui(Operator):
             del context.scene['cloudrig_property_name_selector']
 
 
-class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
+class CLOUDRIG_OT_add_property_to_ui(CloudRigUIEditOpMixin, Operator):
+    """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
+
+    bl_idname = "pose.cloudrig_add_property_to_ui"
+    bl_label = "Add Property to UI"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+
+class CLOUDRIG_OT_add_child_property_to_ui(CloudRigUIEditOpMixin, Operator):
     """Add a child property to the rig UI"""
 
     bl_idname = "pose.cloudrig_add_child_property_to_ui"
@@ -661,7 +678,7 @@ class CLOUDRIG_OT_add_child_property_to_ui(CLOUDRIG_OT_add_property_to_ui):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
 
-class CLOUDRIG_OT_edit_property_in_ui(CLOUDRIG_OT_add_property_to_ui):
+class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
     """Edit how a property is displayed in the UI"""
 
     bl_idname = "pose.cloudrig_edit_property_in_ui"
@@ -772,10 +789,10 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         self.mouse_initial = event.mouse_y
         self.index_offset = 0
         rig, ui_data = get_rig_and_ui(context)
+        if not rig:
+            return {'CANCELLED'}
         self.initial_panel_data = ui_data
         self.modified_panel_data = read_rig_panels(rig)
-
-        rig = find_cloudrig(context)
 
         self.row_data, has_moved = reorder_ui_row(
             obj=rig,
@@ -1132,6 +1149,34 @@ def supports_custom_props(prop_owner):
     return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}
 
 
+def has_custom_props(prop_owner) -> bool:
+    if not supports_custom_props(prop_owner):
+        return False
+    return bool(list(get_drawable_custom_properties(prop_owner)))
+
+
+def get_drawable_custom_properties(prop_owner):
+    if not supports_custom_props(prop_owner):
+        return []
+    for prop_name in prop_owner.keys():
+        try:
+            prop_owner.id_properties_ui(prop_name).as_dict()
+        except TypeError:
+            # This happens for Python properties. There's not much point in drawing them.
+            continue
+        yield prop_name
+
+
+def get_drawable_builtin_properties(prop_owner):
+    for prop_name, prop_data in prop_owner.bl_rna.properties.items():
+        if prop_data.is_runtime:
+            continue
+        prop_value = getattr(prop_owner, prop_name)
+        value_type, is_array = rna_idprop_value_item_type(prop_value)
+        if value_type in {bool, int, float, str}:
+            yield prop_name
+
+
 class HiddenPrints:
     def write(*args):
         # This is a workaround to /issues/83 based on
@@ -1159,7 +1204,7 @@ def redraw_viewport():
 class UIPathProperty(PropertyGroup):
     name: StringProperty()
     ui_path: StringProperty()
-    current: StringProperty()
+    current: StringProperty(description="Current value of this property. Used for pre-filling the Parent Values field")
 
 
 registry = [

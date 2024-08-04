@@ -769,6 +769,8 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
 
     def execute(self, context):
         rig, ui_data = get_rig_and_ui(context)
+        if not rig:
+            return
 
         props_to_key: list[tuple[ID | PoseBone, str]] = []
 
@@ -973,6 +975,8 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
     def draw_panel_header(self, context, layout, panel_name):
         rig, ui_data = get_rig_and_ui(context)
+        if not rig:
+            return
         panel_data = ui_data[panel_name]
 
         draw_drag_operator(rig, ui_data, panel_data, panel_name, [], layout)
@@ -981,6 +985,8 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
     def draw_panel_contents(self, context, layout, panel_name):
         rig, ui_data = get_rig_and_ui(context)
+        if not rig:
+            return
 
         panel_data = ui_data.get(panel_name)
         if panel_data:
@@ -1288,6 +1294,9 @@ def draw_property(
     icon_false='CHECKBOX_DEHLT',
     texts=[],
 ):
+    if not hasattr(prop_owner, 'path_resolve'):
+        print("cloudrig.py: Cannot resolve path from: ", prop_owner)
+        return
     prop_value = prop_owner.path_resolve(prop_name)
 
     bracketless_prop_name = unquote_custom_prop_name(prop_name)
