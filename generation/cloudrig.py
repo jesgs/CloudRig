@@ -14,6 +14,7 @@ from bpy.props import (
     EnumProperty,
     PointerProperty,
     IntProperty,
+    CollectionProperty,
 )
 from bpy.types import (
     bpy_struct,
@@ -1425,6 +1426,254 @@ def unquote_custom_prop_name(prop_name: str) -> str:
         return prop_name[2:-2]
     return prop_name
 
+
+class CloudRig_UIElement(PropertyGroup):
+    element_type: EnumProperty(
+        name="Element Type",
+        description="How this UI element is drawn",
+        items=[
+            ('PANEL', "Panel", "Collapsible panel. May contain Panels, Labels, Rows"),
+            ('LABEL', "Label", "Label. May contain Panels, Labels, Rows"),
+            ('ROW', "Row", "Grouping for elements that allow multiple per row. Must be used for such elements, even if there is only one in the row. May contain Rows, Properties, and Operators"),
+            ('PROPERTY', "Property", "A single Property. Must belong to a Row. May contain conditional Panels, Labels, Rows"),
+            ('OPERATOR', "Operator", "A single Operator. Must belong to a Row"),
+        ],
+    )
+
+    display_name: StringProperty(
+        name="Display Name",
+        description="(Optional) Display name of this UI element",
+        default="",
+    )
+    # NOTE: This needs to be updated when elements are removed.
+    parent_index: IntProperty(
+        # Supported Types: Panel, Label, Row.
+        # TODO: Deletion will need to treat this carefully!
+        name="Parent Index",
+        description="Index of the parent UI element",
+        default=-1,
+    )
+    @property
+    def parent(self):
+        if self.parent_index >= 0:
+            return self.id_data.cloudrig_ui[self.parent_index]
+    @parent.setter
+    def parent(self, value):
+        self.parent_index = value.index
+
+    @property
+    def index(self):
+        for i, elem in enumerate(self.id_data.cloudrig_ui):
+            if elem == self:
+                return i
+
+    parent_values: StringProperty(
+        # Supported Types: Panel, Label, Row, only when Element Type of parent element is Property.
+        name="Parent Values",
+        description="Condition for this UI element to be drawn, when its parent is a Property. This UI element will only be drawn if the parent property has one of these comma-separated values"
+    )
+
+    texts: StringProperty(
+        # Supported Types: Property, only Boolean and Integer.
+        name="Texts",
+        description="Comma-separated display texts for Integer and Boolean Properties"
+    )
+
+    bl_idname: StringProperty(
+        # Supported Types: Operator
+        name="Operator ID",
+        description="Operator bl_idname"
+    )
+    op_kwargs: StringProperty(
+        # Supported Types: Operator
+        name="Operator Arguments",
+        description="Operator Keyword Arguments, as a json dict",
+        default="{}"
+    )
+    icon: StringProperty(
+        # Supported Types: Label, Row, Property(bool), Operator
+        name="Icon",
+        description="Icon"
+    )
+    icon_false: StringProperty(
+        # Supported Types: Property(bool)
+        name="Icon False",
+        description="Icon to display when this boolean property is False"
+    )
+
+    prop_owner_path: StringProperty(
+        # Supported Types: Property
+        name="Property Owner",
+        description="Data Path from the rig object to the direct owner of the property to be drawn"
+    )
+    @property
+    def prop_owner(self):
+        try:
+            return self.id_data.path_resolve(self.prop_owner_path)
+        except ValueError:
+            # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
+            return
+
+    prop_name: StringProperty(
+        # Supported Types: Property
+        name="Property Name",
+        description="Name of the property to be drawn"
+    )
+    @property
+    def bracketed_prop_name(self):
+        if self.prop_is_custom:
+            return f'["{self.prop_name}"]'
+        return self.prop_name
+    @property
+    def prop_value(self):
+        if not hasattr(self.prop_owner, 'path_resolve'):
+            print("cloudrig.py: Cannot resolve path from: ", self.prop_owner)
+            return
+        try:
+            return self.prop_owner.path_resolve(self.bracketed_prop_name)
+        except ValueError:
+            # Property may have been removed.
+            return {'MISSING'}
+
+    prop_is_custom: BoolProperty(
+        # Supported Types: Property
+        name="Is Custom Property",
+        description="Whether this is a custom or a built-in property. Set automatically"
+    )
+    @property
+    def custom_prop_settings(self):
+        if not self.prop_is_custom:
+            return
+        try:
+            return self.prop_owner.id_properties_ui(self.prop_name).as_dict()
+        except TypeError:
+            # This happens for Python properties. There's no point drawing them.
+            return
+
+    @property
+    def children(self):
+        return [elem for elem in self.id_data.cloudrig_ui if elem.parent==self]
+
+    @property
+    def should_draw(self):
+        if not self.parent:
+            return True
+        if self.parent.element_type != 'PROPERTY':
+            return True
+        parent_value_str = str(self.parent.prop_value)
+        if parent_value_str in [v.strip() for v in self.parent_values.split(",")]:
+            return True
+        return False
+
+    def draw(self, context, layout):
+        if not self.should_draw or not layout:
+            return
+
+        if self.element_type == 'PANEL':
+            # TODO: Figure out how to allow elements to be drawn in the header.
+            header, layout = layout.panel(idname=str(self.index) + self.display_name)
+            header.label(text=self.display_name)
+            if not layout:
+                return
+        if self.element_type == 'LABEL':
+            if self.display_name:
+                layout.label(text=self.display_name)
+        if self.element_type == 'ROW':
+            layout = layout.row()
+            if self.display_name:
+                layout.label(text=self.display_name)
+        if self.element_type == 'PROPERTY':
+            self.draw_property(context, layout)
+            if any([child.should_draw for child in self.children]):
+                layout = layout.box()
+        if self.element_type == 'OPERATOR':
+            self.draw_operator(context, layout)
+
+        for child in self.children:
+            child.draw(context, layout)
+
+    def draw_property(self, context, layout):
+        prop_owner, prop_value = self.prop_owner, self.prop_value
+        if not prop_owner:
+            layout.alert = True
+            layout.label(
+                text=f"Missing property owner: '{self.prop_owner_path}' for property '{self.prop_name}'.",
+                icon='ERROR',
+            )
+            return
+        if prop_value == {'MISSING'}:
+            layout.alert = True
+            layout.label(
+                text=f"Missing property '{self.prop_name}' of owner '{self.prop_owner_path}'.",
+                icon='ERROR',
+            )
+
+        if not self.display_name:
+            display_name = self.prop_name
+
+        bracketed_prop_name = self.bracketed_prop_name
+        value_type, is_array = rna_idprop_value_item_type(prop_value)
+
+        if value_type is type(None) or issubclass(value_type, ID):
+            # Property is a Datablock Pointer.
+            layout.prop(self.prop_owner, bracketed_prop_name, text=display_name)
+        elif value_type in {int, float, bool}:
+            if self.texts and not is_array and len(self.texts) - 1 >= int(prop_value) >= 0:
+                text = self.texts[int(prop_value)].strip()
+                if text:
+                    display_name += ": " + text
+            if value_type == bool:
+                icon = self.icon if prop_value else self.icon_flase
+                layout.prop(self.prop_owner, bracketed_prop_name, toggle=True, text=display_name, icon=icon)
+            elif value_type in {int, float}:
+                if self.prop_is_custom:
+                    # Property is a float/int/color
+                    # For large ranges, a slider doesn't make sense.
+                    prop_settings = self.custom_prop_settings
+                    is_slider = (
+                        not is_array
+                        and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+                    )
+                    layout.prop(prop_owner, bracketed_prop_name, slider=is_slider, text=display_name)
+                else:
+                    layout.prop(prop_owner, bracketed_prop_name, text=display_name)
+        elif value_type == str:
+            if (
+                issubclass(type(prop_owner), bpy.types.Constraint)
+                and bracketed_prop_name == 'subtarget'
+                and prop_owner.target
+                and prop_owner.target.type == 'ARMATURE'
+            ):
+                # Special case for nice constraint sub-target selectors.
+                layout.prop_search(prop_owner, bracketed_prop_name, prop_owner.target.pose, 'bones')
+            else:
+                layout.prop(prop_owner, bracketed_prop_name)
+        else:
+            layout.prop(prop_owner, bracketed_prop_name, text=display_name)
+
+    def draw_operator(self, context, layout):
+        op_icon = self.icon
+        if not self.icon or self.icon == 'NONE':
+            op_icon = 'BLANK1'
+        op_props = layout.operator(self.bl_idname, text=self.display_name, icon=op_icon)
+        feed_op_props(op_props, self.op_kwargs)
+        return op_props
+
+
+class CLOUDRIG_PT_custom_ui(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_custom_ui"
+    bl_label = "Rig UI"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        rig = context.active_object # TODO
+
+        for elem in rig.cloudrig_ui:
+            if not elem.parent:
+                elem.draw(context, layout)
 
 #######################################
 ########### Rig Preferences ###########
@@ -2971,10 +3220,12 @@ def register_hotkey(
 #######################################
 
 classes = (
+    CloudRig_UIElement,
     CloudRig_RigPreferences,
     CloudRigBoneCollection,
     CLOUDRIG_UL_collections,
     CLOUDRIG_PT_settings,
+    CLOUDRIG_PT_custom_ui,
     CLOUDRIG_PT_hotkeys_panel,
     CLOUDRIG_PT_collections_sidebar,
     CLOUDRIG_PT_collections_filter,
@@ -3043,6 +3294,7 @@ def register():
     bpy.types.Object.cloudrig_prefs = PointerProperty(
         type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'}
     )
+    bpy.types.Object.cloudrig_ui = CollectionProperty(type=CloudRig_UIElement)
 
     bpy.types.BoneCollection.cloudrig_info = PointerProperty(
         type=CloudRigBoneCollection, override={'LIBRARY_OVERRIDABLE'}
