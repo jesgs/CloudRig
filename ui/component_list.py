@@ -128,7 +128,9 @@ class CLOUDRIG_OT_add_rig_component(CloudRigOperator):
     @classmethod
     def poll(cls, context):
         if not is_cloud_metarig(context.object):
-            cls.poll_message_set("This button should only be visible on CloudRig metarigs!")
+            cls.poll_message_set(
+                "This button should only be visible on CloudRig metarigs!"
+            )
             return False
         return True
 
@@ -205,7 +207,10 @@ class CLOUDRIG_OT_remove_rig_component(CloudRigOperator):
 
     @classmethod
     def poll(cls, context):
-        if not is_cloud_metarig(context.object) and context.object.cloudrig.active_component:
+        if (
+            not is_cloud_metarig(context.object)
+            and context.object.cloudrig.active_component
+        ):
             cls.poll_message_set("Select a component.")
             return False
         return True
@@ -271,7 +276,7 @@ class CLOUDRIG_OT_reorder_rig_component(CloudRigOperator):
                 "This component is already the first among its siblings. It cannot be moved higher in the generation order.",
             )
             return {'CANCELLED'}
-        if sibling_idx > len(component.parent.children) - 1:
+        if sibling_idx > len(component.siblings) - 1:
             self.report(
                 {'ERROR'},
                 "This component is already the last among its siblings. It cannot be moved lower in the generation order.",
@@ -279,7 +284,7 @@ class CLOUDRIG_OT_reorder_rig_component(CloudRigOperator):
             return {'CANCELLED'}
 
         # Swap the sibling order of the two siblings.
-        sibling = component.parent.children[sibling_idx]
+        sibling = component.siblings[sibling_idx]
         sibling.sibling_order -= delta
         component.sibling_order += delta
 

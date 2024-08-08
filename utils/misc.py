@@ -19,6 +19,7 @@ def copy_prop_group(source_owner, target_owner, prop_group_name):
         del target_owner[prop_group_name]
     target_owner[prop_group_name] = prop_dict
 
+
 def load_script(
     file_path="", file_name="cloudrig.py", datablock=None, execute=True
 ) -> Text:
@@ -117,6 +118,10 @@ def get_current_rigs(context):
     for obj in objs:
         if context.mode in {'POSE', 'EDIT_ARMATURE'} and obj.type == 'ARMATURE':
             yield obj
+
+
+def get_parentless_pbones(rig: Object) -> list[PoseBone]:
+    return [pb for pb in rig.pose.bones if not pb.bone.parent]
 
 
 def get_active_bone(context):

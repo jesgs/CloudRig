@@ -12,7 +12,7 @@ from bpy.types import PropertyGroup, Object, PoseBone, ID, BoneColor
 
 from . import rig_components, rig_component_features
 from .generation.cloud_generator import GeneratorProperties
-from .utils.misc import get_addon_prefs
+from .utils.misc import get_addon_prefs, get_parentless_pbones
 
 
 def get_param_classes() -> dict:
@@ -418,11 +418,23 @@ class RigComponent(PropertyGroup):
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
         return [pb.cloudrig_component for pb in child_component_pbs]
 
+    @property
+    def siblings(self) -> list['RigComponent']:
+        if self.parent:
+            return self.parent.children
+        return sorted(
+            [pb.cloudrig_component for pb in get_parentless_pbones(self.id_data)],
+            key=lambda comp: comp.sibling_order,
+        )
+
     has_children: BoolProperty(
         name="Has Children",
         description="Cache to improve UI drawing performance",
         default=False,
     )
+
+    def __repr__(self):
+        return f"{self.base_bone_name}: {self.component_type}"
 
 
 class Properties_CloudRig(PropertyGroup):
@@ -496,12 +508,13 @@ class Properties_CloudRig(PropertyGroup):
         metarig_ob = self.id_data
 
         # Find pbones that have no parents.
-        parentless_pbones = [pb for pb in metarig_ob.pose.bones if not pb.bone.parent]
-        # parentless_components.sort(key=lambda comp: comp.sibling_order)
+        parentless_pbones = get_parentless_pbones(metarig_ob)
+        parentless_pbones.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
 
         # Number them hierarchically
         order_idx = 0
-        for pbone in parentless_pbones:
+        for i, pbone in enumerate(parentless_pbones):
+            pbone.cloudrig_component.sibling_order = i
             order_idx = self.order_components_recursive(
                 pbone, order_idx=order_idx, depth=0
             )
