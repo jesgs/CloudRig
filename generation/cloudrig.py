@@ -1471,6 +1471,15 @@ class CloudRig_UIElement(PropertyGroup):
             if elem == self:
                 return i
 
+    @property
+    def identifier(self):
+        id = self.display_name
+        parent = self.parent
+        while parent:
+            id = parent.display_name + " -> " + id
+            parent = parent.parent
+        return id
+
     parent_values: StringProperty(
         # Supported Types: Panel, Label, Row, only when Element Type of parent element is Property.
         name="Parent Values",
@@ -1573,12 +1582,13 @@ class CloudRig_UIElement(PropertyGroup):
         if not self.should_draw or not layout:
             return
 
+        remove_op_ui = layout
+
         if self.element_type == 'PANEL':
             # TODO: Figure out how to allow elements to be drawn in the header.
             header, layout = layout.panel(idname=str(self.index) + self.display_name)
             header.label(text=self.display_name)
-            if not layout:
-                return
+            remove_op_ui = header
         if self.element_type == 'LABEL':
             if self.display_name:
                 layout.label(text=self.display_name)
@@ -1593,6 +1603,11 @@ class CloudRig_UIElement(PropertyGroup):
         if self.element_type == 'OPERATOR':
             self.draw_operator(context, layout)
 
+        if self.id_data.cloudrig.ui_edit_mode:
+            remove_op_ui.operator('object.cloudrig_ui_element_remove', text="", icon='X').element_index = self.index
+
+        if not layout:
+            return
         for child in self.children:
             child.draw(context, layout)
 
@@ -1662,6 +1677,9 @@ class CloudRig_UIElement(PropertyGroup):
         op_props = layout.operator(self.bl_idname, text=self.display_name, icon=op_icon)
         feed_op_props(op_props, self.op_kwargs)
         return op_props
+    
+    def __repr__(self):
+        return self.identifier
 
 
 class CLOUDRIG_PT_custom_ui(CLOUDRIG_PT_base):

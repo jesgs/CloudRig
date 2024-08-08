@@ -13,7 +13,7 @@ from bpy.types import (
     Modifier,
 )
 from typing import Any
-from bpy.props import StringProperty, BoolProperty, CollectionProperty
+from bpy.props import StringProperty, BoolProperty, CollectionProperty, IntProperty
 from collections import OrderedDict
 from ..generation.cloudrig import (
     unquote_custom_prop_name,
@@ -1203,6 +1203,7 @@ def redraw_viewport():
 
 class UIPathProperty(PropertyGroup):
     name: StringProperty()
+    index: IntProperty()
     ui_path: StringProperty()
     current: StringProperty(description="Current value of this property. Used for pre-filling the Parent Values field")
 
