@@ -260,6 +260,8 @@ class BoneInfo:
         for con_info in self.constraint_infos:
             if con_info.type == 'ARMATURE':
                 return False
+            if con_info.type == 'CHILD_OF':
+                return False
 
         if self.ignore_orphan:
             return False
