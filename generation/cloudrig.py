@@ -946,6 +946,10 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             if rig.cloudrig.ui_edit_mode:
                 if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
                     layout.operator('pose.cloudrig_add_property_to_ui', icon='ADD')
+                if hasattr(bpy.ops.object, 'cloudrig_ui_element_add'):
+                    layout.operator('object.cloudrig_ui_element_add', icon='ADD')
+                else:
+                    print("Why didn't the class register")
 
         if ui_data:
             for panel_name, panel_data in ui_data.items():
