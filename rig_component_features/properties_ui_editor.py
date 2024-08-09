@@ -16,15 +16,21 @@ import bpy
 def draw_ui_editing(context, layout, ui_element, operator):
     rig = find_cloudrig(context)
 
-    layout.prop(ui_element, 'element_type')
-    name_row = layout.row()
-    if (
-        ui_element.element_type in {'PANEL', 'LABEL', 'ROW'}
-        and ui_element.display_name.strip() == ""
-    ):
-        name_row.alert = True
+    layout.prop(operator, 'element_type', expand=True)
 
-    if ui_element.element_type == 'PROPERTY':
+    parent_row = layout.row()
+    if operator.create_new_ui:
+        parent_row.prop(operator, 'new_panel_name')
+        layout.prop(operator, 'new_label_name')
+        layout.prop(operator, 'new_row_name')
+    else:
+        parent_row.prop_search(
+            operator, 'parent_element', context.scene, 'cloudrig_ui_parent_selector'
+        )
+    if context.scene.cloudrig_ui_parent_selector:
+        parent_row.prop(operator, 'create_new_ui', text="", icon='ADD')
+
+    if operator.element_type == 'PROPERTY':
         layout.prop(operator, 'prop_owner_type', expand=True)
         if operator.prop_owner_type == 'BONE':
             layout.prop_search(operator, 'prop_bone', rig.pose, 'bones')
@@ -46,23 +52,14 @@ def draw_ui_editing(context, layout, ui_element, operator):
         else:
             layout.prop(ui_element, 'prop_name')
 
-    if ui_element.element_type == 'OPERATOR':
+    if operator.element_type == 'OPERATOR':
         draw_op_editing(context, layout, ui_element, operator)
 
-    name_row.prop(ui_element, 'display_name')
-    if (
-        ui_element.element_type in {'PANEL', 'LABEL', 'ROW'}
-        and ui_element.display_name.strip() == ""
-    ):
-        return
+    layout.prop(ui_element, 'display_name')
 
     # debug
     # layout.prop(ui_element, 'prop_owner_path')
     # layout.prop(ui_element, 'is_custom_prop')
-
-    layout.prop_search(
-        operator, 'parent_element', context.scene, 'cloudrig_ui_parent_selector'
-    )
 
 
 def draw_op_editing(context, layout, ui_element, operator):
@@ -201,6 +198,18 @@ class UIElementAddMixin:
         update=update_prop_owner_type,
     )
 
+    element_type: EnumProperty(
+        name="Element Type",
+        items=[
+            ('PROPERTY', 'Property', "Property"),
+            ('OPERATOR', 'Operator', "Operator")
+        ]
+    )
+    create_new_ui: BoolProperty(name="Create Containers", description="Instead of placing this UI element in an existing panel, label, and row, create new ones")
+    new_panel_name: StringProperty(name="Panel Name", description="Optional. Elements parented to this panel can be hidden by collapsing the panel")
+    new_label_name: StringProperty(name="Label Name", description="Optional. Elements parented to this label will be displayed below it")
+    new_row_name: StringProperty(name="Row Name", description="Optional. Elements parented to this row will be displayed side-by-side")
+
     use_batch_add: BoolProperty(
         name="Batch Add",
         options={'SKIP_SAVE'},
@@ -217,6 +226,8 @@ class UIElementAddMixin:
 
     def invoke(self, context, _event):
         update_parent_selector(context)
+        if not context.scene.cloudrig_ui_parent_selector:
+            self.create_new_ui = True
 
         self.ui_element = get_new_ui_element(context)
         self.ui_element.reset()
@@ -251,6 +262,25 @@ class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
         rig = find_cloudrig(context)
         temp_ui_element = get_new_ui_element(context)
 
+        parent = None
+        if self.create_new_ui:
+            if self.new_panel_name:
+                parent = rig.cloudrig_ui.add()
+                parent.element_type = 'PANEL'
+                parent.display_name = self.new_panel_name
+            if self.new_label_name:
+                label = rig.cloudrig_ui.add()
+                label.parent = parent
+                label.element_type = 'LABEL'
+                label.display_name = self.new_label_name
+                parent = label
+            if self.new_row_name:
+                row = rig.cloudrig_ui.add()
+                row.parent = parent
+                row.element_type = 'ROW'
+                row.display_name = self.new_row_name
+                parent = row
+
         if (
             temp_ui_element.element_type in {'PANEL', 'LABEL', 'ROW'}
             and temp_ui_element.display_name.strip() == ""
@@ -264,6 +294,10 @@ class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
             if prop_name == 'rna_type':
                 continue
             setattr(new_ui_element, prop_name, getattr(temp_ui_element, prop_name))
+
+        if parent:
+            new_ui_element.parent = parent
+        new_ui_element.element_type = self.element_type
 
         wipe_parent_selector(context)
         del rig['cloudrig_ui_new_element']
@@ -316,13 +350,14 @@ class CLOUDRIG_OT_ui_element_remove(Operator):
 
     def remove_element(self, rig, index):
         element_to_remove = rig.cloudrig_ui[index]
+        fallback_parent = element_to_remove.parent
 
         if self.recursive:
             for child in element_to_remove.children:
                 self.remove_element(rig, child.index)
         else:
             for child in element_to_remove.children:
-                child.parent_index = -1
+                child.parent = fallback_parent
 
         for element in rig.cloudrig_ui:
             if element.parent_index > index:
