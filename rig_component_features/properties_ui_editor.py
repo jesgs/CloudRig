@@ -10,14 +10,25 @@ from bpy.props import (
     PointerProperty,
 )
 from rna_prop_ui import rna_idprop_value_item_type
-import bpy
+import bpy, json
 
 
 def draw_ui_editing(context, layout, ui_element, operator):
-    rig = find_cloudrig(context)
-
     layout.prop(operator, 'element_type', expand=True)
 
+    draw_parent_picking(context, layout, ui_element, operator)
+
+    if operator.element_type == 'PROPERTY':
+        draw_prop_editing(context, layout, ui_element, operator)
+
+    if operator.element_type == 'OPERATOR':
+        draw_op_editing(context, layout, ui_element, operator)
+
+    # debug
+    # layout.prop(ui_element, 'prop_owner_path')
+    # layout.prop(ui_element, 'is_custom_prop')
+
+def draw_parent_picking(context, layout, ui_element, operator):
     parent_row = layout.row()
     if operator.create_new_ui:
         parent_row.prop(operator, 'new_panel_name')
@@ -30,36 +41,59 @@ def draw_ui_editing(context, layout, ui_element, operator):
     if context.scene.cloudrig_ui_parent_selector:
         parent_row.prop(operator, 'create_new_ui', text="", icon='ADD')
 
-    if operator.element_type == 'PROPERTY':
-        layout.prop(operator, 'prop_owner_type', expand=True)
-        if operator.prop_owner_type == 'BONE':
-            layout.prop_search(operator, 'prop_bone', rig.pose, 'bones')
-        elif operator.prop_owner_type == 'COLLECTION':
-            layout.prop_search(
-                operator,
-                'prop_coll',
-                rig.data,
-                'collections_all',
-                icon='OUTLINER_COLLECTION',
-            )
-        elif operator.prop_owner_type == 'DATA_PATH':
-            layout.prop(operator, 'prop_data_path', icon='RNA')
+def draw_prop_editing(context, layout, ui_element, operator):
+    rig = find_cloudrig(context)
 
-        if context.scene.cloudrig_ui_prop_selector:
-            layout.prop_search(
-                ui_element, 'prop_name', context.scene, 'cloudrig_ui_prop_selector'
-            )
-        else:
-            layout.prop(ui_element, 'prop_name')
+    owner_row = layout.row()
+    if operator.prop_owner_type == 'BONE':
+        owner_row.prop_search(operator, 'prop_bone', rig.pose, 'bones')
+    elif operator.prop_owner_type == 'COLLECTION':
+        owner_row.prop_search(
+            operator,
+            'prop_coll',
+            rig.data,
+            'collections_all',
+            icon='OUTLINER_COLLECTION',
+        )
+    elif operator.prop_owner_type == 'DATA_PATH':
+        owner_row.prop(operator, 'prop_data_path', icon='RNA')
+    owner_row.prop(operator, 'prop_owner_type', expand=True, text="")
 
-    if operator.element_type == 'OPERATOR':
-        draw_op_editing(context, layout, ui_element, operator)
+    if not ui_element.prop_owner:
+        return
+    if operator.prop_owner_type == 'COLLECTION' and not operator.prop_coll:
+        return
+    if operator.prop_owner_type == 'BONE' and not operator.prop_bone:
+        return
+
+    if context.scene.cloudrig_ui_prop_selector:
+        layout.prop_search(
+            ui_element, 'prop_name', context.scene, 'cloudrig_ui_prop_selector'
+        )
+    else:
+        layout.prop(ui_element, 'prop_name')
+
+    if not ui_element.prop_name:
+        return
 
     layout.prop(ui_element, 'display_name')
 
-    # debug
-    # layout.prop(ui_element, 'prop_owner_path')
-    # layout.prop(ui_element, 'is_custom_prop')
+    value_type, is_array = rna_idprop_value_item_type(ui_element.prop_value)
+    if not is_array:
+        if value_type in {bool, int}:
+            layout.prop(ui_element, 'texts')
+        if value_type == bool:
+            icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
+            layout.prop_search(
+                ui_element, 'icon', icons, 'enum_items', icon=ui_element.icon
+            )
+            layout.prop_search(
+                ui_element,
+                'icon_false',
+                icons,
+                'enum_items',
+                icon=ui_element.icon_false,
+            )
 
 
 def draw_op_editing(context, layout, ui_element, operator):
@@ -84,6 +118,8 @@ def draw_op_editing(context, layout, ui_element, operator):
         op_box.prop_search(
             ui_element, 'icon', icons, 'enum_items', icon=ui_element.icon
         )
+
+    layout.prop(ui_element, 'display_name')
 
 
 def update_parent_selector(context):
@@ -139,20 +175,31 @@ class UIElementAddMixin:
             self.parent_element
         ].index
 
-    parent_element: StringProperty(name="Parent Element", update=update_parent_element)
+    parent_element: StringProperty(
+        name="Parent Element",
+        description="Optional. UI element that this new one should be a part of",
+        update=update_parent_element,
+    )
 
     def update_prop_bone(self, context):
         ui_element = get_new_ui_element(context)
-        ui_element.prop_owner_path = f'pose.bones["{self.prop_bone}"]'
-        update_property_selector(self, context)
+        if self.prop_bone:
+            ui_element.prop_owner_path = f'pose.bones["{self.prop_bone}"]'
+            update_property_selector(self, context)
+            if ui_element.prop_name not in ui_element.prop_owner:
+                ui_element.prop_name = ""
 
     prop_bone: StringProperty(name="Bone Name", update=update_prop_bone)
 
     def update_prop_coll(self, context):
         ui_element = get_new_ui_element(context)
-        ui_element.display_name = self.prop_coll
-        ui_element.prop_owner_path = f'data.collections_all["{self.prop_coll}"]'
-        update_property_selector(self, context)
+        if self.prop_coll:
+            ui_element.prop_owner_path = f'data.collections_all["{self.prop_coll}"]'
+            update_property_selector(self, context)
+            ui_element.prop_name = 'is_visible'
+            ui_element.display_name = self.prop_coll
+            ui_element.icon = 'HIDE_OFF'
+            ui_element.icon_false = 'HIDE_ON'
 
     prop_coll: StringProperty(name="Bone Collection", update=update_prop_coll)
 
@@ -166,9 +213,6 @@ class UIElementAddMixin:
     def update_prop_owner_type(self, context):
         ui_element = get_new_ui_element(context)
         if self.prop_owner_type == 'COLLECTION':
-            ui_element.prop_name = 'is_visible'
-            ui_element.icon = 'HIDE_OFF'
-            ui_element.icon_false = 'HIDE_ON'
             self.prop_coll = self.prop_coll
         if self.prop_owner_type == 'BONE':
             self.prop_bone = self.prop_bone
@@ -202,13 +246,25 @@ class UIElementAddMixin:
         name="Element Type",
         items=[
             ('PROPERTY', 'Property', "Property"),
-            ('OPERATOR', 'Operator', "Operator")
-        ]
+            ('OPERATOR', 'Operator', "Operator"),
+        ],
     )
-    create_new_ui: BoolProperty(name="Create Containers", description="Instead of placing this UI element in an existing panel, label, and row, create new ones")
-    new_panel_name: StringProperty(name="Panel Name", description="Optional. Elements parented to this panel can be hidden by collapsing the panel")
-    new_label_name: StringProperty(name="Label Name", description="Optional. Elements parented to this label will be displayed below it")
-    new_row_name: StringProperty(name="Row Name", description="Optional. Elements parented to this row will be displayed side-by-side")
+    create_new_ui: BoolProperty(
+        name="Create Containers",
+        description="Instead of placing this UI element in an existing panel, label, and row, create new ones",
+    )
+    new_panel_name: StringProperty(
+        name="Panel Name",
+        description="Optional. Elements parented to this panel can be hidden by collapsing the panel",
+    )
+    new_label_name: StringProperty(
+        name="Label Name",
+        description="Optional. Elements parented to this label will be displayed below it",
+    )
+    new_row_name: StringProperty(
+        name="Row Name",
+        description="Optional. Elements parented to this row will be displayed side-by-side",
+    )
 
     use_batch_add: BoolProperty(
         name="Batch Add",

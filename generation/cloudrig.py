@@ -1522,11 +1522,13 @@ class CloudRig_UIElement(PropertyGroup):
         # Supported Types: Label, Row, Property(bool), Operator
         name="Icon",
         description="Icon",
+        default='CHECKBOX_HLT',
     )
     icon_false: StringProperty(
         # Supported Types: Property(bool)
         name="Icon False",
         description="Icon to display when this boolean property is False",
+        default='CHECKBOX_DEHLT',
     )
 
     prop_owner_path: StringProperty(
@@ -1546,7 +1548,7 @@ class CloudRig_UIElement(PropertyGroup):
     def update_prop_name(self, context):
         if self.is_custom_prop:
             self.display_name = self.prop_name.replace("_", " ").title()
-        elif self.prop_name == 'is_visible':
+        elif self.prop_name == 'is_visible' and self.prop_owner:
             self.display_name = self.prop_owner.name
 
     prop_name: StringProperty(
@@ -1668,16 +1670,17 @@ class CloudRig_UIElement(PropertyGroup):
             # Property is a Datablock Pointer.
             layout.prop(self.prop_owner, bracketed_prop_name, text=display_name)
         elif value_type in {int, float, bool}:
+            texts = [t.strip() for t in self.texts.split(",")]
             if (
-                self.texts
+                texts
                 and not is_array
-                and len(self.texts) - 1 >= int(prop_value) >= 0
+                and len(texts) - 1 >= int(prop_value) >= 0
             ):
-                text = self.texts[int(prop_value)].strip()
+                text = texts[int(prop_value)]
                 if text:
                     display_name += ": " + text
             if value_type == bool:
-                icon = self.icon if prop_value else self.icon_flase
+                icon = self.icon if prop_value else self.icon_false
                 layout.prop(
                     self.prop_owner,
                     bracketed_prop_name,
@@ -1743,7 +1746,7 @@ class CLOUDRIG_PT_custom_ui(CLOUDRIG_PT_base):
 
     def draw(self, context):
         layout = self.layout
-        layout.use_property_split = True
+        layout.use_property_split = False
         layout.use_property_decorate = False
         layout = layout.column(align=True)
 
