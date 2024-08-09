@@ -14,15 +14,14 @@ import bpy, json
 
 
 def draw_ui_editing(context, layout, ui_element, operator):
-    layout.prop(operator, 'element_type', expand=True)
-
     draw_parent_picking(context, layout, ui_element, operator)
 
     if operator.element_type == 'PROPERTY':
         draw_prop_editing(context, layout, ui_element, operator)
-
-    if operator.element_type == 'OPERATOR':
+    elif operator.element_type == 'OPERATOR':
         draw_op_editing(context, layout, ui_element, operator)
+    else:
+        layout.prop(ui_element, 'display_name')
 
     # debug
     # layout.prop(ui_element, 'prop_owner_path')
@@ -174,9 +173,12 @@ def update_property_selector(self, context):
 class UIElementAddMixin:
     def update_parent_element(self, context):
         ui_element = get_new_ui_element(context)
-        ui_element.parent_index = context.scene.cloudrig_ui_parent_selector[
-            self.parent_element
-        ].index
+        if self.parent_element:
+            ui_element.parent_index = context.scene.cloudrig_ui_parent_selector[
+                self.parent_element
+            ].index
+        else:
+            ui_element.parent_index = -1
 
     parent_element: StringProperty(
         name="Parent Element",
@@ -283,44 +285,7 @@ class UIElementAddMixin:
             return False
         return True
 
-    def invoke(self, context, _event):
-        update_parent_selector(context)
-        if not context.scene.cloudrig_ui_parent_selector:
-            self.create_new_ui = True
-
-        self.ui_element = get_new_ui_element(context)
-        self.ui_element.reset()
-
-        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps[
-            'Info'
-        ].keymap_items.new('', 'NUMPAD_5', 'PRESS')
-        if self.ui_element.bl_idname:
-            self.temp_kmi.idname = self.ui_element.bl_idname
-            if self.ui_element.op_kwargs:
-                op_props = self.temp_kmi.properties
-                feed_op_props(op_props, self.ui_element.op_kwargs)
-
-        return context.window_manager.invoke_props_dialog(self, width=500)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_decorate = False
-        layout.use_property_split = True
-
-        draw_ui_editing(context, layout, self.ui_element, self)
-
-
-class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
-    """Add UI Element"""
-
-    bl_idname = "object.cloudrig_ui_element_add"
-    bl_label = "Add UI Element"
-    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        rig = find_cloudrig(context)
-        temp_ui_element = get_new_ui_element(context)
-
+    def ensure_parent_elements(self, rig, ui_element):
         parent = None
         if self.create_new_ui:
             if self.new_panel_name:
@@ -337,22 +302,61 @@ class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
             row = rig.cloudrig_ui.add()
             row.parent = parent
             row.element_type = 'ROW'
-            row.display_name = self.new_row_name or temp_ui_element.prop_name
+            row.display_name = self.new_row_name or ui_element.prop_name
             parent = row
+        return parent
 
+    def init_temp_kmi(self, context):
+        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps[
+            'Info'
+        ].keymap_items.new('', 'NUMPAD_5', 'PRESS')
+        if self.temp_element.bl_idname:
+            self.temp_kmi.idname = self.temp_element.bl_idname
+            if self.temp_element.op_kwargs:
+                op_props = self.temp_kmi.properties
+                feed_op_props(op_props, self.temp_element.op_kwargs)
+
+class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
+    """Add UI Element"""
+
+    bl_idname = "object.cloudrig_ui_element_add"
+    bl_label = "Add UI Element"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    def invoke(self, context, _event):
+        update_parent_selector(context)
+        if not context.scene.cloudrig_ui_parent_selector:
+            self.create_new_ui = True
+
+        self.temp_element = get_new_ui_element(context)
+        self.temp_element.reset()
+        
+        self.init_temp_kmi(context)
+
+        return context.window_manager.invoke_props_dialog(self, width=500)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_decorate = False
+        layout.use_property_split = True
+
+        layout.prop(self, 'element_type', expand=True)
+        draw_ui_editing(context, layout, self.temp_element, self)
+
+    def execute(self, context):
+        rig = find_cloudrig(context)
+        temp_ui_element = get_new_ui_element(context)
         new_ui_element = rig.cloudrig_ui.add()
+        new_ui_element.copy_from(temp_ui_element)
 
-        for prop_name in new_ui_element.bl_rna.properties.keys():
-            if prop_name == 'rna_type':
-                continue
-            setattr(new_ui_element, prop_name, getattr(temp_ui_element, prop_name))
-
+        parent = self.ensure_parent_elements(rig, temp_ui_element)
         if parent:
             new_ui_element.parent = parent
         new_ui_element.element_type = self.element_type
 
         if self.element_type == 'OPERATOR':
             new_ui_element.bl_idname  = self.temp_kmi.idname
+            # NOTE: The op kwargs have been fed to the UIElement in draw_op_editing().
 
         wipe_parent_selector(context)
         del rig['cloudrig_ui_new_element']
@@ -368,17 +372,59 @@ class CLOUDRIG_OT_ui_element_edit(UIElementAddMixin, Operator):
     bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
 
     element_index: IntProperty()
+    element_type: StringProperty()
+
+    def invoke(self, context, _event):
+        rig = find_cloudrig(context)
+
+        self.temp_element = get_new_ui_element(context)
+        self.temp_element.reset()
+        elem_to_edit = rig.cloudrig_ui[self.element_index]
+        self.temp_element.copy_from(elem_to_edit)
+
+        if self.temp_element.element_type in {'PROPERTY', 'OPERATOR'}:
+            self.element_type = self.temp_element.element_type
+        else:
+            self.element_type = ""
+
+        self.init_temp_kmi(context)
+
+        prop_owner = self.temp_element.prop_owner
+
+        if type(prop_owner) == PoseBone:
+            self.prop_owner_type = 'BONE'
+            self.prop_bone = prop_owner.name
+        elif type(prop_owner) == BoneCollection:
+            self.prop_owner_type = 'COLLECTION'
+            self.prop_coll = prop_owner.name
+        else:
+            self.prop_owner_type = 'DATA_PATH'
+
+        if self.temp_element.parent_index > -1:
+            self.parent_element = rig.cloudrig_ui[self.temp_element.parent_index].identifier
+        else:
+            self.parent_element = ""
+
+        self.prop_data_path = self.temp_element.prop_owner_path
+
+        return context.window_manager.invoke_props_dialog(self, width=500)
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_decorate = False
         layout.use_property_split = True
 
+        draw_ui_editing(context, layout, self.temp_element, self)
+
+    def execute(self, context):
         rig = find_cloudrig(context)
         elem_to_edit = rig.cloudrig_ui[self.element_index]
 
-        draw_ui_editing(context, layout, elem_to_edit, self)
-
+        elem_to_edit.copy_from(self.temp_element)
+        if self.element_type == 'OPERATOR':
+            elem_to_edit.bl_idname  = self.temp_kmi.idname
+            # NOTE: The op kwargs have been fed to the UIElement in draw_op_editing().
+        return {'FINISHED'}
 
 class CLOUDRIG_OT_ui_element_remove(Operator):
     """Remove this UI element.\n\n""" """Ctrl: Do not remove children"""

@@ -1476,6 +1476,9 @@ class CloudRig_UIElement(PropertyGroup):
     def parent(self, value: 'CloudRig_UIElement'):
         if not value:
             self.parent_index = -1
+        elif self == value:
+            # Trying to set self as parent, just ignore and move on.
+            return
         else:
             self.parent_index = value.index
 
@@ -1619,6 +1622,12 @@ class CloudRig_UIElement(PropertyGroup):
 
         return False
 
+    def copy_from(self, other):
+        for prop_name in self.bl_rna.properties.keys():
+            if prop_name == 'rna_type':
+                continue
+            setattr(self, prop_name, getattr(other, prop_name))
+
     def draw_ui_recursive(self, context, layouts):
         if not self.should_draw or not layouts:
             return
@@ -1664,6 +1673,9 @@ class CloudRig_UIElement(PropertyGroup):
                     layouts[-1].separator()
 
         if self.rig.cloudrig.ui_edit_mode:
+            remove_op_ui.operator(
+                'object.cloudrig_ui_element_edit', text="", icon='GREASEPENCIL'
+            ).element_index = self.index
             remove_op_ui.operator(
                 'object.cloudrig_ui_element_remove', text="", icon='X'
             ).element_index = self.index
