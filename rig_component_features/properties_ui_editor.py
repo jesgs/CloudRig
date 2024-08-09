@@ -28,6 +28,7 @@ def draw_ui_editing(context, layout, ui_element, operator):
     # layout.prop(ui_element, 'prop_owner_path')
     # layout.prop(ui_element, 'is_custom_prop')
 
+
 def draw_parent_picking(context, layout, ui_element, operator):
     parent_row = layout.row()
     if operator.create_new_ui:
@@ -40,6 +41,7 @@ def draw_parent_picking(context, layout, ui_element, operator):
         )
     if context.scene.cloudrig_ui_parent_selector:
         parent_row.prop(operator, 'create_new_ui', text="", icon='ADD')
+
 
 def draw_prop_editing(context, layout, ui_element, operator):
     rig = find_cloudrig(context)
@@ -99,25 +101,26 @@ def draw_prop_editing(context, layout, ui_element, operator):
 def draw_op_editing(context, layout, ui_element, operator):
     if operator.use_batch_add:
         return
-    op_box = layout.box().column()
-    op_box.prop(operator.temp_kmi, 'idname', text="Operator")
+    layout.prop(operator.temp_kmi, 'idname', text="Operator")
     operator.op_kwargs_dict = {}
-    if operator.temp_kmi.idname:
-        box = None
-        op_rna = eval("bpy.ops." + operator.temp_kmi.idname).get_rna_type()
-        for key, value in op_rna.properties.items():
-            if key == 'rna_type':
-                continue
-            if not box:
-                box = op_box.box().column(align=True)
-            box.prop(operator.temp_kmi.properties, key)
-            operator.op_kwargs_dict[key] = str(
-                getattr(operator.temp_kmi.properties, key)
-            )
-        icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
-        op_box.prop_search(
-            ui_element, 'icon', icons, 'enum_items', icon=ui_element.icon
+    if not operator.temp_kmi.idname:
+        return
+
+    box = None
+    op_rna = eval("bpy.ops." + operator.temp_kmi.idname).get_rna_type()
+    for key, value in op_rna.properties.items():
+        if key == 'rna_type':
+            continue
+        if not box:
+            box = layout.box().column(align=True)
+        box.prop(operator.temp_kmi.properties, key)
+        operator.op_kwargs_dict[key] = str(
+            getattr(operator.temp_kmi.properties, key)
         )
+    icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
+    layout.prop_search(
+        ui_element, 'icon', icons, 'enum_items', icon=ui_element.icon
+    )
 
     layout.prop(ui_element, 'display_name')
 
@@ -291,8 +294,8 @@ class UIElementAddMixin:
         self.temp_kmi = context.window_manager.keyconfigs.default.keymaps[
             'Info'
         ].keymap_items.new('', 'NUMPAD_5', 'PRESS')
-        if self.bl_idname:
-            self.temp_kmi.idname = self.bl_idname
+        if self.ui_element.bl_idname:
+            self.temp_kmi.idname = self.ui_element.bl_idname
             if self.ui_element.op_kwargs:
                 op_props = self.temp_kmi.properties
                 feed_op_props(op_props, self.ui_element.op_kwargs)
@@ -330,19 +333,12 @@ class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
                 label.element_type = 'LABEL'
                 label.display_name = self.new_label_name
                 parent = label
-            if self.new_row_name:
-                row = rig.cloudrig_ui.add()
-                row.parent = parent
-                row.element_type = 'ROW'
-                row.display_name = self.new_row_name
-                parent = row
 
-        if (
-            temp_ui_element.element_type in {'PANEL', 'LABEL', 'ROW'}
-            and temp_ui_element.display_name.strip() == ""
-        ):
-            self.report({'ERROR'}, "This UI element must have a display name!")
-            return {'CANCELLED'}
+            row = rig.cloudrig_ui.add()
+            row.parent = parent
+            row.element_type = 'ROW'
+            row.display_name = self.new_row_name or temp_ui_element.prop_name
+            parent = row
 
         new_ui_element = rig.cloudrig_ui.add()
 
@@ -354,6 +350,9 @@ class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
         if parent:
             new_ui_element.parent = parent
         new_ui_element.element_type = self.element_type
+
+        if self.element_type == 'OPERATOR':
+            new_ui_element.bl_idname  = self.temp_kmi.idname
 
         wipe_parent_selector(context)
         del rig['cloudrig_ui_new_element']

@@ -1518,17 +1518,26 @@ class CloudRig_UIElement(PropertyGroup):
         description="Operator Keyword Arguments, as a json dict",
         default="{}",
     )
+    def update_icons(self, context):
+        # Prevent illegal icon values when users clicks X button.
+        if self.icon == '':
+            self.icon = 'BLANK1'
+        if self.icon_false == '':
+            self.icon_false = 'BLANK1'
+
     icon: StringProperty(
         # Supported Types: Label, Row, Property(bool), Operator
         name="Icon",
         description="Icon",
         default='CHECKBOX_HLT',
+        update=update_icons,
     )
     icon_false: StringProperty(
         # Supported Types: Property(bool)
         name="Icon False",
         description="Icon to display when this boolean property is False",
         default='CHECKBOX_DEHLT',
+        update=update_icons,
     )
 
     prop_owner_path: StringProperty(
@@ -1601,48 +1610,64 @@ class CloudRig_UIElement(PropertyGroup):
             return True
         if self.parent.element_type != 'PROPERTY':
             return True
+        if not self.parent_values:
+            return True
+
         parent_value_str = str(self.parent.prop_value)
         if parent_value_str in [v.strip() for v in self.parent_values.split(",")]:
             return True
+
         return False
 
-    def draw_ui_element(self, context, layout):
-        if not self.should_draw or not layout:
+    def draw_ui_recursive(self, context, layouts):
+        if not self.should_draw or not layouts:
             return
 
-        parent_layout = remove_op_ui = layout
+        layout = layouts[-1]
+
+        if self.parent and self.parent.element_type == 'PROPERTY':
+            layouts.pop()
+            layout = layouts[-1]
+
+        remove_op_ui = layout
 
         if self.element_type == 'PANEL':
             # TODO: Figure out how to allow elements to be drawn in the header.
             header, layout = layout.panel(idname=str(self.index) + self.display_name)
             header.label(text=self.display_name)
             remove_op_ui = header
-        if self.element_type == 'LABEL':
+            layouts.append(layout)
+        elif self.element_type == 'LABEL':
             layout = remove_op_ui = layout.row()
             if self.display_name:
                 layout.label(text=self.display_name)
-        if self.element_type == 'ROW':
-            layout = remove_op_ui = parent_layout = layout.row()
-            # if self.display_name:
-            #     layout.label(text=self.display_name)
-        if self.element_type == 'PROPERTY':
-            if not self.parent or self.parent.element_type != 'ROW':
-                layout = remove_op_ui = layout.row()
+        elif self.element_type == 'ROW':
+            layout = remove_op_ui = layout.row()
+            layouts.append(layout)
+        elif self.element_type == 'PROPERTY':
+            layout = remove_op_ui = layout.row(align=True)
+            layouts.append(layout)
             self.draw_property(context, layout)
-            if any([child.should_draw for child in self.children]):
+            if any([child.should_draw and child.element_type!='OPERATOR' for child in self.children]):
                 layout = layout.box()
-        if self.element_type == 'OPERATOR':
+                layouts.append(layout)
+        elif self.element_type == 'OPERATOR':
+            if not self.parent or self.parent.element_type != 'ROW':
+                layout = remove_op_ui = layout.row(align=True)
+                layouts.append(layout)
             self.draw_operator(context, layout)
 
-        if not layout:
-            return
-        for child in self.children:
-            child.draw_ui_element(context, parent_layout)
+        if layout:
+            for child in self.children:
+                child.draw_ui_recursive(context, layouts)
+                if self.element_type == 'ROW' and child != self.children[-1]:
+                    layouts[-1].separator()
 
         if self.rig.cloudrig.ui_edit_mode:
             remove_op_ui.operator(
                 'object.cloudrig_ui_element_remove', text="", icon='X'
             ).element_index = self.index
+
 
     def draw_property(self, context, layout):
         prop_owner, prop_value = self.prop_owner, self.prop_value
@@ -1725,7 +1750,10 @@ class CloudRig_UIElement(PropertyGroup):
         op_icon = self.icon
         if not self.icon or self.icon == 'NONE':
             op_icon = 'BLANK1'
-        op_props = layout.operator(self.bl_idname, text=self.display_name, icon=op_icon)
+        display_name = self.display_name
+        if self.parent and self.parent.element_type == 'PROPERTY':
+            display_name = ""
+        op_props = layout.operator(self.bl_idname, text=display_name, icon=op_icon)
         feed_op_props(op_props, self.op_kwargs)
         return op_props
 
@@ -1748,13 +1776,13 @@ class CLOUDRIG_PT_custom_ui(CLOUDRIG_PT_base):
         layout = self.layout
         layout.use_property_split = False
         layout.use_property_decorate = False
-        layout = layout.column(align=True)
+        col = layout.column(align=True)
 
         rig = context.active_object  # TODO
 
         for elem in rig.cloudrig_ui:
             if not elem.parent:
-                elem.draw_ui_element(context, layout)
+                elem.draw_ui_recursive(context, [layout, col])
 
 
 #######################################
