@@ -583,8 +583,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
 
-
-    def set_bone_selection(self, rig, select=False, pbones: list[PoseBone]=None):
+    def set_bone_selection(self, rig, select=False, pbones: list[PoseBone] = None):
         """Overrides SnapBakeOpMixin to also select the IK pole before keying."""
         print("PBONES:", pbones, select)
         if select and self.target_value == 1 and self.ik_pole:
@@ -598,7 +597,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         super().set_bone_matrices(context, rig, pbone_matrix_map)
         if self.target_value == 1 and self.ik_pole:
             self.snap_pole_target()
-
 
     def snap_pole_target(self) -> Matrix:
         """Snap the pole target based on the first IK bone.
@@ -615,56 +613,58 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         # https://blenderartists.org/t/visual-transform-helper-functions-for-2-5/500965
 
         def perpendicular_vector(v):
-            """ Returns a vector that is perpendicular to the one given.
-                The returned vector is _not_ guaranteed to be normalized.
+            """Returns a vector that is perpendicular to the one given.
+            The returned vector is _not_ guaranteed to be normalized.
             """
             # Create a vector that is not aligned with v.
             # It doesn't matter what vector.  Just any vector
             # that's guaranteed to not be pointing in the same
             # direction.
             if abs(v[0]) < abs(v[1]):
-                tv = Vector((1,0,0))
+                tv = Vector((1, 0, 0))
             else:
-                tv = Vector((0,1,0))
+                tv = Vector((0, 1, 0))
 
             # Use cross prouct to generate a vector perpendicular to
             # both tv and (more importantly) v.
             return v.cross(tv)
 
         def rotation_difference(mat1, mat2):
-            """ Returns the shortest-path rotational difference between two
-                matrices.
+            """Returns the shortest-path rotational difference between two
+            matrices.
             """
             q1 = mat1.to_quaternion()
             q2 = mat2.to_quaternion()
-            angle = acos(min(1,max(-1,q1.dot(q2)))) * 2
+            angle = acos(min(1, max(-1, q1.dot(q2)))) * 2
             if angle > pi:
-                angle = -angle + (2*pi)
+                angle = -angle + (2 * pi)
             return angle
 
         def get_pose_matrix_in_other_space(mat, pose_bone):
-            """ Returns the transform matrix relative to pose_bone's current
-                transform space.  In other words, presuming that mat is in
-                armature space, slapping the returned matrix onto pose_bone
-                should give it the armature-space transforms of mat.
+            """Returns the transform matrix relative to pose_bone's current
+            transform space.  In other words, presuming that mat is in
+            armature space, slapping the returned matrix onto pose_bone
+            should give it the armature-space transforms of mat.
             """
-            return pose_bone.id_data.convert_space(matrix=mat, pose_bone=pose_bone, from_space='POSE', to_space='LOCAL')
+            return pose_bone.id_data.convert_space(
+                matrix=mat, pose_bone=pose_bone, from_space='POSE', to_space='LOCAL'
+            )
 
         def set_pose_translation(pose_bone, mat):
-            """ Sets the pose bone's translation to the same translation as the given matrix.
-                Matrix should be given in bone's local space.
+            """Sets the pose bone's translation to the same translation as the given matrix.
+            Matrix should be given in bone's local space.
             """
             pose_bone.location = mat.to_translation()
 
         def match_pole_target(ik_first, ik_last, pole, match_bone):
-            """ Places an IK chain's pole target to match ik_first's
-                transforms to match_bone.  All bones should be given as pose bones.
-                You need to be in pose mode on the relevant armature object.
-                ik_first: first bone in the IK chain
-                ik_last:  last bone in the IK chain
-                pole:  pole target bone for the IK chain
-                match_bone:  bone to match ik_first to (probably first bone in a matching FK chain)
-                length:  distance pole target should be placed from the chain center
+            """Places an IK chain's pole target to match ik_first's
+            transforms to match_bone.  All bones should be given as pose bones.
+            You need to be in pose mode on the relevant armature object.
+            ik_first: first bone in the IK chain
+            ik_last:  last bone in the IK chain
+            pole:  pole target bone for the IK chain
+            match_bone:  bone to match ik_first to (probably first bone in a matching FK chain)
+            length:  distance pole target should be placed from the chain center
             """
             a = ik_first.matrix.to_translation()
             b = ik_last.matrix.to_translation() + ik_last.vector
@@ -679,11 +679,11 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
             pv = perpendicular_vector(ikv).normalized() * length
 
             def set_pole(pvi):
-                """ Set pole target's position based on a vector
-                    from the arm center line.
+                """Set pole target's position based on a vector
+                from the arm center line.
                 """
                 # Translate pvi into armature space
-                ploc = a + (ikv/2) + pvi
+                ploc = a + (ikv / 2) + pvi
 
                 # Set pole target to location
                 mat = get_pose_matrix_in_other_space(Matrix.Translation(ploc), pole)
@@ -715,8 +715,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
         match_pole_target(ik_first, self.ik_last, ik_pole, fk_first)
         return ik_pole.matrix
 
-
-
     def map_single_frame_to_bone_matrices(
         self, context, frame_number, bones_to_snap, snap_to_bones
     ):
@@ -743,7 +741,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
 
         if self.current_value < 1:
             bone_column.label(text=f"{' '*10} {self.ik_pole}")
-
 
 
 #######################################
@@ -1432,21 +1429,33 @@ def unquote_custom_prop_name(prop_name: str) -> str:
 
 
 class CloudRig_UIElement(PropertyGroup):
+    @property
+    def rig(self):
+        return self.id_data
+
     element_type: EnumProperty(
         name="Element Type",
         description="How this UI element is drawn",
         items=[
             ('PANEL', "Panel", "Collapsible panel. May contain Panels, Labels, Rows"),
             ('LABEL', "Label", "Label. May contain Panels, Labels, Rows"),
-            ('ROW', "Row", "Grouping for elements that allow multiple per row. Must be used for such elements, even if there is only one in the row. May contain Rows, Properties, and Operators"),
-            ('PROPERTY', "Property", "A single Property. Must belong to a Row. May contain conditional Panels, Labels, Rows"),
+            (
+                'ROW',
+                "Row",
+                "Grouping for elements that allow multiple per row. Must be used for such elements, even if there is only one in the row. May contain Rows, Properties, and Operators",
+            ),
+            (
+                'PROPERTY',
+                "Property",
+                "A single Property. Must belong to a Row. May contain conditional Panels, Labels, Rows",
+            ),
             ('OPERATOR', "Operator", "A single Operator. Must belong to a Row"),
         ],
     )
 
     display_name: StringProperty(
         name="Display Name",
-        description="(Optional) Display name of this UI element",
+        description="Display name of this UI element",
         default="",
     )
     # NOTE: This needs to be updated when elements are removed.
@@ -1457,17 +1466,19 @@ class CloudRig_UIElement(PropertyGroup):
         description="Index of the parent UI element",
         default=-1,
     )
+
     @property
     def parent(self):
         if self.parent_index >= 0:
-            return self.id_data.cloudrig_ui[self.parent_index]
+            return self.rig.cloudrig_ui[self.parent_index]
+
     @parent.setter
     def parent(self, value):
         self.parent_index = value.index
 
     @property
     def index(self):
-        for i, elem in enumerate(self.id_data.cloudrig_ui):
+        for i, elem in enumerate(self.rig.cloudrig_ui):
             if elem == self:
                 return i
 
@@ -1483,60 +1494,70 @@ class CloudRig_UIElement(PropertyGroup):
     parent_values: StringProperty(
         # Supported Types: Panel, Label, Row, only when Element Type of parent element is Property.
         name="Parent Values",
-        description="Condition for this UI element to be drawn, when its parent is a Property. This UI element will only be drawn if the parent property has one of these comma-separated values"
+        description="Condition for this UI element to be drawn, when its parent is a Property. This UI element will only be drawn if the parent property has one of these comma-separated values",
     )
 
     texts: StringProperty(
         # Supported Types: Property, only Boolean and Integer.
         name="Texts",
-        description="Comma-separated display texts for Integer and Boolean Properties"
+        description="Comma-separated display texts for Integer and Boolean Properties",
     )
 
     bl_idname: StringProperty(
         # Supported Types: Operator
         name="Operator ID",
-        description="Operator bl_idname"
+        description="Operator bl_idname",
     )
     op_kwargs: StringProperty(
         # Supported Types: Operator
         name="Operator Arguments",
         description="Operator Keyword Arguments, as a json dict",
-        default="{}"
+        default="{}",
     )
     icon: StringProperty(
         # Supported Types: Label, Row, Property(bool), Operator
         name="Icon",
-        description="Icon"
+        description="Icon",
     )
     icon_false: StringProperty(
         # Supported Types: Property(bool)
         name="Icon False",
-        description="Icon to display when this boolean property is False"
+        description="Icon to display when this boolean property is False",
     )
 
     prop_owner_path: StringProperty(
         # Supported Types: Property
         name="Property Owner",
-        description="Data Path from the rig object to the direct owner of the property to be drawn"
+        description="Data Path from the rig object to the direct owner of the property to be drawn",
     )
+
     @property
     def prop_owner(self):
         try:
-            return self.id_data.path_resolve(self.prop_owner_path)
+            return self.rig.path_resolve(self.prop_owner_path)
         except ValueError:
             # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
             return
 
+    def update_prop_name(self, context):
+        if self.is_custom_prop:
+            self.display_name = self.prop_name.replace("_", " ").title()
+        elif self.prop_name == 'is_visible':
+            self.display_name = self.prop_owner.name
+
     prop_name: StringProperty(
         # Supported Types: Property
         name="Property Name",
-        description="Name of the property to be drawn"
+        description="Name of the property to be drawn",
+        update=update_prop_name,
     )
+
     @property
     def bracketed_prop_name(self):
-        if self.prop_is_custom:
+        if self.is_custom_prop:
             return f'["{self.prop_name}"]'
         return self.prop_name
+
     @property
     def prop_value(self):
         if not hasattr(self.prop_owner, 'path_resolve'):
@@ -1548,14 +1569,15 @@ class CloudRig_UIElement(PropertyGroup):
             # Property may have been removed.
             return {'MISSING'}
 
-    prop_is_custom: BoolProperty(
-        # Supported Types: Property
+    is_custom_prop: BoolProperty(
+        # Supported Types: Property # TODO: This should be set from the update of prop_name.
         name="Is Custom Property",
-        description="Whether this is a custom or a built-in property. Set automatically"
+        description="Whether this is a custom or a built-in property. Set automatically",
     )
+
     @property
     def custom_prop_settings(self):
-        if not self.prop_is_custom:
+        if not self.is_custom_prop:
             return
         try:
             return self.prop_owner.id_properties_ui(self.prop_name).as_dict()
@@ -1565,7 +1587,7 @@ class CloudRig_UIElement(PropertyGroup):
 
     @property
     def children(self):
-        return [elem for elem in self.id_data.cloudrig_ui if elem.parent==self]
+        return [elem for elem in self.rig.cloudrig_ui if elem.parent == self]
 
     @property
     def should_draw(self):
@@ -1578,7 +1600,7 @@ class CloudRig_UIElement(PropertyGroup):
             return True
         return False
 
-    def draw(self, context, layout):
+    def draw_ui_element(self, context, layout):
         if not self.should_draw or not layout:
             return
 
@@ -1597,19 +1619,23 @@ class CloudRig_UIElement(PropertyGroup):
             if self.display_name:
                 layout.label(text=self.display_name)
         if self.element_type == 'PROPERTY':
+            if not self.parent or self.parent.element_type != 'ROW':
+                layout = remove_op_ui = layout.row()
             self.draw_property(context, layout)
             if any([child.should_draw for child in self.children]):
                 layout = layout.box()
         if self.element_type == 'OPERATOR':
             self.draw_operator(context, layout)
 
-        if self.id_data.cloudrig.ui_edit_mode:
-            remove_op_ui.operator('object.cloudrig_ui_element_remove', text="", icon='X').element_index = self.index
+        if self.rig.cloudrig.ui_edit_mode:
+            remove_op_ui.operator(
+                'object.cloudrig_ui_element_remove', text="", icon='X'
+            ).element_index = self.index
 
         if not layout:
             return
         for child in self.children:
-            child.draw(context, layout)
+            child.draw_ui_element(context, layout)
 
     def draw_property(self, context, layout):
         prop_owner, prop_value = self.prop_owner, self.prop_value
@@ -1627,8 +1653,7 @@ class CloudRig_UIElement(PropertyGroup):
                 icon='ERROR',
             )
 
-        if not self.display_name:
-            display_name = self.prop_name
+        display_name = self.display_name or self.prop_name
 
         bracketed_prop_name = self.bracketed_prop_name
         value_type, is_array = rna_idprop_value_item_type(prop_value)
@@ -1637,15 +1662,25 @@ class CloudRig_UIElement(PropertyGroup):
             # Property is a Datablock Pointer.
             layout.prop(self.prop_owner, bracketed_prop_name, text=display_name)
         elif value_type in {int, float, bool}:
-            if self.texts and not is_array and len(self.texts) - 1 >= int(prop_value) >= 0:
+            if (
+                self.texts
+                and not is_array
+                and len(self.texts) - 1 >= int(prop_value) >= 0
+            ):
                 text = self.texts[int(prop_value)].strip()
                 if text:
                     display_name += ": " + text
             if value_type == bool:
                 icon = self.icon if prop_value else self.icon_flase
-                layout.prop(self.prop_owner, bracketed_prop_name, toggle=True, text=display_name, icon=icon)
+                layout.prop(
+                    self.prop_owner,
+                    bracketed_prop_name,
+                    toggle=True,
+                    text=display_name,
+                    icon=icon,
+                )
             elif value_type in {int, float}:
-                if self.prop_is_custom:
+                if self.is_custom_prop:
                     # Property is a float/int/color
                     # For large ranges, a slider doesn't make sense.
                     prop_settings = self.custom_prop_settings
@@ -1653,7 +1688,12 @@ class CloudRig_UIElement(PropertyGroup):
                         not is_array
                         and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
                     )
-                    layout.prop(prop_owner, bracketed_prop_name, slider=is_slider, text=display_name)
+                    layout.prop(
+                        prop_owner,
+                        bracketed_prop_name,
+                        slider=is_slider,
+                        text=display_name,
+                    )
                 else:
                     layout.prop(prop_owner, bracketed_prop_name, text=display_name)
         elif value_type == str:
@@ -1664,7 +1704,9 @@ class CloudRig_UIElement(PropertyGroup):
                 and prop_owner.target.type == 'ARMATURE'
             ):
                 # Special case for nice constraint sub-target selectors.
-                layout.prop_search(prop_owner, bracketed_prop_name, prop_owner.target.pose, 'bones')
+                layout.prop_search(
+                    prop_owner, bracketed_prop_name, prop_owner.target.pose, 'bones'
+                )
             else:
                 layout.prop(prop_owner, bracketed_prop_name)
         else:
@@ -1677,7 +1719,14 @@ class CloudRig_UIElement(PropertyGroup):
         op_props = layout.operator(self.bl_idname, text=self.display_name, icon=op_icon)
         feed_op_props(op_props, self.op_kwargs)
         return op_props
-    
+
+    def reset(self):
+        rna = self.bl_rna
+        for prop_name, prop_data in rna.properties.items():
+            if prop_name == 'rna_type':
+                continue
+            setattr(self, prop_name, prop_data.default)
+
     def __repr__(self):
         return self.identifier
 
@@ -1691,11 +1740,12 @@ class CLOUDRIG_PT_custom_ui(CLOUDRIG_PT_base):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        rig = context.active_object # TODO
+        rig = context.active_object  # TODO
 
         for elem in rig.cloudrig_ui:
             if not elem.parent:
-                elem.draw(context, layout)
+                elem.draw_ui_element(context, layout)
+
 
 #######################################
 ########### Rig Preferences ###########
@@ -1885,7 +1935,6 @@ class CloudRigBoneCollection(PropertyGroup):
                     component.ui_bone_sets.remove(entry_idx)
             if not component.active_bone_set:
                 component.bone_sets_active_index = 0
-
 
         # Metarig: Update bone sets with this collection assigned to refer to the new name.
         if is_active_cloud_metarig(context):
@@ -2923,7 +2972,9 @@ class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
                 counter += 1
                 json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
                 json_obj[coll.name]['cloudrig_info'] = coll['cloudrig_info'].to_dict()
-                json_obj[coll.name]['parent_name'] = coll.parent.name if coll.parent else ""
+                json_obj[coll.name]['parent_name'] = (
+                    coll.parent.name if coll.parent else ""
+                )
 
         if counter == 0:
             self.report({'ERROR'}, "No visible collections to copy.")
@@ -3309,8 +3360,6 @@ def register():
 
     for c in classes:
         if not is_registered(c):
-            # This if statement is important to avoid re-registering UI panels,
-            # which would cause them to lose their sub-panels. (They would become top-level.)
             register_class(c)
 
     bpy.types.Object.cloudrig_prefs = PointerProperty(
