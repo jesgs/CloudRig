@@ -2746,7 +2746,7 @@ class ARMATURE_OT_bone_collections_popup(Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=400)
+        return wm.invoke_popup(self, width=400)
 
     @classmethod
     def poll(cls, context):
