@@ -295,24 +295,47 @@ class UIElementAddMixin:
         return True
 
     def ensure_parent_elements(self, rig, ui_element):
+        """Of the specified Panel, Label, and Row names,
+        create any that don't already exist.
+        If no Row name was provided, create one based on the UI element name.
+        """
         parent = None
+
+        root_panels = {elem.display_name: elem for elem in rig.cloudrig_ui if not elem.parent and elem.element_type == 'PANEL'}
+
         if self.create_new_ui:
             if self.new_panel_name:
-                parent = rig.cloudrig_ui.add()
-                parent.element_type = 'PANEL'
-                parent.display_name = self.new_panel_name
-            if self.new_label_name:
-                label = rig.cloudrig_ui.add()
-                label.parent = parent
-                label.element_type = 'LABEL'
-                label.display_name = self.new_label_name
-                parent = label
+                if self.new_panel_name not in root_panels:
+                    parent = rig.cloudrig_ui.add()
+                    parent.element_type = 'PANEL'
+                    parent.display_name = self.new_panel_name
+                else:
+                    parent = root_panels[self.new_panel_name]
 
-            row = rig.cloudrig_ui.add()
-            row.parent = parent
-            row.element_type = 'ROW'
-            row.display_name = self.new_row_name or ui_element.prop_name
-            parent = row
+            panel_labels = {elem.display_name : elem for elem in parent.children if elem.element_type == 'LABEL'}
+            if self.new_label_name:
+                if self.new_label_name not in panel_labels:
+                    label = rig.cloudrig_ui.add()
+                    label.parent = parent
+                    label.element_type = 'LABEL'
+                    label.display_name = self.new_label_name
+                    parent = label
+                else:
+                    parent = panel_labels[self.new_label_name]
+
+            parent_rows = {elem.display_name : elem for elem in parent.children if elem.element_type == 'ROW'}
+
+            if not self.new_row_name:
+                self.new_row_name = "Row: " + ui_element.display_name
+            if self.new_row_name not in parent_rows:
+                row = rig.cloudrig_ui.add()
+                row.parent = parent
+                row.element_type = 'ROW'
+                row.display_name = self.new_row_name or ui_element.prop_name
+                parent = row
+            else:
+                parent = parent_rows[self.new_row_name]
+
         return parent
 
     def init_temp_kmi(self, context):
@@ -355,10 +378,11 @@ class CLOUDRIG_OT_ui_element_add(UIElementAddMixin, Operator):
     def execute(self, context):
         rig = find_cloudrig(context)
         temp_ui_element = get_new_ui_element(context)
-        new_ui_element = rig.cloudrig_ui.add()
-        new_ui_element.copy_from(temp_ui_element)
 
         parent = self.ensure_parent_elements(rig, temp_ui_element)
+
+        new_ui_element = rig.cloudrig_ui.add()
+        new_ui_element.copy_from(temp_ui_element)
         if parent:
             new_ui_element.parent = parent
         new_ui_element.element_type = self.element_type
