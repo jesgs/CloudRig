@@ -38,6 +38,15 @@ def draw_parent_picking(context, layout, ui_element, operator):
         parent_row.prop_search(
             operator, 'parent_element', context.scene, 'cloudrig_ui_parent_selector'
         )
+        rig = find_cloudrig(context)
+        if operator.parent_element and operator.parent_element in context.scene.cloudrig_ui_parent_selector:
+            parent_ui = rig.cloudrig_ui[context.scene.cloudrig_ui_parent_selector[operator.parent_element].index]
+            if parent_ui and parent_ui.element_type == 'PROPERTY':
+                value = parent_ui.prop_value
+                value_type, is_array = rna_idprop_value_item_type(value)
+                if value_type in {bool, int}:
+                    layout.prop(ui_element, 'parent_values')
+
     if context.scene.cloudrig_ui_parent_selector:
         parent_row.prop(operator, 'create_new_ui', text="", icon='ADD')
 
@@ -375,6 +384,7 @@ class CLOUDRIG_OT_ui_element_edit(UIElementAddMixin, Operator):
     element_type: StringProperty()
 
     def invoke(self, context, _event):
+        update_parent_selector(context)
         rig = find_cloudrig(context)
 
         self.temp_element = get_new_ui_element(context)
@@ -427,7 +437,7 @@ class CLOUDRIG_OT_ui_element_edit(UIElementAddMixin, Operator):
         return {'FINISHED'}
 
 class CLOUDRIG_OT_ui_element_remove(Operator):
-    """Remove this UI element.\n\n""" """Ctrl: Do not remove children"""
+    """Remove this UI element.\n\nCtrl: Do not remove children"""
 
     bl_idname = "object.cloudrig_ui_element_remove"
     bl_label = "Remove UI Element"
@@ -453,19 +463,21 @@ class CLOUDRIG_OT_ui_element_remove(Operator):
         element_to_remove = rig.cloudrig_ui[index]
         fallback_parent = element_to_remove.parent
 
+        indicies_to_remove = []
+
         if self.recursive:
-            for child in element_to_remove.children:
-                self.remove_element(rig, child.index)
+            for child in element_to_remove.children_recursive:
+                indicies_to_remove.append(child.index)
         else:
             for child in element_to_remove.children:
                 child.parent = fallback_parent
+        indicies_to_remove.append(element_to_remove.index)
 
-        for element in rig.cloudrig_ui:
-            if element.parent_index > index:
-                element.parent_index -= 1
-
-        rig.cloudrig_ui.remove(index)
-
+        for i in reversed(sorted(indicies_to_remove)):
+            rig.cloudrig_ui.remove(i)
+            for elem in rig.cloudrig_ui:
+                if elem.parent_index > i:
+                    elem.parent_index -= 1
 
 def supports_custom_props(prop_owner):
     return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}

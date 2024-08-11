@@ -1479,6 +1479,12 @@ class CloudRig_UIElement(PropertyGroup):
         elif self == value:
             # Trying to set self as parent, just ignore and move on.
             return
+        elif value.element_type == 'OPERATOR':
+            # Operators are not allowed children.
+            return
+        elif self.element_type == 'ROW' == value.element_type:
+            # Rows cannot be parented to rows.
+            return
         else:
             self.parent_index = value.index
 
@@ -1608,6 +1614,13 @@ class CloudRig_UIElement(PropertyGroup):
         return [elem for elem in self.rig.cloudrig_ui if elem.parent == self]
 
     @property
+    def children_recursive(self):
+        ret = self.children
+        for child in self.children:
+            ret.extend(child.children_recursive)
+        return ret
+
+    @property
     def should_draw(self):
         if not self.parent:
             return True
@@ -1632,54 +1645,73 @@ class CloudRig_UIElement(PropertyGroup):
         if not self.should_draw or not layouts:
             return
 
+        # We copy the layout stack so we can modify it without affecting the higher scope
+        layouts = layouts[:]
         layout = layouts[-1]
-
-        if self.parent and self.parent.element_type == 'PROPERTY':
-            layouts.pop()
-            layout = layouts[-1]
-
-        remove_op_ui = layout
 
         if self.element_type == 'PANEL':
             # TODO: Figure out how to allow elements to be drawn in the header.
             header, layout = layout.panel(idname=str(self.index) + self.display_name)
             header.label(text=self.display_name)
-            remove_op_ui = header
-            layouts.append(layout)
+            self.draw_ui_edit_buttons(header)
+
         elif self.element_type == 'LABEL':
-            layout = remove_op_ui = layout.row()
+            row = layout.row()
             if self.display_name:
-                layout.label(text=self.display_name)
+                row.label(text=self.display_name)
+            self.draw_ui_edit_buttons(row)
+
         elif self.element_type == 'ROW':
-            layout = remove_op_ui = layout.row()
-            layouts.append(layout)
+            row = layout.row(align=True)
+            layouts.append(row)
+            for child in self.children:
+                child.draw_ui_recursive(context, layouts)
+                if child != self.children[-1]:
+                    row.separator()
+            layouts.pop()
+            # NOTE: We deliberately skip drawing edit buttons for a Row.
+            # A Row should be automatically deleted when it no longer has any elements.
+            return
+
         elif self.element_type == 'PROPERTY':
-            layout = remove_op_ui = layout.row(align=True)
-            layouts.append(layout)
-            self.draw_property(context, layout)
-            if any([child.should_draw and child.element_type!='OPERATOR' for child in self.children]):
-                layout = layout.box()
-                layouts.append(layout)
+            row = layout.row(align=True)
+            self.draw_property(context, row)
+            for child in self.children:
+                if child.element_type == 'OPERATOR':
+                    child.draw_ui_recursive(context, layouts + [row])
+            for child in self.children:
+                box = None
+                if child.should_draw and child.element_type == 'PROPERTY':
+                    if not box:
+                        if self.parent.element_type == 'ROW':
+                            layouts.pop()
+                        box = layouts[-1].box()
+                        layouts.append(box)
+                    child.draw_ui_recursive(context, layouts)
+            self.draw_ui_edit_buttons(row)
+            return
+
         elif self.element_type == 'OPERATOR':
             if not self.parent or self.parent.element_type != 'ROW':
-                layout = remove_op_ui = layout.row(align=True)
+                layout = layout.row(align=True)
                 layouts.append(layout)
             self.draw_operator(context, layout)
+            self.draw_ui_edit_buttons(layout)
 
         if layout:
             for child in self.children:
                 child.draw_ui_recursive(context, layouts)
-                if self.element_type == 'ROW' and child != self.children[-1]:
-                    layouts[-1].separator()
 
-        if self.rig.cloudrig.ui_edit_mode:
-            remove_op_ui.operator(
-                'object.cloudrig_ui_element_edit', text="", icon='GREASEPENCIL'
-            ).element_index = self.index
-            remove_op_ui.operator(
-                'object.cloudrig_ui_element_remove', text="", icon='X'
-            ).element_index = self.index
+    def draw_ui_edit_buttons(self, layout):
+        if not self.rig.cloudrig.ui_edit_mode:
+            return
 
+        layout.operator(
+            'object.cloudrig_ui_element_edit', text="", icon='GREASEPENCIL'
+        ).element_index = self.index
+        layout.operator(
+            'object.cloudrig_ui_element_remove', text="", icon='X'
+        ).element_index = self.index
 
     def draw_property(self, context, layout):
         prop_owner, prop_value = self.prop_owner, self.prop_value
