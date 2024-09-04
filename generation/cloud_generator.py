@@ -333,7 +333,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         if self.params.action_slots:
             actions = ActionLayerComponent(self)
-            actions.initialize()
             for action_name, action_map in actions.action_map.items():
                 for side, action_layer in action_map.items():
                     action_layer.create_custom_property()

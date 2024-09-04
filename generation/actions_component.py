@@ -247,9 +247,7 @@ class ActionLayerComponent:
         self.slot_list = generator.params.action_slots
         self.layers = []
         self.generator = generator
-        metarig_data = generator.metarig.data
 
-    def initialize(self):
         if self.slot_list:
             self.action_map = {}
 
@@ -264,7 +262,16 @@ class ActionLayerComponent:
             for act_slot in self.sort_slots(action_slots):
                 self.spawn_slot_layers(act_slot)
 
-        self.store_child_meshes()
+        self.child_meshes = self.get_child_meshes()
+
+    def get_child_meshes(self):
+        if self.layers and self.generator.params.target_rig:
+            return [
+                child
+                for child in self.generator.params.target_rig.children_recursive
+                if child.type == 'MESH'
+            ]
+        return []
 
     @staticmethod
     def sort_slots(slots: list["ActionSlot"]):
@@ -320,11 +327,3 @@ class ActionLayerComponent:
             self.action_map[act_slot] = {
                 Side.MIDDLE: ActionLayer(self, act_slot, Side.MIDDLE)
             }
-
-    def store_child_meshes(self):
-        if self.layers and self.generator.params.target_rig:
-            self.child_meshes = [
-                child
-                for child in self.generator.params.target_rig.children_recursive
-                if child.type == 'MESH'
-            ]
