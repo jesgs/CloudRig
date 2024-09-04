@@ -228,6 +228,13 @@ def update_all_metarigs(dummy=None):
             # Don't try to version linked metarigs, there's no point.
             # Also, metarigs shouldn't get linked and overridden in the first place.
             continue
+
+        # Trigger component type update callbacks to update_ui_bone_sets().
+        # https://projects.blender.org/Mets/CloudRig/issues/164
+        # Bit of a hack, but harmless, I swear.
+        for pb in metarig.pose.bones:
+            pb.cloudrig_component.component_type = pb.cloudrig_component.component_type
+
         if metarig.cloudrig.metarig_version == metarig_version:
             continue
         if metarig.cloudrig.metarig_version > metarig_version:
@@ -241,10 +248,6 @@ def update_all_metarigs(dummy=None):
             continue
         version_cloud_metarig(metarig)
         metarig.cloudrig.metarig_version = metarig_version
-        # Trigger component type update callbacks to update_ui_bone_sets(). 
-        # Bit of a hack, but harmless, I swear.
-        for pb in metarig.pose.bones:
-            pb.cloudrig_component.component_type = pb.cloudrig_component.component_type
 
 
 def register():

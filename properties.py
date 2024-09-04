@@ -226,7 +226,11 @@ class RigComponent(PropertyGroup):
     def active_bone_set(self):
         if not self.active_ui_bone_set:
             return
-        return getattr(self.params.bone_sets, self.active_ui_bone_set.name)
+        bone_set_name = self.active_ui_bone_set.name
+        if hasattr(self.params.bone_sets, bone_set_name):
+            return getattr(self.params.bone_sets, self.active_ui_bone_set.name)
+        else:
+            return
 
     @property
     def active_ui_bone_set(self):
