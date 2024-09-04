@@ -941,6 +941,11 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
             return False
         return True
 
+    def draw(self, context):
+        # Re-doing the generation process crashes Blender,
+        # so, just don't draw the operator properties, and therefore don't support re-do for now.
+        return
+
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
         prev_generated_rig = metarig.cloudrig.generator.target_rig
