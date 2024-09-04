@@ -18,14 +18,11 @@ from . import (
     icons,
 )
 
-# This should be set for in commits that will be tagged as a release.
-max_blender_version = (10, 0, 0)
-
 bl_info = {
     'name': "CloudRig",
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'author': 'Demeter Dzadik',
-    'version': (2, 2, 0),
+    'version': (2, 1, 11),
     # This should be the lowest Blender version that is currently compatible.
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",
