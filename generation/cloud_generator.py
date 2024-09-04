@@ -204,8 +204,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.log_fatal_error(
             description_short, description=description, **kwargs
         )
-
-        raise CloudGeneratorError(message=description or description_short)
+        errmsg = (description or description_short)
+        base_bone_name = kwargs.get('base_bone_name', "")
+        if base_bone_name:
+            errmsg = base_bone_name + ": " + errmsg
+        raise CloudGeneratorError(message=errmsg)
 
     ### Useful helper properties
     def find_bone_info(self, name):
@@ -469,8 +472,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return wgt
 
     ### Main generation steps
-    @staticmethod
-    def components_load_bone_infos(component_map, metarig):
+    def components_load_bone_infos(self, component_map, metarig):
         """While in edit mode (so we can access as much data as possible)
         let all rig components populate their initial BoneInfo instances.
         """
@@ -489,7 +491,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if parent_bone_info:
                     bone_info.parent = parent_bone_info
                 else:
-                    bone_info.parent = ebone.parent.name
+                    # This could be supported, but for now, this feels better for code maintainability,
+                    # so that BoneInfo._parent doesn't have to support strings as parents.
+                    # Alternatively, we could create BoneInfo instances of the component-less parent bone,
+                    # implicitly giving it a Bone Copy behaviour.
+                    self.raise_generation_error(f'Parent of "{bone_info.name}" is "{ebone.parent.name}", which is not part of any rig component. Assign it at least a "Bone Copy" component type.')
 
     def components_create_bone_infos(self, context):
         """Create BoneInfos that will get turned into real bones later."""

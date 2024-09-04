@@ -114,8 +114,9 @@ class BoneInfo:
     """
     The class tries to abstract bpy.types.Bone/PoseBone/EditBone.
 
-    This class does not concern itself with posing the bone, only creating and
-    rigging it. Eg, it does not store transformations such as loc/rot/scale.
+    This class does not concern itself with posing/animating the bone, only creating and
+    rigging it. Eg, it does not store local space loc/rot/scale transforms or keyframes,
+    but it does store (abstractions of) constraints and drivers.
     """
 
     def __init__(
@@ -127,7 +128,7 @@ class BoneInfo:
         **kwargs,
     ):
         """
-        source:    Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
+        source: Bone to take transforms from (head, tail, roll, bbone_x, bbone_z).
         kwargs: Allow setting arbitrary bone properties at initialization.
         """
 
@@ -157,7 +158,7 @@ class BoneInfo:
         self.constraint_infos = []
 
         self._name = name
-        self._parent = None
+        self._parent: BoneInfo = None
         self.children: list[BoneInfo] = []
 
         self.init_variables(edit_bone_properties)
@@ -272,15 +273,15 @@ class BoneInfo:
     def parent(self, value):
         if self.parent == value:
             return
-        if self._parent and type(self) == type(value):
+        if self._parent:
             self._parent.children.remove(self)
         self._parent = value
         if value and type(self) == type(value):
             value.children.append(self)
 
         # If we want to use connected parenting, do it explicitly, after setting the parent.
-        # Otherwise, this is a lot more intuitive, since otherwise changing the parent
-        # of a connected bone will also move the bone, which is quite unexpected.
+        # This is a more intuitive because otherwise changing the parent of a connected bone 
+        # will also move the child bone, which is quite unexpected.
         self.use_connect = False
 
     @property
