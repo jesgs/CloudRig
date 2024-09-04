@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-import os
+import bpy, os
 import importlib
 from bpy.utils import register_class, unregister_class
 
@@ -25,7 +25,7 @@ bl_info = {
     'name': "CloudRig",
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'author': 'Demeter Dzadik',
-    'version': (2, 1, 8),
+    'version': (2, 2, 0),
     # This should be the lowest Blender version that is currently compatible.
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",
@@ -105,7 +105,6 @@ def do_backwards_comp_stuff():
                     stuff[name.replace(dirname, addon_name)] = module
             sys.modules.update(stuff)
 
-    import bpy
     version = bpy.app.version
     if version < (4, 2, 0):
         ensure_importable_modules()
@@ -121,7 +120,6 @@ def register():
     """Called by Blender when enabling the CloudRig add-on, or on Blender launch if already enabled."""
     do_backwards_comp_stuff()
     register_unregister_modules(modules, True)
-
 
 
 def unregister():

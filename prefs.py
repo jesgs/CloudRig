@@ -1,12 +1,128 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+import bpy, json, os
 from bpy.types import PropertyGroup, AddonPreferences
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
-import os
+
+from pathlib import Path
 
 from . import rig_components
 from .generation import cloudrig
 from .utils.misc import get_addon_prefs
+
+def update_prefs_on_file(self=None, context=None):
+    prefs = get_addon_prefs(context)
+    if not type(prefs).loading:
+        prefs.save_prefs_to_file()
+
+
+class PrefsFileSaveLoadMixin:
+    """Mix-in class that can be used by any add-on to store their preferences in a file,
+    so that they don't get lost when the add-on is disabled.
+    To use it, copy this class and the two functions above it, and do this in your code:
+
+    ```
+    import bpy, json
+    from pathlib import Path
+
+    class MyAddonPrefs(PrefsFileSaveLoadMixin, bpy.types.AddonPreferences):
+        some_prop: bpy.props.IntProperty(update=update_prefs_on_file)
+
+    def register():
+        bpy.utils.register_class(MyAddonPrefs)
+        MyAddonPrefs.register_autoload_from_file()
+    ```
+
+    """
+
+    # List of property names to not write to disk.
+    omit_from_disk: list[str] = []
+
+    loading = False
+
+    @staticmethod
+    def register_autoload_from_file(delay=0.1):
+        def timer_func(_scene=None):
+            prefs = get_addon_prefs()
+            prefs.load_prefs_from_file()
+        bpy.app.timers.register(timer_func, first_interval=delay)
+
+    def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
+        """Recursively convert AddonPreferences to a dictionary.
+        Note that AddonPreferences don't support PointerProperties,
+        so this function doesn't either."""
+        from rna_prop_ui import IDPropertyGroup
+        ret = {}
+        
+        if hasattr(propgroup, 'bl_rna'):
+            rna_class = propgroup.bl_rna
+        else:
+            property_group_class_name = type(propgroup).__name__
+            rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(property_group_class_name)
+
+        for key, value in propgroup.items():
+            if key in type(self).omit_from_disk:
+                continue
+            if type(value) == list:
+                ret[key] = [self.prefs_to_dict_recursive(elem) for elem in value]
+            elif type(value) == IDPropertyGroup:
+                ret[key] = self.prefs_to_dict_recursive(value)
+            else:
+                if (
+                    rna_class and 
+                    key in rna_class.properties and 
+                    hasattr(rna_class.properties[key], 'enum_items')
+                ):
+                    # Save enum values as string, not int.
+                    ret[key] = rna_class.properties[key].enum_items[value].identifier
+                else:
+                    ret[key] = value
+        return ret
+
+    def apply_prefs_from_dict_recursive(self, propgroup, data):
+        for key, value in data.items():
+            if not hasattr(propgroup, key):
+                # Property got removed or renamed in the implementation.
+                continue
+            if type(value) == list:
+                for elem in value:
+                    collprop = getattr(propgroup, key)
+                    entry = collprop.get(elem['name'])
+                    if not entry:
+                        entry = collprop.add()
+                    self.apply_prefs_from_dict_recursive(entry, elem)
+            elif type(value) == dict:
+                self.apply_prefs_from_dict_recursive(getattr(propgroup, key), value)
+            else:
+                setattr(propgroup, key, value)
+
+    @staticmethod
+    def get_prefs_filepath() -> Path:
+        addon_name = __package__.split(".")[-1]
+        return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".txt")
+
+    def save_prefs_to_file(self, _context=None):
+        data_dict = self.prefs_to_dict_recursive(propgroup=self)
+
+        with open(self.get_prefs_filepath(), "w") as f:
+            json.dump(data_dict, f, indent=4)
+
+    def load_prefs_from_file(self):
+        filepath = self.get_prefs_filepath()
+        if not filepath.exists():
+            return
+
+        with open(filepath, "r") as f:
+            addon_data = json.load(f)
+            type(self).loading = True
+            try:
+                self.apply_prefs_from_dict_recursive(self, addon_data)
+            except Exception as exc:
+                # If we get an error raised here, and it isn't handled,
+                # the add-on seems to break.
+                print(f"Failed to load {__package__} preferences from file.")
+                # raise exc
+            type(self).loading = False
 
 
 def get_default_widgets_path():
@@ -52,13 +168,16 @@ class CloudRigComponentTypeInfo(PropertyGroup):
     )
 
 
-class CloudRigPreferences(AddonPreferences):
+class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     bl_idname = __package__
 
     # This should get a version bump whenever there is a change that affects metarigs.
     # For example, changing names of rig types, splitting an old rig type into multiple,
     # changing names of parameters, etc.
     cloud_metarig_version = 2
+
+    # List of property names to not write to disk.
+    omit_from_disk: list[str] = ["component_types"]
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
@@ -78,12 +197,14 @@ class CloudRigPreferences(AddonPreferences):
         default=get_default_widgets_path(),
         subtype='FILE_PATH',
         description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
+        update=update_prefs_on_file,
     )
     widget_import_method: EnumProperty(
         name="Import Method",
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
         description="Whether widget objects should be linked or appended",
+        update=update_prefs_on_file,
     )
 
     show_hotkeys: BoolProperty(
@@ -174,3 +295,4 @@ registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
 def register():
     init_component_module_list()
+    CloudRigPreferences.register_autoload_from_file()
