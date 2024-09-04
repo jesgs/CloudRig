@@ -2809,11 +2809,11 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         user_kc = context.window_manager.keyconfigs.user
 
         keymap_data = list(hotkey_class.cloudrig_keymap_items.items())
-        keymap_data = sorted(keymap_data, key=lambda tup: tup[1][2].name)
+        keymap_data = sorted(keymap_data, key=lambda tup: tup[1][2].name + tup[1][1].name)
 
         prev_kmi = None
         for kmi_hash, kmi_tup in keymap_data:
-            addon_kc, addon_km, addon_kmi = kmi_tup
+            _addon_kc, addon_km, addon_kmi = kmi_tup
 
             user_km = user_kc.keymaps.get(addon_km.name)
             if not user_km:
@@ -2849,14 +2849,8 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     @staticmethod
     def draw_kmi(km, kmi, layout):
         """A simplified version of draw_kmi from rna_keymap_ui.py."""
-
-        map_type = kmi.map_type
-
         col = layout.column()
-
         split = col.split(factor=0.7)
-
-        # header bar
         row = split.row(align=True)
         row.prop(kmi, "active", text="", emboss=False)
         km_name = km.name

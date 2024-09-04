@@ -66,6 +66,12 @@ def register_unregister_modules(modules: list, register: bool):
     for m in modules:
         if register:
             importlib.reload(m)
+
+        if register and hasattr(m, 'pre_register'):
+            m.pre_register()
+        elif hasattr(m, 'pre_unregister'):
+            m.pre_unregister()
+
         if hasattr(m, 'registry'):
             for c in m.registry:
                 try:
@@ -84,7 +90,6 @@ def register_unregister_modules(modules: list, register: bool):
             m.register()
         elif hasattr(m, 'unregister'):
             m.unregister()
-
 
 
 def do_backwards_comp_stuff():

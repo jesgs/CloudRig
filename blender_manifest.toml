@@ -18,6 +18,5 @@ copyright = [
   "2019-2024 Demeter Dzadik & Blender Studio",
 ]
 [permissions]
-files = "To load widgets and metarigs from .blend files"
-clipboard = "To copy/paste Bone Collections between armatures"
-
+files = "Load widgets/metarigs/preferences from disk"
+clipboard = "Copy/paste Bone Collections between armatures"

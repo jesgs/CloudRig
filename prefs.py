@@ -12,8 +12,11 @@ from .utils.misc import get_addon_prefs
 
 def update_prefs_on_file(self=None, context=None):
     prefs = get_addon_prefs(context)
-    if not type(prefs).loading:
-        prefs.save_prefs_to_file()
+    if prefs:
+        if not type(prefs).loading:
+            prefs.save_prefs_to_file()
+    else:
+        print("Couldn't save preferences because the class was already unregistered.")
 
 
 class PrefsFileSaveLoadMixin:
@@ -31,6 +34,9 @@ class PrefsFileSaveLoadMixin:
     def register():
         bpy.utils.register_class(MyAddonPrefs)
         MyAddonPrefs.register_autoload_from_file()
+
+    def unregister():
+        update_prefs_on_file()
     ```
 
     """
@@ -292,11 +298,14 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
         ret = super().prefs_to_dict_recursive(propgroup)
 
-        stored_keymaps = bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items
+        hotkey_class = bpy.types.CLOUDRIG_PT_hotkeys_panel
+        
+        keymap_data = list(hotkey_class.cloudrig_keymap_items.items())
+        keymap_data = sorted(keymap_data, key=lambda tup: tup[1][2].name + tup[1][1].name)
 
         hotkeys = {}
-        for kmi_hash, kmi_tup in stored_keymaps.items():
-            addon_kc, addon_km, addon_kmi = kmi_tup
+        for kmi_hash, kmi_tup in keymap_data:
+            _addon_kc, addon_km, addon_kmi = kmi_tup
             context = bpy.context
             user_kc = context.window_manager.keyconfigs.user
             user_km = user_kc.keymaps.get(addon_km.name)
@@ -342,3 +351,7 @@ registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 def register():
     init_component_module_list()
     CloudRigPreferences.register_autoload_from_file()
+
+
+def pre_unregister():
+    update_prefs_on_file()
