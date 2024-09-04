@@ -289,6 +289,52 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
         return dropdown_col
 
+    def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
+        ret = super().prefs_to_dict_recursive(propgroup)
+
+        stored_keymaps = bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items
+
+        hotkeys = {}
+        for kmi_hash, kmi_tup in stored_keymaps.items():
+            addon_kc, addon_km, addon_kmi = kmi_tup
+            context = bpy.context
+            user_kc = context.window_manager.keyconfigs.user
+            user_km = user_kc.keymaps.get(addon_km.name)
+            if not user_km:
+                continue
+            user_kmi = cloudrig.find_kmi_in_km_by_hash(user_km, kmi_hash)
+
+            hotkeys[kmi_hash] = {key:getattr(user_kmi, key) for key in ('active', 'type', 'shift_ui', 'ctrl_ui', 'alt_ui', 'oskey_ui', 'any', 'map_type', 'key_modifier')}
+            hotkeys[kmi_hash]["key_cat"] = addon_km.name
+            hotkeys[kmi_hash]["name"] = user_kmi.properties.name if 'name' in user_kmi.properties else user_kmi.name
+
+        ret["hotkeys"] = hotkeys
+
+        return ret
+
+    def apply_prefs_from_dict_recursive(self, propgroup, data):
+        hotkeys = data.pop("hotkeys")
+
+        context = bpy.context
+        user_kc = context.window_manager.keyconfigs.user
+
+        for kmi_hash, kmi_props in hotkeys.items():
+            kmi_props.pop("name")
+            key_cat = kmi_props.pop("key_cat")
+            user_km = user_kc.keymaps.get(key_cat)
+            if not user_km:
+                continue
+            user_kmi = cloudrig.find_kmi_in_km_by_hash(user_km, kmi_hash)
+            if not user_kmi:
+                continue
+
+            for key, value in kmi_props.items():
+                if key=="any" and not value:
+                    continue
+                setattr(user_kmi, key, value)
+
+        super().apply_prefs_from_dict_recursive(propgroup, data)
+
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 

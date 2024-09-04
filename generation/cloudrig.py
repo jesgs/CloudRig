@@ -6,7 +6,7 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-import bpy, json, ast, re, contextlib
+import bpy, json, ast, re, contextlib, hashlib
 from collections import OrderedDict, defaultdict
 from bpy.props import (
     StringProperty,
@@ -2819,7 +2819,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
             if not user_km:
                 # This really shouldn't happen.
                 continue
-            user_kmi = hotkey_class.find_kmi_in_km_by_hash(user_km, kmi_hash)
+            user_kmi = find_kmi_in_km_by_hash(user_km, kmi_hash)
 
             col = layout.column()
             col.context_pointer_set("keymap", user_km)
@@ -2881,28 +2881,28 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         props = str(list(kmi.properties.items()))
         print(idname, props, keys)
 
-    @staticmethod
-    def find_kmi_in_km_by_hash(keymap, kmi_hash):
-        """There's no solid way to match modified user keymap items to their
-        add-on equivalent, which is necessary to draw them in the UI reliably.
 
-        To remedy this, we store a hash in the KeyMapItem's properties.
+def find_kmi_in_km_by_hash(keymap, kmi_hash):
+    """There's no solid way to match modified user keymap items to their
+    add-on equivalent, which is necessary to draw them in the UI reliably.
 
-        This function lets us find a KeyMapItem with a stored hash in a KeyMap.
-        Eg., we can pass a User KeyMap and an Addon KeyMapItem's hash, to find the
-        corresponding user keymap, even if it was modified.
+    To remedy this, we store a hash in the KeyMapItem's properties.
 
-        The hash value is unfortunately exposed to the users, so we just hope they don't touch that.
-        """
+    This function lets us find a KeyMapItem with a stored hash in a KeyMap.
+    Eg., we can pass a User KeyMap and an Addon KeyMapItem's hash, to find the
+    corresponding user keymap, even if it was modified.
 
-        for kmi in keymap.keymap_items:
-            if not kmi.properties:
-                continue
-            if 'hash' not in kmi.properties:
-                continue
+    The hash value is unfortunately exposed to the users, so we just hope they don't touch that.
+    """
 
-            if kmi.properties['hash'] == kmi_hash:
-                return kmi
+    for kmi in keymap.keymap_items:
+        if not kmi.properties:
+            continue
+        if 'hash' not in kmi.properties:
+            continue
+
+        if kmi.properties['hash'] == kmi_hash:
+            return kmi
 
 
 def register_hotkey(
@@ -2918,10 +2918,8 @@ def register_hotkey(
         return
 
     # We limit the hash to a few digits, otherwise it errors when trying to store it.
-    kmi_hash = (
-        hash(json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs]))
-        % 1000000
-    )
+    kmi_string = json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs], sort_keys=True).encode("utf-8")
+    kmi_hash = hashlib.md5(kmi_string).hexdigest()
 
     # If it already exists, don't create it again.
     for (
@@ -2937,7 +2935,7 @@ def register_hotkey(
             # but are unregistered by Blender for no reason.
             # I noticed this particularly in the Weight Paint keymap.
             # So it's not enough to check if a KMI with a hash is in storage, we also need to check if a corresponding user KMI exists.
-            user_kmi = CLOUDRIG_PT_hotkeys_panel.find_kmi_in_km_by_hash(
+            user_kmi = find_kmi_in_km_by_hash(
                 user_km, kmi_hash
             )
             if user_kmi:
