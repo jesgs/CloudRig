@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty

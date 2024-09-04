@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Originally designed and implemented by me (Demeter Dzadik),
 # then re-written without functional changes for Rigify by Alexander Gavrilov.

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
 from bpy.props import BoolProperty, StringProperty, PointerProperty

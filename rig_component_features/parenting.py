@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PropertyGroup, UIList
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
