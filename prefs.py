@@ -351,7 +351,3 @@ registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 def register():
     init_component_module_list()
     CloudRigPreferences.register_autoload_from_file()
-
-
-def pre_unregister():
-    update_prefs_on_file()

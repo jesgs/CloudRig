@@ -64,11 +64,6 @@ def register_unregister_modules(modules: list, register: bool):
         if register:
             importlib.reload(m)
 
-        if register and hasattr(m, 'pre_register'):
-            m.pre_register()
-        elif hasattr(m, 'pre_unregister'):
-            m.pre_unregister()
-
         if hasattr(m, 'registry'):
             for c in m.registry:
                 try:
@@ -126,4 +121,10 @@ def register():
 
 def unregister():
     """Called by Blender when disabling the CloudRig add-on."""
+
+    # We need to save add-on prefs to file before unregistering anything, 
+    # otherwise things can fail in various ways, like hard errors or just
+    # data getting saved as integers instead of bools or enums.
+    prefs.update_prefs_on_file()
+
     register_unregister_modules(modules, False)
