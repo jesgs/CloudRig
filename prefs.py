@@ -245,13 +245,13 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
         main_col.separator()
 
-        hotkey_col = self.draw_fake_dropdown(main_col, self, 'show_hotkeys', "Hotkeys")
+        hotkey_col = draw_fake_dropdown(main_col, self, 'show_hotkeys', "Hotkeys")
         if self.show_hotkeys:
             cloudrig.CLOUDRIG_PT_hotkeys_panel.draw_hotkey_list(hotkey_col, context)
 
         main_col.separator()
 
-        preset_col = self.draw_fake_dropdown(
+        preset_col = draw_fake_dropdown(
             main_col, self, 'show_color_presets', "Bone Colors"
         )
         if self.show_color_presets:
@@ -278,22 +278,6 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
                 icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
                 row.label(text="", icon=icon)
 
-    def draw_fake_dropdown(self, layout, prop_owner, prop_name, dropdown_text):
-        row = layout.row()
-        split = row.split(factor=0.20)
-        split.use_property_split = False
-        prop_value = prop_owner.path_resolve(prop_name)
-        icon = 'TRIA_DOWN' if prop_value else 'TRIA_RIGHT'
-        split.prop(prop_owner, prop_name, icon=icon, emboss=False, text=dropdown_text)
-        split.prop(prop_owner, prop_name, icon='BLANK1', emboss=False, text="")
-        split = layout.split(factor=0.012)
-        split.row()
-        dropdown_row = split.row()
-        dropdown_col = dropdown_row.column()
-        row = dropdown_col.row()
-        row.use_property_split = False
-
-        return dropdown_col
 
     def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
         ret = super().prefs_to_dict_recursive(propgroup)
@@ -344,6 +328,22 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
         super().apply_prefs_from_dict_recursive(propgroup, data)
 
+
+def draw_fake_dropdown(layout, prop_owner, prop_name, dropdown_text):
+    row = layout.row(align=True)
+    row.use_property_split = False
+    prop_value = prop_owner.path_resolve(prop_name)
+    icon = 'TRIA_DOWN' if prop_value else 'TRIA_RIGHT'
+    sub = row.row(align=True)
+    sub.alignment='LEFT'
+    sub.prop(prop_owner, prop_name, icon=icon, emboss=False, text=dropdown_text)
+    sub = row.row(align=True)
+    sub.alignment='LEFT'
+    sub.scale_x = 100
+    sub.prop(prop_owner, prop_name, icon='BLANK1', emboss=False, text="")
+    dropdown_col = layout.column()
+
+    return dropdown_col
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
