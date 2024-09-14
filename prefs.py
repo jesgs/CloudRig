@@ -47,7 +47,7 @@ class PrefsFileSaveLoadMixin:
     loading = False
 
     @staticmethod
-    def register_autoload_from_file(delay=0.1):
+    def register_autoload_from_file(delay=0.5):
         def timer_func(_scene=None):
             prefs = get_addon_prefs()
             prefs.load_prefs_from_file()
