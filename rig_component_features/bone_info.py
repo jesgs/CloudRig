@@ -635,7 +635,11 @@ class BoneInfo:
             if key == 'collections':
                 for coll_name in value:
                     coll = arm_ob.data.collections_all.get(coll_name)
-                    coll.assign(pose_bone)
+                    if coll:
+                        coll.assign(pose_bone)
+                    else:
+                        # This can happen when there is a bone set collection without a collection name specified.
+                        pass
                 continue
             setattr(bone, key, value)
 
