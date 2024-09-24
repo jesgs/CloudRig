@@ -296,6 +296,8 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
             if not user_km:
                 continue
             user_kmi = cloudrig.find_kmi_in_km_by_hash(user_km, kmi_hash)
+            if not user_kmi:
+                continue
 
             hotkeys[kmi_hash] = {key:getattr(user_kmi, key) for key in ('active', 'type', 'shift_ui', 'ctrl_ui', 'alt_ui', 'oskey_ui', 'any', 'map_type', 'key_modifier')}
             hotkeys[kmi_hash]["key_cat"] = addon_km.name

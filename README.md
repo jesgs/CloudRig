@@ -69,4 +69,4 @@ If you encounter a bug or have a suggestion, feel free to [open an issue](../../
 Contributions are welcome! You may find some useful notes [here](../../../wiki/Code)
 
 # Show me your work!
-Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [blender.chat](https://blender.chat/direct/met) or add "metemer" on Discord!
+Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [chat.blender.org](https://chat.blender.org/#/room/#CloudRig:blender.org) or add "metemer" on Discord!
