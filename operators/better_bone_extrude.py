@@ -37,7 +37,7 @@ class BoneDuplicateOpMixin:
     def modal(self, context, event):
         self.increment_name = not event.shift
 
-        if event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET'}:
+        if event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET', 'RIGHTMOUSE', 'ESC'}:
             if not self.translate_done:
                 self.translate_done = True
                 return {'PASS_THROUGH'}
