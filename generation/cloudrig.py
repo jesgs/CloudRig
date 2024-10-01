@@ -1029,7 +1029,10 @@ def read_rig_panels(obj) -> OrderedDict:
 
     if 'ui_data' not in obj.data:
         return OrderedDict()
-    panels = obj.data['ui_data'].to_dict()['panels']
+    ui_data = obj.data['ui_data'].to_dict()
+    if 'panels' not in ui_data:
+        return OrderedDict()
+    panels = ui_data['panels']
     return tuples_to_dict(panels)
 
 
