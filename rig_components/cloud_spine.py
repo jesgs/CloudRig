@@ -112,7 +112,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             tail = head + Vector((0, 0, self.scale))
         else:
             tail = self.bones_org[-1].tail
-        self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
+        self.mstr_chest = self.bone_sets['Spine IK Controls'].new(
             name=self.naming.add_prefix(self.spine_name, "CHST"),
             source=chest_org,
             head=head,
@@ -335,7 +335,10 @@ class Component_Spine_IKFK(Component_Chain_FK):
         super().define_bone_sets()
         """Create parameters for this rig's bone sets."""
         cls.define_bone_set(
-            'Spine Main Controls', color_palette='THEME12', collections=['IK Controls']
+            'Spine Main Controls', color_palette='THEME12', collections=['IK Controls', 'FK Controls']
+        )
+        cls.define_bone_set(
+            'Spine IK Controls', color_palette='THEME12', collections=['IK Controls']
         )
         cls.define_bone_set(
             'Spine Parent Controls',

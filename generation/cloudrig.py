@@ -98,6 +98,7 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
 
             if (
                 metarig
+                and hasattr(metarig, 'cloudrig')
                 and metarig.cloudrig.generator.target_rig
                 and metarig.cloudrig.generator.target_rig != rig
             ):
@@ -585,7 +586,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
 
     def set_bone_selection(self, rig, select=False, pbones: list[PoseBone]=None):
         """Overrides SnapBakeOpMixin to also select the IK pole before keying."""
-        print("PBONES:", pbones, select)
         if select and self.target_value == 1 and self.ik_pole:
             pbones.append(rig.pose.bones[self.ik_pole])
         super().set_bone_selection(rig, select, pbones)
@@ -2021,6 +2021,7 @@ def draw_cloudrig_collections(self, context, rig: Object):
     sel_op = sub.operator(POSE_OT_cloudrig_collection_select.bl_idname, text="Select")
     sel_op.select = True
     sel_op.collection_name = active_coll.name
+    sel_op.extend_selection = True
 
     desel_op = sub.operator(
         POSE_OT_cloudrig_collection_select.bl_idname, text="Deselect"
@@ -2225,8 +2226,10 @@ class POSE_OT_cloudrig_collection_select(CloudRigOperator):
         )
 
     def invoke(self, context, event):
-        self.extend_selection = event.shift
-        self.select = not event.alt
+        if not self.extend_selection:
+            self.extend_selection = event.shift
+        if self.select:
+            self.select = not event.alt
         self.flip = event.ctrl
 
         return self.execute(context)

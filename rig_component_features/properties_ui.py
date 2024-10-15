@@ -156,7 +156,7 @@ class CloudRigUIEditOpMixin:
                 self.icon_true = 'HIDE_OFF'
             if self.icon_false == 'CHECKBOX_DEHLT':
                 self.icon_false = 'HIDE_ON'
-            if self.slider_name == "":
+            if self.slider_name in {"", "is_visible"}:
                 self.slider_name = prop_owner.name
             if self.panel_name == "Properties":
                 self.panel_name = "Bone Collections"

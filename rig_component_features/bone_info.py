@@ -213,7 +213,7 @@ class BoneInfo:
     def init_variables(self, var_dict):
         for key in var_dict.keys():
             value = var_dict[key]
-            if type(value) in [Vector, Matrix]:
+            if type(value) in [Vector, Matrix, list]:
                 value = value.copy()
             setattr(self, key, value)
 

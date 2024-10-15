@@ -156,6 +156,18 @@ def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         return
     symmetrized_con.name = flipped_con_name
 
+    if symmetrized_con.type == 'ARMATURE':
+        # Armature constraint sub-targets don't always get symmetrized.
+        for target in symmetrized_con.targets:
+            if not target.target:
+                continue
+            flipped_sub = flip_name(target.subtarget)
+            if flipped_sub == target.subtarget:
+                continue
+            if flipped_sub in target.target.pose.bones:
+                target.subtarget = flipped_sub
+
+
     symmetrize_drivers(armature, pbone, opp_pb, con, symmetrized_con)
 
 
