@@ -1764,7 +1764,7 @@ class CLOUDRIG_UL_collections(UIList):
         if collection.children:
             icon = 'DOWNARROW_HLT' if collection.is_expanded else 'RIGHTARROW'
             row.prop(
-                collection.cloudrig_info,
+                collection,
                 'is_expanded',
                 text="",
                 icon=icon,
