@@ -74,7 +74,6 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
         if type(bone_map) == set:
             # If the function returns an operator return value.
             return bone_map
-        bone_map_str = {key.name: value.name for key, value in bone_map.items()}
 
         for to_pb in bone_map.values():
             for to_con in to_pb.constraints:
@@ -86,11 +85,13 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             eb.hide = False
             eb.select = True
         bpy.ops.armature.symmetrize()
+        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.pose.select_mirror(extend=False)
+        bone_map = self.get_symmetrize_bone_mapping(context)
+        bpy.ops.pose.select_mirror(extend=False)
         bpy.ops.object.mode_set(mode=org_mode)
 
-        for from_name, to_name in bone_map_str.items():
-            from_pb = rig.pose.bones[from_name]
-            to_pb = rig.pose.bones[to_name]
+        for from_pb, to_pb in bone_map.items():
             # Mirror drivers on bone properties.
             symmetrize_drivers(context.object, from_pb, to_pb)
 
@@ -104,12 +105,15 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             for coll in to_pb.bone.collections[:]:
                 coll.unassign(to_pb)
             for from_coll in from_pb.bone.collections:
-                to_coll = rig.data.collections.get(flip_name(from_coll.name))
+                to_coll = rig.data.collections_all.get(flip_name(from_coll.name))
                 if to_coll:
                     to_coll.assign(to_pb)
                 else:
-                    # Opposite collection doesn't exist, but we gotta assign to something.
-                    from_coll.assign(to_pb)
+                    # Opposite collection doesn't exist, we're gonna create it.
+                    to_coll = rig.data.collections.new(name=flip_name(from_coll.name))
+                    rig.cloudrig_prefs.active_collection_index = rig.cloudrig_prefs.active_collection_index
+                    to_coll.parent = from_coll.parent
+                    to_coll.assign(to_pb)
 
         return {"FINISHED"}
 
