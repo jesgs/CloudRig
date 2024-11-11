@@ -619,18 +619,22 @@ class CloudRigUIEditOpMixin:
         if not self.slider_name:
             self.slider_name = self.prop_name
 
-        parent_option = context.scene.cloudrig_property_parent_selector.get(
-            self.parent_selector
-        )
-        if parent_option:
-            ui_path = json.loads(parent_option.ui_path)
-        elif self.parent_selector == "" and len(self.parent_ui_path) > 2:
-            ui_path = json.loads(self.parent_ui_path)
-            self.panel_name = ui_path[0]
-            self.label_name = ui_path[1]
-            ui_path = []
+        if self.use_parenting:
+            parent_option = context.scene.cloudrig_property_parent_selector.get(
+                self.parent_selector
+            )
+            if parent_option:
+                ui_path = json.loads(parent_option.ui_path)
+            elif self.parent_selector == "" and len(self.parent_ui_path) > 2:
+                ui_path = json.loads(self.parent_ui_path)
+                self.panel_name = ui_path[0]
+                self.label_name = ui_path[1]
+                ui_path = []
+            else:
+                ui_path = json.loads(self.parent_ui_path)
         else:
-            ui_path = json.loads(self.parent_ui_path)
+            # If the parent selector is toggled off, the UI path can be left empty, as only the panel_name will be used.
+            ui_path = []
 
         add_property_to_ui(
             obj=rig,
