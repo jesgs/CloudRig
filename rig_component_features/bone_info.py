@@ -798,6 +798,8 @@ class ConstraintInfo(dict):
         use_preferred_defaults=True,
         use_min_xyz=[],
         use_max_xyz=[],
+        space_object=None,
+        space_subtarget="",
         **kwargs,
     ):
         # Blame this guy https://stackoverflow.com/a/14620633/1527672
@@ -807,6 +809,8 @@ class ConstraintInfo(dict):
         self.type = con_type
         self.bone_info = bone_info  # BoneInfo to which this constraint is being added.
         self.target = target
+        self.space_object = space_object
+        self.space_subtarget = space_subtarget
         if con_type == 'ARMATURE':
             self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
@@ -901,6 +905,9 @@ class ConstraintInfo(dict):
         rig_component = self.bone_info.bone_set.rig_component
         rig = rig_component.target_rig
         metarig = rig_component.generator.metarig
+
+        if self.space_object == metarig:
+            self.space_object = rig
 
         if "@" not in self.name:
             if self.type == 'ARMATURE':
