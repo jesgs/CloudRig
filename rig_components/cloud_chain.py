@@ -464,6 +464,15 @@ class Component_ToonChain(Component_Base):
         if not next_str_bone:
             next_str_bone = str_bone.next
 
+        if self.params.chain.bbone_density == 0 and not self.params.chain.unlock_deform:
+            # In this case, need to copy rotation of the STR bone.
+            # https://projects.blender.org/Mets/CloudRig/issues/174
+            def_bone.add_constraint(
+                'COPY_ROTATION',
+                subtarget=str_bone,
+                space='WORLD'
+            )
+
         # Stretch to next STR bone.
         if not self.params.chain.unlock_deform:
             def_bone.add_constraint(
