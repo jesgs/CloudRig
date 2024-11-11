@@ -873,13 +873,13 @@ def path_resolve_safe(owner, data_path):
         return
 
 
-def ensure_custom_property(prop_bone, prop_id, default=0.0, **kwargs):
+def ensure_custom_property(prop_bone, prop_id, default=0.0, overwrite=False, **kwargs):
     if 'BoneInfo' in str(type(prop_bone)):
         kwargs['default'] = default
         # Let this function work for BoneInfo objects during the generation process.
         if prop_id not in prop_bone.custom_props:
             prop_bone.custom_props[prop_id] = kwargs
-        else:
+        elif overwrite:
             prop_bone.custom_props[prop_id].update(kwargs)
 
     else:
