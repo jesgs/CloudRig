@@ -896,7 +896,9 @@ def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
             if not property_settings:
                 continue
 
-            if type(pb[key]) not in (float, int, bool):
+            value_type, _is_array = rna_idprop_value_item_type(pb[key])
+
+            if value_type not in (float, int, bool):
                 continue
             pb[key] = property_settings['default']
 
