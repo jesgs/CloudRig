@@ -231,9 +231,8 @@ def update_all_metarigs(dummy=None):
 
         # Trigger component type update callbacks to update_ui_bone_sets().
         # https://projects.blender.org/Mets/CloudRig/issues/164
-        # Bit of a hack, but harmless, I swear.
         for pb in metarig.pose.bones:
-            pb.cloudrig_component.component_type = pb.cloudrig_component.component_type
+            pb.cloudrig_component.update_ui_bone_sets()
 
         if metarig.cloudrig.metarig_version == metarig_version:
             continue
