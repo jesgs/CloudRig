@@ -84,7 +84,7 @@ class Component_Limb(Component_Chain_IKFK):
         return fk_chain
 
     def make_ik_setup(self):
-        """Override."""
+        """Override cloud_ik_chain."""
         super().make_ik_setup()
 
         # Parent control
@@ -105,6 +105,11 @@ class Component_Limb(Component_Chain_IKFK):
 
         # Lock IK axes
         if self.params.limb.limit_elbow_axes:
+            if self.pole_angle_deg in {180, 0}:
+                self.add_log(
+                    "Locked IK must bend on X",
+                    description=f'To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should be rotated 90 degrees, so it bends on X instead of Z axis. Currently, this limbn will not bend properly.',
+                )
             ik_elbow = self.ik_chain[1]
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
 
@@ -559,7 +564,7 @@ class Params(PropertyGroup):
 
     limit_elbow_axes: BoolProperty(
         name="Limit Elbow Axes",
-        description="Lock the Y and Z rotation of the elbow/knee bone, only allowing realistic rotations. This is limiting for cartoony characters, but it's necessary for accurate FK->IK snapping. For realistic characters, this should be enabled",
+        description="Lock the Y and Z rotation of the elbow/knee bone, only allowing realistic rotations. This is limiting for cartoony characters, but it's necessary for accurate FK->IK snapping. For realistic characters, this should be enabled. This also requires that the elbow bends along its local X axis",
         default=True
     )
 

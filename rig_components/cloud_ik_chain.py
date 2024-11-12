@@ -3,7 +3,7 @@
 from bpy.types import PoseBone, PropertyGroup
 from bpy.props import BoolProperty
 from mathutils import Vector
-from math import radians as rad
+from math import radians
 
 from ..operators.flatten_chain import is_chain_flat
 from .cloud_fk_chain import Component_Chain_FK
@@ -183,7 +183,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Find the tuple to use by picking the one corresponding to the lowest distance.
         lowest_distance = axis_dict[min(list(axis_dict.keys()))]
         rotation_axis = lowest_distance[0]
-        pole_angle = rad(lowest_distance[1])
+        pole_angle_deg = lowest_distance[1]
 
         vector_flipper = 1
         perpendicular_axis = meta_first.x_axis
@@ -204,7 +204,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # We want the pole control to be offset from the first bone's tail by that vector.
         pole_location = first_tail + pole_vector
 
-        return pole_angle, pole_vector, pole_location
+        return pole_angle_deg, pole_vector, pole_location
 
     def calculate_ik_info(self):
         """Calculate pole angle, pole control direction and distance."""
@@ -214,10 +214,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
         meta_second_name = self.bones_org[1].name.replace("ORG-", "")
         meta_second = self.get_metarig_pbone(meta_second_name)
 
-        pole_angle, pole_vector, pole_location = self.calculate_ik_info_static(
+        pole_angle_deg, pole_vector, pole_location = self.calculate_ik_info_static(
             meta_first, meta_second
         )
-        self.pole_angle = pole_angle
+        self.pole_angle_deg = pole_angle_deg
         self.pole_vector = pole_vector
 
         self.pole_location = pole_location
@@ -305,7 +305,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                     'IK',
                     pole_target=self.target_rig if pole_target else None,
                     pole_subtarget=pole_target.name if pole_target else "",
-                    pole_angle=self.pole_angle,
+                    pole_angle=radians(self.pole_angle_deg),
                     subtarget=ik_bone.name,
                     chain_count=i,
                 )

@@ -2,7 +2,7 @@
 
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_ik_chain import Component_Chain_IKFK
-
+from math import radians
 
 class Component_Finger(Component_Chain_IKFK):
     """An IK chain tailored for fingers. The finger bending axis should be +X."""
@@ -121,7 +121,7 @@ class Component_Finger(Component_Chain_IKFK):
             'IK',
             pole_target=self.target_rig if pole_target else None,
             pole_subtarget=pole_target.name if pole_target else "",
-            pole_angle=self.pole_angle,
+            pole_angle=radians(self.pole_angle_deg),
             subtarget=last_ik2,
             chain_count=2,
         )
