@@ -522,6 +522,7 @@ class Properties_CloudRig(PropertyGroup):
             order_idx = self.order_components_recursive(
                 pbone, order_idx=order_idx, depth=0
             )
+            order_idx += 1
 
     def order_components_recursive(self, pbone, order_idx=0, depth=0):
         component = pbone.cloudrig_component
