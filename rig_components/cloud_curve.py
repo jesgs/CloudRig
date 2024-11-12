@@ -53,6 +53,7 @@ class Component_Curve_Hooked(Component_Base):
         self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
         if self.params.curve.create_root:
             self.make_curve_root_ctrl()
+
         self.make_ctrls_for_curve_points()
 
     def relink(self):
@@ -80,13 +81,6 @@ class Component_Curve_Hooked(Component_Base):
 
     def make_ctrls_for_curve_points(self):
         curve_ob = self.params.curve.target
-
-        # Function to convert a location vector in the curve's local space into world space.
-        # For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
-        # Use matrix_basis instead of matrix_world in case there are constraints on the curve.
-        worldspace = lambda loc: (
-            curve_ob.matrix_basis @ Matrix.Translation(loc)
-        ).to_translation()
 
         self.all_hooks: list[list[BoneInfo]] = []
         for spline_idx, spline in enumerate(curve_ob.data.splines):
@@ -117,36 +111,31 @@ class Component_Curve_Hooked(Component_Base):
             if len(points) < 2:
                 self.raise_generation_error("Curve spline with <2 points")
 
-            for i, cp in enumerate(points):
-                is_bezier = type(cp) == BezierSplinePoint
-                if is_bezier:
-                    loc_left = cp.handle_left
-                    loc_right = cp.handle_right
-                else:
-                    if i > 0:
-                        delta = cp.co - points[i - 1].co
-                    else:
-                        delta = points[i + 1].co - cp.co
-
-                    loc_left = cp.co + (delta) / 2
-                    loc_right = cp.co - (delta) / 2
-
-                # For some reason, non-bezier Spline points have 4 coordinates...
-                loc_left = worldspace(Vector(loc_left[0:3]))
-                loc_right = worldspace(Vector(loc_right[0:3]))
-
+            for point_idx, point in enumerate(points):
                 hooks.append(
                     self.make_ctrls_for_curve_point(
-                        loc=worldspace(cp.co),
-                        loc_left=loc_left,
-                        loc_right=loc_right,
                         spline_idx=spline_idx,
-                        point_idx=i,
+                        point_idx=point_idx,
                         parent_bone=parent_bone,
-                        is_bezier=is_bezier,
-                        cyclic=spline.use_cyclic_u,
                     )
                 )
+
+            for i, hook in enumerate(hooks):
+                if not hook.is_bezier:
+                    if i+1 < len(hooks):
+                        bone_to_stretch = hook
+                        subtarget = hooks[i+1]
+                    elif spline.use_cyclic_u:
+                        dsp_helper = self.bone_sets['Mechanism Bones'].new(
+                            source=hook,
+                            parent=hook,
+                            name=self.naming.add_prefix(hook.name, "DSP"),
+                        )
+                        hook.custom_shape_transform = dsp_helper
+                        bone_to_stretch = dsp_helper
+                        subtarget = hooks[0]
+                    bone_to_stretch.add_constraint('STRETCH_TO', subtarget=subtarget)
+
             self.all_hooks.append(hooks)
 
     def get_x_axis_opposite_curve_point(
@@ -258,24 +247,54 @@ class Component_Curve_Hooked(Component_Base):
 
     def make_ctrls_for_curve_point(
         self,
-        loc: Vector,
-        loc_left: Vector,
-        loc_right: Vector,
         spline_idx: int,
         point_idx: int,
         parent_bone: BoneInfo,
-        is_bezier=True,
         cyclic=False,
     ):
         """Create hook controls for a bezier curve point defined by three points (loc, loc_left, loc_right)."""
 
-        tail = loc_left
+        curve_ob = self.params.curve.target
+        spline = curve_ob.data.splines[spline_idx]
+        cyclic = spline.use_cyclic_u
+        points = get_points(spline)
+        point = points[point_idx]
+
+        # Function to convert a location vector in the curve's local space into world space.
+        # For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
+        # Use matrix_basis instead of matrix_world in case there are constraints on the curve.
+        worldspace = lambda loc: (
+            curve_ob.matrix_basis @ Matrix.Translation(loc.xyz)
+        ).to_translation()
+
+        point_loc = worldspace(point.co)
+
+        is_bezier = type(point) == BezierSplinePoint
+        if is_bezier:
+            shape = 'Curve_Point'
+            left_handle_loc = worldspace(point.handle_left)
+            right_handle_loc = worldspace(point.handle_right)
+            tail = left_handle_loc
+        else:
+            shape = 'Curve_Handle'
+            spline = self.params.curve.target.data.splines[spline_idx]
+            if len(points) > point_idx+1:
+                tail = points[point_idx+1].co
+            elif cyclic:
+                tail = points[0].co
+            else:
+                prev_point_co = points[point_idx-1].co
+                tail = point.co + (point.co-prev_point_co) / 2
+                shape = 'Cube'
+
+            tail = worldspace(tail)
+
         source_bone = self.bones_org[0]
         hook_ctr = self.bone_sets['Curve Hooks'].new(
             name=self.make_hook_name(spline_idx, point_idx),
             source=source_bone,
             use_custom_shape_bone_size=True,
-            head=loc,
+            head=point_loc,
             tail=tail,
             parent=parent_bone,
             rotation_mode='YZX',
@@ -285,6 +304,7 @@ class Component_Curve_Hooked(Component_Base):
             roll=0,
         )
         hook_ctr.invert_tilt = False
+        hook_ctr.is_bezier = is_bezier
         if self.params.curve.x_axis_symmetry:
             opp_hook_ctr = self.generator.find_bone_info(
                 self.naming.flipped_name(hook_ctr)
@@ -297,11 +317,10 @@ class Component_Curve_Hooked(Component_Base):
         hook_ctr.left_handle_control = None
         hook_ctr.right_handle_control = None
 
-        shape = 'Curve_Point'
         if is_bezier and self.params.curve.controls_for_handles:
             shape = 'Circle'
             self.make_bezier_handle_controls(
-                hook_ctr, spline_idx, point_idx, loc, loc_left, loc_right, cyclic
+                hook_ctr, spline_idx, point_idx, point_loc, left_handle_loc, right_handle_loc, cyclic
             )
 
         hook_ctr.custom_shape_name = shape
