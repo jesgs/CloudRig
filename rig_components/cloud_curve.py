@@ -508,6 +508,12 @@ class Component_Curve_Hooked(Component_Base):
         context.view_layer.update()
 
         for point_i in range(0, num_points):
+            # For Beziers, handle type must be Aligned, otherwise rotations don't work.
+            point = points[point_i]
+            if hasattr(point, 'handle_left_type'):
+                point.handle_left_type = 'ALIGNED'
+                point.handle_right_type = 'ALIGNED'
+
             hook_b = hooks[point_i]
             shared_kwargs = {
                 "rig_ob": self.target_rig,
