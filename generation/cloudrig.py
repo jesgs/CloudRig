@@ -1421,7 +1421,12 @@ def feed_op_props(op_props, op_kwargs: str or dict or list):
             if type(value) in {list, dict}:
                 value = json.dumps(value)
             if desired_type != type(value):
-                value = desired_type(value)
+                # Since we store operator kwargs as a string, we need to convert them back to their int/float/bool representation.
+                if type(value) == str and desired_type == bool and value == "False":
+                    # The case of a False bool needs a bit of special treatment, since bool("False") == True
+                    value = False
+                else:
+                    value = desired_type(value)
             setattr(op_props, key, value)
 
 
