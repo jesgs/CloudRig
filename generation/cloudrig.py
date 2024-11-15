@@ -2101,7 +2101,7 @@ class CLOUDRIG_PT_collections_filter(Panel):
         row = layout.row(align=True)
         row.prop(prefs, 'show_visibility', text="", icon='HIDE_OFF')
         row.prop(prefs, 'show_solo', text="", icon='SOLO_OFF')
-        row.prop(prefs, 'show_select', text="", icon='RESTRICT_SELECT_OFF')
+        row.prop(prefs, 'show_select', text="", icon='MOUSE_LMB')
 
         row.separator()
         row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
@@ -2117,6 +2117,7 @@ class CLOUDRIG_MT_collections_specials(Menu):
     bl_idname = 'CLOUDRIG_MT_collections_specials'
 
     def draw(self, context):
+        rig = find_cloudrig(context)
         layout = self.layout
         layout.operator(
             POSE_OT_cloudrig_collections_reveal_all.bl_idname,
@@ -2139,9 +2140,10 @@ class CLOUDRIG_MT_collections_specials(Menu):
             text="Delete Hierarchy of Collections",
             icon='OUTLINER',
         ).mode = 'HIERARCHY'
+        local = "Local " if rig.override_library else ""
         layout.operator(
             POSE_OT_cloudrig_collection_delete.bl_idname,
-            text="Delete All Local Collections",
+            text=f"Delete All {local}Collections",
             icon='TRASH',
         ).mode = 'ALL'
         layout.separator()
