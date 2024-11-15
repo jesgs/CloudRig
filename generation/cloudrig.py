@@ -908,6 +908,20 @@ def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
 #######################################
 
 
+def is_modal_transform_running(context) -> bool:
+    # In 4.2 and beyond, we can check for running transform operators.
+    # We can use this to not draw the sidebar while interacting, 
+    # which can save on performance.
+    window = context.window
+    if not hasattr(window, 'modal_operators'):
+        # This field was added to the API in Blender 4.2. 
+        # In earlier versions, this optimization is unavailable.
+        return False
+    for m in context.window.modal_operators:
+        if m.bl_idname.startswith('TRANSFORM_OT_'):
+            return True
+    return False
+
 class CLOUDRIG_PT_base(Panel):
     """Base class for all CloudRig sidebar panels."""
 
@@ -930,6 +944,10 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
     def draw(self, context):
         layout = self.layout
+        if is_modal_transform_running(context):
+            layout.label(text="UI disabled for posing performance.", icon='INFO')
+            return
+
         rig, ui_data = get_rig_and_ui(context)
         if not rig:
             return
@@ -2044,6 +2062,8 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
+        if is_modal_transform_running(context):
+            return False
         return find_cloudrig(context)
 
     def draw(self, context):
@@ -2812,6 +2832,14 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     bl_label = "Hotkeys"
 
     cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem"]] = {}
+
+    @classmethod
+    def poll(cls, context):
+        if not super().poll(context):
+            return False
+        if is_modal_transform_running(context):
+            return False
+        return True
 
     def draw(self, context):
         type(self).draw_hotkey_list(self.layout.column(), context)
