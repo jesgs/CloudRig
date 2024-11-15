@@ -1221,7 +1221,7 @@ def draw_slider(
         )
         if operator:
             draw_operator(
-                sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs
+                rig, sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs
             )
 
         prop_value_str = str(prop_value)
@@ -1376,6 +1376,7 @@ def draw_property(
 
 
 def draw_operator(
+    obj: Object,
     layout: UILayout,
     bl_idname: str,
     op_icon='BLANK1',
@@ -1384,7 +1385,11 @@ def draw_operator(
 ):
     if not op_icon or op_icon == 'NONE':
         op_icon = 'BLANK1'
-    op_props = layout.operator(bl_idname, text=text, icon=op_icon)
+    if op_exists(bl_idname):
+        op_props = layout.operator(bl_idname, text=text, icon=op_icon)
+    elif is_ui_edit_mode(obj):
+        layout.alert=True
+        layout.label(text="Missing Operator", icon='ERROR')
     feed_op_props(op_props, op_kwargs)
     return op_props
 
@@ -1419,6 +1424,18 @@ def is_ui_edit_mode(obj):
     return (
         hasattr(obj, 'cloudrig') and obj.cloudrig.enabled and obj.cloudrig.ui_edit_mode
     )
+
+
+def op_exists(bl_idname) -> bool:
+    """Whether an operator with the given bl_idname is registered."""
+    parts = bl_idname.split(".")
+    op = bpy.ops
+    for part in parts:
+        if hasattr(op, part):
+            op = getattr(op, part)
+        else:
+            return False
+    return True
 
 
 def feed_op_props(op_props, op_kwargs: str or dict or list):
