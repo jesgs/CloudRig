@@ -128,6 +128,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                         self.params.fk_chain.display_center / 2
                     )
                     hng_child = fk_parent_bone
+                    if not self.params.fk_chain.root:
+                        self.root_bone = fk_parent_bone
 
         # Create Hinge helper
         if self.params.fk_chain.hinge:
