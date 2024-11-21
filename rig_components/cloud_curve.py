@@ -337,7 +337,7 @@ class Component_Curve_Hooked(Component_Base):
                 name=self.make_hook_name(spline_idx, point_idx, "Radius"),
                 source=hook_ctr,
                 tail=loc_left,
-                use_custom_shape_bone_size=False,
+                use_custom_shape_bone_size=True,
                 custom_shape_scale=0.8,
                 parent=hook_ctr,
                 custom_shape_name="Circle",
@@ -346,11 +346,11 @@ class Component_Curve_Hooked(Component_Base):
             self.lock_transforms(
                 radius_control, loc=True, rot=True, scale=[False, True, False]
             )
-            if not self.params.curve.x_axis_symmetry:
-                self.lock_transforms(
-                    hook_ctr, loc=False, rot=False, scale=[True, False, True]
-                )
+            self.lock_transforms(
+                hook_ctr, loc=False, rot=False, scale=[True, False, True]
+            )
             hook_ctr.radius_control = radius_control
+            hook_ctr.custom_shape_transform = radius_control
 
         left_name = "L"
         right_name = "R"
