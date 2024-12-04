@@ -2952,8 +2952,13 @@ def find_kmi_in_km_by_hash(keymap, kmi_hash):
     for kmi in keymap.keymap_items:
         if not kmi.properties:
             continue
-        if 'hash' not in kmi.properties:
-            continue
+        try:
+            if 'hash' not in kmi.properties:
+                continue
+        except TypeError:
+            # Not sure why this happens.
+            # https://projects.blender.org/Mets/CloudRig/issues/186
+            pass
 
         if kmi.properties['hash'] == kmi_hash:
             return kmi
