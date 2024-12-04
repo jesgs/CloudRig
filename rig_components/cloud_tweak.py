@@ -15,6 +15,8 @@ class Component_TweakBone(Component_Base):
     parent_switch_behaviour = "The active parent will own the tweaked bone."
 
     keep_original_bones = False
+    keep_original_bones_collections = True
+    keep_original_bones_colors = True
 
     def initialize(self):
         super().initialize()
@@ -86,6 +88,8 @@ class Component_TweakBone(Component_Base):
                 self.add_to_widget_collection(context, org_bi.custom_shape)
 
         if self.params.tweak.collections:
+            print(tweak_bone.collections)
+            print(org_bi.collections)
             tweak_bone.collections = org_bi.collections
         if self.params.tweak.color_palette:
             tweak_bone.color_palette_base = org_bi.color_palette_base

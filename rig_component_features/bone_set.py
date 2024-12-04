@@ -181,7 +181,7 @@ class BoneSet(LinkedList):
         # Load Collections.
         bone_info.collections = self.collections
         if keep_collections:
-            bone_info.collections += [coll.name for coll in data_bone.collections]
+            bone_info.collections = [coll.name for coll in data_bone.collections]
 
         # Load Constraints.
         for constr in pose_bone.constraints:
