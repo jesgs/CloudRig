@@ -134,6 +134,11 @@ class Component_TweakBone(Component_Base):
                 self.relink_driver_info(d)
             org_bi.constraint_infos.remove(c)
 
+    @classmethod
+    def is_bone_set_used(cls, context, rig, params, set_name):
+        # We use the collections the actual bone itself is assigned to.
+        return False
+
     ##############################
     # Parameters
 
@@ -182,7 +187,7 @@ class Params(PropertyGroup):
     )
     collections: BoolProperty(
         name="Collections",
-        description="Replace the matching generated bone's collections with this bone's collections",
+        description="Assign the matching generated bone to the collections of this tweak bone",
         default=False,
     )
     color_palette: BoolProperty(
