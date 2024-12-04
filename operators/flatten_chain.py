@@ -58,8 +58,10 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector]]:
             )
 
             # Set the vector to the resulting point
-            pair.append(intersect)
-        ret.append(pair)
+            if intersect:
+                pair.append(intersect)
+        if pair:
+            ret.append(pair)
     return ret
 
 
@@ -101,6 +103,9 @@ class CLOUDRIG_OT_FlattenChain(CloudRigOperator):
         chain = get_bone_chain(start_bone)
 
         coords = get_flattened_coords(chain)
+        if not any(coords):
+            self.report({'ERROR'}, "Failed to flatten bone chain. Perhaps it is already flat.")
+            return {'CANCELLED'}
         for i, edit_bone in enumerate(chain):
             edit_bone.head, edit_bone.tail = coords[i]
 
@@ -109,6 +114,7 @@ class CLOUDRIG_OT_FlattenChain(CloudRigOperator):
         if self.remove_active_log:
             rig.cloudrig.generator.remove_active_log()
 
+        self.report({'INFO'}, "Bone chain should now lie on a plane.")
         return {'FINISHED'}
 
 
