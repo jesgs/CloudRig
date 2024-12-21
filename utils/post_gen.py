@@ -218,3 +218,96 @@ def auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
             pb.bone_gizmo.shape_object = ob
             pb.bone_gizmo.use_face_map = False
             pb.bone_gizmo.vertex_group_name = def_name
+
+
+def add_custom_property_driver(
+    rig: Object,
+    prop_bone: str,
+    property_name: str,
+    bone_name: str,
+    driver_type: str,
+    driver_values: list
+):
+    """Add a custom driver to a bone's property."""
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        return
+
+    fcurves = bone.driver_add(driver_type)
+
+    for index, fcurve in enumerate(fcurves):
+        driver = fcurve.driver
+        driver.type = "SCRIPTED"
+        driver.expression = driver_values[index]
+
+        var = driver.variables.new()
+        var.name = "var"
+        var.type = "SINGLE_PROP"
+
+        target = var.targets[0]
+        target.id_type = "OBJECT"
+        target.id = rig
+        target.data_path = f'pose.bones["{prop_bone}"]["{property_name}"]'
+
+
+def update_bone_collection(
+    rig: Object,
+    bone_name: str,
+    collection_path: str,
+    operation: str
+):
+    """Add or remove a bone from a specified collection."""
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        return
+
+    collection_hierarchy = collection_path.split("/")
+    target_collection = None
+    current_collection = None
+
+    for collection_name in collection_hierarchy:
+        if current_collection is None:
+            current_collection = rig.data.collections.get(collection_name)
+        else:
+            current_collection = current_collection.children.get(collection_name)
+
+        if current_collection is None:
+            return
+        target_collection = current_collection
+
+    if target_collection:
+        if operation == "add":
+            target_collection.assign(bone)
+        else:
+            target_collection.unassign(bone)
+        return
+
+
+def update_widget_properties(
+    rig: Object,
+    bone_name: str,
+    properties: dict
+):
+    """Apply custom properties to the specified bone."""
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        return
+
+    if "custom_shape" in properties and properties["custom_shape"] in bpy.data.objects:
+        bone.custom_shape = bpy.data.objects[properties["custom_shape"]]
+
+    # Helper function to update vector properties
+    def update_vector(vec_prop, values):
+        for _, (attr, val) in enumerate(zip('xyz', values)):
+            if val is not None:
+                setattr(vec_prop, attr, val)
+
+    transform_maps = {
+        'translation': bone.custom_shape_translation,
+        'scale': bone.custom_shape_scale_xyz,
+        'rotation': bone.custom_shape_rotation_euler
+    }
+
+    for prop_name, vec_prop in transform_maps.items():
+        if prop_name in properties:
+            update_vector(vec_prop, properties[prop_name])
