@@ -253,34 +253,29 @@ def add_custom_property_driver(
 def update_bone_collection(
     rig: Object,
     bone_name: str,
-    collection_path: str,
+    collection_name: str,
     operation: str
 ):
-    """Add or remove a bone from a specified collection."""
+    """Add or remove a bone from a specified collection.
+    
+    Args:
+        rig: The armature object
+        bone_name: Name of the bone to update
+        collection_name: Name of the bone collection
+        operation: Either 'add' or 'remove'
+    """
     bone = rig.pose.bones.get(bone_name)
     if not bone:
         return
 
-    collection_hierarchy = collection_path.split("/")
-    target_collection = None
-    current_collection = None
+    collection = rig.data.collections_all.get(collection_name)
+    if not collection:
+        raise ValueError(f"Collection not found: '{collection_name}'")
 
-    for collection_name in collection_hierarchy:
-        if current_collection is None:
-            current_collection = rig.data.collections.get(collection_name)
-        else:
-            current_collection = current_collection.children.get(collection_name)
-
-        if current_collection is None:
-            return
-        target_collection = current_collection
-
-    if target_collection:
-        if operation == "add":
-            target_collection.assign(bone)
-        else:
-            target_collection.unassign(bone)
-        return
+    if operation == "add":
+        collection.assign(bone)
+    else:
+        collection.unassign(bone)
 
 
 def update_widget_properties(
