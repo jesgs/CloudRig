@@ -286,28 +286,34 @@ def update_bone_collection(
 def update_widget_properties(
     rig: Object,
     bone_name: str,
-    properties: dict
+    **kwargs
 ):
-    """Apply custom properties to the specified bone."""
+    """Apply custom properties to the specified bone.
+    
+    Args:
+        rig: The armature object
+        bone_name: Name of the bone to update
+        **kwargs: Keyword arguments for bone properties:
+            - custom_shape: (Object) The widget object to use
+            - scale: (tuple) Widget scale vector
+            - translation: (tuple) Widget translation vector
+            - rotation: (tuple) Widget rotation euler vector
+            - transform: (Object) Bone to use for transform
+            - wire_width: (float) Width of wireframe
+    """
     bone = rig.pose.bones.get(bone_name)
     if not bone:
         return
 
-    if "custom_shape" in properties and properties["custom_shape"] in bpy.data.objects:
-        bone.custom_shape = bpy.data.objects[properties["custom_shape"]]
-
-    # Helper function to update vector properties
-    def update_vector(vec_prop, values):
-        for _, (attr, val) in enumerate(zip('xyz', values)):
-            if val is not None:
-                setattr(vec_prop, attr, val)
-
-    transform_maps = {
-        'translation': bone.custom_shape_translation,
-        'scale': bone.custom_shape_scale_xyz,
-        'rotation': bone.custom_shape_rotation_euler
+    property_map = {
+        'custom_shape': 'custom_shape',
+        'scale': 'custom_shape_scale_xyz',
+        'translation': 'custom_shape_translation',
+        'rotation': 'custom_shape_rotation_euler',
+        'override_transform': 'custom_shape_transform',
+        'wire_width': 'custom_shape_wire_width'
     }
 
-    for prop_name, vec_prop in transform_maps.items():
-        if prop_name in properties:
-            update_vector(vec_prop, properties[prop_name])
+    for kwarg, value in kwargs.items():
+        if kwarg in property_map:
+            setattr(bone, property_map[kwarg], value)
