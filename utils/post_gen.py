@@ -8,6 +8,7 @@ post-generation scripts.
 import bpy
 from bpy.types import Object, ID, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
+from .external.mechanism import make_driver
 
 sides = {'.L': 'Left', '.R': 'Right'}
 suffixes = list(sides.keys())
@@ -220,34 +221,38 @@ def auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
             pb.bone_gizmo.vertex_group_name = def_name
 
 
-def add_custom_property_driver(
+def add_property_drivers(
     rig: Object,
-    prop_bone: str,
-    property_name: str,
     bone_name: str,
-    driver_type: str,
-    driver_values: list
+    property_name: str,
+    data_path: str,
+    driver_expressions: str | list
 ):
-    """Add a custom driver to a bone's property."""
+    """Add custom drivers to a bone's properties.
+
+    Args:
+        rig: The armature object
+        bone_name: Name of the bone to add drivers to
+        property_name: Name of the property that will drive the target
+        data_path: The RNA data path for the driven property (e.g. 'custom_shape_scale_xyz', 'custom_shape_wire_width')
+        driver_expressions: Either a single expression string for a single property,
+                            or a list of expressions for transform properties
+    """
     bone = rig.pose.bones.get(bone_name)
     if not bone:
         return
 
-    fcurves = bone.driver_add(driver_type)
+    expressions = [driver_expressions] if isinstance(driver_expressions, str) else driver_expressions
+    for i, expression in enumerate(expressions):
+        index = -1 if isinstance(driver_expressions, str) else i
 
-    for index, fcurve in enumerate(fcurves):
-        driver = fcurve.driver
-        driver.type = "SCRIPTED"
-        driver.expression = driver_values[index]
-
-        var = driver.variables.new()
-        var.name = "var"
-        var.type = "SINGLE_PROP"
-
-        target = var.targets[0]
-        target.id_type = "OBJECT"
-        target.id = rig
-        target.data_path = f'pose.bones["{prop_bone}"]["{property_name}"]'
+        make_driver(
+            owner=bone,
+            prop=data_path,
+            index=index,
+            expression=expression,
+            variables=[(rig, property_name)],
+        )
 
 
 def update_bone_collection(
