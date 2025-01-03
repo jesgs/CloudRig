@@ -293,59 +293,39 @@ def update_widget_properties(
     Args:
         rig: The armature object
         bone_name: Name of the bone to update
-        **kwargs: Keyword arguments for bone properties:
-            - custom_shape: (Object) The widget object to use
-            - scale: (tuple or float) Widget scale vector or single float
-            - translation: (tuple or float) Widget translation vector or single float
-            - rotation: (tuple or float) Widget rotation euler vector or single float
-            - transform: (Object) Bone to use for transform
-            - wire_width: (float) Width of wireframe
+        **kwargs: Keyword arguments for bone properties. Supports both shortened and full property names:
+            - custom_shape: custom_shape
+            - scale: custom_shape_scale_xyz
+            - translation: custom_shape_translation
+            - rotation: custom_shape_rotation_euler
+            - transform: custom_shape_transform
+            - wire_width: custom_shape_wire_width
+            - use_bone_size: use_custom_shape_bone_size
     """
     bone = rig.pose.bones.get(bone_name)
     if not bone:
         raise ValueError(f"Bone '{bone_name}' not found'")
 
+    # Map shortened names to full property names
     property_map = {
-        'custom_shape': {
-            'attr': 'custom_shape',
-            'type': (Object,),
-        },
-        'scale': {
-            'attr': 'custom_shape_scale_xyz',
-            'type': (tuple, float),
-        },
-        'translation': {
-            'attr': 'custom_shape_translation',
-            'type': (tuple, float),
-        },
-        'rotation': {
-            'attr': 'custom_shape_rotation_euler',
-            'type': (tuple, float),
-        },
-        'override_transform': {
-            'attr': 'custom_shape_transform',
-            'type': (PoseBone,),
-        },
-        'wire_width': {
-            'attr': 'custom_shape_wire_width',
-            'type': (float,),
-        },
+        'custom_shape': 'custom_shape',
+        'scale': 'custom_shape_scale_xyz',
+        'translation': 'custom_shape_translation',
+        'rotation': 'custom_shape_rotation_euler',
+        'transform': 'custom_shape_transform',
+        'wire_width': 'custom_shape_wire_width',
+        'use_bone_size': 'use_custom_shape_bone_size'
     }
 
     for kwarg, value in kwargs.items():
-        if kwarg not in property_map:
-            raise KeyError(f"Unknown property '{kwarg}'")
+        # Use mapped name if it exists, otherwise use original
+        prop_name = property_map.get(kwarg, kwarg)
+        
+        if not hasattr(bone, prop_name):
+            raise KeyError(f"Unknown property '{prop_name}'")
 
-        prop_info = property_map[kwarg]
-        expected_type = prop_info['type']
-        attr = prop_info['attr']
-
-        if isinstance(value, float) and (tuple in expected_type and float in expected_type):
+        # Handle uniform scaling
+        if prop_name == "custom_shape_scale_xyz" and isinstance(value, (int, float)):
             value = (value, value, value)
-        elif not isinstance(value, expected_type):
-            raise TypeError(
-                f"Invalid type for property '{kwarg}'. "
-                f"Expected {expected_type}, got {type(value).__name__}."
-            )
 
-        setattr(bone, attr, value)
+        setattr(bone, prop_name, value)
