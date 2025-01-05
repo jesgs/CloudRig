@@ -8,6 +8,7 @@ post-generation scripts.
 import bpy
 from bpy.types import Object, ID, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
+from .external.mechanism import make_driver
 
 sides = {'.L': 'Left', '.R': 'Right'}
 suffixes = list(sides.keys())
@@ -218,3 +219,113 @@ def auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
             pb.bone_gizmo.shape_object = ob
             pb.bone_gizmo.use_face_map = False
             pb.bone_gizmo.vertex_group_name = def_name
+
+
+def add_property_drivers(
+    rig: Object,
+    bone_name: str,
+    property_name: str,
+    data_path: str,
+    driver_expressions: str | list
+):
+    """Add custom drivers to a bone's properties.
+
+    Args:
+        rig: The armature object
+        bone_name: Name of the bone to add drivers to
+        property_name: Name of the property that will drive the target
+        data_path: The RNA data path for the driven property (e.g. 'custom_shape_scale_xyz', 'custom_shape_wire_width')
+        driver_expressions: Either a single expression string for a single property,
+                            or a list of expressions for transform properties
+    """
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        return
+
+    expressions = [driver_expressions] if isinstance(driver_expressions, str) else driver_expressions
+    for i, expression in enumerate(expressions):
+        index = -1 if isinstance(driver_expressions, str) else i
+
+        make_driver(
+            owner=bone,
+            prop=data_path,
+            index=index,
+            expression=expression,
+            variables=[(rig, property_name)],
+        )
+
+
+def update_bone_collection(
+    rig: Object,
+    bone_name: str,
+    collection_name: str,
+    operation: str
+):
+    """Add or remove a bone from a specified collection.
+    
+    Args:
+        rig: The armature object
+        bone_name: Name of the bone to update
+        collection_name: Name of the bone collection
+        operation: Either 'add' or 'remove'
+    """
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        return
+
+    collection = rig.data.collections_all.get(collection_name)
+    if not collection:
+        raise ValueError(f"Collection not found: '{collection_name}'")
+
+    if operation == "add":
+        collection.assign(bone)
+    else:
+        collection.unassign(bone)
+
+
+def update_widget_properties(
+    rig: Object,
+    bone_name: str,
+    **kwargs
+):
+    """Apply custom properties to the specified bone.
+    
+    Args:
+        rig: The armature object
+        bone_name: Name of the bone to update
+        **kwargs: Keyword arguments for bone properties. Supports both shortened and full property names:
+            - custom_shape: custom_shape
+            - scale: custom_shape_scale_xyz
+            - translation: custom_shape_translation
+            - rotation: custom_shape_rotation_euler
+            - transform: custom_shape_transform
+            - wire_width: custom_shape_wire_width
+            - use_bone_size: use_custom_shape_bone_size
+    """
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        raise ValueError(f"Bone '{bone_name}' not found'")
+
+    # Map shortened names to full property names
+    property_map = {
+        'custom_shape': 'custom_shape',
+        'scale': 'custom_shape_scale_xyz',
+        'translation': 'custom_shape_translation',
+        'rotation': 'custom_shape_rotation_euler',
+        'transform': 'custom_shape_transform',
+        'wire_width': 'custom_shape_wire_width',
+        'use_bone_size': 'use_custom_shape_bone_size'
+    }
+
+    for kwarg, value in kwargs.items():
+        # Use mapped name if it exists, otherwise use original
+        prop_name = property_map.get(kwarg, kwarg)
+        
+        if not hasattr(bone, prop_name):
+            raise KeyError(f"Unknown property '{prop_name}'")
+
+        # Handle uniform scaling
+        if prop_name == "custom_shape_scale_xyz" and isinstance(value, (int, float)):
+            value = (value, value, value)
+
+        setattr(bone, prop_name, value)
