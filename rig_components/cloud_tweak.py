@@ -38,7 +38,7 @@ class Component_TweakBone(Component_Base):
         if not self.tweak_bone:
             self.add_log(
                 "No bone to tweak",
-                description=f'Could not find a bone called "{self.original_name}" on the generated rig.',
+                description=f'Could not find a bone called "{self.original_name}" on the generated rig. If it exists, ensure this Tweak component is generated AFTER the component you want to tweak.',
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': self.original_name},
             )
