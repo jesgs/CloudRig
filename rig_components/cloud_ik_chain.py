@@ -34,6 +34,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.pole_side = 1
         self.ik_pole_offset = 3  # Scalar on distance from the body. Could become a parameter but it's unimportant.
+        self.pole_ctrl = None
 
         # Will be passed to the IK constraint's chain_count.
         # Elements of the rig can use this to avoid having to make assumptions about correlations
@@ -273,7 +274,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         return pole_ctrl
 
-    def make_ik_chain(self, org_chain, ik_mstr, pole_target=None, ik_pole_direction=0):
+    def make_ik_chain(self, org_chain, ik_mstr, pole_target=None):
         """Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
         ik_chain = []
         for i, org_bone in enumerate(org_chain):
@@ -578,6 +579,25 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         if self.params.ik_chain.use_pole:
             self.setup_ik_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
+
+    def add_bone_property_with_ui(
+        self,
+        operator="",
+        op_kwargs={},
+        **kwargs
+    ):
+        """Overrides cloud_fk_chain."""
+        if self.pole_ctrl and operator == 'pose.cloudrig_switch_parent_bake':
+            # Hacky fix to issue #188. apply_parent_switching() is designed for ONE child
+            # bone, but in this case we must snap the IK master control PLUS the IK pole control.
+            op_kwargs['bone_names'].append(self.pole_ctrl.name)
+
+        super().add_bone_property_with_ui(
+            operator=operator,
+            op_kwargs=op_kwargs,
+            **kwargs
+        )
+
 
     def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
         # Create parent helper bone
