@@ -2850,7 +2850,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys_panel"
     bl_label = "Hotkeys"
 
-    cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem"]] = {}
+    cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem", bool]] = {}
 
     @classmethod
     def poll(cls, context):
@@ -2861,11 +2861,22 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         return True
 
     def draw(self, context):
-        type(self).draw_hotkey_list(self.layout.column(), context)
+        col = self.layout.column()
+        self.draw_all_hotkeys(col, context)
 
     @classmethod
-    def draw_hotkey_list(cls, layout, context):
-        hotkey_class = cls
+    def draw_all_hotkeys(cls, layout, context):
+        cls.draw_hotkey_list(layout, context)
+        if hasattr(bpy.types, 'POSE_PT_CloudRig'):
+            # Add-on hotkeys are stored on a separate class, which is part of the add-on.
+            # This way, these don't get re-registered when regenerating a rig.
+            layout.separator()
+            cls.draw_hotkey_list(layout, context, hotkey_class=bpy.types.POSE_PT_CloudRig)
+
+    @classmethod
+    def draw_hotkey_list(cls, layout, context, hotkey_class=None):
+        if not hotkey_class:
+            hotkey_class = cls
         user_kc = context.window_manager.keyconfigs.user
 
         keymap_data = list(hotkey_class.cloudrig_keymap_items.items())
@@ -2892,7 +2903,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
                 split = user_row.split(factor=0.5)
                 addon_row = split.row()
                 user_row = split.row()
-                hotkey_class.draw_kmi(addon_km, addon_kmi, addon_row)
+                cls.draw_kmi(addon_km, addon_kmi, addon_row)
             if not user_kmi:
                 # This should only happen for one frame during Reload Scripts.
                 print(
@@ -2903,7 +2914,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
                 )
                 continue
 
-            hotkey_class.draw_kmi(user_km, user_kmi, user_row)
+            cls.draw_kmi(user_km, user_kmi, user_row)
             prev_kmi = user_kmi
 
     @staticmethod
@@ -2965,10 +2976,13 @@ def find_kmi_in_km_by_hash(keymap, kmi_hash):
 
 
 def register_hotkey(
-    bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}
+    bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}, storage_class=None,
 ):
     """This function inserts a 'hash' into the created KeyMapItems' properties,
     so they can be compared to each other, and duplicates can be avoided."""
+
+    if not storage_class:
+        storage_class = bpy.types.POSE_PT_CloudRig
 
     wm = bpy.context.window_manager
     addon_keyconfig = wm.keyconfigs.addon
@@ -2980,25 +2994,23 @@ def register_hotkey(
     kmi_string = json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs], sort_keys=True).encode("utf-8")
     kmi_hash = hashlib.md5(kmi_string).hexdigest()
 
+    if not hasattr(storage_class, 'cloudrig_keymap_items'):
+        storage_class.cloudrig_keymap_items = {}
+
     # If it already exists, don't create it again.
-    for (
-        existing_kmi_hash,
-        existing_kmi_tup,
-    ) in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
-        existing_addon_kc, existing_addon_km, existing_kmi = existing_kmi_tup
-        if kmi_hash == existing_kmi_hash:
-            # The hash we just calculated matches one that is in storage.
-            user_kc = wm.keyconfigs.user
-            user_km = user_kc.keymaps.get(existing_addon_km.name)
-            # NOTE: It's possible on Reload Scripts that some KeyMapItems remain in storage,
-            # but are unregistered by Blender for no reason.
-            # I noticed this particularly in the Weight Paint keymap.
-            # So it's not enough to check if a KMI with a hash is in storage, we also need to check if a corresponding user KMI exists.
+    if kmi_hash in storage_class.cloudrig_keymap_items:
+        user_kc = wm.keyconfigs.user
+        user_km = user_kc.keymaps.get(key_cat)
+        # NOTE: It's possible on Reload Scripts that some KeyMapItems remain in storage,
+        # but are unregistered by Blender for no reason.
+        # I noticed this particularly in the Weight Paint keymap.
+        # So it's not enough to check if a KMI with a hash is in storage, we also need to check if a corresponding user KMI exists.
+        if user_km:
             user_kmi = find_kmi_in_km_by_hash(
                 user_km, kmi_hash
             )
             if user_kmi:
-                # print("Hotkey already exists, skipping: ", existing_kmi.name, existing_kmi.to_string(), kmi_hash)
+                print("Hotkey already exists, skipping: ", hotkey_kwargs, kmi_hash)
                 return
 
     # print("Registering hotkey: ", bl_idname, hotkey_kwargs, key_cat)
@@ -3015,10 +3027,10 @@ def register_hotkey(
 
     addon_kmi.properties['hash'] = kmi_hash
 
-    bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items[kmi_hash] = (
+    storage_class.cloudrig_keymap_items[kmi_hash] = (
         addon_keyconfig,
         addon_km,
-        addon_kmi,
+        addon_kmi
     )
     # print("CloudRig: Registered Hotkey: ", addon_kmi.idname, addon_kmi.to_string(), kmi_hash)
 
@@ -3122,6 +3134,7 @@ def register():
         },
         key_cat='Pose',
         op_kwargs={'name': CLOUDRIG_MT_collections_quick_select.bl_idname},
+        storage_class=bpy.types.CLOUDRIG_PT_hotkeys_panel,
     )
 
     for key_cat, space_type in {
@@ -3134,6 +3147,7 @@ def register():
             hotkey_kwargs={'type': "M", 'value': "PRESS", 'shift': True},
             key_cat=key_cat,
             space_type=space_type,
+        storage_class=bpy.types.CLOUDRIG_PT_hotkeys_panel,
         )
 
 
@@ -3145,6 +3159,8 @@ def unregister_hotkeys():
         ) in bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items():
             kc, km, kmi = kmi_tup
             km.keymap_items.remove(kmi)
+
+        # This line probably doesn't matter since the class will get unregistered anyways.
         bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items = {}
     print("CloudRig: Unregistered Hotkeys.")
 
@@ -3154,10 +3170,7 @@ def unregister():
     Should be able to run without errors even before there's anything to unregister.
     """
 
-    # TODO: This also unregisters add-on hotkeys, which we don't want when this script
-    # is executed via the text editor. Need to categorize the hotkeys somehow, and un-register
-    # according to execution context!
-    # unregister_hotkeys()
+    unregister_hotkeys()
 
     try:
         del bpy.types.Object.cloudrig_prefs
