@@ -391,8 +391,9 @@ class CloudRigUIEditOpMixin:
         prop_row = prop_box.row(align=True)
 
         if self.use_batch_add:
+            drawable_props = list(get_drawable_custom_properties(prop_owner))
             prop_row.label(
-                text=f"Add all {len(prop_owner.keys())} custom properties to the UI"
+                text=f"Add all {len(drawable_props)} custom properties to the UI"
             )
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
             return
@@ -590,7 +591,7 @@ class CloudRigUIEditOpMixin:
             self.op_icon = ""
             self.op_kwargs_dict = {}
             self.texts = ""
-            for key in owner.keys():
+            for key in get_drawable_custom_properties(owner):
                 self.row_name = ""
                 self.slider_name = ""
                 self.prop_name = key
