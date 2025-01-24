@@ -234,11 +234,16 @@ class BoneSet(LinkedList):
                 elif hasattr(value, 'to_dict'):
                     value = value.to_dict()
                     prop_data['default'] = value
+                elif 'id_type' in prop_data:
+                    # Setting the default to None for Datablock pointer props is necesasry for
+                    # rna_idprop_ui_create() to interpret this data as a Datablock property.
+                    prop_data['default'] = None
 
                 prop_data['value'] = value
                 prop_data['overridable'] = pose_bone.is_property_overridable_library(
                     f'["{prop_name}"]'
                 )
+
                 if 'description' not in prop_data:
                     prop_data['description'] = ""
                 bone_info.custom_props[prop_name] = prop_data
