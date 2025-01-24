@@ -287,6 +287,7 @@ class SnappingOpMixin:
             pb.matrix = mat.copy()
             context.view_layer.update()
             pb.matrix = mat.copy()
+            key_transforms(pb, options={'INSERTKEY_AVAILABLE'})
 
 
 class SnapBakeOpMixin(SnappingOpMixin):
@@ -425,7 +426,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
                 prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
 
                 self.set_bone_matrices(context, rig, pbone_matrix_map)
-                bpy.ops.anim.keyframe_insert()
+                # bpy.ops.anim.keyframe_insert()
 
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
@@ -472,21 +473,28 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
         # Change property value.
         target_value = self.get_prop_target_value(prop_pb, self.prop_id)
         prop_pb[self.prop_id] = target_value
-        # Restore world matrices.
+        
+        # Restore (and key if needed) world matrices.
         self.set_bone_matrices(context, rig, pbone_matrix_map)
 
-        # If property value is no longer what it should be, change it again,
-        # and this time keyframe it.
-        if prop_pb[self.prop_id] != target_value:
-            # This happens when the property was already keyed, and the depsgraph update
-            # caused it to reset to the previously keyed value.
-            prop_pb[self.prop_id] = target_value
-            prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
+        # Key the toggled property if needed.
+        prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name, options={'INSERTKEY_AVAILABLE'})
 
-        context.scene.frame_set(active_frame_bkp)
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
 
+def key_transforms(obj, **kwargs):
+    if obj.rotation_mode == 'QUATERNION':
+        props = ['rotation_quaternion']
+    elif obj.rotation_mode == 'AXIS_ANGLE':
+        props = ['rotation_axis_angle']
+    else:
+        props = ['rotation_euler']
+    
+    props += ['location', 'scale']
+
+    for prop in props:
+        obj.keyframe_insert(prop, **kwargs)
 
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
     "Change the parent while preserving the world-matrix of the affected " "bones, even in a frame range"
