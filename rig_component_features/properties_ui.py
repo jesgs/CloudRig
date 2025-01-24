@@ -54,8 +54,12 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
         try:
             # If it evaluates with a dot without error, then we keep the dot!
             # We don't want to use the safe path resolve here, we need the error.
-            prop_value = obj.path_resolve(data_path + "." + prop_name)
-            dot = "."
+            if data_path:
+                path_to_resolve = data_path + "." + prop_name
+                dot = "."
+            else:
+                path_to_resolve = prop_name
+            prop_value = obj.path_resolve(path_to_resolve)
         except ValueError:
             # If we fail to evaluate to a value with the `.`, use custom property syntax instead.
             prop_name = f'["{prop_name}"]'
@@ -83,8 +87,8 @@ def update_property_selector(self, context):
     for key in get_drawable_custom_properties(prop_owner):
         name_entry = context.scene.cloudrig_property_name_selector.add()
         name_entry.name = key
-    
-    if len(context.scene.cloudrig_property_name_selector) == 0:
+
+    if True or len(context.scene.cloudrig_property_name_selector) == 0:
         # If that failed, populate it with built-in properties instead.
         for key in get_drawable_builtin_properties(prop_owner):
             name_entry = context.scene.cloudrig_property_name_selector.add()
@@ -104,7 +108,6 @@ class CloudRigUIEditOpMixin:
         elif self.owner_path != '':
             # If the use_bone_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'pose.bones["{self.owner_path}"]'
-
 
     def update_owner_path(self, context):
         update_property_selector(self, context)
@@ -310,7 +313,8 @@ class CloudRigUIEditOpMixin:
     def draw(self, context):
         layout = self.layout.column()
 
-        self.draw_owner_box(layout, context)
+        if not self.draw_owner_box(layout, context):
+            return
         self.draw_prop_box(layout, context)
         if not self.prop_name and not self.use_batch_add:
             return
@@ -322,7 +326,8 @@ class CloudRigUIEditOpMixin:
 
         # self.draw_debug_box(layout, context)
 
-    def draw_owner_box(self, layout, context):
+    def draw_owner_box(self, layout, context) -> bool:
+        """Returns whether a valid property owner is currently specified in the input box."""
         rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
             get_data_paths(self, rig)
@@ -346,7 +351,15 @@ class CloudRigUIEditOpMixin:
             alert_row.label(
                 text=f"No property owner at '{self.owner_path}' found.", icon='ERROR'
             )
-            return
+            return False
+        if self.owner_path and not hasattr(prop_owner, 'bl_rna'):
+            # User tried providing a full data path to a property in the owner field, 
+            # as opposed to a path to a property owner, and then later a property name.
+            owner_row.alert = True
+            alert_row = owner_box.row()
+            alert_row.alert=True
+            alert_row.label(text=f'Type "{type(prop_owner).__name__}" cannot have properties.')
+            return False
 
         text = f'{type(prop_owner).__name__}'
         if hasattr(prop_owner, 'name'):
@@ -358,6 +371,8 @@ class CloudRigUIEditOpMixin:
             owner_box.label(text=text, icon_value=icon_value)
         except:
             owner_box.label(text=text, icon='INFO')
+
+        return True
 
     def draw_prop_box(self, layout, context):
         rig = find_cloudrig(context)
@@ -438,6 +453,8 @@ class CloudRigUIEditOpMixin:
                     icon_false=self.icon_false,
                     texts=[t.strip() for t in self.texts.split(",")],
                 )
+        elif hasattr(prop_owner, brackets_prop_name):
+            prop_box.prop(prop_owner, brackets_prop_name)
         elif type(prop_owner) in {ID, PoseBone, Bone}:
             prop_box.label(
                 text="Property will be created with a value of 1.0.", icon='CHECKMARK'
@@ -445,7 +462,7 @@ class CloudRigUIEditOpMixin:
         else:
             row = prop_box.row()
             row.alert = True
-            row.label(text="Property not found.", icon='ERROR')
+            row.label(text="Property not found: " + brackets_prop_name, icon='ERROR')
             return
 
     def draw_placement_box(self, layout, context):
@@ -1172,6 +1189,8 @@ def get_drawable_custom_properties(prop_owner):
 
 
 def get_drawable_builtin_properties(prop_owner):
+    if not hasattr(prop_owner, 'bl_rna'):
+        return
     for prop_name, prop_data in prop_owner.bl_rna.properties.items():
         if prop_data.is_runtime:
             continue
