@@ -164,7 +164,7 @@ class Component_Base(
     def create_bone_infos(self, context):
         self.root_bone = self.bones_org[0]
 
-    def create_component_interactions(self):
+    def create_component_interactions(self, context):
         skip_root_parenting = (
             self.parent_switch_overwrites_root_parent
             and self.params.parenting.parent_switching

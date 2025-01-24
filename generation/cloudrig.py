@@ -3162,7 +3162,6 @@ def unregister_hotkeys():
 
         # This line probably doesn't matter since the class will get unregistered anyways.
         bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items = {}
-    print("CloudRig: Unregistered Hotkeys.")
 
 
 def unregister():

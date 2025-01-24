@@ -20,6 +20,7 @@ class Component_TweakBone(Component_Base):
 
     def initialize(self):
         super().initialize()
+        self.tweak_bone = None
 
     def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:
         bone_infos = super().load_metarig_bone_infos()
@@ -30,8 +31,7 @@ class Component_TweakBone(Component_Base):
         self_bone.name += "_Tweak"
         return bone_infos
 
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
+    def create_component_interactions(self, context):
         org_bi = self.bones_org[0]
         self.tweak_bone = tweak_bone = self.generator.find_bone_info(self.original_name)
 
@@ -88,8 +88,6 @@ class Component_TweakBone(Component_Base):
                 self.add_to_widget_collection(context, org_bi.custom_shape)
 
         if self.params.tweak.collections:
-            print(tweak_bone.collections)
-            print(org_bi.collections)
             tweak_bone.collections = org_bi.collections
         if self.params.tweak.color_palette:
             tweak_bone.color_palette_base = org_bi.color_palette_base
@@ -121,11 +119,12 @@ class Component_TweakBone(Component_Base):
         if self.params.tweak.custom_props:
             for prop_name in org_bi.custom_props:
                 tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
+        
+        super().create_component_interactions(context)
 
     def relink(self):
         # Transfer and relink constraints and their drivers
-        if not self.tweak_bone:
-            return
+        assert self.tweak_bone
 
         org_bi = self.bones_org[0]
         if not self.params.tweak.constraints_additive:

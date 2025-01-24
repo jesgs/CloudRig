@@ -311,7 +311,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bpy.ops.object.mode_set(mode='EDIT')
 
         self.components_create_bone_infos(context)
-        self.components_create_interactions()
+        self.components_create_interactions(context)
         if self.root_bone_info:
             self.parent_orphan_bone_infos_to_root()
         self.components_create_real_bones()
@@ -502,13 +502,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         for component in self.all_components:
             component.create_bone_infos(context)
 
-    def components_create_interactions(self):
+    def components_create_interactions(self, context):
         """Once all rig components have created their BoneInfos, we can safely
         create relationships between components, since all bones exist.
+        Having this be a separate step is really important for a lenient and flexible
+        parent switching system, allowing users to select any bone as a parent.
         """
 
         for component in self.all_components:
-            component.create_component_interactions()
+            component.create_component_interactions(context)
 
     def components_create_real_bones(self):
         """Create real bones from all BoneInfos.
