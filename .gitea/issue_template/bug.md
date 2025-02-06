@@ -4,7 +4,7 @@ name: Bug Report
 about: Help improve CloudRig by submitting a bug report.
 ref: "master"
 title: ""
-assignees: ["Demeter Dzadik", "Mets"]
+assignees: ["Mets"]
 labels:
 
 - bug
