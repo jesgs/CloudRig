@@ -4,7 +4,6 @@ name: Bug Report
 about: Help improve CloudRig by submitting a bug report.
 ref: "master"
 title: ""
-assignees: ["Mets"]
 labels:
 
 - bug
