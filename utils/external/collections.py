@@ -3,10 +3,10 @@ from bpy.types import Context, Collection, LayerCollection
 
 
 def ensure_collection(
-    context: Context, collection_name: str, hidden=False
+    context: Context, collection_name: str, hidden=False, exclude=True,
 ) -> Collection:
     """Check if a collection with a certain name exists.
-    If yes, return it, if not, create it in the scene root collection.
+    If yes, return it, if not, create it in the active collection.
     """
     view_layer = context.view_layer
     active_layer_coll = context.layer_collection
@@ -32,7 +32,7 @@ def ensure_collection(
             c for c in active_layer_coll.children if c.collection == collection
         ][0]
 
-        layer_collection.exclude = True
+        layer_collection.exclude = exclude
 
     # Make the new collection active.
     view_layer.active_layer_collection = layer_collection

@@ -22,7 +22,7 @@ bl_info = {
     'name': "CloudRig",
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'author': 'Demeter Dzadik',
-    'version': (2, 1, 18),
+    'version': (2, 1, 19),
     # This should be the lowest Blender version that is currently compatible.
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",

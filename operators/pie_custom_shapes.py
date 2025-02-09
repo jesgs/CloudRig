@@ -10,14 +10,14 @@ from ..utils.misc import get_pbone_of_active, get_addon_prefs
 from ..rig_component_features.widgets.widgets import ensure_widget
 from ..rig_component_features.object import EnsureVisible
 
-CLOUDRIG_WIDGETS = []
+LIBRARY_WIDGETS = []
 
 
 def init_widget_list():
     """Build a list of available custom shapes by checking inside Widgets.blend."""
 
-    global CLOUDRIG_WIDGETS
-    CLOUDRIG_WIDGETS = []
+    global LIBRARY_WIDGETS
+    LIBRARY_WIDGETS = []
 
     prefs = get_addon_prefs()
     blend_path = prefs.widget_library
@@ -26,15 +26,9 @@ def init_widget_list():
         for o in data_from.objects:
             if o.startswith("WGT-"):
                 ui_name = o.replace("WGT-", "").replace("_", " ")
-                CLOUDRIG_WIDGETS.append((o, ui_name, ui_name))
+                LIBRARY_WIDGETS.append((o, ui_name, ui_name))
 
-    return CLOUDRIG_WIDGETS
-
-
-# Registering is a bit tricky because we need to load a resource .blend file,
-# which is not allowed by bpy during registration, so we have to do it with a delay.
-def delayed_init_widget_list():
-    init_widget_list()
+    return LIBRARY_WIDGETS
 
 
 class POSE_OT_unassign_custom_shape(CloudRigOperator):
@@ -75,18 +69,22 @@ class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
     def get_widget_list(self, context):
         """This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
         which it can only be with a function callback."""
-        global CLOUDRIG_WIDGETS
+        global LIBRARY_WIDGETS
 
-        local_widgets = CLOUDRIG_WIDGETS[:]
-        local_widgets.append(None)
+        # First time this is called, populate the widget list.
+        if LIBRARY_WIDGETS == []:
+            init_widget_list()
+
+        available_widgets = LIBRARY_WIDGETS[:]
+        available_widgets.append(None)
         for o in bpy.data.objects:
             if o.name.startswith("WGT"):
                 ui_name = o.name.replace("WGT-", "").replace("_", " ")
                 item = (o.name, ui_name, ui_name)
-                if item not in local_widgets:
-                    local_widgets.append(item)
+                if item not in available_widgets:
+                    available_widgets.append(item)
 
-        return local_widgets
+        return available_widgets
 
     widget_shape: EnumProperty(
         name="Widget Shape",
@@ -141,7 +139,7 @@ class POSE_OT_reload_selected_custom_shape(CloudRigOperator):
             if (
                 pb.custom_shape
                 and not pb.custom_shape.library
-                and pb.custom_shape.name in [wgt_tup[0] for wgt_tup in CLOUDRIG_WIDGETS]
+                and pb.custom_shape.name in [wgt_tup[0] for wgt_tup in LIBRARY_WIDGETS]
             ):
                 yield pb
 
@@ -532,5 +530,3 @@ def register():
         key_cat="Mesh",
         space_type='EMPTY',
     )
-
-    bpy.app.timers.register(delayed_init_widget_list)
