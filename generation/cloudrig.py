@@ -3201,7 +3201,7 @@ def unregister():
     Should be able to run without errors even before there's anything to unregister.
     """
 
-    # unregister_hotkeys()
+    unregister_hotkeys()
 
     try:
         del bpy.types.Object.cloudrig_prefs

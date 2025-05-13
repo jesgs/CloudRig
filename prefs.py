@@ -277,6 +277,55 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
                 icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
                 row.label(text="", icon=icon)
 
+    def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
+        data = super().prefs_to_dict_recursive(self)
+        data['hotkeys'] = get_keymap_data_for_saving(bpy.context)
+        return data
+
+
+def get_cloudrig_addon_kmis(context):
+    keymap_data = list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.values())
+    keymap_data += list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.values())
+    keymap_data = sorted(keymap_data, key=lambda tup: tup[1].name + tup[2].idname)
+    return keymap_data
+
+
+def get_keymap_data_for_saving(context) -> dict:
+    all_keymap_data = []
+    for addon_kc, addon_km, addon_kmi in get_cloudrig_addon_kmis(context):
+        user_km, user_kmi = cloudrig.find_user_kmi(context, addon_km, addon_kmi)
+        data = {}
+        data['keymap'] = user_km.name
+        data['operator'] = user_kmi.idname
+
+        NO_SAVE_OP_KWARGS = ()
+
+        op_kwargs = {}
+        if user_kmi.properties:
+            op_kwargs = {
+                key: getattr(user_kmi.properties, key)
+                for key in user_kmi.properties.keys()
+                if hasattr(user_kmi.properties, key) and key not in NO_SAVE_OP_KWARGS
+            }
+
+        data['op_kwargs'] = op_kwargs
+
+        data['key_kwargs'] = {
+            'type' : user_kmi.type,
+            'value' : user_kmi.value,
+            'ctrl' : bool(user_kmi.ctrl),
+            'shift' : bool(user_kmi.shift),
+            'alt' : bool(user_kmi.alt),
+            'any' : bool(user_kmi.any),
+            'oskey' : bool(user_kmi.oskey),
+            'key_modifier' : user_kmi.key_modifier,
+            'active' : user_kmi.active
+        }
+
+        all_keymap_data.append(data)
+
+    return all_keymap_data
+
 
 def draw_fake_dropdown(layout, prop_owner, prop_name, dropdown_text):
     row = layout.row(align=True)
@@ -293,6 +342,7 @@ def draw_fake_dropdown(layout, prop_owner, prop_name, dropdown_text):
     dropdown_col = layout.column()
 
     return dropdown_col
+
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
