@@ -10,6 +10,8 @@ from . import rig_components
 from .generation import cloudrig
 from .utils.misc import get_addon_prefs
 
+from . import __package__ as base_package
+
 def update_prefs_on_file(self=None, context=None):
     prefs = get_addon_prefs(context)
     if prefs:
@@ -58,13 +60,16 @@ class PrefsFileSaveLoadMixin:
         Note that AddonPreferences don't support PointerProperties,
         so this function doesn't either."""
         from rna_prop_ui import IDPropertyGroup
+
         ret = {}
-        
+
         if hasattr(propgroup, 'bl_rna'):
             rna_class = propgroup.bl_rna
         else:
             property_group_class_name = type(propgroup).__name__
-            rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(property_group_class_name)
+            rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(
+                property_group_class_name
+            )
 
         for key, value in propgroup.items():
             if key in type(self).omit_from_disk:
@@ -75,9 +80,9 @@ class PrefsFileSaveLoadMixin:
                 ret[key] = self.prefs_to_dict_recursive(value)
             else:
                 if (
-                    rna_class and 
-                    key in rna_class.properties and 
-                    hasattr(rna_class.properties[key], 'enum_items')
+                    rna_class
+                    and key in rna_class.properties
+                    and hasattr(rna_class.properties[key], 'enum_items')
                 ):
                     # Save enum values as string, not int.
                     ret[key] = rna_class.properties[key].enum_items[value].identifier
@@ -85,8 +90,7 @@ class PrefsFileSaveLoadMixin:
                     ret[key] = value
         return ret
 
-    @classmethod
-    def apply_prefs_from_dict_recursive(cls, propgroup, data):
+    def apply_prefs_from_dict_recursive(self, propgroup, data):
         for key, value in data.items():
             if not hasattr(propgroup, key):
                 # Property got removed or renamed in the implementation.
@@ -97,41 +101,33 @@ class PrefsFileSaveLoadMixin:
                     entry = collprop.get(elem['name'])
                     if not entry:
                         entry = collprop.add()
-                    cls.apply_prefs_from_dict_recursive(entry, elem)
+                    self.apply_prefs_from_dict_recursive(entry, elem)
             elif type(value) == dict:
-                cls.apply_prefs_from_dict_recursive(getattr(propgroup, key), value)
+                self.apply_prefs_from_dict_recursive(getattr(propgroup, key), value)
             else:
                 setattr(propgroup, key, value)
 
     @staticmethod
     def get_prefs_filepath() -> Path:
         addon_name = __package__.split(".")[-1]
-        return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".txt")
+        return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".json")
 
     def save_prefs_to_file(self, _context=None):
         data_dict = self.prefs_to_dict_recursive(propgroup=self)
 
-        with open(self.get_prefs_filepath(), "w") as f:
+        filepath = self.get_prefs_filepath()
+
+        with open(filepath, "w") as f:
             json.dump(data_dict, f, indent=4)
 
-    @classmethod
-    def load_prefs_from_file(cls):
-        filepath = cls.get_prefs_filepath()
+    def load_prefs_from_file(self) -> bool:
+        filepath = self.get_prefs_filepath()
         if not filepath.exists():
-            return
+            return False
 
         with open(filepath, "r") as f:
-            prefs_on_disk = json.load(f)
-            cls.loading = True
-            try:
-                prefs_rna = get_addon_prefs()
-                cls.apply_prefs_from_dict_recursive(prefs_rna, prefs_on_disk)
-            except Exception as exc:
-                # If we get an error raised here, and it isn't handled,
-                # the add-on seems to break.
-                print(f"Failed to load {__package__} preferences from file: ", cls.get_prefs_filepath())
-                raise exc
-            cls.loading = False
+            addon_data = json.load(f)
+            self.apply_prefs_from_dict_recursive(self, addon_data)
 
 
 def get_default_widgets_path():
@@ -280,62 +276,6 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
             for i in range(20):
                 icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
                 row.label(text="", icon=icon)
-
-    @staticmethod
-    def hotkeys_to_dict(hotkey_class) -> dict:
-        hotkeys = {}
-        keymap_data = list(hotkey_class.cloudrig_keymap_items.items())
-        keymap_data = sorted(keymap_data, key=lambda tup: tup[1][2].name + tup[1][1].name)
-        for kmi_hash, kmi_tup in keymap_data:
-            _addon_kc, addon_km, addon_kmi = kmi_tup
-            context = bpy.context
-            user_kc = context.window_manager.keyconfigs.user
-            user_km = user_kc.keymaps.get(addon_km.name)
-            if not user_km:
-                continue
-            user_kmi = cloudrig.find_kmi_in_km_by_hash(user_km, kmi_hash)
-            if not user_kmi:
-                continue
-
-            hotkeys[kmi_hash] = {key:getattr(user_kmi, key) for key in ('active', 'type', 'shift_ui', 'ctrl_ui', 'alt_ui', 'oskey_ui', 'any', 'map_type', 'key_modifier')}
-            hotkeys[kmi_hash]["key_cat"] = addon_km.name
-            hotkeys[kmi_hash]["name"] = user_kmi.properties.name if 'name' in user_kmi.properties else user_kmi.name
-
-        return hotkeys
-
-    def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
-        ret = super().prefs_to_dict_recursive(propgroup)
-
-        hotkeys = self.hotkeys_to_dict(bpy.types.POSE_PT_CloudRig)
-        hotkeys.update(self.hotkeys_to_dict(bpy.types.CLOUDRIG_PT_hotkeys_panel))
-
-        ret["hotkeys"] = hotkeys
-
-        return ret
-
-    @classmethod
-    def apply_prefs_from_dict_recursive(cls, propgroup, data):
-        hotkeys = data.pop("hotkeys")
-
-        context = bpy.context
-        user_kc = context.window_manager.keyconfigs.user
-
-        for kmi_hash, kmi_props in hotkeys.items():
-            kmi_props.pop("name")
-            key_cat = kmi_props.pop("key_cat")
-            user_km = user_kc.keymaps.get(key_cat)
-            if not user_km:
-                continue
-            user_kmi = cloudrig.find_kmi_in_km_by_hash(user_km, kmi_hash)
-            if not user_kmi:
-                continue
-
-            for key, value in kmi_props.items():
-                if key=="any" and not value:
-                    continue
-                setattr(user_kmi, key, value)
-
-        super().apply_prefs_from_dict_recursive(propgroup, data)
 
 
 def draw_fake_dropdown(layout, prop_owner, prop_name, dropdown_text):
