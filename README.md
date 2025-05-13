@@ -1,19 +1,10 @@
-# Installing into Blender:
-
-**Blender 4.2**: You don't need to download anything via browser. Just open Blender's Extensions panel, and search for CloudRig.  
-**Blender 4.1**:
-Same as any other Blender add-on:
-1. [Download the repo as a .zip](../../../archive/master.zip).
-2. In Blender, open **Preferences->Add-ons->Install...** and browse the .zip.
-3. Enable CloudRig.
-
-**Blender 4.0**: This version of Blender is not supported.  
-**Blender 3.6 and lower**: Grab the appropriate version from the [Releases](Releases) page. These need to be installed through Rigify.
-
 # What is CloudRig?
 CloudRig is a rig generation add-on for Blender, developed by the Blender Studio for our Open Movies.
 
 You can support the development of CloudRig by [becoming a Blender Studio subscriber](https://studio.blender.org/)!
+
+## Installation
+You can install directly from within Blender, by searching for CloudRig inside the "Get Extensions" panel.
 
 # Getting Started
 Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Human**.
@@ -29,6 +20,8 @@ And bam, you have a rig!
 <li>I have some <a href="https://www.youtube.com/watch?v=SB3qIbwvq8Y&list=PLav47HAVZMjnA3P7yQvneyQPiVxZ6erFS">live streams</a> of creating the rig for the free <a href="https://studio.blender.org/characters/snow/">Snow</a> character.
 <li> <details><summary>Example Production Rigs</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes for supporters, sometimes for everyone), there is a whole host of CloudRig character rigs available for you to download: 
 
+- [Snow](https://studio.blender.org/characters/snow/) (Blender 4.1-4.5)
+
 #### [Wing It!](https://www.youtube.com/watch?v=u9lj-c29dxI) (Blender 3.6)
 - [Dog](https://studio.blender.org/characters/dog/)
 - [Cat](https://studio.blender.org/characters/cat/)
@@ -36,8 +29,6 @@ And bam, you have a rig!
 
 #### [Charge](https://www.youtube.com/watch?v=UXqq0ZvbOnk) (Blender 3.5 - 3.6)
 - [Einar](https://studio.blender.org/characters/einar/)
-- [Security Robot](https://studio.blender.org/characters/security-bot/)
-- [Pack Bot](https://studio.blender.org/characters/pack-bot/)
 
 #### [Sprite Fright](https://www.youtube.com/watch?v=_cMxraX_5RE) (Blender 3.3 - 3.6)
 - [Ellie](https://studio.blender.org/characters/ellie/)
@@ -54,10 +45,6 @@ And bam, you have a rig!
 - [Gabby](https://studio.blender.org/characters/gabby/)
 - [Phileas](https://studio.blender.org/characters/phileas/)
 - [Pip](https://studio.blender.org/characters/pip/)
-
-#### Other
-- [Snow](https://studio.blender.org/characters/snow/) (Blender 3.6)
-- [Default Cube](https://studio.blender.org/characters/default-cube-rig/)
 
 </details></li>
 </ul>
