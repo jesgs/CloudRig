@@ -273,8 +273,8 @@ class BoneInfo:
     def parent(self, value):
         if self.parent == value:
             return
-        if self._parent:
-            self._parent.children.remove(self)
+        if self.parent and type(self.parent) != str:
+            self.parent.children.remove(self)
         self._parent = value
         if value and type(self) == type(value):
             value.children.append(self)

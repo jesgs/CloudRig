@@ -148,6 +148,7 @@ def check_addon(context, addon_name: str) -> bool:
 def get_addon_prefs(context=None):
     if not context:
         context = bpy.context
+    from .. import __package__ as base_package
     if base_package.startswith('bl_ext'):
         # 4.2
         return context.preferences.addons[base_package].preferences
