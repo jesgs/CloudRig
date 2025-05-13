@@ -10,8 +10,6 @@ from . import rig_components
 from .generation import cloudrig
 from .utils.misc import get_addon_prefs
 
-from . import __package__ as base_package
-
 def update_prefs_on_file(self=None, context=None):
     prefs = get_addon_prefs(context)
     if prefs:
@@ -120,14 +118,14 @@ class PrefsFileSaveLoadMixin:
         with open(filepath, "w") as f:
             json.dump(data_dict, f, indent=4)
 
-    def load_prefs_from_file(self) -> bool:
+    def load_prefs_from_file(self):
+        type(self).loading = True
         filepath = self.get_prefs_filepath()
-        if not filepath.exists():
-            return False
-
-        with open(filepath, "r") as f:
-            addon_data = json.load(f)
-            self.apply_prefs_from_dict_recursive(self, addon_data)
+        if filepath.exists():
+            with open(filepath, "r") as f:
+                addon_data = json.load(f)
+                self.apply_prefs_from_dict_recursive(self, addon_data)
+        type(self).loading = False
 
 
 def get_default_widgets_path():
@@ -202,14 +200,14 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=get_default_widgets_path(),
         subtype='FILE_PATH',
         description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
-        update=update_prefs_on_file,
+        # update=update_prefs_on_file,
     )
     widget_import_method: EnumProperty(
         name="Import Method",
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
         description="Whether widget objects should be linked or appended",
-        update=update_prefs_on_file,
+        # update=update_prefs_on_file,
     )
 
     show_hotkeys: BoolProperty(
@@ -284,16 +282,18 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
 
 def get_cloudrig_addon_kmis(context):
-    keymap_data = list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.values())
-    keymap_data += list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.values())
-    keymap_data = sorted(keymap_data, key=lambda tup: tup[1].name + tup[2].idname)
+    keymap_data = list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.items())
+    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys_panel'):
+        keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
+    keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
     return keymap_data
 
-
 def get_keymap_data_for_saving(context) -> dict:
-    all_keymap_data = []
-    for addon_kc, addon_km, addon_kmi in get_cloudrig_addon_kmis(context):
+    all_keymap_data = {}
+    for kmi_hash, (addon_kc, addon_km, addon_kmi) in get_cloudrig_addon_kmis(context):
         user_km, user_kmi = cloudrig.find_user_kmi(context, addon_km, addon_kmi)
+        if not user_km or not user_kmi:
+            continue
         data = {}
         data['keymap'] = user_km.name
         data['operator'] = user_kmi.idname
@@ -322,7 +322,7 @@ def get_keymap_data_for_saving(context) -> dict:
             'active' : user_kmi.active
         }
 
-        all_keymap_data.append(data)
+        all_keymap_data[kmi_hash] = data
 
     return all_keymap_data
 

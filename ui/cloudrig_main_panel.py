@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import bpy
 from bpy.types import Panel, Object
 
 from ..generation.cloudrig import is_generated_cloudrig
@@ -13,6 +14,8 @@ class POSE_PT_CloudRig(Panel):
     bl_region_type = 'WINDOW'
     bl_context = 'data'
     bl_options = {'DEFAULT_CLOSED'}
+
+    cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem", bool]] = {}
 
     @classmethod
     def poll(cls, context):
@@ -104,5 +107,8 @@ class POSE_PT_CloudRig_Generation(Panel):
         layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
 
 
-
 registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation]
+
+def unregister():
+    for kmi_hash, (kc, km, kmi) in list(POSE_PT_CloudRig.cloudrig_keymap_items.items()):
+        km.keymap_items.remove(kmi)

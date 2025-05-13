@@ -8,6 +8,10 @@ It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 
 import bpy, json, ast, re, contextlib, hashlib
 from collections import OrderedDict, defaultdict
+from pathlib import Path
+from mathutils import Matrix, Vector
+from math import acos, pi
+
 from bpy.props import (
     StringProperty,
     BoolProperty,
@@ -30,9 +34,6 @@ from bpy.types import (
 )
 from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
-
-from mathutils import Matrix, Vector
-from math import acos, pi
 from bl_ui.generic_ui_list import draw_ui_list
 
 cloudrig_addon = False
@@ -2908,12 +2909,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
                 cls.draw_kmi(addon_km, addon_kmi, addon_row)
             if not user_kmi:
                 # This should only happen for one frame during Reload Scripts.
-                print(
-                    "CloudRig: Can't find this hotkey to draw: ",
-                    addon_kmi.name,
-                    addon_kmi.to_string(),
-                    kmi_hash,
-                )
+                layout.label(text=f"Missing: {addon_kmi.name} [{addon_kmi.to_string()}]")
                 continue
 
             cls.draw_kmi(user_km, user_kmi, user_row)
@@ -2948,6 +2944,26 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         props = str(list(kmi.properties.items()))
         print(idname, props, keys)
 
+def get_prefs_filepath() -> Path:
+    addon_name = "CloudRig"
+    return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".json")
+
+def load_prefs_from_file() -> dict:
+    filepath = get_prefs_filepath()
+    if not filepath.exists():
+        return {}
+
+    with open(filepath, "r") as f:
+        return json.load(f)
+
+def get_hotkey_on_file(kmi_hash) -> dict:
+    data = load_prefs_from_file()
+    if not data:
+        return {}
+    hotkeys = data['hotkeys']
+    return hotkeys.get(kmi_hash, {})
+
+
 def find_user_kmi(context, addon_km, addon_kmi, kmi_hash=""):
     user_kc = context.window_manager.keyconfigs.user
     user_km = user_kc.keymaps.get(addon_km.name)
@@ -2963,7 +2979,8 @@ def find_user_kmi(context, addon_km, addon_kmi, kmi_hash=""):
             return None, None
         user_kmi = user_km.keymap_items.find_match(addon_km, addon_kmi)
         if not user_kmi:
-            # This shouldn't really happen, but maybe it can, eg. if user changes idname.
+            # This can happen if user deletes their keymap, which is basically catastrophic and should be blocked by Blender.
+            # There's no way to recover this afaik other than resetting the keymap.
             print("Failed to find User KeyMapItem: ", addon_km.name, addon_kmi.idname)
             return None, None
     else:
@@ -3000,7 +3017,6 @@ def find_kmi_in_km_by_hash(keymap, kmi_hash):
         if kmi.properties['hash'] == kmi_hash:
             return kmi
 
-
 def register_hotkey(
     bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}, storage_class=None,
 ):
@@ -3016,7 +3032,6 @@ def register_hotkey(
         # This happens when running Blender in background mode.
         return
 
-    # We limit the hash to a few digits, otherwise it errors when trying to store it.
     kmi_string = json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs], sort_keys=True).encode("utf-8")
     kmi_hash = hashlib.md5(kmi_string).hexdigest()
 
@@ -3052,9 +3067,18 @@ def register_hotkey(
         addon_km = addon_keymaps.new(name=key_cat, space_type=space_type)
 
     addon_kmi = addon_km.keymap_items.new(bl_idname, **hotkey_kwargs)
-    for key in op_kwargs:
-        value = op_kwargs[key]
+    for key, value in op_kwargs.items():
         setattr(addon_kmi.properties, key, value)
+
+    hotkey_user_data = get_hotkey_on_file(kmi_hash)
+    user_km, user_kmi = find_user_kmi(bpy.context, addon_km, addon_kmi, kmi_hash)
+    if hotkey_user_data and user_kmi:
+        for key, value in op_kwargs.items():
+            if getattr(user_kmi.properties, key) != value:
+                setattr(user_kmi.properties, key, value)
+        for key, value in hotkey_kwargs.items():
+            if getattr(user_kmi, key) != value:
+                setattr(user_kmi, key, value)
 
     if bpy.app.version < (4, 5, 0):
         addon_kmi.properties['hash'] = kmi_hash
@@ -3184,16 +3208,8 @@ def register():
 
 
 def unregister_hotkeys():
-    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys_panel'):
-        for (
-            kmi_hash,
-            kmi_tup,
-        ) in list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items()):
-            kc, km, kmi = kmi_tup
-            km.keymap_items.remove(kmi)
-
-        # This line probably doesn't matter since the class will get unregistered anyways.
-        bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items = {}
+    for kmi_hash, (kc, km, kmi) in list(CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items()):
+        km.keymap_items.remove(kmi)
 
 
 def unregister():
@@ -3201,7 +3217,7 @@ def unregister():
     Should be able to run without errors even before there's anything to unregister.
     """
 
-    unregister_hotkeys()
+    # unregister_hotkeys()
 
     try:
         del bpy.types.Object.cloudrig_prefs
