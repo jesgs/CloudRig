@@ -2875,6 +2875,9 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
 
     @classmethod
     def draw_all_hotkeys(cls, layout, context):
+        if hasattr(bpy.ops.window, 'restore_deleted_hotkeys'):
+            layout.operator('window.restore_deleted_hotkeys')
+            layout.separator()
         cls.draw_hotkey_list(layout, context)
         if hasattr(bpy.types, 'POSE_PT_CloudRig'):
             # Add-on hotkeys are stored on a separate class, which is part of the add-on.

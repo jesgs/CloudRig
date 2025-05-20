@@ -3,7 +3,7 @@ from ..utils.hotkeys import find_matching_km_and_kmi
 
 class WINDOW_OT_restore_deleted_hotkeys(bpy.types.Operator):
     bl_idname = "window.restore_deleted_hotkeys"
-    bl_description = "Restore any missing built-in or add-on hotkeys. These should be disabled instead of being deleted. This cannot be undone!"
+    bl_description = "Restore any missing built-in or add-on hotkeys.\n(These should be disabled instead of being deleted.)\nThis operation cannot be undone!"
     # Undo flag is omitted, because this operation cannot be un-done.
     bl_options = {'REGISTER'}
     bl_label = "Restore Deleted Hotkeys"
