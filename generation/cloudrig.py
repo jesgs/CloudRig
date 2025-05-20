@@ -3179,7 +3179,6 @@ def register():
 
 def unregister_hotkeys():
     for kmi_hash, (kc, km, kmi) in list(CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items()):
-        print("Removing kmi: ", km.name, kmi.name, kmi.to_string())
         km.keymap_items.remove(kmi)
 
 

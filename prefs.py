@@ -287,14 +287,14 @@ def apply_stored_hotkeys():
 
             hotkey_user_data = get_hotkey_on_file(kmi_hash)
             if hotkey_user_data and user_kmi:
-                print(user_km.name, user_kmi.idname, user_kmi.to_string())
                 op_kwargs = hotkey_user_data['op_kwargs']
                 key_kwargs = hotkey_user_data['key_kwargs']
 
                 for key, value in key_kwargs.items():
+                    if bpy.app.version < (4, 5, 0) and key == 'hyper':
+                        continue
                     cur_value = getattr(user_kmi, key)
                     if cur_value != value:
-                        print("Update ", key, cur_value, value)
                         setattr(user_kmi, key, value)
 
                 for key, value in op_kwargs.items():
@@ -332,7 +332,7 @@ def get_prefs_filepath() -> Path:
 def get_keymap_data_for_saving(context) -> dict:
     all_keymap_data = {}
     for kmi_hash, (addon_kc, addon_km, addon_kmi) in get_cloudrig_addon_kmis(context):
-        user_km, user_kmi = cloudrig.find_user_kmi(context, addon_km, addon_kmi)
+        user_km, user_kmi = cloudrig.find_user_kmi(context, addon_km, addon_kmi, kmi_hash)
         if not user_km or not user_kmi:
             continue
         data = {}
@@ -360,9 +360,10 @@ def get_keymap_data_for_saving(context) -> dict:
             'any' : bool(user_kmi.any),
             'oskey' : bool(user_kmi.oskey),
             'key_modifier' : user_kmi.key_modifier,
-            'hyper' : bool(user_kmi.hyper),
             'active' : user_kmi.active
         }
+        if bpy.app.version >= (4, 5, 0):
+            data['key_kwargs']['hyper'] = bool(user_kmi.hyper)
 
         all_keymap_data[kmi_hash] = data
 
