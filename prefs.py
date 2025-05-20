@@ -47,10 +47,10 @@ class PrefsFileSaveLoadMixin:
     loading = False
 
     @staticmethod
-    def register_autoload_from_file(delay=0.5):
+    def register_autoload_from_file(delay=2.0):
         def timer_func(_scene=None):
             prefs = get_addon_prefs()
-            prefs.load_prefs_from_file()
+            prefs.load_and_apply_prefs_from_file()
         bpy.app.timers.register(timer_func, first_interval=delay)
 
     def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
@@ -105,26 +105,19 @@ class PrefsFileSaveLoadMixin:
             else:
                 setattr(propgroup, key, value)
 
-    @staticmethod
-    def get_prefs_filepath() -> Path:
-        addon_name = __package__.split(".")[-1]
-        return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".json")
-
     def save_prefs_to_file(self, _context=None):
         data_dict = self.prefs_to_dict_recursive(propgroup=self)
 
-        filepath = self.get_prefs_filepath()
+        filepath = get_prefs_filepath()
 
         with open(filepath, "w") as f:
             json.dump(data_dict, f, indent=4)
 
-    def load_prefs_from_file(self):
+    def load_and_apply_prefs_from_file(self):
         type(self).loading = True
-        filepath = self.get_prefs_filepath()
-        if filepath.exists():
-            with open(filepath, "r") as f:
-                addon_data = json.load(f)
-                self.apply_prefs_from_dict_recursive(self, addon_data)
+        addon_data = load_prefs_from_file()
+        self.apply_prefs_from_dict_recursive(self, addon_data)
+        apply_stored_hotkeys()
         type(self).loading = False
 
 
@@ -200,14 +193,14 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=get_default_widgets_path(),
         subtype='FILE_PATH',
         description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
-        # update=update_prefs_on_file,
+        update=update_prefs_on_file,
     )
     widget_import_method: EnumProperty(
         name="Import Method",
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
         description="Whether widget objects should be linked or appended",
-        # update=update_prefs_on_file,
+        update=update_prefs_on_file,
     )
 
     show_hotkeys: BoolProperty(
@@ -281,12 +274,60 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         return data
 
 
-def get_cloudrig_addon_kmis(context):
-    keymap_data = list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.items())
-    if hasattr(bpy.types, 'CLOUDRIG_PT_hotkeys_panel'):
-        keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
-    keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
-    return keymap_data
+from .generation.cloudrig import find_user_kmi
+from .utils.hotkeys import find_matching_km_and_kmi
+def apply_stored_hotkeys():
+    for storage_class in (bpy.types.CLOUDRIG_PT_hotkeys_panel, bpy.types.POSE_PT_CloudRig):
+        for kmi_hash, (kc_addon, addon_km, addon_kmi) in storage_class.cloudrig_keymap_items.items():
+            if bpy.app.version < (4, 5, 0):
+                user_km, user_kmi = find_user_kmi(bpy.context, addon_km, addon_kmi, kmi_hash)
+            else:
+                kc_user = bpy.context.window_manager.keyconfigs.user
+                user_km, user_kmi = find_matching_km_and_kmi(bpy.context, kc_user, addon_km, addon_kmi)
+
+            hotkey_user_data = get_hotkey_on_file(kmi_hash)
+            if hotkey_user_data and user_kmi:
+                print(user_km.name, user_kmi.idname, user_kmi.to_string())
+                op_kwargs = hotkey_user_data['op_kwargs']
+                key_kwargs = hotkey_user_data['key_kwargs']
+
+                for key, value in key_kwargs.items():
+                    cur_value = getattr(user_kmi, key)
+                    if cur_value != value:
+                        print("Update ", key, cur_value, value)
+                        setattr(user_kmi, key, value)
+
+                for key, value in op_kwargs.items():
+                    cur_value = getattr(user_kmi.properties, key)
+                    if cur_value != value:
+                        setattr(user_kmi.properties, key, value)
+            elif not hotkey_user_data:
+                print("No hotkey user data for ", user_kmi.to_string(), kmi_hash)
+            elif not user_kmi:
+                print("No user_kmi for ", hotkey_user_data['operator'], kmi_hash)
+
+
+def get_hotkey_on_file(kmi_hash) -> dict:
+    data = load_prefs_from_file()
+    if not data:
+        return {}
+    hotkeys = data['hotkeys']
+    return hotkeys.get(kmi_hash, {})
+
+
+def load_prefs_from_file() -> dict:
+    filepath = get_prefs_filepath()
+    if not filepath.exists():
+        return {}
+
+    with open(filepath, "r") as f:
+        return json.load(f)
+
+
+def get_prefs_filepath() -> Path:
+    addon_name = "CloudRig"
+    return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".json")
+
 
 def get_keymap_data_for_saving(context) -> dict:
     all_keymap_data = {}
@@ -319,12 +360,20 @@ def get_keymap_data_for_saving(context) -> dict:
             'any' : bool(user_kmi.any),
             'oskey' : bool(user_kmi.oskey),
             'key_modifier' : user_kmi.key_modifier,
+            'hyper' : bool(user_kmi.hyper),
             'active' : user_kmi.active
         }
 
         all_keymap_data[kmi_hash] = data
 
     return all_keymap_data
+
+
+def get_cloudrig_addon_kmis(context):
+    keymap_data = list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.items())
+    keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
+    keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
+    return keymap_data
 
 
 def draw_fake_dropdown(layout, prop_owner, prop_name, dropdown_text):

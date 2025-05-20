@@ -297,7 +297,7 @@ class MESH_OT_return_to_pose_mode(CloudRigOperator):
     """Return from custom shape editing back to the rig"""
 
     bl_idname = "mesh.return_to_pose_mode"
-    bl_label = "Return to Pose Mode"
+    bl_label = "Edit Custom Shape"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod

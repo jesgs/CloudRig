@@ -2944,25 +2944,6 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         props = str(list(kmi.properties.items()))
         print(idname, props, keys)
 
-def get_prefs_filepath() -> Path:
-    addon_name = "CloudRig"
-    return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".json")
-
-def load_prefs_from_file() -> dict:
-    filepath = get_prefs_filepath()
-    if not filepath.exists():
-        return {}
-
-    with open(filepath, "r") as f:
-        return json.load(f)
-
-def get_hotkey_on_file(kmi_hash) -> dict:
-    data = load_prefs_from_file()
-    if not data:
-        return {}
-    hotkeys = data['hotkeys']
-    return hotkeys.get(kmi_hash, {})
-
 
 def find_user_kmi(context, addon_km, addon_kmi, kmi_hash=""):
     user_kc = context.window_manager.keyconfigs.user
@@ -2985,7 +2966,7 @@ def find_user_kmi(context, addon_km, addon_kmi, kmi_hash=""):
             return None, None
     else:
         user_kmi = find_kmi_in_km_by_hash(user_km, kmi_hash)
-    
+
     return user_km, user_kmi
 
 def find_kmi_in_km_by_hash(keymap, kmi_hash):
@@ -3027,8 +3008,9 @@ def register_hotkey(
         storage_class = bpy.types.POSE_PT_CloudRig
 
     wm = bpy.context.window_manager
-    addon_keyconfig = wm.keyconfigs.addon
-    if not addon_keyconfig:
+    kc_addon = wm.keyconfigs.addon
+    kc_user = wm.keyconfigs.user
+    if not kc_addon:
         # This happens when running Blender in background mode.
         return
 
@@ -3040,16 +3022,11 @@ def register_hotkey(
 
     # If it already exists, don't create it again.
     if kmi_hash in storage_class.cloudrig_keymap_items:
-        user_kc = wm.keyconfigs.user
-        user_km = user_kc.keymaps.get(key_cat)
-        # NOTE: It's possible on Reload Scripts that some KeyMapItems remain in storage,
-        # but are unregistered by Blender for no reason.
-        # I noticed this particularly in the Weight Paint keymap.
-        # So it's not enough to check if a KMI with a hash is in storage, we also need to check if a corresponding user KMI exists.
+        user_km = kc_user.keymaps.get(key_cat)
         if user_km:
             if bpy.app.version >= (4, 5, 0):
                 # Very naive keymap equality check here, just checking the operator idname.
-                # This means this won't work well if we're trying to register the same operator to multiple hotkeys or so.
+                # This means this won't work well if we're trying to register the same operator to multiple hotkeys in the same keymap.
                 user_kmi = next((kmi for kmi in user_km.keymap_items if kmi.idname == bl_idname), None)
             else:
                 user_kmi = find_kmi_in_km_by_hash(
@@ -3061,7 +3038,7 @@ def register_hotkey(
 
     # print("Registering hotkey: ", bl_idname, hotkey_kwargs, key_cat)
 
-    addon_keymaps = addon_keyconfig.keymaps
+    addon_keymaps = kc_addon.keymaps
     addon_km = addon_keymaps.get(key_cat)
     if not addon_km:
         addon_km = addon_keymaps.new(name=key_cat, space_type=space_type)
@@ -3070,21 +3047,11 @@ def register_hotkey(
     for key, value in op_kwargs.items():
         setattr(addon_kmi.properties, key, value)
 
-    hotkey_user_data = get_hotkey_on_file(kmi_hash)
-    user_km, user_kmi = find_user_kmi(bpy.context, addon_km, addon_kmi, kmi_hash)
-    if hotkey_user_data and user_kmi:
-        for key, value in op_kwargs.items():
-            if getattr(user_kmi.properties, key) != value:
-                setattr(user_kmi.properties, key, value)
-        for key, value in hotkey_kwargs.items():
-            if getattr(user_kmi, key) != value:
-                setattr(user_kmi, key, value)
-
     if bpy.app.version < (4, 5, 0):
         addon_kmi.properties['hash'] = kmi_hash
 
     storage_class.cloudrig_keymap_items[kmi_hash] = (
-        addon_keyconfig,
+        kc_addon,
         addon_km,
         addon_kmi
     )
@@ -3209,6 +3176,7 @@ def register():
 
 def unregister_hotkeys():
     for kmi_hash, (kc, km, kmi) in list(CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items()):
+        print("Removing kmi: ", km.name, kmi.name, kmi.to_string())
         km.keymap_items.remove(kmi)
 
 
@@ -3217,7 +3185,7 @@ def unregister():
     Should be able to run without errors even before there's anything to unregister.
     """
 
-    # unregister_hotkeys()
+    unregister_hotkeys()
 
     try:
         del bpy.types.Object.cloudrig_prefs
