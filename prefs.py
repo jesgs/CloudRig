@@ -22,7 +22,7 @@ def update_prefs_on_file(self=None, context=None):
 class PrefsFileSaveLoadMixin:
     """Mix-in class that can be used by any add-on to store their preferences in a file,
     so that they don't get lost when the add-on is disabled.
-    To use it, copy this class and the two functions above it, and do this in your code:
+    To use it, copy this class and the function above it, and do this in your code:
 
     ```
     import bpy, json
