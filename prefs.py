@@ -61,18 +61,20 @@ class PrefsFileSaveLoadMixin:
 
         ret = {}
 
-        if hasattr(propgroup, 'bl_rna'):
-            rna_class = propgroup.bl_rna
+        rna_class = None
+        if isinstance(propgroup, bpy.types.AddonPreferences):
+            prop_dict = {key:getattr(propgroup, key) for key in propgroup.bl_rna.properties.keys() if key not in ('rna_type', 'bl_idname')}
         else:
             property_group_class_name = type(propgroup).__name__
             rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(
                 property_group_class_name
             )
+            prop_dict = {key:getattr(propgroup, key) for key in propgroup.bl_rna.properties.keys() if key not in ('rna_type')}
 
-        for key, value in propgroup.items():
+        for key, value in prop_dict.items():
             if key in type(self).omit_from_disk:
                 continue
-            if type(value) == list:
+            if type(value) in (list, bpy.types.bpy_prop_collection_idprop):
                 ret[key] = [self.prefs_to_dict_recursive(elem) for elem in value]
             elif type(value) == IDPropertyGroup:
                 ret[key] = self.prefs_to_dict_recursive(value)
