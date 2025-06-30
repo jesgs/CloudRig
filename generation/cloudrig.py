@@ -102,8 +102,11 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
                 and hasattr(metarig, 'cloudrig')
                 and metarig.cloudrig.generator.target_rig
                 and metarig.cloudrig.generator.target_rig != rig
+                and metarig.cloudrig.generator.target_rig != metarig
             ):
-                # Edge case: The names match, but this metarig is targetting another rig.
+                # Edge cases: 
+                # The names match, but this metarig is targetting another rig.
+                # The names match, but this "metarig" is targetting itself. This should never happen.
                 # In this case, don't match the metarig.
                 metarig = None
 

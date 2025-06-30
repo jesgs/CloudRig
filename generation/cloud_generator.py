@@ -709,11 +709,15 @@ def create_target_rig_obj(context, metarig) -> Object:
             if fc.data_path.startswith('pose'):
                 target_rig.animation_data.drivers.remove(fc)
 
+    # Remove duplicated CloudRig data to clear ID references used by the metarig.
+    if bpy.app.version >= (5, 0, 0):
+        target_rig.property_unset('cloudrig')
+    else:
+        del target_rig['cloudrig']
+
     target_rig.name = rig_name
     target_rig.data = armature
 
-    # Remove duplicated CloudRig data to clear ID references used by the metarig.
-    del target_rig['cloudrig']
     context.scene.collection.objects.link(target_rig)
     # Mark rig for cloudrig.py compatibility checks
     target_rig.data['is_generated_cloudrig'] = True
@@ -936,7 +940,7 @@ class CLOUDRIG_OT_generate(CloudRigOperator):
     @classmethod
     def poll(cls, context):
         """This operator is available when we can deduce from the context which
-        metarig the user wants to generate. See docstring of the called func."""
+        metarig the user wants to generate."""
         metarig = cls.get_metarig_to_generate(context)
         if not metarig:
             cls.poll_message_set("Could not find a metarig in the current context.")
