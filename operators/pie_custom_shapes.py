@@ -5,8 +5,8 @@ from bpy.types import Menu, PoseBone
 from bpy.props import EnumProperty
 from mathutils import Matrix
 
-from ..generation.cloudrig import register_hotkey, CloudRigOperator
-from ..utils.misc import get_pbone_of_active, get_addon_prefs
+from ..generation.cloudrig import register_hotkey, CloudRigOperator, find_metarig_of_rig
+from ..utils.misc import get_addon_prefs
 from ..rig_component_features.widgets.widgets import ensure_widget
 from ..rig_component_features.object import EnsureVisible
 
@@ -113,8 +113,11 @@ class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
     def execute(self, context):
         widget = ensure_widget(self.widget_shape, overwrite=False)
         coll = context.scene.collection
+        rig_ob = find_metarig_of_rig(context, context.pose_object) or context.pose_object
+        if rig_ob.cloudrig.generator.widget_collection:
+            coll = rig_ob.cloudrig.generator.widget_collection
         if widget not in set(coll.all_objects):
-            context.scene.collection.objects.link(widget)
+            coll.objects.link(widget)
         counter = 0
         for pb in context.selected_pose_bones:
             if pb.custom_shape != widget:
