@@ -119,7 +119,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             tail=tail,
             custom_shape_name="Hyperbola",
             custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),
-            custom_shape_translation=Vector((0, (tail - head).length * 1.8, 0)),
+            custom_shape_translation=Vector((0, (tail - head).length * 1, 0)),
             parent=self.root_torso,
         )
 
