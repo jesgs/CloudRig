@@ -5,7 +5,7 @@ from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name
 
 from ..rig_component_features.mechanism import find_or_create_constraint
-from .copy_mirror_components import copy_cloudrig_component
+from .copy_mirror_components import copy_property_group
 from ..generation.cloudrig import CloudRigOperator
 from rna_prop_ui import rna_idprop_value_item_type
 
@@ -99,7 +99,9 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             for from_con in from_pb.constraints:
                 symmetrize_constraint(rig, from_pb, from_con)
 
-            copy_cloudrig_component(from_pb, to_pb, x_mirror=True)
+            copy_property_group(from_pb.cloudrig_component, to_pb.cloudrig_component, x_mirror=True)
+            if to_pb.cloudrig_component.params.shoulder.is_property_set('up_axis'):
+                to_pb.cloudrig_component.params.shoulder.up_axis = str((int(to_pb.cloudrig_component.params.shoulder.up_axis) + 2) % 4)
 
             # Mirror bone collections.
             for coll in to_pb.bone.collections[:]:
@@ -160,8 +162,7 @@ def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         return
     symmetrized_con.name = flipped_con_name
 
-    if symmetrized_con.type == 'ARMATURE':
-        # NOTE: This whole block can be removed if we ever drop 4.2 compatibility.
+    if bpy.app.version < (4, 3, 0) and symmetrized_con.type == 'ARMATURE':
         # This is a workaround to a bug that was fixed in Blender 4.3.
         for orig_target, new_target in zip(con.targets, symmetrized_con.targets):
             if not new_target.target:
