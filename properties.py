@@ -470,6 +470,7 @@ class Properties_CloudRig(PropertyGroup):
     def enabled_update_callback(self, context=None):
         if self.enabled:
             self.id_data.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'
+            self.id_data.cloudrig_prefs.active_collection_index *= 1
         self.active_component_update_callback()
 
     enabled: BoolProperty(
