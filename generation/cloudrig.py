@@ -2912,44 +2912,102 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
                 split = user_row.split(factor=0.5)
                 addon_row = split.row()
                 user_row = split.row()
-                cls.draw_kmi(addon_km, addon_kmi, addon_row)
+                draw_kmi(addon_km, addon_kmi, addon_row)
             if not user_kmi:
                 # This should only happen for one frame during Reload Scripts.
                 layout.label(text=f"Missing: {addon_kmi.name} [{addon_kmi.to_string()}]")
                 continue
 
-            cls.draw_kmi(user_km, user_kmi, user_row)
+            sidebar = get_sidebar(context)
+            compact = False
+            if sidebar:
+                compact = sidebar.width < 600
+            draw_kmi(user_km, user_kmi, user_row, compact)
             prev_kmi = user_kmi
 
-    @staticmethod
-    def draw_kmi(km, kmi, layout):
-        """A simplified version of draw_kmi from rna_keymap_ui.py."""
-        col = layout.column()
-        split = col.split(factor=0.7)
-        row = split.row(align=True)
-        row.prop(kmi, "active", text="", emboss=False)
-        km_name = km.name
-        if km_name == 'Armature':
-            km_name = 'Armature Edit'
-        row.label(text=f'{kmi.name} ({km_name})')
+def draw_kmi(km, kmi, layout, compact=False, debug=False):
+    """A simplified version of draw_kmi from rna_keymap_ui.py."""
 
-        row = split.row(align=True)
-        sub = row.row(align=True)
-        sub.enabled = kmi.active
-        sub.prop(kmi, "type", text="", full_event=True)
+    if debug:
+        layout = layout.box()
 
-        if kmi.is_user_modified:
-            row.operator(
-                "preferences.keyitem_restore", text="", icon='BACK'
-            ).item_id = kmi.id
+    split = layout.split(factor=0.75)
 
-    @staticmethod
-    def print_kmi(kmi):
-        idname = kmi.idname
-        keys = kmi.to_string()
-        props = str(list(kmi.properties.items()))
-        print(idname, props, keys)
+    info_row = split.row(align=True)
+    if debug:
+        info_row.prop(kmi, "show_expanded", text="", emboss=False)
+    info_row.prop(kmi, "active", text="", emboss=False)
+    km_icon, km_name, kmi_name = get_kmi_ui_info(km, kmi)
+    if compact:
+        km_name = ""
+    info_row.label(text=kmi_name)
+    info_row.label(text=km_name, icon=km_icon or "BLANK1")
 
+    sub = split.row(align=True)
+    subsub = sub.row(align=True)
+    subsub.enabled = kmi.active
+    subsub.prop(kmi, "type", text="", full_event=True)
+
+    if kmi.is_user_modified:
+        sub.row().operator(
+            "preferences.keyitem_restore", text="", icon='BACK'
+        ).item_id = kmi.id
+
+    if debug and kmi.show_expanded:
+        layout.template_keymap_item_properties(kmi)
+
+def get_sidebar(context):
+    if not context.area.type == 'VIEW_3D':
+        return None
+    for region in context.area.regions:
+        if region.type == 'UI':
+            return region
+
+KEYMAP_ICONS = {
+    'Object Mode': 'OBJECT_DATAMODE',
+    'Window': 'WINDOW',
+    '3D View': 'VIEW3D',
+    'Mesh': 'OUTLINER_DATA_MESH',
+    'Outliner': 'OUTLINER',
+    'Object Non-modal': 'OBJECT_DATAMODE',
+    'Sculpt': 'SCULPTMODE_HLT',
+    'Armature': 'ARMATURE_DATA',
+    'Pose': 'POSE_HLT',
+    'Weight Paint': 'WPAINT_HLT',
+}
+
+KEYMAP_UI_NAMES = {
+    'Armature': "Armature Edit",
+    'Object Non-modal': "Object Mode",
+}
+
+def get_kmi_ui_info(km, kmi) -> tuple[str, str, str]:
+    km_name = km.name
+    km_icon = KEYMAP_ICONS.get(km_name, 'BLANK1')
+    km_name = KEYMAP_UI_NAMES.get(km_name, km_name)
+    if kmi.properties and kmi.idname.startswith('wm.call_menu_pie'):
+        if not hasattr(kmi.properties, 'name'):
+            # Apparently this can happen when spamming the Reload Scripts operator...
+            return "", "", ""
+        name = kmi.properties.name
+        if name:
+            try:
+                bpy_type = getattr(bpy.types, kmi.properties.name)
+                kmi_name = bpy_type.bl_label
+            except:
+                kmi_name = "Missing (code 1). Try restarting."
+        else:
+            kmi_name = "Missing (code 2). Try restarting."
+    else:
+        try:
+            parts = kmi.idname.split(".")
+            bpy_type = getattr(bpy.ops, parts[0])
+            bpy_type = getattr(bpy_type, parts[1])
+            kmi_name = bpy_type.get_rna_type().name
+        except:
+            kmi_name = "Missing (code 3). Try restarting."
+
+    return km_icon, km_name, kmi_name
 
 def find_user_kmi(context, addon_km, addon_kmi, kmi_hash=""):
     user_kc = context.window_manager.keyconfigs.user
