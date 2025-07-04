@@ -191,34 +191,18 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     )
 
     widget_library: StringProperty(
-        name="Widget Library",
+        name="Widget Library Blend",
         default=get_default_widgets_path(),
         subtype='FILE_PATH',
         description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
         update=update_prefs_on_file,
     )
     widget_import_method: EnumProperty(
-        name="Import Method",
+        name="Widget Import Method",
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
         description="Whether widget objects should be linked or appended",
         update=update_prefs_on_file,
-    )
-
-    show_hotkeys: BoolProperty(
-        name="Show Hotkeys",
-        default=False,
-        description="Reveal the hotkey list. You may customize or disable these hotkeys",
-    )
-    show_widget_prefs: BoolProperty(
-        name="Show Widget Preferences",
-        default=False,
-        description="Reveal the hotkey list. You may customize or disable these hotkeys",
-    )
-    show_color_presets: BoolProperty(
-        name="Show Color Presets",
-        default=False,
-        description="Reveal the color preset operators",
     )
 
     def draw(self, context):
@@ -227,27 +211,25 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         layout.use_property_decorate = False
 
         main_col = layout.column(align=True)
-        main_col.row(align=True).prop(self, 'advanced_mode')
-        main_col.separator()
 
         lib_row = main_col.row(align=True)
         if not os.path.exists(self.widget_library):
             lib_row.alert = True
         lib_row.prop(self, 'widget_library')
         main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
-        main_col.separator()
+        main_col.row(align=True).prop(self, 'advanced_mode')
 
-        hotkey_col = draw_fake_dropdown(main_col, self, 'show_hotkeys', "Hotkeys")
-        if self.show_hotkeys:
-            bpy.types.CLOUDRIG_PT_hotkeys_panel.draw_all_hotkeys(hotkey_col, context)
+        layout.operator('wm.cloudrig_report_bug', icon='URL')
 
-        main_col.separator()
+        header, panel = layout.panel("CloudRig Hotkeys")
+        header.label(text="Hotkeys")
+        if panel:
+            bpy.types.CLOUDRIG_PT_hotkeys_panel.draw_all_hotkeys(panel, context)
 
-        preset_col = draw_fake_dropdown(
-            main_col, self, 'show_color_presets', "Bone Colors"
-        )
-        if self.show_color_presets:
-            split = preset_col.split(factor=0.4)
+        header, panel = layout.panel("CloudRig Bone Colors")
+        header.label(text="Bone Colors")
+        if panel:
+            split = panel.split(factor=0.4)
             row = split.row()
             row.alignment = 'RIGHT'
             row.label(text="Apply Color Presets: ")
@@ -262,7 +244,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
                 text='CloudRig',
                 icon='RESTRICT_COLOR_ON',
             ).preset = 'CLOUDRIG'
-            preview_row = preset_col.row(align=True)
+            preview_row = panel.row(align=True)
             split = preview_row.split(factor=0.4)
             split.row()
             row = split.row()
@@ -377,23 +359,6 @@ def get_cloudrig_addon_kmis(context):
     keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
     keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
     return keymap_data
-
-
-def draw_fake_dropdown(layout, prop_owner, prop_name, dropdown_text):
-    row = layout.row(align=True)
-    row.use_property_split = False
-    prop_value = prop_owner.path_resolve(prop_name)
-    icon = 'TRIA_DOWN' if prop_value else 'TRIA_RIGHT'
-    sub = row.row(align=True)
-    sub.alignment='LEFT'
-    sub.prop(prop_owner, prop_name, icon=icon, emboss=False, text=dropdown_text)
-    sub = row.row(align=True)
-    sub.alignment='LEFT'
-    sub.scale_x = 100
-    sub.prop(prop_owner, prop_name, icon='BLANK1', emboss=False, text="")
-    dropdown_col = layout.column()
-
-    return dropdown_col
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
