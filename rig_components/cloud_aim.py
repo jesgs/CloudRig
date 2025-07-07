@@ -319,6 +319,7 @@ class Component_Aim(Component_Base):
             roll=0,
             parent=self.generator.find_bone_info(first_parent),
         )
+        center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in aim_bones])
 
         max_dist = 0
         for i, target_pos in enumerate(target_positions[1:]):
