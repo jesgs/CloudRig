@@ -322,12 +322,7 @@ class RigComponent(PropertyGroup):
         component_type_info = prefs.component_types.get(self.component_type)
         if not component_type_info:
             return
-        module = rig_components.component_modules.get(component_type_info.module_name)
-        assert (
-            module
-        ), f"Could not get component module: {component_type_info.module_name}"
-
-        return module
+        return rig_components.component_modules.get(component_type_info.module_name)
 
     @property
     def rig_class(self) -> type | None:

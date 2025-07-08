@@ -13,6 +13,7 @@ from . import (
     ui,
     properties,
     prefs,
+    prefs_save_load,
     generation,
     metarigs,
     icons,
@@ -22,7 +23,7 @@ bl_info = {
     'name': "CloudRig",
     'description': "Rig generation and rigging workflow toolkit by Blender Studio",
     'author': 'Demeter Dzadik',
-    'version': (2, 1, 19),
+    'version': (2, 1, 21),
     # This should be the lowest Blender version that is currently compatible.
     'blender': (4, 1, 0),
     'location': "Properties->Armature Data",
@@ -85,38 +86,38 @@ def register_unregister_modules(modules: list, register: bool):
             m.unregister()
 
 
-def do_backwards_comp_stuff():
-    def ensure_importable_modules():
-        """This function is to fix branch downloads that rename the add-on's
-        root folder (and thereby python module name) from MyAddOn to MyAddOn-master.
+def ensure_importable_modules():
+    """For the sake of post-generation scripts and external rig components, 
+    we want to make sure CloudRig modules can be imported without the extension prefixes.
+    """
+    import sys
+    addon_name = bl_info_copy['name']
+    if addon_name not in sys.modules:
+        dirname = __file__.split(os.sep)[-2]
+        module_mapping = {}
+        for mod_name, module in sys.modules.items():
+            if bpy.app.version < (4, 2, 0):
+                if dirname in mod_name:
+                    module_mapping[mod_name.replace(dirname, addon_name)] = module
+            else:
+                pass
+                # This works, but it results in policy violation.
+                # if dirname in mod_name and mod_name.startswith("bl_ext"):
+                #     module_mapping[dirname+mod_name.split(dirname)[-1]] = module
 
-        We do this by populating the sys.modules dictionary with references to the
-        existing modules, pointed to by the correct names.
-        """
-        import sys
-        addon_name = bl_info_copy['name']
-        if addon_name not in sys.modules:
-            dirname = __file__.split(os.sep)[-2]
-            stuff = {}
-            for name, module in sys.modules.items():
-                if dirname in name:
-                    stuff[name.replace(dirname, addon_name)] = module
-            sys.modules.update(stuff)
-
-    version = bpy.app.version
-    if version < (4, 2, 0):
-        ensure_importable_modules()
-
-        if __name__.startswith("rigify"):
-            # If trying to register as a Rigify feature-set, throw useful error.
-            raise Exception(
-                "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
-            )
+        sys.modules.update(module_mapping)
 
 
 def register():
     """Called by Blender when enabling the CloudRig add-on, or on Blender launch if already enabled."""
-    do_backwards_comp_stuff()
+
+    if __name__.startswith("rigify"):
+        # If trying to register as a Rigify feature-set, throw useful error.
+        raise Exception(
+            "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
+        )
+
+    ensure_importable_modules()
     register_unregister_modules(modules, True)
 
 

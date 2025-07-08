@@ -254,6 +254,8 @@ class BoneSet(LinkedList):
 class BoneSetMixin:
     """Class that provides bone set management to Component_Base."""
 
+    bone_set_defs: OrderedDict[str, str] = OrderedDict()
+
     @property
     def bone_infos(self):
         for name, bone_set in self.bone_sets.items():
