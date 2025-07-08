@@ -43,6 +43,7 @@ modules = [
     # - For Panels, they must be registered before their bl_parent_id is.
     # - Hotkeys must come after `cloudrig`, since we're storing them on a panel.
     rig_component_features,
+    prefs_save_load,
     rig_components,
     prefs,
     generation,

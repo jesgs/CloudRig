@@ -9,118 +9,9 @@ from pathlib import Path
 from . import rig_components
 from .generation import cloudrig
 from .utils.misc import get_addon_prefs
-
-def update_prefs_on_file(self=None, context=None):
-    prefs = get_addon_prefs(context)
-    if prefs:
-        if not type(prefs).loading:
-            prefs.save_prefs_to_file()
-    else:
-        print("Couldn't save preferences because the class was already unregistered.")
-
-
-class PrefsFileSaveLoadMixin:
-    """Mix-in class that can be used by any add-on to store their preferences in a file,
-    so that they don't get lost when the add-on is disabled.
-    To use it, copy this class and the function above it, and do this in your code:
-
-    ```
-    import bpy, json
-    from pathlib import Path
-
-    class MyAddonPrefs(PrefsFileSaveLoadMixin, bpy.types.AddonPreferences):
-        some_prop: bpy.props.IntProperty(update=update_prefs_on_file)
-
-    def register():
-        bpy.utils.register_class(MyAddonPrefs)
-        MyAddonPrefs.register_autoload_from_file()
-
-    def unregister():
-        update_prefs_on_file()
-    ```
-
-    """
-
-    # List of property names to not write to disk.
-    omit_from_disk: list[str] = []
-
-    loading = False
-
-    @staticmethod
-    def register_autoload_from_file(delay=2.0):
-        def timer_func(_scene=None):
-            prefs = get_addon_prefs()
-            prefs.load_and_apply_prefs_from_file()
-        bpy.app.timers.register(timer_func, first_interval=delay)
-
-    def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
-        """Recursively convert AddonPreferences to a dictionary.
-        Note that AddonPreferences don't support PointerProperties,
-        so this function doesn't either."""
-        from rna_prop_ui import IDPropertyGroup
-
-        ret = {}
-
-        rna_class = None
-        if isinstance(propgroup, bpy.types.AddonPreferences):
-            prop_dict = {key:getattr(propgroup, key) for key in propgroup.bl_rna.properties.keys() if key not in ('rna_type', 'bl_idname')}
-        else:
-            property_group_class_name = type(propgroup).__name__
-            rna_class = bpy.types.PropertyGroup.bl_rna_get_subclass_py(
-                property_group_class_name
-            )
-            prop_dict = {key:getattr(propgroup, key) for key in propgroup.bl_rna.properties.keys() if key not in ('rna_type')}
-
-        for key, value in prop_dict.items():
-            if key in type(self).omit_from_disk:
-                continue
-            if type(value) in (list, bpy.types.bpy_prop_collection_idprop):
-                ret[key] = [self.prefs_to_dict_recursive(elem) for elem in value]
-            elif type(value) == IDPropertyGroup:
-                ret[key] = self.prefs_to_dict_recursive(value)
-            else:
-                if (
-                    rna_class
-                    and key in rna_class.properties
-                    and hasattr(rna_class.properties[key], 'enum_items')
-                ):
-                    # Save enum values as string, not int.
-                    ret[key] = rna_class.properties[key].enum_items[value].identifier
-                else:
-                    ret[key] = value
-        return ret
-
-    def apply_prefs_from_dict_recursive(self, propgroup, data):
-        for key, value in data.items():
-            if not hasattr(propgroup, key):
-                # Property got removed or renamed in the implementation.
-                continue
-            if type(value) == list:
-                for elem in value:
-                    collprop = getattr(propgroup, key)
-                    entry = collprop.get(elem['name'])
-                    if not entry:
-                        entry = collprop.add()
-                    self.apply_prefs_from_dict_recursive(entry, elem)
-            elif type(value) == dict:
-                self.apply_prefs_from_dict_recursive(getattr(propgroup, key), value)
-            else:
-                setattr(propgroup, key, value)
-
-    def save_prefs_to_file(self, _context=None):
-        data_dict = self.prefs_to_dict_recursive(propgroup=self)
-
-        filepath = get_prefs_filepath()
-
-        with open(filepath, "w") as f:
-            json.dump(data_dict, f, indent=4)
-
-    def load_and_apply_prefs_from_file(self):
-        type(self).loading = True
-        addon_data = load_prefs_from_file()
-        self.apply_prefs_from_dict_recursive(self, addon_data)
-        apply_stored_hotkeys()
-        type(self).loading = False
+from .utils.hotkeys import find_matching_km_and_kmi
+from .generation.cloudrig import find_user_kmi
+from .prefs_save_load import PrefsFileSaveLoadMixin, load_prefs_from_file, update_prefs_on_file
 
 
 def get_default_widgets_path():
@@ -295,28 +186,16 @@ def get_hotkey_on_file(kmi_hash) -> dict:
     data = load_prefs_from_file()
     if not data:
         return {}
-    hotkeys = data['hotkeys']
-    return hotkeys.get(kmi_hash, {})
-
-
-def load_prefs_from_file() -> dict:
-    filepath = get_prefs_filepath()
-    if not filepath.exists():
-        return {}
-
-    with open(filepath, "r") as f:
-        return json.load(f)
-
-
-def get_prefs_filepath() -> Path:
-    addon_name = "CloudRig"
-    return Path(bpy.utils.user_resource('CONFIG')) / Path(addon_name + ".json")
+    hotkeys = data.get('hotkeys')
+    if hotkeys:
+        return hotkeys.get(kmi_hash, {})
+    return {}
 
 
 def get_keymap_data_for_saving(context) -> dict:
     all_keymap_data = {}
     for kmi_hash, (addon_kc, addon_km, addon_kmi) in get_cloudrig_addon_kmis(context):
-        user_km, user_kmi = cloudrig.find_user_kmi(context, addon_km, addon_kmi, kmi_hash)
+        user_km, user_kmi = find_user_kmi(context, addon_km, addon_kmi, kmi_hash)
         if not user_km or not user_kmi:
             continue
         data = {}
@@ -350,7 +229,6 @@ def get_keymap_data_for_saving(context) -> dict:
             data['key_kwargs']['hyper'] = bool(user_kmi.hyper)
 
         all_keymap_data[kmi_hash] = data
-
     return all_keymap_data
 
 
