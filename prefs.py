@@ -143,14 +143,16 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
                 icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
                 row.label(text="", icon=icon)
 
-    def prefs_to_dict_recursive(self, propgroup: 'IDPropertyGroup') -> dict:
-        data = super().prefs_to_dict_recursive(self)
+    def to_dict(self) -> dict:
+        data = super().to_dict()
         data['hotkeys'] = get_keymap_data_for_saving(bpy.context)
         return data
+    
+    def load_and_apply_prefs_from_file(self):
+        super().load_and_apply_prefs_from_file()
+        apply_stored_hotkeys()
 
 
-from .generation.cloudrig import find_user_kmi
-from .utils.hotkeys import find_matching_km_and_kmi
 def apply_stored_hotkeys():
     for storage_class in (bpy.types.CLOUDRIG_PT_hotkeys_panel, bpy.types.POSE_PT_CloudRig):
         for kmi_hash, (kc_addon, addon_km, addon_kmi) in storage_class.cloudrig_keymap_items.items():

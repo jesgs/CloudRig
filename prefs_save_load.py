@@ -111,7 +111,7 @@ def props_to_dict_recursive(propgroup: 'IDPropertyGroup', skip=[]) -> dict:
 
     ret = {}
 
-    for key in propgroup.keys():
+    for key in propgroup.bl_rna.properties.keys():
         if key in skip or key in ['rna_type', 'bl_idname']:
             continue
         value = getattr(propgroup, key)

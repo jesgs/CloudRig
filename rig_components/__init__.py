@@ -56,7 +56,7 @@ def load_external_components():
 def reload_rig_components():
     global component_modules
     component_modules = load_components(os.path.dirname(__file__))
-    component_modules.update(load_external_components())
+    # component_modules.update(load_external_components())
 
 
 def register():
