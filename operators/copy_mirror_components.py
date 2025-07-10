@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy
-from bpy.types import PoseBone, bpy_prop_collection, PropertyGroup, Object
 from bpy.utils import flip_name
+from ..utils.misc import copy_property_group
 
 from ..generation.cloudrig import CloudRigOperator
 
@@ -111,51 +110,6 @@ class POSE_OT_cloudrig_copy_component(CloudRigOperator):
 
         return {'FINISHED'}
 
-
-def copy_property_group(src_pg: PropertyGroup, dst_pg: PropertyGroup, x_mirror=False):
-    """
-    Copy the values from one PropertyGroup into another of the same type.
-    Optionally, X-mirror names (e.g., ".L" <-> ".R") in strings and Object references.
-    """
-    assert isinstance(dst_pg, PropertyGroup) and isinstance(src_pg, PropertyGroup)
-    assert dst_pg.__class__ == src_pg.__class__
-
-    for key in src_pg.bl_rna.properties.keys():
-        if key in ('rna_type', 'bl_rna'):
-            continue
-        if not src_pg.is_property_set(key):
-            dst_pg.property_unset(key)
-            continue
-        value = getattr(src_pg, key)
-        if isinstance(value, bpy_prop_collection):
-            dst_coll = getattr(dst_pg, key)
-            dst_coll.clear()
-            for src_entry in value:
-                if isinstance(src_entry, PropertyGroup):
-                    dst_entry = dst_coll.add()
-                    copy_property_group(src_entry, dst_entry, x_mirror)
-        elif isinstance(value, PropertyGroup):
-            copy_property_group(value, getattr(dst_pg, key), x_mirror)
-        elif src_pg.is_property_readonly(key):
-            # This has to come after CollectionProperty and PropertyGroup checks, 
-            # since they are technically read-only.
-            continue
-        elif isinstance(value, str):
-            setattr(dst_pg, key, flip_name(value) if x_mirror else value)
-        elif isinstance(value, Object):
-            setattr(dst_pg, key, get_opposite_obj(value) if x_mirror else value)
-        else:
-            setattr(dst_pg, key, value)
-
-
-def get_opposite_obj(obj: Object) -> Object:
-    """Return the X-mirrored version of a Blender object by name (and library if linked)."""
-    flipped_name = flip_name(obj.name)
-    lib = obj.library
-    return (
-        bpy.data.objects.get((lib, flipped_name)) if lib else
-        bpy.data.objects.get(flipped_name)
-    ) or obj
 
 
 def draw_copy_mirror_ops(self, context):

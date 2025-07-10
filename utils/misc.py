@@ -4,20 +4,55 @@
 # really don't fit anywhere.
 
 import bpy, os, time, addon_utils
-from bpy.types import PoseBone, Text, Object, EditBone, Bone
+from bpy.types import PoseBone, Text, Object, EditBone, Bone, PropertyGroup, bpy_prop_collection
 from .. import __package__ as base_package
+from bpy.utils import flip_name
 
 
-def copy_prop_group(source_owner, target_owner, prop_group_name):
-    if prop_group_name not in source_owner:
-        if prop_group_name in target_owner:
-            del target_owner[prop_group_name]
-        return
+def copy_property_group(src_pg: PropertyGroup, dst_pg: PropertyGroup, x_mirror=False):
+    """
+    Copy the values from one PropertyGroup into another of the same type.
+    Optionally, X-mirror names (e.g., ".L" <-> ".R") in strings and Object references.
+    """
+    assert isinstance(dst_pg, PropertyGroup) and isinstance(src_pg, PropertyGroup)
+    assert dst_pg.__class__ == src_pg.__class__
 
-    prop_dict = source_owner[prop_group_name].to_dict()
-    if prop_group_name in target_owner:
-        del target_owner[prop_group_name]
-    target_owner[prop_group_name] = prop_dict
+    for key in src_pg.bl_rna.properties.keys():
+        if key in ('rna_type', 'bl_rna'):
+            continue
+        if not src_pg.is_property_set(key):
+            dst_pg.property_unset(key)
+            continue
+        value = getattr(src_pg, key)
+        if isinstance(value, bpy_prop_collection):
+            dst_coll = getattr(dst_pg, key)
+            dst_coll.clear()
+            for src_entry in value:
+                if isinstance(src_entry, PropertyGroup):
+                    dst_entry = dst_coll.add()
+                    copy_property_group(src_entry, dst_entry, x_mirror)
+        elif isinstance(value, PropertyGroup):
+            copy_property_group(value, getattr(dst_pg, key), x_mirror)
+        elif src_pg.is_property_readonly(key):
+            # This has to come after CollectionProperty and PropertyGroup checks, 
+            # since they are technically read-only.
+            continue
+        elif isinstance(value, str):
+            setattr(dst_pg, key, flip_name(value) if x_mirror else value)
+        elif isinstance(value, Object):
+            setattr(dst_pg, key, get_opposite_obj(value) if x_mirror else value)
+        else:
+            setattr(dst_pg, key, value)
+
+
+def get_opposite_obj(obj: Object) -> Object:
+    """Return the X-mirrored version of a Blender object by name (and library if linked)."""
+    flipped_name = flip_name(obj.name)
+    lib = obj.library
+    return (
+        bpy.data.objects.get((lib, flipped_name)) if lib else
+        bpy.data.objects.get(flipped_name)
+    ) or obj
 
 
 def load_script(
