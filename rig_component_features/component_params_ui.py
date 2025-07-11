@@ -115,6 +115,11 @@ class CloudUIMixin:
 
         return row
 
+    @classmethod
+    def draw_prop_widget(cls, context, layout, prop_owner, prop_name, **kwargs):
+        prefs = get_addon_prefs(context)
+        return cls.draw_prop_search(context, layout, prop_owner, prop_name, prefs, 'widget_names', **kwargs)
+
 
 def is_advanced_mode(context):
     if not is_cloud_metarig(context.object):

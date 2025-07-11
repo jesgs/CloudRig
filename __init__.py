@@ -46,10 +46,10 @@ modules = [
     rig_component_features,
     prefs_save_load,
     rig_components,
-    prefs,
     generation,
     operators,
     properties,
+    prefs,
     metarigs,
     icons,
 ]

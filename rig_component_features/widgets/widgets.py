@@ -3,6 +3,7 @@ from bpy.types import Object
 
 from ...utils.misc import get_addon_prefs
 
+LIBRARY_WIDGETS = []
 
 def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
     """Load custom shapes by appending them from Widgets.blend, unless they already exist in this file."""
@@ -86,3 +87,55 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
         new_wgt_ob.asset_clear()
 
     return new_wgt_ob
+
+
+def init_widget_list():
+    """Build a list of available custom shapes by checking inside Widgets.blend."""
+
+    global LIBRARY_WIDGETS
+    LIBRARY_WIDGETS = []
+
+    prefs = get_addon_prefs()
+    if not prefs:
+        return
+    blend_path = prefs.widget_library
+
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+        for o in data_from.objects:
+            if o.startswith("WGT-"):
+                ui_name = o.replace("WGT-", "").replace("_", " ")
+                LIBRARY_WIDGETS.append((o, ui_name, ui_name))
+
+    return LIBRARY_WIDGETS
+
+
+def get_widgets_enum_items(_scene=None, _context=None) -> list[str, str, str] | None:
+    """This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
+    which it can only be with a function callback."""
+    global LIBRARY_WIDGETS
+
+    # First time this is called, populate the widget list.
+    if LIBRARY_WIDGETS == []:
+        init_widget_list()
+
+    enum_items = LIBRARY_WIDGETS[:]
+    enum_items.append(None)
+    try:
+        for o in bpy.data.objects:
+            if o.name.startswith("WGT"):
+                ui_name = o.name.replace("WGT-", "").replace("_", " ")
+                item = (o.name, ui_name, ui_name)
+                if item not in enum_items:
+                    enum_items.append(item)
+    except AttributeError:
+        return
+
+    return enum_items
+
+def get_widget_index(wgt_name: str) -> int:
+    enum_items = get_widgets_enum_items()
+    if not enum_items:
+        return 0
+    for i, (identifier, name, description) in enumerate():
+        if name == wgt_name:
+            return i

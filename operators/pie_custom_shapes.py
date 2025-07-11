@@ -6,29 +6,8 @@ from bpy.props import EnumProperty
 from mathutils import Matrix
 
 from ..generation.cloudrig import register_hotkey, CloudRigOperator, find_metarig_of_rig
-from ..utils.misc import get_addon_prefs
-from ..rig_component_features.widgets.widgets import ensure_widget
+from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items
 from ..rig_component_features.object import EnsureVisible
-
-LIBRARY_WIDGETS = []
-
-
-def init_widget_list():
-    """Build a list of available custom shapes by checking inside Widgets.blend."""
-
-    global LIBRARY_WIDGETS
-    LIBRARY_WIDGETS = []
-
-    prefs = get_addon_prefs()
-    blend_path = prefs.widget_library
-
-    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
-        for o in data_from.objects:
-            if o.startswith("WGT-"):
-                ui_name = o.replace("WGT-", "").replace("_", " ")
-                LIBRARY_WIDGETS.append((o, ui_name, ui_name))
-
-    return LIBRARY_WIDGETS
 
 
 class POSE_OT_unassign_custom_shape(CloudRigOperator):
@@ -66,30 +45,10 @@ class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
     bl_label = "Select Custom Shape"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def get_widget_list(self, context):
-        """This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
-        which it can only be with a function callback."""
-        global LIBRARY_WIDGETS
-
-        # First time this is called, populate the widget list.
-        if LIBRARY_WIDGETS == []:
-            init_widget_list()
-
-        available_widgets = LIBRARY_WIDGETS[:]
-        available_widgets.append(None)
-        for o in bpy.data.objects:
-            if o.name.startswith("WGT"):
-                ui_name = o.name.replace("WGT-", "").replace("_", " ")
-                item = (o.name, ui_name, ui_name)
-                if item not in available_widgets:
-                    available_widgets.append(item)
-
-        return available_widgets
-
     widget_shape: EnumProperty(
         name="Widget Shape",
         description="Choose a custom shape from CloudRig's library as well as any objects in the current file prefixed with 'WGT-'",
-        items=get_widget_list,
+        items=get_widgets_enum_items,
     )
 
     def invoke(self, context, _event):

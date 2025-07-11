@@ -1,17 +1,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, json, os
+import bpy, os
 from bpy.types import PropertyGroup, AddonPreferences
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
 
-from pathlib import Path
-
 from . import rig_components
-from .generation import cloudrig
 from .utils.misc import get_addon_prefs
 from .utils.hotkeys import find_matching_km_and_kmi
 from .generation.cloudrig import find_user_kmi
 from .prefs_save_load import PrefsFileSaveLoadMixin, load_prefs_from_file, update_prefs_on_file
+from .properties import NameProperty
+from .rig_component_features.widgets.widgets import get_widgets_enum_items
 
 
 def get_default_widgets_path():
@@ -70,6 +69,18 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
+    def update_widget_names(self, context):
+        self.widget_names.clear()
+        widget_items = get_widgets_enum_items()
+        if not widget_items:
+            return
+        for identifier, name, description in [w for w in widget_items if w]:
+            widget_entry = self.widget_names.add()
+            widget_entry.name = name
+        update_prefs_on_file()
+
+    widget_names: CollectionProperty(type=NameProperty)
+
     advanced_mode: BoolProperty(
         name="Advanced Mode",
         description="Reveal advanced options in the Generator and Rig Component interfaces",
@@ -86,14 +97,14 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=get_default_widgets_path(),
         subtype='FILE_PATH',
         description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
-        update=update_prefs_on_file,
+        update=update_widget_names,
     )
     widget_import_method: EnumProperty(
         name="Widget Import Method",
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
         description="Whether widget objects should be linked or appended",
-        update=update_prefs_on_file,
+        update=update_widget_names,
     )
 
     def draw(self, context):
@@ -244,6 +255,12 @@ def get_cloudrig_addon_kmis(context):
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
 
+def delayed_refresh_widget_list():
+    prefs = get_addon_prefs()
+    prefs.update_widget_names(bpy.context)
+
+
 def register():
     init_component_module_list()
+    bpy.app.timers.register(delayed_refresh_widget_list)
     CloudRigPreferences.register_autoload_from_file()

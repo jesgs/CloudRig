@@ -6,6 +6,7 @@ from bpy.props import (
     IntVectorProperty,
     BoolVectorProperty,
     FloatProperty,
+    StringProperty,
 )
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -52,7 +53,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 # TODO: Not sure if this should be allowed when position_along_bone > 0.
                 main_str_bone.add_constraint(
                     'COPY_ROTATION',
-                    invert_xyz = [True, True, True],
+                    use_xyz = [True, False, True],
+                    invert_xyz = [True, False, True],
+                    euler_order = 'XZY',
                     mix_mode = 'BEFORE',
                     space = 'LOCAL',
                     influence = self.params.fk_chain.counter_rotate_stretch_bones,
@@ -169,7 +172,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         fk_bone = self.bone_sets['FK Controls'].new(
             name=fk_name,
             source=org_bone,
-            custom_shape_name="Circle_Spiked_2",
+            custom_shape_name=self.params.fk_chain.widget_fk,
             inherit_scale=self.params.fk_chain.inherit_scale,
             custom_shape_along_length=self.params.fk_chain.display_center / 2,
             rotation_mode=rot_mode,
@@ -213,7 +216,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 source=org_bone,
                 parent=fk_bone,
                 head=position,
-                custom_shape_name='WGT-Circle_Spiked_2',
+                custom_shape_name=self.params.fk_chain.widget_fk,
             )
             fk_offset_chain.append(fk_offset_bone)
 
@@ -407,8 +410,10 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        layout.separator()
+        cls.draw_prop_widget(context, layout, params.fk_chain, 'widget_fk')
         cls.draw_prop(context, layout, params.fk_chain, 'display_center')
-
         return layout
 
     @classmethod
@@ -465,7 +470,7 @@ class Params(PropertyGroup):
         description="Scale inheritance type for FK controls", default='ALIGNED'
     )
     display_center: BoolProperty(
-        name="Display FK in center",
+        name="Display Centered",
         description="Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone",
         default=True,
     )
@@ -517,6 +522,12 @@ class Params(PropertyGroup):
         description="Rotation axes to test in the test animation",
         subtype='EULER',
         default=(True, True, True),
+    )
+
+    widget_fk: StringProperty(
+        name="FK Widget",
+        description="Widget for FK controls",
+        default='Circle_Spiked_2'
     )
 
 

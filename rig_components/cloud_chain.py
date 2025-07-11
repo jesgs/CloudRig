@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.props import BoolProperty, IntProperty, FloatProperty
+from bpy.props import BoolProperty, IntProperty, FloatProperty, StringProperty
 from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -174,7 +174,7 @@ class Component_ToonChain(Component_Base):
             roll_type='VECTOR',
             roll_vector=roll_bone.z_axis,
             length=org_bone.length / segments / 2,
-            custom_shape_scale=-0.6,
+            custom_shape_scale=-self.params.chain.widget_size,
             parent=org_bone,
             inherit_scale='AVERAGE',
         )
@@ -183,9 +183,9 @@ class Component_ToonChain(Component_Base):
             main_str.custom_shape_scale_xyz *= -1
 
         if not self.is_cyclic and org_i == 0 or at_tip:
-            main_str.custom_shape_name = 'Sphere_Half'
+            main_str.custom_shape_name = self.params.chain.widget_stretch_ends
         else:
-            main_str.custom_shape_name = "Sphere"
+            main_str.custom_shape_name = self.params.chain.widget_stretch
 
         return main_str
 
@@ -267,8 +267,8 @@ class Component_ToonChain(Component_Base):
             parent=org_bone,
             head=main_start.head + (unit * index),
             length=vector.length / num_segments / 2,
-            custom_shape_name="Sphere",
-            custom_shape_scale=-0.4,
+            custom_shape_name=self.params.chain.widget_stretch,
+            custom_shape_scale=-self.params.chain.widget_size*0.66,
             inherit_scale='AVERAGE',
         )
         sub_str.parent = self.make_sub_str_helper(
@@ -721,7 +721,7 @@ class Component_ToonChain(Component_Base):
             self.bone_sets['Deform Bones'][0].bbone_easein = 0
 
         last_str.next = self.str_chain[0]
-        last_str.custom_shape = self.str_chain[0].custom_shape_name = 'Sphere'
+        last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.widget_stretch
         if (
             self.params.chain.shape_key_helpers
             or parent_component.params.chain.shape_key_helpers
@@ -735,8 +735,8 @@ class Component_ToonChain(Component_Base):
             parent_component.tangent_helpers[-1].constraint_infos[1].subtarget = (
                 self.str_chain[0]
             )
-        if parent_component.params.chain.unlock_deform:
-            parent_component.make_def_control(last_str, last_def)
+        # if parent_component.params.chain.unlock_deform:
+        #     parent_component.make_def_control(last_str, last_def)
 
     ##############################
     # Parameters
@@ -749,6 +749,14 @@ class Component_ToonChain(Component_Base):
         if set_name == 'shape_key_helpers':
             return params.chain.shape_key_helpers
         return super().is_bone_set_used(context, rig, params, set_name)
+
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        cls.draw_prop_widget(context, layout, params.chain, 'widget_stretch')
+        cls.draw_prop_widget(context, layout, params.chain, 'widget_stretch_ends', text="End")
+        cls.draw_prop(context, layout, params.chain, 'widget_size', text="Size")
+        return layout
 
     @classmethod
     def define_bone_sets(cls):
@@ -844,6 +852,21 @@ class Params(PropertyGroup):
         min=0, max=100,
         soft_max=5,
         default=1,
+    )
+
+    widget_stretch: StringProperty(
+        name="Stretch Widget",
+        description="Widget for Stretch controls",
+        default='Sphere'
+    )
+    widget_stretch_ends: StringProperty(
+        name="Stretch End Widget",
+        description="Widget for First/Last Stretch controls",
+        default='Sphere_Half'
+    )
+    widget_size: FloatProperty(
+        name="Widget Size",
+        min=0.1, max=10.0, default=0.6
     )
 
 

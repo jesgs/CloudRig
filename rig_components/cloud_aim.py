@@ -379,6 +379,7 @@ class Component_Aim(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
         cls.draw_prop(context, layout, params.aim, 'target_size')
 
     @classmethod

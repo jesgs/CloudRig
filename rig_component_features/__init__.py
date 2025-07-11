@@ -9,6 +9,7 @@ from . import (
     object,
     parenting,
     properties_ui,
+    widgets,
 )
 
 
@@ -23,6 +24,7 @@ modules = [
     parenting,
     properties_ui,
     component_params_ui,
+    widgets,
 ]
 
 # Dictionary of modules that have a Params class, and want to register
