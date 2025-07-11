@@ -32,7 +32,7 @@ class CLOUDRIG_PT_rig_component(Panel):
         prefs = get_addon_prefs(context)
         active_pb = get_pbone_of_active(context)
         rig_component = active_pb.cloudrig_component
-        layout.alert = not bool(rig_component.rig_class)
+        layout.alert = rig_component.component_type!="" and not bool(rig_component.rig_class)
         row = layout.row()
         text = "Component Type"
         if row.alert:
@@ -45,7 +45,7 @@ class CLOUDRIG_PT_rig_component(Panel):
             icon='ARMATURE_DATA' if not row.alert else 'ERROR',
             text=text
         )
-        if row.alert:
+        if not rig_component.component_type or row.alert:
             return
         layout.prop(prefs, 'advanced_mode')
 
