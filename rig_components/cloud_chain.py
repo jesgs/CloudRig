@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.props import BoolProperty, IntProperty
+from bpy.props import BoolProperty, IntProperty, FloatProperty
 from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -479,6 +479,7 @@ class Component_ToonChain(Component_Base):
                 subtarget=next_str_bone,
                 use_bulge_min=not self.params.chain.preserve_volume,
                 use_bulge_max=not self.params.chain.preserve_volume,
+                bulge=self.params.chain.volume_variation,
             )
 
         # Set BBone Segments according to BBone Density param.
@@ -596,6 +597,7 @@ class Component_ToonChain(Component_Base):
                 subtarget=str_bone.next.name,
                 use_bulge_min=not self.params.chain.preserve_volume,
                 use_bulge_max=not self.params.chain.preserve_volume,
+                bulge=self.params.chain.volume_variation,
             )
         def_bone_control.custom_shape_name = 'Cube'
         def_bone_control.custom_shape_scale_xyz.y = 0.1
@@ -773,6 +775,8 @@ class Component_ToonChain(Component_Base):
 
         if cls.is_advanced_mode(context):
             cls.draw_prop(context, layout, params.chain, 'preserve_volume')
+            if params.chain.preserve_volume:
+                cls.draw_prop(context, layout, params.chain, 'volume_variation')
             cls.draw_prop(context, layout, params.chain, 'shape_key_helpers')
             cls.draw_prop(context, layout, params.chain, 'unlock_deform')
 
@@ -830,9 +834,16 @@ class Params(PropertyGroup):
         default=True,
     )
     preserve_volume: BoolProperty(
-        name="Preserve Volume",
-        description="Squash and stretch will preserve volume",
+        name="Squash & Stretch",
+        description="The bone will become thinner and thicker depending on stretching length",
         default=False,
+    )
+    volume_variation: FloatProperty(
+        name="Volume Variation",
+        description="How exaggerated the squashing and stretching should be",
+        min=0, max=100,
+        soft_max=5,
+        default=1,
     )
 
 
