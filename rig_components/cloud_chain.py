@@ -32,8 +32,7 @@ class Component_ToonChain(Component_Base):
         self.is_cyclic = self.determine_if_cyclic()
 
         # Calculate total bone length
-        for org in self.bones_org:
-            self.chain_length += org.length
+        self.chain_length = sum([bone.length for bone in self.bones_org])
 
         # Create Main STR controls
         self.main_str_bones = self.make_main_str_bones(self.bones_org)
@@ -500,32 +499,6 @@ class Component_ToonChain(Component_Base):
             if str_bone.next in self.main_str_bones:
                 def_bone.bbone_easeout = 0
 
-        # Let the STR bone local Y scale delta (relative to average scale) drive the ease value.
-        # So scaling the bone uniformally won't affect easing, but increasing local Y scale will.
-        for str_b, prop in zip(
-            [str_bone, str_bone.next], ['bbone_easein', 'bbone_easeout']
-        ):
-            if not str_b:
-                # This happens when Tip Control param is off so there's no str_bone.next.
-                continue
-            def_bone.drivers.append(
-                {
-                    'prop': prop,
-                    'expression': "abs(scale_y/((scale_x+scale_z)/2)) - 1",
-                    'variables': {
-                        f'scale_{axis}': {
-                            'type': 'SINGLE_PROP',
-                            'targets': [
-                                {
-                                    'data_path': f'pose.bones["{str_b.name}"].scale.{axis}',
-                                }
-                            ],
-                        }
-                        for axis in "xyz"
-                    },
-                }
-            )
-
         # B-Bone ease
         def_bone.bbone_handle_type_start = 'TANGENT'
         def_bone.bbone_handle_type_end = 'TANGENT'
@@ -535,8 +508,38 @@ class Component_ToonChain(Component_Base):
             def_bone.bbone_custom_handle_start = str_bone
         def_bone.bbone_handle_use_scale_start = [True, False, True]
         def_bone.bbone_handle_use_scale_end = [True, False, True]
-        # def_bone.bbone_handle_use_ease_start = True
-        # def_bone.bbone_handle_use_ease_end = True
+        if False:
+            def_bone.bbone_handle_use_ease_start = True
+            def_bone.bbone_handle_use_ease_end = True
+        else:
+            # Let the STR bone local Y scale delta (relative to average scale) drive the ease value.
+            # So scaling the bone uniformally won't affect easing, but increasing local Y scale will.
+            for str_b, prop in zip(
+                [str_bone, str_bone.next], ['bbone_easein', 'bbone_easeout']
+            ):
+                if not str_b:
+                    # This happens when Tip Control param is off so there's no str_bone.next.
+                    continue
+                def_bone.drivers.append(
+                    {
+                        'prop': prop,
+                        'expression': "abs(scale_Y/((scale_X+scale_Z)/2)) - 1",
+                        'variables': {
+                            f'scale_{axis}': {
+                                'type': 'TRANSFORMS',
+                                'targets': [
+                                    {
+                                        'bone_target': str_b.name,
+                                        'transform_space': 'LOCAL_SPACE',
+                                        'transform_type': f'SCALE_{axis}',
+                                    }
+                                ],
+                            }
+                            for axis in "XYZ"
+                        },
+                    }
+                )
+
 
         if hasattr(next_str_bone, 'tangent_helper'):
             # This can be False when connecting to a parent chain rig that has Smooth Spline=False.
