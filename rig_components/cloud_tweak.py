@@ -119,8 +119,11 @@ class Component_TweakBone(Component_Base):
         if self.params.tweak.custom_props:
             for prop_name in org_bi.custom_props:
                 tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
-        
+
         super().create_component_interactions(context)
+
+        if self.params.tweak.ensure_free and len(tweak_bone.constraint_infos) > 0:
+            self.root_bone = self.create_parent_constraint_holder(tweak_bone, bone_set=self.bone_sets['Mechanism Bones'])
 
     def relink(self):
         # Transfer and relink constraints and their drivers
@@ -151,6 +154,7 @@ class Component_TweakBone(Component_Base):
 
         cls.draw_control_label(layout, "Tweak")
         cls.draw_prop(context, layout, params.tweak, "constraints_additive")
+        cls.draw_prop(context, layout, params.tweak, "ensure_free")
         cls.draw_prop(context, layout, params.tweak, "transforms")
         cls.draw_prop(context, layout, params.tweak, "locks")
         cls.draw_prop(context, layout, params.tweak, "rot_mode")
@@ -211,6 +215,11 @@ class Params(PropertyGroup):
     custom_props: BoolProperty(
         name="Custom Properties",
         description="Copy custom properties from this bone to the generated bone",
+        default=False,
+    )
+    ensure_free: BoolProperty(
+        name="Move Constraints To Parent",
+        description='If this bone has any constraints, move them to a parent bone prefixed with "CON", unless the constraint name starts with "KEEP"',
         default=False,
     )
 

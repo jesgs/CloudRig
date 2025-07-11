@@ -25,6 +25,9 @@ class CloudMechanismMixin:
     def create_parent_bone(self, child, bone_set=None):
         return create_parent_bone(child, bone_set)
 
+    def create_parent_constraint_holder(self, child, bone_set=None):
+        return create_parent_constraint_holder(child, bone_set)
+
     def create_dsp_bone(self, parent):
         return create_dsp_bone(parent, self.bones_mch)
 
@@ -185,6 +188,18 @@ def create_parent_bone(child, bone_set=None):
     child.parent = parent_bone
     child.parent_helper = parent_bone
     return parent_bone
+
+
+def create_parent_constraint_holder(child_bone, bone_set=None):
+    constrained_parent = create_parent_bone(
+        child_bone,
+        bone_set=bone_set,
+    )
+    constrained_parent.name = "CON-" + child_bone.name
+    for con_info in child_bone.constraint_infos[:]:
+        if 'KEEP' not in con_info['name']:
+            constrained_parent.constraint_infos.append(con_info)
+            child_bone.constraint_infos.remove(con_info)
 
 
 def create_dsp_bone(parent, bone_set):

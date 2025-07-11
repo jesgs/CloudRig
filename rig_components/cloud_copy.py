@@ -88,17 +88,7 @@ class Component_CopyBone(Component_Base):
             self.root_bone = self.create_custom_pivot(first_bone, bone_set=self.bone_sets['Pivot Control'])
 
         if self.params.copy.ensure_free and len(first_bone.constraint_infos) > 0:
-            self.root_bone = constrained_parent = self.create_parent_bone(
-                first_bone,
-                bone_set=self.bone_sets['Mechanism Bones'],
-            )
-            constrained_parent.name = "CON-" + self.base_bone_name
-            for con_info in first_bone.constraint_infos[:]:
-                if 'KEEP' not in con_info['name']:
-                    constrained_parent.constraint_infos.append(
-                        con_info
-                    )  # ...but we always take the constraints from the bone, not from the custom pivot!
-                    first_bone.constraint_infos.remove(con_info)
+            self.root_bone = self.create_parent_constraint_holder(first_bone, bone_set=self.bone_sets['Mechanism Bones'])
 
     def create_custom_pivot(self, boneinfo, bone_set=None):
         if not bone_set:
@@ -217,7 +207,7 @@ class Params(PropertyGroup):
         default=False,
     )
     ensure_free: BoolProperty(
-        name="Ensure Free Transformation",
+        name="Move Constraints To Parent",
         description='If this bone has any constraints, move them to a parent bone prefixed with "CON", unless the constraint name starts with "KEEP"',
         default=False,
     )
