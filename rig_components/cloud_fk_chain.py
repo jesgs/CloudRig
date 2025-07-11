@@ -35,8 +35,11 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
         self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
 
-        if not self.params.fk_chain.root and self.generator_params.ensure_root:
+        if not (self.params.fk_chain.root and self.generator_params.ensure_root):
             self.params.fk_chain.hinge = False
+
+        if not (self.params.fk_chain.root and self.params.fk_chain.create_curl_control):
+            self.params.fk_chain.create_curl_control = False
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
@@ -241,7 +244,13 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
         for fk_bone in fk_chain:
             fk_bone.add_constraint(
+                'COPY_LOCATION', target_space='LOCAL', owner_space='CUSTOM', space_subtarget=self.root_bone, use_offset=True, influence=1/len(fk_chain), subtarget=curl_control
+            )
+            fk_bone.add_constraint(
                 'COPY_ROTATION', space='LOCAL', mix_mode='BEFORE', subtarget=curl_control
+            )
+            fk_bone.add_constraint(
+                'COPY_SCALE', space='LOCAL', use_offset=True, subtarget=curl_control, influence=1/len(fk_chain)
             )
 
     def make_hinge_setup(
@@ -426,7 +435,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             return params.fk_chain.root or params.fk_chain.position_along_bone > 0
         
         if set_name == 'fk_curl_control':
-            return params.fk_chain.create_curl_control
+            return params.fk_chain.root and params.fk_chain.create_curl_control
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
@@ -451,7 +460,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         row = cls.draw_prop(context, layout.row(), params.fk_chain, 'hinge')
         if row:
             row.enabled = bool(params.fk_chain.root and generator.ensure_root)
-        cls.draw_prop(context, layout, params.fk_chain, 'create_curl_control')
+        row = cls.draw_prop(context, layout.row(), params.fk_chain, 'create_curl_control')
+        if row:
+            row.enabled = bool(params.fk_chain.root)
 
         if not cls.is_advanced_mode(context):
             return
@@ -528,7 +539,7 @@ class Params(PropertyGroup):
     )
     create_curl_control: BoolProperty(
         name="Create Curl Control",
-        description="Create a control that lets you easily curl this FK chain. Can be useful for tails and fingers and such.",
+        description="Create a control that lets you easily curl this FK chain. Can be useful for tails and fingers and such. Requires a root bone for space calculations",
         default=False,
     )
 

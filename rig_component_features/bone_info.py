@@ -810,7 +810,9 @@ class ConstraintInfo(dict):
         self.bone_info = bone_info  # BoneInfo to which this constraint is being added.
         self.target = target
         self.space_object = space_object
-        self.space_subtarget = space_subtarget
+        self.space_subtarget = space_subtarget.name if hasattr(space_subtarget, 'name') else space_subtarget
+        if self.space_subtarget and not self.space_object:
+            self.space_object = bone_info.bone_set.rig_component.generator.target_rig
         if con_type == 'ARMATURE':
             self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
