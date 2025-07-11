@@ -4,6 +4,7 @@ from bpy.props import (
     StringProperty,
     PointerProperty,
     BoolProperty,
+    FloatProperty,
     EnumProperty,
     CollectionProperty,
     IntProperty,
@@ -100,11 +101,11 @@ class BoneSets(PropertyGroup):
             ),
             'collections_active_index': IntProperty(
                 name="Bone Set Collection Active Index",
-                description="Name of the Bone Collections that bones in this Bone Set will be assigned to during generation",
+                description="Bone Collections that bones in this Bone Set will be assigned to during generation", # This is displayed when mouse hovering the list.
             ),
             'color_palette': EnumProperty(
                 name="Color Palette",
-                description="Color palette to use for the Bone Group of this Bone Set. Custom Colors are not supported, only theme color presets",
+                description="Color palette to assign to bones of this Bone Set. Custom Colors are not supported, only theme color presets",
                 items=[
                     (
                         item.identifier,
@@ -121,6 +122,12 @@ class BoneSets(PropertyGroup):
                 name="Is Advanced",
                 description="If True, this Bone Set will only be displayed in the UI when the 'Show Advanced Bone Sets' toggle is checked",
                 default=bone_set_definition.get('is_advanced') or False,
+            ),
+            'wire_width': FloatProperty(
+                name="Wire Width",
+                description="Wire Width to assign to bones of this Bone Set",
+                default=bone_set_definition.get('wire_width') or 1.0,
+                min=1, max=10
             ),
             'generated_bones': CollectionProperty(  # TODO: Implement this, so bone sets store which bones they generated. Although, might be more useful to store this on the RigComponent instead, actually.
                 name="Generated Bones",

@@ -25,7 +25,7 @@ bl_info = {
     'author': 'Demeter Dzadik',
     'version': (2, 1, 21),
     # This should be the lowest Blender version that is currently compatible.
-    'blender': (4, 1, 0),
+    'blender': (4, 2, 0),
     'location': "Properties->Armature Data",
     'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
     'tracker_url': "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",

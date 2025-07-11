@@ -143,7 +143,7 @@ class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
 
 class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
     bl_label = "Bone Organization"
-    draw_function_name = "draw_bone_sets_list"
+    draw_function_name = "draw_bone_organization_panel"
     advanced_only = True
 
     @classmethod

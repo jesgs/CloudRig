@@ -77,6 +77,7 @@ class BoneSet(LinkedList):
         ui_name="Bone Set",
         collections=["Collection"],
         color_palette='DEFAULT',
+        wire_width=1.0,
         defaults={},
     ):
         super().__init__()
@@ -85,15 +86,14 @@ class BoneSet(LinkedList):
 
         # kwargs that will be passed to new BoneInfo() instances.
         self.defaults = defaults
-
         # Name that will be displayed in the Bone Sets UI.
         self.ui_name = ui_name
-
         # Collection to assign to newly defined BoneInfos.
         self.collections = collections
-
         # Bone Group name to assign to newly defined BoneInfos.
         self.color_palette = color_palette
+        # Wire Width to assign to newly defined BoneInfos.
+        self.wire_width = wire_width
 
     def get(self, name):
         """Find a BoneInfo instance by name, return it if found."""
@@ -112,6 +112,8 @@ class BoneSet(LinkedList):
             kwargs['collections'] = self.collections
         if 'color_palette_base' not in kwargs:
             kwargs['color_palette_base'] = self.color_palette
+        if 'wire_width' not in kwargs:
+            kwargs['custom_shape_wire_width'] = self.wire_width
         for key in self.defaults.keys():
             if key not in kwargs:
                 kwargs[key] = self.defaults[key]
@@ -275,6 +277,7 @@ class BoneSetMixin:
             ui_name=rna_bone_set.name,
             collections=[prop.name for prop in rna_bone_set.collections],
             color_palette=rna_bone_set.color_palette,
+            wire_width=rna_bone_set.wire_width,
             defaults=self.defaults,
         )
 
@@ -291,9 +294,8 @@ class BoneSetMixin:
     ##############################
     # UI
     @classmethod
-    def draw_bone_sets_list(cls, layout, context, params):
-        """Drawing the Bone Sets section of the Component Parameters."""
-        metarig = context.object
+    def draw_bone_organization_panel(cls, layout, context, params):
+        """Bone Organization panel of the Component Parameters."""
         active_pb = get_pbone_of_active(context)
         if not (active_pb and active_pb.cloudrig_component.enabled_with_parents):
             return
@@ -333,13 +335,16 @@ class BoneSetMixin:
         )
 
         if not any(CLOUDRIG_UL_bone_sets.flt_flags):
-            layout.label(
-                text="No bone sets to show. Clear the search filter, enable mechanism collections via the eye icon to the right, or regenerate the rig."
-            )
+            layout.label(text="No bone sets to show. Clear the search filter,")
+            if not prefs.bone_set_show_advanced:
+                layout.label(text="enable mechanism collections via the eye icon to the right, ")
+            layout.label(text="or regenerate the rig.")
             return
         elif not CLOUDRIG_UL_bone_sets.flt_flags[component.bone_sets_active_index]:
             # If the active item is not visible
             return
+
+        layout.prop(active_bone_set, 'wire_width')
 
         box = layout.box()
         box.label(text=f"Collections of {active_bone_set.ui_name}:")
@@ -497,6 +502,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
             icon='SETTINGS'
         row.label(text=ui_bone_set.ui_name, icon=icon)
         row.prop(bone_set, 'color_palette', text="")
+
 
 
 class CLOUDRIG_OT_bone_set_collection_add(CloudRigOperator):
