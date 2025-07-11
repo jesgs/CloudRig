@@ -354,8 +354,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos(self.target_rig, self.bone_infos)
 
-        self.log_minor_issues()
         self.execute_custom_script()
+        # This comes after custom script because the script might mess with widgets.
+        self.log_minor_issues()
 
         old_rig = self.params.target_rig
         if old_rig:
