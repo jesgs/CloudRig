@@ -147,7 +147,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
         pie = layout.menu_pie()
 
-        if not active_pb:
+        if not active_pb or not active_pb.bone:
             for i in range(7):
                 pie.separator()
 
@@ -156,6 +156,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             return
 
         active_bone = active_pb.bone
+
         # 1) < Parent Bone.
         if active_bone and active_bone.parent:
             op = pie.operator(

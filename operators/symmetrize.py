@@ -266,7 +266,7 @@ def symmetrize_drivers(
             dst_var.name = src_var.name
 
             for src_tgt, dst_tgt in zip(src_var.targets, dst_var.targets):
-                if src_tgt.transform_space != 'LOCAL_SPACE':
+                if src_var.type == 'TRANSFORMS' and src_tgt.transform_space != 'LOCAL_SPACE':
                     # NOTE: Non-euler rotation modes might also be off when mirroring drivers.
                     print(
                         "WARNING: Only local space is supported for mirroring driver variables. Result may be unexpected for ",
