@@ -598,7 +598,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
             **kwargs
         )
 
-
     def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
         # Create parent helper bone
         parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
@@ -757,7 +756,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'IK Controls', color_palette='THEME12', collections=['IK Controls']
+            'IK Controls', color_palette='THEME12', collections=['IK Controls'], wire_width=2
         )
         cls.define_bone_set(
             'IK Mechanism', collections=['Mechanism Bones'], is_advanced=True

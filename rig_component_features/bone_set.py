@@ -112,7 +112,7 @@ class BoneSet(LinkedList):
             kwargs['collections'] = self.collections
         if 'color_palette_base' not in kwargs:
             kwargs['color_palette_base'] = self.color_palette
-        if 'wire_width' not in kwargs:
+        if 'custom_shape_wire_width' not in kwargs:
             kwargs['custom_shape_wire_width'] = self.wire_width
         for key in self.defaults.keys():
             if key not in kwargs:
@@ -381,7 +381,7 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_set(
-        cls, ui_name, collections=[], color_palette='DEFAULT', is_advanced=False
+        cls, ui_name, collections=[], color_palette='DEFAULT', wire_width=1.0, is_advanced=False
     ):
         """
         A bone set is an RNA PropertyGroup containing properties for choosing bone collections and color.
@@ -399,6 +399,7 @@ class BoneSetMixin:
             'ui_name': ui_name,
             'collections': collections or [ui_name],
             'color_palette': color_palette,
+            'wire_width': wire_width,
             'is_advanced': is_advanced,
         }
         return ui_name

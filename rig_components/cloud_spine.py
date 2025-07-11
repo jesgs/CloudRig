@@ -335,18 +335,19 @@ class Component_Spine_IKFK(Component_Chain_FK):
         super().define_bone_sets()
         """Create parameters for this rig's bone sets."""
         cls.define_bone_set(
-            'Spine Main Controls', color_palette='THEME12', collections=['IK Controls', 'FK Controls']
+            'Spine Main Controls', color_palette='THEME12', collections=['IK Controls', 'FK Controls'], wire_width=2.5
         )
         cls.define_bone_set(
-            'Spine IK Controls', color_palette='THEME12', collections=['IK Controls']
+            'Spine IK Controls', color_palette='THEME12', collections=['IK Controls'], wire_width=2.5
         )
         cls.define_bone_set(
             'Spine Parent Controls',
             color_palette='THEME09',
             collections=['IK Controls'],
+            wire_width=2.5,
         )
         cls.define_bone_set(
-            'Spine IK Secondary', color_palette='THEME06', collections=['IK Secondary']
+            'Spine IK Secondary', color_palette='THEME06', collections=['IK Secondary'], wire_width=1.5
         )
         cls.define_bone_set(
             'Spine Mechanism', collections=['Mechanism: Spine IK'], is_advanced=True

@@ -237,7 +237,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             custom_shape_name=self.params.fk_chain.widget_fk,
             inherit_scale=self.params.fk_chain.inherit_scale,
             custom_shape_along_length=1,
-            custom_shape_transform=fk_chain[-1]
+            custom_shape_transform=fk_chain[-1],
         )
         for fk_bone in fk_chain:
             fk_bone.add_constraint(
@@ -402,13 +402,13 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'FK Controls', color_palette='THEME02', collections=['FK Controls']
+            'FK Controls', color_palette='THEME02', collections=['FK Controls'], wire_width=2
         )
         cls.define_bone_set(
-            'FK Offset Controls', color_palette='THEME02', collections=['FK Controls']
+            'FK Offset Controls', color_palette='THEME02', collections=['FK Controls'], wire_width=2
         )
         cls.define_bone_set(
-            'FK Curl Control', color_palette='THEME07', collections=['FK Controls']
+            'FK Curl Control', color_palette='THEME07', collections=['FK Controls'], wire_width=3
         )
         cls.define_bone_set(
             'FK Controls Extra', color_palette='THEME02', collections=['FK Secondary']
