@@ -18,10 +18,9 @@ class VIEW3D_MT_cloudrig(Menu):
 
         if context.mode in {'POSE', 'EDIT_ARMATURE'}:
             layout.separator()
-            op = layout.operator(
+            layout.operator(
                 'pose.cloudrig_copy_component', icon='DUPLICATE', text="Copy Component"
             )
-            op.match_type = False
             layout.operator(
                 'pose.cloudrig_symmetrize_components',
                 icon='MOD_MIRROR',
