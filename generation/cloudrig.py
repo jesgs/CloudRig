@@ -2466,13 +2466,8 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
         active_coll = colls.active
         active_idx = colls.active_index
 
-        parent_coll = None
-        if active_coll:
-            parent_coll = active_coll.parent
-
         coll = colls.new(name="Collection")
-        coll.parent = active_coll.parent
-        coll.parent = parent_coll
+        coll.parent = active_coll.parent if active_coll else None
         coll_idx = all_colls.find(coll.name)
         colls.move(coll_idx, active_idx + 1)
 
