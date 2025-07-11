@@ -45,7 +45,20 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         self.fk_chain = self.make_fk_chain(self.bones_org)
         if self.params.fk_chain.position_along_bone > 0:
-            self.make_fk_offset_chain(self.fk_chain)
+            self.fk_offset_chain = self.make_fk_offset_chain(self.fk_chain)
+
+        if self.params.fk_chain.counter_rotate_stretch_bones > 0:
+            for fk_bone, main_str_bone in zip(self.fk_chain, self.main_str_bones):
+                # TODO: Not sure if this should be allowed when position_along_bone > 0.
+                main_str_bone.add_constraint(
+                    'COPY_ROTATION',
+                    invert_xyz = [True, True, True],
+                    mix_mode = 'BEFORE',
+                    space = 'LOCAL',
+                    influence = self.params.fk_chain.counter_rotate_stretch_bones,
+                    subtarget=fk_bone
+                )
+                
         self.attach_org_to_fk(self.bones_org, self.fk_chain)
 
         if self.root_bone == self.bones_org[0]:
@@ -209,6 +222,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         # so the tip STR control must be parented to the FK-OS control here.
         if self.params.chain.tip_control:
             self.main_str_bones[-1].parent = fk_offset_chain[-1]
+
+        return fk_offset_chain
 
     def make_hinge_setup(
         self,
@@ -415,6 +430,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop(
             context, layout, params.fk_chain, 'position_along_bone', slider=True
         )
+        cls.draw_prop(context, layout, params.fk_chain, 'counter_rotate_stretch_bones', slider=True)
         cls.draw_prop(context, layout, params.fk_chain, 'inherit_scale')
         cls.draw_prop(context, layout, params.fk_chain, 'rot_mode')
         cls.draw_prop(context, layout, params.fk_chain, 'double_first')
@@ -459,6 +475,11 @@ class Params(PropertyGroup):
         default=0,
         min=0,
         max=1,
+    )
+    counter_rotate_stretch_bones: FloatProperty(
+        name="Counter-Rotate Stretch Controls",
+        description="Rotating FK bones will counter-rotate the child stretch bones. This can result in smoother chains",
+        min=0, max=1, default=0,
     )
     double_first: BoolProperty(
         name="Duplicate First FK",
