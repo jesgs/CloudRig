@@ -47,6 +47,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         self.fk_chain = self.make_fk_chain(self.bones_org)
         if self.params.fk_chain.position_along_bone > 0:
             self.fk_offset_chain = self.make_fk_offset_chain(self.fk_chain)
+        if self.params.fk_chain.create_curl_control:
+            self.make_curl_control(self.fk_chain)
 
         if self.params.fk_chain.counter_rotate_stretch_bones > 0:
             for fk_bone, main_str_bone in zip(self.fk_chain, self.main_str_bones):
@@ -228,6 +230,20 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         return fk_offset_chain
 
+    def make_curl_control(self, fk_chain):
+        curl_control = self.bone_sets['FK Curl Control'].new(
+            name="CURL-"+self.bones_org[0].name,
+            source=fk_chain[0],
+            custom_shape_name=self.params.fk_chain.widget_fk,
+            inherit_scale=self.params.fk_chain.inherit_scale,
+            custom_shape_along_length=1,
+            custom_shape_transform=fk_chain[-1]
+        )
+        for fk_bone in fk_chain:
+            fk_bone.add_constraint(
+                'COPY_ROTATION', space='LOCAL', mix_mode='BEFORE', subtarget=curl_control
+            )
+
     def make_hinge_setup(
         self,
         bone,
@@ -392,6 +408,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             'FK Offset Controls', color_palette='THEME02', collections=['FK Controls']
         )
         cls.define_bone_set(
+            'FK Curl Control', color_palette='THEME07', collections=['FK Controls']
+        )
+        cls.define_bone_set(
             'FK Controls Extra', color_palette='THEME02', collections=['FK Secondary']
         )
         cls.define_bone_set(
@@ -405,6 +424,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         if set_name == 'fk_controls_extra':
             return params.fk_chain.root or params.fk_chain.position_along_bone > 0
+        
+        if set_name == 'fk_curl_control':
+            return params.fk_chain.create_curl_control
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
@@ -429,6 +451,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         row = cls.draw_prop(context, layout.row(), params.fk_chain, 'hinge')
         if row:
             row.enabled = bool(params.fk_chain.root and generator.ensure_root)
+        cls.draw_prop(context, layout, params.fk_chain, 'create_curl_control')
 
         if not cls.is_advanced_mode(context):
             return
@@ -475,8 +498,8 @@ class Params(PropertyGroup):
         default=True,
     )
     position_along_bone: FloatProperty(
-        name="Position Along Bone",
-        description="Whether the position of each FK control should be at the deform bone's head or tail. Increasing this above 0 also means ORG bones won't be constrained to FK bones, and STR bones get parented to FK bones directly",
+        name="FK Offset (Experimental)",
+        description="Increasing this above 0 also creates FK-OS controls which are offset along the length of the bone. Original bones won't be constrained to FK bones, and STR bones get parented to FK bones directly. This is experimental, and may not play well with all other combinations of settings.",
         default=0,
         min=0,
         max=1,
@@ -502,6 +525,11 @@ class Params(PropertyGroup):
     )
     rot_mode: Component_Chain_FK.make_rotation_mode_param(
         description="Set the rotation mode of the FK controls", can_propagate=True
+    )
+    create_curl_control: BoolProperty(
+        name="Create Curl Control",
+        description="Create a control that lets you easily curl this FK chain. Can be useful for tails and fingers and such.",
+        default=False,
     )
 
     test_animation_generate: BoolProperty(

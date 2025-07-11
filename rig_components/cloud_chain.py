@@ -752,7 +752,6 @@ class Component_ToonChain(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
         cls.draw_prop_widget(context, layout, params.chain, 'widget_stretch')
         cls.draw_prop_widget(context, layout, params.chain, 'widget_stretch_ends', text="End")
         cls.draw_prop(context, layout, params.chain, 'widget_size', text="Size")
