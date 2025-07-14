@@ -242,15 +242,19 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             custom_shape_along_length=1,
             custom_shape_transform=fk_chain[-1],
         )
+        # These constraints will add together, so we want their total influence to add up to 1.
+        # Otherwise, the transformations will feel "slippery", as in, faster or slower than
+        # you're used to.
+        influence = 1/len(fk_chain)
         for fk_bone in fk_chain:
             fk_bone.add_constraint(
-                'COPY_LOCATION', target_space='LOCAL', owner_space='CUSTOM', space_subtarget=self.root_bone, use_offset=True, influence=1/len(fk_chain), subtarget=curl_control
+                'COPY_LOCATION', target_space='LOCAL', owner_space='CUSTOM', space_subtarget=self.root_bone, use_offset=True, influence=influence, subtarget=curl_control
             )
             fk_bone.add_constraint(
-                'COPY_ROTATION', space='LOCAL', mix_mode='BEFORE', subtarget=curl_control
+                'COPY_ROTATION', space='LOCAL', mix_mode='BEFORE', influence=influence, subtarget=curl_control
             )
             fk_bone.add_constraint(
-                'COPY_SCALE', space='LOCAL', use_offset=True, subtarget=curl_control, influence=1/len(fk_chain)
+                'COPY_SCALE', space='LOCAL', use_offset=True, subtarget=curl_control, influence=influence
             )
 
     def make_hinge_setup(
