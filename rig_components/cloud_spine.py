@@ -134,6 +134,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 name="IK-CTR-" + org_bone.name,
                 source=org_bone,
                 custom_shape_name='Square',
+                rotation_mode='YXZ',
+                lock_rotation=[True, False, True],
                 custom_shape_rotation_euler=((0, pi / 4, 0)),
                 custom_shape_scale_xyz=Vector((1, 1, 0.8)),
             )
