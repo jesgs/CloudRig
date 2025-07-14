@@ -478,7 +478,8 @@ class Component_ToonChain(Component_Base):
                 'STRETCH_TO',
                 subtarget=next_str_bone,
                 use_bulge_min=not self.params.chain.preserve_volume,
-                use_bulge_max=not self.params.chain.preserve_volume,
+                use_bulge_max=True,
+                bulge_max=5 if self.params.chain.preserve_volume else 1,
                 bulge=self.params.chain.volume_variation,
             )
 
@@ -596,7 +597,8 @@ class Component_ToonChain(Component_Base):
                 'STRETCH_TO',
                 subtarget=str_bone.next.name,
                 use_bulge_min=not self.params.chain.preserve_volume,
-                use_bulge_max=not self.params.chain.preserve_volume,
+                use_bulge_max=True,
+                bulge_max=5,
                 bulge=self.params.chain.volume_variation,
             )
         def_bone_control.custom_shape_name = 'Cube'
