@@ -63,7 +63,7 @@ class Component_CopyBone(Component_Base):
                 self.add_log(
                     "Quaternion rotation",
                     trouble_bone=self.base_bone_name,
-                    description=f'"{bone_info.name}" is on Quaternion rotation mode. Animator-facing controls should be set to Euler!',
+                    description=f'"{bone_info.name}" is on Quaternion rotation mode. This is unfriendly for animators who use the Graph Editor!',
                     icon='GIZMO',
                     operator='pose.cloudrig_troubleshoot_rotationmode',
                     op_kwargs={'bone_name': self.base_bone_name},
