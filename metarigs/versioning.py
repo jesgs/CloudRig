@@ -57,27 +57,24 @@ def preserve_old_default(
             )
 
 
-def copy_property(from_thing, from_name, to_thing, to_name=None):
-    if hasattr(from_thing, 'to_dict'):
-        from_thing = from_thing.to_dict()
-    if from_name not in from_thing:
-        return
-
-    if not to_name:
-        to_name = from_name
-
-    value = from_thing[from_name]
-    if not value:
-        return
-    setattr(to_thing, to_name, value)
-
-
 def version_blender3_metarig(metarig):
+    """Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set."""
     cloudrig = metarig.cloudrig
-    print(
-        "Versioning from pre-Blender 4.0 to post-4.0. This might take a long time for a complex rig."
-    )
-    # Convert CloudRig rigs from before Blender 4.0, when CloudRig was a Rigify feature set.
+    print("MetaRig versioning from Blender 3.x... May take a while for complex rigs.")
+
+    def copy_property(from_thing, from_name, to_thing, to_name=None):
+        if hasattr(from_thing, 'to_dict'):
+            from_thing = from_thing.to_dict()
+        if from_name not in from_thing:
+            return
+
+        if not to_name:
+            to_name = from_name
+
+        value = from_thing[from_name]
+        if not value:
+            return
+        setattr(to_thing, to_name, value)
 
     # 1: Generator properties
     if not cloudrig.enabled:

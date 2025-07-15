@@ -3,11 +3,11 @@
 import bpy
 from bpy.types import Object, PoseBone, Constraint
 from bpy.utils import flip_name
+from rna_prop_ui import rna_idprop_value_item_type
 
 from ..rig_component_features.mechanism import find_or_create_constraint
-from .copy_mirror_components import copy_property_group
 from ..generation.cloudrig import CloudRigOperator
-from rna_prop_ui import rna_idprop_value_item_type
+from ..utils.properties import copy_property_group
 
 
 class POSE_OT_symmetrize_rigging(CloudRigOperator):

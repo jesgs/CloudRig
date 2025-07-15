@@ -4,6 +4,8 @@ from . import (
     lattice,
     maths,
     misc,
+    rig,
+    properties,
     post_gen,
     external,
 )
@@ -14,6 +16,8 @@ modules = [
     lattice,
     maths,
     misc,
+    rig,
+    properties,
     post_gen,
     external,
 ]

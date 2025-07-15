@@ -16,7 +16,8 @@ from mathutils import Vector, Matrix
 from collections import OrderedDict
 
 from bl_ui.generic_ui_list import draw_ui_list
-from ..utils.misc import get_addon_prefs, get_pbone_of_active
+from ..utils.misc import get_addon_prefs
+from ..utils.rig import get_pbone_of_active
 from .bone_info import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 from ..generation.cloudrig import CloudRigOperator
 

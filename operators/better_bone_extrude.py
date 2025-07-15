@@ -6,7 +6,7 @@ from bpy.props import BoolProperty
 
 from ..generation.naming import uniqify
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
-from ..utils.misc import get_current_rigs
+from ..utils.rig import get_current_rigs
 
 
 class BoneDuplicateOpMixin:

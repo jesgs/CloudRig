@@ -6,12 +6,10 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Menu, EditBone, Bone, PoseBone, Object, Armature
-from bpy.props import BoolProperty
+from bpy.types import Menu, EditBone, PoseBone, Object
 from bpy.utils import flip_name
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
-from .pie_bone_selection_ops import get_active_bone
-from ..utils.misc import get_selected_bone_tuples, get_current_rigs
+from ..utils.rig import get_selected_bone_tuples, get_current_rigs, get_active_bone
 
 
 class GenericBoneOperator:

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.utils import flip_name
-from ..utils.misc import copy_property_group
+from ..utils.properties import copy_property_group
 
 from ..generation.cloudrig import CloudRigOperator
 

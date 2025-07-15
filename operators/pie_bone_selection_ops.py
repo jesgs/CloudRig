@@ -4,7 +4,7 @@ from bpy.types import Bone, EditBone, PoseBone
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
 from ..generation.cloudrig import CloudRigOperator
-from ..utils.misc import get_selected_bone_tuples, get_active_bone
+from ..utils.rig import get_selected_bone_tuples, get_active_bone
 
 
 def deselect_all_bones(context):

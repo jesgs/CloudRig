@@ -27,11 +27,14 @@ from ..rig_components.cloud_base import Component_Base
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from .naming import CloudNameManager
 
+from ..utils.rig import get_pbone_of_active
 from ..utils.misc import (
     check_addon,
     load_script,
-    get_pbone_of_active,
     assign_to_collection,
+)
+from ..utils.properties import (
+    copy_all_runtime_properties,
     copy_property_group,
 )
 
@@ -768,20 +771,9 @@ def replace_old_with_new_rig(
     ):
         new_rig.data['cloudrig_ui'] = old_rig.data['cloudrig_ui']
 
-    # Save Selection Sets.
-    if preserve_sel_sets:
-        stored_selsets = selection_sets.store(context, old_rig)
-    # Save Custom Gizmo settings.
-    if preserve_gizmos:
-        gizmo_properties_class = PropertyGroup.bl_rna_get_subclass_py(
-            'BoneGizmoProperties'
-        )
-        for old_pb in old_rig.pose.bones:
-            new_pb = new_rig.pose.bones.get(old_pb.name)
-            new_pb.enable_bone_gizmo = old_pb.enable_bone_gizmo
-            for key in gizmo_properties_class.__annotations__.keys():
-                value = getattr(old_pb.bone_gizmo, key)
-                setattr(new_pb.bone_gizmo, key, value)
+    # Preserve all custom properties and add-on properties.
+    # Selection Sets, Bone Gizmos, Asset Pipeline, etc...
+    copy_all_runtime_properties(old_rig, new_rig)
 
     old_data_name = old_rig.data.name
     old_rig.data.name += "_old"
@@ -840,10 +832,6 @@ def replace_old_with_new_rig(
     # Select and make active the new rig.
     new_rig.select_set(True)
     context.view_layer.objects.active = new_rig
-
-    # Preserve selection sets of old rig.
-    if preserve_sel_sets:
-        selection_sets.load(context, new_rig, stored_selsets)
 
     # Remove old rig from all of its collections, and link the new rig to them.
     for coll in new_rig.users_collection:

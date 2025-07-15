@@ -4,7 +4,7 @@ from bpy.types import Menu, Constraint, PoseBone, UILayout
 
 from ..generation import naming
 from ..generation.cloudrig import register_hotkey, find_cloudrig
-from ..utils.misc import get_pbone_of_active
+from ..utils.rig import get_pbone_of_active
 
 
 def get_constraint_icon(constraint: Constraint) -> str:
