@@ -38,6 +38,7 @@ edit_bone_properties = {
 }
 
 bone_properties = {
+    'display_type': 'ARMATURE_DEFINED',
     'collections': [],
     'hide_select': False,
     'hide': False,
@@ -211,9 +212,9 @@ class BoneInfo:
             setattr(self, key, value)
 
     def init_variables(self, var_dict):
-        for key in var_dict.keys():
-            value = var_dict[key]
-            if type(value) in [Vector, Matrix, list]:
+        for key, value in var_dict.items():
+            if hasattr(value, 'copy'):
+                # If we don't make Vectors and such unique, all bones would share a single one.
                 value = value.copy()
             setattr(self, key, value)
 
@@ -297,6 +298,16 @@ class BoneInfo:
         self.envelope_distance = value
         self.head_radius = value
         self.tail_radius = value
+
+    @property
+    def bbone_segments(self):
+        return self._bbone_segments
+    
+    @bbone_segments.setter
+    def bbone_segments(self, value):
+        self._bbone_segments = value
+        if value > 1:
+            self.display_type = 'BBONE'
 
     @property
     def vector(self):
@@ -621,7 +632,7 @@ class BoneInfo:
                 # custom_shape_wire_width in 4.2.
                 # Ignore such values in older versions, to preserve compatibility.
                 continue
-            value = self.__dict__[key]
+            value = getattr(self, key)
             if value in [None, ""]:
                 continue
             if 'bbone_custom_handle' in key:

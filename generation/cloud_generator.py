@@ -287,7 +287,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 bpy.data.objects.remove(metarig['failed_rig'])
             del metarig['failed_rig']
 
-        # Prepare the target rig.
         self.target_rig = create_target_rig_obj(context, metarig)
         if 'ui_data' in self.metarig.data:
             self.target_rig.data['ui_data'] = self.metarig.data['ui_data']
@@ -295,20 +294,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.metarig = metarig
         self.defaults['rig'] = self.target_rig
 
-        # ------------------------------------------
         bpy.ops.object.mode_set(mode='EDIT')
 
         if self.params.ensure_root:
-            self.ensure_root_bone_component(
-                context, self.metarig, self.params.ensure_root
-            )
+            self.ensure_root_bone_component(context, self.metarig, self.params.ensure_root)
 
         self.component_map = self.instantiate_rig_components()
-
         self.components_load_bone_infos(self.component_map, self.metarig)
-
-        # ------------------------------------------
         focus_select_obj(context, self.target_rig)
+
         bpy.ops.object.mode_set(mode='EDIT')
 
         self.components_create_bone_infos(context)
@@ -316,18 +310,14 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.root_bone_info:
             self.parent_orphan_bone_infos_to_root()
         self.components_create_real_bones()
-        # ------------------------------------------
         self.components_write_ebone_data()
 
-        # ------------------------------------------
         bpy.ops.object.mode_set(mode='OBJECT')
 
         self.components_create_helper_objs(context)
         self.metarig.cloudrig_prefs.sync_collection_names()
         self.copy_bone_collections(src_armature_obj=metarig, target_armature_obj=self.target_rig)
         self.components_write_pbone_data(context, self.target_rig)
-
-        # ------------------------------------------
 
         if self.params.generate_test_action:
             self.create_test_animation()
@@ -454,7 +444,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return pose_bone
 
     def ensure_widget(self, context, widget_name, overwrite=False):
-        # Ensure Widget Collection
         self.ensure_widget_collection(context)
         try:
             wgt = cloud_widgets.ensure_widget(
@@ -466,10 +455,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 "Failed to load widget",
                 description=f"Failed to load widget named '{widget_name}'.",
             )
-
-        assign_to_collection(
-            wgt, self.params.widget_collection or context.scene.collection
-        )
+        coll = self.params.widget_collection or context.scene.collection
+        assign_to_collection(wgt, coll)
         return wgt
 
     ### Main generation steps
@@ -705,7 +692,7 @@ def create_target_rig_obj(context, metarig) -> Object:
     armature = bpy.data.armatures.new(name=rig_name)
     target_rig = metarig.copy()
 
-    # Nuke drivers targetting the Pose. (ie. PoseBone drivers)
+    # Nuke drivers targetting the Pose. (ie. PoseBone drivers).
     if target_rig.animation_data:
         for fc in target_rig.animation_data.drivers[:]:
             if fc.data_path.startswith('pose'):
@@ -721,13 +708,13 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data = armature
 
     context.scene.collection.objects.link(target_rig)
-    # Mark rig for cloudrig.py compatibility checks
+    # Mark rig for cloudrig.py compatibility checks.
     target_rig.data['is_generated_cloudrig'] = True
 
     # Wipe selection sets.
     selection_sets.wipe(target_rig)
 
-    # Save generation timestamp to a custom property
+    # Save generation timestamp to a custom property.
     today = datetime.today()
     now = datetime.now()
     target_rig.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
@@ -735,7 +722,7 @@ def create_target_rig_obj(context, metarig) -> Object:
         f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
     )
 
-    # By default, use B-Bone display type since it's the most useful
+    # By default, use B-Bone display type.
     target_rig.data.display_type = 'BBONE'
 
     # Copy debug viewport display settings from the metarig, usually used for debugging.
@@ -796,13 +783,6 @@ def replace_old_with_new_rig(
                 value = getattr(old_pb.bone_gizmo, key)
                 setattr(new_pb.bone_gizmo, key, value)
 
-    # Remove old rig from all of its collections, and link the new rig to them.
-    for coll in new_rig.users_collection:
-        coll.objects.unlink(new_rig)
-    for coll in old_rig.users_collection:
-        coll.objects.unlink(old_rig)
-        coll.objects.link(new_rig)
-
     old_data_name = old_rig.data.name
     old_rig.data.name += "_old"
 
@@ -828,7 +808,7 @@ def replace_old_with_new_rig(
     new_rig.data.display_type = old_rig.data.display_type
     new_rig.data.show_axes = old_rig.data.show_axes
 
-    # Preserve collections which are marked with preserve_on_regenerate.
+    # Preserve bone collections which are marked with preserve_on_regenerate.
     for old_idx, old_coll in enumerate(old_rig.data.collections_all):
         if not old_coll.cloudrig_info.preserve_on_regenerate:
             continue
@@ -864,6 +844,13 @@ def replace_old_with_new_rig(
     # Preserve selection sets of old rig.
     if preserve_sel_sets:
         selection_sets.load(context, new_rig, stored_selsets)
+
+    # Remove old rig from all of its collections, and link the new rig to them.
+    for coll in new_rig.users_collection:
+        coll.objects.unlink(new_rig)
+    for coll in old_rig.users_collection:
+        coll.objects.unlink(old_rig)
+        coll.objects.link(new_rig)
 
     # Swap all references pointing at the old rig to the new rig.
     old_rig.id_data.user_remap(new_rig)
