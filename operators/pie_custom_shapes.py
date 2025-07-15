@@ -6,9 +6,8 @@ from bpy.props import EnumProperty
 from mathutils import Matrix
 
 from ..generation.cloudrig import register_hotkey, CloudRigOperator, find_metarig_of_rig
-from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items
+from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items, LIBRARY_WIDGETS
 from ..rig_component_features.object import EnsureVisible
-
 
 class POSE_OT_unassign_custom_shape(CloudRigOperator):
     """Unassign custom shapes from all selected pose bones"""
