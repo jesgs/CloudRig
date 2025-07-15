@@ -13,10 +13,10 @@ from . import (
     ui,
     properties,
     prefs,
-    prefs_save_load,
     generation,
     metarigs,
     icons,
+    bs_utils,
 )
 
 bl_info = {
@@ -44,7 +44,6 @@ modules = [
     # - For Panels, they must be registered before their bl_parent_id is.
     # - Hotkeys must come after `cloudrig`, since we're storing them on a panel.
     rig_component_features,
-    prefs_save_load,
     rig_components,
     generation,
     operators,
@@ -52,6 +51,7 @@ modules = [
     prefs,
     metarigs,
     icons,
+    bs_utils,
 ]
 
 

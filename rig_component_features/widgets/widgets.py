@@ -1,7 +1,7 @@
 import bpy, os
 from bpy.types import Object
 
-from ...utils.misc import get_addon_prefs
+from ...bs_utils.prefs import get_addon_prefs
 
 LIBRARY_WIDGETS = []
 

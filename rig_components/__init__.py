@@ -1,5 +1,5 @@
 import bpy, os, sys, importlib
-from ..prefs_save_load import load_prefs_from_file
+from ..bs_utils.prefs import load_prefs_from_file
 
 component_modules = {}
 

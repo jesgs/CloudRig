@@ -5,7 +5,6 @@ from . import (
     maths,
     misc,
     rig,
-    properties,
     post_gen,
     external,
 )
@@ -17,7 +16,6 @@ modules = [
     maths,
     misc,
     rig,
-    properties,
     post_gen,
     external,
 ]

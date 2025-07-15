@@ -13,7 +13,7 @@ from bpy.types import PropertyGroup, Object, PoseBone, ID, BoneColor
 
 from . import rig_components, rig_component_features
 from .generation.cloud_generator import GeneratorProperties
-from .utils.misc import get_addon_prefs
+from .bs_utils.prefs import get_addon_prefs
 from .utils.rig import get_parentless_pbones
 
 

@@ -18,7 +18,6 @@ from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
 
 from ..rig_component_features.widgets import widgets as cloud_widgets
-from ..rig_component_features.component_params_ui import get_addon_prefs
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.mechanism import relink_real_driver
@@ -33,10 +32,11 @@ from ..utils.misc import (
     load_script,
     assign_to_collection,
 )
-from ..utils.properties import (
+from ..bs_utils.properties import (
     copy_all_runtime_properties,
     copy_property_group,
 )
+from ..bs_utils.prefs import get_addon_prefs
 
 from .cloudrig import (
     register_hotkey,

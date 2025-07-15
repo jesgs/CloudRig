@@ -82,13 +82,3 @@ def check_addon(context, addon_name: str) -> bool:
         return addon_enabled_in_workspace
 
     return addon_enabled_in_userprefs
-
-
-def get_addon_prefs(context=None):
-    if not context:
-        context = bpy.context
-    if base_package.startswith('bl_ext'):
-        # 4.2
-        return context.preferences.addons[base_package].preferences
-    else:
-        return context.preferences.addons[base_package.split(".")[0]].preferences

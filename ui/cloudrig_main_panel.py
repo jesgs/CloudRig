@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy
 from bpy.types import Panel, Object
 
 from ..generation.cloudrig import is_generated_cloudrig
 from ..utils.misc import check_addon
-from ..rig_component_features.component_params_ui import get_addon_prefs
+from ..bs_utils.prefs import get_addon_prefs
 
 
 class POSE_PT_CloudRig(Panel):

@@ -5,12 +5,11 @@ from bpy.types import PropertyGroup, AddonPreferences
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
 
 from . import rig_components
-from .utils.misc import get_addon_prefs
 from .utils.hotkeys import find_matching_km_and_kmi
 from .generation.cloudrig import find_user_kmi
-from .prefs_save_load import PrefsFileSaveLoadMixin, load_prefs_from_file, update_prefs_on_file
 from .properties import NameProperty
 from .rig_component_features.widgets.widgets import get_widgets_enum_items
+from .bs_utils.prefs import PrefsFileSaveLoadMixin, load_prefs_from_file, update_prefs_on_file, get_addon_prefs
 
 
 def get_default_widgets_path():
@@ -56,6 +55,13 @@ class CloudRigComponentTypeInfo(PropertyGroup):
     )
 
 
+def get_cloudrig_addon_kmis():
+    keymap_data = list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.items())
+    keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
+    keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
+    return keymap_data
+
+
 class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     bl_idname = __package__
 
@@ -66,6 +72,9 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
     # List of property names to not write to disk.
     omit_from_disk: list[str] = ["component_types"]
+
+    # Function that returns a list of CloudRig add-on KeyMapItems
+    keymap_get_func = get_cloudrig_addon_kmis
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
@@ -85,11 +94,13 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         name="Advanced Mode",
         description="Reveal advanced options in the Generator and Rig Component interfaces",
         default=False,
+        update=update_prefs_on_file,
     )
     bone_set_show_advanced: BoolProperty(
         name="Show Internal Bone Sets",
         description="Reveal bone sets that are marked as internal, ie. mechanism bones. You would customize these much less frequently than the controls, which are exposed to animators",
         default=False,
+        update=update_prefs_on_file,
     )
 
     widget_library: StringProperty(
@@ -156,15 +167,16 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
     def to_dict(self) -> dict:
         data = super().to_dict()
-        data['hotkeys'] = get_keymap_data_for_saving(bpy.context)
+        data['hotkeys'] = get_keymap_data_for_saving(bpy.context, type(self).keymap_get_func)
         return data
-    
-    def load_and_apply_prefs_from_file(self):
-        super().load_and_apply_prefs_from_file()
-        apply_stored_hotkeys()
+
+    def load_and_apply_prefs_from_file(self) -> dict:
+        addon_data = super().load_and_apply_prefs_from_file()
+        apply_stored_hotkeys(addon_data)
 
 
-def apply_stored_hotkeys():
+def apply_stored_hotkeys(addon_data):
+    hotkey_data = addon_data['hotkeys']
     for storage_class in (bpy.types.CLOUDRIG_PT_hotkeys_panel, bpy.types.POSE_PT_CloudRig):
         for kmi_hash, (kc_addon, addon_km, addon_kmi) in storage_class.cloudrig_keymap_items.items():
             if bpy.app.version < (4, 5, 0):
@@ -173,7 +185,7 @@ def apply_stored_hotkeys():
                 kc_user = bpy.context.window_manager.keyconfigs.user
                 user_km, user_kmi = find_matching_km_and_kmi(bpy.context, kc_user, addon_km, addon_kmi)
 
-            hotkey_user_data = get_hotkey_on_file(kmi_hash)
+            hotkey_user_data = hotkey_data.get(kmi_hash, {})
             if hotkey_user_data and user_kmi:
                 op_kwargs = hotkey_user_data['op_kwargs']
                 key_kwargs = hotkey_user_data['key_kwargs']
@@ -195,19 +207,9 @@ def apply_stored_hotkeys():
                 print("No user_kmi for ", hotkey_user_data['operator'], kmi_hash)
 
 
-def get_hotkey_on_file(kmi_hash) -> dict:
-    data = load_prefs_from_file()
-    if not data:
-        return {}
-    hotkeys = data.get('hotkeys')
-    if hotkeys:
-        return hotkeys.get(kmi_hash, {})
-    return {}
-
-
-def get_keymap_data_for_saving(context) -> dict:
+def get_keymap_data_for_saving(context, keymap_get_func: callable) -> dict:
     all_keymap_data = {}
-    for kmi_hash, (addon_kc, addon_km, addon_kmi) in get_cloudrig_addon_kmis(context):
+    for kmi_hash, (addon_kc, addon_km, addon_kmi) in keymap_get_func():
         user_km, user_kmi = find_user_kmi(context, addon_km, addon_kmi, kmi_hash)
         if not user_km or not user_kmi:
             continue
@@ -245,13 +247,6 @@ def get_keymap_data_for_saving(context) -> dict:
     return all_keymap_data
 
 
-def get_cloudrig_addon_kmis(context):
-    keymap_data = list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.items())
-    keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
-    keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
-    return keymap_data
-
-
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
 
@@ -262,5 +257,7 @@ def delayed_refresh_widget_list():
 
 def register():
     init_component_module_list()
-    bpy.app.timers.register(delayed_refresh_widget_list)
+    # NOTE: Updating widget list will result in saving preferences, so this should have a GREATER delay
+    # than the initial loading of the preferences.
+    bpy.app.timers.register(delayed_refresh_widget_list, first_interval=2.0)
     CloudRigPreferences.register_autoload_from_file()

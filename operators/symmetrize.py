@@ -7,7 +7,7 @@ from rna_prop_ui import rna_idprop_value_item_type
 
 from ..rig_component_features.mechanism import find_or_create_constraint
 from ..generation.cloudrig import CloudRigOperator
-from ..utils.properties import copy_property_group
+from ..bs_utils.properties import copy_property_group
 
 
 class POSE_OT_symmetrize_rigging(CloudRigOperator):
