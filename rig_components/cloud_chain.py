@@ -686,8 +686,16 @@ class Component_ToonChain(Component_Base):
         If the parent rig is a connected chain rig with tip_control=False,
         make the last DEF bone of that rig stretch to this rig's first STR.
         """
-
         parent_component = self.parent_component
+        meta_org_bone = self.get_metarig_pbone(self.bones_org[0].name)
+
+        can_connect = (
+            isinstance(parent_component, Component_ToonChain) and
+            not parent_component.params.chain.tip_control and
+            meta_org_bone.bone.use_connect
+        )
+        if not can_connect:
+            return
 
         if (
             hasattr(parent_component, 'make_fk_offset_chain')
@@ -695,14 +703,6 @@ class Component_ToonChain(Component_Base):
             and self.root_bone.parent == parent_component.bones_org[-1]
         ):
             self.root_bone.parent = parent_component.bone_sets['FK Offset Controls'][-1]
-        # Check if we can connect into the parent rig
-        if not isinstance(parent_component, Component_ToonChain):
-            return
-        if parent_component.params.chain.tip_control:
-            return
-        meta_org_bone = self.get_metarig_pbone(self.bones_org[0].name)
-        if not meta_org_bone.bone.use_connect:
-            return
 
         tip_control_bkp = parent_component.params.chain.tip_control
         parent_component.params.chain.tip_control = True

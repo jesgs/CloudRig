@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy, os, time, addon_utils
-from bpy.types import Text, Object, PropertyGroup, bpy_prop_collection
+from bpy.types import Text, Object
 from bpy.utils import flip_name
-from .. import __package__ as base_package
 
 
 def get_opposite_obj(obj: Object) -> Object:
