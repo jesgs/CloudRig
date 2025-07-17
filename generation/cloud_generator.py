@@ -793,6 +793,8 @@ def replace_old_with_new_rig(
         if not new_rig.animation_data:
             new_rig.animation_data_create()
         new_rig.animation_data.action = old_rig.animation_data.action
+        if hasattr(new_rig.animation_data, 'action_slot'):
+            new_rig.animation_data.action_slot = old_rig.animation_data.action_slot
 
     # Preserve Armature display settings.
     new_rig.display_type = old_rig.display_type
