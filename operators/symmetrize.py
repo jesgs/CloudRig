@@ -7,7 +7,7 @@ from rna_prop_ui import rna_idprop_value_item_type
 
 from ..rig_component_features.mechanism import find_or_create_constraint
 from ..generation.cloudrig import CloudRigOperator
-from ..bs_utils.properties import copy_property_group
+from ..bs_utils.properties import copy_property_group, get_custom_prop_names, rename_custom_prop
 
 
 class POSE_OT_symmetrize_rigging(CloudRigOperator):
@@ -102,6 +102,15 @@ class POSE_OT_symmetrize_rigging(CloudRigOperator):
             copy_property_group(from_pb.cloudrig_component, to_pb.cloudrig_component, x_mirror=True)
             if to_pb.cloudrig_component.params.shoulder.is_property_set('up_axis'):
                 to_pb.cloudrig_component.params.shoulder.up_axis = str((int(to_pb.cloudrig_component.params.shoulder.up_axis) + 2) % 4)
+
+            # Flip custom property names
+            for prop_name in get_custom_prop_names(to_pb):
+                flipped_name = flip_name(prop_name)
+                if flipped_name == prop_name:
+                    continue
+                if flipped_name in to_pb:
+                    continue
+                rename_custom_prop(to_pb, prop_name, flipped_name)
 
             # Mirror bone collections.
             for coll in to_pb.bone.collections[:]:
@@ -264,6 +273,8 @@ def symmetrize_drivers(
             dst_var = new_fc.driver.variables.new()
             dst_var.type = src_var.type
             dst_var.name = src_var.name
+            # We want to flip variable names, but it doesn't work when eg. "Left" is followed by "_".
+            dst_var.name = flip_name(src_var.name.replace("_", " ")).replace(" ", "_")
 
             for src_tgt, dst_tgt in zip(src_var.targets, dst_var.targets):
                 if src_var.type == 'TRANSFORMS' and src_tgt.transform_space != 'LOCAL_SPACE':
@@ -288,7 +299,7 @@ def symmetrize_drivers(
                     dst_data_path = dst_data_path.replace(bone_name, flipped_name)
 
                     # If the data path is referring to a custom property, flip the custom property name, too.
-                    prop_name = dst_data_path.split('"[')[-1].split('"')[0]
+                    prop_name = dst_data_path.split('["')[-1].split('"')[0]
                     dst_data_path = dst_data_path.replace(
                         prop_name, flip_name(prop_name)
                     )
@@ -296,6 +307,9 @@ def symmetrize_drivers(
                 dst_tgt.data_path = dst_data_path
                 dst_tgt.transform_type = src_tgt.transform_type
                 dst_tgt.transform_space = src_tgt.transform_space
+
+                if src_var.name != dst_var.name:
+                    expression = expression.replace(src_var.name, dst_var.name)
 
                 # If one of the driving values is something that needs to be inverted, invert only that value in the expression.
                 if (
