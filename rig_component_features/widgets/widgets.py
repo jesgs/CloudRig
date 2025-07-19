@@ -100,11 +100,19 @@ def init_widget_list():
         return
     blend_path = prefs.widget_library
 
-    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
-        for o in data_from.objects:
-            if o.startswith("WGT-"):
-                ui_name = o.replace("WGT-", "").replace("_", " ")
-                LIBRARY_WIDGETS.append((o, ui_name, ui_name))
+    if not os.path.exists(blend_path) and os.path.isfile(blend_path):
+        # User customized the widget path to a non-existent one.
+        # We do not fall back to default, because we want to make sure user notices that something is wrong.
+        return
+
+    try:
+        with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+            for o in data_from.objects:
+                if o.startswith("WGT-"):
+                    ui_name = o.replace("WGT-", "").replace("_", " ")
+                    LIBRARY_WIDGETS.append((o, ui_name, ui_name))
+    except Exception as exc:
+        print(exc)
 
     return LIBRARY_WIDGETS
 
