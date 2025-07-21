@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import bpy
 from .pie_bone_parenting import GenericBoneOperator
 from bpy.types import Menu, EditBone, Object
 from ..generation.cloudrig import register_hotkey, CloudRigOperator
@@ -29,6 +30,39 @@ class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
             rig.use_mirror_x = mirror_states[rig]
         plural = "s" if len(affected) != 1 else ""
         self.report({'INFO'}, f"Deleted {len(affected)} bone{plural}.")
+        return {'FINISHED'}
+
+
+class POSE_OT_dissolve_bones(CloudRigOperator):
+    """Dissolve selected bones"""
+
+    bl_idname = "pose.dissolve_selected"
+    bl_label = "Dissolve Selected Bones"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        if not context.active_object or context.active_object.type != 'ARMATURE':
+            cls.poll_message_set("Select an Armature.")
+            return False
+        if context.active_object.mode not in ('POSE', 'EDIT'):
+            cls.poll_message_set("Must be in Edit/Pose mode.")
+            return False
+        return True
+
+    def execute(self, context):
+        rig = context.active_object
+        org_mode = rig.mode
+        if rig.mode == 'POSE':
+            bone_names = [b.name for b in context.selected_pose_bones]
+            bpy.ops.object.mode_set(mode='EDIT')
+            for bone_name in bone_names:
+                rig.data.edit_bones[bone_name].hide = False
+                rig.data.edit_bones[bone_name].select = True
+        
+        bpy.ops.armature.dissolve()
+        if org_mode != 'EDIT':
+            bpy.ops.object.mode_set(mode=org_mode)
         return {'FINISHED'}
 
 
@@ -89,8 +123,15 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
             text="Toggle Armature X-Mirror",
         )
 
-        # 6) ^> Also empty.
-        pie.separator()
+        # 6) ^> Dissolve Bones.
+        text_dissolve = "Dissolve"
+        if rig.data.use_mirror_x:
+            text_dissolve = "Dissolve (Symmetrized)"
+        pie.operator(
+            'pose.dissolve_selected',
+            text=text_dissolve,
+            icon='X',
+        )
 
         # 7) <v Toggle Pose Symmetry.
         pie.prop(
@@ -107,6 +148,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
 
 registry = [
     POSE_OT_delete_bones,
+    POSE_OT_dissolve_bones,
     CLOUDRIG_MT_PIE_bone_specials,
 ]
 
