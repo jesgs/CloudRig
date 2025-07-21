@@ -50,7 +50,7 @@ class Component_ToonChain(Component_Base):
         #     str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
 
         self.tangent_helpers = []
-        if self.params.chain.bbone_density > 0:
+        if self.params.chain.bbone_density > 0 and self.params.chain.smooth_spline:
             # Create tangent helpers that will control bendy bone curvature
             self.tangent_helpers = self.make_tangent_helpers(self.str_chain)
 
@@ -322,7 +322,6 @@ class Component_ToonChain(Component_Base):
                 str_bone=str_bone,
                 prev_str=str_bone.prev or str_bone,
                 next_str=str_bone.next or str_bone,
-                smooth=self.params.chain.smooth_spline,
             )
             tangent_helpers.append(str_bone.tangent_helper)
 
@@ -333,7 +332,6 @@ class Component_ToonChain(Component_Base):
         str_bone: BoneInfo,
         prev_str: BoneInfo = None,
         next_str: BoneInfo = None,
-        smooth=False,
     ) -> BoneInfo:
         """Create a child bone for an STR bone with Damped Track constraints
         to aim at the previous and next STR bones if Smooth Curve is enabled."""
@@ -345,53 +343,56 @@ class Component_ToonChain(Component_Base):
             roll_type='ALIGN',
             roll_bone=str_bone,
             length=str_bone.length * 0.2,
+            bbone_width = str_bone.bbone_width * 1.5,
+            inherit_scale = 'NONE',
         )
-        handle_bone.bbone_width = str_bone.bbone_width * 1.5
-        handle_bone.inherit_scale = 'NONE'
 
-        if smooth:
-            assert (
-                prev_str and next_str
-            ), "Previous and next STR can only be None if smooth=False. Otherwise, pass str_bone."
+        assert (
+            prev_str and next_str
+        ), "Previous and next STR are required."
 
-            handle_bone.add_constraint(
-                'COPY_LOCATION',
-                name="Copy Location Prev (Smooth Spline)",
-                subtarget=prev_str.name,
-                space='WORLD',
-            )
-            handle_bone.add_constraint(
-                'DAMPED_TRACK',
-                name="Damped Track Next (Smooth Spline)",
-                subtarget=next_str.name,
-                track_axis='TRACK_Y',
-            )
+        handle_bone.add_constraint(
+            'COPY_LOCATION',
+            name="Copy Location (Smooth Spline)",
+            subtarget=str_bone.name,
+            space='WORLD',
+        )
+        handle_bone.add_constraint(
+            'DAMPED_TRACK',
+            name="Damped Track Prev (Smooth Spline)",
+            subtarget=prev_str.name,
+            track_axis='TRACK_NEGATIVE_Y',
+            influence=1.0,
+        )
+        handle_bone.add_constraint(
+            'DAMPED_TRACK',
+            name="Damped Track Next (Smooth Spline)",
+            subtarget=next_str.name,
+            track_axis='TRACK_Y',
+            influence=0.5,
+        )
 
-            handle_bone.add_constraint(
-                'COPY_TRANSFORMS',
-                name="Copy STR Transforms (Smooth Spline)",
-                subtarget=str_bone.name,
-                target_space='LOCAL_OWNER_ORIENT',
-            )
-            handle_bone.add_constraint(
-                'COPY_LOCATION',
-                name="Copy Location For Display (Smooth Spline)",
-                subtarget=str_bone.name,
-                space='WORLD',
-            )
-            handle_bone.add_constraint(
-                'COPY_SCALE',
-                name="Copy Scale (Smooth Spline)",
-                subtarget=str_bone.name,
-                space='POSE',
-                use_offset=False,
-            )
-            str_bone.custom_shape_transform = handle_bone
-        else:
-            handle_bone.parent = str_bone
-            handle_bone.add_constraint(
-                'COPY_SCALE', subtarget=str_bone.name, space='POSE'
-            )
+        handle_bone.add_constraint(
+            'COPY_TRANSFORMS',
+            name="Copy STR Transforms (Smooth Spline)",
+            subtarget=str_bone.name,
+            target_space='LOCAL_OWNER_ORIENT',
+        )
+        handle_bone.add_constraint(
+            'COPY_LOCATION',
+            name="Copy Location For Display (Smooth Spline)",
+            subtarget=str_bone.name,
+            space='WORLD',
+        )
+        str_bone.custom_shape_transform = handle_bone
+
+        handle_bone.add_constraint(
+            'COPY_SCALE',
+            name="Copy Scale (Smooth Spline)",
+            subtarget=str_bone.name,
+            space='POSE',
+            use_offset=False,
+        )
 
         return handle_bone
 
