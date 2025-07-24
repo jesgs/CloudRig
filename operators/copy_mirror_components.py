@@ -101,7 +101,7 @@ class POSE_OT_cloudrig_copy_component(CloudRigOperator):
             if to_bone == from_bone:
                 continue
             num_copied += 1
-            copy_property_group(from_bone.cloudrig_component, to_bone.cloudrig_component, x_mirror=True)
+            copy_property_group(from_bone.cloudrig_component, to_bone.cloudrig_component, x_mirror=False)
 
         self.report(
             {'INFO'},
