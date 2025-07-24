@@ -127,7 +127,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             name=root_name,
             source=org_bone,
             parent=org_bone.parent,
-            custom_shape_name="Cube",
+            custom_shape_name=self.params.fk_chain.widget_root,
             inherit_scale=self.params.fk_chain.inherit_scale,
         )
         org_bone.parent = root_bone
@@ -448,6 +448,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         super().draw_appearance_params(layout, context, params)
         layout.separator()
         cls.draw_prop_widget(context, layout, params.fk_chain, 'widget_fk')
+        cls.draw_prop_widget(context, layout, params.fk_chain, 'widget_root')
         cls.draw_prop(context, layout, params.fk_chain, 'display_center')
         return layout
 
@@ -571,6 +572,11 @@ class Params(PropertyGroup):
         name="FK Widget",
         description="Widget for FK controls",
         default='Circle_Spiked_2'
+    )
+    widget_root: StringProperty(
+        name="Root Widget",
+        description="Widget for Root control",
+        default='Cube'
     )
 
 
