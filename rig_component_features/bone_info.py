@@ -7,6 +7,7 @@ from mathutils import Vector, Matrix
 
 from ..utils.maths import flat
 from ..utils.external.mechanism import make_constraint, make_driver
+from ..utils.rig import align_bone_z_axis_to_vector
 from .properties_ui import ensure_custom_property, make_property
 
 # These values should match Blender's defaults, otherwise they won't be written.
@@ -574,7 +575,7 @@ class BoneInfo:
                 else:
                     edit_bone.align_roll(align_bone.z_axis)
             elif self.roll_type == 'VECTOR':
-                edit_bone.align_roll(self.roll_vector)
+                align_bone_z_axis_to_vector(edit_bone, self.roll_vector)
 
             edit_bone.roll += self.roll
 

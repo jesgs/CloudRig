@@ -1,4 +1,5 @@
 from bpy.types import Bone, EditBone, PoseBone, Object
+import math
 
 def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
@@ -55,3 +56,33 @@ def get_active_bone(context):
         return context.active_bone
     else:
         return get_pbone_of_active(context)
+
+
+def project_point_to_plane(point, origin, normal):
+    vector = point - origin
+    dist = vector.dot(normal)
+    return point - dist * normal
+
+
+def signed_angle_on_plane(vec_a, vec_b, plane_normal):
+    # Get the angle between vec_a and vec_b projected onto a plane
+    angle = vec_a.angle(vec_b)
+    cross = vec_a.cross(vec_b)
+    if cross.dot(plane_normal) < 0:
+        angle = -angle
+    return angle
+
+
+def wrap_angle_pi(angle):
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+
+
+def align_bone_z_axis_to_vector(ebone, vector):
+    projected = project_point_to_plane(vector, ebone.head, ebone.y_axis)
+
+    vec_a = ebone.z_axis.normalized()
+    vec_b = (projected - ebone.head).normalized()
+    angle = signed_angle_on_plane(vec_a, vec_b, ebone.y_axis)
+
+    ebone.roll += angle
+    ebone.roll = wrap_angle_pi(ebone.roll)
