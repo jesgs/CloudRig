@@ -165,21 +165,21 @@ class Component_ToonChain(Component_Base):
             str_name = self.naming.make_name(*sliced)
         while self.generator.find_bone_info(str_name):
             str_name = self.naming.increment_name(str_name)
-        roll_bone = org_bone.prev or org_bone
         main_str = self.bone_sets['Stretch Controls'].new(
             name=str_name,
             source=org_bone,
             vector=direction,
             roll=0,
-            roll_type='VECTOR',
-            roll_vector=roll_bone.z_axis,
-            length=org_bone.length / segments / 2,
+            roll_type='ALIGN',
+            roll_bone=org_bone or org_bone.prev,
+            length=org_bone.length / segments / 3,
             custom_shape_scale=-self.params.chain.widget_size,
+            display_type='STICK',
             parent=org_bone,
             inherit_scale='AVERAGE',
         )
         if at_tip:
-            main_str.put(org_bone.tail)
+            main_str.put(org_bone.tail, length=main_str.length)
             main_str.custom_shape_scale_xyz *= -1
 
         if not self.is_cyclic and org_i == 0 or at_tip:

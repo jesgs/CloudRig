@@ -449,7 +449,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 split.row(),
                 params.leg,
                 "heel_bone",
-                context.object.data,
+                context.active_object.data,
                 "bones",
                 text="Heel Pivot",
             )
