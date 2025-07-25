@@ -3210,7 +3210,7 @@ def register():
     register_hotkey(
         bl_idname='wm.call_menu',
         hotkey_kwargs={
-            'type': 'W',
+            'type': 'Q',
             'value': 'PRESS',
             'shift': True,
             'alt': True,
