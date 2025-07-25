@@ -90,6 +90,9 @@ def is_cloud_metarig(obj: Object) -> bool:
 
 
 def find_metarig_of_rig(context, rig: Object) -> Object | None:
+    if not hasattr(rig, 'cloudrig'):
+        # If the CloudRig add-on is not installed, this function won't work.
+        return
     # First, try to find it by name, which should work most of the time.
     for prefix in {'RIG-', 'FAILED-RIG-'}:
         if rig.name.startswith(prefix):
@@ -1888,9 +1891,8 @@ class CLOUDRIG_UL_collections(UIList):
 
             icon = 'RECORD_ON' if cloudrig_info.quick_access else 'RECORD_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
-            if is_active_cloudrig(context) and find_metarig_of_rig(
-                context, context.active_object
-            ):
+            metarig = find_metarig_of_rig(context, context.active_object)
+            if is_active_cloudrig(context) and metarig:
                 icon = (
                     'FAKE_USER_ON'
                     if cloudrig_info.preserve_on_regenerate
