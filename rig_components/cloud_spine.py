@@ -17,7 +17,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         'chain.segments': 1,
         'fk_chain.double_first': False,
         'fk_chain.hinge': False,
-        'fk_chain.display_center': False,
+        # 'fk_chain.display_center': False,
         'fk_chain.root': True,
     }
     always_use_custom_props = True
@@ -71,21 +71,18 @@ class Component_Spine_IKFK(Component_Chain_FK):
         """Overrides cloud_fk_chain."""
         fk_chain = super().make_fk_chain(org_chain)
 
-        # Create master hip control
+        # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
             source=org_chain[0],
             head=org_chain[0].tail,
             tail=org_chain[0].head,
             custom_shape_name="Hyperbola",
-            parent=self.root_bone,
+            parent=fk_chain[0],
         )
         if self.params.spine.world_align:
             self.root_bone.flatten()
             self.mstr_hips.flatten()
-
-        # Parent the first FK control to ROOT.
-        self.bone_sets['FK Controls'][0].parent = self.root_bone
 
         return fk_chain
 
@@ -251,13 +248,12 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
             ik_bone.add_constraint('DAMPED_TRACK', subtarget=ik_r_bone)
 
-        # Attach FK to IK
-        for fk_bone, ik_bone in zip(self.fk_chain, self.ik_chain):
+        # Attach ORG to IK
+        for i, (org_bone, ik_bone) in enumerate(zip(self.bones_org, self.ik_chain)):
             con_name = "Copy Transforms IK"
-            ct_con = fk_bone.add_constraint(
+            ct_con = org_bone.add_constraint(
                 'COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone
             )
-
             ct_con.drivers.append(
                 {
                     'prop': 'influence',
@@ -291,6 +287,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             },
         )
 
+
     def make_main_str_bone(
         self, org_chain: BoneInfo, org_i: int, at_tip=False
     ) -> BoneInfo:
@@ -303,22 +300,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
             # The first STR bone and the tip STR bone don't need corrections.
             return str_bone
 
-        counter_rot = str_bone.add_constraint(
-            'COPY_ROTATION',
-            name="Counter Rotate IK",
-            subtarget=str_bone.parent,
-            use_xyz=[True, False, True],
-            invert_xyz=[True, False, True],
-            influence=0.5,
-        )
-        counter_rot.drivers.append(
-            {
-                'prop': 'influence',
-                'expression': "var * 0.5",
-                'variables': [(self.properties_bone.name, self.ik_prop_name)],
-            }
-        )
-
         return str_bone
 
     def attach_org_to_fk(self, org_bones, fk_bones):
@@ -327,7 +308,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
         """
         super().attach_org_to_fk(org_bones, fk_bones)
         org_bones[0].parent = self.mstr_hips
-        org_bones[0].constraint_infos.pop()
 
     ##############################
     # Parameters
