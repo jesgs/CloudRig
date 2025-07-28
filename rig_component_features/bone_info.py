@@ -826,7 +826,9 @@ class ConstraintInfo(dict):
         if self.space_subtarget and not self.space_object:
             self.space_object = bone_info.bone_set.rig_component.generator.target_rig
         if con_type == 'ARMATURE':
-            self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
+            self.targets = []
+            if 'subtarget' not in kwargs:
+                self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
         self.drivers = []
 
@@ -960,6 +962,7 @@ class ConstraintInfo(dict):
     def make_real(self, pose_bone):
         """Create a constraint based on this ConstraintInfo on a given pose bone."""
         con_info = self.__dict__.copy()
+        con_type = con_info['type']
         for key in [
             'type',
             'bone_info',
@@ -974,7 +977,10 @@ class ConstraintInfo(dict):
         # List of ID + string tuples that define a constraint target.
         # The string is an optional "subtarget" (bone or vgroup name)
         target_pairs: list[tuple[ID, str]] = []
-        if 'targets' in con_info:
+        if con_type == 'ARMATURE':
+            if 'subtarget' in con_info:
+                con_info['targets'].append({'target':self.target, 'subtarget':self.subtarget})
+                del con_info['subtarget']
             for target_info in con_info['targets']:
                 assert (
                     'subtarget' in target_info
