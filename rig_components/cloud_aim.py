@@ -195,12 +195,7 @@ class Component_Aim(Component_Base):
             driver['expression'] = '1-var'
             arm_con.drivers.append(driver)
 
-        self.lock_transforms(
-            highlight_ctr,
-            loc=[True, False, True],
-            rot=False,
-            scale=[False, True, False],
-        )
+        self.lock_transforms(highlight_ctr, loc=False, rot=False, scale=[False, True, False])
 
         if self.params.aim.deform:
             self.make_def_bone(highlight_ctr, self.bones_def)
