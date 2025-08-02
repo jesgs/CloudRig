@@ -3,7 +3,8 @@
 from bpy.types import Menu, Constraint, PoseBone, UILayout
 
 from ..generation import naming
-from ..generation.cloudrig import register_hotkey, find_cloudrig
+from ..generation.cloudrig import find_cloudrig
+from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_pbone_of_active
 
 
@@ -277,15 +278,10 @@ registry = [
 
 
 def register():
-    for key_cat, space_type in {
-        ('Pose', 'VIEW_3D'),
-        ('Weight Paint', 'EMPTY'),
-        ('Armature', 'VIEW_3D'),
-    }:
+    for keymap_name in ('Pose', 'Weight Paint', 'Armature'):
         register_hotkey(
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "D", 'value': "PRESS", 'alt': True},
-            key_cat=key_cat,
-            space_type=space_type,
+            keymap_name=keymap_name,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_select_bone'},
         )

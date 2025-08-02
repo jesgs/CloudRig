@@ -1,16 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Object, PoseBone, Constraint
+from bpy.types import Object, PoseBone, Constraint, Operator
 from bpy.utils import flip_name
 from rna_prop_ui import rna_idprop_value_item_type
 
 from ..rig_component_features.mechanism import find_or_create_constraint
-from ..generation.cloudrig import CloudRigOperator
 from ..bs_utils.properties import copy_property_group, get_custom_prop_names, rename_custom_prop
 
 
-class POSE_OT_symmetrize_rigging(CloudRigOperator):
+class POSE_OT_symmetrize_rigging(Operator):
     """Mirror selected bones, their constraints, their drivers, and the animation of Actions used by Action constraints"""
 
     bl_idname = "pose.symmetrize_rigging"

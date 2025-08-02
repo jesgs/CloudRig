@@ -6,7 +6,7 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-import bpy, json, ast, re, contextlib, hashlib, sys, importlib
+import bpy, json, ast, re, contextlib, sys, importlib
 from collections import OrderedDict, defaultdict
 from mathutils import Matrix, Vector
 from math import acos, pi
@@ -35,16 +35,12 @@ from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 from bl_ui.generic_ui_list import draw_ui_list
 
-for module_name in sys.modules:
-    if module_name.endswith("CloudRig"):
-        CloudRig = importlib.import_module(module_name)
-        post_gen = CloudRig.utils.post_gen
-        icons = CloudRig.icons
-        cloudrig_addon = True
-        break
-else:
-    cloudrig_addon = False
-
+cr_module_name = next((m for m in sys.modules if m.endswith("CloudRig")), None)
+if cr_module_name.endswith("CloudRig"):
+    cloudrig_module = importlib.import_module(cr_module_name)
+    icons = importlib.import_module(cr_module_name + ".icons")
+    hotkeys = importlib.import_module(cr_module_name + ".bs_utils.hotkeys")
+cloudrig_installed = cr_module_name != None
 
 #######################################
 ############ Context Checks ###########
@@ -179,22 +175,6 @@ def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
         )
         return False
     return rig
-
-
-class CloudRigOperator(Operator):
-    """This class implements a basic draw function that just draws all the operator properties.
-    This is necessary because of our hotkey system and UI.
-    In order to avoid creating duplicate keymap entries, we insert a "hash" value in each keymap's
-    operator properties. But normally, this "hash" value gets drawn in the redo panel, which we don't want.
-
-    So, by letting every class inherit this draw function, we can fix that.
-    """
-
-    def draw(self, context):
-        layout = self.layout
-        props = type(self).__annotations__
-        for prop in props:
-            layout.prop(self, prop)
 
 
 #######################################
@@ -438,7 +418,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
                 # bpy.ops.anim.keyframe_insert()
 
 
-class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, CloudRigOperator):
+class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
     "Flip a custom property's value while preserving the world-matrix " "of some bones"
     bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
@@ -505,7 +485,7 @@ def key_transforms(obj, **kwargs):
     for prop in props:
         obj.keyframe_insert(prop, **kwargs)
 
-class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOperator):
+class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
     "Change the parent while preserving the world-matrix of the affected " "bones, even in a frame range"
 
     bl_idname = 'pose.cloudrig_switch_parent_bake'
@@ -529,7 +509,7 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, CloudRigOp
         return int(self.selected)
 
 
-class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
+class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
     "Toggle the rig component between IK and FK modes. Snap the affected" "bones so you can continue animating. Can also snap & bake the affected" "bones over a frame range"
 
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
@@ -767,7 +747,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, CloudRigOperator):
 #######################################
 
 
-class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
+class POSE_OT_cloudrig_keyframe_all_settings(Operator):
     """Keyframe all rig settings that are being drawn in the below UI"""
 
     bl_idname = 'pose.cloudrig_keyframe_all_settings'
@@ -831,7 +811,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_reset(CloudRigOperator):
+class POSE_OT_cloudrig_reset(Operator):
     """Reset all bone transforms and custom properties to their default values"""
 
     bl_idname = 'pose.cloudrig_reset'
@@ -1427,7 +1407,7 @@ def draw_drag_operator(
         if is_dragged:
             icon = 'VIEW_PAN'
             icon_value = 0
-        elif cloudrig_addon:
+        elif cloudrig_installed:
             icon = 'NONE'
             icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
         op = layout.operator(
@@ -2211,7 +2191,7 @@ class CLOUDRIG_MT_collections_quick_select(Menu):
                 op.reveal_bones = False
 
 
-class POSE_OT_cloudrig_collections_reveal_all(CloudRigOperator):
+class POSE_OT_cloudrig_collections_reveal_all(Operator):
     """Reveal all collections"""
 
     bl_idname = "pose.cloudrig_collections_reveal_all"
@@ -2239,7 +2219,7 @@ def pose_mode(rig):
         bpy.ops.object.mode_set(mode=mode_bkp)
 
 
-class POSE_OT_cloudrig_collection_select(CloudRigOperator):
+class POSE_OT_cloudrig_collection_select(Operator):
     "Select all bones in this collection.\n\n" "Shift: Extend selection.\n" "Ctrl: Mirror selection.\n" "Alt: Deselect"
 
     bl_idname = "pose.cloudrig_collection_select"
@@ -2344,7 +2324,7 @@ def poll_cloudrig_operator_collection(operator, context):
     return True
 
 
-class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
+class POSE_OT_cloudrig_collection_delete(Operator):
     "Remove the active bone collection.\n" "Shift: Delete whole hierarchy" ""
 
     bl_idname = "pose.cloudrig_collection_delete"
@@ -2450,7 +2430,7 @@ class POSE_OT_cloudrig_collection_delete(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_add(CloudRigOperator):
+class POSE_OT_cloudrig_collection_add(Operator):
     """Add a new bone collection"""
 
     bl_idname = "pose.cloudrig_collection_add"
@@ -2481,7 +2461,7 @@ class POSE_OT_cloudrig_collection_add(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
+class POSE_OT_cloudrig_reorder_collections(Operator):
     "Rearrange and re-parent this collection with the arrow keys, WASD, or by " "moving the mouse.\n\n" "Left-click/Enter: Confirm.\n" "Right-click/Esc: Cancel.\n" "Up/Down: Move Collection up/down.\n" "Left/Right: Parent/Unparent collection to the one above"
 
     bl_idname = "pose.cloudrig_reorder_collections"
@@ -2626,7 +2606,7 @@ class POSE_OT_cloudrig_reorder_collections(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
+class POSE_OT_cloudrig_collection_assign(Operator):
     "Assign selected bones to active collection.\n\n" "Alt: Un-assign.\n" "Shift: To active collection & children.\n" "Shift+Ctrl: To all collections"
 
     bl_idname = "pose.cloudrig_collection_assign"
@@ -2694,7 +2674,7 @@ class POSE_OT_cloudrig_collection_assign(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
+class POSE_OT_cloudrig_collection_clipboard_copy(Operator):
     """Copy visible collections to Blender clipboard"""
 
     bl_idname = "pose.cloudrig_collection_clipboard_copy"
@@ -2727,7 +2707,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_collection_clipboard_paste(CloudRigOperator):
+class POSE_OT_cloudrig_collection_clipboard_paste(Operator):
     """Paste collections from the Blender clipboard"""
 
     bl_idname = "pose.cloudrig_collection_clipboard_paste"
@@ -2862,8 +2842,6 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     bl_idname = "CLOUDRIG_PT_hotkeys_panel"
     bl_label = "Hotkeys"
 
-    cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem", bool]] = {}
-
     @classmethod
     def poll(cls, context):
         if not super().poll(context):
@@ -2873,253 +2851,10 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
         return True
 
     def draw(self, context):
-        col = self.layout.column()
-        self.draw_all_hotkeys(col, context)
-
-    @classmethod
-    def draw_all_hotkeys(cls, layout, context):
-        if hasattr(bpy.ops.window, 'restore_deleted_hotkeys'):
-            layout.operator('window.restore_deleted_hotkeys')
-            layout.separator()
-        cls.draw_hotkey_list(layout, context)
-        if hasattr(bpy.types, 'POSE_PT_CloudRig'):
-            # Add-on hotkeys are stored on a separate class, which is part of the add-on.
-            # This way, these don't get re-registered when regenerating a rig.
-            layout.separator()
-            cls.draw_hotkey_list(layout, context, hotkey_class=bpy.types.POSE_PT_CloudRig)
-
-    @classmethod
-    def draw_hotkey_list(cls, layout, context, hotkey_class=None):
-        if not hotkey_class:
-            hotkey_class = cls
-
-        keymap_data = list(hotkey_class.cloudrig_keymap_items.items())
-        keymap_data = sorted(keymap_data, key=lambda tup: tup[1][2].name + tup[1][1].name)
-
-        prev_kmi = None
-        for kmi_hash, kmi_tup in keymap_data:
-            _addon_kc, addon_km, addon_kmi = kmi_tup
-            user_km, user_kmi = find_user_kmi(context, addon_km, addon_kmi, kmi_hash)
-
-            col = layout.column()
-            col.context_pointer_set("keymap", user_km)
-            if user_kmi and prev_kmi and prev_kmi.name != user_kmi.name:
-                col.separator()
-            user_row = col.row()
-
-            if False:
-                # Debug code: Draw add-on and user KeyMapItems side-by-side.
-                split = user_row.split(factor=0.5)
-                addon_row = split.row()
-                user_row = split.row()
-                draw_kmi(addon_km, addon_kmi, addon_row)
-            if not user_kmi:
-                # This should only happen for one frame during Reload Scripts.
-                layout.label(text=f"Missing: {addon_kmi.name} [{addon_kmi.to_string()}]")
-                continue
-
-            sidebar = get_sidebar(context)
-            compact = False
-            if sidebar:
-                compact = sidebar.width < 600
-            draw_kmi(user_km, user_kmi, user_row, compact)
-            prev_kmi = user_kmi
-
-def draw_kmi(km, kmi, layout, compact=False, debug=False):
-    """A simplified version of draw_kmi from rna_keymap_ui.py."""
-
-    if debug:
-        layout = layout.box()
-
-    split = layout.split(factor=0.75)
-
-    info_row = split.row(align=True)
-    if debug:
-        info_row.prop(kmi, "show_expanded", text="", emboss=False)
-    info_row.prop(kmi, "active", text="", emboss=False)
-    km_icon, km_name, kmi_name = get_kmi_ui_info(km, kmi)
-    if compact:
-        km_name = ""
-    info_row.label(text=kmi_name)
-    info_row.label(text=km_name, icon=km_icon or "BLANK1")
-
-    sub = split.row(align=True)
-    subsub = sub.row(align=True)
-    subsub.enabled = kmi.active
-    subsub.prop(kmi, "type", text="", full_event=True)
-
-    if kmi.is_user_modified:
-        sub.row().operator(
-            "preferences.keyitem_restore", text="", icon='BACK'
-        ).item_id = kmi.id
-
-    if debug and kmi.show_expanded:
-        layout.template_keymap_item_properties(kmi)
-
-def get_sidebar(context):
-    if not context.area.type == 'VIEW_3D':
-        return None
-    for region in context.area.regions:
-        if region.type == 'UI':
-            return region
-
-KEYMAP_ICONS = {
-    'Object Mode': 'OBJECT_DATAMODE',
-    'Window': 'WINDOW',
-    '3D View': 'VIEW3D',
-    'Mesh': 'OUTLINER_DATA_MESH',
-    'Outliner': 'OUTLINER',
-    'Object Non-modal': 'OBJECT_DATAMODE',
-    'Sculpt': 'SCULPTMODE_HLT',
-    'Armature': 'ARMATURE_DATA',
-    'Pose': 'POSE_HLT',
-    'Weight Paint': 'WPAINT_HLT',
-}
-
-KEYMAP_UI_NAMES = {
-    'Armature': "Armature Edit",
-    'Object Non-modal': "Object Mode",
-}
-
-def get_kmi_ui_info(km, kmi) -> tuple[str, str, str]:
-    km_name = km.name
-    km_icon = KEYMAP_ICONS.get(km_name, 'BLANK1')
-    km_name = KEYMAP_UI_NAMES.get(km_name, km_name)
-    if kmi.properties and kmi.idname.startswith('wm.call_menu_pie'):
-        if not hasattr(kmi.properties, 'name'):
-            # Apparently this can happen when spamming the Reload Scripts operator...
-            return "", "", ""
-        name = kmi.properties.name
-        if name:
-            try:
-                bpy_type = getattr(bpy.types, kmi.properties.name)
-                kmi_name = bpy_type.bl_label
-            except:
-                kmi_name = "Missing (code 1). Try restarting."
-        else:
-            kmi_name = "Missing (code 2). Try restarting."
-    else:
-        try:
-            parts = kmi.idname.split(".")
-            bpy_type = getattr(bpy.ops, parts[0])
-            bpy_type = getattr(bpy_type, parts[1])
-            kmi_name = bpy_type.get_rna_type().name
-        except:
-            kmi_name = "Missing (code 3). Try restarting."
-
-    return km_icon, km_name, kmi_name
-
-def find_user_kmi(context, addon_km, addon_kmi, kmi_hash=""):
-    user_kc = context.window_manager.keyconfigs.user
-    user_km = user_kc.keymaps.get(addon_km.name)
-    if not user_km:
-        # This really shouldn't happen.
-        return None, None
-    if bpy.app.version >= (4, 5, 0):
-        context.window_manager.keyconfigs.update()
-        user_km = context.window_manager.keyconfigs.user.keymaps.get(addon_km.name)
-        if not user_km:
-            # This should never happen.
-            print("Failed to find User KeyMap: ", addon_km.name)
-            return None, None
-        user_kmi = user_km.keymap_items.find_match(addon_km, addon_kmi)
-        if not user_kmi:
-            # This can happen if user deletes their keymap, which is basically catastrophic and should be blocked by Blender.
-            # There's no way to recover this afaik other than resetting the keymap.
-            print("Failed to find User KeyMapItem: ", addon_km.name, addon_kmi.idname)
-            return None, None
-    else:
-        user_kmi = find_kmi_in_km_by_hash(user_km, kmi_hash)
-
-    return user_km, user_kmi
-
-def find_kmi_in_km_by_hash(keymap, kmi_hash):
-    """There's no solid way to match modified user keymap items to their
-    add-on equivalent, which is necessary to draw them in the UI reliably.
-
-    To remedy this, we store a hash in the KeyMapItem's properties.
-
-    This function lets us find a KeyMapItem with a stored hash in a KeyMap.
-    Eg., we can pass a User KeyMap and an Addon KeyMapItem's hash, to find the
-    corresponding user keymap, even if it was modified.
-
-    The hash value is unfortunately exposed to the users, so we just hope they don't touch that.
-    """
-
-    assert bpy.app.version < (4, 5, 0), "This function shouldn't be called in Blender 4.5 and above."
-
-    for kmi in keymap.keymap_items:
-        if not kmi.properties:
-            continue
-        try:
-            if 'hash' not in kmi.properties:
-                continue
-        except TypeError:
-            # Not sure why this happens.
-            # https://projects.blender.org/Mets/CloudRig/issues/186
-            pass
-
-        if kmi.properties['hash'] == kmi_hash:
-            return kmi
-
-def register_hotkey(
-    bl_idname, hotkey_kwargs, *, key_cat='Window', space_type='EMPTY', op_kwargs={}, storage_class=None,
-):
-    """This function inserts a 'hash' into the created KeyMapItems' properties,
-    so they can be compared to each other, and duplicates can be avoided."""
-
-    if not storage_class:
-        storage_class = bpy.types.POSE_PT_CloudRig
-
-    wm = bpy.context.window_manager
-    kc_addon = wm.keyconfigs.addon
-    kc_user = wm.keyconfigs.user
-    if not kc_addon:
-        # This happens when running Blender in background mode.
-        return
-
-    kmi_string = json.dumps([bl_idname, hotkey_kwargs, key_cat, space_type, op_kwargs], sort_keys=True).encode("utf-8")
-    kmi_hash = hashlib.md5(kmi_string).hexdigest()
-
-    if not hasattr(storage_class, 'cloudrig_keymap_items'):
-        storage_class.cloudrig_keymap_items = {}
-
-    # If it already exists, don't create it again.
-    if kmi_hash in storage_class.cloudrig_keymap_items:
-        user_km = kc_user.keymaps.get(key_cat)
-        if user_km:
-            if bpy.app.version >= (4, 5, 0):
-                # Very naive keymap equality check here, just checking the operator idname.
-                # This means this won't work well if we're trying to register the same operator to multiple hotkeys in the same keymap.
-                user_kmi = next((kmi for kmi in user_km.keymap_items if kmi.idname == bl_idname), None)
-            else:
-                user_kmi = find_kmi_in_km_by_hash(
-                    user_km, kmi_hash
-                )
-            if user_kmi:
-                print("Hotkey already exists, skipping: ", hotkey_kwargs, kmi_hash)
-                return
-
-    # print("Registering hotkey: ", bl_idname, hotkey_kwargs, key_cat)
-
-    addon_keymaps = kc_addon.keymaps
-    addon_km = addon_keymaps.get(key_cat)
-    if not addon_km:
-        addon_km = addon_keymaps.new(name=key_cat, space_type=space_type)
-
-    addon_kmi = addon_km.keymap_items.new(bl_idname, **hotkey_kwargs)
-    for key, value in op_kwargs.items():
-        setattr(addon_kmi.properties, key, value)
-
-    if bpy.app.version < (4, 5, 0):
-        addon_kmi.properties['hash'] = kmi_hash
-
-    storage_class.cloudrig_keymap_items[kmi_hash] = (
-        kc_addon,
-        addon_km,
-        addon_kmi
-    )
-    # print("CloudRig: Registered Hotkey: ", addon_kmi.idname, addon_kmi.to_string(), kmi_hash)
+        if bpy.app.version < (5, 0, 0) or not cloudrig_installed:
+            self.layout.label(text="Available in Blender 5.0 with CloudRig installed.")
+            return
+        hotkeys.draw_hotkey_list(context, self.layout, sort_mode='BY_OPERATOR', ignore_missing=True)
 
 
 #######################################
@@ -3211,44 +2946,31 @@ def register():
         )
         bpy.types.DATA_PT_bone_collections.draw = builtin_collections_draw_override
 
-    register_hotkey(
-        bl_idname='wm.call_menu',
-        hotkey_kwargs={
-            'type': 'Q',
-            'value': 'PRESS',
-            'shift': True,
-            'alt': True,
-        },
-        key_cat='Pose',
-        op_kwargs={'name': CLOUDRIG_MT_collections_quick_select.bl_idname},
-        storage_class=bpy.types.CLOUDRIG_PT_hotkeys_panel,
-    )
-
-    for key_cat, space_type in {
-        ('Pose', 'VIEW_3D'),
-        ('Weight Paint', 'EMPTY'),
-        ('Armature', 'EMPTY'),
-    }:
-        register_hotkey(
-            bl_idname='armature.bone_collections_popup',
-            hotkey_kwargs={'type': "M", 'value': "PRESS", 'shift': True},
-            key_cat=key_cat,
-            space_type=space_type,
-        storage_class=bpy.types.CLOUDRIG_PT_hotkeys_panel,
+    if cloudrig_installed:
+        hotkeys.register_hotkey(
+            bl_idname='wm.call_menu',
+            hotkey_kwargs={
+                'type': 'Q',
+                'value': 'PRESS',
+                'shift': True,
+                'alt': True,
+            },
+            keymap_name='Pose',
+            op_kwargs={'name': CLOUDRIG_MT_collections_quick_select.bl_idname},
         )
 
-
-def unregister_hotkeys():
-    for kmi_hash, (kc, km, kmi) in list(CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items()):
-        km.keymap_items.remove(kmi)
+        for keymap_name in ('Pose', 'Weight Paint', 'Armature'):
+            hotkeys.register_hotkey(
+                bl_idname='armature.bone_collections_popup',
+                hotkey_kwargs={'type': "M", 'value': "PRESS", 'shift': True},
+                keymap_name=keymap_name,
+            )
 
 
 def unregister():
     """Runs before register() on generation and when executed from the text editor.
     Should be able to run without errors even before there's anything to unregister.
     """
-
-    unregister_hotkeys()
 
     try:
         del bpy.types.Object.cloudrig_prefs

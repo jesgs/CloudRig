@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "cloudrig"
-version = "2.1.20"
+version = "2.2.0"
 name = "CloudRig"
 tagline = "Rig Generation & Rigging Workflow Tools"
 maintainer = "Demeter Dzadik <demeter@blender.org>"
@@ -9,7 +9,7 @@ type = "add-on"
 website = "https://projects.blender.org/Mets/CloudRig"
 tags = ["Rigging"]
 
-blender_version_min = "4.2.0"
+blender_version_min = "5.0.0"
 
 license = [
   "SPDX:GPL-3.0-or-later",

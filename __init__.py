@@ -19,30 +19,15 @@ from . import (
     bs_utils,
 )
 
-bl_info = {
-    'name': "CloudRig",
-    'description': "Rig generation and rigging workflow toolkit by Blender Studio",
-    'author': 'Demeter Dzadik',
-    'version': (2, 1, 21),
-    # This should be the lowest Blender version that is currently compatible.
-    'blender': (4, 2, 0),
-    'location': "Properties->Armature Data",
-    'doc_url': "https://projects.blender.org/Mets/CloudRig/wiki",
-    'tracker_url': "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml",
-    'support': 'COMMUNITY',
-    'category': 'Rigging',
-}
-bl_info_copy = bl_info.copy()
-
 modules = [
     ui,
     manual_mapping,
     utils,
+    bs_utils,
     # NOTE: Beyond this point, registration order matters!
     # - For CollectionProperties and PointerProperties, their type must
     # be registered before they themselves are.
-    # - For Panels, they must be registered before their bl_parent_id is.
-    # - Hotkeys must come after `cloudrig`, since we're storing them on a panel.
+    icons,
     rig_component_features,
     rig_components,
     generation,
@@ -50,8 +35,6 @@ modules = [
     properties,
     prefs,
     metarigs,
-    icons,
-    bs_utils,
 ]
 
 
@@ -86,28 +69,6 @@ def register_unregister_modules(modules: list, register: bool):
             m.unregister()
 
 
-def ensure_importable_modules():
-    """For the sake of post-generation scripts and external rig components, 
-    we want to make sure CloudRig modules can be imported without the extension prefixes.
-    """
-    import sys
-    addon_name = bl_info_copy['name']
-    if addon_name not in sys.modules:
-        dirname = __file__.split(os.sep)[-2]
-        module_mapping = {}
-        for mod_name, module in sys.modules.items():
-            if bpy.app.version < (4, 2, 0):
-                if dirname in mod_name:
-                    module_mapping[mod_name.replace(dirname, addon_name)] = module
-            else:
-                pass
-                # This works, but it results in policy violation.
-                # if dirname in mod_name and mod_name.startswith("bl_ext"):
-                #     module_mapping[dirname+mod_name.split(dirname)[-1]] = module
-
-        sys.modules.update(module_mapping)
-
-
 def register():
     """Called by Blender when enabling the CloudRig add-on, or on Blender launch if already enabled."""
 
@@ -117,7 +78,6 @@ def register():
             "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
         )
 
-    ensure_importable_modules()
     register_unregister_modules(modules, True)
 
 

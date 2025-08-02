@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.props import StringProperty, BoolProperty, EnumProperty
-from bpy.types import Panel, UIList, UI_UL_list
+from bpy.types import Panel, UIList, UI_UL_list, Operator
 from bl_ui.generic_ui_list import draw_ui_list
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..utils.rig import get_pbone_of_active
 from ..rig_component_features.properties_ui import redraw_viewport
-from ..generation.cloudrig import is_cloud_metarig, CloudRigOperator
+from ..generation.cloudrig import is_cloud_metarig
 
 
 class CLOUDRIG_UL_rig_components(UIList):
@@ -107,7 +107,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         return flt_flags, flt_neworder
 
 
-class CLOUDRIG_OT_add_rig_component(CloudRigOperator):
+class CLOUDRIG_OT_add_rig_component(Operator):
     """Assign a CloudRig Component Type to a bone"""
 
     bl_idname = "pose.cloudrig_assign_component_type"
@@ -199,7 +199,7 @@ class CLOUDRIG_OT_add_rig_component(CloudRigOperator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_remove_rig_component(CloudRigOperator):
+class CLOUDRIG_OT_remove_rig_component(Operator):
     """Remove active rig component"""
 
     bl_idname = "pose.cloudrig_remove_component_type"
@@ -239,7 +239,7 @@ class CLOUDRIG_OT_remove_rig_component(CloudRigOperator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_reorder_rig_component(CloudRigOperator):
+class CLOUDRIG_OT_reorder_rig_component(Operator):
     """Reorder active rig component"""
 
     bl_idname = "pose.cloudrig_reorder_component"

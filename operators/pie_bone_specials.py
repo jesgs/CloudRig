@@ -2,12 +2,12 @@
 
 import bpy
 from .pie_bone_parenting import GenericBoneOperator
-from bpy.types import Menu, EditBone, Object
-from ..generation.cloudrig import register_hotkey, CloudRigOperator
+from bpy.types import Menu, EditBone, Object, Operator
+from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_current_rigs
 
 
-class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
+class POSE_OT_delete_bones(GenericBoneOperator, Operator):
     """Delete selected bones"""
 
     bl_idname = "pose.delete_selected"
@@ -33,7 +33,7 @@ class POSE_OT_delete_bones(GenericBoneOperator, CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_dissolve_bones(CloudRigOperator):
+class POSE_OT_dissolve_bones(Operator):
     """Dissolve selected bones"""
 
     bl_idname = "pose.dissolve_selected"
@@ -154,15 +154,10 @@ registry = [
 
 
 def register():
-    for key_cat, space_type in {
-        ('Pose', 'VIEW_3D'),
-        ('Weight Paint', 'EMPTY'),
-        ('Armature', 'VIEW_3D'),
-    }:
+    for keymap_name in ('Pose', 'Weight Paint', 'Armature'):
         register_hotkey(
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "X", 'value': "PRESS"},
-            key_cat=key_cat,
-            space_type=space_type,
+            keymap_name=keymap_name,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_specials'},
         )

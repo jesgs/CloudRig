@@ -5,12 +5,10 @@ from bpy.types import PropertyGroup, AddonPreferences
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
 
 from . import rig_components
-from .utils.hotkeys import find_matching_km_and_kmi
-from .generation.cloudrig import find_user_kmi
 from .properties import NameProperty
 from .rig_component_features.widgets.widgets import get_widgets_enum_items
-from .bs_utils.prefs import PrefsFileSaveLoadMixin, load_prefs_from_file, update_prefs_on_file, get_addon_prefs
-
+from .bs_utils.prefs import PrefsFileSaveLoadMixin, update_prefs_on_file, get_addon_prefs
+from .bs_utils.hotkeys import HotkeyDrawMixin
 
 def get_default_widgets_path():
     filedir = os.path.dirname(os.path.realpath(__file__))
@@ -55,14 +53,7 @@ class CloudRigComponentTypeInfo(PropertyGroup):
     )
 
 
-def get_cloudrig_addon_kmis():
-    keymap_data = list(bpy.types.POSE_PT_CloudRig.cloudrig_keymap_items.items())
-    keymap_data += list(bpy.types.CLOUDRIG_PT_hotkeys_panel.cloudrig_keymap_items.items())
-    keymap_data = sorted(keymap_data, key=lambda tup: tup[1][1].name + tup[1][2].idname)
-    return keymap_data
-
-
-class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
+class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferences):
     bl_idname = __package__
 
     # This should get a version bump whenever there is a change that affects metarigs.
@@ -74,8 +65,6 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     omit_from_disk: list[str] = ["component_types"]
 
     # Function that returns a list of CloudRig add-on KeyMapItems
-    keymap_get_func = get_cloudrig_addon_kmis
-
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
     def update_widget_names(self, context):
@@ -137,7 +126,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         header, panel = layout.panel("CloudRig Hotkeys")
         header.label(text="Hotkeys")
         if panel:
-            bpy.types.CLOUDRIG_PT_hotkeys_panel.draw_all_hotkeys(panel, context)
+            self.draw_hotkey_list(context, panel, sort_mode='BY_OPERATOR')
 
         header, panel = layout.panel("CloudRig Bone Colors")
         header.label(text="Bone Colors")
@@ -164,87 +153,6 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
             for i in range(20):
                 icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
                 row.label(text="", icon=icon)
-
-    def to_dict(self) -> dict:
-        data = super().to_dict()
-        data['hotkeys'] = get_keymap_data_for_saving(bpy.context, type(self).keymap_get_func)
-        return data
-
-    def load_and_apply_prefs_from_file(self) -> dict:
-        addon_data = super().load_and_apply_prefs_from_file()
-        apply_stored_hotkeys(addon_data)
-
-
-def apply_stored_hotkeys(addon_data):
-    hotkey_data = addon_data['hotkeys']
-    for storage_class in (bpy.types.CLOUDRIG_PT_hotkeys_panel, bpy.types.POSE_PT_CloudRig):
-        for kmi_hash, (kc_addon, addon_km, addon_kmi) in storage_class.cloudrig_keymap_items.items():
-            if bpy.app.version < (4, 5, 0):
-                user_km, user_kmi = find_user_kmi(bpy.context, addon_km, addon_kmi, kmi_hash)
-            else:
-                kc_user = bpy.context.window_manager.keyconfigs.user
-                user_km, user_kmi = find_matching_km_and_kmi(bpy.context, kc_user, addon_km, addon_kmi)
-
-            hotkey_user_data = hotkey_data.get(kmi_hash, {})
-            if hotkey_user_data and user_kmi:
-                op_kwargs = hotkey_user_data['op_kwargs']
-                key_kwargs = hotkey_user_data['key_kwargs']
-
-                for key, value in key_kwargs.items():
-                    if bpy.app.version < (4, 5, 0) and key == 'hyper':
-                        continue
-                    cur_value = getattr(user_kmi, key)
-                    if cur_value != value:
-                        setattr(user_kmi, key, value)
-
-                for key, value in op_kwargs.items():
-                    cur_value = getattr(user_kmi.properties, key)
-                    if cur_value != value:
-                        setattr(user_kmi.properties, key, value)
-            elif not hotkey_user_data:
-                print("No hotkey user data for ", user_kmi.to_string(), kmi_hash)
-            elif not user_kmi:
-                print("No user_kmi for ", hotkey_user_data['operator'], kmi_hash)
-
-
-def get_keymap_data_for_saving(context, keymap_get_func: callable) -> dict:
-    all_keymap_data = {}
-    for kmi_hash, (addon_kc, addon_km, addon_kmi) in keymap_get_func():
-        user_km, user_kmi = find_user_kmi(context, addon_km, addon_kmi, kmi_hash)
-        if not user_km or not user_kmi:
-            continue
-        data = {}
-        data['keymap'] = user_km.name
-        data['operator'] = user_kmi.idname
-
-        NO_SAVE_OP_KWARGS = ()
-
-        op_kwargs = {}
-        if user_kmi.properties:
-            op_kwargs = {
-                key: getattr(user_kmi.properties, key)
-                for key in user_kmi.properties.keys()
-                if hasattr(user_kmi.properties, key) and key not in NO_SAVE_OP_KWARGS
-            }
-
-        data['op_kwargs'] = op_kwargs
-
-        data['key_kwargs'] = {
-            'type' : user_kmi.type,
-            'value' : user_kmi.value,
-            'ctrl' : bool(user_kmi.ctrl),
-            'shift' : bool(user_kmi.shift),
-            'alt' : bool(user_kmi.alt),
-            'any' : bool(user_kmi.any),
-            'oskey' : bool(user_kmi.oskey),
-            'key_modifier' : user_kmi.key_modifier,
-            'active' : user_kmi.active
-        }
-        if bpy.app.version >= (4, 5, 0):
-            data['key_kwargs']['hyper'] = bool(user_kmi.hyper)
-
-        all_keymap_data[kmi_hash] = data
-    return all_keymap_data
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]

@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Object, FCurve
+from bpy.types import Object, FCurve, Operator
 from bpy.props import BoolProperty
 
 from ..generation.naming import uniqify
-from ..generation.cloudrig import register_hotkey, CloudRigOperator
 from ..utils.rig import get_current_rigs
+from ..bs_utils.hotkeys import register_hotkey
 
 
 class BoneDuplicateOpMixin:
@@ -106,7 +106,7 @@ def copy_drivers_of_bone(
     return new_drivers
 
 
-class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
+class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
     bl_idname = "armature.better_bone_extrude"
     bl_description = "Extrude a bone and increment its name. Hold Shift when confirming the extrusion to leave the name as it is"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
@@ -127,7 +127,7 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, CloudRigOperator):
         bpy.ops.armature.extrude_move(False)
 
 
-class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, CloudRigOperator):
+class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
     bl_idname = "armature.better_bone_duplicate"
     bl_description = "Duplicate a bone and increment its name. Hold Shift to leave the name as it is"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
@@ -153,11 +153,11 @@ def register():
     register_hotkey(
         ARMATURE_OT_better_bone_extrude.bl_idname,
         hotkey_kwargs={'type': 'E', 'value': 'PRESS'},
-        key_cat='Armature',
+        keymap_name='Armature',
     )
 
     register_hotkey(
         ARMATURE_OT_better_bone_duplicate.bl_idname,
         hotkey_kwargs={'type': 'D', 'value': 'PRESS', 'shift': True},
-        key_cat='Armature',
+        keymap_name='Armature',
     )

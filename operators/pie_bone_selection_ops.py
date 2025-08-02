@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Bone, EditBone, PoseBone
+from bpy.types import Bone, EditBone, PoseBone, Operator
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
-from ..generation.cloudrig import CloudRigOperator
 from ..utils.rig import get_selected_bone_tuples, get_active_bone
 
 
@@ -132,7 +131,7 @@ class BoneSelectOperatorMixin:
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
     "Select this bone.\n\n" \
     "Shift: Extend selection"
 
@@ -170,7 +169,7 @@ class POSE_OT_select_bone_by_name(CloudRigOperator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name_relation(CloudRigOperator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
     """Select a bone with a name relation. Intended to be used with user-defined shortcuts"""
 
     bl_idname = "pose.select_bone_by_name_relation"
@@ -268,7 +267,7 @@ class POSE_OT_select_bone_by_name_relation(CloudRigOperator, BoneSelectOperatorM
         return {'FINISHED'}
 
 
-class POSE_OT_select_parent_bone(CloudRigOperator, BoneSelectOperatorMixin):
+class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
     """Select parent of the current bone"""
 
     bl_idname = "pose.select_parent_bone"
@@ -286,7 +285,7 @@ class POSE_OT_select_parent_bone(CloudRigOperator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-class POSE_OT_select_bone_by_name_search(CloudRigOperator, BoneSelectOperatorMixin):
+class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
     """Search for a bone name to select"""
 
     bl_idname = "bone.select_by_name_search"

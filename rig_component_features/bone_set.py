@@ -9,6 +9,7 @@ from bpy.types import (
     EditBone,
     FCurve,
     Object,
+    Operator,
 )
 from rna_prop_ui import rna_idprop_has_properties
 
@@ -18,7 +19,6 @@ from collections import OrderedDict
 from bl_ui.generic_ui_list import draw_ui_list
 from .bone_info import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 from ..utils.rig import get_pbone_of_active
-from ..generation.cloudrig import CloudRigOperator
 from ..bs_utils.prefs import get_addon_prefs
 
 
@@ -507,7 +507,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
 
 
 
-class CLOUDRIG_OT_bone_set_collection_add(CloudRigOperator):
+class CLOUDRIG_OT_bone_set_collection_add(Operator):
     """Add bone set collection"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_add"
@@ -523,7 +523,7 @@ class CLOUDRIG_OT_bone_set_collection_add(CloudRigOperator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_bone_set_collection_remove(CloudRigOperator):
+class CLOUDRIG_OT_bone_set_collection_remove(Operator):
     """Remove bone set collection"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_remove"
@@ -559,7 +559,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(CloudRigOperator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_bone_set_collection_reset(CloudRigOperator):
+class CLOUDRIG_OT_bone_set_collection_reset(Operator):
     """Reset collection assignments of this Bone Set to the default list"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_reset"

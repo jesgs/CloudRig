@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy, os, traceback
-from bpy.types import Object, PropertyGroup, Collection, Text, Action
+from bpy.types import Object, PropertyGroup, Collection, Text, Action, Operator
 from bpy.props import (
     BoolProperty,
     PointerProperty,
@@ -37,13 +37,12 @@ from ..bs_utils.properties import (
     copy_property_group,
 )
 from ..bs_utils.prefs import get_addon_prefs
+from ..bs_utils.hotkeys import register_hotkey
 
 from .cloudrig import (
-    register_hotkey,
     is_active_cloud_metarig,
     is_active_cloudrig,
     is_cloud_metarig,
-    CloudRigOperator,
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
 from .actions_component import ActionLayerComponent
@@ -871,7 +870,7 @@ def focus_select_obj(context, obj):
     context.view_layer.objects.active = obj
 
 
-class CLOUDRIG_OT_generate(CloudRigOperator):
+class CLOUDRIG_OT_generate(Operator):
     """Generates a rig from the active metarig armature using the CloudRig generator"""
 
     bl_idname = "pose.cloudrig_generate"
@@ -1155,6 +1154,5 @@ def register():
     register_hotkey(
         CLOUDRIG_OT_generate.bl_idname,
         hotkey_kwargs={'type': "R", 'value': "PRESS", 'ctrl': True, 'alt': True},
-        key_cat="3D View",
-        space_type='VIEW_3D',
+        keymap_name="3D View",
     )

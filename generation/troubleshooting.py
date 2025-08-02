@@ -88,12 +88,9 @@ def url_prefill_from_cloudrig(stack_trace=""):
         )
     )
 
-    cloudrig_folder_name = os.path.dirname(__file__).split(os.sep)[-2]
-    from .. import bl_info
-
-    cloudrig_version = bl_info['version']
-    last_modified = cloudrig_last_modified()
-    fh.write(f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n")
+    # TODO: Find way to get extension version now that we don't have bl_info.
+    # last_modified = cloudrig_last_modified()
+    # fh.write(f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n")
 
     if stack_trace != "":
         fh.write("\nStack trace\n```\n" + stack_trace + "\n```\n")

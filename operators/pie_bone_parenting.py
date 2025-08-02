@@ -6,9 +6,9 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Menu, EditBone, PoseBone, Object
+from bpy.types import Menu, EditBone, PoseBone, Object, Operator
 from bpy.utils import flip_name
-from ..generation.cloudrig import register_hotkey, CloudRigOperator
+from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_selected_bone_tuples, get_current_rigs, get_active_bone
 
 
@@ -63,7 +63,7 @@ class GenericBoneOperator:
         raise NotImplementedError
 
 
-class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
+class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
     """Disconnect selected bones"""
 
     bl_idname = "pose.disconnect_selected"
@@ -94,7 +94,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
+class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
     """Unparent selected bones"""
 
     bl_idname = "pose.unparent_selected"
@@ -126,7 +126,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, CloudRigOperator):
+class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
     """Parent active bone to all selected bones using Armature constraint"""
 
     bl_idname = "pose.parent_active_to_all_selected"
@@ -182,7 +182,7 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, CloudRigOperato
         return {'FINISHED'}
 
 
-class POSE_OT_parent_selected_to_active(GenericBoneOperator, CloudRigOperator):
+class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
     """Parent selected bones to the active one"""
 
     bl_idname = "pose.parent_selected_to_active"
@@ -319,7 +319,7 @@ class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
         child_eb.use_connect = True
 
 
-class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
+class POSE_OT_parent_object_to_selected_bones(Operator):
     """Parent object to selected bones"""
 
     bl_idname = "pose.parent_object_to_selected_bones"
@@ -366,7 +366,7 @@ class POSE_OT_parent_object_to_selected_bones(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_separate_selected_bones(CloudRigOperator):
+class POSE_OT_separate_selected_bones(Operator):
     """Separate the selected bones into a new armature object"""
 
     bl_idname = "pose.separate_selected_bones"
@@ -479,15 +479,10 @@ registry = [
 
 
 def register():
-    for key_cat, space_type in {
-        ('Pose', 'VIEW_3D'),
-        ('Weight Paint', 'EMPTY'),
-        ('Armature', 'VIEW_3D'),
-    }:
+    for keymap_name in ('Pose', 'Weight Paint', 'Armature'):
         register_hotkey(
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "P", 'value': "PRESS"},
-            key_cat=key_cat,
-            space_type=space_type,
+            keymap_name=keymap_name,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_parenting'},
         )

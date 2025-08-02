@@ -14,8 +14,6 @@ class POSE_PT_CloudRig(Panel):
     bl_context = 'data'
     bl_options = {'DEFAULT_CLOSED'}
 
-    cloudrig_keymap_items: dict[int, tuple["KeyConfig", "KeyMap", "KeyMapItem", bool]] = {}
-
     @classmethod
     def poll(cls, context):
         rig = context.object
@@ -107,7 +105,3 @@ class POSE_PT_CloudRig_Generation(Panel):
 
 
 registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation]
-
-def unregister():
-    for kmi_hash, (kc, km, kmi) in list(POSE_PT_CloudRig.cloudrig_keymap_items.items()):
-        km.keymap_items.remove(kmi)

@@ -1,15 +1,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Menu, PoseBone
+from bpy.types import Menu, PoseBone, Operator
 from bpy.props import EnumProperty
 from mathutils import Matrix
 
-from ..generation.cloudrig import register_hotkey, CloudRigOperator, find_metarig_of_rig
+from ..generation.cloudrig import find_metarig_of_rig
 from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items, LIBRARY_WIDGETS
 from ..rig_component_features.object import EnsureVisible
+from ..bs_utils.hotkeys import register_hotkey
 
-class POSE_OT_unassign_custom_shape(CloudRigOperator):
+class POSE_OT_unassign_custom_shape(Operator):
     """Unassign custom shapes from all selected pose bones"""
 
     bl_idname = "pose.unassign_custom_shape"
@@ -37,7 +38,7 @@ class POSE_OT_unassign_custom_shape(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
+class POSE_OT_assign_selected_custom_shape(Operator):
     """Assign a CloudRig custom shape or an object whose name starts with WGT- to the selected pose bones"""
 
     bl_idname = "pose.assign_selected_custom_shape"
@@ -87,7 +88,7 @@ class POSE_OT_assign_selected_custom_shape(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_reload_selected_custom_shape(CloudRigOperator):
+class POSE_OT_reload_selected_custom_shape(Operator):
     """Reload custom shapes of selected pose bones from the Widgets.blend file"""
 
     bl_idname = "pose.reload_custom_shapes"
@@ -121,7 +122,7 @@ class POSE_OT_reload_selected_custom_shape(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_copy_custom_shape_to_selected_bones(CloudRigOperator):
+class POSE_OT_copy_custom_shape_to_selected_bones(Operator):
     """Copy custom shape of the active bone to all selected bones"""
 
     bl_idname = "pose.copy_custom_shape_to_selected_bones"
@@ -157,7 +158,7 @@ class POSE_OT_copy_custom_shape_to_selected_bones(CloudRigOperator):
 widgets_visible = []
 
 
-class POSE_OT_edit_widget_of_selected_bones(CloudRigOperator):
+class POSE_OT_edit_widget_of_selected_bones(Operator):
     """Edit custom shape of selected bones"""
 
     bl_idname = "pose.edit_widget_of_selected_bones"
@@ -254,7 +255,7 @@ class POSE_OT_edit_widget_of_selected_bones(CloudRigOperator):
         return {'FINISHED'}
 
 
-class MESH_OT_return_to_pose_mode(CloudRigOperator):
+class MESH_OT_return_to_pose_mode(Operator):
     """Return from custom shape editing back to the rig"""
 
     bl_idname = "mesh.return_to_pose_mode"
@@ -339,7 +340,7 @@ class POSE_OT_duplicate_and_edit_widget_of_selected_bones(
         return super().execute(context)
 
 
-class POSE_OT_assign_selected_object_as_custom_shape(CloudRigOperator):
+class POSE_OT_assign_selected_object_as_custom_shape(Operator):
     """Assign selected mesh object to all selected bones"""
 
     bl_idname = "pose.assign_selected_object_as_custom_shape"
@@ -371,7 +372,7 @@ class POSE_OT_assign_selected_object_as_custom_shape(CloudRigOperator):
         return {'FINISHED'}
 
 
-class POSE_OT_edit_custom_shape_transforms(CloudRigOperator):
+class POSE_OT_edit_custom_shape_transforms(Operator):
     """Edit custom shape transforms. Like with any Blender property, you can hold Alt while dragging, to affect all selected bones"""
 
     bl_idname = "pose.edit_custom_shape_transforms"
@@ -473,21 +474,16 @@ registry = [
 
 
 def register():
-    for key_cat, space_type in {
-        ('Pose', 'VIEW_3D'),
-        ('Weight Paint', 'EMPTY'),
-    }:
+    for keymap_name in ('Pose', 'Weight Paint'):
         register_hotkey(
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "E", 'value': "PRESS", 'alt': True, 'ctrl': True},
-            key_cat=key_cat,
-            space_type=space_type,
+            keymap_name=keymap_name,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_edit_custom_shape'},
         )
 
     register_hotkey(
         'mesh.return_to_pose_mode',
         hotkey_kwargs={'type': "E", 'value': "PRESS", 'alt': True, 'ctrl': True},
-        key_cat="Mesh",
-        space_type='EMPTY',
+        keymap_name="Mesh",
     )
