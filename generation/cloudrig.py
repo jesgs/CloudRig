@@ -6,9 +6,8 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-import bpy, json, ast, re, contextlib, hashlib
+import bpy, json, ast, re, contextlib, hashlib, sys, importlib
 from collections import OrderedDict, defaultdict
-from pathlib import Path
 from mathutils import Matrix, Vector
 from math import acos, pi
 
@@ -36,12 +35,15 @@ from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 from bl_ui.generic_ui_list import draw_ui_list
 
-cloudrig_addon = False
-if __package__ and "CloudRig" in __package__:
-    cloudrig_addon = True
-
-if cloudrig_addon:
-    from .. import icons
+for module_name in sys.modules:
+    if module_name.endswith("CloudRig"):
+        CloudRig = importlib.import_module(module_name)
+        post_gen = CloudRig.utils.post_gen
+        icons = CloudRig.icons
+        cloudrig_addon = True
+        break
+else:
+    cloudrig_addon = False
 
 
 #######################################
