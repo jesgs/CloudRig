@@ -50,6 +50,7 @@ class Component_TweakBone(Component_Base):
             tweak_bone.head = org_bi.head.copy()
             tweak_bone.tail = org_bi.tail.copy()
             tweak_bone.roll = org_bi.roll
+            tweak_bone.roll_type = ""
             tweak_bone.bbone_x = org_bi.bbone_x
             tweak_bone.bbone_z = org_bi.bbone_z
 
