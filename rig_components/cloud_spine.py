@@ -58,18 +58,20 @@ class Component_Spine_IKFK(Component_Chain_FK):
         """Overrides cloud_fk_chain."""
 
         # Create Torso Master control
-        torso_root_bone = self.bone_sets['Spine Main Controls'].new(
+        self.torso_bone = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
             custom_shape_name="Torso_Master",
         )
-        return torso_root_bone
+        return self.torso_bone
 
     def make_fk_chain(self, org_chain) -> list[BoneInfo]:
         """Overrides cloud_fk_chain."""
         fk_chain = super().make_fk_chain(org_chain)
+
+        fk_chain[0].parent = self.torso_bone
 
         # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
@@ -286,7 +288,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 'description': "Switch to an IK-like posing mode. Instead of posing the spine from bottom to top, this lets you control the two end points in an intuitive way"
             },
         )
-
 
     def make_main_str_bone(
         self, org_chain: BoneInfo, org_i: int, at_tip=False
