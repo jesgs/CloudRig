@@ -134,13 +134,16 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
         )
 
         # 7) <v Toggle Pose Symmetry.
-        pie.prop(
-            rig.pose,
-            'use_mirror_x',
-            toggle=True,
-            icon='MOD_MIRROR',
-            text="Toggle Pose X-Mirror",
-        )
+        if rig.pose:
+            pie.prop(
+                rig.pose,
+                'use_mirror_x',
+                toggle=True,
+                icon='MOD_MIRROR',
+                text="Toggle Pose X-Mirror",
+            )
+        else:
+            pie.separator()
 
         # 8) v> Leave empty.
         pie.separator()

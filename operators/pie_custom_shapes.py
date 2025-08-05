@@ -19,6 +19,8 @@ class POSE_OT_unassign_custom_shape(Operator):
 
     @classmethod
     def poll(cls, context):
+        if not context.selected_pose_bones:
+            return False
         for pb in context.selected_pose_bones:
             if pb.custom_shape:
                 return True
@@ -97,6 +99,8 @@ class POSE_OT_reload_selected_custom_shape(Operator):
 
     @staticmethod
     def get_bones_to_reload(context):
+        if not context.selected_pose_bones:
+            return
         for pb in context.selected_pose_bones:
             if (
                 pb.custom_shape

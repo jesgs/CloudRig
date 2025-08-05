@@ -82,7 +82,8 @@ def align_bone_z_axis_to_vector(ebone, vector):
 
     vec_a = ebone.z_axis.normalized()
     vec_b = (projected - ebone.head).normalized()
+    if vec_b.length == 0:
+        return
     angle = signed_angle_on_plane(vec_a, vec_b, ebone.y_axis)
-
     ebone.roll += angle
     ebone.roll = wrap_angle_pi(ebone.roll)
