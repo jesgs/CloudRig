@@ -12,6 +12,7 @@ from . import (
     copy_mirror_components,
     apply_bone_color_preset,
     restore_deleted_hotkeys,
+    reset_stretch_length,
 )
 
 modules = [
@@ -28,4 +29,5 @@ modules = [
     apply_bone_color_preset,
     pie_custom_shapes,
     restore_deleted_hotkeys,
+    reset_stretch_length,
 ]
