@@ -36,11 +36,11 @@ from bpy.utils import register_class, unregister_class
 from bl_ui.generic_ui_list import draw_ui_list
 
 cr_module_name = next((m for m in sys.modules if m.endswith("CloudRig")), None)
-if cr_module_name.endswith("CloudRig"):
+cloudrig_installed = cr_module_name != None
+if cloudrig_installed:
     cloudrig_module = importlib.import_module(cr_module_name)
     icons = importlib.import_module(cr_module_name + ".icons")
     hotkeys = importlib.import_module(cr_module_name + ".bs_utils.hotkeys")
-cloudrig_installed = cr_module_name != None
 
 #######################################
 ############ Context Checks ###########
