@@ -506,8 +506,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     def components_create_real_bones(self):
         """Create real bones from all BoneInfos.
         No bone data is written yet beside the name.
-        It's useful to create the bones before write_edit_bone_data()
-        so that setting the parents can be done hassle-free.
+        This function should be called before components_write_ebone_data()
+        so that setting the parents can be done without worrying about creation order.
         """
 
         bones_created = []
@@ -541,7 +541,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 bone_info.parent = self.root_bone_info
 
     def components_write_ebone_data(self):
-        # Write edit bone data for BoneInfos.
+        """Write edit bone data for BoneInfos.
+        This function does not create EditBones. 
+        That should be done earlier by calling components_create_real_bones(),
+        so that parenting can be done without worrying about order.
+        """
+
         for bone_info in self.bone_infos_sorted_by_roll_dependency:
             edit_bone = self.target_rig.data.edit_bones.get(bone_info.name)
             bone_info.write_edit_data(self, edit_bone)
@@ -586,7 +591,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if not bone_info.create:
                 continue
             # Ensure bone collections in both the metarig and the target rig.
-            # IS THIS STILL NEEDED?
+            # TODO: Is this still needed?
             for collection_name in bone_info.collections:
                 meta_coll = self.metarig.data.collections_all.get(collection_name)
                 if not meta_coll:
@@ -602,7 +607,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
             pose_bone = target_rig.pose.bones.get(bone_info.name)
             if not pose_bone:
-                # XXX: This should never happen. Should be treated as a bug, probably.
+                # TODO: This should never happen. Should probably be treated as a bug.
                 self.logger.log(
                     "Bone creation failed",
                     base_bone_name=bone_info.owner_component.base_bone_name,
@@ -639,7 +644,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.metarig.rotation_euler = self.rot_bkp.copy()
         self.metarig.scale = self.scale_bkp.copy()
 
-        # Refresh drivers
         refresh_all_drivers()
         refresh_constraints(self.target_rig)
         context.view_layer.update()
@@ -718,11 +722,11 @@ def create_target_rig_obj(context, metarig) -> Object:
 
     # Save generation timestamp to a custom property.
     today = datetime.today()
+    date = f"{today.year}-{today.month}-{today.day}"
     now = datetime.now()
-    target_rig.data['generation_date'] = f"{today.year}-{today.month}-{today.day}"
-    target_rig.data['generation_time'] = (
-        f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
-    )
+    timestamp = (f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}")
+    target_rig.data['generation_date'] = date
+    target_rig.data['generation_time'] = timestamp
 
     # By default, use B-Bone display type.
     target_rig.data.display_type = 'BBONE'
