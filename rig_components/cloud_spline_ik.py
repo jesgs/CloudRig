@@ -148,7 +148,6 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     head=org_bone.head + (unit * i),
                     tail=org_bone.head + (unit * (i + 1)),
                     roll=org_bone.roll,
-                    bbone_width=0.03,
                     use_deform=True,
                 )
 
