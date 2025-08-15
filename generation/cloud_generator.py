@@ -455,7 +455,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         except ValueError:
             self.raise_generation_error(
                 "Failed to load widget",
-                description=f"Failed to load widget named '{widget_name}'.",
+                description=f"Failed to find widget named '{widget_name}'.",
             )
         coll = self.params.widget_collection or context.scene.collection
         assign_to_collection(wgt, coll)
@@ -655,7 +655,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
         self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
-        # self.logger.report_actions()
+        self.logger.report_actions()
 
 
 def ensure_cloudrig_ui(rig):

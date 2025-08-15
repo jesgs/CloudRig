@@ -60,6 +60,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
         for o in data_from.objects:
             if o == wgt_name:
                 data_to.objects.append(o)
+                break
 
     new_wgt_ob = bpy.data.objects.get((wgt_name, rel_path if link else None))
     if not new_wgt_ob:
@@ -71,8 +72,12 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
                 old_wgt_ob.data.name = wgt_name
             return old_wgt_ob
         else:
-            # We failed to import anything, AND we didn't have anything... So, we are sad.
-            raise ValueError(f"Widget not found: '{wgt_name}' '{rel_path}'")
+            # We failed to import matching widget, AND we didn't find one locally... So, we are sad.
+            if " " in wgt_name:
+                # Last resot: Try replacing space with underscore, and go again.
+                return ensure_widget(wgt_name.replace(" ", "_"), overwrite=overwrite, clear_asset=clear_asset)
+            else:
+                raise ValueError(f"Widget not found: '{wgt_name}' '{rel_path}'")
     elif new_wgt_ob == old_wgt_ob:
         return old_wgt_ob
     elif old_wgt_ob and overwrite:
