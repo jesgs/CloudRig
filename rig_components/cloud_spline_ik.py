@@ -142,7 +142,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 count_def_bone += 1
 
                 unit = org_bone.vector / segments
-                def_bone = self.bone_sets['Curve Deform Bones'].new(
+                def_bone = self.bone_sets['Deform Bones'].new(
                     name=def_name,
                     source=org_bone,
                     head=org_bone.head + (unit * i),
@@ -152,12 +152,12 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     use_deform=True,
                 )
 
-                if len(self.bone_sets['Curve Deform Bones']) > 1:
-                    def_bone.parent = self.bone_sets['Curve Deform Bones'][-2]
+                if len(self.bone_sets['Deform Bones']) > 1:
+                    def_bone.parent = self.bone_sets['Deform Bones'][-2]
                 else:
                     def_bone.parent = self.bones_org[0]
 
-        return self.bone_sets['Curve Deform Bones']
+        return self.bone_sets['Deform Bones']
 
     def add_spline_ik(self, bone_chain):
         # Add constraint to deform chain
@@ -192,7 +192,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         self.target_rig.data.pose_position = 'POSE'
         bpy.ops.object.mode_set(mode='EDIT')
 
-        for def_bi in self.bone_sets['Curve Deform Bones']:
+        for def_bi in self.bone_sets['Deform Bones']:
             eb = self.target_rig.data.edit_bones.get(def_bi.name)
             if not eb:
                 continue
@@ -206,20 +206,14 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     # Parameters
 
     @classmethod
-    def define_bone_sets(cls):
-        super().define_bone_sets()
-        """Create parameters for this rig's bone sets."""
-        cls.define_bone_set(
-            'Curve Deform Bones', collections=['Deform Bones'], is_advanced=True
-        )
-
-    @classmethod
     def curve_selector_ui(cls, layout, context, params):
         """Overrides cloud_curve to disable the curve selection."""
         row = cls.draw_prop(
             context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE'
         )
-        if row:
+        if not cls.is_advanced_mode(context):
+            # We don't usually want user to be able to edit the curve object,
+            # but when duplicating a component bone, we need to be able to clear the pointer.
             row.enabled = False
 
     @classmethod

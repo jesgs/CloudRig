@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
-from bpy.props import BoolProperty, StringProperty, PointerProperty
+from bpy.props import BoolProperty, StringProperty, PointerProperty, FloatProperty
 from mathutils import Matrix, Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -271,12 +271,12 @@ class Component_Curve_Hooked(Component_Base):
 
         is_bezier = type(point) == BezierSplinePoint
         if is_bezier:
-            shape = 'Curve_Point'
+            shape = self.params.curve.widget_point
             left_handle_loc = worldspace(point.handle_left)
             right_handle_loc = worldspace(point.handle_right)
             tail = left_handle_loc
         else:
-            shape = 'Curve_Handle'
+            shape = self.params.curve.widget_handle
             spline = self.params.curve.target.data.splines[spline_idx]
             if len(points) > point_idx+1:
                 tail = points[point_idx+1].co
@@ -294,6 +294,7 @@ class Component_Curve_Hooked(Component_Base):
             name=self.make_hook_name(spline_idx, point_idx),
             source=source_bone,
             use_custom_shape_bone_size=True,
+            custom_shape_scale=self.params.curve.widget_size,
             head=point_loc,
             tail=tail,
             parent=parent_bone,
@@ -338,7 +339,7 @@ class Component_Curve_Hooked(Component_Base):
                 source=hook_ctr,
                 tail=loc_left,
                 use_custom_shape_bone_size=True,
-                custom_shape_scale=0.8,
+                custom_shape_scale=self.params.curve.widget_size * 0.8,
                 parent=hook_ctr,
                 custom_shape_name="Circle",
             )
@@ -364,7 +365,7 @@ class Component_Curve_Hooked(Component_Base):
                 head=loc,
                 tail=loc_left,
                 parent=hook_ctr,
-                custom_shape_name="Curve_Handle",
+                custom_shape_name=self.params.curve.widget_handle,
                 use_custom_shape_bone_size=False,
                 roll=0,
                 roll_type='ALIGN',
@@ -388,7 +389,7 @@ class Component_Curve_Hooked(Component_Base):
                 roll=0,
                 roll_type='ALIGN',
                 roll_bone=hook_ctr,
-                custom_shape_name="Curve_Handle",
+                custom_shape_name=self.params.curve.widget_handle,
                 use_custom_shape_bone_size=False,
             )
             hook_ctr.right_handle_control = handle_right_ctr
@@ -633,10 +634,24 @@ class Component_Curve_Hooked(Component_Base):
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
-        # We only want to draw Curve Handles bone set UI if the option for it is enabled.
         if set_name == 'curve_handles':
             return params.curve.controls_for_handles
+
+        if set_name == 'curve_root':
+            return params.curve.create_root
+
+        if set_name == 'spline_roots':
+            return params.curve.root_per_spline and params.curve.target and len(params.curve.target.data.splines) > 1
+
         return super().is_bone_set_used(context, rig, params, set_name)
+
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        layout.separator()
+        cls.draw_prop_widget(context, layout, params.curve, 'widget_point')
+        cls.draw_prop_widget(context, layout, params.curve, 'widget_handle')
+        cls.draw_prop(context, layout, params.curve, 'widget_size', text="Size")
+        return layout
 
     @classmethod
     def curve_selector_ui(cls, layout, context, params):
@@ -709,5 +724,20 @@ class Params(PropertyGroup):
 
     target: PointerProperty(name="Curve", type=Object, poll=is_curve)
 
+    widget_handle: StringProperty(
+        name="Curve Handle Widget",
+        description="Widget for curve handles",
+        default='Curve_Handle'
+    )
+    widget_point: StringProperty(
+        name="Curve Point Widget",
+        description="Widget for curve points",
+        default='Curve_Point'
+    )
+    widget_size: FloatProperty(
+        name="Widget Size",
+        description="Size for curve widgets",
+        default=1.0,
+    )
 
 RIG_COMPONENT_CLASS = Component_Curve_Hooked
