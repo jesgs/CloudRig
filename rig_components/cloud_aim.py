@@ -97,7 +97,7 @@ class Component_Aim(Component_Base):
             custom_shape_name="Circle",
         )
 
-        ctr_bone.add_constraint('COPY_ROTATION', subtarget=aim_bone.name)
+        ctr_bone.add_constraint('COPY_ROTATION', subtarget=aim_bone.name, mix_mode='AFTER')
 
         # Lock all location and Y scale
         self.lock_transforms(ctr_bone, loc=True, rot=False, scale=[False, True, False])
