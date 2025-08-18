@@ -1,10 +1,15 @@
 # What is CloudRig?
-CloudRig is a rig generation add-on for Blender, developed by the Blender Studio for our Open Movies.
+CloudRig is a rig generation [extension](https://extensions.blender.org/add-ons/cloudrig/) for Blender, developed by the Blender Studio for our Open Movies.
 
 You can support the development of CloudRig by [becoming a Blender Studio subscriber](https://studio.blender.org/)!
 
 ## Installation
 You can install directly from within Blender, by searching for CloudRig inside the "Get Extensions" panel.
+
+### Bleeding Edge
+If you want to use the latest commit of CloudRig (eg. for use with the latest daily build of Blender), you can download or clone this repo and place or symlink it to a folder which you've browsed in Blender as a local extension repository folder, or into your `user_default` extensions folder.
+To clone the repo, you must pass --recurse-submodules:
+`git clone --recurse-submodules git@git.blender.org:Mets/CloudRig.git`
 
 # Getting Started
 Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Human**.
