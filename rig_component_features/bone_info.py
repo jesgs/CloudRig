@@ -408,6 +408,7 @@ class BoneInfo:
         self.custom_shape_rotation_euler = other.custom_shape_rotation_euler
         self.custom_shape_scale_xyz = other.custom_shape_scale_xyz
         self.use_custom_shape_bone_size = other.use_custom_shape_bone_size
+        self.custom_shape_wire_width = other.custom_shape_wire_width
         self.use_custom_shape_bbone_scaling = False
 
     def get_constraint(self, name):

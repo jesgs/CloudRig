@@ -44,9 +44,12 @@ class Component_Lattice(Component_Base):
             name=root_name,
             source=org_bi,
             parent=org_bi.parent,
-            custom_shape_name="Cube",
-            use_custom_shape_bone_size=True,
         )
+        if org_bi.custom_shape:
+            root_bone.copy_custom_shape(org_bi)
+        else:
+            root_bone.custom_shape_name="Cube"
+            root_bone.use_custom_shape_bone_size=True
         return root_bone
 
     def make_hook_ctrl(self, root_bone):
