@@ -491,6 +491,23 @@ class CloudLogManager:
                         description=f'Driver `{fc.data_path}` is trying to read local transforms from bone "{target_bone.name}", but this bone has an Armature constraint, which moves its parenting matrix into its local matrix, making it unviable as a driver target. Move the Armature constraint to a parent, or remove the driver.',
                     )
 
+    def report_sus_constraints(self, rig_obj):
+        for pb in rig_obj.pose.bones:
+            arm_con = None
+            for con in pb.constraints:
+                if con.type=='ARMATURE':
+                    if not arm_con:
+                        arm_con = con
+                    else:
+                        self.log(
+                            "Multiple Armature Constraints",
+                            note=pb.name,
+                            trouble_bone=pb.name,
+                            icon='CON_ARMATURE',
+                            description=f'This bone has multiple Armature constraints, which is unlikely to be intentional.'
+                        )
+                        break
+
 
 class CloudRigLogEntry(PropertyGroup):
     """Container for storing information about a single metarig warning/error.

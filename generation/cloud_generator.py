@@ -655,6 +655,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
         self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
+        self.logger.report_sus_constraints(self.target_rig)
         self.logger.report_actions()
 
 
