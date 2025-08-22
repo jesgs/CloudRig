@@ -509,7 +509,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         super().draw_appearance_params(layout, context, params)
         layout.separator()
         cls.draw_prop_widget(context, layout, params.fk_chain, 'widget_fk')
-        cls.draw_prop_widget(context, layout, params.fk_chain, 'widget_root')
+        if params.fk_chain.root:
+            cls.draw_prop_widget(context, layout, params.fk_chain, 'widget_root')
         cls.draw_prop(context, layout, params.fk_chain, 'display_center')
         return layout
 
