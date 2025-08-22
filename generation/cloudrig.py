@@ -2805,7 +2805,7 @@ class ARMATURE_OT_bone_collections_popup(Operator):
         else:
             rig = context.active_object
 
-        layout.row().template_list(
+        layout.template_list(
             'CLOUDRIG_UL_collections',
             'Bone Collections Popover List',
             rig.data,

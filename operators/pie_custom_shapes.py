@@ -391,7 +391,7 @@ class POSE_OT_edit_bone_display_props(Operator, bpy.types.BONE_PT_display):
         return True
 
     def invoke(self, context, _event):
-        return context.window_manager.invoke_props_dialog(self, width=400)
+        return context.window_manager.invoke_popup(self, width=400)
 
     def draw(self, context):
         # TODO: This UI should work in Pose/Edit/WP mode and be upstreamed to BONE_PT_display_custom_shape.
