@@ -376,11 +376,11 @@ class POSE_OT_assign_selected_object_as_custom_shape(Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_edit_custom_shape_transforms(Operator):
-    """Edit custom shape transforms. Like with any Blender property, you can hold Alt while dragging, to affect all selected bones"""
+class POSE_OT_edit_bone_display_props(Operator, bpy.types.BONE_PT_display):
+    """Edit bone display properties. Like with any Blender property, you can hold Alt while dragging, to affect all selected bones"""
 
-    bl_idname = "pose.edit_custom_shape_transforms"
-    bl_label = "Edit Transforms"
+    bl_idname = "pose.edit_bone_display_props"
+    bl_label = "Edit Bone Display Properties"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod
@@ -394,25 +394,54 @@ class POSE_OT_edit_custom_shape_transforms(Operator):
         return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
+        # TODO: This UI should work in Pose/Edit/WP mode and be upstreamed to BONE_PT_display_custom_shape.
+        layout = self.layout.column()
         layout.use_property_decorate = False
+        layout.use_property_split = True
+        pbone = context.active_pose_bone
+        bone = pbone.bone
 
-        pb = context.active_pose_bone
+        if not (pbone and bone):
+            return
 
-        layout.prop(pb, 'custom_shape_translation', text="Location")
-        layout.prop(pb, 'custom_shape_rotation_euler', text="Rotation")
-        layout.prop(pb, 'custom_shape_scale_xyz', text="Scale")
+        self.draw_bone_color_settings(layout, pbone)
+        layout.separator()
+        self.draw_bone_shape_settings(layout, pbone)
 
-        length = pb.bone.length
-        layout.prop(
-            pb,
-            'use_custom_shape_bone_size',
-            text=f"Scale to Bone Length (x{length:.2f})",
-        )
-        layout.prop_search(
-            pb, 'custom_shape_transform', pb.id_data.pose, 'bones', text="Override"
-        )
+    def draw_bone_color_settings(self, layout, pbone):
+        layout.separator()
+        row = layout.row(align=True)
+        row.prop(pbone.bone.color, "palette", text="Bone Color")
+        props = row.operator("armature.copy_bone_color_to_selected", text="", icon='UV_SYNC_SELECT')
+        props.bone_type = 'EDIT'
+        self.draw_bone_color_ui(layout, pbone.bone.color)
+
+        row = layout.row(align=True)
+        row.prop(pbone.color, "palette", text="Pose Bone Color")
+        props = row.operator("armature.copy_bone_color_to_selected", text="", icon='UV_SYNC_SELECT')
+        props.bone_type = 'POSE'
+        self.draw_bone_color_ui(layout, pbone.color)
+
+    def draw_bone_shape_settings(self, layout, pbone):
+        layout.prop(pbone, "custom_shape", text="Custom Shape Object")
+
+        if not pbone.custom_shape:
+            layout.prop(pbone.bone, "display_type", text="Display As")
+            return
+
+        layout.prop_search(pbone, "custom_shape_transform", pbone.id_data.pose, "bones", text="Override Transform")
+        if pbone.custom_shape.type != 'MESH' or len(pbone.custom_shape.data.polygons) > 0:
+            layout.prop(pbone.bone, "show_wire", text="Force Wireframe")
+
+        layout.prop(pbone, "custom_shape_translation", text="Translation")
+        layout.prop(pbone, "custom_shape_rotation_euler", text="Rotation")
+        layout.prop(pbone, "custom_shape_scale_xyz", text="Scale")
+
+        length = pbone.bone.length
+        layout.prop(pbone, "use_custom_shape_bone_size", text=f"Scale to Bone Length (x{length:.2f})")
+        layout.separator()
+
+        layout.prop(pbone, "custom_shape_wire_width")
 
     def execute(self, context):
         return {'FINISHED'}
@@ -425,8 +454,10 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
         layout = self.layout
         pie = layout.menu_pie()
 
+        plural = "s" if len(context.selected_pose_bones) > 1 else ""
+
         # 1) < Unassign Widget.
-        pie.operator(POSE_OT_unassign_custom_shape.bl_idname, icon='X')
+        pie.operator(POSE_OT_unassign_custom_shape.bl_idname, icon='X', text=f"Unassign Custom Shape{plural}")
 
         # 2) > Assign Widget from list.
         pie.operator(
@@ -435,7 +466,7 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
 
         # 3) v Reload Widget? (If it's in Widgets.blend).
         pie.operator(
-            POSE_OT_reload_selected_custom_shape.bl_idname, icon='FILE_REFRESH'
+            POSE_OT_reload_selected_custom_shape.bl_idname, icon='FILE_REFRESH', text=f"Reload Shape{plural}"
         )
 
         # 4) ^ Copy Widget to Selected.
@@ -444,11 +475,11 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
         )
 
         # 5) <^ Edit Custom Shape Transforms.
-        pie.operator(POSE_OT_edit_custom_shape_transforms.bl_idname, icon='CON_LOCLIKE')
+        pie.operator(POSE_OT_edit_bone_display_props.bl_idname, icon='PROPERTIES', text="Edit Properties")
 
         # 6) ^> Duplicate & Edit Widget.
         pie.operator(
-            POSE_OT_duplicate_and_edit_widget_of_selected_bones.bl_idname,
+            POSE_OT_duplicate_and_edit_widget_of_selected_bones.bl_idname, text=f"Duplicate & Edit Shape{plural}",
             icon='DUPLICATE',
         )
 
@@ -459,7 +490,7 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
 
         # 8) v> Edit Widget (if ob isn't linked).
         pie.operator(
-            POSE_OT_edit_widget_of_selected_bones.bl_idname, icon='GREASEPENCIL'
+            POSE_OT_edit_widget_of_selected_bones.bl_idname, icon='GREASEPENCIL', text=f"Edit Shape{plural}"
         )
 
 
@@ -472,7 +503,7 @@ registry = [
     POSE_OT_edit_widget_of_selected_bones,
     MESH_OT_return_to_pose_mode,
     POSE_OT_assign_selected_object_as_custom_shape,
-    POSE_OT_edit_custom_shape_transforms,
+    POSE_OT_edit_bone_display_props,
     CLOUDRIG_MT_PIE_edit_custom_shape,
 ]
 
