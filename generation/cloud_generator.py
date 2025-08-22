@@ -50,6 +50,21 @@ from . import selection_sets
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
+    custom_shapes_transforms: BoolProperty(
+        name="Custom Shape Transforms",
+        description="Copy custom shape transforms (scale, translation, rotation) from previous rig if available",
+        default=True,
+    )
+    custom_shapes: BoolProperty(
+        name="Custom Shapes",
+        description="Assign mesh custom shapes by names of bones to pose bones after generation",
+        default=True,
+    )
+    mirror_custom_shapes: BoolProperty(
+        name="Mirror Custom Shapes",
+        description="Mirror custom shapes for .L/.R bones if only one side exists",
+        default=True,
+    )
     metarig_version: IntProperty(
         name="Metarig Version",
         description="Used for automatic versioning of metarigs",
@@ -279,6 +294,22 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         metarig = self.metarig
 
+        ### Saving rotation, scale, transform of every bone shape
+        old_rig = self.params.target_rig
+        custom_shape_transforms = {}
+        if old_rig and old_rig.pose:
+            for pb in old_rig.pose.bones:
+                custom_shape_transforms[pb.name] = {
+                    'scale_xyz': pb.custom_shape_scale_xyz[:]
+                        if hasattr(pb, 'custom_shape_scale_xyz') else None,
+                    'translation': pb.custom_shape_translation[:]
+                        if hasattr(pb, 'custom_shape_translation') else None,
+                    'rotation_euler': pb.custom_shape_rotation_euler[:]
+                        if hasattr(pb, 'custom_shape_rotation_euler') else None,
+                }
+
+
+
         metarig.data.name = self.metarig.name
         self.params.metarig_version = get_addon_prefs(context).cloud_metarig_version
         self.driver_map = map_pbones_to_drivers(self.metarig)
@@ -373,7 +404,87 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         self.target_rig.data.name = self.target_rig.name
 
+         # Assign local mesh custom shapes to pose bones, with .L/.R mirroring logic
+        assign_shapes = getattr(self.params, 'custom_shapes', True)
+        mirror_shapes = getattr(self.params, 'mirror_custom_shapes', True)
+        if assign_shapes:
+            bone_names = [pb.name for pb in self.target_rig.pose.bones]
+            assigned = set()
+            for pose_bone in self.target_rig.pose.bones:
+                name = pose_bone.name
+                if name in assigned:
+                    continue
+                wgt_name = "WGT-" + name
+                local_wgt = bpy.data.objects.get(wgt_name)
+                # Check for .L/.R mirroring
+                if mirror_shapes and (name.endswith('.L') or name.endswith('.R')):
+                    side = '.L' if name.endswith('.L') else '.R'
+                    other_side = '.R' if side == '.L' else '.L'
+                    base = name[:-2]
+                    other_name = base + other_side
+                    other_wgt_name = "WGT-" + other_name
+                    local_wgt_other = bpy.data.objects.get(other_wgt_name)
+                    pb_other = self.target_rig.pose.bones.get(other_name)
+                    # If both meshes exist, assign as usual
+                    if local_wgt and local_wgt_other and local_wgt.type == 'MESH' and local_wgt_other.type == 'MESH':
+                        pose_bone.custom_shape = local_wgt
+                        if pb_other:
+                            pb_other.custom_shape = local_wgt_other
+                        assigned.add(name)
+                        assigned.add(other_name)
+                    # If only one mesh exists, assign it to both bones
+                    elif local_wgt and local_wgt.type == 'MESH' and (not local_wgt_other or local_wgt_other.type != 'MESH'):
+                        pose_bone.custom_shape = local_wgt
+                        if pb_other:
+                            pb_other.custom_shape = local_wgt
+                        assigned.add(name)
+                        assigned.add(other_name)
+                    elif local_wgt_other and local_wgt_other.type == 'MESH' and (not local_wgt or local_wgt.type != 'MESH'):
+                        if pb_other:
+                            pb_other.custom_shape = local_wgt_other
+                        pose_bone.custom_shape = local_wgt_other
+                        assigned.add(name)
+                        assigned.add(other_name)
+                    # If neither mesh exists, do nothing
+                    else:
+                        assigned.add(name)
+                        assigned.add(other_name)
+                else:
+                    # Not a .L/.R bone, or mirroring disabled, assign as usual
+                    if local_wgt and local_wgt.type == 'MESH':
+                        pose_bone.custom_shape = local_wgt
+                    assigned.add(name)
+
+
+        # Apply old transform, scale, rotation to bone shape if custom_shapes_transforms enabled
+        if getattr(self.params, 'custom_shapes_transforms', True):
+            bone_names = [pb.name for pb in self.target_rig.pose.bones]
+            assigned = set()
+            for pose_bone in self.target_rig.pose.bones:
+                name = pose_bone.name
+                if name in assigned:
+                    continue
+                t = custom_shape_transforms.get(name)
+                if t:
+                    self.apply_custom_shape_transform(pose_bone, t)
+                assigned.add(name)
+
         self.restore_rig_states(context)
+    
+    def apply_custom_shape_transform(self, pose_bone, t):
+        """Apply custom shape transform dict t to pose_bone if values differ."""
+        # Scale XYZ
+        if t['scale_xyz'] is not None and hasattr(pose_bone, 'custom_shape_scale_xyz'):
+            if tuple(pose_bone.custom_shape_scale_xyz) != tuple(t['scale_xyz']):
+                pose_bone.custom_shape_scale_xyz = t['scale_xyz']
+        # Translation
+        if t['translation'] is not None and hasattr(pose_bone, 'custom_shape_translation'):
+            if tuple(pose_bone.custom_shape_translation) != tuple(t['translation']):
+                pose_bone.custom_shape_translation = t['translation']
+        # Rotation Euler
+        if t['rotation_euler'] is not None and hasattr(pose_bone, 'custom_shape_rotation_euler'):
+            if tuple(pose_bone.custom_shape_rotation_euler) != tuple(t['rotation_euler']):
+                pose_bone.custom_shape_rotation_euler = t['rotation_euler']
 
     ### Early generation steps.
     def ensure_widget_collection(self, context) -> Collection:

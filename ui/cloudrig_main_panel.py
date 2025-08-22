@@ -91,6 +91,13 @@ class POSE_PT_CloudRig_Generation(Panel):
             act_col = act_row.column()
             act_col.prop(generator, 'test_action', text="")
             act_col.enabled = generator.generate_test_action
+        
+        # Custom Shape Options
+        box = layout.box()
+        row = box.column(align=True)
+        row.prop(generator, 'custom_shapes_transforms', text="Custom Shape Transforms")
+        row.prop(generator, 'custom_shapes', text="Custom Shape")
+        row.prop(generator, 'mirror_custom_shapes', text="Mirror Custom Shapes")
 
         if not prefs.advanced_mode:
             return
