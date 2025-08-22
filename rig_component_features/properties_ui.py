@@ -24,12 +24,11 @@ from ..generation.cloudrig import (
     write_rig_panels,
     find_cloudrig,
 )
-from rna_prop_ui import rna_idprop_ui_create
-from rna_prop_ui import rna_idprop_value_item_type
+from rna_prop_ui import rna_idprop_ui_create, rna_idprop_value_item_type
 
 
 def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
-    data_path = bone_name = self.owner_path
+    data_path = self.owner_path
     prop_name = self.prop_name
 
     # In case a data path wasn't provided, the default property owner is the object itself.
@@ -38,7 +37,9 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
     if data_path and self.use_bone_selector:
         # If user wants to use the bone search selector,
         # we need to help them get the data path to the selected pose bone.
-        data_path = f'pose.bones["{bone_name}"]'
+        data_path = f'pose.bones["{data_path}"]'
+    elif data_path and self.use_coll_selector:
+        data_path = f'data.collections_all["{data_path}"]'
 
     if data_path:
         prop_owner = path_resolve_safe(obj, data_path)
@@ -101,13 +102,26 @@ class CloudRigUIEditOpMixin:
     def update_use_bone_selector(self, context):
         if self.use_bone_selector:
             # If the use_bone_selector was just turned on, extract the bone name from the data path.
+            self.use_coll_selector = False
             if self.owner_path.startswith("pose.bones"):
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
-        elif self.owner_path != '':
+        elif self.owner_path != '' and not self.use_coll_selector:
             # If the use_bone_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'pose.bones["{self.owner_path}"]'
+
+    def update_use_coll_selector(self, context):
+        if self.use_coll_selector:
+            # If the use_coll_selector was just turned on, extract the collection name from the data path.
+            self.use_bone_selector = False
+            if self.owner_path.startswith("data.collections_all"):
+                self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
+            else:
+                self.owner_path = ""
+        elif self.owner_path != '' and not self.use_bone_selector:
+            # If the use_coll_selector was just turned off, turn the bone name into a data path.
+            self.owner_path = f'data.collections_all["{self.owner_path}"]'
 
     def update_owner_path(self, context):
         update_property_selector(self, context)
@@ -141,6 +155,13 @@ class CloudRigUIEditOpMixin:
         name="Data Path",
         update=update_owner_path,
         description="Python data path from the rig to the owner of the property. Can be left empty to look for a property directly on the rig object itself",
+    )
+    use_coll_selector: BoolProperty(
+        name="Use Collection Selector",
+        options={'SKIP_SAVE'},
+        description="Display a collection selector. If disabled, you can manually type in a data path",
+        default=False,
+        update=update_use_coll_selector,
     )
     use_bone_selector: BoolProperty(
         name="Use Bone Selector",
@@ -290,15 +311,17 @@ class CloudRigUIEditOpMixin:
         owner_path = self.init_owner_path or self.owner_path
         self.owner_path = owner_path
 
-        if owner_path.startswith('pose.bones'):
+        if owner_path.startswith('pose.bones') or owner_path.startswith('data.collections_all'):
             prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(
                 self, rig
             )
-            if prop_owner and type(prop_owner) == PoseBone:
+            if prop_owner and type(prop_owner) in (PoseBone, BoneCollection):
                 owner_path = prop_owner.name
 
         if owner_path == "" or owner_path in rig.pose.bones:
             self.use_bone_selector = True
+        elif owner_path in rig.data.collections_all:
+            self.use_coll_selector = True
 
         self.use_parenting = self.parent_ui_path != "[]"
         self.update_property_parent_selector(context)
@@ -315,8 +338,8 @@ class CloudRigUIEditOpMixin:
 
         if not self.draw_owner_box(layout, context):
             return
-        self.draw_prop_box(layout, context)
-        if not self.prop_name and not self.use_batch_add:
+        error = self.draw_prop_box(layout, context)
+        if error:
             return
         self.draw_placement_box(layout, context)
         layout.separator()
@@ -339,9 +362,14 @@ class CloudRigUIEditOpMixin:
             owner_row.prop_search(
                 self, 'owner_path', rig.pose, 'bones', text="Property Bone"
             )
+        elif self.use_coll_selector:
+            owner_row.prop_search(
+                self, 'owner_path', rig.data, 'collections_all', text="Bone Collection"
+            )
         else:
             owner_row.prop(self, 'owner_path')
         owner_row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
+        owner_row.prop(self, 'use_coll_selector', icon='OUTLINER_COLLECTION', text="")
 
         if self.owner_path and not prop_owner:
             # User tried providing a data path, but it didn't path_resolve() to anything.
@@ -374,16 +402,17 @@ class CloudRigUIEditOpMixin:
 
         return True
 
-    def draw_prop_box(self, layout, context):
+    def draw_prop_box(self, layout, context) -> bool:
+        """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
             get_data_paths(self, rig)
         )
 
-        prop_box = layout.box()
+        prop_box = layout.box().column()
         if not prop_owner:
             prop_box.label(text=f'Data path failed to resolve on {rig.name}.')
-            return
+            return True
 
         any_selectable_props = len(context.scene.cloudrig_property_name_selector) > 0
         any_custom_props = has_custom_props(prop_owner)
@@ -396,7 +425,7 @@ class CloudRigUIEditOpMixin:
                 text=f"Add all {len(drawable_props)} custom properties to the UI"
             )
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
-            return
+            return True
 
         if self.use_manual_prop_name or not any_selectable_props:
             prop_row.prop(self, 'prop_name')
@@ -416,7 +445,7 @@ class CloudRigUIEditOpMixin:
 
         if not self.prop_name:
             # User hasn't typed in a property name yet. Don't overwhelm them with the rest of the UI.
-            return
+            return True
 
         prop_settings = None
         if hasattr(prop_owner, 'id_properties_ui'):
@@ -442,7 +471,7 @@ class CloudRigUIEditOpMixin:
                 row = prop_box.row()
                 row.alert = True
                 row.label(text="This is a struct, not a property.", icon='ERROR')
-                return
+                return True
             else:
                 prop_box.label(text=f"Property found.", icon='CHECKMARK')
                 draw_property(
@@ -464,7 +493,9 @@ class CloudRigUIEditOpMixin:
             row = prop_box.row()
             row.alert = True
             row.label(text="Property not found: " + brackets_prop_name, icon='ERROR')
-            return
+            return True
+
+        return False
 
     def draw_placement_box(self, layout, context):
         rig = find_cloudrig(context)
@@ -472,7 +503,7 @@ class CloudRigUIEditOpMixin:
             get_data_paths(self, rig)
         )
 
-        panel_box = layout.box()
+        panel_box = layout.box().column()
         panel_row = panel_box.row()
         panel_row_left = panel_row.row()
         panel_row_right = panel_row.row()
