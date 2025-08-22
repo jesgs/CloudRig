@@ -91,16 +91,16 @@ class POSE_PT_CloudRig_Generation(Panel):
             act_col = act_row.column()
             act_col.prop(generator, 'test_action', text="")
             act_col.enabled = generator.generate_test_action
-        
-        # Custom Shape Options
-        box = layout.box()
-        row = box.column(align=True)
-        row.prop(generator, 'custom_shapes_transforms', text="Custom Shape Transforms")
-        row.prop(generator, 'custom_shapes', text="Custom Shape")
-        row.prop(generator, 'mirror_custom_shapes', text="Mirror Custom Shapes")
 
         if not prefs.advanced_mode:
             return
+        panel_layout, sub_layout = layout.panel(idname="CLOUDRIG_CUSTOM_SHAPES", default_closed=False)
+        panel_layout.label(text="Custom Shapes", icon="MESH_CUBE")
+        if sub_layout:
+            sub_layout.prop(generator, 'preserve_shapes_properties', text="Preserve Properties")
+            sub_layout.prop(generator, 'preserve_custom_shapes', text="Preserve Shapes")
+            sub_layout.prop(generator, 'mirror_custom_shapes', text="Mirror Shapes")
+        
 
         if check_addon(context, 'bone_gizmos'):
             layout.prop(generator, 'auto_setup_gizmos')

@@ -152,3 +152,51 @@ def get_widget_index(wgt_name: str) -> int:
     for i, (identifier, name, description) in enumerate():
         if name == wgt_name:
             return i
+
+
+def get_pbone_custom_shape_data(pb):
+    """
+    Saves all custom shape properties of a pose bone.
+    Returns a dictionary with the object and its settings.
+    """
+    return {
+        "custom_shape": pb.custom_shape,
+        "custom_shape_scale_xyz": pb.custom_shape_scale_xyz.copy(),
+        "custom_shape_translation": pb.custom_shape_translation.copy(),
+        "custom_shape_rotation_euler": pb.custom_shape_rotation_euler.copy(),
+        "use_custom_shape_bone_size": pb.use_custom_shape_bone_size,
+        "custom_shape_wire_width": pb.custom_shape_wire_width,
+        "show_wire": pb.bone.show_wire,
+    }
+
+def set_pbone_custom_shape_data(
+        pb, 
+        data, 
+        custom_shape=False, 
+        mirror_shape=False, 
+        custom_transform=False,
+        ):
+    """
+    Applies the saved custom shape settings to the pose bone.
+    
+    If mirror_shape=True, only the custom_shape object is mirrored (uses flip_name),
+    all other transforms remain as they are.
+    """
+    if custom_shape:
+        shape = data.get("custom_shape")
+        if mirror_shape and shape:
+            flipped_name = bpy.utils.flip_name(shape.name)
+            if flipped_name in bpy.data.objects:
+                shape = bpy.data.objects[flipped_name]
+        pb.custom_shape = shape
+        pb.custom_shape_wire_width = data.get("custom_shape_wire_width", pb.custom_shape_wire_width)
+        if "show_wire" in data:
+            pb.bone.show_wire = data["show_wire"]
+    
+
+    if custom_transform:
+        pb.custom_shape_scale_xyz = data.get("custom_shape_scale_xyz", pb.custom_shape_scale_xyz)
+        pb.custom_shape_translation = data.get("custom_shape_translation", pb.custom_shape_translation)
+        pb.custom_shape_rotation_euler = data.get("custom_shape_rotation_euler", pb.custom_shape_rotation_euler)
+        pb.use_custom_shape_bone_size = data.get("use_custom_shape_bone_size", pb.use_custom_shape_bone_size)
+        
