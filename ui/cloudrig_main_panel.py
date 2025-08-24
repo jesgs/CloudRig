@@ -76,9 +76,6 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         layout = layout.column()
         layout.prop(generator, 'target_rig')
-        widget_row = layout.row()
-        widget_row.prop(generator, 'widget_collection')
-        widget_row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
         layout.prop(generator, 'custom_script')
 
         # Test Animation Parameters
@@ -94,13 +91,6 @@ class POSE_PT_CloudRig_Generation(Panel):
 
         if not prefs.advanced_mode:
             return
-        panel_layout, sub_layout = layout.panel(idname="CLOUDRIG_CUSTOM_SHAPES", default_closed=False)
-        panel_layout.label(text="Custom Shapes", icon="MESH_CUBE")
-        if sub_layout:
-            sub_layout.prop(generator, 'preserve_shapes_properties', text="Preserve Properties")
-            sub_layout.prop(generator, 'preserve_custom_shapes', text="Preserve Shapes")
-            sub_layout.prop(generator, 'mirror_custom_shapes', text="Mirror Shapes")
-        
 
         if check_addon(context, 'bone_gizmos'):
             layout.prop(generator, 'auto_setup_gizmos')
@@ -111,4 +101,37 @@ class POSE_PT_CloudRig_Generation(Panel):
         layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
 
 
-registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation]
+class POSE_PT_CloudRig_CustomShapes(Panel):
+    bl_label = "Custom Shapes"
+    bl_parent_id = 'POSE_PT_CloudRig'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        prefs = get_addon_prefs(context)
+        return prefs.advanced_mode and context.object.cloudrig.enabled
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        generator = context.object.cloudrig.generator
+
+        # Widgets
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.prop(generator, 'widget_collection')
+        row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
+
+        layout.separator()
+
+        # Custom Shapes
+        col.prop(generator, 'preserve_shapes_properties', text="Preserve Properties")
+        col.prop(generator, 'preserve_custom_shapes', text="Preserve Shapes")
+        col.prop(generator, 'mirror_custom_shapes', text="Mirror Shapes")
+
+
+registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation, POSE_PT_CloudRig_CustomShapes]

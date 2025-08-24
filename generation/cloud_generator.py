@@ -16,7 +16,6 @@ from datetime import datetime
 from ..ui.actions_ui import ActionSlot
 from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
-from bpy.utils import flip_name
 
 from ..rig_component_features.widgets import widgets as cloud_widgets
 from ..rig_component_features.object import EnsureVisible
