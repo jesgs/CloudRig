@@ -371,6 +371,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 context,
                 old_rig,
                 self.target_rig,
+                metarig=self.metarig,
                 preserve_sel_sets=self.preserve_sel_sets,
                 preserve_gizmos=self.use_gizmos,
             )
@@ -782,12 +783,11 @@ def save_old_custom_shape_rig_data(old_rig) -> dict[str, dict]:
             custom_shape_transforms[pb.name] = cloud_widgets.get_pbone_custom_shape_data(pb)
     return custom_shape_transforms
 
-def apply_custom_shape_rig_data(custom_transforms,new_rig) -> None:
-    params = new_rig.cloudrig.generator
+def apply_custom_shape_rig_data(custom_transforms,metarig,new_rig) -> None:
+    params = metarig.cloudrig.generator
     use_shape = params.preserve_custom_shapes
     transform_shape = params.preserve_shapes_properties
     mirror_shape = params.mirror_custom_shapes
-
 
     if new_rig and new_rig.pose:
         for pb in new_rig.pose.bones:
@@ -802,7 +802,7 @@ def apply_custom_shape_rig_data(custom_transforms,new_rig) -> None:
 
 
 def replace_old_with_new_rig(
-    context, old_rig, new_rig, preserve_sel_sets=True, preserve_gizmos=True
+    context, old_rig, new_rig, metarig, preserve_sel_sets=True, preserve_gizmos=True
 ):
     """Preserve useful user-inputted information from the previous rig,
     then delete it and remap users to the new rig.
@@ -896,6 +896,10 @@ def replace_old_with_new_rig(
     old_rig.id_data.user_remap(new_rig)
     old_name = old_rig.name
 
+
+    apply_custom_shape_rig_data(custom_shape_transforms,metarig, new_rig)
+
+
     # Delete the old rig.
     bpy.data.objects.remove(old_rig)
 
@@ -903,7 +907,6 @@ def replace_old_with_new_rig(
     new_rig.name = old_name
     new_rig.data.name = old_data_name
 
-    apply_custom_shape_rig_data(custom_shape_transforms,new_rig)
 
 
 def refresh_constraints(rig: Object):
