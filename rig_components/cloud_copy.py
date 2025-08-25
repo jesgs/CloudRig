@@ -52,7 +52,7 @@ class Component_CopyBone(Component_Base):
                 if color.palette == 'DEFAULT':
                     continue
                 if color.palette == 'CUSTOM':
-                    self.add_log("Custom Colors Forbidden!", icon='COLORSET_01_VEC', trouble_bone=bone_info.name, description="Custom Colors are not supported in Metarigs. Please choose one of the preset colors. If you hate them, try applying the CloudRig presets in the Preferences.")
+                    self.add_log("Custom Colors are forbidden!", icon='COLORSET_01_VEC', trouble_bone=bone_info.name, description="Custom Colors are not supported in Metarigs. Please choose one of the preset colors. If you hate them, try applying the CloudRig presets in the Preferences.")
                     continue
                 setattr(bone_info, prop_name, color.palette)
 

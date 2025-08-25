@@ -17,13 +17,9 @@ from ..utils.external.mechanism import (
     make_constraint,
 )
 from ..rig_component_features.properties_ui import make_property
+from .troubleshooting import LoggerMixin
 
-
-class MetarigError(Exception):
-    pass
-
-
-class ActionLayer:
+class ActionLayer(LoggerMixin):
     """An action constraint layer instance, applying an action to a symmetry side."""
 
     owner: 'ActionLayerComponent'
@@ -36,33 +32,43 @@ class ActionLayer:
         self.side = side
         self.generator = owner.generator
 
-        self.name = self._get_name()
-
-        self.use_trigger = False
+        self.used_as_trigger = False
 
         if slot.is_corrective:
+            if not (slot.trigger_slot_a and slot.trigger_slot_b):
+                self.add_log(
+                    "Missing trigger slot",
+                    description=f'Action slot "{slot.action.name}" references missing trigger slot'
+                )
+                return
             trigger_a = self.owner.action_map[slot.trigger_slot_a]
             trigger_b = self.owner.action_map[slot.trigger_slot_b]
 
             self.trigger_a = trigger_a.get(side) or trigger_a.get(Side.MIDDLE)
             self.trigger_b = trigger_b.get(side) or trigger_b.get(Side.MIDDLE)
 
-            self.trigger_a.use_trigger = True
-            self.trigger_b.use_trigger = True
+            self.trigger_a.used_as_trigger = True
+            self.trigger_b.used_as_trigger = True
 
             self.bone_name = change_name_side(self.trigger_a.slot.subtarget, side)
         else:
             self.bone_name = change_name_side(slot.subtarget, side)
 
-        self.bones = self._filter_bones()
-
         self.owner.layers.append(self)
 
     @property
     def use_property(self):
-        return self.slot.is_corrective or self.use_trigger
+        return self.slot.is_corrective or self.used_as_trigger
 
-    def _get_name(self):
+    @property
+    def control_name(self):
+        if self.side != Side.MIDDLE:
+            return change_name_side(self.slot.subtarget, self.side)
+        else:
+            return self.slot.subtarget
+
+    @property
+    def name(self):
         name = self.slot.action.name
 
         if self.side == Side.LEFT:
@@ -72,8 +78,9 @@ class ActionLayer:
 
         return name
 
-    def _filter_bones(self):
-        controls = self._control_bones()
+    @property
+    def bones(self) -> list[str]:
+        controls = self.control_bones
         bones = [bone for bone in self.slot.keyed_bone_names if bone not in controls]
 
         if self.side != Side.MIDDLE:
@@ -85,9 +92,10 @@ class ActionLayer:
 
         return bones
 
-    def _control_bones(self):
+    @property
+    def control_bones(self) -> set[str]:
         if self.slot.is_corrective:
-            return self.trigger_a._control_bones() | self.trigger_b._control_bones()
+            return self.trigger_a.control_bones | self.trigger_b.control_bones
         elif self.slot.do_symmetry:
             return {self.bone_name, mirror_name(self.bone_name)}
         else:
@@ -106,10 +114,20 @@ class ActionLayer:
             )
 
     def rig_bones_and_shape_keys(self):
-        if self.slot.is_corrective and self.use_trigger:
-            raise MetarigError(
-                f"Corrective action used as trigger: {self.slot.action.name}"
+        if self.slot.is_corrective and self.used_as_trigger:
+            self.add_log(
+                "Corrective cannot be trigger",
+                description=f'Corrective action "{self.slot.action.name}" used as trigger. This is not currently supported.'
             )
+            # TODO: Why isn't this supported? Should be fine imo.
+            return
+
+        if not self.slot.is_corrective and self.control_name not in self.generator.target_rig.pose.bones:
+            self.add_log(
+                "Missing action control",
+                description=f"Control bone '{self.control_name}' for action '{self.slot.action.name}' not found"
+            )
+            return
 
         if self.use_property:
             self.rig_input_driver(
@@ -190,16 +208,6 @@ class ActionLayer:
         )
 
     def rig_factor_driver(self, owner, prop_name):
-        if self.side != Side.MIDDLE:
-            control_name = change_name_side(self.slot.subtarget, self.side)
-        else:
-            control_name = self.slot.subtarget
-
-        if control_name not in self.generator.target_rig.pose.bones:
-            raise MetarigError(
-                f"Control bone '{control_name}' for action '{self.slot.action.name}' not found"
-            )
-
         channel = self.slot.transform_channel.replace("LOCATION", "LOC").replace(
             "ROTATION", "ROT"
         )
@@ -211,7 +219,7 @@ class ActionLayer:
             variables=[
                 driver_var_transform(
                     self.generator.target_rig,
-                    control_name,
+                    self.control_name,
                     type=channel,
                     space=self.slot.target_space,
                     rotation_mode='SWING_TWIST_Y',
@@ -232,7 +240,7 @@ class ActionLayer:
         self.rig_output_driver(key_block, 'value')
 
 
-class ActionLayerComponent:
+class ActionLayerComponent(LoggerMixin):
     """
     An internal component
     Implements centralized generation of action layer constraints.
@@ -303,15 +311,14 @@ class ActionLayerComponent:
 
         if act_slot.is_corrective:
             if not act_slot.trigger_action_a or not act_slot.trigger_action_b:
-                raise MetarigError(f"Action slot has missing trigger action: {name}")
+                self.add_log(
+                    f"Missing trigger action",
+                    description=f'Action slot "{name}" is marked as corrective but missing at least one trigger selection.'
+                )
+                return
 
             trigger_a = act_slot.trigger_slot_a
             trigger_b = act_slot.trigger_slot_b
-
-            if not trigger_a or not trigger_b:
-                raise MetarigError(
-                    f"Action slot references missing trigger slot: {name}"
-                )
 
             symmetry = trigger_a.do_symmetry or trigger_b.do_symmetry
 

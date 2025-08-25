@@ -37,10 +37,36 @@ TODO: Symmetry warnings:
 class LoggerMixin:
     """Mix-in class for allowing a class to add entries to the Generation Log of an armature."""
 
-    def add_log(self, description_short, **kwargs):
-        if 'base_bone_name' not in kwargs:
-            kwargs['base_bone_name'] = self.metarig_base_pbone.name
-        self.generator.logger.log(description_short, **kwargs)
+    def add_log(
+        self,
+        description_short: str,
+        *,
+        base_bone_name="",
+        trouble_bone="",
+        description="No description.",
+        display_stack_trace='NEVER',
+        icon='ERROR',
+        note="",
+        note_icon='NONE',
+        operator='',
+        op_kwargs={},
+        op_text="",
+    ):
+        if not base_bone_name and hasattr(self, 'metarig_base_pbone'):
+            base_bone_name = self.metarig_base_pbone.name
+        self.generator.logger.log(
+            description_short,
+            base_bone_name=base_bone_name,
+            trouble_bone=trouble_bone,
+            description=description,
+            display_stack_trace=display_stack_trace,
+            icon=icon,
+            note=note,
+            note_icon=note_icon,
+            operator=operator,
+            op_kwargs=op_kwargs,
+            op_text=op_text
+        )
 
     def raise_generation_error(self, description, **kwargs):
         """For raising non-bug errors that should be fixable by the user."""
@@ -452,7 +478,7 @@ class CloudLogManager:
                     "Action affects rest pose",
                     note=action_slot.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that are not keyframed to their default values on the default frame of the action, which is frame {default_frame}.',
+                    description=f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that are not keyframed to their default values on the default frame ({default_frame}).',
                     operator='object.cloudrig_jump_to_action_slot',
                     op_kwargs={'to_index': i},
                 )
@@ -711,6 +737,9 @@ class CLOUDRIG_PT_stack_trace(Panel):
         )
 
 
+########################################
+######### Quick-Fix Operators ##########
+########################################
 class CLOUDRIG_OT_Jump_To_Bone(Operator):
     """Change context to make a bone visible and active in the metarig or generated rig."""
 
@@ -751,10 +780,6 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         return {'FINISHED'}
 
-
-########################################
-######### Quick-Fix Operators ##########
-########################################
 class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
     """Change rotation mode of a bone"""
 

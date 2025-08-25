@@ -129,7 +129,7 @@ class ActionSlot(PropertyGroup):
     is_corrective: BoolProperty(
         name="Corrective",
         description="Indicate that this is a corrective action. Corrective actions will activate "
-        "based on the activation of two other actions (using End Frame if both inputs "
+        "based on the activation of two other actions"
         "are at their End Frame, and Start Frame if either is at Start Frame)",
         update=update_is_corrective,
     )
@@ -387,7 +387,7 @@ class CLOUDRIG_UL_action_slots(UIList):
                 # No trigger action set, no slot or invalid slot
                 if not trigger_slot or trigger_slot.is_corrective:
                     row.alert = True
-                    text = "No Trigger Action"
+                    text = "Missing Trigger"
                     icon = 'ERROR'
                     break
 
@@ -398,24 +398,23 @@ class CLOUDRIG_UL_action_slots(UIList):
 
             if not action_slot.subtarget:
                 row.alert = True
-                text = 'No Control Bone'
+                text = 'Missing Control Bone'
                 icon = 'ERROR'
 
             elif generator.target_rig:
                 # Check for bones not actually present in the generated rig
                 bones = generator.target_rig.pose.bones
+                flipped_name = flip_name(action_slot.subtarget)
 
                 if action_slot.subtarget not in bones:
                     row.alert = True
-                    text = 'Bad Control Bone'
-                    icon = 'ERROR'
+                    text = f'Missing: "{action_slot.subtarget}"'
                 elif (
                     action_slot.symmetrical
-                    and flip_name(action_slot.subtarget) not in bones
+                    and flipped_name not in bones
                 ):
                     row.alert = True
-                    text = 'Bad Control Bone'
-                    icon = 'ERROR'
+                    text = f'Missing: "{flipped_name}"'
 
             row.label(text=text, icon=icon)
 
@@ -535,14 +534,16 @@ class DATA_PT_cloudrig_actions(Panel):
 
         if target_rig:
             subtarget_exists = slot.subtarget in target_rig.pose.bones
-            row.prop_search(slot, 'subtarget', target_rig.pose, 'bones', icon=bone_icon)
             row.alert = not subtarget_exists
+            row.prop_search(slot, 'subtarget', target_rig.pose, 'bones', icon=bone_icon)
 
-            if slot.subtarget and not subtarget_exists:
-                row = layout.split(factor=0.4)
-                row.column()
-                row.alert = True
-                row.label(text=f"Bone not found: {slot.subtarget}", icon='ERROR')
+            if not subtarget_exists:
+                if slot.subtarget:
+                    row = layout.split(factor=0.4)
+                    row.column()
+                    row.alert = True
+                    row.label(text=f"Bone not found: {slot.subtarget}", icon='ERROR')
+                return
         else:
             row.prop(slot, 'subtarget', icon=bone_icon)
 

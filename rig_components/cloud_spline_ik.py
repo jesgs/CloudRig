@@ -32,7 +32,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 subdiv -= 1
                 total = length * subdiv
             self.add_log(
-                "Spline IK longer than 255 bones",
+                "Spline IK clamped to 255 bones",
                 description=f"Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \nThe Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} for a new total of {total} bones.",
             )
 
