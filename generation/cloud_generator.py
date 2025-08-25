@@ -358,11 +358,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos(self.target_rig, self.bone_infos)
 
-        self.execute_custom_script()
+        old_rig = self.params.target_rig
+        self.execute_custom_script(old_rig, self.target_rig)
         # This comes after custom script because the script might mess with widgets.
         self.log_minor_issues()
 
-        old_rig = self.params.target_rig
         if old_rig:
             self.replace_old_with_new_rig(
                 context,
@@ -630,11 +630,16 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bone_info.write_pose_data(context, self.metarig, pose_bone)
 
     ### Generation final steps
-    def execute_custom_script(self):
+    def execute_custom_script(self, old_rig, new_rig):
         """Execute a text datablock to be executed after rig generation."""
+        # This is a bit hacky, but we need the rig name to be the "original" so that 
+        # post-gen script authors can get a reference to the rig easily.
+        # (Since we don't want to move execution of the post-gen script after replace_old_with_new_rig)
         script = self.params.custom_script
         if not script:
             return
+        old_rig.name = "OLD-" + old_rig.name
+        new_rig.name = new_rig.name.replace("NEW-", "")
         try:
             exec(script.as_string(), {})
         except Exception as e:
@@ -645,6 +650,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
             self.custom_script_failure = True
             raise e
+        finally:
+            print("Is this not executing?")
+            new_rig.name = "NEW-"+new_rig.name
+            old_rig.name = old_rig.name.replace("OLD-", "")
 
     def replace_old_with_new_rig(
         self, context, old_rig, new_rig, preserve_custom_props=True
