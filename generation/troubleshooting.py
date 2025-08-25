@@ -452,9 +452,9 @@ class CloudLogManager:
                     "Action affects rest pose",
                     note=action_slot.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that aren\'t keyframed to their default values on the action\'s default frame, which is frame {default_frame}.',
-                    operator='object.cloudrig_jump_to_action',
-                    op_kwargs={'action_slot_idx': i},
+                    description=f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that are not keyframed to their default values on the default frame of the action, which is frame {default_frame}.',
+                    operator='object.cloudrig_jump_to_action_slot',
+                    op_kwargs={'to_index': i},
                 )
 
     def report_drivers_targetting_armature_constraint(self, rig_obj):

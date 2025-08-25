@@ -332,6 +332,7 @@ class CLOUDRIG_OT_jump_to_action_slot(Operator):
 
     def execute(self, context):
         context.object.cloudrig.generator.active_action_index = self.to_index
+        self.report({'INFO'}, f'Set active action set-up index to {self.to_index}.')
         return {'FINISHED'}
 
 
