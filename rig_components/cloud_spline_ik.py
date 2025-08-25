@@ -17,6 +17,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         'curve.x_axis_symmetry': False,
     }
 
+    # TODO: Original bones are needed currently because of bone roll calculations (which are relative to the original bones)
+    # but ideally that should not be the case.
+    keep_original_bones = True
+
     def initialize_curve_rig(self):
         length = self.bone_count
         subdiv = self.params.spline_ik.subdivide

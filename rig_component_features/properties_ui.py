@@ -135,6 +135,8 @@ class CloudRigUIEditOpMixin:
         if type(prop_owner) == BoneCollection:
             if self.prop_name == "":
                 self.prop_name = "is_visible"
+            if self.slider_name == "":
+                self.slider_name = prop_owner.name
 
     def update_parent_selector(self, context):
         parent_option = context.scene.cloudrig_property_parent_selector.get(
