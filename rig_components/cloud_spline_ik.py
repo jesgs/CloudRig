@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty
+from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty, StringProperty
 from bpy.types import PropertyGroup
 
 from .cloud_curve import Component_Curve_Hooked, get_points
@@ -54,6 +54,36 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             self.ensure_curve_obj(context)
         self.reset_curve_obj(self.params.curve.target)
         self.make_ctrls_for_curve_points()
+        if self.params.spline_ik.create_fk_chain:
+            for spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
+                next_parent = hooks_of_spline[0].parent
+                for hook_idx, hook_ctrl in enumerate(hooks_of_spline):
+                    fk_ctrl = self.bone_sets['Curve FK Controls'].new(
+                        name=hook_ctrl.name.replace("Hook_", "FK-"),
+                        source=hook_ctrl,
+                        use_custom_shape_bone_size=True,
+                        custom_shape_name=self.params.spline_ik.widget_fk,
+                        custom_shape_scale=self.params.curve.widget_size,
+                        parent=next_parent,
+                        rotation_mode='YZX',
+                        inherit_scale=self.params.curve.inherit_scale,
+                        roll_type='ALIGN',
+                        roll_bone=hook_ctrl,
+                        roll=0,
+                    )
+                    hook_ctrl.parent = fk_ctrl
+                    next_parent = fk_ctrl
+                    hook_ctrl.add_constraint(
+                        'COPY_ROTATION',
+                        name="Copy Rotation (Counter-Rotate)",
+                        use_xyz = [True, False, True],
+                        invert_xyz = [True, False, True],
+                        euler_order = 'XZY',
+                        mix_mode = 'BEFORE',
+                        space = 'LOCAL',
+                        influence = 0.5,
+                        subtarget=fk_ctrl,
+                    )
 
         ik_chain = self.bones_org
         if self.params.spline_ik.deform_setup == 'CREATE':
@@ -205,6 +235,19 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     # Parameters
 
     @classmethod
+    def define_bone_sets(cls):
+        """Create parameters for this rig's bone sets."""
+        super().define_bone_sets()
+        cls.define_bone_set('Curve FK Controls', color_palette='THEME02')
+
+    @classmethod
+    def is_bone_set_used(cls, context, rig, params, set_name):
+        if set_name == 'curve_fk_controls':
+            return params.spline_ik.create_fk_chain
+
+        return super().is_bone_set_used(context, rig, params, set_name)
+
+    @classmethod
     def curve_selector_ui(cls, layout, context, params):
         """Overrides cloud_curve to disable the curve selection."""
         row = cls.draw_prop(
@@ -214,6 +257,14 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             # We don't usually want user to be able to edit the curve object,
             # but when duplicating a component bone, we need to be able to clear the pointer.
             row.enabled = False
+
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        if params.spline_ik.create_fk_chain:
+            cls.draw_prop_widget(context, layout, params.spline_ik, 'widget_fk')
+            layout.separator()
+        super().draw_appearance_params(layout, context, params)
+        return layout
 
     @classmethod
     def draw_control_params(cls, layout, context, params):
@@ -236,6 +287,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         cls.draw_prop(context, layout, params.spline_ik, 'match_hooks')
         if not params.spline_ik.match_hooks:
             cls.draw_prop(context, layout, params.spline_ik, 'hooks')
+
+        cls.draw_prop(context, layout, params.spline_ik, 'create_fk_chain')
 
 
 class Params(PropertyGroup):
@@ -277,6 +330,16 @@ class Params(PropertyGroup):
         default=3,
         min=3,
         max=99,
+    )
+    create_fk_chain: BoolProperty(
+        name="Create FK Chain",
+        description="Create an FK chain on top of the hook controls",
+        default=False,
+    )
+    widget_fk: StringProperty(
+        name="Curve FK Shape",
+        description="Custom Shape for FK controls",
+        default='Square'
     )
 
 

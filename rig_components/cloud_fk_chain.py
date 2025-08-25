@@ -62,7 +62,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 # TODO: Not sure if this should be allowed when position_along_bone > 0.
                 main_str_bone.add_constraint(
                     'COPY_ROTATION',
-                    name="Counter Rotate",
+                    name="Copy Rotation (Counter-Rotate)",
                     use_xyz = [True, False, True],
                     invert_xyz = [True, False, True],
                     euler_order = 'XZY',

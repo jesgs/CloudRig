@@ -82,7 +82,7 @@ class Component_Curve_Hooked(Component_Base):
     def make_ctrls_for_curve_points(self):
         curve_ob = self.params.curve.target
 
-        self.all_hooks: list[list[BoneInfo]] = []
+        self.hooks_of_splines: list[list[BoneInfo]] = []
         for spline_idx, spline in enumerate(curve_ob.data.splines):
             parent_bone = self.root_bone
             if self.params.curve.root_per_spline:
@@ -106,13 +106,13 @@ class Component_Curve_Hooked(Component_Base):
                 )
                 spline_root.flatten()
                 parent_bone = spline_root
-            hooks = []
+            hook_controls = []
             points = get_points(spline)
             if len(points) < 2:
                 self.raise_generation_error("Curve spline with <2 points")
 
             for point_idx, point in enumerate(points):
-                hooks.append(
+                hook_controls.append(
                     self.make_ctrls_for_curve_point(
                         spline_idx=spline_idx,
                         point_idx=point_idx,
@@ -120,11 +120,11 @@ class Component_Curve_Hooked(Component_Base):
                     )
                 )
 
-            for i, hook in enumerate(hooks):
+            for i, hook in enumerate(hook_controls):
                 if not hook.is_bezier:
-                    if i+1 < len(hooks):
+                    if i+1 < len(hook_controls):
                         bone_to_stretch = hook
-                        subtarget = hooks[i+1]
+                        subtarget = hook_controls[i+1]
                     elif spline.use_cyclic_u:
                         dsp_helper = self.bone_sets['Mechanism Bones'].new(
                             source=hook,
@@ -133,10 +133,10 @@ class Component_Curve_Hooked(Component_Base):
                         )
                         hook.custom_shape_transform = dsp_helper
                         bone_to_stretch = dsp_helper
-                        subtarget = hooks[0]
+                        subtarget = hook_controls[0]
                     bone_to_stretch.add_constraint('STRETCH_TO', subtarget=subtarget)
 
-            self.all_hooks.append(hooks)
+            self.hooks_of_splines.append(hook_controls)
 
     def get_x_axis_opposite_curve_point(
         self,
@@ -478,12 +478,12 @@ class Component_Curve_Hooked(Component_Base):
         hook_m.subtarget = bonename
 
     def create_helper_objects(self, context):
-        self.setup_curve(context, self.all_hooks)
+        self.setup_curve(context, self.hooks_of_splines)
         super().create_helper_objects(context)
 
-    def setup_curve(self, context, all_hooks: list[list[BoneInfo]]):
+    def setup_curve(self, context, hooks_of_splines: list[list[BoneInfo]]):
         """Configure the Hook Modifiers for the curve.
-        all_hooks: List of List of BoneInfo objects that were created with make_ctrls_for_curve_point().
+        hooks_of_splines: List of List of BoneInfo objects that were created with make_ctrls_for_curve_point().
                         Each list corresponds to one curve spline.
         """
 
@@ -497,7 +497,7 @@ class Component_Curve_Hooked(Component_Base):
                 f'Curve "{curve_ob.name}" could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?'
             )
 
-        for spline_i, hooks in enumerate(all_hooks):
+        for spline_i, hooks in enumerate(hooks_of_splines):
             self.setup_spline(context, curve_ob, spline_i, hooks)
 
         curve_visible.restore(context)
@@ -647,7 +647,6 @@ class Component_Curve_Hooked(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
-        layout.separator()
         cls.draw_prop_widget(context, layout, params.curve, 'widget_point')
         cls.draw_prop_widget(context, layout, params.curve, 'widget_handle')
         cls.draw_prop(context, layout, params.curve, 'widget_size', text="Size")
@@ -725,18 +724,18 @@ class Params(PropertyGroup):
     target: PointerProperty(name="Curve", type=Object, poll=is_curve)
 
     widget_handle: StringProperty(
-        name="Curve Handle Widget",
-        description="Widget for curve handles",
+        name="Curve Handle Shape",
+        description="Custom Shape for curve handles",
         default='Curve_Handle'
     )
     widget_point: StringProperty(
-        name="Curve Point Widget",
-        description="Widget for curve points",
+        name="Curve Point Shape",
+        description="Custom Shape for curve points",
         default='Curve_Point'
     )
     widget_size: FloatProperty(
-        name="Widget Size",
-        description="Size for curve widgets",
+        name="Custom Shape Size",
+        description="Size for curve custom shapes",
         default=1.0,
     )
 
