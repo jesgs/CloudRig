@@ -1,5 +1,6 @@
 import bpy, os
-from bpy.types import Object
+from bpy.types import Object, PoseBone
+from mathutils import Vector, Euler
 
 from ...bs_utils.prefs import get_addon_prefs
 
@@ -93,7 +94,6 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
 
     return new_wgt_ob
 
-
 def init_widget_list():
     """Build a list of available custom shapes by checking inside Widgets.blend."""
 
@@ -120,7 +120,6 @@ def init_widget_list():
         print(exc)
 
     return LIBRARY_WIDGETS
-
 
 def get_widgets_enum_items(_scene=None, _context=None) -> list[str, str, str] | None:
     """This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
@@ -152,3 +151,60 @@ def get_widget_index(wgt_name: str) -> int:
     for i, (identifier, name, description) in enumerate():
         if name == wgt_name:
             return i
+
+def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
+    """
+    Saves all custom shape properties of a pose bone.
+    Returns a dictionary with the object and its settings.
+    """
+    return {
+        "custom_shape": pose_bone.custom_shape,
+        "custom_shape_scale_xyz": pose_bone.custom_shape_scale_xyz.copy(),
+        "custom_shape_translation": pose_bone.custom_shape_translation.copy(),
+        "custom_shape_rotation_euler": pose_bone.custom_shape_rotation_euler.copy(),
+        "use_custom_shape_bone_size": pose_bone.use_custom_shape_bone_size,
+        "custom_shape_wire_width": pose_bone.custom_shape_wire_width,
+        "show_wire": pose_bone.bone.show_wire,
+    }
+
+def set_pbone_custom_shape_data(
+        pose_bone: PoseBone, 
+        custom_shape: Object = None,
+        custom_shape_translation: Vector = None,
+        custom_shape_rotation_euler: Euler = None,
+        custom_shape_scale_xyz: Vector = None,
+        use_custom_shape_bone_size: bool = None,
+        show_wire: bool = None,
+        custom_shape_wire_width: float = None,
+        ):
+    """Applies the passed custom shape settings to the pose bone."""
+    if custom_shape:
+        pose_bone.custom_shape = custom_shape
+    if custom_shape_translation:
+        pose_bone.custom_shape_translation = custom_shape_translation
+    if custom_shape_rotation_euler:
+        pose_bone.custom_shape_rotation_euler = custom_shape_rotation_euler
+    if custom_shape_scale_xyz:
+        pose_bone.custom_shape_scale_xyz = custom_shape_scale_xyz
+    if use_custom_shape_bone_size != None:
+        pose_bone.use_custom_shape_bone_size = use_custom_shape_bone_size
+    if show_wire != None:
+        pose_bone.bone.show_wire = show_wire
+    if custom_shape_wire_width:
+        pose_bone.custom_shape_wire_width = custom_shape_wire_width
+
+def get_custom_shape_rig_data(rig: Object) -> dict[str, dict]:
+    return {
+        pb.name: get_pbone_custom_shape_data(pb) 
+        for pb in rig.pose.bones
+    }
+
+def apply_custom_shape_rig_data(rig: Object, custom_shape_data: dict) -> None:
+    if not (rig and rig.pose):
+        return
+    for pb in rig.pose.bones:
+        if pb.name in custom_shape_data:
+            set_pbone_custom_shape_data(
+                pb, 
+                **custom_shape_data[pb.name],
+            )
