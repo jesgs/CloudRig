@@ -123,15 +123,21 @@ class POSE_PT_CloudRig_CustomShapes(Panel):
         # Widgets
         col = layout.column(align=True)
         row = col.row(align=True)
-        row.prop(generator, 'widget_collection')
+        row.prop(generator, 'widget_collection', text="Collection")
         row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
 
         layout.separator()
 
         # Custom Shapes
         col.prop(generator, 'preserve_shapes_properties', text="Preserve Properties")
-        col.prop(generator, 'preserve_custom_shapes', text="Preserve Shapes")
-        col.prop(generator, 'mirror_custom_shapes', text="Mirror Shapes")
+        if generator.preserve_shapes_properties:
+            split = col.split(factor=0.04)
+            split.row()
+            split.row().prop(generator, 'preserve_custom_shapes', text="With Shapes")
 
 
-registry = [POSE_PT_CloudRig, POSE_PT_CloudRig_Generation, POSE_PT_CloudRig_CustomShapes]
+registry = [
+    POSE_PT_CloudRig, 
+    POSE_PT_CloudRig_Generation, 
+    POSE_PT_CloudRig_CustomShapes
+]

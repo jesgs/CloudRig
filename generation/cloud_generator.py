@@ -17,7 +17,11 @@ from ..ui.actions_ui import ActionSlot
 from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
 
-from ..rig_component_features.widgets import widgets as cloud_widgets
+from ..rig_component_features.widgets.widgets import (
+    ensure_widget, 
+    get_custom_shape_rig_data, 
+    apply_custom_shape_rig_data
+)
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.mechanism import relink_real_driver
@@ -53,16 +57,11 @@ class GeneratorProperties(PropertyGroup):
     preserve_shapes_properties: BoolProperty(
         name="Preserve Shape Properties",
         description="Preserve custom shape properties on the generated rig, if available",
-        default=True,
+        default=False,
     )
     preserve_custom_shapes: BoolProperty(
         name="Preserve Custom Shapes",
-        description="Preserve custom shapes on the generated rig, if available",
-        default=True,
-    )
-    mirror_custom_shapes: BoolProperty(
-        name="Mirror Custom Shapes",
-        description="Mirror custom shapes for left/right bones if only one side exists",
+        description="Preserve custom shapes on the generated rig, if available. If this is disabled, only other properties will be preserved, but not the shape object",
         default=True,
     )
     metarig_version: IntProperty(
@@ -211,8 +210,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.use_gizmos = (
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
-        # Set flag to handle Selection Sets.
-        self.preserve_sel_sets = selection_sets.check(context, metarig)
 
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
@@ -367,13 +364,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         old_rig = self.params.target_rig
         if old_rig:
-            replace_old_with_new_rig(
+            self.replace_old_with_new_rig(
                 context,
-                old_rig,
-                self.target_rig,
-                metarig=self.metarig,
-                preserve_sel_sets=self.preserve_sel_sets,
-                preserve_gizmos=self.use_gizmos,
+                old_rig=old_rig,
+                new_rig=self.target_rig,
             )
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
@@ -388,8 +382,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.params.target_rig = self.target_rig
 
         self.target_rig.data.name = self.target_rig.name
-
-        
 
         self.restore_rig_states(context)
     
@@ -466,7 +458,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     def ensure_widget(self, context, widget_name, overwrite=False):
         self.ensure_widget_collection(context)
         try:
-            wgt = cloud_widgets.ensure_widget(
+            wgt = ensure_widget(
                 widget_name,
                 overwrite=overwrite,
             )
@@ -654,6 +646,114 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             self.custom_script_failure = True
             raise e
 
+    def replace_old_with_new_rig(
+        self, context, old_rig, new_rig, preserve_custom_props=True
+    ):
+        """Preserve useful user-inputted information from the previous rig,
+        then delete it and remap users to the new rig.
+        """
+        # TODO: Should document what properties are preserved.
+
+        # If cloudrig.py is linked, save that reference. This will be checked for
+        # later, in ensure_cloudrig_ui.
+        if (
+            'cloudrig_ui' in old_rig.data
+            and old_rig.data['cloudrig_ui']
+            and old_rig.data['cloudrig_ui'].library
+        ):
+            new_rig.data['cloudrig_ui'] = old_rig.data['cloudrig_ui']
+
+        if preserve_custom_props:
+            # Preserve all custom properties and add-on properties.
+            # Selection Sets, Bone Gizmos, Asset Pipeline, etc...
+            copy_all_runtime_properties(old_rig, new_rig)
+
+        old_data_name = old_rig.data.name
+        old_rig.data.name += "_old"
+
+        # Preserve parenting information of previous rig.
+        new_rig.parent = old_rig.parent
+        new_rig.parent_type = old_rig.parent_type
+        new_rig.parent_bone = old_rig.parent_bone
+        new_rig.parent_vertices = old_rig.parent_vertices
+        new_rig.matrix_parent_inverse = old_rig.matrix_parent_inverse.copy()
+
+        # Preserve transform matrix of previous rig.
+        new_rig.matrix_world = old_rig.matrix_world.copy()
+
+        # Preserve assigned action of previous rig.
+        if old_rig.animation_data and old_rig.animation_data.action:
+            if not new_rig.animation_data:
+                new_rig.animation_data_create()
+            new_rig.animation_data.action = old_rig.animation_data.action
+            if hasattr(new_rig.animation_data, 'action_slot'):
+                new_rig.animation_data.action_slot = old_rig.animation_data.action_slot
+
+        # Preserve Armature display settings.
+        new_rig.display_type = old_rig.display_type
+        new_rig.show_in_front = old_rig.show_in_front
+        new_rig.data.display_type = old_rig.data.display_type
+        new_rig.data.show_axes = old_rig.data.show_axes
+
+        # Preserve bone collections which are marked with preserve_on_regenerate.
+        for old_idx, old_coll in enumerate(old_rig.data.collections_all):
+            if not old_coll.cloudrig_info.preserve_on_regenerate:
+                continue
+            new_coll = new_rig.data.collections.get(old_coll.name)
+            if not new_coll:
+                parent = None
+                if old_coll.parent:
+                    parent = new_rig.data.collections_all.get(old_coll.parent.name)
+                new_coll = new_rig.data.collections.new(old_coll.name, parent=parent)
+            copy_property_group(old_coll, new_coll, 'cloudrig_info')
+            new_coll.is_visible = old_coll.is_visible
+            for old_bone in old_coll.bones:
+                new_bone = new_rig.data.bones.get(old_bone.name)
+                if new_bone:
+                    new_coll.assign(new_bone)
+            for old_child in old_coll.children:
+                new_child = new_rig.data.collections_all.get(old_child.name)
+                if new_child:
+                    new_child.parent = new_coll
+            new_coll_idx = new_rig.data.collections_all.find(new_coll.name)
+            max_idx = len(new_rig.data.collections)
+            try:
+                new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))
+            except RuntimeError:
+                # Shouldn't really happen anymore...
+                pass
+        new_rig.data.collections.active_index = 0
+
+        # Select and make active the new rig.
+        new_rig.select_set(True)
+        context.view_layer.objects.active = new_rig
+
+        # Remove old rig from all of its collections, and link the new rig to them.
+        for coll in new_rig.users_collection:
+            coll.objects.unlink(new_rig)
+        for coll in old_rig.users_collection:
+            coll.objects.unlink(old_rig)
+            coll.objects.link(new_rig)
+
+        # Swap all references pointing at the old rig to the new rig.
+        old_rig.id_data.user_remap(new_rig)
+        old_name = old_rig.name
+
+        # Preserve custom shapes.
+        if self.params.preserve_shapes_properties:
+            custom_shape_data = get_custom_shape_rig_data(old_rig)
+            if not self.params.preserve_custom_shapes:
+                for key, value in custom_shape_data.items():
+                    del value['custom_shape']
+            apply_custom_shape_rig_data(new_rig, custom_shape_data)
+
+        # Delete the old rig.
+        bpy.data.objects.remove(old_rig)
+
+        # Preserve object/data name of previous rig.
+        new_rig.name = old_name
+        new_rig.data.name = old_data_name
+
     def restore_rig_states(self, context):
         """Restore transforms after generation has either failed or succeeded."""
         self.metarig.data.pose_position = 'POSE'
@@ -776,136 +876,7 @@ def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
         driver_map[bone_name].append((data_path, fc.array_index))
     return driver_map
 
-def save_old_custom_shape_rig_data(old_rig) -> dict[str, dict]:
-    custom_shape_transforms = {}
-    if old_rig and old_rig.pose:
-        for pb in old_rig.pose.bones:
-            custom_shape_transforms[pb.name] = cloud_widgets.get_pbone_custom_shape_data(pb)
-    return custom_shape_transforms
 
-def apply_custom_shape_rig_data(custom_transforms,metarig,new_rig) -> None:
-    params = metarig.cloudrig.generator
-    use_shape = params.preserve_custom_shapes
-    transform_shape = params.preserve_shapes_properties
-    mirror_shape = params.mirror_custom_shapes
-
-    if new_rig and new_rig.pose:
-        for pb in new_rig.pose.bones:
-            if pb.name in custom_transforms:
-                cloud_widgets.set_pbone_custom_shape_data(
-                    pb, 
-                    custom_transforms[pb.name],
-                    use_shape,
-                    mirror_shape,
-                    transform_shape,
-                )
-
-
-def replace_old_with_new_rig(
-    context, old_rig, new_rig, metarig, preserve_sel_sets=True, preserve_gizmos=True
-):
-    """Preserve useful user-inputted information from the previous rig,
-    then delete it and remap users to the new rig.
-    """
-
-    custom_shape_transforms = save_old_custom_shape_rig_data(old_rig)
-
-
-    # If cloudrig.py is linked, save that reference. This will be checked for
-    # later, in ensure_cloudrig_ui.
-    if (
-        'cloudrig_ui' in old_rig.data
-        and old_rig.data['cloudrig_ui']
-        and old_rig.data['cloudrig_ui'].library
-    ):
-        new_rig.data['cloudrig_ui'] = old_rig.data['cloudrig_ui']
-
-
-    # Preserve all custom properties and add-on properties.
-    # Selection Sets, Bone Gizmos, Asset Pipeline, etc...
-    copy_all_runtime_properties(old_rig, new_rig)
-
-    old_data_name = old_rig.data.name
-    old_rig.data.name += "_old"
-
-    # Preserve parenting information of previous rig.
-    new_rig.parent = old_rig.parent
-    new_rig.parent_type = old_rig.parent_type
-    new_rig.parent_bone = old_rig.parent_bone
-    new_rig.parent_vertices = old_rig.parent_vertices
-    new_rig.matrix_parent_inverse = old_rig.matrix_parent_inverse.copy()
-
-    # Preserve transform matrix of previous rig.
-    new_rig.matrix_world = old_rig.matrix_world.copy()
-
-    # Preserve assigned action of previous rig.
-    if old_rig.animation_data and old_rig.animation_data.action:
-        if not new_rig.animation_data:
-            new_rig.animation_data_create()
-        new_rig.animation_data.action = old_rig.animation_data.action
-        if hasattr(new_rig.animation_data, 'action_slot'):
-            new_rig.animation_data.action_slot = old_rig.animation_data.action_slot
-
-    # Preserve Armature display settings.
-    new_rig.display_type = old_rig.display_type
-    new_rig.show_in_front = old_rig.show_in_front
-    new_rig.data.display_type = old_rig.data.display_type
-    new_rig.data.show_axes = old_rig.data.show_axes
-
-    # Preserve bone collections which are marked with preserve_on_regenerate.
-    for old_idx, old_coll in enumerate(old_rig.data.collections_all):
-        if not old_coll.cloudrig_info.preserve_on_regenerate:
-            continue
-        new_coll = new_rig.data.collections.get(old_coll.name)
-        if not new_coll:
-            parent = None
-            if old_coll.parent:
-                parent = new_rig.data.collections_all.get(old_coll.parent.name)
-            new_coll = new_rig.data.collections.new(old_coll.name, parent=parent)
-        copy_property_group(old_coll, new_coll, 'cloudrig_info')
-        new_coll.is_visible = old_coll.is_visible
-        for old_bone in old_coll.bones:
-            new_bone = new_rig.data.bones.get(old_bone.name)
-            if new_bone:
-                new_coll.assign(new_bone)
-        for old_child in old_coll.children:
-            new_child = new_rig.data.collections_all.get(old_child.name)
-            if new_child:
-                new_child.parent = new_coll
-        new_coll_idx = new_rig.data.collections_all.find(new_coll.name)
-        max_idx = len(new_rig.data.collections)
-        try:
-            new_rig.data.collections.move(new_coll_idx, min(old_idx, max_idx))
-        except RuntimeError:
-            # Shouldn't really happen anymore...
-            pass
-    new_rig.data.collections.active_index = 0
-
-    # Select and make active the new rig.
-    new_rig.select_set(True)
-    context.view_layer.objects.active = new_rig
-
-    # Remove old rig from all of its collections, and link the new rig to them.
-    for coll in new_rig.users_collection:
-        coll.objects.unlink(new_rig)
-    for coll in old_rig.users_collection:
-        coll.objects.unlink(old_rig)
-        coll.objects.link(new_rig)
-
-    # Swap all references pointing at the old rig to the new rig.
-    old_rig.id_data.user_remap(new_rig)
-    old_name = old_rig.name
-
-
-    apply_custom_shape_rig_data(custom_shape_transforms,metarig, new_rig)
-
-
-    # Delete the old rig.
-    bpy.data.objects.remove(old_rig)
-
-    # Preserve object/data name of previous rig.
-    new_rig.name = old_name
-    new_rig.data.name = old_data_name
 
 
 
