@@ -1017,6 +1017,11 @@ class ConstraintInfo(dict):
             if (target and target.type == 'ARMATURE') and (
                 subtarget not in target.data.bones
             ):
+                if self.name == "Armature (Parent Switching)":
+                    self.bone_info.owner_component.raise_generation_error(
+                        description=f'Parent switching set-up target bone "{subtarget}" is missing!',
+                        description_short='Missing parent',
+                    )
                 self.bone_info.owner_component.add_log(
                     "Invalid constraint target!",
                     base_bone_name=self.bone_info.name,

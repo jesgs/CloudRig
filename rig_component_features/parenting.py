@@ -19,10 +19,23 @@ class CLOUDRIG_UL_parent_slots(UIList):
         rig = metarig.cloudrig.generator.target_rig
         parent_slot = item
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            row = layout.row()
-            row.prop(parent_slot, 'name', text=f"", emboss=True)
+            split = layout.split(factor=0.5, align=True)
+            row = split.row(align=True)
+            if not parent_slot.bone:
+                row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="")
+                split.row().label(text="<-- Choose a bone.")
+                return
+            elif parent_slot.bone not in rig.pose.bones:
+                split.alert = True
+                row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="", icon='ERROR')
+                split.row().label(text="Bone is missing!")
+                return
             row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="")
+
+            row = split.row()
+            row.prop(parent_slot, 'name', text=f"", emboss=True)
             row.prop(parent_slot, 'is_default', text="")
+
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon_value)
@@ -47,26 +60,25 @@ class ParentSlot(PropertyGroup):
 
     is_default: BoolProperty(
         name="Is Default",
-        description="Set this parent option as the default when the rig is generated",
+        description="Choose which parent option is the default when the rig is generated or reset to its default pose. If none specified, the first in the list is used",
         default=False,
         update=update_is_default,
     )
 
 
-def draw_cloudrig_parents(layout, context, text=""):
+def draw_parent_switch_list(layout, context, text=""):
     draw_label_with_linebreak(context, layout, text, align_split=True)
 
     layout.separator()
-
     layout = layout.box()
 
-    split = layout.split(factor=0.43)
+    split = layout.split(factor=0.47)
     row = split.row()
-    row.label(text="  Parent UI Name")
+    row.label(text="  Parent Bone")
 
     sub = split.split(factor=0.8)
     row = sub.row()
-    row.label(text="Bone")
+    row.label(text="UI Label")
 
     sub = split.split(factor=0.8)
     row = sub.row()
@@ -151,7 +163,7 @@ class CloudParentingMixin:
             )
 
         # Add armature constraint
-        arm_con = arm_con_bone.add_constraint('ARMATURE', targets=targets)
+        arm_con = arm_con_bone.add_constraint('ARMATURE', name="Armature (Parent Switching)", targets=targets)
 
         if len(parent_bone_names) == 1:
             return
@@ -188,25 +200,18 @@ class CloudParentingMixin:
 
         for i, ps in enumerate(parent_slots):
             if ps.bone == "":
-                self.add_log(
-                    "Parent not found",
-                    description=f'Parent slot #{i}: "{ps.bone}" not specified, skipping.',
+                self.raise_generation_error(
+                    description_short="Missing Parent",
+                    description=f'Parent switch target is missing! Specify a parent bone in the Parenting parameters.'
                 )
                 continue
-            if ps.name == "":
-                self.add_log(
-                    "Nameless parent",
-                    description=f'Parent slot #{i}: "{ps.bone}" has no UI name, falling back to the name of the bone.',
-                )
-                parent_ui_names.append(ps.bone)
-            else:
-                parent_ui_names.append(ps.name)
+            parent_ui_names.append(ps.name or ps.bone)
             parent_bone_names.append(ps.bone)
 
         if len(parent_ui_names) == 0:
             self.add_log(
                 "No parents found",
-                description=f"No parents specified for parent switching setup, skipping completely.",
+                description=f"No parents specified for parent switching setup. The setting should just be disabled.",
             )
             return [], []
 
@@ -310,14 +315,14 @@ class CloudParentingMixin:
         if cls.parent_switch_overwrites_root_parent:
             cls.draw_prop(context, layout, params.parenting, "parent_switching")
             if params.parenting.parent_switching:
-                draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
+                draw_parent_switch_list(layout, context, cls.parent_switch_behaviour)
             else:
                 cls.draw_parent_param(layout, context, rig, params)
         else:
             cls.draw_parent_param(layout, context, rig, params)
             cls.draw_prop(context, layout, params.parenting, "parent_switching")
             if params.parenting.parent_switching:
-                draw_cloudrig_parents(layout, context, cls.parent_switch_behaviour)
+                draw_parent_switch_list(layout, context, cls.parent_switch_behaviour)
 
 
 class Params(PropertyGroup):
