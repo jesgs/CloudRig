@@ -89,7 +89,7 @@ class CloudCustomPropertiesMixin:
         rig = metarig.cloudrig.generator.target_rig
 
         cls.draw_prop(
-            context, layout, params.custom_props, 'props_storage', expand=True
+            context, layout, params.custom_props, 'props_storage', expand=True, text="Storage Bone"
         )
         if params.custom_props.props_storage == 'CUSTOM':
             cls.draw_prop_search(

@@ -22,12 +22,13 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     relinking_behaviour = "Constraints will be moved to the FK controls."
 
     has_test_animation = True
+    use_base_name = True
 
     def initialize(self):
         """Gather and validate data about the rig."""
         super().initialize()
 
-        self.limb_name = self.naming.slice_name(self.base_bone_name)[1]
+        self.limb_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
         self.limb_ui_name = self.limb_name
         if self.side_prefix != "":
             self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
@@ -248,7 +249,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 'description': f'Attach the FK chain to the Reverse FK Chain (RFK bones)',
             },
         )
-
 
     def make_fk_offset_chain(self, fk_chain) -> list[BoneInfo]:
         fk_offset_chain = []

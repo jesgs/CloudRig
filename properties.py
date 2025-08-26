@@ -22,6 +22,7 @@ def get_param_classes() -> dict:
     module_dicts = (
         rig_components.component_modules,
         rig_component_features.component_feature_modules,
+        {"cloud_base": rig_components.cloud_base}
     )
     for module_dict in module_dicts:
         for module_name, module in module_dict.items():
@@ -36,7 +37,7 @@ class NameProperty(PropertyGroup):
 
 class BoneSet_ForUI(PropertyGroup):
     """I want to draw Bone Sets in a UIList, but for that, they need to be a CollectionProperty,
-    which I want to avoid for the reasons explained in the docstring of class BoneSets.
+    which I want to avoid for the reasons explained in the docstring of `class BoneSets`.
 
     So, we have this layer on top of that, just so we can display Bone Sets in a UIList.
     """

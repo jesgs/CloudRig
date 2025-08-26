@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty
+from bpy.types import PropertyGroup
 
 from ..generation.troubleshooting import LoggerMixin
 from ..rig_component_features.bone_set import BoneSetMixin
@@ -35,6 +36,7 @@ class Component_Base(
     keep_original_bones = True
     keep_original_bones_collections = False
     keep_original_bones_colors = False
+    use_base_name = False
 
     def __str__(self):
         return f'{self.base_bone_name}: {type(self).ui_name}'
@@ -207,6 +209,11 @@ class Component_Base(
                     setattr(component_prop, parts[0], forced_value)
 
     @classmethod
+    def draw_control_params(cls, layout, context, params):
+        if cls.is_advanced_mode(context) and cls.use_base_name:
+            layout.prop(params.base, 'base_name', text="Base Name")
+
+    @classmethod
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
@@ -284,3 +291,10 @@ class Component_Base(
         return EnumProperty(
             name=name, description=description, items=items, default=default
         )
+
+class Params(PropertyGroup):
+    base_name: StringProperty(
+        name="Base Name",
+        description='''Optional. If provided, use this as the base name for some generated bones and properties, rather than the bone name. This should not include a side indicator ("Left"/"Right"), as that will be added automatically''',
+        default="",
+    )

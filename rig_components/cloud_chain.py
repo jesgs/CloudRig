@@ -792,6 +792,7 @@ class Component_ToonChain(Component_Base):
 
     @classmethod
     def draw_control_params(cls, layout, context, params):
+        super().draw_control_params(layout, context, params)
         cls.draw_control_label(layout, "Stretch")
         cls.draw_prop(context, layout, params.chain, 'segments')
         cls.draw_prop(context, layout, params.chain, 'tip_control')

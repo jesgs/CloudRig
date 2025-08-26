@@ -35,7 +35,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 "Spine rig must consist of a chain of at least 2 connected bones!"
             )
 
-        self.spine_name = self.naming.slice_name(self.base_bone_name)[1]
+        self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
 
         self.ik_prop_name = "ik_" + self.spine_name.lower()
         self.ik_stretch_name = "ik_stretch_" + self.spine_name.lower()

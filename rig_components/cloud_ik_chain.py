@@ -8,10 +8,6 @@ from math import radians
 from ..operators.flatten_chain import is_chain_flat
 from .cloud_fk_chain import Component_Chain_FK
 
-"""Ideas to improve this:
-Allow disabling IK stretch functionality.
-"""
-
 
 class Component_Chain_IKFK(Component_Chain_FK):
     """IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
