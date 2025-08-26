@@ -47,39 +47,38 @@ class BoneSet_ForUI(PropertyGroup):
 
 class BoneSets(PropertyGroup):
     """
-    We could've simply created a class BoneSet(PropertyGroup) and then make a CollectionProperty of that, yes.
+    We could've simply created a `class BoneSet(PropertyGroup)` and then make a CollectionProperty of that, yes.
     But that would have a lot of downsides:
         1. Every entry in a CollectionProperty has the same default values.
         This would mean that users can't reset Bone Set properties to useful defaults.
         2. Entries of CollectionProperties exist on individual Blender datablocks, which means, they
-        cannot be populated during register().
-        This could admittedly be worked around by initializing the Bone Sets on some update() callback.
+        cannot be populated during `register()`.
+        This could admittedly be worked around by initializing the Bone Sets on some `update()` callback.
         3. Accessing Bone Sets in the rig generation code would have to be done by name,
         eg. `params.bone_sets['FK Chain']`. It's technically possible for user to change the
         Bone Set's name to anything, which would result in errors and workarounds.
 
     So, what do we do instead?
     We let each BoneSet be its own unique PropertyGroup!
-    This way they're created during register(), and always exist on every PoseBone.
+    This way they're created during `register()`, and always exist on every PoseBone.
     1. Unique default values can be defined per Bone Set. User can reset to proper defaults using mouse hover + backspace.
     2. No need for update callback shennanigans to initialize Bone Sets.
-    3. Accessing Bone Sets is done via symbols instead of strings, eg. `params.bone_sets.fk_chain`
+    3. Accessing (RNA) Bone Sets is done via symbols instead of strings, eg. `params.bone_sets.fk_chain`
 
     And how do we do it?
-        Python lets us define classes dynamically using the type() function.
-        Blender's PyAPI just wants a class that subclasses bpy.types.PropertyGroup, and
-        has annotations whose values are whatever Blender returns from its bpy.props.WhateverProperty() functions.
+        Python lets us define classes dynamically using the `type()` function.
+        Blender's PyAPI just wants a class that subclasses `bpy.types.PropertyGroup`, and
+        has annotations whose values are whatever Blender returns from its `bpy.props.WhateverProperty()` functions.
         Python lets us define those annotations dynamically as well, by setting
         a class's `__annotations__` dictionary, which is a built-in Python variable.
 
     And we actually do this twice here:
-    - Once, when dynamically defining individual BoneSet PropertyGroup classes, in class_from_definition
-    - Again, when assigning a PointerProperty to the BoneSets PropertyGroup for each BoneSet.
+    - First, when dynamically defining individual BoneSet PropertyGroup classes, in `class_from_definition()`
+    - Second, when assigning a PointerProperty to the BoneSets PropertyGroup for each BoneSet.
 
     Last important thing: We must store references to the classes that we dynamically defined, in order
-    to be able to register them. So, we store those references in the class definition, and then add them to
-    `registry`. All classes in the `registry` list will get registered and unregistered by the root level
-    __init__.py.
+    to be able to register them. So, we store those references in the class definition (`bone_set_property_groups`), 
+    and then add them to `registry`, which gets (un)registered by `__init__.py`.
     """
 
     @staticmethod
@@ -147,10 +146,10 @@ class BoneSets(PropertyGroup):
 
     def make_bone_set_property_groups() -> dict[str, type]:
         classes = {}
-        for rigcomp_name, rigcomp_module in rig_components.component_modules.items():
-            rig_class = getattr(rigcomp_module, 'RIG_COMPONENT_CLASS')
-            rig_class.define_bone_sets()
-            for bone_set_name, bone_set_definition in rig_class.bone_set_defs.items():
+        for _rig_component_name, rig_component_module in rig_components.component_modules.items():
+            rig_component_class = getattr(rig_component_module, 'RIG_COMPONENT_CLASS')
+            rig_component_class.define_bone_sets()
+            for bone_set_name, bone_set_definition in rig_component_class.bone_set_defs.items():
                 rna_name = bone_set_name.lower().replace(" ", "_")
                 if rna_name in classes:
                     continue
