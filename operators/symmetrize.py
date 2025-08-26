@@ -91,6 +91,12 @@ class POSE_OT_symmetrize_rigging(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         for from_pb, to_pb in bone_map.items():
+            # Copy bone color preset.
+            to_pb.bone.color.palette = from_pb.bone.color.palette
+
+            # Copy armature display type.
+            to_pb.bone.display_type = from_pb.bone.display_type
+
             # Mirror drivers on bone properties.
             symmetrize_drivers(context.object, from_pb, to_pb)
 
