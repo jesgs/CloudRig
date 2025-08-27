@@ -35,10 +35,11 @@ from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
 from bl_ui.generic_ui_list import draw_ui_list
 
-cr_module_name = next((m for m in sys.modules if m.endswith("CloudRig")), None)
-cloudrig_installed = cr_module_name != None
-if cloudrig_installed:
-    cloudrig_module = importlib.import_module(cr_module_name)
+cloudrig_installed = False
+submodule = next((m for m in sys.modules if m.endswith('generation.cloudrig')), None)
+if submodule:
+    cloudrig_installed = True
+    cr_module_name = submodule.split(".")[-3]
     icons = importlib.import_module(cr_module_name + ".icons")
     hotkeys = importlib.import_module(cr_module_name + ".bs_utils.hotkeys")
 
