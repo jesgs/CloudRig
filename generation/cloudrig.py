@@ -39,7 +39,7 @@ cloudrig_installed = False
 submodule = next((m for m in sys.modules if m.endswith('generation.cloudrig')), None)
 if submodule:
     cloudrig_installed = True
-    cr_module_name = submodule.split(".")[-3]
+    cr_module_name = ".".join(submodule.split(".")[:-2])
     icons = importlib.import_module(cr_module_name + ".icons")
     hotkeys = importlib.import_module(cr_module_name + ".bs_utils.hotkeys")
 
