@@ -899,6 +899,14 @@ def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
                 continue
             pb[key] = property_settings['default']
 
+@bpy.app.handlers.persistent
+def auto_override_rig_data(_=None):
+    # On file load, if a CloudRig rig object is overridden, make sure its data is also overridden.
+    # Otherwise, bone collection visibility changes will not be saved with the file.
+    for rig in [ob for ob in bpy.context.scene.objects if is_generated_cloudrig(ob)]:
+        if rig.override_library and not rig.data.override_library:
+            rig.data.override_create(remap_local_usages=True)
+
 
 #######################################
 ########### Dynamic Rig UI ############
@@ -2924,6 +2932,9 @@ def register():
     # The unregister() function already needs to be safe, so it can be called
     # even when there's nothing to unregister.
     unregister()
+
+    bpy.app.timers.register(auto_override_rig_data, first_interval=2)
+    bpy.app.handlers.load_post.append(auto_override_rig_data)
 
     for c in classes:
         if not is_registered(c):
