@@ -294,7 +294,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             source=fk_chain[0],
             custom_shape_name=self.params.fk_chain.widget_fk,
             inherit_scale=self.params.fk_chain.inherit_scale,
-            custom_shape_along_length=1,
+            custom_shape_translation=[0, fk_chain[-1].length, 0],
             custom_shape_transform=fk_chain[-1],
         )
         # These constraints will add together, so we want their total influence to add up to 1.
