@@ -651,7 +651,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             self.custom_script_failure = True
             raise e
         finally:
-            print("Is this not executing?")
             new_rig.name = "NEW-"+new_rig.name
             old_rig.name = old_rig.name.replace("OLD-", "")
 
