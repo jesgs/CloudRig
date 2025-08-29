@@ -274,7 +274,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             fk_offset_bone = self.bone_sets['FK Offset Controls'].new(
                 name=fk_bone.name.replace("FK-", "FK-OS-"),
                 source=org_bone,
-                parent=fk_bone,
+                parent=org_bone,
                 head=position,
                 custom_shape_name=self.params.fk_chain.widget_fk,
             )
