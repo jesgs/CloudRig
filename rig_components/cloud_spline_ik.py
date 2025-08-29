@@ -183,10 +183,12 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     tail=org_bone.head + (unit * (i + 1)),
                     roll=org_bone.roll,
                     use_deform=True,
+                    bbone_segments=self.params.spline_ik.bbone_segments
                 )
 
                 if len(self.bone_sets['Deform Bones']) > 1:
                     def_bone.parent = self.bone_sets['Deform Bones'][-2]
+                    def_bone.use_connect = True # Note: This must be set after the parent.
                 else:
                     def_bone.parent = self.bones_org[0]
 
@@ -284,6 +286,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         cls.draw_prop(context, layout, params.spline_ik, 'deform_setup', expand=True)
         if params.spline_ik.deform_setup == 'CREATE':
             cls.draw_prop(context, layout, params.spline_ik, 'subdivide')
+            cls.draw_prop(context, layout, params.spline_ik, 'bbone_segments')
         # TODO: When this is false, the directions of the curve points and bones
         # don't match, and both of them are unsatisfactory. It would be nice if
         # we would interpolate between the direction of the two bones, using
@@ -316,10 +319,17 @@ class Params(PropertyGroup):
     )
     subdivide: IntProperty(
         name="Subdivide Bones",
-        description="For each original bone, create this many deform bones in the spline chain (Bendy Bones do not work well with Spline IK, so we create real bones) NOTE: Spline IK only supports 255 bones in the chain",
+        description="For each original bone, create this many deform bones in the spline chain (Bendy Bones don't take the curve into account, so it's best to use quite a few real bones) NOTE: Spline IK only supports 255 bones in the chain",
         default=3,
         min=1,
         max=99,
+    )
+    bbone_segments: IntProperty(
+        name="Bendy Segments",
+        description="While the bendy bone curvature doesn't take the curve's curvature into account, it can still help smoothen the deformation",
+        min=1,
+        max=32,
+        default=1,
     )
     handle_length: FloatProperty(
         name="Curve Handle Length",
