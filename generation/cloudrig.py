@@ -812,18 +812,27 @@ class POSE_OT_cloudrig_keyframe_all_settings(Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_cloudrig_reset(Operator):
+class POSE_OT_armature_reset(Operator):
     """Reset all bone transforms and custom properties to their default values"""
 
-    bl_idname = 'pose.cloudrig_reset'
-    bl_label = "Reset Rig"
+    bl_idname = 'pose.armature_reset'
+    bl_label = "Reset Armature"
     bl_options = {'REGISTER', 'UNDO'}
 
+    reset_action: BoolProperty(
+        name="Un-Assign Action", default=True, description="Un-assign Action"
+    )
     reset_transforms: BoolProperty(
         name="Transforms", default=True, description="Reset bone transforms"
     )
-    reset_props: BoolProperty(
-        name="Properties", default=True, description="Reset custom properties"
+    reset_custom_props: BoolProperty(
+        name="Custom Properties", default=True, description="Reset custom properties"
+    )
+    reset_bone_visibility: BoolProperty(
+        name="Unhide Bones", default=True, description="Unhide all bones"
+    )
+    reset_viewport_display: BoolProperty(
+        name="Viewport Settings", default=True, description="Reset some viewport settings"
     )
     selection_only: BoolProperty(
         name="Selected Only",
@@ -839,41 +848,70 @@ class POSE_OT_cloudrig_reset(Operator):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
+    def draw(self, context):
+        rig = find_cloudrig(context)
+        layout = self.layout.column(align=True)
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        if rig.animation_data and rig.animation_data.action:
+            layout.prop(self, 'reset_action')
+        if any((pb.hide or pb.bone.hide for pb in rig.pose.bones)):
+            layout.prop(self, 'reset_bone_visibility')
+
+        if context.selected_pose_bones:
+            layout.prop(self, 'selection_only')
+        layout.prop(self, 'reset_transforms')
+        layout.prop(self, 'reset_custom_props')
+        layout.prop(self, 'reset_viewport_display')
+
     def execute(self, context):
         rig = find_cloudrig(context)
-        pbones = rig.pose.bones
-        if self.selection_only:
-            pbones = context.selected_pose_bones
 
-        reset_rig(
+        reset_armature(
             rig,
-            reset_transforms=self.reset_transforms,
-            reset_props=self.reset_props,
-            pbones=pbones,
+            viewport_display=self.reset_viewport_display,
+            bone_visibility=self.reset_bone_visibility,
+            action=self.reset_action,
+            custom_props=self.reset_custom_props,
+            pose_bones=context.selected_pose_bones if self.selection_only else rig.pose.bones,
         )
 
         return {'FINISHED'}
 
 
-def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
-    if not pbones:
-        pbones = rig.pose.bones
-    for pb in pbones:
-        if reset_transforms:
-            pb.location = (0, 0, 0)
-            pb.rotation_euler = (0, 0, 0)
-            pb.rotation_quaternion = (1, 0, 0, 0)
-            pb.scale = (1, 1, 1)
+def reset_armature(rig, *, viewport_display=True, bone_visibility=True, action=True, transforms=True, custom_props=True, pose_bones=[]):
+    if viewport_display:
+        rig.show_name = False
+        rig.show_axis = False
+        rig.show_in_front = False
 
-        if not reset_props or len(pb.keys()) == 0:
+    if not pose_bones:
+        pose_bones = rig.pose.bones
+
+    if action:
+        if rig.animation_data:
+            rig.animation_data.action = None
+
+    for pbone in pose_bones:
+        if bone_visibility:
+            pbone.hide = False
+            pbone.bone.hide = False
+
+        if transforms:
+            pbone.location = (0, 0, 0)
+            pbone.rotation_euler = (0, 0, 0)
+            pbone.rotation_quaternion = (1, 0, 0, 0)
+            pbone.scale = (1, 1, 1)
+
+        if not custom_props or len(pbone.keys()) == 0:
             continue
 
         rna_properties = [
-            prop.identifier for prop in pb.bl_rna.properties if prop.is_runtime
+            prop.identifier for prop in pbone.bl_rna.properties if prop.is_runtime
         ]
 
-        # Reset custom property values to their default value
-        for key in pb.keys():
+        # Reset custom property values to their defaults.
+        for key in pbone.keys():
             if key.startswith("$"):
                 continue
             if key in rna_properties:
@@ -881,7 +919,7 @@ def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
 
             property_settings = None
             try:
-                property_settings = pb.id_properties_ui(key)
+                property_settings = pbone.id_properties_ui(key)
                 if not property_settings:
                     continue
                 property_settings = property_settings.as_dict()
@@ -894,11 +932,11 @@ def reset_rig(rig, *, reset_transforms=True, reset_props=True, pbones=[]):
             if not property_settings:
                 continue
 
-            value_type, _is_array = rna_idprop_value_item_type(pb[key])
+            value_type, _is_array = rna_idprop_value_item_type(pbone[key])
 
             if value_type not in (float, int, bool):
                 continue
-            pb[key] = property_settings['default']
+            pbone[key] = property_settings['default']
 
 @bpy.app.handlers.persistent
 def auto_override_rig_data(_=None):
@@ -963,7 +1001,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             text='Keyframe All Settings',
             icon='KEYFRAME_HLT',
         )
-        layout.operator(POSE_OT_cloudrig_reset.bl_idname, icon='LOOP_BACK')
+        layout.operator(POSE_OT_armature_reset.bl_idname, icon='LOOP_BACK')
         if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
             # If CloudRig add-on is enabled, and this is a metarig.
             layout.separator()
@@ -2884,7 +2922,7 @@ classes = (
     POSE_OT_cloudrig_snap_bake,
     POSE_OT_cloudrig_toggle_ikfk_bake,
     POSE_OT_cloudrig_keyframe_all_settings,
-    POSE_OT_cloudrig_reset,
+    POSE_OT_armature_reset,
     POSE_OT_cloudrig_collections_reveal_all,
     POSE_OT_cloudrig_collection_select,
     POSE_OT_cloudrig_collection_delete,
