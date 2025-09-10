@@ -321,17 +321,23 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         prop_name,
         default_value=0.0,
         parent_bone=None,
+        root_bone='',
         hng_name=None,
         limb_name=None,
-        bone_set=None
+        bone_set=None,
+
+        panel_name="FK",
+        label_name="Hinge",
     ):
         """Create a hinge toggle for a bone.
         Bone is usually the first bone in an FK chain.
         When hinge is turned on, the bone doesn't inherit rotation from its
-        parents, but still inherits rotation from the rig's root bone.
+        parents, but still inherits rotation from the passed root bone.
         """
 
         # Defaults for optional parameters
+        if root_bone == '':
+            root_bone = self.generator.params.ensure_root
         if not hng_name:
             sliced = self.naming.slice_name(bone.name)
             sliced[0].insert(0, "HNG")
@@ -348,12 +354,17 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if bone_set == None:
             bone_set = bone.bone_set
 
+        # Create Hinge helper bone
+        hng_bone = bone_set.new(
+            name=hng_name, source=bone, head=bone.source.head, tail=bone.source.tail
+        )
+
         # Store UI info
         self.add_bone_property_with_ui(
             prop_bone=prop_bone,
             prop_id=prop_name,
-            panel_name="FK",
-            label_name="Hinge",
+            panel_name=panel_name,
+            label_name=label_name,
             row_name=category,
             slider_name=limb_name,
             custom_prop_settings={
@@ -367,15 +378,10 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             },
         )
 
-        # Create Hinge helper bone
-        hng_bone = bone_set.new(
-            name=hng_name, source=bone, head=bone.source.head, tail=bone.source.tail
-        )
-
         # Hinge Armature constraint
         hng_con = hng_bone.add_constraint(
             'ARMATURE',
-            targets=[{"subtarget": 'root'}, {"subtarget": str(parent_bone)}],
+            targets=[{"subtarget": root_bone}, {"subtarget": str(parent_bone)}],
         )
 
         hng_con.drivers.append(
