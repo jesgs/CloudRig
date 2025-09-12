@@ -2011,6 +2011,11 @@ class CLOUDRIG_UL_collections(UIList):
                 "name",
                 reverse=False,
             )
+            filter_map = {coll: flt_flags[i] for i, coll in enumerate(all_collections)}
+            # Allow collections that contain any collections that match the filter.
+            for i, coll in enumerate(all_collections):
+                if any([filter_map[child] for child in get_coll_children_recursive(coll)]):
+                    flt_flags[i] = 1073741824
 
         # Filter out collections whose parents are collapsed
         return [
@@ -2029,6 +2034,13 @@ class CLOUDRIG_UL_collections(UIList):
 
         return flt_flags, flt_neworder
 
+
+def get_coll_children_recursive(coll: BoneCollection) -> list[BoneCollection]:
+    children = []
+    for child in coll.children:
+        children.append(child)
+        children += get_coll_children_recursive(child)
+    return children
 
 def draw_cloudrig_collections(self, context, rig: Object):
     layout = self.layout

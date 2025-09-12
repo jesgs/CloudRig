@@ -88,6 +88,11 @@ class CLOUDRIG_UL_rig_components(UIList):
                 "name",
                 reverse=False,
             )
+            filter_map = {pb: flt_flags[i] for i, pb in enumerate(pbones)}
+            # Allow collections that contain any collections that match the filter.
+            for i, pbone in enumerate(pbones):
+                if any([filter_map[child] for child in pbone.children_recursive]):
+                    flt_flags[i] = 1073741824
 
         # Filter out bones that don't have a rig component.
         flt_flags = [
