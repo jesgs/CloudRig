@@ -92,12 +92,23 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
     if not hasattr(rig, 'cloudrig'):
         # If the CloudRig add-on is not installed, this function won't work.
         return
-    # First, try to find it by name, which should work most of the time.
+
+    # First, scan the scene for any armatures that reference this rig.
+    for obj in context.scene.objects:
+        if obj.type != 'ARMATURE':
+            continue
+        if obj.cloudrig.generator.target_rig == rig:
+            return obj
+
+    # If that failed, try to find it by name as a last resort.
     for prefix in {'RIG-', 'FAILED-RIG-'}:
         if rig.name.startswith(prefix):
-            metarig = context.scene.objects.get(rig.name.replace(prefix, ""))
-            if not metarig:
-                metarig = context.scene.objects.get(rig.name.replace(prefix, "META-"))
+            metarig = (
+                context.scene.objects.get(rig.name.replace(prefix, "META-")) or
+                context.scene.objects.get(rig.name.replace(prefix, ""))
+            )
+            if metarig.type != 'ARMATURE':
+                metarig = None
 
             if (
                 metarig
@@ -115,12 +126,6 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
             if metarig:
                 return metarig
 
-    # If that failed, scan the whole scene.
-    for obj in context.scene.objects:
-        if obj.type != 'ARMATURE':
-            continue
-        if obj.cloudrig.generator.target_rig == rig:
-            return obj
 
 
 def find_cloudrig(
