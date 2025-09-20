@@ -13,6 +13,7 @@ sample_names: list[tuple[str, str]] = []
 class CLOUDRIG_OT_metarig_add(Operator):
     bl_idname = "object.cloudrig_metarig_add"
     bl_label = "Add CloudRig Meta-Rig"
+    bl_description="Load metarig preset"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     metarig_name: StringProperty()
@@ -30,6 +31,7 @@ class CLOUDRIG_OT_metarig_add(Operator):
 class CLOUDRIG_OT_sample_add(Operator):
     bl_idname = "object.cloudrig_sample_add"
     bl_label = "Add CloudRig Sample"
+    bl_description="Load component sample"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     sample_name: StringProperty()

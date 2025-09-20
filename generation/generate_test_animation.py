@@ -2,6 +2,7 @@
 
 import bpy
 from bpy.types import Object
+from ..rig_components.cloud_base import Component_Base
 
 
 class TestAnimationGeneratorMixin:
@@ -62,9 +63,7 @@ class TestAnimationGeneratorMixin:
                 components_anim_order.remove(symm_component)
             start_frame = max(new_start_frame, symm_new_start_frame)
 
-    def get_symmetry_rig_component(
-        self, component: "Component_Base"
-    ) -> "Component_Base":
+    def get_symmetry_rig_component(self, component: Component_Base) -> Component_Base | None:
         """Find another component in the generator with the opposite name as the one provided."""
         flipped_name = self.naming.flipped_name(component.base_bone_name)
         if flipped_name == component.base_bone_name:
@@ -79,7 +78,9 @@ def ensure_test_action(metarig: Object, target_rig: Object):
     # Ensure test action exists
     test_action = metarig.cloudrig.generator.test_action
     if not test_action:
-        test_action = bpy.data.actions.new("DeformTest-" + target_rig.name.replace("NEW-", ""))
+        test_action = bpy.data.actions.new(
+            "DeformTest-" + target_rig.name.replace("NEW-", "")
+        )
         metarig.cloudrig.generator.test_action = test_action
 
     # Nuke all curves

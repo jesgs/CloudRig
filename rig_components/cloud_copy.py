@@ -42,7 +42,6 @@ class Component_CopyBone(Component_Base):
 
         for pbone, bone_info in zip(self.get_component_pbone_chain(), self.bones_org):
             if (not bone_info.use_custom_shape_bone_size):  
-                # TODO 4.0 I think this can be removed?
                 bone_info.custom_shape_scale_xyz /= (
                     bone_info.bbone_width * 10 * self.scale
                 )

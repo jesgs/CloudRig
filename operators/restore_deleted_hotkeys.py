@@ -9,9 +9,6 @@ class WINDOW_OT_restore_deleted_hotkeys(bpy.types.Operator):
     bl_label = "Restore Deleted Hotkeys"
 
     def execute(self, context):
-        if bpy.app.version < (4, 5, 0):
-            self.report({'ERROR'}, "This functionality requires Blender 4.5 or newer.")
-            return {'CANCELLED'}
         num_restored = restore_deleted_keymap_items_global(context)
         self.report({'INFO'}, f"Restored {num_restored} deleted keymaps.")
         return {'FINISHED'}

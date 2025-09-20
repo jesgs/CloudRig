@@ -176,19 +176,6 @@ def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         return
     symmetrized_con.name = flipped_con_name
 
-    if bpy.app.version < (4, 3, 0) and symmetrized_con.type == 'ARMATURE':
-        # This is a workaround to a bug that was fixed in Blender 4.3.
-        for orig_target, new_target in zip(con.targets, symmetrized_con.targets):
-            if not new_target.target:
-                continue
-            flipped_sub = flip_name(orig_target.subtarget)
-            if flipped_sub == orig_target.subtarget:
-                # The original target cannot be flipped, so don't do anything.
-                continue
-            if flipped_sub in new_target.target.pose.bones:
-                new_target.subtarget = flipped_sub
-
-
     symmetrize_drivers(armature, pbone, opp_pb, con, symmetrized_con)
 
 

@@ -1,6 +1,5 @@
 from . import (
     curve,
-    hotkeys,
     lattice,
     maths,
     misc,
@@ -11,7 +10,6 @@ from . import (
 
 modules = [
     curve,
-    hotkeys,
     lattice,
     maths,
     misc,

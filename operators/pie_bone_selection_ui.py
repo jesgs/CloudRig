@@ -9,14 +9,8 @@ from ..utils.rig import get_pbone_of_active
 
 
 def get_constraint_icon(constraint: Constraint) -> str:
-    """We do not ask questions about this function. We accept it."""
-    if constraint.type == 'ACTION':
-        return 'ACTION'
-
     icons = UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
-    # This magic number can change between blender versions. Last updated: 4.1.1
-    constraint_icon_magic_offset = 42
-    return icons[UILayout.icon(constraint) - constraint_icon_magic_offset]
+    return icons[UILayout.icon(constraint)]
 
 
 def get_constrained_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:

@@ -245,7 +245,7 @@ class BoneInfo:
         return self._source.source
 
     @property
-    def custom_shape_scale(self):
+    def custom_shape_scale(self) -> float:
         return sum(self.custom_shape_scale_xyz) / 3
 
     @custom_shape_scale.setter

@@ -18,7 +18,6 @@ class CloudMechanismMixin:
         return find_component_chain_of_pbone(pose_bone)
 
     def get_component_pbone_chain(self):
-        # TODO 4.0: This could be moved to the RigComponent RNA class.
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
         return get_component_pbone_chain(pose_bone)
 
