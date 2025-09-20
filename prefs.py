@@ -126,6 +126,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
         header, panel = layout.panel("CloudRig Hotkeys")
         header.label(text="Hotkeys")
         if panel:
+            panel.operator('window.restore_deleted_hotkeys', icon='BACK')
             self.draw_hotkey_list(context, panel, sort_mode='BY_OPERATOR')
 
         header, panel = layout.panel("CloudRig Bone Colors")
