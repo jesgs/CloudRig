@@ -8,10 +8,6 @@ class Component_FaceChainAnchor(Component_CopyBone):
 
     ui_name = "Chain Intersection"
 
-    def initialize(self):
-        super().initialize()
-        self.create_deform_bone = False
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         bi = self.bones_org[0]

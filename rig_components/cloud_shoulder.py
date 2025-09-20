@@ -13,9 +13,8 @@ class Component_Shoulder(Component_Chain_FK):
     ui_name = "Shoulder Bone"
     forced_params = {'fk_chain.display_center': False}
 
-    def initialize(self):
-        super().initialize()
-        """Gather and validate data about the rig."""
+    def init_extra(self):
+        super().init_extra()
         if self.bone_count > 1:
             print(
                 f"""Shoulder rig on {self.base_bone_name} has a chain of more than a single bone.

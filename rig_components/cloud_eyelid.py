@@ -10,9 +10,6 @@ class Component_Eyelid(Component_FaceChain):
 
     ui_name = "Chain: Eyelid"
 
-    def initialize(self):
-        super().initialize()
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
@@ -110,8 +107,6 @@ class Component_Eyelid(Component_FaceChain):
             str_ctr.parent = rot_ctr
 
     def create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
-        info = {'prop_bone': eye_rig.properties_bone, 'prop_id': sticky_prop_name}
-
         self.add_bone_property_with_ui(
             prop_bone=eye_rig.properties_bone,
             prop_id=sticky_prop_name,

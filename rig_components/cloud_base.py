@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..generation.troubleshooting import CloudRig_Generator
+    
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
 from collections.abc import Iterable
@@ -40,38 +45,32 @@ class Component_Base(
     keep_original_bones_colors = False
     use_base_name = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.base_bone_name}: {type(self).ui_name}'
 
     def __init__(
-        self, generator: 'CloudRig_Generator', bone_name: str, parent_instance=None
+        self, generator: CloudRig_Generator, bone_name: str, parent_instance=None
     ):
+        # Quick access to generator features.
         self.generator = generator
-
+        self.naming = self.generator.naming
+        self.logger = self.generator.logger
+        self.generator_params = self.generator.params
+        self.scale = self.generator.scale
         self.target_rig = generator.target_rig
         self.metarig = generator.metarig
         self.base_bone_name = bone_name
-
         pose_bone = self.metarig.pose.bones.get(bone_name)
         self.params = pose_bone.cloudrig_component.params
+        self.defaults = dict(self.generator.defaults)
 
+        # Component parent and children.
         self.parent_component = parent_instance
         if parent_instance:
             parent_instance.child_components.append(self)
         self.child_components = []
 
-        self.initialize()  # TODO 4.0: __init__ and initialize() should probably be merged.
-
-    def initialize(self):
-        self.bone_count = len(self.get_component_pbone_chain())
-
-        ### Quick access to the generator's log manager
-        self.logger = self.generator.logger
-
-        ### Quick access to the generator's name manager
-        self.naming = self.generator.naming
-
-        # Determine Suffix/Prefix
+        # Determine Suffix/Prefix.
         self.side_suffix = ""
         self.side_prefix = ""
         is_left = self.naming.side_is_left(self.base_bone_name)
@@ -82,10 +81,7 @@ class Component_Base(
             self.side_suffix = "R"
             self.side_prefix = "Right"
 
-        self.generator_params = self.generator.params
-        self.defaults = dict(self.generator.defaults)
-
-        self.scale = self.generator.scale
+        self.bone_count = len(self.get_component_pbone_chain())
 
         # Reference to this component's root bone info which should be set in create_bone_infos()
         # Used for the "Custom Root Parent" feature.
@@ -94,13 +90,18 @@ class Component_Base(
         self.force_parameters(self.metarig_base_pbone, self.params)
 
         # Prepare Bone Sets
-        self.bone_sets = dict()
-        self.init_bone_sets()
+        self.bone_sets = self.init_bone_sets()
 
-        # Quick access to the basic important bone sets
+        # Quick access to the 3 basic bone sets.
         self.bones_org = self.bone_sets['Original Bones']
         self.bones_def = self.bone_sets['Deform Bones']
         self.bones_mch = self.bone_sets['Mechanism Bones']
+
+        self.init_extra()
+
+    def init_extra(self):
+        """For child classes to override, without having to pass other params."""
+        pass
 
     def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org

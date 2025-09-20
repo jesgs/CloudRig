@@ -10,7 +10,7 @@ from .cloud_base import Component_Base
 class Component_Template(Component_Base):
     """Template for implementing rig types in CloudRig. Just creates a control bone."""
 
-    def initialize(self):
+    def init_extra(self):
         pass
 
     def create_bone_infos(self, context):

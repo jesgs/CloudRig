@@ -115,9 +115,6 @@ class Component_FaceChain(Component_ToonChain):
     #     'chain.smooth_spline' : False
     # }
 
-    def initialize(self):
-        super().initialize()
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 

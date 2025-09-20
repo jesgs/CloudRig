@@ -19,10 +19,6 @@ class Component_Lattice(Component_Base):
 
     keep_original_bones = False
 
-    def initialize(self):
-        super().initialize()
-        self.create_deform_bone = False
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         self.test_lattice_already_used()

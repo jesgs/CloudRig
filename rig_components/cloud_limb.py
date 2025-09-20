@@ -25,10 +25,8 @@ class Component_Limb(Component_Chain_IKFK):
 
     required_chain_length = 3
 
-    def initialize(self):
-        super().initialize()
-        """Gather and validate data about the rig."""
-
+    def init_extra(self):
+        super().init_extra()
         if not self.params.chain.smooth_spline:
             self.params.limb.auto_hose = False
 

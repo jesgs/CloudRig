@@ -22,8 +22,8 @@ class Component_CopyBone(Component_Base):
     keep_original_bones_collections = True
     keep_original_bones_colors = False
 
-    def initialize(self):
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
 

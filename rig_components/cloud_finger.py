@@ -17,8 +17,8 @@ class Component_Finger(Component_Chain_IKFK):
 
     required_chain_length = 3
 
-    def initialize(self):
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
 
         self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 

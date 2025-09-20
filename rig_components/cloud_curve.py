@@ -28,9 +28,8 @@ class Component_Curve_Hooked(Component_Base):
 
     ui_name = "Curve: With Hooks"
 
-    def initialize(self):
-        """Gather and validate data about the rig."""
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
         self.initialize_curve_rig()
 
     def initialize_curve_rig(self):

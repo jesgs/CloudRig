@@ -144,14 +144,6 @@ def get_widgets_enum_items(_scene=None, _context=None) -> list[str, str, str] | 
 
     return enum_items
 
-def get_widget_index(wgt_name: str) -> int:
-    enum_items = get_widgets_enum_items()
-    if not enum_items:
-        return 0
-    for i, (identifier, name, description) in enumerate():
-        if name == wgt_name:
-            return i
-
 def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
     """
     Saves all custom shape properties of a pose bone.

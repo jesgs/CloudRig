@@ -20,9 +20,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
     }
     always_use_custom_props = True
 
-    def initialize(self):
-        """Gather and validate data about the rig."""
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
 
         if not self.bone_count > 1:
             self.raise_generation_error(

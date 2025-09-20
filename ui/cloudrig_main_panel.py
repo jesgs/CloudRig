@@ -2,10 +2,10 @@
 
 from bpy.types import Panel, Object
 
-from ..generation.cloudrig import is_generated_cloudrig
 from ..utils.misc import check_addon
 from ..bs_utils.prefs import get_addon_prefs
 
+from ..generation.cloudrig import is_generated_cloudrig
 
 class POSE_PT_CloudRig(Panel):
     bl_label = "CloudRig"

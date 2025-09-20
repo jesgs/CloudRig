@@ -21,9 +21,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     forced_params = {'fk_chain.root': True, 'fk_chain.position_along_bone': 0}
 
-    def initialize(self):
+    def init_extra(self):
         """Gather and validate data about the rig."""
-        super().initialize()
+        super().init_extra()
 
         # UI Strings and Custom Property names
         self.ikfk_name = "ik_" + self.limb_name_props

@@ -22,9 +22,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
     }
     always_use_custom_props = True
 
-    def initialize(self):
+    def init_extra(self):
         """Gather and validate data about the rig."""
-        super().initialize()
+        super().init_extra()
 
         if self.params.spine.use_ik and self.bone_count < 3:
             self.raise_generation_error(

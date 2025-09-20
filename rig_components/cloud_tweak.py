@@ -17,8 +17,8 @@ class Component_TweakBone(Component_Base):
     keep_original_bones_collections = True
     keep_original_bones_colors = True
 
-    def initialize(self):
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
         self.tweak_bone = None
 
     def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:

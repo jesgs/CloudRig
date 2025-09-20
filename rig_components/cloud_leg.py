@@ -28,9 +28,8 @@ class Component_Limb_BipedLeg(Component_Limb):
 
     required_chain_length = 4
 
-    def initialize(self):
-        """Gather and validate data about the rig."""
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
 
         # IK values
         self.ik_pole_direction = -1

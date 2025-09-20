@@ -13,8 +13,8 @@ class Component_Feather(Component_Chain_FK):
         'fk_chain.display_center': False,
     }
 
-    def initialize(self):
-        super().initialize()
+    def init_extra(self):
+        super().init_extra()
 
         if self.bone_count != 1:
             self.raise_generation_error("Feather rig must consist of exactly 1 bone.")

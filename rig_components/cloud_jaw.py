@@ -68,9 +68,6 @@ class Component_Jaw(Component_CopyBone):
 
     ui_name = 'Jaw'
 
-    def initialize(self):
-        super().initialize()
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         # Not yet sure what's the best way to make the user define the components of the jaw rig

@@ -23,9 +23,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         'fk_chain.position_along_bone': 0,
     }
 
-    def initialize(self):
-        super().initialize()
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
@@ -33,7 +30,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         if self.params.physics_chain.make_ctrl:
             self.make_physics_chain(self.bone_sets['FK Controls'])
         self.constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
-
 
     def ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
         phys_obj = self.params.physics_chain.phys_obj

@@ -23,9 +23,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     has_test_animation = True
     use_base_name = True
 
-    def initialize(self):
+    def init_extra(self):
         """Gather and validate data about the rig."""
-        super().initialize()
+        super().init_extra()
 
         self.limb_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
         self.limb_ui_name = self.limb_name

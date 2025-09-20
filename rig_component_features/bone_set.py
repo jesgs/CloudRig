@@ -265,7 +265,7 @@ class BoneSetMixin:
             for bone_info in bone_set:
                 yield bone_info
 
-    def init_bone_set(self, bone_set_prop_name):
+    def init_bone_set(self, bone_set_prop_name) -> BoneSet:
         """Take a bone set definition stored in the class and create a single BoneSet for it."""
         rna_bone_set = getattr(self.params.bone_sets, bone_set_prop_name)
 
@@ -284,13 +284,15 @@ class BoneSetMixin:
 
         return new_set
 
-    def init_bone_sets(self):
+    def init_bone_sets(self) -> dict[str, BoneSet]:
         """Instantiate all bone sets based on the class's bone_set_defs dictionary."""
         bone_set_defs = type(self).bone_set_defs
+        bone_sets = {}
         for bone_set_prop_name, bone_set_def in bone_set_defs.items():
-            self.bone_sets[bone_set_def['ui_name']] = self.init_bone_set(
+            bone_sets[bone_set_def['ui_name']] = self.init_bone_set(
                 bone_set_prop_name
             )
+        return bone_sets
 
     ##############################
     # UI
