@@ -58,10 +58,10 @@ class CloudMechanismMixin:
 
     def transfer_relink_driver_info(self, from_bone: BoneInfo, to_bone: BoneInfo):
         """Transfer and relink drivers from one bone to another."""
-        for d in from_bone.drivers[:]:
-            to_bone.drivers.append(d)
-            from_bone.drivers.remove(d)
-            self.relink_driver_info(d)
+        for drv in from_bone.drivers[:]:
+            to_bone.drivers.append(drv)
+            from_bone.drivers.remove(drv)
+            self.relink_driver_info(drv)
 
 
 def relink_driver_info(metarig, rig, driver_info):

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PoseBone, PropertyGroup
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians
@@ -270,7 +271,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         return pole_ctrl
 
-    def make_ik_chain(self, org_chain, ik_mstr, pole_target=None):
+    def make_ik_chain(self, org_chain, ik_mstr, pole_target=None) -> list[BoneInfo]:
         """Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
         ik_chain = []
         for i, org_bone in enumerate(org_chain):

@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PropertyGroup, PoseBone
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from mathutils import Vector
 
 from ..utils.maths import bounding_box_center, bounding_box
-from ..rig_component_features.bone_info import BoneInfo
 from .cloud_base import Component_Base
 
 
@@ -13,7 +14,9 @@ class Component_Aim(Component_Base):
     """Create Aim Target Control for a single bone."""
 
     ui_name = "Aim"
-    relinking_behaviour = "Constraints will be moved to the Eye Root Control."
+
+    relink_default_prefix = "CTR"
+
     parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye components with a matching string as their Eye Group paramter."
     parent_switch_overwrites_root_parent = False
 
@@ -199,19 +202,6 @@ class Component_Aim(Component_Base):
 
         if self.params.aim.deform:
             self.make_def_bone(highlight_ctr, self.bones_def)
-
-    def relink(self):
-        """Override cloud_base.
-        Move constraints from the ORG to the Eye Control bone and relink them.
-        """
-        org = self.bones_org[0]
-        if org == self.root_bone:
-            org.relink()
-            return
-        for c in org.constraint_infos:
-            self.root_bone.constraint_infos.append(c)
-            org.constraint_infos.remove(c)
-            c.relink()
 
     def apply_parent_switching(
         self,

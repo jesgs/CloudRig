@@ -191,7 +191,6 @@ def version_cloud_metarig(metarig):
         if 'generation_date' in metarig.data or 'generation_time' in metarig.data or ('is_generated_cloudrig' in metarig.data and metarig.data['is_generated_cloudrig']):
             metarig.property_unset('cloudrig')
 
-
 def get_old_cloud_metarigs():
     return [
         o

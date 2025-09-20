@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PropertyGroup
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+
 from bpy.props import (
     BoolProperty,
     IntVectorProperty,
@@ -8,18 +10,15 @@ from bpy.props import (
     FloatProperty,
     StringProperty,
 )
-
-from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.component_test_animation import CloudAnimationMixin
 from .cloud_chain import Component_ToonChain
-
 
 class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     """FK chain with squash and stretch controls."""
 
     ui_name = "Chain: FK"
-    # Strings to try to communicate obscure behaviours of this rig type in the params UI.
-    relinking_behaviour = "Constraints will be moved to the FK controls."
+
+    relink_default_prefix = "FK"
 
     has_test_animation = True
     use_base_name = True
@@ -109,21 +108,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             label_name=label_name,
             entry_name=entry_name,
         )
-
-    def relink(self):
-        """Override cloud_chain.
-        Move constraints from ORG to FK chain and relink them.
-        """
-        for i, org in enumerate(self.bones_org):
-            for c in org.constraint_infos[:]:
-                if not c.is_from_real:
-                    continue
-                to_bone = self.bone_sets['FK Controls'][i]
-                if i == 0 and self.params.fk_chain.double_first:
-                    to_bone = to_bone.parent
-                to_bone.constraint_infos.append(c)
-                org.constraint_infos.remove(c)
-                c.relink()
 
     def make_root_bone(self):
         # Socket/Root bone to parent IK and FK to.

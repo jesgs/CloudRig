@@ -11,7 +11,6 @@ class Component_TweakBone(Component_Base):
     """Tweak a single bone with the same name as this bone in the generated rig."""
 
     ui_name = "Bone Tweak"
-    relinking_behaviour = "Constraints will be moved to the tweaked bone."
     parent_switch_behaviour = "The active parent will own the tweaked bone."
 
     keep_original_bones = False
@@ -133,13 +132,10 @@ class Component_TweakBone(Component_Base):
         org_bi = self.bones_org[0]
         if not self.params.tweak.constraints_additive:
             self.tweak_bone.clear_constraints()
-        for c in org_bi.constraint_infos[:]:
-            self.tweak_bone.constraint_infos.append(c)
-            c.relink()
-            # Relink constraint drivers
-            for d in c.drivers:
-                self.relink_driver_info(d)
-            org_bi.constraint_infos.remove(c)
+        for con_info in org_bi.constraint_infos[:]:
+            self.tweak_bone.constraint_infos.append(con_info)
+            con_info.relink()
+            org_bi.constraint_infos.remove(con_info)
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):

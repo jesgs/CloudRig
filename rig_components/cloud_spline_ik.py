@@ -3,6 +3,7 @@
 import bpy
 from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty, StringProperty
 from bpy.types import PropertyGroup
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 
 from .cloud_curve import Component_Curve_Hooked, get_points
 
@@ -11,7 +12,6 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     """Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
 
     ui_name = "Curve: Spline IK"
-    relinking_behaviour = "Constraints will be moved to the Hook controls. Only works when Match Controls to Bones option is enabled."
 
     forced_params = {
         'curve.x_axis_symmetry': False,
@@ -203,21 +203,15 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             chain_count=len(bone_chain),
         )
 
-    def relink(self):
-        """Override cloud_curve.
-        Move constraints from ORG to Hook controls and relink them.
-        Only works when params.spline_ik.match_hooks==True.
-        """
+    def get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         if not self.params.spline_ik.match_hooks:
-            return
-        for i, org in enumerate(self.bones_org):
-            for c in org.constraint_infos[:]:
-                if not c.is_from_real:
-                    continue
-                to_bone = self.bone_sets['Curve Hooks'][i]
-                to_bone.constraint_infos.append(c)
-                org.constraint_infos.remove(c)
-                c.relink()
+            # Don't allow relinking if the number of hooks doesn't match the number of org bones.
+            return self.bones_org[org_i]
+
+        if con_info.name.startswith("TAIL-"):
+            return self.bone_sets['Curve Hooks'][org_i+1]
+
+        return super().get_relink_target(org_i, con_info)
 
     def create_helper_objects(self, context):
         """Apply the rest pose of the deform bones, as dictated by

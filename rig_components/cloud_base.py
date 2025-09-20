@@ -2,16 +2,17 @@
 
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
+from collections.abc import Iterable
 
-from ..generation.troubleshooting import LoggerMixin
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.bone_set import BoneSetMixin
-from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
 from ..rig_component_features.component_params_ui import CloudUIMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
 from ..rig_component_features.parenting import CloudParentingMixin
 from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
+from ..generation.troubleshooting import LoggerMixin
 
 
 class Component_Base(
@@ -26,8 +27,9 @@ class Component_Base(
 ):
     """Base class that all CloudRig components should inherit from."""
 
+    relink_default_prefix = ""
+
     # Strings to try to communicate obscure behaviours of this rig type in the params UI.
-    relinking_behaviour = ""
     parent_switch_behaviour = "The active parent will own the component's root bone."
     parent_switch_overwrites_root_parent = True
 
@@ -183,11 +185,57 @@ class Component_Base(
         # helpers like curves, empties, lattices.
         pass
 
-    # Other functions
+    ### Relinking - Allow users to easily add constraints to the generated rig to specific bones, 
+    # in cases where user intent can be made clear.
     def relink(self):
-        # Relink the base bone.
-        bi = self.root_bone
-        bi.relink()
+        """Move constraints from original bones to other bones."""
+        for org_idx, org_bi in enumerate(self.bones_org):
+            for con_info in org_bi.constraint_infos[:]:
+                if not con_info.is_from_real:
+                    # If this constraint was added by CloudRig code, don't relink it.
+                    # We only want to relink constraints that were added by the user.
+                    continue
+
+                to_binfo = self.get_relink_target(org_idx, con_info)
+                if not to_binfo or to_binfo == org_bi:
+                    continue
+
+                if con_info.type == 'ARMATURE' and 'NOHLP' not in con_info.name:
+                    to_binfo = self.create_parent_bone(to_binfo, self.bones_mch)
+
+                to_binfo.constraint_infos.append(con_info)
+                org_bi.constraint_infos.remove(con_info)
+                con_info.relink()
+
+    def get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+        """Return which BoneInfo a given constraint should be moved to.
+        Params:
+            org_i: Index of the original bone that has the constraint
+            con_info: The constraint itself.
+        This function should be overridden by child classes.
+        By default, we will return the original bone itself, ie. not moving the constraint anywhere.
+        """
+
+        org_name = self.bones_org[org_i].name
+
+        name_without_target = con_info.name.replace("NOHLP-", "NOHLP_").split("@")[0]
+        if "-" in name_without_target:
+            prefix, _base_name = name_without_target.rsplit("-", 1)
+        else:
+            prefix = type(self).relink_default_prefix
+
+        target_name = "-".join([prefix, org_name])
+        for bone_info in self.all_bone_infos:
+            if bone_info.name == target_name:
+                return bone_info
+
+        return self.bones_org[org_i]
+
+    @property
+    def all_bone_infos(self) -> Iterable[BoneInfo]:
+        for set_name, bone_set in self.bone_sets.items():
+            for bone_info in bone_set:
+                yield bone_info
 
     ##############################
     # Parameters

@@ -3,7 +3,7 @@
 from bpy.props import BoolProperty, IntProperty, FloatProperty, StringProperty
 from bpy.types import PropertyGroup
 
-from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.bone_set import BoneSet
 from .cloud_base import Component_Base
 
@@ -12,7 +12,8 @@ class Component_ToonChain(Component_Base):
     """Chain with cartoony squash and stretch controls."""
 
     ui_name = "Chain: Toon"
-    relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with \"TAIL-\"."
+
+    relink_default_prefix = "STR"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,42 +92,21 @@ class Component_ToonChain(Component_Base):
 
         return str_chain
 
-    def get_relink_target(self, org_i, con) -> BoneInfo:
+    def get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return the bone to which a constraint should be moved to."""
-        org_bone = self.bones_org[org_i]
-        relink_bone = self.main_str_bones[org_i]
-        if 'TAIL' in con.name:
+        if con_info.name.startswith('TAIL'):
+            org_bone = self.bones_org[org_i]
             if len(self.main_str_bones) <= org_i + 1:
-                # TODO: Add a log, don't totally cancel the generation!
+                # Since the TAIL- instruction is very explicit, if it fails, let's throw a hard error.
                 self.raise_generation_error(
-                    f'Cannot move constraint "{con.name}" from "{org_bone.name}" to final STR bone since it does not exist! Make sure "Tip Control" param is enabled!'
+                    f'Cannot move constraint "{con_info.name}" from "{org_bone.name}" to final STR bone since it does not exist! Make sure "Tip Control" param is enabled!'
                 )
-            relink_bone = self.main_str_bones[org_i + 1]
-
-        if con.type == 'ARMATURE' and 'NOHLP' not in con.name:
-            relink_bone = self.create_parent_bone(relink_bone, self.bones_mch)
-        return relink_bone
-
-    def relink(self):
-        """Overrides cloud_base.
-
-        Move constraints from ORG bones to main STR bones and relink them.
-
-        If the constraint name contains 'TAIL', we move the constraint
-        to the STR bone at the tip of the ORG bone rather than at the head.
-
-        If the constraint type is Armature, create a parent helper bone to prevent
-        the parenting from affecting the local matrix.
-        """
-        for i, org in enumerate(self.bones_org):
-            for c in org.constraint_infos[:]:
-                to_bone = self.get_relink_target(i, c)
-                if not to_bone:
-                    continue
-
-                to_bone.constraint_infos.append(c)
-                org.constraint_infos.remove(c)
-                c.relink()
+            return self.main_str_bones[org_i + 1]
+        elif (type(self).relink_default_prefix=="STR" and "-" not in con_info.name) or con_info.name.startswith("STR-"):
+            # This is necessary because the main STR bones have an _1 suffix, so the name matching in the super() function fails.
+            return self.main_str_bones[org_i]
+        else:
+            return super().get_relink_target(org_i, con_info)
 
     def make_main_str_bones(self, org_chain: BoneSet) -> list[BoneInfo]:
         """Create the main stretch controls:

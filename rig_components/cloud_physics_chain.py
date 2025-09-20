@@ -5,7 +5,7 @@ from bpy.types import Object, PropertyGroup
 from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
 from math import sqrt
 
-from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.object import lock_transforms
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -34,18 +34,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             self.make_physics_chain(self.bone_sets['FK Controls'])
         self.constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
 
-    def relink(self):
-        """Override cloud_fk_chain.
-        Move constraints from ORG to PSX chain and relink them.
-        """
-        for i, org in enumerate(self.bones_org):
-            for c in org.constraint_infos[:]:
-                if not c.is_from_real:
-                    continue
-                to_bone = self.bone_sets['Physics Bones'][i]
-                to_bone.constraint_infos.append(c)
-                org.constraint_infos.remove(c)
-                c.relink()
 
     def ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
         phys_obj = self.params.physics_chain.phys_obj

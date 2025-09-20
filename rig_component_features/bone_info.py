@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
 import re
 from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
 
@@ -480,17 +481,16 @@ class BoneInfo:
         self.constraint_infos = []
 
     def relink(self):
-        """Relinking a bone just means relinking its drivers, constraints and
-        constraint drivers."""
+        """Relinking a bone means relinking its drivers, constraints and
+        constraint drivers - Anything targetting the metarig will target the rig instead,
+        and constraints will be moved to other bones if indicated by a prefix to do so."""
+
         # Relink bone drivers
         for drv in self.drivers:
             self.bone_set.rig_component.relink_driver_info(drv)
 
         for con_inf in self.constraint_infos:
             con_inf.relink()
-            # Relink constraint drivers
-            for drv in con_inf.drivers:
-                self.bone_set.rig_component.relink_driver_info(drv)
 
     def write_edit_data(self, generator, edit_bone: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
@@ -704,27 +704,27 @@ class BoneInfo:
                     )
 
         # Constraints.
-        for ci in self.constraint_infos:
-            con = ci.make_real(pose_bone)
-            for driver_info in ci.drivers:
+        for con_info in self.constraint_infos:
+            con = con_info.make_real(pose_bone)
+            for driver_info in con_info.drivers:
                 driver_info['prop'] = (
                     f'pose.bones["{pose_bone.name}"].constraints["{con.name}"]{fixed_path(driver_info["prop"])}'
                 )
                 make_driver_safe(arm_ob, target_id=arm_ob, **driver_info)
             # Copied constraint drivers
-            for data_path, array_index in ci.drivers_to_copy:
+            for data_path, array_index in con_info.drivers_to_copy:
                 fcurve = metarig.animation_data.drivers.find(
                     data_path, index=array_index
                 )
-                if self.name not in data_path:
+                if f'bones["{self.name}"]' not in data_path:
                     # If the bone's name has changed, fix it in the data path.
                     data_path = re.sub(
                         r'bones\[".*?"\]', f'bones["{self.name}"]', data_path
                     )
-                if ci.name not in data_path:
+                if f'constraints["{con_info.name}"]' not in data_path:
                     # If the constraint's name has changed, fix it in the data path.
                     data_path = re.sub(
-                        r'constraints\[".*?"\]', f'constraints["{ci.name}"]', data_path
+                        r'constraints\[".*?"\]', f'constraints["{con_info.name}"]', data_path
                     )
 
                 copy_relink_real_driver(metarig, arm_ob, fcurve, data_path, array_index)
@@ -846,9 +846,8 @@ class ConstraintInfo(dict):
         # This supports keyframes and curve modifiers.
         self.drivers_to_copy: list[tuple[str, int]] = []
 
-        self.is_from_real = (
-            False  # Whether this constraint was read from a real bpy.types.Constraint.
-        )
+        # Whether this constraint was read from a real bpy.types.Constraint.
+        self.is_from_real = False
 
         if use_preferred_defaults:
             self.set_preferred_defaults()
@@ -925,40 +924,35 @@ class ConstraintInfo(dict):
 
         if self.space_object == metarig:
             self.space_object = rig
+        if self.target in (metarig, None):
+            self.target = rig
 
-        if "@" not in self.name:
+        if '@' in self.name:
+            split_name = self.name.split("@")
+            subtargets = split_name[1:]
+            self.name = split_name[0]
             if self.type == 'ARMATURE':
-                for i, t in enumerate(self.targets):
-                    if 'target' not in self.targets[i] or not self.targets[i]['target']:
-                        t['target'] = rig
-                    elif t['target'] == metarig:
-                        t['target'] = rig
+                for i, subtarget in enumerate(subtargets):
+                    if len(self.targets) <= i:
+                        self.targets.append({'target': rig, 'subtarget': subtarget})
+                    else:
+                        if self.targets[i]['target'] in (metarig, None):
+                            self.targets[i]['target'] = rig
+                        self.targets[i]['subtarget'] = subtarget
+            else:
+                self.subtarget = subtargets[0]
 
+        if self.type == 'ARMATURE' and any((target['subtarget'] in ("", None) for target in self.targets)):
+            self.bone_info.owner_component.add_log(
+                "Relinking failed",
+                trouble_bone=self.bone_info.name,
+                description=f'Failed to relink constraint due to too many targets in constraint "{self.name}".\n Remove unneeded targets from the Armature constraint!',
+            )
             return
 
-        split_name = self.name.split("@")
-        subtargets = split_name[1:]
-        self.name = split_name[0]
-
-        if self.type == 'ARMATURE':
-            if len(self.targets) > len(subtargets):
-                self.bone_info.owner_component.add_log(
-                    "Relinking failed",
-                    trouble_bone=self.bone_info.name,
-                    description=f'Failed to relink constraint due to too many targets in constraint "{self.name}".\n Remove unneeded targets from the Armature constraint!',
-                )
-                return
-
-            for i, t in enumerate(self.targets):
-                t['subtarget'] = subtargets[i]
-                if not t['target']:
-                    t['target'] = rig
-                if t['target'] == metarig:
-                    t['target'] = rig
-            return
-
-        if len(subtargets) > 0:
-            self.subtarget = subtargets[0]
+        # Relink constraint drivers
+        for drv in self.drivers:
+            self.bone_info.bone_set.rig_component.relink_driver_info(drv)
 
     def make_real(self, pose_bone):
         """Create a constraint based on this ConstraintInfo on a given pose bone."""
@@ -1041,8 +1035,8 @@ def copy_relink_real_driver(
     Replace references to the metarig with the generated rig.
     May copy to a different data path than the source.
     """
-    copy_driver(fcurve, rig, data_path, index)
-    for var in fcurve.driver.variables:
+    new_fcurve = copy_driver(fcurve, rig, data_path, index)
+    for var in new_fcurve.driver.variables:
         for tgt in var.targets:
             if tgt.id == metarig:
                 tgt.id = rig

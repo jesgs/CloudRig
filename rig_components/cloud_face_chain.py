@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
 from mathutils import Vector
 
-from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from .cloud_chain import Component_ToonChain
 from .cloud_chain_anchor import Component_FaceChainAnchor
 
@@ -109,7 +109,6 @@ def do_centered_cluster(
 class Component_FaceChain(Component_ToonChain):
     """Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
-    relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone's head, or tail if the constraint name is prefixed with \"TAIL-\". If the STR bone is part of an intersection, the constraint is moved to the STR-I intersection control instead."
     ui_name = "Chain: Face Grid"
 
     # forced_params = {
@@ -189,15 +188,12 @@ class Component_FaceChain(Component_ToonChain):
         for rig in self.chain_rigs:
             rig.relink(last_chain_done=True)
 
-    def get_relink_target(self, org_i, con):
+    def get_relink_target(self, org_i: int, con: ConstraintInfo):
         """Overrides cloud_chain. Only work when called by the last chain rig.
         Relink target should become the intersection control if there is one.
         """
 
-        if con.name.startswith('TAIL-'):
-            relink_bone = self.main_str_bones[org_i + 1]
-        else:
-            relink_bone = self.main_str_bones[org_i]
+        relink_bone = super().get_relink_target(org_i, con)
 
         is_intersection = False
         if hasattr(relink_bone, 'intersection_ctrl'):
@@ -215,7 +211,6 @@ class Component_FaceChain(Component_ToonChain):
                 )
             elif not is_intersection:
                 relink_bone = relink_bone.parent_helper
-                print("SKIPPED " + relink_bone.parent_helper.name)
 
         return relink_bone
 

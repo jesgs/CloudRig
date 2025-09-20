@@ -4,7 +4,7 @@ from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
 from bpy.props import BoolProperty, StringProperty, PointerProperty, FloatProperty
 from mathutils import Matrix, Vector
 
-from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from .cloud_base import Component_Base
 from ..utils import curve as curve_utils
 
@@ -27,7 +27,6 @@ class Component_Curve_Hooked(Component_Base):
     """Create hook controls for an existing bezier curve."""
 
     ui_name = "Curve: With Hooks"
-    relinking_behaviour = "Constraints will be moved to the Curve Root."
 
     def initialize(self):
         """Gather and validate data about the rig."""
@@ -56,15 +55,8 @@ class Component_Curve_Hooked(Component_Base):
 
         self.make_ctrls_for_curve_points()
 
-    def relink(self):
-        """Override cloud_base.
-        Move constraints from the ORG to the ROOT bone and relink them.
-        """
-        org = self.bones_org[0]
-        for c in org.constraint_infos[:]:
-            self.root_bone.constraint_infos.append(c)
-            org.constraint_infos.remove(c)
-            c.relink()
+    def get_relink_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
+        return self.root_bone
 
     def make_curve_root_ctrl(self):
         org_bone = self.bones_org[0]

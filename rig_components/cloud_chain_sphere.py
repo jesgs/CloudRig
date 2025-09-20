@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.props import BoolProperty, IntProperty, FloatProperty, StringProperty, PointerProperty
+from bpy.props import StringProperty, PointerProperty
 from bpy.types import PropertyGroup, Object
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -12,7 +12,6 @@ class Component_SphereChain(Component_ToonChain):
     """Stretchy chain for spherical deformation. Useful for gigantic eyelids."""
 
     ui_name = "Chain: Sphere"
-    relinking_behaviour = "Constraints will be moved to the STR bone at the metarig bone\'s head, or tail if the constraint name is prefixed with \"TAIL-\"."
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,16 +51,6 @@ class Component_SphereChain(Component_ToonChain):
                     owner_space='LOCAL',
                     subtarget=rot_ctrl,
                 )
-
-    def get_relink_target(self, org_i, con) -> BoneInfo:
-        """Return the bone to which a constraint should be moved to."""
-        relink_bone = super().get_relink_target(org_i, con)
-        if relink_bone.parent.name.startswith("SPH-"):
-            relink_bone = relink_bone.parent
-
-        if con.type == 'ARMATURE' and 'NOHLP' not in con.name:
-            relink_bone = self.create_parent_bone(relink_bone, self.bones_mch)
-        return relink_bone
 
     ##############################
     # Parameters

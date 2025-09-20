@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
 from bpy.props import (
     StringProperty,
     PointerProperty,
@@ -10,6 +11,7 @@ from bpy.props import (
     IntProperty,
 )
 from bpy.types import PropertyGroup, Object, PoseBone, ID, BoneColor
+from types import ModuleType
 
 from . import rig_components, rig_component_features
 from .generation.cloud_generator import GeneratorProperties
@@ -216,19 +218,10 @@ class RigComponent(PropertyGroup):
         return self.owner_pose_bone.name
 
     @property
-    def owner_pose_bone(self):
+    def owner_pose_bone(self) -> PoseBone:
         metarig = self.id_data
-        if not self.component_type:
-            return
-        # XXX: This causes poor performance when the Components List has lot of bones.
-        # Cache solution doesn't work because we can't write to properties during re-draw.
-        # And the msgbus API is so terrible that I don't want to use it.
-        # So, it is what it is.
-        return {
-            pb.cloudrig_component: pb
-            for pb in metarig.pose.bones
-            if pb.cloudrig_component
-        }[self]
+        # XXX: May cause poor performance in the component list UI. Would be nice to have a proper mapping from component type to the PoseBone that's storing them.
+        return next((pb for pb in metarig.pose.bones if pb.cloudrig_component == self))
 
     @property
     def active_bone_set(self):
@@ -325,7 +318,7 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def component_module(self) -> 'ModuleType|None':
+    def component_module(self) -> ModuleType | None:
         prefs = get_addon_prefs()
         component_type_info = prefs.component_types.get(self.component_type)
         if not component_type_info:
@@ -334,11 +327,29 @@ class RigComponent(PropertyGroup):
 
     @property
     def rig_class(self) -> type | None:
+        # TODO: DEPRECATED, REMOVE.
+        return self.component_class
+
+    @property
+    def component_class(self) -> type | None:
         if not self.component_module:
             return
         return getattr(self.component_module, 'RIG_COMPONENT_CLASS')
 
-    def instantiate(self, generator, parent_instance=None) -> 'RigComponent|None':
+    @property
+    def component_pbone(self) -> PoseBone | None:
+        pb = self.owner_pose_bone
+
+        if self.component_type:
+            return pb
+
+        parent = pb.parent if pb.bone.use_connect else None
+        while parent:
+            if parent.cloudrig_component.component_type:
+                return parent
+            parent = parent.parent
+
+    def instantiate(self, generator, parent_instance=None) -> RigComponent | None:
         if not self.rig_class:
             return
 
@@ -367,22 +378,19 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def parent(self) -> 'RigComponent':
+    def parent(self) -> RigComponent | None:
         this_bone = self.owner_pose_bone
         if not this_bone:
             return
 
         bone_parent = this_bone.parent
-        parent_component = None
-        while bone_parent and not parent_component:
+        while bone_parent:
             if bone_parent.cloudrig_component.component_type:
-                parent_component = bone_parent.cloudrig_component
+                return bone_parent.cloudrig_component
             bone_parent = bone_parent.parent
 
-        return parent_component
-
     @property
-    def sibling_components(self) -> list['RigComponent']:
+    def sibling_components(self) -> list[RigComponent]:
         parent = self.parent
         if not parent:
             return [
@@ -418,7 +426,7 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def children(self) -> list['RigComponent']:
+    def children(self) -> list[RigComponent]:
         child_component_pbs = [
             pb for pb in get_direct_child_component_pbones(self.owner_pose_bone)
         ]
@@ -426,7 +434,7 @@ class RigComponent(PropertyGroup):
         return [pb.cloudrig_component for pb in child_component_pbs]
 
     @property
-    def siblings(self) -> list['RigComponent']:
+    def siblings(self) -> list[RigComponent]:
         if self.parent:
             return self.parent.children
         return sorted(

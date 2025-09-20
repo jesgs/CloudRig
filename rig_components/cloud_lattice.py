@@ -2,6 +2,7 @@
 
 import bpy
 from bpy.types import PropertyGroup, PoseBone, Object
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from bpy.props import BoolProperty, PointerProperty
 from mathutils import Matrix
 
@@ -13,7 +14,8 @@ class Component_Lattice(Component_Base):
     """Create a simple lattice set-up. Lattice modifiers have to be added manually to the objects that should be deformed."""
 
     ui_name = "Lattice"
-    relinking_behaviour = "Constraints will be moved to the Lattice Root."
+
+    relink_default_prefix = "LTC"
 
     keep_original_bones = False
 
@@ -26,16 +28,6 @@ class Component_Lattice(Component_Base):
         self.test_lattice_already_used()
         self.lattice_root = self.make_lattice_root_ctrl(self.root_bone)
         self.hook_bone = self.make_hook_ctrl(self.lattice_root)
-
-    def relink(self):
-        """Override cloud_base.
-        Move constraints from the ORG to the Lattice Root bone and relink them.
-        """
-        org = self.bones_org[0]
-        for c in org.constraint_infos:
-            self.lattice_root.constraint_infos.append(c)
-            org.constraint_infos.remove(c)
-            c.relink()
 
     def make_lattice_root_ctrl(self, org_bi):
         name_parts = self.naming.slice_name(org_bi)
