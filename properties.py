@@ -180,8 +180,9 @@ class ComponentParams(PropertyGroup):
 
 
 class RigComponent(PropertyGroup):
-    """It is important to store this on the (pose) bone, so that when a bone is duplicated,
-    this information is duplicated with it.
+    """Rig Component data is stored on PoseBones.
+    If a Component Type is assigned by the user via the UI, parameters will appear,
+    and this bone (and sometimes its children) will contribute to the generated rig.
     """
 
     def update_caches(self, context):
@@ -395,19 +396,6 @@ class RigComponent(PropertyGroup):
             ]
         return [sibling for sibling in parent.children if sibling != self]
 
-    @property
-    def should_draw(self) -> bool:
-        """Return False if any parent up the chain has show_children=False"""
-        parent = self.parent
-
-        if not parent:
-            return True
-
-        if not parent.show_child_components:
-            return False
-
-        return parent.should_draw
-
     show_child_components: BoolProperty(
         name="Show Children",
         description="Show child components in the list",
@@ -443,7 +431,7 @@ class RigComponent(PropertyGroup):
         default=False,
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.base_bone_name}: {self.component_type}"
 
 
@@ -581,8 +569,8 @@ registry = (
 def register():
     # Storing CloudRig properties on Object & PoseBone rather than Armature & Bone
     # has these benefits:
-    # 1. Can have multi-user Armature datablock with different CloudRig parameters
-    # 2. All code dealing with CloudRig can use `.id_data` to access the Object
+    # 1. Can have multi-user Armature datablock with different CloudRig parameters.
+    # 2. Component type functions can use `self.id_data` to access the Object.
     Object.cloudrig = PointerProperty(type=Properties_CloudRig)
     PoseBone.cloudrig_component = PointerProperty(type=RigComponent)
 
