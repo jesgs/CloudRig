@@ -252,9 +252,9 @@ class RigComponent(PropertyGroup):
         self.ui_bone_sets.clear()
         for prop_name in BoneSets.bone_set_property_groups.keys():
             bone_set = getattr(self.params.bone_sets, prop_name)
-            if not self.rig_class:
+            if not self.component_class:
                 continue
-            if prop_name not in self.rig_class.bone_set_defs:
+            if prop_name not in self.component_class.bone_set_defs:
                 continue
             ui_bone_set = self.ui_bone_sets.add()
             ui_bone_set.name = prop_name
@@ -270,7 +270,7 @@ class RigComponent(PropertyGroup):
 
     def reset_collections_of_bone_set(self, bone_set):
         ui_bone_set = self.ui_bone_sets[bone_set.name]
-        bone_set_definitions = self.rig_class.bone_set_defs
+        bone_set_definitions = self.component_class.bone_set_defs
         bone_set_definition = bone_set_definitions[ui_bone_set.name]
         bone_set.collections.clear()
         for default_coll in bone_set_definition['collections']:
@@ -326,11 +326,6 @@ class RigComponent(PropertyGroup):
         return rig_components.component_modules.get(component_type_info.module_name)
 
     @property
-    def rig_class(self) -> type | None:
-        # TODO: DEPRECATED, REMOVE.
-        return self.component_class
-
-    @property
     def component_class(self) -> type | None:
         if not self.component_module:
             return
@@ -350,10 +345,10 @@ class RigComponent(PropertyGroup):
             parent = parent.parent
 
     def instantiate(self, generator, parent_instance=None) -> RigComponent | None:
-        if not self.rig_class:
+        if not self.component_class:
             return
 
-        return self.rig_class(
+        return self.component_class(
             generator=generator,
             bone_name=self.base_bone_name,
             parent_instance=parent_instance,

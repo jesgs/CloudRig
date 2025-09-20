@@ -33,7 +33,7 @@ class CLOUDRIG_PT_rig_component(Panel):
         prefs = get_addon_prefs(context)
         active_pb = get_pbone_of_active(context)
         rig_component = active_pb.cloudrig_component
-        layout.alert = rig_component.component_type!="" and not bool(rig_component.rig_class)
+        layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
         row = layout.row()
         text = "Component Type"
         if row.alert:
@@ -68,12 +68,12 @@ class CloudParamSubPanel(Panel):
         rig_component = pb.cloudrig_component
         if not rig_component.component_type:
             return False
-        rig_class = rig_component.rig_class
-        if not rig_class:
+        component_class = rig_component.component_class
+        if not component_class:
             return False
-        if not hasattr(rig_class, cls.draw_function_name):
+        if not hasattr(component_class, cls.draw_function_name):
             return False
-        if cls.advanced_only and not rig_class.is_advanced_mode(context):
+        if cls.advanced_only and not component_class.is_advanced_mode(context):
             return False
         return True
 
@@ -84,8 +84,8 @@ class CloudParamSubPanel(Panel):
         layout = layout.column()
 
         pb = get_pbone_of_active(context)
-        rig_class = pb.cloudrig_component.rig_class
-        draw_func = getattr(rig_class, self.draw_function_name)
+        component_class = pb.cloudrig_component.component_class
+        draw_func = getattr(component_class, self.draw_function_name)
         draw_func(layout, context, pb.cloudrig_component.params)
 
 
@@ -138,8 +138,8 @@ class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
         if not super().poll(context):
             return False
         pb = get_pbone_of_active(context)
-        rig_class = pb.cloudrig_component.rig_class
-        return rig_class.is_using_custom_props(context, pb.cloudrig_component.params)
+        component_class = pb.cloudrig_component.component_class
+        return component_class.is_using_custom_props(context, pb.cloudrig_component.params)
 
 
 class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
@@ -153,11 +153,11 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
             return False
 
         pb = get_pbone_of_active(context)
-        rig_class = pb.cloudrig_component.rig_class
+        component_class = pb.cloudrig_component.component_class
 
         # If no bone sets are visible, don't draw the panel.
-        for prop_name, bone_set_def in rig_class.bone_set_defs.items():
-            if rig_class.is_bone_set_used(
+        for prop_name, bone_set_def in component_class.bone_set_defs.items():
+            if component_class.is_bone_set_used(
                 context,
                 context.object,
                 pb.cloudrig_component.params,

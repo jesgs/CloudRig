@@ -473,10 +473,10 @@ class CLOUDRIG_UL_bone_sets(UIList):
         prefs = get_addon_prefs(context)
         active_pb = get_pbone_of_active(context)
         component = active_pb.cloudrig_component
-        rig_class = component.rig_class
+        component_class = component.component_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
-            if ui_bone_set.name not in rig_class.bone_set_defs:
+            if ui_bone_set.name not in component_class.bone_set_defs:
                 flt_flags[idx] = 0
             else:
                 bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
@@ -484,7 +484,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
                     # Filter advanced bone sets when the user doesn't want to see them.
                     flt_flags[idx] = 0
                     continue
-                if not rig_class.is_bone_set_used(
+                if not component_class.is_bone_set_used(
                     context, metarig, component.params, ui_bone_set.name
                 ):
                     # Filter bone sets that are not used based on current parameters.

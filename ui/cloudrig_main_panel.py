@@ -61,7 +61,7 @@ class POSE_PT_CloudRig_Generation(Panel):
             rig_component = pb.cloudrig_component
             if rig_component.component_type != '':
                 # This is a bit nasty but importing Component_Chain_FK and using issubclass() breaks parameter registering (don't ask me why!)
-                if 'cloud_fk_chain' in str(rig_component.rig_class.mro()):
+                if 'cloud_fk_chain' in str(rig_component.component_class.mro()):
                     return True
         return False
 

@@ -46,7 +46,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         row.label(text=pose_bone.name)
 
         icon = 'ARMATURE_DATA'
-        if not rig_component.rig_class:
+        if not rig_component.component_class:
             icon = 'ERROR'
         main_row = main_split.row()
         row = main_row.row()
