@@ -93,13 +93,13 @@ class GeneratorProperties(PropertyGroup):
         description="Execute a python script after the rig is generated",
     )
     widget_collection: PointerProperty(
-        name="Widget Collection",
+        name="Custom Shape Collection",
         type=Collection,
-        description="Collection dedicated to storing nothing but the widgets used by this rig. Additional objects will result in warnings, and missing widgets will be re-linked during generation",
+        description="Collection dedicated to storing nothing but the custom shapes used by this rig. Additional objects will result in warnings, and missing custom shapes will be re-linked during generation",
     )
     reload_widgets: BoolProperty(
-        name="Overwrite Widgets",
-        description="Reload widgets, discarding any local modifications to them",
+        name="Overwrite Custom Shapes",
+        description="Reload custom shapes, discarding any local modifications to them",
         default=True,
     )
 
@@ -393,7 +393,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     def ensure_widget_collection(self, context) -> Collection:
         """Create the collection where bone shapes will be linked to."""
         if not self.params.widget_collection:
-            wgts_group_name = self.target_rig.name.replace("NEW-RIG-", "") + "-widgets"
+            wgts_group_name = self.target_rig.name.replace("NEW-RIG-", "") + "-custom_shapes"
             self.params.widget_collection = ensure_collection(
                 context, wgts_group_name, hidden=True
             )
@@ -468,8 +468,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         except ValueError:
             self.raise_generation_error(
-                "Failed to load widget",
-                description=f"Failed to find widget named '{widget_name}'.",
+                "Failed to load custom shape",
+                description=f"Failed to find custom shape named '{widget_name}'.",
             )
         coll = self.params.widget_collection or context.scene.collection
         assign_to_collection(wgt, coll)

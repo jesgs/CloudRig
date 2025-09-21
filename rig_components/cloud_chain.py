@@ -838,17 +838,17 @@ class Params(PropertyGroup):
     )
 
     widget_stretch: StringProperty(
-        name="Stretch Widget",
-        description="Widget for Stretch controls",
+        name="Stretch Custom Shape",
+        description="Custom shape for Stretch controls",
         default='Sphere'
     )
     widget_stretch_ends: StringProperty(
-        name="Stretch End Widget",
-        description="Widget for First/Last Stretch controls",
+        name="Stretch End Custom Shape",
+        description="Custom shape for First/Last Stretch controls",
         default='Sphere_Half'
     )
     widget_size: FloatProperty(
-        name="Widget Size",
+        name="Custom Shape Size",
         min=0.1, max=10.0, default=0.6
     )
 

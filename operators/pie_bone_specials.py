@@ -123,7 +123,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
         # 3) V Leave empty.
         pie.separator()
 
-        # 4) ^ Edit Widget.
+        # 4) ^ Leave empty.
         pie.separator()
 
         # 5) <^ Toggle Armature Symmetry.

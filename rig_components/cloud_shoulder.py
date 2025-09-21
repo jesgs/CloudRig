@@ -49,7 +49,7 @@ class Component_Shoulder(Component_Chain_FK):
 
 class Params(PropertyGroup):
     up_axis: EnumProperty(
-        name="Widget Up Axis",
+        name="Custom Shape Up Axis",
         description="Rotate the bone shape to align with this axis of the bone",
         items=[
             ("0", '+Z', "Do not rotate the bone shape", 0),

@@ -624,13 +624,13 @@ class Params(PropertyGroup):
     )
 
     widget_fk: StringProperty(
-        name="FK Widget",
-        description="Widget for FK controls",
+        name="FK Custom Shape",
+        description="Custom shape for FK controls",
         default='Circle_Spiked_2'
     )
     widget_root: StringProperty(
-        name="Root Widget",
-        description="Widget for Root control",
+        name="Root Custom Shape",
+        description="Custom shape for Root control",
         default='Cube'
     )
 

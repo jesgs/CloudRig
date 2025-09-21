@@ -93,17 +93,17 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
     )
 
     widget_library: StringProperty(
-        name="Widget Library Blend",
+        name="Custom Shape Library .blend",
         default=get_default_widgets_path(),
         subtype='FILE_PATH',
-        description="Path to the widgets library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
+        description="Path to the custom shapes library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
         update=update_widget_names,
     )
     widget_import_method: EnumProperty(
-        name="Widget Import Method",
+        name="Custom Shape Import Method",
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
-        description="Whether widget objects should be linked or appended",
+        description="Whether custom shapes should be linked or appended",
         update=update_widget_names,
     )
 

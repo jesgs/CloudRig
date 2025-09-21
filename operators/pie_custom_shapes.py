@@ -48,7 +48,7 @@ class POSE_OT_assign_selected_custom_shape(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     widget_shape: EnumProperty(
-        name="Widget Shape",
+        name="Custom Shape",
         description="Choose a custom shape from CloudRig's library as well as any objects in the current file prefixed with 'WGT-'",
         items=get_widgets_enum_items,
     )

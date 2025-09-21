@@ -362,10 +362,10 @@ class CloudLogManager:
 
             if widget.name not in used_widgets and unprefixed not in used_widgets:
                 self.log(
-                    "Unused widget",
+                    "Unused Custom Shape",
                     note=widget.name,
                     icon='X',
-                    description=f'Widget "{widget.name}" is not used by any bones.',
+                    description=f'Custom Shape "{widget.name}" is not used by any bones.',
                     operator=CLOUDRIG_OT_Unlink_Widget.bl_idname,
                     op_kwargs={'ob_name': widget.name},
                 )
@@ -373,19 +373,19 @@ class CloudLogManager:
             if unprefixed != widget.name:
                 if unprefixed in bpy.data.objects:
                     self.log(
-                        "Duplicate widget",
+                        "Duplicate Custom Shape",
                         note=widget.name,
                         icon='DUPLICATE',
-                        description=f'There exists a widget called "{unprefixed}", that should be used instead of "{widget.name}".',
+                        description=f'There exists a custom shape called "{unprefixed}", that should be used instead of "{widget.name}".',
                         operator=CLOUDRIG_OT_Swap_Bone_Shape.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
                 else:
                     self.log(
-                        "Widget with number suffix",
+                        "Custom Shape with number suffix",
                         note=widget.name,
                         icon='FILE_TEXT',
-                        description=f'The "{widget.name[-4:]}" suffix in the name of this widget is not necessary.',
+                        description=f'The "{widget.name[-4:]}" suffix in the name of this custom shape is not necessary.',
                         operator=CLOUDRIG_OT_Rename_Object.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
@@ -981,10 +981,10 @@ class CLOUDRIG_OT_Delete_Object(Operator):
 
 
 class CLOUDRIG_OT_Unlink_Widget(Operator):
-    """Unlink a widget from the Widget Collection"""
+    """Unlink a custom shape from the Custom Shape Collection"""
 
     bl_idname = "object.cloudrig_unlink_widget"
-    bl_label = "Unlink Widget"
+    bl_label = "Unlink Custom Shape"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     # Should be provided by the UI.
@@ -997,7 +997,7 @@ class CLOUDRIG_OT_Unlink_Widget(Operator):
         metarig.cloudrig.generator.remove_active_log()
 
         if not widget_collection:
-            self.report({'ERROR'}, "Widget Collection had been removed.")
+            self.report({'ERROR'}, "Custom Shape Collection had been removed.")
             return {'FINISHED'}
 
         obj = widget_collection.all_objects.get(self.ob_name)
@@ -1010,7 +1010,7 @@ class CLOUDRIG_OT_Unlink_Widget(Operator):
             if obj in set(coll.objects):
                 coll.objects.unlink(obj)
 
-        self.report({'INFO'}, f"Unlinked Widget: {self.ob_name}")
+        self.report({'INFO'}, f"Unlinked Custom Shape: {self.ob_name}")
         return {'FINISHED'}
 
 
