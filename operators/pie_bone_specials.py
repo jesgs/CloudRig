@@ -2,7 +2,7 @@
 
 import bpy
 from .pie_bone_parenting import GenericBoneOperator
-from bpy.types import Menu, EditBone, Object, Operator
+from bpy.types import Menu, EditBone, PoseBone, Object, Operator
 from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_current_rigs
 
@@ -48,6 +48,14 @@ class POSE_OT_dissolve_bones(Operator):
         if context.active_object.mode not in ('POSE', 'EDIT'):
             cls.poll_message_set("Must be in Edit/Pose mode.")
             return False
+        if context.active_object.mode == 'EDIT':
+            bones = [eb for eb in context.active_object.data.edit_bones if eb.select_head or eb.select_tail]
+        else:
+            bones = [pb.bone for pb in context.selected_pose_bones]
+        if not can_dissolve_any(bones):
+            cls.poll_message_set("No selected bone has connected children or parents")
+            return False
+
         return True
 
     def execute(self, context):
@@ -65,6 +73,10 @@ class POSE_OT_dissolve_bones(Operator):
             bpy.ops.object.mode_set(mode=org_mode)
         return {'FINISHED'}
 
+def can_dissolve_any(bones: list[EditBone or PoseBone]) -> bool:
+    any_connected_children = lambda bone: any((child.use_connect for child in bone.children))
+    has_connected_parent = lambda bone: bone.parent and bone.use_connect
+    return any((has_connected_parent(bone) or any_connected_children(bone) for bone in bones))
 
 def remove_drivers_of_bone(
     rig: Object,
