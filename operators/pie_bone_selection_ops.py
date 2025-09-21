@@ -90,10 +90,18 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
             )
 
 
-def reveal_and_select(context, bone: Bone or EditBone or PoseBone, set_active=True):
+def reveal_and_select(context, bone: Bone or EditBone or PoseBone, extend_selection=False, set_active=True):
     if type(bone) == PoseBone:
+        pbone = bone
         bone = bone.bone
+    elif type(bone) == Bone:
+        pbone = context.active_object.pose.bones.get(bone.name)
+
     ensure_visible_bone_collection(bone)
+    if not extend_selection:
+        for pb in context.active_object.pose.bones:
+            pb.bone.select = False
+    pbone.hide = False
     bone.hide = False
     bone.select = True
     if context.mode == 'EDIT_ARMATURE':
@@ -156,7 +164,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
         if rig.mode == 'EDIT':
             bone = rig.data.edit_bones.get(self.bone_name)
         else:
-            bone = rig.data.bones.get(self.bone_name)
+            bone = rig.pose.bones.get(self.bone_name)
 
         if not bone:
             self.report({'ERROR'}, "Bone name not found in rig: " + self.bone_name)
@@ -277,10 +285,8 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
     def execute(self, context):
         super().execute(context)
 
-        active_bone = context.active_bone or context.active_pose_bone
-
-        ensure_visible_bone_collection(active_bone.parent)
-        set_active_bone(context, active_bone.parent)
+        active_bone = context.active_pose_bone or context.active_bone
+        reveal_and_select(context, active_bone.parent)
 
         return {'FINISHED'}
 
@@ -323,7 +329,6 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         if not self.extend_selection:
             deselect_all_bones(context)
 
-        ensure_visible_bone_collection(bone)
         reveal_and_select(context, bone)
 
         return {'FINISHED'}

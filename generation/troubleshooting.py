@@ -9,6 +9,7 @@ import struct, platform, io, urllib.parse
 
 from ..rig_component_features.component_params_ui import draw_label_with_linebreak, is_advanced_mode
 from ..generation.cloudrig import is_cloud_metarig
+from ..operators.pie_bone_selection_ops import reveal_and_select
 
 """
 Fatal errors can happen in 3 ways:
@@ -731,10 +732,10 @@ class CLOUDRIG_PT_stack_trace(Panel):
 ######### Quick-Fix Operators ##########
 ########################################
 class CLOUDRIG_OT_Jump_To_Bone(Operator):
-    """Change context to make a bone visible and active in the metarig or generated rig."""
+    """Make a bone visible and active in the 3D View."""
 
-    bl_idname = "ui.jump_to_target"
-    bl_label = "Jump to Target"
+    bl_idname = "armature.jump_to_bone"
+    bl_label = "Jump to Bone"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     use_target_rig: BoolProperty(
@@ -744,29 +745,24 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
     )
     target_bone: StringProperty(
         name="Target Bone",
-        description="Use a specific bone as the beginning of the chain, rather than the active bone",
+        description="Bone to jump to",
     )
 
     def execute(self, context):
         rig = context.object
 
-        if self.use_target_rig:
+        if self.use_target_rig and rig.cloudrig.generator.target_rig:
             rig = rig.cloudrig.generator.target_rig
             bpy.ops.object.cloudrig_metarig_toggle()
 
         bpy.ops.object.mode_set(mode='POSE')
 
         bone = rig.data.bones.get(self.target_bone)
-        assert bone, f'Bone "{self.target_bone}" not in armature "{rig.name}".'
+        if not bone:
+            self.report({'ERROR'}, f'Bone "{self.target_bone}" not in armature "{rig.name}".')
+            return {'CANCELLED'}
 
-        bpy.ops.pose.select_all(action='DESELECT')
-        bone.hide = False
-        bone.select = True
-        bone_is_visible = any([coll.is_visible for coll in bone.collections])
-        if not bone_is_visible:
-            bone.collections[0].is_visible = True
-
-        rig.data.bones.active = bone
+        reveal_and_select(context, bone)
 
         return {'FINISHED'}
 

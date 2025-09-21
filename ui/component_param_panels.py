@@ -49,7 +49,7 @@ class CLOUDRIG_PT_rig_component(Panel):
                 sub_2 = row.row()
                 sub_1.enabled = False
                 sub_1.prop(comp_pb.cloudrig_component, 'component_type', text="")
-                op = sub_2.operator("ui.jump_to_target", text="", icon='LOOP_FORWARDS')
+                op = sub_2.operator("armature.jump_to_bone", text="", icon='LOOP_FORWARDS')
                 op.use_target_rig = False
                 op.target_bone = comp_pb.name
         layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
