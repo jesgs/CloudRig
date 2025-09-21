@@ -573,13 +573,14 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
             if not tgt_coll:
                 tgt_coll = target_armature_obj.data.collections.new(src_coll.name)
-                copy_property_group(src_coll.cloudrig_info, tgt_coll.cloudrig_info)
+                copy_all_runtime_properties(src_coll, tgt_coll)
             tgt_coll.is_visible = src_coll.is_visible
 
-            # Copy the driver on is_visible, if there is one.
+            # Copy drivers of BoneCollection properties.
             if src_armature_obj.data.animation_data:
-                src_driver = src_armature_obj.data.animation_data.drivers.find(data_path=f'collections_all["{src_coll.name}"].is_visible')
-                if src_driver:
+                for src_driver in src_armature_obj.data.animation_data.drivers:
+                    if not src_driver.data_path.startswith(f'collections_all["{src_coll.name}"]'):
+                        continue
                     target_armature_obj.data.animation_data_create()
                     drv = target_armature_obj.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
                     relink_real_driver(drv, src_armature_obj, target_armature_obj)
