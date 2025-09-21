@@ -33,6 +33,25 @@ class CLOUDRIG_PT_rig_component(Panel):
         prefs = get_addon_prefs(context)
         active_pb = get_pbone_of_active(context)
         rig_component = active_pb.cloudrig_component
+        if rig_component.component_type == "":
+            comp_pb = rig_component.component_pbone
+            if comp_pb:
+                # Display inherited component type and a button to jump to it.
+                split = layout.split(factor=0.4, align=True)
+                row = split.row(align=True)
+                row.alignment = 'RIGHT'
+                row.label(text=f"Inherited:")
+                row = split.row(align=True)
+                sub0 = row.row()
+                sub0.enabled = False
+                sub0.prop(comp_pb, 'name', icon='BONE_DATA', text="")
+                sub_1 = row.row()
+                sub_2 = row.row()
+                sub_1.enabled = False
+                sub_1.prop(comp_pb.cloudrig_component, 'component_type', text="")
+                op = sub_2.operator("ui.jump_to_target", text="", icon='LOOP_FORWARDS')
+                op.use_target_rig = False
+                op.target_bone = comp_pb.name
         layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
         row = layout.row()
         text = "Component Type"

@@ -339,7 +339,7 @@ class RigComponent(PropertyGroup):
         if self.component_type:
             return pb
 
-        parent = pb.parent if pb.bone.use_connect else None
+        parent = pb.parent if pb.bone and pb.bone.use_connect else None
         while parent:
             if parent.cloudrig_component.component_type:
                 return parent
