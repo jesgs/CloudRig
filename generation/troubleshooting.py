@@ -297,32 +297,34 @@ class CloudLogManager:
             return
         for fcurve in datablock.animation_data.drivers:
             driver = fcurve.driver
-            if not driver.is_valid:
-                owner = owner_datablock or datablock
+            driver.type = driver.type
+            if driver.is_valid:
+                continue
+            owner = owner_datablock or datablock
 
-                base_bone_name = ""
-                trouble_bone = ""
-                if 'pose.bones' in fcurve.data_path:
-                    bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
-                    if (
-                        type(datablock) == Object
-                        and datablock.type == 'ARMATURE'
-                        and datablock.cloudrig.generator.target_rig == self.rig
-                    ):
-                        base_bone_name = bone_name
-                    elif datablock == self.rig:
-                        trouble_bone = bone_name
+            base_bone_name = ""
+            trouble_bone = ""
+            if 'pose.bones' in fcurve.data_path:
+                bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
+                if (
+                    type(datablock) == Object
+                    and datablock.type == 'ARMATURE'
+                    and datablock.cloudrig.generator.target_rig == self.rig
+                ):
+                    base_bone_name = bone_name
+                elif datablock == self.rig:
+                    trouble_bone = bone_name
 
-                self.log(
-                    "Invalid Driver",
-                    description=f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}',
-                    icon='DRIVER',
-                    note=owner.name,
-                    note_icon=get_datablock_type_icon(datablock),
-                    base_bone_name=base_bone_name,
-                    trouble_bone=trouble_bone,
-                    operator='screen.drivers_editor_show',
-                )
+            self.log(
+                "Invalid Driver",
+                description=f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}',
+                icon='DRIVER',
+                note=owner.name,
+                note_icon=get_datablock_type_icon(datablock),
+                base_bone_name=base_bone_name,
+                trouble_bone=trouble_bone,
+                operator='screen.drivers_editor_show',
+            )
 
     def report_invalid_drivers_on_object_hierarchy(self, object: Object):
         """Create log entries for invalid drivers of the object or any of its children"""

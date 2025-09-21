@@ -362,8 +362,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         old_rig = self.params.target_rig
         self.execute_custom_script(old_rig, self.target_rig)
-        # This comes after custom script because the script might mess with widgets.
-        self.log_minor_issues()
 
         if old_rig:
             self.replace_old_with_new_rig(
@@ -373,6 +371,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         else:
             self.target_rig.name = self.target_rig.name.replace("NEW-", "")
+
+        # This comes after custom script because the script might mess with widgets.
+        # And it comes after rig replacement so the object name doesn't get stored with the "NEW-" prefix.
+        self.log_minor_issues()
 
         # NOTE: Any errors arising after replacing the rigs is really bad,
         # because then the user gets an error even though their old rig has been
@@ -582,7 +584,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 for src_driver in src_armature_obj.data.animation_data.drivers:
                     if not src_driver.data_path.startswith(f'collections_all["{src_coll.name}"]'):
                         continue
-                    target_armature_obj.data.animation_data_create()
+                    if not target_armature_obj.data.animation_data:
+                        target_armature_obj.data.animation_data_create()
                     drv = target_armature_obj.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
                     relink_real_driver(drv, src_armature_obj, target_armature_obj)
 
@@ -869,8 +872,13 @@ def create_target_rig_obj(context, metarig) -> Object:
 
     target_rig.data.pose_position = 'REST'
 
-    # Copy custom properties of the Armature datablock.
+    # Copy custom properties (and their drivers) of the Armature datablock.
     copy_all_custom_properties(metarig.data, target_rig.data)
+    if not target_rig.data.animation_data:
+        target_rig.data.animation_data_create()
+    for src_driver in metarig.data.animation_data.drivers:
+        drv = target_rig.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
+        relink_real_driver(drv, metarig, target_rig)
 
     return target_rig
 
