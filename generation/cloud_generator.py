@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy, os, traceback
+
 from bpy.types import Object, PropertyGroup, Collection, Text, Action, Operator
 from bpy.props import (
     BoolProperty,
@@ -25,6 +26,7 @@ from ..rig_component_features.widgets.widgets import (
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.mechanism import relink_real_driver
+from ..rig_component_features.bone_info import BoneInfo
 from ..rig_components.cloud_base import Component_Base
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
@@ -50,7 +52,6 @@ from .cloudrig import (
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
 from .actions_component import ActionLayerComponent
-from . import selection_sets
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
@@ -252,7 +253,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 yield bone_info
 
     @property
-    def bone_infos_sorted_by_roll_dependency(self):
+    def bone_infos_sorted_by_roll_dependency(self) -> list[BoneInfo]:
         # Since we want to allow BoneInfos to define another bone's final roll
         # as their roll alignment, we need to make sure those bones are actually
         # created first... This is admittedly a bit awkward.
@@ -765,7 +766,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     def restore_rig_states(self, context):
         """Restore transforms after generation has either failed or succeeded."""
         self.metarig.data.pose_position = 'POSE'
-        self.target_rig.data.pose_position = 'POSE'
+        if self.target_rig:
+            self.target_rig.data.pose_position = 'POSE'
         self.metarig.location = self.loc_bkp.copy()
         self.metarig.rotation_euler = self.rot_bkp.copy()
         self.metarig.scale = self.scale_bkp.copy()
@@ -845,7 +847,7 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data['is_generated_cloudrig'] = True
 
     # Wipe selection sets.
-    selection_sets.wipe(target_rig)
+    target_rig.selection_sets.clear()
 
     # Save generation timestamp to a custom property.
     today = datetime.today()
@@ -885,9 +887,6 @@ def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
     return driver_map
 
 
-
-
-
 def refresh_constraints(rig: Object):
     for pb in rig.pose.bones:
         for c in pb.constraints:
@@ -906,14 +905,10 @@ def focus_select_obj(context, obj):
 
 
 class CLOUDRIG_OT_generate(Operator):
-    """Generates a rig from the active metarig armature using the CloudRig generator"""
-
     bl_idname = "pose.cloudrig_generate"
     bl_label = "Generate CloudRig"
     bl_options = {'REGISTER', 'UNDO'}
-    bl_description = (
-        'Generates a rig from the active metarig armature using the CloudRig generator'
-    )
+    bl_description = "Generates a rig from the active metarig armature"
 
     focus_generated: BoolProperty(
         name="Focus Generated",
@@ -961,7 +956,7 @@ class CLOUDRIG_OT_generate(Operator):
         return True
 
     def draw(self, context):
-        # Re-doing the generation process crashes Blender,
+        # XXX: Re-doing the generation process crashes Blender,
         # so, just don't draw the operator properties, and therefore don't support re-do for now.
         return
 
@@ -1053,7 +1048,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         return {'FINISHED'}
 
-    def generate_rig(self, context, metarig):
+    def generate_rig(self, context, metarig: Object) -> Object | None:
         """Generates a rig from a metarig.
 
         Encountering a rig generation error will not halt the execution of the operator.
@@ -1079,18 +1074,18 @@ class CLOUDRIG_OT_generate(Operator):
             generator.target_rig['metarig'] = metarig
 
             if type(exception) == CloudGeneratorError:
-                # A MetaRig error means the user didn't follow instructions correctly.
-                # This is the only kind of Exception that is not a bug in CloudRig.
+                # A MetaRig error means the user created an invalid metarig set-up.
+                # Importantly, this is not a bug.
                 self.report({'ERROR'}, exception.message)
             else:
                 if generator.custom_script_failure:
-                    # The error occurred in the user's script.
+                    # The error occurred in the user's post-generation script.
                     # execute_custom_script() has already created the log entry for us,
                     # so we just want to keep raising the exception.
                     raise exception
 
                 # Any other exception type is a bug.
-                # Let's invite the user to report the error they've encountered.
+                # We give the user a button to report the error.
                 generator.logger.log_fatal_error(
                     "Execution Failed!",
                     description="Execution failed unexpectedly. This should never happen!",

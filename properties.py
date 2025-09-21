@@ -436,7 +436,7 @@ class RigComponent(PropertyGroup):
 
 
 class Properties_CloudRig(PropertyGroup):
-    def active_component_update_callback(self, context=None):
+    def active_component_update_callback(self, _context=None):
         if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
             return
 
@@ -454,14 +454,14 @@ class Properties_CloudRig(PropertyGroup):
     )
 
     @property
-    def active_component(self):
+    def active_component(self) -> RigComponent | None:
         if len(self.rig_component_bones) == 0:
             return
 
         rig_ob = self.id_data
         return rig_ob.pose.bones[self.active_component_index].cloudrig_component
 
-    def enabled_update_callback(self, context=None):
+    def enabled_update_callback(self, _context=None):
         if self.enabled:
             self.id_data.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'
             self.id_data.cloudrig_prefs.active_collection_index *= 1
@@ -481,7 +481,7 @@ class Properties_CloudRig(PropertyGroup):
     )
 
     @property
-    def rig_component_bones(self):
+    def rig_component_bones(self) -> list[RigComponent]:
         rig = self.id_data
         return [
             pb.cloudrig_component
@@ -519,7 +519,7 @@ class Properties_CloudRig(PropertyGroup):
             )
             order_idx += 1
 
-    def order_components_recursive(self, pbone, order_idx=0, depth=0):
+    def order_components_recursive(self, pbone, order_idx=0, depth=0) -> int:
         component = pbone.cloudrig_component
         component.order = order_idx
         component.depth = depth
@@ -548,7 +548,7 @@ class Properties_CloudRig(PropertyGroup):
     )
 
 
-def get_direct_child_component_pbones(root_pb):
+def get_direct_child_component_pbones(root_pb) -> list[PoseBone]:
     component_pbs = []
     for child_pb in root_pb.children:
         if child_pb.cloudrig_component.component_type:

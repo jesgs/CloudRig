@@ -208,8 +208,7 @@ class CloudLogManager:
     This class is instanced once per rig generation, by the CloudRig_Generator class.
     """
 
-    def __init__(self, metarig, rig=None):
-        # Storing references to datablocks could be dangerous, be careful!
+    def __init__(self, metarig: Object, rig: Object=None):
         self.metarig = metarig
         self.rig = rig
 
@@ -233,17 +232,8 @@ class CloudLogManager:
         entry.pretty_stack = get_pretty_stack()
         entry.base_bone_name = base_bone_name
         entry.trouble_bone = trouble_bone
-        entry.name = (
-            base_bone_name
-            + " "
-            + trouble_bone
-            + " "
-            + description_short
-            + " "
-            + note
-            + " "
-            + description
-        )  # For search.
+        # For searchability, set the name string to a combination of all the strings.
+        entry.name = " ".join([base_bone_name, trouble_bone, description_short, note, description])
         entry.description_short = description_short
         entry.description = description
         entry.display_stack_trace = display_stack_trace
@@ -262,7 +252,7 @@ class CloudLogManager:
         """
         Wipe all other log entries, and create a log entry for an error that has caused
         generation to halt.
-        Halting of the generation and raising the exception must be done by the caller.
+        Halting of the generation and raising the exception is up to the caller.
         """
         if wipe_log:
             self.clear()
@@ -336,7 +326,7 @@ class CloudLogManager:
     def report_invalid_drivers_on_object_hierarchy(self, object: Object):
         """Create log entries for invalid drivers of the object or any of its children"""
 
-        for obj in [object] + object.children_recursive:
+        for obj in [object] + list(object.children_recursive):
             self.report_invalid_drivers_on_datablock(obj)
             if hasattr(obj, "data") and obj.data:
                 self.report_invalid_drivers_on_datablock(obj.data, owner_datablock=obj)

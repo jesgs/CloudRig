@@ -120,7 +120,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
             'use_mirror_x',
             toggle=True,
             icon='MOD_MIRROR',
-            text="Toggle Armature X-Mirror",
+            text="Armature X-Mirror",
         )
 
         # 6) ^> Dissolve Bones.
@@ -140,7 +140,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
                 'use_mirror_x',
                 toggle=True,
                 icon='MOD_MIRROR',
-                text="Toggle Pose X-Mirror",
+                text="Pose X-Mirror",
             )
         else:
             pie.separator()

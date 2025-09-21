@@ -67,11 +67,11 @@ def draw_toggle_but(self, context):
     first_con = CLOUDRIG_OT_Toggle_Action_Constraints.get_first_referencing_constraint(
         rig, rig.animation_data.action
     )
-    word = "Disable" if first_con.enabled else "Enable"
     op = layout.operator(
         CLOUDRIG_OT_Toggle_Action_Constraints.bl_idname,
-        text=word + " Constraints",
+        text="Action Constraints",
         icon='CONSTRAINT_BONE',
+        depress=first_con.enabled,
     )
     op.enable = not first_con.enabled
 
