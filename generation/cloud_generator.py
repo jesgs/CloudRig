@@ -39,6 +39,7 @@ from ..utils.misc import (
     assign_to_collection,
 )
 from ..bs_utils.properties import (
+    copy_all_custom_properties,
     copy_all_runtime_properties,
     copy_property_group,
 )
@@ -867,6 +868,9 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data.show_axes = metarig.data.show_axes
 
     target_rig.data.pose_position = 'REST'
+
+    # Copy custom properties of the Armature datablock.
+    copy_all_custom_properties(metarig.data, target_rig.data)
 
     return target_rig
 
