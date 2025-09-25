@@ -876,9 +876,10 @@ def create_target_rig_obj(context, metarig) -> Object:
     copy_all_custom_properties(metarig.data, target_rig.data)
     if not target_rig.data.animation_data:
         target_rig.data.animation_data_create()
-    for src_driver in metarig.data.animation_data.drivers:
-        drv = target_rig.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
-        relink_real_driver(drv, metarig, target_rig)
+    if metarig.data.animation_data:
+        for src_driver in metarig.data.animation_data.drivers:
+            drv = target_rig.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
+            relink_real_driver(drv, metarig, target_rig)
 
     return target_rig
 
@@ -901,6 +902,8 @@ def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
 
 
 def refresh_constraints(rig: Object):
+    if not rig:
+        return
     for pb in rig.pose.bones:
         for c in pb.constraints:
             if hasattr(c, 'target'):
@@ -911,6 +914,8 @@ def refresh_constraints(rig: Object):
 
 
 def focus_select_obj(context, obj):
+    if not obj:
+        return
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
     obj.select_set(True)
