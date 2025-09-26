@@ -636,7 +636,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bone_info.write_pose_data(context, self.metarig, pose_bone)
 
     ### Generation final steps
-    def execute_custom_script(self, old_rig, new_rig):
+    def execute_custom_script(self, old_rig: Object|None, new_rig: Object):
         """Execute a text datablock to be executed after rig generation."""
         # This is a bit hacky, but we need the rig name to be the "original" so that 
         # post-gen script authors can get a reference to the rig easily.
@@ -644,7 +644,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         script = self.params.custom_script
         if not script:
             return
-        old_rig.name = "OLD-" + old_rig.name
+        if old_rig:
+            old_rig.name = "OLD-" + old_rig.name
         new_rig.name = new_rig.name.replace("NEW-", "")
         try:
             exec(script.as_string(), {})
@@ -658,7 +659,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             raise e
         finally:
             new_rig.name = "NEW-"+new_rig.name
-            old_rig.name = old_rig.name.replace("OLD-", "")
+            if old_rig:
+                old_rig.name = old_rig.name.replace("OLD-", "")
 
     def replace_old_with_new_rig(
         self, context, old_rig, new_rig, preserve_custom_props=True
@@ -1084,12 +1086,13 @@ class CLOUDRIG_OT_generate(Operator):
 
             focus_select_obj(context, generator.target_rig)
 
-            generator.target_rig.name = "FAILED-" + generator.target_rig.name
-            generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
-            metarig['failed_rig'] = generator.target_rig
-            # Leave a reference to the Metarig, so the Toggle Metarig operator 
-            # can find its way back to it.
-            generator.target_rig['metarig'] = metarig
+            if generator.target_rig:
+                generator.target_rig.name = "FAILED-" + generator.target_rig.name
+                generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
+                metarig['failed_rig'] = generator.target_rig
+                # Leave a reference to the Metarig, so the Toggle Metarig operator 
+                # can find its way back to it.
+                generator.target_rig['metarig'] = metarig
 
             if type(exception) == CloudGeneratorError:
                 # A MetaRig error means the user created an invalid metarig set-up.

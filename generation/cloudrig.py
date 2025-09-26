@@ -107,7 +107,7 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
                 context.scene.objects.get(rig.name.replace(prefix, "META-")) or
                 context.scene.objects.get(rig.name.replace(prefix, ""))
             )
-            if metarig.type != 'ARMATURE':
+            if metarig and metarig.type != 'ARMATURE':
                 metarig = None
 
             if (
