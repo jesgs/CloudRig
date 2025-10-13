@@ -384,16 +384,27 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_set(
-        cls, ui_name, collections=[], color_palette='DEFAULT', wire_width=1.0, is_advanced=False
+        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.0, is_advanced=False
     ):
         """
-        A bone set is an RNA PropertyGroup containing properties for choosing bone collections and color.
+        A bone set is an RNA PropertyGroup containing properties for choosing bone collections, color, and wire width.
         This function is responsible for creating the data, which will be used by
-        class BoneSets(PropertyGroup) to automagically populate itself during add-on registration.
+        class BoneSets(PropertyGroup) to automagically populate itself during add-on registration:
+        PoseBone.cloudrig_component.bone_sets.fk_main.color_palette/collections.
 
-        For example, all FK chain bones of the FK chain rig are hard-coded to be part of the "FK Controls" bone set.
-        The "FK Controls" bone set's collections and color can be customized via the parameters under
-        my_pose_bone.cloudrig_component.bone_sets.fk_main.color_palette/collections.
+        For example, all FK chain bones of the FK chain rig are created in the "FK Controls" bone set.
+        The collections, color, and wire width of those FK bones can be customized by users in the "Bone Organization" panel.
+        
+        ui_name: Name to display in the Bone Organization panel. 
+            This cannot be customized by users, since it's referring to a set of bones defined by the developer, eg. "FK Controls".
+        collections: List of the DEFAULT bone collection names to assign the bones of this set to. Usually has one entry.
+            Users can add or change collections, and have a "Reset Collections" button that will bring the assignments back to this default state.
+        color_palette: Default color palette to be used.
+            See the enum selector in Blender for possible values; DEFAULT, THEME_01, THEME_02, etc.
+            Note that specifying custom colors as the default is not possible; You should always use a theme color, or none at all.
+        wire_width: Default bone shape wire width.
+        is_advanced: These are hidden from the rigger by default. 
+            For bone sets of helper bones, whose organization does not matter for animators, but the rigger might still care for their own sake.
         """
 
         prop_name = ui_name.replace(" ", "_").lower()
