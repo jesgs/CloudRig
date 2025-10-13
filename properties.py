@@ -22,14 +22,14 @@ from .utils.rig import get_parentless_pbones
 def get_param_classes() -> dict:
     param_classes = {}
     module_dicts = (
-        rig_components.component_modules,
+        rig_components.ALL_COMPONENT_MODULES,
         rig_component_features.component_feature_modules,
         {"cloud_base": rig_components.cloud_base}
     )
     for module_dict in module_dicts:
         for module_name, module in module_dict.items():
             if hasattr(module, 'Params'):
-                param_classes[module_name.replace("cloud_", "")] = module.Params
+                param_classes[module_name.replace("cloud_", "").split(".")[-1]] = module.Params
     return param_classes
 
 
@@ -149,7 +149,7 @@ class BoneSets(PropertyGroup):
 
     def make_bone_set_property_groups() -> dict[str, type]:
         classes = {}
-        for _rig_component_name, rig_component_module in rig_components.component_modules.items():
+        for _rig_component_name, rig_component_module in rig_components.ALL_COMPONENT_MODULES.items():
             rig_component_class = getattr(rig_component_module, 'RIG_COMPONENT_CLASS')
             rig_component_class.define_bone_sets()
             for bone_set_name, bone_set_definition in rig_component_class.bone_set_defs.items():
@@ -324,7 +324,7 @@ class RigComponent(PropertyGroup):
         component_type_info = prefs.component_types.get(self.component_type)
         if not component_type_info:
             return
-        return rig_components.component_modules.get(component_type_info.module_name)
+        return rig_components.ALL_COMPONENT_MODULES.get(component_type_info.module_name)
 
     @property
     def component_class(self) -> type | None:

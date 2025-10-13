@@ -23,7 +23,7 @@ def init_component_module_list(context=None):
     prefs.component_types.clear()
 
     module_infos = []
-    for rig_file_name, rigcomp_module in rig_components.component_modules.items():
+    for rig_file_name, rigcomp_module in rig_components.ALL_COMPONENT_MODULES.items():
         if not hasattr(rigcomp_module, 'RIG_COMPONENT_CLASS'):
             continue
         component_class = rigcomp_module.RIG_COMPONENT_CLASS

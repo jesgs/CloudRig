@@ -1,14 +1,14 @@
 import bpy, os, sys, importlib
-from ..bs_utils.prefs import load_prefs_from_file
+from types import ModuleType
 
-component_modules = {}
+ALL_COMPONENT_MODULES = {}
 
 
-def load_components(dir_path: str, relative=True) -> dict:
-    """Manualy imports the rig modules, since they don't get automatically
-    loaded because they aren't referenced by the code directly.
+def load_components(dir_path: str, relative=True) -> dict[str, ModuleType]:
+    """Import the rig_components modules dynamically (and recursively).
+    Users can even symlink a subfolder in there with external component types.
     """
-    module_info = bpy.path.module_names(dir_path)
+    module_info = bpy.path.module_names(dir_path, recursive=True)
     component_modules = {}
     for module_name, module_filepath in module_info:
         if module_name.startswith("_") or module_filepath.endswith("__init__"):
@@ -32,7 +32,7 @@ def load_components(dir_path: str, relative=True) -> dict:
     return component_modules
 
 
-def import_from_path(module_name, file_path):
+def import_from_path(module_name, file_path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
@@ -40,23 +40,10 @@ def import_from_path(module_name, file_path):
     return module
 
 
-def load_external_components():
-    """WIP: This works but the external component types don't have bone sets registered, and fixing that is a nightmare."""
-    external_modules = {}
-    prefs_data = load_prefs_from_file()
-    feature_set_infos = prefs_data.get('feature_set_paths')
-    for feature_set_info in feature_set_infos:
-        name = feature_set_info['name']
-        path = feature_set_info['path']
-        if os.path.isdir(path) and os.path.exists(path):
-            external_modules.update(load_components(path, relative=False))
-    return external_modules
-
-
 def reload_rig_components():
-    global component_modules
-    component_modules = load_components(os.path.dirname(__file__))
-    # component_modules.update(load_external_components())
+    """This only loads the Python modules, does not actually register them in Blender RNA."""
+    global ALL_COMPONENT_MODULES
+    ALL_COMPONENT_MODULES = load_components(os.path.dirname(__file__))
 
 
 def register():
