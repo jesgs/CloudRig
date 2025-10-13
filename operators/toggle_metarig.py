@@ -123,6 +123,10 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             )
             return {'CANCELLED'}
 
+        if context.mode == 'EDIT':
+            selected_bone_names = [eb.name for eb in from_rig.data.edit_bones if eb.select]
+        else:
+            selected_bone_names = [pb.name for pb in from_rig.pose.bones if pb.select]
         bpy.ops.object.mode_set(mode='OBJECT')
         from_rig.hide_set(True)
 
@@ -144,11 +148,10 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
         # When switching between the metarig and the generated rig,
         # match the bone selection as much as possible, unless a lot of bones are selected.
-        selected = [b for b in from_rig.data.bones if b.select]
-        if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected) < 10:
-            self.match_bone_selection(from_rig, to_rig)
+        if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected_bone_names) < 10:
+            self.match_bone_selection(from_rig, to_rig, selected_bone_names)
 
-    def match_bone_selection(self, from_rig: Object, to_rig: Object):
+    def match_bone_selection(self, from_rig: Object, to_rig: Object, selected_bone_names: list[str]=[]):
         self.deselect_all_bones(to_rig)
         self.match_active_bone(from_rig, to_rig)
 
@@ -161,15 +164,22 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
         # If multiple matches are found, one is chosen based on its prefix
         # (higher priority prefix wins).
-        selected_names = [b.name for b in from_rig.data.bones if b.select]
-        for bone_name in selected_names:
-            bone = self.get_visible_bone_with_similar_name(to_rig.data, bone_name)
-            if bone:
-                bone.select = True
+        for bone_name in selected_bone_names:
+            bone = self.get_visible_bone_with_similar_name(to_rig, bone_name)
+            if to_rig.mode == 'EDIT_ARMATURE':
+                ebone = to_rig.data.edit_bones[bone.name]
+                ebone.select = True
+            else:
+                pbone = to_rig.pose.bones[bone.name]
+                pbone.select = True
 
-    def deselect_all_bones(self, armature: Object):
-        for b in armature.data.bones:
-            b.select = False
+    def deselect_all_bones(self, rig: Object):
+        if rig.mode == 'EDIT_ARMATURE':
+            for eb in rig.data.edit_bones:
+                eb.select = False
+        else:
+            for pb in rig.pose.bones:
+                pb.select = False
 
     def match_active_bone(self, from_rig: Object, to_rig: Object):
         """If there is an exact match for the active bone, make the matching bone active."""
@@ -180,11 +190,15 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
                 to_rig.data.bones.active = to_active
 
     def get_visible_bone_with_similar_name(
-        self, armature: Armature, bone_name: str
+        self, rig: Object, bone_name: str
     ) -> Bone | None:
-
-        def bone_is_visible(bone):
-            return not bone.hide and any([coll.is_visible_effectively for coll in bone.collections])
+        armature = rig.data
+        def bone_is_visible(bone: Bone):
+            if not any([coll.is_visible_effectively for coll in bone.collections]):
+                return False
+            if rig.mode == 'EDIT_ARMATURE':
+                return not rig.data.edit_bones[bone.name].hide
+            return not rig.pose.bones[bone.name].hide
 
         def names_match(a, b):
             return (a in b) or (b in a)
@@ -200,7 +214,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             if bone_is_visible(b) and names_match(b.name, bone_name)
         ]
         if len(matches) == 1:
-            # If there is only one match and it's visible return it.
+            # If there is only one match and it's visible, return it.
             return armature.bones[matches[0]]
         else:
             for prefix in PREFIX_PRIORITY:
