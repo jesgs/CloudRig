@@ -28,7 +28,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
                 "Spine rig must consist of a chain of at least 2 connected bones!"
             )
 
-        self.spine_name = self.naming.slice_name(self.base_bone_name)[1]
+        self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
         self.squashy_name = "squashy_spine_" + self.spine_name.lower()
         self.squashy_volume_name = "squashy_spine_volume_" + self.spine_name.lower()
 

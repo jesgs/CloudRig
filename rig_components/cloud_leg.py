@@ -388,24 +388,12 @@ class Component_Limb_BipedLeg(Component_Limb):
         # FK Toe bone should be parented between FK Foot and IK Toe.
         fk_toe = self.fk_toe
         fk_toe.parent = None
-        toe_con = fk_toe.add_constraint(
-            'ARMATURE',
-            targets=[
-                {"subtarget": self.bones_org[-2].fk_bone.name},  # FK Foot
-                {"subtarget": self.ik_chain[-1].name},  # IK Toe
-            ],
+        self.create_driven_armature_constraint(
+            fk_toe,
+            target_bones=[self.ik_chain[-1], self.bones_org[-2].fk_bone],
+            prop_bone=self.properties_bone,
+            prop_name=self.ikfk_name
         )
-
-        ik_driver = {
-            'prop': 'targets[1].weight',
-            'variables': [(self.properties_bone.name, self.ikfk_name)],
-        }
-        toe_con.drivers.append(ik_driver)
-
-        fk_driver = deepcopy(ik_driver)
-        fk_driver['expression'] = "1-var"
-        fk_driver['prop'] = 'targets[0].weight'
-        toe_con.drivers.append(fk_driver)
 
     def tweak_org_foot(self):
         # Delete IK constraint and driver from toe bone. It should always use FK.

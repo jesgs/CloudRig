@@ -202,24 +202,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 rotation_mode=fk_bone.rotation_mode,
             )
             next_parent = reverse_fk
-            arm_con = fk_bone.add_constraint('ARMATURE', targets=[{'subtarget': fk_bone.parent.name}, {'subtarget': reverse_fk.name}])
-            drv1 = {
-                'prop': 'targets[0].weight',
-                'expression': '1-var',
-                'variables': {
-                    'var': {
-                        'type': 'SINGLE_PROP',
-                        'targets': [
-                            {
-                                'data_path': f'pose.bones["{self.properties_bone.name}"]["{self.reverse_fk_name}"]'
-                            }
-                        ],
-                    }
-                }
-            }
-            drv2 = drv1.copy()
-            drv2.update({'expression': 'var', 'prop': 'targets[1].weight'})
-            arm_con.drivers.extend([drv1, drv2])
+            self.create_driven_armature_constraint(fk_bone, target_bones=[fk_bone.parent, reverse_fk], prop_bone=self.properties_bone, prop_name=self.reverse_fk_name)
 
         self.add_bone_property_with_ui(
             prop_bone=self.properties_bone,
@@ -362,23 +345,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             },
         )
 
-        # Hinge Armature constraint
-        hng_con = hng_bone.add_constraint(
-            'ARMATURE',
-            targets=[{"subtarget": root_bone}, {"subtarget": str(parent_bone)}],
-        )
-
-        hng_con.drivers.append(
-            {'prop': 'targets[0].weight', 'variables': [(prop_bone.name, prop_name)]}
-        )
-
-        hng_con.drivers.append(
-            {
-                'prop': 'targets[1].weight',
-                'expression': '1-var',
-                'variables': [(prop_bone.name, prop_name)],
-            }
-        )
+        self.create_driven_armature_constraint(hng_bone, target_bones=[parent_bone, root_bone], prop_bone=prop_bone, prop_name=prop_name)
 
         # Hinge Copy Location & Scale constraints
         hng_bone.add_constraint(

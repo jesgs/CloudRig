@@ -3,6 +3,7 @@
 from bpy.types import PropertyGroup, UIList
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from bl_ui.generic_ui_list import draw_ui_list
+from .bone_info import BoneInfo
 
 from ..utils.rig import get_pbone_of_active
 from .component_params_ui import draw_label_with_linebreak
@@ -122,16 +123,9 @@ class CloudParentingMixin:
         row_name = row_name or child_bone.name.split(".")[0]
         entry_name = entry_name or child_bone.name
 
-        # Create parent bone that will hold the Armature constraint.
-        arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
-        arm_con_bone.name = "P-" + child_bone.name
-        arm_con_bone.custom_shape = None
-
         parent_ui_names, parent_bone_names = self.sanitize_parent_list(parent_slots)
         if not parent_ui_names:
             return
-
-        targets = [{'subtarget': bone_name} for bone_name in parent_bone_names]
 
         # Create custom property
         if len(parent_bone_names) > 1:
@@ -162,10 +156,18 @@ class CloudParentingMixin:
                 },
             )
 
-        # Add armature constraint
-        arm_con = arm_con_bone.add_constraint('ARMATURE', name="Armature (Parent Switching)", targets=targets)
+        # Create parent bone that will hold the Armature constraint.
+        arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
+        arm_con_bone.custom_shape = None
+        self.create_driven_armature_constraint(arm_con_bone, parent_bone_names, prop_bone.name, prop_name)
 
-        if len(parent_bone_names) == 1:
+    def create_driven_armature_constraint(self, bone: BoneInfo, target_bones: list[BoneInfo|str], prop_bone: BoneInfo|str, prop_name: str, preserve_volume=False):
+        targets = [{'subtarget': bone} for bone in target_bones]
+
+        # Add armature constraint
+        arm_con = bone.add_constraint('ARMATURE', name="Armature (Parent Switching)", targets=targets, use_deform_preserve_volume=preserve_volume)
+
+        if len(target_bones) == 1:
             return
 
         # Add weight drivers
@@ -179,7 +181,7 @@ class CloudParentingMixin:
                             'type': 'SINGLE_PROP',
                             'targets': [
                                 {
-                                    'data_path': f'pose.bones["{prop_bone.name}"]["{prop_name}"]'
+                                    'data_path': f'pose.bones["{prop_bone}"]["{prop_name}"]'
                                 }
                             ],
                         }

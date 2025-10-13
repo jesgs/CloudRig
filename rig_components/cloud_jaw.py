@@ -66,7 +66,7 @@ class Component_Jaw(Component_CopyBone):
                 Copy Transforms (Local): Jaw
     """
 
-    ui_name = 'Jaw'
+    ui_name = 'Jaw (Legacy)'
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)

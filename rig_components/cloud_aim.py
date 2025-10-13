@@ -184,19 +184,7 @@ class Component_Aim(Component_Base):
                 },
             )
 
-            arm_con = highlight_ctr.add_constraint(
-                'ARMATURE',
-                targets=[{'subtarget': ctr_bone.name}, {'subtarget': ctr_bone.parent.name}],
-            )
-            driver = {
-                'prop': 'targets[0].weight',
-                'variables': [(highlight_ctr.name, prop_name)],
-            }
-            arm_con.drivers.append(driver)
-            driver = dict(driver)
-            driver['prop'] = 'targets[1].weight'
-            driver['expression'] = '1-var'
-            arm_con.drivers.append(driver)
+            self.create_driven_armature_constraint(highlight_ctr, target_bones=[ctr_bone, ctr_bone.parent], prop_bone=highlight_ctr, prop_name=prop_name)
 
         self.lock_transforms(highlight_ctr, loc=False, rot=False, scale=[False, True, False])
 

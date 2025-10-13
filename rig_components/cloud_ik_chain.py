@@ -613,38 +613,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
         else:
             first_parent = self.bones_org[0].parent
 
-        arm_con = parent_helper.add_constraint(
-            'ARMATURE',
-            use_deform_preserve_volume=True,
-            targets=[
-                {'subtarget': first_parent},
-                {
-                    'subtarget': ik_mstr
-                },  # TODO: This could be stretch_bone but that breaks Sprite Fright animations and doesn't work well in some cases.
-            ],
-        )
 
         ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
-        # Add driver to the new constraint target.
-        driver1 = {
-            'prop': 'targets[0].weight',
-            'expression': '1-follow',
-            'variables': {
-                'follow': {
-                    'type': 'SINGLE_PROP',
-                    'targets': [
-                        {
-                            'data_path': f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
-                        }
-                    ],
-                }
-            },
-        }
-        driver2 = dict(driver1)
-        driver2['prop'] = 'targets[1].weight'
-        driver2['expression'] = 'follow'
-        arm_con.drivers.append(driver1)
-        arm_con.drivers.append(driver2)
+        self.create_driven_armature_constraint(parent_helper, target_bones=[ik_mstr, first_parent], prop_bone=self.properties_bone, prop_name=ik_pole_follow_name, preserve_volume=True)
 
         # Let Stretch Helper copy rotation of IK master, for nice controlling of the IK Pole.
         stretch_bone.add_constraint('COPY_ROTATION', index=0, subtarget=ik_mstr)
