@@ -31,18 +31,32 @@ class Component_Base(
     BoneGizmoMixin,
 ):
     """Base class that all CloudRig components should inherit from."""
+    # Name to display for this component type in the UI.
+    # Note that cloud_base is not a self-sufficient component type.
+    # It doesn't appear in the UI because there's no RIG_COMPONENT_MODULE variable here.
+    ui_name = "Cloud Base"
 
+    # When user adds constraints to the metarig bones, move those constraints to the bones with the same name, but this prefix.
     relink_default_prefix = ""
 
-    # Strings to try to communicate obscure behaviours of this rig type in the params UI.
+    # String displayed when Parent Switching is enabled.
     parent_switch_behaviour = "The active parent will own the component's root bone."
+    # Whether enabling parent switching should be mutually exclusive with the Root Parent option.
     parent_switch_overwrites_root_parent = True
 
-    ui_name = "Cloud Base (Should not be visible in UI!)"
-
+    # Whether original bones from the metarig should be kept. 
+    # If False, you can still access their BoneInfo instances via self.bones_org, 
+    # but they won't be created, so you better not try to create any constraints that reference them.
+    # Keeping them doesn't cost much, just a little clutter.
     keep_original_bones = True
+    # If original bones are kept, should their collection assignments also be kept? If not, you better assign them to some bone set.
     keep_original_bones_collections = False
+    # If original bones are kept, should their colors be kept? If not, you better assign some colors to them.
     keep_original_bones_colors = False
+
+    # Should the Base Name parameter be shown in the UI? 
+    # Useful if your component needs a name that isn't the same as any of its parts.
+    # Eg., for the limb component, we want custom properties like "Left Arm IK", but our bones are named "Shoulder/Elbow/Hand", rather than "Arm".
     use_base_name = False
 
     def __str__(self) -> str:

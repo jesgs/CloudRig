@@ -115,11 +115,11 @@ pose_bone_properties = {
 
 class BoneInfo:
     """
-    The class tries to abstract bpy.types.Bone/PoseBone/EditBone.
+    Abstraction layer for bpy.types.Bone/PoseBone/EditBone.
 
-    This class does not concern itself with posing/animating the bone, only creating and
+    This class does not handle posing/animation of the bone, only creating and
     rigging it. Eg, it does not store local space loc/rot/scale transforms or keyframes,
-    but it does store (abstractions of) constraints and drivers.
+    but it does store head/tail vectors and (abstractions of) constraints and drivers.
     """
 
     def __init__(
