@@ -100,10 +100,9 @@ def reveal_and_select(context, bone: Bone or EditBone or PoseBone, extend_select
     ensure_visible_bone_collection(bone)
     if not extend_selection:
         for pb in context.active_object.pose.bones:
-            pb.bone.select = False
+            pb.select = False
     pbone.hide = False
     bone.hide = False
-    bone.select = True
     if context.mode == 'EDIT_ARMATURE':
         bone.select_head = True
         bone.select_tail = True

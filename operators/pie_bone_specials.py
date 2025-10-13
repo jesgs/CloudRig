@@ -62,7 +62,7 @@ class POSE_OT_dissolve_bones(Operator):
         rig = context.active_object
         org_mode = rig.mode
         if rig.mode == 'POSE':
-            bone_names = [b.name for b in context.selected_pose_bones]
+            bone_names = [pb.name for pb in context.selected_pose_bones]
             bpy.ops.object.mode_set(mode='EDIT')
             for bone_name in bone_names:
                 rig.data.edit_bones[bone_name].hide = False

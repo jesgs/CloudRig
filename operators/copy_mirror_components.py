@@ -34,27 +34,27 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
         num_mirrored = 0
 
         # First make sure that all selected bones can be mirrored unambiguously.
-        for from_bone in context.selected_pose_bones:
-            to_bone = rig.pose.bones.get(flip_name(from_bone.name))
-            if not to_bone:
+        for from_pbone in context.selected_pose_bones:
+            to_pbone = rig.pose.bones.get(flip_name(from_pbone.name))
+            if not to_pbone:
                 # Bones without an opposite will just be ignored.
                 continue
-            if to_bone != from_bone and to_bone.bone.select:
+            if to_pbone != from_pbone and to_pbone.select:
                 self.report(
                     {'ERROR'},
-                    f"Bone {from_bone.name} selected on both sides, mirroring would be ambiguous, "
+                    f"Bone {from_pbone.name} selected on both sides, mirroring would be ambiguous, "
                     f"aborting. Only select the left or right side, not both!",
                 )
                 return {'CANCELLED'}
 
         # Then mirror the parameters.
-        for from_bone in context.selected_pose_bones:
-            to_bone = rig.pose.bones.get(flip_name(from_bone.name))
-            if to_bone == from_bone or not to_bone:
+        for from_pbone in context.selected_pose_bones:
+            to_pbone = rig.pose.bones.get(flip_name(from_pbone.name))
+            if to_pbone == from_pbone or not to_pbone:
                 # Bones without an opposite will just be ignored.
                 continue
 
-            copy_property_group(from_bone.cloudrig_component, to_bone.cloudrig_component, x_mirror=True)
+            copy_property_group(from_pbone.cloudrig_component, to_pbone.cloudrig_component, x_mirror=True)
             num_mirrored += 1
 
         self.report({'INFO'}, f"Mirrored parameters of {num_mirrored} bones.")

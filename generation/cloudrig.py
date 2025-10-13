@@ -1845,6 +1845,7 @@ class CLOUDRIG_UL_collections(UIList):
         cloudrig_info = collection.cloudrig_info
         rig = context.pose_object or context.active_object
         prefs = rig.cloudrig_prefs
+        pbones = rig.pose.bones
 
         row = layout.row(align=True)
         if collection.parent:
@@ -1877,11 +1878,11 @@ class CLOUDRIG_UL_collections(UIList):
 
         if context.mode != 'EDIT_ARMATURE':
             direct_selected_bones = [
-                b
-                for b in collection.bones
-                if not b.hide
-                and any([c.is_visible for c in b.collections])
-                and b.select
+                bone
+                for bone in collection.bones
+                if not pbones[bone.name].hide
+                and any([c.is_visible for c in bone.collections])
+                and pbones[bone.name].select
             ]
             indirect_bones = collection.bones_recursive
             indirect_visible_bones = [
@@ -1889,7 +1890,7 @@ class CLOUDRIG_UL_collections(UIList):
                 for b in indirect_bones
                 if not b.hide and any([c.is_visible for c in b.collections])
             ]
-            indirect_selected_bones = [b for b in indirect_visible_bones if b.select]
+            indirect_selected_bones = [bone for bone in indirect_visible_bones if pbones[bone.name].select]
 
             if direct_selected_bones:
                 row.label(text="", icon='LAYER_ACTIVE')
@@ -2359,17 +2360,20 @@ class POSE_OT_cloudrig_collection_select(Operator):
 
         with pose_mode(rig):
             if not self.extend_selection and self.select:
-                for bone in rig.data.bones:
-                    bone.select = False
+                for pbone in rig.pose.bones:
+                    pbone.select = False
 
             for bone in collection.bones_recursive:
+                pbone = rig.pose.bones[bone.name]
+                if not self.reveal_bones and (pbone.hide or not any((coll.is_visible_effectively for coll in bone.collections))):
+                    continue
                 if self.flip:
-                    bone = rig.data.bones.get(bpy.utils.flip_name(bone.name))
-                    if not bone:
+                    pbone = rig.pose.bones.get(bpy.utils.flip_name(bone.name))
+                    if not pbone:
                         continue
                 if self.reveal_bones and self.select:
-                    bone.hide = False
-                bone.select = self.select
+                    pbone.hide = False
+                pbone.select = self.select
 
         return {'FINISHED'}
 

@@ -119,7 +119,7 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
         return [
-            b for b in context.object.data.edit_bones if b.select_tail or b.select_head
+            ebone for ebone in context.object.data.edit_bones if ebone.select_tail or ebone.select_head
         ]
 
     def bone_operation(self):
@@ -139,7 +139,7 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
         if not context.mode == 'EDIT_ARMATURE':
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
-        return [b for b in context.object.data.edit_bones if b.select]
+        return [ebone for ebone in context.object.data.edit_bones if ebone.select]
 
     def bone_operation(self):
         # Duplicate it!

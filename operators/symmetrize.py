@@ -54,7 +54,7 @@ class POSE_OT_symmetrize_rigging(Operator):
                     {'WARNING'},
                     f'Bone name cannot be flipped: "{pb.name}". Symmetrize will have no effect.',
                 )
-                pb.bone.select = False
+                pb.select = False
                 continue
             if not opp_pb:
                 continue
