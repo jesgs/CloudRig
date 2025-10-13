@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Armature, Bone, Object, Operator
+from bpy.types import EditBone, PoseBone, Bone, Object, Operator
 from bpy.props import BoolProperty
 
 from ..generation.cloudrig import find_metarig_of_rig, find_cloudrig
@@ -166,6 +166,8 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
         # (higher priority prefix wins).
         for bone_name in selected_bone_names:
             bone = self.get_visible_bone_with_similar_name(to_rig, bone_name)
+            if not bone:
+                continue
             if to_rig.mode == 'EDIT_ARMATURE':
                 ebone = to_rig.data.edit_bones[bone.name]
                 ebone.select = True
@@ -191,14 +193,14 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
     def get_visible_bone_with_similar_name(
         self, rig: Object, bone_name: str
-    ) -> Bone | None:
+    ) -> PoseBone | EditBone | None:
         armature = rig.data
         def bone_is_visible(bone: Bone):
             if not any([coll.is_visible_effectively for coll in bone.collections]):
                 return False
             if rig.mode == 'EDIT_ARMATURE':
-                return not rig.data.edit_bones[bone.name].hide
-            return not rig.pose.bones[bone.name].hide
+                return not rig.data.edit_bones[bone.name]
+            return not rig.pose.bones[bone.name]
 
         def names_match(a, b):
             return (a in b) or (b in a)

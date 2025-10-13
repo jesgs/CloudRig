@@ -10,7 +10,7 @@ def deselect_all_bones(context):
     if context.mode == 'EDIT_ARMATURE':
         bones = context.selected_editable_bones
     else:
-        bones = [pb.bone for pb in context.selected_pose_bones]
+        bones = [pb for pb in context.selected_pose_bones]
     for b in bones:
         b.select = False
         if context.mode == 'EDIT_ARMATURE':
@@ -104,8 +104,11 @@ def reveal_and_select(context, bone: Bone or EditBone or PoseBone, extend_select
     pbone.hide = False
     bone.hide = False
     if context.mode == 'EDIT_ARMATURE':
+        bone.select = True
         bone.select_head = True
         bone.select_tail = True
+    else:
+        pbone.select = True
     if set_active:
         set_active_bone(context, bone)
 
