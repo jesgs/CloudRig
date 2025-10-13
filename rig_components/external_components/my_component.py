@@ -3,21 +3,21 @@
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
 
-from ..rig_component_features.bone_info import BoneInfo
-from .cloud_base import Component_Base
+from ...rig_component_features.bone_info import BoneInfo
+from ..cloud_base import Component_Base
 
 
-class Component_Template(Component_Base):
+class MyComponent(Component_Base):
     """Template for implementing rig component types in CloudRig. Just creates a control bone."""
 
-    ui_name = "Development Template"
+    ui_name = "My Component"
 
     def init_extra(self):
         pass
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        if self.params.template.use_control:
+        if self.params.my_component.use_control:
             self.make_ctr_bone(self.bones_org[0])
 
     def make_ctr_bone(self, bone) -> BoneInfo:
@@ -45,7 +45,7 @@ class Component_Template(Component_Base):
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the component parameters."""
 
-        cls.draw_prop(context, layout, params.template, 'use_control')
+        cls.draw_prop(context, layout, params.my_component, 'use_control')
 
 
 class Params(PropertyGroup):
@@ -55,4 +55,4 @@ class Params(PropertyGroup):
 
 
 # Un-comment this to make it show up in the UI.
-RIG_COMPONENT_CLASS = Component_Template
+# RIG_COMPONENT_CLASS = MyComponent
