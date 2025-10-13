@@ -261,7 +261,7 @@ class SnappingOpMixin:
         if not pbones:
             pbones = rig.pose.bones
         for pb in pbones:
-            pb.bone.select = select
+            pb.select = select
 
     @staticmethod
     def reveal_bones(pbones: list[PoseBone]):
