@@ -88,8 +88,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
             source=org_chain[0],
             head=org_chain[0].head,
             tail=org_chain[0].tail,
-            parent=self.mstr_hips,
         )
+        self.create_driven_armature_constraint(self.forward_hips, [self.mstr_hips, fk_chain[0]], self.properties_bone.name, self.ik_prop_name)
+
         if self.params.spine.world_align:
             self.root_bone.flatten()
             self.mstr_hips.flatten()
