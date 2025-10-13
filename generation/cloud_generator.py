@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, os, traceback
+import bpy, os, traceback, sys
 
 from bpy.types import Object, PropertyGroup, Collection, Text, Action, Operator
 from bpy.props import (
@@ -1110,14 +1110,31 @@ class CLOUDRIG_OT_generate(Operator):
                     # so we just want to keep raising the exception.
                     raise exception
 
+                exception_module = get_exception_module(exception)
+                exc_mod_name = exception_module.__name__
+                is_cloudrig_bug = 'rig_components' not in exc_mod_name or "." not in exc_mod_name.split("rig_components.")[-1]
+                operator = ''
+                op_kwargs = {}
+                if is_cloudrig_bug:
+                    operator = 'wm.cloudrig_report_bug'
+                elif (
+                    hasattr(exception_module, 'RIG_COMPONENT_CLASS') and 
+                    hasattr(exception_module.RIG_COMPONENT_CLASS, 'bug_report_url') and
+                    exception_module.RIG_COMPONENT_CLASS.bug_report_url
+                ):
+                    operator = 'wm.url_open'
+                    op_kwargs = {'url':exception_module.RIG_COMPONENT_CLASS.bug_report_url}
+
                 # Any other exception type is a bug.
                 # We give the user a button to report the error.
                 generator.logger.log_fatal_error(
                     "Execution Failed!",
-                    description="Execution failed unexpectedly. This should never happen!",
-                    icon='URL',
+                    description="Execution failed unexpectedly.",
                     note=str(exception),
-                    operator='wm.cloudrig_report_bug',
+                    operator=operator,
+                    op_kwargs=op_kwargs,
+                    op_text="Report Bug",
+                    op_icon='URL',
                 )
 
                 self.report(
@@ -1201,6 +1218,13 @@ class CLOUDRIG_OT_generate(Operator):
                 continue
             coll.is_visible = is_visible
 
+def get_exception_module(exc: Exception):
+    tb = exc.__traceback__
+    while tb.tb_next:
+        tb = tb.tb_next
+    frame = tb.tb_frame
+    module_name = frame.f_globals.get("__name__")
+    return sys.modules.get(module_name)
 
 registry = [
     GeneratorProperties,

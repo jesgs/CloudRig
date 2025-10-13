@@ -16,6 +16,9 @@ class MyComponent(Component_Base):
     # Name to display in the UI in the component selection list.
     ui_name = "My Component"
 
+    # If an error occurs in your code, users will be presented with a Report Bug button which opens this URL. You can leave it empty.
+    bug_report_url = "https://duckduckgo.com/"
+
     # If you want to force some inherited parameters to specific values and hide them from the UI.
     # Check Component_Base implementation for more inherited functionalities like constraint relinking, parent switching, logging, custom property management, etc.
     forced_params = {'my_component.always_false' : False}
@@ -60,6 +63,12 @@ class MyComponent(Component_Base):
                 parent=orig_bone.parent,
             )
             orig_bone.add_constraint('COPY_TRANSFORMS', subtarget=ctr_bone.name)
+        else:
+            # As the name suggests, this will raise, so any subsequent code won't run.
+            # Note that generation errors are NOT BUGS. You should raise a generation error when you detect that the user is doing something illegal.
+            # self.raise_generation_error("This component requires that the Create Control param is set to True. (This is a fake error to showcase how to raise errors in the template code!)")
+            # print("This will not be printed.")
+            assert False, "If this code runs, that IS A BUG! User will still get a stack trace. In the case of any sub-sub-module of rig_components, they will not be prompted with a bug report button, since I don't want to see your bugs."
 
     def create_component_interactions(self, context):
         """Second function called by the generator.
@@ -85,4 +94,4 @@ class Params(PropertyGroup):
 
 
 # Un-comment the line below to make this component type appear as an option in Blender.
-# RIG_COMPONENT_CLASS = MyComponent
+RIG_COMPONENT_CLASS = MyComponent

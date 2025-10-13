@@ -227,6 +227,7 @@ class CloudLogManager:
         operator='',
         op_kwargs={},
         op_text="",
+        op_icon='BLANK1',
     ):
         """Low-level function to add a log entry to the metarig object's data."""
         entry = self.metarig.cloudrig.generator.logs.add()
@@ -244,6 +245,7 @@ class CloudLogManager:
         entry.operator = operator
         entry.op_kwargs = json.dumps(op_kwargs)
         entry.op_text = op_text
+        entry.op_icon = op_icon
 
         return entry
 
@@ -584,6 +586,11 @@ class CloudRigLogEntry(PropertyGroup):
         description="Text to display on quick fix button",
         default='',
     )
+    op_icon: StringProperty(
+        name="Operator Icon",
+        description="Icon to display on quick fix button",
+        default='BLANK1',
+    )
 
 
 class CLOUDRIG_UL_log_entry_slots(UIList):
@@ -698,9 +705,9 @@ class CLOUDRIG_PT_log(Panel):
             split = row.split(factor=0.2)
             split.label(text="Quick Fix:")
             if log.op_text:
-                op = split.operator(log.operator, text=log.op_text)
+                op = split.operator(log.operator, text=log.op_text, icon=log.op_icon)
             else:
-                op = split.operator(log.operator)
+                op = split.operator(log.operator, icon=log.op_icon)
             kwargs = json.loads(log.op_kwargs)
             for key in kwargs.keys():
                 setattr(op, key, kwargs[key])
