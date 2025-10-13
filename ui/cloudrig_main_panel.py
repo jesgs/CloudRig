@@ -89,9 +89,6 @@ class POSE_PT_CloudRig_Generation(Panel):
             act_col.prop(generator, 'test_action', text="")
             act_col.enabled = generator.generate_test_action
 
-        if not prefs.advanced_mode:
-            return
-
         if check_addon(context, 'bone_gizmos'):
             layout.prop(generator, 'auto_setup_gizmos')
 
