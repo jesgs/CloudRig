@@ -14,11 +14,11 @@ from . import (
 
 
 modules = [
-    component_test_animation,
     bone_gizmos,
-    bone_set,
     bone_info,
+    bone_set,
     custom_props,
+    component_test_animation,
     mechanism,
     object,
     parenting,

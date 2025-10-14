@@ -2,6 +2,7 @@
 
 import importlib
 from bpy.utils import register_class, unregister_class
+from types import ModuleType
 
 from . import (
     manual_mapping,
@@ -37,7 +38,7 @@ modules = [
 ]
 
 
-def register_unregister_modules(modules: list, register: bool):
+def recurive_register(modules: list[ModuleType], register: bool):
     """Recursively register or unregister modules by looking for either
     un/register() functions or lists named `registry` which should be a list of
     registerable classes.
@@ -45,22 +46,21 @@ def register_unregister_modules(modules: list, register: bool):
     register_func = register_class if register else unregister_class
 
     for m in modules:
+        un = "un"
         if register:
             importlib.reload(m)
+            un = ""
 
         if hasattr(m, 'registry'):
             for c in m.registry:
                 try:
                     register_func(c)
                 except Exception as e:
-                    un = 'un' if not register else ''
-                    print(
-                        f"Warning: CloudRig failed to {un}register class: {c.__name__}"
-                    )
+                    print(f"CloudRig: Failed to {un}register class: {c.__name__}")
                     print(e)
 
         if hasattr(m, 'modules'):
-            register_unregister_modules(m.modules, register)
+            recurive_register(m.modules, register)
 
         if register and hasattr(m, 'register'):
             m.register()
@@ -69,23 +69,17 @@ def register_unregister_modules(modules: list, register: bool):
 
 
 def register():
-    """Called by Blender when enabling the CloudRig add-on, or on Blender launch if already enabled."""
-
+    """Very first CloudRig code execution entry point, called by Blender."""
     if __name__.startswith("rigify"):
-        # If trying to register as a Rigify feature-set, throw useful error.
-        raise Exception(
-            "CloudRig is no longer a Rigify feature set. Install it as a regular add-on."
-        )
-
-    register_unregister_modules(modules, True)
+        raise Exception("CloudRig is not a Rigify feature set!")
+    recurive_register(modules, True)
 
 
 def unregister():
     """Called by Blender when disabling the CloudRig add-on."""
 
-    # We need to save add-on prefs to file before unregistering anything, 
-    # otherwise things can fail in various ways, like hard errors or just
-    # data getting saved as integers instead of bools or enums.
+    # We want to save add-on prefs to file so they don't get lost when the add-on is disabled.
+    # This should be done before unregistering anything, otherwise things can fail.
     prefs.update_prefs_on_file()
 
-    register_unregister_modules(modules, False)
+    recurive_register(modules, False)
