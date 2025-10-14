@@ -30,7 +30,7 @@ from ..rig_component_features.bone_info import BoneInfo
 from ..rig_components.cloud_base import Component_Base
 
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
-from .naming import CloudNameManager
+from . import naming
 
 from ..utils.rig import get_pbone_of_active
 from ..utils.misc import (
@@ -197,7 +197,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # Used to calculate sizes and distances in a rig-size-agnostic way.
         self.scale = max(metarig.dimensions) / 10
-        self.naming = CloudNameManager()
+        self.naming = naming
 
         # Default kwargs that are passed in to every created BoneInfo.
         self.defaults = {
@@ -791,7 +791,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
         self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
         self.logger.report_sus_constraints(self.target_rig)
-        self.logger.report_actions()
+        # self.logger.report_actions()
 
 
 def ensure_cloudrig_ui(rig):

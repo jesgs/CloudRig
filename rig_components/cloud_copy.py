@@ -1,10 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..rig_component_features.bone_set import BoneInfo
+
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, StringProperty
 from mathutils import Vector
 
-from ..rig_component_features.bone_set import BoneInfo
 from .cloud_base import Component_Base
 
 
@@ -125,7 +129,7 @@ class Component_CopyBone(Component_Base):
             row_name = base_name + "_" + prop_name
 
             entry_name = prop_name
-            flipped_name = self.naming.flipped_name(bone)
+            flipped_name = self.naming.flip_name(bone.name)
             opposite_bone = self.generator.metarig.data.bones.get(flipped_name)
             if flipped_name != bone.name and opposite_bone:
                 # We also want to make sure the "entry name" is unique.

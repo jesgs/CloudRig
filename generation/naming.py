@@ -2,6 +2,7 @@
 
 from typing import Any
 import re
+from bpy.utils import flip_name as bpy_flip_name
 
 SEPARATORS = "._-"
 PREFIX_SEPARATOR = "-"
@@ -20,69 +21,30 @@ SIDE_INDICATORS = [
 ]
 
 
-class CloudNameManager:
-    """Name management utilities with the convenience of being able to pass in
-    anything that has a "name" attribute, or strings directly.
-    """
+def flip_name(thing: Any) -> str:
+    return bpy_flip_name(get_name(thing))
 
-    prefix_separator = PREFIX_SEPARATOR
-    suffix_separator = SUFFIX_SEPARATOR
 
-    def get_name(self, thing):
-        return get_name(thing)
-
-    def has_trailing_zeroes(self, thing):
-        return has_trailing_zeroes(thing)
-
-    def has_wrong_separator(self, thing):
-        return has_wrong_separator(thing)
-
-    def side_is_suffix(self, thing):
-        return side_is_suffix(thing)
-
-    def make_name(self, prefixes=[], base="", suffixes=[]) -> str:
-        return make_name(prefixes, base, suffixes)
-
-    def slice_name(self, thing) -> tuple[list[str], str, list[str]]:
-        return slice_name(get_name(thing))
-
-    def strip_trailing_numbers(self, thing) -> tuple[str, str]:
-        return strip_trailing_numbers(get_name(thing))
-
-    def flipped_name(self, thing) -> str:
-        return flip_name(get_name(thing))
-
-    def combine_names(self, things) -> str:
-        names = []
-        for thing in things:
-            names.append(get_name(thing))
-
-        return combine_bone_names(names)
-
-    def side_is_left(self, thing) -> bool | None:
-        return side_is_left(get_name(thing))
-
-    def increment_name(self, thing, increment=1) -> str:
-        name = get_name(thing)
-        return increment_name(name, increment)
-
-    def add_prefix(self, thing, new_prefix) -> str:
-        """The most common case of making a bone name based on another one is to add a prefix to it."""
-        name = get_name(thing)
-        sliced_name = self.slice_name(name)
-        sliced_name[0].append(new_prefix)
-        return self.make_name(*sliced_name)
+def add_prefix(thing: Any, new_prefix: str) -> str:
+    name = get_name(thing)
+    sliced_name = slice_name(name)
+    sliced_name[0].append(new_prefix)
+    return make_name(*sliced_name)
 
 
 def get_name(thing: Any) -> str:
     """Return any PyObject's "name" attribute if it has one, else cast it to a string."""
-    if hasattr(thing, 'name'):
+    if type(thing) == str:
+        return thing
+    elif hasattr(thing, "name"):
         return thing.name
+    elif "name" in thing:
+        return thing["name"]
     else:
         return str(thing)
 
 
-def make_name(prefixes=[], base="", suffixes=[]) -> str:
+def make_name(prefixes: list[str] = [], base="", suffixes: list[str] = []) -> str:
     """Make a name from a list of prefixes, a base, and a list of suffixes."""
     name = ""
     if type(prefixes) == str:
@@ -103,8 +65,9 @@ def make_name(prefixes=[], base="", suffixes=[]) -> str:
     return name
 
 
-def slice_name(name: str):
+def slice_name(thing: Any):
     """Break up a name into its prefix, base, suffix components."""
+    name = get_name(thing)
     prefixes = name.split(PREFIX_SEPARATOR)[:-1]
     suffixes = name.split(SUFFIX_SEPARATOR)[1:]
     base = name.split(PREFIX_SEPARATOR)[-1].split(SUFFIX_SEPARATOR)[0]
@@ -155,7 +118,8 @@ def side_is_suffix(thing: Any) -> bool:
     return True
 
 
-def strip_trailing_numbers(name: str) -> tuple[str, str]:
+def strip_trailing_numbers(thing: Any) -> tuple[str, str]:
+    name = get_name(thing)
     if "." in name:
         # Check if there are only digits after the last period
         slices = name.split(".")
@@ -169,7 +133,7 @@ def strip_trailing_numbers(name: str) -> tuple[str, str]:
     return name, ""
 
 
-def combine_bone_names(names: str) -> str:
+def combine_names(things: list[Any]) -> str:
     """Combine multiple bone names into one by:
     - Removing duplicate pre and suffixes
     - Cancelling out left/right suffixes
@@ -177,6 +141,8 @@ def combine_bone_names(names: str) -> str:
     - Limiting to a max of 59 characters
     Eg., "Lip_Upper.L" + "Lip_Lower.R" -> "Lip_Upper+Lower")
     """
+
+    names = [get_name(thing) for thing in things]
 
     slices = [slice_name(n) for n in names]
 
@@ -234,14 +200,14 @@ def combine_bone_names(names: str) -> str:
 
 def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[str]]:
     left = [
-        'left',
-        'Left',
-        'LEFT',
-        'l',
-        'L',
+        "left",
+        "Left",
+        "LEFT",
+        "l",
+        "L",
     ]
-    right_placehold = ['*rgt*', '*Rgt*', '*RGT*', '*r*', '*R*']
-    right = ['right', 'Right', 'RIGHT', 'r', 'R']
+    right_placehold = ["*rgt*", "*Rgt*", "*RGT*", "*r*", "*R*"]
+    right = ["right", "Right", "RIGHT", "r", "R"]
 
     # If the name is longer than 2 characters, only swap side identifiers if they
     # are next to a separator.
@@ -258,58 +224,9 @@ def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[st
     return left, right_placehold, right
 
 
-def flip_name(from_name: str, ignore_base=True, must_change=False) -> str:
-    """Turn a left-sided name into a right-sided one or vice versa.
-
-    Based on BLI_string_flip_side_name:
-    https://projects.blender.org/blender/blender/src/branch/main/source/blender/blenlib/intern/string_utils.c
-
-    ignore_base: When True, ignore occurrences of side hints unless they're in
-                             the beginning or end of the name string.
-    must_change: When True, raise an error if the name couldn't be flipped.
-    """
-
-    # Handling .### cases
-    stripped_name, number_suffix = strip_trailing_numbers(from_name)
-
-    def flip_sides(list_from, list_to, name):
-        for side_idx, side in enumerate(list_from):
-            opp_side = list_to[side_idx]
-            if ignore_base:
-                # Only look at prefix/suffix.
-                if name.startswith(side):
-                    name = name[len(side) :] + opp_side
-                    break
-                elif name.endswith(side):
-                    name = name[: -len(side)] + opp_side
-                    break
-            else:
-                # When it comes to searching the middle of a string,
-                # sides must strictly be a full word or separated with "."
-                # otherwise we would catch stuff like "_leg" and turn it into "_reg".
-                if not any([char not in side for char in "-_."]):
-                    # Replace all occurences and continue checking for keywords.
-                    name = name.replace(side, opp_side)
-                    continue
-        return name
-
-    with_separators = len(stripped_name) > 2
-    left, right_placehold, right = get_side_lists(with_separators)
-    flipped_name = flip_sides(left, right_placehold, stripped_name)
-    flipped_name = flip_sides(right, left, flipped_name)
-    flipped_name = flip_sides(right_placehold, right, flipped_name)
-
-    # Re-add trailing digits (.###)
-    new_name = flipped_name + number_suffix
-
-    if must_change:
-        assert new_name != from_name, "Failed to flip string: " + from_name
-
-    return new_name
-
-
-def side_is_left(name) -> bool | None:
+def side_is_left(thing: Any) -> bool | None:
     """Identify whether a name belongs to the left or right side or neither."""
+    name = get_name(thing)
 
     flipped_name = flip_name(name)
     if flipped_name == name:
@@ -360,7 +277,7 @@ def side_is_left(name) -> bool | None:
     return None
 
 
-def increment_name(name: str, increment=1, default_zfill=1) -> str:
+def increment_name(thing: Any, increment=1, default_zfill=1) -> str:
     # Increment LAST number in the name.
     # Negative numbers will be clamped to 0.
     # Digit length will be preserved, so 10 will decrement to 09.
@@ -368,8 +285,9 @@ def increment_name(name: str, increment=1, default_zfill=1) -> str:
 
     # If no number was found, one will be added at the end of the base name.
     # The length of this in digits is set with the `default_zfill` param.
+    name = get_name(thing)
 
-    numbers_in_name = re.findall(r'\d+', name)
+    numbers_in_name = re.findall(r"\d+", name)
     if not numbers_in_name:
         prefixes, base, suffixes = slice_name(name)
         base += str(max(0, increment)).zfill(default_zfill)
@@ -381,7 +299,8 @@ def increment_name(name: str, increment=1, default_zfill=1) -> str:
     return incremented.join(split)
 
 
-def strip_blender_zeroes(name):
+def strip_blender_zeroes(thing: Any):
+    name = get_name(thing)
     if name[-4] == ".":
         try:
             int(name[-3:])
@@ -391,7 +310,8 @@ def strip_blender_zeroes(name):
     return name
 
 
-def uniqify(name, collprop: list, strip_first=True):
+def uniqify(thing: Any, collprop: list, strip_first=True):
+    name = get_name(thing)
     if strip_first:
         name = strip_blender_zeroes(name)
     while name in collprop:

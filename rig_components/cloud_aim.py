@@ -212,7 +212,7 @@ class Component_Aim(Component_Base):
             # Ensure parent switching for the group master
             if (
                 self.group_master.parent
-                and self.group_master.parent.name == "P-" + self.group_master.name
+                and self.group_master.parent.name == self.naming.add_prefix(self.group_master.name, "P")
             ):
                 # If the parent switching set-up already exists, don't create it again.
                 return

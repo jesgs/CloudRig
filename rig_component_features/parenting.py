@@ -159,13 +159,13 @@ class CloudParentingMixin:
         # Create parent bone that will hold the Armature constraint.
         arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
         arm_con_bone.custom_shape = None
-        self.create_driven_armature_constraint(arm_con_bone, parent_bone_names, prop_bone.name, prop_name)
+        self.create_driven_armature_constraint(arm_con_bone, parent_bone_names, prop_bone.name, prop_name, name="Armature (Parent Switching)")
 
-    def create_driven_armature_constraint(self, bone: BoneInfo, target_bones: list[BoneInfo|str], prop_bone: BoneInfo|str, prop_name: str, preserve_volume=False):
+    def create_driven_armature_constraint(self, bone: BoneInfo, target_bones: list[BoneInfo|str], prop_bone: BoneInfo|str, prop_name: str, preserve_volume=False, name=""):
         targets = [{'subtarget': bone} for bone in target_bones]
 
         # Add armature constraint
-        arm_con = bone.add_constraint('ARMATURE', name="Armature (Parent Switching)", targets=targets, use_deform_preserve_volume=preserve_volume)
+        arm_con = bone.add_constraint('ARMATURE', name=name or "Armature", targets=targets, use_deform_preserve_volume=preserve_volume)
 
         if len(target_bones) == 1:
             return

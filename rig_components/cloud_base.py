@@ -4,12 +4,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..generation.troubleshooting import CloudRig_Generator
+    from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+    from collections.abc import Iterable
     
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
-from collections.abc import Iterable
 
-from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
 from ..rig_component_features.component_params_ui import CloudUIMixin

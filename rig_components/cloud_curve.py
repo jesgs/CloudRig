@@ -299,7 +299,7 @@ class Component_Curve_Hooked(Component_Base):
         hook_ctr.is_bezier = is_bezier
         if self.params.curve.x_axis_symmetry:
             opp_hook_ctr = self.generator.find_bone_info(
-                self.naming.flipped_name(hook_ctr)
+                self.naming.flip_name(hook_ctr)
             )
             if opp_hook_ctr:
                 hook_ctr.tail = opp_hook_ctr.tail * Vector([-1, 1, 1])

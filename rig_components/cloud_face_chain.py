@@ -71,7 +71,7 @@ def do_centered_cluster(
     # they produce a clean curvature. This is important for things like the
     # teeth or the lips, which are one rig element on each side that meet in
     # the center, and are expected to make a smooth curve.
-    rig = cluster[0].owner_component
+    component = cluster[0].owner_component
 
     pos_sum = cluster[0].head.copy()
     for c in cluster[1:]:
@@ -84,24 +84,24 @@ def do_centered_cluster(
         intersection.roll_type = 'VECTOR'
         intersection.roll_vector = avg_pos
 
-    for b in cluster:
-        flipped_name = rig.naming.flipped_name(b)
-        if flipped_name == b.name:
+    for bone in cluster:
+        flipped_name = component.naming.flip_name(bone)
+        if flipped_name == bone.name:
             continue
-        opposite_bone = b.owner_component.generator.find_bone_info(flipped_name)
+        opposite_bone = bone.owner_component.generator.find_bone_info(flipped_name)
         if not opposite_bone:
             continue
 
-        b.flatten(axis='X')
-        if has_tangent_helpers(b.owner_component):
-            b.tangent_helper.flatten(axis='X')
-        if b.owner_component.params.chain.smooth_spline:
+        bone.flatten(axis='X')
+        if has_tangent_helpers(bone.owner_component):
+            bone.tangent_helper.flatten(axis='X')
+        if bone.owner_component.params.chain.smooth_spline:
             if has_tangent_helpers(opposite_bone.owner_component):
                 # Make the Damped Track constraint of the opposite TAN- bone aim
                 # at this STR bone's Damped Track target.
                 # This gets us a smooth curve across the two chains.
                 # (This is also what would happen if it was just one longer smooth chain)
-                b.tangent_helper.constraint_infos[1].subtarget = (
+                bone.tangent_helper.constraint_infos[1].subtarget = (
                     opposite_bone.tangent_helper.constraint_infos[0].subtarget
                 )
 

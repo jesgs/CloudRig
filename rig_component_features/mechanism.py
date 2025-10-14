@@ -4,7 +4,7 @@ from mathutils import Vector
 from bpy.types import PoseBone, Bone
 
 from .bone_info import BoneInfo
-from ..generation.naming import slice_name, make_name
+from ..generation.naming import add_prefix
 
 
 class CloudMechanismMixin:
@@ -164,13 +164,10 @@ def get_bone_chain(start_bone):
 def create_parent_bone(child, bone_set=None):
     """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
     parent the bone to this copy."""
-    sliced = slice_name(child.name)
-    sliced[0].append("P")
-    parent_name = make_name(*sliced)
     if bone_set == None:
         bone_set = child.bone_set
     parent_bone = bone_set.new(
-        name=parent_name,
+        name=add_prefix(child, "P"),
         source=child,
         parent=child.parent,
         roll_type='ALIGN',

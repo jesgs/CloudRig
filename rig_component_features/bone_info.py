@@ -10,6 +10,7 @@ from ..utils.maths import flat
 from ..utils.external.mechanism import make_constraint, make_driver
 from ..utils.rig import align_bone_z_axis_to_vector
 from .properties_ui import ensure_custom_property, make_property
+from ..generation import naming
 
 # These values should match Blender's defaults, otherwise they won't be written.
 # It is very confusing what belongs where because some properties exist on both EditBone and Bone,
@@ -614,7 +615,7 @@ class BoneInfo:
             if value in [None, ""]:
                 continue
             if key == 'custom_shape_transform':
-                name = self.owner_component.naming.get_name(value)
+                name = naming.get_name(value)
                 value = arm_ob.pose.bones.get(name)
             setattr(pose_bone, key, value)
 
@@ -760,7 +761,7 @@ class BoneInfo:
     def clone(self, new_name=None, bone_set=None):
         """Return a clone of self."""
         if not new_name:
-            new_name = self.owner_component.naming.uniqify(
+            new_name = naming.uniqify(
                 self.name, list(self.owner_component.generator.bone_infos)
             )
 
