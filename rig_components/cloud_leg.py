@@ -6,7 +6,6 @@ from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 from math import radians as rad
 from math import pi
-from copy import deepcopy
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..utils.maths import flat
@@ -263,7 +262,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         heel_pivot = self.bone_sets['IK Mechanism'].new(
             name="IK-RollBack"
             + base_name
-            + self.naming.suffix_separator
+            + self.naming.SUFFIX_SEPARATOR
             + self.side_suffix,
             bbone_width=toe.bbone_width,
             head=heel_pivot_bone.head_local,
@@ -390,9 +389,10 @@ class Component_Limb_BipedLeg(Component_Limb):
         fk_toe.parent = None
         self.create_driven_armature_constraint(
             fk_toe,
-            target_bones=[self.ik_chain[-1], self.bones_org[-2].fk_bone],
+            target_bones=[self.bones_org[-2].fk_bone, self.ik_chain[-1]],
             prop_bone=self.properties_bone,
-            prop_name=self.ikfk_name
+            prop_name=self.ikfk_name,
+            name="Armature (Toe FK/IK)"
         )
 
     def tweak_org_foot(self):
