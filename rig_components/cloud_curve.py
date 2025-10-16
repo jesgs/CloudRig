@@ -195,7 +195,7 @@ class Component_Curve_Hooked(Component_Base):
         else:
             suffix = self.side_suffix
             if suffix != "":
-                suffix = self.naming.suffix_separator + suffix
+                suffix = self.naming.SUFFIX_SEPARATOR + suffix
 
         return f"Spline{prefix_part}_{hook_name}{spline_part}{suffix}"
 
