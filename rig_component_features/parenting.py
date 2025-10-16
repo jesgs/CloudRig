@@ -3,13 +3,13 @@
 from bpy.types import PropertyGroup, UIList
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from bl_ui.generic_ui_list import draw_ui_list
-from .bone_info import BoneInfo
+from .bone_info import BoneInfo, ConstraintInfo
 
 from ..utils.rig import get_pbone_of_active
 from .component_params_ui import draw_label_with_linebreak
 
-# TODO: Creating a helper bone to hold the Armature constraint should also be optional when using parent switching,
-# not just for bendy bone parenting.
+# TODO: Creating a helper bone to hold the Armature constraint should also be
+# optional when using parent switching, not just for bendy bone parenting.
 
 
 class CLOUDRIG_UL_parent_slots(UIList):
@@ -19,26 +19,28 @@ class CLOUDRIG_UL_parent_slots(UIList):
         metarig = context.object
         rig = metarig.cloudrig.generator.target_rig
         parent_slot = item
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
             split = layout.split(factor=0.5, align=True)
             row = split.row(align=True)
             if not parent_slot.bone:
-                row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="")
+                row.prop_search(parent_slot, "bone", rig.data, "bones", text="")
                 split.row().label(text="<-- Choose a bone.")
                 return
             elif parent_slot.bone not in rig.pose.bones:
                 split.alert = True
-                row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="", icon='ERROR')
+                row.prop_search(
+                    parent_slot, "bone", rig.data, "bones", text="", icon="ERROR"
+                )
                 split.row().label(text="Bone is missing!")
                 return
-            row.prop_search(parent_slot, 'bone', rig.data, 'bones', text="")
+            row.prop_search(parent_slot, "bone", rig.data, "bones", text="")
 
             row = split.row()
-            row.prop(parent_slot, 'name', text=f"", emboss=True)
-            row.prop(parent_slot, 'is_default', text="")
+            row.prop(parent_slot, "name", text=f"", emboss=True)
+            row.prop(parent_slot, "is_default", text="")
 
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
             layout.label(text="", icon_value=icon_value)
 
 
@@ -55,13 +57,16 @@ class ParentSlot(PropertyGroup):
 
         for ps in active_pb.cloudrig_component.params.parenting.parent_slots:
             if ps != self:
-                ps['is_default'] = False
+                ps["is_default"] = False
             else:
-                ps['is_default'] = True
+                ps["is_default"] = True
 
     is_default: BoolProperty(
         name="Is Default",
-        description="Choose which parent option is the default when the rig is generated or reset to its default pose. If none specified, the first in the list is used",
+        description=(
+            "Choose which parent option is the default when the rig is generated "
+            "or reset to its default pose. If none specified, the first in the list is used"
+        ),
         default=False,
         update=update_is_default,
     )
@@ -83,18 +88,18 @@ def draw_parent_switch_list(layout, context, text=""):
 
     sub = split.split(factor=0.8)
     row = sub.row()
-    row.alignment = 'RIGHT'
+    row.alignment = "RIGHT"
     row.label(text="Is Default")
 
-    if context.mode != 'EDIT_ARMATURE':
+    if context.mode != "EDIT_ARMATURE":
         active_bone = context.active_bone
         draw_ui_list(
             layout,
             context,
-            class_name='CLOUDRIG_UL_parent_slots',
+            class_name="CLOUDRIG_UL_parent_slots",
             list_path=f'object.pose.bones["{active_bone.name}"].cloudrig_component.params.parenting.parent_slots',
             active_index_path=f'object.pose.bones["{active_bone.name}"].cloudrig_component.params.parenting.active_parent_index',
-            unique_id='CloudRig Parent Slots',
+            unique_id="CloudRig Parent Slots",
         )
 
 
@@ -142,11 +147,11 @@ class CloudParentingMixin:
                 slider_name=entry_name,
                 texts=parent_ui_names,
                 custom_prop_settings={
-                    'default': self.get_default_parent_index(
+                    "default": self.get_default_parent_index(
                         parent_bone_names, parent_slots
                     ),
-                    'max': len(parent_ui_names) - 1,
-                    'description': f'Changes the parent bone of "{child_bone.name}"',
+                    "max": len(parent_ui_names) - 1,
+                    "description": f'Changes the parent bone of "{child_bone.name}"',
                 },
                 operator="pose.cloudrig_switch_parent_bake",
                 op_icon="COLLAPSEMENU",
@@ -159,13 +164,32 @@ class CloudParentingMixin:
         # Create parent bone that will hold the Armature constraint.
         arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
         arm_con_bone.custom_shape = None
-        self.create_driven_armature_constraint(arm_con_bone, parent_bone_names, prop_bone.name, prop_name, name="Armature (Parent Switching)")
+        self.create_driven_armature_constraint(
+            arm_con_bone,
+            parent_bone_names,
+            prop_bone.name,
+            prop_name,
+            name="Armature (Parent Switching)",
+        )
 
-    def create_driven_armature_constraint(self, bone: BoneInfo, target_bones: list[BoneInfo|str], prop_bone: BoneInfo|str, prop_name: str, preserve_volume=False, name=""):
-        targets = [{'subtarget': bone} for bone in target_bones]
+    def create_driven_armature_constraint(
+        self,
+        bone: BoneInfo,
+        target_bones: list[BoneInfo | str],
+        prop_bone: BoneInfo | str,
+        prop_name: str,
+        preserve_volume=False,
+        name="",
+    ) -> ConstraintInfo:
+        targets = [{"subtarget": bone} for bone in target_bones]
 
         # Add armature constraint
-        arm_con = bone.add_constraint('ARMATURE', name=name or "Armature", targets=targets, use_deform_preserve_volume=preserve_volume)
+        arm_con = bone.add_constraint(
+            "ARMATURE",
+            name=name or "Armature",
+            targets=targets,
+            use_deform_preserve_volume=preserve_volume,
+        )
 
         if len(target_bones) == 1:
             return
@@ -174,20 +198,22 @@ class CloudParentingMixin:
         for i, t in enumerate(arm_con.targets):
             arm_con.drivers.append(
                 {
-                    'prop': f'targets[{i}].weight',
-                    'expression': f'parent=={i}',
-                    'variables': {
-                        'parent': {
-                            'type': 'SINGLE_PROP',
-                            'targets': [
+                    "prop": f"targets[{i}].weight",
+                    "expression": f"1-abs(parent-{i})",
+                    "variables": {
+                        "parent": {
+                            "type": "SINGLE_PROP",
+                            "targets": [
                                 {
-                                    'data_path': f'pose.bones["{prop_bone}"]["{prop_name}"]'
+                                    "data_path": f'pose.bones["{prop_bone}"]["{prop_name}"]'
                                 }
                             ],
                         }
                     },
                 }
             )
+
+        return arm_con
 
     def sanitize_parent_list(
         self, parent_slots: list[ParentSlot]
@@ -204,7 +230,7 @@ class CloudParentingMixin:
             if ps.bone == "":
                 self.raise_generation_error(
                     description_short="Missing Parent",
-                    description=f'Parent switch target is missing! Specify a parent bone in the Parenting parameters.'
+                    description=f"Parent switch target is missing! Specify a parent bone in the Parenting parameters.",
                 )
                 continue
             parent_ui_names.append(ps.name or ps.bone)
@@ -246,7 +272,11 @@ class CloudParentingMixin:
             # logged in write_edit_data().
             self.add_log(
                 "Name-based parenting",
-                description=f'Parent bone "{parent_name}" did not yet exist at time of parenting. This could be caused by incorrect metarig bone hierarchy, where a child rig is not parented to its intended parent rig, so it executes before the parent.',
+                description=(
+                    f'Parent bone "{parent_name}" did not yet exist at time of parenting. '
+                    "This could be caused by incorrect metarig bone hierarchy, where a child rig "
+                    "is not parented to its intended parent rig, so it executes before the parent."
+                ),
             )
             bone.parent = parent_name
             return
@@ -264,7 +294,7 @@ class CloudParentingMixin:
             constrained_bone.custom_shape = None
 
         constrained_bone.add_constraint(
-            'ARMATURE',
+            "ARMATURE",
             index=-len(constrained_bone.constraint_infos),
             use_deform_preserve_volume=True,
             targets=[{"subtarget": parent_bone.name}],
@@ -278,15 +308,15 @@ class CloudParentingMixin:
 
         row = layout.row(align=True)
         cls.draw_prop_search(
-            context, row, params.parenting, 'root_parent', rig.pose, 'bones', text=text
+            context, row, params.parenting, "root_parent", rig.pose, "bones", text=text
         )
         if is_parent_bendy:
             cls.draw_prop(
                 context,
                 row,
                 params.parenting,
-                'use_armature_constraint',
-                icon='CON_ARMATURE',
+                "use_armature_constraint",
+                icon="CON_ARMATURE",
                 text="",
             )
             if params.parenting.use_armature_constraint:
@@ -294,8 +324,8 @@ class CloudParentingMixin:
                     context,
                     row,
                     params.parenting,
-                    'use_helper_bone',
-                    icon='BONE_DATA',
+                    "use_helper_bone",
+                    icon="BONE_DATA",
                     text="",
                 )
             else:
@@ -330,22 +360,37 @@ class CloudParentingMixin:
 class Params(PropertyGroup):
     parent_switching: BoolProperty(
         name="Parent Switching",
-        description="Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled",
+        description=(
+            "Use parent switching for this rig. Different rig types may implement this differently. "
+            "A rig-type-specific explanation is shown below when enabled"
+        ),
         default=False,
     )
     use_armature_constraint: BoolProperty(
         name="Use Armature Constraint",
-        description="Instead of directly parenting this bone to the parent, use an Armature constraint. This allows the bone to follow the parent's bendy bone curvature",
+        description=(
+            "Instead of directly parenting this bone to the parent, use an Armature constraint. "
+            "This allows the bone to follow the parent's bendy bone curvature"
+        ),
         default=True,
     )
     use_helper_bone: BoolProperty(
         name="Create Parent Helper",
-        description="Instead of adding the Armature constraint directly to this bone, create a parent bone prefixed with 'P-' and add it to that one instead. This will keep the local transformations of this bone clear from any parenting-induced transformations, as would be the case with normal parenting",
+        description=(
+            "Instead of adding the Armature constraint directly to this bone, create a parent bone "
+            "prefixed with 'P-' and add it to that one instead. This will keep the local "
+            "transformations of this bone clear from any parenting-induced transformations, "
+            "as would be the case with normal parenting"
+        ),
         default=True,
     )
     root_parent: StringProperty(
         name="Root Parent",
-        description="If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature",
+        description=(
+            "If specified, parent the root of this rig to the chosen bone. If a bendy bone is "
+            "chosen, a parent helper bone with an Armature Constraint will be created to correctly "
+            "inherit transforms from the curvature"
+        ),
         default="",
     )
 
