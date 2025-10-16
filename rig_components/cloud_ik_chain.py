@@ -615,7 +615,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
 
         ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
-        self.create_driven_armature_constraint(parent_helper, target_bones=[ik_mstr, first_parent], prop_bone=self.properties_bone, prop_name=ik_pole_follow_name, preserve_volume=True)
+            pole_parent_helper,
+            target_bones=[first_parent, ik_mstr],
 
         # Let Stretch Helper copy rotation of IK master, for nice controlling of the IK Pole.
         stretch_bone.add_constraint('COPY_ROTATION', index=0, subtarget=ik_mstr)
