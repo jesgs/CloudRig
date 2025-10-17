@@ -4,7 +4,6 @@ import bpy
 from bpy.types import Object
 from ..rig_components.cloud_base import Component_Base
 
-
 class TestAnimationGeneratorMixin:
     """Generator code for generating a "test animation", which is an animation
     riggers can use for weight painting assistance to test deformations.
@@ -65,7 +64,7 @@ class TestAnimationGeneratorMixin:
 
     def get_symmetry_rig_component(self, component: Component_Base) -> Component_Base | None:
         """Find another component in the generator with the opposite name as the one provided."""
-        flipped_name = self.naming.flipped_name(component.base_bone_name)
+        flipped_name = self.naming.flip_name(component.base_bone_name)
         if flipped_name == component.base_bone_name:
             return
 
@@ -83,7 +82,7 @@ def ensure_test_action(metarig: Object, target_rig: Object):
         )
         metarig.cloudrig.generator.test_action = test_action
 
-    # Nuke all curves
+    # Nuke all curves.
     for fc in test_action.fcurves[:]:
         test_action.fcurves.remove(fc)
 
