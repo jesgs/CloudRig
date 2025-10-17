@@ -257,14 +257,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "STRETCH_TO", subtarget=self.bones_org[0].name, head_tail=1
         )
         # Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
-        pole_line.drivers_data.append(
+        pole_line.drivers.append(
             {
                 "prop": "hide",
                 "variables": [
                     {
                         "type": "SINGLE_PROP",
-                        "targets": [  # TODO: This is unnecessarily reaching through the Object rather than the Armature directly, but Rigify's make_driver function doesn't support passing the id type to the driver variable targets...
-                            {"data_path": f'data.bones["{pole_ctrl.name}"].hide'}
+                        "targets": [
+                            {"data_path": f'pose.bones["{pole_ctrl.name}"].hide'}
                         ],
                     }
                 ],
