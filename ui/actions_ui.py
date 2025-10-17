@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
 import bpy
 
 from bl_math import clamp
@@ -9,6 +10,8 @@ from ..utils.external.naming import Side, get_name_side
 from bpy.types import (
     PropertyGroup,
     Action,
+    ActionSlot,
+    ActionChannelbag,
     UIList,
     UILayout,
     Context,
@@ -28,14 +31,80 @@ from bpy.props import (
 from bl_ui.generic_ui_list import draw_ui_list
 
 from bpy.utils import flip_name
+from bpy_extras import anim_utils
+import random
 
+class ActionConstraintSetup(PropertyGroup):
+    def update_ui(self, context):
+        if not self.action:
+            return
+        # Initialize the unique ID the first time an Action is set.
+        self.unique_id
+        # Set the first slot if none are set.
+        if self.action and self.action.slots and not self.action_slot:
+            self.action_slot = self.action.slots[0]
+        self['name'] = self.get_name_transform()
 
-class ActionSlot(PropertyGroup):
     action: PointerProperty(
         name="Action",
         type=Action,
         description="Action to apply to the rig via constraints",
+        update=update_ui,
     )
+
+    def slot_name_from_handle(self, curr_value, _is_set) -> str:
+        try:
+            curr_value = int(curr_value)
+        except:
+            return ""
+        action_slot = next((s for s in self.action.slots if s.handle==curr_value), None)
+        if not action_slot:
+            return ""
+        return action_slot.name_display
+
+    def slot_name_to_handle(self, new_value, curr_value, _is_set)  -> str:
+        action_slot = next((s for s in self.action.slots if s.name_display==new_value and s.identifier.startswith("OB")), None)
+        if not action_slot:
+            return ""
+        return str(action_slot.handle)
+
+    action_slot_ui: StringProperty(
+        name="Acion Slot",
+        description="Slot of the Action to use for the Action Constraints",
+        get_transform=slot_name_from_handle,
+        set_transform=slot_name_to_handle,
+        update=update_ui,
+    )
+
+    @property
+    def unique_id(self) -> int:
+        if not self.action and 'unique_id' not in self:
+            return 0
+        if 'unique_id' in self and self['unique_id'] != 0:
+            return self.get('unique_id')
+        else:
+            self['unique_id'] = random.randint(0, 100_000_000)
+        return self['unique_id']
+
+    @property
+    def action_slot(self) -> ActionSlot | None:
+        return self.action.slots.get("OB"+self.action_slot_ui)
+
+    @action_slot.setter
+    def action_slot(self, slot):
+        if slot:
+            self.action_slot_ui = slot.name_display
+
+    def get_name_transform(self):
+        if self.action:
+            name = self.action.name
+            if self.action_slot and len(self.action.slots) > 1:
+                name += " ➔ " + self.action_slot.name_display
+        else:
+            name = str(self.unique_id)
+        return name
+
+    name: StringProperty(get=get_name_transform)
 
     enabled: BoolProperty(
         name="Enabled",
@@ -121,100 +190,90 @@ class ActionSlot(PropertyGroup):
         "to the last frame. Rotations are in degrees",
     )
 
-    def update_is_corrective(self, context):
-        if not self.is_corrective:
-            self.trigger_action_a = None
-            self.trigger_action_b = None
-
     is_corrective: BoolProperty(
         name="Corrective",
         description="Indicate that this is a corrective action. Corrective actions will activate "
         "based on the activation of two other actions"
         "are at their End Frame, and Start Frame if either is at Start Frame)",
-        update=update_is_corrective,
     )
 
-    def poll_trigger_action(self, action):
-        """Whether an action can be used as a corrective action's trigger or not."""
-        armature_obj = self.id_data
+    def setup_id_to_str(self, curr_value, _is_set):
+        try:
+            curr_value = int(curr_value)
+        except:
+            return ""
+        action_setups = self.id_data.cloudrig.generator.action_setups
+        action_setup = next((setup for setup in action_setups if setup.unique_id==curr_value), None)
+        if not action_setup:
+            return ""
+        return action_setup.name
+    def setup_name_to_id(self, new_value, curr_value, _is_set):
+        action_setups = self.id_data.cloudrig.generator.action_setups
+        action_setup = next((setup for setup in action_setups if setup.name==new_value), None)
+        if not action_setup:
+            return ""
+        return str(action_setup.unique_id)
 
-        slots = armature_obj.cloudrig.generator.action_slots
-        active_slot = armature_obj.cloudrig.generator.active_action_slot
-
-        # If this action is the same as the active slot's action, don't show it.
-        if active_slot and action == active_slot.action:
-            return False
-
-        # If this action is used by any other action slot, show it.
-        for slot in slots:
-            if slot.action == action and not slot.is_corrective:
-                return True
-
-        return False
-
-    trigger_action_a: PointerProperty(
+    trigger_select_a: StringProperty(
         name="Trigger A",
-        type=Action,
-        description="Action whose activation will trigger the corrective action",
-        poll=poll_trigger_action,
+        description="Action Set-up whose activation will trigger this set-up as a corrective",
+        get_transform=setup_id_to_str,
+        set_transform=setup_name_to_id,
     )
-
-    trigger_action_b: PointerProperty(
+    trigger_select_b: StringProperty(
         name="Trigger B",
-        description="Action whose activation will trigger the corrective action",
-        type=Action,
-        poll=poll_trigger_action,
+        description="Action Set-up whose activation will trigger this set-up as a corrective",
+        get_transform=setup_id_to_str,
+        set_transform=setup_name_to_id,
     )
+    @property
+    def trigger_a(self) -> ActionConstraintSetup | None:
+        action_setups = self.id_data.cloudrig.generator.action_setups
+        return next((setup for setup in action_setups if setup.name == self.trigger_select_a), None)
+
+    @trigger_a.setter
+    def trigger_a(self, action_setup: ActionConstraintSetup | None):
+        self.trigger_select_a = action_setup.name if action_setup else ""
+
+    @property
+    def trigger_b(self) -> ActionConstraintSetup | None:
+        action_setups = self.id_data.cloudrig.generator.action_setups
+        return next((setup for setup in action_setups if setup.name == self.trigger_select_b), None)
+
+    @trigger_b.setter
+    def trigger_b(self, action_setup: ActionConstraintSetup | None):
+        self.trigger_select_b = action_setup.name if action_setup else ""
 
     @property
     def generator(self):
         return self.id_data.cloudrig.generator
 
-    def next_slot_with_action(self, action, reversed=False):
-        """Return next or previous slot in the list with the given action."""
-        generator = self.generator
-        found_self = False
-        found_slot = None
-        slots = generator.action_slots
-        if reversed:
-            slots = reversed(slots)
-        for slot in slots:
-            if slot == self:
-                found_self = True
-            if slot.action == action:
-                found_slot = slot
-                if found_self:
-                    break
-        return found_slot
-
     @property
-    def trigger_slot_a(self) -> "ActionSlot":
-        """Return the next Action Slot after this one, that has the "A" trigger Action."""
-        return self.next_slot_with_action(self.trigger_action_a)
-
-    @property
-    def trigger_slot_b(self) -> "ActionSlot":
-        """Return the next Action Slot after this one, that has the "B" trigger Action."""
-        return self.next_slot_with_action(self.trigger_action_b)
-
-    @property
-    def corrective_slots(self) -> list["ActionSlot"]:
-        """Return all corrective action slots targetting this slot."""
-        for slot in self.generator.action_slots:
-            if slot.trigger_slot_a == self:
-                yield slot
-            if slot.trigger_slot_b == self:
-                yield slot
+    def corrective_slots(self) -> list[ActionConstraintSetup]:
+        """Return all corrective action setups targetting this setup."""
+        for action_setup in self.generator.action_setups:
+            if action_setup.trigger_a == self:
+                yield action_setup
+            if action_setup.trigger_b == self:
+                yield action_setup
 
     show_action_a: BoolProperty(name="Show Settings")
     show_action_b: BoolProperty(name="Show Settings")
 
     @property
+    def channelbag(self) -> ActionChannelbag | None:
+        return anim_utils.action_get_channelbag_for_slot(self.action, self.action_slot)
+
+    @property
     def keyed_bone_names(self) -> list[str]:
-        """Return a list of bone names that have keyframes in the Action of this Slot."""
+        """Return a list of bone names that have keyframes in the Action of this Setup."""
         keyed_bones = []
 
-        for fc in self.action.fcurves:
+        channelbag = self.channelbag
+        if not channelbag:
+            return []
+        keyed_bones = []
+        for fc in channelbag.fcurves:
             # Extracting bone name from fcurve data path
             if fc.data_path.startswith('pose.bones["'):
                 bone_name = fc.data_path[12:].split('"]')[0]
@@ -229,7 +288,7 @@ class ActionSlot(PropertyGroup):
         return self.symmetrical and get_name_side(self.subtarget) != Side.MIDDLE
 
     @property
-    def default_side(self):
+    def default_side(self) -> Side:
         return get_name_side(self.subtarget)
 
     def get_min_max(self, side=Side.MIDDLE) -> tuple[float, float]:
@@ -314,89 +373,89 @@ class CLOUDRIG_OT_action_new(Operator):
 
     def execute(self, context):
         generator = context.object.cloudrig.generator
-        action_slots = generator.action_slots
-        active_slot = generator.active_action_slot
+        active_setup = generator.active_action_setup
         action = bpy.data.actions.new(name="Action")
-        active_slot.action = action
+        active_setup.action = action
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_jump_to_action_slot(Operator):
-    """Set Active Action Slot Index"""
+class CLOUDRIG_OT_jump_to_action_setup(Operator):
+    """Set Active Action Setup Index"""
 
-    bl_idname = "object.cloudrig_jump_to_action_slot"
-    bl_label = "Jump to Action Slot"
+    bl_idname = "object.cloudrig_jump_to_action_setup"
+    bl_label = "Jump to Action Setup"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    to_index: IntProperty()
+    setup_id: IntProperty()
 
     def execute(self, context):
-        context.object.cloudrig.generator.active_action_index = self.to_index
-        self.report({'INFO'}, f'Set active action set-up index to {self.to_index}.')
+        for i, action_setup in enumerate(context.object.cloudrig.generator.action_setups):
+            if action_setup.unique_id == self.setup_id:
+                context.object.cloudrig.generator.active_action_index = i
+                break
+        self.report({'INFO'}, f'Set active action set-up index to {i}.')
         return {'FINISHED'}
 
 
-class CLOUDRIG_UL_action_slots(UIList):
+class CLOUDRIG_UL_action_setups(UIList):
     def draw_item(
         self,
         context: Context,
         layout: UILayout,
         data: Armature,
-        action_slot: ActionSlot,
+        action_setup: ActionConstraintSetup,
         icon_value: int,
         active_data,
         active_propname: str,
-        slot_index: int = 0,
+        setup_index: int = 0,
         flt_flag: int = 0,
     ):
         assert (
             self.layout_type == 'DEFAULT'
-        ), "Other layouts not implemented for the Action Slot list."
+        ), "Other layouts not implemented for the Action Setup list."
 
-        if not action_slot.action:
+        if not action_setup.action:
             layout.label(text="", translate=False, icon='ACTION')
             return
 
-        armature_obj = action_slot.id_data
+        armature_obj = action_setup.id_data
         generator = armature_obj.cloudrig.generator
-        active_slot = generator.active_action_slot
+        active_setup = generator.active_action_setup
 
         row = layout.row()
         icon = 'ACTION'
 
         # Check if this action is a trigger for the active corrective action
-        if action_slot in {
-            active_slot.trigger_slot_a,
-            active_slot.trigger_slot_b,
-            *active_slot.corrective_slots,
+        if action_setup in {
+            active_setup.trigger_a,
+            active_setup.trigger_b,
+            *active_setup.corrective_slots,
         }:
             icon = 'RESTRICT_INSTANCED_OFF'
 
-        row.prop(action_slot.action, 'name', text="", emboss=False, icon=icon)
+        row.label(text=action_setup.name, icon=icon)
 
-        if action_slot.is_corrective:
+        if action_setup.is_corrective:
             text = "Corrective"
             icon = 'RESTRICT_INSTANCED_OFF'
 
-            for trigger in [
-                action_slot.trigger_action_a,
-                action_slot.trigger_action_b,
+            for trigger_setup in [
+                action_setup.trigger_a,
+                action_setup.trigger_b,
             ]:
-                trigger_slot, trigger_idx = generator.find_slot_by_action(trigger)
-
-                # No trigger action set, no slot or invalid slot
-                if not trigger_slot or trigger_slot.is_corrective:
+                # No trigger set -> no setup or invalid setup
+                if not trigger_setup or trigger_setup.is_corrective:
                     row.alert = True
-                    text = "Missing Trigger"
+                    text = "Missing Trigger" if not trigger_setup else "Corrective Trigger (Unsupported)"
                     icon = 'ERROR'
                     break
 
             row.label(text=text, icon=icon)
         else:
-            text = action_slot.subtarget
+            text = action_setup.subtarget
             icon = 'BONE_DATA'
 
-            if not action_slot.subtarget:
+            if not action_setup.subtarget:
                 row.alert = True
                 text = 'Missing Control Bone'
                 icon = 'ERROR'
@@ -404,13 +463,13 @@ class CLOUDRIG_UL_action_slots(UIList):
             elif generator.target_rig:
                 # Check for bones not actually present in the generated rig
                 bones = generator.target_rig.pose.bones
-                flipped_name = flip_name(action_slot.subtarget)
+                flipped_name = flip_name(action_setup.subtarget)
 
-                if action_slot.subtarget not in bones:
+                if action_setup.subtarget not in bones:
                     row.alert = True
-                    text = f'Missing: "{action_slot.subtarget}"'
+                    text = f'Missing: "{action_setup.subtarget}"'
                 elif (
-                    action_slot.symmetrical
+                    action_setup.symmetrical
                     and flipped_name not in bones
                 ):
                     row.alert = True
@@ -418,10 +477,10 @@ class CLOUDRIG_UL_action_slots(UIList):
 
             row.label(text=text, icon=icon)
 
-        icon = 'CHECKBOX_HLT' if action_slot.enabled else 'CHECKBOX_DEHLT'
-        row.enabled = action_slot.enabled
+        icon = 'CHECKBOX_HLT' if action_setup.enabled else 'CHECKBOX_DEHLT'
+        row.enabled = action_setup.enabled
 
-        layout.prop(action_slot, 'enabled', text="", icon=icon, emboss=False)
+        layout.prop(action_setup, 'enabled', text="", icon=icon, emboss=False)
 
 
 class DATA_PT_cloudrig_actions(Panel):
@@ -433,8 +492,9 @@ class DATA_PT_cloudrig_actions(Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context: Context):
-        generator = context.object.cloudrig.generator
-        action_slots = generator.action_slots
+        rig = context.object
+        generator = rig.cloudrig.generator
+        action_setups = generator.action_setups
 
         layout = self.layout
         layout.use_property_split = True
@@ -443,84 +503,90 @@ class DATA_PT_cloudrig_actions(Panel):
         draw_ui_list(
             layout,
             context,
-            class_name='CLOUDRIG_UL_action_slots',
-            unique_id='CloudRig Action Slots',
-            list_path='object.cloudrig.generator.action_slots',
+            class_name='CLOUDRIG_UL_action_setups',
+            unique_id='CloudRig Action Setups',
+            list_path='object.cloudrig.generator.action_setups',
             active_index_path='object.cloudrig.generator.active_action_index',
         )
 
-        active_slot = generator.active_action_slot
+        active_setup = generator.active_action_setup
 
-        if len(action_slots) == 0 or not active_slot:
+        if len(action_setups) == 0 or not active_setup:
             return
 
-        layout.template_ID(active_slot, 'action', new=CLOUDRIG_OT_action_new.bl_idname)
-
-        if not active_slot.action:
+        col = layout.column(align=True)
+        col.use_property_split=False
+        col.template_ID(active_setup, 'action', new=CLOUDRIG_OT_action_new.bl_idname)
+        if not active_setup.action:
             return
+        if not active_setup.action.slots:
+            layout.alert = True
+            layout.label(text="No slots in this Action.")
+            return
+
+        col.prop_search(active_setup, "action_slot_ui", active_setup.action, 'slots', text="")
 
         layout = layout.column()
-        layout.prop(active_slot, 'is_corrective')
+        layout.prop(active_setup, 'is_corrective')
 
-        if active_slot.is_corrective:
-            self.draw_ui_corrective(context, active_slot)
+        if active_setup.is_corrective:
+            self.draw_ui_corrective(context, active_setup)
         else:
-            self.draw_slot_ui(layout, active_slot, generator.target_rig)
-            self.draw_status(active_slot)
+            self.draw_action_setup_ui(layout, active_setup, generator.target_rig)
+            self.draw_status(active_setup)
 
-    def draw_ui_corrective(self, context: Context, slot):
-        layout = self.layout
+    def draw_ui_corrective(self, context: Context, action_setup):
+        layout = self.layout.column(align=True)
 
-        layout.prop(slot, 'frame_start', text="Frame Start")
-        layout.prop(slot, 'frame_end', text="End")
+        layout.prop(action_setup, 'frame_start', text="Frame Start")
+        layout.prop(action_setup, 'frame_end', text="End")
         layout.separator()
 
-        for trigger_prop in ['trigger_action_a', 'trigger_action_b']:
-            self.draw_ui_trigger(context, slot, trigger_prop)
+        metarig = context.object
+        generator = metarig.cloudrig.generator
+        for trigger_prop in ['trigger_select_a', 'trigger_select_b']:
+            self.draw_ui_trigger(context, layout, action_setup, trigger_prop)
 
-    def draw_ui_trigger(self, context: Context, slot, trigger_prop: str):
-        layout = self.layout
+    def draw_ui_trigger(self, context: Context, layout: UILayout, action_setup: ActionConstraintSetup, trigger_prop: str):
         metarig = context.object
         generator = metarig.cloudrig.generator
         assert isinstance(metarig.data, Armature)
 
-        trigger = getattr(slot, trigger_prop)
-        icon = 'ACTION' if trigger else 'ERROR'
+        trigger_setup = getattr(action_setup, trigger_prop.replace("select_", ""))
+        icon = 'ACTION' if trigger_setup else 'ERROR'
 
-        row = layout.row()
-        row.prop(slot, trigger_prop, icon=icon)
+        row = layout.row(align=True)
+        row.prop_search(generator.active_action_setup, trigger_prop, generator, 'action_setups', icon=icon)
 
-        if not trigger:
+        if not trigger_setup:
             return
 
-        trigger_slot, slot_index = generator.find_slot_by_action(trigger)
-
-        if not trigger_slot:
+        if not trigger_setup:
             row = layout.split(factor=0.4)
             row.separator()
             row.alert = True
-            row.label(text="Action not in list", icon='ERROR')
+            row.label(text="Trigger Missing", icon='ERROR')
             return
 
         show_prop_name = 'show_action_' + trigger_prop[-1]
-        show = getattr(slot, show_prop_name)
+        show = getattr(action_setup, show_prop_name)
         icon = 'HIDE_OFF' if show else 'HIDE_ON'
 
-        row.prop(slot, show_prop_name, icon=icon, text="")
+        row.prop(action_setup, show_prop_name, icon=icon, text="")
 
         op = row.operator(
-            CLOUDRIG_OT_jump_to_action_slot.bl_idname, text="", icon='LOOP_FORWARDS'
+            CLOUDRIG_OT_jump_to_action_setup.bl_idname, text="", icon='LOOP_FORWARDS'
         )
-        op.to_index = slot_index
+        op.setup_id = trigger_setup.unique_id
 
         if show:
             col = layout.column(align=True)
             col.enabled = False
-            self.draw_slot_ui(col, trigger_slot, generator.target_rig)
+            self.draw_action_setup_ui(col, trigger_setup, generator.target_rig)
             col.separator()
 
     @staticmethod
-    def draw_slot_ui(layout, slot, target_rig):
+    def draw_action_setup_ui(layout, action_setup, target_rig):
         if not target_rig:
             row = layout.row()
             row.alert = True
@@ -530,35 +596,35 @@ class DATA_PT_cloudrig_actions(Panel):
 
         row = layout.row()
 
-        bone_icon = 'BONE_DATA' if slot.subtarget else 'ERROR'
+        bone_icon = 'BONE_DATA' if action_setup.subtarget else 'ERROR'
 
         if target_rig:
-            subtarget_exists = slot.subtarget in target_rig.pose.bones
+            subtarget_exists = action_setup.subtarget in target_rig.pose.bones
             row.alert = not subtarget_exists
-            row.prop_search(slot, 'subtarget', target_rig.pose, 'bones', icon=bone_icon)
+            row.prop_search(action_setup, 'subtarget', target_rig.pose, 'bones', icon=bone_icon)
 
             if not subtarget_exists:
-                if slot.subtarget:
+                if action_setup.subtarget:
                     row = layout.split(factor=0.4)
                     row.column()
                     row.alert = True
-                    row.label(text=f"Bone not found: {slot.subtarget}", icon='ERROR')
+                    row.label(text=f"Bone not found: {action_setup.subtarget}", icon='ERROR')
                 return
         else:
-            row.prop(slot, 'subtarget', icon=bone_icon)
+            row.prop(action_setup, 'subtarget', icon=bone_icon)
 
-        flipped_subtarget = flip_name(slot.subtarget)
+        flipped_subtarget = flip_name(action_setup.subtarget)
 
-        if flipped_subtarget != slot.subtarget:
+        if flipped_subtarget != action_setup.subtarget:
             flipped_subtarget_exists = (
                 not target_rig or flipped_subtarget in target_rig.pose.bones
             )
 
             row = layout.row()
             row.use_property_split = True
-            row.prop(slot, 'symmetrical', text=f"Symmetrical ({flipped_subtarget})")
+            row.prop(action_setup, 'symmetrical', text=f"Symmetrical ({flipped_subtarget})")
 
-            if slot.symmetrical and not flipped_subtarget_exists:
+            if action_setup.symmetrical and not flipped_subtarget_exists:
                 row.alert = True
 
                 row = layout.split(factor=0.4)
@@ -566,16 +632,16 @@ class DATA_PT_cloudrig_actions(Panel):
                 row.alert = True
                 row.label(text=f"Bone not found: {flipped_subtarget}", icon='ERROR')
 
-        layout.prop(slot, 'frame_start', text="Frame Start")
-        layout.prop(slot, 'frame_end', text="End")
+        layout.prop(action_setup, 'frame_start', text="Frame Start")
+        layout.prop(action_setup, 'frame_end', text="End")
 
-        layout.prop(slot, 'target_space', text="Target Space")
-        layout.prop(slot, 'transform_channel', text="Transform Channel")
+        layout.prop(action_setup, 'target_space', text="Target Space")
+        layout.prop(action_setup, 'transform_channel', text="Transform Channel")
 
-        layout.prop(slot, 'trans_min')
-        layout.prop(slot, 'trans_max')
+        layout.prop(action_setup, 'trans_min')
+        layout.prop(action_setup, 'trans_max')
 
-    def draw_status(self, slot):
+    def draw_status(self, action_setup):
         """
         There are a lot of ways to create incorrect Action setups, so give
         the user a warning in those cases.
@@ -587,21 +653,21 @@ class DATA_PT_cloudrig_actions(Panel):
         heading.alignment = 'RIGHT'
         heading.label(text="Status:")
 
-        if slot.trans_min == slot.trans_max:
+        if action_setup.trans_min == action_setup.trans_max:
             col = split.column(align=True)
             col.alert = True
             col.label(text="Min and max value are the same!")
-            col.label(text=f"Will be stuck reading frame {slot.frame_start}!")
+            col.label(text=f"Will be stuck reading frame {action_setup.frame_start}!")
             return
 
-        if slot.frame_start == slot.frame_end:
+        if action_setup.frame_start == action_setup.frame_end:
             col = split.column(align=True)
             col.alert = True
             col.label(text="Start and end frame cannot be the same!")
 
-        default_frame = slot.get_default_frame()
+        default_frame = action_setup.get_default_frame()
 
-        if slot.is_default_frame_integer():
+        if action_setup.is_default_frame_integer():
             split.label(text=f"Default Frame: {round(default_frame)}")
         else:
             split.alert = True
@@ -612,9 +678,9 @@ class DATA_PT_cloudrig_actions(Panel):
 
 
 registry = (
-    ActionSlot,
+    ActionConstraintSetup,
     CLOUDRIG_OT_action_new,
-    CLOUDRIG_OT_jump_to_action_slot,
-    CLOUDRIG_UL_action_slots,
+    CLOUDRIG_OT_jump_to_action_setup,
+    CLOUDRIG_UL_action_setups,
     DATA_PT_cloudrig_actions,
 )

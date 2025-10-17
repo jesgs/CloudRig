@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.props import BoolProperty
-from bpy.types import Constraint, Action, Operator
+from bpy.types import Constraint, Action, ActionSlot, Operator
 
 
 class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
@@ -15,10 +15,10 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
     enable: BoolProperty(name="Enable", default=True)
 
     @staticmethod
-    def get_first_referencing_constraint(rig, action: Action) -> Constraint | None:
+    def get_first_referencing_constraint(rig, action: Action, action_slot: ActionSlot) -> Constraint | None:
         for pb in rig.pose.bones:
             for c in pb.constraints:
-                if c.type == 'ACTION' and c.action == action:
+                if c.type == 'ACTION' and c.action == action and c.action_slot==action_slot:
                     return c
 
     @classmethod
@@ -31,7 +31,8 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
             cls.poll_message_set("Armature must have an action assigned.")
             return
         action = rig.animation_data.action
-        con = cls.get_first_referencing_constraint(rig, action)
+        action_slot = rig.animation_data.action_slot
+        con = cls.get_first_referencing_constraint(rig, action, action_slot)
         if not con:
             cls.poll_message_set("No constraints in this armature are referencing the active Action.")
             return False
@@ -40,11 +41,12 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
     def execute(self, context):
         rig = context.active_object
         action = rig.animation_data.action
+        action_slot = rig.animation_data.action_slot
 
         con_count = 0
         for pb in rig.pose.bones:
             for c in pb.constraints:
-                if c.type == 'ACTION' and c.action == action:
+                if c.type == 'ACTION' and c.action == action and c.action_slot == action_slot:
                     c.mute = not self.enable
                     con_count += 1
 
@@ -65,7 +67,7 @@ def draw_toggle_but(self, context):
         return
     rig = context.active_object
     first_con = CLOUDRIG_OT_Toggle_Action_Constraints.get_first_referencing_constraint(
-        rig, rig.animation_data.action
+        rig, rig.animation_data.action, rig.animation_data.action_slot
     )
     op = layout.operator(
         CLOUDRIG_OT_Toggle_Action_Constraints.bl_idname,

@@ -393,57 +393,57 @@ class CloudLogManager:
                     )
 
     def report_actions(self):
-        """Test that action ranges are even numbers and the default pose frame
+        """Test that action ranges are whole numbers and the default pose frame
         has a keyframe and the keyframe has default transform values.
         """
 
-        action_slots = self.metarig.cloudrig.generator.action_slots
-        for i, action_slot in enumerate(action_slots):
-            if not action_slot.enabled:
+        action_setups = self.metarig.cloudrig.generator.action_setups
+        for i, action_setup in enumerate(action_setups):
+            if not action_setup.enabled:
                 continue
-            action = action_slot.action
+            action = action_setup.action
             if not action:
-                # This is not really worth a log entry imo, because it does no harm,
-                # and is treated by all code as if the action slot was simply disabled.
+                # This is not worth a log entry imo, because it does no harm,
+                # and is treated by all code as if the action set-up was simply disabled.
                 continue
-            if action_slot.trans_min == action_slot.trans_max:
+            if action_setup.trans_min == action_setup.trans_max:
                 self.log(
                     "Action has no transform range",
-                    note=action_slot.action.name,
+                    note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_slot.action.name}" has no transformation range. This will cause the action to always be in the same state!',
-                    operator=CLOUDRIG_OT_Edit_Action_Slot.bl_idname,
-                    op_kwargs={'action_slot_idx': i},
+                    description=f'Action set-up "{action_setup.name}" has no transformation range. This will cause the action to always be in the same state!',
+                    operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
+                    op_kwargs={'action_setup_idx': i},
                 )
-            if action_slot.frame_start == action_slot.frame_end:
+            if action_setup.frame_start == action_setup.frame_end:
                 self.log(
                     "Action has no frame range",
-                    note=action_slot.action.name,
+                    note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_slot.action.name}" has no frame range. This will cause the action to always be in the same state!',
-                    operator=CLOUDRIG_OT_Edit_Action_Slot.bl_idname,
-                    op_kwargs={'action_slot_idx': i},
+                    description=f'Action set-up "{action_setup.name}" has no frame range. This will cause the action to always be in the same state!',
+                    operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
+                    op_kwargs={'action_setup_idx': i},
                 )
 
-            default_frame = int(action_slot.get_default_frame())
-            if not action_slot.is_default_frame_integer():
+            default_frame = int(action_setup.get_default_frame())
+            if not action_setup.is_default_frame_integer():
                 self.log(
                     "Action default frame must be whole",
-                    note=action_slot.action.name,
+                    note=action_setup.name,
                     icon='ACTION',
-                    description=f'Action "{action_slot.action.name}" has a default frame of {default_frame}. The input parameters of the Action Slot should be tweaked such that the "Default Frame" value is a whole number. On that frame, there should be a keyframe of all affected bones in the default position. Otherwise, the rig will be deformed in its default pose.',
-                    operator=CLOUDRIG_OT_Edit_Action_Slot.bl_idname,
-                    op_kwargs={'action_slot_idx': i},
+                    description=f'Action "{action_setup.name}" has a default frame of {default_frame}. The input parameters of the Action Set-up should be tweaked such that the "Default Frame" value is a whole number. On that frame, there should be a keyframe of all affected bones in the default position. Otherwise, the rig will be deformed in its default pose.',
+                    operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
+                    op_kwargs={'action_setup_idx': i},
                 )
 
-            # Scan curves for issues (this not as expensive as I expected)
-            wrong_curves = (
-                []
-            )  # Curves which do not have a keyframe on the default frame with their default value
-            single_point_curves = []  # Curves which only have one keyframe
-            for fcurve in action.fcurves:
+            ### Scan curves for issues. Not as expensive as I expected.
+            # Storage for FCurves w/o a key on the default frame with default value.
+            wrong_curves = []
+            # Curves which only have one keyframe
+            single_point_curves = []
+            for fcurve in action_setup.channelbag.fcurves:
                 transform = fcurve.data_path.split(".")[-1]
-                if transform not in ['location', 'rotation_euler', 'scale']:
+                if transform not in ['location', 'rotation_euler', 'rotation_quaternion', 'rotation_axis_angle', 'scale']:
                     continue
                 if len(fcurve.keyframe_points) < 2:
                     single_point_curves.append(fcurve)
@@ -462,20 +462,20 @@ class CloudLogManager:
             if single_point_curves:
                 self.log(
                     "Action with 1-key curves",
-                    note=action_slot.action.name,
+                    note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_slot.action.name}" has {len(single_point_curves)} curves with only a single keyframe. These curves will be ignored by the action set-up!',
+                    description=f'Action slot "{action_setup.action.name}" has {len(single_point_curves)} curves with only a single keyframe. These curves will be ignored by the action set-up!',
                     operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
-                    op_kwargs={'action_slot_idx': i},
+                    op_kwargs={'action_setup_idx': i},
                 )
             if wrong_curves:
                 self.log(
                     "Action affects rest pose",
-                    note=action_slot.action.name,
+                    note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_slot.action.name}" has {len(wrong_curves)} curves that are not keyframed to their default values on the default frame ({default_frame}).',
-                    operator='object.cloudrig_jump_to_action_slot',
-                    op_kwargs={'to_index': i},
+                    description=f'Action slot "{action_setup.action.name}" has {len(wrong_curves)} curves that are not keyframed to their default values on the default frame ({default_frame}).',
+                    operator='object.cloudrig_jump_to_action_setup',
+                    op_kwargs={'setup_id': action_setup.unique_id},
                 )
 
     def report_drivers_targetting_armature_constraint(self, rig_obj):
@@ -1055,17 +1055,17 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     # Should be provided by the UI.
-    action_slot_idx: IntProperty(name="Action Slot Index")
+    action_setup_idx: IntProperty(name="Action Set-up Index")
 
     def execute(self, context):
         metarig = context.object
-        action_slots = metarig.cloudrig.generator.action_slots
-        action_slot = action_slots[self.action_slot_idx]
+        action_setups = metarig.cloudrig.generator.action_setups
+        action_setup = action_setups[self.action_setup_idx]
 
         curves_removed = 0
-        for fcurve in action_slot.action.fcurves[:]:
+        for fcurve in action_setup.channelbag.fcurves[:]:
             if len(fcurve.keyframe_points) < 2:
-                action_slot.action.fcurves.remove(fcurve)
+                action_setup.channelbag.fcurves.remove(fcurve)
                 curves_removed += 1
 
         self.report({'INFO'}, f'Removed {curves_removed} curves.')
@@ -1073,15 +1073,15 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Edit_Action_Slot(Operator):
+class CLOUDRIG_OT_Edit_Action_Setup(Operator):
     """Directly edit an action slot in a pop-up panel"""
 
-    bl_idname = "object.cloudrig_edit_action_slot_popup"
-    bl_label = "Edit Action Slot"
+    bl_idname = "object.cloudrig_edit_action_setup_popup"
+    bl_label = "Edit Action Set-up"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     # Should be provided by the UI.
-    action_slot_idx: IntProperty(name="Action Slot Index")
+    action_setup_idx: IntProperty(name="Action Set-up Index")
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -1091,13 +1091,12 @@ class CLOUDRIG_OT_Edit_Action_Slot(Operator):
         metarig = context.object
         rig = metarig.cloudrig.generator.target_rig
 
-        action_slots = metarig.cloudrig.generator.action_slots
-        action_slot = action_slots[self.action_slot_idx]
+        action_setup = metarig.cloudrig.generator.active_action_setup
 
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
-        action_slot.draw_ui(layout, rig.data)
+        action_setup.draw_ui(layout, rig.data)
 
     def execute(self, context):
         return {'FINISHED'}
@@ -1142,6 +1141,6 @@ registry = [
     CLOUDRIG_OT_Unlink_Widget,
     CLOUDRIG_OT_Clear_Pointer,
     CLOUDRIG_OT_Clear_Single_Keyframes,
-    CLOUDRIG_OT_Edit_Action_Slot,
+    CLOUDRIG_OT_Edit_Action_Setup,
     CLOUDRIG_OT_delete_collection,
 ]

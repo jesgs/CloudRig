@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PoseBone, PropertyGroup
+from bpy.types import PoseBone, PropertyGroup, Action, ActionSlot
 from ..rig_component_features.bone_info import BoneInfo
 from bpy.props import BoolProperty
 from mathutils import Vector
@@ -682,14 +682,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 }
 
     def add_test_animation(
-        self, action, start_frame=1, flip_xyz=[False, False, False]
+        self, action: Action, slot: ActionSlot, start_frame=1, flip_xyz=[False, False, False]
     ) -> int:
         """Add animation curves to the action to test this rig.
 
         Return the frame at which animation is finished.
         """
-        last_frame = super().add_test_animation(action, start_frame, flip_xyz)
-        self.disable_property_until_frame(action, last_frame, self.ikfk_name)
+        last_frame = super().add_test_animation(action, slot, start_frame, flip_xyz)
+        self.disable_property_until_frame(action, slot, last_frame, self.ikfk_name)
         return last_frame
 
     def add_gizmo_interactions(self):

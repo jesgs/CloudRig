@@ -14,7 +14,7 @@ from collections import OrderedDict
 from mathutils import Matrix
 from datetime import datetime
 
-from ..ui.actions_ui import ActionSlot
+from ..ui.actions_ui import ActionConstraintSetup
 from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
 
@@ -52,7 +52,8 @@ from .cloudrig import (
     is_cloud_metarig,
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
-from .actions_component import ActionLayerComponent
+from .actions_component import ActionConstraintComponent
+from . import selection_sets
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
@@ -139,25 +140,13 @@ class GeneratorProperties(PropertyGroup):
     def active_log(self):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
-    action_slots: CollectionProperty(type=ActionSlot)
+    action_setups: CollectionProperty(type=ActionConstraintSetup)
     active_action_index: IntProperty(min=0)
 
     @property
-    def active_action_slot(self) -> ActionSlot | None:
-        if len(self.action_slots) > 0:
-            return self.action_slots[self.active_action_index]
-
-    def find_slot_by_action(self, action) -> tuple[ActionSlot | None, int]:
-        """Find the ActionSlot in the rig which targets this action."""
-        if not action:
-            return None, -1
-
-        for i, slot in enumerate(self.action_slots):
-            if slot.action == action:
-                return slot, i
-        else:
-            return None, -1
-
+    def active_action_setup(self) -> ActionConstraintSetup | None:
+        if len(self.action_setups) > 0:
+            return self.action_setups[self.active_action_index]
 
 class CloudGeneratorError(Exception):
     """Exception raised for errors."""
@@ -338,12 +327,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.generate_test_action:
             self.create_test_animation()
 
-        if self.params.action_slots:
-            actions = ActionLayerComponent(self)
-            for action_name, action_map in actions.action_map.items():
-                for side, action_layer in action_map.items():
-                    action_layer.create_custom_property()
-                    action_layer.rig_bones_and_shape_keys()
+        if self.params.action_setups:
+            action_con_component = ActionConstraintComponent(self)
+            for action_setup, action_side_map in action_con_component.action_setup_side_map.items():
+                for side, action_setup_side in action_side_map.items():
+                    action_setup_side.create_custom_property()
+                    action_setup_side.rig_bones_and_shape_keys()
 
         ensure_cloudrig_ui(self.target_rig)
 
@@ -791,7 +780,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
         self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
         self.logger.report_sus_constraints(self.target_rig)
-        # self.logger.report_actions()
+        self.logger.report_actions()
 
 
 def ensure_cloudrig_ui(rig):

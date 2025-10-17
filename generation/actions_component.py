@@ -6,7 +6,9 @@
 
 # The UI for these features are implemented in ui/actions_ui.py.
 
+from __future__ import annotations
 from bpy.types import Action, Mesh, Object
+from ..ui.actions_ui import ActionConstraintSetup
 
 from bpy.utils import flip_name as mirror_name
 from ..utils.external.naming import Side, get_name_side, change_name_side
@@ -19,30 +21,30 @@ from ..utils.external.mechanism import (
 from ..rig_component_features.properties_ui import make_property
 from .troubleshooting import LoggerMixin
 
-class ActionLayer(LoggerMixin):
+class ActionConstraintSide(LoggerMixin):
     """An action constraint layer instance, applying an action to a symmetry side."""
 
-    owner: 'ActionLayerComponent'
-    slot: "ActionSlot"
+    owner: ActionConstraintComponent
+    action_setup: ActionConstraintSetup
     side: Side
 
-    def __init__(self, owner, slot, side):
+    def __init__(self, owner, action_setup, side):
         self.owner = owner
-        self.slot = slot
+        self.action_setup = action_setup
         self.side = side
         self.generator = owner.generator
 
         self.used_as_trigger = False
 
-        if slot.is_corrective:
-            if not (slot.trigger_slot_a and slot.trigger_slot_b):
+        if action_setup.is_corrective:
+            if not (action_setup.trigger_a and action_setup.trigger_b):
                 self.add_log(
-                    "Missing trigger slot",
-                    description=f'Action slot "{slot.action.name}" references missing trigger slot'
+                    "Missing trigger Action Setup",
+                    description=f'Action Setup "{action_setup.action.name}" references missing trigger setup' # TODO SLOTS: Add slot name to every use of action.name probably
                 )
                 return
-            trigger_a = self.owner.action_map[slot.trigger_slot_a]
-            trigger_b = self.owner.action_map[slot.trigger_slot_b]
+            trigger_a = self.owner.action_setup_side_map[action_setup.trigger_a]
+            trigger_b = self.owner.action_setup_side_map[action_setup.trigger_b]
 
             self.trigger_a = trigger_a.get(side) or trigger_a.get(Side.MIDDLE)
             self.trigger_b = trigger_b.get(side) or trigger_b.get(Side.MIDDLE)
@@ -50,26 +52,26 @@ class ActionLayer(LoggerMixin):
             self.trigger_a.used_as_trigger = True
             self.trigger_b.used_as_trigger = True
 
-            self.bone_name = change_name_side(self.trigger_a.slot.subtarget, side)
+            self.bone_name = change_name_side(self.trigger_a.action_setup.subtarget, side)
         else:
-            self.bone_name = change_name_side(slot.subtarget, side)
+            self.bone_name = change_name_side(action_setup.subtarget, side)
 
         self.owner.layers.append(self)
 
     @property
     def use_property(self):
-        return self.slot.is_corrective or self.used_as_trigger
+        return self.action_setup.is_corrective or self.used_as_trigger
 
     @property
     def control_name(self):
         if self.side != Side.MIDDLE:
-            return change_name_side(self.slot.subtarget, self.side)
+            return change_name_side(self.action_setup.subtarget, self.side)
         else:
-            return self.slot.subtarget
+            return self.action_setup.subtarget
 
     @property
     def name(self):
-        name = self.slot.action.name
+        name = self.action_setup.name
 
         if self.side == Side.LEFT:
             name += ".L"
@@ -81,7 +83,7 @@ class ActionLayer(LoggerMixin):
     @property
     def bones(self) -> list[str]:
         controls = self.control_bones
-        bones = [bone for bone in self.slot.keyed_bone_names if bone not in controls]
+        bones = [bone for bone in self.action_setup.keyed_bone_names if bone not in controls]
 
         if self.side != Side.MIDDLE:
             bones = [
@@ -94,16 +96,16 @@ class ActionLayer(LoggerMixin):
 
     @property
     def control_bones(self) -> set[str]:
-        if self.slot.is_corrective:
+        if self.action_setup.is_corrective:
             return self.trigger_a.control_bones | self.trigger_b.control_bones
-        elif self.slot.do_symmetry:
+        elif self.action_setup.do_symmetry:
             return {self.bone_name, mirror_name(self.bone_name)}
         else:
             return {self.bone_name}
 
     def create_custom_property(self):
         if self.use_property:
-            factor = self.slot.get_default_factor(self.side)
+            factor = self.action_setup.get_default_factor(self.side)
 
             owner = self.generator.target_rig.pose.bones.get(self.bone_name)
 
@@ -114,18 +116,18 @@ class ActionLayer(LoggerMixin):
             )
 
     def rig_bones_and_shape_keys(self):
-        if self.slot.is_corrective and self.used_as_trigger:
+        if self.action_setup.is_corrective and self.used_as_trigger:
             self.add_log(
                 "Corrective cannot be trigger",
-                description=f'Corrective action "{self.slot.action.name}" used as trigger. This is not currently supported.'
+                description=f'Corrective action "{self.action_setup.action.name}" used as trigger. This is not currently supported.'
             )
             # TODO: Why isn't this supported? Should be fine imo.
             return
 
-        if not self.slot.is_corrective and self.control_name not in self.generator.target_rig.pose.bones:
+        if not self.action_setup.is_corrective and self.control_name not in self.generator.target_rig.pose.bones:
             self.add_log(
                 "Missing action control",
-                description=f"Control bone '{self.control_name}' for action '{self.slot.action.name}' not found"
+                description=f"Control bone '{self.control_name}' for action '{self.action_setup.action.name}' not found"
             )
             return
 
@@ -145,7 +147,7 @@ class ActionLayer(LoggerMixin):
             self.generator.logger.log(
                 "Action constraint failed",
                 trouble_bone=bone_name,
-                description=f'Bone "{bone_name}" was not found, so it cannot get an Action constraint for `{self.slot.action.name}`.',
+                description=f'Bone "{bone_name}" was not found, so it cannot get an Action constraint for `{self.action_setup.action.name}`.',
             )
             return
 
@@ -154,15 +156,22 @@ class ActionLayer(LoggerMixin):
         else:
             influence = 1.0
 
+        con_name = f'Action {self.name}'
+        if len(con_name) > 61:
+            con_name = self.name
+        if len(con_name) > 61:
+            con_name = self.action_setup.action_slot.name
+
         con = make_constraint(
             self.generator.target_rig.pose.bones[bone_name],
             'ACTION',
-            name=f'Action {self.name}',
+            name=con_name,
             insert_index=0,
             use_eval_time=True,
-            action=self.slot.action,
-            frame_start=self.slot.frame_start,
-            frame_end=self.slot.frame_end,
+            action=self.action_setup.action,
+            action_slot=self.action_setup.action_slot,
+            frame_start=self.action_setup.frame_start,
+            frame_end=self.action_setup.frame_end,
             mix_mode='BEFORE_SPLIT',
             influence=influence,
         )
@@ -185,7 +194,7 @@ class ActionLayer(LoggerMixin):
             self.rig_input_driver(owner, prop_name)
 
     def rig_input_driver(self, owner, prop_name):
-        if self.slot.is_corrective:
+        if self.action_setup.is_corrective:
             self.rig_corrective_driver(owner, prop_name)
         else:
             self.rig_factor_driver(owner, prop_name)
@@ -194,7 +203,7 @@ class ActionLayer(LoggerMixin):
         make_driver(
             owner,
             prop_name,
-            expression=self.slot.get_trigger_expression('a', 'b'),
+            expression=self.action_setup.get_trigger_expression('a', 'b'),
             variables={
                 'a': (
                     self.generator.target_rig,
@@ -208,20 +217,20 @@ class ActionLayer(LoggerMixin):
         )
 
     def rig_factor_driver(self, owner, prop_name):
-        channel = self.slot.transform_channel.replace("LOCATION", "LOC").replace(
+        channel = self.action_setup.transform_channel.replace("LOCATION", "LOC").replace(
             "ROTATION", "ROT"
         )
 
         make_driver(
             owner,
             prop_name,
-            expression=self.slot.get_factor_expression('var', side=self.side),
+            expression=self.action_setup.get_factor_expression('var', side=self.side),
             variables=[
                 driver_var_transform(
                     self.generator.target_rig,
                     self.control_name,
                     type=channel,
-                    space=self.slot.target_space,
+                    space=self.action_setup.target_space,
                     rotation_mode='SWING_TWIST_Y',
                 )
             ],
@@ -240,35 +249,36 @@ class ActionLayer(LoggerMixin):
         self.rig_output_driver(key_block, 'value')
 
 
-class ActionLayerComponent(LoggerMixin):
+class ActionConstraintComponent(LoggerMixin):
     """
     An internal component
-    Implements centralized generation of action layer constraints.
+    Implements centralized generation of action constraints.
     """
 
-    slot_list: list["ActionSlot"]
-    layers: list[ActionLayer]
-    action_map: dict["ActionSlot", dict[Side, ActionLayer]]
+    action_setups: list[ActionConstraintSetup]
+    layers: list[ActionConstraintSide]
+    action_map: dict[ActionConstraintSetup, dict[Side, ActionConstraintSide]]
     child_meshes: list[Object]
 
     def __init__(self, generator):
-        self.slot_list = generator.params.action_slots
+        self.action_setups = generator.params.action_setups
         self.layers = []
         self.generator = generator
 
-        if self.slot_list:
-            self.action_map = {}
-
-            # Generate layers for active valid slots
-            action_slots = [
-                slot for slot in self.slot_list if slot.enabled and slot.action
+        # Generate ActionConstraintSide for active valid slots.
+        # This has to happen incrementally, because later entries 
+        # in the side map rely on previous entries having already been created.
+        if self.action_setups:
+            self.action_setup_side_map = {}
+            valid_setups = [
+                act_setup for act_setup in self.action_setups if act_setup.enabled and act_setup.action and act_setup.action_slot # TODO SLOTS: Probably make this an is_valid @property.
             ]
 
             # Constraints will be added in reverse order because each one is added to the top
-            # of the stack when created. However, Before Original reverses the effective
-            # order of transformations again, restoring the original sequence.
-            for act_slot in self.sort_slots(action_slots):
-                self.spawn_slot_layers(act_slot)
+            # of the stack when created. However, the Before Original mixing mode reverses the 
+            # effective order of transformations again, restoring the original sequence.
+            for action_setup in self.sort_action_setups(valid_setups):
+                self.action_setup_side_map[action_setup] = self.instantiate_action_setup_sides(action_setup)
 
         self.child_meshes = self.get_child_meshes()
 
@@ -282,55 +292,52 @@ class ActionLayerComponent(LoggerMixin):
         return []
 
     @staticmethod
-    def sort_slots(slots: list["ActionSlot"]):
-        indices = {slot.action.name: i for i, slot in enumerate(slots)}
+    def sort_action_setups(action_setups: list[ActionConstraintSetup]):
+        indices = {action_setup.unique_id: i for i, action_setup in enumerate(action_setups)}
 
-        def action_key(action: Action):
-            return indices.get(action.name, -1) if action else -1
+        def action_order(action_setup: ActionConstraintSetup) -> int:
+            return indices.get(action_setup.unique_id, -1)
 
-        def slot_key(slot: "ActionSlot"):
-            # Ensure corrective actions are added after their triggers.
-            if slot.is_corrective:
+        def action_setup_order(action_setup: ActionConstraintSetup) -> float:
+            # Ensure corrective actions are added AFTER their triggers.
+            if action_setup.is_corrective:
                 return max(
-                    action_key(slot.action),
-                    action_key(slot.trigger_action_a) + 0.5,
-                    action_key(slot.trigger_action_b) + 0.5,
+                    action_order(action_setup),
+                    action_order(action_setup.trigger_a) + 0.5,
+                    action_order(action_setup.trigger_b) + 0.5,
                 )
             else:
-                return action_key(slot.action)
+                return action_order(action_setup)
 
-        return sorted(slots, key=slot_key)
+        return sorted(action_setups, key=action_setup_order)
 
-    def get_slots_by_action(self, action: Action) -> list["ActionSlot"]:
-        for slot in self.slot_list:
-            if slot.action == action:
-                yield slot
+    def get_setups_by_action(self, action: Action) -> list[ActionConstraintSetup]:
+        for action_setup in self.action_setups:
+            if action_setup.action == action:
+                yield action_setup
 
-    def spawn_slot_layers(self, act_slot):
-        name = act_slot.action.name
+    def instantiate_action_setup_sides(self, action_setup):
+        name = action_setup.action.name
 
-        if act_slot.is_corrective:
-            if not act_slot.trigger_action_a or not act_slot.trigger_action_b:
+        if action_setup.is_corrective:
+            if not action_setup.trigger_a or not action_setup.trigger_b:
                 self.add_log(
                     f"Missing trigger action",
                     description=f'Action slot "{name}" is marked as corrective but missing at least one trigger selection.'
                 )
                 return
 
-            trigger_a = act_slot.trigger_slot_a
-            trigger_b = act_slot.trigger_slot_b
-
-            symmetry = trigger_a.do_symmetry or trigger_b.do_symmetry
+            symmetry = action_setup.trigger_a.do_symmetry or action_setup.trigger_b.do_symmetry
 
         else:
-            symmetry = act_slot.do_symmetry
+            symmetry = action_setup.do_symmetry
 
         if symmetry:
-            self.action_map[act_slot] = {
-                Side.LEFT: ActionLayer(self, act_slot, Side.LEFT),
-                Side.RIGHT: ActionLayer(self, act_slot, Side.RIGHT),
+            return {
+                Side.LEFT: ActionConstraintSide(self, action_setup, Side.LEFT),
+                Side.RIGHT: ActionConstraintSide(self, action_setup, Side.RIGHT),
             }
         else:
-            self.action_map[act_slot] = {
-                Side.MIDDLE: ActionLayer(self, act_slot, Side.MIDDLE)
+            return {
+                Side.MIDDLE: ActionConstraintSide(self, action_setup, Side.MIDDLE)
             }

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Action, FCurve
+from bpy.types import Action, ActionSlot, FCurve
+from bpy_extras import anim_utils
+
 from .bone_info import BoneInfo
 
 from math import radians as rad
@@ -10,16 +12,20 @@ class CloudAnimationMixin:
     """Mixin class for rig classes who want to generate actions to test out deformations."""
 
     def test_action_create_fcurves(
-        self, action: Action, bones: list[BoneInfo], data_path: str
+        self, action: Action, slot: ActionSlot, bones: list[BoneInfo], data_path: str
     ) -> dict[str, list[FCurve]]:
         curve_map = {}
-        for b in bones:
-            full_data_path = f'pose.bones["{b.name}"].{data_path}'
+
+        channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
+        assert channelbag, "Could not find Channelbag while creating Test Animation."
+
+        for bone in bones:
+            full_data_path = f'pose.bones["{bone.name}"].{data_path}'
             curves = []
             for i in range(3):
-                curve = action.fcurves.new(full_data_path, index=i, action_group=b.name)
+                curve = channelbag.fcurves.new(full_data_path, index=i, group_name=bone.name)
                 curves.append(curve)
-            curve_map[b.name] = curves
+            curve_map[bone.name] = curves
         return curve_map
 
     def create_keyframes_on_curves(
@@ -55,14 +61,17 @@ class CloudAnimationMixin:
 
         return frame
 
-    def disable_property_until_frame(self, action, last_frame, prop_id):
+    def disable_property_until_frame(self, action: Action, slot: ActionSlot, last_frame: int, prop_id: str):
         prop_bone = self.properties_bone
+
+        channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
+        assert channelbag, "Could not find Channelbag while creating Test Animation."
 
         data_path = f'pose.bones["{prop_bone.name}"]["{prop_id}"]'
         # Create FCurve for IK/FK toggle
-        fc = action.fcurves.find(data_path, index=-1)
+        fc = channelbag.fcurves.find(data_path, index=-1)
         if not fc:
-            fc = action.fcurves.new(data_path, index=-1, action_group=prop_bone.name)
+            fc = channelbag.fcurves.new(data_path, index=-1, group_name=prop_bone.name)
 
         # Add keyframes
         fc.keyframe_points.add(2)

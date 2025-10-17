@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup
-from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+from bpy.types import PropertyGroup, Action, ActionSlot
+from ..rig_component_features.bone_info import BoneInfo
 
 from bpy.props import (
     BoolProperty,
@@ -414,7 +414,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     # Test Action
 
     def add_test_animation(
-        self, action, start_frame=1, flip_xyz=[False, False, False]
+        self, action: Action, slot: ActionSlot, start_frame=1, flip_xyz=[False, False, False]
     ) -> int:
         """Add animation curves to the action to test this rig.
 
@@ -426,7 +426,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         # Create FCurves
         curve_map = self.test_action_create_fcurves(
-            action, self.bone_sets["FK Controls"], "rotation_euler"
+            action, slot, self.bone_sets["FK Controls"], "rotation_euler"
         )
 
         # Populate FCurves with keyframes

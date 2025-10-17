@@ -184,7 +184,7 @@ class Component_Aim(Component_Base):
                 },
             )
 
-            self.create_driven_armature_constraint(highlight_ctr, target_bones=[ctr_bone, ctr_bone.parent], prop_bone=highlight_ctr, prop_name=prop_name)
+            self.create_driven_armature_constraint(highlight_ctr, target_bones=[ctr_bone.parent, ctr_bone], prop_bone=highlight_ctr, prop_name=prop_name)
 
         self.lock_transforms(highlight_ctr, loc=False, rot=False, scale=[False, True, False])
 
