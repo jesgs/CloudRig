@@ -412,7 +412,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
             )
             if pb.cloudrig_component.component_type
-            and pb.cloudrig_component.enabled_with_parents
+            and pb.cloudrig_component.is_enabled_component
         ]
 
         comp_map = OrderedDict()

@@ -40,9 +40,7 @@ class CLOUDRIG_UL_rig_components(UIList):
         else:
             row.label(text="", icon='BLANK1')
         row = row.row()
-        row.enabled = (
-            rig_component.enabled_with_parents and rig_component.enabled_toggle
-        )
+        row.enabled = rig_component.is_enabled_component
         row.label(text=pose_bone.name)
 
         icon = 'ARMATURE_DATA'

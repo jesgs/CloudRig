@@ -442,8 +442,9 @@ class Properties_CloudRig(PropertyGroup):
 
         # Select the bone of this rig component
         rig = self.id_data
+        active_component = self.active_component
         for pbone in rig.pose.bones:
-            pbone.select = False
+            pbone.select = pbone.cloudrig_component == active_component
         rig.data.bones.active = rig.data.bones[self.active_component_index]
 
         if self.active_component:
