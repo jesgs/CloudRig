@@ -7,7 +7,7 @@ from ...rig_component_features.bone_info import BoneInfo
 from ..cloud_base import Component_Base
 
 
-class MyComponent(Component_Base):
+class AdvancedComponent(Component_Base):
     """Template for implementing rig component types in CloudRig.
 
     Component types must inherit from Component_Base, and override at least one
@@ -17,7 +17,7 @@ class MyComponent(Component_Base):
     """
 
     # Name to display in the UI in the component selection list.
-    ui_name = "My Component"
+    ui_name = "Advanced Component"
 
     # If an error occurs in your code, users will be presented with a Report Bug
     # button which opens this URL. You can leave it empty.
@@ -26,7 +26,7 @@ class MyComponent(Component_Base):
     # If you want to force some inherited parameters to specific values and hide
     # them from the UI. Check Component_Base implementation for more inherited
     # functionalities like constraint relinking, parent switching, logging, etc.
-    forced_params = {"my_component.always_false": False}
+    forced_params = {"advanced_component.always_false": False}
 
     @classmethod
     def define_bone_sets(cls):
@@ -51,11 +51,11 @@ class MyComponent(Component_Base):
     @classmethod
     def draw_control_params(cls, layout, context, params):
         """Draw the UI for the component parameters."""
-        cls.draw_prop(context, layout, params.my_component, "create_control")
+        cls.draw_prop(context, layout, params.advanced_component, "create_control")
 
         # Since this param is in forced_params, it will be hidden by default.
         # (Visible and grayed out when Advanced Mode is enabled.)
-        cls.draw_prop(context, layout, params.my_component, "always_false")
+        cls.draw_prop(context, layout, params.advanced_component, "always_false")
 
     def init_extra(self):
         """Called at the end of super().__init__().
@@ -72,8 +72,8 @@ class MyComponent(Component_Base):
         super().create_bone_infos(context)
 
         # Read the value of the `create_control` parameter.
-        # The `my_component` part of the path is given by the name of this file.
-        if self.params.my_component.create_control:
+        # The `advanced_component` part of the path is given by the name of this file.
+        if self.params.advanced_component.create_control:
             orig_bone = self.bones_org[0]
             # We must create BoneInfo instances on a BoneSet.
             # "My Bone Set" was defined in define_bone_sets() above.
@@ -91,7 +91,8 @@ class MyComponent(Component_Base):
             assert False, "If this were to run, user gets a bug report button."
 
     def create_component_interactions(self, context):
-        """Second function called by the generator.
+        """Second function called by the generator, after most BoneInfos have 
+        been created.
 
         Useful to implement features where unrelated rig components might 
         interact, such as parent switching.
@@ -99,7 +100,7 @@ class MyComponent(Component_Base):
         super().create_component_interactions(context)
 
     def create_helper_objects(self, context):
-        """Third function called by the generator.
+        """Third function called by the generator, after the rig has been generated.
 
         You can create and hook up your helper objects like curves, empties, 
         lattices, physics meshes, etc, here.
@@ -121,4 +122,4 @@ class Params(PropertyGroup):
 
 
 # Un-comment the below line to make this component appear in Blender.
-RIG_COMPONENT_CLASS = MyComponent
+# RIG_COMPONENT_CLASS = AdvancedComponent
