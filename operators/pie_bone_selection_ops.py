@@ -95,11 +95,11 @@ def reveal_and_select(context, bone: Bone or EditBone or PoseBone, extend_select
         pbone = bone
         bone = bone.bone
     elif type(bone) == Bone:
-        pbone = context.active_object.pose.bones.get(bone.name)
+        pbone = context.pose_object.pose.bones.get(bone.name)
 
     ensure_visible_bone_collection(bone)
     if not extend_selection:
-        for pb in context.active_object.pose.bones:
+        for pb in context.pose_object.pose.bones:
             pb.select = False
     pbone.hide = False
     bone.hide = False
