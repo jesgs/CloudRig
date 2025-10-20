@@ -182,7 +182,7 @@ class ComponentParams(PropertyGroup):
 class RigComponent(PropertyGroup):
     """Rig Component data is stored on PoseBones.
     If a Component Type is assigned by the user via the UI, parameters will appear,
-    and this bone (and sometimes its children) will contribute to the generated rig.
+    and this bone (and usually its connected children) will contribute to the generated rig.
     """
 
     def update_caches(self, context):
@@ -345,14 +345,14 @@ class RigComponent(PropertyGroup):
                 return parent
             parent = parent.parent
 
-    def instantiate(self, generator, parent_instance=None) -> RigComponent | None:
+    def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
         if not self.component_class:
             return
 
         return self.component_class(
             generator=generator,
             bone_name=self.base_bone_name,
-            parent_instance=parent_instance,
+            parent_component=parent_component,
         )
 
     params: PointerProperty(type=ComponentParams)

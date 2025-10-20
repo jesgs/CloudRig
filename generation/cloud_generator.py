@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy, os, traceback, sys
-
 from bpy.types import Object, PropertyGroup, Collection, Text, Action, Operator
 from bpy.props import (
     BoolProperty,
@@ -11,18 +10,15 @@ from bpy.props import (
     StringProperty,
 )
 from collections import OrderedDict
-from mathutils import Matrix
 from datetime import datetime
-
-from ..ui.actions_ui import ActionConstraintSetup
-from ..utils.external.mechanism import refresh_all_drivers
-from ..utils.external.collections import ensure_collection
+from mathutils import Matrix
 
 from ..rig_component_features.widgets.widgets import (
     ensure_widget, 
     get_custom_shape_rig_data, 
     apply_custom_shape_rig_data
 )
+from .actions_component import ActionConstraintComponent
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.mechanism import relink_real_driver
@@ -32,6 +28,9 @@ from ..rig_components.cloud_base import Component_Base
 from .troubleshooting import CloudRigLogEntry, CloudLogManager
 from . import naming
 
+from ..ui.actions_ui import ActionConstraintSetup
+from ..utils.external.mechanism import refresh_all_drivers
+from ..utils.external.collections import ensure_collection
 from ..utils.rig import get_pbone_of_active
 from ..utils.misc import (
     check_addon,
@@ -52,8 +51,6 @@ from .cloudrig import (
     is_cloud_metarig,
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
-from .actions_component import ActionConstraintComponent
-from . import selection_sets
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
@@ -159,7 +156,6 @@ class CloudGeneratorError(Exception):
     def __str__(self):
         return repr(self.message)
 
-
 class CloudRig_Generator(TestAnimationGeneratorMixin):
     """
     This class is instantiated by the Generate operator.
@@ -202,6 +198,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
 
+    ### Helper functions/properties.
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
     ):
@@ -216,7 +213,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             errmsg = base_bone_name + ": " + errmsg
         raise CloudGeneratorError(message=errmsg)
 
-    ### Useful helper properties
     def find_bone_info(self, name):
         for bone_set in self.bone_sets:
             if len(bone_set) == 0:
@@ -224,6 +220,22 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             exists = bone_set.get(name)
             if exists:
                 return exists
+
+    def ensure_widget(self, context, widget_name, overwrite=False):
+        self.ensure_widget_collection(context)
+        try:
+            wgt = ensure_widget(
+                widget_name,
+                overwrite=overwrite,
+            )
+        except ValueError:
+            self.raise_generation_error(
+                "Failed to load custom shape",
+                description=f"Failed to find custom shape named '{widget_name}'.",
+            )
+        coll = self.params.widget_collection or context.scene.collection
+        assign_to_collection(wgt, coll)
+        return wgt
 
     @property
     def all_components(self):
@@ -406,15 +418,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         comp_map = OrderedDict()
         for pb in component_bones_ordered:
             parent_component_rna = pb.cloudrig_component.parent
-            parent_instance = None
+            parent_component = None
             if parent_component_rna:
-                parent_instance = comp_map.get(parent_component_rna.base_bone_name)
+                parent_component = comp_map.get(parent_component_rna.base_bone_name)
                 assert (
-                    parent_instance
+                    parent_component
                 ), "Error: Parent should've been instantiated already! Are we not looping hierarchically?"
 
             comp_instance = pb.cloudrig_component.instantiate(
-                generator=self, parent_instance=parent_instance
+                generator=self, parent_component=parent_component
             )
             if not comp_instance:
                 self.logger.log(
@@ -448,23 +460,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         pose_bone.custom_shape = self.ensure_widget(context, "Root")
         return pose_bone
 
-    def ensure_widget(self, context, widget_name, overwrite=False):
-        self.ensure_widget_collection(context)
-        try:
-            wgt = ensure_widget(
-                widget_name,
-                overwrite=overwrite,
-            )
-        except ValueError:
-            self.raise_generation_error(
-                "Failed to load custom shape",
-                description=f"Failed to find custom shape named '{widget_name}'.",
-            )
-        coll = self.params.widget_collection or context.scene.collection
-        assign_to_collection(wgt, coll)
-        return wgt
-
-    ### Main generation steps
+    ### Main generation steps.
     def components_load_bone_infos(self, component_map, metarig):
         """While in edit mode (so we can access as much data as possible)
         let all rig components populate their initial BoneInfo instances.
@@ -624,7 +620,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             # Scale bone shape based on B-Bone scale
             bone_info.write_pose_data(context, self.metarig, pose_bone)
 
-    ### Generation final steps
+    ### Final generation steps.
     def execute_custom_script(self, old_rig: Object|None, new_rig: Object):
         """Execute a text datablock to be executed after rig generation."""
         # This is a bit hacky, but we need the rig name to be the "original" so that 
@@ -638,14 +634,14 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         new_rig.name = new_rig.name.replace("NEW-", "")
         try:
             exec(script.as_string(), {})
-        except Exception as e:
+        except Exception as exc:
             self.logger.log_fatal_error(
                 "Post-Generation Script failed.",
                 description=f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.',
-                note=str(e),
+                note=str(exc),
             )
             self.custom_script_failure = True
-            raise e
+            raise exc
         finally:
             new_rig.name = "NEW-"+new_rig.name
             if old_rig:
@@ -657,7 +653,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         """Preserve useful user-inputted information from the previous rig,
         then delete it and remap users to the new rig.
         """
-        # TODO: Should document what properties are preserved.
+        # TODO: Document what properties are and aren't preserved.
 
         # If cloudrig.py is linked, save that reference. This will be checked for
         # later, in ensure_cloudrig_ui.

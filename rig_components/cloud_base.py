@@ -63,7 +63,10 @@ class Component_Base(
         return f'{self.base_bone_name}: {type(self).ui_name}'
 
     def __init__(
-        self, generator: CloudRig_Generator, bone_name: str, parent_instance=None
+        self, 
+        generator: CloudRig_Generator, 
+        bone_name: str, 
+        parent_component=None
     ):
         # Quick access to generator features.
         self.generator = generator
@@ -79,9 +82,9 @@ class Component_Base(
         self.defaults = dict(self.generator.defaults)
 
         # Component parent and children.
-        self.parent_component = parent_instance
-        if parent_instance:
-            parent_instance.child_components.append(self)
+        self.parent_component = parent_component
+        if parent_component:
+            parent_component.child_components.append(self)
         self.child_components = []
 
         # Determine Suffix/Prefix.
