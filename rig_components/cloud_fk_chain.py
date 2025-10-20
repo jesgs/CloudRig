@@ -61,24 +61,31 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.make_reverse_fk_chain(self.fk_chain)
 
         if self.params.fk_chain.counter_rotate_stretch_bones > 0:
-            for fk_bone, main_str_bone in zip(self.fk_chain, self.main_str_bones):
-                # TODO: Not sure if this should be allowed when position_along_bone > 0.
-                main_str_bone.add_constraint(
-                    "COPY_ROTATION",
-                    name="Copy Rotation (Counter-Rotate)",
-                    use_xyz=[True, False, True],
-                    invert_xyz=[True, False, True],
-                    euler_order="XZY",
-                    mix_mode="BEFORE",
-                    space="LOCAL",
-                    influence=self.params.fk_chain.counter_rotate_stretch_bones,
-                    subtarget=main_str_bone.parent,
-                )
+            self.counter_rotate_str_bones(
+                self.fk_chain,
+                self.main_str_bones,
+                self.params.fk_chain.counter_rotate_stretch_bones
+            )
 
         self.attach_org_to_fk(self.bones_org, self.fk_chain)
 
         if self.root_bone == self.bones_org[0]:
             self.root_bone = self.bone_sets["FK Controls"][0]
+
+    def counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
+        for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
+            # TODO: Not sure if this should be allowed when position_along_bone > 0.
+            main_str_bone.add_constraint(
+                "COPY_ROTATION",
+                name="Copy Rotation (Counter-Rotate)",
+                use_xyz=[True, False, True],
+                invert_xyz=[True, False, True],
+                euler_order="XZY",
+                mix_mode="BEFORE",
+                space="LOCAL",
+                influence=influence,
+                subtarget=main_str_bone.parent,
+            )
 
     def determine_if_cyclic(self) -> bool:
         """Overrides cloud_chain.
@@ -126,7 +133,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         org_bone.parent = root_bone
         return root_bone
 
-    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
+    def make_fk_chain(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
         # Keep track of which bone will need to be parented to the Hinge helper bone.
         hng_child = None
         fk_chain = []
