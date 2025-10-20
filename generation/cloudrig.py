@@ -1924,7 +1924,7 @@ class CLOUDRIG_UL_collections(UIList):
         if prefs.show_editing:
             row.separator()
 
-            icon = 'RECORD_ON' if cloudrig_info.quick_access else 'RECORD_OFF'
+            icon = 'RADIOBUT_ON' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
             row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             metarig = find_metarig_of_rig(context, context.active_object)
             if is_active_cloudrig(context) and metarig:
