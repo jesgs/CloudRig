@@ -513,7 +513,7 @@ class Component_ToonChain(Component_Base):
                                 'targets': [
                                     {
                                         'bone_target': str_b.name,
-                                        'transform_space': 'LOCAL_SPACE',
+                                        'transform_space': 'TRANSFORM_SPACE',
                                         'transform_type': f'SCALE_{axis}',
                                     }
                                 ],

@@ -911,6 +911,8 @@ class ConstraintInfo(dict):
         elif self.type in ['COPY_TRANSFORMS', 'ACTION']:
             if self.space not in {'WORLD', 'POSE'}:
                 self.mix_mode = 'BEFORE'
+            if self.type == "COPY_TRANSFORMS":
+                self.use_bbone_shape = True
         elif self.type == 'LIMIT_SCALE':
             self.max_x = 1
             self.max_y = 1

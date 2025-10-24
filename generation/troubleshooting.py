@@ -479,6 +479,9 @@ class CloudLogManager:
                 )
 
     def report_drivers_targetting_armature_constraint(self, rig_obj):
+        # NOTE: There is now a legitimate case where this could be intended,
+        # so don't warn about it for now.
+        return
         if not rig_obj or not rig_obj.animation_data:
             return
         for fc in rig_obj.animation_data.drivers:

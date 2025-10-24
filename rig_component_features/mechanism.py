@@ -27,8 +27,8 @@ class CloudMechanismMixin:
     def create_parent_constraint_holder(self, child, bone_set=None):
         return create_parent_constraint_holder(child, bone_set)
 
-    def create_dsp_bone(self, parent):
-        return create_dsp_bone(parent, self.bones_mch)
+    def create_dsp_bone(self, parent, **kwargs):
+        return create_dsp_bone(parent, self.bones_mch, **kwargs)
 
     def make_def_bone(self, bone, bone_set):
         """Make a DEF- bone parented to bone."""
@@ -198,7 +198,7 @@ def create_parent_constraint_holder(child_bone, bone_set=None):
             child_bone.constraint_infos.remove(con_info)
 
 
-def create_dsp_bone(parent, bone_set):
+def create_dsp_bone(parent, bone_set, **kwargs):
     """Create a bone to be used as another control's custom_shape_transform."""
     dsp_name = "DSP-" + parent.name
     dsp_bone = bone_set.new(
@@ -210,6 +210,7 @@ def create_dsp_bone(parent, bone_set):
         bbone_width=parent.bbone_width * 0.5,
         custom_shape=None,
         parent=parent,
+        **kwargs,
     )
     parent.custom_shape_transform = dsp_bone
     return dsp_bone
