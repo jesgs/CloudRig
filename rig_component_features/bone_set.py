@@ -110,7 +110,7 @@ class BoneSet(LinkedList):
         """Create and add a new BoneInfo to self."""
 
         if 'collections' not in kwargs:
-            kwargs['collections'] = self.collections
+            kwargs['collections'] = self.collections.copy()
         if 'color_palette_base' not in kwargs:
             kwargs['color_palette_base'] = self.color_palette
         if 'custom_shape_wire_width' not in kwargs:

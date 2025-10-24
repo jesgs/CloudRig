@@ -160,6 +160,8 @@ class Component_Limb_BipedLeg(Component_Limb):
         """Overrides cloud_limb."""
         fk_chain = super().make_fk_chain(org_chain)
         self.fk_toe = org_chain[-1].fk_bone
+        # Toe FK should be available in the IK collection too.
+        fk_chain[-1].collections += self.bone_sets['IK Controls'].collections
         return fk_chain
 
     def world_align_last_fk(self):
