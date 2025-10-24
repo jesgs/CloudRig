@@ -72,7 +72,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
         fk_chain = super().make_fk_chain(org_chain)
 
         fk_chain[0].parent = self.torso_bone
-        fk_chain[1].parent = fk_chain[0]
 
         # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
@@ -81,15 +80,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
             head=org_chain[0].tail,
             tail=org_chain[0].head,
             custom_shape_name="Hyperbola",
-            parent=fk_chain[0] if self.params.fk_chain.create_reverse_chain else self.root_bone,
+            parent=fk_chain[0],
         )
-        self.forward_hips = self.bone_sets['Mechanism Bones'].new(
-            name="FWD-"+self.mstr_hips.name,
-            source=org_chain[0],
-            head=org_chain[0].head,
-            tail=org_chain[0].tail,
-        )
-        self.create_driven_armature_constraint(self.forward_hips, [fk_chain[0], self.mstr_hips], self.properties_bone.name, self.ik_prop_name)
 
         if self.params.spine.world_align:
             self.root_bone.flatten()
@@ -137,10 +129,10 @@ class Component_Spine_IKFK(Component_Chain_FK):
             )
 
         ### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
-        for i, fk_bone in enumerate(self.bones_org):
+        for i, org_bone in enumerate(self.bones_org):
             ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
-                name="IK-CTR-" + fk_bone.name,
-                source=fk_bone,
+                name="IK-CTR-" + org_bone.name,
+                source=org_bone,
                 custom_shape_name='Square',
                 rotation_mode='YXZ',
                 lock_rotation=[True, False, True],
@@ -206,13 +198,13 @@ class Component_Spine_IKFK(Component_Chain_FK):
         # IK chain. Aims at the IK-R bones, and owns the FK bones.
         # Also does the stretching.
         next_parent = self.ik_ctr_chain[0]
-        for i, (fk_bone, ik_r_bone, ik_ctr_bone) in enumerate(
+        for i, (org_bone, ik_r_bone, ik_ctr_bone) in enumerate(
             zip(self.bones_org, self.ik_r_chain, self.ik_ctr_chain)
         ):
             ik_name = ik_r_bone.name.replace("IK-R", "IK-M")
             ik_bone = self.bone_sets['Spine Mechanism'].new(
                 name=ik_name,
-                source=fk_bone,
+                source=org_bone,
                 parent=next_parent,
                 custom_shape_name='Arrow',
                 use_custom_shape_bone_size=True,
@@ -259,10 +251,10 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
             ik_bone.add_constraint('DAMPED_TRACK', subtarget=ik_r_bone)
 
-        # Attach FK to IK
-        for i, (fk_bone, ik_bone) in enumerate(zip(self.fk_chain, self.ik_chain)):
+        # Attach ORG to IK
+        for i, (org_bone, ik_bone) in enumerate(zip(self.bones_org, self.ik_chain)):
             con_name = "Copy Transforms IK"
-            ct_con = fk_bone.add_constraint(
+            ct_con = org_bone.add_constraint(
                 'COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone
             )
             ct_con.drivers.append(
@@ -317,8 +309,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         First STR bone should be owned by the hips (via first ORG bone).
         """
         super().attach_org_to_fk(org_bones, fk_bones)
-        org_bones[0].parent = self.torso_bone
-        org_bones[0].constraint_infos[0].subtarget=self.forward_hips
+        org_bones[0].parent = self.mstr_hips
 
     ##############################
     # Parameters
