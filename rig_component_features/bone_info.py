@@ -11,6 +11,10 @@ from ..utils.external.mechanism import make_constraint, make_driver
 from ..utils.rig import align_bone_z_axis_to_vector
 from .properties_ui import ensure_custom_property, make_property
 from ..generation import naming
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .bone_set import BoneSet
+    from ..rig_components.cloud_base import Component_Base
 
 # These values should match Blender's defaults, otherwise they won't be written.
 # It is very confusing what belongs where because some properties exist on both EditBone and Bone,
@@ -125,10 +129,10 @@ class BoneInfo:
 
     def __init__(
         self,
-        bone_set,
+        bone_set: BoneSet,
         name="Bone",
         source: EditBone or BoneInfo = None,
-        owner_component=None,
+        owner_component: Component_Base=None,
         **kwargs,
     ):
         """
@@ -216,8 +220,9 @@ class BoneInfo:
 
     def init_variables(self, var_dict):
         for key, value in var_dict.items():
+            # Make Vectors/Matrices/Dicts/Lists unique copies.
+            # Otherwise copied bones would share values.
             if hasattr(value, 'copy'):
-                # If we don't make Vectors and such unique, all bones would share a single one.
                 value = value.copy()
             setattr(self, key, value)
 
@@ -236,8 +241,8 @@ class BoneInfo:
         self._name = new_name
 
     @property
-    def source(self):
-        """The source is the ORG bone that this BoneInfo was copied from, or
+    def source(self) -> BoneInfo:
+        """Returns the BoneInfo that this BoneInfo was copied from, or
         this BoneInfo itself.
         """
         # Recursively get the source of each bone until getting to what should be an ORG bone.
@@ -254,11 +259,11 @@ class BoneInfo:
         self.custom_shape_scale_xyz = Vector((value, value, value))
 
     @property
-    def parent(self):
+    def parent(self) -> BoneInfo | None:
         return self._parent
 
     @property
-    def is_orphan(self):
+    def is_orphan(self) -> bool:
         if self.parent:
             return False
 
@@ -289,7 +294,7 @@ class BoneInfo:
         self.use_connect = False
 
     @property
-    def bbone_width(self):
+    def bbone_width(self) -> float:
         """Return average display size of both axes."""
         return (self.bbone_x + self.bbone_z) / 2
 
@@ -303,11 +308,11 @@ class BoneInfo:
         self.tail_radius = value
 
     @property
-    def bbone_segments(self):
+    def bbone_segments(self) -> int:
         return self._bbone_segments
     
     @bbone_segments.setter
-    def bbone_segments(self, value):
+    def bbone_segments(self, value: int):
         self._bbone_segments = value
         if value > 1:
             self.display_type = 'BBONE'
@@ -330,20 +335,21 @@ class BoneInfo:
         self.tail = self.head + self.vector * value
 
     @property
-    def length(self):
+    def length(self) -> float:
         return (self.tail - self.head).length
 
     @length.setter
-    def length(self, value):
+    def length(self, value: float):
         assert value > 0.0, f"{self.name}: Bone length cannot be 0!"
         self.tail = self.head + self.vector.normalized() * value
 
     @property
-    def center(self):
+    def center(self) -> Vector:
         return self.head + self.vector / 2
 
     def reverse(self):
-        """Flip the head and the tail."""  # NOTE: What to do with roll, if there is one?
+        """Flip the head and the tail."""
+        # NOTE: What to do with roll, if there is one?
         self.head, self.tail = self.tail, self.head
 
     def put(
@@ -413,12 +419,12 @@ class BoneInfo:
         self.custom_shape_wire_width = other.custom_shape_wire_width
         self.use_custom_shape_bbone_scaling = False
 
-    def get_constraint(self, name):
+    def get_constraint(self, name: str) -> ConstraintInfo | None:
         for ci in self.constraint_infos:
             if ci.name == name:
                 return ci
 
-    def add_constraint(self, con_type: str, index: int = None, **kwargs):
+    def add_constraint(self, con_type: str, *, index: int = None, **kwargs) -> ConstraintInfo:
         """Store constraint information about a constraint in this BoneInfo.
         con_type: Type of constraint, eg. 'STRETCH_TO'.
         kwargs: Dictionary of properties and values.
@@ -434,7 +440,7 @@ class BoneInfo:
 
         return con_info
 
-    def add_constraint_from_real(self, constraint: Constraint):
+    def add_constraint_from_real(self, constraint: Constraint) -> ConstraintInfo:
         kwargs = {}
         skip = [
             'active',
@@ -758,7 +764,7 @@ class BoneInfo:
                 )
             copy_relink_real_driver(metarig, arm_ob, fcurve)
 
-    def clone(self, new_name=None, bone_set=None):
+    def clone(self, new_name: str=None, bone_set: BoneSet=None) -> BoneInfo:
         """Return a clone of self."""
         if not new_name:
             new_name = naming.uniqify(
@@ -788,7 +794,7 @@ class BoneInfo:
         for b in self.children:
             b.parent = new_parent
 
-    def get_real(self, rig: Object):
+    def get_real(self, rig: Object) -> EditBone | PoseBone | None:
         """If a bone with the name of this BoneInfo exists in the passed rig,
         return it."""
         if rig.mode == 'EDIT':
@@ -796,7 +802,7 @@ class BoneInfo:
         else:
             return rig.pose.bones.get(self.name)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 

@@ -109,7 +109,7 @@ class AdvancedComponent(Component_Base):
 
 
 class Params(PropertyGroup):
-    """Fefines the parameters to be registered in RNA. Must be exactly `Params`."""
+    """Defines the parameters to be registered in RNA. Must be exactly `Params`."""
 
     create_control: BoolProperty(
         name="Make Control", description="Create a Control bone", default=True
