@@ -1,0 +1,54 @@
+name: CloudRig Bug
+about: File a bug report about CloudRig
+labels:
+  - "Type/Report"
+  - "Status/Needs Triage"
+  - "Priority/Normal"
+assignees:
+  - Mets
+body:
+  - type: markdown
+    attributes:
+      value: |
+          Please provide a .blend file with bug reports.  
+          Please use the "Report Bug" button in the interface:  
+          Select your metarig and go to Edit->Preferences->Add-ons->CloudRig->Report Bug.
+  - type: textarea
+    id: body
+    attributes:
+      label: "Description"
+      placeholder: "Description of the problem"
+      value: |
+               Blender Version: 
+               CloudRig Version: 
+
+               **Steps to reproduce the error**
+               Based on the default human metarig or a simplified attached .blend file.
+  - type: input
+    id: op_sys
+    attributes:
+      label: "Operating System"
+      value: | 
+        ""
+      render: ""
+  - type: input
+    id: blender_ver
+    attributes:
+      label: "Blender Version"
+      value: | 
+        ""
+      render: ""
+  - type: input
+    id: cloudrig_ver
+    attributes:
+      label: "CloudRig Version"
+      value: | 
+        ""
+      render: ""
+  - type: textarea
+    id: stacktrace
+    attributes:
+      label: "Stack Trace"
+      value: | 
+        "Stack Trace"
+      render: "Python"

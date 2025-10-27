@@ -6,6 +6,7 @@ from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
 import bpy, os, traceback, sys
 import json, webbrowser, time
 import struct, platform, io, urllib.parse
+import addon_utils
 
 from ..rig_component_features.component_params_ui import draw_label_with_linebreak, is_advanced_mode
 from ..generation.cloudrig import is_cloud_metarig
@@ -94,48 +95,35 @@ def cloudrig_last_modified() -> str:
 
 
 def url_prefill_from_cloudrig(stack_trace=""):
-    fh = io.StringIO()
-
-    fh.write("**System Information**\n")
-    fh.write(
-        "Operating system: %s %d Bits\n"
-        % (
-            platform.platform(),
-            struct.calcsize("P") * 8,
-        )
+    op_sys = "%s %d Bits\n" % (
+        platform.platform(),
+        struct.calcsize("P") * 8,
     )
-    fh.write("\n" "**Blender Version**\n")
-    fh.write(
-        "%s, branch: %s, commit: [%s](https://projects.blender.org/blender/blender/commit/%s)\n"
-        % (
-            bpy.app.version_string,
-            bpy.app.build_branch.decode('utf-8', 'replace'),
-            bpy.app.build_commit_date.decode('utf-8', 'replace'),
-            bpy.app.build_hash.decode('ascii'),
-        )
+    blender_version = "%s, branch: %s, commit: [%s](https://projects.blender.org/blender/blender/commit/%s)\n" % (
+        bpy.app.version_string,
+        bpy.app.build_branch.decode('utf-8', 'replace'),
+        bpy.app.build_commit_date.decode('utf-8', 'replace'),
+        bpy.app.build_hash.decode('ascii'),
     )
 
-    # TODO: Find way to get extension version now that we don't have bl_info.
-    # last_modified = cloudrig_last_modified()
-    # fh.write(f"\n**CloudRig Version**: {cloudrig_version} ({last_modified})\n")
-
-    if stack_trace != "":
-        fh.write("\nStack trace\n```\n" + stack_trace + "\n```\n")
-
-    fh.write("\n" "***************************************")
-
-    fh.write(
-        "\n"
-        "Description of the problem:\n"
-        "Attached .blend file to reproduce the problem:\n"
-        "\n"
-    )
-
-    fh.seek(0)
+    cloudrig_version = ""
+    for addon_module in addon_utils.modules():
+        if addon_module.bl_info['name'] == 'CloudRig':
+            cloudrig_version = str(addon_module.bl_info['version'])
 
     return (
-        "https://projects.blender.org/studio/blender-studio-pipeline/issues/new?template=.gitea/issue_template/cloudrig_bug.yaml&field:body="
-        + urllib.parse.quote(fh.read())
+        "https://projects.blender.org/Mets/CloudRig/issues/new?template=.gitea/issue_template/bug.yaml"
+        + "&field:body="
+        + urllib.parse.quote("Description of the problem:  \n\n\nSteps to reproduce:  \n\n\nBlend file:")
+        + "&field:stacktrace="
+        + urllib.parse.quote(stack_trace)
+        + "&field:cloudrig_ver="
+        + urllib.parse.quote(cloudrig_version)
+        + "&field:blender_ver="
+        + urllib.parse.quote(blender_version)
+        + "&field:op_sys="
+        + urllib.parse.quote(op_sys)
+
     )
 
 
@@ -157,6 +145,21 @@ def get_pretty_stack() -> str:
 
     lines = []
     after_generator = False
+
+    def get_short_filepath(i: int, frame) -> str:
+        # Shorten the file name; Anything before the CloudRig extension folder is irrelevant.
+        short_file = frame.filename
+        if 'extensions' in short_file:
+            short_file = os.sep.join(frame.filename.split("extensions")[1].split(os.sep)[3:])
+
+        # Also avoid repeating the same filepath, put spaces instead.
+        if i > 0 and frame.filename == stack[i - 1].filename:
+            short_file = " " * int(len(short_file))
+
+        return short_file
+
+    longest_frame_name = max([len(frame.name) for frame in stack])
+    longest_file_name = max([len(get_short_filepath(i, frame)) for i, frame in enumerate(stack)])
     for i, frame in enumerate(stack):
         if 'generator' in frame.filename:
             after_generator = True
@@ -170,18 +173,15 @@ def get_pretty_stack() -> str:
         ):
             break
 
-        # Shorten the file name; All files are in blender's "scripts" folder, so
-        # that part of the path contains no useful information, just clutter.
-        short_file = frame.filename
-        if 'scripts' in short_file:
-            short_file = frame.filename.split("scripts")[1]
+        short_file = get_short_filepath(i, frame)
 
-        if i > 0 and frame.filename == stack[i - 1].filename:
-            short_file = " " * int(len(frame.filename) / 2)
+        fill_file = " " * (longest_file_name - len(short_file))
+        fill_frame = " " * (longest_frame_name - len(frame.name))
+        right_arrow = chr(0x2192)
+        first_arrow = right_arrow if frame.filename != stack[i - 1].filename else chr(0x2937)
+        lines.append(f"{short_file}{fill_file} {first_arrow} {frame.name}{fill_frame} {right_arrow} line {frame.lineno}")
 
-        lines.append(f"{short_file} -> {frame.name} -> line {frame.lineno}")
-
-    ret += f" {chr(8629)}\n".join(lines)
+    ret += f" {chr(0x2936)}\n".join(lines)
     ret += f":\n          {frame.line}\n"
     if exc_value:
         ret += f"{exc_type.__name__}: {exc_value}"
@@ -815,7 +815,12 @@ class CLOUDRIG_OT_Report_Bug(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        pretty_stack = context.object.cloudrig.generator.active_log.pretty_stack
+        active_obj = context.object
+        pretty_stack = ""
+        if active_obj and hasattr(active_obj, 'cloudrig'):
+            active_log = active_obj.cloudrig.generator.active_log
+            if active_log:
+                pretty_stack = active_log.pretty_stack
         webbrowser.open(url_prefill_from_cloudrig(pretty_stack))
 
         return {'FINISHED'}
