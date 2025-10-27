@@ -1,4 +1,4 @@
-# What is CloudRig?
+## What is CloudRig?
 CloudRig is a rig generation [extension](https://extensions.blender.org/add-ons/cloudrig/) for Blender, developed by the Blender Studio for our Open Movies.
 
 You can support the development of CloudRig by [becoming a Blender Studio subscriber](https://studio.blender.org/)!
@@ -17,7 +17,7 @@ Also, downloading the repo as a .zip will not work, as that will not include sub
 Then, you can symlink it to a folder which you've browsed in Blender as a local extension repository folder, or into your `user_default` extensions folder.
 </details>
 
-# Getting Started
+## Getting Started
 Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Human**.
 Generate the rig via **Properties->Object Data->CloudRig->Generate CloudRig**.
 And bam, you have a rig!  
@@ -60,11 +60,11 @@ And bam, you have a rig!
 </details></li>
 </ul>
 
-# Report problems
+## Report problems
 If you encounter a bug or have a suggestion, feel free to [open an issue](../../../issues/new).
 
-# Contribute
+## Contribute
 Contributions are welcome! You may find some useful notes [here](../../../wiki/Code)
 
-# Show me your work!
+## Show me your work!
 Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [chat.blender.org](https://chat.blender.org/#/room/#CloudRig:blender.org) or add "metemer" on Discord!
