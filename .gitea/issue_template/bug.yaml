@@ -29,26 +29,22 @@ body:
     attributes:
       label: "Operating System"
       value: | 
-        ""
       render: ""
   - type: input
     id: blender_ver
     attributes:
       label: "Blender Version"
       value: | 
-        ""
       render: ""
   - type: input
     id: cloudrig_ver
     attributes:
       label: "CloudRig Version"
       value: | 
-        ""
       render: ""
   - type: textarea
     id: stacktrace
     attributes:
       label: "Stack Trace"
       value: | 
-        "Stack Trace"
       render: "Python"
