@@ -6,10 +6,16 @@ You can support the development of CloudRig by [becoming a Blender Studio subscr
 ## Installation
 You can install directly from within Blender, by searching for CloudRig inside the "Get Extensions" panel.
 
-### Bleeding Edge
-If you want to use the latest commit of CloudRig (eg. for use with the latest daily build of Blender), you can download or clone this repo and place or symlink it to a folder which you've browsed in Blender as a local extension repository folder, or into your `user_default` extensions folder.
-To clone the repo, you must pass --recurse-submodules:
+<details>
+<summary><b>Bleeding Edge / Git Clone</b></summary>
+
+To clone the repo, you must pass --recurse-submodules:  
+
 `git clone --recurse-submodules git@git.blender.org:Mets/CloudRig.git`
+
+Also, downloading the repo as a .zip will not work, as that will not include submodules.  
+Then, you can symlink it to a folder which you've browsed in Blender as a local extension repository folder, or into your `user_default` extensions folder.
+</details>
 
 # Getting Started
 Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Human**.
