@@ -998,7 +998,7 @@ class CLOUDRIG_OT_generate(Operator):
             else:
                 pbones = prev_generated_rig.pose.bones
                 state_selection = {
-                    pbone.name: pbone.select
+                    pbone.name: (pbone.select, pbone.select, pbone.select)
                     for pbone in pbones
                 }
                 state_hide = {ebone.name: ebone.hide for ebone in pbones}
@@ -1187,7 +1187,7 @@ class CLOUDRIG_OT_generate(Operator):
                     )
                 else:
                     pbone = target_rig.pose.bones[bone_name]
-                    pbone.select = select_state
+                    pbone.select = select_state[0]
 
         # Restore bone visibility states.
         for bone_name, hide in state_hide.items():
