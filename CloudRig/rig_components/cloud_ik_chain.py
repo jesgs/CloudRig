@@ -715,12 +715,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
         super().define_bone_sets()
         cls.define_bone_set(
             "IK Controls",
-            color_palette="THEME12",
+            color_palette="THEME13",
             collections=["IK Controls"],
-            wire_width=2,
+            wire_width=2.5,
         )
         cls.define_bone_set(
-            "IK Mechanism", collections=["Mechanism Bones"], is_advanced=True
+            "IK Mechanism",
+            collections=["Mechanism Bones"],
+            is_advanced=True,
         )
 
     @classmethod

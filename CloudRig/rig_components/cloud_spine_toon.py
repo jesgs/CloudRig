@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PropertyGroup
+from bpy.props import BoolProperty
 from math import pi
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
@@ -29,21 +30,19 @@ class Component_Spine_Toon(Component_Chain_FK):
     def define_bone_sets(cls):
         super().define_bone_sets()
         cls.define_bone_set(
-            "IK Mechanism",
-            color_palette="THEME12",
+            "Toon Spine Mechanism",
             collections=["Mechanism Bones"],
-            wire_width=1,
             is_advanced=True
         )
         cls.define_bone_set(
-            "IK Secondary",
+            "Toon Spine IK Secondary",
             color_palette="THEME12",
             collections=["IK Secondary"],
             wire_width=1.5,
         )
         cls.define_bone_set(
-            "IK Controls",
-            color_palette="THEME04",
+            "Toon Spine IK",
+            color_palette="THEME13",
             collections=["IK Controls"],
             wire_width=2.5,
         )
@@ -51,6 +50,8 @@ class Component_Spine_Toon(Component_Chain_FK):
     @classmethod
     def draw_control_params(cls, layout, context, params):
         super().draw_control_params(layout, context, params)
+
+        cls.draw_prop(context, layout, params.spine_toon, 'world_align')
 
     def init_extra(self):
         """Called at the end of super().__init__()."""
@@ -64,7 +65,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         You should populate your BoneSets with BoneInfo instances here."""
         super().create_bone_infos(context)
 
-        chest = self.bone_sets['IK Controls'].new(
+        chest = self.bone_sets['Toon Spine IK'].new(
             name=self.naming.add_prefix(self.spine_name, 'Chest'),
             source=self.fk_chain[-2],
             tail=self.bones_org[-1].tail,
@@ -74,7 +75,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             custom_shape_scale_xyz=(1.2, 2.3, 1.2),
             custom_shape_rotation_euler=(0, pi/2, 0)
         )
-        hips = self.bone_sets['IK Controls'].new(
+        hips = self.bone_sets['Toon Spine IK'].new(
             name=self.naming.add_prefix(self.spine_name, 'Hips'),
             source=self.bones_org[0],
             head=self.fk_chain[1].head,
@@ -82,7 +83,8 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.torso_ctr,
             custom_shape_name='Hyperbola',
         )
-        hips_lower = self.bone_sets['IK Controls'].new(
+        hips.collections += self.bone_sets['FK Controls'].collections
+        hips_lower = self.bone_sets['Toon Spine IK'].new(
             name=self.naming.add_prefix(self.spine_name, 'HipsLower'),
             source=self.bones_org[0],
             head=self.bones_org[0].tail,
@@ -92,6 +94,13 @@ class Component_Spine_Toon(Component_Chain_FK):
             custom_shape_wire_width=1.5,
             custom_shape_scale_xyz=(1, 0.5, 1),
         )
+        hips_lower.collections += self.bone_sets['FK Controls'].collections
+
+        # Hack the FK parenting a bit.
+        self.fk_chain[0].parent = hips_lower
+        self.fk_chain[1].parent = self.torso_ctr
+        self.bones_org[0].parent = hips_lower
+        self.fk_chain[0].collections = self.bone_sets['Mechanism Bones'].collections
 
         self.make_ik_setup(self.fk_chain, chest, hips, hips_lower)
 
@@ -104,7 +113,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.main_str_bones[0].roll = 0
         self.main_str_bones[0].roll_bone = None
         self.main_str_bones[0].roll_type = 'VECTOR'
-        self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5)
+        self.main_str_bones[0].parent = hips_lower
+        self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True])
 
     def make_ik_setup(
         self,
@@ -123,8 +133,6 @@ class Component_Spine_Toon(Component_Chain_FK):
                 'default' : 1.0,
             }
         )
-        self.create_driven_armature_constraint(self.bones_org[0], [self.torso_ctr, hips_lower], self.properties_bone, ikfk_prop_name)
-
         ik_chain = self.make_ik_chain(fk_chain, chest, hips)
 
         ik_str_chain = self.make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
@@ -132,7 +140,7 @@ class Component_Spine_Toon(Component_Chain_FK):
     def make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
         ik_chain = []
         def make_ik_bone(name: str, parent: BoneInfo) -> BoneInfo:
-            ik_hlp = self.bone_sets['IK Secondary'].new(
+            ik_hlp = self.bone_sets['Toon Spine IK Secondary'].new(
                 name=name,
                 source=fk_bone,
                 parent=parent,
@@ -153,8 +161,11 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         # Make the IK chain.
         next_parent = hips
-        for fk_bone in fk_chain[1:]:
-            make_ik_bone(fk_bone.name.replace("FK", "IK"), next_parent)
+        for i, fk_bone in enumerate(fk_chain[1:]):
+            ik_hlp = make_ik_bone(fk_bone.name.replace("FK", "IK"), next_parent)
+            if i==0:
+                ik_hlp.add_constraint('ARMATURE', targets=[{'subtarget': hips}, {'subtarget': chest}], use_deform_preserve_volume=True)
+
             next_parent = chest
 
         # One extra at the end.
@@ -164,7 +175,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         # The last two should be hidden.
         for i in (1, 2):
             ik_hlp = ik_chain[-i]
-            ik_hlp.collections = self.bone_sets['IK Mechanism'].collections
+            ik_hlp.collections = self.bone_sets['Toon Spine Mechanism'].collections
         return ik_chain
 
     def make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
@@ -175,7 +186,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             panel_name='IK',
             slider_name=f'{self.spine_name} Squash',
             custom_prop_settings={
-                'default' : 0.5,
+                'default' : 0.7,
                 'soft_max' : 1.0,
                 'max': 2.0
             }
@@ -184,7 +195,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         ik_str_chain: list[BoneInfo] = []
         next_parent = hips
         for i, fk_bone in enumerate(fk_chain):
-            ik_str = self.bone_sets['IK Mechanism'].new(
+            ik_str = self.bone_sets['Toon Spine Mechanism'].new(
                 name=fk_bone.name.replace("FK", "IK-STR"),
                 source=fk_bone,
                 head=fk_bone.head,
@@ -193,7 +204,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             )
             str_con = ik_str.add_constraint('STRETCH_TO', subtarget=ik_chain[i], use_bulge_min=False, use_bulge_max=True, bulge_max=2.0)
             str_con.drivers.append({
-                'prop': 'influence',
+                'prop': 'bulge',
                 'variables': [(self.properties_bone.name, squash_prop_name)],
             })
             next_parent = ik_chain[i]
@@ -222,9 +233,11 @@ class Component_Spine_Toon(Component_Chain_FK):
             head=self.bones_org[0].center,
             custom_shape_name="Torso_Master",
         )
+        if self.params.spine_toon.world_align:
+            self.torso_ctr.flatten()
         self.torso_ctr.custom_shape_wire_width += 1.0
         # Also assign to IK collections.
-        self.torso_ctr.collections += self.bone_sets['IK Controls'].collections
+        self.torso_ctr.collections += self.bone_sets['Toon Spine IK'].collections
         return self.torso_ctr
 
     def make_fk_chain(self, bones_org: list[BoneInfo]) -> list[BoneInfo]:
@@ -253,7 +266,11 @@ class Component_Spine_Toon(Component_Chain_FK):
 
 class Params(PropertyGroup):
     """Defines the parameters to be registered in RNA. Must be exactly `Params`."""
-    pass
+    world_align: BoolProperty(
+        name="World-Align Torso",
+        description="Flatten the torso to align with the closest world axis",
+        default=True,
+    )
 
 
 # Un-comment the below line to make this component appear in Blender.
