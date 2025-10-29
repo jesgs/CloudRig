@@ -167,6 +167,10 @@ class Component_ToonChain(Component_Base):
         else:
             main_str.custom_shape_name = self.params.chain.widget_stretch
 
+        parent_helper = self.create_parent_bone(main_str, bone_set=self.bones_mch)
+        parent_helper.add_constraint('ARMATURE', subtarget=parent_helper.parent)
+        parent_helper.parent = None
+
         return main_str
 
     def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
@@ -270,7 +274,11 @@ class Component_ToonChain(Component_Base):
             name=self.naming.add_prefix(sub_str.name, "H"),
             source=sub_str,
             bbone_width=sub_str.bbone_width,
-            parent=sub_str.parent,
+            # We want no parent for scale inheritance reasons: The driver on the bendy bone 
+            # scale values expects to find all parenting-induced transformations in the local 
+            # matrix of this bone.
+            parent=None,
+            ignore_orphan=True,
         )
         sub_str.parent = str_h_bone
 
@@ -382,8 +390,9 @@ class Component_ToonChain(Component_Base):
         # For each STR control, create a deform bone between it and the next one.
         parent = str_chain[0].parent
         for i, str_bone in enumerate(str_chain):
-            if self.params.chain.tip_control and i == len(str_chain) - 1:
-                # Don't create a deform bone for the STR control at the tip of the chain.
+            is_tip_str = self.params.chain.tip_control and i == len(str_chain) - 1
+            if is_tip_str:
+                # Don't create a deform bone for tip STR control.
                 continue
             org_bone = str_bone.source
             if not str_bone.next:
@@ -422,8 +431,6 @@ class Component_ToonChain(Component_Base):
                 # can skip the setup_deform_bone() phase, but needs some special treatment.
                 def_bone.tail = org_bone.tail
                 def_bone.parent = str_bone
-                # TODO: In FK chain components, this last lonely deform bone might need to be parented to FK for good scaling behaviour.
-                def_bone.inherit_scale = 'ALIGNED'
                 continue
 
             self.setup_deform_bone(
@@ -479,56 +486,81 @@ class Component_ToonChain(Component_Base):
         if self.params.chain.sharp:
             if str_bone in self.main_str_bones:
                 def_bone.bbone_easein = 0
-            if str_bone.next in self.main_str_bones:
+            if next_str_bone in self.main_str_bones:
                 def_bone.bbone_easeout = 0
 
         # B-Bone ease
         def_bone.bbone_handle_type_start = 'TANGENT'
         def_bone.bbone_handle_type_end = 'TANGENT'
-        if hasattr(str_bone, 'tangent_helper') and str_bone.tangent_helper:
-            def_bone.bbone_custom_handle_start = str_bone.tangent_helper
-        else:
-            def_bone.bbone_custom_handle_start = str_bone
-        def_bone.bbone_handle_use_scale_start = [True, False, True]
-        def_bone.bbone_handle_use_scale_end = [True, False, True]
-        if False:
-            def_bone.bbone_handle_use_ease_start = True
-            def_bone.bbone_handle_use_ease_end = True
-        else:
-            # Let the STR bone local Y scale delta (relative to average scale) drive the ease value.
-            # So scaling the bone uniformally won't affect easing, but increasing local Y scale will.
-            for str_b, prop in zip(
-                [str_bone, str_bone.next], ['bbone_easein', 'bbone_easeout']
-            ):
-                if not str_b:
-                    # This happens when Tip Control param is off so there's no str_bone.next.
-                    continue
-                def_bone.drivers.append(
-                    {
-                        'prop': prop,
-                        'expression': "abs(scale_Y/((scale_X+scale_Z)/2)) - 1",
-                        'variables': {
-                            f'scale_{axis}': {
-                                'type': 'TRANSFORMS',
-                                'targets': [
-                                    {
-                                        'bone_target': str_b.name,
-                                        'transform_space': 'TRANSFORM_SPACE',
-                                        'transform_type': f'SCALE_{axis}',
-                                    }
-                                ],
-                            }
-                            for axis in "XYZ"
-                        },
-                    }
-                )
-
-
-        if hasattr(next_str_bone, 'tangent_helper'):
+        start_handle = str_bone
+        end_handle = next_str_bone
+        if hasattr(start_handle, 'tangent_helper'):
+            start_handle = start_handle.tangent_helper
+        if hasattr(end_handle, 'tangent_helper'):
             # This can be False when connecting to a parent chain rig that has Smooth Spline=False.
-            def_bone.bbone_custom_handle_end = next_str_bone.tangent_helper
-        elif next_str_bone:
-            def_bone.bbone_custom_handle_end = next_str_bone
+            end_handle = end_handle.tangent_helper
+        def_bone.bbone_custom_handle_start = start_handle
+        def_bone.bbone_custom_handle_end = end_handle
+
+        for str_b, prop_name in zip([start_handle, end_handle], ['bbone_scalein', 'bbone_scaleout']):
+            if not str_b:
+                # This happens when Tip Control param is off so there's no next_str_bone.
+                continue
+            for axis, idx in zip(('X', 'Z'), (0, 2)):
+                driver = {
+                    'prop' : prop_name,
+                    'index' : idx,
+                    'expression' : f"parent_{axis} * direct_{axis}",
+                    'variables' : {
+                        f'parent_{axis}': {
+                            'type': 'TRANSFORMS',
+                            'targets': [
+                                {
+                                    'bone_target': str_b.parent.name,
+                                    'transform_space': 'LOCAL_SPACE',
+                                    'transform_type': f'SCALE_{axis}',
+                                }
+                            ],
+                        },
+                        f'direct_{axis}': {
+                            'type': 'TRANSFORMS',
+                            'targets': [
+                                {
+                                    'bone_target': str_b.name,
+                                    'transform_space': 'TRANSFORM_SPACE',
+                                    'transform_type': f'SCALE_{axis}',
+                                }
+                            ],
+                        }
+                    }
+                }
+                def_bone.drivers.append(driver)
+
+        # Let the STR bone local Y scale delta (relative to average scale) drive the ease value.
+        # So scaling the bone uniformally won't affect easing, but increasing local Y scale will.
+        for str_b, prop_name in zip([start_handle, end_handle], ['bbone_easein', 'bbone_easeout']):
+            if not str_b:
+                # This happens when Tip Control param is off so there's no str_bone.next.
+                continue
+            def_bone.drivers.append(
+                {
+                    'prop': prop_name,
+                    'expression': "abs(scale_Y/((scale_X+scale_Z)/2)) - 1",
+                    'variables': {
+                        f'scale_{axis}': {
+                            'type': 'TRANSFORMS',
+                            'targets': [
+                                {
+                                    'bone_target': str_b.name,
+                                    'transform_space': 'TRANSFORM_SPACE',
+                                    'transform_type': f'SCALE_{axis}',
+                                }
+                            ],
+                        }
+                        for axis in "XYZ"
+                    },
+                }
+            )
 
         if self.params.chain.shape_key_helpers and def_bone.prev:
             self.make_shape_key_helper(def_bone.prev, def_bone)
@@ -700,8 +732,8 @@ class Component_ToonChain(Component_Base):
 
         # Set bbone ease according to parent rig's Sharp Sections param.
         if parent_component.params.chain.sharp:
-            parent_component.bone_sets['Deform Bones'][-1].bbone_easeout = 0
-            self.bone_sets['Deform Bones'][0].bbone_easein = 0
+            parent_component.bones_def[-1].bbone_easeout = 0
+            self.bones_def[0].bbone_easein = 0
 
         last_str.next = self.str_chain[0]
         last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.widget_stretch

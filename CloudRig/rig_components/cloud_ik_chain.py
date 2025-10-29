@@ -502,20 +502,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             if i == len(self.main_str_bones) - 1 and not self.params.ik_chain.at_tip:
                 continue
             # Create STR-S helper
-            main_str_helper = self.bone_sets["IK Mechanism"].new(
-                name=self.naming.add_prefix(main_str_bone, "S"),
-                source=main_str_bone,
-                bbone_width=0.1,
-                roll_type="ALIGN",
-                roll_bone=main_str_bone,
-                roll=0,
-                parent=main_str_bone.parent,
-            )
-            main_str_bone.stretch_helper = main_str_helper
-            main_str_bone.parent = main_str_helper
 
             con_name = "CopyLoc_IK_Stretch"
-            copyloc = main_str_helper.add_constraint(
+            copyloc = main_str_bone.parent.add_constraint(
                 "COPY_LOCATION",
                 space="WORLD",
                 subtarget=stretch_bone.name,

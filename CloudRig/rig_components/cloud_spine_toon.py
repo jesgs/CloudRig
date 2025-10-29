@@ -98,9 +98,6 @@ class Component_Spine_Toon(Component_Chain_FK):
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
             str_bone.parent = fk_bone
             str_bone.roll_bone = fk_bone
-            parent_helper = self.create_parent_bone(str_bone, bone_set=self.bones_mch)
-            parent_helper.add_constraint('ARMATURE', subtarget=parent_helper.parent)
-            parent_helper.parent = None
         if self.params.chain.tip_control:
             self.main_str_bones[-1].parent = self.fk_chain[-1]
             self.main_str_bones[-1].roll_bone = self.fk_chain[-1]
@@ -108,8 +105,6 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.main_str_bones[0].roll_bone = None
         self.main_str_bones[0].roll_type = 'VECTOR'
         self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5)
-
-        self.experimental_deform_tweaks(self.bones_def, )
 
     def make_ik_setup(
         self,
@@ -254,44 +249,6 @@ class Component_Spine_Toon(Component_Chain_FK):
         for org_bone, fk_bone in zip(bones_org, fk_bones):
             org_bone.use_connect = False
             org_bone.parent = fk_bone
-
-    def experimental_deform_tweaks(self, def_chain: list[BoneInfo]):
-        for def_bone in def_chain:
-            start_handle = def_bone.bbone_custom_handle_start
-            end_handle = def_bone.bbone_custom_handle_start
-            def_bone.bbone_handle_use_scale_start = [False, False, False]
-            def_bone.bbone_handle_use_scale_end = [False, False, False]
-
-            for str_b, prop_name in zip([start_handle, end_handle], ['bbone_scalein', 'bbone_scaleout']):
-                for axis, idx in zip(('X', 'Z'), (0, 2)):
-                    driver = {
-                        'prop' : prop_name,
-                        'index' : idx,
-                        'expression' : f"(parent_{axis}-1) + (direct_{axis}-1) + 1",
-                        'variables' : {
-                            f'parent_{axis}': {
-                                'type': 'TRANSFORMS',
-                                'targets': [
-                                    {
-                                        'bone_target': str_b.parent.name,
-                                        'transform_space': 'LOCAL_SPACE',
-                                        'transform_type': f'SCALE_{axis}',
-                                    }
-                                ],
-                            },
-                            f'direct_{axis}': {
-                                'type': 'TRANSFORMS',
-                                'targets': [
-                                    {
-                                        'bone_target': str_b.name,
-                                        'transform_space': 'TRANSFORM_SPACE',
-                                        'transform_type': f'SCALE_{axis}',
-                                    }
-                                ],
-                            }
-                        }
-                    }
-                    def_bone.drivers.append(driver)
 
 
 class Params(PropertyGroup):
