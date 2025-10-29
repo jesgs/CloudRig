@@ -119,6 +119,10 @@ class BoneSet(LinkedList):
             if key not in kwargs:
                 kwargs[key] = self.defaults[key]
 
+        existing = self.rig_component.generator.find_bone_info(name)
+        if existing and existing.create:
+            self.rig_component.raise_generation_error(f'"{name}" already exists. May be a bug.', trouble_bone=name)
+
         bone_info = BoneInfo(
             self, name, source, owner_component=self.rig_component, **kwargs
         )
