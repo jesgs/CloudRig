@@ -210,7 +210,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return fk_bone
 
     def make_reverse_fk_chain(self, fk_chain) -> list[BoneInfo]:
+        # TODO: Remove or stabilize this functionality.
         next_parent = self.root_bone
+        reverse_fk_chain = []
         for fk_bone in reversed(fk_chain):
             reverse_fk = self.bone_sets["FK Reverse Controls"].new(
                 name=fk_bone.name.replace("FK-", "RFK-"),
@@ -243,6 +245,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 "description": f"Attach the FK chain to the Reverse FK Chain (RFK bones)",
             },
         )
+        return reverse_fk_chain
 
     def make_fk_offset_chain(self, fk_chain) -> list[BoneInfo]:
         fk_offset_chain = []
@@ -409,13 +412,15 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         last_def = def_chain[-1]
         if last_def == def_chain[0]:
-            return
+            return def_chain
 
         # If there's no tip control, parent DEF to ORG.
         # Useful for example for an arm rig.
-        # Then again, makes me wonder if this should just be in cloud_limb then.
+        # TODO: Maybe this should be in cloud_limb or cloud_chain?
         if not self.params.chain.tip_control and not self.params.chain.unlock_deform:
             last_def.parent = self.bones_org[-1]
+
+        return def_chain
 
     def attach_org_to_fk(self, org_bones, fk_bones):
         """Make ORG bones Copy Transforms of FK bones."""
@@ -549,13 +554,13 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             "create_curl_control",
             enabled=params.fk_chain.root,
         )
-        cls.draw_prop(
-            context,
-            layout.row(),
-            params.fk_chain,
-            "create_reverse_chain",
-            enabled=params.fk_chain.root,
-        )
+        # cls.draw_prop(
+        #     context,
+        #     layout.row(),
+        #     params.fk_chain,
+        #     "create_reverse_chain",
+        #     enabled=params.fk_chain.root,
+        # )
 
         if not cls.is_advanced_mode(context):
             return
