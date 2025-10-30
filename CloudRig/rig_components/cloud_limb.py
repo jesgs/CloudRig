@@ -33,15 +33,6 @@ class Component_Limb(Component_Chain_IKFK):
         # IK values
         self.ik_pole_direction = 1
 
-        self.check_correct_chain_length()
-
-    def check_correct_chain_length(self):
-        req_len = type(self).required_chain_length
-        if self.bone_count != req_len:
-            self.raise_generation_error(
-                f"Chain must be exactly {req_len} connected bones."
-            )
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         self.tweak_str_limb()

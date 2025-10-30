@@ -24,6 +24,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     has_test_animation = True
     use_base_name = True
 
+    required_chain_length = -1
+
     def init_extra(self):
         """Gather and validate data about the rig."""
         super().init_extra()
@@ -45,6 +47,15 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if not self.params.fk_chain.root:
             self.params.fk_chain.create_reverse_chain = False
             self.params.fk_chain.create_curl_control = False
+
+        self.check_correct_chain_length()
+
+    def check_correct_chain_length(self):
+        req_len = type(self).required_chain_length
+        if req_len != -1 and self.bone_count != req_len:
+            self.raise_generation_error(
+                f"Chain must be exactly {req_len} connected bones."
+            )
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
