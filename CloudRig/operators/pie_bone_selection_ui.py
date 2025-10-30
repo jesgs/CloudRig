@@ -202,19 +202,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         else:
             pie.separator()
 
-        # 5) <^ Bone(s) with constraints that target this bone.
-        constrained_bones = get_constrained_bones(active_pb)
-        if len(constrained_bones) == 1:
-            con, bone_name = constrained_bones[0]
-            POSE_MT_PIE_constrained_bones.draw_select_bone(
-                pie, con, bone_name, start_text="Constrained Bone: "
-            )
-        elif len(constrained_bones) > 1:
-            pie.menu('POSE_MT_PIE_constrained_bones', icon='COLLAPSEMENU')
-        else:
-            pie.separator()
-
-        # 6) ^> Bone(s) targeted by this bone's constraints.
+        # 5) ^> Bone(s) targeted by this bone's constraints.
         target_bones = get_target_bones(active_pb)
         if len(target_bones) == 1:
             con, bone_name = target_bones[0]
@@ -223,6 +211,18 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             )
         elif len(target_bones) > 1:
             pie.menu('POSE_MT_PIE_bone_constraint_targets', icon='COLLAPSEMENU')
+        else:
+            pie.separator()
+
+        # 6) <^ Bone(s) with constraints that target this bone.
+        constrained_bones = get_constrained_bones(active_pb)
+        if len(constrained_bones) == 1:
+            con, bone_name = constrained_bones[0]
+            POSE_MT_PIE_constrained_bones.draw_select_bone(
+                pie, con, bone_name, start_text="Constrained Bone: "
+            )
+        elif len(constrained_bones) > 1:
+            pie.menu('POSE_MT_PIE_constrained_bones', icon='COLLAPSEMENU')
         else:
             pie.separator()
 
