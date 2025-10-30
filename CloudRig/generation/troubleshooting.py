@@ -262,7 +262,6 @@ class CloudLogManager:
         entry = self.log(
             "(Fatal) " + description_short,
             description=description or description_short,
-            display_stack_trace='ALWAYS',
             **kwargs,
         )
 

@@ -205,7 +205,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         """For raising non-bug errors that should be fixable by the user."""
 
         self.logger.log_fatal_error(
-            description_short, description=description, **kwargs
+            description_short, description=description, display_stack_trace='ADVANCED', **kwargs
         )
         errmsg = (description or description_short)
         base_bone_name = kwargs.get('base_bone_name', "")
@@ -639,6 +639,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 "Post-Generation Script failed.",
                 description=f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.',
                 note=str(exc),
+                display_stack_trace='ALWAYS',
             )
             self.custom_script_failure = True
             raise exc
@@ -1117,6 +1118,7 @@ class CLOUDRIG_OT_generate(Operator):
                     op_kwargs=op_kwargs,
                     op_text="Report Bug",
                     op_icon='URL',
+                    display_stack_trace='ALWAYS',
                 )
 
                 self.report(
