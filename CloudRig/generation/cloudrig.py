@@ -1587,7 +1587,7 @@ class CloudRig_RigPreferences(PropertyGroup):
         name="Collection Filter",
         description="Search collections by name (case-sensitive)",
         update=update_collection_filter,
-        options={'LIBRARY_EDITABLE'},
+        options={'LIBRARY_EDITABLE', 'TEXTEDIT_UPDATE'},
         override={'LIBRARY_OVERRIDABLE'},
     )
 
