@@ -21,13 +21,7 @@ class POSE_OT_delete_bones(GenericBoneOperator, Operator):
         return True
 
     def execute(self, context):
-        rigs = get_current_rigs(context)
-        mirror_states = {}
-        for rig in rigs:
-            mirror_states[rig] = rig.data.use_mirror_x
         affected = self.affect_bones(context)
-        for rig in rigs:
-            rig.use_mirror_x = mirror_states[rig]
         plural = "s" if len(affected) != 1 else ""
         self.report({'INFO'}, f"Deleted {len(affected)} bone{plural}.")
         return {'FINISHED'}

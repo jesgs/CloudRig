@@ -826,10 +826,7 @@ def create_target_rig_obj(context, metarig) -> Object:
                 target_rig.animation_data.drivers.remove(fc)
 
     # Remove duplicated CloudRig data to clear ID references used by the metarig.
-    if bpy.app.version >= (5, 0, 0):
-        target_rig.property_unset('cloudrig')
-    else:
-        del target_rig['cloudrig']
+    target_rig.property_unset('cloudrig')
 
     target_rig.name = rig_name
     target_rig.data = armature
