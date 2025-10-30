@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import PropertyGroup
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, StringProperty
 from math import pi
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
@@ -53,6 +53,15 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         cls.draw_prop(context, layout, params.spine_toon, 'world_align')
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        layout.separator()
+        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_torso")
+        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik")
+        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik_secondary")
+        return layout
+
     def init_extra(self):
         """Called at the end of super().__init__()."""
         super().init_extra()
@@ -70,7 +79,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             source=self.fk_chain[-2],
             tail=self.bones_org[-1].tail,
             parent=self.torso_ctr,
-            custom_shape_name='Hyperbola',
+            custom_shape_name=self.params.spine_toon.widget_ik,
             use_custom_shape_bone_size=True,
             custom_shape_scale_xyz=(1.2, 2.3, 1.2),
             custom_shape_rotation_euler=(0, pi/2, 0)
@@ -81,7 +90,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             head=self.fk_chain[1].head,
             tail=self.bones_org[0].head,
             parent=self.torso_ctr,
-            custom_shape_name='Hyperbola',
+            custom_shape_name=self.params.spine_toon.widget_ik,
         )
         hips.collections += self.bone_sets['FK Controls'].collections
         hips_lower = self.bone_sets['Toon Spine IK'].new(
@@ -90,9 +99,10 @@ class Component_Spine_Toon(Component_Chain_FK):
             head=self.bones_org[0].tail,
             tail=self.bones_org[0].head,
             parent=hips,
-            custom_shape_name='Hyperbola',
+            custom_shape_name=self.params.spine_toon.widget_ik,
             custom_shape_wire_width=1.5,
             custom_shape_scale_xyz=(1, 0.5, 1),
+            custom_shape_along_length=0.33,
         )
         hips_lower.collections += self.bone_sets['FK Controls'].collections
 
@@ -102,7 +112,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.bones_org[0].parent = hips_lower
         self.fk_chain[0].collections = self.bone_sets['Mechanism Bones'].collections
 
-        self.make_ik_setup(self.fk_chain, chest, hips, hips_lower)
+        self.make_ik_setup(self.fk_chain, chest, hips)
 
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
             str_bone.parent = fk_bone
@@ -121,7 +131,6 @@ class Component_Spine_Toon(Component_Chain_FK):
         fk_chain: list[BoneInfo],
         chest: BoneInfo,
         hips: BoneInfo,
-        hips_lower: BoneInfo,
     ):
         ikfk_prop_name = f'{self.spine_name}_ik'
         self.add_bone_property_with_ui(
@@ -144,7 +153,7 @@ class Component_Spine_Toon(Component_Chain_FK):
                 name=name,
                 source=fk_bone,
                 parent=parent,
-                custom_shape_name='Square',
+                custom_shape_name=self.params.spine_toon.widget_ik_secondary,
                 wire_width=1.5,
                 lock_rotation=(True, False, True),
                 lock_scale=(True, True, True)
@@ -164,7 +173,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         for i, fk_bone in enumerate(fk_chain[1:]):
             ik_hlp = make_ik_bone(fk_bone.name.replace("FK", "IK"), next_parent)
             if i==0:
-                ik_hlp.add_constraint('ARMATURE', targets=[{'subtarget': hips}, {'subtarget': chest}], use_deform_preserve_volume=True)
+                arm_con = ik_hlp.add_constraint('ARMATURE', targets=[{'subtarget': hips}, {'subtarget': chest, 'weight': 0.0}], use_deform_preserve_volume=True)
 
             next_parent = chest
 
@@ -231,7 +240,8 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            custom_shape_name="Torso_Master",
+            custom_shape_name=self.params.spine_toon.widget_torso,
+            custom_shape_scale=1.5,
         )
         if self.params.spine_toon.world_align:
             self.torso_ctr.flatten()
@@ -270,6 +280,22 @@ class Params(PropertyGroup):
         name="World-Align Torso",
         description="Flatten the torso to align with the closest world axis",
         default=True,
+    )
+
+    widget_ik_secondary: StringProperty(
+        name="IK Secondary Shape",
+        description="Custom shape for IK Secondary controls",
+        default='Square_Rounded',
+    )
+    widget_torso: StringProperty(
+        name="Torso Shape",
+        description="Custom shape for the Torso control",
+        default='Torso_Master',
+    )
+    widget_ik: StringProperty(
+        name="IK Shape",
+        description="Custom shape for the Spine controls",
+        default='Hyperbola',
     )
 
 
