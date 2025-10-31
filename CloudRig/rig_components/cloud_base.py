@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     
 from bpy.props import EnumProperty, StringProperty
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, PoseBone
 
 from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
@@ -104,7 +104,7 @@ class Component_Base(
         # Used for the "Custom Root Parent" feature.
         self.root_bone = None
 
-        self.force_parameters(self.metarig_base_pbone, self.params)
+        self.__force_parameters(self.metarig_base_pbone)
 
         # Prepare Bone Sets
         self.bone_sets = self.init_bone_sets()
@@ -114,13 +114,7 @@ class Component_Base(
         self.bones_def = self.bone_sets['Deform Bones']
         self.bones_mch = self.bone_sets['Mechanism Bones']
 
-        self.init_extra()
-
-    def init_extra(self):
-        """For child classes to override, without having to pass other params."""
-        pass
-
-    def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:
+    def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
         which will be turned into real bones by the CloudRig generator.
 
@@ -194,9 +188,9 @@ class Component_Base(
         if not skip_root_parenting and self.params.parenting.root_parent != "":
             self.apply_custom_root_parent()
         if self.params.parenting.parent_switching:
-            self.apply_parent_switching(self.params.parenting.parent_slots)
-        self.relink()
-        # self.add_gizmo_interactions()
+            self.base__apply_parent_switching(self.params.parenting.parent_slots)
+        self.base__relink()
+        # self.gizmos__add_interactions()
 
     def create_helper_objects(self, context):
         # Called by the generator. Subclasses can use this to create
@@ -205,7 +199,7 @@ class Component_Base(
 
     ### Relinking - Allow users to easily add constraints to the generated rig to specific bones, 
     # in cases where user intent can be made clear.
-    def relink(self):
+    def base__relink(self):
         """Move constraints from original bones to other bones."""
         for org_idx, org_bi in enumerate(self.bones_org):
             for con_info in org_bi.constraint_infos[:]:
@@ -214,7 +208,7 @@ class Component_Base(
                     # We only want to relink constraints that were added by the user.
                     continue
 
-                to_binfo = self.get_relink_target(org_idx, con_info)
+                to_binfo = self.base__get_relink_target(org_idx, con_info)
                 if not to_binfo or to_binfo == org_bi:
                     continue
 
@@ -225,7 +219,7 @@ class Component_Base(
                 org_bi.constraint_infos.remove(con_info)
                 con_info.relink()
 
-    def get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return which BoneInfo a given constraint should be moved to.
         Params:
             org_i: Index of the original bone that has the constraint
@@ -258,7 +252,7 @@ class Component_Base(
     ##############################
     # Parameters
 
-    def force_parameters(self, metarig_base_pbone, params):
+    def __force_parameters(self, metarig_base_pbone: PoseBone):
         """Allows the class to force certain parameter values for its instances."""
         clas = type(self)
         for param in clas.forced_params.keys():

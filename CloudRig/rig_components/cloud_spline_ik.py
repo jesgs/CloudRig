@@ -91,7 +91,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         ik_chain = self.bones_org
         if self.params.spline_ik.deform_setup == 'CREATE':
-            ik_chain = self.make_def_chain()
+            ik_chain = self.toon__make_def_chain()
         self.add_spline_ik(ik_chain)
 
     def ensure_curve_obj(self, context):
@@ -156,7 +156,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         return curve_ob
 
-    def make_def_chain(self):
+    def toon__make_def_chain(self):
         segments = self.params.spline_ik.subdivide
 
         count_def_bone = 0
@@ -203,15 +203,15 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             chain_count=len(bone_chain),
         )
 
-    def get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         if not self.params.spline_ik.match_hooks:
-            # Don't allow relinking if the number of hooks doesn't match the number of org bones.
+            # Don't allow base__relinking if the number of hooks doesn't match the number of org bones.
             return self.bones_org[org_i]
 
         if con_info.name.startswith("TAIL-"):
             return self.bone_sets['Curve Hooks'][org_i+1]
 
-        return super().get_relink_target(org_i, con_info)
+        return super().base__get_relink_target(org_i, con_info)
 
     def create_helper_objects(self, context):
         """Apply the rest pose of the deform bones, as dictated by

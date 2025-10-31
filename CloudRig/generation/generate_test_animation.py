@@ -12,10 +12,10 @@ class TestAnimationGeneratorMixin:
     """
 
     ### Deform test animation generation
-    def create_test_animation(self):
+    def components_create_test_animation(self):
         """Generate deformation test animation.
 
-        In order to generate the test animation, we need to call add_test_animation() on components
+        In order to generate the test animation, we need to call fk_chain__add_test_animation() on components
         in a different order than regular component execution, and we also want to account for symmetry.
 
         Usual rig execution is in order of hierarchical levels: highest level gets executed first,
@@ -55,9 +55,9 @@ class TestAnimationGeneratorMixin:
         for component in components_anim_order:
             symm_component = self.get_symmetry_rig_component(component)
             symm_new_start_frame = 1
-            new_start_frame = component.add_test_animation(action, slot, start_frame)
+            new_start_frame = component.fk_chain__add_test_animation(action, slot, start_frame)
             if symm_component:
-                symm_new_start_frame = symm_component.add_test_animation(
+                symm_new_start_frame = symm_component.fk_chain__add_test_animation(
                     action, slot, start_frame, flip_xyz=[False, True, True]
                 )
                 components_anim_order.remove(symm_component)

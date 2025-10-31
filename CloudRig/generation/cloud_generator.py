@@ -337,7 +337,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.components_write_pbone_data(context, self.target_rig)
 
         if self.params.generate_test_action:
-            self.create_test_animation()
+            self.components_create_test_animation()
 
         if self.params.action_setups:
             action_con_component = ActionConstraintComponent(self)
@@ -469,8 +469,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bone_infos = {}
 
         for bone_name, component in component_map.items():
-            if hasattr(component, 'load_metarig_bone_infos'):
-                bone_infos.update(component.load_metarig_bone_infos())
+            if hasattr(component, 'base__load_metarig_bones'):
+                bone_infos.update(component.base__load_metarig_bones())
 
         # Parent has to be stored in a separate loop, after all BoneInfos are loaded.
         for bone_name, bone_info in bone_infos.items():

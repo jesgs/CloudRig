@@ -70,7 +70,7 @@ class BoneGizmoMixin:
 
     # https://developer.blender.org/diffusion/BSTS/browse/master/bone-gizmos/
 
-    def add_gizmo_interaction(
+    def gizmos__add_interaction(
         self, bone_names: list[str], operator: str, op_kwargs: dict
     ):
         """Whenever any of this list of bone names are interacted with through
@@ -95,8 +95,8 @@ class BoneGizmoMixin:
             del self.target_rig.data['gizmo_interactions']
         self.target_rig.data['gizmo_interactions'] = gizmo_dict
 
-    def add_gizmo_interactions(self):
+    def gizmos__add_interactions(self):
         """CloudRig types can override this and make calls to
-        add_gizmo_interaction() from here. (Just for organization)
+        gizmos__add_interaction() from here. (Just for organization)
         """
         pass

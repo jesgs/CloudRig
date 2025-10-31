@@ -20,6 +20,9 @@ class Component_Aim(Component_Base):
     parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye components with a matching string as their Eye Group paramter."
     parent_switch_overwrites_root_parent = False
 
+    ##############################
+    # Inherited functions.
+
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
@@ -31,14 +34,14 @@ class Component_Aim(Component_Base):
         )
 
         if self.params.aim.root:
-            self.root_bone = self.make_root_bone(aim_org)
+            self.root_bone = self.__make_root_bone(aim_org)
 
         self.group_master = None
         if self.params.aim.group != "":
-            self.group_master = self.ensure_group_master()
+            self.group_master = self.__ensure_group_master()
 
-        self.ctr_bone = self.make_aim_control(aim_org, aim_bone)
-        self.target_bone = self.make_target_control(aim_bone, self.group_master)
+        self.ctr_bone = self.__make_aim_control(aim_org, aim_bone)
+        self.target_bone = self.__make_target_control(aim_bone, self.group_master)
 
         aim_bone.add_constraint('DAMPED_TRACK', subtarget=self.target_bone.name)
 
@@ -48,9 +51,49 @@ class Component_Aim(Component_Base):
             def_bone.add_constraint('COPY_TRANSFORMS', subtarget=self.ctr_bone.name)
 
         if self.params.aim.create_sub_control:
-            self.create_eye_highlight(self.ctr_bone)
+            self.__create_eye_highlight(self.ctr_bone)
 
-    def find_target_pos(self, bone: BoneInfo) -> Vector:
+    def base__apply_parent_switching(
+        self,
+        parent_slots,
+        *,
+        child_bone=None,
+        prop_bone=None,
+        prop_name="",
+        panel_name="Face",
+        row_name="",
+        label_name="",
+        entry_name=""
+    ):
+        """Overrides cloud_base to apply the parent switching to the aim target
+        or group master if it exists."""
+        target_bone = self.group_master
+        if not target_bone:
+            target_bone = self.target_bone
+        else:
+            # Ensure parent switching for the group master
+            if (
+                self.group_master.parent
+                and self.group_master.parent.name == self.naming.add_prefix(self.group_master.name, "P")
+            ):
+                # If the parent switching set-up already exists, don't create it again.
+                return
+
+        super().base__apply_parent_switching(
+            parent_slots,
+            child_bone=child_bone or target_bone,
+            prop_bone=prop_bone or self.properties_bone,
+            prop_name=prop_name,
+            panel_name=panel_name,
+            label_name=label_name or "Aim Target Parent",
+            row_name=row_name,
+            entry_name=entry_name or self.params.aim.group + " Parent",
+        )
+
+    ##############################
+    # Aim Rig functions.
+
+    def __find_target_pos(self, bone: BoneInfo) -> Vector:
         """Find location of where the target bone should be for an aim bone."""
         if self.params.aim.flatten:
             direction = bone.vector.normalized()
@@ -65,12 +108,12 @@ class Component_Aim(Component_Base):
                 * self.scale
             )
 
-    def make_target_control(self, bone: BoneInfo, parent: BoneInfo = None) -> BoneInfo:
+    def __make_target_control(self, bone: BoneInfo, parent: BoneInfo = None) -> BoneInfo:
         """Set up target control for a bone."""
         if not parent:
             parent = bone.parent
 
-        head = self.find_target_pos(bone)
+        head = self.__find_target_pos(bone)
         tail = head + bone.vector
 
         target_bone = self.bone_sets['Aim Target Control'].new(
@@ -89,7 +132,7 @@ class Component_Aim(Component_Base):
 
         return target_bone
 
-    def make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
+    def __make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
         """Create direct control, with a display bone at the tip of it."""
         ctr_bone = self.bone_sets['Aim Target Control'].new(
             name=self.naming.make_name(
@@ -136,7 +179,7 @@ class Component_Aim(Component_Base):
         )
         return ctr_bone
 
-    def make_root_bone(self, org_bone) -> BoneInfo:
+    def __make_root_bone(self, org_bone) -> BoneInfo:
         root_bone = self.bone_sets['Aim Root Control'].new(
             name=self.naming.add_prefix(org_bone.name, 'ROOT'),
             source=org_bone,
@@ -150,7 +193,7 @@ class Component_Aim(Component_Base):
 
         return root_bone
 
-    def create_eye_highlight(self, ctr_bone):
+    def __create_eye_highlight(self, ctr_bone):
         name_slices = self.naming.slice_name(ctr_bone)
         name_slices[1] += "_Highlight"
         highlight_ctr = self.bone_sets['Aim Target Control'].new(
@@ -164,7 +207,7 @@ class Component_Aim(Component_Base):
 
         if ctr_bone.parent:
             prop_name = "follow_eye"
-            self.add_bone_property_with_ui(
+            self.rig_ui__add_bone_property(
                 prop_bone=highlight_ctr,
                 prop_id=prop_name,
 
@@ -191,44 +234,7 @@ class Component_Aim(Component_Base):
         if self.params.aim.deform:
             self.make_def_bone(highlight_ctr, self.bones_def)
 
-    def apply_parent_switching(
-        self,
-        parent_slots,
-        *,
-        child_bone=None,
-        prop_bone=None,
-        prop_name="",
-        panel_name="Face",
-        row_name="",
-        label_name="",
-        entry_name=""
-    ):
-        """Overrides cloud_base to apply the parent switching to the aim target
-        or group master if it exists."""
-        target_bone = self.group_master
-        if not target_bone:
-            target_bone = self.target_bone
-        else:
-            # Ensure parent switching for the group master
-            if (
-                self.group_master.parent
-                and self.group_master.parent.name == self.naming.add_prefix(self.group_master.name, "P")
-            ):
-                # If the parent switching set-up already exists, don't create it again.
-                return
-
-        super().apply_parent_switching(
-            parent_slots,
-            child_bone=child_bone or target_bone,
-            prop_bone=prop_bone or self.properties_bone,
-            prop_name=prop_name,
-            panel_name=panel_name,
-            label_name=label_name or "Aim Target Parent",
-            row_name=row_name,
-            entry_name=entry_name or self.params.aim.group + " Parent",
-        )
-
-    def find_aim_bones_in_group(self, group_name) -> list[PoseBone]:
+    def __find_aim_bones_in_group(self, group_name) -> list[PoseBone]:
         """Return a list of all cloud_aim components with a matching Aim Group."""
         aim_bones = []
         for component in self.generator.all_components:
@@ -240,7 +246,7 @@ class Component_Aim(Component_Base):
                 aim_bones.append(aim_bone)
         return aim_bones
 
-    def ensure_group_master(self) -> BoneInfo | None:
+    def __ensure_group_master(self) -> BoneInfo | None:
         """This function will be called by each aim rig, but we want to make sure
         it only runs once per aim group.
         """
@@ -252,7 +258,7 @@ class Component_Aim(Component_Base):
         if existing:
             return existing
 
-        aim_bones = self.find_aim_bones_in_group(group_name)
+        aim_bones = self.__find_aim_bones_in_group(group_name)
 
         # Find a parent to fall back to, although ideally the rigger specifies
         # parents using params.parenting.parent_switching.
@@ -269,7 +275,7 @@ class Component_Aim(Component_Base):
         aims_center = bounding_box_center([b.head for b in aim_bones])
 
         # Find center of all targets
-        target_positions = [self.find_target_pos(b) for b in aim_bones]
+        target_positions = [self.__find_target_pos(b) for b in aim_bones]
         target_center = bounding_box_center(target_positions)
         z_axis = Vector((0, 0, 0))
         for b in aim_bones:

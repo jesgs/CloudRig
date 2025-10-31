@@ -17,12 +17,12 @@ class Component_TweakBone(Component_Base):
     keep_original_bones_collections = True
     keep_original_bones_colors = True
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.tweak_bone = None
 
-    def load_metarig_bone_infos(self) -> dict[str, BoneInfo]:
-        bone_infos = super().load_metarig_bone_infos()
+    def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
+        bone_infos = super().base__load_metarig_bones()
         assert len(bone_infos) == 1
 
         bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
@@ -125,7 +125,7 @@ class Component_TweakBone(Component_Base):
         if self.params.tweak.ensure_free and len(tweak_bone.constraint_infos) > 0:
             self.root_bone = self.create_parent_constraint_holder(tweak_bone, bone_set=self.bone_sets['Mechanism Bones'])
 
-    def relink(self):
+    def base__relink(self):
         # Transfer and relink constraints and their drivers
         assert self.tweak_bone
 

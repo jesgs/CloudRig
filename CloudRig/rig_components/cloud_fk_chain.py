@@ -26,9 +26,11 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     required_chain_length = -1
 
-    def init_extra(self):
-        """Gather and validate data about the rig."""
-        super().init_extra()
+    ##############################
+    # Inherited functions.
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.limb_name = (
             self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
@@ -48,64 +50,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.params.fk_chain.create_reverse_chain = False
             self.params.fk_chain.create_curl_control = False
 
-        self.check_correct_chain_length()
+        self.__check_correct_chain_length()
 
-    def check_correct_chain_length(self):
-        req_len = type(self).required_chain_length
-        if req_len != -1 and self.bone_count != req_len:
-            self.raise_generation_error(
-                f"Chain must be exactly {req_len} connected bones."
-            )
-
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
-
-        if self.params.fk_chain.root:
-            self.root_bone = self.make_root_bone()
-
-        self.fk_chain = self.make_fk_chain(self.bones_org)
-        if self.params.fk_chain.position_along_bone > 0:
-            self.fk_offset_chain = self.make_fk_offset_chain(self.fk_chain)
-        if self.params.fk_chain.create_curl_control:
-            self.make_curl_control(self.fk_chain)
-        if self.params.fk_chain.create_reverse_chain:
-            self.make_reverse_fk_chain(self.fk_chain)
-
-        if self.params.fk_chain.counter_rotate_stretch_bones > 0:
-            self.counter_rotate_str_bones(
-                self.fk_chain,
-                self.main_str_bones,
-                self.params.fk_chain.counter_rotate_stretch_bones
-            )
-
-        self.attach_org_to_fk(self.bones_org, self.fk_chain)
-
-        if self.root_bone == self.bones_org[0]:
-            self.root_bone = self.bone_sets["FK Controls"][0]
-
-    def counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
-        for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
-            # TODO: Not sure if this should be allowed when position_along_bone > 0.
-            main_str_bone.add_constraint(
-                "COPY_ROTATION",
-                name="Copy Rotation (Counter-Rotate)",
-                use_xyz=[True, False, True],
-                invert_xyz=[True, False, True],
-                euler_order="XZY",
-                mix_mode="BEFORE",
-                space="LOCAL",
-                influence=influence,
-                subtarget=main_str_bone.parent,
-            )
-
-    def determine_if_cyclic(self) -> bool:
-        """Overrides cloud_chain.
-        Cyclic rigs are not supported beyond just the toon chain, since
-        FK chains cannot be cyclic.
-        """
-        return False
-
-    def apply_parent_switching(
+    def base__apply_parent_switching(
         self,
         parent_slots,
         *,
@@ -119,7 +66,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     ):
         """Overrides cloud_base."""
 
-        super().apply_parent_switching(
+        super().base__apply_parent_switching(
             parent_slots,
             child_bone=child_bone,
             prop_bone=prop_bone or self.properties_bone,
@@ -130,7 +77,66 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             entry_name=entry_name,
         )
 
-    def make_root_bone(self):
+    def toon__is_cyclic(self) -> bool:
+        """Overrides cloud_chain.
+        Cyclic rigs are not supported beyond just the toon chain, since
+        FK chains cannot be cyclic.
+        """
+        return False
+
+    def toon__make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
+        """Extend cloud_chain by tweaking some bbone values."""
+        def_chain = super().toon__make_def_chain(str_chain)
+
+        last_def = def_chain[-1]
+        if last_def == def_chain[0]:
+            return def_chain
+
+        # If there's no tip control, parent DEF to ORG.
+        # Useful for example for an arm rig.
+        # TODO: Maybe this should be in cloud_limb or cloud_chain?
+        if not self.params.chain.tip_control and not self.params.chain.unlock_deform:
+            last_def.parent = self.bones_org[-1]
+
+        return def_chain
+
+    def create_bone_infos(self, context):
+        super().create_bone_infos(context)
+
+        if self.params.fk_chain.root:
+            self.root_bone = self.fk_chain__make_root_bone()
+
+        self.fk_chain = self.fk_chain__make(self.bones_org)
+        if self.params.fk_chain.position_along_bone > 0:
+            self.fk_offset_chain = self.fk_chain__make_offset_chain(self.fk_chain)
+        if self.params.fk_chain.create_curl_control:
+            self.__make_curl_control(self.fk_chain)
+        if self.params.fk_chain.create_reverse_chain:
+            self.__make_reverse_fk_chain(self.fk_chain)
+
+        if self.params.fk_chain.counter_rotate_stretch_bones > 0:
+            self.__counter_rotate_str_bones(
+                self.fk_chain,
+                self.main_str_bones,
+                self.params.fk_chain.counter_rotate_stretch_bones
+            )
+
+        self.fk_chain__attach_org_to_fk(self.bones_org, self.fk_chain)
+
+        if self.root_bone == self.bones_org[0]:
+            self.root_bone = self.bone_sets["FK Controls"][0]
+
+    ##############################
+    # FK Chain functions.
+
+    def __check_correct_chain_length(self):
+        req_len = type(self).required_chain_length
+        if req_len != -1 and self.bone_count != req_len:
+            self.raise_generation_error(
+                f"Chain must be exactly {req_len} connected bones."
+            )
+
+    def fk_chain__make_root_bone(self):
         # Socket/Root bone to parent IK and FK to.
         root_name = self.naming.add_prefix(self.base_bone_name, "ROOT")
         org_bone = self.bones_org[0]
@@ -144,12 +150,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         org_bone.parent = root_bone
         return root_bone
 
-    def make_fk_chain(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
         # Keep track of which bone will need to be parented to the Hinge helper bone.
         hng_child = None
         fk_chain = []
         for i, org_bone in enumerate(org_chain):
-            fk_bone = self.make_fk_bone(org_bone)
+            fk_bone = self.__make_fk_bone(org_bone)
             fk_chain.append(fk_bone)
             if i == 0:
                 hng_child = fk_bone
@@ -168,9 +174,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         # Create Hinge helper
         if self.params.fk_chain.hinge:
-            self.make_hinge_setup(
+            self.__make_hinge_setup(
                 bone=hng_child,
-                bone_set=self.bone_sets["FK Helpers"],
+                bone_set=self.bone_sets["Mechanism Bones"],
                 category=self.limb_name,
                 parent_bone=self.root_bone,
                 hng_name=self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
@@ -181,7 +187,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         return fk_chain
 
-    def make_fk_bone(self, org_bone) -> BoneInfo:
+    def __make_fk_bone(self, org_bone) -> BoneInfo:
         fk_name = self.naming.add_prefix(org_bone, "FK")
 
         rot_mode = self.params.fk_chain.rot_mode
@@ -209,121 +215,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             fk_bone.parent = org_bone.parent
         return fk_bone
 
-    def make_reverse_fk_chain(self, fk_chain) -> list[BoneInfo]:
-        # TODO: Remove or stabilize this functionality.
-        next_parent = self.root_bone
-        reverse_fk_chain = []
-        for fk_bone in reversed(fk_chain):
-            reverse_fk = self.bone_sets["FK Reverse Controls"].new(
-                name=fk_bone.name.replace("FK-", "RFK-"),
-                source=fk_bone,
-                parent=next_parent,
-                head=fk_bone.tail,
-                tail=fk_bone.head,
-                custom_shape_name=self.params.fk_chain.widget_fk,
-                inherit_scale=self.params.fk_chain.inherit_scale,
-                custom_shape_along_length=self.params.fk_chain.display_center / 2,
-                rotation_mode=fk_bone.rotation_mode,
-            )
-            next_parent = reverse_fk
-            self.create_driven_armature_constraint(
-                fk_bone,
-                target_bones=[fk_bone.parent, reverse_fk],
-                prop_bone=self.properties_bone,
-                prop_name=self.reverse_fk_name,
-            )
-
-        self.add_bone_property_with_ui(
-            prop_bone=self.properties_bone,
-            prop_id=self.reverse_fk_name,
-            panel_name="FK",
-            label_name="Reverse FK",
-            row_name=self.limb_name,
-            slider_name=self.limb_ui_name,
-            custom_prop_settings={
-                "default": 0.0,
-                "description": f"Attach the FK chain to the Reverse FK Chain (RFK bones)",
-            },
-        )
-        return reverse_fk_chain
-
-    def make_fk_offset_chain(self, fk_chain) -> list[BoneInfo]:
-        fk_offset_chain = []
-        for fk_bone in fk_chain:
-            # Create a child that is offset along the bone by the specified amount.
-            org_bone = fk_bone.source
-
-            if fk_offset_chain:
-                fk_bone.parent = fk_offset_chain[-1]
-                fk_bone.collections = self.bone_sets['FK Controls Extra'].collections
-
-            if not self.params.chain.tip_control and org_bone == self.bones_org[-1]:
-                # Don't create unnecessary offset control for the last FK bone
-                # when the Tip Control param is disabled.
-                continue
-
-            position = (
-                org_bone.head
-                + (org_bone.tail - org_bone.head)
-                * self.params.fk_chain.position_along_bone
-            )
-
-            fk_offset_bone = self.bone_sets["FK Offset Controls"].new(
-                name=fk_bone.name.replace("FK-", "FK-OS-"),
-                source=org_bone,
-                parent=org_bone,
-                head=position,
-                custom_shape_name=self.params.fk_chain.widget_fk,
-            )
-            fk_offset_chain.append(fk_offset_bone)
-
-        # STR controls are normally parented to ORG, including the tip STR.
-        # But the FK-OS controls don't own the ORG bones (and shouldn't),
-        # so the tip STR control must be parented to the FK-OS control here.
-        if self.params.chain.tip_control:
-            self.main_str_bones[-1].parent = fk_offset_chain[-1]
-
-        return fk_offset_chain
-
-    def make_curl_control(self, fk_chain):
-        curl_control = self.bone_sets["FK Curl Control"].new(
-            name="CURL-" + self.bones_org[0].name,
-            source=fk_chain[0],
-            custom_shape_name=self.params.fk_chain.widget_fk,
-            inherit_scale=self.params.fk_chain.inherit_scale,
-            custom_shape_translation=[0, fk_chain[-1].length, 0],
-            custom_shape_transform=fk_chain[-1],
-        )
-        # These constraints will add together, so we want their total influence to add up to 1.
-        # Otherwise, the transformations will feel "slippery", as in, faster or slower than
-        # you're used to.
-        influence = 1 / len(fk_chain)
-        for fk_bone in fk_chain:
-            fk_bone.add_constraint(
-                "COPY_LOCATION",
-                target_space="LOCAL",
-                owner_space="CUSTOM",
-                space_subtarget=self.root_bone,
-                use_offset=True,
-                influence=influence,
-                subtarget=curl_control,
-            )
-            fk_bone.add_constraint(
-                "COPY_ROTATION",
-                space="LOCAL",
-                mix_mode="BEFORE",
-                influence=influence,
-                subtarget=curl_control,
-            )
-            fk_bone.add_constraint(
-                "COPY_SCALE",
-                space="LOCAL",
-                use_offset=True,
-                subtarget=curl_control,
-                influence=influence,
-            )
-
-    def make_hinge_setup(
+    def __make_hinge_setup(
         self,
         bone,
         category,
@@ -370,7 +262,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
         # Store UI info
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=prop_bone,
             prop_id=prop_name,
             panel_name=panel_name,
@@ -406,23 +298,136 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         bone.parent = hng_bone
         return hng_bone
 
-    def make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
-        """Extend cloud_chain by tweaking some bbone values."""
-        def_chain = super().make_def_chain(str_chain)
+    def fk_chain__make_offset_chain(self, fk_chain) -> list[BoneInfo]:
+        fk_offset_chain = []
+        for fk_bone in fk_chain:
+            # Create a child that is offset along the bone by the specified amount.
+            org_bone = fk_bone.source
 
-        last_def = def_chain[-1]
-        if last_def == def_chain[0]:
-            return def_chain
+            if fk_offset_chain:
+                fk_bone.parent = fk_offset_chain[-1]
+                fk_bone.collections = self.bone_sets['FK Controls Extra'].collections
 
-        # If there's no tip control, parent DEF to ORG.
-        # Useful for example for an arm rig.
-        # TODO: Maybe this should be in cloud_limb or cloud_chain?
-        if not self.params.chain.tip_control and not self.params.chain.unlock_deform:
-            last_def.parent = self.bones_org[-1]
+            if not self.params.chain.tip_control and org_bone == self.bones_org[-1]:
+                # Don't create unnecessary offset control for the last FK bone
+                # when the Tip Control param is disabled.
+                continue
 
-        return def_chain
+            position = (
+                org_bone.head
+                + (org_bone.tail - org_bone.head)
+                * self.params.fk_chain.position_along_bone
+            )
 
-    def attach_org_to_fk(self, org_bones, fk_bones):
+            fk_offset_bone = self.bone_sets["FK Offset Controls"].new(
+                name=fk_bone.name.replace("FK-", "FK-OS-"),
+                source=org_bone,
+                parent=org_bone,
+                head=position,
+                custom_shape_name=self.params.fk_chain.widget_fk,
+            )
+            fk_offset_chain.append(fk_offset_bone)
+
+        # STR controls are normally parented to ORG, including the tip STR.
+        # But the FK-OS controls don't own the ORG bones (and shouldn't),
+        # so the tip STR control must be parented to the FK-OS control here.
+        if self.params.chain.tip_control:
+            self.main_str_bones[-1].parent = fk_offset_chain[-1]
+
+        return fk_offset_chain
+
+    def __make_curl_control(self, fk_chain):
+        curl_control = self.bone_sets["FK Curl Control"].new(
+            name="CURL-" + self.bones_org[0].name,
+            source=fk_chain[0],
+            custom_shape_name=self.params.fk_chain.widget_fk,
+            inherit_scale=self.params.fk_chain.inherit_scale,
+            custom_shape_translation=[0, fk_chain[-1].length, 0],
+            custom_shape_transform=fk_chain[-1],
+        )
+        # These constraints will add together, so we want their total influence to add up to 1.
+        # Otherwise, the transformations will feel "slippery", as in, faster or slower than
+        # you're used to.
+        influence = 1 / len(fk_chain)
+        for fk_bone in fk_chain:
+            fk_bone.add_constraint(
+                "COPY_LOCATION",
+                target_space="LOCAL",
+                owner_space="CUSTOM",
+                space_subtarget=self.root_bone,
+                use_offset=True,
+                influence=influence,
+                subtarget=curl_control,
+            )
+            fk_bone.add_constraint(
+                "COPY_ROTATION",
+                space="LOCAL",
+                mix_mode="BEFORE",
+                influence=influence,
+                subtarget=curl_control,
+            )
+            fk_bone.add_constraint(
+                "COPY_SCALE",
+                space="LOCAL",
+                use_offset=True,
+                subtarget=curl_control,
+                influence=influence,
+            )
+
+    def __make_reverse_fk_chain(self, fk_chain) -> list[BoneInfo]:
+        # TODO: Remove or stabilize this functionality.
+        next_parent = self.root_bone
+        reverse_fk_chain = []
+        for fk_bone in reversed(fk_chain):
+            reverse_fk = self.bone_sets["FK Reverse Controls"].new(
+                name=fk_bone.name.replace("FK-", "RFK-"),
+                source=fk_bone,
+                parent=next_parent,
+                head=fk_bone.tail,
+                tail=fk_bone.head,
+                custom_shape_name=self.params.fk_chain.widget_fk,
+                inherit_scale=self.params.fk_chain.inherit_scale,
+                custom_shape_along_length=self.params.fk_chain.display_center / 2,
+                rotation_mode=fk_bone.rotation_mode,
+            )
+            next_parent = reverse_fk
+            self.create_driven_armature_constraint(
+                fk_bone,
+                target_bones=[fk_bone.parent, reverse_fk],
+                prop_bone=self.properties_bone,
+                prop_name=self.reverse_fk_name,
+            )
+
+        self.rig_ui__add_bone_property(
+            prop_bone=self.properties_bone,
+            prop_id=self.reverse_fk_name,
+            panel_name="FK",
+            label_name="Reverse FK",
+            row_name=self.limb_name,
+            slider_name=self.limb_ui_name,
+            custom_prop_settings={
+                "default": 0.0,
+                "description": f"Attach the FK chain to the Reverse FK Chain (RFK bones)",
+            },
+        )
+        return reverse_fk_chain
+
+    def __counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
+        for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
+            # TODO: Not sure if this should be allowed when position_along_bone > 0.
+            main_str_bone.add_constraint(
+                "COPY_ROTATION",
+                name="Copy Rotation (Counter-Rotate)",
+                use_xyz=[True, False, True],
+                invert_xyz=[True, False, True],
+                euler_order="XZY",
+                mix_mode="BEFORE",
+                space="LOCAL",
+                influence=influence,
+                subtarget=main_str_bone.parent,
+            )
+
+    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
         """Make ORG bones Copy Transforms of FK bones."""
         for org_bone, fk_bone in zip(org_bones, fk_bones):
             org_bone.use_connect = False
@@ -433,10 +438,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 name="Copy Transforms FK",
             )
 
-    ##############################
-    # Test Action
-
-    def add_test_animation(
+    def fk_chain__add_test_animation(
         self, action: Action, slot: ActionSlot, start_frame=1, flip_xyz=[False, False, False]
     ) -> int:
         """Add animation curves to the action to test this rig.
@@ -503,9 +505,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
         cls.define_bone_set(
             "FK Controls Extra", color_palette="THEME02", collections=["FK Secondary"]
-        )
-        cls.define_bone_set(
-            "FK Helpers", collections=["Mechanism Bones"], is_advanced=True
         )
 
     @classmethod

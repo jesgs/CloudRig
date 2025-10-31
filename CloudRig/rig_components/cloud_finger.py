@@ -17,12 +17,12 @@ class Component_Finger(Component_Chain_IKFK):
 
     required_chain_length = 3
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 
-    def setup_ik_pole_follow_slider(
+    def ik_chain__make_pole_follow_switch(
         self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
     ):
         """Overrides cloud_ik_chain to avoid creating this complex set-up.
@@ -30,7 +30,7 @@ class Component_Finger(Component_Chain_IKFK):
         ik_pole.parent = ik_mstr
         pass
 
-    def add_bone_property_with_ui(
+    def rig_ui__add_bone_property(
         self,
         prop_bone: BoneInfo,
         prop_id: str,
@@ -39,6 +39,7 @@ class Component_Finger(Component_Chain_IKFK):
         custom_prop_settings={},
         **kwargs
     ):
+        # TODO: This should be restructured, we shouldn't be overriding this function.
         if panel_name == "FK/IK Switch":
             label_name = "FK/IK Switch"
             custom_prop_settings['default'] = 0.0
@@ -47,7 +48,7 @@ class Component_Finger(Component_Chain_IKFK):
         if label_name == "IK Pole Follow":
             return
 
-        super().add_bone_property_with_ui(
+        super().rig_ui__add_bone_property(
             prop_bone=prop_bone,
             prop_id=prop_id,
             panel_name=panel_name,
@@ -57,11 +58,11 @@ class Component_Finger(Component_Chain_IKFK):
             **kwargs
         )
 
-    def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         # We don't want IK pole parent switching for finger components.
         pass
 
-    def world_align_last_fk(self):
+    def ik_chain__world_align_fk(self):
         # Don't world align last FK, only IK.
         pass
 
@@ -129,7 +130,7 @@ class Component_Finger(Component_Chain_IKFK):
 
         # Add UI data for switching between the two IK types
 
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.full_length_ik_name,
             panel_name="IK",
@@ -153,9 +154,9 @@ class Component_Finger(Component_Chain_IKFK):
 
         return ik2_chain
 
-    def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
         """Overrides cloud_ik_chain"""
-        ui_data = super().create_fkik_switch_ui_data(
+        ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
 

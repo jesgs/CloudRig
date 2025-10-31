@@ -13,7 +13,7 @@ from .properties_ui import add_property_to_ui
 class CloudUIMixin:
     forced_params = dict()
 
-    def add_bone_property_with_ui(
+    def rig_ui__add_bone_property(
         self,
         prop_bone: BoneInfo,
         prop_id: str,

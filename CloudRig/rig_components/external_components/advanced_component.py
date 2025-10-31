@@ -25,7 +25,7 @@ class AdvancedComponent(Component_Base):
 
     # If you want to force some inherited parameters to specific values and hide
     # them from the UI. Check Component_Base implementation for more inherited
-    # functionalities like constraint relinking, parent switching, logging, etc.
+    # functionalities like constraint base__relinking, parent switching, logging, etc.
     forced_params = {"advanced_component.always_false": False}
 
     @classmethod
@@ -57,12 +57,8 @@ class AdvancedComponent(Component_Base):
         # (Visible and grayed out when Advanced Mode is enabled.)
         cls.draw_prop(context, layout, params.advanced_component, "always_false")
 
-    def init_extra(self):
-        """Called at the end of super().__init__().
-        Feel free to override __init__() directly, but it takes some parameters
-        that you probably don't care about.
-        """
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     ################################
     # Generation Steps.
@@ -74,21 +70,23 @@ class AdvancedComponent(Component_Base):
         # Read the value of the `create_control` parameter.
         # The `advanced_component` part of the path is given by the name of this file.
         if self.params.advanced_component.create_control:
-            orig_bone = self.bones_org[0]
-            # We must create BoneInfo instances on a BoneSet.
-            # "My Bone Set" was defined in define_bone_sets() above.
-            ctr_bone: BoneInfo = self.bone_sets["My Bone Set"].new(
-                name="CTR-" + orig_bone.name,
-                source=orig_bone,  # head, tail, roll, radius, width, envelope.
-                custom_shape_name="Circle",  # See Widgets.blend for bone shapes.
-                parent=orig_bone.parent,
-            )
-            orig_bone.add_constraint("COPY_TRANSFORMS", subtarget=ctr_bone.name)
+            self.__create_control(self.bones_org[0])
         else:
             # Generation errors are NOT BUGS. You can raise them if user is
             # doing something wrong.
             self.raise_generation_error("Create Control must be True!")
             assert False, "If this were to run, user gets a bug report button."
+
+    def __create_control(self, bone: BoneInfo):
+        # We must create BoneInfo instances on a BoneSet.
+        # "My Bone Set" was defined in define_bone_sets() above.
+        ctr_bone: BoneInfo = self.bone_sets["My Bone Set"].new(
+            name="CTR-" + bone.name,
+            source=bone,  # head, tail, roll, radius, width, envelope.
+            custom_shape_name="Circle",  # See Widgets.blend for bone shapes.
+            parent=bone.parent,
+        )
+        bone.add_constraint("COPY_TRANSFORMS", subtarget=ctr_bone.name)
 
     def create_component_interactions(self, context):
         """Second function called by the generator, after most BoneInfos have 

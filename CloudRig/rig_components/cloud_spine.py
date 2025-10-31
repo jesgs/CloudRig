@@ -22,9 +22,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
     }
     always_use_custom_props = True
 
-    def init_extra(self):
-        """Gather and validate data about the rig."""
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if self.params.spine.use_ik and self.bone_count < 3:
             self.raise_generation_error(
@@ -54,7 +53,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         # The lowest level IK mechanism bones, which aim at the reverse bones and own the FK bones.
         self.ik_chain = []
 
-    def make_root_bone(self):
+    def fk_chain__make_root_bone(self):
         """Overrides cloud_fk_chain."""
 
         # Create Torso Master control
@@ -67,9 +66,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
         )
         return self.torso_bone
 
-    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
         """Overrides cloud_fk_chain."""
-        fk_chain = super().make_fk_chain(org_chain)
+        fk_chain = super().fk_chain__make(org_chain)
 
         fk_chain[0].parent = self.torso_bone
 
@@ -80,7 +79,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             head=org_chain[0].tail,
             tail=org_chain[0].head,
             custom_shape_name="Hyperbola",
-            parent=fk_chain[0],
+            parent=self.torso_bone,
         )
 
         if self.params.spine.world_align:
@@ -265,7 +264,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             )
 
         # Store info for UI
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.ik_stretch_name,
             panel_name="IK",
@@ -278,7 +277,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             },
         )
 
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.ik_prop_name,
             panel_name="FK/IK Switch",
@@ -290,25 +289,11 @@ class Component_Spine_IKFK(Component_Chain_FK):
             },
         )
 
-    def make_main_str_bone(
-        self, org_chain: BoneInfo, org_i: int, at_tip=False
-    ) -> BoneInfo:
-        str_bone = super().make_main_str_bone(org_chain, org_i, at_tip)
-        if self.params.chain.smooth_spline:
-            # If Smooth Spline is enabled, we don't need to fix the spine's curvature.
-            return str_bone
-
-        if org_i == 0 or at_tip:
-            # The first STR bone and the tip STR bone don't need corrections.
-            return str_bone
-
-        return str_bone
-
-    def attach_org_to_fk(self, org_bones, fk_bones):
+    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
         """Overrides cloud_fk_chain.
         First STR bone should be owned by the hips (via first ORG bone).
         """
-        super().attach_org_to_fk(org_bones, fk_bones)
+        super().fk_chain__attach_org_to_fk(org_bones, fk_bones)
         org_bones[0].parent = self.mstr_hips
 
     ##############################

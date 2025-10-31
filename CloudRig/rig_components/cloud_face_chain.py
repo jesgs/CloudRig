@@ -174,42 +174,42 @@ class Component_FaceChain(Component_ToonChain):
             if hasattr(chain_rig, 'make_sticky_eyelid'):
                 chain_rig.make_sticky_eyelid()
 
-    def relink(self, last_chain_done=False):
+    def base__relink(self, last_chain_done=False):
         # Only relink all cloud_face_chain components when the last one is generating.
         if last_chain_done:
-            super().relink()
+            super().base__relink()
             return
         elif not self.is_last_chain_rig:
             return
 
         for rig in self.chain_rigs:
-            rig.relink(last_chain_done=True)
+            rig.base__relink(last_chain_done=True)
 
-    def get_relink_target(self, org_i: int, con: ConstraintInfo):
-        """Overrides cloud_chain. Only work when called by the last chain rig.
-        Relink target should become the intersection control if there is one.
+    def base__get_relink_target(self, org_i: int, con: ConstraintInfo):
+        """Overrides cloud_base. Only work when called by the last chain rig.
+        relink target should become the intersection control if there is one.
         """
 
-        relink_bone = super().get_relink_target(org_i, con)
+        base__relink_bone = super().base__get_relink_target(org_i, con)
 
         is_intersection = False
-        if hasattr(relink_bone, 'intersection_ctrl'):
-            relink_bone = relink_bone.intersection_ctrl
+        if hasattr(base__relink_bone, 'intersection_ctrl'):
+            base__relink_bone = base__relink_bone.intersection_ctrl
             is_intersection = True
 
         if con.type == 'ARMATURE':
             if is_intersection:
-                for i, con_info in enumerate(relink_bone.constraint_infos):
+                for i, con_info in enumerate(base__relink_bone.constraint_infos):
                     if con_info.type == 'ARMATURE':
-                        relink_bone.constraint_infos.pop(i)
-            if not hasattr(relink_bone, "parent_helper") and not is_intersection:
-                relink_bone = relink_bone.parent_helper = self.create_parent_bone(
-                    relink_bone, self.bones_mch
+                        base__relink_bone.constraint_infos.pop(i)
+            if not hasattr(base__relink_bone, "parent_helper") and not is_intersection:
+                base__relink_bone = base__relink_bone.parent_helper = self.create_parent_bone(
+                    base__relink_bone, self.bones_mch
                 )
             elif not is_intersection:
-                relink_bone = relink_bone.parent_helper
+                base__relink_bone = base__relink_bone.parent_helper
 
-        return relink_bone
+        return base__relink_bone
 
     @staticmethod
     def create_intersection_for_cluster(cluster: list[BoneInfo]) -> BoneInfo:

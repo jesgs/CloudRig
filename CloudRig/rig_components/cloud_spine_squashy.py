@@ -20,8 +20,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
     }
     always_use_custom_props = True
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if not self.bone_count > 1:
             self.raise_generation_error(
@@ -34,7 +34,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         self.root_torso = None
 
-    def make_root_bone(self):
+    def fk_chain__make_root_bone(self):
         """Overrides cloud_fk_chain."""
 
         # Create Torso Master control
@@ -47,9 +47,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
         )
         return root_bone
 
-    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
         """Overrides cloud_fk_chain."""
-        fk_chain = super().make_fk_chain(org_chain)
+        fk_chain = super().fk_chain__make(org_chain)
 
         # Create master hip control
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
@@ -189,7 +189,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         counter_rotate.drivers.append(counter_rotate_driver)
 
         # Store info for UI
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.squashy_name,
             panel_name="FK/IK Switch",
@@ -201,7 +201,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             },
         )
 
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.squashy_volume_name,
             panel_name="IK",

@@ -13,8 +13,8 @@ class Component_Feather(Component_Chain_FK):
         'fk_chain.display_center': False,
     }
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if self.bone_count != 1:
             self.raise_generation_error("Feather rig must consist of exactly 1 bone.")
@@ -68,7 +68,7 @@ class Component_Feather(Component_Chain_FK):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     ##############################
-    # No parameters for this rig type.
+    # No parameters for this component type.
 
 
 RIG_COMPONENT_CLASS = Component_Feather

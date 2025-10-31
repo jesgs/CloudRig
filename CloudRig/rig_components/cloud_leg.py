@@ -27,8 +27,8 @@ class Component_Limb_BipedLeg(Component_Limb):
 
     required_chain_length = 4
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # IK values
         self.ik_pole_direction = -1
@@ -70,15 +70,15 @@ class Component_Limb_BipedLeg(Component_Limb):
         properties_bone.parent = self.bones_org[-2]
         return properties_bone
 
-    def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
+    def toon__get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
         """Override cloud_leg, force 1 segment on the foot and toe."""
         if org_bone in self.bones_org[2:]:
             return 1
         return self.params.chain.segments
 
-    def make_ik_setup(self):
+    def ik_chain__make_ik_setup(self):
         """Override."""
-        super().make_ik_setup()
+        super().ik_chain__make_ik_setup()
 
         if self.params.limb.double_ik:
             self.create_foot_dsp(self.ik_mstr.parent)
@@ -92,7 +92,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             # we need a world-aligned child of the IK bone.
             if self.params.ik_chain.world_aligned:
                 self.foot_snap_bone = self.bone_sets['IK Mechanism'].new(
-                    name=self.bone_sets['FK Controls'][2].name.replace("W-", "W-SNAP-"),
+                    name=self.naming.add_prefix(self.bone_sets['FK Controls'][2], "SNAP"),
                     source=self.bone_sets['FK Controls'][2],
                     vector=flat(self.bone_sets['FK Controls'][2].vector),
                     parent=self.ik_chain[2],
@@ -126,23 +126,23 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         return dsp_bone
 
-    def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
+    def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
         """Override."""
         if shape_name == "":
             shape_name = "Foot"
-        ik_master = super().create_ik_master(
+        ik_master = super().ik_chain__make_master_ctr(
             bone_set, source_bone, bone_name, shape_name
         )
         ik_master.custom_shape_scale = 2.8
 
         return ik_master
 
-    def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
         """Overrides cloud_limb."""
         # Toe is not relevant for IK/FK switching.
         fk_chain = fk_chain[:-1]
 
-        ui_data = super().create_fkik_switch_ui_data(
+        ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
 
@@ -156,24 +156,24 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         return ui_data
 
-    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
         """Overrides cloud_limb."""
-        fk_chain = super().make_fk_chain(org_chain)
+        fk_chain = super().fk_chain__make(org_chain)
         self.fk_toe = org_chain[-1].fk_bone
         # Toe FK should be available in the IK collection too.
         fk_chain[-1].collections += self.bone_sets['IK Controls'].collections
         return fk_chain
 
-    def world_align_last_fk(self):
+    def ik_chain__world_align_fk(self):
         """Overrides cloud_ik_chain.
         Make SECOND TO last FK bone world-aligned.
         """
-        self.make_world_aligned_control(self.bones_org[-2].fk_bone)
+        self.ik_chain__world_aligned_helper(self.bones_org[-2].fk_bone)
 
-    def setup_ik_pole_follow_slider(self, ik_pole, ik_mstr, stretch_bone, _default=0.0):
+    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, stretch_bone, _default=0.0):
         """Override cloud_ik_chain to set the default to be 1.0, so that leg IK poles
         follow the IK master by default."""
-        super().setup_ik_pole_follow_slider(ik_pole, ik_mstr, stretch_bone, 1.0)
+        super().ik_chain__make_pole_follow_switch(ik_pole, ik_mstr, stretch_bone, 1.0)
 
     ##############################
     # End of overrides

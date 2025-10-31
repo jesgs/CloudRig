@@ -25,8 +25,8 @@ class Component_Limb(Component_Chain_IKFK):
 
     required_chain_length = 3
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if not self.params.chain.smooth_spline:
             self.params.limb.auto_hose = False
 
@@ -56,14 +56,14 @@ class Component_Limb(Component_Chain_IKFK):
             source = self.bones_org[-1]
         return super().create_properties_bone(source=source)
 
-    def get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
+    def toon__get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
         """Override cloud_chain, force 1 segment on the wrist."""
         if org_bone == self.bones_org[-1]:
             return 1
         return self.params.chain.segments
 
-    def make_fk_chain(self, org_chain) -> list[BoneInfo]:
-        fk_chain = super().make_fk_chain(org_chain)
+    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
+        fk_chain = super().fk_chain__make(org_chain)
         if self.params.limb.limit_elbow_axes:
             # Locking the FK elbow/knee's Y/Z rotation is necessary for accurate
             # IK/FK snapping. But it might be an annoying limitation for more cartoony
@@ -72,9 +72,9 @@ class Component_Limb(Component_Chain_IKFK):
             fk_elbow.lock_rotation = [False, True, True]
         return fk_chain
 
-    def make_ik_setup(self):
+    def ik_chain__make_ik_setup(self):
         """Override cloud_ik_chain."""
-        super().make_ik_setup()
+        super().ik_chain__make_ik_setup()
 
         # Parent control
         if self.params.limb.double_ik:
@@ -102,18 +102,18 @@ class Component_Limb(Component_Chain_IKFK):
             ik_elbow = self.ik_chain[1]
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
 
-    def create_ik_master(self, bone_set, source_bone, bone_name="", shape_name=""):
+    def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
         """Override."""
         if shape_name == "":
             shape_name = "Hyperbola"
-        ik_master = super().create_ik_master(
+        ik_master = super().ik_chain__make_master_ctr(
             bone_set, source_bone, bone_name, shape_name
         )
         ik_master.custom_shape_scale = 0.8
 
         return ik_master
 
-    def apply_parent_switching(
+    def base__apply_parent_switching(
         self,
         parent_slots,
         *,
@@ -130,7 +130,7 @@ class Component_Limb(Component_Chain_IKFK):
         if self.params.limb.double_ik:
             child_bone = self.ik_mstr.parent
 
-        super().apply_parent_switching(
+        super().base__apply_parent_switching(
             parent_slots,
             child_bone=child_bone,
             prop_bone=prop_bone,
@@ -141,16 +141,16 @@ class Component_Limb(Component_Chain_IKFK):
             entry_name=entry_name,
         )
 
-    def setup_ik_pole_parent_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         """Overrides cloud_ik_chain."""
         if self.params.limb.double_ik:
             ik_mstr = ik_mstr.parent
 
-        super().setup_ik_pole_parent_switch(ik_pole, ik_mstr)
+        super().ik_chain__make_pole_parent_switch(ik_pole, ik_mstr)
 
-    def create_fkik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
         """Overrides cloud_ik_chain."""
-        ui_data = super().create_fkik_switch_ui_data(
+        ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
 
@@ -245,7 +245,7 @@ class Component_Limb(Component_Chain_IKFK):
             )
         else:
             # Don't create a control bone, instead just add a slider in the UI.
-            self.add_bone_property_with_ui(
+            self.rig_ui__add_bone_property(
                 prop_bone=self.properties_bone,
                 prop_id=prop_name,
                 panel_name="Auto Rubber Hose",
@@ -516,7 +516,7 @@ class Component_Limb(Component_Chain_IKFK):
         active_pb = context.active_pose_bone
         rig_chain = cls.find_component_chain_of_pbone(active_pb)
 
-        _pole_angle, _pole_vector, pole_location = cls.calculate_ik_info_static(
+        _pole_angle, _pole_vector, pole_location = cls.ik_chain__calc_ik_info(
             rig_chain[0], rig_chain[1]
         )
 

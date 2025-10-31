@@ -62,9 +62,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik_secondary")
         return layout
 
-    def init_extra(self):
-        """Called at the end of super().__init__()."""
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
 
     ################################
@@ -112,7 +111,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.bones_org[0].parent = hips_lower
         self.fk_chain[0].collections = self.bone_sets['Mechanism Bones'].collections
 
-        self.make_ik_setup(self.fk_chain, chest, hips)
+        self.ik_chain__make_ik_setup(self.fk_chain, chest, hips)
 
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
             str_bone.parent = fk_bone
@@ -126,14 +125,14 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.main_str_bones[0].parent = hips_lower
         self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True])
 
-    def make_ik_setup(
+    def ik_chain__make_ik_setup(
         self,
         fk_chain: list[BoneInfo],
         chest: BoneInfo,
         hips: BoneInfo,
     ):
         ikfk_prop_name = f'{self.spine_name}_ik'
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=ikfk_prop_name,
             panel_name='FK/IK Switch',
@@ -189,7 +188,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
     def make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
         squash_prop_name = f"squash_{self.spine_name}"
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=squash_prop_name,
             panel_name='IK',
@@ -231,7 +230,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             ik_str_chain.append(ik_str)
         return ik_str_chain
 
-    def make_root_bone(self):
+    def fk_chain__make_root_bone(self):
         """Overrides cloud_fk_chain."""
 
         # Create Torso Master control.
@@ -250,8 +249,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.torso_ctr.collections += self.bone_sets['Toon Spine IK'].collections
         return self.torso_ctr
 
-    def make_fk_chain(self, bones_org: list[BoneInfo]) -> list[BoneInfo]:
-        fk_chain = super().make_fk_chain(bones_org)
+    def fk_chain__make(self, bones_org: list[BoneInfo]) -> list[BoneInfo]:
+        fk_chain = super().fk_chain__make(bones_org)
         fk_chain[0].parent = self.root_bone
 
         # Put FK bones at the center.
@@ -264,7 +263,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         return fk_chain
 
-    def attach_org_to_fk(self, bones_org, fk_bones):
+    def fk_chain__attach_org_to_fk(self, bones_org, fk_bones):
         """Parent original bones to FK bones.
         The purpose of original bones in this component is just for any child 
         components to follow along in an expected way.

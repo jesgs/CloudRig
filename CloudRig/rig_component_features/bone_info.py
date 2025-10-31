@@ -487,12 +487,12 @@ class BoneInfo:
     def clear_constraints(self):
         self.constraint_infos = []
 
-    def relink(self):
-        """Relinking a bone means relinking its drivers, constraints and
+    def base__relink(self):
+        """relinking a bone means relinking its drivers, constraints and
         constraint drivers - Anything targetting the metarig will target the rig instead,
         and constraints will be moved to other bones if indicated by a prefix to do so."""
 
-        # Relink bone drivers
+        # relink bone drivers
         for drv in self.drivers:
             self.bone_set.rig_component.relink_driver_info(drv)
 
@@ -959,7 +959,7 @@ class ConstraintInfo(dict):
             )
             return
 
-        # Relink constraint drivers
+        # relink constraint drivers
         for drv in self.drivers:
             self.bone_info.bone_set.rig_component.relink_driver_info(drv)
 

@@ -28,8 +28,8 @@ class Component_Curve_Hooked(Component_Base):
 
     ui_name = "Curve: With Hooks"
 
-    def init_extra(self):
-        super().init_extra()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.initialize_curve_rig()
 
     def initialize_curve_rig(self):
@@ -54,7 +54,7 @@ class Component_Curve_Hooked(Component_Base):
 
         self.make_ctrls_for_curve_points()
 
-    def get_relink_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
+    def base__get_relink_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
         return self.root_bone
 
     def make_curve_root_ctrl(self):

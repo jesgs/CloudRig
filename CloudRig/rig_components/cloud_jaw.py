@@ -22,7 +22,7 @@ class Component_Jaw(Component_CopyBone):
     """
 
     """Cleanup TODO:
-        - Currently a lot of bones are required to be parented in a specific way for the Jaw rig, and be assigned the cloud_copy rig type, which comes with confusing options.
+        - Currently a lot of bones are required to be parented in a specific way for the Jaw rig, and be assigned the cloud_copy component type, which comes with confusing options.
             Would be better to not have to assign a Component Type to these bones.
             They could all be parented to the jaw bone (otherwise throw useful error) and then loaded into BoneInfo instances during initialize() by making the load_org_bones() function in cloud_base more flexible.
 
@@ -123,7 +123,7 @@ class Component_Jaw(Component_CopyBone):
             'STRETCH_TO', subtarget=face_squash_bi
         )
         # Store UI info & create custom prop for face squash volume preservation (a toggle for now)
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=jaw_bi,
             prop_id='preserve_volume',
             panel_name="Face",
@@ -145,7 +145,7 @@ class Component_Jaw(Component_CopyBone):
 
     def setup_teeth_follow_mouth(self, jaw_bi, lower_face_bi, mouth_bi, lower_jaw):
         # Set up Teeth Follow Mouth toggle
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=jaw_bi,
             prop_id='teeth_follow_mouth',
             panel_name="Face",
@@ -209,7 +209,7 @@ class Component_Jaw(Component_CopyBone):
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the rig parameters."""
 
-        layout.label(text="The cloud_jaw rig type is still in experimental stage.")
+        layout.label(text="The cloud_jaw component type is still in experimental stage.")
         layout.label(text="Compatibility will break, don't use for anything serious!")
         cls.draw_prop_search(
             context,

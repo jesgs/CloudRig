@@ -109,7 +109,7 @@ class CloudParentingMixin:
 
     """Class that provides parent switching parameters to Component_Base."""
 
-    def apply_parent_switching(
+    def base__apply_parent_switching(
         self,
         parent_slots,
         *,
@@ -138,7 +138,7 @@ class CloudParentingMixin:
             # For some components, it might make sense to only supply 1 parent,
             # eg. for cloud_ik_chain, since there the parent swithcing setup
             # relates to the IK master and pole target rather than the root bone.
-            self.add_bone_property_with_ui(
+            self.rig_ui__add_bone_property(
                 prop_bone=prop_bone,
                 prop_id=prop_name,
                 panel_name=panel_name,

@@ -6,7 +6,7 @@ from .cloud_aim import Component_Aim
 
 
 class Component_Eyelid(Component_FaceChain):
-    """Extends cloud_face_chain with eyelid functionality. This rig's parent bone must have the cloud_aim rig type!"""
+    """Extends cloud_face_chain with eyelid functionality. This rig's parent bone must have the cloud_aim component type!"""
 
     ui_name = "Chain: Eyelid"
 
@@ -32,7 +32,7 @@ class Component_Eyelid(Component_FaceChain):
         parent_rig = self.parent_component
         if not isinstance(parent_rig, Component_Aim):
             self.raise_generation_error(
-                f'Parent of eyelid rig MUST be a "cloud_aim" rig type, not "{type(parent_rig)}"!'
+                f'Parent of eyelid rig MUST be a "cloud_aim" component type, not "{type(parent_rig)}"!'
             )
 
         sticky_prop_name = (
@@ -107,7 +107,7 @@ class Component_Eyelid(Component_FaceChain):
             str_ctr.parent = rot_ctr
 
     def create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
-        self.add_bone_property_with_ui(
+        self.rig_ui__add_bone_property(
             prop_bone=eye_rig.properties_bone,
             prop_id=sticky_prop_name,
             panel_name="Face",

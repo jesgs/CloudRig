@@ -57,7 +57,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
     bl_idname = __package__
 
     # This should get a version bump whenever there is a change that affects metarigs.
-    # For example, changing names of rig types, splitting an old rig type into multiple,
+    # For example, changing names of component types, splitting an old component type into multiple,
     # changing names of parameters, etc.
     cloud_metarig_version = 4
 

@@ -46,7 +46,7 @@ class CloudMechanismMixin:
 
     @property
     def metarig_base_pbone(self):
-        """Return pose bone in the metarig that has this rig type assigned."""
+        """Return pose bone in the metarig that has this component assigned."""
         return self.get_metarig_pbone(self.base_bone_name)
 
     def vector_along_bone_chain(self, chain, length=0, index=-1):

@@ -26,8 +26,11 @@ class Component_CopyBone(Component_Base):
     keep_original_bones_collections = True
     keep_original_bones_colors = False
 
-    def init_extra(self):
-        super().init_extra()
+    ##############################
+    # Inherited functions.
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
 
@@ -80,7 +83,7 @@ class Component_CopyBone(Component_Base):
                 def_bone.parent = bone_info
 
             if self.params.copy.property_ui_subpanel:
-                self.add_ui_data_of_bone(
+                self.copy__add_ui_data_of_bone(
                     bone_info,
                     self.params.copy.property_ui_subpanel,
                     self.params.copy.property_ui_label,
@@ -88,12 +91,15 @@ class Component_CopyBone(Component_Base):
 
         first_bone = self.root_bone = self.bones_org[0]
         if self.params.copy.custom_pivot:
-            self.root_bone = self.create_custom_pivot(first_bone, bone_set=self.bone_sets['Pivot Control'])
+            self.root_bone = self.copy__make_custom_pivot(first_bone, bone_set=self.bone_sets['Pivot Control'])
 
         if self.params.copy.ensure_free and len(first_bone.constraint_infos) > 0:
             self.root_bone = self.create_parent_constraint_holder(first_bone, bone_set=self.bone_sets['Mechanism Bones'])
 
-    def create_custom_pivot(self, boneinfo, bone_set=None):
+    ##############################
+    # Bone Copy functions.
+
+    def copy__make_custom_pivot(self, boneinfo, bone_set=None):
         if not bone_set:
             bone_set = boneinfo.bone_set
         pivot = self.create_parent_bone(boneinfo, bone_set)
@@ -112,7 +118,7 @@ class Component_CopyBone(Component_Base):
         pivot.color_palette_pose = boneinfo.color_palette_pose
         return pivot
 
-    def add_ui_data_of_bone(self, bone: BoneInfo, panel_name: str, label_name=""):
+    def copy__add_ui_data_of_bone(self, bone: BoneInfo, panel_name: str, label_name=""):
         """Add the UI data of a single BoneInfo's custom props to the rig's UI data.
         Properties of the bone will be displayed under the provided sub-panel and label.
         This will be displayed in the Sidebar->CloudRig->Settings.
@@ -144,7 +150,7 @@ class Component_CopyBone(Component_Base):
                 # Negative integers are not supported for this.
                 texts = self.metarig_base_pbone["$" + prop_name]
 
-            self.add_bone_property_with_ui(
+            self.rig_ui__add_bone_property(
                 prop_bone=bone,
                 prop_id=prop_name,
                 panel_name=panel_name,

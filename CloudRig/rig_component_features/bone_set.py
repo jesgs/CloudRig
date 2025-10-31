@@ -7,7 +7,6 @@ from bpy.types import (
     PoseBone,
     Bone,
     EditBone,
-    FCurve,
     Object,
     Operator,
 )
@@ -20,30 +19,6 @@ from bl_ui.generic_ui_list import draw_ui_list
 from .bone_info import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
 from ..utils.rig import get_pbone_of_active
 from ..bs_utils.prefs import get_addon_prefs
-
-
-def driver_from_real(fcurve: FCurve) -> dict:
-    """Return a dictionary describing the driver."""
-    driver = fcurve.driver
-    driver_info = {'type': driver.type, 'variables': [], 'index': fcurve.array_index}
-    if driver.type == 'SCRIPTED':
-        driver_info['expression'] = driver.expression
-    for var in driver.variables:
-        driver_info['variables'].append(
-            {'name': var.name, 'type': var.type, 'targets': []}
-        )
-        for t in var.targets:
-            target_info = {'id': t.id}
-            if var.type == 'SINGLE_PROP':
-                target_info['id_type'] = t.id_type
-                target_info['data_path'] = t.data_path
-            else:
-                target_info['bone_target'] = t.bone_target
-                target_info['transform_type'] = t.transform_type
-                target_info['transform_space'] = t.transform_space
-                target_info['rotation_mode'] = t.rotation_mode
-            driver_info['variables'][-1]['targets'].append(target_info)
-    return driver_info
 
 
 class LinkedList(list):
@@ -521,7 +496,6 @@ class CLOUDRIG_UL_bone_sets(UIList):
             icon='SETTINGS'
         row.label(text=ui_bone_set.ui_name, icon=icon)
         row.prop(bone_set, 'color_palette', text="")
-
 
 
 class CLOUDRIG_OT_bone_set_collection_add(Operator):
