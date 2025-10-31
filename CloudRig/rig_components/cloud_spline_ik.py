@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty, StringProperty
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, Object
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 
 from .cloud_curve import Component_Curve_Hooked, get_points
@@ -21,7 +21,20 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     # but ideally that should not be the case.
     keep_original_bones = True
 
-    def initialize_curve_rig(self):
+    ################################
+    # Inherited functions.
+
+    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+        if not self.params.spline_ik.match_hooks:
+            # Don't allow base__relinking if the number of hooks doesn't match the number of org bones.
+            return self.bones_org[org_i]
+
+        if con_info.name.startswith("TAIL-"):
+            return self.bone_sets['Curve Hooks'][org_i+1]
+
+        return super().base__get_relink_target(org_i, con_info)
+
+    def curve__initialize(self):
         length = self.bone_count
         subdiv = self.params.spline_ik.subdivide
         total = length * subdiv
@@ -53,48 +66,30 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         super(Component_Curve_Hooked, self).create_bone_infos(context)
         self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
         if self.params.curve.create_root:
-            self.make_curve_root_ctrl()
+            self.curve__make_root()
         if not self.params.curve.target:
-            self.ensure_curve_obj(context)
-        self.reset_curve_obj(self.params.curve.target)
-        self.make_ctrls_for_curve_points()
+            self.params.curve.target = self.__ensure_curve_obj(context)
+        self.__reset_curve_obj(self.params.curve.target)
+        self.hooks_of_splines = self.curve__make_ctrls_for_points(self.params.curve.target)
+
         if self.params.spline_ik.create_fk_chain:
-            for spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
-                next_parent = hooks_of_spline[0].parent
-                for hook_idx, hook_ctrl in enumerate(hooks_of_spline):
-                    fk_ctrl = self.bone_sets['Curve FK Controls'].new(
-                        name=hook_ctrl.name.replace("Hook_", "FK-"),
-                        source=hook_ctrl,
-                        use_custom_shape_bone_size=True,
-                        custom_shape_name=self.params.spline_ik.widget_fk,
-                        custom_shape_scale=self.params.curve.widget_size,
-                        parent=next_parent,
-                        rotation_mode='YZX',
-                        inherit_scale=self.params.curve.inherit_scale,
-                        roll_type='ALIGN',
-                        roll_bone=hook_ctrl,
-                        roll=0,
-                    )
-                    hook_ctrl.parent = fk_ctrl
-                    next_parent = fk_ctrl
-                    hook_ctrl.add_constraint(
-                        'COPY_ROTATION',
-                        name="Copy Rotation (Counter-Rotate)",
-                        use_xyz = [True, False, True],
-                        invert_xyz = [True, False, True],
-                        euler_order = 'XZY',
-                        mix_mode = 'BEFORE',
-                        space = 'LOCAL',
-                        influence = 0.5,
-                        subtarget=fk_ctrl,
-                    )
+            self.__make_fk_chain()
 
         ik_chain = self.bones_org
         if self.params.spline_ik.deform_setup == 'CREATE':
-            ik_chain = self.toon__make_def_chain()
-        self.add_spline_ik(ik_chain)
+            ik_chain = self.__make_def_chain()
+        self.__add_spline_ik(ik_chain)
 
-    def ensure_curve_obj(self, context):
+    def create_helper_objects(self, context):
+        """Apply the rest pose of the deform bones, as dictated by
+        the Spline IK constraint."""
+        super().create_helper_objects(context)
+        self.__apply_def_chain_pose()
+
+    ################################
+    # Spline IK functions.
+
+    def __ensure_curve_obj(self, context) -> Object:
         """Find or create the Bezier Curve that will be used by the rig."""
 
         curve_ob = self.params.curve.target
@@ -113,10 +108,9 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         curve_ob = bpy.data.objects.new(curve_name, curve)
         context.scene.collection.objects.link(curve_ob)
         self.lock_transforms(curve_ob)
-        self.params.curve.target = curve_ob
         return curve_ob
 
-    def reset_curve_obj(self, curve_ob):
+    def __reset_curve_obj(self, curve_ob):
         # Remove all splines, then add a new one.
         for spline in curve_ob.data.splines[:]:
             curve_ob.data.splines.remove(spline)
@@ -156,7 +150,38 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         return curve_ob
 
-    def toon__make_def_chain(self):
+    def __make_fk_chain(self):
+        for spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
+            next_parent = hooks_of_spline[0].parent
+            for hook_idx, hook_ctrl in enumerate(hooks_of_spline):
+                fk_ctrl = self.bone_sets['Curve FK Controls'].new(
+                    name=hook_ctrl.name.replace("Hook_", "FK-"),
+                    source=hook_ctrl,
+                    use_custom_shape_bone_size=True,
+                    custom_shape_name=self.params.spline_ik.widget_fk,
+                    custom_shape_scale=self.params.curve.widget_size,
+                    parent=next_parent,
+                    rotation_mode='YZX',
+                    inherit_scale=self.params.curve.inherit_scale,
+                    roll_type='ALIGN',
+                    roll_bone=hook_ctrl,
+                    roll=0,
+                )
+                hook_ctrl.parent = fk_ctrl
+                next_parent = fk_ctrl
+                hook_ctrl.add_constraint(
+                    'COPY_ROTATION',
+                    name="Copy Rotation (Counter-Rotate)",
+                    use_xyz = [True, False, True],
+                    invert_xyz = [True, False, True],
+                    euler_order = 'XZY',
+                    mix_mode = 'BEFORE',
+                    space = 'LOCAL',
+                    influence = 0.5,
+                    subtarget=fk_ctrl,
+                )
+
+    def __make_def_chain(self):
         segments = self.params.spline_ik.subdivide
 
         count_def_bone = 0
@@ -194,7 +219,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         return self.bone_sets['Deform Bones']
 
-    def add_spline_ik(self, bone_chain):
+    def __add_spline_ik(self, bone_chain):
         # Add constraint to deform chain
         bone_chain[-1].add_constraint(
             'SPLINE_IK',
@@ -203,21 +228,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             chain_count=len(bone_chain),
         )
 
-    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
-        if not self.params.spline_ik.match_hooks:
-            # Don't allow base__relinking if the number of hooks doesn't match the number of org bones.
-            return self.bones_org[org_i]
-
-        if con_info.name.startswith("TAIL-"):
-            return self.bone_sets['Curve Hooks'][org_i+1]
-
-        return super().base__get_relink_target(org_i, con_info)
-
-    def create_helper_objects(self, context):
-        """Apply the rest pose of the deform bones, as dictated by
-        the Spline IK constraint."""
-        super().create_helper_objects(context)
-
+    def __apply_def_chain_pose(self):
+        # TODO: This is quite hacky. We could add a flag in BoneInfo named "Apply Pose", then 
+        # if any bones have that flag during generation, run the Apply Pose as Rest Pose 
+        # operator with those bones selected. That's also a little hacky, but maybe a bit less. (I'm not sure if all the bones would be visible)
         self.target_rig.data.pose_position = 'POSE'
         bpy.ops.object.mode_set(mode='EDIT')
 

@@ -23,15 +23,31 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         'fk_chain.position_along_bone': 0,
     }
 
+    ##############################
+    # Inherited functions.
+
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
-        phys_ob = self.ensure_physics_object(context, self.bone_sets['FK Controls'])
+        phys_ob = self.__ensure_physics_object(context, self.bone_sets['FK Controls'])
         if self.params.physics_chain.make_ctrl:
-            self.make_physics_chain(self.bone_sets['FK Controls'])
-        self.constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
+            self.__make_physics_chain(self.bone_sets['FK Controls'])
+        self.__constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
 
-    def ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
+    def create_helper_objects(self, context):
+        """This is called by the generator. In this case, the helper object
+        needed to be created earlier, so that was already done at the create_bone_infos() stage.
+        But here we still need to poke the Armature constraint to wake up,
+        because we initialized it before the real bone existed..."""
+        context.view_layer.update()
+        phys_obj = self.params.physics_chain.phys_obj
+        for c in phys_obj.constraints:
+            c.influence = c.influence
+
+    ##############################
+    # Physics chain functions.
+
+    def __ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
         phys_obj = self.params.physics_chain.phys_obj
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
@@ -138,7 +154,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         self.params.physics_chain.phys_obj = phys_obj
         return phys_obj
 
-    def make_physics_chain(self, from_chain: list[BoneInfo]):
+    def __make_physics_chain(self, from_chain: list[BoneInfo]):
         # Make a chain of bones to control the physics object.
         next_parent = from_chain[0].parent
         for fk_ctrl in from_chain:
@@ -168,7 +184,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         # and root parenting behaviours
         self.root_bone = self.bone_sets['Physics Bones'][0]
 
-    def constrain_chain_to_phys_ob(self, phys_ob: Object, bone_chain: list[BoneInfo]):
+    def __constrain_chain_to_phys_ob(self, phys_ob: Object, bone_chain: list[BoneInfo]):
         # For the moment, let's just slap some constraints on the FK chain.
         for fk_ctrl in bone_chain:
             fk_ctrl.add_constraint(
@@ -177,16 +193,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
                 target=phys_ob,
                 subtarget=self.naming.add_prefix(fk_ctrl, PHYS_PREFIX),
             )
-
-    def create_helper_objects(self, context):
-        """This is called by the generator. In this case, the helper object
-        needed to be created earlier, so that was already done at the create_bone_infos() stage.
-        But here we still need to poke the Armature constraint to wake up,
-        because we initialized it before the real bone existed..."""
-        context.view_layer.update()
-        phys_obj = self.params.physics_chain.phys_obj
-        for c in phys_obj.constraints:
-            c.influence = c.influence
 
     ##############################
     # Parameters

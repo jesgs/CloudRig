@@ -25,39 +25,63 @@ class Component_Limb(Component_Chain_IKFK):
 
     required_chain_length = 3
 
+    ##############################
+    # Inherited functions.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         if not self.params.chain.smooth_spline:
             self.params.limb.auto_hose = False
 
-        # IK values
         self.ik_pole_direction = 1
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.tweak_str_limb()
+        self.__tweak_str_limb()
         segments = self.params.chain.segments
         if self.params.limb.auto_hose and segments > 1:
             upper_section = self.main_str_bones[0].sub_bones
             lower_section = self.main_str_bones[1].sub_bones
-            self.setup_rubber_hose(
+            self.__make_rubber_hose(
                 self.bones_org[0], self.bones_org[1], upper_section, lower_section
             )
 
-    ##############################
-    # Override some inherited functionality
+    def base__apply_parent_switching(
+        self,
+        parent_slots,
+        *,
+        child_bone=None,
+        prop_bone=None,
+        prop_name="",
+        panel_name="IK",
+        row_name="",
+        label_name="Parent Switching",
+        entry_name="",
+    ):
+        if self.params.limb.double_ik:
+            child_bone = self.ik_mstr.parent
 
-    def create_properties_bone(self) -> BoneInfo:
-        """Overrides cloud_base.
-        Place the properties bone near the end of the limb, parented to the last ORG bone.
-        """
+        super().base__apply_parent_switching(
+            parent_slots,
+            child_bone=child_bone,
+            prop_bone=prop_bone,
+            prop_name=prop_name,
+            panel_name=panel_name,
+            row_name=row_name,
+            label_name=label_name,
+            entry_name=entry_name,
+        )
+
+    def base__create_properties_bone(self) -> BoneInfo:
+        """Place the properties bone near the end of the limb, parented to the last original bone."""
         source = self.bones_org[0]
         if self.params.custom_props.props_storage == 'GENERATED':
             source = self.bones_org[-1]
-        return super().create_properties_bone(source=source)
+        return super().base__create_properties_bone(source=source)
 
     def toon__get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
-        """Override cloud_chain, force 1 segment on the wrist."""
+        """Force 1 segment on the wrist."""
         if org_bone == self.bones_org[-1]:
             return 1
         return self.params.chain.segments
@@ -73,7 +97,6 @@ class Component_Limb(Component_Chain_IKFK):
         return fk_chain
 
     def ik_chain__make_ik_setup(self):
-        """Override cloud_ik_chain."""
         super().ik_chain__make_ik_setup()
 
         # Parent control
@@ -90,7 +113,7 @@ class Component_Limb(Component_Chain_IKFK):
                 double_control.collections,
             )
 
-        self.add_counterrotate_constraint(self.str_chain[: self.params.chain.segments])
+        self.__counter_rotate_first_str(self.str_chain[: self.params.chain.segments])
 
         # Lock IK axes
         if self.params.limb.limit_elbow_axes:
@@ -103,7 +126,6 @@ class Component_Limb(Component_Chain_IKFK):
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
 
     def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
-        """Override."""
         if shape_name == "":
             shape_name = "Hyperbola"
         ik_master = super().ik_chain__make_master_ctr(
@@ -113,43 +135,13 @@ class Component_Limb(Component_Chain_IKFK):
 
         return ik_master
 
-    def base__apply_parent_switching(
-        self,
-        parent_slots,
-        *,
-        child_bone=None,
-        prop_bone=None,
-        prop_name="",
-        panel_name="IK",
-        row_name="",
-        label_name="Parent Switching",
-        entry_name="",
-    ):
-        """Overrides cloud_ik_chain."""
-
-        if self.params.limb.double_ik:
-            child_bone = self.ik_mstr.parent
-
-        super().base__apply_parent_switching(
-            parent_slots,
-            child_bone=child_bone,
-            prop_bone=prop_bone,
-            prop_name=prop_name,
-            panel_name=panel_name,
-            row_name=row_name,
-            label_name=label_name,
-            entry_name=entry_name,
-        )
-
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
-        """Overrides cloud_ik_chain."""
         if self.params.limb.double_ik:
             ik_mstr = ik_mstr.parent
 
         super().ik_chain__make_pole_parent_switch(ik_pole, ik_mstr)
 
     def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
-        """Overrides cloud_ik_chain."""
         ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
@@ -163,9 +155,9 @@ class Component_Limb(Component_Chain_IKFK):
         return ui_data
 
     ##############################
-    # End of overrides
+    # Limb functions.
 
-    def tweak_str_limb(self):
+    def __tweak_str_limb(self):
         # Make changes to the STR chain to make it behave more like a limb.
 
         # Disable first Copy Rotation constraint on the upperarm
@@ -174,7 +166,7 @@ class Component_Limb(Component_Chain_IKFK):
                 str_h_bone = b.parent
                 str_h_bone.constraint_infos[2].mute = True
 
-    def add_counterrotate_constraint(self, str_chain: list[BoneInfo]):
+    def __counter_rotate_first_str(self, str_chain: list[BoneInfo]):
         """Counter-Rotate constraint for the first main STR bone.
         This is so that the twisting fades in starting at the shoulder, towards the elbow.
         """
@@ -206,7 +198,7 @@ class Component_Limb(Component_Chain_IKFK):
             }
         )
 
-    def setup_rubber_hose(
+    def __make_rubber_hose(
         self,
         org_upper: BoneInfo,
         org_lower: BoneInfo,
@@ -223,7 +215,7 @@ class Component_Limb(Component_Chain_IKFK):
         control_bone = None
         if self.params.limb.auto_hose_control:
             # Create control bone
-            control_bone = self.make_rubber_hose_control(org_lower)
+            control_bone = self.__make_rubber_hose_control(org_lower)
             self.properties_bone.custom_props[prop_name] = {'default': 0.0}
             self.properties_bone.drivers.append(
                 {
@@ -257,7 +249,7 @@ class Component_Limb(Component_Chain_IKFK):
                 slider_name=self.limb_ui_name,
             )
 
-        self.make_rubber_hose_constraints(
+        self.__make_rubber_hose_constraints(
             org_upper,
             org_lower,
             str_upper_section,
@@ -266,7 +258,7 @@ class Component_Limb(Component_Chain_IKFK):
             hose_type=self.params.limb.auto_hose_type,
         )
 
-    def make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
+    def __make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
         control_bone = self.bone_sets['FK Controls Extra'].new(
             name=self.naming.add_prefix(org_lower, "RubberHose"),
             source=org_lower,
@@ -303,7 +295,7 @@ class Component_Limb(Component_Chain_IKFK):
 
         return control_bone
 
-    def make_rubber_hose_constraints(
+    def __make_rubber_hose_constraints(
         self,
         org_upper: BoneInfo,
         org_lower: BoneInfo,

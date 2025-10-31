@@ -22,6 +22,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
     }
     always_use_custom_props = True
 
+    ################################
+    # Inherited functions.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -88,6 +91,13 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         return fk_chain
 
+    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
+        """Overrides cloud_fk_chain.
+        First STR bone should be owned by the hips (via first ORG bone).
+        """
+        super().fk_chain__attach_org_to_fk(org_bones, fk_bones)
+        org_bones[0].parent = self.mstr_hips
+
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         # If we want to parent things to the root bone, we use self.root_torso.
@@ -96,14 +106,17 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.root_torso = self.root_bone
 
         if self.params.spine.use_ik:
-            self.make_ik_spine()
+            self.__make_ik_spine()
 
         if self.params.spine.double:
             self.root_bone = self.create_parent_bone(
                 self.root_torso, self.bone_sets['Spine Parent Controls']
             )
 
-    def make_ik_spine(self):
+    ################################
+    # IK/FK spine functions.
+
+    def __make_ik_spine(self):
         ### Create master chest control.
         chest_org = self.bones_org[-2]
         head = chest_org.center
@@ -288,13 +301,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 'description': "Switch to an IK-like posing mode. Instead of posing the spine from bottom to top, this lets you control the two end points in an intuitive way"
             },
         )
-
-    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
-        """Overrides cloud_fk_chain.
-        First STR bone should be owned by the hips (via first ORG bone).
-        """
-        super().fk_chain__attach_org_to_fk(org_bones, fk_bones)
-        org_bones[0].parent = self.mstr_hips
 
     ##############################
     # Parameters

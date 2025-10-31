@@ -17,18 +17,13 @@ class Component_Finger(Component_Chain_IKFK):
 
     required_chain_length = 3
 
+    ##############################
+    # Inherited functions.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
-
-    def ik_chain__make_pole_follow_switch(
-        self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
-    ):
-        """Overrides cloud_ik_chain to avoid creating this complex set-up.
-        Just parent the pole to the master."""
-        ik_pole.parent = ik_mstr
-        pass
 
     def rig_ui__add_bone_property(
         self,
@@ -58,13 +53,42 @@ class Component_Finger(Component_Chain_IKFK):
             **kwargs
         )
 
+    def ik_chain__make_pole_follow_switch(
+        self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
+    ):
+        """Overrides cloud_ik_chain to avoid creating this complex set-up.
+        Just parent the pole to the master."""
+        ik_pole.parent = ik_mstr
+        pass
+
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
-        # We don't want IK pole parent switching for finger components.
+        """Disable IK pole parent switching for finger components."""
         pass
 
     def ik_chain__world_align_fk(self):
-        # Don't world align last FK, only IK.
+        """Don't world align FK for fingers, only IK."""
         pass
+
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+        """Overrides cloud_ik_chain"""
+        ui_data = super().ik_chain__get_ik_switch_ui_data(
+            fk_chain, ik_chain, ik_mstr, ik_pole
+        )
+
+        # It's quite strange to be creating an extra helper bone in this function,
+        # but we need it for correct snapping in this case.
+        tip_str = self.main_str_bones[-1]
+        snap_helper = self.bone_sets['Mechanism Bones'].new(
+            source=tip_str,
+            parent=tip_str,
+            name="SNAP-" + ik_mstr.name,
+            use_inherit_rotation=False,
+        )
+
+        map_on = [(ik_mstr.name, snap_helper.name)]
+
+        ui_data['op_kwargs']['map_on'] = map_on
+        return ui_data
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
@@ -75,11 +99,14 @@ class Component_Finger(Component_Chain_IKFK):
             # Parent the pole target to the stretch bone
             self.pole_ctrl.parent = self.stretch_bone
 
-        self.create_two_bone_ik_chain(
+        self.__create_two_bone_ik_chain(
             self.bones_org[:-1], self.ik_chain, self.pole_ctrl
         )
 
-    def create_two_bone_ik_chain(
+    ##############################
+    # Finger functions.
+
+    def __create_two_bone_ik_chain(
         self,
         org_chain: list[BoneInfo],
         ik_chain: list[BoneInfo],
@@ -154,26 +181,7 @@ class Component_Finger(Component_Chain_IKFK):
 
         return ik2_chain
 
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
-        """Overrides cloud_ik_chain"""
-        ui_data = super().ik_chain__get_ik_switch_ui_data(
-            fk_chain, ik_chain, ik_mstr, ik_pole
-        )
-
-        # It's quite strange to be creating an extra helper bone in this function,
-        # but we need it for correct snapping in this case.
-        tip_str = self.main_str_bones[-1]
-        snap_helper = self.bone_sets['Mechanism Bones'].new(
-            source=tip_str,
-            parent=tip_str,
-            name="SNAP-" + ik_mstr.name,
-            use_inherit_rotation=False,
-        )
-
-        map_on = [(ik_mstr.name, snap_helper.name)]
-
-        ui_data['op_kwargs']['map_on'] = map_on
-        return ui_data
-
+    ##############################
+    # No additional parameters for this component type.
 
 RIG_COMPONENT_CLASS = Component_Finger

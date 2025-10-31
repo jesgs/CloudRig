@@ -68,6 +68,9 @@ class Component_Jaw(Component_CopyBone):
 
     ui_name = 'Jaw (Legacy)'
 
+    ##############################
+    # Inherited functions.
+
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         # Not yet sure what's the best way to make the user define the components of the jaw rig
@@ -86,7 +89,7 @@ class Component_Jaw(Component_CopyBone):
         face_squash_bi = self.generator.find_bone_info(self.params.jaw.squash_bone)
         if not face_squash_bi:
             self.raise_generation_error("Squash Bone not found!")
-        lower_face_squasher = self.create_face_squasher(
+        lower_face_squasher = self.__make_face_squasher(
             face_squash_bi, lower_face_bi, jaw_bi
         )
         chin_bi = self.generator.find_bone_info(self.params.jaw.chin_bone)
@@ -96,21 +99,24 @@ class Component_Jaw(Component_CopyBone):
         if not mouth_bi:
             self.raise_generation_error("Mouth Master Bone not found!")
 
-        lower_jaw = self.make_lower_jaw(jaw_bi, mouth_bi)
+        lower_jaw = self.__make_lower_jaw(jaw_bi, mouth_bi)
 
         jaw_bi.parent = lower_face_squasher
         mouth_bi.parent = lower_face_squasher
 
-        self.setup_teeth_follow_mouth(jaw_bi, lower_face_bi, mouth_bi, lower_jaw)
+        self.__teeth_follow_mouth(jaw_bi, lower_face_bi, mouth_bi, lower_jaw)
 
-    def make_lower_jaw(self, jaw_bi, mouth_bi) -> BoneInfo:
+    ##############################
+    # Jaw functions.
+
+    def __make_lower_jaw(self, jaw_bi, mouth_bi) -> BoneInfo:
         lower_jaw = self.bone_sets['Mechanism Bones'].new(
             name="LowerJaw-" + jaw_bi.name, source=jaw_bi, parent=mouth_bi
         )
         lower_jaw.add_constraint('COPY_TRANSFORMS', subtarget=jaw_bi)
         return lower_jaw
 
-    def create_face_squasher(self, face_squash_bi, lower_face_bi, jaw_bi) -> BoneInfo:
+    def __make_face_squasher(self, face_squash_bi, lower_face_bi, jaw_bi) -> BoneInfo:
         lower_face_squasher = self.bone_sets['Jaw Controls'].new(
             name="SQ-" + face_squash_bi.name,
             source=face_squash_bi,
@@ -143,7 +149,7 @@ class Component_Jaw(Component_CopyBone):
 
         return lower_face_squasher
 
-    def setup_teeth_follow_mouth(self, jaw_bi, lower_face_bi, mouth_bi, lower_jaw):
+    def __teeth_follow_mouth(self, jaw_bi, lower_face_bi, mouth_bi, lower_jaw):
         # Set up Teeth Follow Mouth toggle
         self.rig_ui__add_bone_property(
             prop_bone=jaw_bi,

@@ -20,6 +20,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
     }
     always_use_custom_props = True
 
+    ##############################
+    # Inherited functions.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -33,6 +36,21 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.squashy_volume_name = "squashy_spine_volume_" + self.spine_name.lower()
 
         self.root_torso = None
+
+    def create_bone_infos(self, context):
+        super().create_bone_infos(context)
+
+        # If we want to parent things to the root bone, we use self.root_torso.
+        # However, for spine.double to work, self.root_bone must be the bone
+        # returned from create_parent_bone().
+        self.root_torso = self.root_bone
+
+        self.__make_squashy_spine()
+
+        if self.params.spine_squashy.double:
+            self.root_bone = self.create_parent_bone(
+                self.root_torso, self.bone_sets['Spine Parent Controls']
+            )
 
     def fk_chain__make_root_bone(self):
         """Overrides cloud_fk_chain."""
@@ -74,22 +92,10 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         return fk_chain
 
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
+    ##############################
+    # Shoulder functions.
 
-        # If we want to parent things to the root bone, we use self.root_torso.
-        # However, for spine.double to work, self.root_bone must be the bone
-        # returned from create_parent_bone().
-        self.root_torso = self.root_bone
-
-        self.make_squashy_spine()
-
-        if self.params.spine_squashy.double:
-            self.root_bone = self.create_parent_bone(
-                self.root_torso, self.bone_sets['Spine Parent Controls']
-            )
-
-    def make_squashy_spine(self):
+    def __make_squashy_spine(self):
         ### Create master chest control
         chest_org = self.bones_org[-1]
         self.mstr_chest = self.bone_sets['Spine Main Controls'].new(

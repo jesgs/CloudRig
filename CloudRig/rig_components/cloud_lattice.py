@@ -19,13 +19,53 @@ class Component_Lattice(Component_Base):
 
     keep_original_bones = False
 
+    ##############################
+    # Inherited functions.
+
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.test_lattice_already_used()
-        self.lattice_root = self.make_lattice_root_ctrl(self.root_bone)
-        self.hook_bone = self.make_hook_ctrl(self.lattice_root)
+        self.__check_lattice_already_used()
+        self.lattice_root = self.__make_lattice_root(self.root_bone)
+        self.hook_bone = self.__make_hook_ctrl(self.lattice_root)
 
-    def make_lattice_root_ctrl(self, org_bi):
+    def create_helper_objects(self, context):
+        super().create_helper_objects(context)
+        root_pb = self.target_rig.pose.bones.get(self.lattice_root.name)
+        hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
+        lattice_ob = self.params.lattice.lattice = self.__ensure_lattice(context, hook_pb.name)
+        if self.params.lattice.regenerate:
+            self.__reset_lattice(context, self.params.lattice.lattice, root_pb, hook_pb)
+        else:
+            # Reset Hook inverse matrices
+            for m in lattice_ob.modifiers:
+                if m.type == 'HOOK':
+                    m.subtarget = m.subtarget
+
+    ##############################
+    # Lattice functions.
+
+    def __check_lattice_already_used(self):
+        """Test if the target lattice object is already being used by
+        another cloud_lattice rig."""
+
+        for bone_name, component in self.generator.component_map.items():
+            if isinstance(component, type(self)):
+                if component == self:
+                    return
+                if (
+                    component.params.lattice.lattice == self.params.lattice.lattice
+                    and self.params.lattice.lattice != None
+                ):
+                    self.raise_generation_error(
+                        "Lattice shared by multiple components",
+                        operator='object.cloudrig_clear_pointer_param',
+                        op_kwargs={
+                            'bone_name': self.metarig_base_pbone.name,
+                            'param_name': 'lattice.lattice',
+                        },
+                    )
+
+    def __make_lattice_root(self, org_bi):
         name_parts = self.naming.slice_name(org_bi)
         root_name = self.naming.make_name(['ROOT', 'LTC'], name_parts[1], name_parts[2])
         root_bone = self.bone_sets['Lattice Controls'].new(
@@ -40,7 +80,7 @@ class Component_Lattice(Component_Base):
             root_bone.use_custom_shape_bone_size=True
         return root_bone
 
-    def make_hook_ctrl(self, root_bone):
+    def __make_hook_ctrl(self, root_bone):
         hook_name = root_bone.name.replace("ROOT-LTC", "LTC")
         hook_bone = self.bone_sets['Lattice Controls'].new(
             name=hook_name,
@@ -51,20 +91,7 @@ class Component_Lattice(Component_Base):
         )
         return hook_bone
 
-    def create_helper_objects(self, context):
-        super().create_helper_objects(context)
-        root_pb = self.target_rig.pose.bones.get(self.lattice_root.name)
-        hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
-        lattice_ob = self.params.lattice.lattice = self.ensure_lattice(context, hook_pb.name)
-        if self.params.lattice.regenerate:
-            self.reset_lattice(context, self.params.lattice.lattice, root_pb, hook_pb)
-        else:
-            # Reset Hook inverse matrices
-            for m in lattice_ob.modifiers:
-                if m.type == 'HOOK':
-                    m.subtarget = m.subtarget
-
-    def ensure_lattice(self, context, lattice_name="Lattice") -> Object:
+    def __ensure_lattice(self, context, lattice_name="Lattice") -> Object:
         lattice_ob = self.params.lattice.lattice
         if lattice_ob:
             return lattice_ob
@@ -74,7 +101,7 @@ class Component_Lattice(Component_Base):
         context.scene.collection.objects.link(lattice_ob)
         return lattice_ob
 
-    def reset_lattice(
+    def __reset_lattice(
         self, context, lattice_ob: Object, root_bone: PoseBone, hook_bone: PoseBone
     ):
         # If lattice doesn't exist, create it.
@@ -123,27 +150,6 @@ class Component_Lattice(Component_Base):
         hook_mod.subtarget = hook_bone.name
 
         return lattice_ob
-
-    def test_lattice_already_used(self) -> bool:
-        """Test if the target lattice object is already being used by
-        another cloud_lattice rig."""
-
-        for bone_name, component in self.generator.component_map.items():
-            if isinstance(component, type(self)):
-                if component == self:
-                    return
-                if (
-                    component.params.lattice.lattice == self.params.lattice.lattice
-                    and self.params.lattice.lattice != None
-                ):
-                    self.raise_generation_error(
-                        "Lattice shared by multiple components",
-                        operator='object.cloudrig_clear_pointer_param',
-                        op_kwargs={
-                            'bone_name': self.metarig_base_pbone.name,
-                            'param_name': 'lattice.lattice',
-                        },
-                    )
 
     ##############################
     # Parameters

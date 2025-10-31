@@ -52,9 +52,9 @@ class CloudCustomPropertiesMixin:
             )
         elif storage == 'GENERATED':
             # Create a bone at the base of the rig with a cogwheel shape.
-            return self.create_properties_bone()
+            return self.base__create_properties_bone()
 
-    def create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
+    def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
         if not source:
             source = self.bones_org[0]
         prop_bone_name = self.naming.add_prefix(source, "PRP")

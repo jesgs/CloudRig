@@ -26,48 +26,53 @@ class Component_Spine_Toon(Component_Chain_FK):
         'fk_chain.double_first': False,
     }
 
-    @classmethod
-    def define_bone_sets(cls):
-        super().define_bone_sets()
-        cls.define_bone_set(
-            "Toon Spine Mechanism",
-            collections=["Mechanism Bones"],
-            is_advanced=True
-        )
-        cls.define_bone_set(
-            "Toon Spine IK Secondary",
-            color_palette="THEME12",
-            collections=["IK Secondary"],
-            wire_width=1.5,
-        )
-        cls.define_bone_set(
-            "Toon Spine IK",
-            color_palette="THEME13",
-            collections=["IK Controls"],
-            wire_width=2.5,
-        )
-
-    @classmethod
-    def draw_control_params(cls, layout, context, params):
-        super().draw_control_params(layout, context, params)
-
-        cls.draw_prop(context, layout, params.spine_toon, 'world_align')
-
-    @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
-        layout.separator()
-        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_torso")
-        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik")
-        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik_secondary")
-        return layout
+    ################################
+    # Inherited functions.
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
 
-    ################################
-    # Generation Steps.
+    def fk_chain__make_root_bone(self):
+        # Create Torso Master control.
+        self.torso_ctr = self.bone_sets['FK Controls'].new(
+            name=self.naming.add_prefix(self.spine_name, 'TORSO'),
+            parent=self.bones_org[0].parent,
+            source=self.bones_org[0],
+            head=self.bones_org[0].center,
+            custom_shape_name=self.params.spine_toon.widget_torso,
+            custom_shape_scale=1.5,
+        )
+        if self.params.spine_toon.world_align:
+            self.torso_ctr.flatten()
+        self.torso_ctr.custom_shape_wire_width += 1.0
+        # Also assign to IK collections.
+        self.torso_ctr.collections += self.bone_sets['Toon Spine IK'].collections
+        return self.torso_ctr
+
+    def fk_chain__make(self, bones_org: list[BoneInfo]) -> list[BoneInfo]:
+        fk_chain = super().fk_chain__make(bones_org)
+        fk_chain[0].parent = self.root_bone
+
+        # Put FK bones at the center.
+        prev = None
+        for fk_bone in reversed(fk_chain):
+            fk_bone.head = fk_bone.center.copy()
+            if prev:
+                fk_bone.tail = prev.head
+            prev = fk_bone
+
+        return fk_chain
+
+    def fk_chain__attach_org_to_fk(self, bones_org, fk_bones):
+        """Parent original bones to FK bones.
+        The purpose of original bones in this component is just for any child 
+        components to follow along in an expected way.
+        """
+        for org_bone, fk_bone in zip(bones_org, fk_bones):
+            org_bone.use_connect = False
+            org_bone.parent = fk_bone
+
     def create_bone_infos(self, context):
         """First function called by the generator.
         You should populate your BoneSets with BoneInfo instances here."""
@@ -111,7 +116,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.bones_org[0].parent = hips_lower
         self.fk_chain[0].collections = self.bone_sets['Mechanism Bones'].collections
 
-        self.ik_chain__make_ik_setup(self.fk_chain, chest, hips)
+        self.__make_ik_setup(self.fk_chain, chest, hips)
 
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
             str_bone.parent = fk_bone
@@ -125,7 +130,10 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.main_str_bones[0].parent = hips_lower
         self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True])
 
-    def ik_chain__make_ik_setup(
+    ##############################
+    # Toon spine functions.
+
+    def __make_ik_setup(
         self,
         fk_chain: list[BoneInfo],
         chest: BoneInfo,
@@ -141,11 +149,11 @@ class Component_Spine_Toon(Component_Chain_FK):
                 'default' : 1.0,
             }
         )
-        ik_chain = self.make_ik_chain(fk_chain, chest, hips)
+        ik_chain = self.__make_ik_chain(fk_chain, chest, hips)
 
-        ik_str_chain = self.make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
+        ik_str_chain = self.__make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
 
-    def make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
+    def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
         ik_chain = []
         def make_ik_bone(name: str, parent: BoneInfo) -> BoneInfo:
             ik_hlp = self.bone_sets['Toon Spine IK Secondary'].new(
@@ -186,7 +194,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             ik_hlp.collections = self.bone_sets['Toon Spine Mechanism'].collections
         return ik_chain
 
-    def make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
+    def __make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
         squash_prop_name = f"squash_{self.spine_name}"
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
@@ -230,47 +238,44 @@ class Component_Spine_Toon(Component_Chain_FK):
             ik_str_chain.append(ik_str)
         return ik_str_chain
 
-    def fk_chain__make_root_bone(self):
-        """Overrides cloud_fk_chain."""
+    ##############################
+    # Parameters
 
-        # Create Torso Master control.
-        self.torso_ctr = self.bone_sets['FK Controls'].new(
-            name=self.naming.add_prefix(self.spine_name, 'TORSO'),
-            parent=self.bones_org[0].parent,
-            source=self.bones_org[0],
-            head=self.bones_org[0].center,
-            custom_shape_name=self.params.spine_toon.widget_torso,
-            custom_shape_scale=1.5,
+    @classmethod
+    def define_bone_sets(cls):
+        super().define_bone_sets()
+        cls.define_bone_set(
+            "Toon Spine Mechanism",
+            collections=["Mechanism Bones"],
+            is_advanced=True
         )
-        if self.params.spine_toon.world_align:
-            self.torso_ctr.flatten()
-        self.torso_ctr.custom_shape_wire_width += 1.0
-        # Also assign to IK collections.
-        self.torso_ctr.collections += self.bone_sets['Toon Spine IK'].collections
-        return self.torso_ctr
+        cls.define_bone_set(
+            "Toon Spine IK Secondary",
+            color_palette="THEME12",
+            collections=["IK Secondary"],
+            wire_width=1.5,
+        )
+        cls.define_bone_set(
+            "Toon Spine IK",
+            color_palette="THEME13",
+            collections=["IK Controls"],
+            wire_width=2.5,
+        )
 
-    def fk_chain__make(self, bones_org: list[BoneInfo]) -> list[BoneInfo]:
-        fk_chain = super().fk_chain__make(bones_org)
-        fk_chain[0].parent = self.root_bone
+    @classmethod
+    def draw_control_params(cls, layout, context, params):
+        super().draw_control_params(layout, context, params)
 
-        # Put FK bones at the center.
-        prev = None
-        for fk_bone in reversed(fk_chain):
-            fk_bone.head = fk_bone.center.copy()
-            if prev:
-                fk_bone.tail = prev.head
-            prev = fk_bone
+        cls.draw_prop(context, layout, params.spine_toon, 'world_align')
 
-        return fk_chain
-
-    def fk_chain__attach_org_to_fk(self, bones_org, fk_bones):
-        """Parent original bones to FK bones.
-        The purpose of original bones in this component is just for any child 
-        components to follow along in an expected way.
-        """
-        for org_bone, fk_bone in zip(bones_org, fk_bones):
-            org_bone.use_connect = False
-            org_bone.parent = fk_bone
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        layout.separator()
+        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_torso")
+        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik")
+        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik_secondary")
+        return layout
 
 
 class Params(PropertyGroup):

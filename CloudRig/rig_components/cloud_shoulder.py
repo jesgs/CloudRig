@@ -11,7 +11,18 @@ class Component_Shoulder(Component_Chain_FK):
     """A single bone control to connect an arm to a spine."""
 
     ui_name = "Shoulder Bone"
-    forced_params = {'fk_chain.display_center': False}
+    forced_params = {
+        'fk_chain.display_center': False,
+        'fk_chain.create_curl_control': False,
+        'fk_chain.create_reverse_chain': False,
+        'fk_chain.position_along_bone': 0.0,
+        'fk_chain.counter_rotate_stretch_bones': 0.0,
+        'fk_chain.double_first': False,
+        'chain.segments': 1,
+    }
+
+    ##############################
+    # Inherited functions.
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -23,9 +34,12 @@ class Component_Shoulder(Component_Chain_FK):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.shoulder_setup()
+        self.__make_shoulder()
 
-    def shoulder_setup(self):
+    ##############################
+    # Shoulder functions.
+
+    def __make_shoulder(self):
         control = self.bone_sets['FK Controls'][0]
         control.custom_shape_name = 'Clavicle'
         shoulder_rot = radians(int(self.params.shoulder.up_axis) * 90)

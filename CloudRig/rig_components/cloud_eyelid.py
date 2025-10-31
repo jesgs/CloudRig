@@ -10,6 +10,9 @@ class Component_Eyelid(Component_FaceChain):
 
     ui_name = "Chain: Eyelid"
 
+    ##############################
+    # Inherited functions.
+
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
@@ -21,9 +24,12 @@ class Component_Eyelid(Component_FaceChain):
         # parent it to the parent of the eyeball.
         # This is also important for custom root parenting functionality to work.
         self.bones_org[0].parent = self.parent_component.bones_org[0].parent
-        self.make_sticky_eyelid()
+        self.eyelid__make_sticky_setup()
 
-    def make_sticky_eyelid(self):
+    ##############################
+    # Eyelid functions.
+
+    def eyelid__make_sticky_setup(self):
         """Create ROT helper bones between the aim bone's base and the
         main STR controls of the eyelid. Since this needs to account for
         intersection controls, it must be called from execute_final_face_chain()."""
@@ -38,7 +44,7 @@ class Component_Eyelid(Component_FaceChain):
         sticky_prop_name = (
             "sticky_eyelids_" + parent_rig.params.aim.group.lower().replace(" ", "_")
         )
-        self.create_sticky_property(parent_rig, sticky_prop_name)
+        self.__create_sticky_property(parent_rig, sticky_prop_name)
 
         main_controls = []
         for str_ctr in self.main_str_bones:
@@ -106,7 +112,7 @@ class Component_Eyelid(Component_FaceChain):
             )
             str_ctr.parent = rot_ctr
 
-    def create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
+    def __create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
         self.rig_ui__add_bone_property(
             prop_bone=eye_rig.properties_bone,
             prop_id=sticky_prop_name,

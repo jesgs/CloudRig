@@ -68,7 +68,7 @@ class Component_Feather(Component_Chain_FK):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     ##############################
-    # No parameters for this component type.
+    # No additional parameters for this component type.
 
 
 RIG_COMPONENT_CLASS = Component_Feather

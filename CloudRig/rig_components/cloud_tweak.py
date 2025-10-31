@@ -17,6 +17,9 @@ class Component_TweakBone(Component_Base):
     keep_original_bones_collections = True
     keep_original_bones_colors = True
 
+    ################################
+    # Inherited functions.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tweak_bone = None
@@ -124,6 +127,9 @@ class Component_TweakBone(Component_Base):
 
         if self.params.tweak.ensure_free and len(tweak_bone.constraint_infos) > 0:
             self.root_bone = self.create_parent_constraint_holder(tweak_bone, bone_set=self.bone_sets['Mechanism Bones'])
+
+    ################################
+    # Spline IK functions.
 
     def base__relink(self):
         # Transfer and relink constraints and their drivers
