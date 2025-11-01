@@ -164,7 +164,7 @@ class Component_Limb(Component_Chain_IKFK):
         trans_con = str_bone.add_constraint(
             'TRANSFORM',
             name="Transformation (Counter-Rotate)",
-            subtarget=str_bone.source.name,
+            subtarget=self.fk_chain[0],
             influence=0.9,
             map_to='ROTATION',
         )
@@ -177,7 +177,7 @@ class Component_Limb(Component_Chain_IKFK):
                         'type': 'TRANSFORMS',
                         'targets': [
                             {
-                                'bone_target': str_bone.source.name,
+                                'bone_target': self.fk_chain[0],
                                 'transform_space': 'LOCAL_SPACE',
                                 'transform_type': 'ROT_Y',
                                 'rotation_mode': 'SWING_TWIST_Y',
