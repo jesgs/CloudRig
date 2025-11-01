@@ -1871,6 +1871,7 @@ class CLOUDRIG_UL_collections(UIList):
             row.prop(cloudrig_info, 'name', text="", emboss=False)
 
         if context.mode != 'EDIT_ARMATURE':
+            # Collections.bones is not available in the PyAPI in Edit Mode for some reason.
             direct_selected_bones = [
                 bone
                 for bone in collection.bones
@@ -1882,7 +1883,7 @@ class CLOUDRIG_UL_collections(UIList):
             indirect_visible_bones = [
                 b
                 for b in indirect_bones
-                if not b.hide and any([c.is_visible for c in b.collections])
+                if not pbones[b.name].hide and any([c.is_visible for c in b.collections])
             ]
             indirect_selected_bones = [bone for bone in indirect_visible_bones if pbones[bone.name].select]
 
