@@ -1,5 +1,6 @@
 from bpy.types import Bone, EditBone, PoseBone, Object
 import math
+from mathutils import Vector
 
 def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
@@ -58,7 +59,7 @@ def get_active_bone(context):
         return get_pbone_of_active(context)
 
 
-def project_point_to_plane(point, origin, normal):
+def project_point_to_plane(point: Vector, origin: Vector, normal: Vector) -> Vector:
     vector = point - origin
     dist = vector.dot(normal)
     return point - dist * normal
@@ -77,7 +78,7 @@ def wrap_angle_pi(angle):
     return (angle + math.pi) % (2 * math.pi) - math.pi
 
 
-def align_bone_z_axis_to_vector(ebone, vector):
+def align_bone_z_axis_to_vector(ebone: EditBone, vector: Vector):
     projected = project_point_to_plane(vector, ebone.head, ebone.y_axis)
 
     vec_a = ebone.z_axis.normalized()
@@ -87,3 +88,30 @@ def align_bone_z_axis_to_vector(ebone, vector):
     angle = signed_angle_on_plane(vec_a, vec_b, ebone.y_axis)
     ebone.roll += angle
     ebone.roll = wrap_angle_pi(ebone.roll)
+
+def get_armature_bounding_box(armature_obj: Object) -> tuple[Vector, Vector]:
+    """Return lowest and highest coordinates of the rest position heads/tails of all bones."""
+
+    if armature_obj.type != 'ARMATURE':
+        raise TypeError(f"Object {armature_obj.name} is not an armature")
+
+    min_corner = Vector((float('inf'), float('inf'), float('inf')))
+    max_corner = Vector((float('-inf'), float('-inf'), float('-inf')))
+
+    for bone in armature_obj.data.bones:
+        head = bone.head_local
+        tail = bone.tail_local
+
+        for v in (head, tail):
+            min_corner.x = min(min_corner.x, v.x)
+            min_corner.y = min(min_corner.y, v.y)
+            min_corner.z = min(min_corner.z, v.z)
+            max_corner.x = max(max_corner.x, v.x)
+            max_corner.y = max(max_corner.y, v.y)
+            max_corner.z = max(max_corner.z, v.z)
+
+    return min_corner, max_corner
+
+def get_armature_dimensions(armature_obj: Object) -> Vector:
+    min_corner, max_corner = get_armature_bounding_box(armature_obj)
+    return max_corner - min_corner

@@ -31,7 +31,7 @@ from . import naming
 from ..ui.actions_ui import ActionConstraintSetup
 from ..utils.external.mechanism import refresh_all_drivers
 from ..utils.external.collections import ensure_collection
-from ..utils.rig import get_pbone_of_active
+from ..utils.rig import get_pbone_of_active, get_armature_dimensions
 from ..utils.misc import (
     check_addon,
     load_script,
@@ -181,7 +181,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         context.view_layer.update()
 
         # Used to calculate sizes and distances in a rig-size-agnostic way.
-        self.scale = max(metarig.dimensions) / 10
+        self.scale = max(get_armature_dimensions(metarig)) / 10
         self.naming = naming
 
         # Default kwargs that are passed in to every created BoneInfo.
@@ -965,6 +965,13 @@ class CLOUDRIG_OT_generate(Operator):
     def execute(self, context):
         metarig = self.get_metarig_to_generate(context)
         prev_generated_rig = metarig.cloudrig.generator.target_rig
+
+        if len(metarig.data.bones) == 0:
+            self.report({'ERROR'}, "The metarig has no bones.")
+            return {'CANCELLED'}
+        if len([pb for pb in metarig.pose.bones if pb.cloudrig_component.component_module]) == 0:
+            self.report({'ERROR'}, "The metarig has no bones with valid components assigned.")
+            return {'CANCELLED'}
 
         # If the old rig isn't part of the scene, it needs to be.
         # The generation process works fine without this,
