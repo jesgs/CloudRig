@@ -424,7 +424,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 mix_mode="BEFORE",
                 space="LOCAL",
                 influence=influence,
-                subtarget=main_str_bone.parent,
+                subtarget=fk_bone,
             )
 
     def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):

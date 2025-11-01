@@ -264,9 +264,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
             ik_bone.add_constraint('DAMPED_TRACK', subtarget=ik_r_bone)
 
         # Attach ORG to IK
-        for i, (org_bone, ik_bone) in enumerate(zip(self.bones_org, self.ik_chain)):
+        for i, (fk_bone, ik_bone) in enumerate(zip(self.fk_chain, self.ik_chain)):
             con_name = "Copy Transforms IK"
-            ct_con = org_bone.add_constraint(
+            ct_con = fk_bone.add_constraint(
                 'COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone
             )
             ct_con.drivers.append(
