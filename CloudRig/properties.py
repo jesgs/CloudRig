@@ -365,7 +365,7 @@ class RigComponent(PropertyGroup):
         while parent:
             if parent.cloudrig_component.component_type:
                 return parent
-            parent = parent.parent
+            parent = parent.parent if parent.bone.use_connect else None
 
     def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
         if not self.component_class:
