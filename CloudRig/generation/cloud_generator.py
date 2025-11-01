@@ -706,7 +706,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if old_coll.parent:
                     parent = new_rig.data.collections_all.get(old_coll.parent.name)
                 new_coll = new_rig.data.collections.new(old_coll.name, parent=parent)
-            copy_property_group(old_coll, new_coll, 'cloudrig_info')
+                new_coll.name = old_coll.name
+            copy_property_group(old_coll.cloudrig_info, new_coll.cloudrig_info)
             new_coll.is_visible = old_coll.is_visible
             for old_bone in old_coll.bones:
                 new_bone = new_rig.data.bones.get(old_bone.name)

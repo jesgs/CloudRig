@@ -1656,8 +1656,8 @@ class CloudRigBoneCollection(PropertyGroup):
     Also some other functionality like Solo Collection and Preserve on Regenerate.
     """
 
-    def get_collection(self) -> BoneCollection:
-        """Return the BoneCollection that this instance of this class belongs to."""
+    @property
+    def collection(self) -> BoneCollection:
         armature = self.id_data
         for coll in armature.collections_all:
             if coll.cloudrig_info == self:
@@ -1667,7 +1667,7 @@ class CloudRigBoneCollection(PropertyGroup):
         """Runs when trying to change the name of this instance, which should stay in sync
         with the collection it's masking."""
 
-        coll = self.get_collection()
+        coll = self.collection
 
         # If the name didn't change, don't do anything.
         if coll.name == self.name:
@@ -1692,6 +1692,7 @@ class CloudRigBoneCollection(PropertyGroup):
             return
 
         def cleanup_garbage_bone_sets(component):
+            return
             # Clean up old bone set data.
             for bone_set_name in list(component.params.bone_sets.keys()):
                 if not hasattr(component.params.bone_sets, bone_set_name):
@@ -1702,7 +1703,6 @@ class CloudRigBoneCollection(PropertyGroup):
                     component.ui_bone_sets.remove(entry_idx)
             if not component.active_bone_set:
                 component.bone_sets_active_index = 0
-
 
         # Metarig: Update bone sets with this collection assigned to refer to the new name.
         if is_active_cloud_metarig(context):
@@ -1737,7 +1737,7 @@ class CloudRigBoneCollection(PropertyGroup):
     )
 
     @property
-    def are_parents_visible(self):
+    def are_parents_visible(self) -> bool:
         parent = self.parent_collection
         if not parent:
             return True
@@ -1751,18 +1751,18 @@ class CloudRigBoneCollection(PropertyGroup):
 
     @property
     def parent_collection(self) -> BoneCollection:
-        return self.get_collection().parent
+        return self.collection.parent
 
     @parent_collection.setter
     def parent_collection(self, coll: BoneCollection):
-        self.get_collection().parent = coll
+        self.collection.parent = coll
 
     def unfold_parents(self):
         for parent in self.parents_recursive:
             parent.is_expanded = True
 
     def update_is_expanded(self, context):
-        coll = self.get_collection()
+        coll = self.collection
         coll.is_expanded = self.is_expanded
         rig = find_cloudrig(context)
         if rig:
@@ -1789,7 +1789,7 @@ class CloudRigBoneCollection(PropertyGroup):
 
     @property
     def children_recursive(self) -> list[BoneCollection]:
-        all_children = self.get_collection().children[:]
+        all_children = self.collection.children[:]
         for child in all_children:
             all_children += child.children
         return all_children
@@ -1812,7 +1812,7 @@ class CloudRigBoneCollection(PropertyGroup):
     )
 
     @property
-    def are_parents_unfolded(self):
+    def are_parents_unfolded(self) -> bool:
         """Return False if any parent up the chain has is_expanded=False"""
         if not self.parent_collection:
             return True

@@ -135,6 +135,9 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         if match_collections:
+            to_rig.cloudrig_prefs.collection_ui_type = from_rig.cloudrig_prefs.collection_ui_type
+            if from_rig.data.collections.active:
+                to_rig.cloudrig_prefs.active_collection_index = to_rig.data.collections_all.find(from_rig.data.collections.active.name)
             for to_coll in to_rig.data.collections_all:
                 from_coll = from_rig.data.collections_all.get(to_coll.name)
                 if from_coll:
