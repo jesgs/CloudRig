@@ -121,19 +121,18 @@ class Component_ToonChain(Component_Base):
         main_str_bones = []
 
         for i, org_bone in enumerate(org_chain):
-            main_str_bone = self.__make_main_str_bone(org_chain, i)
+            main_str_bone = self.toon__make_main_str_bone(org_chain[i])
             main_str_bones.append(main_str_bone)
 
         if self.params.chain.tip_control:
-            main_str_bones.append(self.__make_main_str_bone(org_chain, i, at_tip=True))
+            main_str_bones.append(self.toon__make_main_str_bone(org_chain[i], at_tip=True))
 
         return main_str_bones
 
-    def __make_main_str_bone(
-        self, org_chain: BoneInfo, org_i: int, at_tip=False
+    def toon__make_main_str_bone(
+        self, org_bone: BoneInfo, at_tip=False
     ) -> BoneInfo:
         """Create and return a main STR control."""
-        org_bone = org_chain[org_i]
         segments = self.params.chain.segments
         direction = org_bone.vector
         if org_bone.prev:
@@ -163,13 +162,12 @@ class Component_ToonChain(Component_Base):
             custom_shape_scale=-self.params.chain.widget_size,
             display_type='STICK',
             parent=org_bone,
-            inherit_scale='AVERAGE',
         )
         if at_tip:
             main_str.put(org_bone.tail, length=main_str.length)
             main_str.custom_shape_scale_xyz *= -1
 
-        if not self.is_cyclic and org_i == 0 or at_tip:
+        if not self.is_cyclic and org_bone == self.bones_org[0] or at_tip:
             main_str.custom_shape_name = self.params.chain.widget_stretch_ends
         else:
             main_str.custom_shape_name = self.params.chain.widget_stretch
@@ -333,7 +331,6 @@ class Component_ToonChain(Component_Base):
             roll_bone=str_bone,
             length=str_bone.length * 0.2,
             bbone_width = str_bone.bbone_width * 1.5,
-            inherit_scale = 'NONE',
         )
 
         assert (
@@ -503,8 +500,8 @@ class Component_ToonChain(Component_Base):
         def_bone.bbone_custom_handle_start = start_handle
         def_bone.bbone_custom_handle_end = end_handle
 
-        for str_b, prop_name in zip([start_handle, end_handle], ['bbone_scalein', 'bbone_scaleout']):
-            if not str_b:
+        for handle_bone, prop_name in zip([start_handle, end_handle], ['bbone_scalein', 'bbone_scaleout']):
+            if not handle_bone:
                 # This happens when Tip Control param is off so there's no next_str_bone.
                 continue
             for axis, idx in zip(('X', 'Z'), (0, 2)):
@@ -517,7 +514,7 @@ class Component_ToonChain(Component_Base):
                             'type': 'TRANSFORMS',
                             'targets': [
                                 {
-                                    'bone_target': str_b.parent.name,
+                                    'bone_target': handle_bone.parent.name,
                                     'transform_space': 'LOCAL_SPACE',
                                     'transform_type': f'SCALE_{axis}',
                                 }
@@ -527,8 +524,8 @@ class Component_ToonChain(Component_Base):
                             'type': 'TRANSFORMS',
                             'targets': [
                                 {
-                                    'bone_target': str_b.name,
-                                    'transform_space': 'TRANSFORM_SPACE',
+                                    'bone_target': handle_bone.name,
+                                    'transform_space': 'LOCAL_SPACE',
                                     'transform_type': f'SCALE_{axis}',
                                 }
                             ],
@@ -539,8 +536,8 @@ class Component_ToonChain(Component_Base):
 
         # Let the STR bone local Y scale delta (relative to average scale) drive the ease value.
         # So scaling the bone uniformally won't affect easing, but increasing local Y scale will.
-        for str_b, prop_name in zip([start_handle, end_handle], ['bbone_easein', 'bbone_easeout']):
-            if not str_b:
+        for handle_bone, prop_name in zip([start_handle, end_handle], ['bbone_easein', 'bbone_easeout']):
+            if not handle_bone:
                 # This happens when Tip Control param is off so there's no str_bone.next.
                 continue
             def_bone.drivers.append(
@@ -552,8 +549,8 @@ class Component_ToonChain(Component_Base):
                             'type': 'TRANSFORMS',
                             'targets': [
                                 {
-                                    'bone_target': str_b.name,
-                                    'transform_space': 'TRANSFORM_SPACE',
+                                    'bone_target': handle_bone.name,
+                                    'transform_space': 'LOCAL_SPACE',
                                     'transform_type': f'SCALE_{axis}',
                                 }
                             ],

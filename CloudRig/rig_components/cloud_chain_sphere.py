@@ -16,41 +16,37 @@ class Component_SphereChain(Component_ToonChain):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
+    def toon__make_main_str_bone(self, org_bone: BoneInfo, at_tip=False) -> BoneInfo:
+        str_bone = super().toon__make_main_str_bone(org_bone, at_tip)
 
         sphere_bone_name = self.params.chain_sphere.sphere_bone
         sphere_bone = self.get_metarig_pbone(sphere_bone_name)
         if not sphere_bone:
             self.raise_generation_error("Sphere Bone not found", trouble_bone=sphere_bone_name)
-            return
+            return str_bone
 
-        for main_str in self.main_str_bones:
-            rot_ctrl = self.bone_sets['Sphere Controls'].new(
-                source=main_str,
-                parent=main_str.parent,
-                name=main_str.name.replace("STR-", "SPH-"),
+        parent_helper = str_bone.parent_helper
+        rot_ctrl = self.bone_sets['Sphere Controls'].new(
+            source=str_bone,
+            parent=parent_helper.constraint_infos[0]['subtarget'],
+            name=str_bone.name.replace("STR-", "SPH-"),
 
-                head=sphere_bone.head.copy(),
-                tail=main_str.head.copy(),
+            head=sphere_bone.head.copy(),
+            tail=str_bone.head.copy(),
 
-                custom_shape_name='Square',
-                custom_shape_along_length=1.0,
-                display_type='WIRE',
+            custom_shape_name='Square',
+            custom_shape_along_length=1.0,
+            display_type='WIRE',
 
-                roll=0,
-                roll_type='VECTOR',
-                roll_vector=main_str.tail,
-                rotation_mode='YZX',
-            )
-            main_str.parent = rot_ctrl
-            if self.params.chain.smooth_spline:
-                main_str.add_constraint('COPY_ROTATION',
-                    mix_mode='BEFORE',
-                    target_space='LOCAL_OWNER_ORIENT',
-                    owner_space='LOCAL',
-                    subtarget=rot_ctrl,
-                )
+            roll=0,
+            roll_type='VECTOR',
+            roll_vector=str_bone.tail,
+            rotation_mode='YZX',
+        )
+
+        parent_helper.constraint_infos[0]['subtarget'] = rot_ctrl
+
+        return str_bone
 
     ##############################
     # Parameters
