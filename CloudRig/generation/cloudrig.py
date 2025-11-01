@@ -2855,15 +2855,16 @@ class ARMATURE_OT_bone_collections_popup(Operator):
     # Undo step is omitted, since this is just a UI pop-up.
     bl_options = {'REGISTER'}
 
-    def invoke(self, context, event):
-        context.pose_object.cloudrig_prefs.active_collection_index *= 1
-        wm = context.window_manager
-        return wm.invoke_popup(self, width=400)
-
     @classmethod
     def poll(cls, context):
         rig = context.pose_object or context.active_object
         return rig and rig.type == 'ARMATURE' and is_cloud_metarig(rig) or is_generated_cloudrig(rig)
+
+    def invoke(self, context, event):
+        rig = context.pose_object or context.active_object
+        rig.cloudrig_prefs.active_collection_index *= 1
+        wm = context.window_manager
+        return wm.invoke_popup(self, width=400)
 
     def draw(self, context):
         layout = self.layout
