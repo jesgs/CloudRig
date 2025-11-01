@@ -2047,20 +2047,26 @@ def draw_cloudrig_collections(self, context, rig: Object):
     layout.use_property_split = True
     layout.use_property_decorate = False
 
-    prop_owner = 'pose_object'
-    if context.active_object:
-        prop_owner = 'active_object'
-        if context.active_object != rig:
-            _rig, modifier_name = get_cloudrig_of_mesh(context.active_object)
-            if modifier_name:
-                prop_owner = f'active_object.modifiers["{modifier_name}"].object'
+    # Figure out property path to the bone collection list in this context,
+    # considering that this function should work in a number of cases
+    # where the rig is not the active object.
+    rig_of_mesh, modifier_name = get_cloudrig_of_mesh(context.active_object)
+    if context.active_object == rig:
+        context_path_to_rig = 'active_object'
+    elif modifier_name:
+        context_path_to_rig = f'active_object.modifiers["{modifier_name}"].object'
+    elif context.active_object.parent == rig:
+        context_path_to_rig = 'active_object.parent'
+    else:
+        layout.label(text="No rig found in context.")
+        return
 
     list_col = draw_ui_list(
         layout,
         context,
         class_name='CLOUDRIG_UL_collections',
-        list_path=prop_owner + ".data.collections_all",
-        active_index_path=prop_owner + '.cloudrig_prefs.active_collection_index',
+        list_path=context_path_to_rig + ".data.collections_all",
+        active_index_path=context_path_to_rig + '.cloudrig_prefs.active_collection_index',
         insertion_operators=False,
         move_operators=False,
         unique_id='CloudRig Nested Collections UI',
