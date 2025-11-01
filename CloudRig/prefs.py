@@ -6,17 +6,10 @@ from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProp
 
 from . import rig_components
 from .properties import NameProperty
-from .rig_component_features.widgets.widgets import get_widgets_enum_items
+from .rig_component_features.widgets.widgets import get_widgets_enum_items, refresh_external_widgets
 from .bs_utils.prefs import PrefsFileSaveLoadMixin, update_prefs_on_file, get_addon_prefs
 from .bs_utils.hotkeys import HotkeyDrawMixin
 from .bs_utils.ui import label_split
-
-def get_default_widgets_path():
-    filedir = os.path.dirname(os.path.realpath(__file__))
-    blend_path = os.sep.join(
-        filedir.split(os.sep) + ['rig_component_features', 'widgets', 'Widgets.blend']
-    )
-    return blend_path
 
 
 def init_component_module_list(context=None):
@@ -70,10 +63,11 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
 
     def update_widget_names(self, context):
         self.widget_names.clear()
+        refresh_external_widgets()
         widget_items = get_widgets_enum_items()
         if not widget_items:
             return
-        for identifier, name, description in [w for w in widget_items if w]:
+        for id, identifier, name, description, icon in [w for w in widget_items if w]:
             widget_entry = self.widget_names.add()
             widget_entry.name = name
         update_prefs_on_file()
@@ -95,9 +89,9 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
 
     widget_library: StringProperty(
         name="Custom Shape Library .blend",
-        default=get_default_widgets_path(),
+        default="",
         subtype='FILE_PATH',
-        description="Path to the custom shapes library .blend file. If invalid, you can press Backspace while mouse-hovering over this field to reset it to the default path",
+        description="Path to your custom shapes library .blend file. This should contain objects prefixed 'WGT-' to show up in CloudRig's various widget selection UI elements, in addition to the built-in set of widgets",
         update=update_widget_names,
     )
     widget_import_method: EnumProperty(
@@ -105,7 +99,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
         items=[('LINK', 'Link', 'Link'), ('APPEND', 'Append', 'Append')],
         default='APPEND',
         description="Whether custom shapes should be linked or appended",
-        update=update_widget_names,
+        update=update_prefs_on_file,
     )
 
     def draw(self, context):
@@ -116,9 +110,9 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
         main_col = layout.column(align=True)
 
         lib_row = main_col.row(align=True)
-        if not os.path.exists(self.widget_library):
+        if self.widget_library and not os.path.exists(self.widget_library):
             lib_row.alert = True
-        lib_row.prop(self, 'widget_library')
+        lib_row.prop(self, 'widget_library', placeholder="A .blend containing objects prefixed 'WGT-'")
         main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
         main_col.row(align=True).prop(self, 'advanced_mode')
 
@@ -161,7 +155,5 @@ def delayed_refresh_widget_list():
 
 def register():
     init_component_module_list()
-    # NOTE: Updating widget list will result in saving preferences, so this should have a GREATER delay
-    # than the initial loading of the preferences.
     bpy.app.timers.register(delayed_refresh_widget_list, first_interval=2.0)
     CloudRigPreferences.register_autoload_from_file()

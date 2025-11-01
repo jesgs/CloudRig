@@ -6,9 +6,10 @@ from bpy.props import EnumProperty
 from mathutils import Matrix
 
 from ..generation.cloudrig import find_metarig_of_rig
-from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items, LIBRARY_WIDGETS
+from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items, get_nonlocal_widgets
 from ..rig_component_features.object import EnsureVisible
 from ..bs_utils.hotkeys import register_hotkey
+from ..bs_utils.prefs import get_addon_prefs
 
 class POSE_OT_unassign_custom_shape(Operator):
     """Unassign custom shapes from all selected pose bones"""
@@ -54,6 +55,7 @@ class POSE_OT_assign_selected_custom_shape(Operator):
     )
 
     def invoke(self, context, _event):
+        get_addon_prefs(context).update_widget_names(context)
         self.widget_shape = 'WGT-Cube'
         return context.window_manager.invoke_props_dialog(self)
 
@@ -105,7 +107,7 @@ class POSE_OT_reload_selected_custom_shape(Operator):
             if (
                 pb.custom_shape
                 and not pb.custom_shape.library
-                and pb.custom_shape.name in [wgt_tup[0] for wgt_tup in LIBRARY_WIDGETS]
+                and pb.custom_shape.name in [wgt_tup[0] for wgt_tup in get_nonlocal_widgets()]
             ):
                 yield pb
 
