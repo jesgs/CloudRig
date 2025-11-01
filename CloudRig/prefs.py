@@ -63,7 +63,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
     cloud_metarig_version = 5
 
     # List of property names to not write to disk.
-    omit_from_disk: list[str] = ["component_types"]
+    omit_from_disk: list[str] = ["component_types", "widget_names"]
 
     # Function that returns a list of CloudRig add-on KeyMapItems
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
