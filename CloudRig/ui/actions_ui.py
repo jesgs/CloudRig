@@ -6,6 +6,7 @@ import bpy
 from bl_math import clamp
 
 from ..utils.external.naming import Side, get_name_side
+from ..bs_utils.ui import aligned_label, label_split
 
 from bpy.types import (
     PropertyGroup,
@@ -562,10 +563,7 @@ class DATA_PT_cloudrig_actions(Panel):
             return
 
         if not trigger_setup:
-            row = layout.split(factor=0.4)
-            row.separator()
-            row.alert = True
-            row.label(text="Trigger Missing", icon='ERROR')
+            aligned_label(layout, text="Trigger Missing", icon='ERROR', alert=True)
             return
 
         show_prop_name = 'show_action_' + trigger_prop[-1]
@@ -605,10 +603,7 @@ class DATA_PT_cloudrig_actions(Panel):
 
             if not subtarget_exists:
                 if action_setup.subtarget:
-                    row = layout.split(factor=0.4)
-                    row.column()
-                    row.alert = True
-                    row.label(text=f"Bone not found: {action_setup.subtarget}", icon='ERROR')
+                    aligned_label(layout, text=f"Bone not found: {action_setup.subtarget}", icon='ERROR', alert=True)
                 return
         else:
             row.prop(action_setup, 'subtarget', icon=bone_icon)
@@ -626,11 +621,7 @@ class DATA_PT_cloudrig_actions(Panel):
 
             if action_setup.symmetrical and not flipped_subtarget_exists:
                 row.alert = True
-
-                row = layout.split(factor=0.4)
-                row.column()
-                row.alert = True
-                row.label(text=f"Bone not found: {flipped_subtarget}", icon='ERROR')
+                aligned_label(layout, text=f"Bone not found: {flipped_subtarget}", icon='ERROR', alert=True)
 
         layout.prop(action_setup, 'frame_start', text="Frame Start")
         layout.prop(action_setup, 'frame_end', text="End")
@@ -648,10 +639,7 @@ class DATA_PT_cloudrig_actions(Panel):
         """
         layout = self.layout
 
-        split = layout.split(factor=0.4)
-        heading = split.row()
-        heading.alignment = 'RIGHT'
-        heading.label(text="Status:")
+        split = label_split(layout, text="Status:")
 
         if action_setup.trans_min == action_setup.trans_max:
             col = split.column(align=True)

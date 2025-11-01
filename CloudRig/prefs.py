@@ -9,6 +9,7 @@ from .properties import NameProperty
 from .rig_component_features.widgets.widgets import get_widgets_enum_items
 from .bs_utils.prefs import PrefsFileSaveLoadMixin, update_prefs_on_file, get_addon_prefs
 from .bs_utils.hotkeys import HotkeyDrawMixin
+from .bs_utils.ui import label_split
 
 def get_default_widgets_path():
     filedir = os.path.dirname(os.path.realpath(__file__))
@@ -132,10 +133,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
         header, panel = layout.panel("CloudRig Bone Colors")
         header.label(text="Bone Colors")
         if panel:
-            split = panel.split(factor=0.4)
-            row = split.row()
-            row.alignment = 'RIGHT'
-            row.label(text="Apply Color Presets: ")
+            split = label_split(panel, text="Apply Color Presets:")
             row = split.row()
             row.operator(
                 'preferences.set_bone_color_presets',
@@ -147,13 +145,10 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
                 text='CloudRig',
                 icon='RESTRICT_COLOR_ON',
             ).preset = 'CLOUDRIG'
-            preview_row = panel.row(align=True)
-            split = preview_row.split(factor=0.4)
-            split.row()
-            row = split.row()
+            split = label_split(panel, text="")
             for i in range(20):
                 icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
-                row.label(text="", icon=icon)
+                split.label(text="", icon=icon)
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]

@@ -5,6 +5,7 @@ from collections import OrderedDict
 import json
 
 from ..bs_utils.prefs import get_addon_prefs
+from ..bs_utils.ui import label_split
 from ..generation.cloudrig import is_cloud_metarig
 from .bone_info import BoneInfo, ensure_custom_property
 from .properties_ui import add_property_to_ui
@@ -62,9 +63,7 @@ class CloudUIMixin:
 
     @staticmethod
     def draw_control_label(layout, text=""):
-        split = layout.split(factor=0.4)
-        split.row()
-        split.label(text=text + ":")
+        label_split(layout, text=text + ":")
 
     @staticmethod
     def is_advanced_mode(context):

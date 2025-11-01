@@ -6,6 +6,7 @@ from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians
 
+from ..bs_utils.ui import label_split
 from ..operators.flatten_chain import is_chain_flat
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -748,9 +749,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         if cls.is_advanced_mode(context):
             cls.draw_prop(context, layout, params.ik_chain, "world_aligned")
 
-        split = layout.split(factor=0.4)
-        split.row()
-        split.row().operator("armature.flatten_chain")
+        split = label_split(layout, text="")
+        split.operator("armature.flatten_chain")
 
 
 class Params(PropertyGroup):

@@ -2,6 +2,7 @@
 
 from bpy.types import Panel
 from ..bs_utils.prefs import get_addon_prefs
+from ..bs_utils.ui import label_split, aligned_label
 from ..utils.rig import get_pbone_of_active
 
 
@@ -37,10 +38,7 @@ class CLOUDRIG_PT_rig_component(Panel):
             comp_pb = rig_component.component_pbone
             if comp_pb:
                 # Display inherited component type and a button to jump to it.
-                split = layout.split(factor=0.4, align=True)
-                row = split.row(align=True)
-                row.alignment = 'RIGHT'
-                row.label(text=f"Inherited:")
+                split = label_split(layout, text="Inherited:")
                 row = split.row(align=True)
                 sub0 = row.row()
                 sub0.enabled = False
@@ -65,6 +63,9 @@ class CLOUDRIG_PT_rig_component(Panel):
             icon='ARMATURE_DATA' if not row.alert else 'ERROR',
             text=text
         )
+        if rig_component.component_type == 'Spine: Squashy':
+            # TODO 5.1: Remove Spine: Toon.
+            aligned_label(layout, text="DEPRECATED! Please use Spine: Toon!", alert=True, icon='ERROR')
         if not rig_component.component_type or row.alert:
             return
         layout.prop(prefs, 'advanced_mode')
