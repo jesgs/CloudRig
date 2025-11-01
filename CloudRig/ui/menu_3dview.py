@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.types import Menu
-
+from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
 
 class VIEW3D_MT_cloudrig(Menu):
     bl_label = "CloudRig"
@@ -10,11 +10,11 @@ class VIEW3D_MT_cloudrig(Menu):
 
     def draw(self, context):
         layout = self.layout
-        obj = context.object
+        obj = context.active_object
         target_rig = obj.cloudrig.generator.target_rig
 
-        text = "Re-Generate Rig" if target_rig else "Generate Rig"
-        layout.operator('pose.cloudrig_generate', text=text)
+        text = "Re-Generate Rig" if target_rig or is_generated_cloudrig(obj) else "Generate Rig"
+        layout.operator('pose.cloudrig_generate', text=text, icon='FILE_REFRESH')
 
         if context.mode in {'POSE', 'EDIT_ARMATURE'}:
             layout.separator()
@@ -26,14 +26,12 @@ class VIEW3D_MT_cloudrig(Menu):
                 icon='MOD_MIRROR',
                 text="Symmetrize Components",
             )
+        layout.operator('object.cloudrig_metarig_toggle', icon='EVENT_TAB')
 
 
 def draw_cloudrig_menu(self, context):
-    if (
-        context.object
-        and context.object.type == 'ARMATURE'
-        and context.object.cloudrig.enabled
-    ):
+    obj = context.active_object
+    if is_cloud_metarig(obj) or is_generated_cloudrig(obj):
         self.layout.menu(VIEW3D_MT_cloudrig.bl_idname)
 
 
