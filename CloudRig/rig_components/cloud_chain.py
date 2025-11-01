@@ -741,15 +741,15 @@ class Component_ToonChain(Component_Base):
         ):
             self.__make_shape_key_helper(last_def, self.bones_def[0])
         if self.params.chain.smooth_spline:
-            self.tangent_helpers[0].constraint_infos[0].subtarget = (
+            self.tangent_helpers[0].constraint_infos[1].subtarget = (
                 parent_component.str_chain[-1]
             )
         if parent_component.params.chain.smooth_spline:
-            parent_component.tangent_helpers[-1].constraint_infos[1].subtarget = (
+            parent_component.tangent_helpers[-1].constraint_infos[2].subtarget = (
                 self.str_chain[0]
             )
-        # if parent_component.params.chain.unlock_deform:
-        #     parent_component.__make_def_control(last_str, last_def)
+        if parent_component.params.chain.unlock_deform:
+            parent_component.__make_def_control(last_str, last_def)
 
     ##############################
     # Parameters
