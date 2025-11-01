@@ -291,21 +291,15 @@ class Component_ToonChain(Component_Base):
 
         influence_unit = 1 / num_segments
         influence = index * influence_unit
-        str_h_bone.add_constraint(
-            'COPY_TRANSFORMS', space='WORLD', subtarget=main_start
-        )
-        str_h_bone.add_constraint(
-            'COPY_TRANSFORMS', space='WORLD', subtarget=main_end, influence=influence
-        )
+        self.constrain_between_bones(str_h_bone, main_start, main_end, influence)
         str_h_bone.add_constraint(
             'LIMIT_SCALE',
+            name="Limit Scale: Ignore Y (BBone Easing)",
             use_min_y=True,
             use_max_x=False,
             use_max_y=True,
             use_max_z=False,
         )
-        str_h_bone.add_constraint('DAMPED_TRACK', subtarget=main_end)
-
         return str_h_bone
 
     def __make_tangent_helpers(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:

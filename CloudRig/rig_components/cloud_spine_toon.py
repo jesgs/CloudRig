@@ -13,8 +13,6 @@ class Component_Spine_Toon(Component_Chain_FK):
 
     ui_name = "Spine: Cartoon"
 
-    required_chain_length = 4
-
     forced_params = {
         'chain.segments': 1,
         'chain.tip_control': True,
@@ -161,12 +159,11 @@ class Component_Spine_Toon(Component_Chain_FK):
                 source=fk_bone,
                 parent=parent,
                 custom_shape_name=self.params.spine_toon.widget_ik_secondary,
-                wire_width=1.5,
                 lock_rotation=(True, False, True),
                 lock_scale=(True, True, True)
             )
             dsp = self.create_dsp_bone(ik_hlp, head=ik_hlp.center)
-            is_last = len(ik_chain)==3
+            is_last = len(ik_chain)==len(fk_chain)-1
             dsp.add_constraint('COPY_TRANSFORMS',
                 head_tail=1.0 if is_last else 0.5,
                 subtarget=self.bones_def[len(ik_chain)+(0 if is_last else 1)],
@@ -179,8 +176,13 @@ class Component_Spine_Toon(Component_Chain_FK):
         next_parent = hips
         for i, fk_bone in enumerate(fk_chain[1:]):
             ik_hlp = make_ik_bone(fk_bone.name.replace("FK", "IK"), next_parent)
-            if i==0:
-                arm_con = ik_hlp.add_constraint('ARMATURE', targets=[{'subtarget': hips}, {'subtarget': chest, 'weight': 0.0}], use_deform_preserve_volume=True)
+            if i == 0:
+                ik_hlp.parent = hips
+            elif i < len(fk_chain)-3:
+                unit = 1 / (len(fk_chain)-3)
+                chest_influence = unit*i
+                parent_helper = self.create_parent_bone(ik_hlp, bone_set=self.bone_sets['Mechanism Bones'])
+                self.constrain_between_bones(parent_helper, hips, chest, chest_influence)
 
             next_parent = chest
 

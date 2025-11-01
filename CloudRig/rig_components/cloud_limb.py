@@ -38,7 +38,6 @@ class Component_Limb(Component_Chain_IKFK):
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.__tweak_str_limb()
         segments = self.params.chain.segments
         if self.params.limb.auto_hose and segments > 1:
             upper_section = self.main_str_bones[0].sub_bones
@@ -156,15 +155,6 @@ class Component_Limb(Component_Chain_IKFK):
 
     ##############################
     # Limb functions.
-
-    def __tweak_str_limb(self):
-        # Make changes to the STR chain to make it behave more like a limb.
-
-        # Disable first Copy Rotation constraint on the upperarm
-        if self.params.chain.segments > 1:
-            for b in self.main_str_bones[0].sub_bones:
-                str_h_bone = b.parent
-                str_h_bone.constraint_infos[2].mute = True
 
     def __counter_rotate_first_str(self, str_chain: list[BoneInfo]):
         """Counter-Rotate constraint for the first main STR bone.

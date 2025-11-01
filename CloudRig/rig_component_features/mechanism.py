@@ -30,6 +30,23 @@ class CloudMechanismMixin:
     def create_dsp_bone(self, parent, **kwargs):
         return create_dsp_bone(parent, self.bones_mch, **kwargs)
 
+    def constrain_between_bones(self, child: BoneInfo, start: BoneInfo, end: BoneInfo, influence=0.5):
+        child.add_constraint(
+            'COPY_TRANSFORMS',
+            name="Copy Transforms (First)",
+            space='WORLD',
+            subtarget=start,
+        )
+        child.add_constraint(
+            'COPY_TRANSFORMS',
+            name="Copy Transforms (Last)",
+            space='WORLD',
+            subtarget=end,
+            influence=influence,
+        )
+        child.add_constraint('DAMPED_TRACK', subtarget=end)
+
+
     def make_def_bone(self, bone, bone_set):
         """Make a DEF- bone parented to bone."""
         def_bone = bone_set.new(
