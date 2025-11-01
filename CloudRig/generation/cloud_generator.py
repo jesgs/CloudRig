@@ -403,7 +403,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def instantiate_rig_components(self) -> dict[str, Component_Base]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
-
         self.metarig.cloudrig.refresh_generation_order()
 
         component_bones_ordered = [

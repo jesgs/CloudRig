@@ -71,6 +71,12 @@ def version_cloud_metarig(metarig):
 
         if 'action_slots' in generator_properties:
             del generator_properties['action_slots']
+    if cloudrig.metarig_version < 5:
+        # Trigger the new set_transform callback in 5.0, which updates the underlying data 
+        # of the component_type property to be masked by the transform callbacks, 
+        # making it resilient to changing the UI names of components in the future.
+        for pbone in metarig.pose.bones:
+            pbone.cloudrig_component.component_type = pbone.cloudrig_component.component_type
 
 
 @persistent
