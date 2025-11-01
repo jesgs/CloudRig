@@ -13,15 +13,24 @@ class Component_SphereChain(Component_ToonChain):
 
     ui_name = "Chain: Sphere"
 
+    ##############################
+    # Inherited functions.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def toon__make_main_str_bone(self, org_bone: BoneInfo, at_tip=False) -> BoneInfo:
         str_bone = super().toon__make_main_str_bone(org_bone, at_tip)
+        self.__make_sphere_control(str_bone)
+        return str_bone
 
+    ##############################
+    # Sphere Chain functions.
+
+    def __make_sphere_control(self, str_bone: BoneInfo) -> BoneInfo:
         sphere_bone_name = self.params.chain_sphere.sphere_bone
-        sphere_bone = self.get_metarig_pbone(sphere_bone_name)
-        if not sphere_bone:
+        sphere_ctrl = self.get_metarig_pbone(sphere_bone_name)
+        if not sphere_ctrl:
             self.raise_generation_error("Sphere Bone not found", trouble_bone=sphere_bone_name)
             return str_bone
 
@@ -31,7 +40,7 @@ class Component_SphereChain(Component_ToonChain):
             parent=parent_helper.constraint_infos[0]['subtarget'],
             name=str_bone.name.replace("STR-", "SPH-"),
 
-            head=sphere_bone.head.copy(),
+            head=sphere_ctrl.head.copy(),
             tail=str_bone.head.copy(),
 
             custom_shape_name='Square',
@@ -46,7 +55,7 @@ class Component_SphereChain(Component_ToonChain):
 
         parent_helper.constraint_infos[0]['subtarget'] = rot_ctrl
 
-        return str_bone
+        return sphere_ctrl
 
     ##############################
     # Parameters
