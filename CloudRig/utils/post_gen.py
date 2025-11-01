@@ -114,27 +114,24 @@ def replace_driver_var_path(rig: Object, from_str: str, to_str: str, data_only=F
                         t.data_path = t.data_path.replace(from_str, to_str)
 
 
-def GLOBAL_clean_custom_properties():
-    """Remove useless custom props;
-    These were causing crashes when trying to open anim files with Ellie re-generated with
-    latest CloudRig on 2021 Nov 4.
-    """
+def GLOBAL_clean_custom_properties(bad_prop_names=[]):
+    """Remove a particular set of useless custom props."""
 
-    bad_prop_names = [
-        'bone_gizmo',
-        'enable_bone_gizmo',
-        'pizmo_vis_mesh',
-        'BoolToolRoot',
-        'active_islands_index',
-        'als',
-        'hops',
-        'island_groups',
-        'tissue_tessellate',
-        'vs',
-        'matrix_world',
-        'BBN_info',
-    ]
-    rigify = ['rigify_type', 'rigify_parameters']
+    if not bad_prop_names:
+        bad_prop_names = [
+            'bone_gizmo',
+            'enable_bone_gizmo',
+            'pizmo_vis_mesh',
+            'BoolToolRoot',
+            'active_islands_index',
+            'als',
+            'hops',
+            'island_groups',
+            'tissue_tessellate',
+            'vs',
+            'matrix_world',
+            'BBN_info',
+        ]
 
     def clean_prop_owner(prop_owner, bad_keys):
         for key, _value in list(prop_owner.items()):
@@ -145,17 +142,10 @@ def GLOBAL_clean_custom_properties():
         clean_prop_owner(obj, bad_prop_names)
         if obj.data:
             clean_prop_owner(obj.data, bad_prop_names)
-        if obj.type == 'ARMATURE':
-            if obj.cloudrig.generator.target_rig:
-                for pb in obj.pose.bones:
-                    clean_prop_owner(pb, bad_prop_names)
-            else:
-                for pb in obj.pose.bones:
-                    clean_prop_owner(pb, bad_prop_names + rigify)
 
 
 def GLOBAL_rename_obdatas():
-    # Ensure object data names are same as the object
+    """Ensure object data names are same as the object."""
     for ob in bpy.data.objects:
         if not ob.data:
             continue

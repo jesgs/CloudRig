@@ -183,7 +183,7 @@ class CloudParentingMixin:
     ) -> ConstraintInfo:
         targets = [{"subtarget": bone} for bone in target_bones]
 
-        # Add armature constraint
+        # Add Armature Constraint.
         arm_con = bone.add_constraint(
             "ARMATURE",
             name=name or "Armature",
@@ -194,7 +194,7 @@ class CloudParentingMixin:
         if len(target_bones) == 1:
             return
 
-        # Add weight drivers
+        # Add weight drivers.
         for i, t in enumerate(arm_con.targets):
             arm_con.drivers.append(
                 {

@@ -958,14 +958,8 @@ def auto_override_rig_data(_=None):
 
 
 def is_modal_transform_running(context) -> bool:
-    # In 4.2 and beyond, we can check for running transform operators.
-    # We can use this to not draw the sidebar while interacting, 
-    # which can save on performance.
-    window = context.window
-    if not hasattr(window, 'modal_operators'):
-        # This field was added to the API in Blender 4.2. 
-        # In earlier versions, this optimization is unavailable.
-        return False
+    """Returns whether the transform operator is running.
+    Used for disabling UI drawing for performance optimization."""
     for m in context.window.modal_operators:
         if m.bl_idname.startswith('TRANSFORM_OT_'):
             return True
