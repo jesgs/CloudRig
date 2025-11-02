@@ -89,11 +89,11 @@ def update_property_selector(self, context):
         name_entry = context.scene.cloudrig_property_name_selector.add()
         name_entry.name = key
 
-    if True or len(context.scene.cloudrig_property_name_selector) == 0:
-        # If that failed, populate it with built-in properties instead.
-        for key in get_drawable_builtin_properties(prop_owner):
-            name_entry = context.scene.cloudrig_property_name_selector.add()
-            name_entry.name = key
+    # Also add built-in properties.
+    # NOTE: User can mask a built-in property with a custom property. That's on them!
+    for key in get_drawable_builtin_properties(prop_owner):
+        name_entry = context.scene.cloudrig_property_name_selector.add()
+        name_entry.name = key
 
 
 class CloudRigUIEditOpMixin:
@@ -280,6 +280,16 @@ class CloudRigUIEditOpMixin:
         default='CHECKBOX_DEHLT',
         description="Property icon when value is False",
     )
+    use_expand_enum: BoolProperty(
+        name="Expand Enum",
+        default=False,
+        description="Whether enum should be expanded in the UI",
+    )
+    use_slider: BoolProperty(
+        name="Draw As Slider",
+        default=True,
+        description="Whether int/float should be drawn as a slider",
+    )
 
     children: StringProperty(
         name="UI Children",
@@ -417,12 +427,11 @@ class CloudRigUIEditOpMixin:
             return True
 
         any_selectable_props = len(context.scene.cloudrig_property_name_selector) > 0
-        any_custom_props = has_custom_props(prop_owner)
+        drawable_props = list(get_drawable_custom_properties(prop_owner))
 
         prop_row = prop_box.row(align=True)
 
         if self.use_batch_add:
-            drawable_props = list(get_drawable_custom_properties(prop_owner))
             prop_row.label(
                 text=f"Add all {len(drawable_props)} custom properties to the UI"
             )
@@ -442,7 +451,7 @@ class CloudRigUIEditOpMixin:
 
         prop_row.prop(self, 'use_manual_prop_name', icon='ADD', text="")
 
-        if any_custom_props:
+        if drawable_props:
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
 
         if not self.prop_name:
@@ -483,6 +492,8 @@ class CloudRigUIEditOpMixin:
                     slider_name=self.slider_name,
                     icon_true=self.icon_true,
                     icon_false=self.icon_false,
+                    use_expand_enum=self.use_expand_enum,
+                    use_slider=self.use_slider,
                     texts=[t.strip() for t in self.texts.split(",")],
                 )
         elif hasattr(prop_owner, brackets_prop_name):
@@ -537,6 +548,10 @@ class CloudRigUIEditOpMixin:
             panel_box.prop_search(
                 self, 'icon_false', icons, 'enum_items', icon=self.icon_false
             )
+        if type(prop_value) in (float, int):
+            panel_box.prop(self, 'use_slider')
+        if type(prop_value) == str and isinstance(prop_owner.bl_rna.properties.get(brackets_prop_name), bpy.types.EnumProperty):
+            panel_box.prop(self, 'use_expand_enum')
 
     def draw_op_box(self, layout, context):
         if self.use_batch_add:
@@ -699,6 +714,8 @@ class CloudRigUIEditOpMixin:
             texts=[t.strip() for t in self.texts.split(",")],
             icon_true=self.icon_true,
             icon_false=self.icon_false,
+            use_expand_enum=self.use_expand_enum,
+            use_slider=self.use_slider,
             ###
             children=json.loads(self.children),
             ui_path=ui_path,
@@ -1004,6 +1021,8 @@ def add_property_to_ui(
     texts: list[str] = [],
     icon_true='CHECKBOX_HLT',
     icon_false='CHECKBOX_DEHLT',
+    use_expand_enum=False,
+    use_slider=True,
     ###
     children={},
     ui_path: list[str] = None,
@@ -1049,6 +1068,12 @@ def add_property_to_ui(
         slider_dict['icon_true'] = icon_true
     if icon_false != 'CHECKBOX_DEHLT':
         slider_dict['icon_false'] = icon_false
+
+    # XXX: Blender doesn't support booleans in very specific Py custom prop structures, such as what we need here...
+    if use_expand_enum:
+        slider_dict['use_expand_enum'] = "True"
+    if not use_slider:
+        slider_dict['use_slider'] = ""
 
     if children:
         slider_dict['children'] = {str(key): value for key, value in children.items()}
@@ -1202,12 +1227,6 @@ def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
 
 def supports_custom_props(prop_owner):
     return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}
-
-
-def has_custom_props(prop_owner) -> bool:
-    if not supports_custom_props(prop_owner):
-        return False
-    return bool(list(get_drawable_custom_properties(prop_owner)))
 
 
 def get_drawable_custom_properties(prop_owner):

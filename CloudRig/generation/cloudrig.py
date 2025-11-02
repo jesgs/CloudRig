@@ -1191,6 +1191,8 @@ def draw_rig_settings_per_label(
                 texts=texts,
                 icon_true=slider_data.get('icon_true', 'CHECKBOX_HLT'),
                 icon_false=slider_data.get('icon_false', 'CHECKBOX_DEHLT'),
+                use_expand_enum=bool(slider_data.get('use_expand_enum', False)),
+                use_slider=bool(slider_data.get('use_slider', True)),
                 operator=slider_data.get('operator'),
                 op_icon=slider_data.get('op_icon'),
                 op_kwargs=slider_data.get('op_kwargs'),
@@ -1215,6 +1217,8 @@ def draw_slider(
     slider_name="",
     icon_true='CHECKBOX_HLT',
     icon_false='CHECKBOX_DEHLT',
+    use_expand_enum=False,
+    use_slider=True,
     ###
     texts=[],
     operator="",
@@ -1224,7 +1228,6 @@ def draw_slider(
     children={},
     parent_value="",
 ):
-
     if owner_path == "":
         owner = rig
     else:
@@ -1260,6 +1263,8 @@ def draw_slider(
             slider_name=slider_name,
             icon_true=icon_true,
             icon_false=icon_false,
+            use_expand_enum=use_expand_enum,
+            use_slider=use_slider,
             texts=texts,
         )
         if operator:
@@ -1358,6 +1363,8 @@ def draw_property(
     slider_name="",
     icon_true="CHECKBOX_HLT",
     icon_false='CHECKBOX_DEHLT',
+    use_expand_enum=True,
+    use_slider=True,
     texts=[],
 ):
     if not hasattr(prop_owner, 'path_resolve'):
@@ -1390,17 +1397,11 @@ def draw_property(
                 # For large ranges, a slider doesn't make sense.
                 try:
                     if bracketless_prop_name in prop_owner:
-                        prop_settings = prop_owner.id_properties_ui(
-                            bracketless_prop_name
-                        ).as_dict()
+                        prop_owner.id_properties_ui(bracketless_prop_name).as_dict()
                 except TypeError:
                     # This happens for Python properties. There's no point drawing them.
                     return
-                is_slider = (
-                    not is_array
-                    and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
-                )
-                layout.prop(prop_owner, prop_name, slider=is_slider, text=slider_name)
+                layout.prop(prop_owner, prop_name, slider=use_slider, text=slider_name)
             else:
                 layout.prop(prop_owner, prop_name, text=slider_name)
     elif value_type == str:
@@ -1412,6 +1413,13 @@ def draw_property(
         ):
             # Special case for nice constraint sub-target selectors.
             layout.prop_search(prop_owner, prop_name, prop_owner.target.pose, 'bones')
+        elif isinstance(prop_owner.bl_rna.properties.get(prop_name), bpy.types.EnumProperty):
+            enum_layout = layout
+            if slider_name.strip() != "" and use_expand_enum:
+                split = layout.split(factor=0.4)
+                split.label(text=slider_name)
+                enum_layout = split.row()
+            enum_layout.prop(prop_owner, prop_name, expand=use_expand_enum, text=slider_name.strip() or prop_name)
         else:
             layout.prop(prop_owner, prop_name)
     else:
