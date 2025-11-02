@@ -30,8 +30,6 @@ class CloudUIMixin:
         operator="",
         op_icon='BLANK1',
         op_kwargs={},
-        ###
-        parent_id="",
     ) -> OrderedDict:
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
 
@@ -58,7 +56,6 @@ class CloudUIMixin:
             operator=operator,
             op_icon=op_icon,
             op_kwargs=op_kwargs,
-            parent_id=parent_id,
         )
 
     @staticmethod

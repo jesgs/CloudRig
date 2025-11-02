@@ -1032,8 +1032,6 @@ def add_property_to_ui(
     op_icon='BLANK1',
     op_kwargs={},
     ###
-    parent_id="",
-    ###
     panels=None,
 ) -> OrderedDict:
     """Add a UI slider to the object's UI data."""
@@ -1049,7 +1047,6 @@ def add_property_to_ui(
         panel = slider_children.setdefault(parent_value, OrderedDict())
     else:
         panel = panels.setdefault(panel_name, OrderedDict())
-        panel['parent_id'] = parent_id
 
     label = panel.setdefault(label_name, OrderedDict())
 

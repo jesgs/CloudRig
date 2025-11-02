@@ -48,7 +48,6 @@ class Component_Finger(Component_Chain_IKFK):
             prop_id=prop_id,
             panel_name=panel_name,
             label_name=label_name,
-            parent_id='CLOUDRIG_PT_custom_ik',
             custom_prop_settings=custom_prop_settings,
             **kwargs
         )
