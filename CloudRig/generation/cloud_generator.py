@@ -1101,19 +1101,20 @@ class CLOUDRIG_OT_generate(Operator):
                     raise exception
 
                 exception_module = get_exception_module(exception)
-                exc_mod_name = exception_module.__name__
-                is_cloudrig_bug = 'rig_components' not in exc_mod_name or "." not in exc_mod_name.split("rig_components.")[-1]
-                operator = ''
+                operator = 'wm.cloudrig_report_bug'
                 op_kwargs = {}
-                if is_cloudrig_bug:
-                    operator = 'wm.cloudrig_report_bug'
-                elif (
-                    hasattr(exception_module, 'RIG_COMPONENT_CLASS') and 
-                    hasattr(exception_module.RIG_COMPONENT_CLASS, 'bug_report_url') and
-                    exception_module.RIG_COMPONENT_CLASS.bug_report_url
-                ):
-                    operator = 'wm.url_open'
-                    op_kwargs = {'url':exception_module.RIG_COMPONENT_CLASS.bug_report_url}
+                if exception_module:
+                    exc_mod_name = exception_module.__name__
+                    is_cloudrig_bug = 'rig_components' not in exc_mod_name or "." not in exc_mod_name.split("rig_components.")[-1]
+                    if is_cloudrig_bug:
+                        operator = 'wm.cloudrig_report_bug'
+                    elif (
+                        hasattr(exception_module, 'RIG_COMPONENT_CLASS') and 
+                        hasattr(exception_module.RIG_COMPONENT_CLASS, 'bug_report_url') and
+                        exception_module.RIG_COMPONENT_CLASS.bug_report_url
+                    ):
+                        operator = 'wm.url_open'
+                        op_kwargs = {'url':exception_module.RIG_COMPONENT_CLASS.bug_report_url}
 
                 # Any other exception type is a bug.
                 # We give the user a button to report the error.
