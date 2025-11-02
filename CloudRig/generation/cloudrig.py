@@ -17,6 +17,7 @@ from bpy.props import (
     EnumProperty,
     PointerProperty,
     IntProperty,
+    CollectionProperty,
 )
 from bpy.types import (
     bpy_struct,
@@ -1008,6 +1009,8 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             if rig.cloudrig.ui_edit_mode:
                 if hasattr(bpy.ops.pose, 'cloudrig_add_property_to_ui'):
                     layout.operator('pose.cloudrig_add_property_to_ui', icon='ADD')
+                if hasattr(bpy.ops.object, 'cloudrig_ui_element_add'):
+                    layout.operator('object.cloudrig_ui_element_add', icon='ADD')
 
         if ui_data:
             for panel_name, panel_data in ui_data.items():
@@ -1071,6 +1074,393 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                     label_data=label_data,
                 )
 
+class CloudRig_UIElement(PropertyGroup):
+    @property
+    def rig(self):
+        return self.id_data
+
+    element_type: EnumProperty(
+        name="Element Type",
+        description="How this UI element is drawn",
+        items=[
+            ('PANEL', "Panel", "Collapsible panel. May contain Panels, Labels, Rows"),
+            ('LABEL', "Label", "Label. May contain Panels, Labels, Rows"),
+            (
+                'ROW',
+                "Row",
+                "Grouping for elements that allow multiple per row. Must be used for such elements, even if there is only one in the row. May contain Rows, Properties, and Operators",
+            ),
+            (
+                'PROPERTY',
+                "Property",
+                "A single Property. Must belong to a Row. May contain conditional Panels, Labels, Rows",
+            ),
+            ('OPERATOR', "Operator", "A single Operator. Must belong to a Row"),
+        ],
+    )
+
+    display_name: StringProperty(
+        name="Display Name",
+        description="Display name of this UI element",
+        default="",
+    )
+
+    # NOTE: This needs to be updated when elements are removed.
+    parent_index: IntProperty(
+        # Supported Types: Panel, Label, Row.
+        # TODO: Deletion will need to treat this carefully!
+        name="Parent Index",
+        description="Index of the parent UI element",
+        default=-1,
+    )
+
+    @property
+    def parent(self):
+        if self.parent_index >= 0:
+            return self.rig.cloudrig_ui[self.parent_index]
+
+    @parent.setter
+    def parent(self, value: 'CloudRig_UIElement'):
+        if not value:
+            self.parent_index = -1
+        elif self == value:
+            # Trying to set self as parent, just ignore and move on.
+            return
+        elif value.element_type == 'OPERATOR':
+            # Operators are not allowed children.
+            return
+        elif self.element_type == 'ROW' == value.element_type:
+            # Rows cannot be parented to rows.
+            return
+        else:
+            self.parent_index = value.index
+
+    @property
+    def index(self):
+        for i, elem in enumerate(self.rig.cloudrig_ui):
+            if elem == self:
+                return i
+        return -1
+
+    @property
+    def identifier(self):
+        id = self.display_name
+        parent = self.parent
+        while parent:
+            id = parent.display_name + " -> " + id
+            parent = parent.parent
+        return id
+
+    parent_values: StringProperty(
+        # Supported Types: Panel, Label, Row, only when Element Type of parent element is Property.
+        name="Parent Values",
+        description="Condition for this UI element to be drawn, when its parent is a Property. This UI element will only be drawn if the parent property has one of these comma-separated values",
+    )
+
+    texts: StringProperty(
+        # Supported Types: Property, only Boolean and Integer.
+        name="Texts",
+        description="Comma-separated display texts for Integer and Boolean Properties",
+    )
+
+    bl_idname: StringProperty(
+        # Supported Types: Operator
+        name="Operator ID",
+        description="Operator bl_idname",
+    )
+
+    op_kwargs: StringProperty(
+        # Supported Types: Operator
+        name="Operator Arguments",
+        description="Operator Keyword Arguments, as a json dict",
+        default="{}",
+    )
+
+    def update_icons(self, context):
+        # Prevent illegal icon values when users clicks X button.
+        if self.icon == '':
+            self.icon = 'BLANK1'
+        if self.icon_false == '':
+            self.icon_false = 'BLANK1'
+
+    icon: StringProperty(
+        # Supported Types: Label, Row, Property(bool), Operator
+        name="Icon",
+        description="Icon",
+        default='CHECKBOX_HLT',
+        update=update_icons,
+    )
+
+    icon_false: StringProperty(
+        # Supported Types: Property(bool)
+        name="Icon False",
+        description="Icon to display when this boolean property is False",
+        default='CHECKBOX_DEHLT',
+        update=update_icons,
+    )
+
+    prop_owner_path: StringProperty(
+        # Supported Types: Property
+        name="Property Owner",
+        description="Data Path from the rig object to the direct owner of the property to be drawn",
+    )
+
+    @property
+    def prop_owner(self):
+        try:
+            return self.rig.path_resolve(self.prop_owner_path)
+        except ValueError:
+            # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
+            return
+
+    def update_prop_name(self, context):
+        if self.is_custom_prop:
+            self.display_name = self.prop_name.replace("_", " ").title()
+        elif self.prop_name == 'is_visible' and self.prop_owner:
+            self.display_name = self.prop_owner.name
+
+    prop_name: StringProperty(
+        # Supported Types: Property
+        name="Property Name",
+        description="Name of the property to be drawn",
+        update=update_prop_name,
+    )
+
+    @property
+    def bracketed_prop_name(self):
+        if self.is_custom_prop:
+            return f'["{self.prop_name}"]'
+        return self.prop_name
+
+    @property
+    def prop_value(self):
+        if not hasattr(self.prop_owner, 'path_resolve'):
+            print("cloudrig.py: Cannot resolve path from: ", self.prop_owner)
+            return
+        try:
+            return self.prop_owner.path_resolve(self.bracketed_prop_name)
+        except ValueError:
+            # Property may have been removed.
+            return {'MISSING'}
+
+    is_custom_prop: BoolProperty(
+        # Supported Types: Property # TODO: This should be set from the update of prop_name.
+        name="Is Custom Property",
+        description="Whether this is a custom or a built-in property. Set automatically",
+    )
+
+    @property
+    def custom_prop_settings(self):
+        if not self.is_custom_prop:
+            return
+        try:
+            return self.prop_owner.id_properties_ui(self.prop_name).as_dict()
+        except TypeError:
+            # This happens for Python properties. There's no point drawing them.
+            return
+
+    @property
+    def children(self):
+        return [elem for elem in self.rig.cloudrig_ui if elem.parent == self]
+
+    @property
+    def children_recursive(self):
+        ret = self.children
+        for child in self.children:
+            ret.extend(child.children_recursive)
+        return ret
+
+    @property
+    def should_draw(self):
+        if not self.parent:
+            return True
+        if self.parent.element_type != 'PROPERTY':
+            return True
+        if not self.parent_values:
+            return True
+        parent_value_str = str(self.parent.prop_value)
+        if parent_value_str in [v.strip() for v in self.parent_values.split(",")]:
+            return True
+        return False
+
+    def copy_from(self, other):
+        for prop_name in self.bl_rna.properties.keys():
+            if prop_name == 'rna_type':
+                continue
+            setattr(self, prop_name, getattr(other, prop_name))
+
+    def draw_ui_recursive(self, context, layouts):
+        if not self.should_draw or not layouts:
+            return
+        # We copy the layout stack so we can modify it without affecting the higher scope
+        layouts = layouts[:]
+        layout = layouts[-1]
+        if self.element_type == 'PANEL':
+            # TODO: Figure out how to allow elements to be drawn in the header.
+            header, layout = layout.panel(idname=str(self.index) + self.display_name)
+            header.label(text=self.display_name)
+            self.draw_ui_edit_buttons(header)
+        elif self.element_type == 'LABEL':
+            row = layout.row()
+            if self.display_name:
+                row.label(text=self.display_name)
+            self.draw_ui_edit_buttons(row)
+        elif self.element_type == 'ROW':
+            row = layout.row(align=True)
+            layouts.append(row)
+            for child in self.children:
+                child.draw_ui_recursive(context, layouts)
+                if child != self.children[-1]:
+                    row.separator()
+            layouts.pop()
+            # NOTE: We deliberately skip drawing edit buttons for a Row.
+            # A Row should be automatically deleted when it no longer has any elements.
+            return
+        elif self.element_type == 'PROPERTY':
+            row = layout.row(align=True)
+            self.draw_property(context, row)
+            for child in self.children:
+                if child.element_type == 'OPERATOR':
+                    child.draw_ui_recursive(context, layouts + [row])
+            for child in self.children:
+                box = None
+                if child.should_draw and child.element_type == 'PROPERTY':
+                    if not box:
+                        if self.parent.element_type == 'ROW':
+                            layouts.pop()
+                        box = layouts[-1].box()
+                        layouts.append(box)
+                    child.draw_ui_recursive(context, layouts)
+            self.draw_ui_edit_buttons(row)
+            return
+        elif self.element_type == 'OPERATOR':
+            if not self.parent or self.parent.element_type != 'ROW':
+                layout = layout.row(align=True)
+                layouts.append(layout)
+            self.draw_operator(context, layout)
+            self.draw_ui_edit_buttons(layout)
+        if layout:
+            for child in self.children:
+                child.draw_ui_recursive(context, layouts)
+    
+    def draw_ui_edit_buttons(self, layout):
+        if not self.rig.cloudrig.ui_edit_mode:
+            return
+        layout.operator(
+            'object.cloudrig_ui_element_edit', text="", icon='GREASEPENCIL'
+        ).element_index = self.index
+        layout.operator(
+            'object.cloudrig_ui_element_remove', text="", icon='X'
+        ).element_index = self.index
+
+    def draw_property(self, context, layout):
+        prop_owner, prop_value = self.prop_owner, self.prop_value
+        if not prop_owner:
+            layout.alert = True
+            layout.label(
+                text=f"Missing property owner: '{self.prop_owner_path}' for property '{self.prop_name}'.",
+                icon='ERROR',
+            )
+            return
+        if prop_value == {'MISSING'}:
+            layout.alert = True
+            layout.label(
+                text=f"Missing property '{self.prop_name}' of owner '{self.prop_owner_path}'.",
+                icon='ERROR',
+            )
+            return
+        display_name = self.display_name or self.prop_name
+        bracketed_prop_name = self.bracketed_prop_name
+        value_type, is_array = rna_idprop_value_item_type(prop_value)
+        if value_type is type(None) or issubclass(value_type, ID):
+            # Property is a Datablock Pointer.
+            layout.prop(self.prop_owner, bracketed_prop_name, text=display_name)
+        elif value_type in {int, float, bool}:
+            texts = [t.strip() for t in self.texts.split(",")]
+            if (
+                texts
+                and not is_array
+                and len(texts) - 1 >= int(prop_value) >= 0
+            ):
+                text = texts[int(prop_value)]
+                if text:
+                    display_name += ": " + text
+            if value_type == bool:
+                icon = self.icon if prop_value else self.icon_false
+                layout.prop(
+                    self.prop_owner,
+                    bracketed_prop_name,
+                    toggle=True,
+                    text=display_name,
+                    icon=icon,
+                )
+            elif value_type in {int, float}:
+                if self.is_custom_prop:
+                    # Property is a float/int/color
+                    # For large ranges, a slider doesn't make sense.
+                    prop_settings = self.custom_prop_settings
+                    is_slider = (
+                        not is_array
+                        and prop_settings['soft_max'] - prop_settings['soft_min'] < 100
+                    )
+                    layout.prop(
+                        prop_owner,
+                        bracketed_prop_name,
+                        slider=is_slider,
+                        text=display_name,
+                    )
+                else:
+                    layout.prop(prop_owner, bracketed_prop_name, text=display_name)
+        elif value_type == str:
+            if (
+                issubclass(type(prop_owner), bpy.types.Constraint)
+                and bracketed_prop_name == 'subtarget'
+                and prop_owner.target
+                and prop_owner.target.type == 'ARMATURE'
+            ):
+                # Special case for nice constraint sub-target selectors.
+                layout.prop_search(
+                    prop_owner, bracketed_prop_name, prop_owner.target.pose, 'bones'
+                )
+            else:
+                layout.prop(prop_owner, bracketed_prop_name)
+        else:
+            layout.prop(prop_owner, bracketed_prop_name, text=display_name)
+
+    def draw_operator(self, context, layout):
+        op_icon = self.icon
+        if not self.icon or self.icon == 'NONE':
+            op_icon = 'BLANK1'
+        display_name = self.display_name
+        if self.parent and self.parent.element_type == 'PROPERTY':
+            display_name = ""
+        op_props = layout.operator(self.bl_idname, text=display_name, icon=op_icon)
+        feed_op_props(op_props, self.op_kwargs)
+        return op_props
+
+    def reset(self):
+        rna = self.bl_rna
+        for prop_name, prop_data in rna.properties.items():
+            if prop_name == 'rna_type':
+                continue
+            setattr(self, prop_name, prop_data.default)
+
+    def __repr__(self):
+        return self.identifier
+
+class CLOUDRIG_PT_custom_ui(CLOUDRIG_PT_base):
+    bl_idname = "CLOUDRIG_PT_custom_ui"
+    bl_label = "Rig UI"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+        col = layout.column(align=True)
+        rig = context.active_object  # TODO
+        for elem in rig.cloudrig_ui:
+            if not elem.parent:
+                elem.draw_ui_recursive(context, [layout, col])
 
 def read_rig_panels(obj) -> OrderedDict:
     """Return the rig's UI data as a nested OrderedDict."""
@@ -2963,6 +3353,8 @@ classes = (
     POSE_OT_cloudrig_collection_clipboard_copy,
     POSE_OT_cloudrig_collection_clipboard_paste,
     ARMATURE_OT_bone_collections_popup,
+    CloudRig_UIElement,
+    CLOUDRIG_PT_custom_ui,
 )
 
 
@@ -3015,6 +3407,9 @@ def register():
     bpy.types.Object.cloudrig_prefs = PointerProperty(
         type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'}
     )
+
+    bpy.types.Object.cloudrig_ui = CollectionProperty(type=CloudRig_UIElement)
+    bpy.types.Object.cloudrig_ui_new_element = PointerProperty(type=CloudRig_UIElement)
 
     bpy.types.BoneCollection.cloudrig_info = PointerProperty(
         type=CloudRigBoneCollection, override={'LIBRARY_OVERRIDABLE'}
