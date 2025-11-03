@@ -8,7 +8,7 @@ from mathutils import Vector, Matrix
 
 from ..utils.maths import flat
 from ..utils.external.mechanism import make_constraint, make_driver
-from ..utils.rig import align_bone_z_axis_to_vector
+from ..utils.rig import align_bone_axis_to_vector
 from .properties_ui import ensure_custom_property, make_property
 from ..generation import naming
 from typing import TYPE_CHECKING
@@ -583,7 +583,7 @@ class BoneInfo:
                 else:
                     edit_bone.align_roll(align_bone.z_axis)
             elif self.roll_type == 'VECTOR':
-                align_bone_z_axis_to_vector(edit_bone, self.roll_vector)
+                align_bone_axis_to_vector(edit_bone, self.roll_vector)
 
             edit_bone.roll += self.roll
 

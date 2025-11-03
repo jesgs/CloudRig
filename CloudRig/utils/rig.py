@@ -81,11 +81,19 @@ def wrap_angle_pi(angle: float) -> float:
     return (angle + pi) % (2 * pi) - pi
 
 
-def align_bone_z_axis_to_vector(ebone: EditBone, vector: Vector):
-    ebone.roll = calc_roll_to_align_z_axis(ebone, vector)
+def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
+    ebone.roll = calc_roll_to_align_axis(ebone, vector, axis)
 
 
-def calc_roll_to_align_z_axis(ebone: EditBone, vector: Vector) -> float:
+def calc_roll_to_align_axis(ebone: EditBone, vector: Vector, axis="+Z") -> float:
+    offset_map = {
+        "+Z" : 0,
+        "-Z" : pi,
+        "+X" : pi/2,
+        "-X" : -pi/2,
+    }
+    assert axis in offset_map
+    offset = offset_map[axis]
     roll = ebone.roll
     projected = project_point_to_plane(vector, ebone.head, ebone.y_axis)
 
@@ -94,7 +102,7 @@ def calc_roll_to_align_z_axis(ebone: EditBone, vector: Vector) -> float:
     if vec_b.length == 0:
         return roll
     angle = signed_angle_on_plane(vec_a, vec_b, ebone.y_axis)
-    roll += angle
+    roll += angle + offset
     roll = wrap_angle_pi(roll)
     return roll
 
@@ -181,7 +189,8 @@ def calculate_ik_pole_vector(
 
     return pole_angle_deg, elbow_direction, pole_location
 
-def ik_chain_flatten_single_iter(eb_chain) -> bool:
+
+def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     coords = get_flattened_coords(eb_chain)
     assert coords
 
@@ -197,7 +206,7 @@ def ik_chain_flatten_single_iter(eb_chain) -> bool:
 
     # We loop over again because roll has to be re-calculated after the whole chain has been flattened.
     for edit_bone in eb_chain:
-        desired_roll = calc_roll_to_align_z_axis(edit_bone, pole_location)
+        desired_roll = calc_roll_to_align_axis(edit_bone, pole_location, axis)
         if edit_bone.roll != desired_roll:
             edit_bone.roll = desired_roll
             did_anything = True
@@ -206,27 +215,30 @@ def ik_chain_flatten_single_iter(eb_chain) -> bool:
 
 
 def is_ideal_ik_chain(chain: list[EditBone|PoseBone]) -> bool:
-    """Determine whether a chain of bones is ideal for IK."""
+    """Determine whether a chain of bones is ideal for IK.
+    Return True only if the chain's bones lie on a plane, and for each bone, 
+    one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical) 
+    pole target position.
+    """
     coords = get_flattened_coords(chain)
 
     THRESHOLD = 0.01
     for (head, tail), ebone in zip(coords, chain):
         if not head:
-            # This happens when several bones are perfectly straight. intersect_line_plane() will return None.
+            # This happens when several bones are perfectly straight. 
+            # (intersect_line_plane() will return None).
             continue
         if (head - ebone.head).length > THRESHOLD or (tail - ebone.tail).length > THRESHOLD:
             return False
 
     _ik_angle, _pole_direction, pole_location = calculate_ik_pole_vector(chain[0], chain[1])
     for ebone in chain:
-        desired_roll = calc_roll_to_align_z_axis(ebone, pole_location)
+        desired_roll = calc_roll_to_align_axis(ebone, pole_location)
         wrapped_roll = wrap_angle_pi(ebone.roll)
+        # Allow any 90-degree increment.
         good_rolls = (wrapped_roll, wrapped_roll+pi, wrapped_roll-pi, wrapped_roll+pi/2, wrapped_roll-pi/2)
         threshold = 0.001
         if not any([abs(desired_roll-good_roll)<threshold for good_roll in good_rolls]):
-            print("Shitty roll on ", ebone.name)
-            print("desired: ", desired_roll)
-            print("good: ", good_rolls)
             return False
 
     return True

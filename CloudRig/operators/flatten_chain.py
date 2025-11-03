@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.types import Operator
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty
 
 from ..rig_component_features.mechanism import get_component_pbone_chain
 from ..utils.rig import ik_chain_flatten_single_iter, is_ideal_ik_chain
@@ -19,6 +19,16 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
     )
     start_bone: StringProperty(
         description="Use a specific bone as the beginning of the chain, rather than the active bone"
+    )
+    pole_axis: EnumProperty(
+        name="Pole Axis",
+        description="Which bone axis should point toward the IK pole target",
+        items=[
+            ("-Z", "-Z", "-Z"),
+            ("+Z", "+Z", "+Z"),
+            ("+X", "+X", "+X"),
+            ("-X", "-X", "-X"),
+        ]
     )
 
     @classmethod
@@ -42,7 +52,7 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         did_anything = False
         counter = 0
         while not is_ideal_ik_chain(eb_chain) or counter > 10:
-            did_anything = ik_chain_flatten_single_iter(eb_chain)
+            did_anything = ik_chain_flatten_single_iter(eb_chain, axis=self.pole_axis)
             counter += 1
 
         bpy.ops.object.mode_set(mode=org_mode)
