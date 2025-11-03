@@ -2,12 +2,11 @@
 
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
-from mathutils import Vector
 from math import radians as rad
 from math import pow
 from copy import deepcopy
-from mathutils import Vector
 
+from ..utils.rig import calculate_ik_pole_vector
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_ik_chain import Component_Chain_IKFK
 
@@ -494,11 +493,11 @@ class Component_Limb(Component_Chain_IKFK):
     ##############################
     # Overlay
     @classmethod
-    def draw_overlay(cls, context, buffer) -> list[tuple[Vector, Vector]]:
+    def draw_overlay(cls, context, buffer):
         active_pb = context.active_pose_bone
         rig_chain = cls.find_component_chain_of_pbone(active_pb)
 
-        _pole_angle, _pole_vector, pole_location = cls.ik_chain__calc_ik_info(
+        _ik_angle, _pole_direction, pole_location = calculate_ik_pole_vector(
             rig_chain[0], rig_chain[1]
         )
 

@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PoseBone, PropertyGroup, Action, ActionSlot
-from ..rig_component_features.bone_info import BoneInfo
+from bpy.types import PropertyGroup, Action, ActionSlot
 from bpy.props import BoolProperty
 from mathutils import Vector
 from math import radians
 
+from ..rig_component_features.bone_info import BoneInfo
 from ..bs_utils.ui import label_split
-from ..operators.flatten_chain import is_chain_flat
+from ..utils.rig import calculate_ik_pole_vector, is_ideal_ik_chain
 from .cloud_fk_chain import Component_Chain_FK
 
 
@@ -128,11 +128,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 f"Must be a chain of at least 2 connected bones!"
             )
 
-        if not is_chain_flat(self.bones_org):
+        if not is_ideal_ik_chain(self.bones_org):
             self.add_log(
-                "IK chain is not flat",
-                description=f"For correct IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls recalculated along a consistent axis (eg. Global X).",
-                operator="armature.flatten_chain",
+                "IK affects rest pose",
+                description=f"For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls should align towards the pole vector. Simply use the button below.",
+                operator="armature.flatten_ik_chain",
                 op_kwargs={
                     "remove_active_log": True,
                     "start_bone": self.metarig_base_pbone.name,
@@ -223,7 +223,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         meta_first = self.get_metarig_pbone(self.bones_org[0].name)
         meta_second = self.get_metarig_pbone(self.bones_org[1].name)
 
-        pole_angle_deg, pole_vector, pole_location = self.ik_chain__calc_ik_info(
+        pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(
             meta_first, meta_second
         )
         self.pole_angle_deg = pole_angle_deg
@@ -231,73 +231,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.pole_location = pole_location
 
-    @staticmethod
-    def ik_chain__calc_ik_info(
-        meta_first: PoseBone, meta_second: PoseBone
-    ) -> tuple[float, Vector, Vector]:
-        """Based on the first two bones of a chain,
-        return some data useful in creating an IK pole target:
-            float angle: Best angle (in degrees) for the IK constraint's pole_angle param.
-            Vector vector: Offset of the pole target relative to the "elbow" joint.
-            Vector location: Final location of the pole target in object space.
-        """
-        chain_vector = meta_second.tail - meta_first.head
-
-        first_tail = meta_second.head
-        last_tail = meta_second.tail
-
-        # Calculate the distances of the four points to the tail of the last bone.
-        # These four points are in the four directions of the bone around the bone's tail.
-        x_pos_distance = ((first_tail + meta_first.x_axis) - last_tail).length
-        x_neg_distance = ((first_tail - meta_first.x_axis) - last_tail).length
-
-        z_pos_distance = ((first_tail + meta_first.z_axis) - last_tail).length
-        z_neg_distance = ((first_tail - meta_first.z_axis) - last_tail).length
-
-        # Store those distances in a dictionary where they are matched with a
-        # tuple describing (the main axis of rotation, IK constraint pole_angle),
-        # that should be used, when that distance is the lowest.
-        axis_dict = {
-            x_pos_distance: ("-Z", 180),
-            x_neg_distance: ("+Z", 0),
-            z_pos_distance: ("+X", -90),
-            z_neg_distance: ("-X", 90),
-        }
-
-        # Find the tuple to use by picking the one corresponding to the lowest distance.
-        lowest_distance = axis_dict[min(list(axis_dict.keys()))]
-        rotation_axis = lowest_distance[0]
-        pole_angle_deg = lowest_distance[1]
-
-        vector_flipper = 1
-        perpendicular_axis = meta_first.x_axis
-        if rotation_axis[0] == "-":
-            vector_flipper = -1
-        if rotation_axis[1] == "Z":
-            perpendicular_axis = meta_first.z_axis
-
-        # Find a direction that is perpendicular to a plane defined by the chain vector and the main rotation axis.
-        pole_direction = chain_vector.cross(perpendicular_axis).normalized()
-
-        # Flip it if the main rotation axis is negative.
-        direction_with_flip = pole_direction * vector_flipper
-
-        # Give it a length which is the distance between the start and end of the chain.
-        pole_vector = direction_with_flip * chain_vector.length
-
-        # We want the pole control to be offset from the first bone's tail by that vector.
-        pole_location = first_tail + pole_vector
-
-        return pole_angle_deg, pole_vector, pole_location
-
     def __make_pole_control(self):
         # Create IK Pole Control
+        tail = self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2
         pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
             name=self.naming.make_name(["POLE"], self.limb_name, [self.side_suffix]),
             bbone_width=0.1,
             head=self.pole_location,
-            tail=self.pole_location
-            + self.pole_vector.normalized() * self.chain_length * 0.2,
+            tail=tail,
             roll_type="VECTOR",
             roll_vector=Vector((0, 0, -1)),
             roll=0,
@@ -750,7 +691,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             cls.draw_prop(context, layout, params.ik_chain, "world_aligned")
 
         split = label_split(layout, text="")
-        split.operator("armature.flatten_chain")
+        split.operator("armature.flatten_ik_chain")
 
 
 class Params(PropertyGroup):

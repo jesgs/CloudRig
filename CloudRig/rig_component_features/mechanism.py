@@ -162,22 +162,6 @@ def get_component_pbone_chain(pose_bone, connected=True) -> list[Bone]:
     return chain
 
 
-def get_bone_chain(start_bone):
-    bones = [start_bone]
-    if type(start_bone) == PoseBone:
-        bones = [start_bone.bone]
-    has_connected_children = True
-    while has_connected_children:
-        # Find first connected child
-        has_connected_children = False
-        for c in bones[-1].children:
-            if c.use_connect:
-                bones.append(c)
-                has_connected_children = True
-                break
-    return bones
-
-
 def create_parent_bone(child, bone_set=None):
     """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
     parent the bone to this copy."""
