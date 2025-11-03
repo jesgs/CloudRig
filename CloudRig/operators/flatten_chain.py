@@ -51,7 +51,8 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         eb_chain = [rig.data.edit_bones[pb.name] for pb in pb_chain]
         did_anything = False
         counter = 0
-        while not is_ideal_ik_chain(eb_chain) or counter > 10:
+        max_iter = 100
+        while not is_ideal_ik_chain(eb_chain) or counter > max_iter:
             did_anything = ik_chain_flatten_single_iter(eb_chain, axis=self.pole_axis)
             counter += 1
 
