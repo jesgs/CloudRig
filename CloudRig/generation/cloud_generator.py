@@ -332,8 +332,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         self.components_create_helper_objs(context)
-        self.metarig.cloudrig_prefs.sync_collection_names()
-        self.copy_bone_collections(src_armature_obj=metarig, target_armature_obj=self.target_rig)
         self.components_write_pbone_data(context, self.target_rig)
 
         if self.params.generate_test_action:
@@ -554,37 +552,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         for component in self.all_components:
             component.create_helper_objects(context)
 
-    @staticmethod
-    def copy_bone_collections(src_armature_obj, target_armature_obj):
-        for src_coll in src_armature_obj.data.collections_all:
-            tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
-            if not tgt_coll:
-                tgt_coll = target_armature_obj.data.collections.new(src_coll.name)
-                copy_all_runtime_properties(src_coll, tgt_coll)
-            tgt_coll.is_visible = src_coll.is_visible
-
-            # Copy drivers of BoneCollection properties.
-            if src_armature_obj.data.animation_data:
-                for src_driver in src_armature_obj.data.animation_data.drivers:
-                    if not src_driver.data_path.startswith(f'collections_all["{src_coll.name}"]'):
-                        continue
-                    if not target_armature_obj.data.animation_data:
-                        target_armature_obj.data.animation_data_create()
-                    drv = target_armature_obj.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
-                    relink_real_driver(drv, src_armature_obj, target_armature_obj)
-
-        target_armature_obj.data.collections.active_index = src_armature_obj.data.collections.active_index
-
-        # Parenting has to be done as a separate loop because `collections_all` 
-        # appears to be in creation order, not hierarchy order.
-        for src_coll in src_armature_obj.data.collections_all:
-            tgt_coll = target_armature_obj.data.collections_all.get(src_coll.name)
-            if not tgt_coll:
-                continue
-
-            if src_coll.parent:
-                parent = target_armature_obj.data.collections_all.get(src_coll.parent.name)
-                tgt_coll.parent = parent
 
     def components_write_pbone_data(self, context, target_rig):
         for bone_info in self.bone_infos:
@@ -857,16 +824,45 @@ def create_target_rig_obj(context, metarig) -> Object:
 
     target_rig.data.pose_position = 'REST'
 
-    # Copy custom properties (and their drivers) of the Armature datablock.
+    metarig.cloudrig_prefs.sync_collection_names()
+    copy_bone_collections(src_rig=metarig, tgt_rig=target_rig)
+
+    # Copy custom properties of the Armature datablock.
     copy_all_custom_properties(metarig.data, target_rig.data)
     if not target_rig.data.animation_data:
         target_rig.data.animation_data_create()
+    # Copy all drivers of the Armature datablock
+    # (custom properties, bone collection visibilities, etc.)
     if metarig.data.animation_data:
         for src_driver in metarig.data.animation_data.drivers:
+            if not target_rig.data.animation_data:
+                target_rig.data.animation_data_create()
             drv = target_rig.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
             relink_real_driver(drv, metarig, target_rig)
 
     return target_rig
+
+
+def copy_bone_collections(src_rig: Object, tgt_rig: Object):
+    for src_coll in src_rig.data.collections_all:
+        tgt_coll = tgt_rig.data.collections_all.get(src_coll.name)
+        if not tgt_coll:
+            tgt_coll = tgt_rig.data.collections.new(src_coll.name)
+            copy_all_runtime_properties(src_coll, tgt_coll)
+        tgt_coll.is_visible = src_coll.is_visible
+
+    tgt_rig.data.collections.active_index = src_rig.data.collections.active_index
+
+    # Parenting has to be done as a separate loop because `collections_all` 
+    # appears to be in creation order, not hierarchy order.
+    for src_coll in src_rig.data.collections_all:
+        tgt_coll = tgt_rig.data.collections_all.get(src_coll.name)
+        if not tgt_coll:
+            continue
+
+        if src_coll.parent:
+            parent = tgt_rig.data.collections_all.get(src_coll.parent.name)
+            tgt_coll.parent = parent
 
 
 def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
