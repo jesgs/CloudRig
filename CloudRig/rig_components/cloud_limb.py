@@ -176,7 +176,7 @@ class Component_Limb(Component_Chain_IKFK):
                         'type': 'TRANSFORMS',
                         'targets': [
                             {
-                                'bone_target': self.fk_chain[0],
+                                'bone_target': self.bones_org[0].name,
                                 'transform_space': 'LOCAL_SPACE',
                                 'transform_type': 'ROT_Y',
                                 'rotation_mode': 'SWING_TWIST_Y',
