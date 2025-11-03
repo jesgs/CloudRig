@@ -162,11 +162,16 @@ class Component_Spine_Toon(Component_Chain_FK):
                 lock_rotation=(True, False, True),
                 lock_scale=(True, True, True)
             )
-            dsp = self.create_dsp_bone(ik_hlp, head=ik_hlp.center)
             is_last = len(ik_chain)==len(fk_chain)-1
+            def_bone = self.bones_def[len(ik_chain)+(0 if is_last else 1)]
+            dsp = self.create_dsp_bone(ik_hlp, 
+                head=def_bone.tail if is_last else def_bone.center,
+                vector=def_bone.vector,
+                length=def_bone.length/2
+            )
             dsp.add_constraint('COPY_TRANSFORMS',
                 head_tail=1.0 if is_last else 0.5,
-                subtarget=self.bones_def[len(ik_chain)+(0 if is_last else 1)],
+                subtarget=def_bone,
                 space='WORLD'
             )
             ik_chain.append(ik_hlp)
