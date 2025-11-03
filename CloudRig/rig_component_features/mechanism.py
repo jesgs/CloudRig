@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from mathutils import Vector
-from bpy.types import PoseBone, Bone
+from bpy.types import PoseBone, Bone, Constraint, Object, Driver
 
 from .bone_info import BoneInfo
+from ..rig_component_features.bone_set import BoneSet
 from ..generation.naming import add_prefix
 
 
@@ -80,7 +81,7 @@ class CloudMechanismMixin:
             self.relink_driver_info(drv)
 
 
-def relink_driver_info(metarig, rig, driver_info):
+def relink_driver_info(metarig: Object, rig: Object, driver_info: dict):
     """Adjust drivers read from the metarig according to some conventions:
 
     An empty target object or the metarig as the target object will be replaced
@@ -101,7 +102,7 @@ def relink_driver_info(metarig, rig, driver_info):
                 t['id'] = rig
 
 
-def relink_real_driver(driver, metarig, target_rig):
+def relink_real_driver(driver: Driver, metarig: Object, target_rig: Object):
     """Swaps references to the metarig with references to the target rig in driver variables."""
     for var in driver.variables:
         for tgt in var.targets:
@@ -109,23 +110,23 @@ def relink_real_driver(driver, metarig, target_rig):
                 tgt.id = target_rig
 
 
-def find_component_chain_of_pbone(pose_bone) -> list[PoseBone]:
-    if pose_bone.cloudrig_component.component_type:
-        return get_component_pbone_chain(pose_bone)
-    if not pose_bone:
-        return None
+def find_component_chain_of_pbone(pbone: PoseBone) -> list[PoseBone]:
+    if pbone.cloudrig_component.component_type:
+        return get_component_pbone_chain(pbone)
+    if not pbone:
+        return []
 
-    return find_component_chain_of_pbone(pose_bone.parent)
+    return find_component_chain_of_pbone(pbone.parent)
 
 
-def get_component_pbone_chain(pose_bone, connected=True) -> list[Bone]:
+def get_component_pbone_chain(pbone: PoseBone, connected=True) -> list[PoseBone]:
     """Find the chain of bones constituting a rig component that this pose bone belongs to."""
 
     # We start building a chain with the current bone, prepending bones as we go
     # UP in the hierarchy, until we find a connected bone with a component type.
     # If this never happens, this bone does not belong to any rig component.
-    cur_pb = pose_bone
-    chain = []
+    cur_pb = pbone
+    chain: list[PoseBone] = []
     found = False
     while cur_pb:
         chain.insert(0, cur_pb)
@@ -149,7 +150,7 @@ def get_component_pbone_chain(pose_bone, connected=True) -> list[Bone]:
                     continue
                 if next_pb != None:
                     print(
-                        f"""Warning: Branching connected bone chain for {pose_bone.name}: \n
+                        f"""Warning: Branching connected bone chain for {pbone.name}: \n
                         \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
                         \tPicking the first one arbitrarily! \n
                         \tDisconnect the bone or assign a component type to make it unambiguous."""
@@ -162,7 +163,7 @@ def get_component_pbone_chain(pose_bone, connected=True) -> list[Bone]:
     return chain
 
 
-def create_parent_bone(child, bone_set=None):
+def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
     """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
     parent the bone to this copy."""
     if bone_set == None:
@@ -187,19 +188,21 @@ def create_parent_bone(child, bone_set=None):
     return parent_bone
 
 
-def create_parent_constraint_holder(child_bone, bone_set=None):
+def create_parent_constraint_holder(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
     constrained_parent = create_parent_bone(
-        child_bone,
+        child,
         bone_set=bone_set,
     )
-    constrained_parent.name = "CON-" + child_bone.name
-    for con_info in child_bone.constraint_infos[:]:
+    constrained_parent.name = "CON-" + child.name
+    for con_info in child.constraint_infos[:]:
         if 'KEEP' not in con_info['name']:
             constrained_parent.constraint_infos.append(con_info)
-            child_bone.constraint_infos.remove(con_info)
+            child.constraint_infos.remove(con_info)
+
+    return constrained_parent
 
 
-def create_dsp_bone(parent, bone_set, **kwargs):
+def create_dsp_bone(parent: BoneInfo, bone_set: BoneSet, **kwargs) -> BoneInfo:
     """Create a bone to be used as another control's custom_shape_transform."""
     dsp_name = "DSP-" + parent.name
     dsp_bone = bone_set.new(
@@ -217,63 +220,7 @@ def create_dsp_bone(parent, bone_set, **kwargs):
     return dsp_bone
 
 
-def copy_attributes(from_thing, to_thing, skip=[""], recursive=False):
-    """Copy attributes from one thing to another.
-    from_thing: Object to copy values from. (Only if the attribute already exists in to_thing)
-    to_thing: Object to copy attributes into (No new attributes are created, only existing are changed).
-    skip: List of attribute names in from_thing that should not be attempted to be copied.
-    recursive: Copy iterable attributes recursively.
-    """
-
-    # print("\nCOPYING FROM: " + str(from_thing))
-    # print(".... TO: " + str(to_thing))
-
-    bad_stuff = skip + ['active', 'bl_rna', 'error_location', 'error_rotation']
-    for prop in dir(from_thing):
-        if "__" in prop:
-            continue
-        if prop in bad_stuff:
-            continue
-
-        if hasattr(to_thing, prop):
-            from_value = getattr(from_thing, prop)
-            # Iterables should be copied recursively, except str.
-            if recursive and type(from_value) != str:
-                # NOTE: I think This will infinite loop if a CollectionProperty contains a reference to itself!
-                warn = False
-                try:
-                    # Determine if the property is iterable. Otherwise this throws TypeError.
-                    iter(from_value)
-
-                    to_value = getattr(to_thing, prop)
-                    # The thing we are copying to must therefore be an iterable as well. If this fails though, we should throw a warning.
-                    warn = True
-                    iter(to_value)
-                    count = min(len(to_value), len(from_value))
-                    for i in range(0, count):
-                        copy_attributes(from_value[i], to_value[i], skip, recursive)
-                except TypeError:  # Not iterable.
-                    if warn:
-                        print(
-                            "WARNING: Could not copy attributes from iterable to non-iterable field: "
-                            + prop
-                            + "\nFrom object: "
-                            + str(from_thing)
-                            + "\nTo object: "
-                            + str(to_thing)
-                        )
-
-            # Copy the attribute.
-            try:
-                setattr(to_thing, prop, from_value)
-                # print(prop + ": " + str(from_value))
-            except (
-                AttributeError
-            ):  # Read-Only properties throw AttributeError. We ignore silently, which is not great.
-                continue
-
-
-def find_or_create_constraint(pb, con_type, name=None):
+def find_or_create_constraint(pb: PoseBone, con_type: str, name=None) -> Constraint:
     """Create a constraint on a bone if it doesn't exist yet.
     If a constraint with the given type already exists, just return that.
     If a name was passed, also make sure the name matches before deeming it a match and returning it.
