@@ -269,6 +269,8 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None
             subtarget, *refs = var_info
 
         subtarget = force_lazy(subtarget)
+        if hasattr(subtarget, 'name'):
+            subtarget = subtarget.name
 
         # Simple path string case.
         if len(refs) == 0:
