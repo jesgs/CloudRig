@@ -21,7 +21,7 @@ from ..rig_component_features.widgets.widgets import (
 from .actions_component import ActionConstraintComponent
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
-from ..rig_component_features.mechanism import relink_real_driver
+from ..rig_component_features.mechanism import copy_relink_real_driver
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_components.cloud_base import Component_Base
 
@@ -837,8 +837,7 @@ def create_target_rig_obj(context, metarig) -> Object:
         for src_driver in metarig.data.animation_data.drivers:
             if not target_rig.data.animation_data:
                 target_rig.data.animation_data_create()
-            drv = target_rig.data.animation_data.drivers.from_existing(src_driver=src_driver).driver
-            relink_real_driver(drv, metarig, target_rig)
+            copy_relink_real_driver(metarig, target_rig, src_driver)
 
     return target_rig
 

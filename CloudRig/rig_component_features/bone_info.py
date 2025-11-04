@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 import re
-from bpy.types import EditBone, PoseBone, Constraint, Object, ID, FCurve
+from bpy.types import EditBone, PoseBone, Constraint, Object
 
 from mathutils import Vector, Matrix
 
 from ..utils.maths import flat
-from ..utils.external.mechanism import make_constraint, make_driver
+from ..utils.external.mechanism import make_driver
+from ..rig_component_features.mechanism import copy_relink_real_driver
 from ..utils.rig import align_bone_axis_to_vector
 from .properties_ui import ensure_custom_property, make_property
 from ..generation import naming
@@ -162,8 +163,7 @@ class BoneInfo:
 
         self.color_palette_base = 'DEFAULT'
         self.color_palette_pose = 'DEFAULT'
-        # List of ConstraintInfo objects. Their __dict__ will be passed to make_constraint().
-        self.constraint_infos = []
+        self.constraint_infos: list[ConstraintInfo] = []
 
         self._name = name
         self._parent: BoneInfo = None
@@ -476,9 +476,6 @@ class BoneInfo:
                 continue
 
             kwargs[key] = value
-            # HACK: Why is subtarget handled differently than space_subtarget?? Commit message includes "quick fix" so this probably needs a cleanup.
-            if key == 'space_subtarget':
-                kwargs[key] = kwargs[key].replace("ORG-", "")
         new_con = ConstraintInfo(self, constraint.type, **kwargs)
         new_con.is_from_real = True
         self.constraint_infos.append(new_con)
@@ -486,18 +483,6 @@ class BoneInfo:
 
     def clear_constraints(self):
         self.constraint_infos = []
-
-    def base__relink(self):
-        """relinking a bone means relinking its drivers, constraints and
-        constraint drivers - Anything targetting the metarig will target the rig instead,
-        and constraints will be moved to other bones if indicated by a prefix to do so."""
-
-        # relink bone drivers
-        for drv in self.drivers:
-            self.bone_set.rig_component.relink_driver_info(drv)
-
-        for con_inf in self.constraint_infos:
-            con_inf.relink()
 
     def write_edit_data(self, generator, edit_bone: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
@@ -807,47 +792,27 @@ class BoneInfo:
 
 
 class ConstraintInfo(dict):
-    """Helper class to store and manage constraint info before it's passed to
-    make_constraint()."""
+    """Abstracts away Blender's constraints, allowing less verbose ways to set properties,
+    automatically remapping pointers to the metarig or None to the target rig,
+    and with more commonly useful default values."""
 
     def __init__(
         self,
         bone_info,
         con_type,
-        target=None,
         use_preferred_defaults=True,
-        use_min_xyz=[],
-        use_max_xyz=[],
-        space_object=None,
-        space_subtarget="",
         **kwargs,
     ):
-        # Blame this guy https://stackoverflow.com/a/14620633/1527672
         super(ConstraintInfo, self).__init__(**kwargs)
+        # This is a cheeky hack to let us access our dict values as if 
+        # they were proper attributes. Not that this is used often in the codebase.
+        # https://stackoverflow.com/a/14620633/1527672
         self.__dict__ = self
 
         self.type = con_type
         self.bone_info = bone_info  # BoneInfo to which this constraint is being added.
-        self.target = target
-        self.space_object = space_object
-        self.space_subtarget = space_subtarget.name if hasattr(space_subtarget, 'name') else space_subtarget
-        if self.space_subtarget and not self.space_object:
-            self.space_object = bone_info.bone_set.rig_component.generator.target_rig
-        if con_type == 'ARMATURE':
-            self.targets = []
-            if 'subtarget' not in kwargs:
-                self.targets = [{'target': target, 'subtarget': "", 'weight': 1.0}]
         self.name = self.type.replace("_", " ").title()
         self.drivers = []
-
-        if use_min_xyz:
-            if type(use_min_xyz) == bool:
-                use_min_xyz = [use_min_xyz] * 3
-                self.use_min_x, self.use_min_y, self.use_min_z = use_min_xyz
-        if use_max_xyz:
-            if type(use_max_xyz) == bool:
-                use_max_xyz = [use_max_xyz] * 3
-                self.use_max_x, self.use_max_y, self.use_max_z = use_max_xyz
 
         # Data path & array index of drivers that should be copied from the metarig.
         # This supports keyframes and curve modifiers.
@@ -860,28 +825,197 @@ class ConstraintInfo(dict):
             self.set_preferred_defaults()
 
         for key, value in kwargs.items():
-            self.__dict__[key] = value
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                self.__dict__[key] = value
+
+        # Allow @ symbols to specify subtargets, like Rigify.
+        if '@' in self.name:
+            split_name = self.name.split("@")
+            if self.type == 'ARMATURE':
+                self.targets = split_name[1:]
+            else:
+                self.subtarget = split_name[1]
+
+    @property
+    def rig(self) -> Object:
+        return self.bone_info.bone_set.rig_component.generator.target_rig
+
+    @property
+    def metarig(self) -> Object:
+        return self.bone_info.bone_set.rig_component.generator.metarig
+
+    @property
+    def target(self) -> Object:
+        target = self.get('target')
+        if target in (None, self.metarig):
+            self.target = self.rig
+        return self.get('target')
+    
+    @target.setter
+    def target(self, value: Object):
+        if value == self.metarig:
+            # Setting the metarig as a constraint target is not allowed!
+            value = self.rig
+        self['target'] = value
+
+    @property
+    def subtarget(self) -> str:
+        if "@" not in self.name:
+            return self.get('subtarget', "")
+
+        split_name = self.name.split("@")
+        return split_name[1]
+
+    @subtarget.setter
+    def subtarget(self, value):
+        if value == None:
+            value = ""
+        elif type(value) == str:
+            value = value
+        elif hasattr(value, 'name'):
+            value = value.name
+        else:
+            raise ValueError(f"Invalid value for 'subtarget': {value} of type {type(value)}")
+
+        if self.type == 'ARMATURE':
+            self.targets = [value]
+            return
+
+        self['subtarget'] = value
+
+    @property
+    def space_subtarget(self) -> str:
+        return self.get('space_subtarget', '')
+    
+    @space_subtarget.setter
+    def space_subtarget(self, value):
+        if hasattr(value, 'name'):
+            self['space_subtarget'] = value.name
+        elif type(value) == str:
+            self['space_subtarget'] = value
+        else:
+            raise ValueError(f"Invalid 'space_subtarget': {value}")
+
+    @property
+    def targets(self) -> list[dict]:
+        # Only on Armature modifiers.
+        # This should always return the same list, otherwise targets.append() won't work.
+        return self['targets']
+
+    @targets.setter
+    def targets(self, value: list[dict|str]):
+        """Allow a few different syntaxes, always coerce them to a dict."""
+        _targets: list[dict] = []
+        for tar in value:
+            if type(tar) == str:
+                _targets.append({'target': self.rig, 'subtarget': tar, 'weight': 1.0})
+            elif type(tar) == tuple:
+                targ_ob = next((t for t in tar if type(t)==Object), None)
+                subtarget = next((str(t) for t in tar if type(t) in (str, BoneInfo)), "")
+                weight = next((t for t in tar if type(t) in (float, int)), 1.0)
+                if len(tar) > 2:
+                    weight = tar[2]
+                _targets.append({'target': targ_ob, 'subtarget': subtarget, 'weight': weight})
+            elif type(tar == dict):
+                if tar.get('target') in (None, self.metarig):
+                    tar['target'] = self.rig
+                if type(tar.get('subtarget')) != str:
+                    tar['subtarget'] = str(tar.get('subtarget'))
+                if 'weight' not in tar:
+                    tar['weight'] = 1.0
+                _targets.append(tar)
+            else:
+                raise ValueError(f"Invalid 'targets': {value}")
+
+        for i, tar in enumerate(_targets):
+            if tar['target'] in (self.metarig, None):
+                _targets[i]['target'] = self.rig
+        self['targets'] = _targets
+
+    @property
+    def use_min_xyz(self) -> tuple[bool, bool, bool]:
+        return (
+            self.get('use_min_x', False),
+            self.get('use_min_y', False),
+            self.get('use_min_z', False),
+        )
+
+    @use_min_xyz.setter
+    def use_min_xyz(self, value: tuple[bool, bool, bool]):
+        self['use_min_x'], self['use_min_y'], self['use_min_z'] = value
+
+    @property
+    def use_max_xyz(self) -> tuple[bool, bool, bool]:
+        return (
+            self.get('use_max_x', False),
+            self.get('use_max_y', False),
+            self.get('use_max_z', False),
+        )
+
+    @use_max_xyz.setter
+    def use_max_xyz(self, value: tuple[bool, bool, bool]):
+        self['use_max_x'], self['use_max_y'], self['use_max_z'] = value
+
+    @property
+    def use_xyz(self) -> tuple[bool, bool, bool]:
+        return (
+            self.get('use_x', False),
+            self.get('use_y', False),
+            self.get('use_z', False),
+        )
+    
+    @use_xyz.setter
+    def use_xyz(self, value: tuple[bool, bool, bool]):
+        self['use_x'], self['use_y'], self['use_z'] = value
+
+    @property
+    def invert_xyz(self) -> tuple[bool, bool, bool]:
+        return (
+            self.get('invert_x', False),
+            self.get('invert_y', False),
+            self.get('invert_z', False),
+        )
+    
+    @invert_xyz.setter
+    def invert_xyz(self, value: tuple[bool, bool, bool]):
+        self['invert_x'], self['invert_y'], self['invert_z'] = value
+
+    @property
+    def space_object(self) -> Object:
+        return self.get('space_object', self.rig)
+
+    @space_object.setter
+    def space_object(self, value):
+        if value == self.metarig:
+            value = self.rig
+        self['space_object'] = value
+
+    @property
+    def space(self) -> str:
+        return self.get('owner_space', 'WORLD')
+
+    @space.setter
+    def space(self, value: str):
+        self['owner_space'] = value
+        self['target_space'] = value
+
+    @property
+    def head_tail(self) -> float:
+        return self.get('head_tail', 0.0)
+    
+    @head_tail.setter
+    def head_tail(self, value):
+        self['use_bbone_shape'] = True
+        self['head_tail'] = value
 
     def set_preferred_defaults(self):
         """Set some arbitrary preferred defaults, separately from __init__(),
         to keep this optional."""
 
-        # Set target as the rig object, except for some constraint types.
-        if self.type not in [
-            'SPLINE_IK',
-            'LIMIT_LOCATION',
-            'LIMIT_SCALE',
-            'LIMIT_ROTATION',
-            'SHRINKWRAP',
-        ]:
-            if hasattr(self.bone_info, 'rig') and self.target in [
-                None,
-                self.bone_info.owner_component.generator.metarig,
-            ]:
-                self.target = self.bone_info.bone_set.rig_component.target_rig
-
         # Constraints that support local space should default to local space.
-        support_local = [
+        default_local = [
             'COPY_LOCATION',
             'COPY_SCALE',
             'COPY_ROTATION',
@@ -892,27 +1026,14 @@ class ConstraintInfo(dict):
             'ACTION',
             'TRANSFORM',
         ]
-        if not hasattr(self, 'space') and self.type in support_local:
+        if self.type in default_local:
             self.space = 'LOCAL'
-
         if self.type == 'TRANSFORM':
             self.mix_mode_scale = 'MULTIPLY'
             self.mix_mode_rot = 'BEFORE'
         if self.type == 'STRETCH_TO':
             self.use_bulge_min = True
             self.use_bulge_max = True
-            self.rest_length = self.bone_info.length
-        elif self.type in ['COPY_LOCATION', 'COPY_SCALE']:
-            self.use_offset = self.space != 'WORLD'
-        elif self.type == 'COPY_ROTATION':
-            if self.space != 'WORLD':
-                self.mix_mode = 'BEFORE'
-                self.use_offset = True
-        elif self.type in ['COPY_TRANSFORMS', 'ACTION']:
-            if self.space not in {'WORLD', 'POSE'}:
-                self.mix_mode = 'BEFORE'
-            if self.type == "COPY_TRANSFORMS":
-                self.use_bbone_shape = True
         elif self.type == 'LIMIT_SCALE':
             self.max_x = 1
             self.max_y = 1
@@ -923,169 +1044,42 @@ class ConstraintInfo(dict):
         elif self.type == 'IK':
             self.chain_count = 2
 
-    def relink(self):
-        """Allow the naming convention of an @ symbol separating
-        the constraint name from a list of subtargets separated by commas."""
-
-        rig_component = self.bone_info.bone_set.rig_component
-        rig = rig_component.target_rig
-        metarig = rig_component.generator.metarig
-
-        if self.space_object == metarig:
-            self.space_object = rig
-        if self.target in (metarig, None):
-            self.target = rig
-
-        if '@' in self.name:
-            split_name = self.name.split("@")
-            subtargets = split_name[1:]
-            self.name = split_name[0]
-            if self.type == 'ARMATURE':
-                for i, subtarget in enumerate(subtargets):
-                    if len(self.targets) <= i:
-                        self.targets.append({'target': rig, 'subtarget': subtarget})
-                    else:
-                        if self.targets[i]['target'] in (metarig, None):
-                            self.targets[i]['target'] = rig
-                        self.targets[i]['subtarget'] = subtarget
-            else:
-                self.subtarget = subtargets[0]
-
-        if self.type == 'ARMATURE' and any((target['subtarget'] in ("", None) for target in self.targets)):
-            self.bone_info.owner_component.add_log(
-                "Relinking failed",
-                trouble_bone=self.bone_info.name,
-                description=f'Failed to relink constraint due to too many targets in constraint "{self.name}".\n Remove unneeded targets from the Armature constraint!',
-            )
-            return
-
-        # relink constraint drivers
-        for drv in self.drivers:
-            self.bone_info.bone_set.rig_component.relink_driver_info(drv)
-
-    def make_real(self, pose_bone):
+    def make_real(self, pose_bone: PoseBone):
         """Create a constraint based on this ConstraintInfo on a given pose bone."""
-        con_info = self.__dict__.copy()
-        con_type = con_info['type']
-        for key in [
-            'type',
-            'bone_info',
-            'drivers',
-            'drivers_to_copy',
-            'is_from_real',
-            'is_override_data',
-        ]:
-            if key in con_info:
-                del con_info[key]
+        con = pose_bone.constraints.new(self.type)
 
-        # List of ID + string tuples that define a constraint target.
-        # The string is an optional "subtarget" (bone or vgroup name)
-        target_pairs: list[tuple[ID, str]] = []
-        if con_type == 'ARMATURE':
-            if 'subtarget' in con_info:
-                con_info['targets'].append({'target':self.target, 'subtarget':self.subtarget})
-                del con_info['subtarget']
-            for target_info in con_info['targets']:
-                assert (
-                    'subtarget' in target_info
-                ), f"Armature constraint with no subtarget: {pose_bone.name}"
-                if 'target' not in target_info:
-                    # Allow omitting target object from Armature contraint targets.
-                    target_info['target'] = pose_bone.id_data
-                if hasattr(target_info['subtarget'], 'name'):
-                    # Allow using BoneInfo instances, convert them to string here.
-                    target_info['subtarget'] = target_info['subtarget'].name
-                if target_info['subtarget'] == None:
-                    # Replace None with empty string, otherwise make_constraint() throws error.
-                    target_info['subtarget'] = ''
-            target_pairs = [
-                (t['target'], str(t['subtarget'])) for t in con_info['targets']
-            ]
-        elif 'target' in con_info:
-            target_pairs = [[con_info['target'], ""]]
+        # Order sometimes matters, eg. some spaces aren't available until target is specified.
+        order = [
+            'target',
+            'subtarget',
+            'target_space',
+            'owner_space',
+        ]
+        order_idx = {key:i for i, key in enumerate(order)}
 
-        if 'subtarget' in con_info:
-            if hasattr(con_info['subtarget'], 'name'):
-                # Allow using BoneInfo instances, convert them to string here.
-                con_info['subtarget'] = con_info['subtarget'].name
-
-            # Singular target, target object is optional, assumed to be the rig.
-            target = target_pairs[0][0]
-            if not target:
-                target = pose_bone.id_data
-            target_pairs = [(target, con_info['subtarget'])]
-
-        for target_pair in target_pairs:
-            target, subtarget = target_pair
-            if (target and target.type == 'ARMATURE') and (
-                subtarget not in target.data.bones
-            ):
-                if self.name == "Armature (Parent Switching)":
-                    self.bone_info.owner_component.raise_generation_error(
-                        description=f'Parent switching set-up target bone "{subtarget}" is missing!',
-                        description_short='Missing parent',
-                    )
-                self.bone_info.owner_component.add_log(
-                    "Invalid constraint target!",
-                    base_bone_name=self.bone_info.name,
-                    trouble_bone=subtarget,
-                    description=f'Constraint "{self.name}" on bone "{self.bone_info}" has non-existent target bone "{subtarget}".',
-                )
-
-        con = make_constraint(pose_bone, self.type, **con_info)
+        sorted_props = sorted(con.bl_rna.properties, key=lambda p: order_idx.get(p.identifier, len(order)))
+        for prop in sorted_props:
+            if prop.is_readonly and prop.type!='COLLECTION':
+                continue
+            if hasattr(self, prop.identifier):
+                value = getattr(self, prop.identifier)
+            elif prop.identifier in self:
+                value = self[prop.identifier]
+            else:
+                # Nothing specified in the BoneInfo for this property, so leave it default.
+                continue
+            if prop.type == 'COLLECTION':
+                # Somewhat generic solution for Armature constraint targets.
+                coll = getattr(con, prop.identifier)
+                for entry in value:
+                    new = coll.new()
+                    for k, v in entry.items():
+                        setattr(new, k, v)
+            else:
+                try:
+                    setattr(con, prop.identifier, value)
+                except TypeError as exc:
+                    assert False, (f"Cannot set value `{value}` on constraint '{self.name}' of bone '{self.bone_info.name}' of type '{self.type}' for property '{prop.identifier}' ")
+                    
 
         return con
-
-
-def copy_relink_real_driver(
-    metarig, rig, fcurve, data_path: str = None, index: int = None
-):
-    """Copy a real driver to the target rig.
-    Replace references to the metarig with the generated rig.
-    May copy to a different data path than the source.
-    """
-    new_fcurve = copy_driver(fcurve, rig, data_path, index)
-    for var in new_fcurve.driver.variables:
-        for tgt in var.targets:
-            if tgt.id == metarig:
-                tgt.id = rig
-
-
-def copy_driver(
-    from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
-) -> FCurve:
-    """Copy an existing FCurve containing a driver to a new ID, by creating a copy
-    of the existing driver on the target ID.
-
-    Args:
-        from_fcurve: FCurve containing a driver
-        target: ID that can have AnimationData
-        data_path: Data Path of new driver. Defaults to copying the passed fcurve
-        index: array index of the property to drive. Defaults to copying the passed fcurve
-
-    Returns:
-        FCurve: Fcurve with new driver on target ID
-    """
-
-    # Ensure anim data.
-    if not target.animation_data:
-        target.animation_data_create()
-
-    # Remove old driver if it exists.
-    tgt_drivers = target.animation_data.drivers
-    if not data_path:
-        data_path = from_fcurve.data_path
-    if index not in {-1, None}:
-        old_fcurve = tgt_drivers.find(data_path, index=index)
-    else:
-        old_fcurve = tgt_drivers.find(data_path)
-
-    if old_fcurve:
-        tgt_drivers.remove(old_fcurve)
-
-    new_fcurve = tgt_drivers.from_existing(src_driver=from_fcurve)
-    new_fcurve.data_path = data_path
-    if index not in {None, -1}:
-        new_fcurve.array_index = index
-
-    return new_fcurve

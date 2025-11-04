@@ -216,7 +216,6 @@ class Component_Base(
                     to_binfo.constraint_infos.append(con_info)
                     org_bi.constraint_infos.remove(con_info)
 
-                con_info.relink()
 
     def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return which BoneInfo a given constraint should be moved to.

@@ -298,6 +298,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 # Toe bone's rolling threshold.
                 toe_roll_con = rik_bone.add_constraint(
                     'TRANSFORM',
+                    name="Transform (Toe Roll)",
                     subtarget=roll_ctrl.name,
                     map_from='ROTATION',
                     map_to='ROTATION',
@@ -325,6 +326,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 # Foot bone's roll
                 rik_bone.add_constraint(
                     'COPY_LOCATION',
+                    name = "Copy Location (RIK)",
                     space='WORLD',
                     subtarget=rik_chain[-2].name,
                     head_tail=1,

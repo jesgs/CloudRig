@@ -1,10 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
 from mathutils import Vector
-from bpy.types import PoseBone, Bone, Constraint, Object, Driver
+from bpy.types import PoseBone, ID, FCurve, Constraint, Object, Driver
 
-from .bone_info import BoneInfo
-from ..rig_component_features.bone_set import BoneSet
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .bone_info import BoneInfo
+    from ..rig_component_features.bone_set import BoneSet
+
 from ..generation.naming import add_prefix
 
 
@@ -47,7 +51,6 @@ class CloudMechanismMixin:
         )
         child.add_constraint('DAMPED_TRACK', subtarget=end)
 
-
     def make_def_bone(self, bone, bone_set):
         """Make a DEF- bone parented to bone."""
         def_bone = bone_set.new(
@@ -70,44 +73,63 @@ class CloudMechanismMixin:
     def vector_along_bone_chain(self, chain, length=0, index=-1):
         return vector_along_bone_chain(chain, length, index)
 
-    def relink_driver_info(self, driver_info):
-        relink_driver_info(self.metarig, self.target_rig, driver_info)
 
-    def transfer_relink_driver_info(self, from_bone: BoneInfo, to_bone: BoneInfo):
-        """Transfer and relink drivers from one bone to another."""
-        for drv in from_bone.drivers[:]:
-            to_bone.drivers.append(drv)
-            from_bone.drivers.remove(drv)
-            self.relink_driver_info(drv)
-
-
-def relink_driver_info(metarig: Object, rig: Object, driver_info: dict):
-    """Adjust drivers read from the metarig according to some conventions:
-
-    An empty target object or the metarig as the target object will be replaced
-    with the generated rig.
-    Variable names with @ in them will be split by the @, and the part after the
-    @ will be the target bone name.
+def copy_relink_real_driver(
+    src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None
+):
+    """Copy a real driver to the target rig.
+    Replace references to the metarig with the generated rig.
+    May copy to a different data path than the source.
     """
-    for var_info in driver_info['variables']:
-        if type(var_info) == tuple:
-            break
-        if 'name' in var_info and '@' in var_info['name']:
-            splits = var_info['name'].split("@")
-            var_info['name'] = splits[0]
-            for i, t in enumerate(var_info['targets']):
-                var_info['targets'][i]['bone_target'] = splits[i + 1]
-        for i, t in enumerate(var_info['targets']):
-            if 'id' in t and (t['id'] == None or t['id'] == metarig):
-                t['id'] = rig
-
-
-def relink_real_driver(driver: Driver, metarig: Object, target_rig: Object):
-    """Swaps references to the metarig with references to the target rig in driver variables."""
-    for var in driver.variables:
+    new_fcurve = copy_driver(fcurve, tgt_id, data_path, index)
+    for var in new_fcurve.driver.variables:
         for tgt in var.targets:
-            if tgt.id == metarig:
-                tgt.id = target_rig
+            if tgt.id in (None, src_id):
+                tgt.id = tgt_id
+        if "@" in var.name:
+            split = var.name.split("@")
+            var.name = split[0]
+            for i, name in split[1:]:
+                var.targets[i].bone_target = name
+
+def copy_driver(
+    from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
+) -> FCurve:
+    """Copy an existing FCurve containing a driver to a new ID, by creating a copy
+    of the existing driver on the target ID.
+
+    Args:
+        from_fcurve: FCurve containing a driver
+        target: ID that can have AnimationData
+        data_path: Data Path of new driver. Defaults to copying the passed fcurve
+        index: array index of the property to drive. Defaults to copying the passed fcurve
+
+    Returns:
+        FCurve: Fcurve with new driver on target ID
+    """
+
+    # Ensure anim data.
+    if not target.animation_data:
+        target.animation_data_create()
+
+    # Remove old driver if it exists.
+    tgt_drivers = target.animation_data.drivers
+    if not data_path:
+        data_path = from_fcurve.data_path
+    if index not in {-1, None}:
+        old_fcurve = tgt_drivers.find(data_path, index=index)
+    else:
+        old_fcurve = tgt_drivers.find(data_path)
+
+    if old_fcurve:
+        tgt_drivers.remove(old_fcurve)
+
+    new_fcurve = tgt_drivers.from_existing(src_driver=from_fcurve)
+    new_fcurve.data_path = data_path
+    if index not in {None, -1}:
+        new_fcurve.array_index = index
+
+    return new_fcurve
 
 
 def find_component_chain_of_pbone(pbone: PoseBone) -> list[PoseBone]:

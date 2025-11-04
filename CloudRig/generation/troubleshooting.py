@@ -478,8 +478,10 @@ class CloudLogManager:
                 )
 
     def report_drivers_targetting_armature_constraint(self, rig_obj):
+        """Warn if drivers are trying to read Local Transforms of a bone that has an Armature constraint,
+        since in this case it will actually read local space + parenting-induced transformations."""
         # NOTE: There is now a legitimate case where this could be intended,
-        # so don't warn about it for now.
+        # (bendy bone scale properties), so don't warn about it for now.
         return
         if not rig_obj or not rig_obj.animation_data:
             return
