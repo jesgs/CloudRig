@@ -837,7 +837,7 @@ def create_target_rig_obj(context, metarig) -> Object:
         for src_driver in metarig.data.animation_data.drivers:
             if not target_rig.data.animation_data:
                 target_rig.data.animation_data_create()
-            copy_relink_real_driver(metarig, target_rig, src_driver)
+            copy_relink_real_driver(metarig.data, target_rig.data, src_driver)
 
     return target_rig
 
