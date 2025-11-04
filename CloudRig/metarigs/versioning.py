@@ -34,7 +34,6 @@ def version_cloud_metarig(metarig):
     """Convert older CloudRig metarigs to work with the current version of
     CloudRig as well as possible. They will still need some manual cleanup!!!"""
     cloudrig = metarig.cloudrig
-
     # NOTE on limitations:
     # The old value is not stored in the file at all if it was left as default, so
     # there's no way to guarantee correct versioning when changing the default value of a parameter.
@@ -47,6 +46,8 @@ def version_cloud_metarig(metarig):
         # Generated rigs used to keep the metarig data, which confuses some poll functions.
         if 'generation_date' in metarig.data or 'generation_time' in metarig.data or ('is_generated_cloudrig' in metarig.data and metarig.data['is_generated_cloudrig']):
             metarig.property_unset('cloudrig')
+            return
+
     if cloudrig.metarig_version < 4:
         # Action Slots were renamed to Action Set-ups, and now support Blender's Action Slots.
         def find_first_setup_using_action(action: bpy.types.Action) -> ActionConstraintSetup | None:
@@ -71,12 +72,14 @@ def version_cloud_metarig(metarig):
 
         if 'action_slots' in generator_properties:
             del generator_properties['action_slots']
+
     if cloudrig.metarig_version < 5:
         # Trigger the new set_transform callback in 5.0, which updates the underlying data 
         # of the component_type property to be masked by the transform callbacks, 
         # making it resilient to changing the UI names of components in the future.
         for pbone in metarig.pose.bones:
-            pbone.cloudrig_component.component_type = pbone.cloudrig_component.component_type
+            if pbone.cloudrig_component.component_type:
+                pbone.cloudrig_component.component_type = pbone.cloudrig_component.component_type
 
 
 @persistent
