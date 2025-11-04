@@ -747,7 +747,7 @@ class BoneInfo:
                 data_path = re.sub(
                     r'bones\[".*?"\]', f'bones["{self.name}"]', data_path
                 )
-            copy_relink_real_driver(metarig, arm_ob, fcurve)
+            copy_relink_real_driver(metarig, arm_ob, fcurve, data_path=data_path, index=array_index)
 
     def clone(self, new_name: str=None, bone_set: BoneSet=None) -> BoneInfo:
         """Return a clone of self."""
