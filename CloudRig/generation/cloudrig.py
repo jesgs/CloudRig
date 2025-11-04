@@ -2771,7 +2771,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(Operator):
             if coll.is_visible:
                 counter += 1
                 json_obj[coll.name]['bone_names'] = [bone.name for bone in coll.bones]
-                json_obj[coll.name]['cloudrig_info'] = coll['cloudrig_info'].to_dict()
+                json_obj[coll.name]['cloudrig_info'] = dict(coll.cloudrig_info.items())
                 json_obj[coll.name]['parent_name'] = coll.parent.name if coll.parent else ""
 
         if counter == 0:
