@@ -6,7 +6,11 @@ from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProp
 
 from . import rig_components
 from .properties import NameProperty
-from .rig_component_features.widgets.widgets import get_widgets_enum_items, refresh_external_widgets
+from .rig_component_features.widgets.widgets import (
+    get_widgets_enum_items,
+    refresh_external_widgets,
+    refresh_cloudrig_widgets,
+)
 from .bs_utils.prefs import PrefsFileSaveLoadMixin, update_prefs_on_file, get_addon_prefs
 from .bs_utils.ui import label_split
 from .bs_utils.hotkeys import draw_hotkey_list
@@ -64,6 +68,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     def update_widget_names(self, context):
         self.widget_names.clear()
         refresh_external_widgets()
+        refresh_cloudrig_widgets()
         widget_items = get_widgets_enum_items()
         if not widget_items:
             return

@@ -1,13 +1,14 @@
 import bpy, os
 from bpy.types import Object, PoseBone
 from mathutils import Vector, Euler
+from bpy.types import Operator
 
 from ...bs_utils.prefs import get_addon_prefs
 
 CLOUDRIG_WIDGETS: list[str] = []
 EXTERNAL_WIDGETS: list[str] = []
 
-def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
+def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
     """Ensure a custom shapes exists:
     1. If the widget is in the current .blend file already, return it (unless we want to overwrite or link)
     2. Try to append/link it from the external .blend the user may have specified in the preferences.
@@ -179,7 +180,7 @@ def get_widgets_enum_items(_scene=None, _context=None) -> list[tuple[str, str, s
                 # Duplicate widget names across these 3 widget sources are not allowed.
                 continue
             used_names.append(ui_name)
-            enum_items.append((wgt_name, ui_name, type, icon, counter))
+            enum_items.append((wgt_name, ui_name, ui_name, icon, counter))
         enum_items.append(None)
 
     return enum_items
@@ -243,3 +244,18 @@ def apply_custom_shape_rig_data(rig: Object, custom_shape_data: dict) -> None:
                 pb, 
                 **custom_shape_data[pb.name],
             )
+
+
+class CLOUDRIG_OT_refresh_widget_list(Operator):
+    """Refresh widget selector list"""
+
+    bl_idname = "pose.cloudrig_refresh_widget_list"
+    bl_label = "Refresh Widget List"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        get_addon_prefs(context).update_widget_names(context)
+        return {'FINISHED'}
+
+
+registry = [CLOUDRIG_OT_refresh_widget_list]
