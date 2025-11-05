@@ -33,16 +33,17 @@ class Component_CopyBone(Component_Base):
         super().__init__(*args, **kwargs)
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
-
-        # If the metarig bone has a Child Of or Armature constraint, don't do any parenting logic.
-        self.do_parenting = True
-        for c in self.metarig_base_pbone.constraints:
-            if c.type in ('CHILD_OF', 'ARMATURE'):
-                self.do_parenting = False
-
+        
         self.bones_org.collections = [
             coll.name for coll in self.metarig_base_pbone.bone.collections
         ]
+
+    def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
+        for con in self.metarig_base_pbone.constraints:
+            if con.type in ('CHILD_OF', 'ARMATURE'):
+                self.add_log("Ignored root parent", description=f"Root parenting option is ignored due to presence of {con.name}")
+                return
+        super().base__apply_custom_root_parent(component_root, parent_name)
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)

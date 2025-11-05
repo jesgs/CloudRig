@@ -288,14 +288,25 @@ class CloudParentingMixin:
             if bone_name == parent_bone:
                 return i
 
-    def apply_custom_root_parent(self, bone=None, parent_name=""):
-        if not bone:
-            bone = self.root_bone
-        assert bone, f"No root on component of '{self}'. Cannot do custom parenting. This is a bug because all components should have a root!"
+    def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
+        if not component_root:
+            component_root = self.root_bone
+        assert component_root, f"No root on component of '{self}'. Cannot do custom parenting. This is a bug because all components should have a root!"
+
         if parent_name == "":
             parent_name = self.params.parenting.root_parent
 
         parent_bone = self.generator.find_bone_info(parent_name)
+
+        if any((con_inf.type == 'ARMATURE' for con_inf in component_root.constraint_infos)):
+            self.add_log(
+                "Ignored root parent",
+                description=(
+                    f'"{component_root}" already has an Armature constraint, so the root parent '
+                    f"parameter ({parent_bone}) was ignored. "
+                ),
+            )
+            return
 
         if not parent_bone:
             # Still try string-based parenting. If this fails, an error will be
@@ -308,24 +319,23 @@ class CloudParentingMixin:
                     "is not parented to its intended parent rig, so it executes before the parent."
                 ),
             )
-            bone.parent = parent_name
+            component_root.parent = parent_name
             return
 
         if (
             parent_bone.bbone_segments == 1
             or not self.params.parenting.use_armature_constraint
         ):
-            bone.parent = parent_bone
+            component_root.parent = parent_bone
             return
 
-        constrained_bone = bone
         if self.params.parenting.use_helper_bone:
-            constrained_bone = self.create_parent_bone(bone, self.bones_mch)
-            constrained_bone.custom_shape = None
+            component_root = self.create_parent_bone(component_root, self.bones_mch)
+            component_root.custom_shape = None
 
-        constrained_bone.add_constraint(
+        component_root.add_constraint(
             "ARMATURE",
-            index=-len(constrained_bone.constraint_infos),
+            index=-len(component_root.constraint_infos),
             use_deform_preserve_volume=True,
             targets=[{"subtarget": parent_bone.name}],
         )

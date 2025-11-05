@@ -178,15 +178,15 @@ class Component_Base(
         self.root_bone = self.bones_org[0]
 
     def create_component_interactions(self, context):
+        self.base__relink()
         skip_root_parenting = (
             self.parent_switch_overwrites_root_parent
             and self.params.parenting.parent_switching
         )
         if not skip_root_parenting and self.params.parenting.root_parent != "":
-            self.apply_custom_root_parent()
+            self.base__apply_custom_root_parent()
         if self.params.parenting.parent_switching:
             self.base__apply_parent_switching()
-        self.base__relink()
         # self.gizmos__add_interactions()
 
     def create_helper_objects(self, context):

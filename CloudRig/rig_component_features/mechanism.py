@@ -219,9 +219,12 @@ def create_parent_constraint_holder(child: BoneInfo, bone_set: BoneSet=None) -> 
         child,
         bone_set=bone_set,
     )
-    constrained_parent.name = "CON-" + child.name
     for con_info in child.constraint_infos[:]:
         if 'KEEP' not in con_info['name']:
+            if con_info.type == 'ARMATURE':
+                for existing in constrained_parent.constraint_infos:
+                    if existing.type == 'ARMATURE':
+                        constrained_parent.constraint_infos.remove(existing)
             constrained_parent.constraint_infos.append(con_info)
             child.constraint_infos.remove(con_info)
 

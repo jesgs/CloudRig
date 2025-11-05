@@ -10,7 +10,7 @@ Tests require [Blender as Python Module](https://pypi.org/project/bpy/) which in
 1. **Activate Python 3.11 venv**  
     `. .venv/bin/activate`
 1. **Install dependencies**  
-    `pip install requirements-dev.txt`
+    `pip install -r requirements-dev.txt`
 1. **Run (verbose) tests**  
     `pytest -v`
 1. **Run tests with coverage visualization**  
