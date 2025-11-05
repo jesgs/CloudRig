@@ -50,6 +50,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
         if 'metarig' in active and active['metarig']:
             self.focus_rig(context, active['metarig'])
+            active.hide_set(True)
             return {'FINISHED'}
 
         if rig and rig != active:
