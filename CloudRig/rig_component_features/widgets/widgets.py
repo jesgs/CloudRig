@@ -24,28 +24,24 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
     if not prefs: 
         return
     prefer_linked = prefs.widget_import_method == 'LINK'
+    lib_abs_path = ""
     if wgt_name in EXTERNAL_WIDGETS:
-        abs_path = prefs.widget_library
+        lib_abs_path = prefs.widget_library
     elif wgt_name in CLOUDRIG_WIDGETS:
-        abs_path = get_native_widgets_path()
-    else:
-        # Widget not found in either of the two libraries, so just try to return a local one.
-        return bpy.data.objects.get(wgt_name)
+        lib_abs_path = get_native_widgets_path()
+    if lib_abs_path:
+        relative = False
+        try:
+            lib_rel_path = bpy.path.relpath(lib_abs_path)
+            relative = bpy.data.is_saved
+            if not relative:
+                lib_rel_path = lib_abs_path
+        except ValueError:
+            # This can happen when the widgets.blend is on a different drive.
+            # In this case, I would argue that the abs_path is the rel_path.
+            lib_rel_path = lib_abs_path
+        assert os.path.exists(lib_abs_path), f"Widgets.blend file not found: {lib_abs_path}"
 
-    relative = False
-    try:
-        rel_path = bpy.path.relpath(abs_path)
-        relative = bpy.data.is_saved
-        if not relative:
-            rel_path = abs_path
-    except ValueError:
-        # This can happen when the widgets.blend is on a different drive.
-        # In this case, I would argue that the abs_path is the rel_path.
-        rel_path = abs_path
-    assert os.path.exists(abs_path), f"Widgets.blend file not found: {abs_path}"
-
-    # We deliberately don't check for the library here, because sometimes we may
-    # want to overwrite a local widget with a linked one.
     old_wgt_ob = bpy.data.objects.get(wgt_name)
     if old_wgt_ob:
         if not overwrite:
@@ -53,7 +49,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
             return old_wgt_ob
         if old_wgt_ob.library:
             if prefer_linked:
-                if old_wgt_ob.library.filepath in {abs_path, rel_path}:
+                if old_wgt_ob.library.filepath in {lib_abs_path, lib_rel_path}:
                     # If object is already linked from the target lib, no need to do it again.
                     return old_wgt_ob
             else:
@@ -70,8 +66,18 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
             if old_wgt_ob.data:
                 old_wgt_ob.data.name = old_wgt_ob.data.name + "_temp"
 
-    # Append/Link widget object from .blend specified by user OR Widgets.blend that ships with the add-on (former has priority).
-    with bpy.data.libraries.load(rel_path, link=prefer_linked, relative=relative) as (
+    if not lib_abs_path:
+        if not old_wgt_ob:
+            # We failed to import matching widget, AND we didn't find one locally... So, we are sad.
+            if " " in wgt_name:
+                # Last resort: Try replacing space with underscore, and try again.
+                return ensure_widget(wgt_name.replace(" ", "_"), overwrite=overwrite, clear_asset=clear_asset)
+            else:
+                raise ValueError(f"Widget not found: '{wgt_name}' '{lib_rel_path}'")
+        return old_wgt_ob
+
+    # Append/Link widget object from .blend
+    with bpy.data.libraries.load(lib_rel_path, link=prefer_linked, relative=relative) as (
         data_from,
         data_to,
     ):
@@ -80,23 +86,10 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
                 data_to.objects.append(obj)
                 break
 
-    new_wgt_ob = bpy.data.objects.get((wgt_name, rel_path if prefer_linked else None))
-    if not new_wgt_ob:
-        if old_wgt_ob:
-            # We failed to import a widget with the provided name.
-            # So, let's just return the old one, whether it's linked or not.
-            old_wgt_ob.name = wgt_name
-            if old_wgt_ob.data:
-                old_wgt_ob.data.name = wgt_name
-            return old_wgt_ob
-        else:
-            # We failed to import matching widget, AND we didn't find one locally... So, we are sad.
-            if " " in wgt_name:
-                # Last resort: Try replacing space with underscore, and try again.
-                return ensure_widget(wgt_name.replace(" ", "_"), overwrite=overwrite, clear_asset=clear_asset)
-            else:
-                raise ValueError(f"Widget not found: '{wgt_name}' '{rel_path}'")
-    elif new_wgt_ob == old_wgt_ob:
+    new_wgt_ob = bpy.data.objects.get((wgt_name, lib_rel_path if prefer_linked else None))
+    assert new_wgt_ob, f"Widget failed to import {wgt_name} from {lib_rel_path}"
+
+    if new_wgt_ob == old_wgt_ob:
         return old_wgt_ob
     elif old_wgt_ob and overwrite:
         # Widget already existed, but we want to overwrite it with what we just imported.
