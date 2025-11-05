@@ -167,6 +167,7 @@ class BoneInfo:
 
         self._name = name
         self._parent: BoneInfo = None
+        self.parent_helper: BoneInfo = None
         self.children: list[BoneInfo] = []
 
         self.init_variables(edit_bone_properties)
@@ -427,9 +428,8 @@ class BoneInfo:
     def add_constraint(self, con_type: str, *, index: int = None, **kwargs) -> ConstraintInfo:
         """Store constraint information about a constraint in this BoneInfo.
         con_type: Type of constraint, eg. 'STRETCH_TO'.
-        kwargs: Dictionary of properties and values.
-        true_defaults: When False, we use a set of arbitrary default values that
-                I consider better than Blender's defaults.
+        index: Where to insert constraint in the stack.
+        kwargs: Constraint properties and values.
         """
 
         con_info = ConstraintInfo(self, con_type, **kwargs)
@@ -442,33 +442,21 @@ class BoneInfo:
 
     def add_constraint_from_real(self, constraint: Constraint) -> ConstraintInfo:
         kwargs = {}
-        skip = [
-            'active',
-            'bl_rna',
-            'error_location',
-            'error_rotation',
-            'is_proxy_local',
-            'is_valid',
-            'rna_type',
-            'type',
-        ]
-        for key in dir(constraint):
-            if "__" in key:
+        for prop in constraint.bl_rna.properties:
+            if prop.is_readonly and prop.type!='COLLECTION':
                 continue
-            if key in skip:
-                continue
+            key = prop.identifier
             value = getattr(constraint, key)
 
             if constraint.type == 'ARMATURE' and key == 'targets':
-                kwargs['targets'] = []
-                for t in constraint.targets:
-                    kwargs['targets'].append(
-                        {
-                            'target': t.target,
-                            'subtarget': t.subtarget,
-                            'weight': t.weight,
-                        }
-                    )
+                # TODO: Move this to @targets.setter
+                kwargs['targets'] = [
+                    {
+                        'target': t.target,
+                        'subtarget': t.subtarget,
+                        'weight': t.weight,
+                    } for t in constraint.targets
+                ]
                 continue
             elif (
                 constraint.type == 'STRETCH_TO' and key == 'rest_length' and value == 0

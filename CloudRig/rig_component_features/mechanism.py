@@ -191,6 +191,9 @@ def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
     parent the bone to this copy."""
     if bone_set == None:
         bone_set = child.bone_set
+    if child.parent_helper:
+        # If it already exists, just return it.
+        return child.parent_helper
     parent_bone = bone_set.new(
         name=add_prefix(child, "P"),
         source=child,
