@@ -1,9 +1,7 @@
 name: CloudRig Bug
 about: File a bug report about CloudRig
 labels:
-  - "Type/Report"
-  - "Status/Needs Triage"
-  - "Priority/Normal"
+  - "status/needs triage"
 assignees:
   - Mets
 body:
