@@ -427,7 +427,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 subtarget=fk_bone,
             )
 
-    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
+    def fk_chain__attach_org_to_fk(self, org_bones: list[BoneInfo], fk_bones: list[BoneInfo]):
         """Make ORG bones Copy Transforms of FK bones."""
         for org_bone, fk_bone in zip(org_bones, fk_bones):
             org_bone.use_connect = False

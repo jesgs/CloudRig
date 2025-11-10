@@ -100,6 +100,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                     source=self.bone_sets['FK Controls'][2],
                     vector=flat(self.bone_sets['FK Controls'][2].vector),
                     parent=self.ik_chain[2],
+                    roll=0,
                 )
 
         self.__make_ik_toe()

@@ -540,19 +540,20 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Make last FK bone world-aligned.
         self.ik_chain__world_aligned_helper(self.last_org.fk_bone)
 
-    def ik_chain__world_aligned_helper(self, bone) -> BoneInfo:
+    def ik_chain__world_aligned_helper(self, fk_bone: BoneInfo) -> BoneInfo:
         """Make a control align to the closest world axis (flatten the bone),
         while keeping a back-up of the original transforms in a child bone.
         """
         # This is the target of a Copy Transforms constraint on the ORG bone.
-        backup_bone = self.bone_sets["Mechanism Bones"].new(
-            name=self.naming.add_prefix(bone.name, "W"), # W for World.
-            source=bone,
-            parent=bone,
+        world_bone = self.bone_sets["Mechanism Bones"].new(
+            name=self.naming.add_prefix(fk_bone.name, "W"),
+            source=fk_bone,
+            parent=fk_bone,
         )
-        bone.custom_shape_transform = backup_bone
-        bone.flatten()
-        return backup_bone
+        fk_bone.source.constraint_infos[0].subtarget = world_bone
+        fk_bone.custom_shape_transform = world_bone
+        fk_bone.flatten()
+        return world_bone
 
     def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
         """Store UI data for FK/IK switching and snapping."""
