@@ -91,22 +91,24 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 
 
 def reveal_and_select(context, bone: Bone or EditBone or PoseBone, extend_selection=False, set_active=True):
+    rig = context.pose_object or context.active_object
     if type(bone) == PoseBone:
         pbone = bone
         bone = bone.bone
     elif type(bone) == Bone:
-        pbone = context.pose_object.pose.bones.get(bone.name)
+        pbone = rig.pose.bones.get(bone.name)
 
     ensure_visible_bone_collection(bone)
     if not extend_selection:
-        for pb in context.pose_object.pose.bones:
+        for pb in rig.pose.bones:
             pb.select = False
     pbone.hide = False
     bone.hide = False
     if context.mode == 'EDIT_ARMATURE':
-        bone.select = True
-        bone.select_head = True
-        bone.select_tail = True
+        ebone = rig.data.edit_bones[bone.name]
+        ebone.select = True
+        ebone.select_head = True
+        ebone.select_tail = True
     else:
         pbone.select = True
     if set_active:
