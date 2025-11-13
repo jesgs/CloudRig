@@ -8,8 +8,8 @@ from . import rig_components
 from .properties import NameProperty
 from .rig_component_features.widgets.widgets import get_widgets_enum_items, refresh_external_widgets
 from .bs_utils.prefs import PrefsFileSaveLoadMixin, update_prefs_on_file, get_addon_prefs
-from .bs_utils.hotkeys import HotkeyDrawMixin
 from .bs_utils.ui import label_split
+from .bs_utils.hotkeys import draw_hotkey_list
 
 
 def init_component_module_list(context=None):
@@ -47,7 +47,7 @@ class CloudRigComponentTypeInfo(PropertyGroup):
     )
 
 
-class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferences):
+class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     bl_idname = __package__
 
     # This should get a version bump whenever there is a change that affects metarigs.
@@ -122,7 +122,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, HotkeyDrawMixin, AddonPreferen
         header.label(text="Hotkeys")
         if panel:
             panel.operator('window.restore_deleted_hotkeys', icon='BACK')
-            self.draw_hotkey_list(context, panel, sort_mode='BY_OPERATOR')
+            draw_hotkey_list(context, panel, sort_mode='BY_OPERATOR')
 
         header, panel = layout.panel("CloudRig Bone Colors")
         header.label(text="Bone Colors")
