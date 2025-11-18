@@ -116,6 +116,18 @@ class CloudUIMixin:
         prefs = get_addon_prefs(context)
         return cls.draw_prop_search(context, layout, prop_owner, prop_name, prefs, 'widget_names', **kwargs)
 
+    @classmethod
+    def draw_prop_custom_shape(cls, context, layout, prop_owner, prop_name):
+        prefs = get_addon_prefs(context)
+        pgroup = getattr(prop_owner, prop_name)
+        row = layout.row(align=True)
+        if pgroup.use_pointer:
+            cls.draw_prop(context, row, pgroup, 'custom_shape')
+        else:
+            cls.draw_prop_search(context, row, pgroup, 'name', prefs, 'widget_names')
+
+        row.prop(pgroup, 'use_pointer', text="", toggle=True, icon='OBJECT_DATA')
+
 
 def is_advanced_mode(context):
     if not is_cloud_metarig(context.object):

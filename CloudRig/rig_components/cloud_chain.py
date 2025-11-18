@@ -168,9 +168,9 @@ class Component_ToonChain(Component_Base):
             main_str.custom_shape_scale_xyz *= -1
 
         if not self.is_cyclic and org_bone == self.bones_org[0] or at_tip:
-            main_str.custom_shape_name = self.params.chain.widget_stretch_ends
+            main_str.custom_shape_name = self.params.chain.shape_stretch_ends.shape_name
         else:
-            main_str.custom_shape_name = self.params.chain.widget_stretch
+            main_str.custom_shape_name = self.params.chain.shape_stretch.shape_name
 
         parent_helper = self.create_parent_bone(main_str, bone_set=self.bones_mch)
         parent_helper.add_constraint('ARMATURE', subtarget=parent_helper.parent)
@@ -256,7 +256,7 @@ class Component_ToonChain(Component_Base):
             parent=org_bone,
             head=main_start.head + (unit * index),
             length=vector.length / num_segments / 2,
-            custom_shape_name=self.params.chain.widget_stretch,
+            custom_shape_name=self.params.chain.shape_stretch.shape_name,
             custom_shape_scale=-self.params.chain.widget_size*0.66,
             inherit_scale='AVERAGE',
         )
@@ -728,7 +728,7 @@ class Component_ToonChain(Component_Base):
             self.bones_def[0].bbone_easein = 0
 
         last_str.next = self.str_chain[0]
-        last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.widget_stretch
+        last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
         if (
             self.params.chain.shape_key_helpers
             or parent_component.params.chain.shape_key_helpers
@@ -759,8 +759,8 @@ class Component_ToonChain(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
-        cls.draw_prop_widget(context, layout, params.chain, 'widget_stretch')
-        cls.draw_prop_widget(context, layout, params.chain, 'widget_stretch_ends', text="End")
+        cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch')
+        cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch_ends')
         cls.draw_prop(context, layout, params.chain, 'widget_size', text="Size")
         return layout
 
@@ -861,15 +861,13 @@ class Params(PropertyGroup):
         default=1,
     )
 
-    widget_stretch: StringProperty(
-        name="Stretch Custom Shape",
-        description="Custom shape for Stretch controls",
-        default='Sphere'
+    shape_stretch: Component_Base.make_custom_shape_params(
+        identifier="Stretch",
+        default="Sphere"
     )
-    widget_stretch_ends: StringProperty(
-        name="Stretch End Custom Shape",
-        description="Custom shape for First/Last Stretch controls",
-        default='Sphere_Half'
+    shape_stretch_ends: Component_Base.make_custom_shape_params(
+        identifier="Stretch Ends",
+        default="Sphere_Half"
     )
     widget_size: FloatProperty(
         name="Custom Shape Size",

@@ -67,9 +67,9 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         widget_items = get_widgets_enum_items()
         if not widget_items:
             return
-        for id, identifier, name, description, icon in [w for w in widget_items if w]:
+        for wgt_name, ui_name, type, icon, counter in [w for w in widget_items if w]:
             widget_entry = self.widget_names.add()
-            widget_entry.name = name
+            widget_entry.name = ui_name
         update_prefs_on_file()
 
     widget_names: CollectionProperty(type=NameProperty)

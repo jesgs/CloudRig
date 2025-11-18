@@ -6,9 +6,10 @@ if TYPE_CHECKING:
     from ..generation.troubleshooting import CloudRig_Generator
     from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
     from collections.abc import Iterable
-    
-from bpy.props import EnumProperty, StringProperty
-from bpy.types import PropertyGroup, PoseBone
+
+import bpy
+from bpy.props import EnumProperty, StringProperty, PointerProperty, BoolProperty
+from bpy.types import PropertyGroup, PoseBone, Object
 
 from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
@@ -18,6 +19,7 @@ from ..rig_component_features.object import CloudObjectUtilitiesMixin
 from ..rig_component_features.parenting import CloudParentingMixin
 from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 from ..generation.troubleshooting import LoggerMixin
+from ..bs_utils.prefs import get_addon_prefs
 
 
 class Component_Base(
@@ -350,9 +352,58 @@ class Component_Base(
             name=name, description=description, items=items, default=default
         )
 
+    @classmethod
+    def make_custom_shape_params(
+        cls,
+        *,
+        identifier: str,
+        default: str,
+        description="",
+    ):
+        def update_widgets(self, context):
+            prefs = get_addon_prefs(context)
+            prefs.update_widget_names(bpy.context)
+        
+        @property
+        def shape_name(self):
+            if self.use_pointer and self.custom_shape:
+                return self.custom_shape.name
+            return self.name
+        
+        class_props = {
+            '__annotations__': {
+                'name': StringProperty(
+                    name=identifier+" Custom Shape",
+                    description=description or "Name of the custom shape to use for these bones",
+                    default=default,
+                    update=update_widgets,
+                ),
+                'use_pointer': BoolProperty(
+                    name="Select Local Object",
+                    description="Select any object in the current file to use as widget.",
+                    default=False,
+                    update=update_widgets,
+                ),
+                'custom_shape': PointerProperty(
+                    name=identifier + " Custom Shape",
+                    description="Object to use as custom shape for these bones.",
+                    type=Object,
+                    poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-")
+                )
+            },
+            'shape_name': shape_name
+        }
+        class_name="CloudRig_CustomShape_"+ identifier.replace(" ", "_").lower()
+        group_class = type(class_name, (PropertyGroup,), class_props)
+        bpy.utils.register_class(group_class)
+        return PointerProperty(type=group_class)
+
 class Params(PropertyGroup):
+    # See use_base_name class property above.
     base_name: StringProperty(
         name="Base Name",
-        description='''Optional. If provided, use this as the base name for some generated bones and properties, rather than the bone name. This should not include a side indicator ("Left"/"Right"), as that will be added automatically''',
+        description='Optional. If provided, use this as the base name for some generated bones and properties, '
+            'rather than the bone name. This should not include a side indicator ("Left"/"Right"), as that will'
+            'be added automatically',
         default="",
     )
