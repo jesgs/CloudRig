@@ -170,7 +170,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
         pin_bone = self.bone_sets['Physics Bones'].new(
             name="PIN-" + self.params.physics_chain.phys_obj.name,
-            custom_shape_name='Cube',
+            custom_shape_name=self.params.fk_chain.shape_fk_root.shape_name,
             source=self.bone_sets['Physics Bones'][0],
             parent=self.bone_sets['Physics Bones'][0],
             use_deform=True,

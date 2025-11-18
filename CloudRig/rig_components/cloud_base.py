@@ -373,7 +373,7 @@ class Component_Base(
         class_props = {
             '__annotations__': {
                 'name': StringProperty(
-                    name=identifier+" Custom Shape",
+                    name=identifier+" Shape",
                     description=description or "Name of the custom shape to use for these bones",
                     default=default,
                     update=update_widgets,
@@ -385,7 +385,7 @@ class Component_Base(
                     update=update_widgets,
                 ),
                 'custom_shape': PointerProperty(
-                    name=identifier + " Custom Shape",
+                    name=identifier + " Shape",
                     description="Object to use as custom shape for these bones.",
                     type=Object,
                     poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-")

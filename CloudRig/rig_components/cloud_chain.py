@@ -159,7 +159,7 @@ class Component_ToonChain(Component_Base):
             roll_type='ALIGN',
             roll_bone=org_bone or org_bone.prev,
             length=org_bone.length / segments / 3,
-            custom_shape_scale=-self.params.chain.widget_size,
+            custom_shape_scale=-self.params.chain.shape_size,
             display_type='STICK',
             parent=org_bone,
         )
@@ -257,7 +257,7 @@ class Component_ToonChain(Component_Base):
             head=main_start.head + (unit * index),
             length=vector.length / num_segments / 2,
             custom_shape_name=self.params.chain.shape_stretch.shape_name,
-            custom_shape_scale=-self.params.chain.widget_size*0.66,
+            custom_shape_scale=-self.params.chain.shape_size*0.66,
             inherit_scale='AVERAGE',
         )
         sub_str.parent = self.__make_sub_str_helper(
@@ -613,7 +613,7 @@ class Component_ToonChain(Component_Base):
                 bulge_max=5,
                 bulge=self.params.chain.volume_variation,
             )
-        def_bone_control.custom_shape_name = 'Cube'
+        def_bone_control.custom_shape_name = self.params.chain.shape_def_control.shape_name
         def_bone_control.custom_shape_scale_xyz.y = 0.1
         def_bone_control.collections = self.bone_sets['Deform Controls'].collections
 
@@ -759,9 +759,11 @@ class Component_ToonChain(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        if params.chain.unlock_deform:
+            cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_def_control')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch_ends')
-        cls.draw_prop(context, layout, params.chain, 'widget_size', text="Size")
+        cls.draw_prop(context, layout, params.chain, 'shape_size', text="Size")
         return layout
 
     @classmethod
@@ -869,7 +871,11 @@ class Params(PropertyGroup):
         identifier="Stretch Ends",
         default="Sphere_Half"
     )
-    widget_size: FloatProperty(
+    shape_def_control: Component_Base.make_custom_shape_params(
+        identifier="Deform Control",
+        default="Square"
+    )
+    shape_size: FloatProperty(
         name="Custom Shape Size",
         min=0.1, max=10.0, default=0.6
     )

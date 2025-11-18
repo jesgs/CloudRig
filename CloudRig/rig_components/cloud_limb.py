@@ -252,7 +252,7 @@ class Component_Limb(Component_Chain_IKFK):
             name=self.naming.add_prefix(org_lower, "RubberHose"),
             source=org_lower,
             parent=org_lower,
-            custom_shape_name='Arrow_Two-way',
+            custom_shape_name=self.params.limb.shape_rubberhose.shape_name,
         )
 
         # Shift it towards the IK pole or where it would be.
@@ -490,6 +490,13 @@ class Component_Limb(Component_Chain_IKFK):
                 context, split.row(), params.limb, 'auto_hose_type', expand=True
             )
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        if params.auto_hose:
+            layout.separator()
+            cls.draw_prop_custom_shape(context, layout, params.limb, 'shape_rubberhose')
+
     ##############################
     # Overlay
     @classmethod
@@ -542,6 +549,11 @@ class Params(PropertyGroup):
         name="Duplicate IK Master",
         description="The IK control has a parent control. Having two controls for the same thing can help avoid interpolation issues when the common pose in animation is far from the rest pose",
         default=False,
+    )
+
+    shape_rubberhose: Component_Chain_IKFK.make_custom_shape_params(
+        identifier="Rubber Hose",
+        default="Arrow_Two-way"
     )
 
 

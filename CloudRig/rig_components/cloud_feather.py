@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from .cloud_fk_chain import Component_Chain_FK
-
+from bpy.types import PropertyGroup
 
 class Component_Feather(Component_Chain_FK):
     """Single-bone rig for a simple feather."""
@@ -23,7 +23,8 @@ class Component_Feather(Component_Chain_FK):
         super().create_bone_infos(context)
 
         first_fk = self.bone_sets['FK Controls'][0]
-        first_fk.custom_shape_name = "Feather"
+        feather_shape = self.params.feather.shape_feather
+        first_fk.custom_shape_name = feather_shape
         first_fk.custom_shape_along_length = 1
 
         # Create a new bone parented to ORG, and parent the tip control to it.
@@ -32,7 +33,7 @@ class Component_Feather(Component_Chain_FK):
             name=self.naming.add_prefix(org.name, "BEND"),
             source=org,
             parent=org,
-            custom_shape_name="Feather",
+            custom_shape_name=feather_shape,
         )
         self.main_str_bones[-1].parent = bend_ctr
         bend_ctr.custom_shape_along_length = 0.95
@@ -68,7 +69,17 @@ class Component_Feather(Component_Chain_FK):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     ##############################
-    # No additional parameters for this component type.
+    # Parameters
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        cls.draw_prop_custom_shape(context, layout, params.feather, 'shape_feather')
+
+class Params(PropertyGroup):
+    shape_feather: Component_Chain_FK.make_custom_shape_params(
+        identifier="Feather",
+        default="Feather"
+    )
 
 RIG_COMPONENT_CLASS = Component_Feather

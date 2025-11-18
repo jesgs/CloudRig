@@ -4,7 +4,6 @@ from bpy.props import StringProperty, PointerProperty
 from bpy.types import PropertyGroup, Object
 
 from ..rig_component_features.bone_info import BoneInfo
-from ..rig_component_features.bone_set import BoneSet
 from .cloud_chain import Component_ToonChain
 
 
@@ -43,7 +42,7 @@ class Component_SphereChain(Component_ToonChain):
             head=sphere_ctrl.head.copy(),
             tail=str_bone.head.copy(),
 
-            custom_shape_name='Square',
+            custom_shape_name=self.params.chain_sphere.shape_sphere_control.shape_name,
             custom_shape_along_length=1.0,
             display_type='WIRE',
 
@@ -68,6 +67,11 @@ class Component_SphereChain(Component_ToonChain):
         if set_name == 'shape_key_helpers':
             return params.chain.shape_key_helpers
         return super().is_bone_set_used(context, rig, params, set_name)
+
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        cls.draw_prop_custom_shape(context, layout, params.chain_sphere, 'shape_sphere_control')
 
     @classmethod
     def define_bone_sets(cls):
@@ -99,6 +103,11 @@ class Params(PropertyGroup):
         type=Object,
         name="Shrinkwrap Mesh",
         description="Mesh object to shrinkwrap to using Shrinkwrap Constraints.",
+    )
+
+    shape_sphere_control: Component_ToonChain.make_custom_shape_params(
+        identifier="Sphere Control",
+        default="Square"
     )
 
 RIG_COMPONENT_CLASS = Component_SphereChain

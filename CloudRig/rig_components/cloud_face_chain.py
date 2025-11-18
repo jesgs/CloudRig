@@ -210,8 +210,7 @@ class Component_FaceChain(Component_ToonChain):
             if hasattr(chain_rig, 'eyelid__make_sticky_setup'):
                 chain_rig.eyelid__make_sticky_setup()
 
-    @staticmethod
-    def __create_intersection_for_cluster(cluster: list[BoneInfo]) -> BoneInfo:
+    def __create_intersection_for_cluster(self, cluster: list[BoneInfo]) -> BoneInfo:
         """Try to find a Component_FaceChainAnchor to parent the cluster to.
         If it doesn't exist, create one.
         """
@@ -248,7 +247,7 @@ class Component_FaceChain(Component_ToonChain):
                 roll_type='ALIGN',
                 roll_bone=cluster[0],
                 roll=0,
-                custom_shape_name='Cube',
+                custom_shape_name=self.params.face_chain.shape_intersection.shape_name,
                 custom_shape_scale=0.5,
             )
 
@@ -289,12 +288,21 @@ class Component_FaceChain(Component_ToonChain):
         super().draw_control_params(layout, context, params)
         cls.draw_prop(context, layout, params.face_chain, 'merge')
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        cls.draw_prop_custom_shape(context, layout, params.face_chain, 'shape_intersection')
 
 class Params(PropertyGroup):
     merge: BoolProperty(
         name="Merge Controls",
         description="If any controls of this rig intersect with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer",
         default=True,
+    )
+
+    shape_intersection: Component_ToonChain.make_custom_shape_params(
+        identifier="Intersection",
+        default="Cube"
     )
 
 

@@ -121,7 +121,7 @@ class Component_Aim(Component_Base):
             source=self.bones_org[0],
             head=head,
             tail=tail,
-            custom_shape_name="Circle",
+            custom_shape_name=self.params.aim.shape_target.shape_name,
             parent=parent,
         )
         target_bone.custom_shape_scale *= self.params.aim.target_size
@@ -140,7 +140,7 @@ class Component_Aim(Component_Base):
             ),
             source=org_bone,
             parent=org_bone.parent if self.params.aim.root else org_bone,
-            custom_shape_name="Circle",
+            custom_shape_name=self.params.aim.shape_eye.shape_name,
         )
 
         ctr_bone.add_constraint('COPY_ROTATION', subtarget=aim_bone.name, mix_mode='AFTER')
@@ -184,7 +184,7 @@ class Component_Aim(Component_Base):
             name=self.naming.add_prefix(org_bone.name, 'ROOT'),
             source=org_bone,
             parent=org_bone.parent,
-            custom_shape_name='Square',
+            custom_shape_name=self.params.aim.shape_root.shape_name,
             custom_shape_scale=2,
             custom_shape_along_length=1,
         )
@@ -200,7 +200,7 @@ class Component_Aim(Component_Base):
             name=self.naming.make_name(*name_slices),
             source=ctr_bone,
             parent=ctr_bone,
-            custom_shape_name="Circle",
+            custom_shape_name=self.params.aim.shape_highlight.shape_name,
             custom_shape_scale=ctr_bone.custom_shape_scale / 3,
             custom_shape_along_length=1.05,
         )
@@ -316,7 +316,7 @@ class Component_Aim(Component_Base):
             roll_type='VECTOR',
             roll_vector=z_axis,
             roll=0,
-            custom_shape_name='Circle',
+            custom_shape_name=self.params.aim.shape_master.shape_name,
             use_custom_shape_bone_size=True,
             custom_shape_scale=1,
         )
@@ -359,7 +359,11 @@ class Component_Aim(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+        if params.aim.create_sub_control:
+            cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_highlight')
+        cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_root')
+        cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_eye')
+        cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_target')
         cls.draw_prop(context, layout, params.aim, 'target_size')
 
     @classmethod
@@ -412,5 +416,25 @@ class Params(PropertyGroup):
         default=False,
     )
 
+    shape_target: Component_Base.make_custom_shape_params(
+        identifier="Target",
+        default="Circle"
+    )
+    shape_eye: Component_Base.make_custom_shape_params(
+        identifier="Eye",
+        default="Circle"
+    )
+    shape_root: Component_Base.make_custom_shape_params(
+        identifier="Root",
+        default="Square"
+    )
+    shape_highlight: Component_Base.make_custom_shape_params(
+        identifier="Highlight",
+        default="Circle"
+    )
+    shape_master: Component_Base.make_custom_shape_params(
+        identifier="Master",
+        default="Circle"
+    )
 
 RIG_COMPONENT_CLASS = Component_Aim

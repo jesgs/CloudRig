@@ -76,7 +76,7 @@ class Component_Lattice(Component_Base):
         if org_bi.custom_shape:
             root_bone.copy_custom_shape(org_bi)
         else:
-            root_bone.custom_shape_name="Cube"
+            root_bone.custom_shape_name=self.params.lattice.shape_root.shape_name
             root_bone.use_custom_shape_bone_size=True
         return root_bone
 
@@ -86,7 +86,7 @@ class Component_Lattice(Component_Base):
             name=hook_name,
             source=root_bone,
             parent=root_bone,
-            custom_shape_name="Sphere",
+            custom_shape_name=self.params.lattice.shape_lattice.shape_name,
             use_custom_shape_bone_size=True,
         )
         return hook_bone
@@ -172,6 +172,10 @@ class Component_Lattice(Component_Base):
         cls.draw_prop(context, layout, params.lattice, "lattice")
         cls.draw_prop(context, layout, params.lattice, "regenerate")
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_root')
+        cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_lattice')
 
 class Params(PropertyGroup):
     lattice: PointerProperty(
@@ -183,6 +187,15 @@ class Params(PropertyGroup):
         name="Regenerate",
         description="Whether to re-generate the lattice object on rig generation. Disable if you intend to modify the generated lattice object manually",
         default=True,
+    )
+
+    shape_root: Component_Base.make_custom_shape_params(
+        identifier="Lattice Root",
+        default="Cube"
+    )
+    shape_lattice: Component_Base.make_custom_shape_params(
+        identifier="Lattice Control",
+        default="Sphere"
     )
 
 

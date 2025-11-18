@@ -107,7 +107,7 @@ class Component_CopyBone(Component_Base):
         boneinfo.add_constraint(
             'COPY_LOCATION', subtarget=pivot, invert_xyz=[True, True, True]
         )
-        pivot.custom_shape_name = 'Axes_6'
+        pivot.custom_shape_name = self.params.copy.shape_pivot.shape_name
         pivot.custom_shape_scale_xyz = Vector(
             [max(boneinfo.custom_shape_scale_xyz)] * 3
         )
@@ -199,6 +199,11 @@ class Component_CopyBone(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        if params.copy.custom_pivot:
+            cls.draw_prop_custom_shape(context, layout, params.copy, 'shape_pivot')
+
+    @classmethod
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
@@ -227,6 +232,11 @@ class Params(PropertyGroup):
     property_ui_label: StringProperty(
         name="UI Label",
         description="Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel",
+    )
+
+    shape_pivot: Component_Base.make_custom_shape_params(
+        identifier="Pivot",
+        default="Axes_6"
     )
 
 

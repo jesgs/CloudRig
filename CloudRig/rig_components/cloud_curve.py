@@ -78,7 +78,7 @@ class Component_Curve_Hooked(Component_Base):
         if org_bone.custom_shape:
             self.root_bone.copy_custom_shape(org_bone)
         else:
-            self.root_bone.custom_shape_name = 'Cube'
+            self.root_bone.custom_shape_name = self.params.curve.shape_root.shape_name
 
     def curve__make_ctrls_for_points(self, curve_ob: Object) -> list[list[BoneInfo]]:
         hooks_of_splines: list[list[BoneInfo]] = []
@@ -100,7 +100,7 @@ class Component_Curve_Hooked(Component_Base):
                     head=loc + loc_delta,
                     tail=loc + loc_delta + dir,
                     parent=self.root_bone,
-                    custom_shape_name='Cube',
+                    custom_shape_name=self.params.curve.shape_spline_root.shape_name,
                     inherit_scale=self.params.curve.inherit_scale,
                 )
                 spline_root.flatten()
@@ -272,12 +272,12 @@ class Component_Curve_Hooked(Component_Base):
 
         is_bezier = type(point) == BezierSplinePoint
         if is_bezier:
-            shape = self.params.curve.widget_point
+            shape = self.params.curve.shape_bezier.shape_name
             left_handle_loc = worldspace(point.handle_left)
             right_handle_loc = worldspace(point.handle_right)
             tail = left_handle_loc
         else:
-            shape = self.params.curve.widget_handle
+            shape = self.params.curve.shape_handle.shape_name
             spline = self.params.curve.target.data.splines[spline_idx]
             if len(points) > point_idx+1:
                 tail = points[point_idx+1].co
@@ -286,7 +286,7 @@ class Component_Curve_Hooked(Component_Base):
             else:
                 prev_point_co = points[point_idx-1].co
                 tail = point.co + (point.co-prev_point_co) / 2
-                shape = 'Cube'
+                shape = self.params.curve.shape_point.shape_name
 
             tail = worldspace(tail)
 
@@ -295,7 +295,7 @@ class Component_Curve_Hooked(Component_Base):
             name=self.__get_hook_name(spline_idx, point_idx),
             source=source_bone,
             use_custom_shape_bone_size=True,
-            custom_shape_scale=self.params.curve.widget_size,
+            custom_shape_scale=self.params.curve.shape_size,
             head=point_loc,
             tail=tail,
             parent=parent_bone,
@@ -320,7 +320,7 @@ class Component_Curve_Hooked(Component_Base):
         hook_ctr.right_handle_control = None
 
         if is_bezier and self.params.curve.controls_for_handles:
-            shape = 'Circle'
+            shape = self.params.curve.shape_bezier_center.shape_name
             self.__make_ctrls_for_handles(
                 hook_ctr, spline_idx, point_idx, point_loc, left_handle_loc, right_handle_loc, cyclic
             )
@@ -340,9 +340,9 @@ class Component_Curve_Hooked(Component_Base):
                 source=hook_ctr,
                 tail=loc_left,
                 use_custom_shape_bone_size=True,
-                custom_shape_scale=self.params.curve.widget_size * 0.8,
+                custom_shape_scale=self.params.curve.shape_size * 0.8,
                 parent=hook_ctr,
-                custom_shape_name="Circle",
+                custom_shape_name=self.params.curve.shape_radius.shape_name,
             )
             radius_control.length *= 0.8
             self.lock_transforms(
@@ -366,7 +366,7 @@ class Component_Curve_Hooked(Component_Base):
                 head=loc,
                 tail=loc_left,
                 parent=hook_ctr,
-                custom_shape_name=self.params.curve.widget_handle,
+                custom_shape_name=self.params.curve.shape_handle.shape_name,
                 use_custom_shape_bone_size=False,
                 roll=0,
                 roll_type='ALIGN',
@@ -390,7 +390,7 @@ class Component_Curve_Hooked(Component_Base):
                 roll=0,
                 roll_type='ALIGN',
                 roll_bone=hook_ctr,
-                custom_shape_name=self.params.curve.widget_handle,
+                custom_shape_name=self.params.curve.shape_handle.shape_name,
                 use_custom_shape_bone_size=False,
             )
             hook_ctr.right_handle_control = handle_right_ctr
@@ -630,6 +630,10 @@ class Component_Curve_Hooked(Component_Base):
         cls.define_bone_set('Curve Handles', color_palette='THEME09')
 
     @classmethod
+    def creates_spline_roots(cls, params) -> bool:
+        return params.curve.root_per_spline and params.curve.target and len(params.curve.target.data.splines) > 1
+
+    @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
         if set_name == 'curve_handles':
             return params.curve.controls_for_handles
@@ -638,16 +642,10 @@ class Component_Curve_Hooked(Component_Base):
             return params.curve.create_root
 
         if set_name == 'spline_roots':
-            return params.curve.root_per_spline and params.curve.target and len(params.curve.target.data.splines) > 1
+            return cls.creates_spline_roots(params)
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
-    @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        cls.draw_prop_widget(context, layout, params.curve, 'widget_point')
-        cls.draw_prop_widget(context, layout, params.curve, 'widget_handle')
-        cls.draw_prop(context, layout, params.curve, 'widget_size', text="Size")
-        return layout
 
     @classmethod
     def curve_selector_ui(cls, layout, context, params):
@@ -676,6 +674,20 @@ class Component_Curve_Hooked(Component_Base):
             cls.draw_prop(context, layout, params.curve, "rotatable_handles")
             cls.draw_prop(context, layout, params.curve, "separate_radius")
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        if params.curve.controls_for_handles:
+            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier_center')
+            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_handle')
+        else:
+            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier')
+            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_point')
+        if cls.creates_spline_roots(params):
+            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_spline_root')
+        if params.curve.separate_radius:
+            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_radius')
+        cls.draw_prop(context, layout, params.curve, 'shape_size', text="Size")
+        return layout
 
 class Params(PropertyGroup):
     create_root: BoolProperty(
@@ -720,17 +732,35 @@ class Params(PropertyGroup):
 
     target: PointerProperty(name="Curve", type=Object, poll=is_curve)
 
-    widget_handle: StringProperty(
-        name="Curve Handle Shape",
-        description="Custom Shape for curve handles",
-        default='Curve_Handle'
+    shape_root: Component_Base.make_custom_shape_params(
+        identifier="Curve Root",
+        default="Cube"
     )
-    widget_point: StringProperty(
-        name="Curve Point Shape",
-        description="Custom Shape for curve points",
-        default='Curve_Point'
+    shape_point: Component_Base.make_custom_shape_params(
+        identifier="Path Point",
+        default="Cube"
     )
-    widget_size: FloatProperty(
+    shape_handle: Component_Base.make_custom_shape_params(
+        identifier="Curve Handle",
+        default="Curve_Handle"
+    )
+    shape_bezier_center: Component_Base.make_custom_shape_params(
+        identifier="Bezier Center",
+        default="Circle"
+    )
+    shape_bezier: Component_Base.make_custom_shape_params(
+        identifier="Bezier",
+        default="Curve_Point"
+    )
+    shape_spline_root: Component_Base.make_custom_shape_params(
+        identifier="Spline Root",
+        default="Cube"
+    )
+    shape_radius: Component_Base.make_custom_shape_params(
+        identifier="Radius",
+        default="Circle"
+    )
+    shape_size: FloatProperty(
         name="Custom Shape Size",
         description="Size for curve custom shapes",
         default=1.0,

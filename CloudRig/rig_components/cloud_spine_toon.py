@@ -36,7 +36,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            custom_shape_name=self.params.spine_toon.widget_torso,
+            custom_shape_name=self.params.spine_toon.shape_torso.shape_name,
             custom_shape_scale=1.5,
         )
         if self.params.spine_toon.world_align:
@@ -79,7 +79,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             source=self.fk_chain[-2],
             tail=self.bones_org[-1].tail,
             parent=self.torso_ctr,
-            custom_shape_name=self.params.spine_toon.widget_ik,
+            custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
             use_custom_shape_bone_size=True,
             custom_shape_scale_xyz=(1.2, 2.3, 1.2),
             custom_shape_rotation_euler=(0, pi/2, 0)
@@ -90,7 +90,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             head=self.fk_chain[1].head,
             tail=self.bones_org[0].head,
             parent=self.torso_ctr,
-            custom_shape_name=self.params.spine_toon.widget_ik,
+            custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
         )
         hips.collections += self.bone_sets['FK Controls'].collections
         hips_lower = self.bone_sets['Toon Spine IK'].new(
@@ -99,7 +99,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             head=self.bones_org[0].tail,
             tail=self.bones_org[0].head,
             parent=hips,
-            custom_shape_name=self.params.spine_toon.widget_ik,
+            custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
             custom_shape_wire_width=1.5,
             custom_shape_scale_xyz=(1, 0.5, 1),
             custom_shape_along_length=0.33,
@@ -156,7 +156,7 @@ class Component_Spine_Toon(Component_Chain_FK):
                 name=name,
                 source=fk_bone,
                 parent=parent,
-                custom_shape_name=self.params.spine_toon.widget_ik_secondary,
+                custom_shape_name=self.params.spine_toon.shape_ik_secondary.shape_name,
                 lock_rotation=(True, False, True),
                 lock_scale=(True, True, True)
             )
@@ -277,9 +277,9 @@ class Component_Spine_Toon(Component_Chain_FK):
     def draw_appearance_params(cls, layout, context, params):
         super().draw_appearance_params(layout, context, params)
         layout.separator()
-        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_torso")
-        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik")
-        cls.draw_prop_widget(context, layout, params.spine_toon, "widget_ik_secondary")
+        cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_torso")
+        cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik")
+        cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik_secondary")
         return layout
 
 
@@ -291,22 +291,17 @@ class Params(PropertyGroup):
         default=True,
     )
 
-    widget_ik_secondary: StringProperty(
-        name="IK Secondary Shape",
-        description="Custom shape for IK Secondary controls",
-        default='Square_Rounded',
+    shape_ik: Component_Chain_FK.make_custom_shape_params(
+        identifier="IK",
+        default="Hyperbola"
     )
-    widget_torso: StringProperty(
-        name="Torso Shape",
-        description="Custom shape for the Torso control",
-        default='Torso_Master',
+    shape_ik_secondary: Component_Chain_FK.make_custom_shape_params(
+        identifier="IK Secondary",
+        default="Square_Rounded"
     )
-    widget_ik: StringProperty(
-        name="IK Shape",
-        description="Custom shape for the Spine controls",
-        default='Hyperbola',
+    shape_torso: Component_Chain_FK.make_custom_shape_params(
+        identifier="Torso",
+        default="Torso_Master"
     )
 
-
-# Un-comment the below line to make this component appear in Blender.
 RIG_COMPONENT_CLASS = Component_Spine_Toon

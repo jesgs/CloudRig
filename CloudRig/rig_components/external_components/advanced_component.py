@@ -83,7 +83,7 @@ class AdvancedComponent(Component_Base):
         ctr_bone: BoneInfo = self.bone_sets["My Bone Set"].new(
             name="CTR-" + bone.name,
             source=bone,  # head, tail, roll, radius, width, envelope.
-            custom_shape_name="Circle",  # See Widgets.blend for bone shapes.
+            custom_shape_name=self.params.advanced_component.shape_control.shape_name,  # See Widgets.blend for bone shapes.
             parent=bone.parent,
         )
         bone.add_constraint("COPY_TRANSFORMS", subtarget=ctr_bone.name)
@@ -118,6 +118,10 @@ class Params(PropertyGroup):
         default=True,
     )
 
+    shape_control: Component_Base.make_custom_shape_params(
+        identifier="Control",
+        default="Circle" # See Widgets.blend for bone shapes.
+    )
 
 # Un-comment the below line to make this component appear in Blender.
 # RIG_COMPONENT_CLASS = AdvancedComponent

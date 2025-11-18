@@ -195,11 +195,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 self.pole_ctrl, self.ik_mstr, self.stretch_bone
             )
 
-    def ik_chain__make_master_ctr(
-        self, bone_set, source_bone, bone_name="", shape_name="Sphere"
-    ):
+    def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
         if bone_name == "":
             bone_name = self.naming.add_prefix(source_bone, "IK")
+        if not shape_name:
+            shape_name = self.params.ik_chain.shape_ik_master.shape_name
 
         ik_master = bone_set.new(
             name=bone_name,
@@ -241,7 +241,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             roll_type="VECTOR",
             roll_vector=Vector((0, 0, -1)),
             roll=0,
-            custom_shape_name="Arrow_Head",
+            custom_shape_name=self.params.ik_chain.shape_pole.shape_name,
             custom_shape_scale=0.5,
             inherit_scale="AVERAGE",
             use_custom_shape_bone_size=True,
@@ -296,14 +296,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
             ik_chain.append(ik_bone)
 
             if i == 0:
-                # First IK bone special treatment
                 ik_bone.parent = self.root_bone
-                ik_bone.custom_shape_name = "Squares_2"
-                ik_bone.custom_shape_scale_xyz = Vector((0.8, 1, 0.8))
-                ik_bone.collections = self.bone_sets["IK Controls"].collections
-                ik_bone.color_palette_base = self.bone_sets["IK Controls"].color_palette
                 self.ik_controls.append(ik_bone)
-
             else:
                 ik_bone.parent = ik_chain[-2]
 
@@ -693,6 +687,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
         split = label_split(layout, text="")
         split.operator("armature.flatten_ik_chain")
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        layout.separator()
+        cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_ik_master')
+        if params.ik_chain.use_pole:
+            cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
+        return layout
 
 class Params(PropertyGroup):
     at_tip: BoolProperty(
@@ -714,5 +716,13 @@ class Params(PropertyGroup):
         default=True,
     )
 
+    shape_ik_master: Component_Chain_FK.make_custom_shape_params(
+        identifier="IK Master",
+        default="Sphere"
+    )
+    shape_pole: Component_Chain_FK.make_custom_shape_params(
+        identifier="IK Pole",
+        default="Arrow_Head"
+    )
 
 RIG_COMPONENT_CLASS = Component_Chain_IKFK

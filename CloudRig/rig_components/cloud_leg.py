@@ -63,7 +63,6 @@ class Component_Limb_BipedLeg(Component_Limb):
         properties_bone.roll_type = 'ALIGN'
         properties_bone.roll_bone = self.bones_org[-2]
         properties_bone.roll = 0
-        properties_bone.custom_shape_name = 'Cogwheel'
         properties_bone.custom_shape_rotation_euler.z = pi / 2
         properties_bone.parent = self.bones_org[-2]
         return properties_bone
@@ -225,7 +224,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             roll_type='VECTOR',
             roll_vector=toe.z_axis,
             parent=self.ik_mstr,
-            custom_shape_name='Roll_Flat',
+            custom_shape_name=self.params.leg.shape_footroll.shape_name,
             use_custom_shape_bone_size=True,
         )
         if self.params.custom_props.props_storage == "GENERATED":
@@ -289,7 +288,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 roll_type='VECTOR',
                 roll_vector=-b.z_axis,
                 parent=heel_pivot,
-                custom_shape_name="Circle_Spiked_2",
+                custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             )
             rik_chain.append(rik_bone)
             ik_foot_chain[i].parent = rik_bone
@@ -438,6 +437,13 @@ class Component_Limb_BipedLeg(Component_Limb):
                 text="Heel Pivot",
             )
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        layout.separator()
+        if params.use_foot_roll:
+            cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_footroll')
+
 
 class Params(PropertyGroup):
     use_foot_roll: BoolProperty(
@@ -447,6 +453,11 @@ class Params(PropertyGroup):
         name="Heel Pivot Bone",
         description="Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone",
         default="",
+    )
+
+    shape_footroll: Component_Limb.make_custom_shape_params(
+        identifier="Foot Roll",
+        default="Roll_Flat"
     )
 
 

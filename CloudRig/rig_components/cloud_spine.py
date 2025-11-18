@@ -65,7 +65,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            custom_shape_name="Torso_Master",
+            custom_shape_name=self.params.spine.shape_torso.shape_name,
         )
         return self.torso_bone
 
@@ -81,7 +81,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             source=org_chain[0],
             head=org_chain[0].tail,
             tail=org_chain[0].head,
-            custom_shape_name="Hyperbola",
+            custom_shape_name=self.params.spine.shape_hip.shape_name,
             parent=self.torso_bone,
         )
 
@@ -129,7 +129,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             source=chest_org,
             head=head,
             tail=tail,
-            custom_shape_name="Hyperbola",
+            custom_shape_name=self.params.spine.shape_chest.shape_name,
             custom_shape_scale_xyz=Vector((0.8, 1.3, 0.8)),
             custom_shape_rotation_euler=(0, pi/2, 0),
             parent=self.root_torso,
@@ -145,7 +145,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
                 name="IK-CTR-" + org_bone.name,
                 source=org_bone,
-                custom_shape_name='Square',
+                custom_shape_name=self.params.spine.shape_ik.shape_name,
                 rotation_mode='YXZ',
                 lock_rotation=[True, False, True],
                 custom_shape_rotation_euler=((0, pi / 4, 0)),
@@ -348,6 +348,14 @@ class Component_Spine_IKFK(Component_Chain_FK):
         cls.draw_prop(context, layout, params.spine, 'double')
         cls.draw_prop(context, layout, params.spine, 'world_align')
 
+    @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
+        layout.separator()
+        cls.draw_prop_custom_shape(context, layout, params.spine, "shape_torso")
+        cls.draw_prop_custom_shape(context, layout, params.spine, "shape_chest")
+        cls.draw_prop_custom_shape(context, layout, params.spine, "shape_hip")
+        cls.draw_prop_custom_shape(context, layout, params.spine, "shape_ik")
 
 class Params(PropertyGroup):
     use_ik: BoolProperty(
@@ -364,6 +372,23 @@ class Params(PropertyGroup):
         name="World-Align Controls",
         description="Flatten the torso and hips to align with the closest world axis",
         default=True,
+    )
+
+    shape_hip: Component_Chain_FK.make_custom_shape_params(
+        identifier="Hip",
+        default="Hyperbola"
+    )
+    shape_chest: Component_Chain_FK.make_custom_shape_params(
+        identifier="Chest",
+        default="Hyperbola"
+    )
+    shape_torso: Component_Chain_FK.make_custom_shape_params(
+        identifier="Torso",
+        default="Torso_Master"
+    )
+    shape_ik: Component_Chain_FK.make_custom_shape_params(
+        identifier="IK",
+        default="Square"
     )
 
 

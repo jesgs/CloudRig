@@ -158,7 +158,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     name=hook_ctrl.name.replace("Hook_", "FK-"),
                     source=hook_ctrl,
                     use_custom_shape_bone_size=True,
-                    custom_shape_name=self.params.spline_ik.widget_fk,
+                    custom_shape_name=self.params.spline_ik.shape_fk.shape_name,
                     custom_shape_scale=self.params.curve.widget_size,
                     parent=next_parent,
                     rotation_mode='YZX',
@@ -274,10 +274,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
-        if params.spline_ik.create_fk_chain:
-            cls.draw_prop_widget(context, layout, params.spline_ik, 'widget_fk')
-            layout.separator()
         super().draw_appearance_params(layout, context, params)
+        if params.spline_ik.create_fk_chain:
+            layout.separator()
+            cls.draw_prop_custom_shape(context, layout, params.spine, "shape_fk")
         return layout
 
     @classmethod
@@ -358,11 +358,10 @@ class Params(PropertyGroup):
         description="Create an FK chain on top of the hook controls",
         default=False,
     )
-    widget_fk: StringProperty(
-        name="Curve FK Shape",
-        description="Custom Shape for FK controls",
-        default='Square'
-    )
 
+    shape_fk: Component_Curve_SplineIK.make_custom_shape_params(
+        identifier="FK",
+        default="Square"
+    )
 
 RIG_COMPONENT_CLASS = Component_Curve_SplineIK

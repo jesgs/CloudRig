@@ -139,7 +139,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             name=root_name,
             source=org_bone,
             parent=org_bone.parent,
-            custom_shape_name=self.params.fk_chain.widget_root,
+            custom_shape_name=self.params.fk_chain.shape_fk_root.shape_name,
             inherit_scale=self.params.fk_chain.inherit_scale,
         )
         org_bone.parent = root_bone
@@ -192,7 +192,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         fk_bone = self.bone_sets["FK Controls"].new(
             name=fk_name,
             source=org_bone,
-            custom_shape_name=self.params.fk_chain.widget_fk,
+            custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             inherit_scale=self.params.fk_chain.inherit_scale,
             custom_shape_along_length=self.params.fk_chain.display_center / 2,
             rotation_mode=rot_mode,
@@ -297,7 +297,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         curl_control = self.bone_sets["FK Curl Control"].new(
             name="CURL-" + self.bones_org[0].name,
             source=fk_chain[0],
-            custom_shape_name=self.params.fk_chain.widget_fk,
+            custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             inherit_scale=self.params.fk_chain.inherit_scale,
             custom_shape_translation=[0, fk_chain[-1].length, 0],
             custom_shape_transform=fk_chain[-1],
@@ -427,9 +427,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def draw_appearance_params(cls, layout, context, params):
         super().draw_appearance_params(layout, context, params)
         layout.separator()
-        cls.draw_prop_widget(context, layout, params.fk_chain, "widget_fk")
+        cls.draw_prop_custom_shape(context, layout, params.fk_chain, 'shape_fk')
         if params.fk_chain.root:
-            cls.draw_prop_widget(context, layout, params.fk_chain, "widget_root")
+            cls.draw_prop_custom_shape(context, layout, params.fk_chain, 'shape_fk_root')
         cls.draw_prop(context, layout, params.fk_chain, "display_center")
         return layout
 
@@ -565,15 +565,13 @@ class Params(PropertyGroup):
         default=(True, True, True),
     )
 
-    widget_fk: StringProperty(
-        name="FK Custom Shape",
-        description="Custom shape for FK controls",
-        default="Circle_Spiked_2",
+    shape_fk: Component_ToonChain.make_custom_shape_params(
+        identifier="FK",
+        default="Circle_Spiked_2"
     )
-    widget_root: StringProperty(
-        name="Root Custom Shape",
-        description="Custom shape for Root control",
-        default="Cube",
+    shape_fk_root: Component_ToonChain.make_custom_shape_params(
+        identifier="FK Root",
+        default="Cube"
     )
 
 
