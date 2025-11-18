@@ -21,10 +21,10 @@ class BoneDuplicateOpMixin:
         raise NotImplemented
 
     def invoke(self, context, event):
-        self.original_bones = {}
+        self.original_ebones = {}
         rigs = list(get_current_rigs(context))
         for rig in rigs:
-            self.original_bones[rig] = set(rig.data.edit_bones[:])
+            self.original_ebones[rig] = set(rig.data.edit_bones[:])
 
         self.bone_operation()
         bpy.ops.transform.translate('INVOKE_DEFAULT', False)
@@ -52,38 +52,47 @@ class BoneDuplicateOpMixin:
         new_drivers = []
 
         rigs = list(get_current_rigs(context))
+        new_bones_names = []
         for rig in rigs:
-            new_bones = set(rig.data.edit_bones[:]) - self.original_bones[rig]
-            for new_bone in sorted(new_bones, key=lambda b: b.name):
-                new_name = new_bone.name
+            new_ebones = set(rig.data.edit_bones[:]) - self.original_ebones[rig]
+            for new_ebone in sorted(new_ebones, key=lambda b: b.name):
+                new_name = new_ebone.name
                 if self.increment_names:
                     new_name = uniqify(
-                        new_bone.name, rig.data.edit_bones, strip_first=True
+                        new_ebone.name, rig.data.edit_bones, strip_first=True
                     )
-                if new_bone.name.endswith(".001"):
+                if new_ebone.name.endswith(".001"):
                     # Driver duplication is only unambiguous when this is the first duplicate of a bone.
                     # Otherwise we can't tell which bone is the original that got duplicated.
-                    old_bone = rig.data.edit_bones[new_bone.name[:-4]]
+                    old_bone = rig.data.edit_bones[new_ebone.name[:-4]]
                     new_drivers.extend(
                         copy_drivers_of_bone(rig, old_bone.name, new_name)
                     )
                 # Fix the name!
-                new_bone.name = new_name
-
-                # This should happen on its own but it doesn't...?
-                new_bone.select_tail = True
+                new_ebone.name = new_name
+                new_bones_names.append(new_ebone.name)
 
         # Refresh the copied drivers
-        bpy.ops.object.mode_set(False, mode='POSE')
-        bpy.ops.object.mode_set(False, mode='EDIT')
-        for fc in new_drivers:
-            fc.driver.expression = fc.driver.expression
+        if new_drivers:
+            try:
+                bpy.ops.object.mode_set(False, mode='POSE')
+                bpy.ops.object.mode_set(False, mode='EDIT')
+                for fc in new_drivers:
+                    fc.driver.expression = fc.driver.expression
+            except RuntimeError:
+                # This can happen when user keeps the mouse button held while pressing E again.
+                # Easiest to get by trying to spam-extrude.
+                # I'm just gonna ignore it, this is a silly edge case, and it's only the driver copying that fails.
+                return {'FINISHED'}
+
+        for bone_name in new_bones_names:
+            rig.data.edit_bones[bone_name].select_tail = True
 
         return {'FINISHED'}
 
 
 def copy_drivers_of_bone(
-    rig: Object, old_bone_name: str, new_bone_name: str
+    rig: Object, old_bone_name: str, new_ebone_name: str
 ) -> list[FCurve]:
     datablocks = []
     if rig.animation_data:
@@ -98,7 +107,7 @@ def copy_drivers_of_bone(
             if f'bones["{old_bone_name}"]' in fc.data_path:
                 new_fc = db.animation_data.drivers.from_existing(src_driver=fc)
                 new_fc.data_path = new_fc.data_path.replace(
-                    old_bone_name, new_bone_name
+                    old_bone_name, new_ebone_name
                 )
                 new_fc.driver.expression = new_fc.driver.expression
                 new_drivers.append(new_fc)
