@@ -263,7 +263,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             + self.side_suffix,
             bbone_width=toe.bbone_width,
             head=heel_pivot_bone.head_local,
-            tail=heel_pivot_bone.head_local + Vector((0, -self.scale * 0.1, 0)),
+            tail=heel_pivot_bone.tail_local,
             roll_type='VECTOR',
             roll_vector=toe.z_axis,
             parent=roll_master,
