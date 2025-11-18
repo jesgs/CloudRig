@@ -295,20 +295,14 @@ class RigComponent(PropertyGroup):
             if self.component_type.lower().replace(" ", "_") == comp_type_name:
                 # Don't reset pointers of the current component type.
                 continue
-            if "." in comp_type_name:
-                # Leftover garbage, from old versions.
-                del self.params[comp_type_name]
-                continue
 
             component_type_params = getattr(self.params, comp_type_name)
             for param_key in list(component_type_params.keys()):
-                if not hasattr(component_type_params, param_key):
-                    # More leftover garbage from old versions.
-                    del component_type_params[param_key]
-                    continue
                 param_value = getattr(component_type_params, param_key)
                 if isinstance(param_value, ID):
                     setattr(component_type_params, param_key, None)
+                elif hasattr(param_value, 'custom_shape'):
+                    setattr(param_value, 'custom_shape', None)
 
     # This could be an EnumProp, but a StringProp allows us to use prop_search,
     # which is better UX.
