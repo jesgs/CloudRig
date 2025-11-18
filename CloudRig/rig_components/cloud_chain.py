@@ -363,6 +363,7 @@ class Component_ToonChain(Component_Base):
             name="Copy STR Transforms (Smooth Spline)",
             subtarget=str_bone.name,
             target_space='LOCAL_OWNER_ORIENT',
+            mix_mode='BEFORE',
         )
         handle_bone.add_constraint(
             'COPY_LOCATION',
