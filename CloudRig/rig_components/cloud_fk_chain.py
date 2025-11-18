@@ -650,8 +650,8 @@ class Params(PropertyGroup):
         name="Hinge",
         description=(
             "Set up a hinge toggle which allows this FK chain to not inherit rotation from its "
-            "parent, but still inherit rotation from the rig root. The 'Create Root' generator "
-            "setting must be enabled for this"
+            "parent, but still inherit rotation from the rig root. There must be a root bone name "
+            "specified in generator settings for this"
         ),
         default=True,
     )
