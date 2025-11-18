@@ -18,7 +18,6 @@ class Component_Limb(Component_Chain_IKFK):
     forced_params = {
         'chain.sharp': True,
         'fk_chain.root': True,
-        'fk_chain.position_along_bone': 0,
         'ik_chain.at_tip': False,
     }
 

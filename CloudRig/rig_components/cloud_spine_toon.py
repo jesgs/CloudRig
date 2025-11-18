@@ -18,8 +18,6 @@ class Component_Spine_Toon(Component_Chain_FK):
         'chain.tip_control': True,
         'fk_chain.root': True,
         'fk_chain.create_curl_control': False,
-        'fk_chain.create_reverse_chain': False,
-        'fk_chain.position_along_bone': 0.0,
         'fk_chain.counter_rotate_stretch_bones': 0.0,
         'fk_chain.double_first': False,
     }

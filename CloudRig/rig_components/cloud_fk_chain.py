@@ -47,7 +47,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.params.fk_chain.hinge = False
 
         if not self.params.fk_chain.root:
-            self.params.fk_chain.create_reverse_chain = False
             self.params.fk_chain.create_curl_control = False
 
         self.__check_correct_chain_length()
@@ -107,12 +106,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.root_bone = self.fk_chain__make_root_bone()
 
         self.fk_chain = self.fk_chain__make(self.bones_org)
-        if self.params.fk_chain.position_along_bone > 0:
-            self.fk_offset_chain = self.fk_chain__make_offset_chain(self.fk_chain)
         if self.params.fk_chain.create_curl_control:
             self.__make_curl_control(self.fk_chain)
-        if self.params.fk_chain.create_reverse_chain:
-            self.__make_reverse_fk_chain(self.fk_chain)
 
         if self.params.fk_chain.counter_rotate_stretch_bones > 0:
             self.__counter_rotate_str_bones(
@@ -298,44 +293,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         bone.parent = hng_bone
         return hng_bone
 
-    def fk_chain__make_offset_chain(self, fk_chain) -> list[BoneInfo]:
-        fk_offset_chain = []
-        for fk_bone in fk_chain:
-            # Create a child that is offset along the bone by the specified amount.
-            org_bone = fk_bone.source
-
-            if fk_offset_chain:
-                fk_bone.parent = fk_offset_chain[-1]
-                fk_bone.collections = self.bone_sets['FK Controls Extra'].collections
-
-            if not self.params.chain.tip_control and org_bone == self.bones_org[-1]:
-                # Don't create unnecessary offset control for the last FK bone
-                # when the Tip Control param is disabled.
-                continue
-
-            position = (
-                org_bone.head
-                + (org_bone.tail - org_bone.head)
-                * self.params.fk_chain.position_along_bone
-            )
-
-            fk_offset_bone = self.bone_sets["FK Offset Controls"].new(
-                name=fk_bone.name.replace("FK-", "FK-OS-"),
-                source=org_bone,
-                parent=org_bone,
-                head=position,
-                custom_shape_name=self.params.fk_chain.widget_fk,
-            )
-            fk_offset_chain.append(fk_offset_bone)
-
-        # STR controls are normally parented to ORG, including the tip STR.
-        # But the FK-OS controls don't own the ORG bones (and shouldn't),
-        # so the tip STR control must be parented to the FK-OS control here.
-        if self.params.chain.tip_control:
-            self.main_str_bones[-1].parent = fk_offset_chain[-1]
-
-        return fk_offset_chain
-
     def __make_curl_control(self, fk_chain):
         curl_control = self.bone_sets["FK Curl Control"].new(
             name="CURL-" + self.bones_org[0].name,
@@ -374,47 +331,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 influence=influence,
             )
 
-    def __make_reverse_fk_chain(self, fk_chain) -> list[BoneInfo]:
-        # TODO: Remove or stabilize this functionality.
-        next_parent = self.root_bone
-        reverse_fk_chain = []
-        for fk_bone in reversed(fk_chain):
-            reverse_fk = self.bone_sets["FK Reverse Controls"].new(
-                name=fk_bone.name.replace("FK-", "RFK-"),
-                source=fk_bone,
-                parent=next_parent,
-                head=fk_bone.tail,
-                tail=fk_bone.head,
-                custom_shape_name=self.params.fk_chain.widget_fk,
-                inherit_scale=self.params.fk_chain.inherit_scale,
-                custom_shape_along_length=self.params.fk_chain.display_center / 2,
-                rotation_mode=fk_bone.rotation_mode,
-            )
-            next_parent = reverse_fk
-            self.create_driven_armature_constraint(
-                fk_bone,
-                target_bones=[fk_bone.parent, reverse_fk],
-                prop_bone=self.properties_bone,
-                prop_name=self.reverse_fk_name,
-            )
-
-        self.rig_ui__add_bone_property(
-            prop_bone=self.properties_bone,
-            prop_id=self.reverse_fk_name,
-            panel_name="FK",
-            label_name="Reverse FK",
-            row_name=self.limb_name,
-            slider_name=self.limb_ui_name,
-            custom_prop_settings={
-                "default": 0.0,
-                "description": f"Attach the FK chain to the Reverse FK Chain (RFK bones)",
-            },
-        )
-        return reverse_fk_chain
-
     def __counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
         for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
-            # TODO: Not sure if this should be allowed when position_along_bone > 0.
             main_str_bone.add_constraint(
                 "COPY_ROTATION",
                 name="Copy Rotation (Counter-Rotate)",
@@ -486,18 +404,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             wire_width=2,
         )
         cls.define_bone_set(
-            "FK Offset Controls",
-            color_palette="THEME02",
-            collections=["FK Controls"],
-            wire_width=2,
-        )
-        cls.define_bone_set(
-            "FK Reverse Controls",
-            color_palette="THEME17",
-            collections=["Reverse FK Controls"],
-            wire_width=2,
-        )
-        cls.define_bone_set(
             "FK Curl Control",
             color_palette="THEME07",
             collections=["FK Controls"],
@@ -509,17 +415,11 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
-        if set_name == "fk_offset_controls":
-            return params.fk_chain.position_along_bone > 0
-
         if set_name == "fk_controls_extra":
-            return params.fk_chain.root or params.fk_chain.position_along_bone > 0
+            return params.fk_chain.root
 
         if set_name == "fk_curl_control":
             return params.fk_chain.root and params.fk_chain.create_curl_control
-
-        if set_name == "fk_reverse_controls":
-            return params.fk_chain.create_reverse_chain
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
@@ -553,19 +453,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             "create_curl_control",
             enabled=params.fk_chain.root,
         )
-        # cls.draw_prop(
-        #     context,
-        #     layout.row(),
-        #     params.fk_chain,
-        #     "create_reverse_chain",
-        #     enabled=params.fk_chain.root,
-        # )
 
         if not cls.is_advanced_mode(context):
             return
-        cls.draw_prop(
-            context, layout, params.fk_chain, "position_along_bone", slider=True
-        )
         cls.draw_prop(
             context,
             layout,
@@ -615,18 +505,6 @@ class Params(PropertyGroup):
         ),
         default=True,
     )
-    position_along_bone: FloatProperty(
-        name="Create Offset FK (Experimental)",
-        description=(
-            "Increasing this above 0 also creates FK-OS controls which are offset along the length "
-            "of the bone. Original bones won't be constrained to FK bones, and STR bones get "
-            "parented to FK bones directly. This is experimental, and may not play well with all "
-            "other combinations of settings."
-        ),
-        default=0,
-        min=0,
-        max=1,
-    )
     counter_rotate_stretch_bones: FloatProperty(
         name="Counter-Rotate Stretch Controls",
         description="Rotating FK bones will counter-rotate the child stretch bones. This can result in smoother chains",
@@ -665,10 +543,6 @@ class Params(PropertyGroup):
             "fingers and such. Requires a root bone for space calculations"
         ),
         default=False,
-    )
-    create_reverse_chain: BoolProperty(
-        name="Create Reverse FK",
-        description="Create a toggle-able inverse FK chain",
     )
 
     test_animation_generate: BoolProperty(

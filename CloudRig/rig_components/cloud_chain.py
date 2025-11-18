@@ -709,13 +709,6 @@ class Component_ToonChain(Component_Base):
         if not can_connect:
             return
 
-        if (
-            hasattr(parent_component, 'fk_chain__make_offset_chain')
-            and parent_component.params.fk_chain.position_along_bone > 0
-            and self.root_bone.parent == parent_component.bones_org[-1]
-        ):
-            self.root_bone.parent = parent_component.bone_sets['FK Offset Controls'][-1]
-
         tip_control_bkp = parent_component.params.chain.tip_control
         parent_component.params.chain.tip_control = True
         last_def = parent_component.bones_def[-1]

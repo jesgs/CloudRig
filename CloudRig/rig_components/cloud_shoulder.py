@@ -14,8 +14,6 @@ class Component_Shoulder(Component_Chain_FK):
     forced_params = {
         'fk_chain.display_center': False,
         'fk_chain.create_curl_control': False,
-        'fk_chain.create_reverse_chain': False,
-        'fk_chain.position_along_bone': 0.0,
         'fk_chain.counter_rotate_stretch_bones': 0.0,
         'fk_chain.double_first': False,
         'chain.segments': 1,

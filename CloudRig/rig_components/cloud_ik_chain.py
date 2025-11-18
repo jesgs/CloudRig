@@ -22,7 +22,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     forced_params = {
         "fk_chain.root": True,
-        "fk_chain.position_along_bone": 0
     }
 
     ##############################

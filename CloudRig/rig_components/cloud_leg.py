@@ -20,7 +20,6 @@ class Component_Limb_BipedLeg(Component_Limb):
     forced_params = {
         'chain.tip_control': True,
         'fk_chain.root': True,
-        'fk_chain.position_along_bone': 0,
         'ik_chain.at_tip': False,
         'chain.sharp': True,
     }

@@ -20,7 +20,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         'fk_chain.double_first': False,
         'fk_chain.root': True,
         'fk_chain.hinge': False,
-        'fk_chain.position_along_bone': 0,
     }
 
     ##############################
