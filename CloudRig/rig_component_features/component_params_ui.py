@@ -112,11 +112,6 @@ class CloudUIMixin:
         return row
 
     @classmethod
-    def draw_prop_widget(cls, context, layout, prop_owner, prop_name, **kwargs):
-        prefs = get_addon_prefs(context)
-        return cls.draw_prop_search(context, layout, prop_owner, prop_name, prefs, 'widget_names', **kwargs)
-
-    @classmethod
     def draw_prop_custom_shape(cls, context, layout, prop_owner, prop_name):
         prefs = get_addon_prefs(context)
         pgroup = getattr(prop_owner, prop_name)
