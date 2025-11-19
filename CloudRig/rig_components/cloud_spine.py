@@ -17,7 +17,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         'chain.segments': 1,
         'fk_chain.double_first': False,
         'fk_chain.hinge': False,
-        # 'fk_chain.display_center': False,
+        'fk_chain.counter_rotate_stretch_bones': 0.5,
         'fk_chain.root': True,
     }
     always_use_custom_props = True

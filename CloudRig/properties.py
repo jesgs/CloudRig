@@ -295,9 +295,15 @@ class RigComponent(PropertyGroup):
             if self.component_type.lower().replace(" ", "_") == comp_type_name:
                 # Don't reset pointers of the current component type.
                 continue
+            if not hasattr(self.params, comp_type_name):
+                # This can cause an error when a bone set implementation is removed.
+                continue
 
             component_type_params = getattr(self.params, comp_type_name)
             for param_key in list(component_type_params.keys()):
+                if not hasattr(component_type_params, param_key):
+                    # This can cause an error when a bone set implementation is removed.
+                    continue
                 param_value = getattr(component_type_params, param_key)
                 if isinstance(param_value, ID):
                     setattr(component_type_params, param_key, None)

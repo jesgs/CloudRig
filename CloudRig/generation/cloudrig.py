@@ -825,24 +825,25 @@ class POSE_OT_armature_reset(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     reset_action: BoolProperty(
-        name="Un-Assign Action", default=True, description="Un-assign Action"
+        name="Unassign Action", default=True, description="Un-assign Action"
+    )
+    reset_viewport_display: BoolProperty(
+        name="Viewport Settings", default=True, description="Reset 'Show Name', 'Show Axes', 'In Front' object properties"
+    )
+    reset_bone_visibility: BoolProperty(
+        name="Unhide Bones", default=True, description="Unhide all bones"
+    )
+
+    selection_only: BoolProperty(
+        name="Selected Only",
+        default=False,
+        description="Affect selected bones rather than all bones",
     )
     reset_transforms: BoolProperty(
         name="Transforms", default=True, description="Reset bone transforms"
     )
     reset_custom_props: BoolProperty(
         name="Custom Properties", default=True, description="Reset custom properties"
-    )
-    reset_bone_visibility: BoolProperty(
-        name="Unhide Bones", default=True, description="Unhide all bones"
-    )
-    reset_viewport_display: BoolProperty(
-        name="Viewport Settings", default=True, description="Reset some viewport settings"
-    )
-    selection_only: BoolProperty(
-        name="Selected Only",
-        default=False,
-        description="Affect selected bones rather than all bones",
     )
 
     @classmethod
@@ -858,16 +859,18 @@ class POSE_OT_armature_reset(Operator):
         layout = self.layout.column(align=True)
         layout.use_property_split = True
         layout.use_property_decorate = False
+        layout.label(text="Object Properties")
         if rig.animation_data and rig.animation_data.action:
             layout.prop(self, 'reset_action')
         if any((pb.hide or pb.bone.hide for pb in rig.pose.bones)):
             layout.prop(self, 'reset_bone_visibility')
-
+        layout.prop(self, 'reset_viewport_display')
+        layout.separator()
+        layout.label(text="Bone Properties")
         if context.selected_pose_bones:
             layout.prop(self, 'selection_only')
         layout.prop(self, 'reset_transforms')
         layout.prop(self, 'reset_custom_props')
-        layout.prop(self, 'reset_viewport_display')
 
     def execute(self, context):
         rig = find_cloudrig(context)

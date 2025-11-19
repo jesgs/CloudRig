@@ -493,7 +493,7 @@ class Component_Limb(Component_Chain_IKFK):
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
         super().draw_appearance_params(layout, context, params)
-        if params.auto_hose:
+        if params.limb.auto_hose:
             layout.separator()
             cls.draw_prop_custom_shape(context, layout, params.limb, 'shape_rubberhose')
 

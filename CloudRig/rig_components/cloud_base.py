@@ -386,7 +386,7 @@ class Component_Base(
                 ),
                 'custom_shape': PointerProperty(
                     name=identifier + " Shape",
-                    description="Object to use as custom shape for these bones.",
+                    description="Object to use as custom shape for these bones. Must be a mesh object whose name starts with 'WGT-'",
                     type=Object,
                     poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-")
                 )

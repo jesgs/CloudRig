@@ -26,7 +26,11 @@ class Component_TweakBone(Component_Base):
 
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         bone_infos = super().base__load_metarig_bones()
-        assert len(bone_infos) == 1
+        if len(bone_infos) > 1:
+            self.add_log(
+                "Tweak does not support chains",
+                description="The Bone Tweak component type will only affect the first bone of the chain. To affect the rest of the bone chain, you must assign the Bone Tweak type to each bone."
+            )
 
         bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
         self.original_name, self_bone = bone_info_tuple
