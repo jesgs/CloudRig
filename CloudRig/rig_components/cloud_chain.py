@@ -63,6 +63,18 @@ class Component_ToonChain(Component_Base):
 
         self.__connect_parent_component()
 
+    def base__relink_single(self, org_idx, con_info):
+        to_bone = self.base__get_relink_target(org_idx, con_info)
+        org_bi = self.bones_org[org_idx]
+
+        parent_helpers = [str_bone.parent_helper for str_bone in self.main_str_bones]
+        if to_bone in parent_helpers and con_info.type == 'ARMATURE':
+            # If user is adding an Armature constraint, they probably want to override the parenting of the STR bone.
+            to_bone.constraint_infos[0].targets = con_info.targets
+            org_bi.constraint_infos.remove(con_info)
+        else:
+            return super().base__relink_single(org_idx, con_info)
+
     def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return the bone to which a constraint should be moved to."""
         if con_info.name.startswith('TAIL'):
@@ -78,6 +90,9 @@ class Component_ToonChain(Component_Base):
             return self.main_str_bones[org_i]
         else:
             return super().base__get_relink_target(org_i, con_info)
+
+    ##############################
+    # Toon chain functions.
 
     def toon__is_cyclic(self) -> bool:
         """Return whether this component should become a cyclic chain rig."""

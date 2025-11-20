@@ -19,20 +19,23 @@ class Component_Eyelid(Component_FaceChain):
         if not self.parent_component or type(self.parent_component) != Component_Aim:
             self.raise_generation_error("Must have a cloud_aim parent bone!")
 
+    def create_component_interactions(self, context, last_chain_done=False):
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
         # parent it to the parent of the eyeball.
         # This is also important for custom root parenting functionality to work.
-        self.bones_org[0].parent = self.parent_component.bones_org[0].parent
-        self.eyelid__make_sticky_setup()
+        if last_chain_done:
+            self.bones_org[0].parent = self.parent_component.bones_org[0].parent
+            self.eyelid__make_sticky_setup()
+            super().create_component_interactions(context)
 
     ##############################
     # Eyelid functions.
 
     def eyelid__make_sticky_setup(self):
         """Create ROT helper bones between the aim bone's base and the
-        main STR controls of the eyelid. Since this needs to account for
-        intersection controls, it must be called from execute_final_face_chain()."""
+        main STR controls of the eyelid. This needs to account for
+        intersection controls."""
 
         # Parent rig must be a cloud_aim type rig!
         parent_rig = self.parent_component
@@ -65,11 +68,12 @@ class Component_Eyelid(Component_FaceChain):
                 name=rot_name,
                 source=eye_bone,
                 tail=str_ctr.head.copy(),
-                parent=self.root_bone,
+                parent=str_ctr.parent,
                 roll_type='ALIGN',
                 roll_bone=eye_bone,
                 roll=0,
             )
+            str_ctr.parent = rot_ctr
             copyrot_x = rot_ctr.add_constraint(
                 'COPY_ROTATION',
                 name='Copy Rotation X',
@@ -110,7 +114,6 @@ class Component_Eyelid(Component_FaceChain):
                     'variables': [(parent_rig.properties_bone.name, sticky_prop_name)],
                 }
             )
-            str_ctr.parent = rot_ctr
 
     def __create_sticky_property(self, eye_rig: Component_Aim, sticky_prop_name):
         self.rig_ui__add_bone_property(

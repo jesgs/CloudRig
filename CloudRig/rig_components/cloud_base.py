@@ -210,14 +210,17 @@ class Component_Base(
                     # We only want to relink constraints that were added by the user.
                     continue
 
-                to_binfo = self.base__get_relink_target(org_idx, con_info)
-                if con_info.type == 'ARMATURE' and 'NOHLP' not in con_info.name:
-                    to_binfo = self.create_parent_bone(to_binfo, self.bones_mch)
+                self.base__relink_single(org_idx, con_info)
 
-                if to_binfo != org_bi:
-                    to_binfo.constraint_infos.append(con_info)
-                    org_bi.constraint_infos.remove(con_info)
+    def base__relink_single(self, org_idx, con_info):
+        org_bi = self.bones_org[org_idx]
+        to_binfo = self.base__get_relink_target(org_idx, con_info)
+        if con_info.type == 'ARMATURE' and 'NOHLP' not in con_info.name:
+            to_binfo = self.create_parent_bone(to_binfo, self.bones_mch)
 
+        if to_binfo != org_bi:
+            to_binfo.constraint_infos.append(con_info)
+            org_bi.constraint_infos.remove(con_info)
 
     def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return which BoneInfo a given constraint should be moved to.
