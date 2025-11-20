@@ -297,6 +297,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
             if i == 0:
                 ik_bone.parent = self.root_bone
+                ik_bone.custom_shape_name = self.params.ik_chain.shape_ik_first.shape_name
                 self.ik_controls.append(ik_bone)
             else:
                 ik_bone.parent = ik_chain[-2]
@@ -692,6 +693,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         super().draw_appearance_params(layout, context, params)
         layout.separator()
         cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_ik_master')
+        cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_ik_first')
         if params.ik_chain.use_pole:
             cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
         return layout
@@ -719,6 +721,10 @@ class Params(PropertyGroup):
     shape_ik_master: Component_Chain_FK.make_custom_shape_params(
         identifier="IK Master",
         default="Sphere"
+    )
+    shape_ik_first: Component_Chain_FK.make_custom_shape_params(
+        identifier="First IK",
+        default="Squares_2"
     )
     shape_pole: Component_Chain_FK.make_custom_shape_params(
         identifier="IK Pole",
