@@ -272,6 +272,7 @@ class Component_Base(
     def draw_control_params(cls, layout, context, params):
         if cls.is_advanced_mode(context) and cls.use_base_name:
             layout.prop(params.base, 'base_name', text="Base Name")
+            layout.separator()
 
     @classmethod
     def define_bone_sets(cls):

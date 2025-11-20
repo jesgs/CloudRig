@@ -1703,7 +1703,6 @@ class CloudRigBoneCollection(PropertyGroup):
             return
 
         def cleanup_garbage_bone_sets(component):
-            return
             # Clean up old bone set data.
             for bone_set_name in list(component.params.bone_sets.keys()):
                 if not hasattr(component.params.bone_sets, bone_set_name):

@@ -160,7 +160,11 @@ def refresh_metarig_list():
     global metarig_names
     metarig_names = []
 
-    with bpy.data.libraries.load(get_metarig_blend_path()) as (data_from, data_to):
+    blend_path = get_metarig_blend_path()
+    if blend_path == bpy.data.filepath:
+        return
+
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
         for obj_name in data_from.objects:
             if obj_name.startswith("META-"):
                 ui_name = obj_name.replace("META-", "").replace("_", " ")
@@ -175,7 +179,11 @@ def refresh_rig_sample_list():
     global sample_names
     sample_names = []
 
-    with bpy.data.libraries.load(get_metarig_blend_path()) as (data_from, data_to):
+    blend_path = get_metarig_blend_path()
+    if blend_path == bpy.data.filepath:
+        return
+
+    with bpy.data.libraries.load(blend_path) as (data_from, data_to):
         for obj_name in data_from.objects:
             if obj_name.startswith("Sample_"):
                 ui_name = obj_name.replace("Sample_", "").replace("_", " ").title()

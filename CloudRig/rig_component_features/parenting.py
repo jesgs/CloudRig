@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import bpy
 from bpy.types import PropertyGroup, UIList
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from bl_ui.generic_ui_list import draw_ui_list
@@ -52,14 +53,23 @@ class ParentSlot(PropertyGroup):
         name="Bone", description="Bone that will be used as the parent"
     )
 
-    def update_is_default(self, context):
-        active_pb = get_pbone_of_active(context)
+    def set_is_default(self, value):
+        active_pb = get_pbone_of_active(bpy.context)
+
+        if value == False:
+            self['is_default'] = False
+            return
 
         for ps in active_pb.cloudrig_component.params.parenting.parent_slots:
             if ps != self:
-                ps["is_default"] = False
+                ps['is_default'] = False
             else:
-                ps["is_default"] = True
+                ps['is_default'] = True
+
+    def get_is_default(self) -> bool:
+        if 'is_default' in self:
+            return self['is_default']
+        return False
 
     is_default: BoolProperty(
         name="Is Default",
@@ -68,7 +78,8 @@ class ParentSlot(PropertyGroup):
             "or reset to its default pose. If none specified, the first in the list is used"
         ),
         default=False,
-        update=update_is_default,
+        set=set_is_default,
+        get=get_is_default,
     )
 
 
