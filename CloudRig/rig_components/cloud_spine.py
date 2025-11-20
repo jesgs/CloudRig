@@ -17,6 +17,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         'chain.segments': 1,
         'fk_chain.double_first': False,
         'fk_chain.hinge': False,
+        'fk_chain.create_curl_control': False,
         'fk_chain.counter_rotate_stretch_bones': 0.5,
         'fk_chain.root': True,
     }
@@ -73,7 +74,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         """Overrides cloud_fk_chain."""
         fk_chain = super().fk_chain__make(org_chain)
 
-        fk_chain[0].parent = self.torso_bone
+        fk_chain[1].parent = self.torso_bone
 
         # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
@@ -84,12 +85,16 @@ class Component_Spine_IKFK(Component_Chain_FK):
             custom_shape_name=self.params.spine.shape_hip.shape_name,
             parent=self.torso_bone,
         )
+        fk_chain[0].parent = self.mstr_hips
 
         if self.params.spine.world_align:
             self.root_bone.flatten()
             self.mstr_hips.flatten()
 
         return fk_chain
+
+    def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
+        super().fk_chain__counter_rotate_str_bones(self.bones_org, main_str_bones, influence)
 
     def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
         """Overrides cloud_fk_chain.

@@ -110,7 +110,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.__make_curl_control(self.fk_chain)
 
         if self.params.fk_chain.counter_rotate_stretch_bones > 0:
-            self.__counter_rotate_str_bones(
+            self.fk_chain__counter_rotate_str_bones(
                 self.fk_chain,
                 self.main_str_bones,
                 self.params.fk_chain.counter_rotate_stretch_bones
@@ -331,7 +331,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 influence=influence,
             )
 
-    def __counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
+    def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
         for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
             main_str_bone.add_constraint(
                 "COPY_ROTATION",

@@ -441,7 +441,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     def draw_appearance_params(cls, layout, context, params):
         super().draw_appearance_params(layout, context, params)
         layout.separator()
-        if params.use_foot_roll:
+        if params.leg.use_foot_roll:
             cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_footroll')
 
 
