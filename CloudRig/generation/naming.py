@@ -163,7 +163,7 @@ def combine_names(things: list[Any]) -> str:
     # If matching pairs of side suffixes are in the suffix list, remove both.
     # For example, if L and R are both present, remove them.
     for suf in suffixes:
-        flip_suf = flip_name(suf)
+        flip_suf = flip_name("A."+suf)[2:]
         if flip_suf != suf and flip_suf in suffixes:
             suffixes.remove(suf)
             suffixes.remove(flip_suf)
