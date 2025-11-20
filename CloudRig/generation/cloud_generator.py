@@ -837,7 +837,12 @@ def create_target_rig_obj(context, metarig) -> Object:
         for src_driver in metarig.data.animation_data.drivers:
             if not target_rig.data.animation_data:
                 target_rig.data.animation_data_create()
-            copy_relink_real_driver(metarig.data, target_rig.data, src_driver)
+            fcurve = copy_relink_real_driver(metarig.data, target_rig.data, src_driver)
+            for var in fcurve.driver.variables:
+                if var.type == 'SINGLE_PROP':
+                    for tar in var.targets:
+                        if not tar.id and tar.id_type == 'OBJECT':
+                            tar.id = target_rig
 
     return target_rig
 

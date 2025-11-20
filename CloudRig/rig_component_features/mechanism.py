@@ -76,7 +76,7 @@ class CloudMechanismMixin:
 
 def copy_relink_real_driver(
     src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None
-):
+) -> FCurve:
     """Copy a real driver to the target rig.
     Replace references to the metarig with the generated rig.
     May copy to a different data path than the source.
@@ -84,13 +84,14 @@ def copy_relink_real_driver(
     new_fcurve = copy_driver(fcurve, tgt_id, data_path, index)
     for var in new_fcurve.driver.variables:
         for tgt in var.targets:
-            if tgt.id in (None, src_id):
+            if tgt.id in (None, src_id) and tgt.id_type == tgt_id.id_type:
                 tgt.id = tgt_id
         if "@" in var.name:
             split = var.name.split("@")
             var.name = split[0]
             for i, name in split[1:]:
                 var.targets[i].bone_target = name
+    return new_fcurve
 
 def copy_driver(
     from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
