@@ -1,0 +1,38 @@
+name: Test CloudRig
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: cloudrig-latest
+    steps:
+      # clone main repo
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false  # don't clone submodules yet
+          fetch-depth: 0     # ensure full history for submodules
+
+      # override and clone the submodule using HTTPS (worker doesn't have SSH key set up)
+      - name: Clone submodules
+        run: |
+          git submodule set-url CloudRig/bs_utils https://projects.blender.org/Mets/blender_studio_utils.git
+          git submodule update --init --recursive
+
+      # bpy depends on cp311
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # tests may fail due to the worker not having a window manager
+      - name: Run CloudRig tests
+        run: python -m tests.run_all_tests
