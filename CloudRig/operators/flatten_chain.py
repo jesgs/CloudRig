@@ -18,7 +18,8 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         description="For calling this operator from the Generation Log", default=False
     )
     start_bone: StringProperty(
-        description="Use a specific bone as the beginning of the chain, rather than the active bone"
+        description="Use a specific bone as the beginning of the chain, rather than the active bone",
+        options={'SKIP_SAVE'}
     )
     pole_axis: EnumProperty(
         name="Pole Axis",
@@ -41,10 +42,16 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
 
     def execute(self, context):
         rig = context.active_object
+        start_pb = context.active_pose_bone
+        if self.start_bone:
+            start_pb = rig.pose.bones.get(self.start_bone)
+        if not start_pb:
+            self.report({'ERROR'}, f"Bone not found: {self.start_bone}")
+            return {'CANCELLED'}
 
         # Enter edit mode
         org_mode = rig.mode
-        pb_chain = get_component_pbone_chain(context.active_pose_bone)
+        pb_chain = get_component_pbone_chain(start_pb)
 
         bpy.ops.object.mode_set(mode='EDIT')
 
