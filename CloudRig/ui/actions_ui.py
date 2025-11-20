@@ -534,7 +534,7 @@ class DATA_PT_cloudrig_actions(Panel):
             self.draw_ui_corrective(context, active_setup)
         else:
             self.draw_action_setup_ui(layout, active_setup, generator.target_rig)
-            self.draw_status(active_setup)
+        self.draw_status(active_setup)
 
     def draw_ui_corrective(self, context: Context, action_setup):
         layout = self.layout.column(align=True)
