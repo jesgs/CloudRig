@@ -33,10 +33,9 @@ class Component_SphereChain(Component_ToonChain):
             self.raise_generation_error("Sphere Bone not found", trouble_bone=sphere_bone_name)
             return str_bone
 
-        parent_helper = str_bone.parent_helper
-        rot_ctrl = self.bone_sets['Sphere Controls'].new(
+        sph_ctrl = self.bone_sets['Sphere Controls'].new(
             source=str_bone,
-            parent=parent_helper.constraint_infos[0]['subtarget'],
+            parent=str_bone.source,
             name=str_bone.name.replace("STR-", "SPH-"),
 
             head=sphere_ctrl.head.copy(),
@@ -52,7 +51,7 @@ class Component_SphereChain(Component_ToonChain):
             rotation_mode='YZX',
         )
 
-        parent_helper.constraint_infos[0]['subtarget'] = rot_ctrl
+        str_bone.parent_helper.constraint_infos[0].targets = [sph_ctrl.name]
 
         return sphere_ctrl
 
