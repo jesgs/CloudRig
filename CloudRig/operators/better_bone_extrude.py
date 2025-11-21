@@ -133,7 +133,7 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
 
     def bone_operation(self):
         # Extrude it!
-        bpy.ops.armature.extrude_move(False)
+        bpy.ops.armature.extrude_move()
 
 
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
@@ -152,7 +152,7 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
 
     def bone_operation(self):
         # Duplicate it!
-        bpy.ops.armature.duplicate_move(False)
+        bpy.ops.armature.duplicate_move()
 
 
 registry = [ARMATURE_OT_better_bone_extrude, ARMATURE_OT_better_bone_duplicate]
