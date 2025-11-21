@@ -19,15 +19,14 @@ class Component_Eyelid(Component_FaceChain):
         if not self.parent_component or type(self.parent_component) != Component_Aim:
             self.raise_generation_error("Must have a cloud_aim parent bone!")
 
-    def create_component_interactions(self, context, last_chain_done=False):
+    def create_and_setup_intersections(self, context):
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
         # parent it to the parent of the eyeball.
         # This is also important for custom root parenting functionality to work.
-        if last_chain_done:
-            self.bones_org[0].parent = self.parent_component.bones_org[0].parent
-            self.eyelid__make_sticky_setup()
-            super().create_component_interactions(context)
+        self.bones_org[0].parent = self.parent_component.bones_org[0].parent
+        self.eyelid__make_sticky_setup()
+        super().create_and_setup_intersections(context)
 
     ##############################
     # Eyelid functions.

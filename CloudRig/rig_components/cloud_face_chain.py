@@ -132,6 +132,9 @@ class Component_FaceChain(Component_ToonChain):
 
         ### Following code is only run ONCE by the LAST face chain component.
         if self.is_last_chain_comp and not last_chain_done:
+            self.create_and_setup_intersections(context)
+
+    def create_and_setup_intersections(self, context):
             # Create and set up intersection controls.
 
             str_bone_clusters = get_bone_clusters(self.chain_components)
