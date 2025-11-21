@@ -1059,6 +1059,9 @@ class ConstraintInfo(dict):
 
         sorted_props = sorted(con.bl_rna.properties, key=lambda p: order_idx.get(p.identifier, len(order)))
         for prop in sorted_props:
+            if prop.identifier == 'rest_length':
+                con.rest_length = pose_bone.bone.length
+                continue
             if prop.is_readonly and prop.type!='COLLECTION':
                 continue
             if hasattr(self, prop.identifier):
