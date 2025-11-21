@@ -223,12 +223,16 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def ensure_widget(self, context, widget_name, overwrite=False):
         self.ensure_widget_collection(context)
+        error = False
         try:
             wgt = ensure_widget(
                 widget_name,
                 overwrite=overwrite,
             )
+            error = wgt == None
         except ValueError:
+            error = True
+        if error:
             self.raise_generation_error(
                 "Failed to load custom shape",
                 description=f"Failed to find custom shape named '{widget_name}'.",

@@ -14,6 +14,8 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object:
     3. If that fails, try to append/link it from the Widgets.blend that ships with the add-on.
     """
 
+    get_widgets_enum_items()
+
     if not wgt_name.startswith("WGT-"):
         wgt_name = "WGT-" + wgt_name
 
