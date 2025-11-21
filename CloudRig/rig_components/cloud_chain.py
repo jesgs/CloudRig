@@ -68,6 +68,10 @@ class Component_ToonChain(Component_Base):
         org_bi = self.bones_org[org_idx]
 
         parent_helpers = [str_bone.parent_helper for str_bone in self.main_str_bones]
+        if  con_info.type == 'ARMATURE':
+            if to_bone in self.main_str_bones:
+                to_bone = to_bone.parent_helper
+
         if to_bone in parent_helpers and con_info.type == 'ARMATURE':
             # If user is adding an Armature constraint, they probably want to override the parenting of the STR bone.
             to_bone.constraint_infos[0].targets = con_info.targets
