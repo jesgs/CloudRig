@@ -9,6 +9,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
+from time import time
 from collections import OrderedDict
 from datetime import datetime
 from mathutils import Matrix
@@ -968,6 +969,7 @@ class CLOUDRIG_OT_generate(Operator):
         return
 
     def execute(self, context):
+        start_time = time()
         metarig = self.get_metarig_to_generate(context)
         prev_generated_rig = metarig.cloudrig.generator.target_rig
 
@@ -1056,14 +1058,14 @@ class CLOUDRIG_OT_generate(Operator):
                 state_hide=state_hide,
                 state_collections=state_collections,
             )
-
+        duration = time()-start_time
         if len(metarig.cloudrig.generator.logs) > 0:
             self.report(
                 {'WARNING'},
-                f"Generation of {new_rig.name} successful with {len(metarig.cloudrig.generator.logs)} warnings.",
+                f"Generation of {new_rig.name} successful with {len(metarig.cloudrig.generator.logs)} warnings. ({duration:.2f}s)",
             )
         else:
-            self.report({'INFO'}, f"Generation of {new_rig.name} successful.")
+            self.report({'INFO'}, f"Generation of {new_rig.name} successful. ({duration:.2f}s)")
 
         return {'FINISHED'}
 
