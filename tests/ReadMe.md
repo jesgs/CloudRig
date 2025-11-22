@@ -14,8 +14,8 @@ python3.11 -m venv .venv
 **Activate Python 3.11 venv**
 `. .venv/bin/activate`
 
-**Install Blender as Python Module**
-`pip install bpy==5.0.0`
+**Install dependencies**
+`pip install requirements-dev.txt`
 
-**Run all tests as Python module (-m)**
-`python -m tests.run_all_tests`
+**Run tests**
+`pytest`

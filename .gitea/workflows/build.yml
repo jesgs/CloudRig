@@ -31,8 +31,10 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       # tests may fail due to the worker not having a window manager
       - name: Run CloudRig tests
-        run: python -m tests.run_all_tests
+        run: pytest

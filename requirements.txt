@@ -1,2 +1,1 @@
-# ~= denotes the latest compatible release (e.g. 5.0.2)
-bpy~=5.0.0 --extra-index-url https://download.blender.org/pypi/
+# This file is empty for now but necessary for pipeline config reasons.
