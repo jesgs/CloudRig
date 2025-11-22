@@ -8,5 +8,6 @@ def test_metarig_sintel(context):
 
 def generate_without_errors(context, metarig_name: str):
     assert bpy.ops.object.cloudrig_metarig_add(metarig_name=metarig_name) == {'FINISHED'}
+    context.active_object.cloudrig.generator.generate_test_action = True
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
     assert len(context.active_object.cloudrig.generator.logs) == 0
