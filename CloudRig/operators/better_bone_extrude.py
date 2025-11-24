@@ -22,12 +22,19 @@ class BoneDuplicateOpMixin:
 
     def invoke(self, context, event):
         self.original_ebones = {}
+        self.original_active = {}
+
         rigs = list(get_current_rigs(context))
         for rig in rigs:
             self.original_ebones[rig] = set(rig.data.edit_bones[:])
+            self.original_active[rig] = rig.data.edit_bones.active
 
         self.bone_operation()
-        bpy.ops.transform.translate('INVOKE_DEFAULT', False)
+        if hasattr(self, 'is_executing'):
+            bpy.ops.transform.translate()
+            return {'FINISHED'}
+        else:
+            bpy.ops.transform.translate('INVOKE_DEFAULT', False)
 
         self.translate_done = False
 
@@ -50,11 +57,17 @@ class BoneDuplicateOpMixin:
 
     def execute(self, context):
         new_drivers = []
+        if not hasattr(self, 'original_ebones'):
+            # This code path lets this operator run when called via Python.
+            # Useful for testing.
+            self.is_executing = True
+            self.invoke(context, None)
 
         rigs = list(get_current_rigs(context))
         new_bones_names = []
         for rig in rigs:
             new_ebones = set(rig.data.edit_bones[:]) - self.original_ebones[rig]
+            original_active = self.original_active[rig]
             for new_ebone in sorted(new_ebones, key=lambda b: b.name):
                 new_name = new_ebone.name
                 if self.increment_names:
@@ -64,9 +77,11 @@ class BoneDuplicateOpMixin:
                 if new_ebone.name.endswith(".001"):
                     # Driver duplication is only unambiguous when this is the first duplicate of a bone.
                     # Otherwise we can't tell which bone is the original that got duplicated.
-                    old_bone = rig.data.edit_bones[new_ebone.name[:-4]]
+                    old_ebone = rig.data.edit_bones[new_ebone.name[:-4]]
+                    if old_ebone == original_active:
+                        rig.data.edit_bones.active = new_ebone
                     new_drivers.extend(
-                        copy_drivers_of_bone(rig, old_bone.name, new_name)
+                        copy_drivers_of_bone(rig, old_ebone.name, new_name)
                     )
                 # Fix the name!
                 new_ebone.name = new_name
