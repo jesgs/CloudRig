@@ -11,8 +11,11 @@ Tests require [Blender as Python Module](https://pypi.org/project/bpy/) which in
     `. .venv/bin/activate`
 1. **Install dependencies**  
     `pip install requirements-dev.txt`
-1. **Run tests**  
-    `pytest`
-1. **Run tests with coverage stats**  
+1. **Run (semi-verbose) tests**  
+    `pytest -v`
+1. **Run tests with coverage stats (not super meaningful tbh)**  
     `pip install coverage pytest-cov`  
     `pytest --cov=CloudRig`
+
+# Contribute
+You can see a list of desired tests [here](https://projects.blender.org/Mets/CloudRig/issues/242). To be able to help implement them, you just need to be able to run the tests locally using the instructions above, then learn a bit about the [pytest](https://docs.pytest.org/en/stable/) module.
