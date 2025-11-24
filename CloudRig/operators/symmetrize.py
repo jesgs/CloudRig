@@ -174,6 +174,11 @@ def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
             con.name,
         )
         return
+    if con.type == 'ARMATURE':
+        # The built-in Symmetrize operator only flips Armature Constraint subtargets,
+        # if there is also a target ID. Otherwise, the subtarget gets ignored...
+        for t_src, t_dst in zip(con.targets, symmetrized_con.targets):
+            t_dst.subtarget = flip_name(t_src.subtarget)
     symmetrized_con.name = flipped_con_name
 
     symmetrize_drivers(armature, pbone, opp_pb, con, symmetrized_con)
@@ -201,7 +206,7 @@ def symmetrize_drivers(
         # No drivers to mirror.
         return
 
-    for src_fc in armature.animation_data.drivers:
+    for src_fc in armature.animation_data.drivers[:]:
         if not f'pose.bones["{src_bone.name}"]' in src_fc.data_path:
             # Driver doesn't belong to source bone, skip.
             continue
