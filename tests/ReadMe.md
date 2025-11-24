@@ -5,13 +5,13 @@ Tests require [Blender as Python Module](https://pypi.org/project/bpy/) which in
 1. **Install Python 3.11**  
     This differs for every system so, figure it out.
 1. **Creating Python virtual environment in the repo's root**  
-    `cd some/path/CloudRig`  
+    `cd path/to/CloudRig`  
     `python3.11 -m venv .venv`
 1. **Activate Python 3.11 venv**  
     `. .venv/bin/activate`
 1. **Install dependencies**  
     `pip install requirements-dev.txt`
-1. **Run (semi-verbose) tests**  
+1. **Run (verbose) tests**  
     `pytest -v`
 1. **Run tests with coverage stats (not super meaningful tbh)**  
     `pip install coverage pytest-cov`  
