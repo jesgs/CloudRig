@@ -33,12 +33,12 @@ class Component_Base(
     BoneGizmoMixin,
 ):
     """Base class that all CloudRig components should inherit from."""
-    # Name to display for this component type in the UI.
-    # Note that cloud_base is not a self-sufficient component type.
-    # It doesn't appear in the UI because there's no RIG_COMPONENT_MODULE variable here.
+    # Name to display for this component type in the UI. Cloud Base doesn't 
+    # appear in Blender because there's no RIG_COMPONENT_MODULE variable in this file.
     ui_name = "Cloud Base"
 
-    # When user adds constraints to the metarig bones, move those constraints to the bones with the same name, but this prefix.
+    # Constraints on the metarig's bones get transferred to bones named with this prefix.
+    # Child classes are expected to override this with the prefix of their highest level controls.
     relink_default_prefix = ""
 
     # String displayed when Parent Switching is enabled.
@@ -46,19 +46,14 @@ class Component_Base(
     # Whether enabling parent switching should be mutually exclusive with the Root Parent option.
     parent_switch_overwrites_root_parent = True
 
-    # Whether original bones from the metarig should be kept. 
-    # If False, you can still access their BoneInfo instances via self.bones_org, 
-    # but they won't be created, so you better not try to create any constraints that reference them.
-    # Keeping them doesn't cost much, just a little clutter.
+    # Whether original bones from the metarig should be created during rig generation.
     keep_original_bones = True
-    # If original bones are kept, should their collection assignments also be kept? If not, you better assign them to some bone set.
+    # Whether bone collection assignments of the original bones should be preserved.
     keep_original_bones_collections = False
-    # If original bones are kept, should their colors be kept? If not, you better assign some colors to them.
+    # Whether bone colors of the original bones should be preserved.
     keep_original_bones_colors = False
 
-    # Should the Base Name parameter be shown in the UI? 
-    # Useful if your component needs a name that isn't the same as any of its parts.
-    # Eg., for the limb component, we want custom properties like "Left Arm IK", but our bones are named "Shoulder/Elbow/Hand", rather than "Arm".
+    # Whether the Base Name param should be shown in the UI. Used only by some child classes.
     use_base_name = False
 
     def __str__(self) -> str:
@@ -83,7 +78,7 @@ class Component_Base(
         self.params = pose_bone.cloudrig_component.params
         self.defaults = dict(self.generator.defaults)
 
-        # Component parent and children.
+        # Components should be aware of their parent and children components.
         self.parent_component = parent_component
         if parent_component:
             parent_component.child_components.append(self)
@@ -403,7 +398,6 @@ class Component_Base(
         return PointerProperty(type=group_class)
 
 class Params(PropertyGroup):
-    # See use_base_name class property above.
     base_name: StringProperty(
         name="Base Name",
         description='Optional. If provided, use this as the base name for some generated bones and properties, '

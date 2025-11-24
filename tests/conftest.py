@@ -9,7 +9,6 @@ def install_addon():
     yield
     disable_this()
 
-
 @pytest.fixture
 def context(install_addon):
     return bpy.context
@@ -21,12 +20,29 @@ def context_blend(context):
     return context
 
 @pytest.fixture
-def context_sintel(context_blend):
-    context_blend.window_manager.windows[0].scene = bpy.data.scenes['Sintel']
-    context_blend.view_layer.objects.active = bpy.data.objects['META-Sintel']
+def scene_workflow(context_blend):
+    select_scene_and_object(context_blend, 'Workflow Ops', 'META-Sintel')
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.pose.select_all(action='DESELECT')
+    return context_blend
+
+
+@pytest.fixture
+def scene_simple(context_blend):
+    select_scene_and_object(context_blend, 'Simple', 'META-Simple')
     return context_blend
 
 @pytest.fixture
 def context_poses(context_blend):
-    context_blend.window_manager.windows[0].scene = bpy.data.scenes['Poses']
+    select_scene_and_object(context_blend, 'Poses')
     return context_blend
+
+def select_scene_and_object(context, scene_name: str, obj_name=None):
+    context.window_manager.windows[0].scene = bpy.data.scenes[scene_name]
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')
+    if obj_name:
+        obj = bpy.data.objects[obj_name]
+        context.view_layer.objects.active = obj
+        obj.hide_set(False)
+        obj.select_set(True)
