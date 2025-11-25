@@ -4,7 +4,7 @@ from bpy.types import Bone, EditBone, PoseBone, Operator
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
 from ..utils.rig import get_selected_bone_tuples, get_active_bone
-
+from ..generation.cloudrig import active_rig
 
 def deselect_all_bones(context):
     if context.mode == 'EDIT_ARMATURE':
@@ -90,12 +90,12 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
             )
 
 
-def reveal_and_select(context, bone: Bone or EditBone or PoseBone, extend_selection=False, set_active=True):
-    rig = context.pose_object or context.active_object
-    if type(bone) == PoseBone:
+def reveal_and_select(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
+    rig = active_rig
+    if isinstance(bone, PoseBone):
         pbone = bone
         bone = bone.bone
-    elif type(bone) == Bone:
+    elif isinstance(bone, Bone):
         pbone = rig.pose.bones.get(bone.name)
 
     ensure_visible_bone_collection(bone)
@@ -157,14 +157,14 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         if not rig or rig.type != 'ARMATURE':
             cls.poll_message_set("No active armature.")
             return False
         return True
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         if rig.mode == 'EDIT':
             bone = rig.data.edit_bones.get(self.bone_name)
         else:
@@ -318,7 +318,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         if context.mode == 'EDIT_ARMATURE':
             layout.prop_search(
                 self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA'
@@ -328,7 +328,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         layout.prop(self, 'extend_selection')
 
     def execute(self, context):
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         bone = get_bone_by_name(rig, self.bone_name)
         if not self.extend_selection:
             deselect_all_bones(context)

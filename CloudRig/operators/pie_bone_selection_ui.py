@@ -3,10 +3,9 @@
 from bpy.types import Menu, Constraint, PoseBone, UILayout
 
 from ..generation import naming
-from ..generation.cloudrig import find_cloudrig
+from ..generation.cloudrig import active_rig
 from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_pbone_of_active
-
 
 def get_constraint_icon(constraint: Constraint) -> str:
     icons = UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
@@ -137,7 +136,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        rig = active_rig(context)
         active_pb = get_pbone_of_active(context)
 
         pie = layout.menu_pie()

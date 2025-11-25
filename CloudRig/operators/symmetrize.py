@@ -7,7 +7,7 @@ from rna_prop_ui import rna_idprop_value_item_type
 
 from ..rig_component_features.mechanism import find_or_create_constraint
 from ..bs_utils.properties import copy_property_group, get_custom_prop_names, rename_custom_prop
-
+from ..generation.cloudrig import active_rig
 
 class POSE_OT_symmetrize_rigging(Operator):
     """Mirror selected bones, their constraints, their drivers, and the animation of Actions used by Action constraints"""
@@ -18,7 +18,8 @@ class POSE_OT_symmetrize_rigging(Operator):
 
     @classmethod
     def poll(cls, context):
-        if not context.object or context.object.type != 'ARMATURE':
+        rig = active_rig(context)
+        if not rig:
             cls.poll_message_set("No active armature.")
             return False
 
@@ -36,7 +37,7 @@ class POSE_OT_symmetrize_rigging(Operator):
 
     def get_symmetrize_bone_mapping(self, context) -> dict[PoseBone, PoseBone]:
         bone_map = {}
-        rig = context.object
+        rig = active_rig(context)
         selected_pose_bones = context.selected_pose_bones[:]
         for pb in selected_pose_bones:
             flipped_name = flip_name(pb.name)
@@ -63,7 +64,7 @@ class POSE_OT_symmetrize_rigging(Operator):
         return bone_map
 
     def execute(self, context):
-        rig = context.object
+        rig = active_rig(context)
 
         org_mode = rig.mode
         if rig.mode != 'POSE':
@@ -98,7 +99,7 @@ class POSE_OT_symmetrize_rigging(Operator):
             to_pb.bone.display_type = from_pb.bone.display_type
 
             # Mirror drivers on bone properties.
-            symmetrize_drivers(context.object, from_pb, to_pb)
+            symmetrize_drivers(rig, from_pb, to_pb)
 
             # Mirror constraint names and drivers.
             for from_con in from_pb.constraints:

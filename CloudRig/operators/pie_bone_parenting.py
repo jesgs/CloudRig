@@ -10,15 +10,16 @@ from bpy.types import Menu, EditBone, PoseBone, Object, Operator
 from bpy.utils import flip_name
 from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_selected_bone_tuples, get_current_rigs, get_active_bone
-
+from ..generation.cloudrig import active_rig
 
 class GenericBoneOperator:
     @classmethod
     def poll(cls, context):
-        if not (context.active_object and context.active_object.type == 'ARMATURE'):
+        rig = active_rig(context)
+        if not (rig and rig.type == 'ARMATURE'):
             cls.poll_message_set("No active armature.")
             return False
-        if not context.active_object.mode in {'POSE', 'EDIT', 'WEIGHT_PAINT'}:
+        if rig.mode not in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
             cls.poll_message_set("Must be in Pose / Edit / Weight Paint mode.")
             return False
         return True
@@ -194,7 +195,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         if not super().poll(context):
             return False
         active_bone = get_active_bone(context)
-        if type(active_bone) == PoseBone:
+        if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         if not active_bone:
             cls.poll_message_set("There is no active bone.")
@@ -215,7 +216,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             return False
 
         active_bone = get_active_bone(context)
-        if type(active_bone) == PoseBone:
+        if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
         if all([b.parent == active_bone for rig, b in bone_tuples_to_parent]):
@@ -226,13 +227,13 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         return True
 
     def parent_edit_bones(
-        self, parent_eb, bone_tuples_to_parent: list[tuple[Object, EditBone]]
+        self, parent_eb: EditBone, bone_tuples_to_parent: list[tuple[Object, EditBone]]
     ):
         parent_eb.hide = False
         for rig, child_eb in bone_tuples_to_parent:
             self.parent_edit_bone(parent_eb, child_eb)
 
-    def parent_edit_bone(self, parent_eb, child_eb):
+    def parent_edit_bone(self, parent_eb: EditBone, child_eb: EditBone):
         child_eb.hide = False
         if parent_eb.parent == child_eb:
             # When inverting a parenting relationship (child becomes the parent),
@@ -247,7 +248,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         child_eb.parent = parent_eb
 
     def execute(self, context):
-        rig = context.object
+        rig = active_rig(context)
         mode = rig.mode
         bpy.ops.object.mode_set(mode='EDIT')
         parent = get_active_bone(context)
@@ -296,7 +297,7 @@ class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
             return False
 
         active_bone = get_active_bone(context)
-        if type(active_bone) == PoseBone:
+        if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
         if all(
@@ -337,7 +338,7 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
         return True
 
     def execute(self, context):
-        rig = context.object
+        rig = active_rig(context)
         target_objs = [o for o in context.selected_objects if o.mode != 'POSE']
         if not target_objs:
             return {'CANCELLED'}

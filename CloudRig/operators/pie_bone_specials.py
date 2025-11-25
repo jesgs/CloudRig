@@ -4,7 +4,7 @@ import bpy
 from .pie_bone_parenting import GenericBoneOperator
 from bpy.types import Menu, EditBone, PoseBone, Object, Operator
 from ..bs_utils.hotkeys import register_hotkey
-from ..utils.rig import get_current_rigs
+from ..generation.cloudrig import active_rig
 
 
 class POSE_OT_delete_bones(GenericBoneOperator, Operator):
@@ -94,7 +94,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         pie = layout.menu_pie()
 
         # 1) < Symmetrize Rigging

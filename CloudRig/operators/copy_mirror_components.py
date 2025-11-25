@@ -14,7 +14,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
 
     @classmethod
     def poll(cls, context):
-        obj = context.object
+        obj = context.active_object
         if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
             cls.poll_message_set("Active armature must be in pose mode.")
             return False
@@ -29,7 +29,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
         return False
 
     def execute(self, context):
-        rig = context.object
+        rig = context.active_object
 
         num_mirrored = 0
 
@@ -71,7 +71,7 @@ class POSE_OT_cloudrig_copy_component(Operator):
 
     @classmethod
     def poll(cls, context):
-        obj = context.object
+        obj = context.active_object
         if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
             cls.poll_message_set("Active armature must be in pose mode.")
             return False

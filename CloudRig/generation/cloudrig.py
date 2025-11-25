@@ -47,6 +47,11 @@ if submodule:
 ############ Context Checks ###########
 #######################################
 
+def active_rig(context) -> Object | None:
+    """Return the active rig even if we're in weight paint mode."""
+    rig = context.pose_object or context.active_object
+    if rig.type == 'ARMATURE':
+        return rig
 
 def is_active_cloudrig(context) -> Object | bool:
     """If the active object is a cloudrig, return it."""
@@ -55,7 +60,7 @@ def is_active_cloudrig(context) -> Object | bool:
         # and that UI is trying to draw during file open, when context isn't
         # initialized yet.
         return False
-    rig = context.pose_object or context.active_object
+    rig = active_rig(context)
     if not rig:
         return False
     if rig.type != 'ARMATURE':
@@ -76,7 +81,7 @@ def is_generated_cloudrig(obj: Object) -> bool:
 
 
 def is_active_cloud_metarig(context) -> bool:
-    return is_cloud_metarig(context.active_object)
+    return is_cloud_metarig(active_rig(context))
 
 
 def is_cloud_metarig(obj: Object) -> bool:
@@ -125,7 +130,6 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
 
             if metarig:
                 return metarig
-
 
 
 def find_cloudrig(
@@ -1716,7 +1720,7 @@ class CloudRigBoneCollection(PropertyGroup):
 
         # Metarig: Update bone sets with this collection assigned to refer to the new name.
         if is_active_cloud_metarig(context):
-            rig = context.pose_object or context.active_object
+            rig = active_rig(context)
             for pb in rig.pose.bones:
                 comp = pb.cloudrig_component
                 if not comp or not comp.component_type:
@@ -1847,7 +1851,7 @@ class CLOUDRIG_UL_collections(UIList):
     @staticmethod
     def draw_collection(context, layout, collection, idx):
         cloudrig_info = collection.cloudrig_info
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         prefs = rig.cloudrig_prefs
         pbones = rig.pose.bones
 
@@ -1967,7 +1971,7 @@ class CLOUDRIG_UL_collections(UIList):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
         show the order in which the rig components will be executed during generation.
         """
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         layout.prop(rig.cloudrig_prefs, "collection_filter", text="")
 
     @staticmethod
@@ -2868,11 +2872,11 @@ class ARMATURE_OT_bone_collections_popup(Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         return rig and rig.type == 'ARMATURE' and is_cloud_metarig(rig) or is_generated_cloudrig(rig)
 
     def invoke(self, context, event):
-        rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         rig.cloudrig_prefs.active_collection_index *= 1
         wm = context.window_manager
         return wm.invoke_popup(self, width=400)

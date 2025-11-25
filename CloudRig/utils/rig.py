@@ -3,6 +3,7 @@ from math import pi
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
 
+from ..generation.cloudrig import active_rig
 from .maths import closest_point_on_line
 
 def get_pbone_of_active(context) -> PoseBone | None:
@@ -12,7 +13,7 @@ def get_pbone_of_active(context) -> PoseBone | None:
     bone = context.active_pose_bone or context.active_bone
     if not bone:
         return
-    rig = context.pose_object or context.active_object
+    rig = active_rig(context)
     return rig.pose.bones.get(bone.name)
 
 
@@ -21,7 +22,7 @@ def get_selected_bone_tuples(
 ) -> list[tuple[Object, Bone | EditBone]]:
     """Return a list of Bones or EditBones depending on context."""
     bone_tuples = []
-    if context.mode == 'POSE':
+    if context.mode in ('POSE', 'PAINT_WEIGHT'):
         bone_tuples = [(pb.id_data, pb.bone) for pb in context.selected_pose_bones]
     elif context.mode == 'EDIT_ARMATURE':
         for rig in get_current_rigs(context):
@@ -30,11 +31,11 @@ def get_selected_bone_tuples(
             bone_tuples += [(rig, eb) for eb in rig.data.edit_bones if eb.select]
 
     if exclude_active:
-        active_rig = context.pose_object or context.active_object
+        rig = active_rig(context)
         active_bone = get_active_bone(context)
-        if type(active_bone) == PoseBone:
+        if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
-        active_tup = (active_rig, active_bone)
+        active_tup = (rig, active_bone)
         if active_tup in bone_tuples:
             bone_tuples.remove(active_tup)
 
@@ -43,9 +44,11 @@ def get_selected_bone_tuples(
 
 def get_current_rigs(context):
     objs = set(context.selected_objects)
-    objs.add(context.active_object)
+    objs.add(active_rig(context))
 
     for obj in objs:
+        if not obj:
+            continue
         if context.mode in {'POSE', 'EDIT_ARMATURE'} and obj.type == 'ARMATURE':
             yield obj
 
