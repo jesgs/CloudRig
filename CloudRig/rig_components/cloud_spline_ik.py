@@ -252,7 +252,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Curve FK Controls', color_palette='THEME02')
+        cls.define_bone_set('Curve FK Controls', color_palette='THEME02', wire_width=2.0)
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):

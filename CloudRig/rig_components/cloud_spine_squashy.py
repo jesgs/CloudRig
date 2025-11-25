@@ -233,6 +233,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             'Spine Parent Controls',
             color_palette='THEME09',
             collections=['IK Controls'],
+            wire_width=2.5,
         )
         cls.define_bone_set(
             'Spine Mechanism', collections=['Mechanism Bones'], is_advanced=True

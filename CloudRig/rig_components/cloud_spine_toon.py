@@ -250,9 +250,10 @@ class Component_Spine_Toon(Component_Chain_FK):
     def define_bone_sets(cls):
         super().define_bone_sets()
         cls.define_bone_set(
-            "Toon Spine Mechanism",
-            collections=["Mechanism Bones"],
-            is_advanced=True
+            "Toon Spine IK",
+            color_palette="THEME13",
+            collections=["IK Controls"],
+            wire_width=2.5,
         )
         cls.define_bone_set(
             "Toon Spine IK Secondary",
@@ -261,10 +262,9 @@ class Component_Spine_Toon(Component_Chain_FK):
             wire_width=1.5,
         )
         cls.define_bone_set(
-            "Toon Spine IK",
-            color_palette="THEME13",
-            collections=["IK Controls"],
-            wire_width=2.5,
+            "Toon Spine Mechanism",
+            collections=["Mechanism Bones"],
+            is_advanced=True
         )
 
     @classmethod

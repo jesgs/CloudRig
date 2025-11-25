@@ -363,7 +363,7 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_set(
-        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.0, is_advanced=False
+        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.5, is_advanced=False
     ):
         """
         A bone set is an RNA PropertyGroup containing properties for choosing bone collections, color, and wire width.
