@@ -13,9 +13,11 @@ Tests require [Blender as Python Module](https://pypi.org/project/bpy/) which in
     `pip install requirements-dev.txt`
 1. **Run (verbose) tests**  
     `pytest -v`
-1. **Run tests with coverage stats (not super meaningful tbh)**  
+1. **Run tests with coverage visualization**  
     `pip install coverage pytest-cov`  
-    `pytest --cov=CloudRig`
+    `pytest -v --durations=0 --cov=./CloudRig --cov-report=html --cov-branch`
+    Durations of test executions will be printed in the terminal.
+    Coverage stats can be seen by opening `htmlcov/index.html` file in a web browser.
 
 # Contribute
 You can see a list of desired tests [here](https://projects.blender.org/Mets/CloudRig/issues/242). To be able to help implement them, you just need to be able to run the tests locally using the instructions above, then learn a bit about the [pytest](https://docs.pytest.org/en/stable/) module.
