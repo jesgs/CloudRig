@@ -31,7 +31,7 @@ def install_this(context, enable=True):
 
 def disable_this():
     _repo_dir, addon_name, module_name = get_filepath_info()
-    assert bpy.ops.preferences.addon_enable(module=f"bl_ext.{module_name}.{addon_name}") == {'FINISHED'}, f"Failed to unregister {addon_name}."
+    assert bpy.ops.preferences.addon_disable(module=f"bl_ext.{module_name}.{addon_name}") == {'FINISHED'}, f"Failed to unregister {addon_name}."
 
 def get_filepath_info() -> tuple[str, str, str]:
     filepath = Path(__file__)

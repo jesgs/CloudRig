@@ -83,9 +83,9 @@ def slice_name(thing: Any):
 def has_trailing_zeroes(thing: Any) -> bool:
     """Use regex to test if an object or string has .001 ending."""
     name = get_name(thing)
-    regex = "\.[0-9]*$"
+    regex = r"\.[0-9]*$"
     search = re.search(regex, name)
-    return search != None
+    return search is not None
 
 
 def has_wrong_separator(thing: Any) -> bool:

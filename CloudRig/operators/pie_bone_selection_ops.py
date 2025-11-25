@@ -91,7 +91,7 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 
 
 def reveal_and_select(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
-    rig = active_rig
+    rig = active_rig(context)
     if isinstance(bone, PoseBone):
         pbone = bone
         bone = bone.bone

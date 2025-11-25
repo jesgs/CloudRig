@@ -23,7 +23,7 @@ class Component_Feather(Component_Chain_FK):
         super().create_bone_infos(context)
 
         first_fk = self.bone_sets['FK Controls'][0]
-        feather_shape = self.params.feather.shape_feather
+        feather_shape = self.params.feather.shape_feather.shape_name
         first_fk.custom_shape_name = feather_shape
         first_fk.custom_shape_along_length = 1
 
