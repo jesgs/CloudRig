@@ -1,10 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""
-This is currently intended to be used with the Pie Menu Editor add-on.
-In future, we could create our own pie menu and hotkey UI.
-"""
-
 import bpy
 from bpy.types import Menu, EditBone, PoseBone, Object, Operator
 from bpy.utils import flip_name
@@ -24,7 +19,7 @@ class GenericBoneOperator:
             return False
         return True
 
-    def get_bones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
+    def get_ebones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
@@ -47,22 +42,36 @@ class GenericBoneOperator:
     def affect_bones(self, context) -> set[str]:
         """Returns list of bone names that were actually affected."""
         mode = context.active_object.mode
-        ebones_to_affect = self.get_bones_to_affect(context)
+        active_obj = None
+        if mode == 'WEIGHT_PAINT':
+            active_obj = context.active_object
+            context.view_layer.objects.active = context.pose_object
+        ebones_to_affect = self.get_ebones_to_affect(context)
 
+        affected_bones_names = self.affect_ebones(context, ebones_to_affect)
+
+        if mode == 'WEIGHT_PAINT':
+            bpy.ops.object.mode_set(mode='POSE')
+            context.view_layer.objects.active = active_obj
+        bpy.ops.object.mode_set(mode=mode)
+        return affected_bones_names
+
+    def affect_ebones(self, context, ebones) -> list[str]:
         affected_bones_names = set()
-        for rig, ebone in list(ebones_to_affect):
+        for rig, ebone in list(ebones):
             bone_name = ebone.name
             was_affected = self.affect_bone(rig, ebone)
             if was_affected:
                 affected_bones_names.add(bone_name)
-
-        bpy.ops.object.mode_set(mode=mode)
         return affected_bones_names
 
     def affect_bone(self, rig: Object, eb: EditBone) -> bool:
         """Return whether the bone was indeed affected."""
         raise NotImplementedError
 
+    def execute(self, context):
+        self.affect_bones(context)
+        return {'FINISHED'}
 
 class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
     """Disconnect selected bones"""
@@ -138,6 +147,9 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
     def poll(cls, context):
         if not super().poll(context):
             return False
+        if context.mode not in ('POSE', 'PAINT_WEIGHT'):
+            cls.poll_message_set("Must be in Pose mode")
+            return False
         if not len(get_selected_bone_tuples(context)) > 1:
             cls.poll_message_set("At least two bones must be selected.")
             return False
@@ -146,40 +158,37 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
             return False
         return True
 
-    def execute(self, context):
-        mode = context.object.mode
-        if mode != 'EDIT':
-            bpy.ops.object.mode_set(mode='EDIT')
-        context.active_bone.parent = None
-        bpy.ops.object.mode_set(mode=mode)
+    def get_ebones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
+        ebone_tuples = super().get_ebones_to_affect(context)
+        ret = [tup for tup in ebone_tuples if tup[1].name == context.active_bone.name]
+        return ret
 
-        active_bone = get_active_bone(context)
-
-        rig = context.object
-        active_pb = rig.pose.bones[active_bone.name]
+    def affect_bone(self, rig: Object, ebone: EditBone):
+        ebone.parent = None
+        pbone = rig.pose.bones[ebone.name]
 
         # If there is an existing Armature constraint, preserve it. (For position in stack, name, and settings)
-        arm_con = None
-        for c in active_pb.constraints:
-            if c.type == 'ARMATURE':
-                c.targets.clear()
-                arm_con = c
-                break
+        arm_con = next((con for con in pbone.constraints if con.type == 'ARMATURE'), None)
         if not arm_con:
-            arm_con = active_pb.constraints.new(type='ARMATURE')
+            arm_con = pbone.constraints.new(type='ARMATURE')
+        arm_con.targets.clear()
 
-        for pbone in context.selected_pose_bones:
-            if pbone == active_pb:
+        for target_rig, target_pb in self.selected_bones:
+            if pbone == target_pb:
                 continue
             target = arm_con.targets.new()
-            target.target = pbone.id_data
-            target.subtarget = pbone.name
+            target.target = target_rig
+            target.subtarget = target_pb.name
 
         plural = "s" if len(arm_con.targets) != 1 else ""
         self.report(
             {'INFO'},
-            f'Parented "{active_pb.name}" to {len(arm_con.targets)} bone{plural} using Armature constraint.',
+            f'Parented "{pbone.name}" to {len(arm_con.targets)} bone{plural} using Armature constraint.',
         )
+
+    def execute(self, context):
+        self.selected_bones = [(pb.id_data, pb) for pb in context.selected_pose_bones]
+        self.affect_bones(context)
         return {'FINISHED'}
 
 
@@ -247,10 +256,8 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             child_eb.use_connect = False
         child_eb.parent = parent_eb
 
-    def execute(self, context):
+    def affect_ebones(self, context, ebones: list[EditBone]) -> list[str]:
         rig = active_rig(context)
-        mode = rig.mode
-        bpy.ops.object.mode_set(mode='EDIT')
         parent = get_active_bone(context)
         parent_name = parent.name
 
@@ -269,7 +276,6 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
                     flipped_bone_tuples_to_parent.append((rig, flipped_eb))
                 self.parent_edit_bones(flipped_parent, flipped_bone_tuples_to_parent)
 
-        bpy.ops.object.mode_set(mode=mode)
         plural = "s" if len(bone_tuples_to_parent) != 1 else ""
         message = (
             f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
@@ -280,7 +286,6 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             {'INFO'},
             message,
         )
-        return {'FINISHED'}
 
 
 class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
