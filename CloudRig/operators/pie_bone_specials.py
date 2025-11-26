@@ -62,7 +62,19 @@ class POSE_OT_dissolve_bones(Operator):
                 rig.data.edit_bones[bone_name].hide = False
                 rig.data.edit_bones[bone_name].select = True
         
-        bpy.ops.armature.dissolve()
+        for eb in context.selected_editable_bones[:]:
+            if not eb.select:
+                continue
+
+            reconnect = []
+            eb.head = eb.tail = (eb.head+eb.vector/2)
+            for child in eb.children:
+                if child.use_connect:
+                    reconnect.append(child)
+            rig.data.edit_bones.remove(eb)
+            for child in reconnect:
+                child.use_connect = True
+
         if org_mode != 'EDIT':
             bpy.ops.object.mode_set(mode=org_mode)
         return {'FINISHED'}
