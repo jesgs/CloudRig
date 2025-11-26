@@ -75,15 +75,45 @@ def test_bone_parent_ops(context, scene_simple):
         assert bones['Bone2.L'].parent == bones['Bone1.L'], "Parent & connect op failed to parent."
         assert bones['Bone2.R'].parent == bones['Bone1.R'], "Parent & connect op didn't symmetrize."
 
-
     for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
         bpy.ops.object.mode_set(mode='OBJECT')
         if mode == 'WEIGHT_PAINT':
-            context.scene.objects['Cylinder'].select_set(True)
-            context.view_layer.objects.active = context.scene.objects['Cylinder']
+            cylinder = context.scene.objects['Cylinder']
+            cylinder.select_set(True)
+            context.view_layer.objects.active = cylinder
 
         bpy.ops.object.mode_set(mode=mode)
         run_bone_parent_ops(mode)
+
+def test_separate_and_obj_parent(context, scene_simple):
+    rig = context.active_object
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.armature.select_all(action='SELECT')
+    bpy.ops.armature.hide()
+    bpy.ops.object.mode_set(mode='POSE')
+    select_bone(rig, 'Bone3.L')
+    bpy.ops.pose.separate_selected_bones()
+    assert context.active_object.name == 'META-Simple.001'
+    assert context.active_object.pose.bones['Bone3.L']
+    cylinder = bpy.data.objects['Cylinder']
+    cylinder.select_set(True)
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.pose.parent_object_to_selected_bones()
+    arm_con_tar = cylinder.constraints[0].targets[0]
+    assert arm_con_tar.target.name == 'META-Simple.001' and arm_con_tar.subtarget == 'Bone3.L'
+
+def test_bone_select_ops(context, scene_workflow):
+    assert bpy.ops.object.cloudrig_metarig_toggle() == {'FINISHED'}, "Failed to toggle metarig"
+    for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
+        bpy.ops.object.mode_set(mode='OBJECT')
+        if mode == 'WEIGHT_PAINT':
+            suzanne = context.scene.objects['Suzanne']
+            suzanne.select_set(True)
+            context.view_layer.objects.active = suzanne
+        bpy.ops.object.mode_set(mode=mode)
+        bpy.ops.pose.select_by_name_search(bone_name="IK-STR-UpperArm.L")
+        bpy.ops.pose.select_parent_bone()
+        bpy.ops.pose.select_by_name_search(bone_name="IK-Wrist.L")
 
 def select_bones(rig: Object, bone_names: list[str], select=True, *, expand=False, activate=True):
     for bone_name in bone_names:

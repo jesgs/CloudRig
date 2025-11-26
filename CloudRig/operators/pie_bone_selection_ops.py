@@ -11,16 +11,16 @@ def deselect_all_bones(context):
         bones = context.selected_editable_bones
     else:
         bones = [pb for pb in context.selected_pose_bones]
-    for b in bones:
-        b.select = False
+    for bone in bones:
+        bone.select = False
         if context.mode == 'EDIT_ARMATURE':
-            b.select_head = False
-            b.select_tail = False
+            bone.select_head = False
+            bone.select_tail = False
 
 
-def ensure_visible_bone_collection(bone: Bone or EditBone or PoseBone):
+def ensure_visible_bone_collection(bone: Bone | EditBone | PoseBone):
     """If target bone not in any enabled collections, enable first one."""
-    if type(bone) == PoseBone:
+    if isinstance(bone, PoseBone):
         bone = bone.bone
 
     armature = bone.id_data
@@ -47,9 +47,9 @@ def get_bone_by_name(rig, bone_name: str):
         return rig.pose.bones.get(bone_name)
 
 
-def is_active_bone(context, bone: Bone or EditBone or PoseBone):
+def is_active_bone(context, bone: Bone | EditBone | PoseBone):
     """Return whether the passed bone is the active one"""
-    if type(bone) == PoseBone:
+    if isinstance(bone, PoseBone):
         armature = bone.id_data.data
         bone = bone.bone
     else:
@@ -64,14 +64,14 @@ def is_active_bone(context, bone: Bone or EditBone or PoseBone):
     return False
 
 
-def set_active_bone(context, bone: Bone or EditBone or PoseBone):
+def set_active_bone(context, bone: Bone | EditBone | PoseBone):
     """Set the active bone, regardless of if we're in edit mode or not.
     Also account for active vertex group when in weight paint mode.
     """
 
     if not bone:
         return
-    if type(bone) == PoseBone:
+    if isinstance(bone, PoseBone):
         armature = bone.id_data.data
         bone = bone.bone
     else:
@@ -92,24 +92,24 @@ def set_active_bone(context, bone: Bone or EditBone or PoseBone):
 
 def reveal_and_select(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
     rig = active_rig(context)
-    if isinstance(bone, PoseBone):
-        pbone = bone
-        bone = bone.bone
-    elif isinstance(bone, Bone):
-        pbone = rig.pose.bones.get(bone.name)
 
     ensure_visible_bone_collection(bone)
-    if not extend_selection:
-        for pb in rig.pose.bones:
-            pb.select = False
-    pbone.hide = False
     bone.hide = False
+    if not extend_selection:
+        deselect_all_bones(context)
+
     if context.mode == 'EDIT_ARMATURE':
         ebone = rig.data.edit_bones[bone.name]
         ebone.select = True
         ebone.select_head = True
         ebone.select_tail = True
     else:
+        if isinstance(bone, PoseBone):
+            pbone = bone
+            bone = bone.bone
+        elif isinstance(bone, Bone):
+            pbone = rig.pose.bones.get(bone.name)
+        pbone.hide = False
         pbone.select = True
     if set_active:
         set_active_bone(context, bone)
@@ -133,6 +133,12 @@ class BoneSelectOperatorMixin:
     def poll(cls, context):
         if not (context.active_bone or context.active_pose_bone):
             cls.poll_message_set("No active bone.")
+            return False
+        if context.mode not in ('POSE', 'PAINT_WEIGHT', 'EDIT_ARMATURE'):
+            cls.poll_message_set("Must be in Pose, Weight Paint, or Armature Edit mode.")
+            return False
+        if context.mode == 'PAINT_WEIGHT' and not context.pose_object:
+            cls.poll_message_set("No pose mode armature.")
             return False
         return True
 
@@ -298,15 +304,11 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
 class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
     """Search for a bone name to select"""
 
-    bl_idname = "bone.select_by_name_search"
+    bl_idname = "pose.select_by_name_search"
     bl_label = "Search Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
     bone_name: StringProperty(name="Bone")
-
-    @classmethod
-    def poll(cls, context):
-        return True
 
     def invoke(self, context, _event):
         bone = get_active_bone(context)

@@ -146,7 +146,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
                 pie.separator()
 
             # 8) v> Search bone.
-            pie.operator('bone.select_by_name_search', icon='VIEWZOOM')
+            pie.operator('pose.select_by_name_search', icon='VIEWZOOM')
             return
 
         active_bone = active_pb.bone
@@ -259,7 +259,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
             pie.separator()
 
         # 8) v> Search bone.
-        pie.operator('bone.select_by_name_search', icon='VIEWZOOM')
+        pie.operator('pose.select_by_name_search', icon='VIEWZOOM')
 
 
 registry = [
