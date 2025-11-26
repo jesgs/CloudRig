@@ -3,8 +3,8 @@ from bpy.types import Object, PoseBone
 from mathutils import Vector, Matrix
 import numpy as np
 
-def test_pose_consistency(context_poses):
-    metarigs_test(context_poses)
+def test_pose_consistency(context, scene_poses):
+    metarigs_test(context)
 
 #########################################
 

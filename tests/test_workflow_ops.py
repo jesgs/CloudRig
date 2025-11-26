@@ -78,7 +78,7 @@ def test_bone_parent_ops(context, scene_simple):
     for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
         bpy.ops.object.mode_set(mode='OBJECT')
         if mode == 'WEIGHT_PAINT':
-            cylinder = context.scene.objects['Cylinder']
+            cylinder = scene_simple.objects['Cylinder']
             cylinder.select_set(True)
             context.view_layer.objects.active = cylinder
 
@@ -107,13 +107,14 @@ def test_bone_select_ops(context, scene_workflow):
     for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
         bpy.ops.object.mode_set(mode='OBJECT')
         if mode == 'WEIGHT_PAINT':
-            suzanne = context.scene.objects['Suzanne']
+            suzanne = scene_workflow.objects['Suzanne']
             suzanne.select_set(True)
             context.view_layer.objects.active = suzanne
-        bpy.ops.object.mode_set(mode=mode)
-        bpy.ops.pose.select_by_name_search(bone_name="IK-STR-UpperArm.L")
-        bpy.ops.pose.select_parent_bone()
-        bpy.ops.pose.select_by_name_search(bone_name="IK-Wrist.L")
+        assert bpy.ops.object.mode_set(mode=mode) == {'FINISHED'}
+        assert bpy.ops.pose.select_by_name_search(bone_name="IK-STR-UpperArm.L") == {'FINISHED'}
+        assert bpy.ops.pose.select_parent_bone() == {'FINISHED'}
+        assert bpy.ops.pose.select_bone_by_name(bone_name="FK-Finger_Index2.L") == {'FINISHED'}
+        assert bpy.ops.pose.select_bone_by_name_relation(increment=1) == {'FINISHED'}
 
 def select_bones(rig: Object, bone_names: list[str], select=True, *, expand=False, activate=True):
     for bone_name in bone_names:

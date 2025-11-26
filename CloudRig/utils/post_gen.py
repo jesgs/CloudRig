@@ -40,22 +40,6 @@ def set_custom_property_default(
     set_custom_property_value(rig, bone_name, prop, value)
 
 
-def link_script(rig: Object, prop_name: str, filepath: str, script_name: str):
-    """Load a text datablock by linking from a blend file, and attach it to the rig."""
-    if script_name in bpy.data.texts:  # If already loaded, don't reload it.
-        text = bpy.data.texts[script_name]
-        if text.filepath == "":  # If the text file is internal, nuke it.
-            bpy.data.texts.remove(text)
-
-    rel_path = bpy.path.relpath(filepath)
-    if script_name not in bpy.data.texts:
-        with bpy.data.libraries.load(rel_path, link=True) as (data_from, data_to):
-            data_to.texts = [script_name]
-        text = bpy.data.texts[script_name]
-    rig.data[prop_name] = text
-    exec(text.as_string(), {})
-
-
 def rename_bone(rig: Object, name_from: str, name_to: str):
     """Rename a bone and account for all the things that could break when doing so.
     This means also replacing the bone's name in the rig's UI data and in driver
@@ -160,7 +144,7 @@ def GLOBAL_rename_obdatas():
         ob.data.shape_keys.name = ob.name
 
 
-def auto_assign_bone_gizmo_maps(
+def LEGACY_auto_assign_bone_gizmo_maps(
     old_rig: Object, new_rig: Object, *, bone_collection: str
 ):
     """Auto-assign vertex groups/face maps for the Bone Gizmo addon for bones
@@ -176,7 +160,7 @@ def auto_assign_bone_gizmo_maps(
         auto_assign_bone_gizmo(pb, old_rig.children_recursive)
 
 
-def auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
+def LEGACY_auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
     """Auto-assign vgroups/facemaps for the Bone Gizmo addon for a single bone.
     This is done based on a naming convention basis, with these priorities:
     1. Face map matching the bone's name.
@@ -267,7 +251,7 @@ def update_bone_collection(
     if not collection:
         raise ValueError(f"Collection not found: '{collection_name}'")
 
-    if operation == "add":
+    if operation.lower() == "add":
         collection.assign(bone)
     else:
         collection.unassign(bone)
