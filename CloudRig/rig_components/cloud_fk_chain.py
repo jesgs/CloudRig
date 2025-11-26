@@ -63,8 +63,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         label_name="Parent Switching",
         entry_name="",
     ):
-        """Overrides cloud_base."""
-
         super().base__apply_parent_switching(
             parent_slots,
             child_bone=child_bone,
@@ -77,8 +75,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
     def toon__is_cyclic(self) -> bool:
-        """Overrides cloud_chain.
-        Cyclic rigs are not supported beyond just the toon chain, since
+        """Cyclic rigs are not supported beyond just the toon chain, since
         FK chains cannot be cyclic.
         """
         return False
@@ -481,9 +478,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         row.prop(params.fk_chain, "test_animation_axes", text="Z", toggle=True, index=2)
 
     @classmethod
-    def is_using_custom_props(cls, context, params):
-        """Overrides cloud_base."""
-        if super().is_using_custom_props(context, params):
+    def base__is_using_custom_props(cls, context, params):
+        if super().base__is_using_custom_props(context, params):
             return True
 
         cloudrig = context.object.cloudrig.generator

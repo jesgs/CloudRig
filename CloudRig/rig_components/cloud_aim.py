@@ -65,8 +65,7 @@ class Component_Aim(Component_Base):
         label_name="",
         entry_name=""
     ):
-        """Overrides cloud_base to apply the parent switching to the aim target
-        or group master if it exists."""
+        """Apply the parent switching to the aim target or group master if it exists."""
         target_bone = self.group_master
         if not target_bone:
             target_bone = self.target_bone

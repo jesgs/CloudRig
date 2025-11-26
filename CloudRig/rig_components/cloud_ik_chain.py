@@ -59,8 +59,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
         label_name="Parent Switching",
         entry_name="",
     ):
-        """Overrides cloud_fk_chain."""
-
         ik_parents_prop_name = "ik_parents_" + self.limb_name_props
         super().base__apply_parent_switching(
             parent_slots,

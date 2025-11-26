@@ -55,10 +55,8 @@ class Component_Finger(Component_Chain_IKFK):
     def ik_chain__make_pole_follow_switch(
         self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
     ):
-        """Overrides cloud_ik_chain to avoid creating this complex set-up.
-        Just parent the pole to the master."""
+        """Avoid creating complex inherited set-up. Just parent the pole to the master."""
         ik_pole.parent = ik_mstr
-        pass
 
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         """Disable IK pole parent switching for finger components."""
@@ -69,7 +67,6 @@ class Component_Finger(Component_Chain_IKFK):
         pass
 
     def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
-        """Overrides cloud_ik_chain"""
         ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )

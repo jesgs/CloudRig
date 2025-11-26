@@ -262,8 +262,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def curve_selector_ui(cls, layout, context, params):
-        """Overrides cloud_curve to disable the curve selection."""
+    def curve__draw_selector_ui(cls, layout, context, params):
+        """Disable the curve selection."""
         row = cls.draw_prop(
             context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE'
         )

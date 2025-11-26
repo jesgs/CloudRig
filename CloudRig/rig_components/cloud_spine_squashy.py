@@ -53,8 +53,6 @@ class Component_Spine_Squashy(Component_Chain_FK):
             )
 
     def fk_chain__make_root_bone(self):
-        """Overrides cloud_fk_chain."""
-
         # Create Torso Master control
         root_bone = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
@@ -66,7 +64,6 @@ class Component_Spine_Squashy(Component_Chain_FK):
         return root_bone
 
     def fk_chain__make(self, org_chain) -> list[BoneInfo]:
-        """Overrides cloud_fk_chain."""
         fk_chain = super().fk_chain__make(org_chain)
 
         # Create master hip control

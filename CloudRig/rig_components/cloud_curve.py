@@ -648,7 +648,7 @@ class Component_Curve_Hooked(Component_Base):
 
 
     @classmethod
-    def curve_selector_ui(cls, layout, context, params):
+    def curve__draw_selector_ui(cls, layout, context, params):
         """Since this rig requires a curve object, draw with alert=True otherwise."""
         curve_ob = params.curve.target
         bad_curve = curve_ob == None or curve_ob.type != 'CURVE'
@@ -660,7 +660,7 @@ class Component_Curve_Hooked(Component_Base):
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the rig parameters."""
         curve_ob = params.curve.target
-        cls.curve_selector_ui(layout, context, params)
+        cls.curve__draw_selector_ui(layout, context, params)
         cls.draw_prop(context, layout, params.curve, 'create_root')
         if curve_ob and len(curve_ob.data.splines) > 1:
             cls.draw_prop(context, layout, params.curve, "root_per_spline")

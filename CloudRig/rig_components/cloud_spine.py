@@ -58,8 +58,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.ik_chain = []
 
     def fk_chain__make_root_bone(self):
-        """Overrides cloud_fk_chain."""
-
         # Create Torso Master control
         self.torso_bone = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
@@ -71,7 +69,6 @@ class Component_Spine_IKFK(Component_Chain_FK):
         return self.torso_bone
 
     def fk_chain__make(self, org_chain) -> list[BoneInfo]:
-        """Overrides cloud_fk_chain."""
         fk_chain = super().fk_chain__make(org_chain)
 
         fk_chain[1].parent = self.torso_bone
@@ -86,6 +83,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             parent=self.torso_bone,
         )
         fk_chain[0].parent = self.mstr_hips
+        fk_chain[0].collections = self.bones_mch.collections
 
         if self.params.spine.world_align:
             self.root_bone.flatten()
@@ -97,9 +95,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         super().fk_chain__counter_rotate_str_bones(self.bones_org, main_str_bones, influence)
 
     def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
-        """Overrides cloud_fk_chain.
-        First STR bone should be owned by the hips (via first ORG bone).
-        """
+        """First STR bone should be owned by the hips (via first ORG bone)."""
         super().fk_chain__attach_org_to_fk(org_bones, fk_bones)
         org_bones[0].parent = self.mstr_hips
 

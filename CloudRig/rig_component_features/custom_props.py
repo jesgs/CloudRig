@@ -75,7 +75,7 @@ class CloudCustomPropertiesMixin:
         return prop_bone
 
     @classmethod
-    def is_using_custom_props(cls, context, params):
+    def base__is_using_custom_props(cls, context, params):
         """Determine whether the custom property storage UI should be drawn or not."""
         if cls.always_use_custom_props:
             return True

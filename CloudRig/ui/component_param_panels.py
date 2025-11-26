@@ -159,7 +159,7 @@ class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
             return False
         pb = get_pbone_of_active(context)
         component_class = pb.cloudrig_component.component_class
-        return component_class.is_using_custom_props(context, pb.cloudrig_component.params)
+        return component_class.base__is_using_custom_props(context, pb.cloudrig_component.params)
 
 
 class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
