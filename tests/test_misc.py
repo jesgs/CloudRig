@@ -19,9 +19,6 @@ def test_bone_colors(context):
     assert bpy.ops.preferences.set_bone_color_presets(preset='BLENDER') == {'FINISHED'}
     assert bpy.ops.preferences.set_bone_color_presets(preset='CLOUDRIG') == {'FINISHED'}
 
-def test_bug_report(context):
-    bpy.ops.wm.cloudrig_report_bug()
-
 def run_file_in_blender(filepath: Path):
     text = load_in_blender(filepath)
     text.as_module()

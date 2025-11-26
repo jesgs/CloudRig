@@ -1245,6 +1245,7 @@ def draw_slider(
             owner = None
             pass
 
+    bracketless_prop_name = unquote_custom_prop_name(prop_name)
     prop_value = None
     if not owner:
         sub_row.alert = True
@@ -1252,6 +1253,8 @@ def draw_slider(
             text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.",
             icon='ERROR',
         )
+    elif bracketless_prop_name in owner:
+        prop_value = owner[bracketless_prop_name]
     else:
         try:
             prop_value = owner.path_resolve(prop_name)
@@ -1301,8 +1304,6 @@ def draw_slider(
                         )
 
     if is_ui_edit_mode(rig):
-        bracketless_prop_name = unquote_custom_prop_name(prop_name)
-
         if not sub_row.alert:
             if type(prop_value) in {int, bool}:
                 child_op = sub_row.operator(

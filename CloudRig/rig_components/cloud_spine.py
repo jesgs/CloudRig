@@ -91,12 +91,15 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         return fk_chain
 
-    def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
-        super().fk_chain__counter_rotate_str_bones(self.bones_org, main_str_bones, influence)
+    def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.85):
+        super().fk_chain__counter_rotate_str_bones(self.bones_org[1:], main_str_bones[1:], influence)
+        main_str_bones[1].parent_helper.constraint_infos[0].targets = [self.mstr_hips.name]
+        main_str_bones[1].constraint_infos[-1].invert_xyz = (False, False, False)
+        main_str_bones[1].constraint_infos[-1].influence = 0.75
 
     def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
-        """First STR bone should be owned by the hips (via first ORG bone)."""
-        super().fk_chain__attach_org_to_fk(org_bones, fk_bones)
+        """First ORG bone should be owned by the hips."""
+        super().fk_chain__attach_org_to_fk(org_bones[1:], fk_bones[1:])
         org_bones[0].parent = self.mstr_hips
 
     def create_bone_infos(self, context):
@@ -147,7 +150,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 name="IK-CTR-" + org_bone.name,
                 source=org_bone,
                 custom_shape_name=self.params.spine.shape_ik.shape_name,
-                rotation_mode='YXZ',
+                rotation_mode='YZX',
                 lock_rotation=[True, False, True],
                 custom_shape_rotation_euler=((0, pi / 4, 0)),
                 custom_shape_scale_xyz=Vector((1, 1, 0.8)),

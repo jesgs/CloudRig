@@ -81,7 +81,10 @@ def is_pbone_visible(pbone: PoseBone) -> bool:
 def assert_matching_pose(rig: Object, old_pose: dict, new_pose: dict):
     errors = []
     for bone_name, old_data in old_pose.items():
-        new_data = new_pose[bone_name]
+        new_data = new_pose.get(bone_name)
+        if not new_data:
+            errors.append(f'Bone missing: {bone_name}')
+            continue
 
         for key, old_value in old_data.items():
             if isinstance(old_value, Matrix):
