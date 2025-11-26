@@ -29,6 +29,12 @@ def test_symmetrize(context, scene_workflow):
     assert fc, "Driver didn't get symmetrized."
     assert fc.driver.variables[0].targets[0].bone_target == 'ACT-MouthCorner.R', "Driver variable target didn't get symmetrized."
 
+    select_bone(metarig, 'LipRing3.L')
+    bpy.ops.pose.dissolve_selected()
+    assert metarig.data.bones['LipRing4.L'].parent.name == 'LipRing2.L'
+    select_bone(metarig, 'LipRing4.L')
+    bpy.ops.pose.delete_selected()
+
 def test_better_bone_extrude(context, scene_workflow):
     metarig = context.active_object
     bpy.ops.object.mode_set(mode='EDIT')
