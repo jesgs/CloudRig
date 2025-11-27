@@ -75,7 +75,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         super().create_bone_infos(context)
 
         chest = self.bone_sets['Toon Spine IK'].new(
-            name=self.naming.add_prefix(self.spine_name, 'Chest'),
+            name=self.naming.add_prefix(self.spine_name, 'CHST'),
             source=self.fk_chain[-2],
             tail=self.bones_org[-1].tail,
             parent=self.torso_ctr,
@@ -85,7 +85,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             custom_shape_rotation_euler=(0, pi/2, 0)
         )
         hips = self.bone_sets['Toon Spine IK'].new(
-            name=self.naming.add_prefix(self.spine_name, 'Hips'),
+            name=self.naming.add_prefix(self.spine_name, 'HIP'),
             source=self.bones_org[0],
             head=self.fk_chain[1].head,
             tail=self.bones_org[0].head,
