@@ -625,7 +625,7 @@ class CLOUDRIG_PT_log(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'data'
-    bl_label = "Generation Log"
+    bl_label = ""
     bl_parent_id = "POSE_PT_CloudRig"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -640,10 +640,9 @@ class CLOUDRIG_PT_log(Panel):
         logs = generator.logs
         layout = self.layout
 
-        if len(logs) == 0:
-            layout.label(text="", icon='CHECKMARK')
-        else:
-            layout.label(text="", icon='ERROR')
+        icon = 'CHECKMARK' if len(logs) == 0 else 'ERROR'
+        plural = "s" if len(logs) != 1 else ""
+        layout.label(text=f"Log: {len(logs)} Issue{plural}", icon=icon)
 
     def draw(self, context):
         metarig = context.object

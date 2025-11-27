@@ -27,6 +27,7 @@ class POSE_PT_CloudRig(Panel):
 
     def draw(self, context):
         layout = self.layout
+        prefs = get_addon_prefs(context)
 
         metarig = context.object
         cloudrig = metarig.cloudrig
@@ -39,8 +40,8 @@ class POSE_PT_CloudRig(Panel):
         layout.operator("pose.cloudrig_generate", text=text)
 
 
-class POSE_PT_CloudRig_Generation(Panel):
-    bl_label = "Generation"
+class POSE_PT_CloudRig_General(Panel):
+    bl_label = "General"
     bl_parent_id = 'POSE_PT_CloudRig'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -74,8 +75,13 @@ class POSE_PT_CloudRig_Generation(Panel):
         metarig = context.object
         generator = metarig.cloudrig.generator
 
+        layout.prop(prefs, 'advanced_mode')
+
         layout = layout.column()
         layout.prop(generator, 'target_rig')
+        if not prefs.advanced_mode:
+            return
+
         layout.prop(generator, 'custom_script')
 
         # Test Animation Parameters
@@ -135,6 +141,6 @@ class POSE_PT_CloudRig_CustomShapes(Panel):
 
 registry = [
     POSE_PT_CloudRig, 
-    POSE_PT_CloudRig_Generation, 
+    POSE_PT_CloudRig_General, 
     POSE_PT_CloudRig_CustomShapes
 ]
