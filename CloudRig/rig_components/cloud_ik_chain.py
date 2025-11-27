@@ -49,7 +49,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     def base__apply_parent_switching(
         self,
-        parent_slots,
         *,
         child_bone=None,
         prop_bone=None,
@@ -61,7 +60,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
     ):
         ik_parents_prop_name = "ik_parents_" + self.limb_name_props
         super().base__apply_parent_switching(
-            parent_slots,
             child_bone=child_bone or self.ik_mstr,
             prop_bone=prop_bone or self.properties_bone,
             prop_name=prop_name or ik_parents_prop_name,
@@ -480,13 +478,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             copyloc.drivers.append(dict(ik_stretch_engaged_driver))
 
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
-        # Create parent helper bone
-        pole_parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
-        pole_parent_helper.custom_shape = None
-
         if (
             self.params.parenting.parent_switching
-            and len(self.params.parenting.parent_slots) > 0
+            and len(self.parent_ui_names) > 0
         ):
             _parent_ui_names, parent_bone_names = self.sanitize_parent_list(
                 self.params.parenting.parent_slots
@@ -496,6 +490,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             first_parent = self.generator_params.ensure_root
         else:
             first_parent = self.bones_org[0].parent
+
+        pole_parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
+        pole_parent_helper.custom_shape = None
 
         ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
         self.create_driven_armature_constraint(

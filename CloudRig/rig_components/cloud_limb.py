@@ -46,7 +46,6 @@ class Component_Limb(Component_Chain_IKFK):
 
     def base__apply_parent_switching(
         self,
-        parent_slots,
         *,
         child_bone=None,
         prop_bone=None,
@@ -60,7 +59,6 @@ class Component_Limb(Component_Chain_IKFK):
             child_bone = self.ik_mstr.parent
 
         super().base__apply_parent_switching(
-            parent_slots,
             child_bone=child_bone,
             prop_bone=prop_bone,
             prop_name=prop_name,

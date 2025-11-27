@@ -64,8 +64,8 @@ class CLOUDRIG_PT_rig_component(Panel):
             text=text
         )
         if rig_component.component_type == 'Spine: Squashy':
-            # TODO 5.1: Remove Spine: Toon.
-            aligned_label(layout, text="DEPRECATED! Please use Spine: Toon!", alert=True, icon='ERROR')
+            # TODO 5.1: Remove Spine: Cartoon.
+            aligned_label(layout, text="DEPRECATED! Please use Spine: Cartoon!", alert=True, icon='ERROR')
         if not rig_component.component_type or row.alert:
             return
         layout.prop(prefs, 'advanced_mode')

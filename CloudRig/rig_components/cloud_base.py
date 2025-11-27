@@ -185,7 +185,7 @@ class Component_Base(
         if not skip_root_parenting and self.params.parenting.root_parent != "":
             self.apply_custom_root_parent()
         if self.params.parenting.parent_switching:
-            self.base__apply_parent_switching(self.params.parenting.parent_slots)
+            self.base__apply_parent_switching()
         self.base__relink()
         # self.gizmos__add_interactions()
 

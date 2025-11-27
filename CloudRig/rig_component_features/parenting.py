@@ -27,14 +27,17 @@ class CLOUDRIG_UL_parent_slots(UIList):
                 row.prop_search(parent_slot, "bone", rig.data, "bones", text="")
                 split.row().label(text="<-- Choose a bone.")
                 return
-            elif parent_slot.bone not in rig.pose.bones:
+            elif rig and parent_slot.bone not in rig.pose.bones:
                 split.alert = True
                 row.prop_search(
                     parent_slot, "bone", rig.data, "bones", text="", icon="ERROR"
                 )
                 split.row().label(text="Bone is missing!")
                 return
-            row.prop_search(parent_slot, "bone", rig.data, "bones", text="")
+            if rig:
+                row.prop_search(parent_slot, "bone", rig.data, "bones", text="")
+            else:
+                row.prop(parent_slot, "bone", text="")
 
             row = split.row()
             row.prop(parent_slot, "name", text=f"", emboss=True)
@@ -120,9 +123,22 @@ class CloudParentingMixin:
 
     """Class that provides parent switching parameters to Component_Base."""
 
+    @property
+    def parent_ui_names(self):
+        if not hasattr(self, '_parent_ui_names'):
+            self._parent_ui_names, self._parent_bone_names = self.sanitize_parent_list(self.params.parenting.parent_slots)
+
+        return self._parent_ui_names
+
+    @property
+    def parent_bone_names(self):
+        if not hasattr(self, '_parent_bone_names'):
+            self._parent_ui_names, self._parent_bone_names = self.sanitize_parent_list(self.params.parenting.parent_slots)
+
+        return self._parent_bone_names
+
     def base__apply_parent_switching(
         self,
-        parent_slots,
         *,
         child_bone=None,
         prop_bone=None,
@@ -139,7 +155,7 @@ class CloudParentingMixin:
         row_name = row_name or child_bone.name.split(".")[0]
         entry_name = entry_name or child_bone.name
 
-        parent_ui_names, parent_bone_names = self.sanitize_parent_list(parent_slots)
+        parent_ui_names, parent_bone_names = self.parent_ui_names, self.parent_bone_names
         if not parent_ui_names:
             return
 
@@ -159,7 +175,7 @@ class CloudParentingMixin:
                 texts=parent_ui_names,
                 custom_prop_settings={
                     "default": self.get_default_parent_index(
-                        parent_bone_names, parent_slots
+                        parent_bone_names
                     ),
                     "max": len(parent_ui_names) - 1,
                     "description": f'Changes the parent bone of "{child_bone.name}"',
@@ -237,12 +253,15 @@ class CloudParentingMixin:
         parent_bone_names = []
         parent_ui_names = []
 
+        all_bone_names = [b.name for b in self.generator.bone_infos]
+
         for i, ps in enumerate(parent_slots):
-            if ps.bone == "":
-                self.raise_generation_error(
+            if ps.bone == "" or ps.bone not in all_bone_names:
+                self.add_log(
                     description_short="Missing Parent",
-                    description=f"Parent switch target is missing! Specify a parent bone in the Parenting parameters.",
+                    description=f'Parent switch target not found: "{ps.bone}". Specify a parent bone in the Parenting parameters.',
                 )
+                return [], []
                 continue
             parent_ui_names.append(ps.name or ps.bone)
             parent_bone_names.append(ps.bone)
@@ -256,9 +275,8 @@ class CloudParentingMixin:
 
         return parent_ui_names, parent_bone_names
 
-    def get_default_parent_index(
-        self, parent_bone_names: list[str], parent_slots: list[ParentSlot]
-    ) -> int:
+    def get_default_parent_index(self, parent_bone_names: list[str]) -> int:
+        parent_slots = self.params.parenting.parent_slots
         for ps in parent_slots:
             if ps.is_default:
                 parent_bone = ps.bone
@@ -314,6 +332,9 @@ class CloudParentingMixin:
 
     @classmethod
     def draw_parent_param(cls, layout, context, rig, params):
+        if not rig:
+            cls.draw_prop(context, layout, params.parenting, "root_parent")
+            return
         parent_bone = rig.pose.bones.get(params.parenting.root_parent)
         is_parent_bendy = parent_bone and parent_bone.bone.bbone_segments > 1
         text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
@@ -347,7 +368,7 @@ class CloudParentingMixin:
     def draw_parenting_params(cls, layout, context, params):
         metarig = context.object
         rig = metarig.cloudrig.generator.target_rig
-        if not rig:
+        if not rig and not params.parenting.parent_slots:
             draw_label_with_linebreak(
                 context,
                 layout,
