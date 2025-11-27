@@ -276,7 +276,7 @@ class BoneSetMixin:
     ##############################
     # UI
     @classmethod
-    def draw_bone_organization_panel(cls, layout, context, params):
+    def draw_bone_set_params(cls, layout, context, params):
         """Bone Organization panel of the Component Parameters."""
         active_pb = get_pbone_of_active(context)
         if not (active_pb and active_pb.cloudrig_component.enabled_with_parents):

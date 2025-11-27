@@ -8,7 +8,7 @@ from ..bs_utils.prefs import get_addon_prefs
 from ..utils.rig import get_pbone_of_active
 from ..rig_component_features.properties_ui import redraw_viewport
 from ..generation.cloudrig import is_cloud_metarig
-
+from .component_param_panels import draw_params_subpanels
 
 class CLOUDRIG_UL_rig_components(UIList):
     """The Rig Component list is actually a list of all pose bones on the object,
@@ -335,6 +335,18 @@ class CLOUDRIG_PT_rig_components(Panel):
             CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN'
         ).direction = 'DOWN'
 
+        comp = context.object.cloudrig.active_component
+
+        if not comp:
+            return
+
+        header, panel = layout.panel(f"CloudRig Component In List")
+        header.label(text=f"Component Parameters: {context.active_pose_bone.name}")
+        if panel:
+            box = panel.box()
+            box.use_property_split = True
+            box.use_property_decorate = False
+            draw_params_subpanels(context, box)
 
 registry = [
     CLOUDRIG_UL_rig_components,

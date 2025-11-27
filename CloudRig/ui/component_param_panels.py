@@ -4,7 +4,7 @@ from bpy.types import Panel
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import label_split, aligned_label
 from ..utils.rig import get_pbone_of_active
-
+from dataclasses import dataclass
 
 class CLOUDRIG_PT_rig_component(Panel):
     bl_label = "CloudRig Component"
@@ -68,91 +68,35 @@ class CLOUDRIG_PT_rig_component(Panel):
             aligned_label(layout, text="DEPRECATED! Please use Spine: Cartoon!", alert=True, icon='ERROR')
         if not rig_component.component_type or row.alert:
             return
+        
         layout.prop(prefs, 'advanced_mode')
+        draw_params_subpanels(context, layout)
 
-
-class CloudParamSubPanel(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_parent_id = "CLOUDRIG_PT_rig_component"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    draw_function_name = "draw_parenting_params"
-    advanced_only = False
+@dataclass
+class CloudRigPanel:
+    ui_name: str
+    func_name: str
+    is_advanced: bool = False
 
     @classmethod
     def poll(cls, context):
-        pb = get_pbone_of_active(context)
-        if not pb:
-            return False
-        rig_component = pb.cloudrig_component
-        if not rig_component.component_type:
-            return False
-        component_class = rig_component.component_class
-        if not component_class:
-            return False
-        if not hasattr(component_class, cls.draw_function_name):
-            return False
-        if cls.advanced_only and not component_class.is_advanced_mode(context):
-            return False
         return True
 
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-        layout = layout.column()
+    def draw_header(self, context, layout):
+        pass
 
-        pb = get_pbone_of_active(context)
-        component_class = pb.cloudrig_component.component_class
-        draw_func = getattr(component_class, self.draw_function_name)
-        draw_func(layout, context, pb.cloudrig_component.params)
-
-
-class CLOUDRIG_PT_params_parenting(CloudParamSubPanel):
-    bl_label = "Parenting"
-    draw_function_name = "draw_parenting_params"
-
-
-class CLOUDRIG_PT_params_controls(CloudParamSubPanel):
-    bl_label = "Controls"
-    draw_function_name = "draw_control_params"
-    bl_options = set()
-
-
-class CLOUDRIG_PT_params_anim(CloudParamSubPanel):
-    bl_label = "Test Animation"
-    draw_function_name = "draw_anim_params"
-
+class AnimPanel(CloudRigPanel):
     @classmethod
     def poll(cls, context):
-        if not super().poll(context):
-            return False
         return context.object.cloudrig.generator.generate_test_action
 
-    def draw_header(self, context):
-        layout = self.layout
+    def draw_header(self, context, layout):
         active_pb = get_pbone_of_active(context)
         params = active_pb.cloudrig_component.params
+        layout.use_property_split = False
         layout.prop(params.fk_chain, 'test_animation_generate', text="")
 
-
-class CLOUDRIG_PT_params_bendy(CloudParamSubPanel):
-    bl_label = "Bendy Bones"
-    draw_function_name = "draw_bendy_params"
-    bl_options = set()
-
-
-class CLOUDRIG_PT_params_appearance(CloudParamSubPanel):
-    bl_label = "Appearance"
-    draw_function_name = "draw_appearance_params"
-
-
-class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
-    bl_label = "Custom Properties"
-    draw_function_name = "draw_custom_prop_params"
-    advanced_only = True
-
+class CustomPropPanel(CloudRigPanel):
     @classmethod
     def poll(cls, context):
         if not super().poll(context):
@@ -161,12 +105,7 @@ class CLOUDRIG_PT_params_custom_properties(CloudParamSubPanel):
         component_class = pb.cloudrig_component.component_class
         return component_class.base__is_using_custom_props(context, pb.cloudrig_component.params)
 
-
-class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
-    bl_label = "Bone Organization"
-    draw_function_name = "draw_bone_organization_panel"
-    advanced_only = True
-
+class BoneSetPanel(CloudRigPanel):
     @classmethod
     def poll(cls, context):
         if not super().poll(context):
@@ -187,14 +126,39 @@ class CLOUDRIG_PT_params_bone_sets(CloudParamSubPanel):
 
         return False
 
+def draw_params_subpanels(context, layout):
+    panels = [
+        CloudRigPanel("Parenting", "draw_parenting_params"),
+        CloudRigPanel("Controls", "draw_control_params"),
+        AnimPanel("Test Animation", "draw_anim_params"),
+        CloudRigPanel("Bendy Bones", "draw_bendy_params"),
+        CloudRigPanel("Appearance", "draw_appearance_params"),
+        CustomPropPanel("Custom Properties", "draw_custom_prop_params", True),
+        BoneSetPanel("Bone Organization", "draw_bone_set_params", True),
+    ]
+    active_pb = get_pbone_of_active(context)
+    rig_component = active_pb.cloudrig_component
+    comp_class = rig_component.component_class
+    advanced_mode = get_addon_prefs(context).advanced_mode
+    for panel_data in panels:
+        if panel_data.is_advanced and not advanced_mode:
+            continue
+        if not panel_data.poll(context):
+            continue
+        if not hasattr(comp_class, panel_data.func_name):
+            continue
+        header, panel = layout.panel(f"CloudRig {panel_data.ui_name}")
+        panel_data.draw_header(context, header)
+        header.label(text=panel_data.ui_name)
+        if panel:
+            draw_component_params(context, layout, panel_data.func_name)
+    
+def draw_component_params(context, layout, func_name: str):
+    pb = get_pbone_of_active(context)
+    component_class = pb.cloudrig_component.component_class
+    draw_func = getattr(component_class, func_name)
+    draw_func(layout, context, pb.cloudrig_component.params)
 
 registry = [
-    CLOUDRIG_PT_rig_component,
-    CLOUDRIG_PT_params_parenting,
-    CLOUDRIG_PT_params_controls,
-    CLOUDRIG_PT_params_anim,
-    CLOUDRIG_PT_params_bendy,
-    CLOUDRIG_PT_params_appearance,
-    CLOUDRIG_PT_params_custom_properties,
-    CLOUDRIG_PT_params_bone_sets,
+    CLOUDRIG_PT_rig_component
 ]
