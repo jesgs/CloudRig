@@ -484,6 +484,16 @@ class Properties_CloudRig(PropertyGroup):
         rig_ob = self.id_data
         return rig_ob.pose.bones[self.active_component_index].cloudrig_component
 
+    @active_component.setter
+    def active_component(self, comp: RigComponent):
+        set_bone = comp.owner_pose_bone
+        new_idx = next((i for i, pb in enumerate(self.id_data.pose.bones) if pb==set_bone), self.active_component_index)
+        self.active_component_index = new_idx
+        parent = comp.parent
+        while parent:
+            parent.show_child_components = True
+            parent = parent.parent
+
     def enabled_update_callback(self, _context=None):
         if self.enabled:
             self.id_data.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'

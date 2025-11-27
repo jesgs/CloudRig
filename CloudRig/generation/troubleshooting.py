@@ -776,6 +776,10 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         reveal_and_select(context, bone)
 
+        pbone = rig.pose.bones.get(bone.name)
+        if pbone:
+            rig.cloudrig.active_component = pbone.cloudrig_component
+
         return {'FINISHED'}
 
 class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
