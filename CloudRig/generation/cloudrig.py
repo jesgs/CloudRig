@@ -50,6 +50,8 @@ if submodule:
 def active_rig(context) -> Object | None:
     """Return the active rig even if we're in weight paint mode."""
     rig = context.pose_object or context.active_object
+    if not rig:
+        return
     if rig.type == 'ARMATURE':
         return rig
 
@@ -306,7 +308,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
         self.frame_start = context.scene.frame_start
         self.frame_end = context.scene.frame_end
         self.do_bake = False
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context):
         layout = self.layout
@@ -329,11 +331,36 @@ class SnapBakeOpMixin(SnappingOpMixin):
         rig = find_cloudrig(context)
         if not rig:
             return
+
         affected_pbones = self.get_affected_pbones(rig)
-        bone_column = layout.column(align=True)
-        bone_column.label(text="Affected bones:")
-        for pbone in affected_pbones:
-            bone_column.label(text=f"{' '*10} {pbone.name}")
+        self.draw_bones(layout, context, {pb.name:None for pb in affected_pbones})
+
+    def draw_bones(self, layout, context, bone_map: dict):
+        rig = active_rig(context)
+        col = layout.column(align=True)
+        col.label(text="Snapped bones:")
+        for from_name, to_name in bone_map.items():
+            from_pb = rig.pose.bones.get(from_name)
+            split = col.row().split(align=True, factor=0.45)
+            split.enabled = False
+            row = split.row()
+            if not from_pb:
+                split.alert = True
+                row.label(text=f"Missing: {from_name}", icon='ERROR')
+                continue
+            row.prop(from_pb, 'name', text="", icon='BONE_DATA')
+            if to_name:
+                to_pb = rig.pose.bones.get(to_name)
+                if not to_pb:
+                    row.alert = True
+                    row.label(text=f"Missing: {to_name}", icon='ERROR')
+                    continue
+                split = split.row().split(factor=0.08)
+                split.row().label(text=f"\u279C")
+                split.row().prop(to_pb, 'name', text="", icon='BONE_DATA')
+            else:
+                # When there's no target, this helps align the bone selectors.
+                split.row()
 
     def get_frame_range(self, context) -> list[int]:
         if not self.do_bake:
@@ -520,7 +547,8 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
 
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
-    "Toggle the rig component between IK and FK modes. Snap the affected" "bones so you can continue animating. Can also snap & bake the affected" "bones over a frame range"
+    "Switch between IK <-> FK modes. Snap the affected bones to preserve"
+    " the pose in the new mode. Can also bake the bones over a frame range"
 
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
     bl_label = "Snap & Bake Bones to Other Bones"
@@ -742,15 +770,9 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         return bone_map
 
     def draw_affected_bones(self, layout, context):
-        bone_column = layout.column(align=True)
-        bone_column.label(text="Snapped bones:")
-        for from_bone, to_bone in self.bone_map.items():
-            bone_column.label(text=f"{' '*10} {from_bone} -> {to_bone}")
-
-        if self.current_value < 1:
-            bone_column.label(text=f"{' '*10} {self.ik_pole}")
-
-
+        bone_map = self.bone_map.copy()
+        bone_map[self.ik_pole] = None
+        self.draw_bones(layout, context, bone_map)
 
 #######################################
 ######## Convenience Operators ########
