@@ -10,11 +10,11 @@ from ..bs_utils.hotkeys import register_hotkey
 
 
 class BoneDuplicateOpMixin:
-
     increment_names: BoolProperty(
         name="Increment Names",
         description="Whether to increment numbers in bone names. If False, use Blender's .001 naming instead",
         default=True,
+        options={'SKIP_SAVE'},
     )
 
     def bone_operation(self):
