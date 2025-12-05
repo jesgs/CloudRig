@@ -151,20 +151,20 @@ class Component_Limb_BipedLeg(Component_Limb):
         # project a line out of the knee bone, then find the point on that line
         # which is closest the toe bone's tail, lowered to the Z position of the
         # heel bone if there is one and it is lower.
-        knee = self.bones_org[1]
-        toe = self.bones_org[-1]
-        shoe_tip = toe.tail.copy()
+        org_knee = self.bones_org[1]
+        org_toe = self.bones_org[-1]
+        shoe_tip = org_toe.tail.copy()
         heel_pivot_bone = self.__get_heel_pivot_meta_bone()
         if heel_pivot_bone.tail_local.z < shoe_tip.z:
             shoe_tip.z = heel_pivot_bone.tail_local.z
-        intersect = intersect_point_line(shoe_tip, knee.head, knee.tail)[0]
+        intersect = intersect_point_line(shoe_tip, org_knee.head, org_knee.tail)[0]
 
         dsp_bone.head = intersect
         dsp_bone.tail = shoe_tip
         dsp_bone.head.z = dsp_bone.tail.z
         dsp_bone.length = 0.1 * self.scale
-        dsp_bone.roll_type = 'VECTOR'
-        dsp_bone.roll_vector = toe.z_axis
+        dsp_bone.roll_type = 'ALIGN'
+        dsp_bone.roll_bone = org_toe
         dsp_bone.roll = pi if self.side_suffix == 'L' else 0
 
         return dsp_bone
@@ -194,18 +194,18 @@ class Component_Limb_BipedLeg(Component_Limb):
 
     def __make_footroll(self, ik_chain, org_chain):
         ik_foot_chain = ik_chain[-2:]
-        thigh, knee, foot, toe = org_chain
+        org_thigh, org_knee, org_foot, org_toe = org_chain
 
         rolly_stretchy = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(thigh, "IK-STR-ROLL"),
-            source=thigh,
+            name=self.naming.add_prefix(org_thigh, "IK-STR-ROLL"),
+            source=org_thigh,
             tail=self.ik_mstr.head.copy(),
             parent=ik_chain[0],
         )
         rolly_stretchy.scale_width(0.4)
         rolly_stretchy.add_constraint('STRETCH_TO', subtarget=ik_chain[-2].name)
 
-        _prefixes, base_name, suffixes = self.naming.slice_name(foot.name)
+        _prefixes, base_name, suffixes = self.naming.slice_name(org_foot.name)
         master_name = self.naming.make_name(["ROLL"], base_name, suffixes)
         roll_master = self.bone_sets['IK Mechanism'].new(
             name=master_name, source=self.ik_mstr, parent=self.ik_mstr
@@ -214,15 +214,15 @@ class Component_Limb_BipedLeg(Component_Limb):
         self.ik_tgt_bone.clear_constraints()
 
         # Create ROLL control behind the foot.
-        head, tail = self.__calc_footroll_headtail(knee, toe, self.scale)
+        head, tail = self.__calc_footroll_headtail(org_knee, org_toe, self.scale)
 
         roll_ctrl = self.bone_sets['IK Controls'].new(
             name=self.naming.make_name(["ROLL-M"], base_name, suffixes),
             bbone_width=1 / 18,
             head=head,
             tail=tail,
-            roll_type='VECTOR',
-            roll_vector=toe.z_axis,
+            roll_type='ALIGN',
+            roll_bone=org_toe,
             parent=self.ik_mstr,
             custom_shape_name=self.params.leg.shape_footroll.shape_name,
             use_custom_shape_bone_size=True,
@@ -259,11 +259,11 @@ class Component_Limb_BipedLeg(Component_Limb):
             + base_name
             + self.naming.SUFFIX_SEPARATOR
             + self.side_suffix,
-            bbone_width=toe.bbone_width,
+            bbone_width=org_toe.bbone_width,
             head=heel_pivot_bone.head_local,
             tail=heel_pivot_bone.tail_local,
-            roll_type='VECTOR',
-            roll_vector=toe.z_axis,
+            roll_type='ALIGN',
+            roll_bone=org_toe,
             parent=roll_master,
         )
 
@@ -278,15 +278,15 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         # Create reverse IK bones.
         rik_chain = []
-        for i, b in reversed(list(enumerate([foot, toe]))):
+        for i, org_bone in reversed(list(enumerate([org_foot, org_toe]))):
             rik_bone = self.bone_sets['Foot Reverse IK Controls'].new(
-                name=self.naming.add_prefix(b, "RIK"),
-                source=b,
-                head=b.tail.copy(),
-                tail=b.head.copy(),
+                name=self.naming.add_prefix(org_bone, "RIK"),
+                source=org_bone,
+                head=org_bone.tail.copy(),
+                tail=org_bone.head.copy(),
                 roll=pi,
-                roll_type='VECTOR',
-                roll_vector=-b.z_axis,
+                roll_type='ALIGN',
+                roll_bone=org_bone,
                 parent=heel_pivot,
                 custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             )
