@@ -4,7 +4,7 @@ from bpy.types import Bone, EditBone, PoseBone, Operator
 from bpy.props import IntProperty, StringProperty, BoolProperty
 from ..generation import naming
 from ..utils.rig import get_selected_bone_tuples, get_active_bone
-from ..generation.cloudrig import active_rig
+from ..generation.cloudrig import active_rig, reveal_bone
 
 def deselect_all_bones(context):
     if context.mode == 'EDIT_ARMATURE':
@@ -16,27 +16,6 @@ def deselect_all_bones(context):
         if context.mode == 'EDIT_ARMATURE':
             bone.select_head = False
             bone.select_tail = False
-
-
-def ensure_visible_bone_collection(bone: Bone | EditBone | PoseBone):
-    """If target bone not in any enabled collections, enable first one."""
-    if isinstance(bone, PoseBone):
-        bone = bone.bone
-
-    armature = bone.id_data
-    collections = armature.collections
-
-    if len(bone.collections) == 0:
-        return
-
-    if not any([coll.is_visible_effectively for coll in bone.collections]):
-        coll = bone.collections[0]
-        while coll:
-            if collections.is_solo_active:
-                coll.is_solo = True
-            else:
-                coll.is_visible = True
-            coll = coll.parent
 
 
 def get_bone_by_name(rig, bone_name: str):
@@ -90,16 +69,18 @@ def set_active_bone(context, bone: Bone | EditBone | PoseBone):
             )
 
 
-def reveal_and_select(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
+def reveal_and_select_bone(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
     rig = active_rig(context)
 
-    ensure_visible_bone_collection(bone)
-    bone.hide = False
+    reveal_bone(bone)
     if not extend_selection:
         deselect_all_bones(context)
 
     if context.mode == 'EDIT_ARMATURE':
-        ebone = rig.data.edit_bones[bone.name]
+        if isinstance(bone, PoseBone):
+            ebone = bone.id_data.data.edit_bones[bone.name]
+        else:
+            ebone = bone.id_data.edit_bones[bone.name]
         ebone.select = True
         ebone.select_head = True
         ebone.select_tail = True
@@ -182,7 +163,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 
         super().execute(context)
 
-        reveal_and_select(context, bone, set_active=True)
+        reveal_and_select_bone(context, bone, set_active=True)
 
         return {'FINISHED'}
 
@@ -278,7 +259,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
                 )
                 continue
 
-            reveal_and_select(context, target_bone, set_active=False)
+            reveal_and_select_bone(context, target_bone, set_active=False)
 
         set_active_bone(context, active_target_bone)
 
@@ -296,7 +277,7 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
         super().execute(context)
 
         active_bone = context.active_pose_bone or context.active_bone
-        reveal_and_select(context, active_bone.parent)
+        reveal_and_select_bone(context, active_bone.parent)
 
         return {'FINISHED'}
 
@@ -335,7 +316,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         if not self.extend_selection:
             deselect_all_bones(context)
 
-        reveal_and_select(context, bone)
+        reveal_and_select_bone(context, bone)
 
         return {'FINISHED'}
 

@@ -2,7 +2,7 @@
 
 from mathutils import Vector
 from math import atan2
-
+from ..generation.cloudrig import closest_point_on_line
 
 def bounding_box(points: list[Vector]) -> tuple[Vector, Vector]:
     """Return two vectors representing the lowest and highest coordinates of
@@ -105,24 +105,8 @@ def flat(vec: Vector) -> Vector:
 
     return new_vec
 
-
-def closest_point_on_line(line_start: Vector, line_end: Vector, point: Vector, clamp_to_segment: bool = False) -> Vector:
-    line_direction = line_end - line_start
-    vector_to_point = point - line_start
-
-    line_length_squared = line_direction.dot(line_direction)
-    if line_length_squared == 0.0:
-        # Degenerate line (start == end)
-        return line_start.copy(), 0.0
-
-    factor = vector_to_point.dot(line_direction) / line_length_squared
-
-    if clamp_to_segment:
-        factor = max(0.0, min(1.0, factor))
-
-    closest_point = line_start + line_direction * factor
-    return closest_point
-
+# This function was moved to cloudrig.py because it's used for IK pole snapping.
+closest_point_on_line
 
 def clamp(val, _min=0, _max=1) -> float or int:
     if val < _min:

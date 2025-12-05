@@ -5,12 +5,12 @@ from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
 
 import bpy, os, traceback, sys
 import json, webbrowser, time
-import struct, platform, io, urllib.parse
+import struct, platform, urllib.parse
 import addon_utils
 
 from ..rig_component_features.component_params_ui import draw_label_with_linebreak, is_advanced_mode
 from ..generation.cloudrig import is_cloud_metarig
-from ..operators.pie_bone_selection_ops import reveal_and_select
+from ..operators.pie_bone_selection_ops import reveal_and_select_bone
 
 """
 Fatal errors can happen in 3 ways:
@@ -774,7 +774,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
             self.report({'ERROR'}, f'Bone "{self.target_bone}" not in armature "{rig.name}".')
             return {'CANCELLED'}
 
-        reveal_and_select(context, bone)
+        reveal_and_select_bone(context, bone)
 
         pbone = rig.pose.bones.get(bone.name)
         if pbone:

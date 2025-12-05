@@ -7,33 +7,21 @@ It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
 import bpy, json, ast, re, contextlib, sys, importlib
-from collections import OrderedDict, defaultdict
-from mathutils import Matrix, Vector
-from math import acos, pi
-
 from bpy.props import (
-    StringProperty,
-    BoolProperty,
-    EnumProperty,
-    PointerProperty,
-    IntProperty,
+    StringProperty, BoolProperty, EnumProperty,
+    PointerProperty, IntProperty,
 )
 from bpy.types import (
-    bpy_struct,
-    ID,
-    Object,
-    PoseBone,
-    UILayout,
-    UIList,
-    Panel,
-    Menu,
-    Operator,
-    PropertyGroup,
-    BoneCollection,
+    bpy_struct, ID, Object,
+    BoneCollection, PoseBone, EditBone, Bone,
+    UILayout, UIList, Panel, Menu,
+    Operator, PropertyGroup, 
 )
-from rna_prop_ui import rna_idprop_value_item_type
 from bpy.utils import register_class, unregister_class
+from rna_prop_ui import rna_idprop_value_item_type
 from bl_ui.generic_ui_list import draw_ui_list
+from collections import OrderedDict, defaultdict
+from mathutils import Matrix, Vector
 
 cloudrig_installed = False
 submodule = next((m for m in sys.modules if m.endswith('generation.cloudrig')), None)
@@ -193,7 +181,6 @@ def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
 ########## Snapping & Baking ##########
 #######################################
 
-
 class SnappingOpMixin:
     bone_names: StringProperty(
         name="Bone Names",
@@ -215,108 +202,159 @@ class SnappingOpMixin:
             return False
         return True
 
-    @staticmethod
-    def get_prop_target_value(prop_pb, prop_id) -> float:
-        if prop_pb[prop_id] < 1.0:
-            return 1.0
-        return 0.0
+    def invoke(self, context, event):
+        self.init(context)
 
-    def get_properties_bone(self, rig: Object) -> PoseBone:
-        if self.prop_bone not in rig.pose.bones:
+    def init(self, context):
+        self.rig = active_rig(context)
+        self.initial_prop_value = self.prop_value
+        self._target_prop_value = 1.0 if self.prop_value < 1.0 else 0.0
+
+    def set_target_prop_value(self, key=False):
+        self.prop_pbone[self.prop_id] = self._target_prop_value
+        if key:
+            self.key_target_prop_value()
+
+    def key_target_prop_value(self):
+        self.prop_pbone.keyframe_insert(f'["{self.prop_id}"]', group=self.prop_pbone.name, keytype='GENERATED')
+
+    @property
+    def prop_pbone(self) -> PoseBone:
+        # Return the PoseBone holding the custom property that will be toggled.
+        pbone = self.rig.pose.bones.get(self.prop_bone)
+        if not pbone:
             raise Exception(f"Bone not found in rig: `{self.prop_bone}`.")
+        return pbone
 
-        prop_pb = rig.pose.bones[self.prop_bone]
-        if self.prop_id not in prop_pb:
-            raise Exception(
+    @property
+    def prop_value(self) -> float:
+        # Return the current value of the custom property that will be toggled.
+        if self.prop_id not in self.prop_pbone:
+            raise ValueError(
                 f"Property `{self.prop_id}` not found in bone `{self.prop_bone}`."
             )
+        return self.prop_pbone[self.prop_id]
 
-        target_value = self.get_prop_target_value(prop_pb, self.prop_id)
-        if int(prop_pb[self.prop_id]) == target_value:
-            raise Exception(
-                f"Value of property `{self.prop_id}` is already {target_value}."
-            )
-
-        return prop_pb
-
-    def get_affected_pbones(self, rig: Object) -> set[PoseBone]:
+    def get_affected_pbones(self) -> set[PoseBone]:
         affected_pbones = set()
         for bone_name in ast.literal_eval(self.bone_names):
-            pb = rig.pose.bones.get(bone_name)
+            pb = self.rig.pose.bones.get(bone_name)
             if pb:
                 affected_pbones.add(pb)
             else:
-                raise Exception(f"Bone `{bone_name}` not found.")
+                raise ValueError(f"Bone `{bone_name}` not found.")
         return affected_pbones
 
-    @staticmethod
-    def get_pbone_matrix_map(
-        bones_to_snap: list[PoseBone], snap_to_bones: list[PoseBone] = []
-    ) -> OrderedDict[str, Matrix]:
-        if not snap_to_bones:
-            snap_to_bones = bones_to_snap
-        assert len(bones_to_snap) == len(snap_to_bones)
-        return OrderedDict(
-            [
-                (snapped_bone.name, snap_target.matrix.copy())
-                for snapped_bone, snap_target in zip(bones_to_snap, snap_to_bones)
-            ]
-        )
-
-    def set_bone_selection(self, rig, select=False, pbones: list[PoseBone] = None):
-        if not pbones:
-            pbones = rig.pose.bones
-        for pb in pbones:
-            pb.select = select
-
-    @staticmethod
-    def reveal_bones(pbones: list[PoseBone]):
-        for pb in pbones:
-            if pb.bone.hide:
-                pb.bone.hide = False
-            if not any([coll.is_visible for coll in pb.bone.collections]):
-                coll = pb.bone.collections[0]
-                while coll:
-                    coll.is_visible = True
-                    coll = coll.parent
-
-    def set_bone_matrices(
-        self, context, rig: Object, pbone_matrix_map: dict[str, Matrix]
+    def set_and_key_bone_matrices(
+        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix]
     ):
-        for bone_name, mat in pbone_matrix_map.items():
-            pb = rig.pose.bones[bone_name]
-            pb.matrix = mat.copy()
+        for pbone, mat in pbone_matrix_map.items():
+            pbone.matrix = mat.copy()
             context.view_layer.update()
-            pb.matrix = mat.copy()
-            key_transforms(pb, options={'INSERTKEY_AVAILABLE'})
+            pbone.matrix = mat.copy()
 
+            key_transforms(pbone)
+
+def get_pbone_matrix_map(
+    bones_to_snap: list[PoseBone], snap_to_bones: list[PoseBone] = []
+) -> OrderedDict[PoseBone, Matrix]:
+    if not snap_to_bones:
+        snap_to_bones = bones_to_snap
+    assert len(bones_to_snap) == len(snap_to_bones)
+    return OrderedDict(
+        [
+            (snapped_bone, snap_target.matrix.copy())
+            for snapped_bone, snap_target in zip(bones_to_snap, snap_to_bones)
+        ]
+    )
+
+def set_bone_selection(rig, select=False, pbones: list[PoseBone] = None, extend=False):
+    if select and not extend:
+        set_bone_selection(rig, False, pbones)
+    if not pbones:
+        pbones = rig.pose.bones
+    for pb in pbones:
+        pb.select = select
+
+def key_transforms(pb: PoseBone):
+    if pb.rotation_mode == 'QUATERNION':
+        props = ['rotation_quaternion']
+    elif pb.rotation_mode == 'AXIS_ANGLE':
+        props = ['rotation_axis_angle']
+    else:
+        props = ['rotation_euler']
+    
+    props += ['location', 'scale']
+
+    for prop in props:
+        pb.keyframe_insert(prop, keytype='GENERATED')
+
+def reveal_bones(bones: list[Bone | EditBone | PoseBone]):
+    for bone in bones:
+        reveal_bone(bone)
+
+def reveal_bone(bone: Bone | EditBone | PoseBone):
+    ensure_visible_bone_collection(bone)
+    bone.hide = False
+
+def ensure_visible_bone_collection(bone: Bone | EditBone | PoseBone):
+    """If target bone not in any enabled collections, enable first one."""
+    if isinstance(bone, PoseBone):
+        bone = bone.bone
+
+    armature = bone.id_data
+    collections = armature.collections
+
+    if len(bone.collections) == 0:
+        return
+
+    if not any([coll.is_visible_effectively for coll in bone.collections]):
+        coll = bone.collections[0]
+        while coll:
+            if collections.is_solo_active:
+                coll.is_solo = True
+            else:
+                coll.is_visible = True
+            coll = coll.parent
 
 class SnapBakeOpMixin(SnappingOpMixin):
     do_bake: BoolProperty(name="Bake", default=False)
-    frame_start: IntProperty(name="Start Frame")
-    frame_end: IntProperty(name="End Frame")
+
+    def nudge_end(self, context):
+        if self.frame_start >= self.frame_end:
+            self.frame_end = self.frame_start + 1
+    def nudge_start(self, context):
+        if self.frame_start >= self.frame_end:
+            self.frame_start = self.frame_end - 1
+    frame_start: IntProperty(name="First Frame", default=-999, update=nudge_end)
+    frame_end: IntProperty(name="Last Frame", default=-999, update=nudge_start)
+
     key_before_start: BoolProperty(
-        name="Key Before Start",
+        name="Key Before First",
         description="Insert a keyframe of the original values one frame before the bake range. This is to avoid undesired interpolation towards the bake",
     )
     key_after_end: BoolProperty(
-        name="Key After End",
+        name="Key After Last",
         description="Insert a keyframe of the original values one frame after the bake range. This is to avoid undesired interpolation after the bake",
     )
 
-    def invoke(self, context, _event):
-        self.frame_start = context.scene.frame_start
-        self.frame_end = context.scene.frame_end
-        self.do_bake = False
+    def invoke(self, context, event):
+        super().invoke(context, event)
+        # If the op wasn't run before, initialize with scene's frame range.
+        if self.frame_start == -999:
+            self.frame_start = context.scene.frame_start
+        if self.frame_end == -999:
+            self.frame_end = context.scene.frame_end
         return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context):
         layout = self.layout
 
-        self.layout.prop(self, 'do_bake')
-        split = layout.split(factor=0.1)
-        split.row()
-        col = split.column()
+        self.draw_affected_bones(layout.box())
+
+        box = layout.box()
+        box.prop(self, 'do_bake')
+        col = box.column()
         if self.do_bake:
             time_row = col.row(align=True)
             time_row.prop(self, 'frame_start')
@@ -325,36 +363,27 @@ class SnapBakeOpMixin(SnappingOpMixin):
             fix_row.prop(self, 'key_before_start')
             fix_row.prop(self, 'key_after_end')
 
-        self.draw_affected_bones(layout, context)
+    def draw_affected_bones(self, layout):
+        affected_pbones = self.get_affected_pbones()
+        self.draw_bones(layout, {pb:None for pb in affected_pbones})
 
-    def draw_affected_bones(self, layout, context):
-        rig = find_cloudrig(context)
-        if not rig:
+    def draw_bones(self, layout, bone_map: dict[PoseBone, PoseBone | None]):
+        col = layout.column(align=True)
+        plural = "s" if len(bone_map) != 1 else ""
+        row = col.row()
+        row.label(text=f"Snapped bone{plural}:")
+        if not plural:
+            row.enabled = False
+            pb = list(bone_map.keys())[0]
+            row.prop(pb, 'name', text="", icon='BONE_DATA')
             return
 
-        affected_pbones = self.get_affected_pbones(rig)
-        self.draw_bones(layout, context, {pb.name:None for pb in affected_pbones})
-
-    def draw_bones(self, layout, context, bone_map: dict):
-        rig = active_rig(context)
-        col = layout.column(align=True)
-        col.label(text="Snapped bones:")
-        for from_name, to_name in bone_map.items():
-            from_pb = rig.pose.bones.get(from_name)
+        for from_pb, to_pb in bone_map.items():
             split = col.row().split(align=True, factor=0.45)
             split.enabled = False
             row = split.row()
-            if not from_pb:
-                split.alert = True
-                row.label(text=f"Missing: {from_name}", icon='ERROR')
-                continue
             row.prop(from_pb, 'name', text="", icon='BONE_DATA')
-            if to_name:
-                to_pb = rig.pose.bones.get(to_name)
-                if not to_pb:
-                    row.alert = True
-                    row.label(text=f"Missing: {to_name}", icon='ERROR')
-                    continue
+            if to_pb:
                 split = split.row().split(factor=0.08)
                 split.row().label(text=f"\u279C")
                 split.row().prop(to_pb, 'name', text="", icon='BONE_DATA')
@@ -367,13 +396,6 @@ class SnapBakeOpMixin(SnappingOpMixin):
             return [context.scene.frame_current]
 
         return list(range(self.frame_start, self.frame_end + 1))
-
-    @staticmethod
-    def ensure_action(rig: Object):
-        if not rig.animation_data:
-            rig.animation_data_create()
-        if not rig.animation_data.action:
-            rig.animation_data.action = bpy.data.actions.new("ACT-" + rig.name)
 
     def map_frames_to_bone_matrices(
         self,
@@ -389,79 +411,56 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
         frame_matrix_map = OrderedDict()
         for frame_number in frame_numbers:
-            frame_matrix_map[frame_number] = self.map_single_frame_to_bone_matrices(
-                context, frame_number, bones_to_snap, snap_to_bones
-            )
+            context.scene.frame_set(frame_number)
+            context.view_layer.update()
+
+            frame_matrix_map[frame_number] = get_pbone_matrix_map(bones_to_snap, snap_to_bones)
 
         return frame_matrix_map
-
-    def map_single_frame_to_bone_matrices(
-        self,
-        context,
-        frame_number: int,
-        bones_to_snap: list[PoseBone],
-        snap_to_bones: list[PoseBone] = [],
-    ) -> OrderedDict[str, Matrix]:
-        context.scene.frame_set(frame_number)
-        context.view_layer.update()
-
-        return self.get_pbone_matrix_map(bones_to_snap, snap_to_bones)
 
     def keyframe_bones(
         self,
         context,
         rig: Object,
-        frame_matrix_map: OrderedDict[int, OrderedDict[str, Matrix]],
-        prop_pb: PoseBone,
+        frame_matrix_map: OrderedDict[int, OrderedDict[PoseBone, Matrix]],
     ):
-        pbones = [
-            rig.pose.bones[name]
-            for name in list(list(frame_matrix_map.values())[0].keys())
-        ]
+        affected_pbones = list(list(frame_matrix_map.values())[0].keys())
 
         # Deselect all bones, then reveal and select affected bones.
-        self.set_bone_selection(rig, False)
-        self.reveal_bones(pbones)
-        self.set_bone_selection(rig, True, pbones)
+        set_bone_selection(rig, True, affected_pbones, extend=False)
 
         frame_numbers = list(frame_matrix_map.keys())
 
+        # Avoid undesired interpolation before/after the bake range.
+        def key_all_on_frame(frame: int):
+            context.scene.frame_set(frame)
+            self.key_target_prop_value()
+            for pb in affected_pbones:
+                key_transforms(pb)
         if self.key_before_start:
             # Key original value and transforms one frame before the selected bake range.
-            # This is to avoid our bake causing undesired interpolation before the bake range.
-            context.scene.frame_set(frame_numbers[0] - 1)
-            prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
-            bpy.ops.anim.keyframe_insert()
-
+            key_all_on_frame(frame_numbers[0] - 1)
         if self.key_after_end:
             # Key original value and transforms one frame after the selected bake range.
-            context.scene.frame_set(frame_numbers[-1] + 1)
-            prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
-            bpy.ops.anim.keyframe_insert()
+            key_all_on_frame(frame_numbers[-1] + 1)
 
-        # ViewLayer Update is necessary for some reason.
-        target_value = self.get_prop_target_value(prop_pb, self.prop_id)
-        # Idk why we have to go over them twice, but if we don't, we get issues
-        # at the start and end of the frame range.
-        for i in range(2):
-            for frame_number, pbone_matrix_map in frame_matrix_map.items():
-                context.scene.frame_set(frame_number)
-
-                # Change & key property value.
-                prop_pb[self.prop_id] = target_value
-                prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name)
-
-                self.set_bone_matrices(context, rig, pbone_matrix_map)
-                # bpy.ops.anim.keyframe_insert()
-
+        for frame_number, pbone_matrix_map in frame_matrix_map.items():
+            context.scene.frame_set(frame_number)
+            # Change & key property value.
+            self.set_target_prop_value(key=True)
+            # Pose & key the bones.
+            self.set_and_key_bone_matrices(context, pbone_matrix_map)
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
-    "Flip a custom property's value while preserving the world-matrix " "of some bones"
+    "Invert a custom property's value while preserving the world-matrix " \
+    "of bones which are affected by it. Can also bake the bones over a frame range"
     bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
+        if not hasattr(self, 'rig'):
+            self.init(context)
         return self.execute_bone_snap_bake(context)
 
     def execute_bone_snap_bake(self, context) -> set:
@@ -469,8 +468,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         if not rig:
             return {'CANCELLED'}
         try:
-            prop_pb = self.get_properties_bone(rig)
-            affected_pbones = self.get_affected_pbones(rig)
+            affected_pbones = self.get_affected_pbones()
         except Exception as exc:
             self.report({'ERROR'}, str(exc))
             return {'CANCELLED'}
@@ -481,8 +479,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         frame_matrix_map = self.map_frames_to_bone_matrices(context, affected_pbones)
 
         if self.do_bake:
-            self.ensure_action(rig)
-            self.keyframe_bones(context, rig, frame_matrix_map, prop_pb)
+            self.keyframe_bones(context, rig, frame_matrix_map)
             context.scene.frame_set(active_frame_bkp)
             self.report({'INFO'}, "Finished baking.")
             return {'FINISHED'}
@@ -490,40 +487,23 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         # Store (copies!) of world matrices.
         pbone_matrix_map = list(frame_matrix_map.values())[0]
 
-        # Deselect all bones.
-        self.set_bone_selection(rig, False)
-        # Reveal & select affected bones.
-        self.reveal_bones(affected_pbones)
-        self.set_bone_selection(rig, True, affected_pbones)
+        # Reveal & select (only) affected bones.
+        set_bone_selection(rig, True, affected_pbones, extend=False)
 
-        # Change property value.
-        target_value = self.get_prop_target_value(prop_pb, self.prop_id)
-        prop_pb[self.prop_id] = target_value
+        # Set & key property value.
+        self.set_target_prop_value(key=True)
         
         # Restore (and key if needed) world matrices.
-        self.set_bone_matrices(context, rig, pbone_matrix_map)
-
-        # Key the toggled property if needed.
-        prop_pb.keyframe_insert(f'["{self.prop_id}"]', group=prop_pb.name, options={'INSERTKEY_AVAILABLE'})
+        self.set_and_key_bone_matrices(context, pbone_matrix_map)
 
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
 
-def key_transforms(obj, **kwargs):
-    if obj.rotation_mode == 'QUATERNION':
-        props = ['rotation_quaternion']
-    elif obj.rotation_mode == 'AXIS_ANGLE':
-        props = ['rotation_axis_angle']
-    else:
-        props = ['rotation_euler']
-    
-    props += ['location', 'scale']
-
-    for prop in props:
-        obj.keyframe_insert(prop, **kwargs)
-
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
-    "Change the parent while preserving the world-matrix of the affected " "bones, even in a frame range"
+    "Change the parent while preserving the world-matrix of the children. " \
+    "Can also bake the bones over a frame range"
+    # This operator's implementation is so simple because it does nothing more 
+    # than base Snap&Bake other than using an Enum selector for the property value.
 
     bl_idname = 'pose.cloudrig_switch_parent_bake'
     bl_label = "Switch Parents & Preserve Transforms"
@@ -539,15 +519,18 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
     selected: EnumProperty(name="Selected Parent", items=parent_items)
 
     def draw(self, context):
-        self.layout.prop(self, 'selected', text='')
+        row = self.layout.row()
+        row.prop(self, 'selected', text='Parent')
         super().draw(context)
 
-    def get_prop_target_value(self, prop_pb, prop_id) -> int:
-        return int(self.selected)
-
+    def execute(self, context):
+        if not hasattr(self, 'rig'):
+            self.init(context)
+        self._target_prop_value = int(self.selected)
+        return super().execute(context)
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
-    "Switch between IK <-> FK modes. Snap the affected bones to preserve"
+    "Switch between IK <-> FK modes. Snap the affected bones to preserve" \
     " the pose in the new mode. Can also bake the bones over a frame range"
 
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
@@ -570,209 +553,190 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         description="Name of the first bone in the FK chain. Necessary for IK pole snapping logic"
     )
 
+    @property
+    def pole_pbone(self):
+        return self.rig.pose.bones[self.ik_pole]
+
+    @property
+    def bone_map(self) -> OrderedDict[PoseBone, PoseBone]:
+        if not hasattr(self, '_bone_map'):
+            ik_value: float = self._target_prop_value
+            fk_to_ik_names = ast.literal_eval(self.map_fk_to_ik)
+            ik_to_fk_names = ast.literal_eval(self.map_ik_to_fk)
+
+            self.fk_to_ik = OrderedDict([(self.rig.pose.bones[k], self.rig.pose.bones[v]) for k, v in fk_to_ik_names])
+            self.ik_to_fk = OrderedDict([(self.rig.pose.bones[k], self.rig.pose.bones[v]) for k, v in ik_to_fk_names])
+
+            self._bone_map = self.fk_to_ik if self._target_prop_value == 0 else self.ik_to_fk
+            self._other_bone_map = self.fk_to_ik if self._target_prop_value == 1 else self.ik_to_fk
+        return self._bone_map
+
+    ####################################
+    ### Inherited functions (All of them atm)
+
     def invoke(self, context, _event):
-        self.rig = context.active_object
-        self.prop_pb = self.get_properties_bone(self.rig)
-        self.current_value = self.prop_pb[self.prop_id]
-        self.target_value = self.get_prop_target_value(self.prop_pb, self.prop_id)
-        self.bone_map = self.get_bone_map(self.current_value)
+        self.init(context)
         return super().invoke(context, _event)
 
     def execute(self, context):
+        if not hasattr(self, 'rig'):
+            self.init(context)
         rig = context.active_object
         active_frame_bkp = context.scene.frame_current
 
         # Store (copies!) of world matrices.
-        bones_to_snap = [self.rig.pose.bones[name] for name in self.bone_map.keys()]
-        snap_to_bones = [self.rig.pose.bones[name] for name in self.bone_map.values()]
+        bones_to_snap = list(self.bone_map.keys())
+        snap_to_bones = list(self.bone_map.values())
+
+        # Insert keys on the bones which define the current pose, in case user 
+        # has moved them but hasn't keyed them.
+        for pb in list(self._other_bone_map.keys()):
+            context.view_layer.update()
+            key_transforms(pb)
+
+        # Store bone matrices.
         frame_matrix_map = self.map_frames_to_bone_matrices(
             context, bones_to_snap, snap_to_bones
         )
 
         self.ik_last = bones_to_snap[0]
         if self.do_bake:
-            self.keyframe_bones(context, rig, frame_matrix_map, self.prop_pb)
+            self.keyframe_bones(context, rig, frame_matrix_map)
             context.scene.frame_set(active_frame_bkp)
             self.report({'INFO'}, "Finished baking.")
             return {'FINISHED'}
 
-        # Change property value.
-        self.prop_pb[self.prop_id] = self.get_prop_target_value(
-            self.prop_pb, self.prop_id
-        )
+        # Set & key property value.
+        self.set_target_prop_value(key=True)
 
         # Deselect all bones.
-        self.set_bone_selection(self.rig, False)
+        set_bone_selection(self.rig, False)
 
         pbone_matrix_map = list(frame_matrix_map.values())[0]
         # Restore world matrices.
-        self.set_bone_matrices(context, self.rig, pbone_matrix_map)
-
-        if self.target_value == 1 and self.ik_pole:
-            self.snap_pole_target()
+        self.set_and_key_bone_matrices(context, pbone_matrix_map)
 
         # Reveal & select affected bones.
-        self.reveal_bones(bones_to_snap)
-        self.set_bone_selection(self.rig, True, bones_to_snap)
+        affected_pbones = self.get_affected_pbones()
+        reveal_bones(affected_pbones)
+        set_bone_selection(self.rig, True, affected_pbones, extend=False)
 
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
 
+    def get_affected_pbones(self) -> set[PoseBone]:
+        affected_pbones = list(self.bone_map.keys())
+        if self._target_prop_value == 1.0:
+            affected_pbones.append(self.pole_pbone)
+        return affected_pbones
 
-    def set_bone_selection(self, rig, select=False, pbones: list[PoseBone]=None):
-        """Overrides SnapBakeOpMixin to also select the IK pole before keying."""
-        if select and self.target_value == 1 and self.ik_pole:
-            pbones.append(rig.pose.bones[self.ik_pole])
-        super().set_bone_selection(rig, select, pbones)
-
-    def set_bone_matrices(
-        self, context, rig: Object, pbone_matrix_map: dict[str, Matrix]
+    def set_and_key_bone_matrices(
+        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix]
     ):
-        """Overrides SnapBakeOpMixin."""
-        super().set_bone_matrices(context, rig, pbone_matrix_map)
-        if self.target_value == 1 and self.ik_pole:
-            self.snap_pole_target()
+        super().set_and_key_bone_matrices(context, pbone_matrix_map)
+        if self._target_prop_value == 1 and self.ik_pole:
+            self.snap_pole_target(key=True)
 
-
-    def snap_pole_target(self) -> Matrix:
+    def snap_pole_target(self, key=True):
         """Snap the pole target based on the first IK bone.
         This needs to run after the IK wrist control had already been snapped.
-        It's not perfect, but to make this work as best as possible, ensure:
+        This can have perfect results as long as you ensure:
             - IK chain lies flat on a plane (Else, Generator Log warns you.)
             - FK and IK rolls match perfectly. (Generator makes sure.)
-            - FK elbow has Y/Z rotation locked. (See "limit_elbow_axes" param.)
+            - FK elbow has Y/Z rotation locked. (See "fk_chain.limit_elbow_axes" param.)
         """
 
-        # CloudRig's IK pole snapping is based on code by revolt_randy:
-        # https://blenderartists.org/t/what-is-the-best-way-to-do-fk-ik-snapping/1427362/30
-        # Which was based on code by Nathan Vegdahl aka Cessen:
-        # https://blenderartists.org/t/visual-transform-helper-functions-for-2-5/500965
-
-        def perpendicular_vector(v):
-            """ Returns a vector that is perpendicular to the one given.
-                The returned vector is _not_ guaranteed to be normalized.
-            """
-            # Create a vector that is not aligned with v.
-            # It doesn't matter what vector.  Just any vector
-            # that's guaranteed to not be pointing in the same
-            # direction.
-            if abs(v[0]) < abs(v[1]):
-                tv = Vector((1,0,0))
-            else:
-                tv = Vector((0,1,0))
-
-            # Use cross prouct to generate a vector perpendicular to
-            # both tv and (more importantly) v.
-            return v.cross(tv)
-
-        def rotation_difference(mat1, mat2):
-            """ Returns the shortest-path rotational difference between two
-                matrices.
-            """
-            q1 = mat1.to_quaternion()
-            q2 = mat2.to_quaternion()
-            angle = acos(min(1,max(-1,q1.dot(q2)))) * 2
-            if angle > pi:
-                angle = -angle + (2*pi)
-            return angle
-
-        def get_pose_matrix_in_other_space(mat, pose_bone):
-            """ Returns the transform matrix relative to pose_bone's current
-                transform space.  In other words, presuming that mat is in
-                armature space, slapping the returned matrix onto pose_bone
-                should give it the armature-space transforms of mat.
-            """
-            return pose_bone.id_data.convert_space(matrix=mat, pose_bone=pose_bone, from_space='POSE', to_space='LOCAL')
-
-        def set_pose_translation(pose_bone, mat):
-            """ Sets the pose bone's translation to the same translation as the given matrix.
-                Matrix should be given in bone's local space.
-            """
-            pose_bone.location = mat.to_translation()
-
-        def match_pole_target(ik_first, ik_last, pole, match_bone):
-            """ Places an IK chain's pole target to match ik_first's
-                transforms to match_bone.  All bones should be given as pose bones.
-                You need to be in pose mode on the relevant armature object.
-                ik_first: first bone in the IK chain
-                ik_last:  last bone in the IK chain
-                pole:  pole target bone for the IK chain
-                match_bone:  bone to match ik_first to (probably first bone in a matching FK chain)
-                length:  distance pole target should be placed from the chain center
-            """
-            a = ik_first.matrix.to_translation()
-            b = ik_last.matrix.to_translation() + ik_last.vector
-
-            # Vector from the head of ik_first to the
-            # tip of ik_last
-            ikv = b - a
-
-            length = ik_first.length + match_bone.length
-
-            # Get a vector perpendicular to ikv
-            pv = perpendicular_vector(ikv).normalized() * length
-
-            def set_pole(pvi):
-                """ Set pole target's position based on a vector
-                    from the arm center line.
-                """
-                # Translate pvi into armature space
-                ploc = a + (ikv/2) + pvi
-
-                # Set pole target to location
-                mat = get_pose_matrix_in_other_space(Matrix.Translation(ploc), pole)
-                set_pose_translation(pole, mat)
-
-                bpy.context.view_layer.update()
-
-            set_pole(pv)
-
-            # Get the rotation difference between ik_first and match_bone
-            angle = rotation_difference(ik_first.matrix, match_bone.matrix)
-
-            # Try compensating for the rotation difference in both directions
-            pv1 = Matrix.Rotation(angle, 4, ikv) @ pv
-            set_pole(pv1)
-            ang1 = rotation_difference(ik_first.matrix, match_bone.matrix)
-
-            pv2 = Matrix.Rotation(-angle, 4, ikv) @ pv
-            set_pole(pv2)
-            ang2 = rotation_difference(ik_first.matrix, match_bone.matrix)
-
-            # Do the one with the smaller angle
-            if ang1 < ang2:
-                set_pole(pv1)
-
-        ik_pole = self.rig.pose.bones[self.ik_pole]
         fk_first = self.rig.pose.bones[self.fk_first]
-        ik_first = self.rig.pose.bones[self.ik_first]
-        match_pole_target(ik_first, self.ik_last, ik_pole, fk_first)
-        return ik_pole.matrix
+        fk_second = list(self.fk_to_ik.keys())[1]
+        _pole_angle_deg, _elbow_dir, pole_loc = calculate_ik_pole_vector(fk_first, fk_second)
 
+        self.pole_pbone.matrix.translation = pole_loc
 
+        if key:
+            key_transforms(self.pole_pbone)
 
-    def map_single_frame_to_bone_matrices(
-        self, context, frame_number, bones_to_snap, snap_to_bones
-    ):
-        context.scene.frame_set(frame_number)
-        context.view_layer.update()
-
-        pbone_matrix_map = self.get_pbone_matrix_map(bones_to_snap, snap_to_bones)
-
-        return pbone_matrix_map
-
-    def get_bone_map(self, ik_value: float) -> OrderedDict[str, str]:
-        map_fk_to_ik = OrderedDict(ast.literal_eval(self.map_fk_to_ik))
-        map_ik_to_fk = OrderedDict(ast.literal_eval(self.map_ik_to_fk))
-
-        bone_map = map_fk_to_ik if ik_value == 1 else map_ik_to_fk
-
-        return bone_map
-
-    def draw_affected_bones(self, layout, context):
+    def draw_affected_bones(self, layout):
         bone_map = self.bone_map.copy()
-        bone_map[self.ik_pole] = None
-        self.draw_bones(layout, context, bone_map)
+        bone_map[self.pole_pbone] = None
+        self.draw_bones(layout, bone_map)
+
+    ### End of inherited functions
+    ####################################
+
+
+def calculate_ik_pole_vector(
+    meta_first: PoseBone,
+    meta_second: PoseBone
+) -> tuple[float, Vector, Vector]:
+    """Based on the first two bones of a chain,
+    return some data useful in creating an IK pole target:
+        float ik_angle: Best angle (in degrees) for the IK constraint's pole_angle param.
+        Vector pole_direction: Normalized direction of the elbow.
+        Vector pole_location: Final location of the pole target in object space.
+    """
+    chain_vector = meta_second.tail - meta_first.head
+
+    first_tail = meta_second.head
+    last_tail = meta_second.tail
+
+    # Calculate the distances of the four points to the tail of the last bone.
+    # These four points are in the four directions of the bone around the bone's tail.
+    x_pos_distance = ((first_tail + meta_first.x_axis) - last_tail).length
+    x_neg_distance = ((first_tail - meta_first.x_axis) - last_tail).length
+
+    z_pos_distance = ((first_tail + meta_first.z_axis) - last_tail).length
+    z_neg_distance = ((first_tail - meta_first.z_axis) - last_tail).length
+
+    # Store those distances in a dictionary where they are matched with a
+    # tuple describing (the main axis of rotation, IK constraint pole_angle),
+    # that should be used, when that distance is the lowest.
+    axis_dict = {
+        x_pos_distance: ("-Z", 180),
+        x_neg_distance: ("+Z", 0),
+        z_pos_distance: ("+X", -90),
+        z_neg_distance: ("-X", 90),
+    }
+
+    # Find the tuple to use by picking the one corresponding to the lowest distance.
+    lowest_distance = axis_dict[min(list(axis_dict.keys()))]
+    pole_angle_deg = lowest_distance[1]
+
+    # On a line that goes from the start to the end of the chain, find the nearest point
+    # to the elbow.
+    closest = closest_point_on_line(meta_first.head, meta_second.tail, meta_first.tail)
+    # Then shoot towards the elbow by the length of that line (that's fairly arbitrary) 
+    # to find the pole vector position.
+    # NOTE: This requires that all the bone rolls are aligned to point towards this point.
+    # This can be achieved with the "Flatten IK Chain" operator.
+    elbow_vec = (meta_first.tail-closest)
+    elbow_direction = elbow_vec.normalized()
+    pole_location = closest + elbow_vec + elbow_direction*chain_vector.length
+
+    return pole_angle_deg, elbow_direction, pole_location
+
+
+def closest_point_on_line(
+        line_start: Vector,
+        line_end: Vector,
+        point: Vector,
+        clamp_to_segment: bool = False
+    ) -> Vector:
+    line_direction = line_end - line_start
+    vector_to_point = point - line_start
+
+    line_length_squared = line_direction.dot(line_direction)
+    if line_length_squared == 0.0:
+        # Degenerate line (start == end)
+        return line_start.copy(), 0.0
+
+    factor = vector_to_point.dot(line_direction) / line_length_squared
+
+    if clamp_to_segment:
+        factor = max(0.0, min(1.0, factor))
+
+    closest_point = line_start + line_direction * factor
+    return closest_point
+
 
 #######################################
 ######## Convenience Operators ########
@@ -835,7 +799,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(Operator):
 
         for prop_owner, prop_name in props_to_key:
             try:
-                prop_owner.keyframe_insert(prop_name, group=prop_owner.name)
+                prop_owner.keyframe_insert(prop_name, group=prop_owner.name, keytype='GENERATED')
             except TypeError:
                 # Happens if property is not animatable.
                 pass

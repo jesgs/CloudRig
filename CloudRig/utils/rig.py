@@ -3,8 +3,7 @@ from math import pi
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
 
-from ..generation.cloudrig import active_rig
-from .maths import closest_point_on_line
+from ..generation.cloudrig import active_rig, calculate_ik_pole_vector
 
 def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
@@ -141,57 +140,8 @@ def get_armature_dimensions(armature_obj: Object) -> Vector:
 #####################################
 ### IK Chain functions.
 
-
-def calculate_ik_pole_vector(
-    meta_first: PoseBone|EditBone,
-    meta_second: PoseBone|EditBone
-) -> tuple[float, Vector, Vector]:
-    """Based on the first two bones of a chain,
-    return some data useful in creating an IK pole target:
-        float ik_angle: Best angle (in degrees) for the IK constraint's pole_angle param.
-        Vector pole_direction: Normalized direction of the elbow.
-        Vector pole_location: Final location of the pole target in object space.
-    """
-    chain_vector = meta_second.tail - meta_first.head
-
-    first_tail = meta_second.head
-    last_tail = meta_second.tail
-
-    # Calculate the distances of the four points to the tail of the last bone.
-    # These four points are in the four directions of the bone around the bone's tail.
-    x_pos_distance = ((first_tail + meta_first.x_axis) - last_tail).length
-    x_neg_distance = ((first_tail - meta_first.x_axis) - last_tail).length
-
-    z_pos_distance = ((first_tail + meta_first.z_axis) - last_tail).length
-    z_neg_distance = ((first_tail - meta_first.z_axis) - last_tail).length
-
-    # Store those distances in a dictionary where they are matched with a
-    # tuple describing (the main axis of rotation, IK constraint pole_angle),
-    # that should be used, when that distance is the lowest.
-    axis_dict = {
-        x_pos_distance: ("-Z", 180),
-        x_neg_distance: ("+Z", 0),
-        z_pos_distance: ("+X", -90),
-        z_neg_distance: ("-X", 90),
-    }
-
-    # Find the tuple to use by picking the one corresponding to the lowest distance.
-    lowest_distance = axis_dict[min(list(axis_dict.keys()))]
-    pole_angle_deg = lowest_distance[1]
-
-    # Flip it if the main rotation axis is negative.
-
-    # On a line that goes from the start to the end of the chain, find the nearest point
-    # to the elbow.
-    closest = closest_point_on_line(meta_first.head, meta_second.tail, meta_first.tail)
-    # Then shoot towards the elbow by the length of that line (that's fairly arbitrary) to find the pole vector position.
-    # NOTE: This requires that all the bone rolls are aligned to point towards this point.
-    # This can be achieved with the "Flatten IK Chain" operator.
-    elbow_direction = (meta_first.tail-closest).normalized()
-    pole_location = closest + elbow_direction*chain_vector.length
-
-    return pole_angle_deg, elbow_direction, pole_location
-
+# This function was moved to cloudrig.py because it's used for snapping the IK pole
+calculate_ik_pole_vector
 
 def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     coords = get_flattened_coords(eb_chain)
