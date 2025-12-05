@@ -1,7 +1,9 @@
 import bpy
 from bl_ext.cloudrig.CloudRig.utils import post_gen
+from bl_ext.cloudrig.CloudRig.generation.cloudrig import get_rig_and_ui
 
-rig = bpy.context.active_object
+context = bpy.context
+rig = context.active_object
 assert rig and rig.name == 'RIG-Simple'
 
 post_gen.set_custom_property_value(rig, "Properties", "fk_hinge_left_bone1", 1.0)
@@ -22,3 +24,5 @@ post_gen.update_widget_properties(rig, 'FK-Bone1.L', wire_width=10)
 
 post_gen.GLOBAL_clean_custom_properties()
 post_gen.GLOBAL_rename_obdatas()
+
+rig, ui = get_rig_and_ui(context)

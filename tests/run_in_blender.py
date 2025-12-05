@@ -1,8 +1,8 @@
-from bl_ext.cloudrig.CloudRig import (
-    manual_mapping,
-)
-from bl_ext.cloudrig import CloudRig
-url_prefill_from_cloudrig = CloudRig.generation.troubleshooting.url_prefill_from_cloudrig
+from bl_ext.cloudrig.CloudRig.manual_mapping import cloudrig_manual_map
+from bl_ext.cloudrig.CloudRig.generation.troubleshooting import url_prefill_from_cloudrig
 
-manual_mapping.cloudrig_manual_map()
+import bpy
+context = bpy.context
+
+cloudrig_manual_map()
 url_prefill_from_cloudrig()
