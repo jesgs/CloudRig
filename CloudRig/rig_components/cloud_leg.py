@@ -216,6 +216,11 @@ class Component_Limb_BipedLeg(Component_Limb):
         # Create ROLL control behind the foot.
         head, tail = self.__calc_footroll_headtail(org_knee, org_toe, self.scale)
 
+        TWIST_RANGE = 90
+        HEEL_LIMIT = 60
+        FOOT_THRESHOLD = 90
+        TOE_THRESHOLD = 135
+
         roll_ctrl = self.bone_sets['IK Controls'].new(
             name=self.naming.make_name(["ROLL-M"], base_name, suffixes),
             bbone_width=1 / 18,
@@ -230,16 +235,16 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == "GENERATED":
             self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms.
-        self.lock_transforms(roll_ctrl, rot=False)
+        self.lock_transforms(roll_ctrl, rot=[False, True, False])
         roll_ctrl.add_constraint(
             'LIMIT_ROTATION',
             use_limit_x=True,
-            min_x=rad(-90),
-            max_x=rad(130),
+            min_x=rad(-HEEL_LIMIT),
+            max_x=rad(TOE_THRESHOLD),
             use_limit_y=True,
             use_limit_z=True,
-            min_z=rad(-90),
-            max_z=rad(90),
+            min_z=rad(-TWIST_RANGE),
+            max_z=rad(TWIST_RANGE),
         )
 
         # Create bone to use as pivot point when rolling back. 
@@ -269,11 +274,12 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         heel_pivot.add_constraint(
             'TRANSFORM',
+            name="Transform (Heel Roll)",
             subtarget=roll_ctrl.name,
             map_from='ROTATION',
             map_to='ROTATION',
-            from_min_x_rot=rad(-90),
-            to_min_x_rot=rad(-60),
+            from_min_x_rot=rad(-HEEL_LIMIT),
+            to_min_x_rot=rad(-HEEL_LIMIT),
         )
 
         # Create reverse IK bones.
@@ -293,33 +299,8 @@ class Component_Limb_BipedLeg(Component_Limb):
             rik_chain.append(rik_bone)
             ik_foot_chain[i].parent = rik_bone
 
-            if i == 1:
-                # Toe bone's rolling threshold.
-                toe_roll_con = rik_bone.add_constraint(
-                    'TRANSFORM',
-                    name="Transform (Toe Roll)",
-                    subtarget=roll_ctrl.name,
-                    map_from='ROTATION',
-                    map_to='ROTATION',
-                    from_min_x_rot=rad(90),
-                    from_max_x_rot=rad(166),
-                    to_min_x_rot=rad(0),
-                    to_max_x_rot=rad(-169),
-                    from_min_z_rot=rad(-60),
-                    from_max_z_rot=rad(60),
-                    to_min_z_rot=rad(-10),
-                    to_max_z_rot=rad(10),
-                )
-                toe_roll_prop_name = "Toe Roll Threshold"
-                ensure_custom_property(
-                    roll_ctrl, toe_roll_prop_name, default=rad(90), min=0, max=rad(180)
-                )
-                toe_roll_con.drivers.append(
-                    {
-                        'prop': 'from_min_x_rot',
-                        'variables': [(roll_ctrl.name, toe_roll_prop_name)],
-                    }
-                )
+            # Calculate angle of rotation necessary to make this bone vertical.
+            angle_to_vertical = Vector((0, 0, 1)).angle(rik_bone.vector)
 
             if i == 0:
                 # Foot bone's roll
@@ -333,29 +314,35 @@ class Component_Limb_BipedLeg(Component_Limb):
 
                 rik_bone.add_constraint(
                     'TRANSFORM',
-                    name="Transformation Roll",
+                    name="Transformation (Foot Roll)",
                     subtarget=roll_ctrl.name,
                     map_from='ROTATION',
                     map_to='ROTATION',
-                    from_min_x_rot=rad(0),
-                    from_max_x_rot=rad(135),
-                    to_min_x_rot=rad(0),
-                    to_max_x_rot=rad(-118),
-                    from_min_z_rot=rad(-45),
-                    from_max_z_rot=rad(45),
-                    to_min_z_rot=rad(-25),
-                    to_max_z_rot=rad(25),
+
+                    from_max_x_rot=rad(FOOT_THRESHOLD),
+                    from_min_z_rot=rad(-TWIST_RANGE),
+                    from_max_z_rot=rad(TWIST_RANGE),
+
+                    to_max_x_rot=angle_to_vertical,
+                    to_max_z_rot=rad(-TWIST_RANGE/2),
+                    to_min_z_rot=rad(TWIST_RANGE/2),
                 )
+            elif i == 1:
+                # Toe bone's rolling threshold.
+                angle_to_vertical = Vector((0, 0, 1)).angle(rik_bone.vector)
                 rik_bone.add_constraint(
                     'TRANSFORM',
-                    name="Transformation CounterRoll",
+                    name="Transform (Toe Roll)",
                     subtarget=roll_ctrl.name,
                     map_from='ROTATION',
                     map_to='ROTATION',
-                    from_min_x_rot=rad(90),
-                    from_max_x_rot=rad(135),
-                    to_min_x_rot=rad(0),
-                    to_max_x_rot=rad(31.8),
+                    from_min_x_rot=rad(FOOT_THRESHOLD),
+                    from_max_x_rot=rad(TOE_THRESHOLD),
+                    to_max_x_rot=angle_to_vertical,
+                    from_min_z_rot=rad(-TWIST_RANGE),
+                    from_max_z_rot=rad(TWIST_RANGE),
+                    to_min_z_rot=rad(TWIST_RANGE*(2/3)),
+                    to_max_z_rot=rad(-TWIST_RANGE*(2/3)),
                 )
 
         # Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
@@ -447,7 +434,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
 class Params(PropertyGroup):
     use_foot_roll: BoolProperty(
-        name="Foot Roll", description="Create Foot roll controls", default=True
+        name="Foot Roll", description="Create a Foot Roll control. When rotated 90 degrees on the X axis, the foot will be fully vertical (ie. on tippy-toes). Rotate it an additional 45 degrees, and the toe will also be vertical (like a ballerina). The angles are calculated based on the rest pose", default=True
     )
     heel_bone: StringProperty(
         name="Heel Pivot Bone",
