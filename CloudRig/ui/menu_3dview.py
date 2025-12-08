@@ -15,6 +15,7 @@ class VIEW3D_MT_cloudrig(Menu):
 
         text = "Re-Generate Rig" if target_rig or is_generated_cloudrig(obj) else "Generate Rig"
         layout.operator('pose.cloudrig_generate', text=text, icon='FILE_REFRESH')
+        layout.operator('object.cloudrig_metarig_toggle', icon='EVENT_TAB')
 
         if context.mode in {'POSE', 'EDIT_ARMATURE'}:
             layout.separator()
@@ -26,7 +27,6 @@ class VIEW3D_MT_cloudrig(Menu):
                 icon='MOD_MIRROR',
                 text="Symmetrize Components",
             )
-        layout.operator('object.cloudrig_metarig_toggle', icon='EVENT_TAB')
 
 
 def draw_cloudrig_menu(self, context):

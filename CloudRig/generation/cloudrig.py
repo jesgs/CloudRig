@@ -534,7 +534,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
     " the pose in the new mode. Can also bake the bones over a frame range"
 
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
-    bl_label = "Snap & Bake Bones to Other Bones"
+    bl_label = "Snap & Bake"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     map_fk_to_ik: StringProperty(
@@ -657,7 +657,8 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
 
     def draw_affected_bones(self, layout):
         bone_map = self.bone_map.copy()
-        bone_map[self.pole_pbone] = None
+        if self._target_prop_value == 1.0:
+            bone_map[self.pole_pbone] = None
         self.draw_bones(layout, bone_map)
 
     ### End of inherited functions

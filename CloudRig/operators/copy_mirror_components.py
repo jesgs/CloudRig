@@ -26,6 +26,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
             mirrored_name = flip_name(pb.name)
             if mirrored_name != pb.name and mirrored_name in obj.pose.bones:
                 return True
+        cls.poll_message_set("No selected bones have a CloudRig Component assigned. Nothing to symmetrize.")
         return False
 
     def execute(self, context):
