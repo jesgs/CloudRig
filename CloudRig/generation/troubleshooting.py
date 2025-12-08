@@ -520,6 +520,14 @@ class CloudLogManager:
         for pb in rig_obj.pose.bones:
             arm_con = None
             for con in pb.constraints:
+                if not con.is_valid:
+                    self.log(
+                        "Invalid Constraint",
+                        note=con.name,
+                        trouble_bone=pb.name,
+                        icon='CONSTRAINT_BONE',
+                        description=f'Constraint is invalid. This is usually because its target bone does not exist.'
+                    )
                 if con.type=='ARMATURE':
                     if not arm_con:
                         arm_con = con
@@ -531,7 +539,6 @@ class CloudLogManager:
                             icon='CON_ARMATURE',
                             description=f'This bone has multiple Armature constraints, which is unlikely to be intentional.'
                         )
-                        break
 
 
 class CloudRigLogEntry(PropertyGroup):
