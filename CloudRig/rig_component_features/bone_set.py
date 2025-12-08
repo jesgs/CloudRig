@@ -145,6 +145,9 @@ class BoneSet(LinkedList):
                     value = value[:]
                 if type(value) in {EditBone, Bone, PoseBone}:
                     value = value.name
+                if getattr(bone_info, key) == value:
+                    continue
+
                 setattr(bone_info, key, value)
 
         # The default value of use_deform in Blender is True, but for CloudRig, False makes a LOT more sense.

@@ -17,9 +17,9 @@ if TYPE_CHECKING:
     from .bone_set import BoneSet
     from ..rig_components.cloud_base import Component_Base
 
-# These values should match Blender's defaults, otherwise they won't be written.
-# It is very confusing what belongs where because some properties exist on both EditBone and Bone,
-# but are kept in sync by Blender, whereas others (bbone shape properties) are deliberately NOT kept in sync.
+# Sadly we can't rely on Blender's RNA property defaults because they are extremely inconsistent.
+# Instead, we define here what properties we are interested in writing, and with what default values.
+# The downside is that any time a new property is implemented, it has to be added here.
 edit_bone_properties = {
     'head': Vector((0, 0, 0)),
     'tail': Vector((0, 1, 0)),
@@ -90,6 +90,8 @@ bone_properties = {
 pose_bone_properties = {
     'custom_shape': None,  # bpy.types.Object
     'custom_shape_transform': None,  # BoneInfo
+    'use_transform_at_custom_shape': False,
+    'use_transform_around_custom_shape': False,
     'custom_shape_scale_xyz': Vector((1.0, 1.0, 1.0)),
     'custom_shape_translation': Vector((0.0, 0.0, 0.0)),
     'custom_shape_rotation_euler': Vector((0.0, 0.0, 0.0)),
