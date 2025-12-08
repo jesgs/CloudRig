@@ -13,12 +13,6 @@ class Component_Eyelid(Component_FaceChain):
     ##############################
     # Inherited functions.
 
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
-
-        if not self.parent_component or type(self.parent_component) != Component_Aim:
-            self.raise_generation_error("Must have a cloud_aim parent bone!")
-
     def create_and_setup_intersections(self, context):
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
@@ -37,16 +31,14 @@ class Component_Eyelid(Component_FaceChain):
         intersection controls."""
 
         # Parent rig must be a cloud_aim type rig!
-        parent_rig = self.parent_component
-        if not isinstance(parent_rig, Component_Aim):
-            self.raise_generation_error(
-                f'Parent of eyelid rig MUST be a "cloud_aim" component type, not "{type(parent_rig)}"!'
-            )
+        parent_component = self.parent_component
+        if not parent_component or not isinstance(parent_component, Component_Aim):
+            self.raise_generation_error('Parent bone of a "Chain: Eyelid" component must be an "Aim" component (ie. the eye bone).')
 
         sticky_prop_name = (
-            "sticky_eyelids_" + parent_rig.params.aim.group.lower().replace(" ", "_")
+            "sticky_eyelids_" + parent_component.params.aim.group.lower().replace(" ", "_")
         )
-        self.__create_sticky_property(parent_rig, sticky_prop_name)
+        self.__create_sticky_property(parent_component, sticky_prop_name)
 
         main_controls = []
         for str_ctr in self.main_str_bones:
@@ -56,7 +48,7 @@ class Component_Eyelid(Component_FaceChain):
                 main_controls.append(str_ctr)
 
         for str_ctr in main_controls:
-            eye_bone = parent_rig.ctr_bone
+            eye_bone = parent_component.ctr_bone
             prefixes, base, suffixes = self.naming.slice_name(str_ctr)
             rot_name = self.naming.make_name(prefixes + ["ROT"], base, suffixes)
             rot_ctr = self.generator.find_bone_info(rot_name)
@@ -85,7 +77,7 @@ class Component_Eyelid(Component_FaceChain):
 
             # Reject the ROT bone tail onto the eye bone Z axis
             rejection_z = project_vector_on_plane(
-                rot_ctr.vector, parent_rig.metarig_base_pbone.z_axis
+                rot_ctr.vector, parent_component.metarig_base_pbone.z_axis
             )
             # Take the distance between that and the base bone's vector
             # to determine the constraints' influence.
@@ -95,7 +87,7 @@ class Component_Eyelid(Component_FaceChain):
                 {
                     'prop': 'influence',
                     'expression': f"var*{sticky_strength}*2",
-                    'variables': [(parent_rig.properties_bone.name, sticky_prop_name)],
+                    'variables': [(parent_component.properties_bone.name, sticky_prop_name)],
                 }
             )
 
@@ -110,7 +102,7 @@ class Component_Eyelid(Component_FaceChain):
                 {
                     'prop': 'influence',
                     'expression': f"var*{sticky_strength*0.5}",
-                    'variables': [(parent_rig.properties_bone.name, sticky_prop_name)],
+                    'variables': [(parent_component.properties_bone.name, sticky_prop_name)],
                 }
             )
 

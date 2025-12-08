@@ -551,7 +551,7 @@ class BoneInfo:
                 align_bone = armature.data.edit_bones.get(str(self.roll_bone))
                 if not align_bone:
                     self.owner_component.raise_generation_error(
-                        f"Could not find bone {self.roll_bone} to calculate roll of {edit_bone.name}."
+                        f"Could not find bone {self.roll_bone} to calculate roll of {edit_bone.name}. This may be a bug."
                     )
                 else:
                     edit_bone.align_roll(align_bone.z_axis)

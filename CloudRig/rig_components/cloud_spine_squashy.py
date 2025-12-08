@@ -28,7 +28,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         if not self.bone_count > 1:
             self.raise_generation_error(
-                "Spine rig must consist of a chain of at least 2 connected bones!"
+                "Component must consist of a chain of at least 2 connected bones!"
             )
 
         self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]

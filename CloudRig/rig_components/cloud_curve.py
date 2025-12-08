@@ -108,7 +108,7 @@ class Component_Curve_Hooked(Component_Base):
             hook_controls = []
             points = get_points(spline)
             if len(points) < 2:
-                self.raise_generation_error("Curve spline with <2 points")
+                self.raise_generation_error("All curve splines must consist of at least 2 points")
 
             for point_idx, point in enumerate(points):
                 hook_controls.append(

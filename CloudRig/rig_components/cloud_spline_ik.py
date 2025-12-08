@@ -40,7 +40,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         total = length * subdiv
         if length > 255:
             self.raise_generation_error(
-                f"Spline IK rig consists of {length} bones but the Spline IK constraint only supports a chain of 255 bones."
+                f"Spline IK component consists of {length} bones but the Spline IK constraint only supports a chain of 255 bones max."
             )
         if total > 255:
             old_total = total
