@@ -199,8 +199,6 @@ class BoneInfo:
             self.envelope_distance = source.envelope_distance
             self.envelope_weight = source.envelope_weight
             self.use_envelope_multiply = source.use_envelope_multiply
-            self.head_radius = source.head_radius
-            self.tail_radius = source.tail_radius
             if type(source) == type(self):
                 self._source = source
                 self.roll_type = source.roll_type
@@ -304,9 +302,10 @@ class BoneInfo:
         """Set all bone size related values at once."""
         self.bbone_x = value
         self.bbone_z = value
-        self.envelope_distance = value
-        self.head_radius = value
-        self.tail_radius = value
+        self.head_radius = value * 0.1
+        self.tail_radius = value * 0.1
+        if not self.use_deform:
+            self.envelope_distance = 0
 
     @property
     def bbone_segments(self) -> int:
@@ -519,9 +518,6 @@ class BoneInfo:
         scale = generator.scale
         edit_bone.bbone_x = self.bbone_width * scale
         edit_bone.bbone_z = self.bbone_width * scale
-        edit_bone.envelope_distance = self.bbone_width * scale
-        edit_bone.head_radius = self.bbone_width * scale
-        edit_bone.tail_radius = self.bbone_width * scale
 
         # Parenting - If an Armature Constraint is present, don't allow double parenting.
         for con in self.constraint_infos:
