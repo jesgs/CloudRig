@@ -8,9 +8,8 @@ from bpy.props import (
     IntVectorProperty,
     BoolVectorProperty,
     FloatProperty,
-    StringProperty,
 )
-from ..rig_component_features.component_test_animation import CloudAnimationMixin
+from ..rig_component_features.generate_animation import CloudAnimationMixin
 from .cloud_chain import Component_ToonChain
 
 

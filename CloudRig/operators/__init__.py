@@ -11,7 +11,6 @@ from . import (
     toggle_metarig,
     copy_mirror_components,
     apply_bone_color_preset,
-    reset_stretch_length,
 )
 
 modules = [
@@ -27,5 +26,4 @@ modules = [
     copy_mirror_components,
     apply_bone_color_preset,
     pie_custom_shapes,
-    reset_stretch_length,
 ]

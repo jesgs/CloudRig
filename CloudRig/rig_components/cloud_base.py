@@ -13,7 +13,7 @@ from bpy.types import PropertyGroup, PoseBone, Object
 
 from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
-from ..rig_component_features.component_params_ui import CloudUIMixin
+from ..rig_component_features.params_ui_utils import CloudUIMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
 from ..rig_component_features.parenting import CloudParentingMixin

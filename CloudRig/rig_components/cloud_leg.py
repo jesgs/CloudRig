@@ -9,7 +9,7 @@ from math import pi
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..utils.maths import flat
-from ..rig_component_features.component_params_ui import ensure_custom_property
+from ..rig_component_features.params_ui_utils import ensure_custom_property
 from .cloud_limb import Component_Limb
 
 

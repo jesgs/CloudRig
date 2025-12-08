@@ -7,7 +7,7 @@ from bl_ui.generic_ui_list import draw_ui_list
 from .bone_info import BoneInfo, ConstraintInfo
 
 from ..utils.rig import get_pbone_of_active
-from .component_params_ui import draw_label_with_linebreak
+from .params_ui_utils import draw_label_with_linebreak
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be
 # optional when using parent switching, not just for bendy bone parenting.

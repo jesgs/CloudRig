@@ -8,7 +8,7 @@ import json, webbrowser, time
 import struct, platform, urllib.parse
 import addon_utils
 
-from ..rig_component_features.component_params_ui import draw_label_with_linebreak, is_advanced_mode
+from ..rig_component_features.params_ui_utils import draw_label_with_linebreak, is_advanced_mode
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
 
