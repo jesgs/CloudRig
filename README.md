@@ -32,6 +32,7 @@ And bam, you have a rig!
 <li> <details><summary>Example Production Rigs</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes for supporters, sometimes for everyone), there is a whole host of CloudRig character rigs available for you to download: 
 
 - [Snow](https://studio.blender.org/characters/snow/) (Blender 4.1-4.5)
+- [Storm](https://studio.blender.org/characters/storm/) (Blender 5.0. CloudRig only used for body rig.)
 
 #### [Wing It!](https://www.youtube.com/watch?v=u9lj-c29dxI) (Blender 3.6)
 - [Dog](https://studio.blender.org/characters/dog/)
@@ -64,7 +65,7 @@ And bam, you have a rig!
 If you encounter a bug or have a suggestion, feel free to [open an issue](../../../issues/new).
 
 ## Contribute
-Contributions are welcome! You may find some useful notes [here](../../../wiki/Code)
+Contributions are welcome! You may find some useful notes [here](https://studio.blender.org/tools/addons/cloudrig/code)
 
 ## Show me your work!
-Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [chat.blender.org](https://chat.blender.org/#/room/#CloudRig:blender.org) or add "metemer" on Discord!
+Seeing people use CloudRig is always a huge motivation boost! Whether it's baby's first animation or some big production, it doesn't matter. Chat me up on [chat.blender.org](https://chat.blender.org/#/room/#CloudRig:blender.org) or add `metemer` on Discord!
