@@ -821,8 +821,15 @@ class ConstraintInfo(dict):
         # Allow @ symbols to specify subtargets, like Rigify.
         if '@' in self.name:
             split_name = self.name.split("@")
+            subtargets = split_name[1:]
+            targets = kwargs.get('targets', {})
             if self.type == 'ARMATURE':
-                self.targets = split_name[1:]
+                if len(subtargets) != len(targets):
+                    self.bone_info.owner_component.raise_generation_error(
+                        f"Armature constraint using @ syntax specifies {len(subtargets)} names, but has {len(targets)} targets. They must be equal.",
+                        trouble_bone = self.bone_info.name
+                    )
+                self.targets = [(targets[i]['target'], subtarget, targets[i]['weight']) for i, subtarget in enumerate(split_name[1:])]
             else:
                 self.subtarget = split_name[1]
 
