@@ -43,7 +43,7 @@ class Component_Curve_Hooked(Component_Base):
 
         self.hooks_of_splines = self.curve__make_ctrls_for_points(self.params.curve.target)
 
-    def base__get_relink_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
+    def base__relink_get_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
         return self.root_bone
 
     def create_helper_objects(self, context):

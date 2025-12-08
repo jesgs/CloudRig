@@ -24,7 +24,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     ################################
     # Inherited functions.
 
-    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+    def base__relink_get_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         if not self.params.spline_ik.match_hooks:
             # Don't allow base__relinking if the number of hooks doesn't match the number of org bones.
             return self.bones_org[org_i]
@@ -32,7 +32,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         if con_info.name.startswith("TAIL-"):
             return self.bone_sets['Curve Hooks'][org_i+1]
 
-        return super().base__get_relink_target(org_i, con_info)
+        return super().base__relink_get_target(org_i, con_info)
 
     def curve__initialize(self):
         length = self.bone_count

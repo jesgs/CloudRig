@@ -64,7 +64,7 @@ class Component_ToonChain(Component_Base):
         self.__connect_parent_component()
 
     def base__relink_single(self, org_idx, con_info):
-        to_bone = self.base__get_relink_target(org_idx, con_info)
+        to_bone = self.base__relink_get_target(org_idx, con_info)
         org_bi = self.bones_org[org_idx]
 
         parent_helpers = [str_bone.parent_helper for str_bone in self.main_str_bones]
@@ -79,9 +79,9 @@ class Component_ToonChain(Component_Base):
         else:
             return super().base__relink_single(org_idx, con_info)
 
-    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+    def base__relink_get_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return the bone to which a constraint should be moved to."""
-        if con_info.name.startswith('TAIL'):
+        if con_info.name.startswith('TAIL-'):
             org_bone = self.bones_org[org_i]
             if len(self.main_str_bones) <= org_i + 1:
                 # Since the TAIL- instruction is very explicit, if it fails, let's throw a hard error.
@@ -93,7 +93,7 @@ class Component_ToonChain(Component_Base):
             # This is necessary because the main STR bones have an _1 suffix, so the name matching in the super() function fails.
             return self.main_str_bones[org_i]
         else:
-            return super().base__get_relink_target(org_i, con_info)
+            return super().base__relink_get_target(org_i, con_info)
 
     ##############################
     # Toon chain functions.

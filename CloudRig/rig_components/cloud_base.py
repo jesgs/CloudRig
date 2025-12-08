@@ -209,15 +209,23 @@ class Component_Base(
 
     def base__relink_single(self, org_idx, con_info):
         org_bi = self.bones_org[org_idx]
-        to_binfo = self.base__get_relink_target(org_idx, con_info)
+        to_binfo = self.base__relink_get_target(org_idx, con_info)
         if con_info.type == 'ARMATURE' and 'NOHLP' not in con_info.name:
             to_binfo = self.create_parent_bone(to_binfo, self.bones_mch)
 
         if to_binfo != org_bi:
             to_binfo.constraint_infos.append(con_info)
             org_bi.constraint_infos.remove(con_info)
+        elif "-" in con_info.name:
+            target_name = con_info.name.split("-")[0] + "-" + org_bi.name
+            self.raise_generation_error(
+                description=f'Relinking Failed for constraint "{con_info.name}".\nThe dash (-) in the constraint name tells CloudRig to move the constraint to a generated bone named "{target_name}", but no such bone exists.',
+                icon='CONSTRAINT_BONE',
+                description_short=f'Relinking Failed: {con_info.name}',
+                trouble_bone=org_bi.name,
+            )
 
-    def base__get_relink_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+    def base__relink_get_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return which BoneInfo a given constraint should be moved to.
         Params:
             org_i: Index of the original bone that has the constraint

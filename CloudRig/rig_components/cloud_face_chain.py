@@ -159,10 +159,9 @@ class Component_FaceChain(Component_ToonChain):
         for comp in self.chain_components:
             comp.base__relink(last_chain_done=True)
 
-    def base__get_relink_target(self, org_i: int, con: ConstraintInfo):
+    def base__relink_get_target(self, org_i: int, con: ConstraintInfo):
         """Relink target should become the intersection control if there is one."""
-        relink_tgt: BoneInfo = super().base__get_relink_target(org_i, con)
-
+        relink_tgt: BoneInfo = super().base__relink_get_target(org_i, con)
 
         is_intersection = False
         if hasattr(relink_tgt, 'intersection_ctrl'):
