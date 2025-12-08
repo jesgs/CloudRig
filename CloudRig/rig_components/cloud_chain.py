@@ -871,7 +871,7 @@ class Params(PropertyGroup):
     )
     preserve_volume: BoolProperty(
         name="Squash & Stretch",
-        description="The bone will become thinner and thicker depending on stretching length",
+        description="The bone will become thinner and thicker depending on stretching length.\n\nNOTE: This will result in non-uniform scale inheritance when scaling root bones!",
         default=False,
     )
     volume_variation: FloatProperty(

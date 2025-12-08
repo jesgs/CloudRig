@@ -27,14 +27,14 @@ def test_snap_bake_ops(context, scene_poses):
                 prop_bone="Properties",
                 prop_id="ik_left_upperarm",
                 do_bake=True if i<2 else False,
-                frame_start=11,
-                frame_end=15,
+                frame_start=11, frame_end=15,
                 map_fk_to_ik="[('FK-UpperArm.L', 'IK-M-UpperArm.L'), ('FK-Forearm.L', 'IK-M-Forearm.L'), ('FK-Wrist.L', 'IK-M-Wrist.L')]",
                 map_ik_to_fk="[('IK-Wrist.L', 'FK-Wrist.L'), ('IK-M-UpperArm.L', 'FK-UpperArm.L')]",
                 ik_pole="POLE-UpperArm.L",
                 ik_first="IK-M-UpperArm.L",
                 fk_first="FK-UpperArm.L"
             )
+
             bpy.ops.pose.cloudrig_switch_parent_bake(
                 bone_names="['IK-Wrist.L', 'POLE-UpperArm.L']",
                 prop_bone="Properties",

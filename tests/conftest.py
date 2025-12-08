@@ -19,6 +19,7 @@ def context_blend(context):
     """We're using a single tests.blend file with different Scenes.
     A Scene can be used by multiple tests. If a test would benefit from a new 
     Scene set-up, just add it in the .blend (and a new fixture).
+    This file gets loaded many times while running tests, so keep it light.
     """
     blend_path = Path(__file__).parent / Path("tests.blend")
     bpy.ops.wm.open_mainfile(filepath=blend_path.as_posix())
