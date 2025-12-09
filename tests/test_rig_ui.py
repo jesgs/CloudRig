@@ -50,6 +50,7 @@ def test_snap_bake_ops(context, scene_poses):
     
 
 def test_rig_ops(context, scene_poses):
+    context.view_layer.objects.active = bpy.data.objects['RIG-Cloud_Human']
     rig = context.active_object
     assert bpy.ops.pose.cloudrig_keyframe_all_settings() == {'FINISHED'}, "Failed to Keyframe All Settings."
     assert bpy.ops.pose.armature_reset(

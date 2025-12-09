@@ -25,6 +25,31 @@ def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneIn
         if arm_con:
             arm_con.targets = [intersection.name]
 
+        if str_bone.custom_shape_transform:
+            str_bone.custom_shape_transform.add_constraint(
+                'COPY_TRANSFORMS',
+                name="Copy Anchor Transforms (Smooth Intersection)",
+                index=3,
+                subtarget=intersection,
+                target_space='LOCAL_OWNER_ORIENT',
+                mix_mode='BEFORE',
+            )
+            # This is horrendous, but I can't argue with the results.
+            # The tangent helper must inherit rotation, otherwise it doesn't get affected by the root (very bad).
+            # However, the current stack of constraints results in a double inheritance of just Y rotation,
+            # because the Damped Track constraints are fully locking the X and Z rotations.
+            str_bone.custom_shape_transform.add_constraint(
+                'COPY_ROTATION',
+                name="Counter Anchor Y Rot (Smooth Intersection)",
+                index=4,
+                subtarget=intersection,
+                use_xyz=[False, True, False],
+                invert_xyz=[False, True, False],
+                target_space='LOCAL_OWNER_ORIENT',
+                euler_order='YZX',
+                mix_mode='BEFORE',
+            )
+
         str_bone.collections = component.bone_sets['Sub Controls'].collections
         str_bone.color_palette_base = component.bone_sets['Sub Controls'].color_palette
 
