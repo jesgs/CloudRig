@@ -36,6 +36,7 @@ def metarigs_test(context):
         ('META-toon_chain_tests_1', 10),
         ('META-Cloud_Human', 20),
         ('META-grid_chain_tests', 30),
+        ('META-relinking', 40),
     ):
         metarig = bpy.data.objects[metarig_name]
         with MatchingPose(context, metarig.cloudrig.generator.target_rig, frame=frame):
