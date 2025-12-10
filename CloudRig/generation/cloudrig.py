@@ -206,7 +206,7 @@ class SnappingOpMixin:
         self.init(context)
 
     def init(self, context):
-        self.rig = active_rig(context)
+        self.rig = find_cloudrig(context)
         self.initial_prop_value = self.prop_value
         self._target_prop_value = 1.0 if self.prop_value < 1.0 else 0.0
 
@@ -581,7 +581,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
     def execute(self, context):
         if not hasattr(self, 'rig'):
             self.init(context)
-        rig = context.active_object
+        rig = find_cloudrig(context)
         active_frame_bkp = context.scene.frame_current
 
         # Store (copies!) of world matrices.
@@ -1839,7 +1839,7 @@ class CLOUDRIG_UL_collections(UIList):
     @staticmethod
     def draw_collection(context, layout, collection, idx):
         cloudrig_info = collection.cloudrig_info
-        rig = active_rig(context)
+        rig = find_cloudrig(context)
         prefs = rig.cloudrig_prefs
         pbones = rig.pose.bones
 
@@ -1959,7 +1959,7 @@ class CLOUDRIG_UL_collections(UIList):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
         show the order in which the rig components will be executed during generation.
         """
-        rig = active_rig(context)
+        rig = find_cloudrig(context)
         layout.prop(rig.cloudrig_prefs, "collection_filter", text="")
 
     @staticmethod
@@ -2860,11 +2860,11 @@ class ARMATURE_OT_bone_collections_popup(Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = active_rig(context)
+        rig = find_cloudrig(context)
         return rig and rig.type == 'ARMATURE' and is_cloud_metarig(rig) or is_generated_cloudrig(rig)
 
     def invoke(self, context, event):
-        rig = active_rig(context)
+        rig = find_cloudrig(context)
         rig.cloudrig_prefs.active_collection_index *= 1
         wm = context.window_manager
         return wm.invoke_popup(self, width=400)
