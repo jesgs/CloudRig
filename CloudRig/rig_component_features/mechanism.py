@@ -89,7 +89,7 @@ def copy_relink_real_driver(
         if "@" in var.name:
             split = var.name.split("@")
             var.name = split[0]
-            for i, name in split[1:]:
+            for i, name in enumerate(split[1:]):
                 var.targets[i].bone_target = name
     return new_fcurve
 
