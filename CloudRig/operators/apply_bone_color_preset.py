@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Operator
 from bpy.props import EnumProperty
+from bpy.types import Operator
+
+from ..bs_utils.ui import label_split
 
 PRESETS_CLOUDRIG = [
     {
@@ -106,7 +108,7 @@ PRESETS_CLOUDRIG = [
     },
 ]
 
-PRESETS_DEFAULT = [
+PRESETS_BLENDER = [
     {
         "normal": (0.6039215922355652, 0.0, 0.0),
         "select": (0.7411764860153198, 0.06666667014360428, 0.06666667014360428),
@@ -182,18 +184,142 @@ PRESETS_DEFAULT = [
         "select": (0.1098039299249649, 0.26274511218070984, 0.04313725605607033),
         "active": (0.2039215862751007, 0.38431376218795776, 0.16862745583057404),
     },
-    {"normal": (0.0, 0.0, 0.0), "select": (0.0, 0.0, 0.0), "active": (0.0, 0.0, 0.0)},
-    {"normal": (0.0, 0.0, 0.0), "select": (0.0, 0.0, 0.0), "active": (0.0, 0.0, 0.0)},
-    {"normal": (0.0, 0.0, 0.0), "select": (0.0, 0.0, 0.0), "active": (0.0, 0.0, 0.0)},
-    {"normal": (0.0, 0.0, 0.0), "select": (0.0, 0.0, 0.0), "active": (0.0, 0.0, 0.0)},
-    {"normal": (0.0, 0.0, 0.0), "select": (0.0, 0.0, 0.0), "active": (0.0, 0.0, 0.0)},
+    {
+        "normal": (0.0, 0.0, 0.0),
+        "select": (0.0, 0.0, 0.0),
+        "active": (0.0, 0.0, 0.0)
+    },
+    {
+        "normal": (0.0, 0.0, 0.0),
+        "select": (0.0, 0.0, 0.0),
+        "active": (0.0, 0.0, 0.0)
+    },
+    {
+        "normal": (0.0, 0.0, 0.0),
+        "select": (0.0, 0.0, 0.0),
+        "active": (0.0, 0.0, 0.0)
+    },
+    {
+        "normal": (0.0, 0.0, 0.0),
+        "select": (0.0, 0.0, 0.0),
+        "active": (0.0, 0.0, 0.0)
+    },
+    {
+        "normal": (0.0, 0.0, 0.0),
+        "select": (0.0, 0.0, 0.0),
+        "active": (0.0, 0.0, 0.0)
+    },
+]
+
+# Created by Andrea Lanaro: https://projects.blender.org/blender/blender/pulls/112639#issuecomment-1783402
+PRESETS_LANARO = [
+    {
+        "normal": (1.0, 0.364705890417099, 0.4117647409439087),
+        "select": (1.0, 0.5333333611488342, 0.5529412031173706),
+        "active": (1.0, 0.9098039865493774, 0.9058824181556702),
+    },
+    {
+        "normal": (1.0, 0.4784314036369324, 0.10196079313755035),
+        "select": (1.0, 0.6392157077789307, 0.3607843220233917),
+        "active": (1.0, 0.917647123336792, 0.8627451658248901),
+    },
+    {
+        "normal": (1.0, 0.6470588445663452, 0.0),
+        "select": (1.0, 0.7960785031318665, 0.1725490242242813),
+        "active": (1.0, 0.9333333969116211, 0.8392157554626465),
+    },
+    {
+        "normal": (0.9843137860298157, 0.7843137979507446, 0.0),
+        "select": (1.0, 0.9215686917304993, 0.0),
+        "active": (0.9803922176361084, 0.9490196704864502, 0.8313726186752319),
+    },
+    {
+        "normal": (0.7372549176216125, 0.8823530077934265, 0.0),
+        "select": (0.8666667342185974, 1.0, 0.23137256503105164),
+        "active": (0.9333333969116211, 0.9647059440612793, 0.8509804606437683),
+    },
+    {
+        "normal": (0.11764706671237946, 0.917647123336792, 0.4431372880935669),
+        "select": (0.43137258291244507, 1.0, 0.6039215922355652),
+        "active": (0.8784314393997192, 0.9803922176361084, 0.8941177129745483),
+    },
+    {
+        "normal": (0.0, 0.8784314393997192, 0.6000000238418579),
+        "select": (0.40000003576278687, 1.0, 0.7411764860153198),
+        "active": (0.8588235974311829, 0.9843137860298157, 0.917647123336792),
+    },
+    {
+        "normal": (0.0, 0.8431373238563538, 0.7490196228027344),
+        "select": (0.2980392277240753, 0.960784375667572, 0.8705883026123047),
+        "active": (0.8392157554626465, 0.9843137860298157, 0.9568628072738647),
+    },
+    {
+        "normal": (0.0, 0.7686275243759155, 0.9137255549430847),
+        "select": (0.30588236451148987, 0.8901961445808411, 1.0),
+        "active": (0.8352941870689392, 0.9764706492424011, 1.0),
+    },
+    {
+        "normal": (0.0, 0.6941176652908325, 0.9843137860298157),
+        "select": (0.3607843220233917, 0.8196079134941101, 1.0),
+        "active": (0.8549020290374756, 0.9686275124549866, 1.0),
+    },
+    {
+        "normal": (0.3607843220233917, 0.6117647290229797, 1.0),
+        "select": (0.5137255191802979, 0.7411764860153198, 1.0),
+        "active": (0.8862745761871338, 0.9529412388801575, 1.0),
+    },
+    {
+        "normal": (0.5254902243614197, 0.545098066329956, 1.0),
+        "select": (0.6509804129600525, 0.6823529601097107, 1.0),
+        "active": (0.9215686917304993, 0.9411765336990356, 1.0),
+    },
+    {
+        "normal": (0.6823529601097107, 0.49803924560546875, 1.0),
+        "select": (0.8000000715255737, 0.6392157077789307, 1.0),
+        "active": (0.960784375667572, 0.9294118285179138, 1.0),
+    },
+    {
+        "normal": (0.8352941870689392, 0.46274513006210327, 0.9647059440612793),
+        "select": (0.9490196704864502, 0.6117647290229797, 1.0),
+        "active": (0.9921569228172302, 0.917647123336792, 1.0),
+    },
+    {
+        "normal": (0.9725490808486938, 0.40000003576278687, 0.8588235974311829),
+        "select": (1.0, 0.5607843399047852, 0.9725490808486938),
+        "active": (1.0, 0.9098039865493774, 0.988235354423523),
+    },
+    {
+        "normal": (1.0, 0.38431376218795776, 0.6823529601097107),
+        "select": (1.0, 0.5529412031173706, 0.803921639919281),
+        "active": (1.0, 0.9058824181556702, 0.9529412388801575),
+    },
+    {
+        "normal": (0.6431372761726379, 0.6431372761726379, 0.6431372761726379),
+        "select": (0.7411764860153198, 0.7411764860153198, 0.7411764860153198),
+        "active": (0.9450981020927429, 0.9450981020927429, 0.9450981020927429),
+    },
+    {
+        "normal": (0.7019608020782471, 0.6313725709915161, 0.572549045085907),
+        "select": (0.8431373238563538, 0.7176470756530762, 0.6196078658103943),
+        "active": (0.988235354423523, 0.9372549653053284, 0.8980392813682556),
+    },
+    {
+        "normal": (0.5647059082984924, 0.6705882549285889, 0.6627451181411743),
+        "select": (0.6000000238418579, 0.7882353663444519, 0.7725490927696228),
+        "active": (0.8941177129745483, 0.9647059440612793, 0.960784375667572),
+    },
+    {
+        "normal": (0.6549019813537598, 0.6313725709915161, 0.7098039388656616),
+        "select": (0.760784387588501, 0.7176470756530762, 0.8549020290374756),
+        "active": (0.9568628072738647, 0.9372549653053284, 0.9960784912109375),
+    },
 ]
 
 
 class CLOUDRIG_OT_set_bone_color_prefs(Operator):
     bl_idname = "preferences.set_bone_color_presets"
     bl_description = "Set Bone Color Presets"
-    bl_options = {'UNDO', 'INTERNAL', 'REGISTER'}
+    bl_options = {"UNDO", "INTERNAL", "REGISTER"}
     bl_label = "Set Bone Color Presets"
 
     preset: EnumProperty(
@@ -201,11 +327,19 @@ class CLOUDRIG_OT_set_bone_color_prefs(Operator):
         description="Which preset of presets to apply to your preferences",
         items=[
             (
+                'LANARO',
+                "Lanaro",
+                "Assign bone color presets by Andrea Lanaro",
+            ),
+            (
                 'CLOUDRIG',
-                'CloudRig',
+                "CloudRig",
                 "Assign CloudRig's recommended bone color presets",
             ),
-            ('BLENDER', 'Blender', "Assign Blender's default bone color presets"),
+            ("BLENDER",
+             "Blender",
+             "Assign Blender's default bone color presets"
+            ),
         ],
     )
 
@@ -215,19 +349,44 @@ class CLOUDRIG_OT_set_bone_color_prefs(Operator):
     def draw(self, context):
         layout = self.layout
         layout.label(text="This will overwrite your bone color presets.")
-        layout.label(text="This cannot be undone!", icon='ERROR')
+        layout.label(text="This cannot be undone!", icon="ERROR")
 
     def execute(self, context):
-        color_sets = context.preferences.themes['Default'].bone_color_sets
-        chosen_preset = (
-            PRESETS_CLOUDRIG if self.preset == 'CLOUDRIG' else PRESETS_DEFAULT
-        )
+        color_sets = context.preferences.themes["Default"].bone_color_sets
+        chosen_preset = globals()["PRESETS_" + self.preset]
         for color_set, preset_colors in zip(color_sets, chosen_preset):
-            color_set.normal = preset_colors['normal']
-            color_set.select = preset_colors['select']
-            color_set.active = preset_colors['active']
+            color_set.normal = preset_colors["normal"]
+            color_set.select = preset_colors["select"]
+            color_set.active = preset_colors["active"]
 
-        return {'FINISHED'}
+        return {"FINISHED"}
+
+
+def draw_bone_color_presets(layout):
+    header, panel = layout.panel("CloudRig Bone Colors")
+    header.label(text="Bone Colors")
+    if panel:
+        split = label_split(panel, text="Apply Color Presets:")
+        row = split.row()
+        row.operator(
+            "preferences.set_bone_color_presets",
+            text="Blender",
+            icon="RESTRICT_COLOR_OFF",
+        ).preset = "BLENDER"
+        row.operator(
+            "preferences.set_bone_color_presets",
+            text="CloudRig",
+            icon="RESTRICT_COLOR_ON",
+        ).preset = "CLOUDRIG"
+        row.operator(
+            "preferences.set_bone_color_presets",
+            text="Lanaro",
+            icon="RESTRICT_COLOR_ON",
+        ).preset = "LANARO"
+        split = label_split(panel, text="")
+        for i in range(20):
+            icon = f"COLORSET_{str(i + 1).zfill(2)}_VEC"
+            split.label(text="", icon=icon)
 
 
 registry = [CLOUDRIG_OT_set_bone_color_prefs]

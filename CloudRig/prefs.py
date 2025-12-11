@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, os
+import bpy
+import os
 from bpy.types import PropertyGroup, AddonPreferences
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
 
@@ -11,9 +12,13 @@ from .rig_component_features.widgets.widgets import (
     refresh_external_widgets,
     refresh_cloudrig_widgets,
 )
-from .bs_utils.prefs import PrefsFileSaveLoadMixin, update_prefs_on_file, get_addon_prefs
-from .bs_utils.ui import label_split
+from .bs_utils.prefs import (
+    PrefsFileSaveLoadMixin,
+    update_prefs_on_file,
+    get_addon_prefs,
+)
 from .bs_utils.hotkeys import draw_hotkey_list
+from .operators.apply_bone_color_preset import draw_bone_color_presets
 
 
 def init_component_module_list(context=None):
@@ -52,7 +57,7 @@ class CloudRigComponentTypeInfo(PropertyGroup):
 
 
 class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
-    bl_idname = __package__
+    bl_idname = str(__package__)
 
     # This should get a version bump whenever there is a change that affects metarigs.
     # For example, changing names of component types, splitting an old component type into multiple,
@@ -129,25 +134,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
             panel.operator('window.restore_deleted_hotkeys', icon='BACK')
             draw_hotkey_list(context, panel, sort_mode='BY_OPERATOR')
 
-        header, panel = layout.panel("CloudRig Bone Colors")
-        header.label(text="Bone Colors")
-        if panel:
-            split = label_split(panel, text="Apply Color Presets:")
-            row = split.row()
-            row.operator(
-                'preferences.set_bone_color_presets',
-                text='Blender',
-                icon='RESTRICT_COLOR_OFF',
-            ).preset = 'BLENDER'
-            row.operator(
-                'preferences.set_bone_color_presets',
-                text='CloudRig',
-                icon='RESTRICT_COLOR_ON',
-            ).preset = 'CLOUDRIG'
-            split = label_split(panel, text="")
-            for i in range(20):
-                icon = f"COLORSET_{str(i+1).zfill(2)}_VEC"
-                split.label(text="", icon=icon)
+        draw_bone_color_presets(layout)
 
 
 registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
@@ -155,6 +142,8 @@ registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
 def delayed_refresh_widget_list():
     prefs = get_addon_prefs()
+    if not prefs:
+        return
     prefs.update_widget_names(bpy.context)
 
 
