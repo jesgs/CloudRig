@@ -200,6 +200,10 @@ class Component_CopyBone(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
+    def poll_draw_appearance_params(cls, context, params) -> bool:
+        return params.copy.custom_pivot
+
+    @classmethod
     def draw_appearance_params(cls, layout, context, params):
         if params.copy.custom_pivot:
             cls.draw_prop_custom_shape(context, layout, params.copy, 'shape_pivot')

@@ -147,6 +147,12 @@ def draw_params_subpanels(context, layout):
             continue
         if not hasattr(comp_class, panel_data.func_name):
             continue
+        poll_func_name = "poll_"+panel_data.func_name
+        if (
+            hasattr(comp_class, poll_func_name) and
+            not getattr(comp_class, poll_func_name)(context, active_pb.cloudrig_component.params)
+        ):
+            continue
         header, panel = layout.panel(f"CloudRig {panel_data.ui_name}")
         panel_data.draw_header(context, header)
         header.label(text=panel_data.ui_name)
