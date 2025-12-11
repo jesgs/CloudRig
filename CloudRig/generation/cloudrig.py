@@ -816,13 +816,13 @@ class POSE_OT_armature_reset(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     reset_action: BoolProperty(
-        name="Unassign Action", default=True, description="Un-assign Action"
+        name="Unassign Action", default=False, description="Un-assign Action"
     )
     reset_viewport_display: BoolProperty(
-        name="Viewport Settings", default=True, description="Reset 'Show Name', 'Show Axes', 'In Front' object properties"
+        name="Viewport Settings", default=False, description="Reset 'Show Name', 'Show Axes', 'In Front' object properties"
     )
     reset_bone_visibility: BoolProperty(
-        name="Unhide Bones", default=True, description="Unhide all bones"
+        name="Unhide Bones", default=False, description="Unhide all bones"
     )
 
     selection_only: BoolProperty(
