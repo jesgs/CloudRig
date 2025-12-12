@@ -2,7 +2,9 @@
 
 import bpy
 from bpy.types import Menu
+
 from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
+
 
 class VIEW3D_MT_cloudrig(Menu):
     bl_label = "CloudRig"

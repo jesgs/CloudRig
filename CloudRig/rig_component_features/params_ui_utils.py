@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import UILayout
-from collections import OrderedDict
 import json
+from collections import OrderedDict
+
+from bpy.types import UILayout
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import label_split
@@ -38,7 +39,7 @@ class CloudUIMixin:
         if not slider_name:
             slider_name = prop_id
 
-        if type(texts) == str:
+        if type(texts) is str:
             if texts.startswith("["):
                 texts = json.loads(texts)
             else:

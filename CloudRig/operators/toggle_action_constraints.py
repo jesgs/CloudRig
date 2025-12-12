@@ -15,7 +15,11 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
     enable: BoolProperty(name="Enable", default=True)
 
     @staticmethod
-    def get_first_referencing_constraint(rig, action: Action, action_slot: ActionSlot) -> Constraint | None:
+    def get_first_referencing_constraint(
+        rig,
+        action: Action,
+        action_slot: ActionSlot
+    ) -> Constraint | None:
         for pb in rig.pose.bones:
             for c in pb.constraints:
                 if c.type == 'ACTION' and c.action == action and c.action_slot==action_slot:

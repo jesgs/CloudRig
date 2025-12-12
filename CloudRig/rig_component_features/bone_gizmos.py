@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.types import Object
+
 from .bone_info import BoneInfo
 
 
@@ -85,7 +86,7 @@ class BoneGizmoMixin:
             op_data = gizmo_dict[operator] = []
 
         for key, value in op_kwargs.items():
-            if type(value) == list:
+            if type(value) is list:
                 op_kwargs[key] = str(op_kwargs[key])
 
         op_data = gizmo_dict[operator]

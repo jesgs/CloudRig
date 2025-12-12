@@ -1,7 +1,8 @@
-import bpy, os
-from bpy.types import Object, PoseBone
-from mathutils import Vector, Euler
-from bpy.types import Operator
+import os
+
+import bpy
+from bpy.types import Object, Operator, PoseBone
+from mathutils import Euler, Vector
 
 from ...bs_utils.prefs import get_addon_prefs
 
@@ -21,7 +22,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
         wgt_name = "WGT-" + wgt_name
 
     prefs = get_addon_prefs()
-    if not prefs: 
+    if not prefs:
         return
     prefer_linked = prefs.widget_import_method == 'LINK'
     lib_abs_path = ""
@@ -99,7 +100,7 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
         else:
             bpy.data.objects.remove(old_wgt_ob)
 
-    if clear_asset and new_wgt_ob and new_wgt_ob.library == None:
+    if clear_asset and new_wgt_ob and new_wgt_ob.library is None:
         new_wgt_ob.asset_clear()
 
     return new_wgt_ob
@@ -197,7 +198,7 @@ def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
     }
 
 def set_pbone_custom_shape_data(
-        pose_bone: PoseBone, 
+        pose_bone: PoseBone,
         custom_shape: Object = None,
         custom_shape_translation: Vector = None,
         custom_shape_rotation_euler: Euler = None,
@@ -215,16 +216,16 @@ def set_pbone_custom_shape_data(
         pose_bone.custom_shape_rotation_euler = custom_shape_rotation_euler
     if custom_shape_scale_xyz:
         pose_bone.custom_shape_scale_xyz = custom_shape_scale_xyz
-    if use_custom_shape_bone_size != None:
+    if use_custom_shape_bone_size is not None:
         pose_bone.use_custom_shape_bone_size = use_custom_shape_bone_size
-    if show_wire != None:
+    if show_wire is not None:
         pose_bone.bone.show_wire = show_wire
     if custom_shape_wire_width:
         pose_bone.custom_shape_wire_width = custom_shape_wire_width
 
 def get_custom_shape_rig_data(rig: Object) -> dict[str, dict]:
     return {
-        pb.name: get_pbone_custom_shape_data(pb) 
+        pb.name: get_pbone_custom_shape_data(pb)
         for pb in rig.pose.bones
     }
 
@@ -234,7 +235,7 @@ def apply_custom_shape_rig_data(rig: Object, custom_shape_data: dict) -> None:
     for pb in rig.pose.bones:
         if pb.name in custom_shape_data:
             set_pbone_custom_shape_data(
-                pb, 
+                pb,
                 **custom_shape_data[pb.name],
             )
 

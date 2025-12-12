@@ -1,39 +1,38 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
+
+import random
+
 import bpy
-
 from bl_math import clamp
-
-from ..utils.external.naming import Side, get_name_side
-from ..bs_utils.ui import aligned_label, label_split
-
-from bpy.types import (
-    PropertyGroup,
-    Action,
-    ActionSlot,
-    ActionChannelbag,
-    UIList,
-    UILayout,
-    Context,
-    Panel,
-    Armature,
-    Operator,
-)
-from bpy.props import (
-    EnumProperty,
-    IntProperty,
-    BoolProperty,
-    StringProperty,
-    FloatProperty,
-    PointerProperty,
-)
-
 from bl_ui.generic_ui_list import draw_ui_list
-
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+from bpy.types import (
+    Action,
+    ActionChannelbag,
+    ActionSlot,
+    Armature,
+    Context,
+    Operator,
+    Panel,
+    PropertyGroup,
+    UILayout,
+    UIList,
+)
 from bpy.utils import flip_name
 from bpy_extras import anim_utils
-import random
+
+from ..bs_utils.ui import aligned_label, label_split
+from ..utils.external.naming import Side, get_name_side
+
 
 class ActionConstraintSetup(PropertyGroup):
     def update_ui(self, context):
@@ -56,7 +55,7 @@ class ActionConstraintSetup(PropertyGroup):
     def slot_name_from_handle(self, curr_value, _is_set) -> str:
         try:
             curr_value = int(curr_value)
-        except:
+        except ValueError:
             return ""
         action_slot = next((s for s in self.action.slots if s.handle==curr_value), None)
         if not action_slot:
@@ -201,7 +200,7 @@ class ActionConstraintSetup(PropertyGroup):
     def setup_id_to_str(self, curr_value, _is_set):
         try:
             curr_value = int(curr_value)
-        except:
+        except ValueError:
             return ""
         action_setups = self.id_data.cloudrig.generator.action_setups
         action_setup = next((setup for setup in action_setups if setup.unique_id==curr_value), None)
@@ -543,8 +542,6 @@ class DATA_PT_cloudrig_actions(Panel):
         layout.prop(action_setup, 'frame_end', text="End")
         layout.separator()
 
-        metarig = context.object
-        generator = metarig.cloudrig.generator
         for trigger_prop in ['trigger_select_a', 'trigger_select_b']:
             self.draw_ui_trigger(context, layout, action_setup, trigger_prop)
 

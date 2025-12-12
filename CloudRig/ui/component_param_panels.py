@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Panel
-from ..bs_utils.prefs import get_addon_prefs
-from ..bs_utils.ui import label_split, aligned_label
-from ..utils.rig import get_pbone_of_active
 from dataclasses import dataclass
+
+from bpy.types import Panel
+
+from ..bs_utils.prefs import get_addon_prefs
+from ..bs_utils.ui import aligned_label, label_split
+from ..utils.rig import get_pbone_of_active
+
 
 class CLOUDRIG_PT_rig_component(Panel):
     bl_label = "CloudRig Component"
@@ -68,7 +71,7 @@ class CLOUDRIG_PT_rig_component(Panel):
             aligned_label(layout, text="DEPRECATED! Please use Spine: Cartoon!", alert=True, icon='ERROR')
         if not rig_component.component_type or row.alert:
             return
-        
+
         layout.prop(prefs, 'advanced_mode')
         draw_params_subpanels(context, layout)
 
@@ -158,7 +161,7 @@ def draw_params_subpanels(context, layout):
         header.label(text=panel_data.ui_name)
         if panel:
             draw_component_params(context, layout, panel_data.func_name)
-    
+
 def draw_component_params(context, layout, func_name: str):
     pb = get_pbone_of_active(context)
     component_class = pb.cloudrig_component.component_class

@@ -1,24 +1,29 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from collections import OrderedDict
+
+from bl_ui.generic_ui_list import draw_ui_list
 from bpy.types import (
-    UIList,
-    UI_UL_list,
-    bpy_prop_array,
-    PoseBone,
     Bone,
     EditBone,
     Object,
     Operator,
+    PoseBone,
+    UI_UL_list,
+    UIList,
+    bpy_prop_array,
 )
+from mathutils import Matrix, Vector
 from rna_prop_ui import rna_idprop_has_properties
 
-from mathutils import Vector, Matrix
-from collections import OrderedDict
-
-from bl_ui.generic_ui_list import draw_ui_list
-from .bone_info import BoneInfo, pose_bone_properties, edit_bone_properties, bone_properties
-from ..utils.rig import get_pbone_of_active
 from ..bs_utils.prefs import get_addon_prefs
+from ..utils.rig import get_pbone_of_active
+from .bone_info import (
+    BoneInfo,
+    bone_properties,
+    edit_bone_properties,
+    pose_bone_properties,
+)
 
 
 class LinkedList(list):
@@ -96,7 +101,10 @@ class BoneSet(LinkedList):
 
         existing = self.rig_component.generator.find_bone_info(name)
         if existing and existing.create:
-            self.rig_component.raise_generation_error(f'"{name}" already exists. May be a bug.', trouble_bone=name)
+            self.rig_component.raise_generation_error(
+                f'"{name}" already exists. May be a bug.',
+                trouble_bone=name
+            )
 
         bone_info = BoneInfo(
             self, name, source, owner_component=self.rig_component, **kwargs
@@ -112,7 +120,7 @@ class BoneSet(LinkedList):
         keep_collections=False,
         keep_colors=False,
     ):
-        """Load a bpy bone into a BoneInfo instance along with its constraints, 
+        """Load a bpy bone into a BoneInfo instance along with its constraints,
         drivers, custom properties."""
         # NOTE: Parenting should be done outside of this function,
         # since parent bone info is not guaranteed to exist.
@@ -141,7 +149,7 @@ class BoneSet(LinkedList):
                     value = [coll.name for coll in value]
                 if type(value) in [Vector, Matrix]:
                     value = value.copy()
-                if type(value) == bpy_prop_array:
+                if type(value) is bpy_prop_array:
                     value = value[:]
                 if type(value) in {EditBone, Bone, PoseBone}:
                     value = value.name
@@ -369,24 +377,31 @@ class BoneSetMixin:
         cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.5, is_advanced=False
     ):
         """
-        A bone set is an RNA PropertyGroup containing properties for choosing bone collections, color, and wire width.
-        This function is responsible for creating the data, which will be used by
-        class BoneSets(PropertyGroup) to automagically populate itself during add-on registration:
-        PoseBone.cloudrig_component.bone_sets.fk_main.color_palette/collections.
+        A Bone Set contains properties for assigning bone collections, color, and wire width.
+        This function is responsible for creating the data which will be used by
+        `class BoneSets(PropertyGroup)` to automagically populate itself during add-on registration:
+        `PoseBone.cloudrig_component.bone_sets.fk_main.color_palette/collections`.
 
-        For example, all FK chain bones of the FK chain rig are created in the "FK Controls" bone set.
-        The collections, color, and wire width of those FK bones can be customized by users in the "Bone Organization" panel.
-        
-        ui_name: Name to display in the Bone Organization panel. 
-            This cannot be customized by users, since it's referring to a set of bones defined by the developer, eg. "FK Controls".
-        collections: List of the DEFAULT bone collection names to assign the bones of this set to. Usually has one entry.
-            Users can add or change collections, and have a "Reset Collections" button that will bring the assignments back to this default state.
-        color_palette: Default color palette to be used.
+        Example:
+            All FK chain bones of the FK chain rig are created in the "FK Controls" bone set.
+            Collections, color, & wire width all "FK Controls" can be customized in the "Bone Organization" panel.
+
+        ui_name:
+            Name to display in the Bone Organization panel.
+            This cannot be customized by users. It acts as an identifier for the bone set.
+        collections:
+            List of the DEFAULT bone collection names to assign the bones of this bone set to.
+            Users can add or change collections, or reset the list.
+            Final entry cannot be removed.
+        color_palette:
+            Default color palette to be used.
             See the enum selector in Blender for possible values; DEFAULT, THEME_01, THEME_02, etc.
-            Note that specifying custom colors as the default is not possible; You should always use a theme color, or none at all.
-        wire_width: Default bone shape wire width.
-        is_advanced: These are hidden from the rigger by default. 
-            For bone sets of helper bones, whose organization does not matter for animators, but the rigger might still care for their own sake.
+            Note that specifying custom colors as the default is not possible.
+            You should always use a theme color, or none at all.
+        wire_width:
+            Default bone shape wire width.
+        is_advanced:
+            Hidden from the rigger by default. For bone sets of rigging helper bones.
         """
 
         prop_name = ui_name.replace(" ", "_").lower()

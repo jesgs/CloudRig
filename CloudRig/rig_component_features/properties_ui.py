@@ -1,30 +1,35 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, json, sys, os
+import json
+import os
+import sys
+from collections import OrderedDict
+from typing import Any
+
+import bpy
+from bpy.props import BoolProperty, CollectionProperty, StringProperty
 from bpy.types import (
-    Operator,
     ID,
-    bpy_struct,
-    PoseBone,
     Bone,
-    UILayout,
-    PropertyGroup,
     BoneCollection,
     Modifier,
-)
-from typing import Any
-from bpy.props import StringProperty, BoolProperty, CollectionProperty
-from collections import OrderedDict
-from ..generation.cloudrig import (
-    unquote_custom_prop_name,
-    feed_op_props,
-    draw_property,
-    read_rig_panels,
-    get_rig_and_ui,
-    write_rig_panels,
-    find_cloudrig,
+    Operator,
+    PoseBone,
+    PropertyGroup,
+    UILayout,
+    bpy_struct,
 )
 from rna_prop_ui import rna_idprop_ui_create, rna_idprop_value_item_type
+
+from ..generation.cloudrig import (
+    draw_property,
+    feed_op_props,
+    find_cloudrig,
+    get_rig_and_ui,
+    read_rig_panels,
+    unquote_custom_prop_name,
+    write_rig_panels,
+)
 
 
 def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
@@ -132,7 +137,7 @@ class CloudRigUIEditOpMixin:
         )
 
         # Help initialize BoneCollection visibility toggles.
-        if type(prop_owner) == BoneCollection:
+        if isinstance(prop_owner, BoneCollection):
             if self.prop_name == "":
                 self.prop_name = "is_visible"
             if self.slider_name == "":
@@ -177,7 +182,7 @@ class CloudRigUIEditOpMixin:
 
         # Help initialize Bone Collection toggles.
         prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(self, rig)
-        if type(prop_owner) == BoneCollection and self.prop_name == 'is_visible':
+        if isinstance(prop_owner, BoneCollection) and self.prop_name == 'is_visible':
             if self.icon_true == 'CHECKBOX_HLT':
                 self.icon_true = 'HIDE_OFF'
             if self.icon_false == 'CHECKBOX_DEHLT':
@@ -393,7 +398,7 @@ class CloudRigUIEditOpMixin:
             )
             return False
         if self.owner_path and not hasattr(prop_owner, 'bl_rna'):
-            # User tried providing a full data path to a property in the owner field, 
+            # User tried providing a full data path to a property in the owner field,
             # as opposed to a path to a property owner, and then later a property name.
             owner_row.alert = True
             alert_row = owner_box.row()
@@ -409,7 +414,7 @@ class CloudRigUIEditOpMixin:
         try:
             icon_value = UILayout.icon(prop_owner)
             owner_box.label(text=text, icon_value=icon_value)
-        except:
+        except TypeError:
             owner_box.label(text=text, icon='INFO')
 
         return True
@@ -471,9 +476,9 @@ class CloudRigUIEditOpMixin:
             if prop_settings:
                 prop_settings = prop_settings.as_dict()
 
-        if prop_value != None or issubclass(type(prop_owner), Modifier) or prop_settings and 'id_type' in prop_settings:
+        if prop_value is not None or issubclass(type(prop_owner), Modifier) or prop_settings and 'id_type' in prop_settings:
             if (
-                prop_value != None
+                prop_value is not None
                 and isinstance(prop_value, bpy_struct)
                 and not isinstance(prop_value, ID)
             ):
@@ -484,7 +489,7 @@ class CloudRigUIEditOpMixin:
                 row.label(text="This is a struct, not a property.", icon='ERROR')
                 return True
             else:
-                prop_box.label(text=f"Property found.", icon='CHECKMARK')
+                prop_box.label(text="Property found.", icon='CHECKMARK')
                 draw_property(
                     prop_box.row(),
                     prop_owner,
@@ -540,7 +545,7 @@ class CloudRigUIEditOpMixin:
         panel_box.prop(self, 'slider_name')
         if type(prop_value) in {bool, int}:
             panel_box.prop(self, 'texts')
-        if type(prop_value) == bool:
+        if type(prop_value) is bool:
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
             panel_box.prop_search(
                 self, 'icon_true', icons, 'enum_items', icon=self.icon_true
@@ -550,7 +555,9 @@ class CloudRigUIEditOpMixin:
             )
         if type(prop_value) in (float, int):
             panel_box.prop(self, 'use_slider')
-        if type(prop_value) == str and isinstance(prop_owner.bl_rna.properties.get(brackets_prop_name), bpy.types.EnumProperty):
+        bl_prop = prop_owner.bl_rna.properties.get(brackets_prop_name)
+        is_enum = isinstance(bl_prop, bpy.types.EnumProperty)
+        if type(prop_value) is str and is_enum:
             panel_box.prop(self, 'use_expand_enum')
 
     def draw_op_box(self, layout, context):
@@ -621,7 +628,7 @@ class CloudRigUIEditOpMixin:
                         )
                     )
 
-                if type(elem_data) == OrderedDict:
+                if type(elem_data) is OrderedDict:
                     add_slider_ui_paths_recursive(
                         elem_data, new_ui_path[:], new_display_name
                     )
@@ -937,7 +944,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
 def path_resolve_safe(owner, data_path):
     try:
         return owner.path_resolve(data_path)
-    except:
+    except ValueError:
         return
 
 
@@ -1035,7 +1042,7 @@ def add_property_to_ui(
     panels=None,
 ) -> OrderedDict:
     """Add a UI slider to the object's UI data."""
-    if panels == None:
+    if panels is None:
         panels = read_rig_panels(obj)
 
     if ui_path:
@@ -1109,7 +1116,7 @@ def remove_property_from_ui(
     and the index among its siblings of the highest element that was removed.
     """
 
-    if panels == None:
+    if panels is None:
         panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 
@@ -1125,7 +1132,7 @@ def remove_property_from_ui(
         child_data = parent[child_name]
         if not any(
             [
-                key == 'owner_path' or type(value) != str
+                key == 'owner_path' or type(value) is not str
                 for key, value in child_data.items()
             ]
         ):
@@ -1147,12 +1154,11 @@ def reorder_ui_row(
     we will move the `HairPin` row in the the `Headwear` label of the `Outfits` panel
     by the provided index_offset.
 
-    If the index gets clamped and therefore we don't need to perform any re-ordering, we
-    don't.
+    If the index gets clamped and therefore we don't need to perform any re-ordering, we don't.
     Return the row_data of the row that was targetted, and a bool of it was actually moved.
     """
 
-    if panels == None:
+    if panels is None:
         panels = read_rig_panels(obj)
     parents = get_ui_element_chain(panels, ui_path)
 

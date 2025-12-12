@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Panel, Object
+from bpy.types import Object, Panel
 
-from ..utils.misc import check_addon
 from ..bs_utils.prefs import get_addon_prefs
-
 from ..generation.cloudrig import is_generated_cloudrig
+from ..utils.misc import check_addon
+
 
 class POSE_PT_CloudRig(Panel):
     bl_label = "CloudRig"
@@ -27,7 +27,6 @@ class POSE_PT_CloudRig(Panel):
 
     def draw(self, context):
         layout = self.layout
-        prefs = get_addon_prefs(context)
 
         metarig = context.object
         cloudrig = metarig.cloudrig
@@ -140,7 +139,7 @@ class POSE_PT_CloudRig_CustomShapes(Panel):
 
 
 registry = [
-    POSE_PT_CloudRig, 
-    POSE_PT_CloudRig_General, 
+    POSE_PT_CloudRig,
+    POSE_PT_CloudRig_General,
     POSE_PT_CloudRig_CustomShapes
 ]

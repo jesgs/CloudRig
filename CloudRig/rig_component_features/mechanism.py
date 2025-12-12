@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
-from mathutils import Vector
-from bpy.types import PoseBone, ID, FCurve, Constraint, Object, Driver
 
 from typing import TYPE_CHECKING
+
+from bpy.types import ID, Constraint, FCurve, PoseBone
+from mathutils import Vector
+
 if TYPE_CHECKING:
-    from .bone_info import BoneInfo
     from ..rig_component_features.bone_set import BoneSet
+    from .bone_info import BoneInfo
 
 from ..generation.naming import add_prefix
 
@@ -171,7 +173,7 @@ def get_component_pbone_chain(pbone: PoseBone, connected=True) -> list[PoseBone]
             if child_pb.cloudrig_component.component_type == "":
                 if connected and not child_pb.bone.use_connect:
                     continue
-                if next_pb != None:
+                if next_pb is not None:
                     print(
                         f"""Warning: Branching connected bone chain for {pbone.name}: \n
                         \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
@@ -189,7 +191,7 @@ def get_component_pbone_chain(pbone: PoseBone, connected=True) -> list[PoseBone]
 def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
     """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
     parent the bone to this copy."""
-    if bone_set == None:
+    if bone_set is None:
         bone_set = child.bone_set
     if child.parent_helper:
         # If it already exists, just return it.

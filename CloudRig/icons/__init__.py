@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+
 import bpy
-import bpy.utils.previews # Do not remove. Seems necessary for some python versions... Wtf.
+import bpy.utils.previews  # Do not remove. Seems necessary for some python versions... Wtf.
 
 # We can store multiple preview collections here,
 # however in this example we only store "main"

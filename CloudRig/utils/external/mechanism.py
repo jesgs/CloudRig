@@ -1,20 +1,21 @@
+from typing import Iterable, Sequence
+
 import bpy
 from bpy.types import (
-    bpy_prop_collection,
+    ID,
+    ArmatureConstraint,
+    Driver,
+    DriverTarget,
+    FCurve,
+    FModifierGenerator,
     Object,
     PoseBone,
-    Driver,
-    FCurve,
-    DriverTarget,
-    ID,
+    bpy_prop_collection,
     bpy_struct,
-    FModifierGenerator,
-    ArmatureConstraint,
 )
 from rna_prop_ui import rna_idprop_quote_path as quote_property
-from typing import Sequence, Iterable
 
-from .misc import force_lazy, Lazy, OptionalLazy
+from .misc import Lazy, OptionalLazy, force_lazy
 
 _TRACK_AXIS_MAP = {
     'X': 'TRACK_X',

@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from .bone_info import BoneInfo
-from bpy.types import PropertyGroup
 from bpy.props import EnumProperty, StringProperty
+from bpy.types import PropertyGroup
 from mathutils import Vector
+
+from .bone_info import BoneInfo
 
 
 class CloudCustomPropertiesMixin:
@@ -28,7 +29,8 @@ class CloudCustomPropertiesMixin:
             self.add_log(
                 "Custom Property bone not found",
                 trouble_bone=prop_bone_name,
-                description=f'Custom Property bone named "{prop_bone_name}" not found, falling back to default Properties bone. If it exists, make sure it generates before this rig.',
+                description=f'Custom Property bone named "{prop_bone_name}" not found, falling back to ' \
+                            'default Properties bone. If it exists, make sure it generates before this rig.',
             )
             storage = 'DEFAULT'
 

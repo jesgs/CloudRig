@@ -1,22 +1,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import importlib
-from bpy.utils import register_class, unregister_class
 from types import ModuleType
 
+from bpy.utils import register_class, unregister_class
+
 from . import (
-    manual_mapping,
-    operators,
-    rig_components,
-    rig_component_features,
-    utils,
-    ui,
-    properties,
-    prefs,
-    generation,
-    metarigs,
-    icons,
     bs_utils,
+    generation,
+    icons,
+    manual_mapping,
+    metarigs,
+    operators,
+    prefs,
+    properties,
+    rig_component_features,
+    rig_components,
+    ui,
+    utils,
 )
 
 modules = [

@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from math import radians as rad
+
 from bpy.types import Action, ActionSlot, FCurve
 from bpy_extras import anim_utils
 
 from .bone_info import BoneInfo
-
-from math import radians as rad
 
 
 class CloudAnimationMixin:

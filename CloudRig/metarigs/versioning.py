@@ -1,20 +1,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from ..generation.actions_component import ActionConstraintSetup
 import bpy
-from bpy.types import Object
 from bpy.app.handlers import persistent
+from bpy.types import Object
 
+from ..bs_utils.prefs import get_addon_prefs
+from ..generation.actions_component import ActionConstraintSetup
 from ..generation.cloudrig import is_cloud_metarig
 from ..rig_components import ALL_COMPONENT_MODULES
-from ..bs_utils.prefs import get_addon_prefs
 
 RIG_TYPE_MAP = {
     key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_COMPONENT_MODULES.items()
 }
 
 def setattr_safe(thing, key, value):
-    if hasattr(thing, 'bl_rna') and type(thing.bl_rna.properties[key])==bpy.types.EnumProperty and type(value)==int:
+    if (
+        hasattr(thing, 'bl_rna')
+        and type(thing.bl_rna.properties[key]) is bpy.types.EnumProperty
+        and type(value) is int
+    ):
         enum_value = thing.bl_rna.properties[key].enum_items[value].identifier
         setattr(thing, key, enum_value)
     else:
@@ -44,7 +48,12 @@ def version_cloud_metarig(metarig):
     )
     if cloudrig.metarig_version < 3:
         # Generated rigs used to keep the metarig data, which confuses some poll functions.
-        if 'generation_date' in metarig.data or 'generation_time' in metarig.data or ('is_generated_cloudrig' in metarig.data and metarig.data['is_generated_cloudrig']):
+        if (
+            'generation_date' in metarig.data
+            or 'generation_time' in metarig.data
+            or ('is_generated_cloudrig' in metarig.data
+                and metarig.data['is_generated_cloudrig'])
+        ):
             metarig.property_unset('cloudrig')
             return
 
@@ -74,8 +83,8 @@ def version_cloud_metarig(metarig):
             del generator_properties['action_slots']
 
     if cloudrig.metarig_version < 5:
-        # Trigger the new set_transform callback in 5.0, which updates the underlying data 
-        # of the component_type property to be masked by the transform callbacks, 
+        # Trigger the new set_transform callback in 5.0, which updates the underlying data
+        # of the component_type property to be masked by the transform callbacks,
         # making it resilient to changing the UI names of components in the future.
         for pbone in metarig.pose.bones:
             if pbone.cloudrig_component.component_type:
@@ -86,7 +95,7 @@ def version_cloud_metarig(metarig):
 def update_all_metarigs(dummy=None):
     if not hasattr(bpy.data, 'objects'):
         # We want this function to run on Register, because we want to version metarigs in current scene
-        # when user enables CloudRig. But this is not allowed by PyAPI, so we defer the call to until after 
+        # when user enables CloudRig. But this is not allowed by PyAPI, so we defer the call to until after
         # add-on registration completes, using a timer.
         bpy.app.timers.register(update_all_metarigs)
         return

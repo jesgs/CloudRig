@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Object, FCurve, Operator
 from bpy.props import BoolProperty
+from bpy.types import FCurve, Object, Operator
 
+from ..bs_utils.hotkeys import register_hotkey
 from ..generation.naming import uniqify
 from ..utils.rig import get_current_rigs
-from ..bs_utils.hotkeys import register_hotkey
 
 
 class BoneDuplicateOpMixin:

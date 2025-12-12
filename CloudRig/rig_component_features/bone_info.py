@@ -1,21 +1,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
+
 import re
-from bpy.types import EditBone, PoseBone, Constraint, Object
+from typing import TYPE_CHECKING
 
-from mathutils import Vector, Matrix
+from bpy.types import Constraint, EditBone, Object, PoseBone
+from mathutils import Matrix, Vector
 
-from ..utils.maths import flat
-from ..utils.external.mechanism import make_driver
+from ..generation import naming
 from ..rig_component_features.mechanism import copy_relink_real_driver
+from ..utils.external.mechanism import make_driver
+from ..utils.maths import flat
 from ..utils.rig import align_bone_axis_to_vector
 from .properties_ui import ensure_custom_property, make_property
-from ..generation import naming
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
-    from .bone_set import BoneSet
     from ..rig_components.cloud_base import Component_Base
+    from .bone_set import BoneSet
 
 # Sadly we can't rely on Blender's RNA property defaults because they are extremely inconsistent.
 # Instead, we define here what properties we are interested in writing, and with what default values.
@@ -150,11 +152,12 @@ class BoneInfo:
         self.gizmo_vgroup = ""  # For CloudRig Gizmos
         self.gizmo_operator = 'transform.translate'
 
-        # {"name" : {kwargs}} where kwargs will be passed to make_property().
+        # {"name": {kwargs}} where kwargs will be passed to make_property().
         self.custom_props = {}
         self.custom_props_edit = {}
 
-        # List of dictionaries that will be passed to make_driver(). This is where we define drivers during rig generation.
+        # List of dictionaries that will be passed to make_driver().
+        # This is where we define drivers during rig generation.
         self.drivers = []
         # Same but for data bone properties.
         self.drivers_data = []
@@ -183,9 +186,11 @@ class BoneInfo:
         ### Recalculate Roll
         # Whether the roll_bone or roll_vector should be used to calculate bone roll..
         self.roll_type = ""
-        # If roll_type=='ALIGN', use this as the bone to align with. This is a BoneInfo instance or a string. This is equivalent to the "Active Bone" alignment in Blender.
-        self.roll_bone = None
-        # If roll_type=='VECTOR', use this as the vector that the Z axis should point towards. This is equivalent to "Align to Cursor" in Blender.
+        # If roll_type=='ALIGN', roll_bone is the bone to align with.
+        # Equivalent to the "Active Bone" alignment in Blender.
+        self.roll_bone: BoneInfo | str | None = None
+        # If roll_type=='VECTOR', the Z axis should point towards roll_vector.
+        # Equivalent to "Align to Cursor" in Blender.
         self.roll_vector = Vector()
 
         self.custom_shape_name = ""
@@ -201,7 +206,7 @@ class BoneInfo:
             self.envelope_distance = source.envelope_distance
             self.envelope_weight = source.envelope_weight
             self.use_envelope_multiply = source.use_envelope_multiply
-            if type(source) == type(self):
+            if type(source) is type(self):
                 self._source = source
                 self.roll_type = source.roll_type
                 self.roll_bone = source.roll_bone
@@ -209,7 +214,7 @@ class BoneInfo:
                 self.bbone_width = source.bbone_width
                 if source.parent:
                     self.parent = source.parent
-            elif type(source) == EditBone:
+            elif isinstance(source, EditBone):
                 self.bbone_x = source.bbone_x
                 self.bbone_z = source.bbone_z
                 if source.parent:
@@ -283,14 +288,14 @@ class BoneInfo:
     def parent(self, value):
         if self.parent == value:
             return
-        if self.parent and type(self.parent) != str:
+        if self.parent and type(self.parent) is not str:
             self.parent.children.remove(self)
         self._parent = value
-        if value and type(self) == type(value):
+        if value and type(self) is type(value):
             value.children.append(self)
 
         # If we want to use connected parenting, do it explicitly, after setting the parent.
-        # This is a more intuitive because otherwise changing the parent of a connected bone 
+        # This is a more intuitive because otherwise changing the parent of a connected bone
         # will also move the child bone, which is quite unexpected.
         self.use_connect = False
 
@@ -312,7 +317,7 @@ class BoneInfo:
     @property
     def bbone_segments(self) -> int:
         return self._bbone_segments
-    
+
     @bbone_segments.setter
     def bbone_segments(self, value: int):
         self._bbone_segments = value
@@ -434,7 +439,7 @@ class BoneInfo:
         """
 
         con_info = ConstraintInfo(self, con_type, **kwargs)
-        if index != None:
+        if index is not None:
             self.constraint_infos.insert(index, con_info)
         else:
             self.constraint_infos.append(con_info)
@@ -656,7 +661,8 @@ class BoneInfo:
             self.bone_set.rig_component.add_log(
                 "Non-deforming DEF bone",
                 trouble_bone=self.name,
-                description=f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. This bone will not be keyframed by the "Whole Character" keying set!',
+                description=f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. ' \
+                            'This bone will not be keyframed by the "Whole Character" keying set!',
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': bone.name},
             )
@@ -669,7 +675,7 @@ class BoneInfo:
         def make_driver_safe(ob, *, target_id, **kwargs):
             try:
                 make_driver(ob, target_id=target_id, **kwargs)
-            except:
+            except TypeError:
                 if 'index' in kwargs:
                     del kwargs['index']
                 try:
@@ -790,7 +796,7 @@ class ConstraintInfo(dict):
         **kwargs,
     ):
         super(ConstraintInfo, self).__init__(**kwargs)
-        # This is a cheeky hack to let us access our dict values as if 
+        # This is a cheeky hack to let us access our dict values as if
         # they were proper attributes. Not that this is used often in the codebase.
         # https://stackoverflow.com/a/14620633/1527672
         self.__dict__ = self
@@ -824,10 +830,14 @@ class ConstraintInfo(dict):
             if self.type == 'ARMATURE':
                 if len(subtargets) != len(targets):
                     self.bone_info.owner_component.raise_generation_error(
-                        f"Armature constraint using @ syntax specifies {len(subtargets)} names, but has {len(targets)} targets. They must be equal.",
+                        f"Armature constraint using @ syntax specifies {len(subtargets)} names, " \
+                        f"but has {len(targets)} targets. They must be equal.",
                         trouble_bone = self.bone_info.name
                     )
-                self.targets = [(targets[i]['target'], subtarget, targets[i]['weight']) for i, subtarget in enumerate(split_name[1:])]
+                self.targets = [
+                    (targets[i]['target'], subtarget, targets[i]['weight'])
+                    for i, subtarget in enumerate(split_name[1:])
+                ]
             else:
                 self.subtarget = split_name[1]
 
@@ -845,7 +855,7 @@ class ConstraintInfo(dict):
         if target in (None, self.metarig):
             self.target = self.rig
         return self.get('target')
-    
+
     @target.setter
     def target(self, value: Object):
         if value == self.metarig:
@@ -863,9 +873,9 @@ class ConstraintInfo(dict):
 
     @subtarget.setter
     def subtarget(self, value):
-        if value == None:
+        if value is None:
             value = ""
-        elif type(value) == str:
+        elif type(value) is str:
             value = value
         elif hasattr(value, 'name'):
             value = value.name
@@ -881,12 +891,12 @@ class ConstraintInfo(dict):
     @property
     def space_subtarget(self) -> str:
         return self.get('space_subtarget', '')
-    
+
     @space_subtarget.setter
     def space_subtarget(self, value):
         if hasattr(value, 'name'):
             self['space_subtarget'] = value.name
-        elif type(value) == str:
+        elif type(value) is str:
             self['space_subtarget'] = value
         else:
             raise ValueError(f"Invalid 'space_subtarget': {value}")
@@ -902,19 +912,19 @@ class ConstraintInfo(dict):
         """Allow a few different syntaxes, always coerce them to a dict."""
         _targets: list[dict] = []
         for tar in value:
-            if type(tar) == str:
+            if type(tar) is str:
                 _targets.append({'target': self.rig, 'subtarget': tar, 'weight': 1.0})
-            elif type(tar) == tuple:
-                targ_ob = next((t for t in tar if type(t)==Object), None)
+            elif type(tar) is tuple:
+                targ_ob = next((t for t in tar if isinstance(t, Object)), None)
                 subtarget = next((str(t) for t in tar if type(t) in (str, BoneInfo)), "")
                 weight = next((t for t in tar if type(t) in (float, int)), 1.0)
                 if len(tar) > 2:
                     weight = tar[2]
                 _targets.append({'target': targ_ob, 'subtarget': subtarget, 'weight': weight})
-            elif type(tar == dict):
+            elif type(tar is dict):
                 if tar.get('target') in (None, self.metarig):
                     tar['target'] = self.rig
-                if type(tar.get('subtarget')) != str:
+                if type(tar.get('subtarget')) is not str:
                     tar['subtarget'] = str(tar.get('subtarget'))
                 if 'weight' not in tar:
                     tar['weight'] = 1.0
@@ -958,7 +968,7 @@ class ConstraintInfo(dict):
             self.get('use_y', False),
             self.get('use_z', False),
         )
-    
+
     @use_xyz.setter
     def use_xyz(self, value: tuple[bool, bool, bool]):
         self['use_x'], self['use_y'], self['use_z'] = value
@@ -970,7 +980,7 @@ class ConstraintInfo(dict):
             self.get('invert_y', False),
             self.get('invert_z', False),
         )
-    
+
     @invert_xyz.setter
     def invert_xyz(self, value: tuple[bool, bool, bool]):
         self['invert_x'], self['invert_y'], self['invert_z'] = value
@@ -997,7 +1007,7 @@ class ConstraintInfo(dict):
     @property
     def head_tail(self) -> float:
         return self.get('head_tail', 0.0)
-    
+
     @head_tail.setter
     def head_tail(self, value):
         self['use_bbone_shape'] = True
@@ -1074,8 +1084,10 @@ class ConstraintInfo(dict):
             else:
                 try:
                     setattr(con, prop.identifier, value)
-                except TypeError as exc:
-                    assert False, (f"Cannot set value `{value}` on constraint '{self.name}' of bone '{self.bone_info.name}' of type '{self.type}' for property '{prop.identifier}' ")
-                    
+                except TypeError:
+                    assert False, (
+                        f"Cannot set value `{value}` on constraint '{self.name}' of bone '{self.bone_info.name}' " \
+                        f"of type '{self.type}' for property '{prop.identifier}'"
+                    )
 
         return con

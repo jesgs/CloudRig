@@ -112,7 +112,9 @@ class POSE_OT_symmetrize_rigging(Operator):
 
             copy_property_group(from_pb.cloudrig_component, to_pb.cloudrig_component, x_mirror=True)
             if to_pb.cloudrig_component.params.shoulder.is_property_set('up_axis'):
-                to_pb.cloudrig_component.params.shoulder.up_axis = str((int(to_pb.cloudrig_component.params.shoulder.up_axis) + 2) % 4)
+                to_pb.cloudrig_component.params.shoulder.up_axis = str((
+                    int(to_pb.cloudrig_component.params.shoulder.up_axis) + 2) % 4
+                )
 
             # Flip custom property names
             for prop_name in get_custom_prop_names(to_pb):
@@ -337,10 +339,11 @@ def symmetrize_drivers(
                 expression = f"-({expression})"
 
             if new_fc.data_path.endswith('pole_angle'):
-                # If the IK pole angle is driven, add 180 degrees in a way that loops it around to keep it in -180->180 range.
-                # NOTE: This will coincidentally work around the -180->180 range limitation, which technically makes it assymetrical,
-                # but I'll ignore that for the sake of keeping the expression simple.
-                # Why would anyone drive this value anyways?
+                # If the IK pole angle is driven, add 180 degrees in a way that loops it around to
+                # keep it in -180->180 range.
+                # NOTE: This will coincidentally work around the -180->180 range limitation,
+                # which technically makes it assymetrical, but I'll ignore that for the sake of
+                # keeping the expression simple. Why would anyone drive this value anyways?
                 expression = f"-({expression}) % (2 * pi) - pi"
 
         # Copy the driver expression.

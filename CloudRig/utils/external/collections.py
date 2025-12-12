@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import Context, Collection, LayerCollection
+from bpy.types import Collection, Context, LayerCollection
 
 
 def ensure_collection(

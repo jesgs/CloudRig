@@ -1,4 +1,6 @@
-import enum, collections, re
+import collections
+import enum
+import re
 
 NameParts = collections.namedtuple(
     'NameParts', ['prefix', 'base', 'side_z', 'side', 'number']

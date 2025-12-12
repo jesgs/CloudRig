@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import PropertyGroup, UIList
-from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty
 from bl_ui.generic_ui_list import draw_ui_list
-from .bone_info import BoneInfo, ConstraintInfo
+from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
+from bpy.types import PropertyGroup, UIList
 
 from ..utils.rig import get_pbone_of_active
+from .bone_info import BoneInfo, ConstraintInfo
 from .params_ui_utils import draw_label_with_linebreak
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be
@@ -40,7 +40,7 @@ class CLOUDRIG_UL_parent_slots(UIList):
                 row.prop(parent_slot, "bone", text="")
 
             row = split.row()
-            row.prop(parent_slot, "name", text=f"", emboss=True)
+            row.prop(parent_slot, "name", text="", emboss=True)
             row.prop(parent_slot, "is_default", text="")
 
         elif self.layout_type in {"GRID"}:
@@ -59,7 +59,7 @@ class ParentSlot(PropertyGroup):
     def set_is_default(self, value):
         active_pb = get_pbone_of_active(bpy.context)
 
-        if value == False:
+        if value is False:
             self['is_default'] = False
             return
 
@@ -269,7 +269,7 @@ class CloudParentingMixin:
         if len(parent_ui_names) == 0:
             self.add_log(
                 "No parents found",
-                description=f"No parents specified for parent switching setup. The setting should just be disabled.",
+                description="No parents specified for parent switching setup. The setting should just be disabled.",
             )
             return [], []
 
@@ -291,7 +291,8 @@ class CloudParentingMixin:
     def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
         if not component_root:
             component_root = self.root_bone
-        assert component_root, f"No root on component of '{self}'. Cannot do custom parenting. This is a bug because all components should have a root!"
+        assert component_root, f"No root on component of '{self}'. Cannot do custom parenting. This is a bug because " \
+                                "all components should have a root!"
 
         if parent_name == "":
             parent_name = self.params.parenting.root_parent

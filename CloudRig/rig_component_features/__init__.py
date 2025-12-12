@@ -2,16 +2,15 @@ from . import (
     bone_gizmos,
     bone_info,
     bone_set,
-    params_ui_utils,
     custom_props,
     generate_animation,
     mechanism,
     object,
+    params_ui_utils,
     parenting,
     properties_ui,
     widgets,
 )
-
 
 modules = [
     bone_gizmos,

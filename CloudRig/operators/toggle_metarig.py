@@ -137,17 +137,19 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         if match_collections:
+            from_colls = from_rig.data.collections
+            to_colls_all = to_rig.data.collections_all
             to_rig.cloudrig_prefs.collection_ui_type = from_rig.cloudrig_prefs.collection_ui_type
-            if from_rig.data.collections.active:
-                to_rig.cloudrig_prefs.active_collection_index = to_rig.data.collections_all.find(from_rig.data.collections.active.name)
-            for to_coll in to_rig.data.collections_all:
+            if from_colls.active:
+                to_rig.cloudrig_prefs.active_collection_index = to_colls_all.find(from_colls.active.name)
+            for to_coll in to_colls_all:
                 from_coll = from_rig.data.collections_all.get(to_coll.name)
                 if from_coll:
                     to_coll.is_visible = from_coll.is_visible
                     to_coll.is_solo = from_coll.is_solo
-            from_active = from_rig.data.collections.active
+            from_active = from_colls.active
             if from_active:
-                to_active = to_rig.data.collections_all.get(from_active.name)
+                to_active = to_colls_all.get(from_active.name)
                 if to_active:
                     to_rig.data.collections.active = to_active
 
@@ -165,7 +167,8 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
         # only one or zero bones are selected in the target armature.
         # Zero if no visible matches are found.
 
-        # If an exact match is found, use that. This is rare, since most bones get prefixes during generation (FK-, DEF-, etc).
+        # If an exact match is found, use that. This is rare, since most bones get prefixes during
+        # generation (FK-, DEF-, etc).
 
         # If multiple matches are found, one is chosen based on its prefix
         # (higher priority prefix wins).

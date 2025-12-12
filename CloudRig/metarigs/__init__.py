@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, os
-from bpy.types import Object, Operator, Menu
+import os
+
+import bpy
 from bpy.props import StringProperty
+from bpy.types import Menu, Object, Operator
+
 from . import versioning
 
 # Global storage of available metarigs. List of UI name and object name tuples.
