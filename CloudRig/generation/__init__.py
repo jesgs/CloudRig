@@ -1,10 +1,10 @@
 from . import (
+    actions_component,
+    cloud_generator,
     cloudrig,
     generate_test_animation,
-    troubleshooting,
-    cloud_generator,
     naming,
-    actions_component,
+    troubleshooting,
 )
 
 modules = [

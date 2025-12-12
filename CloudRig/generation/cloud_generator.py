@@ -1,57 +1,59 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, os, traceback, sys
-from bpy.types import Object, PropertyGroup, Collection, Text, Action, Operator
-from bpy.props import (
-    BoolProperty,
-    PointerProperty,
-    CollectionProperty,
-    IntProperty,
-    StringProperty,
-)
-from time import time
+import os
+import sys
+import traceback
 from collections import OrderedDict
 from datetime import datetime
+from time import time
+
+import bpy
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+from bpy.types import Action, Collection, Object, Operator, PropertyGroup, Text
 from mathutils import Matrix
 
-from ..rig_component_features.widgets.widgets import (
-    ensure_widget, 
-    get_custom_shape_rig_data, 
-    apply_custom_shape_rig_data
-)
-from .actions_component import ActionConstraintComponent
-from ..rig_component_features.object import EnsureVisible
-from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
-from ..rig_component_features.mechanism import copy_relink_real_driver
-from ..rig_component_features.bone_info import BoneInfo
-from ..rig_components.cloud_base import Component_Base
-
-from .troubleshooting import CloudRigLogEntry, CloudLogManager
-from . import naming
-
-from ..ui.actions_ui import ActionConstraintSetup
-from ..utils.external.mechanism import refresh_all_drivers
-from ..utils.external.collections import ensure_collection
-from ..utils.rig import get_pbone_of_active, get_armature_dimensions
-from ..utils.misc import (
-    check_addon,
-    load_script,
-    assign_to_collection,
-)
+from ..bs_utils.hotkeys import register_hotkey
+from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.properties import (
     copy_all_custom_properties,
     copy_all_runtime_properties,
     copy_property_group,
 )
-from ..bs_utils.prefs import get_addon_prefs
-from ..bs_utils.hotkeys import register_hotkey
-
+from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
+from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.mechanism import copy_relink_real_driver
+from ..rig_component_features.object import EnsureVisible
+from ..rig_component_features.widgets.widgets import (
+    apply_custom_shape_rig_data,
+    ensure_widget,
+    get_custom_shape_rig_data,
+)
+from ..rig_components.cloud_base import Component_Base
+from ..ui.actions_ui import ActionConstraintSetup
+from ..utils.external.collections import ensure_collection
+from ..utils.external.mechanism import refresh_all_drivers
+from ..utils.misc import (
+    assign_to_collection,
+    check_addon,
+    load_script,
+)
+from ..utils.rig import get_armature_dimensions, get_pbone_of_active
+from . import naming
+from .actions_component import ActionConstraintComponent
 from .cloudrig import (
     is_active_cloud_metarig,
     is_active_cloudrig,
     is_cloud_metarig,
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
+from .troubleshooting import CloudLogManager, CloudRigLogEntry
+
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
@@ -230,7 +232,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 widget_name,
                 overwrite=overwrite,
             )
-            error = wgt == None
+            error = wgt is None
         except ValueError:
             error = True
         if error:
@@ -392,7 +394,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.target_rig.data.name = self.target_rig.name
 
         self.restore_rig_states(context)
-    
+
     ### Early generation steps.
     def ensure_widget_collection(self, context) -> Collection:
         """Create the collection where bone shapes will be linked to."""
@@ -543,7 +545,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def components_write_ebone_data(self):
         """Write edit bone data for BoneInfos.
-        This function does not create EditBones. 
+        This function does not create EditBones.
         That should be done earlier by calling components_create_real_bones(),
         so that parenting can be done without worrying about order.
         """
@@ -594,7 +596,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     ### Final generation steps.
     def execute_custom_script(self, old_rig: Object|None, new_rig: Object):
         """Execute a text datablock to be executed after rig generation."""
-        # This is a bit hacky, but we need the rig name to be the "original" so that 
+        # This is a bit hacky, but we need the rig name to be the "original" so that
         # post-gen script authors can get a reference to the rig easily.
         # (Since we don't want to move execution of the post-gen script after replace_old_with_new_rig)
         script = self.params.custom_script
@@ -862,7 +864,7 @@ def copy_bone_collections(src_rig: Object, tgt_rig: Object):
 
     tgt_rig.data.collections.active_index = src_rig.data.collections.active_index
 
-    # Parenting has to be done as a separate loop because `collections_all` 
+    # Parenting has to be done as a separate loop because `collections_all`
     # appears to be in creation order, not hierarchy order.
     for src_coll in src_rig.data.collections_all:
         tgt_coll = tgt_rig.data.collections_all.get(src_coll.name)
@@ -1091,11 +1093,11 @@ class CLOUDRIG_OT_generate(Operator):
                 generator.target_rig.name = "FAILED-" + generator.target_rig.name
                 generator.target_rig.name = generator.target_rig.name.replace("NEW-", "")
                 metarig['failed_rig'] = generator.target_rig
-                # Leave a reference to the Metarig, so the Toggle Metarig operator 
+                # Leave a reference to the Metarig, so the Toggle Metarig operator
                 # can find its way back to it.
                 generator.target_rig['metarig'] = metarig
 
-            if type(exception) == CloudGeneratorError:
+            if type(exception) is CloudGeneratorError:
                 # A MetaRig error means the user created an invalid metarig set-up.
                 # Importantly, this is not a bug.
                 self.report({'ERROR'}, exception.message)
@@ -1115,7 +1117,7 @@ class CLOUDRIG_OT_generate(Operator):
                     if is_cloudrig_bug:
                         operator = 'wm.cloudrig_report_bug'
                     elif (
-                        hasattr(exception_module, 'RIG_COMPONENT_CLASS') and 
+                        hasattr(exception_module, 'RIG_COMPONENT_CLASS') and
                         hasattr(exception_module.RIG_COMPONENT_CLASS, 'bug_report_url') and
                         exception_module.RIG_COMPONENT_CLASS.bug_report_url
                     ):

@@ -1,22 +1,32 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup, Panel, UIList, Operator, Object
-from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
+import json
+import os
+import platform
+import struct
+import sys
+import time
+import traceback
+import urllib.parse
+import webbrowser
 
-import bpy, os, traceback, sys
-import json, webbrowser, time
-import struct, platform, urllib.parse
 import addon_utils
+import bpy
+from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
+from bpy.types import Object, Operator, Panel, PropertyGroup, UIList
 
-from ..rig_component_features.params_ui_utils import draw_label_with_linebreak, is_advanced_mode
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
+from ..rig_component_features.params_ui_utils import (
+    draw_label_with_linebreak,
+    is_advanced_mode,
+)
 
 """
 Fatal errors can happen in 3 ways:
 - Generic execution error anywhere throughout the generation process including asserts
     - Should never happen and should be reported as a bug.
-    - User should see stack trace in both the pop-up and the Generation Log; The latter also provides a Report Bug button.
+    - User should see stack trace in both the pop-up and the Generation Log; Latter also provides a Report Bug button.
 - Post-generation script error: This is a bug in the code written by the user, see execute_custom_script().
     - User should see a stack trace of only their script, both in the pop-up and the Generation Log.
 - Metarig Error: This is a mistake in the MetaRig's bone setup, raised via self.raise_generation_error()
@@ -88,7 +98,6 @@ def cloudrig_last_modified() -> str:
             mtime = os.path.getmtime(full_path)
             if mtime > max_mtime:
                 max_mtime = mtime
-                max_file = fname
 
     # For me this is in UTC, I can only hope it is for everyone.
     return time.strftime('%Y-%m-%d %H:%M', time.gmtime(max_mtime))
@@ -130,8 +139,7 @@ def url_prefill_from_cloudrig(stack_trace=""):
 def get_pretty_stack() -> str:
     """Make a pretty looking string out of the current execution stack,
     or the exception stack if this is called from a stack which is handling an exception.
-    (Python is cool in that way - We can tell when this function is being called by
-    a stack which originated in a try/except block!)
+    (Python lets us find out whether this function is being called by a try/except block!)
     """
     ret = ""
 
@@ -308,7 +316,7 @@ class CloudLogManager:
             if 'pose.bones' in fcurve.data_path:
                 bone_name = fcurve.data_path.split('pose.bones["')[1].split('"]')[0]
                 if (
-                    type(datablock) == Object
+                    isinstance(datablock, Object)
                     and datablock.type == 'ARMATURE'
                     and datablock.cloudrig.generator.target_rig == self.rig
                 ):
@@ -318,7 +326,8 @@ class CloudLogManager:
 
             self.log(
                 "Invalid Driver",
-                description=f'Invalid driver:\nDatablock: "{owner.name}"\nData path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}',
+                description=f'Invalid driver:\nDatablock: "{owner.name}"\n' \
+                            f'Data path: "{fcurve.data_path}"\nIndex: {fcurve.array_index}',
                 icon='DRIVER',
                 note=owner.name,
                 note_icon=get_datablock_type_icon(datablock),
@@ -377,7 +386,8 @@ class CloudLogManager:
                         "Duplicate Custom Shape",
                         note=widget.name,
                         icon='DUPLICATE',
-                        description=f'There exists a custom shape called "{unprefixed}", that should be used instead of "{widget.name}".',
+                        description=f'There exists a custom shape called "{unprefixed}", ' \
+                                    f'that should be used instead of "{widget.name}".',
                         operator=CLOUDRIG_OT_Swap_Bone_Shape.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
@@ -410,7 +420,8 @@ class CloudLogManager:
                     "Action has no transform range",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action set-up "{action_setup.name}" has no transformation range. This will cause the action to always be in the same state!',
+                    description=f'Action set-up "{action_setup.name}" has no transformation range. ' \
+                                'This will cause the action to always be in the same state!',
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -419,7 +430,8 @@ class CloudLogManager:
                     "Action has no frame range",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action set-up "{action_setup.name}" has no frame range. This will cause the action to always be in the same state!',
+                    description=f'Action set-up "{action_setup.name}" has no frame range. ' \
+                                'This will cause the action to always be in the same state!',
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -430,7 +442,11 @@ class CloudLogManager:
                     "Action default frame must be whole",
                     note=action_setup.name,
                     icon='ACTION',
-                    description=f'Action "{action_setup.name}" has a default frame of {default_frame}. The input parameters of the Action Set-up should be tweaked such that the "Default Frame" value is a whole number. On that frame, there should be a keyframe of all affected bones in the default position. Otherwise, the rig will be deformed in its default pose.',
+                    description=f'Action "{action_setup.name}" has a default frame of {default_frame}. ' \
+                                'The input parameters of the Action Set-up should be tweaked such that the ' \
+                                '"Default Frame" value is a whole number. On that frame, there should be a keyframe ' \
+                                'of all affected bones in the default position. Otherwise, the rig will be deformed in '\
+                                'its default pose.',
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -463,7 +479,8 @@ class CloudLogManager:
                     "Action with 1-key curves",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_setup.action.name}" has {len(single_point_curves)} curves with only a single keyframe. These curves will be ignored by the action set-up!',
+                    description=f'Action slot "{action_setup.action.name}" has {len(single_point_curves)} '\
+                                'curves with only a single keyframe. These curves will be ignored by the action set-up!',
                     operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -472,7 +489,8 @@ class CloudLogManager:
                     "Action affects rest pose",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action slot "{action_setup.action.name}" has {len(wrong_curves)} curves that are not keyframed to their default values on the default frame ({default_frame}).',
+                    description=f'Action slot "{action_setup.action.name}" has {len(wrong_curves)} curves that are ' \
+                                f'not keyframed to their default values on the default frame ({default_frame}).',
                     operator='object.cloudrig_jump_to_action_setup',
                     op_kwargs={'setup_id': action_setup.unique_id},
                 )
@@ -526,7 +544,7 @@ class CloudLogManager:
                         note=con.name,
                         trouble_bone=pb.name,
                         icon='CONSTRAINT_BONE',
-                        description=f'Constraint is invalid. This is usually because its target bone does not exist.'
+                        description='Constraint is invalid. This is usually because its target bone does not exist.'
                     )
                 if con.type=='ARMATURE':
                     if not arm_con:
@@ -537,7 +555,7 @@ class CloudLogManager:
                             note=pb.name,
                             trouble_bone=pb.name,
                             icon='CON_ARMATURE',
-                            description=f'This bone has multiple Armature constraints, which is unlikely to be intentional.'
+                            description='This bone has multiple Armature constraints, which is unlikely to be intentional.'
                         )
 
 
@@ -1031,7 +1049,7 @@ class CLOUDRIG_OT_Unlink_Widget(Operator):
         if not obj:
             self.report({'ERROR'}, "Object had already been removed.")
             return {'FINISHED'}
-        
+
         for coll in [widget_collection] + widget_collection.children_recursive:
             if obj in set(coll.objects):
                 coll.objects.unlink(obj)

@@ -6,22 +6,41 @@ CloudRig rigs.
 It's responsible for drawing the CloudRig panel in the 3D View's Sidebar.
 """
 
-import bpy, json, ast, re, contextlib, sys, importlib
+import ast
+import contextlib
+import importlib
+import json
+import re
+import sys
+from collections import OrderedDict, defaultdict
+
+import bpy
+from bl_ui.generic_ui_list import draw_ui_list
 from bpy.props import (
-    StringProperty, BoolProperty, EnumProperty,
-    PointerProperty, IntProperty,
+    BoolProperty,
+    EnumProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
 )
 from bpy.types import (
-    bpy_struct, ID, Object,
-    BoneCollection, PoseBone, EditBone, Bone,
-    UILayout, UIList, Panel, Menu,
-    Operator, PropertyGroup, 
+    ID,
+    Bone,
+    BoneCollection,
+    EditBone,
+    Menu,
+    Object,
+    Operator,
+    Panel,
+    PoseBone,
+    PropertyGroup,
+    UILayout,
+    UIList,
+    bpy_struct,
 )
 from bpy.utils import register_class, unregister_class
-from rna_prop_ui import rna_idprop_value_item_type
-from bl_ui.generic_ui_list import draw_ui_list
-from collections import OrderedDict, defaultdict
 from mathutils import Matrix, Vector
+from rna_prop_ui import rna_idprop_value_item_type
 
 cloudrig_installed = False
 submodule = next((m for m in sys.modules if m.endswith('generation.cloudrig')), None)
@@ -112,7 +131,7 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
                 and metarig.cloudrig.generator.target_rig != rig
                 and metarig.cloudrig.generator.target_rig != metarig
             ):
-                # Edge cases: 
+                # Edge cases:
                 # The names match, but this metarig is targetting another rig.
                 # The names match, but this "metarig" is targetting itself. This should never happen.
                 # In this case, don't match the metarig.
@@ -283,7 +302,7 @@ def key_transforms(pb: PoseBone):
         props = ['rotation_axis_angle']
     else:
         props = ['rotation_euler']
-    
+
     props += ['location', 'scale']
 
     for prop in props:
@@ -385,7 +404,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
             row.prop(from_pb, 'name', text="", icon='BONE_DATA')
             if to_pb:
                 split = split.row().split(factor=0.08)
-                split.row().label(text=f"\u279C")
+                split.row().label(text="\u279C")
                 split.row().prop(to_pb, 'name', text="", icon='BONE_DATA')
             else:
                 # When there's no target, this helps align the bone selectors.
@@ -492,7 +511,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
 
         # Set & key property value.
         self.set_target_prop_value(key=True)
-        
+
         # Restore (and key if needed) world matrices.
         self.set_and_key_bone_matrices(context, pbone_matrix_map)
 
@@ -502,7 +521,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
     "Change the parent while preserving the world-matrix of the children. " \
     "Can also bake the bones over a frame range"
-    # This operator's implementation is so simple because it does nothing more 
+    # This operator's implementation is so simple because it does nothing more
     # than base Snap&Bake other than using an Enum selector for the property value.
 
     bl_idname = 'pose.cloudrig_switch_parent_bake'
@@ -560,7 +579,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
     @property
     def bone_map(self) -> OrderedDict[PoseBone, PoseBone]:
         if not hasattr(self, '_bone_map'):
-            ik_value: float = self._target_prop_value
             fk_to_ik_names = ast.literal_eval(self.map_fk_to_ik)
             ik_to_fk_names = ast.literal_eval(self.map_ik_to_fk)
 
@@ -588,7 +606,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         bones_to_snap = list(self.bone_map.keys())
         snap_to_bones = list(self.bone_map.values())
 
-        # Insert keys on the bones which define the current pose, in case user 
+        # Insert keys on the bones which define the current pose, in case user
         # has moved them but hasn't keyed them.
         for pb in list(self._other_bone_map.keys()):
             context.view_layer.update()
@@ -705,7 +723,7 @@ def calculate_ik_pole_vector(
     # On a line that goes from the start to the end of the chain, find the nearest point
     # to the elbow.
     closest = closest_point_on_line(meta_first.head, meta_second.tail, meta_first.tail)
-    # Then shoot towards the elbow by the length of that line (that's fairly arbitrary) 
+    # Then shoot towards the elbow by the length of that line (that's fairly arbitrary)
     # to find the pole vector position.
     # NOTE: This requires that all the bone rolls are aligned to point towards this point.
     # This can be achieved with the "Flatten IK Chain" operator.
@@ -771,11 +789,11 @@ class POSE_OT_cloudrig_keyframe_all_settings(Operator):
         def add_props_to_key_recursive(ui_data: OrderedDict | list):
             if hasattr(ui_data, 'items'):
                 elem_list = [data for _name, data in ui_data.items()]
-            elif type(ui_data) == list:
+            elif type(ui_data) is list:
                 elem_list = ui_data
 
             for elem_data in elem_list:
-                if type(elem_data) == str:
+                if type(elem_data) is str:
                     continue
                 if 'owner_path' in elem_data:
                     # This is a property, so it can be keyed.
@@ -787,7 +805,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(Operator):
                         # This can happen eg. if user adds a constraint influence to the UI, then deletes the constraint.
                         continue
 
-                    if type(owner) == BoneCollection:
+                    if type(owner) is BoneCollection:
                         # Let's not keyframe bone visibilities.
                         continue
 
@@ -922,7 +940,7 @@ def reset_armature(rig, *, viewport_display=True, bone_visibility=True, action=T
                 if not property_settings:
                     continue
                 property_settings = property_settings.as_dict()
-                if not 'default' in property_settings:
+                if 'default' not in property_settings:
                     continue
             except TypeError:
                 # Some properties don't support UI data, and so don't have a default value. (like addon PropertyGroups)
@@ -1008,7 +1026,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                 if panel_name == "":
                     layout.separator()
                     for label_name, label_data in panel_data.items():
-                        if type(label_data) == str:
+                        if type(label_data) is str:
                             # It's a flag, not a UI element...
                             continue
                         draw_rig_settings_per_label(
@@ -1052,7 +1070,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
             """
             for label_name, label_data in panel_data.items():
-                if type(label_data) == str:
+                if type(label_data) is str:
                     # This is a flag, not a label.
                     continue
                 draw_rig_settings_per_label(
@@ -1074,11 +1092,11 @@ def read_rig_panels(obj) -> OrderedDict:
         ordered_dict = OrderedDict()
         for key, value in tuples:
             if key not in {'op_kwargs'}:
-                if type(value) == dict:
+                if type(value) is dict:
                     # We also want to convert regular dicts to OrderedDict,
                     # especially because they might contain tuple-lists.
                     value = [(k, v) for k, v in value.items()]
-                if type(value) == list:
+                if type(value) is list:
                     value = tuples_to_dict(value)
 
             ordered_dict[key] = value
@@ -1146,7 +1164,7 @@ def draw_rig_settings_per_label(
     ui_path += [label_name]
 
     for row_name, row_data in label_data.items():
-        if type(row_data) == str:
+        if type(row_data) is str:
             # It's a flag, not a UI element.
             continue
         column = layout
@@ -1155,10 +1173,10 @@ def draw_rig_settings_per_label(
         sub_row.separator()
 
         for slider_name, slider_data in row_data.items():
-            if type(slider_data) == str:
+            if type(slider_data) is str:
                 # It's a flag, not a UI element.
                 continue
-            if slider_data.get('owner_path') == None:
+            if slider_data.get('owner_path') is None:
                 # Currently, all UI elements must have a property, and therefore a path to the property owner.
                 # Note though that this path is allowed to be an empty string.
                 continue
@@ -1298,7 +1316,7 @@ def draw_slider(
                 )
                 child_op.parent_value = prop_value_str
                 child_op.parent_ui_path = json.dumps(ui_path)
-                if type(owner) == PoseBone:
+                if type(owner) is PoseBone:
                     child_op.init_owner_path = f'pose.bones["{owner.name}"]'
 
             if (
@@ -1381,7 +1399,7 @@ def draw_property(
             text = texts[int(prop_value)].strip()
             if text:
                 slider_name += ": " + text
-        if value_type == bool:
+        if value_type is bool:
             icon = icon_true if prop_value else icon_false
             layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
         elif value_type in {int, float}:
@@ -1399,7 +1417,7 @@ def draw_property(
                 layout.prop(prop_owner, prop_name, slider=use_slider, text=slider_name)
             else:
                 layout.prop(prop_owner, prop_name, text=slider_name)
-    elif value_type == str:
+    elif value_type is str:
         if (
             issubclass(type(prop_owner), bpy.types.Constraint)
             and prop_name == 'subtarget'
@@ -1448,7 +1466,7 @@ def draw_drag_operator(
     ui_path: list[str],
     layout: UILayout,
 ):
-    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem) != str]
+    sub_elements = [elem for key, elem in parent_ui_data.items() if type(elem) is not str]
     if len(sub_elements) > 1 and is_ui_edit_mode(rig):
         is_dragged = ui_data.get('is_dragged', False)
         icon = 'TRACKER'
@@ -1489,9 +1507,9 @@ def feed_op_props(op_props, op_kwargs: str or dict or list):
     `UILayout.operator()`.
     """
 
-    if type(op_kwargs) == str:
+    if type(op_kwargs) is str:
         op_kwargs = ast.literal_eval(op_kwargs)
-    if type(op_kwargs) == dict:
+    if type(op_kwargs) is dict:
         op_kwargs = [(key, value) for key, value in op_kwargs.items()]
 
     # Pass on any paramteres to the operator that it will accept.
@@ -1501,9 +1519,9 @@ def feed_op_props(op_props, op_kwargs: str or dict or list):
             # Lists and Dicts cannot be passed to blender operators, so we must convert them to a string.
             if type(value) in {list, dict}:
                 value = json.dumps(value)
-            if desired_type != type(value):
+            if type(value) is not desired_type:
                 # Since we store operator kwargs as a string, we need to convert them back to their int/float/bool representation.
-                if type(value) == str and desired_type == bool and value == "False":
+                if type(value) is str and desired_type is bool and value == "False":
                     # The case of a False bool needs a bit of special treatment, since bool("False") == True
                     value = False
                 else:
@@ -2625,7 +2643,7 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         if active_coll.parent:
             self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'.")
         else:
-            self.report({'INFO'}, f"Set parent to None.")
+            self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
 
     def parent_active_coll_to_prev_sibling(self, rig):
@@ -2644,7 +2662,7 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         if active_coll.parent:
             self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'.")
         else:
-            self.report({'INFO'}, f"Set parent to None.")
+            self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
 
     def get_sibling_of_active_coll(
@@ -2806,12 +2824,12 @@ class POSE_OT_cloudrig_collection_clipboard_paste(Operator):
                     coll = collections.new(coll_name)
                     coll.cloudrig_info.name = coll.name
 
-                if type(coll_data) == list:
+                if type(coll_data) is list:
                     # Selection Set.
                     bone_names = coll_data
                     coll.cloudrig_info.quick_access = True
                     coll.cloudrig_info.preserve_on_regenerate = True
-                elif type(coll_data) == dict:
+                elif type(coll_data) is dict:
                     # CloudRig Collection.
                     cloudrig_info = coll_data['cloudrig_info']
                     bone_names = coll_data['bone_names']
@@ -3068,7 +3086,7 @@ def unregister():
             bpy.types.DATA_PT_bone_collections.draw_bkp
         )
         del bpy.types.DATA_PT_bone_collections.draw_bkp
-    except:
+    except AttributeError:
         pass
 
 

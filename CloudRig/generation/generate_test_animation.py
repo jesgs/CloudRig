@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Object, Action, ActionSlot
-from ..rig_components.cloud_base import Component_Base
+from bpy.types import Action, ActionSlot, Object
 from bpy_extras import anim_utils
+
+from ..rig_components.cloud_base import Component_Base
+
 
 class TestAnimationGeneratorMixin:
     """Generator code for generating a "test animation", which is an animation

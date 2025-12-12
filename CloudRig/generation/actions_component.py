@@ -7,19 +7,21 @@
 # The UI for these features are implemented in ui/actions_ui.py.
 
 from __future__ import annotations
-from bpy.types import Action, Mesh, Object
-from ..ui.actions_ui import ActionConstraintSetup
 
+from bpy.types import Action, Mesh, Object
 from bpy.utils import flip_name as mirror_name
-from ..utils.external.naming import Side, get_name_side, change_name_side
+
+from ..rig_component_features.properties_ui import make_property
+from ..ui.actions_ui import ActionConstraintSetup
 from ..utils.external.mechanism import (
     driver_var_transform,
-    quote_property,
-    make_driver,
     make_constraint,
+    make_driver,
+    quote_property,
 )
-from ..rig_component_features.properties_ui import make_property
+from ..utils.external.naming import Side, change_name_side, get_name_side
 from .troubleshooting import LoggerMixin
+
 
 class ActionConstraintSide(LoggerMixin):
     """An action constraint layer instance, applying an action to a symmetry side."""
@@ -266,7 +268,7 @@ class ActionConstraintComponent(LoggerMixin):
         self.generator = generator
 
         # Generate ActionConstraintSide for active valid slots.
-        # This has to happen incrementally, because later entries 
+        # This has to happen incrementally, because later entries
         # in the side map rely on previous entries having already been created.
         if self.action_setups:
             self.action_setup_side_map = {}
@@ -275,7 +277,7 @@ class ActionConstraintComponent(LoggerMixin):
             ]
 
             # Constraints will be added in reverse order because each one is added to the top
-            # of the stack when created. However, the Before Original mixing mode reverses the 
+            # of the stack when created. However, the Before Original mixing mode reverses the
             # effective order of transformations again, restoring the original sequence.
             for action_setup in self.sort_action_setups(valid_setups):
                 self.action_setup_side_map[action_setup] = self.instantiate_action_setup_sides(action_setup)
@@ -322,7 +324,7 @@ class ActionConstraintComponent(LoggerMixin):
         if action_setup.is_corrective:
             if not action_setup.trigger_a or not action_setup.trigger_b:
                 self.add_log(
-                    f"Missing trigger action",
+                    "Missing trigger action",
                     description=f'Action slot "{name}" is marked as corrective but missing at least one trigger selection.'
                 )
                 return
