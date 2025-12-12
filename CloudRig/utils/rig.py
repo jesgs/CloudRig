@@ -1,9 +1,11 @@
-from bpy.types import Bone, EditBone, PoseBone, Object
 from math import pi
+
+from bpy.types import Bone, EditBone, Object, PoseBone
 from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
 
 from ..generation.cloudrig import active_rig, calculate_ik_pole_vector
+
 
 def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
@@ -17,8 +19,8 @@ def get_pbone_of_active(context) -> PoseBone | None:
 
 
 def get_selected_bone_tuples(
-    context, exclude_active=False
-) -> list[tuple[Object, Bone | EditBone]]:
+        context, exclude_active=False
+    ) -> list[tuple[Object, Bone | EditBone]]:
     """Return a list of Bones or EditBones depending on context."""
     bone_tuples = []
     if context.mode in ('POSE', 'PAINT_WEIGHT'):
@@ -56,7 +58,7 @@ def get_parentless_pbones(rig: Object) -> list[PoseBone]:
     return [pb for pb in rig.pose.bones if not pb.bone.parent]
 
 
-def get_active_bone(context):
+def get_active_bone(context) -> EditBone | PoseBone | None:
     """Return active PoseBone or EditBone, depending on context."""
     if context.mode == 'EDIT_ARMATURE':
         return context.active_bone
@@ -89,10 +91,10 @@ def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
 
 def calc_roll_to_align_axis(ebone: EditBone, vector: Vector, axis="+Z") -> float:
     offset_map = {
-        "+Z" : 0,
-        "-Z" : pi,
-        "+X" : pi/2,
-        "-X" : -pi/2,
+        "+Z": 0,
+        "-Z": pi,
+        "+X": pi / 2,
+        "-X": -pi / 2,
     }
     assert axis in offset_map
     offset = offset_map[axis]
@@ -137,11 +139,10 @@ def get_armature_dimensions(armature_obj: Object) -> Vector:
     min_corner, max_corner = get_armature_bounding_box(armature_obj)
     return max_corner - min_corner
 
+
 #####################################
 ### IK Chain functions.
 
-# This function was moved to cloudrig.py because it's used for snapping the IK pole
-calculate_ik_pole_vector
 
 def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     coords = get_flattened_coords(eb_chain)
@@ -167,10 +168,10 @@ def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     return did_anything
 
 
-def is_ideal_ik_chain(chain: list[EditBone|PoseBone]) -> bool:
+def is_ideal_ik_chain(chain: list[EditBone | PoseBone]) -> bool:
     """Determine whether a chain of bones is ideal for IK.
-    Return True only if the chain's bones lie on a plane, and for each bone, 
-    one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical) 
+    Return True only if the chain's bones lie on a plane, and for each bone,
+    one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical)
     pole target position.
     """
     coords = get_flattened_coords(chain)
@@ -178,7 +179,7 @@ def is_ideal_ik_chain(chain: list[EditBone|PoseBone]) -> bool:
     THRESHOLD = 0.01
     for (head, tail), ebone in zip(coords, chain):
         if not head:
-            # This happens when several bones are perfectly straight. 
+            # This happens when several bones are perfectly straight.
             # (intersect_line_plane() will return None).
             continue
         if (head - ebone.head).length > THRESHOLD or (tail - ebone.tail).length > THRESHOLD:
@@ -189,9 +190,9 @@ def is_ideal_ik_chain(chain: list[EditBone|PoseBone]) -> bool:
         desired_roll = calc_roll_to_align_axis(ebone, pole_location)
         wrapped_roll = wrap_angle_pi(ebone.roll)
         # Allow any 90-degree increment.
-        good_rolls = (wrapped_roll, wrapped_roll+pi, wrapped_roll-pi, wrapped_roll+pi/2, wrapped_roll-pi/2)
+        good_rolls = (wrapped_roll, wrapped_roll + pi, wrapped_roll - pi, wrapped_roll + pi / 2, wrapped_roll - pi / 2)
         threshold = 0.001
-        if not any([abs(desired_roll-good_roll)<threshold for good_roll in good_rolls]):
+        if not any([abs(desired_roll - good_roll) < threshold for good_roll in good_rolls]):
             return False
 
     return True
@@ -213,6 +214,7 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
     vec1 = plane_points[0] - plane_points[1]
     vec2 = plane_points[1] - plane_points[2]
     plane_normal = vec1.cross(vec2)
+    assert isinstance(plane_normal, Vector)
 
     # Now let's flatten each point in the chain onto our plane.
     ret = []
@@ -223,11 +225,9 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
             line = [
                 point - plane_normal * 20000,
                 point + plane_normal * 20000,
-            ]  # XXX Not sure how to use an infinite line for the intersection test... but, this is infinite enough for me.
+            ]    # XXX Not sure how to use an infinite line for the intersection test... but, this is infinite enough for me.
             # Blender gives us a nice function for intersecting a line with a plane
-            intersect = intersect_line_plane(
-                line[0], line[1], plane_points[0], plane_normal
-            )
+            intersect = intersect_line_plane(line[0], line[1], plane_points[0], plane_normal)
 
             # Set the vector to the resulting point
             assert intersect

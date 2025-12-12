@@ -1,21 +1,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
-from bpy.props import (
-    StringProperty,
-    PointerProperty,
-    BoolProperty,
-    FloatProperty,
-    EnumProperty,
-    CollectionProperty,
-    IntProperty,
-)
-from bpy.types import PropertyGroup, Object, PoseBone, ID, BoneColor
+
 from types import ModuleType
 
-from . import rig_components, rig_component_features
-from .generation.cloud_generator import GeneratorProperties
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
+
+from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
+from .generation.cloud_generator import GeneratorProperties
 from .utils.rig import get_parentless_pbones
 
 
@@ -80,7 +82,7 @@ class BoneSets(PropertyGroup):
     - Second, when assigning a PointerProperty to the BoneSets PropertyGroup for each BoneSet.
 
     Last important thing: We must store references to the classes that we dynamically defined, in order
-    to be able to register them. So, we store those references in the class definition (`bone_set_property_groups`), 
+    to be able to register them. So, we store those references in the class definition (`bone_set_property_groups`),
     and then add them to `registry`, which gets (un)registered by `__init__.py`.
     """
 
@@ -147,6 +149,7 @@ class BoneSets(PropertyGroup):
 
         return bone_set_class
 
+    @staticmethod
     def make_bone_set_property_groups() -> dict[str, type]:
         classes = {}
         for _rig_component_name, rig_component_module in rig_components.ALL_COMPONENT_MODULES.items():
@@ -266,7 +269,8 @@ class RigComponent(PropertyGroup):
             if len(bone_set.collections) == 0:
                 self.reset_collections_of_bone_set(bone_set)
         self.bone_sets_active_index = min(
-            self.bone_sets_active_index, len(self.ui_bone_sets) - 1
+            self.bone_sets_active_index,
+            len(self.ui_bone_sets) - 1
         )
 
     def reset_collections_of_bone_set(self, bone_set):

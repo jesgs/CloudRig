@@ -1,7 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, os, time, addon_utils
-from bpy.types import Text, Object
+import os
+import time
+
+import addon_utils
+import bpy
+from bpy.types import Object, Text
 from bpy.utils import flip_name
 
 

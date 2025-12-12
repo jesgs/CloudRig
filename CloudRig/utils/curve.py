@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Spline, Curve
+from bpy.types import Curve, Spline
 from mathutils import Vector
 from mathutils.kdtree import KDTree
+
 from .maths import bounding_box_center
 
 
@@ -46,13 +47,13 @@ def find_opposite_point_on_spline(
 
 def find_opposite_point_on_curve(
     curve: Curve, spline_idx: int, point_idx: int
-) -> tuple[Vector, int, float]:
+) -> tuple[Spline, int, float]:
     """Return the spline, point index, and position, of the closest point on the
     curve to the coordinate of the given point with its X component inverted."""
 
     spline = curve.splines[spline_idx]
 
-    point_list: list[tuple[int, int, Vector]] = []
+    point_list: list[tuple[Spline, int, Vector]] = []
     for spl in curve.splines:
         for point_i, point in enumerate(get_spline_points(spl)):
             point_list.append((spl, point_i, point.co))

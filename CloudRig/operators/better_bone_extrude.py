@@ -18,7 +18,7 @@ class BoneDuplicateOpMixin:
     )
 
     def bone_operation(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def invoke(self, context, event):
         self.original_ebones = {}
@@ -107,8 +107,10 @@ class BoneDuplicateOpMixin:
 
 
 def copy_drivers_of_bone(
-    rig: Object, old_bone_name: str, new_ebone_name: str
-) -> list[FCurve]:
+        rig: Object,
+        old_bone_name: str,
+        new_ebone_name: str
+    ) -> list[FCurve]:
     datablocks = []
     if rig.animation_data:
         datablocks.append(rig)
@@ -143,7 +145,9 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
         return [
-            ebone for ebone in context.active_object.data.edit_bones if ebone.select_tail or ebone.select_head
+            ebone
+            for ebone in context.active_object.data.edit_bones
+            if ebone.select_tail or ebone.select_head
         ]
 
     def bone_operation(self):
@@ -176,12 +180,19 @@ registry = [ARMATURE_OT_better_bone_extrude, ARMATURE_OT_better_bone_duplicate]
 def register():
     register_hotkey(
         ARMATURE_OT_better_bone_extrude.bl_idname,
-        hotkey_kwargs={'type': 'E', 'value': 'PRESS'},
+        hotkey_kwargs={
+            'type': 'E',
+            'value': 'PRESS'
+        },
         keymap_name='Armature',
     )
 
     register_hotkey(
         ARMATURE_OT_better_bone_duplicate.bl_idname,
-        hotkey_kwargs={'type': 'D', 'value': 'PRESS', 'shift': True},
+        hotkey_kwargs={
+            'type': 'D',
+            'value': 'PRESS',
+            'shift': True
+        },
         keymap_name='Armature',
     )

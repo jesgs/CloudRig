@@ -1,11 +1,11 @@
 from . import (
     curve,
+    external,
     lattice,
     maths,
     misc,
-    rig,
     post_gen,
-    external,
+    rig,
 )
 
 modules = [

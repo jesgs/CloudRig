@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from .pie_bone_parenting import GenericBoneOperator
-from bpy.types import Menu, EditBone, PoseBone, Object, Operator
+from bpy.types import EditBone, Menu, Object, Operator, PoseBone
+
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.cloudrig import active_rig
+from .pie_bone_parenting import GenericBoneOperator
 
 
 class POSE_OT_delete_bones(GenericBoneOperator, Operator):
@@ -61,7 +62,7 @@ class POSE_OT_dissolve_bones(Operator):
             for bone_name in bone_names:
                 rig.data.edit_bones[bone_name].hide = False
                 rig.data.edit_bones[bone_name].select = True
-        
+
         for eb in context.selected_editable_bones[:]:
             if not eb.select:
                 continue
@@ -80,9 +81,16 @@ class POSE_OT_dissolve_bones(Operator):
         return {'FINISHED'}
 
 def can_dissolve_any(bones: list[EditBone or PoseBone]) -> bool:
-    any_connected_children = lambda bone: any((child.use_connect for child in bone.children))
-    has_connected_parent = lambda bone: bone.parent and bone.use_connect
-    return any((has_connected_parent(bone) or any_connected_children(bone) for bone in bones))
+    def any_connected_children(bone) -> bool:
+        return any((child.use_connect for child in bone.children))
+
+    def has_connected_parent(bone) -> bool:
+        return bone.parent and bone.use_connect
+
+    return any((
+        has_connected_parent(bone) or any_connected_children(bone)
+        for bone in bones
+    ))
 
 def remove_drivers_of_bone(
     rig: Object,

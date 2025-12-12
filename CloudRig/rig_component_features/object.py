@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import ID, LayerCollection, Collection, PropertyGroup
+from bpy.types import ID, Collection, LayerCollection, Object, PropertyGroup
 
 
 class EnsureVisible:
@@ -64,24 +64,29 @@ class CloudObjectUtilitiesMixin:
             context.scene.collection.objects.unlink(widget_ob)
 
 
-def lock_transforms(obj, loc=True, rot=True, scale=True):
-    if type(loc) in (list, tuple):
-        obj.lock_location = loc
-    else:
+def lock_transforms(
+        obj: Object,
+        loc: bool|list[bool]=True,
+        rot: bool|list[bool]=True,
+        scale: bool|list[bool]=True
+    ):
+    if type(loc) is bool:
         obj.lock_location = [loc, loc, loc]
+    else:
+        obj.lock_location = loc
 
-    if type(rot) in (list, tuple):
+    if type(rot) is bool:
+        obj.lock_rotation = [rot, rot, rot]
+        obj.lock_rotation_w = rot
+    else:
         obj.lock_rotation = rot[:3]
         if len(rot) == 4:
             obj.lock_rotation_w = rot[-1]
-    else:
-        obj.lock_rotation = [rot, rot, rot]
-        obj.lock_rotation_w = rot
 
-    if type(scale) in (list, tuple):
-        obj.lock_scale = scale
-    else:
+    if type(scale) is bool:
         obj.lock_scale = [scale, scale, scale]
+    else:
+        obj.lock_scale = scale
 
 
 def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
@@ -102,7 +107,7 @@ def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
 
 def recursive_search_layer_collection(
     coll_name: str, layer_coll: LayerCollection
-) -> LayerCollection:
+) -> LayerCollection | None:
     # Recursivly transverse layer_collection for a particular name
     # This is the only way to set active collection as of 14-04-2020.
     found = None
@@ -118,4 +123,5 @@ def set_active_collection(context, collection: Collection):
     layer_coll = context.view_layer.layer_collection
 
     layer_collection = recursive_search_layer_collection(collection.name, layer_coll)
+    assert layer_collection
     context.view_layer.active_layer_collection = layer_collection

@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from mathutils import Vector
 from math import atan2
-from ..generation.cloudrig import closest_point_on_line
+
+from mathutils import Vector
+
 
 def bounding_box(points: list[Vector]) -> tuple[Vector, Vector]:
     """Return two vectors representing the lowest and highest coordinates of
@@ -104,9 +105,6 @@ def flat(vec: Vector) -> Vector:
             new_vec[i] = 0
 
     return new_vec
-
-# This function was moved to cloudrig.py because it's used for IK pole snapping.
-closest_point_on_line
 
 def clamp(val, _min=0, _max=1) -> float or int:
     if val < _min:

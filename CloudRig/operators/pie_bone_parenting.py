@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Menu, EditBone, PoseBone, Object, Operator
+from bpy.types import Bone, EditBone, Menu, Object, Operator, PoseBone
 from bpy.utils import flip_name
+
 from ..bs_utils.hotkeys import register_hotkey
-from ..utils.rig import get_selected_bone_tuples, get_current_rigs, get_active_bone
 from ..generation.cloudrig import active_rig
+from ..utils.rig import get_active_bone, get_current_rigs, get_selected_bone_tuples
+
 
 class GenericBoneOperator:
     @classmethod
@@ -19,7 +21,7 @@ class GenericBoneOperator:
             return False
         return True
 
-    def get_ebones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
+    def get_ebones_to_affect(self, context) -> list[tuple[Object, Bone | EditBone]]:
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
@@ -56,7 +58,7 @@ class GenericBoneOperator:
         bpy.ops.object.mode_set(mode=mode)
         return affected_bones_names
 
-    def affect_ebones(self, context, ebones) -> list[str]:
+    def affect_ebones(self, context, ebones) -> set[str]:
         affected_bones_names = set()
         for rig, ebone in list(ebones):
             bone_name = ebone.name
@@ -72,6 +74,7 @@ class GenericBoneOperator:
     def execute(self, context):
         self.affect_bones(context)
         return {'FINISHED'}
+
 
 class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
     """Disconnect selected bones"""
@@ -158,7 +161,7 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
             return False
         return True
 
-    def get_ebones_to_affect(self, context) -> list[tuple[Object, EditBone]]:
+    def get_ebones_to_affect(self, context) -> list[tuple[Object, Bone | EditBone]]:
         ebone_tuples = super().get_ebones_to_affect(context)
         ret = [tup for tup in ebone_tuples if tup[1].name == context.active_bone.name]
         return ret
@@ -229,15 +232,11 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
         if all([b.parent == active_bone for rig, b in bone_tuples_to_parent]):
-            cls.poll_message_set(
-                "Selected bones are already parented to the active one."
-            )
+            cls.poll_message_set("Selected bones are already parented to the active one.")
             return False
         return True
 
-    def parent_edit_bones(
-        self, parent_eb: EditBone, bone_tuples_to_parent: list[tuple[Object, EditBone]]
-    ):
+    def parent_edit_bones(self, parent_eb: EditBone, bone_tuples_to_parent: list[tuple[Object, EditBone]]):
         parent_eb.hide = False
         for rig, child_eb in bone_tuples_to_parent:
             self.parent_edit_bone(parent_eb, child_eb)
@@ -256,13 +255,14 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             child_eb.use_connect = False
         child_eb.parent = parent_eb
 
-    def affect_ebones(self, context, ebones: list[EditBone]) -> list[str]:
+    def affect_ebones(self, context, ebones: list[EditBone]) -> set[str]:
         rig = active_rig(context)
         parent = get_active_bone(context)
         parent_name = parent.name
 
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
         self.parent_edit_bones(parent, bone_tuples_to_parent)
+        affected_bones_names = {t[1].name for t in bone_tuples_to_parent}
 
         flipped_bone_tuples_to_parent = []
         if rig.data.use_mirror_x:
@@ -275,17 +275,17 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
                         continue
                     flipped_bone_tuples_to_parent.append((rig, flipped_eb))
                 self.parent_edit_bones(flipped_parent, flipped_bone_tuples_to_parent)
+                affected_bones_names |= set([t[1].name for t in flipped_bone_tuples_to_parent])
 
         plural = "s" if len(bone_tuples_to_parent) != 1 else ""
-        message = (
-            f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
-        )
+        message = (f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".')
         if rig.data.use_mirror_x and flipped_bone_tuples_to_parent:
             message += "(Symmetrized!)"
         self.report(
             {'INFO'},
             message,
         )
+        return affected_bones_names
 
 
 class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
@@ -305,15 +305,8 @@ class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
         if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
-        if all(
-            [
-                b.parent == active_bone and b.use_connect
-                for rig, b in bone_tuples_to_parent
-            ]
-        ):
-            cls.poll_message_set(
-                "Selected bones are already parented and connected to the active one."
-            )
+        if all([b.parent == active_bone and b.use_connect for rig, b in bone_tuples_to_parent]):
+            cls.poll_message_set("Selected bones are already parented and connected to the active one.")
             return False
         return True
 
@@ -436,9 +429,7 @@ class CLOUDRIG_MT_PIE_bone_parenting(Menu):
         )
 
         # 3) V Separate
-        pie.operator(
-            'pose.separate_selected_bones', text="Separate Selected", icon='UNLINKED'
-        )
+        pie.operator('pose.separate_selected_bones', text="Separate Selected", icon='UNLINKED')
 
         # 4) ^ Leave empty.
         pie.separator()
@@ -488,7 +479,10 @@ def register():
     for keymap_name in ('Pose', 'Weight Paint', 'Armature'):
         register_hotkey(
             'wm.call_menu_pie',
-            hotkey_kwargs={'type': "P", 'value': "PRESS"},
+            hotkey_kwargs={
+                'type': "P",
+                'value': "PRESS"
+            },
             keymap_name=keymap_name,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_parenting'},
         )

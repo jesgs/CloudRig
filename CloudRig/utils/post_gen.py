@@ -6,8 +6,9 @@ post-generation scripts.
 """
 
 import bpy
-from bpy.types import Object, ID, PoseBone
+from bpy.types import ID, Object, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
+
 from .external.mechanism import make_driver
 
 sides = {'.L': 'Left', '.R': 'Right'}
@@ -20,7 +21,7 @@ def set_custom_property_value(
     bone = rig.pose.bones.get(bone_name)
     if not bone:
         return
-    if not prop in bone:
+    if prop not in bone:
         return  # We don't want to create properties here!
     bone[prop] = value
     rna_idprop_ui_prop_update(bone, prop)
@@ -33,7 +34,7 @@ def set_custom_property_default(
     bone = rig.pose.bones.get(bone_name)
     if not bone:
         return
-    if not prop in bone:
+    if prop not in bone:
         return  # We don't want to create properties here!
     ui_props = bone.id_properties_ui(prop)
     ui_props.update(default=value)
@@ -58,6 +59,8 @@ def rename_custom_property(rig: Object, bone_name: str, name_from: str, name_to:
     break when doing so. This means also replacing the bone's name in the rig's
     UI data and in driver data paths."""
     pb = rig.pose.bones.get(bone_name)
+    if not pb:
+        return
     if name_from not in pb:
         return
     from_ui_data = pb.id_properties_ui(name_from)
@@ -157,7 +160,7 @@ def LEGACY_auto_assign_bone_gizmo_maps(
         if pb.enable_bone_gizmo:
             continue
 
-        auto_assign_bone_gizmo(pb, old_rig.children_recursive)
+        LEGACY_auto_assign_bone_gizmo(pb, old_rig.children_recursive)
 
 
 def LEGACY_auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
@@ -236,7 +239,7 @@ def update_bone_collection(
     operation: str
 ):
     """Add or remove a bone from a specified collection.
-    
+
     Args:
         rig: The armature object
         bone_name: Name of the bone to update
@@ -263,7 +266,7 @@ def update_widget_properties(
     **kwargs
 ):
     """Apply custom properties to the specified bone.
-    
+
     Args:
         rig: The armature object
         bone_name: Name of the bone to update
@@ -294,7 +297,7 @@ def update_widget_properties(
     for kwarg, value in kwargs.items():
         # Use mapped name if it exists, otherwise use original
         prop_name = property_map.get(kwarg, kwarg)
-        
+
         if not hasattr(bone, prop_name):
             raise KeyError(f"Unknown property '{prop_name}'")
 

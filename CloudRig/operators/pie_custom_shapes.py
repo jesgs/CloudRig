@@ -1,15 +1,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Menu, PoseBone, Operator
+from bl_ui.properties_data_bone import BONE_PT_display
 from bpy.props import EnumProperty
+from bpy.types import Menu, Operator, PoseBone
 from mathutils import Matrix
 
-from ..generation.cloudrig import find_metarig_of_rig
-from ..rig_component_features.widgets.widgets import ensure_widget, get_widgets_enum_items, get_nonlocal_widgets
-from ..rig_component_features.object import EnsureVisible
 from ..bs_utils.hotkeys import register_hotkey
 from ..bs_utils.prefs import get_addon_prefs
+from ..generation.cloudrig import find_metarig_of_rig
+from ..rig_component_features.object import EnsureVisible
+from ..rig_component_features.widgets.widgets import (
+    ensure_widget,
+    get_nonlocal_widgets,
+    get_widgets_enum_items,
+)
+
 
 class POSE_OT_unassign_custom_shape(Operator):
     """Unassign custom shapes from all selected pose bones"""
@@ -162,7 +168,7 @@ class POSE_OT_copy_custom_shape_to_selected_bones(Operator):
         return {'FINISHED'}
 
 
-widgets_visible = []
+WIDGETS_VISIBILITY: list[EnsureVisible] = []
 
 
 class POSE_OT_edit_widget_of_selected_bones(Operator):
@@ -174,7 +180,6 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
 
     @classmethod
     def poll_without_linked_check(cls, context):
-        pb = context.active_pose_bone
         if context.mode != 'POSE':
             cls.poll_message_set("Must be in pose mode.")
             return False
@@ -209,11 +214,11 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
         rig = context.active_object
 
         # Reveal widgets of selected bones.
-        global widgets_visible
+        global WIDGETS_VISIBILITY
         active_shape = None
         for pb in context.selected_pose_bones:
             if pb.custom_shape and not pb.custom_shape.library:
-                widgets_visible.append(EnsureVisible(context, pb.custom_shape))
+                WIDGETS_VISIBILITY.append(EnsureVisible(context, pb.custom_shape))
                 active_shape = pb.custom_shape
                 self.transform_widget_to_bone(pb, select=True)
 
@@ -271,10 +276,13 @@ class MESH_OT_return_to_pose_mode(Operator):
 
     @classmethod
     def poll(cls, context):
-        if not 'widget_edit_armature' in context.scene:
+        scene = context.scene
+        if not scene:
+            return False
+        if 'widget_edit_armature' not in scene:
             cls.poll_message_set("Cannot return to rig (No name stored).")
             return False
-        rig = bpy.data.objects.get(context.scene['widget_edit_armature'])
+        rig = bpy.data.objects.get(scene['widget_edit_armature'])
         if not rig:
             cls.poll_message_set("Cannot return to rig (Stored name is invalid).")
             return False
@@ -283,25 +291,28 @@ class MESH_OT_return_to_pose_mode(Operator):
 
     @staticmethod
     def restore_all_widgets_visibility(context):
-        global widgets_visible
+        global WIDGETS_VISIBILITY
 
-        if widgets_visible != []:
-            for w in widgets_visible[:]:
+        if WIDGETS_VISIBILITY != []:
+            for w in WIDGETS_VISIBILITY[:]:
                 try:
                     w.restore(context)
-                except:
+                except RuntimeError:
                     pass
-        widgets_visible = []
+        WIDGETS_VISIBILITY = []
 
     def execute(self, context):
+        scene = context.scene
+        if not scene:
+            return {'CANCELLED'}
         shape_objs = [obj for obj in context.selected_objects if obj.type == 'MESH']
         for shape_obj in shape_objs:
             shape_obj.select_set(False)
         bpy.ops.object.mode_set(mode='OBJECT')
         self.restore_all_widgets_visibility(context)
 
-        rig = bpy.data.objects.get((context.scene['widget_edit_armature'], None))
-        del context.scene['widget_edit_armature']
+        rig = bpy.data.objects.get((scene['widget_edit_armature'], None))
+        del scene['widget_edit_armature']
         context.view_layer.objects.active = rig
         rig.select_set(True)
         bpy.ops.object.mode_set(mode='POSE')
@@ -379,7 +390,7 @@ class POSE_OT_assign_selected_object_as_custom_shape(Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_edit_bone_display_props(Operator, bpy.types.BONE_PT_display):
+class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
     """Edit bone display properties. Like with any Blender property, you can hold Alt while dragging, to affect all selected bones"""
 
     bl_idname = "pose.edit_bone_display_props"

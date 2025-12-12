@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import EditBone, PoseBone, Bone, Object, Operator
 from bpy.props import BoolProperty
+from bpy.types import Bone, EditBone, Object, Operator, PoseBone
 
-from ..generation.cloudrig import find_metarig_of_rig, find_cloudrig
-from ..generation.naming import slice_name
 from ..bs_utils.hotkeys import register_hotkey
+from ..generation.cloudrig import find_cloudrig, find_metarig_of_rig
+from ..generation.naming import slice_name
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -47,6 +47,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
     def execute(self, context):
         rig = find_cloudrig(context)
         active = context.active_object
+        assert active
 
         if 'metarig' in active and active['metarig']:
             self.focus_rig(context, active['metarig'])
@@ -197,7 +198,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
     def get_visible_bone_with_similar_name(
         self, rig: Object, bone_name: str
-    ) -> PoseBone | EditBone | None:
+    ) -> PoseBone | EditBone | Bone | None:
         armature = rig.data
         def bone_is_visible(bone: Bone):
             if not any([coll.is_visible_effectively for coll in bone.collections]):

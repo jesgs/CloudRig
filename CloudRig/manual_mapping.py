@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+
 from . import rig_components
 
 
@@ -29,14 +30,9 @@ def cloudrig_manual_map():
     # This is currently not working due to a bug in Blender, where
     # PropertyGroups within PropertyGroups don't resolve correctly
     # in the Online Manual operator.
-    cloud_types = [
-        name.replace("cloud_", "")
-        for name in dir(rig_components)
-        if "cloud" in name
-    ]
+    cloud_types = [name.replace("cloud_", "") for name in dir(rig_components) if "cloud" in name]
     for cloud_type in cloud_types:
         url_map.append((rig_component + cloud_type + "_*", "cloudrig-types"))
-
 
     # NOTE: More specific data paths have to come FIRST before data paths with wildcards!
     url_map.extend(
@@ -79,7 +75,8 @@ def cloudrig_manual_map():
                 for param, redirect in generator_params.items()
             ],
             (f"{generator}.*", "generator-parameters"),
-            ("bpy.ops.object.cloudrig_metarig_toggle", "workflow-enhancements#metarig-swapping"), # TODO: This gets masked by core Blender, seems like a bug.
+            # TODO: This gets masked by core Blender, seems like a bug.
+            ("bpy.ops.object.cloudrig_metarig_toggle", "workflow-enhancements#metarig-swapping"),
             # Actions
             (f"{generator}.action*", "actions"),
             ("bpy.ops.object.cloudrig_action*", "actions"),
@@ -89,13 +86,14 @@ def cloudrig_manual_map():
             ("bpy.ops.pose.cloudrig_symmetrize_components", "cloudrig-types#assigning-components"),
             ("bpy.ops.armature.flatten_ik_chain", "cloudrig-types#flatten-bone-chain"),
             (f"{rig_component}.component_type", "cloudrig-types#assigning-components"),
-            (f"{params}.*", "cloudrig-types"), # TODO: This still does not work, report as bug?
+            (f"{params}.*", "cloudrig-types"),  # TODO: This still does not work, report as bug?
         ]
     )
 
     # Make everything lower-case.
     url_map = [
-        (tup[0].lower(), tup[1].lower()) for tup in url_map
+        (tup[0].lower(), tup[1].lower())
+        for tup in url_map
     ]
 
     return url_manual_prefix, url_map

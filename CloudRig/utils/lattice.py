@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# These functions are copied from my Lattice Magic addon: 
+# These functions are copied from my Lattice Magic addon:
 # https://projects.blender.org/studio/blender-studio-pipeline/src/branch/main/scripts-blender/addons/lattice_magic
 # So they should probably be kept in sync.
 
 from bpy.types import Lattice, Object, VertexGroup
-from .maths import clamp
 from mathutils import Vector
+
+from .maths import clamp
 
 
 def get_lattice_vertex_index(lattice: Lattice, xyz: list[int], do_clamp=True) -> int:

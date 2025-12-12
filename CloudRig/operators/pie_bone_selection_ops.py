@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Bone, EditBone, PoseBone, Operator
-from bpy.props import IntProperty, StringProperty, BoolProperty
+from bpy.props import BoolProperty, IntProperty, StringProperty
+from bpy.types import Bone, EditBone, Operator, PoseBone
+
 from ..generation import naming
-from ..utils.rig import get_selected_bone_tuples, get_active_bone
 from ..generation.cloudrig import active_rig, reveal_bone
+from ..utils.rig import get_active_bone, get_selected_bone_tuples
+
 
 def deselect_all_bones(context):
     if context.mode == 'EDIT_ARMATURE':

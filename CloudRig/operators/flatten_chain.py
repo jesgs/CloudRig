@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy.types import Operator
-from bpy.props import BoolProperty, StringProperty, EnumProperty
 
 from ..rig_component_features.mechanism import get_component_pbone_chain
 from ..utils.rig import ik_chain_flatten_single_iter, is_ideal_ik_chain
+
 
 class CLOUDRIG_OT_flatten_ik_chain(Operator):
     """Flatten a chain of bones on a plane, and align rolls with a potential IK pole vector. Useful for perfect IK chains"""

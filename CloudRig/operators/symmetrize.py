@@ -1,13 +1,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Object, PoseBone, Constraint, Operator
+from bpy.types import Constraint, Object, Operator, PoseBone
 from bpy.utils import flip_name
 from rna_prop_ui import rna_idprop_value_item_type
 
-from ..rig_component_features.mechanism import find_or_create_constraint
-from ..bs_utils.properties import copy_property_group, get_custom_prop_names, rename_custom_prop
+from ..bs_utils.properties import (
+    copy_property_group,
+    get_custom_prop_names,
+    rename_custom_prop,
+)
 from ..generation.cloudrig import active_rig
+from ..rig_component_features.mechanism import find_or_create_constraint
+
 
 class POSE_OT_symmetrize_rigging(Operator):
     """Mirror selected bones, their constraints, their drivers, and the animation of Actions used by Action constraints"""
@@ -49,7 +54,7 @@ class POSE_OT_symmetrize_rigging(Operator):
                     {'ERROR'},
                     f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction.',
                 )
-                return {'CANCELLED'}
+                return {}
             if opp_pb == pb:
                 self.report(
                     {'WARNING'},
@@ -71,7 +76,7 @@ class POSE_OT_symmetrize_rigging(Operator):
             bpy.ops.object.mode_set(mode='POSE')
 
         bone_map = self.get_symmetrize_bone_mapping(context)
-        if type(bone_map) == set:
+        if type(bone_map) is set:
             # If the function returns an operator return value.
             return bone_map
 
@@ -208,7 +213,7 @@ def symmetrize_drivers(
         return
 
     for src_fc in armature.animation_data.drivers[:]:
-        if not f'pose.bones["{src_bone.name}"]' in src_fc.data_path:
+        if f'pose.bones["{src_bone.name}"]' not in src_fc.data_path:
             # Driver doesn't belong to source bone, skip.
             continue
         if "constraints[" in src_fc.data_path and not src_constraint:
@@ -261,7 +266,7 @@ def symmetrize_drivers(
             dst_bone.driver_remove(data_path_from_bone, src_fc.array_index)
             try:
                 new_fc = dst_bone.driver_add(data_path_from_bone, src_fc.array_index)
-            except:
+            except TypeError:
                 new_fc = dst_bone.driver_add(data_path_from_bone)
 
         expression = src_fc.driver.expression

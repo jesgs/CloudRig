@@ -1,24 +1,25 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy
 import os
-from bpy.types import PropertyGroup, AddonPreferences
-from bpy.props import StringProperty, CollectionProperty, BoolProperty, EnumProperty
+
+import bpy
+from bpy.props import BoolProperty, CollectionProperty, EnumProperty, StringProperty
+from bpy.types import AddonPreferences, PropertyGroup
 
 from . import rig_components
+from .bs_utils.hotkeys import draw_hotkey_list
+from .bs_utils.prefs import (
+    PrefsFileSaveLoadMixin,
+    get_addon_prefs,
+    update_prefs_on_file,
+)
+from .operators.apply_bone_color_preset import draw_bone_color_presets
 from .properties import NameProperty
 from .rig_component_features.widgets.widgets import (
     get_widgets_enum_items,
-    refresh_external_widgets,
     refresh_cloudrig_widgets,
+    refresh_external_widgets,
 )
-from .bs_utils.prefs import (
-    PrefsFileSaveLoadMixin,
-    update_prefs_on_file,
-    get_addon_prefs,
-)
-from .bs_utils.hotkeys import draw_hotkey_list
-from .operators.apply_bone_color_preset import draw_bone_color_presets
 
 
 def init_component_module_list(context=None):

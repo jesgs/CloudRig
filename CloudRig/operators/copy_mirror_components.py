@@ -2,6 +2,7 @@
 
 from bpy.types import Operator
 from bpy.utils import flip_name
+
 from ..bs_utils.properties import copy_property_group
 
 

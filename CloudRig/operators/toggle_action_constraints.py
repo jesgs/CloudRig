@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.props import BoolProperty
-from bpy.types import Constraint, Action, ActionSlot, Operator
+from bpy.types import Action, ActionSlot, Constraint, Operator
 
 
 class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):

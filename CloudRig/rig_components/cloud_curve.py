@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Object, Curve, PropertyGroup, BezierSplinePoint
-from bpy.props import BoolProperty, StringProperty, PointerProperty, FloatProperty
+from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
+from bpy.types import BezierSplinePoint, Curve, Object, PropertyGroup, Spline
 from mathutils import Matrix, Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
-from .cloud_base import Component_Base
 from ..utils import curve as curve_utils
+from .cloud_base import Component_Base
 
 
 def is_curve(self, obj):
@@ -91,7 +91,7 @@ class Component_Curve_Hooked(Component_Base):
                 spline_name = self.__get_spline_name(spline_idx)
                 if (
                     self.params.curve.x_axis_symmetry
-                    and self.naming.side_is_left(spline_name) == None
+                    and self.naming.side_is_left(spline_name) is None
                 ):
                     dir = self.root_bone.vector
                 spline_root = self.bone_sets['Spline Roots'].new(
@@ -184,7 +184,7 @@ class Component_Curve_Hooked(Component_Base):
         point_idx: int,
         threshold=0.01,
         must_exist=False,
-    ) -> int:
+    ) -> tuple[Spline, int]:
         """Return spline point at the opposite side of this point.
         The curve must be perfectly symmetrical."""
         spline = curve.splines[spline_idx]
@@ -205,7 +205,7 @@ class Component_Curve_Hooked(Component_Base):
             self.raise_generation_error(
                 description=f'The nearest point to the X-axis flipped coordinate of point "{point_name} ({curve.path_resolve(point_path).co})" is point "{opp_point_name} (({curve.path_resolve(opp_point_path).co}))".\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis. If this message keeps popping up, you might be modifying a shape key instead of the base shape.',
                 description_short="Curve is not symmetrical",
-                note=f"Curve must be symmetrical.",
+                note="Curve must be symmetrical.",
             )
         return opp_spline, opp_point_idx
 
@@ -264,13 +264,12 @@ class Component_Curve_Hooked(Component_Base):
         # Function to convert a location vector in the curve's local space into world space.
         # For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
         # Use matrix_basis instead of matrix_world in case there are constraints on the curve.
-        worldspace = lambda loc: (
-            curve_ob.matrix_basis @ Matrix.Translation(loc.xyz)
-        ).to_translation()
+        def worldspace(loc):
+            return (curve_ob.matrix_basis @ Matrix.Translation(loc.xyz)).to_translation()
 
         point_loc = worldspace(point.co)
 
-        is_bezier = type(point) == BezierSplinePoint
+        is_bezier = isinstance(point, BezierSplinePoint)
         if is_bezier:
             shape = self.params.curve.shape_bezier.shape_name
             left_handle_loc = worldspace(point.handle_left)
@@ -480,7 +479,7 @@ class Component_Curve_Hooked(Component_Base):
                 "curve_ob": self.params.curve.target,
                 "spline_i": spline_i,
                 "point_i": point_i,
-                "is_bezier": type(points[0]) == BezierSplinePoint,
+                "is_bezier": isinstance(points[0], BezierSplinePoint),
             }
             if not self.params.curve.controls_for_handles:
                 self.__hook_point_to_rig(
@@ -651,7 +650,7 @@ class Component_Curve_Hooked(Component_Base):
     def curve__draw_selector_ui(cls, layout, context, params):
         """Since this rig requires a curve object, draw with alert=True otherwise."""
         curve_ob = params.curve.target
-        bad_curve = curve_ob == None or curve_ob.type != 'CURVE'
+        bad_curve = curve_ob is None or curve_ob.type != 'CURVE'
 
         icon = 'ERROR' if bad_curve else 'OUTLINER_OB_CURVE'
         cls.draw_prop(context, layout, params.curve, 'target', icon=icon)

@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import Menu, Constraint, PoseBone, UILayout
+from bpy.types import Constraint, Menu, PoseBone, UILayout
 
+from ..bs_utils.hotkeys import register_hotkey
 from ..generation import naming
 from ..generation.cloudrig import active_rig
-from ..bs_utils.hotkeys import register_hotkey
 from ..utils.rig import get_pbone_of_active
+
 
 def get_constraint_icon(constraint: Constraint) -> str:
     icons = UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
