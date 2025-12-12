@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup, PoseBone
-from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
-
 from bpy.props import BoolProperty, FloatProperty, StringProperty
+from bpy.types import PoseBone, PropertyGroup
 from mathutils import Vector
 
-from ..utils.maths import bounding_box_center, bounding_box
+from ..rig_component_features.bone_info import BoneInfo
+from ..utils.maths import bounding_box, bounding_box_center
 from .cloud_base import Component_Base
 
 

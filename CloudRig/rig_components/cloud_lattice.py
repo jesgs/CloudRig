@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import PropertyGroup, PoseBone, Object
-from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from bpy.props import BoolProperty, PointerProperty
+from bpy.types import Object, PoseBone, PropertyGroup
 from mathutils import Matrix
 
 from ..utils.lattice import ensure_falloff_vgroup
@@ -54,7 +53,7 @@ class Component_Lattice(Component_Base):
                     return
                 if (
                     component.params.lattice.lattice == self.params.lattice.lattice
-                    and self.params.lattice.lattice != None
+                    and self.params.lattice.lattice is not None
                 ):
                     self.raise_generation_error(
                         "Lattice shared by multiple components",

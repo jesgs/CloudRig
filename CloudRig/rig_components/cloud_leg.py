@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup, Bone
+from math import pi
+from math import radians as rad
+
 from bpy.props import BoolProperty, StringProperty
+from bpy.types import Bone, PropertyGroup
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
-from math import radians as rad
-from math import pi
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..utils.maths import flat
-from ..rig_component_features.params_ui_utils import ensure_custom_property
 from .cloud_limb import Component_Limb
 
 
@@ -247,8 +247,8 @@ class Component_Limb_BipedLeg(Component_Limb):
             max_z=rad(TWIST_RANGE),
         )
 
-        # Create bone to use as pivot point when rolling back. 
-        # This is read from the metarig and should be placed at 
+        # Create bone to use as pivot point when rolling back.
+        # This is read from the metarig and should be placed at
         # the heel of the shoe, pointing forward.
         heel_pivot_bone = self.__get_heel_pivot_meta_bone()
 

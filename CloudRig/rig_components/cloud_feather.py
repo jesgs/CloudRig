@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from .cloud_fk_chain import Component_Chain_FK
 from bpy.types import PropertyGroup
+
+from .cloud_fk_chain import Component_Chain_FK
+
 
 class Component_Feather(Component_Chain_FK):
     """Single-bone rig for a simple feather."""

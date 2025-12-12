@@ -12,7 +12,7 @@ class Component_FaceChainAnchor(Component_CopyBone):
         super().create_bone_infos(context)
 
         # Implementation-wise, this class does nothing but assign the cube as a default shape.
-        # However, cloud_face_chain has code which checks for this 
+        # However, cloud_face_chain has code which checks for this
         # component type and parents itself to this automatically.
 
         bi = self.bones_org[0]

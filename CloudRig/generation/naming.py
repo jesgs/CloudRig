@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Any
 import re
+from typing import Any
+
 from bpy.utils import flip_name as bpy_flip_name
 
 SEPARATORS = "._-"
@@ -34,7 +35,7 @@ def add_prefix(thing: Any, new_prefix: str) -> str:
 
 def get_name(thing: Any) -> str:
     """Return any PyObject's "name" attribute if it has one, else cast it to a string."""
-    if type(thing) == str:
+    if type(thing) is str:
         return thing
     elif hasattr(thing, "name"):
         return thing.name
@@ -47,9 +48,9 @@ def get_name(thing: Any) -> str:
 def make_name(prefixes: list[str] = [], base="", suffixes: list[str] = []) -> str:
     """Make a name from a list of prefixes, a base, and a list of suffixes."""
     name = ""
-    if type(prefixes) == str:
+    if type(prefixes) is str:
         prefixes = [prefixes]
-    if type(suffixes) == str:
+    if type(suffixes) is str:
         suffixes = [suffixes]
 
     for pre in prefixes:
@@ -212,14 +213,14 @@ def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[st
     # If the name is longer than 2 characters, only swap side identifiers if they
     # are next to a separator.
     if with_separators:
-        for l in [left, right_placehold, right]:
-            l_copy = l[:]
-            for side in l_copy:
+        for list_to_modify in [left, right_placehold, right]:
+            list_copy = list_to_modify[:]
+            for side in list_copy:
                 if len(side) < 4:
-                    l.remove(side)
+                    list_to_modify.remove(side)
                 for sep in SEPARATORS:
-                    l.append(side + sep)
-                    l.append(sep + side)
+                    list_to_modify.append(side + sep)
+                    list_to_modify.append(sep + side)
 
     return left, right_placehold, right
 
@@ -304,7 +305,7 @@ def strip_blender_zeroes(thing: Any):
     if name[-4] == ".":
         try:
             int(name[-3:])
-        except:
+        except ValueError:
             return name
         return name[:-4]
     return name

@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from ..rig_component_features.bone_set import BoneInfo
 
-from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, StringProperty
+from bpy.types import PropertyGroup
 from mathutils import Vector
 
 from .cloud_base import Component_Base
@@ -33,7 +35,7 @@ class Component_CopyBone(Component_Base):
         super().__init__(*args, **kwargs)
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
-        
+
         self.bones_org.collections = [
             coll.name for coll in self.metarig_base_pbone.bone.collections
         ]
@@ -49,7 +51,7 @@ class Component_CopyBone(Component_Base):
         super().create_bone_infos(context)
 
         for pbone, bone_info in zip(self.get_component_pbone_chain(), self.bones_org):
-            if (not bone_info.use_custom_shape_bone_size):  
+            if (not bone_info.use_custom_shape_bone_size):
                 bone_info.custom_shape_scale_xyz /= (
                     bone_info.bbone_width * 10 * self.scale
                 )

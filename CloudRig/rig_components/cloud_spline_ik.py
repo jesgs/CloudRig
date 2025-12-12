@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.props import BoolProperty, IntProperty, FloatProperty, EnumProperty, StringProperty
-from bpy.types import PropertyGroup, Object
-from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
+from bpy.types import Object, PropertyGroup
 
+from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from .cloud_curve import Component_Curve_Hooked, get_points
 
 
@@ -229,8 +229,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         )
 
     def __apply_def_chain_pose(self):
-        # TODO: This is quite hacky. We could add a flag in BoneInfo named "Apply Pose", then 
-        # if any bones have that flag during generation, run the Apply Pose as Rest Pose 
+        # TODO: This is quite hacky. We could add a flag in BoneInfo named "Apply Pose", then
+        # if any bones have that flag during generation, run the Apply Pose as Rest Pose
         # operator with those bones selected. That's also a little hacky, but maybe a bit less. (I'm not sure if all the bones would be visible)
         self.target_rig.data.pose_position = 'POSE'
         bpy.ops.object.mode_set(mode='EDIT')

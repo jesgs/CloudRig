@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import bpy, bmesh
-from bpy.types import Object, PropertyGroup
-from bpy.props import BoolProperty, PointerProperty, EnumProperty, FloatProperty
 from math import sqrt
 
-from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+import bmesh
+import bpy
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, PointerProperty
+from bpy.types import Object, PropertyGroup
+
+from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.object import lock_transforms
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -168,7 +170,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             )
             next_parent = phys_ctrl
 
-        pin_bone = self.bone_sets['Physics Bones'].new(
+        self.bone_sets['Physics Bones'].new(
             name="PIN-" + self.params.physics_chain.phys_obj.name,
             custom_shape_name=self.params.fk_chain.shape_fk_root.shape_name,
             source=self.bone_sets['Physics Bones'][0],

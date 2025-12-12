@@ -1,25 +1,28 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
-    from ..generation.troubleshooting import CloudRig_Generator
-    from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
     from collections.abc import Iterable
 
-import bpy
-from bpy.props import EnumProperty, StringProperty, PointerProperty, BoolProperty
-from bpy.types import PropertyGroup, PoseBone, Object
+    from ..generation.troubleshooting import CloudRig_Generator
+    from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 
-from ..rig_component_features.bone_set import BoneSetMixin
+import bpy
+from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty
+from bpy.types import Object, PoseBone, PropertyGroup
+
+from ..bs_utils.prefs import get_addon_prefs
+from ..generation.troubleshooting import LoggerMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
-from ..rig_component_features.params_ui_utils import CloudUIMixin
+from ..rig_component_features.bone_set import BoneSetMixin
+from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
+from ..rig_component_features.params_ui_utils import CloudUIMixin
 from ..rig_component_features.parenting import CloudParentingMixin
-from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
-from ..generation.troubleshooting import LoggerMixin
-from ..bs_utils.prefs import get_addon_prefs
 
 
 class Component_Base(
@@ -33,7 +36,7 @@ class Component_Base(
     BoneGizmoMixin,
 ):
     """Base class that all CloudRig components should inherit from."""
-    # Name to display for this component type in the UI. Cloud Base doesn't 
+    # Name to display for this component type in the UI. Cloud Base doesn't
     # appear in Blender because there's no RIG_COMPONENT_MODULE variable in this file.
     ui_name = "Cloud Base"
 
@@ -60,9 +63,9 @@ class Component_Base(
         return f'{self.base_bone_name}: {type(self).ui_name}'
 
     def __init__(
-        self, 
-        generator: CloudRig_Generator, 
-        bone_name: str, 
+        self,
+        generator: CloudRig_Generator,
+        bone_name: str,
         parent_component=None
     ):
         # Quick access to generator features.
@@ -91,7 +94,7 @@ class Component_Base(
         if is_left:
             self.side_suffix = "L"
             self.side_prefix = "Left"
-        elif is_left == False:
+        elif is_left is False:
             self.side_suffix = "R"
             self.side_prefix = "Right"
 
@@ -194,7 +197,7 @@ class Component_Base(
         # helpers like curves, empties, lattices.
         pass
 
-    ### Relinking - Allow users to easily add constraints to the generated rig to specific bones, 
+    ### Relinking - Allow users to easily add constraints to the generated rig to specific bones,
     # in cases where user intent can be made clear.
     def base__relink(self):
         """Move constraints from original bones to other bones."""
@@ -371,13 +374,13 @@ class Component_Base(
         def update_widgets(self, context):
             prefs = get_addon_prefs(context)
             prefs.update_widget_names(bpy.context)
-        
+
         @property
         def shape_name(self):
             if self.use_pointer and self.custom_shape:
                 return self.custom_shape.name
             return self.name
-        
+
         class_props = {
             '__annotations__': {
                 'name': StringProperty(

@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup
-from bpy.props import BoolProperty, StringProperty
 from math import pi
+
+from bpy.props import BoolProperty
+from bpy.types import PropertyGroup
+
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_fk_chain import Component_Chain_FK
+
 
 class Component_Spine_Toon(Component_Chain_FK):
     """This spine rig must consist of 4 bones, placed to function as the
@@ -62,7 +65,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
     def fk_chain__attach_org_to_fk(self, bones_org, fk_bones):
         """Parent original bones to FK bones.
-        The purpose of original bones in this component is just for any child 
+        The purpose of original bones in this component is just for any child
         components to follow along in an expected way.
         """
         for org_bone, fk_bone in zip(bones_org, fk_bones):
@@ -147,7 +150,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         )
         ik_chain = self.__make_ik_chain(fk_chain, chest, hips)
 
-        ik_str_chain = self.__make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
+        self.__make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
 
     def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
         ik_chain = []
@@ -162,7 +165,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             )
             is_last = len(ik_chain)==len(fk_chain)-1
             def_bone = self.bones_def[len(ik_chain)+(0 if is_last else 1)]
-            dsp = self.create_dsp_bone(ik_hlp, 
+            dsp = self.create_dsp_bone(ik_hlp,
                 head=def_bone.tail if is_last else def_bone.center,
                 vector=def_bone.vector,
                 length=def_bone.length/2
@@ -229,7 +232,7 @@ class Component_Spine_Toon(Component_Chain_FK):
                 'variables': [(self.properties_bone.name, squash_prop_name)],
             })
             next_parent = ik_chain[i]
-            copycon = fk_bone.add_constraint('COPY_TRANSFORMS', 
+            copycon = fk_bone.add_constraint('COPY_TRANSFORMS',
                 name='Copy Transform (IK)',
                 subtarget=ik_str,
                 space='WORLD',

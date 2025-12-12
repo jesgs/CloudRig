@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.props import StringProperty, PointerProperty
-from bpy.types import PropertyGroup, Object
+from bpy.props import PointerProperty, StringProperty
+from bpy.types import Object, PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_chain import Component_ToonChain

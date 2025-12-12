@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup, Action, ActionSlot
-from ..rig_component_features.bone_info import BoneInfo
-
 from bpy.props import (
     BoolProperty,
-    IntVectorProperty,
     BoolVectorProperty,
     FloatProperty,
+    IntVectorProperty,
 )
+from bpy.types import Action, ActionSlot, PropertyGroup
+
+from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.generate_animation import CloudAnimationMixin
 from .cloud_chain import Component_ToonChain
 
@@ -242,7 +242,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 + " "
                 + self.naming.slice_name(bone.name)[1]
             )
-        if bone_set == None:
+        if bone_set is None:
             bone_set = bone.bone_set
 
         # Create Hinge helper bone

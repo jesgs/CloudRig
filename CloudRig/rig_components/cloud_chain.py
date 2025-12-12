@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.props import BoolProperty, IntProperty, FloatProperty, StringProperty
+from bpy.props import BoolProperty, FloatProperty, IntProperty
 from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
@@ -298,8 +298,8 @@ class Component_ToonChain(Component_Base):
             name=self.naming.add_prefix(sub_str.name, "H"),
             source=sub_str,
             bbone_width=sub_str.bbone_width,
-            # We want no parent for scale inheritance reasons: The driver on the bendy bone 
-            # scale values expects to find all parenting-induced transformations in the local 
+            # We want no parent for scale inheritance reasons: The driver on the bendy bone
+            # scale values expects to find all parenting-induced transformations in the local
             # matrix of this bone.
             parent=None,
             ignore_orphan=True,

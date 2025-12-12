@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from ..utils.maths import project_vector_on_plane
-from .cloud_face_chain import Component_FaceChain
 from .cloud_aim import Component_Aim
+from .cloud_face_chain import Component_FaceChain
 
 
 class Component_Eyelid(Component_FaceChain):

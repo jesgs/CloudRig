@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from copy import deepcopy
+from math import pow
+from math import radians as rad
+
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
-from math import radians as rad
-from math import pow
-from copy import deepcopy
 
-from ..utils.rig import calculate_ik_pole_vector
 from ..rig_component_features.bone_info import BoneInfo
+from ..utils.rig import calculate_ik_pole_vector
 from .cloud_ik_chain import Component_Chain_IKFK
 
 
@@ -115,7 +116,7 @@ class Component_Limb(Component_Chain_IKFK):
             if self.pole_angle_deg in {180, 0}:
                 self.add_log(
                     "Locked IK must bend on X",
-                    description=f'To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should be rotated 90 degrees, so it bends on X instead of Z axis. Currently, this limbn will not bend properly.',
+                    description='To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should be rotated 90 degrees, so it bends on X instead of Z axis. Currently, this limbn will not bend properly.',
                 )
             ik_elbow = self.ik_chain[1]
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
@@ -167,7 +168,7 @@ class Component_Limb(Component_Chain_IKFK):
         )
         trans_con.drivers.append(
             {
-                'prop': f'to_min_y_rot',
+                'prop': 'to_min_y_rot',
                 'expression': "-var",
                 'variables': [
                     {
@@ -230,7 +231,7 @@ class Component_Limb(Component_Chain_IKFK):
                 panel_name="Auto Rubber Hose",
                 custom_prop_settings={
                     'default': 0.0,
-                    'description': f'Automatically smoothen the curvature of the limb and avoid sharp angles, for a cartoony effect',
+                    'description': 'Automatically smoothen the curvature of the limb and avoid sharp angles, for a cartoony effect',
                 },
                 row_name=self.limb_name,
                 slider_name=self.limb_ui_name,

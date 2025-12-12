@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from math import radians
+
 from bpy.props import EnumProperty
 from bpy.types import PropertyGroup
-from math import radians
 
 from .cloud_fk_chain import Component_Chain_FK
 

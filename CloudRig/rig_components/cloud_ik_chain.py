@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup, Action, ActionSlot
-from bpy.props import BoolProperty
-from mathutils import Vector
 from math import radians
 
-from ..rig_component_features.bone_info import BoneInfo
+from bpy.props import BoolProperty
+from bpy.types import Action, ActionSlot, PropertyGroup
+from mathutils import Vector
+
 from ..bs_utils.ui import label_split
+from ..rig_component_features.bone_info import BoneInfo
 from ..utils.rig import calculate_ik_pole_vector, is_ideal_ik_chain
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -103,7 +104,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
         op_kwargs["prop_value"] = 1
         ik_names = [ik.name for ik in self.ik_controls]
         op_kwargs["bones"] = ik_names
-        bone_names = [self.ik_mstr.name]
         self.gizmos__add_interaction(
             bone_names=ik_names, operator=op_name, op_kwargs=op_kwargs
         )
@@ -120,13 +120,13 @@ class Component_Chain_IKFK(Component_Chain_FK):
         super().create_bone_infos(context)
         if len(self.bones_org) < 2:
             self.raise_generation_error(
-                f"Must be a chain of at least 2 connected bones!"
+                "Must be a chain of at least 2 connected bones!"
             )
 
         if not is_ideal_ik_chain(self.bones_org):
             self.add_log(
                 "IK affects rest pose",
-                description=f"For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls should align towards the pole vector. Simply use the button below.",
+                description="For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls should align towards the pole vector. Simply use the button below.",
                 operator="armature.flatten_ik_chain",
                 op_kwargs={
                     "remove_active_log": True,
@@ -383,7 +383,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 "default": 1.0,
-                "description": f"Allow the limb to stretch beyond its normal maximum reach for a cartoony effect",
+                "description": "Allow the limb to stretch beyond its normal maximum reach for a cartoony effect",
             },
         )
 

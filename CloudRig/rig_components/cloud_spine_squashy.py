@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
+from bpy.types import PropertyGroup
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo

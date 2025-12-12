@@ -1,5 +1,9 @@
-import bpy, os, sys, importlib
+import importlib
+import os
+import sys
 from types import ModuleType
+
+import bpy
 
 ALL_COMPONENT_MODULES = {}
 
@@ -24,7 +28,10 @@ def load_components(dir_path: str, relative=True) -> dict[str, ModuleType]:
         else:
             for file in os.listdir(dir_path):
                 if file.endswith(".py"):
-                    module = import_from_path("CloudRig.rig_components."+file.replace(".py", ""), os.sep.join([dir_path, file]))
+                    module = import_from_path(
+                        "CloudRig.rig_components."+file.replace(".py", ""),
+                        os.sep.join([dir_path, file])
+                    )
         if not hasattr(module, 'RIG_COMPONENT_CLASS'):
             continue
         component_modules[module_name] = module
