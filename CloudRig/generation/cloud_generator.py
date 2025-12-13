@@ -15,7 +15,15 @@ from bpy.props import (
     PointerProperty,
     StringProperty,
 )
-from bpy.types import Action, Collection, Object, Operator, PropertyGroup, Text, EditBone
+from bpy.types import (
+    Action,
+    Collection,
+    EditBone,
+    Object,
+    Operator,
+    PropertyGroup,
+    Text,
+)
 from mathutils import Matrix
 
 from ..bs_utils.hotkeys import register_hotkey
@@ -511,6 +519,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         This function should be called before components_write_ebone_data()
         so that setting the parents can be done without worrying about creation order.
         """
+
+        # We need to nuke original bone constraints and collection assignments,
+        # since those will be re-created via BoneInfo API.
+        # XXX: These steps should arguably be done at bone write time instead.
+        for pb in self.target_rig.pose.bones:
+            for con in reversed(pb.constraints):
+                pb.constraints.remove(con)
+            for coll in pb.bone.collections:
+                coll.unassign(self.target_rig.data.edit_bones[pb.name])
 
         bones_created = []
 
