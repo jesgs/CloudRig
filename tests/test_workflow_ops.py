@@ -1,5 +1,6 @@
 import bpy
-from bpy.types import Object, PoseBone, EditBone
+from bpy.types import EditBone, Object, PoseBone
+
 
 def test_copy_mirror_component(context, scene_workflow):
     metarig = context.active_object

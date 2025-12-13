@@ -1,7 +1,8 @@
 import bpy
-from bpy.types import Object, PoseBone
-from mathutils import Vector, Matrix
 import numpy as np
+from bpy.types import Object, PoseBone
+from mathutils import Matrix, Vector
+
 
 def test_pose_consistency(context, scene_poses):
     metarigs_test(context)
@@ -41,6 +42,8 @@ def metarigs_test(context):
         metarig = bpy.data.objects[metarig_name]
         with MatchingPose(context, metarig.cloudrig.generator.target_rig, frame=frame):
             regenerate_rig(context, metarig)
+        num_logs = len(metarig.cloudrig.generator.logs)
+        assert num_logs == 0, f"{metarig.name} generated with {num_logs} warnings."
         print(f"{metarig.name} generated with expected transforms.")
 
 def regenerate_rig(context, rig: Object):
@@ -73,7 +76,7 @@ def pose_to_dict(rig: Object, *, bone_subset: list[str] = [], visible_only=True)
 
     return transforms
 
-def pbone_to_dict(pbone: PoseBone) -> dict[str]:
+def pbone_to_dict(pbone: PoseBone) -> dict:
     def get_copy(owner, key):
         value = getattr(owner, key)
         if isinstance(value, Vector) or isinstance(value, Matrix):
@@ -120,7 +123,7 @@ def assert_matching_pose(rig: Object, old_pose: dict, new_pose: dict, *, matrix_
                 is_equal = np.allclose(np.array(old_value), np.array(new_value), atol=absolute_tolerance)
                 old_value = np.array2string(np.array(old_value), precision=8, floatmode='fixed')
                 new_value = np.array2string(np.array(new_value), precision=8, floatmode='fixed')
-            elif type(old_value) == float:
+            elif type(old_value) is float:
                 is_equal = np.isclose(new_value, old_value, atol=absolute_tolerance)
                 old_value = np.array2string(np.array(old_value), precision=8, floatmode='fixed')
                 new_value = np.array2string(np.array(new_value), precision=8, floatmode='fixed')

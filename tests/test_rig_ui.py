@@ -1,7 +1,9 @@
 import bpy
+
 from .conftest import select_scene_and_object
-from .test_pose_consistency import MatchingPose
 from .install_this import disable_this, enable_this
+from .test_pose_consistency import MatchingPose
+
 
 def test_snap_bake_ops(context, scene_poses):
     select_scene_and_object(context, scene_poses.name, "RIG-Cloud_Human")
@@ -47,7 +49,7 @@ def test_snap_bake_ops(context, scene_poses):
                 parent_names="['Root', 'Torso', 'Chest', 'Arm Root']",
                 selected='2'
             )
-    
+
 
 def test_rig_ops(context, scene_poses):
     context.view_layer.objects.active = bpy.data.objects['RIG-Cloud_Human']
@@ -61,4 +63,4 @@ def test_rig_ops(context, scene_poses):
         reset_transforms=True,
         reset_custom_props=True
     ), "Failed to Reset Armature."
-    assert rig.animation_data.action == None
+    assert rig.animation_data.action is None

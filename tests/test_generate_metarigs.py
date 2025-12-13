@@ -1,5 +1,6 @@
 import bpy
 
+
 def test_generate_metarigs(context):
     from bl_ext.cloudrig.CloudRig import metarigs
     metarigs.delayed_refresh_metarig_list()
@@ -24,4 +25,3 @@ def generate_metarig_without_errors(context, metarig_name: str):
     context.active_object.cloudrig.generator.generate_test_action = True
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
     assert len(context.active_object.cloudrig.generator.logs) == 0
-    

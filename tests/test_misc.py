@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import bpy
 from bpy.types import Text
-from pathlib import Path
+
 
 def test_run_in_blender(context):
     file = Path(__file__).parent / Path("run_in_blender.py")
