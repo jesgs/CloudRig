@@ -15,19 +15,18 @@ from bpy.props import (
     PointerProperty,
     StringProperty,
 )
-from bpy.types import Action, Collection, Object, Operator, PropertyGroup, Text
+from bpy.types import Action, Collection, Object, Operator, PropertyGroup, Text, EditBone
 from mathutils import Matrix
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.properties import (
-    copy_all_custom_properties,
     copy_all_runtime_properties,
     copy_property_group,
 )
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.bone_info import BoneInfo
-from ..rig_component_features.mechanism import copy_relink_real_driver
+from ..rig_component_features.mechanism import relink_real_driver
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.widgets.widgets import (
     apply_custom_shape_rig_data,
@@ -453,7 +452,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if edit_bone.parent:
                 self.logger.log("Root Bone has a parent!", base_bone_name=edit_bone.parent.name, description="If you've added an additional root parent, make sure to set that as the Root Bone under the Generation panel")
             return metarig.pose.bones[root_name]
-        edit_bone = create_bone(metarig, root_name)
+        edit_bone = ensure_ebone(metarig, root_name)
         name = edit_bone.name
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='EDIT')
@@ -516,7 +515,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bones_created = []
 
         for bone_info in self.bone_infos:
-            if not bone_info.create:
+            if not bone_info.preserve:
                 continue
             if bone_info.name in self.target_rig.data.edit_bones:
                 # This happens for ORG bones that we load into BoneInfo objects,
@@ -529,7 +528,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 bones_created.append(bone_info.name)
                 continue
 
-            edit_bone = create_bone(self.target_rig, bone_info.name)
+            edit_bone = ensure_ebone(self.target_rig, bone_info.name)
             bone_info.name = edit_bone.name
             assert (
                 bone_info.name == edit_bone.name
@@ -559,10 +558,17 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         for component in self.all_components:
             component.create_helper_objects(context)
 
+        # Delete original bones that we don't need.
+        for bone_info in self.bone_infos:
+            if not bone_info.preserve:
+                ebone = self.target_rig.data.edit_bones.get(bone_info.name)
+                if ebone:
+                    self.target_rig.data.edit_bones.remove(ebone)
+
 
     def components_write_pbone_data(self, context, target_rig):
         for bone_info in self.bone_infos:
-            if not bone_info.create:
+            if not bone_info.preserve:
                 continue
             # Ensure bone collections in both the metarig and the target rig.
             # TODO: Is this still needed?
@@ -606,7 +612,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             old_rig.name = "OLD-" + old_rig.name
         new_rig.name = new_rig.name.replace("NEW-", "")
         try:
-            exec(script.as_string(), {})
+            script.as_module()
         except Exception as exc:
             self.logger.log_fatal_error(
                 "Post-Generation Script failed.",
@@ -766,15 +772,16 @@ def ensure_cloudrig_ui(rig):
     )
 
 
-def create_bone(rig_ob, bone_name: str):
+def ensure_ebone(rig_ob, bone_name: str) -> EditBone:
     """Adds a new bone to the active Armature object.
     Must be in edit mode.
     Returns the resulting Edit Bone.
     """
+    existing = rig_ob.data.edit_bones.get(bone_name)
+    if existing:
+        return existing
     edit_bone = rig_ob.data.edit_bones.new(bone_name)
-    edit_bone.head = (0, 0, 0)
     edit_bone.tail = (0, 1, 0)
-    edit_bone.roll = 0
     return edit_bone
 
 
@@ -791,7 +798,7 @@ def create_target_rig_obj(context, metarig) -> Object:
 
     rig_name = "NEW-" + final_name
 
-    armature = bpy.data.armatures.new(name=rig_name)
+    armature = metarig.data.copy()
     target_rig = metarig.copy()
 
     # Nuke drivers targetting the Pose. (ie. PoseBone drivers).
@@ -832,24 +839,11 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data.pose_position = 'REST'
 
     metarig.cloudrig_prefs.sync_collection_names()
-    copy_bone_collections(src_rig=metarig, tgt_rig=target_rig)
 
-    # Copy custom properties of the Armature datablock.
-    copy_all_custom_properties(metarig.data, target_rig.data)
-    if not target_rig.data.animation_data:
-        target_rig.data.animation_data_create()
-    # Copy all drivers of the Armature datablock
-    # (custom properties, bone collection visibilities, etc.)
-    if metarig.data.animation_data:
-        for src_driver in metarig.data.animation_data.drivers:
-            if not target_rig.data.animation_data:
-                target_rig.data.animation_data_create()
-            fcurve = copy_relink_real_driver(metarig.data, target_rig.data, src_driver)
-            for var in fcurve.driver.variables:
-                if var.type == 'SINGLE_PROP':
-                    for tar in var.targets:
-                        if not tar.id and tar.id_type == 'OBJECT':
-                            tar.id = target_rig
+    # Relink any drivers.
+    if target_rig.data.animation_data:
+        for src_driver in target_rig.data.animation_data.drivers:
+            relink_real_driver(metarig.data, target_rig.data, src_driver)
 
     return target_rig
 
@@ -881,7 +875,7 @@ def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
     that belong to those bones. This is to speed up loading drivers into BoneInfos."""
     driver_map = {}
     if not armature_ob.animation_data:
-        return
+        return driver_map
     for fc in armature_ob.animation_data.drivers:
         data_path = fc.data_path
         if "pose.bones" not in data_path:

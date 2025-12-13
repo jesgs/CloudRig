@@ -171,7 +171,7 @@ class Component_Base(
                     description_short=f'Bone name "{bone_info.name}" was used twice!',
                 )
             bone_info.bbone_width = ebone.bbone_x / self.scale
-            bone_info.create = self.keep_original_bones
+            bone_info.preserve = self.keep_original_bones
             bone_infos[bone_info.name] = bone_info
 
         return bone_infos
@@ -220,7 +220,7 @@ class Component_Base(
         if to_binfo != org_bi:
             to_binfo.constraint_infos.append(con_info)
             org_bi.constraint_infos.remove(con_info)
-        elif "-" in base_name and (('KEEP-' not in base_name and 'ORG-' not in base_name) or not org_bi.create):
+        elif "-" in base_name and (('KEEP-' not in base_name and 'ORG-' not in base_name) or not org_bi.preserve):
             target_name = con_info.name.split("-")[0] + "-" + org_bi.name
             self.raise_generation_error(
                 description=f'Relinking Failed for constraint "{con_info.name}".\nThe dash (-) in the constraint name tells CloudRig to move the constraint to a generated bone named "{target_name}", but no such bone exists.',

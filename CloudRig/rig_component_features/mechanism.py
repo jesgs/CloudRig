@@ -84,6 +84,14 @@ def copy_relink_real_driver(
     May copy to a different data path than the source.
     """
     new_fcurve = copy_driver(fcurve, tgt_id, data_path, index)
+    relink_real_driver(src_id, tgt_id, new_fcurve)
+    return new_fcurve
+
+def relink_real_driver(src_id: ID, tgt_id: ID, new_fcurve: FCurve):
+    """Anything that was targetting src_id or None should now target tgt_id.
+    Any variable names which had an @ character in the name, should target a bone
+    in tgt_id, whose name is provided after the @.
+    """
     for var in new_fcurve.driver.variables:
         for tgt in var.targets:
             if tgt.id in (None, src_id) and tgt.id_type == tgt_id.id_type:
@@ -93,7 +101,6 @@ def copy_relink_real_driver(
             var.name = split[0]
             for i, name in enumerate(split[1:]):
                 var.targets[i].bone_target = name
-    return new_fcurve
 
 def copy_driver(
     from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None

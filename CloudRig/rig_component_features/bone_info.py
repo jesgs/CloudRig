@@ -147,7 +147,7 @@ class BoneInfo:
 
         self.bone_set = bone_set
         self.owner_component = owner_component
-        self.create = True
+        self.preserve = True
         self.next = self.prev = None  # For LinkedList behaviour.
         self.gizmo_vgroup = ""  # For CloudRig Gizmos
         self.gizmo_operator = 'transform.translate'
@@ -480,7 +480,7 @@ class BoneInfo:
 
     def write_edit_data(self, generator, edit_bone: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
-        if not self.create:
+        if not self.preserve:
             return
 
         armature = generator.target_rig
@@ -496,9 +496,7 @@ class BoneInfo:
                 description=f'Bone "{self.name}" had zero length. Its length was set to 1 to avoid a fatal error.',
             )
             self.tail.y += 1
-        assert (
-            self.head - self.tail
-        ).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
+        assert (self.head - self.tail).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
 
         ### Edit Bone properties
         for key in edit_bone_properties:
@@ -516,9 +514,8 @@ class BoneInfo:
                 continue
 
             value = self.__dict__[key]
-            default_value = edit_bone_properties[key]
-            if value == default_value:
-                # For performance, don't write default values.
+            if value == getattr(edit_bone, key):
+                # For performance, don't write idenetical values.
                 continue
             setattr(edit_bone, key, value)
 
@@ -527,9 +524,8 @@ class BoneInfo:
         edit_bone.bbone_z = self.bbone_width * scale
 
         # Parenting - If an Armature Constraint is present, don't allow double parenting.
-        for con in self.constraint_infos:
-            if con.type == 'ARMATURE':
-                self.parent = None
+        if any((con.type=='ARMATURE' for con in self.constraint_infos)):
+            self.parent = None
 
         if self.parent:
             edit_bone.parent = armature.data.edit_bones.get(str(self.parent))
@@ -565,7 +561,7 @@ class BoneInfo:
 
     def write_pose_data(self, context, metarig, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
-        if not self.create:
+        if not self.preserve:
             return
 
         arm_ob = pose_bone.id_data
@@ -590,8 +586,7 @@ class BoneInfo:
                 # Ignore such values in older versions, to preserve compatibility.
                 continue
             value = self.__dict__[key]
-            default_value = pose_bone_properties[key]
-            if value == default_value:
+            if value == getattr(pose_bone, key):
                 # For performance, don't write default values.
                 continue
             if value in [None, ""]:
