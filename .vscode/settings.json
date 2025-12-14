@@ -1,0 +1,19 @@
+{
+    "python.analysis.extraPaths": [
+        "C:/Users/Met/AppData/Roaming/Python/Python314/site-packages"
+    ],
+
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportOptionalMemberAccess": "none"
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "[python]": {
+        "editor.defaultFormatter": "eeyore.yapf"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "editor.formatOnSaveMode": "file",
+}
