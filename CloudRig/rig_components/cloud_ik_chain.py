@@ -284,7 +284,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             bone_set = self.bone_sets["IK Mechanism"]
             if i == 0:
                 # We want to expose the first IK bone because it needs to be selectable and keyable for snapping purposes.
-                bone_set = self.bone_sets["IK Controls"]
+                bone_set = self.bone_sets["IK Controls Secondary"]
             ik_bone = bone_set.new(
                 name=self.naming.add_prefix(org_bone, "IK-M"),
                 source=org_bone,
@@ -660,6 +660,12 @@ class Component_Chain_IKFK(Component_Chain_FK):
             color_palette="THEME13",
             collections=["IK Controls"],
             wire_width=2.5,
+        )
+        cls.define_bone_set(
+            "IK Controls Secondary",
+            color_palette="THEME13",
+            collections=["IK Secondary"],
+            wire_width=1.5,
         )
         cls.define_bone_set(
             "IK Mechanism",
