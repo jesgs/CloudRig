@@ -111,6 +111,8 @@ class Component_Limb_BipedLeg(Component_Limb):
             bone_set, source_bone, bone_name, shape_name
         )
         ik_master.custom_shape_scale = 2.8
+        if self.side_suffix == 'L':
+            ik_master.custom_shape_scale_xyz.x *= -1
 
         return ik_master
 
