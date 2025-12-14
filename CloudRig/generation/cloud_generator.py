@@ -329,6 +329,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         if self.params.ensure_root:
             self.ensure_root_bone_component(context, self.metarig, self.params.ensure_root)
+            parent_orphans(metarig, self.params.ensure_root)
 
         self.component_map = self.instantiate_rig_components()
         self.components_load_bone_infos(self.component_map, self.metarig)
@@ -460,6 +461,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if edit_bone.parent:
                 self.logger.log("Root Bone has a parent!", base_bone_name=edit_bone.parent.name, description="If you've added an additional root parent, make sure to set that as the Root Bone under the Generation panel")
             return metarig.pose.bones[root_name]
+
         edit_bone = ensure_ebone(metarig, root_name)
         name = edit_bone.name
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -582,7 +584,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 ebone = self.target_rig.data.edit_bones.get(bone_info.name)
                 if ebone:
                     self.target_rig.data.edit_bones.remove(ebone)
-
 
     def components_write_pbone_data(self, context, target_rig):
         for bone_info in self.bone_infos:
@@ -777,6 +778,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_sus_constraints(self.target_rig)
         self.logger.report_actions()
 
+def parent_orphans(rig: Object, root_name: str):
+    root_ebone = rig.data.edit_bones[root_name]
+    for ebone in rig.data.edit_bones:
+        if ebone.parent or ebone == root_ebone:
+            continue
+        pbone = rig.pose.bones[ebone.name]
+        if any((con for con in pbone.constraints if con.type == 'ARMATURE')):
+            continue
+        ebone.parent = root_ebone
 
 def ensure_cloudrig_ui(rig):
     """Load and execute cloudrig.py rig UI script."""

@@ -498,6 +498,7 @@ class BoneInfo:
             self.tail.y += 1
         assert (self.head - self.tail).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
 
+
         ### Edit Bone properties
         for key in edit_bone_properties:
             if not hasattr(edit_bone, key):
@@ -519,13 +520,13 @@ class BoneInfo:
                 continue
             setattr(edit_bone, key, value)
 
+        # Parenting - If an Armature Constraint is present, don't allow double parenting.
+        if any((con.type in ('ARMATURE', 'CHILD_OF') for con in self.constraint_infos)):
+            self.parent = edit_bone.parent = None
+
         scale = generator.scale
         edit_bone.bbone_x = self.bbone_width * scale
         edit_bone.bbone_z = self.bbone_width * scale
-
-        # Parenting - If an Armature Constraint is present, don't allow double parenting.
-        if any((con.type=='ARMATURE' for con in self.constraint_infos)):
-            self.parent = None
 
         if self.parent:
             edit_bone.parent = armature.data.edit_bones.get(str(self.parent))
@@ -558,6 +559,7 @@ class BoneInfo:
                 align_bone_axis_to_vector(edit_bone, self.roll_vector)
 
             edit_bone.roll += self.roll
+
 
     def write_pose_data(self, context, metarig, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
