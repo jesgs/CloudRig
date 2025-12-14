@@ -289,11 +289,16 @@ def get_pbone_matrix_map(
 
 def set_bone_selection(rig, select=False, pbones: list[PoseBone] = None, extend=False):
     if select and not extend:
-        set_bone_selection(rig, False, pbones)
+        set_bone_selection(rig, False)
     if not pbones:
         pbones = rig.pose.bones
+    last = None
     for pb in pbones:
         pb.select = select
+        if select:
+            last = pb
+    if last and select:
+        rig.data.bones.active = last.bone
 
 def key_transforms(pb: PoseBone):
     if pb.rotation_mode == 'QUATERNION':
@@ -643,9 +648,9 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         return {'FINISHED'}
 
     def get_affected_pbones(self) -> set[PoseBone]:
-        affected_pbones = list(self.bone_map.keys())
+        affected_pbones = set(self.bone_map.keys())
         if self._target_prop_value == 1.0:
-            affected_pbones.append(self.pole_pbone)
+            affected_pbones.add(self.pole_pbone)
         return affected_pbones
 
     def set_and_key_bone_matrices(
@@ -1683,6 +1688,7 @@ class CloudRigBoneCollection(PropertyGroup):
         for coll in armature.collections_all:
             if coll.cloudrig_info == self:
                 return coll
+        assert False
 
     def update_name(self, context):
         """Runs when trying to change the name of this instance, which should stay in sync
