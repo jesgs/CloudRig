@@ -720,11 +720,11 @@ class Params(PropertyGroup):
     )
     shape_ik_first: Component_Chain_FK.make_custom_shape_params(
         identifier="First IK",
-        default="Squares_2"
+        default="IK_First"
     )
     shape_pole: Component_Chain_FK.make_custom_shape_params(
         identifier="IK Pole",
-        default="Arrow_Head"
+        default="IK_Pole"
     )
 
 RIG_COMPONENT_CLASS = Component_Chain_IKFK

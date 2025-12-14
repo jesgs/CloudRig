@@ -884,7 +884,7 @@ class Params(PropertyGroup):
 
     shape_stretch: Component_Base.make_custom_shape_params(
         identifier="Stretch",
-        default="Sphere"
+        default="Sphere_XZ"
     )
     shape_stretch_ends: Component_Base.make_custom_shape_params(
         identifier="Stretch Ends",

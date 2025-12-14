@@ -560,7 +560,7 @@ class Params(PropertyGroup):
 
     shape_fk: Component_ToonChain.make_custom_shape_params(
         identifier="FK",
-        default="Circle_Spiked_2"
+        default="Square_Rounded"
     )
     shape_fk_root: Component_ToonChain.make_custom_shape_params(
         identifier="FK Root",
