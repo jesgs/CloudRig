@@ -9,8 +9,8 @@ from bpy.types import Menu, Object, Operator
 from . import versioning
 
 # Global storage of available metarigs. List of UI name and object name tuples.
-metarig_names: list[tuple[str, str]] = []
-sample_names: list[tuple[str, str]] = []
+METARIG_NAMES: list[tuple[str, str]] = []
+SAMPLE_NAMES: list[tuple[str, str]] = []
 
 
 class CLOUDRIG_OT_metarig_add(Operator):
@@ -56,8 +56,8 @@ class CLOUDRIG_MT_metarigs(Menu):
     bl_label = "CloudRig Metarigs"
 
     def draw(self, context):
-        global metarig_names
-        for ui_name, obj_name in metarig_names:
+        global METARIG_NAMES
+        for ui_name, obj_name in METARIG_NAMES:
             self.layout.operator(
                 CLOUDRIG_OT_metarig_add.bl_idname,
                 icon='OUTLINER_OB_ARMATURE',
@@ -69,12 +69,12 @@ class CLOUDRIG_MT_rig_samples(Menu):
     bl_label = "CloudRig Samples"
 
     def draw(self, context):
-        global sample_names
-        for ui_name, obj_name in sample_names:
+        global SAMPLE_NAMES
+        for ui_name, obj_name in SAMPLE_NAMES:
             self.layout.operator(
                 CLOUDRIG_OT_sample_add.bl_idname,
                 icon='OUTLINER_OB_ARMATURE',
-                text=ui_name,
+                text=ui_name.replace("Cloud", "").strip(),
             ).sample_name = obj_name
 
 
@@ -160,8 +160,8 @@ def get_metarig_blend_path() -> str:
 def refresh_metarig_list():
     """Build a list of available metarigs by checking inside MetaRigs.blend."""
 
-    global metarig_names
-    metarig_names = []
+    global METARIG_NAMES
+    METARIG_NAMES = []
 
     blend_path = get_metarig_blend_path()
     if blend_path == bpy.data.filepath:
@@ -171,16 +171,16 @@ def refresh_metarig_list():
         for obj_name in data_from.objects:
             if obj_name.startswith("META-"):
                 ui_name = obj_name.replace("META-", "").replace("_", " ")
-                metarig_names.append((ui_name, obj_name))
+                METARIG_NAMES.append((ui_name, obj_name))
 
-    return metarig_names
+    return METARIG_NAMES
 
 
 def refresh_rig_sample_list():
     """Build a list of available rig sample by checking inside MetaRigs.blend."""
 
-    global sample_names
-    sample_names = []
+    global SAMPLE_NAMES
+    SAMPLE_NAMES = []
 
     blend_path = get_metarig_blend_path()
     if blend_path == bpy.data.filepath:
@@ -190,9 +190,9 @@ def refresh_rig_sample_list():
         for obj_name in data_from.objects:
             if obj_name.startswith("Sample_"):
                 ui_name = obj_name.replace("Sample_", "").replace("_", " ").title()
-                sample_names.append((ui_name, obj_name))
+                SAMPLE_NAMES.append((ui_name, obj_name))
 
-    return sample_names
+    return SAMPLE_NAMES
 
 
 def draw_cloudrig_metarig_menu(self, context):
