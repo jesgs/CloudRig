@@ -57,6 +57,7 @@ from .cloudrig import (
     is_active_cloud_metarig,
     is_active_cloudrig,
     is_cloud_metarig,
+    reset_armature,
 )
 from .generate_test_animation import TestAnimationGeneratorMixin
 from .troubleshooting import CloudLogManager, CloudRigLogEntry
@@ -184,6 +185,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.rot_bkp = metarig.matrix_world.to_euler()
         self.scale_bkp = metarig.matrix_world.to_scale()
 
+        self.metarig_pose_bkp = metarig.data.pose_position
         metarig.data.pose_position = 'REST'
         metarig.matrix_world = Matrix.Identity(4)
 
@@ -736,10 +738,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             coll.objects.unlink(old_rig)
             coll.objects.link(new_rig)
 
-        # Swap all references pointing at the old rig to the new rig.
-        old_rig.id_data.user_remap(new_rig)
-        old_name = old_rig.name
-
         # Preserve custom shapes.
         if self.params.preserve_shapes_properties:
             custom_shape_data = get_custom_shape_rig_data(old_rig)
@@ -747,6 +745,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 for key, value in custom_shape_data.items():
                     del value['custom_shape']
             apply_custom_shape_rig_data(new_rig, custom_shape_data)
+
+        # Swap all references pointing at the old rig to the new rig.
+        old_rig.id_data.user_remap(new_rig)
+        old_name = old_rig.name
 
         # Delete the old rig.
         bpy.data.objects.remove(old_rig)
@@ -757,7 +759,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def restore_rig_states(self, context):
         """Restore transforms after generation has either failed or succeeded."""
-        self.metarig.data.pose_position = 'POSE'
+        self.metarig.data.pose_position = self.metarig_pose_bkp
         if self.target_rig:
             self.target_rig.data.pose_position = 'POSE'
         self.metarig.location = self.loc_bkp.copy()
@@ -828,6 +830,7 @@ def create_target_rig_obj(context, metarig) -> Object:
 
     armature = metarig.data.copy()
     target_rig = metarig.copy()
+    reset_armature(target_rig)
 
     # Nuke drivers targetting the Pose. (ie. PoseBone drivers).
     if target_rig.animation_data:
@@ -1149,8 +1152,8 @@ class CLOUDRIG_OT_generate(Operator):
                 # Any other exception type is a bug.
                 # We give the user a button to report the error.
                 generator.logger.log_fatal_error(
-                    "Execution Failed!",
-                    description="Execution failed unexpectedly.",
+                    "Generation Failed!",
+                    description="Generation failed unexpectedly.",
                     note=str(exception),
                     operator=operator,
                     op_kwargs=op_kwargs,

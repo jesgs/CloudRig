@@ -901,7 +901,7 @@ class POSE_OT_armature_reset(Operator):
         return {'FINISHED'}
 
 
-def reset_armature(rig, *, viewport_display=True, bone_visibility=True, action=True, transforms=True, custom_props=True, pose_bones=[]):
+def reset_armature(rig, *, viewport_display=False, bone_visibility=False, action=False, transforms=True, custom_props=True, pose_bones=[]):
     if viewport_display:
         rig.show_name = False
         rig.show_axis = False
