@@ -69,11 +69,12 @@ class Component_ToonChain(Component_Base):
 
         parent_helpers = [str_bone.parent_helper for str_bone in self.main_str_bones]
         if  con_info.type == 'ARMATURE':
-            if to_bone in self.main_str_bones:
+            if to_bone in self.main_str_bones and 'NOHLP' not in con_info.name:
                 to_bone = to_bone.parent_helper
 
         if to_bone in parent_helpers and con_info.type == 'ARMATURE':
-            # If user is adding an Armature constraint, they probably want to override the parenting of the STR bone.
+            # If user is adding an Armature constraint to the parent helper (which will already have one),
+            # their intent is probably to replace it.
             to_bone.constraint_infos[0] = con_info
             org_bi.constraint_infos.remove(con_info)
         else:
@@ -99,7 +100,11 @@ class Component_ToonChain(Component_Base):
     # Toon chain functions.
 
     def toon__is_cyclic(self) -> bool:
-        """Return whether this component should become a cyclic chain rig."""
+        """Return whether this component should become a cyclic chain rig.
+        This is the case when the last bone's tail touches the first bone's head.
+        This is not a cyclic dependency because each control only affects its neighbours,
+        not the whole chain. This feature is not supported by FK chains, where that is no longer true.
+        """
         if self.params.chain.tip_control:
             return False
         THRESHOLD = 0.001
