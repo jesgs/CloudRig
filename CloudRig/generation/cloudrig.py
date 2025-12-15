@@ -533,11 +533,15 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
     bl_label = "Switch Parents & Preserve Transforms"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    parent_names: StringProperty(name="Parent Names")
+    parent_names: StringProperty(name="Parent UI Names")
+    parent_bones: StringProperty(name="Parent Bone Names", default="[]")
 
     def parent_items(self, context):
-        parents = ast.literal_eval(self.parent_names)
-        items = [(str(i), name, name) for i, name in enumerate(parents)]
+        ui_names = ast.literal_eval(self.parent_names)
+        bone_names = ast.literal_eval(self.parent_bones)
+        if not bone_names:
+            bone_names = [""] * len(ui_names)
+        items = [(str(i), ui_name, bone_name) for i, (ui_name, bone_name) in enumerate(zip(ui_names, bone_names))]
         return items
 
     selected: EnumProperty(name="Selected Parent", items=parent_items)
@@ -545,6 +549,14 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
     def draw(self, context):
         row = self.layout.row()
         row.prop(self, 'selected', text='Parent')
+        rig = find_cloudrig(context)
+        if rig:
+            parent_bone_name = self.parent_items(context)[int(self.selected)][2]
+            parent_pbone = rig.pose.bones.get(parent_bone_name)
+            if parent_pbone:
+                row = row.row()
+                row.enabled = False
+                row.prop(parent_pbone, 'name', text="", icon='BONE_DATA')
         super().draw(context)
 
     def execute(self, context):

@@ -544,8 +544,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         fk_bone.flatten()
         return world_bone
 
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
-        """Store UI data for FK/IK switching and snapping."""
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
+        """Return UI data to be stored for FK/IK switching and snapping."""
 
         # List of bone tuples to snap (from, to).
         # Which bone will be snapped to which when the custom property is set to 1.

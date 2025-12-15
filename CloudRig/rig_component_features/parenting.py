@@ -165,6 +165,7 @@ class CloudParentingMixin:
             # For some components, it might make sense to only supply 1 parent,
             # eg. for cloud_ik_chain, since there the parent swithcing setup
             # relates to the IK master and pole target rather than the root bone.
+            # TODO: It would be better to separate the IK master/IK pole parent switching params from the root ones.
             self.rig_ui__add_bone_property(
                 prop_bone=prop_bone,
                 prop_id=prop_name,
@@ -184,6 +185,7 @@ class CloudParentingMixin:
                 op_icon="COLLAPSEMENU",
                 op_kwargs={
                     "parent_names": parent_ui_names,
+                    "parent_bones": parent_bone_names,
                     "bone_names": [child_bone.name],
                 },
             )
