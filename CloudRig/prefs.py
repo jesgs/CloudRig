@@ -2,8 +2,13 @@
 
 import os
 
-import bpy
-from bpy.props import BoolProperty, CollectionProperty, EnumProperty, StringProperty
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatProperty,
+    StringProperty,
+)
 from bpy.types import AddonPreferences, PropertyGroup
 
 from . import rig_components
@@ -16,9 +21,7 @@ from .bs_utils.prefs import (
 from .operators.apply_bone_color_preset import draw_bone_color_presets
 from .properties import NameProperty
 from .rig_component_features.widgets.widgets import (
-    get_widgets_enum_items,
-    refresh_cloudrig_widgets,
-    refresh_external_widgets,
+    refresh_widget_list,
 )
 
 
@@ -63,25 +66,15 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     # This should get a version bump whenever there is a change that affects metarigs.
     # For example, changing names of component types, splitting an old component type into multiple,
     # changing names of parameters, etc.
-    cloud_metarig_version = 5
+    cloud_metarig_version = 6
 
     # List of property names to not write to disk.
     omit_from_disk: list[str] = ["component_types", "widget_names"]
 
-    # Function that returns a list of CloudRig add-on KeyMapItems
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
-    def update_widget_names(self, context):
-        self.widget_names.clear()
-        refresh_external_widgets()
-        refresh_cloudrig_widgets()
-        widget_items = get_widgets_enum_items()
-        if not widget_items:
-            return
-        for wgt_name, ui_name, type, icon, counter in [w for w in widget_items if w]:
-            widget_entry = self.widget_names.add()
-            widget_entry.name = ui_name
-        update_prefs_on_file()
+    def on_library_set(self, context):
+        refresh_widget_list(force_external=True)
 
     widget_names: CollectionProperty(type=NameProperty)
 
@@ -103,7 +96,16 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default="",
         subtype='FILE_PATH',
         description="Path to your custom shapes library .blend file. This should contain objects prefixed 'WGT-' to show up in CloudRig's various widget selection UI elements, in addition to the built-in set of widgets",
-        update=update_widget_names,
+        update=on_library_set,
+    )
+    widget_popup_size: FloatProperty(
+        name="Custom Shape Pop-up Size",
+        default=2.0,
+        min=1.0,
+        max=6.0,
+        precision=1,
+        step=50,
+        description="Size of the custom shape icon selector pop-ups",
     )
     widget_import_method: EnumProperty(
         name="Custom Shape Import Method",
@@ -119,15 +121,18 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         layout.use_property_decorate = False
 
         main_col = layout.column(align=True)
-
-        lib_row = main_col.row(align=True)
-        if self.widget_library and not os.path.exists(self.widget_library):
-            lib_row.alert = True
-        lib_row.prop(self, 'widget_library', placeholder="A .blend containing objects prefixed 'WGT-'")
-        main_col.row(align=True).prop(self, 'widget_import_method', expand=True)
         main_col.row(align=True).prop(self, 'advanced_mode')
+        main_col.operator('wm.cloudrig_report_bug', icon='URL')
 
-        layout.operator('wm.cloudrig_report_bug', icon='URL')
+        header, panel = layout.panel("CloudRig Custom Shapes")
+        header.label(text="Custom Shapes")
+        if panel:
+            lib_row = panel.row(align=True)
+            if self.widget_library and not os.path.exists(self.widget_library):
+                lib_row.alert = True
+            lib_row.prop(self, 'widget_library', placeholder="A .blend containing objects prefixed 'WGT-'", text="Additional Custom Shapes")
+            panel.row(align=True).prop(self, 'widget_import_method', expand=True, text="Import Method")
+            panel.row(align=True).prop(self, 'widget_popup_size', text="UI Pop-up Size")
 
         header, panel = layout.panel("CloudRig Hotkeys")
         header.label(text="Hotkeys")
@@ -138,17 +143,12 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         draw_bone_color_presets(layout)
 
 
-registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
-
-
-def delayed_refresh_widget_list():
-    prefs = get_addon_prefs()
-    if not prefs:
-        return
-    prefs.update_widget_names(bpy.context)
+registry = [
+    CloudRigComponentTypeInfo,
+    CloudRigPreferences
+]
 
 
 def register():
     init_component_module_list()
-    bpy.app.timers.register(delayed_refresh_widget_list, first_interval=2.0)
     CloudRigPreferences.register_autoload_from_file()

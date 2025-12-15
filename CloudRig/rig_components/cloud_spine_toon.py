@@ -296,15 +296,15 @@ class Params(PropertyGroup):
 
     shape_ik: Component_Chain_FK.make_custom_shape_params(
         identifier="IK",
-        default="Hyperbola"
+        default="Saddle"
     )
     shape_ik_secondary: Component_Chain_FK.make_custom_shape_params(
         identifier="IK Secondary",
-        default="Square_Rounded"
+        default="Square 2"
     )
     shape_torso: Component_Chain_FK.make_custom_shape_params(
         identifier="Torso",
-        default="Torso_Master"
+        default="Torso"
     )
 
 RIG_COMPONENT_CLASS = Component_Spine_Toon

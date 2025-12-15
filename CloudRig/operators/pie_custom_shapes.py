@@ -2,7 +2,7 @@
 
 import bpy
 from bl_ui.properties_data_bone import BONE_PT_display
-from bpy.props import EnumProperty
+from bpy.props import BoolProperty, EnumProperty
 from bpy.types import Menu, Operator, PoseBone
 from mathutils import Matrix
 
@@ -13,7 +13,8 @@ from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.widgets.widgets import (
     ensure_widget,
     get_nonlocal_widgets,
-    get_widgets_enum_items,
+    refresh_widget_list,
+    widgets_enum_items,
 )
 
 
@@ -54,23 +55,27 @@ class POSE_OT_assign_selected_custom_shape(Operator):
     bl_label = "Select Custom Shape"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    widget_shape: EnumProperty(
+    widget_name: EnumProperty(
         name="Custom Shape",
-        description="Choose a custom shape from CloudRig's library as well as any objects in the current file prefixed with 'WGT-'",
-        items=get_widgets_enum_items,
+        description='You can add your own shape library in CloudRig\'s preferences.\n\nLocal objects starting with "WGT-" will also appear.',
+        items=widgets_enum_items,
     )
 
     def invoke(self, context, _event):
-        get_addon_prefs(context).update_widget_names(context)
-        self.widget_shape = 'WGT-Cube'
-        return context.window_manager.invoke_props_dialog(self)
+        refresh_widget_list()
+
+        return context.window_manager.invoke_props_dialog(self, width=200)
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.prop(self, 'widget_shape')
+        prefs = get_addon_prefs(context)
+
+        big_enough = prefs.widget_popup_size > 2
+        layout.row().template_icon_view(self, 'widget_name', show_labels=big_enough, scale=3, scale_popup=prefs.widget_popup_size)
+        layout.row().prop_search(self, 'widget_name', prefs, 'widget_names', text="")
 
     @classmethod
     def poll(cls, context):
@@ -80,7 +85,7 @@ class POSE_OT_assign_selected_custom_shape(Operator):
         return True
 
     def execute(self, context):
-        widget = ensure_widget(self.widget_shape, overwrite=False)
+        widget = ensure_widget(self.widget_name, overwrite=False)
         coll = context.scene.collection
         rig_ob = find_metarig_of_rig(context, context.pose_object) or context.pose_object
         if rig_ob.cloudrig.generator.widget_collection:

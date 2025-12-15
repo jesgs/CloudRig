@@ -59,7 +59,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            custom_shape_name="Torso_Master",
+            custom_shape_name="Torso",
         )
         return root_bone
 
@@ -72,7 +72,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             source=org_chain[0],
             head=org_chain[0].tail,
             tail=org_chain[0].head,
-            custom_shape_name="Hyperbola",
+            custom_shape_name="Saddle",
             custom_shape_scale_xyz=Vector((0.8, 0.8, 0.8)),
             parent=self.root_bone,
         )
@@ -99,7 +99,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             name=self.naming.add_prefix(self.spine_name, "CHST"),
             source=chest_org,
             head=chest_org.prev.center,
-            custom_shape_name="Hyperbola",
+            custom_shape_name="Saddle",
             custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),
             custom_shape_translation=Vector(
                 (0, chest_org.length + chest_org.prev.length / 2, 0)

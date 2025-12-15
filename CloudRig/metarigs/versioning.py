@@ -90,6 +90,52 @@ def version_cloud_metarig(metarig):
             if pbone.cloudrig_component.component_type:
                 pbone.cloudrig_component.component_type = pbone.cloudrig_component.component_type
 
+    if cloudrig.metarig_version < 6:
+        # Rename widget params.
+        widget_map = {
+            "Root Simple" : "Root 2",
+            "Root Arrows" : "Root 3",
+            "Arrow Four-way" : "Root 4",
+            "Nose Master" : "Nose",
+            "Circle Spiked 1" : "Circle 2",
+            "Circle Spiked 2" : "Circle 3",
+            "Semicircle" : "Circle 4",
+            "Curve Point" : "Bezier",
+            "Curve Handle" : "Handle",
+            "Arrow Two-way" : "Slider",
+            "Arrow 3D" : "Arrow 2",
+            "Arrow Head" : "Arrow 3",
+            "IK Pole" : "Pole",
+            "Squares 2" : "Squares",
+            "Triangle Rounded" : "Tri 2",
+            "Capsule" : "Pill",
+            "Carpal" : "Pill 2",
+            "Cogwheel" : "Cog",
+            "Square Rounded" : "Square 2",
+            "Torso Master" : "Torso",
+            "Sphere XZ" : "Sphere 2",
+            "Eyes Target" : "Eyes",
+            "Roll Flat" : "Roll 2",
+            "Hyperbola" : "Saddle",
+            "Finger Curl" : "Wave",
+            "Sphere Half" : "Sphere H",
+        }
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if not comp.component_type:
+                continue
+            for paramset_name in comp.params.keys():
+                if not hasattr(comp.params, paramset_name):
+                    continue
+                paramset = getattr(comp.params, paramset_name)
+                for param_name in paramset.keys():
+                    if not hasattr(paramset, param_name):
+                        continue
+                    param = getattr(paramset, param_name)
+                    if hasattr(param, 'shape_name') and param.name in widget_map:
+                        new_name = widget_map[param.name].replace("_", " ")
+                        param.name = new_name
+
 
 @persistent
 def update_all_metarigs(dummy=None):

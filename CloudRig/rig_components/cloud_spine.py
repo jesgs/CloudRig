@@ -381,15 +381,15 @@ class Params(PropertyGroup):
 
     shape_hip: Component_Chain_FK.make_custom_shape_params(
         identifier="Hip",
-        default="Hyperbola"
+        default="Saddle"
     )
     shape_chest: Component_Chain_FK.make_custom_shape_params(
         identifier="Chest",
-        default="Hyperbola"
+        default="Saddle"
     )
     shape_torso: Component_Chain_FK.make_custom_shape_params(
         identifier="Torso",
-        default="Torso_Master"
+        default="Torso"
     )
     shape_ik: Component_Chain_FK.make_custom_shape_params(
         identifier="IK",

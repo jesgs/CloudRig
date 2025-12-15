@@ -121,6 +121,8 @@ class CloudUIMixin:
             cls.draw_prop(context, row, pgroup, 'custom_shape')
         else:
             cls.draw_prop_search(context, row, pgroup, 'name', prefs, 'widget_names')
+            big_enough = prefs.widget_popup_size > 2
+            row.template_icon_view(pgroup, 'name_enum', show_labels=big_enough, scale=1, scale_popup=prefs.widget_popup_size)
 
         row.prop(pgroup, 'use_pointer', text="", toggle=True, icon='OBJECT_DATA')
 

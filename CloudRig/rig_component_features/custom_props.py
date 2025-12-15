@@ -49,7 +49,7 @@ class CloudCustomPropertiesMixin:
                 head=Vector((0, self.scale * 2, 0)),
                 tail=Vector((0, self.scale * 2, self.scale * 2)),
                 bbone_width=1 / 8,
-                custom_shape_name="Cogwheel",
+                custom_shape_name="Cog",
                 use_custom_shape_bone_size=True,
             )
         elif storage == 'GENERATED':
@@ -68,7 +68,7 @@ class CloudCustomPropertiesMixin:
             name=prop_bone_name,
             source=source,
             parent=source,
-            custom_shape_name="Cogwheel",
+            custom_shape_name="Cog",
             use_custom_shape_bone_size=True,
         )
         prop_bone.collections = [

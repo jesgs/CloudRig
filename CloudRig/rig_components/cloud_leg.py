@@ -446,7 +446,7 @@ class Params(PropertyGroup):
 
     shape_footroll: Component_Limb.make_custom_shape_params(
         identifier="Foot Roll",
-        default="Roll_Flat"
+        default="Roll 2"
     )
 
 

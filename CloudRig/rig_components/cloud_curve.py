@@ -675,6 +675,7 @@ class Component_Curve_Hooked(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
         if params.curve.controls_for_handles:
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier_center')
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_handle')
@@ -741,7 +742,7 @@ class Params(PropertyGroup):
     )
     shape_handle: Component_Base.make_custom_shape_params(
         identifier="Curve Handle",
-        default="Curve_Handle"
+        default="Handle"
     )
     shape_bezier_center: Component_Base.make_custom_shape_params(
         identifier="Bezier Center",
@@ -749,7 +750,7 @@ class Params(PropertyGroup):
     )
     shape_bezier: Component_Base.make_custom_shape_params(
         identifier="Bezier",
-        default="Curve_Point"
+        default="Bezier"
     )
     shape_spline_root: Component_Base.make_custom_shape_params(
         identifier="Spline Root",

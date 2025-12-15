@@ -33,6 +33,7 @@ class MatchingPose:
         assert_matching_pose(self.rig, self.old_pose, new_pose, matrix_tol=self.matrix_tol)
 
 def metarigs_test(context):
+    error_msg = []
     for metarig_name, frame in (
         ('META-toon_chain_tests_1', 10),
         ('META-Cloud_Human', 20),
@@ -43,8 +44,10 @@ def metarigs_test(context):
         with MatchingPose(context, metarig.cloudrig.generator.target_rig, frame=frame):
             regenerate_rig(context, metarig)
         num_logs = len(metarig.cloudrig.generator.logs)
-        assert num_logs == 0, f"{metarig.name} generated with {num_logs} warnings."
-        print(f"{metarig.name} generated with expected transforms.")
+        if num_logs > 0:
+            error_msg.append(f"{metarig.name} generated with {num_logs} warnings.")
+
+    assert not error_msg, "\n".join(error_msg)
 
 def regenerate_rig(context, rig: Object):
     bpy.ops.object.mode_set(mode='OBJECT')

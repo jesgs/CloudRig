@@ -4,7 +4,7 @@ from math import radians
 
 from bpy.props import EnumProperty
 from bpy.types import PropertyGroup
-
+from mathutils import Vector
 from .cloud_fk_chain import Component_Chain_FK
 
 
@@ -39,15 +39,24 @@ class Component_Shoulder(Component_Chain_FK):
     # Shoulder functions.
 
     def __make_shoulder(self):
-        control = self.bone_sets['FK Controls'][0]
-        control.custom_shape_name = self.params.shoulder.shape_shoulder.shape_name
-        shoulder_rot = radians(int(self.params.shoulder.up_axis) * 90)
+        shoulder = self.bone_sets['FK Controls'][0]
+        shoulder.custom_shape_name = self.params.shoulder.shape_shoulder.shape_name
+        up_axis = self.params.shoulder.up_axis
+        shoulder_rot = radians(int(up_axis) * 90)
 
-        control.custom_shape_rotation_euler.y = shoulder_rot
+        shoulder.custom_shape_rotation_euler.y = shoulder_rot
+        offsets = {
+            '0': Vector((0, 1, 1)),
+            '1': Vector((1, 1, 0)),
+            '2': Vector((0, 1, -1)),
+            '3': Vector((-1, 1, 0)),
+        }
+
+        shoulder.custom_shape_translation += offsets[up_axis] * shoulder.length
 
         parent = self.find_bone_info(self.base_bone_name).parent
         if parent:
-            control.parent = parent
+            shoulder.parent = parent
 
     ##############################
     # Parameters
@@ -63,7 +72,7 @@ class Component_Shoulder(Component_Chain_FK):
 class Params(PropertyGroup):
     shape_shoulder: Component_Shoulder.make_custom_shape_params(
         identifier="Shoulder",
-        default="Clavicle"
+        default="Shoulder"
     )
 
     up_axis: EnumProperty(

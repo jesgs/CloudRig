@@ -207,6 +207,7 @@ class Component_CopyBone(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
         if params.copy.custom_pivot:
             cls.draw_prop_custom_shape(context, layout, params.copy, 'shape_pivot')
 
@@ -243,7 +244,7 @@ class Params(PropertyGroup):
 
     shape_pivot: Component_Base.make_custom_shape_params(
         identifier="Pivot",
-        default="Axes_6"
+        default="Axes 6"
     )
 
 

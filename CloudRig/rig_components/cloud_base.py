@@ -14,7 +14,6 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty
 from bpy.types import Object, PoseBone, PropertyGroup
 
-from ..bs_utils.prefs import get_addon_prefs
 from ..generation.troubleshooting import LoggerMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
 from ..rig_component_features.bone_set import BoneSetMixin
@@ -23,6 +22,11 @@ from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
 from ..rig_component_features.params_ui_utils import CloudUIMixin
 from ..rig_component_features.parenting import CloudParentingMixin
+from ..rig_component_features.widgets.widgets import (
+    refresh_widget_list,
+    widget_name,
+    widgets_enum_items,
+)
 
 
 class Component_Base(
@@ -285,6 +289,11 @@ class Component_Base(
             layout.separator()
 
     @classmethod
+    def draw_appearance_params(cls, layout, context, params):
+        layout.operator('pose.cloudrig_refresh_widget_list', icon='FILE_REFRESH')
+        layout.separator()
+
+    @classmethod
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
@@ -372,8 +381,21 @@ class Component_Base(
         description="",
     ):
         def update_widgets(self, context):
-            prefs = get_addon_prefs(context)
-            prefs.update_widget_names(bpy.context)
+            refresh_widget_list()
+
+        def update_pointer(self, context):
+            update_widgets(self, context)
+            if not self.use_pointer:
+                # Pointer was de-toggled.
+                if self.custom_shape:
+                    self.name = widget_name(self.custom_shape.name)
+                else:
+                    self.name = ""
+            else:
+                # Pointer was en-toggled.
+                obj = bpy.data.objects.get("WGT-"+self.name)
+                if obj:
+                    self.custom_shape = obj
 
         @property
         def shape_name(self):
@@ -381,33 +403,50 @@ class Component_Base(
                 return self.custom_shape.name
             return self.name
 
+        def get_enum(self, _current_value, _is_set):
+            value = next((w[4] for w in widgets_enum_items() if w[0]==self.name), 0)
+            return value
+
+        def set_enum(self, new_value, _current_value, _is_set):
+            value = widgets_enum_items()[new_value][0]
+            self.name = value
+            return new_value
+
+        default_description = 'You can add your own shape library in CloudRig\'s preferences.\n\nLocal objects starting with "WGT-" will also appear.'
+
         class_props = {
             '__annotations__': {
                 'name': StringProperty(
                     name=identifier+" Shape",
-                    description=description or "Name of the custom shape to use for these bones",
+                    description=description or default_description,
                     default=default,
                     update=update_widgets,
                 ),
+                'name_enum': EnumProperty(
+                    name=identifier+" Shape",
+                    description=description or default_description,
+                    items=widgets_enum_items,
+                    get_transform=get_enum,
+                    set_transform=set_enum,
+                ),
                 'use_pointer': BoolProperty(
                     name="Select Local Object",
-                    description="Select any object in the current file to use as widget.",
+                    description='Select an object in the current file to use as widget. Must be a mesh object whose name starts with "WGT-"',
                     default=False,
-                    update=update_widgets,
+                    update=update_pointer,
                 ),
                 'custom_shape': PointerProperty(
                     name=identifier + " Shape",
-                    description="Object to use as custom shape for these bones. Must be a mesh object whose name starts with 'WGT-'",
+                    description='Object to use as custom shape for these bones. Must be a mesh object whose name starts with "WGT-"',
                     type=Object,
-                    poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-")
+                    poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-"),
                 )
             },
             'shape_name': shape_name
         }
         class_name="CloudRig_CustomShape_"+ identifier.replace(" ", "_").lower()
         group_class = type(class_name, (PropertyGroup,), class_props)
-        bpy.utils.register_class(group_class)
-        return PointerProperty(type=group_class)
+        return {"POINTER_"+class_name: group_class}
 
 class Params(PropertyGroup):
     base_name: StringProperty(

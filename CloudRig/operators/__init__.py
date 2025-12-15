@@ -1,16 +1,17 @@
 from . import (
+    apply_bone_color_preset,
     better_bone_extrude,
+    copy_mirror_components,
     flatten_chain,
     pie_bone_parenting,
     pie_bone_selection_ops,
     pie_bone_selection_ui,
     pie_bone_specials,
     pie_custom_shapes,
+    render_thumbnail,
     symmetrize,
     toggle_action_constraints,
     toggle_metarig,
-    copy_mirror_components,
-    apply_bone_color_preset,
 )
 
 modules = [
@@ -26,4 +27,5 @@ modules = [
     copy_mirror_components,
     apply_bone_color_preset,
     pie_custom_shapes,
+    render_thumbnail,
 ]

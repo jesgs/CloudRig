@@ -595,9 +595,24 @@ def get_direct_child_component_pbones(root_pb) -> list[PoseBone]:
     return component_pbs
 
 
+def get_param_classes_ordered():
+    # TODO: Make this less ugly (don't inject a random dict, just detect PointerProperties)
+    param_classes = list(get_param_classes().values())
+    new_order = []
+    for param_class in param_classes:
+        for anno_name, anno_value in param_class.__annotations__.items():
+            if type(anno_value) is dict:
+                name, cl = list(anno_value.items())[0]
+                if name.startswith('POINTER_'):
+                    new_order.append(cl)
+                    param_class.__annotations__[anno_name] = PointerProperty(type=cl)
+        new_order.append(param_class)
+
+    return new_order
+
 registry = (
     [NameProperty]
-    + list(get_param_classes().values())
+    + get_param_classes_ordered()
     + list(BoneSets.bone_set_property_groups.values())
     + [BoneSet_ForUI, BoneSets, ComponentParams, RigComponent, Properties_CloudRig]
 )

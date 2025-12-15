@@ -123,7 +123,7 @@ class Component_Limb(Component_Chain_IKFK):
 
     def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
         if shape_name == "":
-            shape_name = "Hyperbola"
+            shape_name = "Saddle"
         ik_master = super().ik_chain__make_master_ctr(
             bone_set, source_bone, bone_name, shape_name
         )
@@ -552,7 +552,7 @@ class Params(PropertyGroup):
 
     shape_rubberhose: Component_Chain_IKFK.make_custom_shape_params(
         identifier="Rubber Hose",
-        default="Arrow_Two-way"
+        default="Slider"
     )
 
 

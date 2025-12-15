@@ -122,7 +122,7 @@ class Component_Jaw(Component_CopyBone):
             source=face_squash_bi,
             roll=face_squash_bi.roll,  # TODO: I don't think this matters.
             parent=lower_face_bi,
-            custom_shape_name='Curve_Handle',
+            custom_shape_name='Handle',
         )
         lower_face_squasher.reverse()
         stretch_con = lower_face_squasher.add_constraint(

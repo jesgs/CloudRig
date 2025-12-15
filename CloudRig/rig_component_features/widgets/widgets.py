@@ -1,13 +1,16 @@
 import os
+from pathlib import Path
 
 import bpy
-from bpy.types import Object, Operator, PoseBone
+from bpy.types import ImagePreview, Object, Operator, PoseBone
 from mathutils import Euler, Vector
 
 from ...bs_utils.prefs import get_addon_prefs
+from ...icons import ensure_icon
 
-CLOUDRIG_WIDGETS: list[str] = []
-EXTERNAL_WIDGETS: list[str] = []
+CLOUDRIG_WIDGETS: dict[str, ImagePreview] = {}
+EXTERNAL_WIDGETS: dict[str, ImagePreview] = {}
+LOCAL_WIDGETS: dict[str, ImagePreview] = {}
 
 def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
     """Ensure a custom shapes exists:
@@ -16,16 +19,17 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
     3. If that fails, try to append/link it from the Widgets.blend that ships with the add-on.
     """
 
-    get_widgets_enum_items()
+    refresh_widget_list()
 
-    if not wgt_name.startswith("WGT-"):
-        wgt_name = "WGT-" + wgt_name
+    wgt_obj_name = wgt_name
+    if not wgt_obj_name.startswith("WGT-"):
+        wgt_obj_name = "WGT-" + wgt_name
 
     prefs = get_addon_prefs()
     if not prefs:
         return
     prefer_linked = prefs.widget_import_method == 'LINK'
-    lib_abs_path = ""
+    lib_abs_path = lib_rel_path = ""
     if wgt_name in EXTERNAL_WIDGETS:
         lib_abs_path = prefs.widget_library
     elif wgt_name in CLOUDRIG_WIDGETS:
@@ -43,10 +47,10 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
             lib_rel_path = lib_abs_path
         assert os.path.exists(lib_abs_path), f"Widgets.blend file not found: {lib_abs_path}"
 
-    old_wgt_ob = bpy.data.objects.get(wgt_name)
+    old_wgt_ob = bpy.data.objects.get(wgt_obj_name)
     if old_wgt_ob:
-        if not overwrite:
-            # Object exists and we don't want to overwrite it, so just return it.
+        if not overwrite or not lib_abs_path:
+            # Object exists and we either don't want to overwrite it, or it's not in any library to overwrite it from.
             return old_wgt_ob
         if old_wgt_ob.library:
             if prefer_linked:
@@ -69,12 +73,8 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
 
     if not lib_abs_path:
         if not old_wgt_ob:
-            # We failed to import matching widget, AND we didn't find one locally... So, we are sad.
-            if " " in wgt_name:
-                # Last resort: Try replacing space with underscore, and try again.
-                return ensure_widget(wgt_name.replace(" ", "_"), overwrite=overwrite, clear_asset=clear_asset)
-            else:
-                raise ValueError(f"Widget not found: '{wgt_name}' '{lib_rel_path}'")
+            # Widget wasn't found in any of our lists, AND we didn't find one locally... So, we are sad.
+            raise ValueError(f"Widget not found: '{wgt_name}' '{lib_abs_path or lib_rel_path}'")
         return old_wgt_ob
 
     # Append/Link widget object from .blend
@@ -82,12 +82,12 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
         data_from,
         data_to,
     ):
-        for obj in data_from.objects:
-            if obj == wgt_name:
-                data_to.objects.append(obj)
+        for obj_name in data_from.objects:
+            if obj_name == wgt_obj_name:
+                data_to.objects.append(obj_name)
                 break
 
-    new_wgt_ob = bpy.data.objects.get((wgt_name, lib_rel_path if prefer_linked else None))
+    new_wgt_ob = bpy.data.objects.get((wgt_obj_name, lib_rel_path if prefer_linked else None))
     assert new_wgt_ob, f"Widget failed to import {wgt_name} from {lib_rel_path}"
 
     if new_wgt_ob == old_wgt_ob:
@@ -108,13 +108,45 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
 def get_native_widgets_path() -> str:
     return os.path.realpath(__file__).replace("widgets.py", "Widgets.blend")
 
-def refresh_cloudrig_widgets() -> list[str]:
+def get_wgt_names_in_blend(blend_path: str) -> list[str]:
+    if blend_path == bpy.data.filepath:
+        wgt_names = [widget_name(o.name) for o in bpy.data.objects if o.name.startswith("WGT-")]
+        return wgt_names
+
+    if not (os.path.exists(blend_path) and os.path.isfile(blend_path)):
+        return []
+
+    wgt_names: list[str] = []
+    try:
+        with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+            for obj_name in data_from.objects:
+                if obj_name.startswith("WGT-"):
+                    wgt_names.append(widget_name(obj_name))
+    except Exception as exc:
+        print(exc)
+
+    return wgt_names
+
+def load_widgets_of_blend(blend_path: str) -> dict[str, ImagePreview]:
+    thumb_dir = Path(blend_path).parent / Path("thumbnails")
+    wgt_names = get_wgt_names_in_blend(blend_path)
+    icons = {}
+    for wgt_name in wgt_names:
+        icons[wgt_name] = ensure_icon(wgt_name.replace("WGT-", ""), dir_path=thumb_dir, icon_map_name="Widget Thumbnails")
+
+    return icons
+
+def widget_name(name: str) -> str:
+    return name.replace("WGT-", "")
+
+def refresh_cloudrig_widgets():
     """Build a list of custom shapes found in the Widgets.blend that ships with CloudRig.
     This should only be refreshed on Blender restart or Reload Scripts, otherwise it's unnecessary.
     """
 
     global CLOUDRIG_WIDGETS
-    CLOUDRIG_WIDGETS = get_widget_obnames_of_blend(get_native_widgets_path())
+    wgt_blend_path = get_native_widgets_path()
+    CLOUDRIG_WIDGETS = load_widgets_of_blend(wgt_blend_path)
 
 def refresh_external_widgets(context=None):
     """Build a list of custom shapes found in the .blend that the user may or may not have browsed in the preferences.
@@ -122,65 +154,71 @@ def refresh_external_widgets(context=None):
     """
     global EXTERNAL_WIDGETS
     prefs = get_addon_prefs(context)
-    if not prefs:
+    if not prefs or not prefs.widget_library or not os.path.isfile(prefs.widget_library):
         return []
-    if prefs.widget_library == get_native_widgets_path():
+    wgt_blend_path = prefs.widget_library
+    if wgt_blend_path == get_native_widgets_path():
         # If the user has CloudRig's native .blend browsed in the preferences, ignore it.
         return []
-    EXTERNAL_WIDGETS = get_widget_obnames_of_blend(prefs.widget_library)
+    EXTERNAL_WIDGETS = load_widgets_of_blend(wgt_blend_path)
 
-def get_widget_obnames_of_blend(blend_path: str) -> list[str]:
-    if not (os.path.exists(blend_path) and os.path.isfile(blend_path)):
-        return []
+def refresh_local_widgets():
+    global LOCAL_WIDGETS
+    LOCAL_WIDGETS = load_widgets_of_blend(bpy.data.filepath)
 
-    wgt_ob_names: list[str] = []
-    try:
-        with bpy.data.libraries.load(blend_path) as (data_from, data_to):
-            for obj in data_from.objects:
-                if obj.startswith("WGT-"):
-                    wgt_ob_names.append(obj)
-    except Exception as exc:
-        print(exc)
-
-    return wgt_ob_names
-
-def get_local_widgets() -> list[str]:
-    return [obj.name for obj in bpy.data.objects if obj.name.startswith("WGT-")]
-
-def get_widgets_enum_items(_scene=None, _context=None) -> list[tuple[str, str, str, str, int]] | None:
+def refresh_widget_list(force_cloudrig=False, force_external=False):
     """This is the `items` callback function for a widget selector EnumProperty.
     Widgets local to this .blend shall mask widgets found in the .blend provided by the user.
     And widgets found in the .blend provided by the user shall mask widgets found in the Widgets.blend that ships with the add-on.
     """
     global CLOUDRIG_WIDGETS
     global EXTERNAL_WIDGETS
-    # First time this is called, populate the widget lists.
-    if CLOUDRIG_WIDGETS == []:
-        refresh_cloudrig_widgets()
-    if EXTERNAL_WIDGETS == []:
+    global LOCAL_WIDGETS
+
+    # First time this is called (per script reload), populate the widget lists.
+    if EXTERNAL_WIDGETS == {} or force_external:
         refresh_external_widgets()
+    if CLOUDRIG_WIDGETS == {} or force_cloudrig:
+        refresh_cloudrig_widgets()
 
-    local_widgets = get_local_widgets()
+    refresh_local_widgets()
 
+    all_widgets = CLOUDRIG_WIDGETS.copy()
+    all_widgets.update(EXTERNAL_WIDGETS)
+    all_widgets.update(LOCAL_WIDGETS)
+
+    prefs = get_addon_prefs()
+    prefs.widget_names.clear()
+    used_names = set()
+    for wgt_name, icon in all_widgets.items():
+        ui_name = wgt_name.replace("WGT-", "").replace("_", " ")
+        if ui_name in used_names:
+            # For name overlaps, priority is local > external > cloudrig.
+            # Duplicate widget names across these 3 widget sources are not allowed.
+            continue
+        used_names.add(ui_name)
+
+        widget_entry = prefs.widget_names.add()
+        widget_entry.name = ui_name
+
+    return all_widgets
+
+def widgets_enum_items(_operator=None, context=None) -> list[tuple[str, str, str, str, int]]:
     enum_items: list[tuple[str, str, str]] = []
-    counter = 0
-    used_names = []
-    for wgt_names, type, icon in zip((local_widgets, EXTERNAL_WIDGETS, CLOUDRIG_WIDGETS), ("Local", "User", "CloudRig"), ("FILE_BLEND", "USER", "MOD_FLUID")):
-        for wgt_name in wgt_names:
-            counter += 1
-            ui_name = wgt_name.replace("WGT-", "").replace("_", " ")
-            if ui_name in used_names:
-                # For name overlaps, priority is local > external > cloudrig.
-                # Duplicate widget names across these 3 widget sources are not allowed.
-                continue
-            used_names.append(ui_name)
-            enum_items.append((wgt_name, ui_name, ui_name, icon, counter))
-        enum_items.append(None)
+
+    all_widgets = CLOUDRIG_WIDGETS.copy()
+    all_widgets.update(EXTERNAL_WIDGETS)
+    all_widgets.update(LOCAL_WIDGETS)
+
+    for i, (name, icon) in enumerate(sorted(all_widgets.items(), key=lambda w: w[0])):
+        enum_items.append((name, name, name, icon.icon_id, i))
 
     return enum_items
 
 def get_nonlocal_widgets():
-    return CLOUDRIG_WIDGETS + EXTERNAL_WIDGETS
+    ret = CLOUDRIG_WIDGETS.copy()
+    ret.update(EXTERNAL_WIDGETS)
+    return ret
 
 def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
     """
@@ -241,14 +279,15 @@ def apply_custom_shape_rig_data(rig: Object, custom_shape_data: dict) -> None:
 
 
 class CLOUDRIG_OT_refresh_widget_list(Operator):
-    """Refresh widget selector list"""
+    """The widget list can't be fully dynamic, so if you're not seeing a widget that should show up, click this."""
 
     bl_idname = "pose.cloudrig_refresh_widget_list"
     bl_label = "Refresh Widget List"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        get_addon_prefs(context).update_widget_names(context)
+        refresh_widget_list(force_cloudrig=True, force_external=True)
+        self.report({'INFO'}, 'Refreshed all widgets and icons.')
         return {'FINISHED'}
 
 

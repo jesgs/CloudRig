@@ -783,6 +783,7 @@ class Component_ToonChain(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
         if params.chain.unlock_deform:
             cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_def_control')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch')
@@ -889,11 +890,11 @@ class Params(PropertyGroup):
 
     shape_stretch: Component_Base.make_custom_shape_params(
         identifier="Stretch",
-        default="Sphere_XZ"
+        default="Sphere 2"
     )
     shape_stretch_ends: Component_Base.make_custom_shape_params(
         identifier="Stretch Ends",
-        default="Sphere_Half"
+        default="Sphere H"
     )
     shape_def_control: Component_Base.make_custom_shape_params(
         identifier="Deform Control",

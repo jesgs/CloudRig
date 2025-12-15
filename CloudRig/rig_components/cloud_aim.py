@@ -355,6 +355,7 @@ class Component_Aim(Component_Base):
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
+        super().draw_appearance_params(layout, context, params)
         if params.aim.create_sub_control:
             cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_highlight')
         cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_root')
