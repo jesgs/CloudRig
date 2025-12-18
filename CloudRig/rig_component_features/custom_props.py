@@ -94,14 +94,19 @@ class CloudCustomPropertiesMixin:
             context, layout, params.custom_props, 'props_storage', expand=True, text="Storage Bone"
         )
         if params.custom_props.props_storage == 'CUSTOM':
-            cls.draw_prop_search(
-                context,
-                layout,
-                params.custom_props,
-                'props_storage_bone',
-                rig.pose,
-                'bones',
-            )
+            if rig:
+                cls.draw_prop_search(
+                    context,
+                    layout,
+                    params.custom_props,
+                    'props_storage_bone',
+                    rig.pose,
+                    'bones',
+                )
+            else:
+                row = layout.row()
+                row.enabled = False
+                cls.draw_prop(context, row, params.custom_props, 'props_storage_bone', icon='BONE_DATA')
         return layout
 
 
