@@ -189,7 +189,7 @@ class Component_FaceChain(Component_ToonChain):
         relink_tgt: BoneInfo = super().base__relink_get_target(org_i, con)
 
         is_intersection = False
-        if hasattr(relink_tgt, 'intersection_ctrl'):
+        if hasattr(relink_tgt, 'intersection_ctrl') and relink_tgt.intersection_ctrl:
             relink_tgt = relink_tgt.intersection_ctrl
             is_intersection = True
 
@@ -198,11 +198,11 @@ class Component_FaceChain(Component_ToonChain):
                 relink_tgt = relink_tgt.parent_helper = self.create_parent_bone(
                     relink_tgt, self.bones_mch
                 )
-            elif not is_intersection:
+            elif not is_intersection and relink_tgt.parent_helper:
                 relink_tgt = relink_tgt.parent_helper
             else:
                 if 'NOHLP' not in con.name:
-                    con.name += "-NOHLP"
+                    con.name += "_NOHLP"
 
         return relink_tgt
 
