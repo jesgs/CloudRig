@@ -259,7 +259,7 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
         )
 
         # Step 4: Multiply the pose bone's world matrix by the custom shape matrix.
-        final_matrix = transform_bone.matrix @ custom_shape_matrix
+        final_matrix = pb.id_data.matrix_world @ transform_bone.matrix @ custom_shape_matrix
 
         # Step 5: Apply this matrix to the object.
         # It should now match perfectly with the visual transforms of the pose bone,
