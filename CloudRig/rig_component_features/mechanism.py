@@ -17,16 +17,15 @@ from ..generation.naming import add_prefix
 class CloudMechanismMixin:
     """Mixin class for rigging functions, using mostly the BoneInfo class."""
 
+    max_bones_in_chain = -1
+    only_connected_children = True
+
     def find_bone_info(self, name):
         return self.generator.find_bone_info(name)
 
-    @staticmethod
-    def find_component_chain_of_pbone(pose_bone):
-        return find_component_chain_of_pbone(pose_bone)
-
-    def get_component_pbone_chain(self):
+    def get_component_pbone_chain(self) -> list[PoseBone]:
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
-        return get_component_pbone_chain(pose_bone)
+        return pose_bone.cloudrig_component.component_pbone_chain
 
     def create_parent_bone(self, child, bone_set=None):
         return create_parent_bone(child, bone_set)
@@ -140,59 +139,6 @@ def copy_driver(
         new_fcurve.array_index = index
 
     return new_fcurve
-
-
-def find_component_chain_of_pbone(pbone: PoseBone) -> list[PoseBone]:
-    if pbone.cloudrig_component.component_type:
-        return get_component_pbone_chain(pbone)
-    if not pbone:
-        return []
-
-    return find_component_chain_of_pbone(pbone.parent)
-
-
-def get_component_pbone_chain(pbone: PoseBone, connected=True) -> list[PoseBone]:
-    """Find the chain of bones constituting a rig component that this pose bone belongs to."""
-
-    # We start building a chain with the current bone, prepending bones as we go
-    # UP in the hierarchy, until we find a connected bone with a component type.
-    # If this never happens, this bone does not belong to any rig component.
-    cur_pb = pbone
-    chain: list[PoseBone] = []
-    found = False
-    while cur_pb:
-        chain.insert(0, cur_pb)
-        if cur_pb.cloudrig_component.component_type != "":
-            found = True
-            break
-        cur_pb = cur_pb.parent
-
-    if not found:
-        return []
-
-    # Go down in the hierarchy from the last bone, appending connected bones to the list.
-    # NOTE: If one bone has multiple connected children and neither of them have
-    # a component type, the chain becomes ambiguous. This case is not supported!
-    cur_pb = chain[-1]
-    while cur_pb and len(cur_pb.children) > 0:
-        next_pb = None
-        for child_pb in cur_pb.children:
-            if child_pb.cloudrig_component.component_type == "":
-                if connected and not child_pb.bone.use_connect:
-                    continue
-                if next_pb is not None:
-                    print(
-                        f"""Warning: Branching connected bone chain for {pbone.name}: \n
-                        \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
-                        \tPicking the first one arbitrarily! \n
-                        \tDisconnect the bone or assign a component type to make it unambiguous."""
-                    )
-                else:
-                    next_pb = child_pb
-        if next_pb:
-            chain.append(next_pb)
-        cur_pb = next_pb
-    return chain
 
 
 def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:

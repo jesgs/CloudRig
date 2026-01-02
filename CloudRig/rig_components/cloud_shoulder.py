@@ -21,6 +21,8 @@ class Component_Shoulder(Component_Chain_FK):
         'chain.segments': 1,
     }
 
+    max_bones_in_chain = 1
+
     ##############################
     # Inherited functions.
 

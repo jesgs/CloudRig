@@ -4,7 +4,6 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy.types import Operator
 
-from ..rig_component_features.mechanism import get_component_pbone_chain
 from ..utils.rig import ik_chain_flatten_single_iter, is_ideal_ik_chain
 
 
@@ -52,7 +51,7 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
 
         # Enter edit mode
         org_mode = rig.mode
-        pb_chain = get_component_pbone_chain(start_pb)
+        pb_chain = start_pb.cloudrig_component.inherited_component.component_pbone_chain
 
         bpy.ops.object.mode_set(mode='EDIT')
 

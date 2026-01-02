@@ -27,6 +27,7 @@ class Component_CopyBone(Component_Base):
 
     keep_original_bones_collections = True
     keep_original_bones_colors = False
+    only_connected_children = False
 
     ##############################
     # Inherited functions.

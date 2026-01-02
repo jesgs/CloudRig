@@ -18,7 +18,6 @@ from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
 from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
 from .generation.cloud_generator import GeneratorProperties
-from .rig_component_features.mechanism import get_component_pbone_chain
 from .utils.rig import get_parentless_pbones
 
 
@@ -381,7 +380,46 @@ class RigComponent(PropertyGroup):
 
     @property
     def component_pbone_chain(self) -> list[PoseBone]:
-        return get_component_pbone_chain(self.component_pbone)
+        component_pbone = self.component_pbone
+        if not component_pbone:
+            return []
+        comp_class = self.inherited_component.component_class
+        if not comp_class:
+            return []
+        max_length = comp_class.max_bones_in_chain
+        only_connected = comp_class.only_connected_children
+
+        # Go down in the hierarchy from the last bone, appending connected bones to the list.
+        # NOTE: If one bone has multiple connected children and neither of them have
+        # a component type, the chain becomes ambiguous. This case is not supported!
+        cur_pb = component_pbone
+        chain = [cur_pb]
+        while cur_pb and len(cur_pb.children) > 0:
+            next_pb = None
+            for child_pb in cur_pb.children:
+                if child_pb.cloudrig_component.component_type == "":
+                    if only_connected:
+                        if  not child_pb.bone.use_connect:
+                            continue
+                        if next_pb is not None:
+                            # TODO: This check should be done during generation, and result in an error or generation log entry.
+                            print(
+                                f"""Warning: Branching connected bone chain for {component_pbone.name}: \n
+                                \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
+                                \tPicking the first one arbitrarily! \n
+                                \tDisconnect the bone or assign a component type to make it unambiguous."""
+                            )
+                        else:
+                            next_pb = child_pb
+                    else:
+                        next_pb = child_pb
+            if next_pb:
+                chain.append(next_pb)
+            cur_pb = next_pb
+
+        if max_length != -1:
+            return chain[:max_length]
+        return chain
 
     def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
         if not self.component_class:
