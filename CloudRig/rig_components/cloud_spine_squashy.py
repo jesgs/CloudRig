@@ -60,6 +60,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             source=self.bones_org[0],
             head=self.bones_org[0].center,
             custom_shape_name="Torso",
+            custom_shape_scale=4,
         )
         return root_bone
 
@@ -73,7 +74,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             head=org_chain[0].tail,
             tail=org_chain[0].head,
             custom_shape_name="Saddle",
-            custom_shape_scale_xyz=Vector((0.8, 0.8, 0.8)),
+            custom_shape_scale=2,
             parent=self.root_bone,
         )
 
@@ -90,7 +91,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         return fk_chain
 
     ##############################
-    # Shoulder functions.
+    # Squashy Spine functions.
 
     def __make_squashy_spine(self):
         ### Create master chest control
@@ -100,12 +101,13 @@ class Component_Spine_Squashy(Component_Chain_FK):
             source=chest_org,
             head=chest_org.prev.center,
             custom_shape_name="Saddle",
-            custom_shape_scale_xyz=Vector((0.8, -1.3, 0.8)),
             custom_shape_translation=Vector(
                 (0, chest_org.length + chest_org.prev.length / 2, 0)
             ),
+            custom_shape_scale=2,
             parent=self.root_torso,
         )
+        self.mstr_chest.custom_shape_scale_xyz *= Vector((0.8, -1.3, 0.8))
 
         if self.params.spine_squashy.double:
             self.create_parent_bone(

@@ -1,7 +1,7 @@
-from math import pi
+from math import atan2, pi
 
-from bpy.types import Bone, EditBone, Object, PoseBone
-from mathutils import Vector
+from bpy.types import Armature, Bone, EditBone, Object, PoseBone
+from mathutils import Matrix, Vector
 from mathutils.geometry import intersect_line_plane
 
 from ..generation.cloudrig import active_rig, calculate_ik_pole_vector
@@ -11,12 +11,52 @@ def get_pbone_of_active(context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """
+    if context.mode not in ('OBJECT', 'PAINT_WEIGHT', 'EDIT_ARMATURE', 'POSE'):
+        return
     bone = context.active_pose_bone or context.active_bone
     if not bone:
         return
     rig = active_rig(context)
     return rig.pose.bones.get(bone.name)
 
+
+def get_pbones_of_selected(context, whole_ebone=True) -> list[PoseBone]:
+    if context.mode in ('PAINT_WEIGHT', 'POSE'):
+        return context.selected_pose_bones
+    elif context.mode == 'EDIT_ARMATURE':
+        def is_ebone_select(eb):
+            if whole_ebone:
+                return (eb.select and eb.select_head and eb.select_tail)
+            return (eb.select or eb.select_head or eb.select_tail)
+        rig = context.active_object
+        pbones = rig.pose.bones
+        return [pbones[eb.name] for eb in rig.data.edit_bones if is_ebone_select(eb) and eb.name in pbones]
+    else:
+        return []
+
+
+def bone_is_visible(bone: Bone | PoseBone | EditBone):
+    pbone = None
+    if isinstance(bone, PoseBone):
+        pbone = bone
+        bone = bone.bone
+
+    if not any([coll.is_visible_effectively for coll in bone.collections]):
+        return False
+
+    if pbone and pbone.id_data.mode != 'EDIT':
+        return not pbone.hide
+
+    if isinstance(bone.id_data, Armature):
+        if bone.id_data.edit_bones:
+            ebone = bone.id_data.edit_bones.get(bone.name)
+            if ebone:
+                return not ebone.hide
+        else:
+            return not bone.hide
+
+    # We can get here in absurd cases like caller is in Pose Mode but passed in a Bone.
+    return True
 
 def get_selected_bone_tuples(
         context, exclude_active=False
@@ -66,20 +106,16 @@ def get_active_bone(context) -> EditBone | PoseBone | None:
         return get_pbone_of_active(context)
 
 
-def project_point_to_plane(point: Vector, origin: Vector, normal: Vector) -> Vector:
-    vector = point - origin
-    dist = vector.dot(normal)
-    return point - dist * normal
-
+####################################
+### Bone Roll functions.
 
 def signed_angle_on_plane(vec_a: Vector, vec_b: Vector, plane_normal: Vector) -> float:
-    """Return the angle between vec_a and vec_b projected onto a plane."""
-    angle = vec_a.angle(vec_b)
-    cross = vec_a.cross(vec_b)
-    if cross.dot(plane_normal) < 0:
-        angle = -angle
-    return angle
-
+    vec_a = vec_a.normalized()
+    vec_b = vec_b.normalized()
+    return atan2(
+        plane_normal.dot(vec_a.cross(vec_b)),
+        vec_a.dot(vec_b)
+    )
 
 def wrap_angle_pi(angle: float) -> float:
     return (angle + pi) % (2 * pi) - pi
@@ -89,6 +125,14 @@ def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
     ebone.roll = calc_roll_to_align_axis(ebone, vector, axis)
 
 
+def project_point_to_plane(point: Vector, origin: Vector, normal: Vector) -> Vector:
+    assert normal.length > 0
+    normal = normal.normalized()
+    vector = point - origin
+    dist = vector.dot(normal)
+    return point - dist * normal
+
+
 def calc_roll_to_align_axis(ebone: EditBone, vector: Vector, axis="+Z") -> float:
     offset_map = {
         "+Z": 0,
@@ -96,15 +140,13 @@ def calc_roll_to_align_axis(ebone: EditBone, vector: Vector, axis="+Z") -> float
         "+X": pi / 2,
         "-X": -pi / 2,
     }
-    assert axis in offset_map
+    assert axis in offset_map, f"'{axis}' must be one of {tuple(offset_map.keys())}"
     offset = offset_map[axis]
     roll = ebone.roll
+    # Target vector flattened to lie on a plane defined by the bone's forward axis.
     projected = project_point_to_plane(vector, ebone.head, ebone.y_axis)
-
-    vec_a = ebone.z_axis.normalized()
-    vec_b = (projected - ebone.head).normalized()
-    if vec_b.length == 0:
-        return roll
+    vec_a = ebone.z_axis
+    vec_b = projected - ebone.head
     angle = signed_angle_on_plane(vec_a, vec_b, ebone.y_axis)
     roll += angle + offset
     roll = wrap_angle_pi(roll)
@@ -168,7 +210,7 @@ def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     return did_anything
 
 
-def is_ideal_ik_chain(chain: list[EditBone | PoseBone]) -> bool:
+def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
     """Determine whether a chain of bones is ideal for IK.
     Return True only if the chain's bones lie on a plane, and for each bone,
     one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical)

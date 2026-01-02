@@ -5,19 +5,33 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from bpy.types import Constraint, EditBone, Object, PoseBone
-from mathutils import Matrix, Vector
+if TYPE_CHECKING:
+    from ..rig_components.cloud_base import Component_Base
+    from .bone_set import BoneSet
+
+from math import pi
+
+from bpy.types import (
+    Bone,
+    Constraint,
+    EditBone,
+    Object,
+    PoseBone,
+    bpy_prop_array,
+)
+from mathutils import Euler, Matrix, Vector
+from rna_prop_ui import rna_idprop_has_properties
 
 from ..generation import naming
 from ..rig_component_features.mechanism import copy_relink_real_driver
 from ..utils.external.mechanism import make_driver
 from ..utils.maths import flat
-from ..utils.rig import align_bone_axis_to_vector
+from ..utils.rig import (
+    align_bone_axis_to_vector,
+    calc_roll_to_align_axis,
+    wrap_angle_pi,
+)
 from .properties_ui import ensure_custom_property, make_property
-
-if TYPE_CHECKING:
-    from ..rig_components.cloud_base import Component_Base
-    from .bone_set import BoneSet
 
 # Sadly we can't rely on Blender's RNA property defaults because they are extremely inconsistent.
 # Instead, we define here what properties we are interested in writing, and with what default values.
@@ -26,25 +40,7 @@ edit_bone_properties = {
     'head': Vector((0, 0, 0)),
     'tail': Vector((0, 1, 0)),
     'roll': 0,
-    'head_radius': 0.1,
-    'tail_radius': 0.05,
     'use_connect': False,
-    'bbone_curveinx': 0,
-    'bbone_curveinz': 0,
-    'bbone_rollin': 0,
-    'bbone_rollout': 0,
-    'bbone_curveoutx': 0,
-    'bbone_curveoutz': 0,
-    'bbone_easein': 1,
-    'bbone_easeout': 1,
-    'bbone_scalein': Vector((1, 1, 1)),
-    'bbone_scaleout': Vector((1, 1, 1)),
-    # These axis values are only read for original bones. Updating them after
-    # changing roll or head/tail positions would require some serious maths
-    # or some functions to be exposed from C.
-    'x_axis': Vector(),
-    'y_axis': Vector(),
-    'z_axis': Vector(),
 }
 
 bone_properties = {
@@ -120,6 +116,9 @@ pose_bone_properties = {
     'ik_max_y': 0,
     'ik_min_z': 0,
     'ik_max_z': 0,
+    'x_axis': Vector((1, 0, 0)),
+    'y_axis': Vector((0, 1, 0)),
+    'z_axis': Vector((0, 0, 1)),
 }
 
 
@@ -136,8 +135,11 @@ class BoneInfo:
         self,
         bone_set: BoneSet,
         name="Bone",
-        source: EditBone or BoneInfo = None,
-        owner_component: Component_Base=None,
+        source: PoseBone | BoneInfo | None = None,
+        allow_pose_transforms = False,
+        owner_component: Component_Base = None,
+        keep_collections=False,
+        keep_colors=False,
         **kwargs,
     ):
         """
@@ -170,7 +172,7 @@ class BoneInfo:
         self.color_palette_pose = 'DEFAULT'
         self.constraint_infos: list[ConstraintInfo] = []
 
-        self._name = name
+        self.name = name
         self._parent: BoneInfo = None
         self.parent_helper: BoneInfo = None
         self.children: list[BoneInfo] = []
@@ -178,20 +180,6 @@ class BoneInfo:
         self.init_variables(edit_bone_properties)
         self.init_variables(bone_properties)
         self.init_variables(pose_bone_properties)
-        # A better default.
-        self.use_custom_shape_bone_size = False
-        # Custom boolean for CloudRig, used by the generator.
-        self.use_custom_shape_bbone_scaling = True
-
-        ### Recalculate Roll
-        # Whether the roll_bone or roll_vector should be used to calculate bone roll..
-        self.roll_type = ""
-        # If roll_type=='ALIGN', roll_bone is the bone to align with.
-        # Equivalent to the "Active Bone" alignment in Blender.
-        self.roll_bone: BoneInfo | str | None = None
-        # If roll_type=='VECTOR', the Z axis should point towards roll_vector.
-        # Equivalent to "Align to Cursor" in Blender.
-        self.roll_vector = Vector()
 
         self.custom_shape_name = ""
         self._source = self
@@ -200,51 +188,189 @@ class BoneInfo:
         self.ignore_orphan = False
 
         if source:
-            self.head = source.head.copy()
-            self.tail = source.tail.copy()
-            self.roll = source.roll
-            self.envelope_distance = source.envelope_distance
-            self.envelope_weight = source.envelope_weight
-            self.use_envelope_multiply = source.use_envelope_multiply
             if type(source) is type(self):
                 self._source = source
-                self.roll_type = source.roll_type
-                self.roll_bone = source.roll_bone
+                self.head = source.head.copy()
+                self.tail = source.tail.copy()
                 self.roll = source.roll
                 self.bbone_width = source.bbone_width
-                if source.parent:
-                    self.parent = source.parent
-            elif isinstance(source, EditBone):
-                self.bbone_x = source.bbone_x
-                self.bbone_z = source.bbone_z
-                if source.parent:
-                    self.parent = source.parent.name
+                self.parent = source.parent
+                self.custom_shape_translation = source.custom_shape_translation.copy()
+                self.custom_shape_rotation_euler = source.custom_shape_rotation_euler.copy()
+                self.custom_shape_scale_xyz = source.custom_shape_scale_xyz.copy()
+            else:
+                # Copy data from PoseBone and Bone.
+                assert isinstance(source, PoseBone), "BoneInfo can only use a PoseBone or another BoneInfo as source."
+                self.__load_data_from_real_pbone(source, allow_pose_transforms=allow_pose_transforms, keep_collections=keep_collections, keep_colors=keep_colors)
 
         # Apply property values from arbitrary keyword arguments if any were passed.
         for key, value in kwargs.items():
+            if (
+                isinstance(value, Vector)
+                or isinstance(value, Matrix)
+                or type(value) is dict
+                or type(value) is list
+            ):
+                value = value.copy()
             setattr(self, key, value)
+
+    def __load_data_from_real_pbone(
+        self,
+        pose_bone: PoseBone,
+        allow_pose_transforms=False,
+        keep_collections=False,
+        keep_colors=False,
+    ):
+        """Load data from a PoseBone into this BoneInfo instance.
+        Including its constraints, drivers, custom properties."""
+        # NOTE: Parent is only stored as a string!
+
+        rig_ob = pose_bone.id_data
+        data_bone = pose_bone.bone
+        edit_bone = rig_ob.data.edit_bones.get(data_bone.name)
+
+        self.custom_shape_translation = pose_bone.custom_shape_translation.copy()
+        self.custom_shape_rotation_euler = pose_bone.custom_shape_rotation_euler.copy()
+        self.custom_shape_scale_xyz = pose_bone.custom_shape_scale_xyz.copy()
+        self.bbone_width = data_bone.bbone_x
+        if allow_pose_transforms and not edit_bone:
+            self.head = pose_bone.head.copy()
+            self.tail = pose_bone.tail.copy()
+            _axis, self.roll = Bone.AxisRollFromMatrix(pose_bone.matrix.to_3x3())
+        elif edit_bone:
+            self.head = edit_bone.head.copy()
+            self.tail = edit_bone.tail.copy()
+            self.roll = edit_bone.roll
+        else:
+            self.head = data_bone.head_local.copy()
+            self.tail = data_bone.tail_local.copy()
+            _axis, self.roll = Bone.AxisRollFromMatrix(data_bone.matrix_local.to_3x3())
+
+        if pose_bone.parent:
+            self.parent = pose_bone.parent.name
+
+        sources = {
+            pose_bone: pose_bone_properties,
+            data_bone: bone_properties,
+        }
+
+        for source, prop_list in sources.items():
+            for key in prop_list:
+                if not hasattr(source, key):
+                    # This can happen when a new property is introduced in Blender, eg.
+                    # custom_shape_wire_width in 4.2.
+                    # Ignore such values in older versions, to preserve compatibility.
+                    continue
+                if key in ('x_axis', 'y_axis', 'z_axis', 'matrix'):
+                    continue
+                value = getattr(source, key)
+                if value in [None, ""]:
+                    continue
+                if key == 'collections':
+                    value = [coll.name for coll in value]
+                if type(value) in [Vector, Matrix]:
+                    value = value.copy()
+                if type(value) is bpy_prop_array:
+                    value = value[:]
+                if type(value) in {EditBone, Bone, PoseBone}:
+                    value = value.name
+                if getattr(self, key) == value:
+                    continue
+
+                setattr(self, key, value)
+
+        # The default value of use_deform in Blender is True, but for CloudRig, False makes a LOT more sense.
+        self.use_deform = False
+
+        # Load color palettes (only presets are supported, no custom colors)
+        # TODO: If one day Blender's color presets are fixed, drop support for custom colors.
+        if keep_colors:
+            if data_bone.color.palette == 'CUSTOM' and False:
+                self.owner_component.add_log("Custom Colors must not be used.")
+            else:
+                self.color_palette_base = data_bone.color.palette
+
+        # Load Collections.
+        if keep_collections:
+            self.collections = [coll.name for coll in data_bone.collections]
+
+        if self.owner_component.painter:
+            return
+
+        # Load Constraints.
+        for constr in pose_bone.constraints:
+            self.add_constraint_from_real(constr)
+
+        # Load Drivers to be copied later.
+        if rig_ob.animation_data and not self.owner_component.painter:
+            driver_map = self.owner_component.generator.driver_map
+            if self.name in driver_map:
+                for data_path, array_index in driver_map[self.name]:
+                    fcurve = rig_ob.animation_data.drivers.find(
+                        data_path, index=array_index
+                    )
+                    if 'constraints' in fcurve.data_path:
+                        con_name = data_path.split('constraints["')[-1].split('"]')[0]
+                        constraint_info = self.get_constraint(con_name)
+                        if constraint_info:
+                            constraint_info.drivers_to_copy.append(
+                                (data_path, array_index)
+                            )
+                            continue
+
+                    self.drivers_to_copy.append((data_path, array_index))
+
+        # Load Custom Properties.
+        if rna_idprop_has_properties(pose_bone):
+            rna_properties = {
+                prop.identifier
+                for prop in pose_bone.bl_rna.properties
+                if prop.is_runtime
+            }
+            for prop_name in pose_bone.keys():
+                if prop_name in rna_properties:
+                    # We don't want to copy addon-defined properties.
+                    continue
+                if 'rigify' in prop_name:
+                    # Legacy stuff, don't need it.
+                    continue
+                try:
+                    prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
+                except TypeError:
+                    # This should only happen with python dictionaries.
+                    # Just store the value to be able to copy the property over to the generated rig.
+                    prop_data = {'default': pose_bone[prop_name]}
+
+                value = pose_bone[prop_name]
+                if hasattr(value, 'to_list'):
+                    value = value.to_list()
+                    prop_data['default'] = value
+                elif hasattr(value, 'to_dict'):
+                    value = value.to_dict()
+                    prop_data['default'] = value
+                elif 'id_type' in prop_data:
+                    # Setting the default to None for Datablock pointer props is necesasry for
+                    # rna_idprop_ui_create() to interpret this data as a Datablock property.
+                    prop_data['default'] = None
+
+                prop_data['value'] = value
+                prop_data['overridable'] = pose_bone.is_property_overridable_library(
+                    f'["{prop_name}"]'
+                )
+
+                if 'description' not in prop_data:
+                    prop_data['description'] = ""
+                self.custom_props[prop_name] = prop_data
 
     def init_variables(self, var_dict):
         for key, value in var_dict.items():
             # Make Vectors/Matrices/Dicts/Lists unique copies.
             # Otherwise copied bones would share values.
+            if key in ('x_axis', 'y_axis', 'z_axis', 'matrix'):
+                continue
             if hasattr(value, 'copy'):
                 value = value.copy()
             setattr(self, key, value)
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        new_name = value
-        rig_component = self.bone_set.rig_component
-        rig_ob = rig_component.target_rig
-        bone = rig_ob.data.bones.get(self._name)
-        if bone:
-            bone.name = new_name
-        self._name = new_name
 
     @property
     def source(self) -> BoneInfo:
@@ -258,11 +384,11 @@ class BoneInfo:
 
     @property
     def custom_shape_scale(self) -> float:
-        return sum(self.custom_shape_scale_xyz) / 3
+        return sum((abs(s) for s in self.custom_shape_scale_xyz)) / 3
 
     @custom_shape_scale.setter
     def custom_shape_scale(self, value):
-        self.custom_shape_scale_xyz = Vector((value, value, value))
+        self.custom_shape_scale_xyz *= Vector((value, value, value))
 
     @property
     def parent(self) -> BoneInfo | None:
@@ -311,8 +437,12 @@ class BoneInfo:
         self.bbone_z = value
         self.head_radius = value * 0.1
         self.tail_radius = value * 0.1
-        if not self.use_deform:
+        if hasattr(self, 'use_deform') and not self.use_deform:
             self.envelope_distance = 0
+
+    def scale_width(self, value: int):
+        """Set b-bone width relative to current."""
+        self.bbone_width *= value
 
     @property
     def bbone_segments(self) -> int:
@@ -333,17 +463,15 @@ class BoneInfo:
     def vector(self, value: Vector):
         self.tail = self.head + value
 
-    def scale_width(self, value: int):
-        """Set b-bone width relative to current."""
-        self.bbone_width *= value
-
     def scale_length(self, value: int):
         """Set bone length relative to its current length."""
         self.tail = self.head + self.vector * value
 
     @property
     def length(self) -> float:
-        return (self.tail - self.head).length
+        l = (self.tail - self.head).length
+        assert l > 0, f"Length of bone must not be 0: {self}, {self.head}, {self.tail}"
+        return l
 
     @length.setter
     def length(self, value: float):
@@ -356,8 +484,9 @@ class BoneInfo:
 
     def reverse(self):
         """Flip the head and the tail."""
-        # NOTE: What to do with roll, if there is one?
+        old_z_axis = self.z_axis.copy()
         self.head, self.tail = self.tail, self.head
+        self.roll_align_vector(self.head+old_z_axis)
 
     def put(
         self, loc=None, length=None, width=None, scale_length=None, scale_width=None
@@ -402,6 +531,33 @@ class BoneInfo:
         rounded = round(deg / 90) * 90
         self.roll = pi / 180 * rounded
 
+    def roll_align_vector(self, vector: Vector, axis='+Z'):
+        self.roll = calc_roll_to_align_axis(self, vector, axis)
+
+    def roll_align_other(self, other: BoneInfo, axis='+Z'):
+        self.roll_align_vector(self.head+other.z_axis, axis=axis)
+
+    def roll_flip(self):
+        self.roll = wrap_angle_pi(self.roll+pi)
+
+    @property
+    def matrix(self) -> Matrix:
+        matrix = Bone.MatrixFromAxisRoll(self.vector, self.roll).to_4x4()
+        matrix = Matrix.Translation(self.head) @ matrix
+        return matrix
+
+    @property
+    def x_axis(self) -> Vector:
+        return self.matrix.to_3x3().col[0].normalized()
+
+    @property
+    def y_axis(self) -> Vector:
+        return self.matrix.to_3x3().col[1].normalized()
+
+    @property
+    def z_axis(self) -> Vector:
+        return self.matrix.to_3x3().col[2].normalized()
+
     @property
     def custom_shape_along_length(self):
         """Get custom widget display position as a factor along the bone's length."""
@@ -412,7 +568,8 @@ class BoneInfo:
     @custom_shape_along_length.setter
     def custom_shape_along_length(self, value):
         """Set custom widget display position as a factor along the bone's length."""
-        self.custom_shape_translation.y = self.length * value
+        reference = self.custom_shape_transform or self
+        self.custom_shape_translation.y = reference.length * value
 
     def copy_custom_shape(self, other):
         if not other.custom_shape:
@@ -424,7 +581,6 @@ class BoneInfo:
         self.custom_shape_scale_xyz = other.custom_shape_scale_xyz
         self.use_custom_shape_bone_size = other.use_custom_shape_bone_size
         self.custom_shape_wire_width = other.custom_shape_wire_width
-        self.use_custom_shape_bbone_scaling = False
 
     def get_constraint(self, name: str) -> ConstraintInfo | None:
         for ci in self.constraint_infos:
@@ -501,32 +657,15 @@ class BoneInfo:
 
         ### Edit Bone properties
         for key in edit_bone_properties:
-            if not hasattr(edit_bone, key):
-                # This can happen when a new property is introduced in Blender, eg.
-                # custom_shape_wire_width in 4.2.
-                # Ignore such values in older versions, to preserve compatibility.
-                continue
-
-            # Allow bbone properties to specify if they are only for EditBone
-            key = key.replace("edit_", "")
-
-            if key.endswith("_axis"):
-                # Read-only, skip.
-                continue
-
-            value = self.__dict__[key]
+            value = getattr(self, key)
             if value == getattr(edit_bone, key):
                 # For performance, don't write idenetical values.
                 continue
             setattr(edit_bone, key, value)
 
-        # Parenting - If an Armature Constraint is present, don't allow double parenting.
+        # Parenting - If an Armature Constraint is present, we automatically clear the parent.
         if any((con.type in ('ARMATURE', 'CHILD_OF') for con in self.constraint_infos)):
             self.parent = edit_bone.parent = None
-
-        scale = generator.scale
-        edit_bone.bbone_x = self.bbone_width * scale
-        edit_bone.bbone_z = self.bbone_width * scale
 
         if self.parent:
             edit_bone.parent = armature.data.edit_bones.get(str(self.parent))
@@ -540,25 +679,6 @@ class BoneInfo:
         # Custom Properties.
         for prop_name, prop in self.custom_props_edit.items():
             make_property(edit_bone, prop_name, **prop)
-
-        # Recalculate roll.
-        if self.roll_type != "":
-            if self.roll_type == 'ALIGN':
-                # NOTE: If you're looking at this code and wondering why your roll
-                # is not aligned like it should be, it's probably because
-                # `eb.roll += self.roll`` down below.
-                # Make sure to set `self.roll = 0` if that's what you need.
-                align_bone = armature.data.edit_bones.get(str(self.roll_bone))
-                if not align_bone:
-                    self.owner_component.raise_generation_error(
-                        f"Could not find bone {self.roll_bone} to calculate roll of {edit_bone.name}. This may be a bug."
-                    )
-                else:
-                    edit_bone.align_roll(align_bone.z_axis)
-            elif self.roll_type == 'VECTOR':
-                align_bone_axis_to_vector(edit_bone, self.roll_vector)
-
-            edit_bone.roll += self.roll
 
 
     def write_pose_data(self, context, metarig, pose_bone: PoseBone):
@@ -579,17 +699,16 @@ class BoneInfo:
 
         # Pose bone data
         for key in pose_bone_properties:
-            key = key.replace(
-                "pose_", ""
-            )  # Allows bbone properties to specify if they are only for pose bone version
             if not hasattr(pose_bone, key):
                 # This can happen when a new property is introduced in Blender, eg.
                 # custom_shape_wire_width in 4.2.
                 # Ignore such values in older versions, to preserve compatibility.
                 continue
-            value = self.__dict__[key]
+            if key in ("x_axis", "y_axis", "z_axis"):
+                continue
+            value = getattr(self, key)
             if value == getattr(pose_bone, key):
-                # For performance, don't write default values.
+                # Don't write same values.
                 continue
             if value in [None, ""]:
                 continue
@@ -597,14 +716,6 @@ class BoneInfo:
                 name = naming.get_name(value)
                 value = arm_ob.pose.bones.get(name)
             setattr(pose_bone, key, value)
-
-        if (
-            not pose_bone.use_custom_shape_bone_size
-            and self.use_custom_shape_bbone_scaling
-        ):
-            pose_bone.custom_shape_scale_xyz *= (
-                self.bbone_width * 10 * self.bone_set.rig_component.generator.scale
-            )
 
         # Bone data
         bone = pose_bone.bone
@@ -621,9 +732,8 @@ class BoneInfo:
                 if hasattr(value, 'name'):
                     value = value.name
                 value = arm_ob.data.bones.get(value)
-            if key in ['bbone_x', 'bbone_z']:
-                # TODO: To write bone shape scale data properly, we would need a reference to the generator.scale.
-                # This would best be done if this function was in the generator rather than BoneInfo.
+            if key in ['x_axis', 'y_axis', 'z_axis']:
+                # These area read-only, but I include them in bone_properties so they get read from real bones.
                 continue
             if key == 'collections':
                 for coll_name in value:
@@ -794,7 +904,7 @@ class ConstraintInfo(dict):
     ):
         super(ConstraintInfo, self).__init__(**kwargs)
         # This is a cheeky hack to let us access our dict values as if
-        # they were proper attributes. Not that this is used often in the codebase.
+        # they were proper attributes.
         # https://stackoverflow.com/a/14620633/1527672
         self.__dict__ = self
 
@@ -819,7 +929,7 @@ class ConstraintInfo(dict):
             else:
                 self.__dict__[key] = value
 
-        # Allow @ symbols to specify subtargets, like Rigify.
+        # Allow @ symbols to specify subtargets.
         if '@' in self.name:
             split_name = self.name.split("@")
             subtargets = split_name[1:]
@@ -847,7 +957,7 @@ class ConstraintInfo(dict):
         return self.bone_info.bone_set.rig_component.generator.metarig
 
     @property
-    def target(self) -> Object:
+    def target(self) -> Object | None:
         target = self.get('target')
         if target in (None, self.metarig):
             self.target = self.rig

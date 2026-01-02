@@ -20,6 +20,7 @@ from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
+from ..rig_component_features.overlay_painter import OverlayPainter, no_overlay
 from ..rig_component_features.params_ui_utils import CloudUIMixin
 from ..rig_component_features.parenting import CloudParentingMixin
 from ..rig_component_features.widgets.widgets import (
@@ -74,6 +75,9 @@ class Component_Base(
     ):
         # Quick access to generator features.
         self.generator = generator
+        # Presence of an OverlayPainter instance determines whether code is running for a real rig generation, or just for overlay drawing.
+        # The latter should skip as many steps as possible while still providing the BoneInfo data needed to draw the overlays.
+        self.painter = generator.painter
         self.naming = self.generator.naming
         self.logger = self.generator.logger
         self.generator_params = self.generator.params
@@ -125,20 +129,12 @@ class Component_Base(
         This function requires the metarig in edit mode.
         """
 
-        metarig = self.params.id_data
-
-        assert (
-            metarig.type == 'ARMATURE' and metarig.mode == 'EDIT'
-        ), "Metarig must be an edit mode armature."
-
         bone_infos = {}
         for pbone in self.get_component_pbone_chain():
-            ebone = metarig.data.edit_bones.get(pbone.name)
-
             if self.naming.has_trailing_zeroes(pbone):
                 self.add_log(
                     "Trailing zeroes",
-                    trouble_bone=ebone.name,
+                    trouble_bone=pbone.name,
                     description="Trailing zeroes in the metarig can cause bone name clashes and should be avoided.",
                     operator='object.cloudrig_rename_bone',
                     op_kwargs={'old_name': pbone.name},
@@ -160,12 +156,10 @@ class Component_Base(
                     op_kwargs={'old_name': pbone.name},
                 )
 
-            # TODO: While it currently shouldn't be possible for a single bone to belong to multiple components,
-            # if we wanted to support that (and maybe we do), we should check if a BoneInfo for this bone already
-            # exists on any other component of this metarig.
-            bone_info = self.bones_org.new_from_real(
-                self.metarig,
-                ebone,
+            bone_info = self.bones_org.new(
+                name=pbone.name,
+                source=pbone,
+                allow_pose_transforms=bool(self.painter),
                 keep_collections=self.keep_original_bones_collections,
                 keep_colors=self.keep_original_bones_colors,
             )
@@ -174,7 +168,6 @@ class Component_Base(
                     description="Make sure your bone names are unique and do not have trailing zeroes!",
                     description_short=f'Bone name "{bone_info.name}" was used twice!',
                 )
-            bone_info.bbone_width = ebone.bbone_x / self.scale
             bone_info.preserve = self.keep_original_bones
             bone_infos[bone_info.name] = bone_info
 
@@ -203,6 +196,7 @@ class Component_Base(
 
     ### Relinking - Allow users to easily add constraints to the generated rig to specific bones,
     # in cases where user intent can be made clear.
+    @no_overlay
     def base__relink(self):
         """Move constraints from original bones to other bones."""
         for org_idx, org_bi in enumerate(self.bones_org):
@@ -297,9 +291,10 @@ class Component_Base(
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Deform Bones', is_advanced=True)
-        cls.define_bone_set('Mechanism Bones', is_advanced=True)
+        cls.define_bone_set('Deform Bones', is_advanced=True, defaults={'display_type': 'BBONE'})
+        cls.define_bone_set('Mechanism Bones', is_advanced=True, defaults={'display_type': 'STICK'})
         cls.define_bone_set('Original Bones', is_advanced=True)
+
 
     @classmethod
     def make_rotation_mode_param(
@@ -331,6 +326,7 @@ class Component_Base(
         return EnumProperty(
             name=name, description=description, items=items, default=default
         )
+
 
     @classmethod
     def make_inherit_scale_param(
@@ -372,6 +368,7 @@ class Component_Base(
             name=name, description=description, items=items, default=default
         )
 
+
     @classmethod
     def make_custom_shape_params(
         cls,
@@ -403,6 +400,13 @@ class Component_Base(
                 return self.custom_shape.name
             return self.name
 
+        @property
+        def shape_object(self) -> Object | None:
+            """Return local object of a custom shape, if it exists in the scene."""
+            if self.use_pointer:
+                return self.custom_shape
+            return bpy.data.objects.get('WGT-' + self.shape_name)
+
         def get_enum(self, _current_value, _is_set):
             value = next((w[4] for w in widgets_enum_items() if w[0]==self.name), 0)
             return value
@@ -413,7 +417,6 @@ class Component_Base(
             return new_value
 
         default_description = 'You can add your own shape library in CloudRig\'s preferences.\n\nLocal objects starting with "WGT-" will also appear.'
-
         class_props = {
             '__annotations__': {
                 'name': StringProperty(
@@ -442,11 +445,13 @@ class Component_Base(
                     poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-"),
                 )
             },
-            'shape_name': shape_name
+            'shape_name': shape_name,
+            'shape_object': shape_object,
         }
         class_name="CloudRig_CustomShape_"+ identifier.replace(" ", "_").lower()
         group_class = type(class_name, (PropertyGroup,), class_props)
         return {"POINTER_"+class_name: group_class}
+
 
 class Params(PropertyGroup):
     base_name: StringProperty(

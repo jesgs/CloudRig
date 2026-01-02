@@ -17,7 +17,7 @@ def context(install_addon):
 @pytest.fixture
 def context_blend(context):
     """We're using a single tests.blend file with different Scenes.
-    A Scene can be used by multiple tests. If a test would benefit from a new 
+    A Scene can be used by multiple tests. If a test would benefit from a new
     Scene set-up, just add it in the .blend (and a new fixture).
     This file gets loaded many times while running tests, so keep it light.
     """
@@ -44,7 +44,8 @@ def scene_poses(context_blend) -> Scene:
 
 def select_scene_and_object(context, scene_name: str, obj_name=None) -> Scene:
     context.window_manager.windows[0].scene = bpy.data.scenes[scene_name]
-    bpy.ops.object.mode_set(mode='OBJECT')
+    if context.mode != 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
     if obj_name:
         obj = bpy.data.objects[obj_name]

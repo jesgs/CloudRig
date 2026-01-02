@@ -43,13 +43,12 @@ class Component_SphereChain(Component_ToonChain):
 
             custom_shape_name=self.params.chain_sphere.shape_sphere_control.shape_name,
             custom_shape_along_length=1.0,
+            use_custom_shape_bone_size=False,
             display_type='WIRE',
 
-            roll=0,
-            roll_type='VECTOR',
-            roll_vector=str_bone.tail,
             rotation_mode='YZX',
         )
+        sph_ctrl.roll_align_vector(str_bone.tail)
 
         str_bone.parent_helper.constraint_infos[0].targets = [sph_ctrl.name]
 

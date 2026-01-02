@@ -5,6 +5,7 @@ from bpy.types import PropertyGroup
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_chain import Component_ToonChain
 from .cloud_chain_anchor import Component_FaceChainAnchor
 
@@ -103,9 +104,7 @@ def do_centered_cluster(
 
     if not is_anchor:
         intersection.vector = Vector((0, 0, intersection.length))
-        intersection.roll = 0
-        intersection.roll_type = 'VECTOR'
-        intersection.roll_vector = avg_pos
+        intersection.roll_align_vector(avg_pos)
 
     for bone in cluster:
         flipped_name = component.naming.flip_name(bone)
@@ -173,6 +172,7 @@ class Component_FaceChain(Component_ToonChain):
             for comp in self.chain_components:
                 comp.create_component_interactions(context, last_chain_done=True)
 
+    @no_overlay
     def base__relink(self, last_chain_done=False):
         # Only relink all cloud_face_chain components when the last one is generating.
         if last_chain_done:
@@ -184,7 +184,7 @@ class Component_FaceChain(Component_ToonChain):
         for comp in self.chain_components:
             comp.base__relink(last_chain_done=True)
 
-    def base__relink_get_target(self, org_i: int, con: ConstraintInfo):
+    def base__relink_get_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
         """Relink target should become the intersection control if there is one."""
         relink_tgt: BoneInfo = super().base__relink_get_target(org_i, con)
 
@@ -259,12 +259,10 @@ class Component_FaceChain(Component_ToonChain):
                 name=bone_name,
                 source=cluster[0].parent_helper,
                 parent=cluster[0].source,
-                roll_type='ALIGN',
-                roll_bone=cluster[0],
-                roll=0,
                 custom_shape_name=self.params.face_chain.shape_intersection.shape_name,
                 custom_shape_scale=0.5,
             )
+            intersection_control.roll_align_other(cluster[0])
 
         if abs(intersection_control.head.x) < 0.001:
             do_centered_cluster(cluster, intersection_control, is_anchor)

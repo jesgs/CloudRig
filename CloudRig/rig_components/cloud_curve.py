@@ -5,16 +5,18 @@ from bpy.types import BezierSplinePoint, Curve, Object, PropertyGroup, Spline
 from mathutils import Matrix, Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
-from ..utils import curve as curve_utils
+from ..utils.curve import (
+    get_spline_points,
+    evaluate_point_tangents,
+    get_spline_bounding_box_center,
+    find_opposite_spline,
+    find_opposite_point_on_curve,
+)
 from .cloud_base import Component_Base
 
 
 def is_curve(self, obj):
     return obj.type == 'CURVE'
-
-
-def get_points(spline):
-    return curve_utils.get_spline_points(spline)
 
 
 def get_points_propname(spline):
@@ -36,10 +38,13 @@ class Component_Curve_Hooked(Component_Base):
         self.curve__initialize()
 
     def create_bone_infos(self, context):
+        if not self.params.curve.target:
+            return
+
         super().create_bone_infos(context)
-        self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
+        self.root_bone = self.bones_org[0].parent
         if self.params.curve.create_root:
-            self.curve__make_root()
+            self.root_bone = self.curve__make_root()
 
         self.hooks_of_splines = self.curve__make_ctrls_for_points(self.params.curve.target)
 
@@ -57,8 +62,10 @@ class Component_Curve_Hooked(Component_Base):
         curve_ob = self.params.curve.target
         if not curve_ob:
             self.raise_generation_error("Curve object not found!")
+            return
         if curve_ob.type != 'CURVE':
             self.raise_generation_error("Curve target must be a curve!")
+            return
 
         if not self.params.curve.controls_for_handles:
             self.params.curve.rotatable_handles = False
@@ -67,27 +74,34 @@ class Component_Curve_Hooked(Component_Base):
         if len(curve_ob.data.splines) < 2:
             self.params.curve.root_per_spline = False
 
-    def curve__make_root(self):
+        self.point_tangents = evaluate_point_tangents(self.params.curve.target)
+
+    def curve__make_root(self) -> BoneInfo:
         org_bone = self.bones_org[0]
-        self.root_bone = self.bone_sets['Curve Root'].new(
+        root_bone = self.bone_sets['Curve Root'].new(
             name=self.naming.add_prefix(self.base_bone_name, "ROOT"),
             source=org_bone,
             use_custom_shape_bone_size=True,
         )
-        org_bone.parent = self.root_bone
+        org_bone.parent = root_bone
         if org_bone.custom_shape:
-            self.root_bone.copy_custom_shape(org_bone)
+            root_bone.copy_custom_shape(org_bone)
         else:
-            self.root_bone.custom_shape_name = self.params.curve.shape_root.shape_name
+            root_bone.custom_shape_name = self.params.curve.shape_root.shape_name
+        return root_bone
 
     def curve__make_ctrls_for_points(self, curve_ob: Object) -> list[list[BoneInfo]]:
         hooks_of_splines: list[list[BoneInfo]] = []
+
+        if self.painter and not curve_ob:
+            return hooks_of_splines
+
         for spline_idx, spline in enumerate(curve_ob.data.splines):
             parent_bone = self.root_bone
             if self.params.curve.root_per_spline:
-                loc = curve_utils.get_spline_bounding_box_center(spline)
+                loc = get_spline_bounding_box_center(spline)
                 loc_delta = self.params.curve.target.matrix_world.to_translation()
-                dir = get_points(spline)[0].co - loc  # .normalized()
+                dir = get_spline_points(spline)[0].co.xyz - loc  # .normalized()
                 spline_name = self.__get_spline_name(spline_idx)
                 if (
                     self.params.curve.x_axis_symmetry
@@ -106,7 +120,7 @@ class Component_Curve_Hooked(Component_Base):
                 spline_root.flatten()
                 parent_bone = spline_root
             hook_controls = []
-            points = get_points(spline)
+            points = get_spline_points(spline)
             if len(points) < 2:
                 self.raise_generation_error("All curve splines must consist of at least 2 points")
 
@@ -156,14 +170,13 @@ class Component_Curve_Hooked(Component_Base):
         if len(self.params.curve.target.data.splines) > 1:
             spline_part = f"_{spline_idx}"
             if self.params.curve.x_axis_symmetry:
-                # TODO: callling find_opposite_spline() for each spline is very inefficient!
-                opp_spl_idx, opp_spl = curve_utils.find_opposite_spline(
-                    curve, spline_idx
-                )
+                # NOTE: Callling find_opposite_spline() for each spline is arguably inefficient,
+                # compared to making a mapping of opposites ahead of time.
+                opp_spl_idx, opp_spl = find_opposite_spline(curve, spline_idx)
                 spline_part = "_" + str(min(spline_idx, opp_spl_idx))
 
         if self.params.curve.x_axis_symmetry:
-            x_co = curve_utils.get_spline_bounding_box_center(spline).x
+            x_co = get_spline_bounding_box_center(spline).x
             if x_co > 0.001:
                 suffix = ".L"
             elif x_co < -0.001:
@@ -188,11 +201,11 @@ class Component_Curve_Hooked(Component_Base):
         """Return spline point at the opposite side of this point.
         The curve must be perfectly symmetrical."""
         spline = curve.splines[spline_idx]
-        spline_point = get_points(spline)[point_idx]
-        opp_spline, opp_point_idx, offset = curve_utils.find_opposite_point_on_curve(
+        spline_point = get_spline_points(spline)[point_idx]
+        opp_spline, opp_point_idx, offset = find_opposite_point_on_curve(
             curve, spline_idx, point_idx
         )
-        opp_point = get_points(opp_spline)[opp_point_idx]
+        opp_point = get_spline_points(opp_spline)[opp_point_idx]
 
         if (opp_point == spline_point) and not must_exist:
             return spline, point_idx
@@ -203,7 +216,15 @@ class Component_Curve_Hooked(Component_Base):
             point_name = ".".join(point_path.split(".")[0:])
             opp_point_name = ".".join(opp_point_path.split(".")[0:])
             self.raise_generation_error(
-                description=f'The nearest point to the X-axis flipped coordinate of point "{point_name} ({curve.path_resolve(point_path).co})" is point "{opp_point_name} (({curve.path_resolve(opp_point_path).co}))".\n Distance: {offset}\n Threshold: {threshold}\nDistance must be lower than the threshold. Make sure the curve is symmetrical along its X axis. If this message keeps popping up, you might be modifying a shape key instead of the base shape.',
+                description=(
+                    f'The nearest point to the X-axis flipped coordinate of point '
+                    f'"{point_name} ({curve.path_resolve(point_path).co.xyz})" is point '
+                    f'"{opp_point_name} (({curve.path_resolve(opp_point_path).co.xyz}))".'
+                    f'\nDistance: {offset}\nThreshold: {threshold}\n'
+                    'Distance must be lower than the threshold. Make sure the curve is symmetrical '
+                    'along its X axis. If this message keeps popping up, you might be modifying '
+                    'a shape key instead of the base shape.'
+                ),
                 description_short="Curve is not symmetrical",
                 note="Curve must be symmetrical.",
             )
@@ -228,13 +249,13 @@ class Component_Curve_Hooked(Component_Base):
             opp_spline, opp_point_idx = self.__get_mirror_point(
                 curve, spline_idx, point_idx
             )
-            opp_point = get_points(opp_spline)[opp_point_idx]
-            point = get_points(curve.splines[spline_idx])[point_idx]
+            opp_point = get_spline_points(opp_spline)[opp_point_idx]
+            point = get_spline_points(curve.splines[spline_idx])[point_idx]
 
             if opp_point != point:
                 point_name = min([point_idx, opp_point_idx])
                 spline = curve.splines[spline_idx]
-                x_co = get_points(spline)[point_idx].co.x
+                x_co = get_spline_points(spline)[point_idx].co.x
                 if x_co > 0:
                     suffix = "L"
                 elif x_co < 0:
@@ -258,7 +279,7 @@ class Component_Curve_Hooked(Component_Base):
         curve_ob = self.params.curve.target
         spline = curve_ob.data.splines[spline_idx]
         cyclic = spline.use_cyclic_u
-        points = get_points(spline)
+        points = get_spline_points(spline)
         point = points[point_idx]
 
         # Function to convert a location vector in the curve's local space into world space.
@@ -267,7 +288,7 @@ class Component_Curve_Hooked(Component_Base):
         def worldspace(loc):
             return (curve_ob.matrix_basis @ Matrix.Translation(loc.xyz)).to_translation()
 
-        point_loc = worldspace(point.co)
+        point_loc = worldspace(point.co.xyz)
 
         is_bezier = isinstance(point, BezierSplinePoint)
         if is_bezier:
@@ -277,14 +298,13 @@ class Component_Curve_Hooked(Component_Base):
             tail = left_handle_loc
         else:
             shape = self.params.curve.shape_handle.shape_name
-            spline = self.params.curve.target.data.splines[spline_idx]
             if len(points) > point_idx+1:
-                tail = points[point_idx+1].co
+                tail = points[point_idx+1].co.xyz
             elif cyclic:
-                tail = points[0].co
+                tail = points[0].co.xyz
             else:
-                prev_point_co = points[point_idx-1].co
-                tail = point.co + (point.co-prev_point_co) / 2
+                prev_point_co = points[point_idx-1].co.xyz
+                tail = point.co.xyz + (point.co.xyz-prev_point_co) / 5
                 shape = self.params.curve.shape_point.shape_name
 
             tail = worldspace(tail)
@@ -294,16 +314,18 @@ class Component_Curve_Hooked(Component_Base):
             name=self.__get_hook_name(spline_idx, point_idx),
             source=source_bone,
             use_custom_shape_bone_size=True,
-            custom_shape_scale=self.params.curve.shape_size,
+            custom_shape_scale_xyz=Vector((self.params.curve.shape_size, 1, self.params.curve.shape_size)),
             head=point_loc,
             tail=tail,
             parent=parent_bone,
             rotation_mode='YZX',
             inherit_scale=self.params.curve.inherit_scale,
-            roll_type='ALIGN' if source_bone else "",
-            roll_bone=source_bone,
-            roll=0,
         )
+        if not is_bezier:
+            hook_ctr.lock_rotation = [True, False, True]
+        assert self.point_tangents
+        hook_ctr.roll_align_vector(point_loc + self.point_tangents[spline_idx][point_idx])
+
         hook_ctr.invert_tilt = False
         hook_ctr.is_bezier = is_bezier
         if self.params.curve.x_axis_symmetry:
@@ -311,7 +333,7 @@ class Component_Curve_Hooked(Component_Base):
                 self.naming.flip_name(hook_ctr)
             )
             if opp_hook_ctr:
-                hook_ctr.tail = opp_hook_ctr.tail * Vector([-1, 1, 1])
+                hook_ctr.tail = opp_hook_ctr.tail * Vector((-1, 1, 1))
                 hook_ctr.invert_tilt = True
 
         hook_ctr.spline_idx = spline_idx
@@ -338,10 +360,9 @@ class Component_Curve_Hooked(Component_Base):
                 name=self.__get_hook_name(spline_idx, point_idx, "Radius"),
                 source=hook_ctr,
                 tail=loc_left,
-                use_custom_shape_bone_size=True,
-                custom_shape_scale=self.params.curve.shape_size * 0.8,
                 parent=hook_ctr,
                 custom_shape_name=self.params.curve.shape_radius.shape_name,
+                use_custom_shape_bone_size=True,
             )
             radius_control.length *= 0.8
             self.lock_transforms(
@@ -353,44 +374,40 @@ class Component_Curve_Hooked(Component_Base):
             hook_ctr.radius_control = radius_control
             hook_ctr.custom_shape_transform = radius_control
 
-        left_name = "L"
-        right_name = "R"
+        LEFT = "L"
+        RIGHT = "R"
         if self.params.curve.x_axis_symmetry and loc.x > 0:
-            left_name, right_name = right_name, left_name
+            LEFT, RIGHT = RIGHT, LEFT
+
         if (point_idx != 0) or cyclic:
             # Skip for first hook unless cyclic.
             handle_left_ctr = self.bone_sets['Curve Handles'].new(
-                name=self.__get_hook_name(spline_idx, point_idx, left_name),
+                name=self.__get_hook_name(spline_idx, point_idx, LEFT),
                 source=hook_ctr,
-                head=loc,
-                tail=loc_left,
                 parent=hook_ctr,
                 custom_shape_name=self.params.curve.shape_handle.shape_name,
-                use_custom_shape_bone_size=False,
-                roll=0,
-                roll_type='ALIGN',
-                roll_bone=hook_ctr,
+                use_custom_shape_bone_size=True,
             )
+            handle_left_ctr.reverse()
+            handle_left_ctr.roll_align_other(hook_ctr)
             hook_ctr.left_handle_control = handle_left_ctr
             handles.append(handle_left_ctr)
 
         last_point_idx = (
-            len(get_points(self.params.curve.target.data.splines[spline_idx])) - 1
+            len(get_spline_points(self.params.curve.target.data.splines[spline_idx])) - 1
         )
 
         if (point_idx != last_point_idx) or cyclic:
             # Skip for last hook unless cyclic.
             handle_right_ctr = self.bone_sets['Curve Handles'].new(
-                name=self.__get_hook_name(spline_idx, point_idx, right_name),
+                name=self.__get_hook_name(spline_idx, point_idx, RIGHT),
                 source=hook_ctr,
-                head=loc,
-                tail=loc_right,
+                head=loc_right,
+                tail=loc,
                 parent=hook_ctr,
-                roll=0,
-                roll_type='ALIGN',
-                roll_bone=hook_ctr,
                 custom_shape_name=self.params.curve.shape_handle.shape_name,
-                use_custom_shape_bone_size=False,
+                custom_shape_scale_xyz=Vector((1, 1, 1)),
+                use_custom_shape_bone_size=True,
             )
             hook_ctr.right_handle_control = handle_right_ctr
             handles.append(handle_right_ctr)
@@ -409,10 +426,6 @@ class Component_Curve_Hooked(Component_Base):
                 dsp_bone.add_constraint('DAMPED_TRACK', subtarget=hook_ctr.name)
                 dsp_bone.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
             else:
-                head = handle.head.copy()
-                handle.head = handle.tail.copy()
-                handle.tail = head
-
                 self.lock_transforms(handle, loc=False)
 
                 handle.add_constraint('DAMPED_TRACK', subtarget=hook_ctr.name)
@@ -429,23 +442,19 @@ class Component_Curve_Hooked(Component_Base):
         curve_ob = self.params.curve.target
         if not curve_ob:
             self.raise_generation_error("Curve object not found!")
-        curve_visible = self.ensure_visible(context, curve_ob)
 
-        if not curve_ob.visible_get():
-            self.raise_generation_error(
-                f'Curve "{curve_ob.name}" could not be made visible. Perhaps it has a driver on its hide_viewport property that forces it to True?'
-            )
+        for mod in curve_ob.modifiers[:]:
+            if mod.type == 'HOOK' and (not mod.object or mod.object.name == self.target_rig.name.replace('NEW-', '')):
+                curve_ob.modifiers.remove(mod)
 
         for spline_i, hooks in enumerate(hooks_of_splines):
             self.__hook_spline_to_rig(context, curve_ob, spline_i, hooks)
-
-        curve_visible.restore(context)
 
         self.params.curve.target = curve_ob
 
     def __hook_spline_to_rig(self, context, curve_ob: Object, spline_i: int, hooks: list[BoneInfo]):
         spline = curve_ob.data.splines[spline_i]
-        points = get_points(spline)
+        points = get_spline_points(spline)
         num_points = len(points)
 
         assert num_points == len(
@@ -512,8 +521,8 @@ class Component_Curve_Hooked(Component_Base):
             data_path = f"splines[{hook_b.spline_idx}].{get_points_propname(spline)}[{point_i}].radius"
             curve_ob.data.driver_remove(data_path)
 
-            D = curve_ob.data.driver_add(data_path)
-            driver = D.driver
+            fc = curve_ob.data.driver_add(data_path)
+            driver = fc.driver
 
             driver.expression = "var"
             my_var = driver.variables.new()
@@ -533,8 +542,8 @@ class Component_Curve_Hooked(Component_Base):
             data_path = f"splines[{hook_b.spline_idx}].{get_points_propname(spline)}[{point_i}].tilt"
             curve_ob.data.driver_remove(data_path)
 
-            D = curve_ob.data.driver_add(data_path)
-            driver = D.driver
+            fc = curve_ob.data.driver_add(data_path)
+            driver = fc.driver
 
             if hook_b.invert_tilt:
                 driver.expression = "var"
@@ -580,7 +589,11 @@ class Component_Curve_Hooked(Component_Base):
         curve_ob = self.params.curve.target
         idx_offset = 0
         for i in range(0, spline_i):
-            idx_offset += len(get_points(curve_ob.data.splines[i])) * 3
+            spline = curve_ob.data.splines[i]
+            num_points = len(get_spline_points(curve_ob.data.splines[i]))
+            if spline.type == 'BEZIER':
+                num_points *= 3
+            idx_offset += num_points
 
         indices = []
         if is_bezier:
@@ -591,22 +604,14 @@ class Component_Curve_Hooked(Component_Base):
             if right_handle:
                 indices.append(idx_offset + point_i * 3 + 2)
         else:
-            indices = [point_i]
+            indices = [idx_offset + point_i]
 
         # Set active bone
         bone = rig_ob.data.bones.get(bonename)
         rig_ob.data.bones.active = bone
 
-        hook_m = curve_ob.modifiers.get(bonename)
-        if not hook_m:
-            for m in curve_ob.modifiers:
-                if m.type == 'HOOK' and m.subtarget == bonename:
-                    hook_m = m
-                    break
-
-        if not hook_m:
-            # Add hook modifier
-            hook_m = curve_ob.modifiers.new(name=bonename, type='HOOK')
+        # Add hook modifier
+        hook_m = curve_ob.modifiers.new(name=bonename + f" ({point_i})", type='HOOK')
 
         hook_m.vertex_indices_set(indices)
         hook_m.show_expanded = False
@@ -645,7 +650,6 @@ class Component_Curve_Hooked(Component_Base):
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
-
     @classmethod
     def curve__draw_selector_ui(cls, layout, context, params):
         """Since this rig requires a curve object, draw with alert=True otherwise."""
@@ -658,24 +662,31 @@ class Component_Curve_Hooked(Component_Base):
     @classmethod
     def draw_control_params(cls, layout, context, params):
         """Create the ui for the rig parameters."""
-        curve_ob = params.curve.target
         cls.curve__draw_selector_ui(layout, context, params)
+        curve_ob = params.curve.target
+        if not curve_ob:
+            return
         cls.draw_prop(context, layout, params.curve, 'create_root')
-        if curve_ob and len(curve_ob.data.splines) > 1:
+        if len(curve_ob.data.splines) > 1:
             cls.draw_prop(context, layout, params.curve, "root_per_spline")
 
         if cls.is_advanced_mode(context):
             cls.draw_prop(context, layout, params.curve, "hook_name")
             cls.draw_prop(context, layout, params.curve, "inherit_scale")
         cls.draw_prop(context, layout, params.curve, "x_axis_symmetry")
-        cls.draw_prop(context, layout, params.curve, "controls_for_handles")
-        if params.curve.controls_for_handles:
-            cls.draw_prop(context, layout, params.curve, "rotatable_handles")
-            cls.draw_prop(context, layout, params.curve, "separate_radius")
+        if curve_ob.data and any([spline.type == 'BEZIER' for spline in curve_ob.data.splines]):
+            cls.draw_prop(context, layout, params.curve, "controls_for_handles")
+            if params.curve.controls_for_handles:
+                cls.draw_prop(context, layout, params.curve, "rotatable_handles")
+                cls.draw_prop(context, layout, params.curve, "separate_radius")
 
     @classmethod
     def draw_appearance_params(cls, layout, context, params):
         super().draw_appearance_params(layout, context, params)
+        curve_ob = params.curve.target
+        if not curve_ob:
+            layout.label(text="Select a curve object in the Controls parameters.")
+            return
         if params.curve.controls_for_handles:
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier_center')
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_handle')
@@ -684,7 +695,7 @@ class Component_Curve_Hooked(Component_Base):
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_point')
         if cls.creates_spline_roots(params):
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_spline_root')
-        if params.curve.separate_radius:
+        if any([spline.type == 'BEZIER' for spline in curve_ob.data.splines]) and params.curve.controls_for_handles and params.curve.separate_radius:
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_radius')
         cls.draw_prop(context, layout, params.curve, 'shape_size', text="Size")
         return layout
@@ -738,7 +749,7 @@ class Params(PropertyGroup):
     )
     shape_point: Component_Base.make_custom_shape_params(
         identifier="Path Point",
-        default="Cube"
+        default="Square"
     )
     shape_handle: Component_Base.make_custom_shape_params(
         identifier="Curve Handle",

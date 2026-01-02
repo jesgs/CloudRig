@@ -10,6 +10,7 @@ from bpy.types import Action, ActionSlot, PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.generate_animation import CloudAnimationMixin
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_chain import Component_ToonChain
 
 
@@ -50,6 +51,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         self.__check_correct_chain_length()
 
+    @no_overlay
     def base__apply_parent_switching(
         self,
         *,
@@ -77,6 +79,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         """
         return False
 
+    @no_overlay
     def toon__make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
         """Extend cloud_chain by tweaking some bbone values."""
         def_chain = super().toon__make_def_chain(str_chain)
@@ -151,11 +154,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 if self.params.fk_chain.double_first:
                     # Make a parent for the first control.
                     fk_parent_bone = self.create_parent_bone(
-                        fk_bone, bone_set=self.bone_sets["FK Controls Extra"]
-                    )
-                    fk_parent_bone.custom_shape = fk_bone.custom_shape
-                    fk_parent_bone.custom_shape_along_length = (
-                        self.params.fk_chain.display_center / 2
+                        fk_bone,
+                        bone_set=self.bone_sets["FK Controls Extra"],
                     )
                     hng_child = fk_parent_bone
                     if not self.params.fk_chain.root:
@@ -176,7 +176,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         return fk_chain
 
-    def __make_fk_bone(self, org_bone) -> BoneInfo:
+    def __make_fk_bone(self, org_bone: BoneInfo) -> BoneInfo:
         fk_name = self.naming.add_prefix(org_bone, "FK")
 
         rot_mode = self.params.fk_chain.rot_mode
@@ -188,11 +188,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             source=org_bone,
             custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             inherit_scale=self.params.fk_chain.inherit_scale,
-            custom_shape_along_length=self.params.fk_chain.display_center / 2,
             rotation_mode=rot_mode,
-            gizmo_vgroup=self.def_bones_of_org[org_bone][0].name,
-            gizmo_operator="transform.rotate",
+            # gizmo_vgroup=self.def_bones_of_org[org_bone][0].name,
+            # gizmo_operator="transform.rotate",
         )
+        if self.params.fk_chain.display_center:
+            fk_bone.custom_shape_along_length = 0.5
 
         org_bone.fk_bone = fk_bone
 
@@ -204,6 +205,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             fk_bone.parent = org_bone.parent
         return fk_bone
 
+    @no_overlay
     def __make_hinge_setup(
         self,
         bone,
@@ -325,6 +327,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 influence=influence,
             )
 
+    @no_overlay
     def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
         for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
             main_str_bone.add_constraint(
@@ -339,6 +342,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 subtarget=fk_bone,
             )
 
+    @no_overlay
     def fk_chain__attach_org_to_fk(self, org_bones: list[BoneInfo], fk_bones: list[BoneInfo]):
         """Make ORG bones Copy Transforms of FK bones."""
         for org_bone, fk_bone in zip(org_bones, fk_bones):
@@ -350,6 +354,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 name="Copy Transforms FK",
             )
 
+    @no_overlay
     def fk_chain__add_test_animation(
         self, action: Action, slot: ActionSlot, start_frame=1, flip_xyz=[False, False, False]
     ) -> int:

@@ -342,12 +342,15 @@ class CLOUDRIG_PT_rig_components(Panel):
             return
 
         header, panel = layout.panel("CloudRig Component In List")
-        header.label(text=f"Component Parameters: {context.active_pose_bone.name}")
+        active_pb = get_pbone_of_active(context)
+        if not active_pb:
+            return
+        header.label(text=f"Component Parameters: {active_pb.name}")
         if panel:
             box = panel.box()
             box.use_property_split = True
             box.use_property_decorate = False
-            draw_params_subpanels(context, box)
+            draw_params_subpanels(context, box.column())
 
 registry = [
     CLOUDRIG_UL_rig_components,

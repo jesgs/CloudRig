@@ -4,6 +4,7 @@ from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_base import Component_Base
 
 
@@ -56,7 +57,6 @@ class Component_TweakBone(Component_Base):
             tweak_bone.head = org_bi.head.copy()
             tweak_bone.tail = org_bi.tail.copy()
             tweak_bone.roll = org_bi.roll
-            tweak_bone.roll_type = ""
             tweak_bone.bbone_x = org_bi.bbone_x
             tweak_bone.bbone_z = org_bi.bbone_z
 
@@ -75,14 +75,8 @@ class Component_TweakBone(Component_Base):
             tweak_bone.custom_shape_name = org_bi.custom_shape_name
             tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
             if tweak_bone.use_custom_shape_bone_size:
-                scalar = tweak_bone.length / org_bi.length
-                tweak_bone.custom_shape_scale_xyz = (
-                    org_bi.custom_shape_scale_xyz * scalar
-                )
-            if not org_bi.use_custom_shape_bone_size:
-                tweak_bone.custom_shape_scale_xyz /= (
-                    tweak_bone.bbone_width * 10 * self.scale
-                )
+                scale_diff = tweak_bone.length / org_bi.length
+                tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz * scale_diff
             tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
             tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
             tweak_bone.show_wire = org_bi.show_wire
@@ -130,8 +124,9 @@ class Component_TweakBone(Component_Base):
             self.root_bone = self.create_parent_constraint_holder(tweak_bone, bone_set=self.bone_sets['Mechanism Bones'])
 
     ################################
-    # Spline IK functions.
+    # Bone Tweak functions.
 
+    @no_overlay
     def base__relink(self):
         # Transfer and relink constraints and their drivers
         assert self.tweak_bone

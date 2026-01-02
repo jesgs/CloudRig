@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.props import BoolProperty, FloatProperty, StringProperty
-from bpy.types import PoseBone, PropertyGroup
+from bpy.types import PoseBone, EditBone, PropertyGroup
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.maths import bounding_box, bounding_box_center
 from .cloud_base import Component_Base
 
@@ -52,6 +53,7 @@ class Component_Aim(Component_Base):
         if self.params.aim.create_sub_control:
             self.__create_eye_highlight(self.ctr_bone)
 
+    @no_overlay
     def base__apply_parent_switching(
         self,
         *,
@@ -230,7 +232,7 @@ class Component_Aim(Component_Base):
         if self.params.aim.deform:
             self.make_def_bone(highlight_ctr, self.bones_def)
 
-    def __find_aim_bones_in_group(self, group_name) -> list[PoseBone]:
+    def __find_aim_bones_in_group(self, group_name) -> list[PoseBone|EditBone]:
         """Return a list of all cloud_aim components with a matching Aim Group."""
         aim_bones = []
         for component in self.generator.all_components:
@@ -238,7 +240,7 @@ class Component_Aim(Component_Base):
                 isinstance(component, Component_Aim)
                 and component.params.aim.group == group_name
             ):
-                aim_bone = self.metarig.pose.bones[component.base_bone_name]
+                aim_bone = self.metarig.pose.bones[component.base_bone_name] if self.metarig.mode != 'EDIT' else self.metarig.data.edit_bones[component.base_bone_name]
                 aim_bones.append(aim_bone)
         return aim_bones
 
@@ -274,9 +276,11 @@ class Component_Aim(Component_Base):
         target_positions = [self.__find_target_pos(b) for b in aim_bones]
         target_center = bounding_box_center(target_positions)
         z_axis = Vector((0, 0, 0))
+        lgt = 0
         for b in aim_bones:
             z_axis += b.z_axis
-        z_axis /= len(aim_bones)
+            lgt += b.length
+        lgt /= len(aim_bones)
 
         lowest, highest = bounding_box(target_positions)
         targets_size = (highest - lowest).length
@@ -287,13 +291,10 @@ class Component_Aim(Component_Base):
             name="CEN-" + group_name,
             source=self.bones_org[0],
             head=aims_center,
-            tail=aims_center + group_vec.normalized() * self.scale,
-            bbone_width=0.1,
-            roll_type='VECTOR',
-            roll_vector=z_axis,
-            roll=0,
+            tail=aims_center + group_vec.normalized() * lgt,
             parent=self.generator.find_bone_info(first_parent),
         )
+        center_bone.roll_align_vector(center_bone.head + z_axis)
         center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in aim_bones])
 
         max_dist = 0
@@ -308,14 +309,12 @@ class Component_Aim(Component_Base):
             name=group_master_name,
             source=self.bones_org[0],
             head=target_center,
-            tail=target_center + group_vec.normalized() * targets_size * 1.5,
-            roll_type='VECTOR',
-            roll_vector=z_axis,
-            roll=0,
+            tail=target_center + group_vec.normalized() * lgt,
             custom_shape_name=self.params.aim.shape_master.shape_name,
-            use_custom_shape_bone_size=True,
-            custom_shape_scale=1,
+            use_custom_shape_bone_size=False,
+            custom_shape_scale=targets_size * 1.5,
         )
+        group_master.roll_align_other(center_bone)
         group_master.add_constraint(
             'DAMPED_TRACK', subtarget=center_bone.name, track_axis='TRACK_NEGATIVE_Y'
         )

@@ -136,6 +136,19 @@ def version_cloud_metarig(metarig):
                         new_name = widget_map[param.name].replace("_", " ")
                         param.name = new_name
 
+    if cloudrig.metarig_version < 7:
+        # We moved from using BBone Scale as a way to control widget size, to using the metarig bones' custom_shape_scale_xyz instead.
+        # The conversion is easy enough to do.
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component.inherited_component
+            if comp.component_type == 'Bone Copy':
+                continue
+            old_scale = pbone.bone.bbone_x * 10
+            length = pbone.bone.length
+            ratio = old_scale / length
+            pbone.custom_shape_scale_xyz *= ratio
+            if comp and comp.component_type == 'Spine: Cartoon' and pbone == comp.component_pbone_chain[-1]:
+                pbone.custom_shape_scale_xyz.y = 1.1
 
 @persistent
 def update_all_metarigs(dummy=None):

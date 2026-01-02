@@ -5,6 +5,7 @@ from bpy.types import PropertyGroup
 from mathutils import Vector
 
 from .bone_info import BoneInfo
+from .overlay_painter import no_overlay
 
 
 class CloudCustomPropertiesMixin:
@@ -70,6 +71,8 @@ class CloudCustomPropertiesMixin:
             parent=source,
             custom_shape_name="Cog",
             use_custom_shape_bone_size=True,
+            custom_shape_translation=Vector((0, 0, 0)),
+            custom_shape_rotation_euler=Vector((0, 0, 0)),
         )
         prop_bone.collections = [
             coll.name for coll in self.metarig_base_pbone.bone.collections

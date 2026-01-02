@@ -701,8 +701,8 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
 
 
 def calculate_ik_pole_vector(
-    meta_first: PoseBone,
-    meta_second: PoseBone
+    meta_first: PoseBone | Bone | EditBone,
+    meta_second: PoseBone | Bone | EditBone
 ) -> tuple[float, Vector, Vector]:
     """Based on the first two bones of a chain,
     return some data useful in creating an IK pole target:
@@ -710,18 +710,31 @@ def calculate_ik_pole_vector(
         Vector pole_direction: Normalized direction of the elbow.
         Vector pole_location: Final location of the pole target in object space.
     """
-    chain_vector = meta_second.tail - meta_first.head
 
-    first_tail = meta_second.head
-    last_tail = meta_second.tail
+    if isinstance(meta_second, Bone):
+        first_head = meta_first.head_local
+        first_tail = meta_first.tail_local
+        second_head = meta_second.head_local
+        second_tail = meta_second.tail_local
+    elif hasattr(meta_second, 'head'):
+        first_head = meta_first.head
+        first_tail = meta_first.tail
+        second_head = meta_second.head
+        second_tail = meta_second.tail
+    else:
+        raise TypeError(f"This is not a bone of any kind: {meta_second}, ({type(meta_second)})")
+
+    chain_vector = second_tail - first_head
+    x_axis = meta_first.x_axis.normalized()
+    z_axis = meta_first.z_axis.normalized()
 
     # Calculate the distances of the four points to the tail of the last bone.
     # These four points are in the four directions of the bone around the bone's tail.
-    x_pos_distance = ((first_tail + meta_first.x_axis) - last_tail).length
-    x_neg_distance = ((first_tail - meta_first.x_axis) - last_tail).length
+    x_pos_distance = ((second_head + x_axis) - second_tail).length
+    x_neg_distance = ((second_head - x_axis) - second_tail).length
 
-    z_pos_distance = ((first_tail + meta_first.z_axis) - last_tail).length
-    z_neg_distance = ((first_tail - meta_first.z_axis) - last_tail).length
+    z_pos_distance = ((second_head + z_axis) - second_tail).length
+    z_neg_distance = ((second_head - z_axis) - second_tail).length
 
     # Store those distances in a dictionary where they are matched with a
     # tuple describing (the main axis of rotation, IK constraint pole_angle),
@@ -739,12 +752,12 @@ def calculate_ik_pole_vector(
 
     # On a line that goes from the start to the end of the chain, find the nearest point
     # to the elbow.
-    closest = closest_point_on_line(meta_first.head, meta_second.tail, meta_first.tail)
+    closest = closest_point_on_line(first_head, second_tail, first_tail)
     # Then shoot towards the elbow by the length of that line (that's fairly arbitrary)
     # to find the pole vector position.
     # NOTE: This requires that all the bone rolls are aligned to point towards this point.
     # This can be achieved with the "Flatten IK Chain" operator.
-    elbow_vec = (meta_first.tail-closest)
+    elbow_vec = (first_tail-closest)
     elbow_direction = elbow_vec.normalized()
     pole_location = closest + elbow_vec + elbow_direction*chain_vector.length
 

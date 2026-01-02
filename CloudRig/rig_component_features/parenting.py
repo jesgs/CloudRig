@@ -7,6 +7,7 @@ from bpy.types import PropertyGroup, UIList
 
 from ..utils.rig import get_pbone_of_active
 from .bone_info import BoneInfo, ConstraintInfo
+from .overlay_painter import no_overlay
 from .params_ui_utils import draw_label_with_linebreak
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be
@@ -58,12 +59,13 @@ class ParentSlot(PropertyGroup):
 
     def set_is_default(self, value):
         active_pb = get_pbone_of_active(bpy.context)
+        component = active_pb.cloudrig_component.inherited_component
 
         if value is False:
             self['is_default'] = False
             return
 
-        for ps in active_pb.cloudrig_component.params.parenting.parent_slots:
+        for ps in component.params.parenting.parent_slots:
             if ps != self:
                 ps['is_default'] = False
             else:
@@ -137,6 +139,7 @@ class CloudParentingMixin:
 
         return self._parent_bone_names
 
+    @no_overlay
     def base__apply_parent_switching(
         self,
         *,

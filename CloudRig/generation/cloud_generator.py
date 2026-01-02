@@ -6,7 +6,11 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime
 from time import time
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ..rig_component_features.bone_info import BoneInfo
+    from ..rig_components.cloud_base import Component_Base
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -21,6 +25,7 @@ from bpy.types import (
     EditBone,
     Object,
     Operator,
+    PoseBone,
     PropertyGroup,
     Text,
 )
@@ -33,15 +38,14 @@ from ..bs_utils.properties import (
     copy_property_group,
 )
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
-from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.mechanism import relink_real_driver
 from ..rig_component_features.object import EnsureVisible
+from ..rig_component_features.overlay_painter import no_overlay
 from ..rig_component_features.widgets.widgets import (
     apply_custom_shape_rig_data,
     ensure_widget,
     get_custom_shape_rig_data,
 )
-from ..rig_components.cloud_base import Component_Base
 from ..ui.actions_ui import ActionConstraintSetup
 from ..utils.external.collections import ensure_collection
 from ..utils.external.mechanism import refresh_all_drivers
@@ -173,10 +177,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     It instantiates the rig components and calls their rig generation functions.
     """
 
-    def __init__(self, context, metarig):
+    def __init__(self, context, metarig, painter=None):
         self.metarig = metarig
         self.target_rig = None
         self.params = metarig.cloudrig.generator
+        self.painter = painter
 
         self.custom_script_failure = False
 
@@ -186,11 +191,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.scale_bkp = metarig.matrix_world.to_scale()
 
         self.metarig_pose_bkp = metarig.data.pose_position
-        metarig.data.pose_position = 'REST'
-        metarig.matrix_world = Matrix.Identity(4)
-
-        # Needed to make sure we get the correct scale
-        context.view_layer.update()
 
         # Used to calculate sizes and distances in a rig-size-agnostic way.
         self.scale = max(get_armature_dimensions(metarig)) / 10
@@ -201,21 +201,20 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             'rotation_mode': 'XYZ',
         }
 
-        # Wipe the generation log.
         self.logger = CloudLogManager(metarig)
-        self.logger.clear()
-
         # Set flag to handle Bone Gizmos.
         self.use_gizmos = (
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
 
     ### Helper functions/properties.
+    @no_overlay
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
     ):
         """For raising non-bug errors that should be fixable by the user."""
-
+        if self.painter:
+            return
         self.logger.log_fatal_error(
             description_short, description=description, display_stack_trace='ADVANCED', **kwargs
         )
@@ -269,29 +268,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 yield bone_info
 
     @property
-    def bone_infos_sorted_by_roll_dependency(self) -> list[BoneInfo]:
-        # Since we want to allow BoneInfos to define another bone's final roll
-        # as their roll alignment, we need to make sure those bones are actually
-        # created first... This is admittedly a bit awkward.
-        bone_infos = list(self.bone_infos)
-
-        sorted_list = [bi for bi in bone_infos if not bi.roll_bone]
-
-        def add_bi(bi):
-            if bi in sorted_list:
-                return
-            if bi.roll_bone not in sorted_list:
-                add_bi(bi.roll_bone)
-            parent_idx = sorted_list.index(bi.roll_bone)
-            sorted_list.insert(parent_idx + 1, bi)
-
-        for bi in bone_infos:
-            add_bi(bi)
-
-        # Return the sorted flat list of bones
-        return sorted_list
-
-    @property
     def root_bone_info(self):
         return self.find_bone_info(self.params.ensure_root)
 
@@ -307,6 +283,14 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         metarig = self.metarig
+        metarig.data.pose_position = 'REST'
+        metarig.matrix_world = Matrix.Identity(4)
+
+        # Needed to make sure we get the correct scale - TODO: Still needed?
+        context.view_layer.update()
+
+        # Wipe the generation log.
+        self.logger.clear()
 
         metarig.data.name = self.metarig.name
         self.params.metarig_version = get_addon_prefs(context).cloud_metarig_version
@@ -325,19 +309,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.metarig = metarig
         self.defaults['rig'] = self.target_rig
 
-        bpy.ops.object.mode_set(mode='EDIT')
-
         if self.params.ensure_root:
             self.ensure_root_bone_component(context, self.metarig, self.params.ensure_root)
             parent_orphans(metarig, self.params.ensure_root)
 
-        self.component_map = self.instantiate_rig_components()
-        self.components_load_bone_infos(self.component_map, self.metarig)
+        self.generate_abstraction_layer(context)
         focus_select_obj(context, self.target_rig)
 
         bpy.ops.object.mode_set(mode='EDIT')
 
-        self.components_create_bone_infos(context)
         self.components_create_interactions(context)
         if self.root_bone_info:
             self.parent_orphan_bone_infos_to_root()
@@ -403,6 +383,34 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         self.restore_rig_states(context)
 
+    @staticmethod
+    def build_component_pbone_order(metarig: Object, pbone_subset: list[PoseBone]=[]) -> list[PoseBone]:
+        """Return those Pose Bones of a metarig which have Rig Components assigned,
+        ordered in the desired generation order."""
+        metarig.cloudrig.refresh_generation_order()
+        if not pbone_subset:
+            pbone_subset = metarig.pose.bones[:]
+
+        return [
+            pb
+            for pb in sorted(
+                metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
+            )
+            if pb.cloudrig_component.component_type
+            and pb.cloudrig_component.is_enabled_component
+            and pb in pbone_subset
+        ]
+
+    def generate_abstraction_layer(self, context, comp_pbone_subset: list[PoseBone]=[]):
+        """Generate the virtual bones by instantiating the rig components of passed Pose Bones,
+        and calling their create_bone_infos() function.
+        Note: This function can be called from pretty much any context!!
+        That's very deliberate, as this is used by the overlay drawing code!!
+        """
+        self.component_map = self.instantiate_rig_components(comp_pbone_subset)
+        self.components_load_bone_infos(self.component_map, self.metarig)
+        self.components_create_bone_infos(context)
+
     ### Early generation steps.
     def ensure_widget_collection(self, context) -> Collection:
         """Create the collection where bone shapes will be linked to."""
@@ -414,28 +422,21 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         return self.params.widget_collection
 
-    def instantiate_rig_components(self) -> dict[str, Component_Base]:
+    def instantiate_rig_components(self, comp_pbone_subset: list[PoseBone]=[]) -> dict[str, "Component_Base"]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
-        self.metarig.cloudrig.refresh_generation_order()
 
-        component_bones_ordered = [
-            pb
-            for pb in sorted(
-                self.metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
-            )
-            if pb.cloudrig_component.component_type
-            and pb.cloudrig_component.is_enabled_component
-        ]
+        pbones_ordered = self.build_component_pbone_order(self.metarig, comp_pbone_subset)
 
         comp_map = OrderedDict()
-        for pb in component_bones_ordered:
+        for pb in pbones_ordered:
             parent_component_rna = pb.cloudrig_component.parent
             parent_component = None
             if parent_component_rna:
                 parent_component = comp_map.get(parent_component_rna.base_bone_name)
-                assert (
-                    parent_component
-                ), "Error: Parent should've been instantiated already! Are we not looping hierarchically?"
+                if not self.painter:
+                    assert (
+                        parent_component
+                    ), "Error: Parent should've been instantiated already! Are we not looping hierarchically?"
 
             comp_instance = pb.cloudrig_component.instantiate(
                 generator=self, parent_component=parent_component
@@ -456,16 +457,16 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return comp_map
 
     def ensure_root_bone_component(self, context, metarig, root_name='root'):
-        if root_name in metarig.data.edit_bones:
-            edit_bone = metarig.data.edit_bones[root_name]
-            if edit_bone.parent:
-                self.logger.log("Root Bone has a parent!", base_bone_name=edit_bone.parent.name, description="If you've added an additional root parent, make sure to set that as the Root Bone under the Generation panel")
+        if root_name in metarig.data.bones:
+            bone = metarig.data.bones[root_name]
+            if bone.parent:
+                self.logger.log("Root Bone has a parent!", base_bone_name=bone.parent.name, description="If you've added an additional root parent, make sure to set that as the Root Bone under the Generation panel")
             return metarig.pose.bones[root_name]
 
+        bpy.ops.object.mode_set(mode='EDIT')
         edit_bone = ensure_ebone(metarig, root_name)
         name = edit_bone.name
         bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.ops.object.mode_set(mode='EDIT')
 
         pose_bone = metarig.pose.bones[name]
         pose_bone.rotation_mode = 'XYZ'
@@ -475,7 +476,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return pose_bone
 
     ### Main generation steps.
-    def components_load_bone_infos(self, component_map, metarig):
+    def components_load_bone_infos(self, component_map: dict[str, "Component_Base"], metarig):
         """While in edit mode (so we can access as much data as possible)
         let all rig components populate their initial BoneInfo instances.
         """
@@ -483,22 +484,25 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         bone_infos = {}
 
         for bone_name, component in component_map.items():
-            if hasattr(component, 'base__load_metarig_bones'):
-                bone_infos.update(component.base__load_metarig_bones())
+            bone_infos.update(component.base__load_metarig_bones())
 
         # Parent has to be stored in a separate loop, after all BoneInfos are loaded.
         for bone_name, bone_info in bone_infos.items():
-            ebone = metarig.data.edit_bones.get(bone_name)
-            if ebone.parent:
-                parent_bone_info = bone_infos.get(ebone.parent.name)
+            bone = metarig.data.bones.get(bone_name)
+            if bone.parent:
+                parent_bone_info = bone_infos.get(bone.parent.name)
                 if parent_bone_info:
                     bone_info.parent = parent_bone_info
                 else:
-                    # This could be supported, but for now, this feels better for code maintainability,
-                    # so that BoneInfo._parent doesn't have to support strings as parents.
-                    # Alternatively, we could create BoneInfo instances of the component-less parent bone,
-                    # implicitly giving it a Bone Copy behaviour.
-                    self.raise_generation_error(f'Parent of "{bone_info.name}" is "{ebone.parent.name}", which is not part of any rig component. Assign it at least a "Bone Copy" component type.')
+                    # Parent as a string is not supported.
+                    # Set it to None for overlay drawing.
+                    bone_info.parent = None
+                    # If this happens during real generation, raise error.
+                    self.raise_generation_error(
+                        f'Parent of "{bone_info.name}" is "{bone.parent.name}", '
+                        'which is not part of any rig component. '
+                        'Assign it at least a "Bone Copy" component type.'
+                    )
 
     def components_create_bone_infos(self, context):
         """Create BoneInfos that will get turned into real bones later."""
@@ -569,10 +573,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         so that parenting can be done without worrying about order.
         """
 
-        for bone_info in self.bone_infos_sorted_by_roll_dependency:
+        for bone_info in self.bone_infos:
             edit_bone = self.target_rig.data.edit_bones.get(bone_info.name)
             bone_info.write_edit_data(self, edit_bone)
 
+    @no_overlay
     def components_create_helper_objs(self, context):
         """Called in Object mode once bones have been created and placed."""
         for component in self.all_components:
@@ -779,14 +784,24 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_actions()
 
 def parent_orphans(rig: Object, root_name: str):
+    def is_orphan(bone):
+        pbone = rig.pose.bones[bone.name]
+        if bone.parent:
+            return False
+        if any((con for con in pbone.constraints if con.type in ('ARMATURE', 'CHILD_OF'))):
+            return False
+        return True
+
+    orphan_bones = [b for b in rig.data.bones if is_orphan(b)]
+    if not orphan_bones:
+        return
+
+    bpy.ops.object.mode_set(mode='EDIT')
     root_ebone = rig.data.edit_bones[root_name]
-    for ebone in rig.data.edit_bones:
-        if ebone.parent or ebone == root_ebone:
-            continue
-        pbone = rig.pose.bones[ebone.name]
-        if any((con for con in pbone.constraints if con.type == 'ARMATURE')):
-            continue
-        ebone.parent = root_ebone
+    for orphan_bone in orphan_bones:
+        orphan_ebone = rig.data.edit_bones[orphan_bone.name]
+        orphan_ebone.parent = root_ebone
+    bpy.ops.object.mode_set(mode='OBJECT')
 
 def ensure_cloudrig_ui(rig):
     """Load and execute cloudrig.py rig UI script."""
@@ -857,9 +872,6 @@ def create_target_rig_obj(context, metarig) -> Object:
     target_rig.data['generation_date'] = date
     target_rig.data['generation_time'] = timestamp
 
-    # By default, use B-Bone display type.
-    target_rig.data.display_type = 'BBONE'
-
     # Copy debug viewport display settings from the metarig, usually used for debugging.
     target_rig.data.show_names = metarig.data.show_names
     target_rig.show_in_front = metarig.show_in_front
@@ -872,7 +884,11 @@ def create_target_rig_obj(context, metarig) -> Object:
     # Relink any drivers.
     if target_rig.data.animation_data:
         for src_driver in target_rig.data.animation_data.drivers:
+            relink_real_driver(metarig, target_rig, src_driver)
             relink_real_driver(metarig.data, target_rig.data, src_driver)
+
+    # Disable X-Mirror.
+    target_rig.data.use_mirror_x = False
 
     return target_rig
 

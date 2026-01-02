@@ -8,6 +8,7 @@ from mathutils import Vector
 
 from ..bs_utils.ui import label_split
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.rig import calculate_ik_pole_vector, is_ideal_ik_chain
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -16,7 +17,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
     """IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
     ui_name = "Chain: IK"
-    # Strings to try to communicate obscure behaviours of this component type in the params UI.
     parent_switch_behaviour = "The active parent will own the IK and POLE controls."
     parent_switch_overwrites_root_parent = False
     always_use_custom_props = True
@@ -48,6 +48,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.ik_controls = []  # Used for creating Gizmo Interaction Data.
 
+    @no_overlay
     def base__apply_parent_switching(
         self,
         *,
@@ -73,6 +74,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         if self.params.ik_chain.use_pole:
             self.ik_chain__make_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
 
+    @no_overlay
     def rig_ui__add_bone_property(self, operator="", op_kwargs={}, **kwargs):
         # TODO: This should be restructured, we shouldn't be overriding this function.
 
@@ -85,6 +87,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             operator=operator, op_kwargs=op_kwargs, **kwargs
         )
 
+    @no_overlay
     def gizmos__add_interactions(self):
         if "operator" not in self.ui_data:
             return
@@ -108,6 +111,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             bone_names=ik_names, operator=op_name, op_kwargs=op_kwargs
         )
 
+    @no_overlay
     def fk_chain__add_test_animation(
         self, action: Action, slot: ActionSlot, start_frame=1, flip_xyz=[False, False, False]
     ) -> int:
@@ -135,6 +139,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             )
 
         self.last_org = self.bones_org[-1]
+
         if self.params.ik_chain.at_tip:
             # TODO: This feels very criminal, do we really need it?
             self.bones_org.new(
@@ -144,6 +149,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 vector=self.last_org.vector,
             )
         self.ik_chain__make_ik_setup()
+
         if self.params.ik_chain.world_aligned:
             self.ik_chain__world_align_fk()
 
@@ -215,8 +221,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     def __store_ik_info(self):
         """Calculate pole angle, pole control direction and distance."""
-        meta_first = self.get_metarig_pbone(self.bones_org[0].name)
-        meta_second = self.get_metarig_pbone(self.bones_org[1].name)
+        meta_first = self.bones_org[0]
+        meta_second = self.bones_org[1]
 
         pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(
             meta_first, meta_second
@@ -228,20 +234,17 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     def __make_pole_control(self):
         # Create IK Pole Control
-        tail = self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2
         pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
             name=self.naming.make_name(["POLE"], self.limb_name, [self.side_suffix]),
             bbone_width=0.1,
             head=self.pole_location,
-            tail=tail,
-            roll_type="VECTOR",
-            roll_vector=Vector((0, 0, -1)),
-            roll=0,
+            tail=self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2,
             custom_shape_name=self.params.ik_chain.shape_pole.shape_name,
-            custom_shape_scale=0.5,
             inherit_scale="AVERAGE",
+            display_type='OCTAHEDRAL',
             use_custom_shape_bone_size=True,
         )
+        pole_ctrl.roll_align_vector(self.bones_org[0].head)
         self.ik_controls.append(pole_ctrl)
         self.lock_transforms(pole_ctrl, loc=False)
 
@@ -251,10 +254,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,
             hide_select=True,
-            roll_type="ALIGN",
-            roll_bone=pole_ctrl,
-            roll=0,
             custom_shape_name="Line",
+            display_type='STICK',
             use_custom_shape_bone_size=True,
         )
         pole_line.add_constraint(
@@ -294,6 +295,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             if i == 0:
                 ik_bone.parent = self.root_bone
                 ik_bone.custom_shape_name = self.params.ik_chain.shape_ik_first.shape_name
+                ik_bone.custom_shape_translation = Vector((0, 0, 0))
+                ik_bone.custom_shape_scale_xyz = Vector((1, 1, 1))
+                ik_bone.custom_shape_rotation_euler = Vector((0, 0, 0))
                 self.ik_controls.append(ik_bone)
             else:
                 ik_bone.parent = ik_chain[-2]
@@ -313,19 +317,13 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 if self.params.ik_chain.world_aligned:
                     ik_mstr.flatten()
 
-        ik_chain[0].custom_shape_scale_xyz = ik_chain[
-            0
-        ].custom_shape_scale_xyz.copy()  # TODO: This shouldn't be needed! Otherwise it seems all bones in this rig use a single vector.
-        ik_chain[0].custom_shape_scale_xyz.y = ik_chain[0].length / (
-            ik_chain[0].bbone_width * 10 * self.scale
-        )  # This is awkward, but it's a drawback of the BBone Display Size==widget size system: We basically want a single value to not use the system here, so we un-multiply it.
         return ik_chain
 
+    @no_overlay
     def __make_ik_stretch(self):
         """Primary function that starts the entire Stretchy IK set-up.
         Some extra stuff is in __attach_org_to_ik. # TODO: Put these things under a parameter, so IK Stretch can be disabled when not needed.
         """
-
         ik_org_bone = self.bones_org[self.chain_count]
         stretch_bone = self.bone_sets["IK Mechanism"].new(
             name=self.naming.add_prefix(self.bones_org[0], "IK-STR"),
@@ -398,6 +396,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         return stretch_bone
 
+    @no_overlay
     def __make_ik_stretch_helpers(self, stretch_bone, chain_length):
         """Set up transformation constraint to mid-limb STR bone that ensures
         that it stays in between the root of the limb and the IK master
@@ -477,6 +476,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
             copyloc.drivers.append(dict(ik_stretch_engaged_driver))
 
+    @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
         if (
             self.params.parenting.parent_switching
@@ -525,6 +525,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             },
         )
 
+    @no_overlay
     def ik_chain__world_align_fk(self):
         # Make last FK bone world-aligned.
         self.ik_chain__world_aligned_helper(self.last_org.fk_bone)
@@ -544,6 +545,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         fk_bone.flatten()
         return world_bone
 
+    @no_overlay(return_value={})
     def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
         """Return UI data to be stored for FK/IK switching and snapping."""
 
@@ -583,6 +585,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             },
         }
 
+    @no_overlay
     def __attach_org_to_ik(self):
         # Note: Runs after fk_chain__attach_org_to_fk().
 
@@ -606,6 +609,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 }
             )
 
+    @no_overlay
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         """Tweak the IK Pole control's constraint to support parent switching."""
 
@@ -699,6 +703,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         if params.ik_chain.use_pole:
             cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
         return layout
+
+
 
 class Params(PropertyGroup):
     at_tip: BoolProperty(

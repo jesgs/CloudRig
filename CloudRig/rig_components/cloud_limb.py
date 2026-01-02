@@ -8,7 +8,7 @@ from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
-from ..utils.rig import calculate_ik_pole_vector
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_ik_chain import Component_Chain_IKFK
 
 
@@ -45,6 +45,7 @@ class Component_Limb(Component_Chain_IKFK):
                 self.bones_org[0], self.bones_org[1], upper_section, lower_section
             )
 
+    @no_overlay
     def base__apply_parent_switching(
         self,
         *,
@@ -69,11 +70,12 @@ class Component_Limb(Component_Chain_IKFK):
             entry_name=entry_name,
         )
 
-    def base__create_properties_bone(self) -> BoneInfo:
+    def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
         """Place the properties bone near the end of the limb, parented to the last original bone."""
-        source = self.bones_org[0]
-        if self.params.custom_props.props_storage == 'GENERATED':
-            source = self.bones_org[-1]
+        if not source:
+            source = self.bones_org[0]
+            if self.params.custom_props.props_storage == 'GENERATED':
+                source = self.bones_org[-1]
         return super().base__create_properties_bone(source=source)
 
     def toon__get_num_segments_of_section(self, org_bone: BoneInfo) -> int:
@@ -131,13 +133,15 @@ class Component_Limb(Component_Chain_IKFK):
 
         return ik_master
 
+    @no_overlay
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         if self.params.limb.double_ik:
             ik_mstr = ik_mstr.parent
 
         super().ik_chain__make_pole_parent_switch(ik_pole, ik_mstr)
 
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+    @no_overlay(return_value={})
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
         ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
@@ -154,6 +158,7 @@ class Component_Limb(Component_Chain_IKFK):
     ##############################
     # Limb functions.
 
+    @no_overlay
     def __counter_rotate_first_str(self, str_chain: list[BoneInfo]):
         """Counter-Rotate constraint for the first main STR bone.
         This is so that the twisting fades in starting at the shoulder, towards the elbow.
@@ -204,6 +209,8 @@ class Component_Limb(Component_Chain_IKFK):
         if self.params.limb.auto_hose_control:
             # Create control bone
             control_bone = self.__make_rubber_hose_control(org_lower)
+            if self.painter:
+                return
             self.properties_bone.custom_props[prop_name] = {'default': 0.0}
             self.properties_bone.drivers.append(
                 {
@@ -224,6 +231,8 @@ class Component_Limb(Component_Chain_IKFK):
                 }
             )
         else:
+            if self.painter:
+                return
             # Don't create a control bone, instead just add a slider in the UI.
             self.rig_ui__add_bone_property(
                 prop_bone=self.properties_bone,
@@ -247,24 +256,23 @@ class Component_Limb(Component_Chain_IKFK):
         )
 
     def __make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
+        head = (
+            org_lower.head
+            + self.pole_vector.normalized() * org_lower.length * 0.3
+        )
         control_bone = self.bone_sets['FK Controls Extra'].new(
             name=self.naming.add_prefix(org_lower, "RubberHose"),
             source=org_lower,
             parent=org_lower,
+            head=head,
+            vector=org_lower.vector * 0.3,
             custom_shape_name=self.params.limb.shape_rubberhose.shape_name,
         )
 
-        # Shift it towards the IK pole or where it would be.
-        new_loc = (
-            control_bone.head
-            + self.pole_vector.normalized() * org_lower.bbone_width * self.scale * 6
-        )
-        control_bone.head = new_loc
-        control_bone.vector = org_lower.vector * 0.3
-        control_bone.custom_shape_scale = 0.4
-        control_bone.roll_type = 'ALIGN'
-        control_bone.roll_bone = org_lower
-        control_bone.roll = rad(90)
+        control_bone.roll_align_vector(org_lower.head)
+        if self.painter:
+            return
+
         self.lock_transforms(control_bone, scale=[True, False, True])
         control_bone.add_constraint(
             'LIMIT_SCALE', use_max_y=True, max_y=2, use_min_y=True, min_y=1
@@ -283,6 +291,7 @@ class Component_Limb(Component_Chain_IKFK):
 
         return control_bone
 
+    @no_overlay
     def __make_rubber_hose_constraints(
         self,
         org_upper: BoneInfo,
@@ -495,19 +504,6 @@ class Component_Limb(Component_Chain_IKFK):
         if params.limb.auto_hose:
             layout.separator()
             cls.draw_prop_custom_shape(context, layout, params.limb, 'shape_rubberhose')
-
-    ##############################
-    # Overlay
-    @classmethod
-    def draw_overlay(cls, context, buffer):
-        active_pb = context.active_pose_bone
-        rig_chain = cls.find_component_chain_of_pbone(active_pb)
-
-        _ik_angle, _pole_direction, pole_location = calculate_ik_pole_vector(
-            rig_chain[0], rig_chain[1]
-        )
-
-        buffer.draw_line_3d(rig_chain[0].tail, pole_location)
 
 
 class Params(PropertyGroup):

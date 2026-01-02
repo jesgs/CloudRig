@@ -51,11 +51,6 @@ class Component_CopyBone(Component_Base):
         super().create_bone_infos(context)
 
         for pbone, bone_info in zip(self.get_component_pbone_chain(), self.bones_org):
-            if (not bone_info.use_custom_shape_bone_size):
-                bone_info.custom_shape_scale_xyz /= (
-                    bone_info.bbone_width * 10 * self.scale
-                )
-
             # NOTE: Custom colors are deliberately not supported here.
             for color, prop_name in zip([pbone.bone.color, pbone.color], ["color_palette_base", "color_palette_pose"]):
                 if color.palette == 'DEFAULT':
@@ -111,9 +106,7 @@ class Component_CopyBone(Component_Base):
             'COPY_LOCATION', subtarget=pivot, invert_xyz=[True, True, True]
         )
         pivot.custom_shape_name = self.params.copy.shape_pivot.shape_name
-        pivot.custom_shape_scale_xyz = Vector(
-            [max(boneinfo.custom_shape_scale_xyz)] * 3
-        )
+        pivot.custom_shape_scale_xyz = Vector([max(boneinfo.custom_shape_scale_xyz)] * 3)
         pivot.custom_shape_translation = (0, 0, 0)
         pivot.custom_shape_rotation_euler = (0, 0, 0)
         pivot.collections = boneinfo.collections

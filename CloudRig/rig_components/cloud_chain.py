@@ -2,9 +2,12 @@
 
 from bpy.props import BoolProperty, FloatProperty, IntProperty
 from bpy.types import PropertyGroup
+from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.bone_set import BoneSet
+from ..rig_component_features.overlay_painter import no_overlay
+from ..utils.maths import lerp
 from .cloud_base import Component_Base
 
 
@@ -28,11 +31,9 @@ class Component_ToonChain(Component_Base):
         self.main_str_bones: list[BoneInfo]
         self.str_chain: list[BoneInfo]
         self.tangent_helpers: list[BoneInfo]
-        self.def_bones_of_org: dict[BoneInfo, list[BoneInfo]]
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
-        self.def_bones_of_org = {org: [] for org in self.bones_org}
 
         self.is_cyclic = self.toon__is_cyclic()
 
@@ -179,12 +180,11 @@ class Component_ToonChain(Component_Base):
             name=str_name,
             source=org_bone,
             vector=direction,
-            roll=0,
-            roll_type='ALIGN',
-            roll_bone=org_bone or org_bone.prev,
             length=org_bone.length / segments / 3,
-            custom_shape_scale=-self.params.chain.shape_size,
-            display_type='STICK',
+            use_custom_shape_bone_size = False,
+            custom_shape_translation=Vector((0, 0, 0)),
+            custom_shape_rotation_euler=Vector((0, 0, 0)),
+            custom_shape_scale=org_bone.length * self.params.chain.shape_size,
             parent=org_bone,
         )
         if at_tip:
@@ -193,8 +193,10 @@ class Component_ToonChain(Component_Base):
 
         if not self.is_cyclic and org_bone == self.bones_org[0] or at_tip:
             main_str.custom_shape_name = self.params.chain.shape_stretch_ends.shape_name
+            main_str.custom_shape_scale_xyz.y *= -1
         else:
             main_str.custom_shape_name = self.params.chain.shape_stretch.shape_name
+        main_str.roll_align_other(org_bone)
 
         parent_helper = self.create_parent_bone(main_str, bone_set=self.bones_mch)
         parent_helper.add_constraint('ARMATURE', subtarget=parent_helper.parent)
@@ -274,6 +276,9 @@ class Component_ToonChain(Component_Base):
         vector = main_end.head - main_start.head
         unit = vector / num_segments
 
+        influence_unit = 1 / num_segments
+        factor = index * influence_unit
+
         sub_str = self.bone_sets['Stretch Controls'].new(
             name=sub_str_name,
             source=org_bone,
@@ -281,22 +286,26 @@ class Component_ToonChain(Component_Base):
             head=main_start.head + (unit * index),
             length=vector.length / num_segments / 2,
             custom_shape_name=self.params.chain.shape_stretch.shape_name,
-            custom_shape_scale=-self.params.chain.shape_size*0.66,
+            custom_shape_scale_xyz = Vector((1, 1, 1)),
+            custom_shape_scale=lerp(main_start.custom_shape_scale, main_end.custom_shape_scale, factor)*0.75,
+            custom_shape_translation=Vector((0, 0, 0)),
+            custom_shape_rotation_euler=Vector((0, 0, 0)),
+            use_custom_shape_bone_size=False,
             inherit_scale='AVERAGE',
         )
         sub_str.parent = self.__make_sub_str_helper(
-            sub_str, main_start, main_end, num_segments, index
+            sub_str, main_start, main_end, factor
         )
 
         return sub_str
 
+    @no_overlay
     def __make_sub_str_helper(
         self,
         sub_str: BoneInfo,
         main_start: BoneInfo,
         main_end: BoneInfo,
-        num_segments: int,
-        index: int,
+        factor: float,
     ) -> BoneInfo:
         """Create STR-H bones that keep STR controls between two main STR controls."""
         str_h_bone = self.bone_sets['Stretch Helpers'].new(
@@ -311,9 +320,7 @@ class Component_ToonChain(Component_Base):
         )
         sub_str.parent = str_h_bone
 
-        influence_unit = 1 / num_segments
-        influence = index * influence_unit
-        self.constrain_between_bones(str_h_bone, main_start, main_end, influence)
+        self.constrain_between_bones(str_h_bone, main_start, main_end, factor)
         str_h_bone.add_constraint(
             'LIMIT_SCALE',
             name="Limit Scale: Ignore Y (BBone Easing)",
@@ -324,6 +331,7 @@ class Component_ToonChain(Component_Base):
         )
         return str_h_bone
 
+    @no_overlay
     def __make_tangent_helpers(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
         """Create tangent helpers for each STR bone."""
         tangent_helpers = []
@@ -350,9 +358,6 @@ class Component_ToonChain(Component_Base):
             name=self.naming.add_prefix(str_bone, "TAN"),
             source=str_bone,
             parent=str_bone.parent,  # For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
-            roll=0,
-            roll_type='ALIGN',
-            roll_bone=str_bone,
             length=str_bone.length * 0.2,
             bbone_width = str_bone.bbone_width * 1.5,
         )
@@ -407,6 +412,7 @@ class Component_ToonChain(Component_Base):
 
         return handle_bone
 
+    @no_overlay
     def toon__make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
         """Create a deform chain stretching from one STR bone to the next."""
 
@@ -444,8 +450,6 @@ class Component_ToonChain(Component_Base):
                 # So, we just parent it.
                 def_bone.parent = str_bone
 
-            self.def_bones_of_org[org_bone].append(def_bone)
-
             if self.params.chain.unlock_deform:
                 self.__make_def_control(str_bone, def_bone)
 
@@ -462,6 +466,7 @@ class Component_ToonChain(Component_Base):
 
         return self.bones_def
 
+    @no_overlay
     def __setup_def_bone(
         self,
         def_bone: BoneInfo,
@@ -664,6 +669,7 @@ class Component_ToonChain(Component_Base):
 
         return def_bone_control
 
+    @no_overlay
     def __make_shape_key_helper(
         self, def_bone_1: BoneInfo, def_bone_2: BoneInfo
     ) -> BoneInfo:
@@ -702,8 +708,6 @@ class Component_ToonChain(Component_Base):
             head=def_bone_2.head.copy(),
             tail=def_bone_2.tail.copy(),
             parent=skp_bone,
-            roll_type='ALIGN',
-            roll_bone=def_bone_1,
         )
         skh_bone.scale_width(2)
         skh_bone.scale_length(0.4)
@@ -733,10 +737,16 @@ class Component_ToonChain(Component_Base):
         if not can_connect:
             return
 
+        last_str = parent_component.str_chain[-1]
+        last_str.next = self.str_chain[0]
+        last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
+
+        if self.painter:
+            return
+
         tip_control_bkp = parent_component.params.chain.tip_control
         parent_component.params.chain.tip_control = True
         last_def = parent_component.bones_def[-1]
-        last_str = parent_component.str_chain[-1]
         last_org = parent_component.bones_org[-1]
         parent_component.__setup_def_bone(
             def_bone=last_def,
@@ -751,8 +761,6 @@ class Component_ToonChain(Component_Base):
             parent_component.bones_def[-1].bbone_easeout = 0
             self.bones_def[0].bbone_easein = 0
 
-        last_str.next = self.str_chain[0]
-        last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
         if (
             self.params.chain.shape_key_helpers
             or parent_component.params.chain.shape_key_helpers

@@ -18,6 +18,7 @@ from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
 from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
 from .generation.cloud_generator import GeneratorProperties
+from .rig_component_features.mechanism import get_component_pbone_chain
 from .utils.rig import get_parentless_pbones
 
 
@@ -370,6 +371,17 @@ class RigComponent(PropertyGroup):
             if parent.cloudrig_component.component_type:
                 return parent
             parent = parent.parent if parent.bone.use_connect else None
+
+    @property
+    def inherited_component(self) -> RigComponent | None:
+        comp_pbone = self.component_pbone
+        if not comp_pbone:
+            return
+        return comp_pbone.cloudrig_component
+
+    @property
+    def component_pbone_chain(self) -> list[PoseBone]:
+        return get_component_pbone_chain(self.component_pbone)
 
     def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
         if not self.component_class:

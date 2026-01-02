@@ -5,6 +5,10 @@ from math import atan2
 from mathutils import Vector
 
 
+def lerp(a, b, t):
+    return a + (b - a) * t
+
+
 def bounding_box(points: list[Vector]) -> tuple[Vector, Vector]:
     """Return two vectors representing the lowest and highest coordinates of
     the bounding box of the passed points.
@@ -20,6 +24,11 @@ def bounding_box(points: list[Vector]) -> tuple[Vector, Vector]:
                 highest[i] = p[i]
 
     return lowest, highest
+
+
+def bounding_box_diagonal_size(points: list[Vector]) -> float:
+    low, high = bounding_box(points)
+    return (high-low).length
 
 
 def bounding_box_center(points: list[Vector]) -> Vector:

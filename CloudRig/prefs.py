@@ -66,10 +66,10 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     # This should get a version bump whenever there is a change that affects metarigs.
     # For example, changing names of component types, splitting an old component type into multiple,
     # changing names of parameters, etc.
-    cloud_metarig_version = 6
+    cloud_metarig_version = 7
 
     # List of property names to not write to disk.
-    omit_from_disk: list[str] = ["component_types", "widget_names"]
+    omit_from_disk: list[str] = ["component_types", "widget_names", "overlay_eval_time"]
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
@@ -113,6 +113,28 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default='APPEND',
         description="Whether custom shapes should be linked or appended",
         update=update_prefs_on_file,
+    )
+
+    overlay_mode: EnumProperty(
+        name="Overlay Mode",
+        description="Which components should have rig preview rendered. May affect performance when transforming metarig bones",
+        items=[
+            ('NONE', "None", "No rig preview. No performance cost."),
+            ('ACTIVE', "Active", "Preview active bone's component. Minimal performance impact"),
+            ('SELECTED', "Selected", "Preview components of selected bones. Performance impact depends on selection."),
+            ('CHILDREN', "Selected + Children", "Preview components of selected bones & their children. Performance impact may be noticable."),
+            ('VISIBLE', "Visible", "Preview all visible bones' components. Maximum performance impact."),
+        ],
+        default='SELECTED',
+    )
+    is_dashed: BoolProperty(
+        name="Dashed",
+        default=True,
+        description="Dashed lines for the rig preview. Bit more expensive to draw."
+    )
+    overlay_eval_time: FloatProperty(
+        name="Overlay Evaluation Time",
+        description="The overlay drawing time can be a bit slow. This value shows how long it took last time, in miliseconds."
     )
 
     def draw(self, context):

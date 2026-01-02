@@ -2,13 +2,13 @@
 
 import bpy
 from bl_ui.properties_data_bone import BONE_PT_display
-from bpy.props import BoolProperty, EnumProperty
+from bpy.props import EnumProperty
 from bpy.types import Menu, Operator, PoseBone
 from mathutils import Matrix
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..bs_utils.prefs import get_addon_prefs
-from ..generation.cloudrig import find_metarig_of_rig
+from ..generation.cloudrig import find_metarig_of_rig, is_cloud_metarig
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.widgets.widgets import (
     ensure_widget,
@@ -417,18 +417,44 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         layout = self.layout.column()
         layout.use_property_decorate = False
         layout.use_property_split = True
+        layout.label(text="Bone Display Properties")
         pbone = context.active_pose_bone
         bone = pbone.bone
 
         if not (pbone and bone):
             return
 
+        if is_cloud_metarig(pbone.id_data):
+            # If we are editing a Metarig, the logical properties to draw are a bit different.
+            component = pbone.cloudrig_component.inherited_component
+            if component and component.component_class.__name__ not in ('Component_CopyBone', 'Component_TweakBone'):
+                self.draw_cloudrig_settings(context, layout, pbone)
+                return
         self.draw_bone_color_settings(layout, pbone)
         layout.separator()
         self.draw_bone_shape_settings(layout, pbone)
 
-    def draw_bone_color_settings(self, layout, pbone):
-        layout.separator()
+    def draw_cloudrig_settings(self, context, layout, pbone: PoseBone):
+        header, panel = layout.panel("CloudRig Bone Display Active Bone")
+        header.label(text="Active Bone")
+        if panel:
+            self.draw_bone_shape_settings(
+                layout,
+                pbone,
+                custom_shape=False,
+                display_type=False,
+                override_transform=False,
+                bone_size=False,
+            )
+
+        header, panel = layout.panel("CloudRig Bone Display Bone Sets")
+        header.label(text="Bone Sets")
+        if panel:
+            component = pbone.cloudrig_component.inherited_component
+            comp_class = component.component_class
+            comp_class.draw_bone_set_params(panel, context, component.params, only_colors=True)
+
+    def draw_bone_color_settings(self, layout, pbone: PoseBone):
         row = layout.row(align=True)
         row.prop(pbone.bone.color, "palette", text="Bone Color")
         props = row.operator("armature.copy_bone_color_to_selected", text="", icon='UV_SYNC_SELECT')
@@ -441,26 +467,50 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         props.bone_type = 'POSE'
         self.draw_bone_color_ui(layout, pbone.color)
 
-    def draw_bone_shape_settings(self, layout, pbone):
-        layout.prop(pbone, "custom_shape", text="Custom Shape Object")
+    def draw_bone_shape_settings(
+            self,
+            layout,
+            pbone: PoseBone,
+            custom_shape=True,
+            display_type=True,
+            override_transform=True,
+            force_wire=True,
+            transforms=True,
+            bone_size=True,
+            wire_width=True
+        ):
+        if custom_shape:
+            layout.prop(pbone, "custom_shape", text="Custom Shape Object")
 
-        if not pbone.custom_shape:
-            layout.prop(pbone.bone, "display_type", text="Display As")
-            return
+        if display_type:
+            if not pbone.custom_shape:
+                layout.prop(pbone.bone, "display_type", text="Display As")
+                return
 
-        layout.prop_search(pbone, "custom_shape_transform", pbone.id_data.pose, "bones", text="Override Transform")
-        if pbone.custom_shape.type != 'MESH' or len(pbone.custom_shape.data.polygons) > 0:
-            layout.prop(pbone.bone, "show_wire", text="Force Wireframe")
+        if override_transform:
+            layout.prop_search(pbone, "custom_shape_transform", pbone.id_data.pose, "bones", text="Override Transform")
+            if pbone.custom_shape_transform:
+                layout.prop(pbone, "use_transform_at_custom_shape", text="Affect Gizmo")
+                if pbone.use_transform_at_custom_shape:
+                    layout.prop(pbone, "use_transform_around_custom_shape", text="Use As Pivot")
 
-        layout.prop(pbone, "custom_shape_translation", text="Translation")
-        layout.prop(pbone, "custom_shape_rotation_euler", text="Rotation")
-        layout.prop(pbone, "custom_shape_scale_xyz", text="Scale")
+        if force_wire:
+            if pbone.custom_shape and (pbone.custom_shape.type != 'MESH' or len(pbone.custom_shape.data.polygons) > 0):
+                layout.prop(pbone.bone, "show_wire", text="Force Wireframe")
 
-        length = pbone.bone.length
-        layout.prop(pbone, "use_custom_shape_bone_size", text=f"Scale to Bone Length (x{length:.2f})")
+        if transforms:
+            layout.prop(pbone, "custom_shape_translation", text="Translation")
+            layout.prop(pbone, "custom_shape_rotation_euler", text="Rotation")
+            layout.prop(pbone, "custom_shape_scale_xyz", text="Scale")
+
+        if bone_size:
+            length = pbone.bone.length
+            layout.prop(pbone, "use_custom_shape_bone_size", text=f"Scale to Bone Length (x{length:.2f})")
+
         layout.separator()
 
-        layout.prop(pbone, "custom_shape_wire_width")
+        if wire_width:
+            layout.prop(pbone, "custom_shape_wire_width")
 
     def execute(self, context):
         return {'FINISHED'}

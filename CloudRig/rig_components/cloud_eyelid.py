@@ -60,10 +60,8 @@ class Component_Eyelid(Component_FaceChain):
                 source=eye_bone,
                 tail=str_ctr.head.copy(),
                 parent=str_ctr.parent,
-                roll_type='ALIGN',
-                roll_bone=eye_bone,
-                roll=0,
             )
+            rot_ctr.roll_align_other(eye_bone)
             str_ctr.parent = rot_ctr
             copyrot_x = rot_ctr.add_constraint(
                 'COPY_ROTATION',

@@ -9,12 +9,14 @@ from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import label_split
 from ..generation.cloudrig import is_cloud_metarig
 from .bone_info import BoneInfo, ensure_custom_property
+from .overlay_painter import no_overlay
 from .properties_ui import add_property_to_ui
 
 
 class CloudUIMixin:
     forced_params = dict()
 
+    @no_overlay
     def rig_ui__add_bone_property(
         self,
         prop_bone: BoneInfo,

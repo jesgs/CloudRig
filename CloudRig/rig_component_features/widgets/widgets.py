@@ -25,6 +25,10 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
     if not wgt_obj_name.startswith("WGT-"):
         wgt_obj_name = "WGT-" + wgt_name
 
+    old_wgt_ob = bpy.data.objects.get(wgt_obj_name)
+    if old_wgt_ob and not overwrite:
+        return old_wgt_ob
+
     prefs = get_addon_prefs()
     if not prefs:
         return
@@ -47,10 +51,9 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
             lib_rel_path = lib_abs_path
         assert os.path.exists(lib_abs_path), f"Widgets.blend file not found: {lib_abs_path}"
 
-    old_wgt_ob = bpy.data.objects.get(wgt_obj_name)
     if old_wgt_ob:
-        if not overwrite or not lib_abs_path:
-            # Object exists and we either don't want to overwrite it, or it's not in any library to overwrite it from.
+        if not lib_abs_path:
+            # Object exists and we want to overwrite it, but it's not in any library to overwrite it from.
             return old_wgt_ob
         if old_wgt_ob.library:
             if prefer_linked:

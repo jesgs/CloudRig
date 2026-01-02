@@ -12,6 +12,7 @@ from . import (
     symmetrize,
     toggle_action_constraints,
     toggle_metarig,
+    scale_custom_shape,
 )
 
 modules = [
@@ -28,4 +29,5 @@ modules = [
     apply_bone_color_preset,
     pie_custom_shapes,
     render_thumbnail,
+    scale_custom_shape,
 ]

@@ -10,10 +10,10 @@ from . import (
 
 modules = [
     curve,
+    external,
     lattice,
     maths,
     misc,
-    rig,
     post_gen,
-    external,
+    rig,
 ]

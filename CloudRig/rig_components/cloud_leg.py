@@ -4,11 +4,12 @@ from math import pi
 from math import radians as rad
 
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import Bone, PropertyGroup
+from bpy.types import PoseBone, PropertyGroup
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.maths import flat
 from .cloud_limb import Component_Limb
 
@@ -43,26 +44,24 @@ class Component_Limb_BipedLeg(Component_Limb):
         super().create_bone_infos(context)
         self.__tweak_org_foot()
 
+        if self.painter:
+            return
         # Tweak foot bone's first DEF bone.
         foot_def = self.bones_def[-2]
         for d in foot_def.drivers:
             if d['prop'] == 'bbone_easein':
                 foot_def.drivers.remove(d)
 
-    def base__create_properties_bone(self) -> BoneInfo:
+    def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
         """Place the properties bone near where the foot IK will be,
         parented to the 2nd-to-last ORG bone.
         """
         properties_bone = super().base__create_properties_bone()
-        head, tail = self.__calc_footroll_headtail(
-            self.bones_org[1], self.bones_org[-1], self.scale
-        )
+        head, tail = self.__calc_footroll_headtail()
         properties_bone.head = head
         properties_bone.tail = tail
+        properties_bone.roll_align_vector(self.bones_org[-3].head)
         properties_bone.length *= 0.6
-        properties_bone.roll_type = 'ALIGN'
-        properties_bone.roll_bone = self.bones_org[-2]
-        properties_bone.roll = 0
         properties_bone.custom_shape_rotation_euler.z = pi / 2
         properties_bone.parent = self.bones_org[-2]
         return properties_bone
@@ -116,7 +115,8 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         return ik_master
 
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+    @no_overlay(return_value={})
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
         """Toe is not relevant for IK/FK switching."""
         fk_chain = fk_chain[:-1]
 
@@ -134,10 +134,12 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         return ui_data
 
+    @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, stretch_bone, default=0.0):
         """Let leg IK poles follow the IK master by default."""
         super().ik_chain__make_pole_follow_switch(ik_pole, ik_mstr, stretch_bone, 1.0)
 
+    @no_overlay
     def ik_chain__world_align_fk(self):
         """Make 2nd-to-last FK bone (ie. FK Foot) world-aligned."""
         self.ik_chain__world_aligned_helper(self.bones_org[-2].fk_bone)
@@ -147,51 +149,38 @@ class Component_Limb_BipedLeg(Component_Limb):
 
     def __create_foot_dsp(self, bone: BoneInfo):
         """Create display helper for the foot IK control."""
-        dsp_bone = self.create_dsp_bone(bone)
+        knee, foot, toe = self.bones_org[-3:]
 
-        # To get the position of the foot bone display helper,
-        # project a line out of the knee bone, then find the point on that line
-        # which is closest the toe bone's tail, lowered to the Z position of the
-        # heel bone if there is one and it is lower.
-        org_knee = self.bones_org[1]
-        org_toe = self.bones_org[-1]
-        shoe_tip = org_toe.tail.copy()
-        heel_pivot_bone = self.__get_heel_pivot_meta_bone()
-        if heel_pivot_bone.tail_local.z < shoe_tip.z:
-            shoe_tip.z = heel_pivot_bone.tail_local.z
-        intersect = intersect_point_line(shoe_tip, org_knee.head, org_knee.tail)[0]
+        dsp_bone = self.create_dsp_bone(
+            bone,
+            head=intersect_point_line(toe.tail, knee.head, knee.tail)[0],
+            tail=toe.tail.copy(),
+        )
+        dsp_bone.roll_align_vector(foot.head, axis='-Z')
 
-        dsp_bone.head = intersect
-        dsp_bone.tail = shoe_tip
-        dsp_bone.head.z = dsp_bone.tail.z
-        dsp_bone.length = 0.1 * self.scale
-        dsp_bone.roll_type = 'ALIGN'
-        dsp_bone.roll_bone = org_toe
-        dsp_bone.roll = pi if self.side_suffix == 'L' else 0
+        bone.custom_shape_along_length = 0.5
+        bone.use_custom_shape_bone_size = False
+        bone.custom_shape_scale_xyz *= dsp_bone.length * 0.75
 
         return dsp_bone
 
-    @staticmethod
-    def __calc_footroll_headtail(
-        knee: BoneInfo, toe: BoneInfo, scale: float
-    ) -> tuple[Vector, Vector]:
-        scalar = knee.bbone_width * scale
-
+    def __calc_footroll_headtail(self) -> tuple[Vector, Vector]:
+        knee, foot, toe = self.bones_org[-3:]
         # Project a line along the knee bone, and find the point on that line closest to the toe's tail.
         intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
         # Find the direction that points from the toe's tail towards this intersection point.
         intersect_to_toe = (intersect - toe.tail).normalized()
 
-        # Amount we want to offset the point by, away from the toe.
-        shift_from_toe = intersect_to_toe * scalar * 8
+        # Amount we want to offset the point by, away from the foot.
+        shift_from_toe = intersect_to_toe * foot.length
         # Amount we want to offset the point by, up along the knee.
-        shift_along_knee = (knee.tail - intersect).normalized() * scalar * 2
+        shift_along_knee = knee.vector.normalized() * -foot.length
 
         # Calculate final position by adding the offsets to the intersection point.
         head = intersect + shift_from_toe + shift_along_knee
 
         # The tail should point toward the toe bone but stay perpendicular to the knee bone.
-        tail = head + intersect_to_toe * scalar * -4
+        tail = head + -intersect_to_toe * foot.length
         return head, tail
 
     def __make_footroll(self, ik_chain, org_chain):
@@ -209,14 +198,9 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         _prefixes, base_name, suffixes = self.naming.slice_name(org_foot.name)
         master_name = self.naming.make_name(["ROLL"], base_name, suffixes)
-        roll_master = self.bone_sets['IK Mechanism'].new(
-            name=master_name, source=self.ik_mstr, parent=self.ik_mstr
-        )
-        roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
-        self.ik_tgt_bone.clear_constraints()
 
         # Create ROLL control behind the foot.
-        head, tail = self.__calc_footroll_headtail(org_knee, org_toe, self.scale)
+        head, tail = self.__calc_footroll_headtail()
 
         TWIST_RANGE = 90
         HEEL_LIMIT = 60
@@ -228,12 +212,11 @@ class Component_Limb_BipedLeg(Component_Limb):
             bbone_width=1 / 18,
             head=head,
             tail=tail,
-            roll_type='ALIGN',
-            roll_bone=org_toe,
             parent=self.ik_mstr,
             custom_shape_name=self.params.leg.shape_footroll.shape_name,
             use_custom_shape_bone_size=True,
         )
+        roll_ctrl.roll_align_vector(org_toe.head)
         if self.params.custom_props.props_storage == "GENERATED":
             self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms.
@@ -249,17 +232,25 @@ class Component_Limb_BipedLeg(Component_Limb):
             max_z=rad(TWIST_RANGE),
         )
 
+        roll_master = None
+        roll_master = self.bone_sets['IK Mechanism'].new(
+            name=master_name, source=self.ik_mstr, parent=self.ik_mstr
+        )
+        if not self.painter:
+            roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
+            self.ik_tgt_bone.clear_constraints()
+
         # Create bone to use as pivot point when rolling back.
         # This is read from the metarig and should be placed at
         # the heel of the shoe, pointing forward.
         heel_pivot_bone = self.__get_heel_pivot_meta_bone()
 
         # Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
-        self.ik_mstr._bbone_x = heel_pivot_bone.bbone_x
-        self.ik_mstr._bbone_z = heel_pivot_bone.bbone_z
+        self.ik_mstr._bbone_x = heel_pivot_bone.bone.bbone_x
+        self.ik_mstr._bbone_z = heel_pivot_bone.bone.bbone_z
         if self.params.limb.double_ik:
-            self.ik_mstr.parent._bbone_x = heel_pivot_bone.bbone_x
-            self.ik_mstr.parent._bbone_z = heel_pivot_bone.bbone_z
+            self.ik_mstr.parent._bbone_x = heel_pivot_bone.bone.bbone_x
+            self.ik_mstr.parent._bbone_z = heel_pivot_bone.bone.bbone_z
 
         heel_pivot = self.bone_sets['IK Mechanism'].new(
             name="IK-RollBack"
@@ -267,12 +258,11 @@ class Component_Limb_BipedLeg(Component_Limb):
             + self.naming.SUFFIX_SEPARATOR
             + self.side_suffix,
             bbone_width=org_toe.bbone_width,
-            head=heel_pivot_bone.head_local,
-            tail=heel_pivot_bone.tail_local,
-            roll_type='ALIGN',
-            roll_bone=org_toe,
+            head=heel_pivot_bone.head,
+            tail=heel_pivot_bone.tail,
             parent=roll_master,
         )
+        heel_pivot.roll_align_vector(org_knee.head, axis='-Z')
 
         heel_pivot.add_constraint(
             'TRANSFORM',
@@ -292,17 +282,16 @@ class Component_Limb_BipedLeg(Component_Limb):
                 source=org_bone,
                 head=org_bone.tail.copy(),
                 tail=org_bone.head.copy(),
-                roll=pi,
-                roll_type='ALIGN',
-                roll_bone=org_bone,
                 parent=heel_pivot,
                 custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             )
+            rik_bone.roll_align_other(org_bone)
+            rik_bone.roll_flip()
             rik_chain.append(rik_bone)
             ik_foot_chain[i].parent = rik_bone
 
             # Calculate angle of rotation necessary to make this bone vertical.
-            angle_to_vertical = Vector((0, 0, 1)).angle(rik_bone.vector)
+            angle_to_vertical = (org_knee.head-org_knee.tail).angle(rik_bone.vector)
 
             if i == 0:
                 # Foot bone's roll
@@ -330,8 +319,6 @@ class Component_Limb_BipedLeg(Component_Limb):
                     to_min_z_rot=rad(TWIST_RANGE/2),
                 )
             elif i == 1:
-                # Toe bone's rolling threshold.
-                angle_to_vertical = Vector((0, 0, 1)).angle(rik_bone.vector)
                 rik_bone.add_constraint(
                     'TRANSFORM',
                     name="Transform (Toe Roll)",
@@ -357,7 +344,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == 'GENERATED':
             self.properties_bone.custom_shape_transform = roll_ctrl
 
-    def __get_heel_pivot_meta_bone(self) -> Bone:
+    def __get_heel_pivot_meta_bone(self) -> PoseBone:
         heel_pivot_name = self.params.leg.heel_bone
         if heel_pivot_name == "":
             heel_pivot_name = self.bones_org[-2].name.replace("ORG-", "")
@@ -367,8 +354,9 @@ class Component_Limb_BipedLeg(Component_Limb):
                 f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".'
             )
 
-        return heel_pivot_pb.bone
+        return heel_pivot_pb
 
+    @no_overlay
     def __make_ik_toe(self):
         """FK Toe bone should be parented between FK Foot and IK Toe."""
         fk_toe = self.fk_chain[-1]
@@ -380,6 +368,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             name="Armature (Toe FK/IK)"
         )
 
+    @no_overlay
     def __tweak_org_foot(self):
         """Delete IK constraint and driver from toe bone. It should always use FK."""
         org_toe = self.bones_org[-1]

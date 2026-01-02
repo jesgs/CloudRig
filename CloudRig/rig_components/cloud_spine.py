@@ -7,6 +7,7 @@ from bpy.types import PropertyGroup
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_fk_chain import Component_Chain_FK
 
 
@@ -60,19 +61,20 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
     def fk_chain__make_root_bone(self):
         # Create Torso Master control
-        self.torso_bone = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
+        self.torso_ctr = self.bone_sets['Spine Main Controls'].new(
+            name=self.naming.add_prefix(self.spine_name, 'TORSO'),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
+            length=self.bones_org[0].length+self.bones_org[1].length/2,
             custom_shape_name=self.params.spine.shape_torso.shape_name,
         )
-        return self.torso_bone
+        return self.torso_ctr
 
     def fk_chain__make(self, org_chain) -> list[BoneInfo]:
         fk_chain = super().fk_chain__make(org_chain)
 
-        fk_chain[1].parent = self.torso_bone
+        fk_chain[1].parent = self.torso_ctr
 
         # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
@@ -81,8 +83,14 @@ class Component_Spine_IKFK(Component_Chain_FK):
             head=org_chain[0].tail,
             tail=org_chain[0].head,
             custom_shape_name=self.params.spine.shape_hip.shape_name,
-            parent=self.torso_bone,
+            parent=self.torso_ctr,
         )
+        self.mstr_hips.roll_align_other(org_chain[0], axis='-Z')
+        self.mstr_hips.custom_shape_translation *= Vector((1, -1, -1))
+        self.mstr_hips.custom_shape_scale_xyz = self.mstr_hips.custom_shape_scale_xyz.zyx
+        self.mstr_hips.custom_shape_rotation_euler.y *= -1
+        self.mstr_hips.custom_shape_rotation_euler.y += pi/2
+        self.mstr_hips.custom_shape_rotation_euler.z *= -1
         fk_chain[0].parent = self.mstr_hips
         fk_chain[0].collections = self.bones_mch.collections
 
@@ -92,12 +100,14 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         return fk_chain
 
+    @no_overlay
     def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.85):
         super().fk_chain__counter_rotate_str_bones(self.bones_org[1:], main_str_bones[1:], influence)
         main_str_bones[1].parent_helper.constraint_infos[0].targets = [self.mstr_hips.name]
         main_str_bones[1].constraint_infos[-1].invert_xyz = (False, False, False)
         main_str_bones[1].constraint_infos[-1].influence = 0.75
 
+    @no_overlay
     def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
         """First ORG bone should be owned by the hips."""
         super().fk_chain__attach_org_to_fk(org_bones[1:], fk_bones[1:])
@@ -123,22 +133,21 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
     def __make_ik_spine(self):
         ### Create master chest control.
-        chest_org = self.bones_org[-2]
-        head = chest_org.center
-        if self.params.spine.world_align:
-            tail = head + Vector((0, 0, self.scale))
-        else:
-            tail = self.bones_org[-1].tail
-        self.mstr_chest = self.bone_sets['Spine IK Controls'].new(
+        chest_org = self.bones_org[-1]
+        chest = self.bone_sets['Spine IK Controls'].new(
             name=self.naming.add_prefix(self.spine_name, "CHST"),
             source=chest_org,
-            head=head,
-            tail=tail,
-            custom_shape_name=self.params.spine.shape_chest.shape_name,
-            custom_shape_scale_xyz=Vector((0.8, 1.3, 0.8)),
-            custom_shape_rotation_euler=(0, pi/2, 0),
+            head=self.bones_org[-2].center,
+            length=chest_org.length,
             parent=self.root_torso,
+            custom_shape_name=self.params.spine.shape_chest.shape_name,
         )
+        if self.params.spine.world_align:
+            chest.flatten()
+        chest.custom_shape_scale_xyz = chest.custom_shape_scale_xyz.zyx
+        chest.custom_shape_scale_xyz.y *= 2
+        chest.custom_shape_rotation_euler.y += pi/2
+        self.mstr_chest = chest
 
         if self.params.spine.double:
             self.create_parent_bone(
@@ -153,9 +162,12 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 custom_shape_name=self.params.spine.shape_ik.shape_name,
                 rotation_mode='YZX',
                 lock_rotation=[True, False, True],
-                custom_shape_rotation_euler=((0, pi / 4, 0)),
-                custom_shape_scale_xyz=Vector((1, 1, 0.8)),
             )
+            ik_ctr_bone.custom_shape_rotation_euler.x = 0
+            ik_ctr_bone.custom_shape_rotation_euler.y += pi/4
+            ik_ctr_bone.custom_shape_rotation_euler.z = 0
+
+            ik_ctr_bone.custom_shape_translation = Vector((0, 0, 0))
 
             if len(self.bones_org) - 1 > i > 0:
                 influence_unit = 1 / (len(self.bones_org) - 1)
@@ -187,6 +199,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 ik_ctr_bone.parent = self.root_torso
             self.ik_ctr_chain.append(ik_ctr_bone)
 
+        if self.painter:
+            return
+
         # Reverse IK (IK-R) chain. Switch bone direction, and Damped Track to IK-CTR.
         # We iterate in reverse to make the parenting easier.
         next_parent = self.mstr_chest
@@ -199,6 +214,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 parent=next_parent,
                 custom_shape_name='Arrow',
                 use_custom_shape_bone_size=True,
+                custom_shape_translation=Vector((0, 0, 0)),
+                custom_shape_scale_xyz=Vector((1, 1, 1)),
+                custom_shape_rotation_euler=Vector((0, 0, 0)),
             )
             next_parent = ik_r_bone
             self.ik_r_chain.append(ik_r_bone)
@@ -225,6 +243,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 parent=next_parent,
                 custom_shape_name='Arrow',
                 use_custom_shape_bone_size=True,
+                custom_shape_translation=Vector((0, 0, 0)),
+                custom_shape_scale_xyz=Vector((1, 1, 1)),
+                custom_shape_rotation_euler=Vector((0, 0, 0)),
             )
             self.ik_chain.append(ik_bone)
             next_parent = ik_bone
@@ -361,6 +382,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         cls.draw_prop_custom_shape(context, layout, params.spine, "shape_chest")
         cls.draw_prop_custom_shape(context, layout, params.spine, "shape_hip")
         cls.draw_prop_custom_shape(context, layout, params.spine, "shape_ik")
+
 
 class Params(PropertyGroup):
     use_ik: BoolProperty(

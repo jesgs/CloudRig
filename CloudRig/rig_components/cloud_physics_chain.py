@@ -9,6 +9,7 @@ from bpy.types import Object, PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.object import lock_transforms
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_fk_chain import Component_Chain_FK
 
 PHYS_PREFIX = "PSX"
@@ -30,6 +31,8 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
+        self.phys_name = self.naming.add_prefix(self.base_bone_name, PHYS_PREFIX)
+
         phys_ob = self.__ensure_physics_object(context, self.bone_sets['FK Controls'])
         if self.params.physics_chain.make_ctrl:
             self.__make_physics_chain(self.bone_sets['FK Controls'])
@@ -48,13 +51,14 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     ##############################
     # Physics chain functions.
 
+    @no_overlay
     def __ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
         phys_obj = self.params.physics_chain.phys_obj
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
 
         cloth_mesh = bpy.data.meshes.new(
-            name=self.naming.add_prefix(self.base_bone_name, PHYS_PREFIX)
+            name=self.phys_name
         )
         if not phys_obj:
             # Create physics object.
@@ -163,19 +167,18 @@ class CloudPhysicsChainRig(Component_Chain_FK):
                 name=self.naming.add_prefix(fk_ctrl, PHYS_PREFIX),
                 source=fk_ctrl,
                 custom_shape_name=fk_ctrl.custom_shape_name,
-                custom_shape_scale=fk_ctrl.custom_shape_scale * 1.2,
-                custom_shape_along_length=fk_ctrl.custom_shape_along_length,
+                custom_shape_scale_xyz = fk_ctrl.custom_shape_scale_xyz * 1.2,
                 parent=next_parent,
                 use_deform=True,
             )
             next_parent = phys_ctrl
 
         self.bone_sets['Physics Bones'].new(
-            name="PIN-" + self.params.physics_chain.phys_obj.name,
-            custom_shape_name=self.params.fk_chain.shape_fk_root.shape_name,
+            name="PIN-" + self.phys_name,
             source=self.bone_sets['Physics Bones'][0],
             parent=self.bone_sets['Physics Bones'][0],
             use_deform=True,
+            custom_shape_name=self.params.fk_chain.shape_fk_root.shape_name,
         )
 
         # Parent first FK control to first PSX control.
@@ -185,6 +188,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         # and root parenting behaviours
         self.root_bone = self.bone_sets['Physics Bones'][0]
 
+    @no_overlay
     def __constrain_chain_to_phys_ob(self, phys_ob: Object, bone_chain: list[BoneInfo]):
         # For the moment, let's just slap some constraints on the FK chain.
         for fk_ctrl in bone_chain:

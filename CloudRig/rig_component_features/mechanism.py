@@ -207,9 +207,6 @@ def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
         name=add_prefix(child, "P"),
         source=child,
         parent=child.parent,
-        roll_type='ALIGN',
-        roll_bone=child,
-        roll=0,
         custom_shape_name=child.custom_shape_name,
         custom_shape=child.custom_shape,
         custom_shape_scale_xyz=Vector(child.custom_shape_scale_xyz) * 1.2,
@@ -246,14 +243,12 @@ def create_dsp_bone(parent: BoneInfo, bone_set: BoneSet, **kwargs) -> BoneInfo:
     dsp_bone = bone_set.new(
         name=dsp_name,
         source=parent,
-        roll_type='ALIGN',
-        roll_bone=parent,
-        roll=0,
         bbone_width=parent.bbone_width * 0.5,
         custom_shape=None,
         parent=parent,
         **kwargs,
     )
+    dsp_bone.roll_align_other(parent)
     parent.custom_shape_transform = dsp_bone
     return dsp_bone
 

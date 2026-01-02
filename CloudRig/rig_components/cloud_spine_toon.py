@@ -4,10 +4,11 @@ from math import pi
 
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
+from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_fk_chain import Component_Chain_FK
-
 
 class Component_Spine_Toon(Component_Chain_FK):
     """This spine rig must consist of 4 bones, placed to function as the
@@ -23,6 +24,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         'fk_chain.create_curl_control': False,
         'fk_chain.counter_rotate_stretch_bones': 0.0,
         'fk_chain.double_first': False,
+        'fk_chain.display_center': False,
     }
 
     ################################
@@ -39,8 +41,8 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
+            length=self.bones_org[0].length+self.bones_org[1].length/2,
             custom_shape_name=self.params.spine_toon.shape_torso.shape_name,
-            custom_shape_scale=1.5,
         )
         if self.params.spine_toon.world_align:
             self.torso_ctr.flatten()
@@ -49,8 +51,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.torso_ctr.collections += self.bone_sets['Toon Spine IK'].collections
         return self.torso_ctr
 
-    def fk_chain__make(self, bones_org: list[BoneInfo]) -> list[BoneInfo]:
-        fk_chain = super().fk_chain__make(bones_org)
+    def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+        fk_chain = super().fk_chain__make(org_chain)
         fk_chain[0].parent = self.root_bone
 
         # Put FK bones at the center.
@@ -60,15 +62,17 @@ class Component_Spine_Toon(Component_Chain_FK):
             if prev:
                 fk_bone.tail = prev.head
             prev = fk_bone
+            fk_bone.custom_shape_scale_xyz *= fk_bone.source.length / fk_bone.length
 
         return fk_chain
 
-    def fk_chain__attach_org_to_fk(self, bones_org, fk_bones):
+    @no_overlay
+    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
         """Parent original bones to FK bones.
         The purpose of original bones in this component is just for any child
         components to follow along in an expected way.
         """
-        for org_bone, fk_bone in zip(bones_org, fk_bones):
+        for org_bone, fk_bone in zip(org_bones, fk_bones):
             org_bone.use_connect = False
             org_bone.parent = fk_bone
 
@@ -83,10 +87,13 @@ class Component_Spine_Toon(Component_Chain_FK):
             tail=self.bones_org[-1].tail,
             parent=self.torso_ctr,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
-            use_custom_shape_bone_size=True,
-            custom_shape_scale_xyz=(1.2, 2.3, 1.2),
-            custom_shape_rotation_euler=(0, pi/2, 0)
+            use_custom_shape_bone_size=False,
+            custom_shape_rotation_euler=Vector((0, pi/2, 0)),
         )
+        chest.custom_shape_scale_xyz = self.fk_chain[-1].custom_shape_scale_xyz.zyx * self.fk_chain[-1].length
+        chest.custom_shape_scale_xyz.y *= chest.length / self.fk_chain[-1].length
+        chest.custom_shape_translation += self.bones_org[-1].custom_shape_translation
+
         hips = self.bone_sets['Toon Spine IK'].new(
             name=self.naming.add_prefix(self.spine_name, 'HIP'),
             source=self.bones_org[0],
@@ -94,7 +101,12 @@ class Component_Spine_Toon(Component_Chain_FK):
             tail=self.bones_org[0].head,
             parent=self.torso_ctr,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
+            use_custom_shape_bone_size=False,
+            custom_shape_rotation_euler=Vector((0, pi/2, 0)),
         )
+        hips.roll_align_other(self.bones_org[0], axis='-Z')
+        hips.custom_shape_scale_xyz = self.bones_org[1].length * self.bones_org[1].custom_shape_scale_xyz.zyx
+        hips.custom_shape_translation = self.bones_org[1].custom_shape_translation * Vector((-1, -1, 1))
         hips.collections += self.bone_sets['FK Controls'].collections
         hips_lower = self.bone_sets['Toon Spine IK'].new(
             name=self.naming.add_prefix(self.spine_name, 'HipsLower'),
@@ -103,10 +115,14 @@ class Component_Spine_Toon(Component_Chain_FK):
             tail=self.bones_org[0].head,
             parent=hips,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
-            custom_shape_wire_width=1.5,
-            custom_shape_scale_xyz=(1, 0.5, 1),
-            custom_shape_along_length=0.33,
+            custom_shape_wire_width=max(1.5, hips.custom_shape_wire_width/2),
+            use_custom_shape_bone_size=False,
+            custom_shape_rotation_euler=Vector((0, pi/2, 0)),
         )
+        hips_lower.custom_shape_scale_xyz = Vector.lerp(hips.custom_shape_scale_xyz, self.bones_org[0].length*self.bones_org[0].custom_shape_scale_xyz.zyx, 0.5)
+        hips_lower.custom_shape_scale_xyz.y *= 0.5
+        hips_lower.custom_shape_translation = hips.custom_shape_translation
+        hips_lower.roll_align_other(self.bones_org[0])
         hips_lower.collections += self.bone_sets['FK Controls'].collections
 
         # Hack the FK parenting a bit.
@@ -119,13 +135,10 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
             str_bone.parent.constraint_infos[0].subtarget = fk_bone
-            str_bone.roll_bone = fk_bone
+            str_bone.roll_align_other(fk_bone)
         if self.params.chain.tip_control:
             self.main_str_bones[-1].parent = self.fk_chain[-1]
-            self.main_str_bones[-1].roll_bone = self.fk_chain[-1]
-        self.main_str_bones[0].roll = 0
-        self.main_str_bones[0].roll_bone = None
-        self.main_str_bones[0].roll_type = 'VECTOR'
+            self.main_str_bones[-1].roll_align_other(self.fk_chain[-1])
         self.main_str_bones[0].parent.constraint_infos[0].subtarget = hips_lower
         self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True])
 
@@ -152,6 +165,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         self.__make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
 
+    @no_overlay
     def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
         ik_chain = []
         def make_ik_bone(name: str, parent: BoneInfo) -> BoneInfo:
@@ -202,6 +216,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             ik_hlp.collections = self.bone_sets['Toon Spine Mechanism'].collections
         return ik_chain
 
+    @no_overlay
     def __make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
         squash_prop_name = f"squash_{self.spine_name}"
         self.rig_ui__add_bone_property(

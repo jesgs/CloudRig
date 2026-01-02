@@ -37,6 +37,7 @@ def metarigs_test(context):
     for metarig_name, frame in (
         ('META-toon_chain_tests_1', 10),
         ('META-Cloud_Human', 20),
+        ('META-Cloud_Human_ToonSpine', 20),
         ('META-grid_chain_tests', 30),
         ('META-relinking', 40),
     ):
@@ -50,7 +51,8 @@ def metarigs_test(context):
     assert not error_msg, "\n".join(error_msg)
 
 def regenerate_rig(context, rig: Object):
-    bpy.ops.object.mode_set(mode='OBJECT')
+    if context.mode != 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
     rig.hide_set(False)
     context.view_layer.objects.active = rig

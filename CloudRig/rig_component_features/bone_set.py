@@ -4,26 +4,15 @@ from collections import OrderedDict
 
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.types import (
-    Bone,
-    EditBone,
-    Object,
     Operator,
     PoseBone,
     UI_UL_list,
     UIList,
-    bpy_prop_array,
 )
-from mathutils import Matrix, Vector
-from rna_prop_ui import rna_idprop_has_properties
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..utils.rig import get_pbone_of_active
-from .bone_info import (
-    BoneInfo,
-    bone_properties,
-    edit_bone_properties,
-    pose_bone_properties,
-)
+from .bone_info import BoneInfo
 
 
 class LinkedList(list):
@@ -49,7 +38,7 @@ class LinkedList(list):
 
 class BoneSet(LinkedList):
     """Class to create and store lists of BoneInfo instances.
-    Also responsible for bone group layer assignment.
+    Also responsible for Bone Collection/Color/Wire Width assignment.
     """
 
     def __init__(
@@ -86,160 +75,36 @@ class BoneSet(LinkedList):
     def __repr__(self):
         return f"{self.ui_name}: {super().__repr__()}"
 
-    def new(self, name="Bone", source=None, **kwargs):
+    def new(self, name="Bone", source: BoneInfo | PoseBone | None=None, **kwargs) -> BoneInfo:
         """Create and add a new BoneInfo to self."""
 
-        if 'collections' not in kwargs:
-            kwargs['collections'] = self.collections.copy()
-        if 'color_palette_base' not in kwargs:
-            kwargs['color_palette_base'] = self.color_palette
-        if 'custom_shape_wire_width' not in kwargs:
-            kwargs['custom_shape_wire_width'] = self.wire_width
-        for key in self.defaults.keys():
-            if key not in kwargs:
-                kwargs[key] = self.defaults[key]
-
+        # Prevent name collision.
         existing = self.rig_component.generator.find_bone_info(name)
         if existing and existing.preserve:
             self.rig_component.raise_generation_error(
                 f'"{name}" already exists. May be a bug.',
-                trouble_bone=name
+                trouble_bone=name,
             )
 
+        # Build effective kwargs (explicit > inferred > defaults).
+        inferred = {
+            "collections": self.collections.copy(),
+            "color_palette_base": self.color_palette,
+            "custom_shape_wire_width": self.wire_width + (source.custom_shape_wire_width-1 if source else 0),
+        }
+        effective_kwargs = dict(self.defaults)
+        effective_kwargs.update(inferred)
+        effective_kwargs.update(kwargs)
+
+        # Create and register.
         bone_info = BoneInfo(
-            self, name, source, owner_component=self.rig_component, **kwargs
+            self,
+            name,
+            source,
+            owner_component=self.rig_component,
+            **effective_kwargs,
         )
         self.append(bone_info)
-
-        return bone_info
-
-    def new_from_real(
-        self,
-        rig_ob: Object,
-        edit_bone: EditBone,
-        keep_collections=False,
-        keep_colors=False,
-    ):
-        """Load a bpy bone into a BoneInfo instance along with its constraints,
-        drivers, custom properties."""
-        # NOTE: Parenting should be done outside of this function,
-        # since parent bone info is not guaranteed to exist.
-
-        pose_bone = rig_ob.pose.bones.get(edit_bone.name)
-        data_bone = pose_bone.bone
-        bone_info = self.new(name=edit_bone.name)
-
-        sources = {
-            pose_bone: pose_bone_properties,
-            data_bone: bone_properties,
-            edit_bone: edit_bone_properties,
-        }
-
-        for source, prop_list in sources.items():
-            for key in prop_list:
-                if not hasattr(source, key):
-                    # This can happen when a new property is introduced in Blender, eg.
-                    # custom_shape_wire_width in 4.2.
-                    # Ignore such values in older versions, to preserve compatibility.
-                    continue
-                value = getattr(source, key)
-                if value in [None, ""]:
-                    continue
-                if key == 'collections':
-                    value = [coll.name for coll in value]
-                if type(value) in [Vector, Matrix]:
-                    value = value.copy()
-                if type(value) is bpy_prop_array:
-                    value = value[:]
-                if type(value) in {EditBone, Bone, PoseBone}:
-                    value = value.name
-                if getattr(bone_info, key) == value:
-                    continue
-
-                setattr(bone_info, key, value)
-
-        # The default value of use_deform in Blender is True, but for CloudRig, False makes a LOT more sense.
-        bone_info.use_deform = False
-
-        # Load color palettes (only presets are supported, no custom colors)
-        # TODO: If one day Blender's color presets are fixed, drop support for custom colors.
-        if keep_colors:
-            if data_bone.color.palette == 'CUSTOM' and False:
-                self.rig_component.add_log("Custom Colors must not be used.")
-            else:
-                bone_info.color_palette_base = data_bone.color.palette
-        else:
-            bone_info.color_palette_base = self.color_palette
-
-        # Load Collections.
-        bone_info.collections = self.collections
-        if keep_collections:
-            bone_info.collections = [coll.name for coll in data_bone.collections]
-
-        # Load Constraints.
-        for constr in pose_bone.constraints:
-            bone_info.add_constraint_from_real(constr)
-
-        # Load Drivers to be copied later.
-        if rig_ob.animation_data:
-            driver_map = self.rig_component.generator.driver_map
-            if bone_info.name in driver_map:
-                for data_path, array_index in driver_map[bone_info.name]:
-                    fcurve = rig_ob.animation_data.drivers.find(
-                        data_path, index=array_index
-                    )
-                    if 'constraints' in fcurve.data_path:
-                        con_name = data_path.split('constraints["')[-1].split('"]')[0]
-                        constraint_info = bone_info.get_constraint(con_name)
-                        if constraint_info:
-                            constraint_info.drivers_to_copy.append(
-                                (data_path, array_index)
-                            )
-                            continue
-
-                    bone_info.drivers_to_copy.append((data_path, array_index))
-
-        # Load Custom Properties.
-        if rna_idprop_has_properties(pose_bone):
-            rna_properties = {
-                prop.identifier
-                for prop in pose_bone.bl_rna.properties
-                if prop.is_runtime
-            }
-            for prop_name in pose_bone.keys():
-                if prop_name in rna_properties:
-                    # We don't want to copy addon-defined properties.
-                    continue
-                if 'rigify' in prop_name:
-                    # Legacy stuff, don't need it.
-                    continue
-                try:
-                    prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
-                except TypeError:
-                    # This should only happen with python dictionaries.
-                    # Just store the value to be able to copy the property over to the generated rig.
-                    prop_data = {'default': pose_bone[prop_name]}
-
-                value = pose_bone[prop_name]
-                if hasattr(value, 'to_list'):
-                    value = value.to_list()
-                    prop_data['default'] = value
-                elif hasattr(value, 'to_dict'):
-                    value = value.to_dict()
-                    prop_data['default'] = value
-                elif 'id_type' in prop_data:
-                    # Setting the default to None for Datablock pointer props is necesasry for
-                    # rna_idprop_ui_create() to interpret this data as a Datablock property.
-                    prop_data['default'] = None
-
-                prop_data['value'] = value
-                prop_data['overridable'] = pose_bone.is_property_overridable_library(
-                    f'["{prop_name}"]'
-                )
-
-                if 'description' not in prop_data:
-                    prop_data['description'] = ""
-                bone_info.custom_props[prop_name] = prop_data
 
         return bone_info
 
@@ -263,13 +128,17 @@ class BoneSetMixin:
             rna_bone_set
         ), f"Failed to create Bone Set {bone_set_prop_name}. Couldn't find corresponding RNA bone set."
 
+        bone_set_def = self.bone_set_defs.get(bone_set_prop_name)
+        defaults = self.defaults.copy()
+        defaults.update(bone_set_def['defaults'])
+
         new_set = BoneSet(
             self,
             ui_name=rna_bone_set.name,
             collections=[prop.name for prop in rna_bone_set.collections],
             color_palette=rna_bone_set.color_palette,
             wire_width=rna_bone_set.wire_width,
-            defaults=self.defaults,
+            defaults=defaults,
         )
 
         return new_set
@@ -287,13 +156,15 @@ class BoneSetMixin:
     ##############################
     # UI
     @classmethod
-    def draw_bone_set_params(cls, layout, context, params):
+    def draw_bone_set_params(cls, layout, context, params, only_colors=False):
         """Bone Organization panel of the Component Parameters."""
         active_pb = get_pbone_of_active(context)
-        if not (active_pb and active_pb.cloudrig_component.enabled_with_parents):
+        if not active_pb:
+            return
+        component = active_pb.cloudrig_component.inherited_component
+        if not (component and component.enabled_with_parents):
             return
 
-        component = active_pb.cloudrig_component
         params = component.params
 
         if not component.active_bone_set:
@@ -339,6 +210,9 @@ class BoneSetMixin:
 
         layout.prop(active_bone_set, 'wire_width')
 
+        if only_colors:
+            return
+
         box = layout.box()
         box.label(text=f"Collections of {active_bone_set.ui_name}:")
         row = box.row()
@@ -374,7 +248,7 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_set(
-        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.5, is_advanced=False
+        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.5, is_advanced=False, defaults={}
     ):
         """
         A Bone Set contains properties for assigning bone collections, color, and wire width.
@@ -412,6 +286,7 @@ class BoneSetMixin:
             'color_palette': color_palette,
             'wire_width': wire_width,
             'is_advanced': is_advanced,
+            'defaults': defaults,
         }
         return ui_name
 
@@ -480,7 +355,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         metarig = context.object
         prefs = get_addon_prefs(context)
         active_pb = get_pbone_of_active(context)
-        component = active_pb.cloudrig_component
+        component = active_pb.cloudrig_component.inherited_component
         component_class = component.component_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
@@ -525,7 +400,8 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
 
     def execute(self, context):
         active_pb = get_pbone_of_active(context)
-        bone_set = active_pb.cloudrig_component.active_bone_set
+        component = active_pb.cloudrig_component.inherited_component
+        bone_set = component.active_bone_set
         bone_set.collections.add()
         bone_set.collections_active_index = len(bone_set.collections)-1
         self.report({'INFO'}, f"Added collection slot to {bone_set.ui_name}.")

@@ -3,6 +3,7 @@
 from math import radians
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_ik_chain import Component_Chain_IKFK
 
 
@@ -27,6 +28,7 @@ class Component_Finger(Component_Chain_IKFK):
 
         self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
 
+    @no_overlay
     def rig_ui__add_bone_property(
         self,
         prop_bone: BoneInfo,
@@ -54,6 +56,7 @@ class Component_Finger(Component_Chain_IKFK):
             **kwargs
         )
 
+    @no_overlay
     def ik_chain__make_pole_follow_switch(
         self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
     ):
@@ -68,7 +71,8 @@ class Component_Finger(Component_Chain_IKFK):
         """Don't world align FK for fingers, only IK."""
         pass
 
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole):
+    @no_overlay(return_value={})
+    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
         ui_data = super().ik_chain__get_ik_switch_ui_data(
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
@@ -104,6 +108,7 @@ class Component_Finger(Component_Chain_IKFK):
     ##############################
     # Finger functions.
 
+    @no_overlay
     def __create_two_bone_ik_chain(
         self,
         org_chain: list[BoneInfo],

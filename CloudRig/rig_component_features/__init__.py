@@ -6,6 +6,7 @@ from . import (
     generate_animation,
     mechanism,
     object,
+    overlay_painter,
     params_ui_utils,
     parenting,
     properties_ui,
@@ -24,6 +25,7 @@ modules = [
     properties_ui,
     params_ui_utils,
     widgets,
+    overlay_painter,
 ]
 
 # Dictionary of modules that have a Params class, and want to register

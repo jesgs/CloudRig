@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from collections import OrderedDict
 from dataclasses import dataclass
 
 from bpy.types import Panel
@@ -25,7 +26,8 @@ class CLOUDRIG_PT_rig_component(Panel):
         active_pb = get_pbone_of_active(context)
         if not active_pb:
             return False
-        if not active_pb.cloudrig_component:
+        if not hasattr(active_pb, 'cloudrig_component'):
+            # This would only happen if CloudRig fails to register (hopefully never.)
             return False
         return True
 
@@ -129,8 +131,9 @@ class BoneSetPanel(CloudRigPanel):
 
         return False
 
-def draw_params_subpanels(context, layout):
-    panels = [
+PANEL_DATAS = OrderedDict(
+    (data.ui_name, data) for data in
+    [
         CloudRigPanel("Parenting", "draw_parenting_params"),
         CloudRigPanel("Controls", "draw_control_params"),
         AnimPanel("Test Animation", "draw_anim_params"),
@@ -139,28 +142,37 @@ def draw_params_subpanels(context, layout):
         CustomPropPanel("Custom Properties", "draw_custom_prop_params", True),
         BoneSetPanel("Bone Organization", "draw_bone_set_params", True),
     ]
+)
+
+def draw_params_subpanels(context, layout):
+    for panel_name in PANEL_DATAS:
+        draw_params_subpanel_single(context, layout, panel_name)
+
+def draw_params_subpanel_single(context, layout, panel_name: str):
+    panel_data = PANEL_DATAS.get(panel_name)
+    if not panel_data:
+        return
     active_pb = get_pbone_of_active(context)
-    rig_component = active_pb.cloudrig_component
+    rig_component = active_pb.cloudrig_component.inherited_component
     comp_class = rig_component.component_class
     advanced_mode = get_addon_prefs(context).advanced_mode
-    for panel_data in panels:
-        if panel_data.is_advanced and not advanced_mode:
-            continue
-        if not panel_data.poll(context):
-            continue
-        if not hasattr(comp_class, panel_data.func_name):
-            continue
-        poll_func_name = "poll_"+panel_data.func_name
-        if (
-            hasattr(comp_class, poll_func_name) and
-            not getattr(comp_class, poll_func_name)(context, active_pb.cloudrig_component.params)
-        ):
-            continue
-        header, panel = layout.panel(f"CloudRig {panel_data.ui_name}")
-        panel_data.draw_header(context, header)
-        header.label(text=panel_data.ui_name)
-        if panel:
-            draw_component_params(context, layout, panel_data.func_name)
+    if panel_data.is_advanced and not advanced_mode:
+        return
+    if not panel_data.poll(context):
+        return
+    if not hasattr(comp_class, panel_data.func_name):
+        return
+    poll_func_name = "poll_"+panel_data.func_name
+    if (
+        hasattr(comp_class, poll_func_name) and
+        not getattr(comp_class, poll_func_name)(context, active_pb.cloudrig_component.params)
+    ):
+        return
+    header, panel = layout.panel(f"CloudRig {panel_data.ui_name}")
+    panel_data.draw_header(context, header)
+    header.label(text=panel_data.ui_name)
+    if panel:
+        draw_component_params(context, layout, panel_data.func_name)
 
 def draw_component_params(context, layout, func_name: str):
     pb = get_pbone_of_active(context)

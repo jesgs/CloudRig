@@ -7,6 +7,7 @@ from bpy.types import Bone, EditBone, Object, Operator, PoseBone
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.cloudrig import find_cloudrig, find_metarig_of_rig
 from ..generation.naming import slice_name
+from ..utils.rig import bone_is_visible
 
 # An operator to toggle between the metarig and the generated rig.
 # The generated rig does not store a reference to the metarig, so just bruteforce search it.
@@ -203,12 +204,6 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
         self, rig: Object, bone_name: str
     ) -> PoseBone | EditBone | Bone | None:
         armature = rig.data
-        def bone_is_visible(bone: Bone):
-            if not any([coll.is_visible_effectively for coll in bone.collections]):
-                return False
-            if rig.mode == 'EDIT_ARMATURE':
-                return not rig.data.edit_bones[bone.name]
-            return not rig.pose.bones[bone.name]
 
         def names_match(a, b):
             return (a in b) or (b in a)

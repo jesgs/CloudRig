@@ -7,7 +7,6 @@ import bpy
 
 ALL_COMPONENT_MODULES = {}
 
-
 def load_components(dir_path: str, relative=True) -> dict[str, ModuleType]:
     """Import the rig_components modules dynamically (and recursively).
     Users can even symlink a subfolder in there with external component types.

@@ -17,6 +17,7 @@ from bpy.types import Object, Operator, Panel, PropertyGroup, UIList
 
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
+from ..rig_component_features.overlay_painter import no_overlay
 from ..rig_component_features.params_ui_utils import (
     draw_label_with_linebreak,
     is_advanced_mode,
@@ -49,6 +50,7 @@ TODO: Symmetry warnings:
 class LoggerMixin:
     """Mix-in class for allowing a class to add entries to the Generation Log of an armature."""
 
+    @no_overlay
     def add_log(
         self,
         description_short: str,
@@ -80,6 +82,7 @@ class LoggerMixin:
             op_text=op_text
         )
 
+    @no_overlay
     def raise_generation_error(self, description, **kwargs):
         """For raising non-bug errors that should be fixable by the user."""
         kwargs['base_bone_name'] = self.base_bone_name

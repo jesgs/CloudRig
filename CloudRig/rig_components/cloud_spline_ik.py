@@ -5,8 +5,9 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 from bpy.types import Object, PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
-from .cloud_curve import Component_Curve_Hooked, get_points
-
+from ..rig_component_features.overlay_painter import no_overlay
+from .cloud_curve import Component_Curve_Hooked
+from ..utils.curve import evaluate_point_tangents, get_spline_points
 
 class Component_Curve_SplineIK(Component_Curve_Hooked):
     """Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
@@ -60,16 +61,17 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         )
 
     def create_bone_infos(self, context):
+        if not self.params.curve.target:
+            self.params.curve.target = self.__ensure_curve_obj(context)
+        self.__reset_curve_obj(self.params.curve.target)
+        self.point_tangents = evaluate_point_tangents(self.params.curve.target)
         # Skip the parent class's create_bone_infos() function, but call the grandparent's.
         # This is because we need to do things in a different order than cloud_curve:
         # The curve object is created based on the controls, rather than the other way around.
         super(Component_Curve_Hooked, self).create_bone_infos(context)
         self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
         if self.params.curve.create_root:
-            self.curve__make_root()
-        if not self.params.curve.target:
-            self.params.curve.target = self.__ensure_curve_obj(context)
-        self.__reset_curve_obj(self.params.curve.target)
+            self.root_bone = self.curve__make_root()
         self.hooks_of_splines = self.curve__make_ctrls_for_points(self.params.curve.target)
 
         if self.params.spline_ik.create_fk_chain:
@@ -89,6 +91,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     ################################
     # Spline IK functions.
 
+    @no_overlay
     def __ensure_curve_obj(self, context) -> Object:
         """Find or create the Bezier Curve that will be used by the rig."""
 
@@ -98,18 +101,16 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         # Create and name curve object.
         curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
-        curve_name += "_" + (
-            self.params.curve.hook_name
-            if self.params.curve.hook_name != ""
-            else self.base_bone_name.replace("ORG-", "")
-        )
+        curve_name += "_" + (self.params.curve.hook_name or self.base_bone_name.replace("ORG-", ""))
 
         curve = bpy.data.curves.new(curve_name, 'CURVE')
         curve_ob = bpy.data.objects.new(curve_name, curve)
         context.scene.collection.objects.link(curve_ob)
         self.lock_transforms(curve_ob)
+
         return curve_ob
 
+    @no_overlay
     def __reset_curve_obj(self, curve_ob):
         # Remove all splines, then add a new one.
         for spline in curve_ob.data.splines[:]:
@@ -129,7 +130,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         self.params.curve.target = curve_ob
 
         # Add the necessary number of curve points to the spline
-        points = get_points(spline)
+        points = get_spline_points(spline)
         assert len(points) == 1
         points.add(self.num_controls - len(points))
         num_points = len(points)
@@ -152,21 +153,19 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
     def __make_fk_chain(self):
         for spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
-            next_parent = hooks_of_spline[0].parent
+            next_parent = hooks_of_spline[0].parent or self.root_bone
             for hook_idx, hook_ctrl in enumerate(hooks_of_spline):
                 fk_ctrl = self.bone_sets['Curve FK Controls'].new(
                     name=hook_ctrl.name.replace("Hook_", "FK-"),
                     source=hook_ctrl,
                     use_custom_shape_bone_size=True,
                     custom_shape_name=self.params.spline_ik.shape_fk.shape_name,
-                    custom_shape_scale=self.params.curve.widget_size,
+                    custom_shape_scale=self.params.curve.shape_size,
                     parent=next_parent,
                     rotation_mode='YZX',
                     inherit_scale=self.params.curve.inherit_scale,
-                    roll_type='ALIGN',
-                    roll_bone=hook_ctrl,
-                    roll=0,
                 )
+                fk_ctrl.roll_align_other(hook_ctrl)
                 hook_ctrl.parent = fk_ctrl
                 next_parent = fk_ctrl
                 hook_ctrl.add_constraint(
@@ -181,6 +180,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     subtarget=fk_ctrl,
                 )
 
+    @no_overlay
     def __make_def_chain(self):
         segments = self.params.spline_ik.subdivide
 
@@ -219,6 +219,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         return self.bone_sets['Deform Bones']
 
+    @no_overlay
     def __add_spline_ik(self, bone_chain):
         # Add constraint to deform chain
         bone_chain[-1].add_constraint(
@@ -228,6 +229,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             chain_count=len(bone_chain),
         )
 
+    @no_overlay
     def __apply_def_chain_pose(self):
         # TODO: This is quite hacky. We could add a flag in BoneInfo named "Apply Pose", then
         # if any bones have that flag during generation, run the Apply Pose as Rest Pose
