@@ -76,9 +76,8 @@ class POSE_OT_symmetrize_rigging(Operator):
             bpy.ops.object.mode_set(mode='POSE')
 
         bone_map = self.get_symmetrize_bone_mapping(context)
-        if type(bone_map) is set:
-            # If the function returns an operator return value.
-            return bone_map
+        if not bone_map:
+            return {'CANCELLED'}
 
         for to_pb in bone_map.values():
             for to_con in to_pb.constraints:
