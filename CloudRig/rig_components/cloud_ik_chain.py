@@ -11,8 +11,8 @@ from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.rig import (
     calculate_ik_pole_vector,
-    get_flattened_coords,
     is_ideal_ik_chain,
+    points_define_plane,
 )
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -132,7 +132,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 f"Must be a chain of at least {self.required_chain_length} connected bones!"
             )
 
-        self.__prevent_straight_chain()
+        self.ik_chain__prevent_straight_chain()
 
         super().create_bone_infos(context)
 
@@ -173,31 +173,31 @@ class Component_Chain_IKFK(Component_Chain_FK):
     ##############################
     # IK Chain functions.
 
-    def __prevent_straight_chain(self):
+    def ik_chain__prevent_straight_chain(self, y_offset=0.001):
         """An IK chain is not allowed to be perfectly straight.
         Forcing a successful generation would result in an IK constraint which simply does nothing.
         Instead of doing that, and instead of throwing a hard error, let's throw a warning, and offset
         the elbow bone arbitrarily to prevent dysfunction.
         """
-        def is_perfectly_straight(chain) -> bool:
-            try:
-                get_flattened_coords(chain)
-                return False
-            except ValueError:
-                return True
 
-        if is_perfectly_straight(self.bones_org):
-            offset = 0.001
-            self.bones_org[0].tail.y += offset
-            self.bones_org[1].head.y += offset
+        points = (self.bones_org[0].head, self.bones_org[0].tail, self.bones_org[1].tail)
+        if not points_define_plane(*points):
+            self.bones_org[0].tail.y += y_offset
+            self.bones_org[1].head.y += y_offset
             self.add_log(
                 "Ambiguous IK Pole Direction",
                 description=(
                     "This IK chain is a perfectly straight line.\n"
                     "This would normally prevent the IK constraint from choosing a direction to bend in.\n"
-                    "To avoid this, the elbow joint was slightly offset in an arbitrarily chosen global +Y direction.\n"
+                    "To avoid this, the elbow joint was slightly offset in an arbitrarily chosen direction.\n"
                     "It would be better if you introduced a kink into the chain yourself."
-                )
+                ),
+                operator='object.cloudrig_tweak_bone_rest_pose',
+                op_kwargs={
+                    'bone_name': self.bones_org[0].name,
+                    'selection': 'TAIL',
+                    'offset': (0, y_offset, 0),
+                },
             )
 
 

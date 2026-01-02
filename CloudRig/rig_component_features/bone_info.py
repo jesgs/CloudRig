@@ -658,6 +658,8 @@ class BoneInfo:
             self.bone_set.rig_component.add_log(
                 "Zero-length bone",
                 trouble_bone=self.name,
+                note=self.name,
+                note_icon='BONE_DATA',
                 description=f'Bone "{self.name}" had zero length. Its length was set to 1 to avoid a fatal error.',
             )
             self.tail.y += 1

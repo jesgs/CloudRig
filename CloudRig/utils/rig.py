@@ -241,7 +241,13 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
     return True
 
 
-def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
+def points_define_plane(p1, p2, p3, eps=1e-8) -> bool:
+    v1 = p2 - p1
+    v2 = p3 - p1
+    return v1.cross(v2).length > eps
+
+
+def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
     """For a set of bones, return a list of head+tail coordinate pairs flattened along a plane.
     The plane is defined by the head of the first bone, tail of the last bone, and another point depending on
     the length of those bones.
@@ -250,12 +256,20 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
     """
 
     # We need 3 points to define a plane. 2 of these are the head of the first and the tail of the last bone.
-    plane_points = [chain[0].head, chain[-1].tail]
+    plane_points = [eb_chain[0].head, eb_chain[-1].tail]
     # Let's pick the 3rd point based on whether the first or last bone is longer.
-    if chain[0].length > chain[-1].length:
-        plane_points.append(chain[0].tail)
+    if eb_chain[0].length > eb_chain[-1].length:
+        plane_points.append(eb_chain[0].tail)
     else:
-        plane_points.append(chain[-1].head)
+        plane_points.append(eb_chain[-1].head)
+    if not points_define_plane(*plane_points):
+        for ebone in eb_chain:
+            for joint in (ebone.head, ebone.tail):
+                plane_points = [eb_chain[0].head, eb_chain[-1].tail, joint]
+                if points_define_plane(*plane_points):
+                    break
+    if not points_define_plane(*plane_points):
+        raise ValueError(f"This bone chain is perfectly straight, and cannot define a plane: {[eb.name for eb in eb_chain]}")
 
     # Find the normal of this plane by finding two non-parallel vectors that lie on the plane.
     # and taking their cross product.
@@ -266,7 +280,7 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
 
     # Now let's project each head/tail in the bone chain onto the chosen plane.
     ret = []
-    for edit_bone in chain:
+    for edit_bone in eb_chain:
         pair = []
         for point in [edit_bone.head, edit_bone.tail]:
             # Find the line that connects this vector to its closest point on the plane
@@ -278,7 +292,7 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
             intersect = intersect_line_plane(line[0], line[1], plane_points[0], plane_normal)
             # Set the vector to the resulting point
             if not intersect:
-                raise ValueError(f"Could not define a plane from this bone chain: {[eb.name for eb in chain]}")
+                raise ValueError(f"Could not define a plane from this bone chain: {[eb.name for eb in eb_chain]}")
 
             pair.append(intersect)
         if pair:

@@ -12,8 +12,15 @@ import webbrowser
 
 import addon_utils
 import bpy
-from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    FloatVectorProperty,
+    IntProperty,
+    StringProperty,
+)
 from bpy.types import Object, Operator, Panel, PropertyGroup, UIList
+from mathutils import Vector
 
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
@@ -1125,7 +1132,7 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
 
 
 class CLOUDRIG_OT_Edit_Action_Setup(Operator):
-    """Directly edit an action slot in a pop-up panel"""
+    """Directly edit an action set-up in a pop-up panel"""
 
     bl_idname = "object.cloudrig_edit_action_setup_popup"
     bl_label = "Edit Action Set-up"
@@ -1177,6 +1184,47 @@ class CLOUDRIG_OT_delete_collection(Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_edit_bone_transform(Operator):
+    """Tweak a bone's rest position to fix an issue."""
+
+    bl_idname = "object.cloudrig_tweak_bone_rest_pose"
+    bl_label = "Tweak Rest Pose"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    bone_name: StringProperty()
+    selection: EnumProperty(items=[
+        ('HEAD', 'Head', 'Head'),
+        ('TAIL', 'Tail', 'Tail'),
+        ('BOTH', 'Both', 'Both'),
+    ])
+    offset: FloatVectorProperty()
+
+    def execute(self, context):
+        org_mode = context.active_object.mode
+        bpy.ops.object.mode_set(mode='EDIT')
+        metarig = context.active_object
+        ebone = metarig.data.edit_bones.get(self.bone_name)
+        if not ebone:
+            metarig.cloudrig.generator.remove_active_log()
+            self.report({'ERROR'}, f"Bone not found: {self.bone_name}")
+            return {'CANCELLED'}
+
+        vectors = [ebone.head]
+        if self.selection == 'TAIL':
+            vectors = [ebone.tail]
+        if self.selection == 'BOTH':
+            vectors.append(ebone.head)
+
+        for vec in vectors:
+            vec += Vector((self.offset))
+
+        bpy.ops.object.mode_set(mode=org_mode)
+
+        metarig.cloudrig.generator.remove_active_log()
+        self.report({'INFO'}, f"Tweaked rest pose of {self.bone_name}.")
+        return {'FINISHED'}
+
+
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
@@ -1194,4 +1242,5 @@ registry = [
     CLOUDRIG_OT_Clear_Single_Keyframes,
     CLOUDRIG_OT_Edit_Action_Setup,
     CLOUDRIG_OT_delete_collection,
+    CLOUDRIG_OT_edit_bone_transform,
 ]

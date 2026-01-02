@@ -51,11 +51,15 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
 
         # Enter edit mode
         org_mode = rig.mode
-        pb_chain = start_pb.cloudrig_component.inherited_component.component_pbone_chain
+        comp = start_pb.cloudrig_component.inherited_component
+        pb_chain = comp.component_pbone_chain
 
         bpy.ops.object.mode_set(mode='EDIT')
 
         eb_chain = [rig.data.edit_bones[pb.name] for pb in pb_chain]
+        if comp.component_type == 'Chain: Leg':
+            # Drop the toe.
+            eb_chain = eb_chain[:-1]
         did_anything = False
         counter = 0
         max_iter = 100
