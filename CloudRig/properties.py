@@ -114,7 +114,7 @@ class BoneSets(PropertyGroup):
                 items=[
                     (
                         item.identifier,
-                        item.name,
+                        item.name.replace(" - Theme Color Set", "").replace(" Colors", ""),
                         item.description,
                         item.icon,
                         item.value,

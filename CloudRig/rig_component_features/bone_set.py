@@ -383,12 +383,18 @@ class CLOUDRIG_UL_bone_sets(UIList):
         component = _data
         bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
 
+        prefs = get_addon_prefs(context)
+
         row = layout.row()
         icon = 'BLANK1'
         if bone_set.is_advanced:
             icon='SETTINGS'
-        row.label(text=ui_bone_set.ui_name, icon=icon)
-        row.prop(bone_set, 'color_palette', text="")
+        split = row.split(factor=0.3, align=True)
+        split.prop(bone_set, 'color_palette', text="")
+        if prefs.bone_set_show_advanced:
+            split.label(text=ui_bone_set.ui_name, icon=icon)
+        else:
+            split.label(text=ui_bone_set.ui_name)
 
 
 class CLOUDRIG_OT_bone_set_collection_add(Operator):
