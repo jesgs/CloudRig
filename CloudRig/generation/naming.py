@@ -300,8 +300,11 @@ def increment_name(thing: Any, increment=1, default_zfill=1) -> str:
     return incremented.join(split)
 
 
-def strip_blender_zeroes(thing: Any):
+def strip_blender_zeroes(thing: Any) -> str:
     name = get_name(thing)
+    if len(name) < 5:
+        return name
+
     if name[-4] == ".":
         try:
             int(name[-3:])
@@ -311,10 +314,12 @@ def strip_blender_zeroes(thing: Any):
     return name
 
 
-def uniqify(thing: Any, collprop: list, strip_first=True):
+def uniqify(thing: Any, collprop: list, strip_first=True, id=None) -> str:
     name = get_name(thing)
     if strip_first:
         name = strip_blender_zeroes(name)
     while name in collprop:
+        if collprop.get(name) == id:
+            return name
         name = increment_name(name)
     return name

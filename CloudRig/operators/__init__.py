@@ -8,11 +8,12 @@ from . import (
     pie_bone_selection_ui,
     pie_bone_specials,
     pie_custom_shapes,
+    rename_with_symmetry,
     render_thumbnail,
+    scale_custom_shape,
     symmetrize,
     toggle_action_constraints,
     toggle_metarig,
-    scale_custom_shape,
 )
 
 modules = [
@@ -30,4 +31,5 @@ modules = [
     pie_custom_shapes,
     render_thumbnail,
     scale_custom_shape,
+    rename_with_symmetry,
 ]
