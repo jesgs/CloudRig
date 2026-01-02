@@ -4,7 +4,8 @@ import os
 
 import bpy
 from bpy.props import StringProperty
-from bpy.types import Menu, Object, Operator
+from bpy.types import Menu, Object, Operator, ID
+from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
 
 from . import versioning
 
@@ -112,6 +113,10 @@ def append_obj_from_file(
 
     if link_to_scene:
         context.scene.collection.objects.link(new_obj)
+        dependents: list[ID] = get_all_referenced_ids(new_obj, get_id_reference_map())
+        for obj in [id for id in dependents if type(id) == Object]:
+            if obj not in set(context.scene.objects):
+                context.scene.collection.objects.link(obj)
     if select:
         context.view_layer.objects.active = new_obj
         new_obj.select_set(True)
