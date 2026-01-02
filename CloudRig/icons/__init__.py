@@ -55,7 +55,7 @@ def ensure_icons_from_dir(dir_path: str|Path, icon_map_name="default") -> list[I
     if type(dir_path) is str:
         dir_path = Path(dir_path)
     if not dir_path.exists():
-        return
+        return []
 
     icons = []
     for file_path in [f for f in dir_path.iterdir() if f.is_file()]:
@@ -64,11 +64,11 @@ def ensure_icons_from_dir(dir_path: str|Path, icon_map_name="default") -> list[I
     return icons
 
 def register():
-    global ICON_STORAGE
     ensure_icon("vertical_twoway_arrows")
     ensure_icon("missing_icon")
 
 def unregister():
+    global ICON_STORAGE
     for pcoll in ICON_STORAGE.values():
         bpy.utils.previews.remove(pcoll)
     ICON_STORAGE.clear()

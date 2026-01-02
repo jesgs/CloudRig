@@ -25,6 +25,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         "fk_chain.root": True,
     }
 
+    required_chain_length = 2
+
     ##############################
     # Inherited functions.
 
@@ -121,11 +123,12 @@ class Component_Chain_IKFK(Component_Chain_FK):
         return last_frame
 
     def create_bone_infos(self, context):
-        super().create_bone_infos(context)
-        if len(self.bones_org) < 2:
+        if len(self.bones_org) < self.required_chain_length:
             self.raise_generation_error(
-                "Must be a chain of at least 2 connected bones!"
+                f"Must be a chain of at least {self.required_chain_length} connected bones!"
             )
+
+        super().create_bone_infos(context)
 
         if not is_ideal_ik_chain(self.bones_org):
             self.add_log(
