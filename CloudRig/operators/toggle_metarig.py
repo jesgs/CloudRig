@@ -193,10 +193,10 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
                 pb.select = False
 
     def match_active_bone(self, from_rig: Object, to_rig: Object):
-        """If there is an exact match for the active bone, make the matching bone active."""
+        """Set the active bone to be the closest visible name match."""
         active = from_rig.data.bones.active
         if active:
-            to_active = to_rig.data.bones.get(active.name)
+            to_active = self.get_visible_bone_with_similar_name(to_rig, active.name)
             if to_active:
                 to_rig.data.bones.active = to_active
 
