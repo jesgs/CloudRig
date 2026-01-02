@@ -298,10 +298,14 @@ def draw_rig_preview():
         painter = OverlayPainter()
         painter.space = metarig.matrix_world
 
-        from ..generation.cloud_generator import CloudRig_Generator
+        from ..generation.cloud_generator import CloudGeneratorError, CloudRig_Generator
         generator = CloudRig_Generator(context, metarig, painter)
         # Generate the abstraction layer (ie. BoneInfos) of ONLY the changed/missing components.
-        generator.generate_abstraction_layer(context, [comp.component_pbone for comp in components_to_regenerate])
+        try:
+            generator.generate_abstraction_layer(context, [comp.component_pbone for comp in components_to_regenerate])
+        except CloudGeneratorError as exc:
+            # If generation of the abstraction layer raises an error, then we can't draw the overlay.
+            return
         for component in components_to_regenerate:
             comp_pbone = component.component_pbone
             try:
@@ -526,7 +530,9 @@ def hash_bone(rig: Object, bone: PoseBone | EditBone) -> str:
     if not pbone:
         return ""
     if rig.mode == 'EDIT':
-        ebone = rig.data.edit_bones[bone.name]
+        ebone = rig.data.edit_bones.get(bone.name)
+        if not ebone:
+            return ""
         transforms = [ebone.head, ebone.tail, ebone.roll]
     else:
         transforms = pbone.matrix

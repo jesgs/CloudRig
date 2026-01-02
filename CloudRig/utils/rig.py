@@ -95,7 +95,7 @@ def get_current_rigs(context):
 
 
 def get_parentless_pbones(rig: Object) -> list[PoseBone]:
-    return [pb for pb in rig.pose.bones if not pb.bone.parent]
+    return [pb for pb in rig.pose.bones if pb.bone and not pb.bone.parent]
 
 
 def get_active_bone(context) -> EditBone | PoseBone | None:

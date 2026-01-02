@@ -87,18 +87,17 @@ class BoneDuplicateOpMixin:
                 new_ebone.name = new_name
                 new_bones_names.append(new_ebone.name)
 
-        # Refresh the copied drivers
-        if new_drivers:
-            try:
-                bpy.ops.object.mode_set(False, mode='POSE')
-                bpy.ops.object.mode_set(False, mode='EDIT')
-                for fc in new_drivers:
-                    fc.driver.expression = fc.driver.expression
-            except RuntimeError:
-                # This can happen when user keeps the mouse button held while pressing E again.
-                # Easiest to get by trying to spam-extrude.
-                # I'm just gonna ignore it, this is a silly edge case, and it's only the driver copying that fails.
-                return {'FINISHED'}
+        # Refresh PoseBones &  copied drivers
+        try:
+            bpy.ops.object.mode_set(False, mode='POSE')
+            bpy.ops.object.mode_set(False, mode='EDIT')
+            for fc in new_drivers:
+                fc.driver.expression = fc.driver.expression
+        except RuntimeError:
+            # This can happen when user keeps the mouse button held while pressing E again.
+            # Easiest to get by trying to spam-extrude.
+            # I'm just gonna ignore it, this is a silly edge case, and it's only the driver copying that fails.
+            return {'FINISHED'}
 
         for bone_name in new_bones_names:
             rig.data.edit_bones[bone_name].select_tail = True

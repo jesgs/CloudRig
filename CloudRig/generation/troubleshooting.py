@@ -82,7 +82,6 @@ class LoggerMixin:
             op_text=op_text
         )
 
-    @no_overlay
     def raise_generation_error(self, description, **kwargs):
         """For raising non-bug errors that should be fixable by the user."""
         kwargs['base_bone_name'] = self.base_bone_name
@@ -220,9 +219,20 @@ class CloudLogManager:
     This class is instanced once per rig generation, by the CloudRig_Generator class.
     """
 
-    def __init__(self, metarig: Object, rig: Object=None):
-        self.metarig = metarig
-        self.rig = rig
+    def __init__(self, generator):
+        self.generator = generator
+
+    @property
+    def metarig(self):
+        return self.generator.metarig
+
+    @property
+    def rig(self):
+        return self.generator.target_rig
+
+    @property
+    def painter(self):
+        return self.generator.painter
 
     def log(
         self,
@@ -260,6 +270,7 @@ class CloudLogManager:
 
         return entry
 
+    @no_overlay
     def log_fatal_error(
         self, description_short: str, *, wipe_log=True, description="", **kwargs
     ):

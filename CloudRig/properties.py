@@ -394,28 +394,35 @@ class RigComponent(PropertyGroup):
         # a component type, the chain becomes ambiguous. This case is not supported!
         cur_pb = component_pbone
         chain = [cur_pb]
-        while cur_pb and len(cur_pb.children) > 0:
-            next_pb = None
-            for child_pb in cur_pb.children:
-                if child_pb.cloudrig_component.component_type == "":
-                    if only_connected:
-                        if  not child_pb.bone.use_connect:
-                            continue
-                        if next_pb is not None:
-                            # TODO: This check should be done during generation, and result in an error or generation log entry.
-                            print(
-                                f"""Warning: Branching connected bone chain for {component_pbone.name}: \n
-                                \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
-                                \tPicking the first one arbitrarily! \n
-                                \tDisconnect the bone or assign a component type to make it unambiguous."""
-                            )
+        try:
+            while cur_pb and len(cur_pb.children) > 0:
+                next_pb = None
+                for child_pb in cur_pb.children:
+                    if child_pb.cloudrig_component.component_type == "":
+                        if only_connected:
+                            if  not child_pb.bone.use_connect:
+                                continue
+                            if next_pb is not None:
+                                # TODO: This check should be done during generation, and result in an error or generation log entry.
+                                print(
+                                    f"""Warning: Branching connected bone chain for {component_pbone.name}: \n
+                                    \tChain could continue with either {next_pb.name} or {child_pb.name}. \n
+                                    \tPicking the first one arbitrarily! \n
+                                    \tDisconnect the bone or assign a component type to make it unambiguous."""
+                                )
+                            else:
+                                next_pb = child_pb
                         else:
                             next_pb = child_pb
-                    else:
-                        next_pb = child_pb
-            if next_pb:
-                chain.append(next_pb)
-            cur_pb = next_pb
+                if next_pb:
+                    chain.append(next_pb)
+                cur_pb = next_pb
+        except KeyError:
+            # Happens on bone deletion.
+            return []
+        except AttributeError:
+            # Happens on bone duplication.
+            return []
 
         if max_length != -1:
             return chain[:max_length]
@@ -637,11 +644,15 @@ class Properties_CloudRig(PropertyGroup):
 
 def get_direct_child_component_pbones(root_pb) -> list[PoseBone]:
     component_pbs = []
-    for child_pb in root_pb.children:
-        if child_pb.cloudrig_component.component_type:
-            component_pbs.append(child_pb)
-        else:
-            component_pbs.extend(get_direct_child_component_pbones(child_pb))
+    try:
+        for child_pb in root_pb.children:
+            if child_pb.cloudrig_component.component_type:
+                component_pbs.append(child_pb)
+            else:
+                component_pbs.extend(get_direct_child_component_pbones(child_pb))
+    except KeyError:
+        # Can happen after bone deletion.
+        return []
     return component_pbs
 
 

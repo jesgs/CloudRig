@@ -201,24 +201,22 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             'rotation_mode': 'XYZ',
         }
 
-        self.logger = CloudLogManager(metarig)
+        self.logger = CloudLogManager(self)
+
         # Set flag to handle Bone Gizmos.
         self.use_gizmos = (
             check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
         )
 
     ### Helper functions/properties.
-    @no_overlay
     def raise_generation_error(
         self, description_short="Generation Error", description="", **kwargs
     ):
         """For raising non-bug errors that should be fixable by the user."""
-        if self.painter:
-            return
+        errmsg = (description or description_short)
         self.logger.log_fatal_error(
             description_short, description=description, display_stack_trace='ADVANCED', **kwargs
         )
-        errmsg = (description or description_short)
         base_bone_name = kwargs.get('base_bone_name', "")
         if base_bone_name:
             errmsg = base_bone_name + ": " + errmsg
@@ -305,8 +303,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.target_rig = create_target_rig_obj(context, metarig)
         if 'ui_data' in self.metarig.data:
             self.target_rig.data['ui_data'] = self.metarig.data['ui_data']
-        self.logger.rig = self.target_rig
-        self.logger.metarig = metarig
         self.defaults['rig'] = self.target_rig
 
         if self.params.ensure_root:
@@ -497,6 +493,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     # Parent as a string is not supported.
                     # Set it to None for overlay drawing.
                     bone_info.parent = None
+                    if self.painter:
+                        return
                     # If this happens during real generation, raise error.
                     self.raise_generation_error(
                         f'Parent of "{bone_info.name}" is "{bone.parent.name}", '
