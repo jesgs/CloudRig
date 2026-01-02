@@ -532,7 +532,16 @@ class BoneInfo:
         self.roll = pi / 180 * rounded
 
     def roll_align_vector(self, vector: Vector, axis='+Z'):
-        self.roll = calc_roll_to_align_axis(self, vector, axis)
+        try:
+            self.roll = calc_roll_to_align_axis(self, vector, axis)
+        except ValueError:
+            # This can happen when the vector we're trying to align with is perfectly aligned with the bone's length.
+            self.owner_component.add_log(
+                "Failed to Orient Bone",
+                trouble_bone=self.name,
+                description="The roll value of this bone could not be set to align with the desired vector.",
+                display_stack_trace='ADVANCED',
+            )
 
     def roll_align_other(self, other: BoneInfo, axis='+Z'):
         self.roll_align_vector(self.head+other.z_axis, axis=axis)

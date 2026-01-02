@@ -126,7 +126,8 @@ def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
 
 
 def project_point_to_plane(point: Vector, origin: Vector, normal: Vector) -> Vector:
-    assert normal.length > 0
+    if normal.length == 0:
+        raise ValueError(f"This normal vector cannot define a plane! ({normal})")
     normal = normal.normalized()
     vector = point - origin
     dist = vector.dot(normal)
@@ -241,7 +242,12 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
 
 
 def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
-    """Return a list of head+tail coordinates flattened along a plane."""
+    """For a set of bones, return a list of head+tail coordinate pairs flattened along a plane.
+    The plane is defined by the head of the first bone, tail of the last bone, and another point depending on
+    the length of those bones.
+
+    In the case of a perfectly straight bone chain, we cannot find a plane, and a ValueError will be raised instead.
+    """
 
     # We need 3 points to define a plane. 2 of these are the head of the first and the tail of the last bone.
     plane_points = [chain[0].head, chain[-1].tail]
@@ -258,7 +264,7 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
     plane_normal = vec1.cross(vec2)
     assert isinstance(plane_normal, Vector)
 
-    # Now let's flatten each point in the chain onto our plane.
+    # Now let's project each head/tail in the bone chain onto the chosen plane.
     ret = []
     for edit_bone in chain:
         pair = []
@@ -270,9 +276,10 @@ def get_flattened_coords(chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
             ]    # XXX Not sure how to use an infinite line for the intersection test... but, this is infinite enough for me.
             # Blender gives us a nice function for intersecting a line with a plane
             intersect = intersect_line_plane(line[0], line[1], plane_points[0], plane_normal)
-
             # Set the vector to the resulting point
-            assert intersect
+            if not intersect:
+                raise ValueError(f"Could not define a plane from this bone chain: {[eb.name for eb in chain]}")
+
             pair.append(intersect)
         if pair:
             ret.append(pair)

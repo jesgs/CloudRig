@@ -9,7 +9,11 @@ from mathutils import Vector
 from ..bs_utils.ui import label_split
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
-from ..utils.rig import calculate_ik_pole_vector, is_ideal_ik_chain
+from ..utils.rig import (
+    calculate_ik_pole_vector,
+    get_flattened_coords,
+    is_ideal_ik_chain,
+)
 from .cloud_fk_chain import Component_Chain_FK
 
 
@@ -128,6 +132,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 f"Must be a chain of at least {self.required_chain_length} connected bones!"
             )
 
+        self.__prevent_straight_chain()
+
         super().create_bone_infos(context)
 
         if not is_ideal_ik_chain(self.bones_org):
@@ -166,6 +172,34 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     ##############################
     # IK Chain functions.
+
+    def __prevent_straight_chain(self):
+        """An IK chain is not allowed to be perfectly straight.
+        Forcing a successful generation would result in an IK constraint which simply does nothing.
+        Instead of doing that, and instead of throwing a hard error, let's throw a warning, and offset
+        the elbow bone arbitrarily to prevent dysfunction.
+        """
+        def is_perfectly_straight(chain) -> bool:
+            try:
+                get_flattened_coords(chain)
+                return False
+            except ValueError:
+                return True
+
+        if is_perfectly_straight(self.bones_org):
+            offset = 0.001
+            self.bones_org[0].tail.y += offset
+            self.bones_org[1].head.y += offset
+            self.add_log(
+                "Ambiguous IK Pole Direction",
+                description=(
+                    "This IK chain is a perfectly straight line.\n"
+                    "This would normally prevent the IK constraint from choosing a direction to bend in.\n"
+                    "To avoid this, the elbow joint was slightly offset in an arbitrarily chosen global +Y direction.\n"
+                    "It would be better if you introduced a kink into the chain yourself."
+                )
+            )
+
 
     def ik_chain__make_ik_setup(self):
         # Create IK Master control
