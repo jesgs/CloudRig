@@ -10,6 +10,7 @@ from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_fk_chain import Component_Chain_FK
 
+
 class Component_Spine_Toon(Component_Chain_FK):
     """This spine rig must consist of 4 bones, placed to function as the
     hips, lowerback, ribcage, and upperback. Designed for cartoony humanoids.
@@ -105,6 +106,13 @@ class Component_Spine_Toon(Component_Chain_FK):
             custom_shape_rotation_euler=Vector((0, pi/2, 0)),
         )
         hips.roll_align_other(self.bones_org[0], axis='-Z')
+        hips_fwd = self.bone_sets['Mechanism Bones'].new(
+            name=self.naming.add_prefix(self.spine_name, "HIP-FWD"),
+            source=self.bones_org[0],
+            tail=self.fk_chain[1].head,
+            parent=hips,
+        )
+        hips_fwd.roll_align_other(chest)
         hips.custom_shape_scale_xyz = self.bones_org[1].length * self.bones_org[1].custom_shape_scale_xyz.zyx
         hips.custom_shape_translation = self.bones_org[1].custom_shape_translation * Vector((-1, -1, 1))
         hips.collections += self.bone_sets['FK Controls'].collections
@@ -122,7 +130,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         hips_lower.custom_shape_scale_xyz = Vector.lerp(hips.custom_shape_scale_xyz, self.bones_org[0].length*self.bones_org[0].custom_shape_scale_xyz.zyx, 0.5)
         hips_lower.custom_shape_scale_xyz.y *= 0.5
         hips_lower.custom_shape_translation = hips.custom_shape_translation
-        hips_lower.roll_align_other(self.bones_org[0])
+        hips_lower.roll_align_other(self.bones_org[0], axis='-Z')
         hips_lower.collections += self.bone_sets['FK Controls'].collections
 
         # Hack the FK parenting a bit.
@@ -131,7 +139,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.bones_org[0].parent = hips_lower
         self.fk_chain[0].collections = self.bone_sets['Mechanism Bones'].collections
 
-        self.__make_ik_setup(self.fk_chain, chest, hips)
+        self.__make_ik_setup(self.fk_chain, chest, hips_fwd)
 
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
             str_bone.parent.constraint_infos[0].subtarget = fk_bone
@@ -193,16 +201,18 @@ class Component_Spine_Toon(Component_Chain_FK):
             return ik_hlp
 
         # Make the IK chain.
-        next_parent = hips
+        next_parent = hips if len(self.fk_chain) > 3 else chest
         for i, fk_bone in enumerate(fk_chain[1:]):
             ik_hlp = make_ik_bone(fk_bone.name.replace("FK", "IK"), next_parent)
-            if i == 0:
-                ik_hlp.parent = hips
-            elif i < len(fk_chain)-3:
+            if 0 < i < len(fk_chain)-3:
                 unit = 1 / (len(fk_chain)-3)
                 chest_influence = unit*i
                 parent_helper = self.create_parent_bone(ik_hlp, bone_set=self.bone_sets['Mechanism Bones'])
+                parent_helper.put(Vector.lerp(hips.tail, chest.head, chest_influence))
+                parent_helper.vector = (chest.head-hips.tail).normalized() * parent_helper.vector.length
+                parent_helper.roll_align_other(hips)
                 self.constrain_between_bones(parent_helper, hips, chest, chest_influence)
+                parent_helper.constraint_infos[0].head_tail = 1.0
 
             next_parent = chest
 
