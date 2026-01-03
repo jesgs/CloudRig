@@ -29,8 +29,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
         "fk_chain.root": True,
     }
 
-    required_chain_length = 2
-
     ##############################
     # Inherited functions.
 
