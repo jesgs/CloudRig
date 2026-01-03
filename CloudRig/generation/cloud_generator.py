@@ -9,7 +9,6 @@ from time import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..rig_component_features.bone_info import BoneInfo
     from ..rig_components.cloud_base import Component_Base
 import bpy
 from bpy.props import (
@@ -351,7 +350,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             auto_initialize_gizmos(self.target_rig, self.bone_infos)
 
         old_rig = self.params.target_rig
-        self.execute_custom_script(old_rig, self.target_rig)
+        self.execute_custom_script(context, old_rig, self.target_rig)
 
         if old_rig:
             self.replace_old_with_new_rig(
@@ -622,7 +621,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bone_info.write_pose_data(context, self.metarig, pose_bone)
 
     ### Final generation steps.
-    def execute_custom_script(self, old_rig: Object|None, new_rig: Object):
+    def execute_custom_script(self, context, old_rig: Object|None, new_rig: Object):
         """Execute a text datablock to be executed after rig generation."""
         # This is a bit hacky, but we need the rig name to be the "original" so that
         # post-gen script authors can get a reference to the rig easily.
@@ -648,6 +647,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             new_rig.name = "NEW-"+new_rig.name
             if old_rig:
                 old_rig.name = old_rig.name.replace("OLD-", "")
+            if context.active_object != new_rig:
+                # In case user made some other object active...
+                context.view_layer.objects.active = new_rig
+            if context.mode != 'OBJECT':
+                # In case user didn't go back to Object mode...
+                bpy.ops.object.mode_set(mode='OBJECT')
 
     def replace_old_with_new_rig(
         self, context, old_rig, new_rig, preserve_custom_props=True

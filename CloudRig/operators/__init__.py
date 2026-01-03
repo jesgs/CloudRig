@@ -8,6 +8,7 @@ from . import (
     pie_bone_selection_ui,
     pie_bone_specials,
     pie_custom_shapes,
+    post_gen_template_create,
     rename_with_symmetry,
     render_thumbnail,
     scale_custom_shape,
@@ -32,4 +33,5 @@ modules = [
     render_thumbnail,
     scale_custom_shape,
     rename_with_symmetry,
+    post_gen_template_create,
 ]

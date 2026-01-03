@@ -23,7 +23,6 @@ def load_script(
     file_path="", file_name="cloudrig.py", datablock=None, execute=True
 ) -> Text:
     """Load a text file into a text datablock, enable register checkbox and execute it.
-    Also run an optional search and replace on the file content.
     """
 
     if datablock:

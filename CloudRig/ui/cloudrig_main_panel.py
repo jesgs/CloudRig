@@ -81,7 +81,10 @@ class POSE_PT_CloudRig_General(Panel):
         if not prefs.advanced_mode:
             return
 
-        layout.prop(generator, 'custom_script')
+        script_row = layout.row(align=True)
+        script_row.prop(generator, 'custom_script')
+        if not generator.custom_script:
+            script_row.operator('wm.cloudrig_template_script_create', icon='FILE_NEW', text="")
 
         # Test Animation Parameters
         if self.metarig_contains_fk_chain(metarig):
