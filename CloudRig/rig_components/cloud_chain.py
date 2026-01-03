@@ -184,7 +184,7 @@ class Component_ToonChain(Component_Base):
             use_custom_shape_bone_size = False,
             custom_shape_translation=Vector((0, 0, 0)),
             custom_shape_rotation_euler=Vector((0, 0, 0)),
-            custom_shape_scale=org_bone.length * self.params.chain.shape_size,
+            custom_shape_scale_xyz=Vector([org_bone.length * self.params.chain.shape_size]*3),
             parent=org_bone,
         )
         if at_tip:
