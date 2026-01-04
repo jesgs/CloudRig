@@ -329,7 +329,7 @@ def draw_rig_component_list(context, layout, default_closed=True):
         ).direction = 'DOWN'
 
     active_component = get_component_in_ui(context)
-    if not active_component:
+    if not active_component or not active_component.component_pbone:
         return
 
     header, panel = layout.panel("CloudRig Component In List", default_closed=False)
