@@ -461,7 +461,7 @@ def no_overlay(_func=None, *, return_value=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            if self.painter:
+            if hasattr(self, 'painter') and self.painter:
                 return return_value
             return func(self, *args, **kwargs)
 
