@@ -168,7 +168,7 @@ def draw_params_subpanel_single(context, layout, panel_name: str):
         not getattr(comp_class, poll_func_name)(context, active_pb.cloudrig_component.params)
     ):
         return
-    header, panel = layout.panel(f"CloudRig {panel_data.ui_name}")
+    header, panel = layout.panel(f"CloudRig {panel_data.ui_name}", default_closed=True)
     panel_data.draw_header(context, header)
     header.label(text=panel_data.ui_name)
     if panel:

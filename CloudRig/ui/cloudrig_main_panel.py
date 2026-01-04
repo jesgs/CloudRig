@@ -13,6 +13,7 @@ class POSE_PT_CloudRig(Panel):
     bl_region_type = 'WINDOW'
     bl_context = 'data'
     bl_options = {'DEFAULT_CLOSED'}
+    bl_ui_units_x = 20
 
     @classmethod
     def poll(cls, context):
@@ -38,111 +39,98 @@ class POSE_PT_CloudRig(Panel):
             text = "Re-Generate CloudRig"
         layout.operator("pose.cloudrig_generate", text=text)
 
-
-class POSE_PT_CloudRig_General(Panel):
-    bl_label = "General"
-    bl_parent_id = 'POSE_PT_CloudRig'
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        # This is safe because of bl_parent_id; The parent panel's poll does
-        # early exit checks already, no point repeating them here.
-        return context.object.cloudrig.enabled
-
-    @staticmethod
-    def metarig_contains_fk_chain(metarig: Object) -> bool:
-        """Return whether or not a metarig contains an FK rig. Used to determine
-        whether animation generation checkbox should appear or not."""
-        for pb in metarig.pose.bones:
-            rig_component = pb.cloudrig_component
-            if rig_component.component_type != '':
-                # This is a bit nasty but importing Component_Chain_FK and using issubclass() breaks parameter registering (don't ask me why!)
-                if 'cloud_fk_chain' in str(rig_component.component_class.mro()):
-                    return True
-        return False
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
+        if not context.object.cloudrig.enabled:
+            return
+        draw_general_panel(context, layout)
 
         prefs = get_addon_prefs(context)
-        metarig = context.object
-        generator = metarig.cloudrig.generator
-
-        layout.prop(prefs, 'advanced_mode')
-
-        layout = layout.column()
-        layout.prop(generator, 'target_rig')
         if not prefs.advanced_mode:
             return
-
-        script_row = layout.row(align=True)
-        script_row.prop(generator, 'custom_script')
-        if not generator.custom_script:
-            script_row.operator('wm.cloudrig_template_script_create', icon='FILE_NEW', text="")
-
-        # Test Animation Parameters
-        if self.metarig_contains_fk_chain(metarig):
-            heading = "Generate Action"
-            if generator.test_action:
-                heading = "Update Action"
-            act_row = layout.row(heading=heading)
-            act_row.prop(generator, 'generate_test_action', text="")
-            act_col = act_row.column()
-            act_col.prop(generator, 'test_action', text="")
-            act_col.enabled = generator.generate_test_action
-
-        if check_addon(context, 'bone_gizmos'):
-            layout.prop(generator, 'auto_setup_gizmos')
-
-        layout.separator()
-
-        layout.prop(generator, 'ensure_root', icon='BONE_DATA')
-        layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
+        draw_custom_shapes_panel(context, layout)
 
 
-class POSE_PT_CloudRig_CustomShapes(Panel):
-    bl_label = "Custom Shapes"
-    bl_parent_id = 'POSE_PT_CloudRig'
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        prefs = get_addon_prefs(context)
-        return prefs.advanced_mode and context.object.cloudrig.enabled
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-        generator = context.object.cloudrig.generator
-
-        # Widgets
-        col = layout.column(align=True)
-        row = col.row(align=True)
-        row.prop(generator, 'widget_collection', text="Collection")
-        row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
-
-        layout.separator()
-
-        # Custom Shapes
-        col.prop(generator, 'preserve_shapes_properties', text="Preserve Properties")
-        if generator.preserve_shapes_properties:
-            split = col.split(factor=0.04)
-            split.row()
-            split.row().prop(generator, 'preserve_custom_shapes', text="With Shapes")
+def metarig_contains_fk_chain(metarig: Object) -> bool:
+    """Return whether or not a metarig contains an FK rig. Used to determine
+    whether animation generation checkbox should appear or not."""
+    for pb in metarig.pose.bones:
+        rig_component = pb.cloudrig_component
+        if rig_component.component_type != '':
+            # This is a bit nasty but importing Component_Chain_FK and using issubclass() breaks parameter registering (don't ask me why!)
+            if 'cloud_fk_chain' in str(rig_component.component_class.mro()):
+                return True
+    return False
 
 
-registry = [
-    POSE_PT_CloudRig,
-    POSE_PT_CloudRig_General,
-    POSE_PT_CloudRig_CustomShapes
-]
+def draw_general_panel(context, layout):
+    header, panel = layout.panel("CloudRig General", default_closed=True)
+    header.label(text="General")
+    if not panel:
+        return
+
+    layout = panel
+    layout.use_property_split = True
+    layout.use_property_decorate = False
+
+    prefs = get_addon_prefs(context)
+    metarig = context.object
+    generator = metarig.cloudrig.generator
+
+    layout.prop(prefs, 'advanced_mode')
+
+    layout = layout.column()
+    layout.prop(generator, 'target_rig')
+    if not prefs.advanced_mode:
+        return
+
+    script_row = layout.row(align=True)
+    script_row.prop(generator, 'custom_script')
+    if not generator.custom_script:
+        script_row.operator('wm.cloudrig_template_script_create', icon='FILE_NEW', text="")
+
+    # Test Animation Parameters
+    if metarig_contains_fk_chain(metarig):
+        heading = "Generate Action"
+        if generator.test_action:
+            heading = "Update Action"
+        act_row = layout.row(heading=heading)
+        act_row.prop(generator, 'generate_test_action', text="")
+        act_col = act_row.column()
+        act_col.prop(generator, 'test_action', text="")
+        act_col.enabled = generator.generate_test_action
+
+    if check_addon(context, 'bone_gizmos'):
+        layout.prop(generator, 'auto_setup_gizmos')
+
+    layout.separator()
+
+    layout.prop(generator, 'ensure_root', icon='BONE_DATA')
+    layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
+
+
+def draw_custom_shapes_panel(context, layout):
+    header, panel = layout.panel("CloudRig Custom Shapes", default_closed=True)
+    header.label(text="Custom Shapes")
+    if not panel:
+        return
+
+    layout.use_property_split = True
+    layout.use_property_decorate = False
+    generator = context.object.cloudrig.generator
+
+    # Widgets
+    col = layout.column(align=True)
+    row = col.row(align=True)
+    row.prop(generator, 'widget_collection', text="Collection")
+    row.prop(generator, 'reload_widgets', text="", icon='FILE_REFRESH')
+
+    layout.separator()
+
+    # Custom Shapes
+    col.prop(generator, 'preserve_shapes_properties', text="Preserve Properties")
+    if generator.preserve_shapes_properties:
+        split = col.split(factor=0.04)
+        split.row()
+        split.row().prop(generator, 'preserve_custom_shapes', text="With Shapes")
+
+
+registry = [POSE_PT_CloudRig]
