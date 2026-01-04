@@ -3,6 +3,7 @@
 import bpy
 from bpy.app.handlers import persistent
 from bpy.types import Object
+from mathutils import Vector
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.actions_component import ActionConstraintSetup
@@ -149,6 +150,15 @@ def version_cloud_metarig(metarig):
             pbone.custom_shape_scale_xyz *= ratio
             if comp and comp.component_type == 'Spine: Cartoon' and pbone == comp.component_pbone_chain[-1]:
                 pbone.custom_shape_scale_xyz.y = 1.1
+
+    if cloudrig.metarig_version < 8:
+        # We let Lattice components use custom shape scale to define the size of the lattice.
+        # Previously, lattice size was defined by the bone's length.
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if comp.component_type == 'Lattice':
+                pbone.custom_shape_scale_xyz = Vector((1, 1, 1))
+                pbone.use_custom_shape_bone_size = True
 
 @persistent
 def update_all_metarigs(dummy=None):

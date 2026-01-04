@@ -2,9 +2,10 @@
 
 import bpy
 from bpy.props import BoolProperty, PointerProperty
-from bpy.types import Object, PoseBone, PropertyGroup
+from bpy.types import Object, PropertyGroup
 from mathutils import Matrix
 
+from ..rig_component_features.bone_info import BoneInfo
 from ..utils.lattice import ensure_falloff_vgroup
 from .cloud_base import Component_Base
 
@@ -29,11 +30,9 @@ class Component_Lattice(Component_Base):
 
     def create_helper_objects(self, context):
         super().create_helper_objects(context)
-        root_pb = self.target_rig.pose.bones.get(self.lattice_root.name)
-        hook_pb = self.target_rig.pose.bones.get(self.hook_bone.name)
-        lattice_ob = self.params.lattice.lattice = self.__ensure_lattice(context, hook_pb.name)
+        lattice_ob = self.params.lattice.lattice = self.__ensure_lattice(context, self.hook_bone.name)
         if self.params.lattice.regenerate:
-            self.__reset_lattice(context, self.params.lattice.lattice, root_pb, hook_pb)
+            self.__reset_lattice(context, self.params.lattice.lattice, self.lattice_root, self.hook_bone)
         else:
             # Reset Hook inverse matrices
             for m in lattice_ob.modifiers:
@@ -101,7 +100,7 @@ class Component_Lattice(Component_Base):
         return lattice_ob
 
     def __reset_lattice(
-        self, context, lattice_ob: Object, root_bone: PoseBone, hook_bone: PoseBone
+        self, context, lattice_ob: Object, root_bone: BoneInfo, hook_bone: BoneInfo
     ):
         # If lattice doesn't exist, create it.
         if not lattice_ob:
@@ -133,9 +132,11 @@ class Component_Lattice(Component_Base):
         lattice_ob.parent_type = 'BONE'
         lattice_ob.parent_bone = self.lattice_root.name
         lattice_ob.matrix_world = root_bone.matrix
-        lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(
-            root_bone.length, 4
-        )
+        scale = sum(root_bone.custom_shape_scale_xyz[:])/3
+        if root_bone.use_custom_shape_bone_size:
+            scale *= root_bone.length
+        print("SCALE: ", scale)
+        lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(scale, 4)
         # Leave a custom property for the Generator, so it doesn't reset the
         # lattice's matrix to what it was before generation.
         lattice_ob['matrix_world'] = lattice_ob.matrix_world
