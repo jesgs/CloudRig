@@ -496,9 +496,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                         return
                     # If this happens during real generation, raise error.
                     self.raise_generation_error(
-                        f'Parent of "{bone_info.name}" is "{bone.parent.name}", '
+                        f"{bone_info.name} lacks parent component!",
+                        description=f'Parent of "{bone_info.name}" is "{bone.parent.name}", '
                         'which is not part of any rig component. '
-                        'Assign it at least a "Bone Copy" component type.'
+                        'Assign it at least a "Bone Copy" component type.',
                     )
 
     def components_create_bone_infos(self, context):
