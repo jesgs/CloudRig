@@ -41,7 +41,7 @@ class CLOUDRIG_UL_parent_slots(UIList):
                 row.prop(parent_slot, "bone", text="")
 
             row = split.row()
-            row.prop(parent_slot, "name", text="", emboss=True)
+            row.prop(parent_slot, "name", text="", placeholder=parent_slot.bone, emboss=True)
             row.prop(parent_slot, "is_default", text="")
 
         elif self.layout_type in {"GRID"}:
