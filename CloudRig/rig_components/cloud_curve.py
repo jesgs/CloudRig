@@ -6,11 +6,11 @@ from mathutils import Matrix, Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..utils.curve import (
-    get_spline_points,
     evaluate_point_tangents,
-    get_spline_bounding_box_center,
-    find_opposite_spline,
     find_opposite_point_on_curve,
+    find_opposite_spline,
+    get_spline_bounding_box_center,
+    get_spline_points,
 )
 from .cloud_base import Component_Base
 
@@ -314,7 +314,7 @@ class Component_Curve_Hooked(Component_Base):
             name=self.__get_hook_name(spline_idx, point_idx),
             source=source_bone,
             use_custom_shape_bone_size=True,
-            custom_shape_scale_xyz=Vector((self.params.curve.shape_size, 1, self.params.curve.shape_size)),
+            custom_shape_scale_xyz=Vector((self.params.curve.shape_size, 2, self.params.curve.shape_size)),
             head=point_loc,
             tail=tail,
             parent=parent_bone,
@@ -416,14 +416,12 @@ class Component_Curve_Hooked(Component_Base):
             handle.use_custom_shape_bone_size = True
             if self.params.curve.rotatable_handles:
                 dsp_bone = self.create_dsp_bone(handle)
-                dsp_bone.head = handle.tail.copy()
-                dsp_bone.tail = handle.head.copy()
+                handle.reverse()
 
                 self.lock_transforms(
                     handle, loc=False, rot=False, scale=[True, False, True]
                 )
 
-                dsp_bone.add_constraint('DAMPED_TRACK', subtarget=hook_ctr.name)
                 dsp_bone.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
             else:
                 self.lock_transforms(handle, loc=False)
