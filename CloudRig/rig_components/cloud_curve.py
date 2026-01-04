@@ -38,15 +38,18 @@ class Component_Curve_Hooked(Component_Base):
         self.curve__initialize()
 
     def create_bone_infos(self, context):
-        if not self.params.curve.target:
+        curve_ob = self.params.curve.target
+        if not curve_ob:
             return
+
+        self.check_object_in_scene(context, curve_ob, create_log=True)
 
         super().create_bone_infos(context)
         self.root_bone = self.bones_org[0].parent
         if self.params.curve.create_root:
             self.root_bone = self.curve__make_root()
 
-        self.hooks_of_splines = self.curve__make_ctrls_for_points(self.params.curve.target)
+        self.hooks_of_splines = self.curve__make_ctrls_for_points(curve_ob)
 
     def base__relink_get_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
         return self.root_bone

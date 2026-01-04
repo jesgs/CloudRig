@@ -32,12 +32,13 @@ class Component_Lattice(Component_Base):
         super().create_helper_objects(context)
         lattice_ob = self.params.lattice.lattice = self.__ensure_lattice(context, self.hook_bone.name)
         if self.params.lattice.regenerate:
-            self.__reset_lattice(context, self.params.lattice.lattice, self.lattice_root, self.hook_bone)
+            self.__reset_lattice(context, lattice_ob, self.lattice_root, self.hook_bone)
         else:
             # Reset Hook inverse matrices
             for m in lattice_ob.modifiers:
                 if m.type == 'HOOK':
                     m.subtarget = m.subtarget
+        self.check_object_in_scene(context, lattice_ob)
 
     ##############################
     # Lattice functions.

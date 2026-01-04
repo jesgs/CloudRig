@@ -828,6 +828,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         return {'FINISHED'}
 
+
 class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
     """Change rotation mode of a bone"""
 
@@ -1225,6 +1226,28 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_link_obj_to_scene(Operator):
+    """Link an object to the active scene."""
+
+    bl_idname = "scene.link_object_by_name"
+    bl_label = "Link Object to Scene"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    ob_name: StringProperty()
+
+    def execute(self, context):
+        obj = bpy.data.objects.get(self.ob_name)
+        if not obj:
+            self.report({'ERROR'}, f"Couldn't find {self.ob_name}.")
+        else:
+            context.scene.collection.objects.link(obj)
+
+        metarig = context.object
+        metarig.cloudrig.generator.remove_active_log()
+        self.report({'INFO'}, f"Linked {obj.name} to {context.scene.name}.")
+        return {'FINISHED'}
+
+
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
@@ -1243,4 +1266,5 @@ registry = [
     CLOUDRIG_OT_Edit_Action_Setup,
     CLOUDRIG_OT_delete_collection,
     CLOUDRIG_OT_edit_bone_transform,
+    CLOUDRIG_OT_link_obj_to_scene,
 ]

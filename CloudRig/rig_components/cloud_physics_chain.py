@@ -145,6 +145,9 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         cloth_mod.settings.vertex_group_mass = pin_name
 
         bpy.ops.object.mode_set(mode='OBJECT')
+        if phys_obj not in set(context.scene.objects):
+            context.scene.collection.objects.link(phys_obj)
+        visibility = self.ensure_visible(context, phys_obj)
         context.view_layer.objects.active = phys_obj
         phys_obj.select_set(True)
         bpy.ops.object.mode_set(mode='EDIT')
@@ -157,6 +160,8 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         context.view_layer.objects.active = self.target_rig
         bpy.ops.object.mode_set(mode='EDIT')
         self.params.physics_chain.phys_obj = phys_obj
+        visibility.restore(context)
+        self.check_object_in_scene(context, phys_obj)
         return phys_obj
 
     def __make_physics_chain(self, from_chain: list[BoneInfo]):

@@ -6,8 +6,9 @@ from bpy.types import Object, PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.overlay_painter import no_overlay
-from .cloud_curve import Component_Curve_Hooked
 from ..utils.curve import evaluate_point_tangents, get_spline_points
+from .cloud_curve import Component_Curve_Hooked
+
 
 class Component_Curve_SplineIK(Component_Curve_Hooked):
     """Create a bezier curve object to drive a bone chain with Spline IK constraint, controlled by Hooks."""
@@ -61,10 +62,12 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         )
 
     def create_bone_infos(self, context):
-        if not self.params.curve.target:
-            self.params.curve.target = self.__ensure_curve_obj(context)
-        self.__reset_curve_obj(self.params.curve.target)
-        self.point_tangents = evaluate_point_tangents(self.params.curve.target)
+        curve_ob = self.params.curve.target
+        if not curve_ob:
+            curve_ob = self.__ensure_curve_obj(context)
+        self.__reset_curve_obj(curve_ob)
+        self.check_object_in_scene(context, curve_ob)
+        self.point_tangents = evaluate_point_tangents(curve_ob)
         # Skip the parent class's create_bone_infos() function, but call the grandparent's.
         # This is because we need to do things in a different order than cloud_curve:
         # The curve object is created based on the controls, rather than the other way around.
@@ -72,7 +75,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         self.root_bone = self.bones_org[0].parent  # Should be allowed to be None!
         if self.params.curve.create_root:
             self.root_bone = self.curve__make_root()
-        self.hooks_of_splines = self.curve__make_ctrls_for_points(self.params.curve.target)
+        self.hooks_of_splines = self.curve__make_ctrls_for_points(curve_ob)
 
         if self.params.spline_ik.create_fk_chain:
             self.__make_fk_chain()
