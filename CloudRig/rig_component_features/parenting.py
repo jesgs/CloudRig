@@ -108,13 +108,14 @@ def draw_parent_switch_list(layout, context, text=""):
     row.label(text="Is Default")
 
     if context.mode != "EDIT_ARMATURE":
-        active_bone = context.active_bone
+        active_pbone = get_pbone_of_active(context)
+        comp_pbone = active_pbone.cloudrig_component.inherited_component.component_pbone
         draw_ui_list(
             layout,
             context,
             class_name="CLOUDRIG_UL_parent_slots",
-            list_path=f'object.pose.bones["{active_bone.name}"].cloudrig_component.params.parenting.parent_slots',
-            active_index_path=f'object.pose.bones["{active_bone.name}"].cloudrig_component.params.parenting.active_parent_index',
+            list_path=f'object.pose.bones["{comp_pbone.name}"].cloudrig_component.params.parenting.parent_slots',
+            active_index_path=f'object.pose.bones["{comp_pbone.name}"].cloudrig_component.params.parenting.active_parent_index',
             unique_id="CloudRig Parent Slots",
         )
 
@@ -381,8 +382,9 @@ class CloudParentingMixin:
                 row.label(text="", icon="BONE_DATA")
 
     @classmethod
-    def draw_parenting_params(cls, layout, context, params):
-        metarig = context.object
+    def draw_parenting_params(cls, layout, context, component):
+        params = component.params
+        metarig = component.id_data
         rig = metarig.cloudrig.generator.target_rig
         if not rig and not params.parenting.parent_slots:
             draw_label_with_linebreak(

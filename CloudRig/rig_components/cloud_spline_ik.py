@@ -278,17 +278,18 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             row.enabled = False
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         if params.spline_ik.create_fk_chain:
             layout.separator()
             cls.draw_prop_custom_shape(context, layout, params.spine, "shape_fk")
         return layout
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
 
         layout.separator()
         cls.draw_control_label(layout, "Spline IK")

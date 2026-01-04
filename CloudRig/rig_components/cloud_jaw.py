@@ -212,9 +212,8 @@ class Component_Jaw(Component_CopyBone):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
-
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         layout.label(text="The cloud_jaw component type is still in experimental stage.")
         layout.label(text="Compatibility will break, don't use for anything serious!")
         cls.draw_prop_search(

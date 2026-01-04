@@ -790,8 +790,9 @@ class Component_ToonChain(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         if params.chain.unlock_deform:
             cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_def_control')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch')
@@ -816,7 +817,8 @@ class Component_ToonChain(Component_Base):
         )
 
     @classmethod
-    def draw_bendy_params(cls, layout, context, params):
+    def draw_bendy_params(cls, layout, context, component):
+        params = component.params
         cls.draw_prop(context, layout, params.chain, 'bbone_density')
         enabled = params.chain.bbone_density > 0
         cls.draw_prop(context, layout, params.chain, 'sharp', enabled=enabled)
@@ -830,8 +832,9 @@ class Component_ToonChain(Component_Base):
             cls.draw_prop(context, layout, params.chain, 'unlock_deform')
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
         cls.draw_control_label(layout, "Stretch")
         cls.draw_prop(context, layout, params.chain, 'segments')
         cls.draw_prop(context, layout, params.chain, 'tip_control')

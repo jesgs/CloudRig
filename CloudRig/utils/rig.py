@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 from math import atan2, pi
+from typing import TYPE_CHECKING
 
 from bpy.types import Armature, Bone, EditBone, Object, PoseBone
-from mathutils import Matrix, Vector
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
+from mathutils import Vector
 from mathutils.geometry import intersect_line_plane
 
+from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import active_rig, calculate_ik_pole_vector
 
 
@@ -18,6 +25,32 @@ def get_pbone_of_active(context) -> PoseBone | None:
         return
     rig = active_rig(context)
     return rig.pose.bones.get(bone.name)
+
+
+def get_component_in_ui(context) -> RigComponent | None:
+    """Return whatever component's parameters should be currently getting drawn in the UI.
+    """
+    prefs = get_addon_prefs(context)
+    active_pb = get_pbone_of_active(context)
+    if active_pb and not hasattr(active_pb, 'cloudrig_component'):
+        # This would only happen if CloudRig fails to register (hopefully never.)
+        return
+    if context.area.type == 'PROPERTIES' and context.area.spaces.active.context == 'BONE':
+        if not active_pb:
+            return
+        return active_pb.cloudrig_component
+    if prefs.component_overview_mode == 'ACTIVE':
+        if not active_pb:
+            return
+        comp = active_pb.cloudrig_component.inherited_component
+    else:
+        comp = context.active_object.cloudrig.active_component
+
+    if context.mode == 'EDIT_ARMATURE' and comp.component_pbone.name not in context.active_object.data.edit_bones:
+        # This could happen after deleting bones in Edit Mode.
+        return
+
+    return comp
 
 
 def get_pbones_of_selected(context, whole_ebone=True) -> list[PoseBone]:

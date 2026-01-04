@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.props import BoolProperty, FloatProperty, StringProperty
-from bpy.types import PoseBone, EditBone, PropertyGroup
+from bpy.types import EditBone, PoseBone, PropertyGroup
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -353,8 +353,9 @@ class Component_Aim(Component_Base):
         )
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         if params.aim.create_sub_control:
             cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_highlight')
         cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_root')
@@ -363,8 +364,8 @@ class Component_Aim(Component_Base):
         cls.draw_prop(context, layout, params.aim, 'target_size')
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         cls.draw_prop(context, layout, params.aim, 'group')
         cls.draw_prop(context, layout, params.aim, 'target_distance')
         cls.draw_prop(context, layout, params.aim, 'flatten')

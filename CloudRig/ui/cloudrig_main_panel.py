@@ -4,16 +4,15 @@ from bpy.types import Object, Panel
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_generated_cloudrig
+from ..generation.troubleshooting import draw_log_panel
 from ..utils.misc import check_addon
+from .actions_ui import draw_action_setup_list
+from .component_list import draw_rig_component_list
 
 
-class POSE_PT_CloudRig(Panel):
+class CloudRig_MainPanel:
     bl_label = "CloudRig"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
     bl_options = {'DEFAULT_CLOSED'}
-    bl_ui_units_x = 20
 
     @classmethod
     def poll(cls, context):
@@ -43,10 +42,48 @@ class POSE_PT_CloudRig(Panel):
             return
         draw_general_panel(context, layout)
 
+        draw_log_panel(context, layout)
+
         prefs = get_addon_prefs(context)
-        if not prefs.advanced_mode:
+        if prefs.advanced_mode:
+            draw_custom_shapes_panel(context, layout)
+
+        draw_action_setup_list(context, layout)
+
+        draw_rig_component_list(context, layout, default_closed=False)
+
+
+class POSE_PT_CloudRig_Popover(CloudRig_MainPanel, Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'HEADER'
+    bl_ui_units_x = 20
+
+    @classmethod
+    def poll(cls, context):
+        prefs = get_addon_prefs(context)
+        if prefs.ui_mode == 'HEADER':
+            arm_ob = context.active_object
+            return arm_ob and arm_ob.type == 'ARMATURE' and not is_generated_cloudrig(arm_ob)
+        return super().poll(context)
+
+    def draw_header(self, context):
+        prefs = get_addon_prefs(context)
+        if prefs.ui_mode != 'HEADER':
             return
-        draw_custom_shapes_panel(context, layout)
+        super().draw_header(context)
+
+
+class POST_PT_CloudRig_Properties(CloudRig_MainPanel, Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        prefs = get_addon_prefs(context)
+        if prefs.ui_mode == 'HEADER':
+            return False
+        return super().poll(context)
 
 
 def metarig_contains_fk_chain(metarig: Object) -> bool:
@@ -70,6 +107,8 @@ def draw_general_panel(context, layout):
     layout = panel
     layout.use_property_split = True
     layout.use_property_decorate = False
+
+    layout = layout.column(align=True)
 
     prefs = get_addon_prefs(context)
     metarig = context.object
@@ -113,6 +152,7 @@ def draw_custom_shapes_panel(context, layout):
     if not panel:
         return
 
+    layout = panel
     layout.use_property_split = True
     layout.use_property_decorate = False
     generator = context.object.cloudrig.generator
@@ -133,4 +173,7 @@ def draw_custom_shapes_panel(context, layout):
         split.row().prop(generator, 'preserve_custom_shapes', text="With Shapes")
 
 
-registry = [POSE_PT_CloudRig]
+registry = [
+    POSE_PT_CloudRig_Popover,
+    POST_PT_CloudRig_Properties,
+]

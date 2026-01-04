@@ -65,9 +65,9 @@ class Component_Shoulder(Component_Chain_FK):
     # Parameters
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
 
         cls.draw_prop(context, layout, params.shoulder, 'up_axis')
 

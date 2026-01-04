@@ -20,9 +20,7 @@ from bpy.types import (
     ActionChannelbag,
     ActionSlot,
     Armature,
-    Context,
     Operator,
-    Panel,
     PropertyGroup,
     UILayout,
     UIList,
@@ -400,7 +398,7 @@ class CLOUDRIG_OT_jump_to_action_setup(Operator):
 class CLOUDRIG_UL_action_setups(UIList):
     def draw_item(
         self,
-        context: Context,
+        context,
         layout: UILayout,
         data: Armature,
         action_setup: ActionConstraintSetup,
@@ -483,183 +481,175 @@ class CLOUDRIG_UL_action_setups(UIList):
         layout.prop(action_setup, 'enabled', text="", icon=icon, emboss=False)
 
 
-class DATA_PT_cloudrig_actions(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
-    bl_label = "Actions"
-    bl_parent_id = "POSE_PT_CloudRig"
-    bl_options = {'DEFAULT_CLOSED'}
+def draw_action_setup_list(context, layout):
+    header, panel = layout.panel("CloudRig Actions", default_closed=True)
+    header.label(text="Actions")
+    if not panel:
+        return
 
-    def draw(self, context: Context):
-        rig = context.object
-        generator = rig.cloudrig.generator
-        action_setups = generator.action_setups
+    rig = context.object
+    generator = rig.cloudrig.generator
+    action_setups = generator.action_setups
 
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
+    layout = panel
+    layout.use_property_split = True
+    layout.use_property_decorate = False
 
-        draw_ui_list(
-            layout,
-            context,
-            class_name='CLOUDRIG_UL_action_setups',
-            unique_id='CloudRig Action Setups',
-            list_path='object.cloudrig.generator.action_setups',
-            active_index_path='object.cloudrig.generator.active_action_index',
-        )
+    draw_ui_list(
+        layout,
+        context,
+        class_name='CLOUDRIG_UL_action_setups',
+        unique_id='CloudRig Action Setups',
+        list_path='object.cloudrig.generator.action_setups',
+        active_index_path='object.cloudrig.generator.active_action_index',
+    )
 
-        active_setup = generator.active_action_setup
+    active_setup = generator.active_action_setup
 
-        if len(action_setups) == 0 or not active_setup:
-            return
+    if len(action_setups) == 0 or not active_setup:
+        return
 
+    col = layout.column(align=True)
+    col.use_property_split=False
+    col.template_ID(active_setup, 'action', new=CLOUDRIG_OT_action_new.bl_idname)
+    if not active_setup.action:
+        return
+    if not active_setup.action.slots:
+        layout.alert = True
+        layout.label(text="No slots in this Action.")
+        return
+
+    col.prop_search(active_setup, "action_slot_ui", active_setup.action, 'slots', text="")
+
+    layout = layout.column()
+    layout.prop(active_setup, 'is_corrective')
+
+    if active_setup.is_corrective:
+        draw_ui_corrective(context, layout.column(align=True), active_setup)
+    else:
+        draw_action_setup_ui(layout, active_setup, generator.target_rig)
+    draw_status(layout, active_setup)
+
+def draw_ui_corrective(context, layout, action_setup):
+    layout.prop(action_setup, 'frame_start', text="Frame Start")
+    layout.prop(action_setup, 'frame_end', text="End")
+    layout.separator()
+
+    for trigger_prop in ['trigger_select_a', 'trigger_select_b']:
+        draw_ui_trigger(context, layout, action_setup, trigger_prop)
+
+def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSetup, trigger_prop: str):
+    metarig = context.object
+    generator = metarig.cloudrig.generator
+    assert isinstance(metarig.data, Armature)
+
+    trigger_setup = getattr(action_setup, trigger_prop.replace("select_", ""))
+    icon = 'ACTION' if trigger_setup else 'ERROR'
+
+    row = layout.row(align=True)
+    row.prop_search(generator.active_action_setup, trigger_prop, generator, 'action_setups', icon=icon)
+
+    if not trigger_setup:
+        return
+
+    if not trigger_setup:
+        aligned_label(layout, text="Trigger Missing", icon='ERROR', alert=True)
+        return
+
+    show_prop_name = 'show_action_' + trigger_prop[-1]
+    show = getattr(action_setup, show_prop_name)
+    icon = 'HIDE_OFF' if show else 'HIDE_ON'
+
+    row.prop(action_setup, show_prop_name, icon=icon, text="")
+
+    op = row.operator(
+        CLOUDRIG_OT_jump_to_action_setup.bl_idname, text="", icon='LOOP_FORWARDS'
+    )
+    op.setup_id = trigger_setup.unique_id
+
+    if show:
         col = layout.column(align=True)
-        col.use_property_split=False
-        col.template_ID(active_setup, 'action', new=CLOUDRIG_OT_action_new.bl_idname)
-        if not active_setup.action:
-            return
-        if not active_setup.action.slots:
-            layout.alert = True
-            layout.label(text="No slots in this Action.")
-            return
+        col.enabled = False
+        draw_action_setup_ui(col, trigger_setup, generator.target_rig)
+        col.separator()
 
-        col.prop_search(active_setup, "action_slot_ui", active_setup.action, 'slots', text="")
-
-        layout = layout.column()
-        layout.prop(active_setup, 'is_corrective')
-
-        if active_setup.is_corrective:
-            self.draw_ui_corrective(context, active_setup)
-        else:
-            self.draw_action_setup_ui(layout, active_setup, generator.target_rig)
-        self.draw_status(active_setup)
-
-    def draw_ui_corrective(self, context: Context, action_setup):
-        layout = self.layout.column(align=True)
-
-        layout.prop(action_setup, 'frame_start', text="Frame Start")
-        layout.prop(action_setup, 'frame_end', text="End")
-        layout.separator()
-
-        for trigger_prop in ['trigger_select_a', 'trigger_select_b']:
-            self.draw_ui_trigger(context, layout, action_setup, trigger_prop)
-
-    def draw_ui_trigger(self, context: Context, layout: UILayout, action_setup: ActionConstraintSetup, trigger_prop: str):
-        metarig = context.object
-        generator = metarig.cloudrig.generator
-        assert isinstance(metarig.data, Armature)
-
-        trigger_setup = getattr(action_setup, trigger_prop.replace("select_", ""))
-        icon = 'ACTION' if trigger_setup else 'ERROR'
-
-        row = layout.row(align=True)
-        row.prop_search(generator.active_action_setup, trigger_prop, generator, 'action_setups', icon=icon)
-
-        if not trigger_setup:
-            return
-
-        if not trigger_setup:
-            aligned_label(layout, text="Trigger Missing", icon='ERROR', alert=True)
-            return
-
-        show_prop_name = 'show_action_' + trigger_prop[-1]
-        show = getattr(action_setup, show_prop_name)
-        icon = 'HIDE_OFF' if show else 'HIDE_ON'
-
-        row.prop(action_setup, show_prop_name, icon=icon, text="")
-
-        op = row.operator(
-            CLOUDRIG_OT_jump_to_action_setup.bl_idname, text="", icon='LOOP_FORWARDS'
+def draw_action_setup_ui(layout, action_setup, target_rig):
+    if not target_rig:
+        row = layout.row()
+        row.alert = True
+        row.label(
+            text="Cannot verify bone name without a generated rig", icon='ERROR'
         )
-        op.setup_id = trigger_setup.unique_id
 
-        if show:
-            col = layout.column(align=True)
-            col.enabled = False
-            self.draw_action_setup_ui(col, trigger_setup, generator.target_rig)
-            col.separator()
+    row = layout.row()
 
-    @staticmethod
-    def draw_action_setup_ui(layout, action_setup, target_rig):
-        if not target_rig:
-            row = layout.row()
-            row.alert = True
-            row.label(
-                text="Cannot verify bone name without a generated rig", icon='ERROR'
-            )
+    bone_icon = 'BONE_DATA' if action_setup.subtarget else 'ERROR'
+
+    if target_rig:
+        subtarget_exists = action_setup.subtarget in target_rig.pose.bones
+        row.alert = not subtarget_exists
+        row.prop_search(action_setup, 'subtarget', target_rig.pose, 'bones', icon=bone_icon)
+
+        if not subtarget_exists:
+            if action_setup.subtarget:
+                aligned_label(layout, text=f"Bone not found: {action_setup.subtarget}", icon='ERROR', alert=True)
+            return
+    else:
+        row.prop(action_setup, 'subtarget', icon=bone_icon)
+
+    flipped_subtarget = flip_name(action_setup.subtarget)
+
+    if flipped_subtarget != action_setup.subtarget:
+        flipped_subtarget_exists = (
+            not target_rig or flipped_subtarget in target_rig.pose.bones
+        )
 
         row = layout.row()
+        row.use_property_split = True
+        row.prop(action_setup, 'symmetrical', text=f"Symmetrical ({flipped_subtarget})")
 
-        bone_icon = 'BONE_DATA' if action_setup.subtarget else 'ERROR'
+        if action_setup.symmetrical and not flipped_subtarget_exists:
+            row.alert = True
+            aligned_label(layout, text=f"Bone not found: {flipped_subtarget}", icon='ERROR', alert=True)
 
-        if target_rig:
-            subtarget_exists = action_setup.subtarget in target_rig.pose.bones
-            row.alert = not subtarget_exists
-            row.prop_search(action_setup, 'subtarget', target_rig.pose, 'bones', icon=bone_icon)
+    layout.prop(action_setup, 'frame_start', text="Frame Start")
+    layout.prop(action_setup, 'frame_end', text="End")
 
-            if not subtarget_exists:
-                if action_setup.subtarget:
-                    aligned_label(layout, text=f"Bone not found: {action_setup.subtarget}", icon='ERROR', alert=True)
-                return
-        else:
-            row.prop(action_setup, 'subtarget', icon=bone_icon)
+    layout.prop(action_setup, 'target_space', text="Target Space")
+    layout.prop(action_setup, 'transform_channel', text="Transform Channel")
 
-        flipped_subtarget = flip_name(action_setup.subtarget)
+    layout.prop(action_setup, 'trans_min')
+    layout.prop(action_setup, 'trans_max')
 
-        if flipped_subtarget != action_setup.subtarget:
-            flipped_subtarget_exists = (
-                not target_rig or flipped_subtarget in target_rig.pose.bones
-            )
+def draw_status(layout, action_setup):
+    """
+    There are a lot of ways to create incorrect Action setups, so give
+    the user a warning in those cases.
+    """
+    split = label_split(layout, text="Status:")
 
-            row = layout.row()
-            row.use_property_split = True
-            row.prop(action_setup, 'symmetrical', text=f"Symmetrical ({flipped_subtarget})")
+    if action_setup.trans_min == action_setup.trans_max:
+        col = split.column(align=True)
+        col.alert = True
+        col.label(text="Min and max value are the same!")
+        col.label(text=f"Will be stuck reading frame {action_setup.frame_start}!")
+        return
 
-            if action_setup.symmetrical and not flipped_subtarget_exists:
-                row.alert = True
-                aligned_label(layout, text=f"Bone not found: {flipped_subtarget}", icon='ERROR', alert=True)
+    if action_setup.frame_start == action_setup.frame_end:
+        col = split.column(align=True)
+        col.alert = True
+        col.label(text="Start and end frame cannot be the same!")
 
-        layout.prop(action_setup, 'frame_start', text="Frame Start")
-        layout.prop(action_setup, 'frame_end', text="End")
+    default_frame = action_setup.get_default_frame()
 
-        layout.prop(action_setup, 'target_space', text="Target Space")
-        layout.prop(action_setup, 'transform_channel', text="Transform Channel")
-
-        layout.prop(action_setup, 'trans_min')
-        layout.prop(action_setup, 'trans_max')
-
-    def draw_status(self, action_setup):
-        """
-        There are a lot of ways to create incorrect Action setups, so give
-        the user a warning in those cases.
-        """
-        layout = self.layout
-
-        split = label_split(layout, text="Status:")
-
-        if action_setup.trans_min == action_setup.trans_max:
-            col = split.column(align=True)
-            col.alert = True
-            col.label(text="Min and max value are the same!")
-            col.label(text=f"Will be stuck reading frame {action_setup.frame_start}!")
-            return
-
-        if action_setup.frame_start == action_setup.frame_end:
-            col = split.column(align=True)
-            col.alert = True
-            col.label(text="Start and end frame cannot be the same!")
-
-        default_frame = action_setup.get_default_frame()
-
-        if action_setup.is_default_frame_integer():
-            split.label(text=f"Default Frame: {round(default_frame)}")
-        else:
-            split.alert = True
-            split.label(
-                text=f"Default Frame: {round(default_frame, 2)} "
-                "(Should be a whole number!)"
-            )
+    if action_setup.is_default_frame_integer():
+        split.label(text=f"Default Frame: {round(default_frame)}")
+    else:
+        split.alert = True
+        split.label(
+            text=f"Default Frame: {round(default_frame, 2)} "
+            "(Should be a whole number!)"
+        )
 
 
 registry = (
@@ -667,5 +657,4 @@ registry = (
     CLOUDRIG_OT_action_new,
     CLOUDRIG_OT_jump_to_action_setup,
     CLOUDRIG_UL_action_setups,
-    DATA_PT_cloudrig_actions,
 )

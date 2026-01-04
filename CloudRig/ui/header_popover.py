@@ -1,15 +1,18 @@
 import bpy
 
+from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
 
 
 def draw_cloudrig_popover(self, context):
-    if not is_cloud_metarig(context.active_object):
+    prefs = get_addon_prefs(context)
+    if prefs.ui_mode == 'PROPERTIES':
+        return
+    if not is_cloud_metarig(context.active_object) and prefs.ui_mode != 'HEADER':
         return
     layout = self.layout
-    # layout.separator_spacer()
     layout.popover(
-        panel="POSE_PT_CloudRig",
+        panel="POSE_PT_CloudRig_Popover",
         icon='OUTLINER_DATA_ARMATURE',
         text="",
     )

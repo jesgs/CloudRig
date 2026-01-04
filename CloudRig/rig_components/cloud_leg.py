@@ -401,9 +401,9 @@ class Component_Limb_BipedLeg(Component_Limb):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
 
         cls.draw_prop(context, layout, params.leg, "use_foot_roll")
         if params.leg.use_foot_roll:
@@ -420,8 +420,9 @@ class Component_Limb_BipedLeg(Component_Limb):
             )
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         layout.separator()
         if params.leg.use_foot_roll:
             cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_footroll')

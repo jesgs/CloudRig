@@ -188,7 +188,10 @@ class RigComponent(PropertyGroup):
     and this bone (and usually its connected children) will contribute to the generated rig.
     """
 
-    def update_caches(self, context):
+    def update_caches(self, _context=None):
+        if not self.parent:
+            self.should_draw = True
+            self.enabled_with_parents = True
         for child_comp in self.children:
             child_comp.enabled_with_parents = (
                 self.enabled_toggle
@@ -196,7 +199,7 @@ class RigComponent(PropertyGroup):
                 and child_comp.enabled_toggle
             )
             child_comp.should_draw = self.show_child_components and self.should_draw
-            child_comp.update_caches(context)
+            child_comp.update_caches()
 
     enabled_toggle: BoolProperty(
         name="Enabled",
@@ -468,17 +471,6 @@ class RigComponent(PropertyGroup):
                 return bone_parent.cloudrig_component
             bone_parent = bone_parent.parent
 
-    @property
-    def sibling_components(self) -> list[RigComponent]:
-        parent = self.parent
-        if not parent:
-            return [
-                pb.cloudrig_component
-                for pb in self.id_data.pose.bones
-                if not pb.cloudrig_component.parent
-            ]
-        return [sibling for sibling in parent.children if sibling != self]
-
     show_child_components: BoolProperty(
         name="Show Children",
         description="Show child components in the list",
@@ -503,8 +495,11 @@ class RigComponent(PropertyGroup):
     def siblings(self) -> list[RigComponent]:
         if self.parent:
             return self.parent.children
-        return sorted(
-            [pb.cloudrig_component for pb in get_parentless_pbones(self.id_data)],
+        return sorted([
+                pb.cloudrig_component
+                for pb in self.id_data.pose.bones
+                if pb.cloudrig_component.component_type and not pb.cloudrig_component.parent
+            ],
             key=lambda comp: comp.sibling_order,
         )
 
@@ -543,7 +538,10 @@ class Properties_CloudRig(PropertyGroup):
             return
 
         rig_ob = self.id_data
-        return rig_ob.pose.bones[self.active_component_index].cloudrig_component
+        active_comp = rig_ob.pose.bones[self.active_component_index].cloudrig_component
+        if not active_comp.should_draw:
+            return
+        return active_comp
 
     @active_component.setter
     def active_component(self, comp: RigComponent):
@@ -555,10 +553,11 @@ class Properties_CloudRig(PropertyGroup):
             parent.show_child_components = True
             parent = parent.parent
 
-    def enabled_update_callback(self, _context=None):
+    def enabled_update_callback(self, context=None):
         if self.enabled:
             self.id_data.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'
             self.id_data.cloudrig_prefs.active_collection_index *= 1
+        self.refresh_generator_data()
         self.active_component_update_callback()
 
     enabled: BoolProperty(
@@ -600,13 +599,16 @@ class Properties_CloudRig(PropertyGroup):
         """
         metarig_ob = self.id_data
 
-        # Find pbones that have no parents.
-        parentless_pbones = get_parentless_pbones(metarig_ob)
-        parentless_pbones.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
+        # Find component bones that have no parent components.
+        orphan_comp_pbones = [pb for pb in metarig_ob.pose.bones if not pb.cloudrig_component.parent]
+        orphan_comp_pbones.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
 
         # Number them hierarchically
         order_idx = 0
-        for i, pbone in enumerate(parentless_pbones):
+        for i, pbone in enumerate(orphan_comp_pbones):
+            if not pbone.cloudrig_component.component_type:
+                continue
+            pbone.cloudrig_component.update_caches()
             pbone.cloudrig_component.sibling_order = i
             order_idx = self.order_components_recursive(
                 pbone, order_idx=order_idx, depth=0

@@ -168,14 +168,15 @@ class Component_Lattice(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         cls.draw_prop(context, layout, params.lattice, "lattice")
         cls.draw_prop(context, layout, params.lattice, "regenerate")
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_root')
         cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_lattice')
 

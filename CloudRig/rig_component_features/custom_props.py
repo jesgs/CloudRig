@@ -89,9 +89,10 @@ class CloudCustomPropertiesMixin:
         return False
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, params):
-        metarig = context.object
+    def draw_custom_prop_params(cls, layout, context, component):
+        metarig = component.id_data
         rig = metarig.cloudrig.generator.target_rig
+        params = component.params
 
         cls.draw_prop(
             context, layout, params.custom_props, 'props_storage', expand=True, text="Storage Bone"

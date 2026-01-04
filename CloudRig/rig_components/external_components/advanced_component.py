@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
+from bpy.types import PropertyGroup
 
 from ...rig_component_features.bone_info import BoneInfo
 from ..cloud_base import Component_Base
@@ -49,8 +49,9 @@ class AdvancedComponent(Component_Base):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
+    def draw_control_params(cls, layout, context, component):
         """Draw the UI for the component parameters."""
+        params = component.params
         cls.draw_prop(context, layout, params.advanced_component, "create_control")
 
         # Since this param is in forced_params, it will be hidden by default.
@@ -89,10 +90,10 @@ class AdvancedComponent(Component_Base):
         bone.add_constraint("COPY_TRANSFORMS", subtarget=ctr_bone.name)
 
     def create_component_interactions(self, context):
-        """Second function called by the generator, after most BoneInfos have 
+        """Second function called by the generator, after most BoneInfos have
         been created.
 
-        Useful to implement features where unrelated rig components might 
+        Useful to implement features where unrelated rig components might
         interact, such as parent switching.
         """
         super().create_component_interactions(context)
@@ -100,7 +101,7 @@ class AdvancedComponent(Component_Base):
     def create_helper_objects(self, context):
         """Third function called by the generator, after the rig has been generated.
 
-        You can create and hook up your helper objects like curves, empties, 
+        You can create and hook up your helper objects like curves, empties,
         lattices, physics meshes, etc, here.
         """
         super().create_helper_objects(context)

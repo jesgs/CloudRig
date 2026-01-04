@@ -297,14 +297,15 @@ class Component_FaceChain(Component_ToonChain):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the component parameters."""
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
         cls.draw_prop(context, layout, params.face_chain, 'merge')
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         cls.draw_prop_custom_shape(context, layout, params.face_chain, 'shape_intersection')
 
 class Params(PropertyGroup):

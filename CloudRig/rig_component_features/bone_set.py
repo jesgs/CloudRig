@@ -11,7 +11,7 @@ from bpy.types import (
 )
 
 from ..bs_utils.prefs import get_addon_prefs
-from ..utils.rig import get_pbone_of_active
+from ..utils.rig import get_component_in_ui
 from .bone_info import BoneInfo
 
 
@@ -156,12 +156,8 @@ class BoneSetMixin:
     ##############################
     # UI
     @classmethod
-    def draw_bone_set_params(cls, layout, context, params, only_colors=False):
+    def draw_bone_set_params(cls, layout, context, component, only_colors=False):
         """Bone Organization panel of the Component Parameters."""
-        active_pb = get_pbone_of_active(context)
-        if not active_pb:
-            return
-        component = active_pb.cloudrig_component.inherited_component
         if not (component and component.enabled_with_parents):
             return
 
@@ -354,8 +350,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         # Filter to only show bone sets that are relevant to this component type with the current settings.
         metarig = context.object
         prefs = get_addon_prefs(context)
-        active_pb = get_pbone_of_active(context)
-        component = active_pb.cloudrig_component.inherited_component
+        component = get_component_in_ui(context)
         component_class = component.component_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
@@ -405,8 +400,7 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        active_pb = get_pbone_of_active(context)
-        component = active_pb.cloudrig_component.inherited_component
+        component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         bone_set.collections.add()
         bone_set.collections_active_index = len(bone_set.collections)-1
@@ -423,8 +417,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
 
     @classmethod
     def poll(cls, context):
-        active_pb = get_pbone_of_active(context)
-        component = active_pb.cloudrig_component
+        component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         if len(bone_set.collections) == 1:
             cls.poll_message_set(
@@ -437,8 +430,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
         return True
 
     def execute(self, context):
-        active_pb = get_pbone_of_active(context)
-        component = active_pb.cloudrig_component
+        component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         coll_name = bone_set.collections[bone_set.collections_active_index].name
         bone_set.collections.remove(bone_set.collections_active_index)
@@ -458,8 +450,7 @@ class CLOUDRIG_OT_bone_set_collection_reset(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def execute(self, context):
-        active_pb = get_pbone_of_active(context)
-        component = active_pb.cloudrig_component
+        component = get_component_in_ui(context)
         component.reset_collections_of_bone_set(component.active_bone_set)
         self.report(
             {'INFO'},

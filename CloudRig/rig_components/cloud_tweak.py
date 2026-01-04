@@ -147,9 +147,8 @@ class Component_TweakBone(Component_Base):
     # Parameters
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
-
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         cls.draw_control_label(layout, "Tweak")
         cls.draw_prop(context, layout, params.tweak, "constraints_additive")
         cls.draw_prop(context, layout, params.tweak, "ensure_free")

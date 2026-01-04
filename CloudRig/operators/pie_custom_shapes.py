@@ -452,7 +452,7 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         if panel:
             component = pbone.cloudrig_component.inherited_component
             comp_class = component.component_class
-            comp_class.draw_bone_set_params(panel, context, component.params, only_colors=True)
+            comp_class.draw_bone_set_params(panel, context, component, only_colors=True)
 
     def draw_bone_color_settings(self, layout, pbone: PoseBone):
         row = layout.row(align=True)

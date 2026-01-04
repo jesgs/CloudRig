@@ -2,12 +2,12 @@
 
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.props import BoolProperty, EnumProperty, StringProperty
-from bpy.types import Operator, Panel, UI_UL_list, UIList
+from bpy.types import Operator, UI_UL_list, UIList
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
 from ..rig_component_features.properties_ui import redraw_viewport
-from ..utils.rig import get_pbone_of_active
+from ..utils.rig import get_component_in_ui, get_pbone_of_active
 from .component_param_panels import draw_params_subpanels
 
 
@@ -35,14 +35,12 @@ class CLOUDRIG_UL_rig_components(UIList):
             split.row()
             row = split.row(align=True)
         if rig_component.has_children:
-            row.prop(
-                rig_component, 'show_child_components', text="", icon=icon, emboss=False
-            )
+            row.prop(rig_component, 'show_child_components', text="", icon=icon, emboss=False)
         else:
             row.label(text="", icon='BLANK1')
         row = row.row()
         row.enabled = rig_component.is_enabled_component
-        row.label(text=pose_bone.name)
+        row.label(text=pose_bone.name, icon='BONE_DATA')
 
         icon = 'ARMATURE_DATA'
         if not rig_component.component_class:
@@ -264,7 +262,7 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
         if not comp:
             cls.poll_message_set("Select a component.")
             return False
-        if len(comp.sibling_components) == 0:
+        if len(comp.siblings) == 1:
             cls.poll_message_set("Active component has no siblings.")
             return False
         return True
@@ -298,22 +296,16 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_PT_rig_components(Panel):
-    bl_label = "Rig Components"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
-    bl_parent_id = 'POSE_PT_CloudRig'
-    bl_options = {'DEFAULT_CLOSED'}
+def draw_rig_component_list(context, layout, default_closed=True):
+    header, panel = layout.panel("CloudRig Rig Components", default_closed=default_closed)
+    header.label(text="Component Parameters")
+    if not panel:
+        return
 
-    @classmethod
-    def poll(cls, context):
-        # This is safe because of bl_parent_id; The parent panel's poll does
-        # early exit checks already, no point repeating them here.
-        return context.object.cloudrig.enabled
-
-    def draw(self, context):
-        layout = self.layout
+    layout = panel
+    prefs = get_addon_prefs(context)
+    layout.row().prop(prefs, 'component_overview_mode', expand=True)
+    if prefs.component_overview_mode == 'LIST':
         ops_col = draw_ui_list(
             layout,
             context,
@@ -336,26 +328,22 @@ class CLOUDRIG_PT_rig_components(Panel):
             CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN'
         ).direction = 'DOWN'
 
-        comp = context.object.cloudrig.active_component
+    active_component = get_component_in_ui(context)
+    if not active_component:
+        return
 
-        if not comp:
-            return
-
-        header, panel = layout.panel("CloudRig Component In List")
-        active_pb = get_pbone_of_active(context)
-        if not active_pb:
-            return
-        header.label(text=f"Component Parameters: {active_pb.name}")
-        if panel:
-            box = panel.box()
-            box.use_property_split = True
-            box.use_property_decorate = False
-            draw_params_subpanels(context, box.column())
+    header, panel = layout.panel("CloudRig Component In List", default_closed=False)
+    row = header.row()
+    row.label(text=f"{active_component.component_pbone.name} ({active_component.component_type})", icon='BONE_DATA')
+    if panel:
+        box = panel.box()
+        box.use_property_split = True
+        box.use_property_decorate = False
+        draw_params_subpanels(context, active_component, box.column())
 
 registry = [
     CLOUDRIG_UL_rig_components,
     CLOUDRIG_OT_add_rig_component,
     CLOUDRIG_OT_remove_rig_component,
     CLOUDRIG_OT_reorder_rig_component,
-    CLOUDRIG_PT_rig_components,
 ]

@@ -67,8 +67,9 @@ class Component_SphereChain(Component_ToonChain):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         cls.draw_prop_custom_shape(context, layout, params.chain_sphere, 'shape_sphere_control')
 
     @classmethod
@@ -78,8 +79,9 @@ class Component_SphereChain(Component_ToonChain):
         cls.define_bone_set('Sphere Controls', color_palette='THEME09', wire_width=1.5)
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
         cls.draw_prop_search(
             context,
             layout.row(),

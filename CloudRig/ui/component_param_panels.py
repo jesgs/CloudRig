@@ -7,7 +7,7 @@ from bpy.types import Panel
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import aligned_label, label_split
-from ..utils.rig import get_pbone_of_active
+from ..utils.rig import get_component_in_ui, get_pbone_of_active
 
 
 class CLOUDRIG_PT_rig_component(Panel):
@@ -19,15 +19,15 @@ class CLOUDRIG_PT_rig_component(Panel):
 
     @classmethod
     def poll(cls, context):
+        prefs = get_addon_prefs(context)
+        if prefs.ui_mode == 'HEADER':
+            return False
         if not context.object or context.object.type != 'ARMATURE':
             return False
         if not context.object.cloudrig.enabled:
             return False
         active_pb = get_pbone_of_active(context)
         if not active_pb:
-            return False
-        if not hasattr(active_pb, 'cloudrig_component'):
-            # This would only happen if CloudRig fails to register (hopefully never.)
             return False
         return True
 
@@ -75,7 +75,7 @@ class CLOUDRIG_PT_rig_component(Panel):
             return
 
         layout.prop(prefs, 'advanced_mode')
-        draw_params_subpanels(context, layout)
+        draw_params_subpanels(context, rig_component, layout)
 
 @dataclass
 class CloudRigPanel:
@@ -96,8 +96,8 @@ class AnimPanel(CloudRigPanel):
         return context.object.cloudrig.generator.generate_test_action
 
     def draw_header(self, context, layout):
-        active_pb = get_pbone_of_active(context)
-        params = active_pb.cloudrig_component.params
+        comp = get_component_in_ui(context)
+        params = comp.params
         layout.use_property_split = False
         layout.prop(params.fk_chain, 'test_animation_generate', text="")
 
@@ -106,9 +106,9 @@ class CustomPropPanel(CloudRigPanel):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        pb = get_pbone_of_active(context)
-        component_class = pb.cloudrig_component.component_class
-        return component_class.base__is_using_custom_props(context, pb.cloudrig_component.params)
+        comp = get_component_in_ui(context)
+        component_class = comp.component_class
+        return component_class.base__is_using_custom_props(context, comp.params)
 
 class BoneSetPanel(CloudRigPanel):
     @classmethod
@@ -116,15 +116,15 @@ class BoneSetPanel(CloudRigPanel):
         if not super().poll(context):
             return False
 
-        pb = get_pbone_of_active(context)
-        component_class = pb.cloudrig_component.component_class
+        comp = get_component_in_ui(context)
+        component_class = comp.component_class
 
         # If no bone sets are visible, don't draw the panel.
         for prop_name, bone_set_def in component_class.bone_set_defs.items():
             if component_class.is_bone_set_used(
                 context,
                 context.object,
-                pb.cloudrig_component.params,
+                comp.params,
                 bone_set_def['name'],
             ):
                 return True
@@ -144,16 +144,16 @@ PANEL_DATAS = OrderedDict(
     ]
 )
 
-def draw_params_subpanels(context, layout):
+def draw_params_subpanels(context, rig_component, layout):
     for panel_name in PANEL_DATAS:
-        draw_params_subpanel_single(context, layout, panel_name)
+        draw_params_subpanel_single(context, rig_component, layout, panel_name)
 
-def draw_params_subpanel_single(context, layout, panel_name: str):
+def draw_params_subpanel_single(context, rig_component, layout, panel_name: str):
     panel_data = PANEL_DATAS.get(panel_name)
     if not panel_data:
         return
-    active_pb = get_pbone_of_active(context)
-    rig_component = active_pb.cloudrig_component.inherited_component
+    if not rig_component:
+        return
     comp_class = rig_component.component_class
     advanced_mode = get_addon_prefs(context).advanced_mode
     if panel_data.is_advanced and not advanced_mode:
@@ -165,20 +165,19 @@ def draw_params_subpanel_single(context, layout, panel_name: str):
     poll_func_name = "poll_"+panel_data.func_name
     if (
         hasattr(comp_class, poll_func_name) and
-        not getattr(comp_class, poll_func_name)(context, active_pb.cloudrig_component.params)
+        not getattr(comp_class, poll_func_name)(context, rig_component.params)
     ):
         return
     header, panel = layout.panel(f"CloudRig {panel_data.ui_name}", default_closed=True)
     panel_data.draw_header(context, header)
     header.label(text=panel_data.ui_name)
     if panel:
-        draw_component_params(context, layout, panel_data.func_name)
+        draw_component_params(context, layout, rig_component, panel_data.func_name)
 
-def draw_component_params(context, layout, func_name: str):
-    pb = get_pbone_of_active(context)
-    component_class = pb.cloudrig_component.component_class
+def draw_component_params(context, layout, rig_component, func_name: str):
+    component_class = rig_component.component_class
     draw_func = getattr(component_class, func_name)
-    draw_func(layout, context, pb.cloudrig_component.params)
+    draw_func(layout, context, rig_component)
 
 registry = [
     CLOUDRIG_PT_rig_component

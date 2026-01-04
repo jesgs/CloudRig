@@ -1,5 +1,7 @@
 import bpy
+
 from ..cloud_base import Component_Base
+
 
 class MinimalComponentExample(Component_Base):
     """Fairly minimal example for implementing a rig component type in CloudRig.
@@ -32,7 +34,8 @@ class MinimalComponentExample(Component_Base):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         cls.draw_prop(context, layout, params.minimal_component, "create_control")
 
 

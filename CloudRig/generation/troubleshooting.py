@@ -667,124 +667,100 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
             layout.label(text="", icon_value=icon_value)
 
 
-class CLOUDRIG_PT_log(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'data'
-    bl_label = ""
-    bl_parent_id = "POSE_PT_CloudRig"
-    bl_options = {'DEFAULT_CLOSED'}
+def draw_log_panel(context, layout):
+    metarig = context.object
+    if not is_cloud_metarig(metarig) and metarig.mode in ('POSE', 'OBJECT'):
+        return
 
-    @classmethod
-    def poll(cls, context):
-        obj = context.object
-        return is_cloud_metarig(context.object) and obj.mode in ('POSE', 'OBJECT')
+    header, panel = layout.panel("CloudRig Log", default_closed=True)
 
-    def draw_header(self, context):
-        metarig = context.object
-        generator = metarig.cloudrig.generator
-        logs = generator.logs
-        layout = self.layout
+    generator = metarig.cloudrig.generator
+    logs = generator.logs
+    icon = 'CHECKMARK' if len(logs) == 0 else 'ERROR'
+    plural = "s" if len(logs) != 1 else ""
+    header.label(text=f"Log: {len(logs)} Issue{plural}", icon=icon)
 
-        icon = 'CHECKMARK' if len(logs) == 0 else 'ERROR'
-        plural = "s" if len(logs) != 1 else ""
-        layout.label(text=f"Log: {len(logs)} Issue{plural}", icon=icon)
+    if not panel:
+        return
 
-    def draw(self, context):
-        metarig = context.object
-        generator = metarig.cloudrig.generator
-        logs = generator.logs
-        layout = self.layout
+    layout = panel
 
-        if len(logs) == 0:
-            layout.label(text="No generation issues detected!", icon='CHECKMARK')
-            return
+    if len(logs) == 0:
+        layout.label(text="No generation issues detected!", icon='CHECKMARK')
+        return
 
+    row = layout.row()
+    row.template_list(
+        'CLOUDRIG_UL_log_entry_slots',
+        '',
+        generator,
+        'logs',
+        generator,
+        'active_log_index',
+    )
+
+    log = generator.active_log
+
+    layout.use_property_split = False
+
+    # It is optional for the log entry to provide a bone from the metarig, in case
+    # the log entry relates to a rig component.
+    if log.base_bone_name != "":
+        split = layout.row().split(factor=0.3)
+        split.label(text="Rig Component:")
+        main_row = split.column().row(align=True)
+        row = main_row.row(align=True)
+        row.prop_search(log, 'base_bone_name', metarig.data, 'bones', text="")
+        row.enabled = False
+        row = main_row.row(align=True)
+        op = row.operator(
+            CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
+        )
+        op.use_target_rig = False
+        op.target_bone = log.base_bone_name
+
+    if log.trouble_bone != "":
+        split = layout.row().split(factor=0.3)
+        split.label(text="Generated Bone:")
+        main_row = split.column().row(align=True)
+        row = main_row.row(align=True)
+        row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
+        row.enabled = False
+        row = main_row.row(align=True)
+        op = row.operator(
+            CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
+        )
+        op.use_target_rig = True
+        op.target_bone = log.trouble_bone
+
+    desc = log.description_short
+    if log.description != "":
+        desc = log.description
+    draw_label_with_linebreak(context, layout, desc)
+
+    if log.operator != '':
         row = layout.row()
-        row.template_list(
-            'CLOUDRIG_UL_log_entry_slots',
-            '',
-            generator,
-            'logs',
-            generator,
-            'active_log_index',
-        )
+        split = row.split(factor=0.2)
+        split.label(text="Quick Fix:")
+        if log.op_text:
+            op = split.operator(log.operator, text=log.op_text, icon=log.op_icon)
+        else:
+            op = split.operator(log.operator, icon=log.op_icon)
+        kwargs = json.loads(log.op_kwargs)
+        for key in kwargs.keys():
+            setattr(op, key, kwargs[key])
 
-        log = generator.active_log
+    display_mode = log.display_stack_trace
+    if display_mode == 'ALWAYS' or (
+        display_mode == 'ADVANCED' and is_advanced_mode(context)
+    ):
 
-        layout.use_property_split = False
-
-        # It is optional for the log entry to provide a bone from the metarig, in case
-        # the log entry relates to a rig component.
-        if log.base_bone_name != "":
-            split = layout.row().split(factor=0.3)
-            split.label(text="Rig Component:")
-            main_row = split.column().row(align=True)
-            row = main_row.row(align=True)
-            row.prop_search(log, 'base_bone_name', metarig.data, 'bones', text="")
-            row.enabled = False
-            row = main_row.row(align=True)
-            op = row.operator(
-                CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
+        header, panel = layout.panel("CloudRig Python Stack Trace", default_closed=True)
+        header.label(text="Python Stack Trace")
+        if panel:
+            draw_label_with_linebreak(
+                context, panel, generator.active_log.pretty_stack, alert=True
             )
-            op.use_target_rig = False
-            op.target_bone = log.base_bone_name
-
-        if log.trouble_bone != "":
-            split = layout.row().split(factor=0.3)
-            split.label(text="Generated Bone:")
-            main_row = split.column().row(align=True)
-            row = main_row.row(align=True)
-            row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
-            row.enabled = False
-            row = main_row.row(align=True)
-            op = row.operator(
-                CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
-            )
-            op.use_target_rig = True
-            op.target_bone = log.trouble_bone
-
-        desc = log.description_short
-        if log.description != "":
-            desc = log.description
-        draw_label_with_linebreak(context, layout, desc)
-
-        if log.operator != '':
-            row = layout.row()
-            split = row.split(factor=0.2)
-            split.label(text="Quick Fix:")
-            if log.op_text:
-                op = split.operator(log.operator, text=log.op_text, icon=log.op_icon)
-            else:
-                op = split.operator(log.operator, icon=log.op_icon)
-            kwargs = json.loads(log.op_kwargs)
-            for key in kwargs.keys():
-                setattr(op, key, kwargs[key])
-
-
-class CLOUDRIG_PT_stack_trace(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_parent_id = 'CLOUDRIG_PT_log'
-    bl_label = "Python Stack Trace"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        generator = context.object.cloudrig.generator
-        if not generator.active_log:
-            return False
-        display_mode = generator.active_log.display_stack_trace
-        return display_mode == 'ALWAYS' or (
-            display_mode == 'ADVANCED' and is_advanced_mode(context)
-        )
-
-    def draw(self, context):
-        generator = context.object.cloudrig.generator
-        draw_label_with_linebreak(
-            context, self.layout, generator.active_log.pretty_stack, alert=True
-        )
-
 
 ########################################
 ######### Quick-Fix Operators ##########
@@ -1251,8 +1227,6 @@ class CLOUDRIG_OT_link_obj_to_scene(Operator):
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
-    CLOUDRIG_PT_log,
-    CLOUDRIG_PT_stack_trace,
     CLOUDRIG_OT_Jump_To_Bone,
     CLOUDRIG_OT_Change_Rotation_Mode,
     CLOUDRIG_OT_Report_Bug,

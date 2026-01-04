@@ -119,22 +119,41 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         name="Overlay Mode",
         description="Which components should have rig preview rendered. May affect performance when transforming metarig bones",
         items=[
-            ('NONE', "None", "No rig preview. No performance cost."),
+            ('NONE', "None", "No rig preview. No performance cost"),
             ('ACTIVE', "Active", "Preview active bone's component. Minimal performance impact"),
-            ('SELECTED', "Selected", "Preview components of selected bones. Performance impact depends on selection."),
-            ('CHILDREN', "Selected + Children", "Preview components of selected bones & their children. Performance impact may be noticable."),
-            ('VISIBLE', "Visible", "Preview all visible bones' components. Maximum performance impact."),
+            ('SELECTED', "Selected", "Preview components of selected bones. Performance impact depends on selection"),
+            ('CHILDREN', "Selected + Children", "Preview components of selected bones & their children. Performance impact may be noticable"),
+            ('VISIBLE', "Visible", "Preview all visible bones' components. Maximum performance impact"),
         ],
         default='SELECTED',
     )
     is_dashed: BoolProperty(
         name="Dashed",
         default=True,
-        description="Dashed lines for the rig preview. Bit more expensive to draw."
+        description="Dashed lines for the rig preview. Bit more expensive to draw"
     )
     overlay_eval_time: FloatProperty(
         name="Overlay Evaluation Time",
-        description="The overlay drawing time can be a bit slow. This value shows how long it took last time, in miliseconds."
+        description="The overlay drawing time can be a bit slow. This value shows how long it took last time, in miliseconds"
+    )
+
+    component_overview_mode: EnumProperty(
+        name="Overview Mode",
+        description="Parameter view mode",
+        items=[
+            ('ACTIVE', "Active Component", "Show parameters of the component that the active bone in the 3D View belongs to"),
+            ('LIST', "Component List", "Show a list of all components on this rig, so you don't have to select bones in the 3D View"),
+        ],
+        default='ACTIVE',
+    )
+    ui_mode: EnumProperty(
+        name="Interface Location",
+        items=[
+            ('PROPERTIES', "Properties Editor", "Only display CloudRig's UI in the Properties Editor"),
+            ('HEADER', "3D View Header", "Display CloudRig's UI in the 3D View's header, next to the Shading pop-over"),
+            ('BOTH', "Both", "Display CloudRig's UI in both places"),
+        ],
+        default='BOTH',
     )
 
     def draw(self, context):
@@ -142,9 +161,10 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        main_col = layout.column(align=True)
-        main_col.row(align=True).prop(self, 'advanced_mode')
+        main_col = layout.column()
         main_col.operator('wm.cloudrig_report_bug', icon='URL')
+
+        main_col.row(align=True).prop(self, 'ui_mode', expand=True)
 
         header, panel = layout.panel("CloudRig Custom Shapes")
         header.label(text="Custom Shapes")

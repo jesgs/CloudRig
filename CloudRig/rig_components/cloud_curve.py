@@ -661,8 +661,8 @@ class Component_Curve_Hooked(Component_Base):
         cls.draw_prop(context, layout, params.curve, 'target', icon=icon)
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         cls.curve__draw_selector_ui(layout, context, params)
         curve_ob = params.curve.target
         if not curve_ob:
@@ -682,8 +682,9 @@ class Component_Curve_Hooked(Component_Base):
                 cls.draw_prop(context, layout, params.curve, "separate_radius")
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         curve_ob = params.curve.target
         if not curve_ob:
             layout.label(text="Select a curve object in the Controls parameters.")

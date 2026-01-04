@@ -246,9 +246,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        """Create the ui for the rig parameters."""
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
 
         layout.separator()
         cls.draw_control_label(layout, "Spine")

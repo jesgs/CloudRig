@@ -277,13 +277,14 @@ class Component_Base(
                     setattr(component_prop, parts[0], forced_value)
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
+    def draw_control_params(cls, layout, context, component):
+        params = component.params
         if cls.is_advanced_mode(context) and cls.use_base_name:
             layout.prop(params.base, 'base_name', text="Base Name")
             layout.separator()
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
+    def draw_appearance_params(cls, layout, context, component):
         layout.operator('pose.cloudrig_refresh_widget_list', icon='FILE_REFRESH')
         layout.separator()
 

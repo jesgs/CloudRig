@@ -423,8 +423,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         layout.separator()
         cls.draw_prop_custom_shape(context, layout, params.fk_chain, 'shape_fk')
         if params.fk_chain.root:
@@ -433,8 +434,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return layout
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
 
         generator = context.object.cloudrig.generator
 
@@ -467,7 +469,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop(context, layout, params.fk_chain, "double_first")
 
     @classmethod
-    def draw_anim_params(cls, layout, context, params):
+    def draw_anim_params(cls, layout, context, component):
+        params = component.params
         col = layout.column()
         col.enabled = params.fk_chain.test_animation_generate
 

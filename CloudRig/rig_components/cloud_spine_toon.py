@@ -296,14 +296,16 @@ class Component_Spine_Toon(Component_Chain_FK):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, params):
-        super().draw_control_params(layout, context, params)
+    def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
+        params = component.params
 
         cls.draw_prop(context, layout, params.spine_toon, 'world_align')
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, params):
-        super().draw_appearance_params(layout, context, params)
+    def draw_appearance_params(cls, layout, context, component):
+        super().draw_appearance_params(layout, context, component)
+        params = component.params
         layout.separator()
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_torso")
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik")
