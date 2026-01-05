@@ -313,7 +313,8 @@ class CloudLogManager:
                 self.log(
                     "Unused Bone Collection",
                     note=coll.name,
-                    icon='OUTLINER_COLLECTION',
+                    note_icon='OUTLINER_COLLECTION',
+                    icon='COLLECTION_COLOR_01',
                     description=f'Collection "{coll.name}" is not used by any bones.',
                     operator=CLOUDRIG_OT_delete_collection.bl_idname,
                     op_kwargs={'coll_name': coll.name},
@@ -478,7 +479,10 @@ class CloudLogManager:
             wrong_curves = []
             # Curves which only have one keyframe
             single_point_curves = []
-            for fcurve in action_setup.channelbag.fcurves:
+            channelbag = action_setup.channelbag
+            if not channelbag:
+                continue
+            for fcurve in channelbag.fcurves:
                 transform = fcurve.data_path.split(".")[-1]
                 if transform not in ['location', 'rotation_euler', 'rotation_quaternion', 'rotation_axis_angle', 'scale']:
                     continue
