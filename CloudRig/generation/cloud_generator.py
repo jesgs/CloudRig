@@ -14,6 +14,7 @@ import bpy
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
+    EnumProperty,
     IntProperty,
     PointerProperty,
     StringProperty,
@@ -35,6 +36,11 @@ from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.properties import (
     copy_all_runtime_properties,
     copy_property_group,
+)
+from ..operators.convert_rigify import (
+    any_cloudrig_data,
+    convert_rigify_to_cloudrig,
+    is_rigify_metarig,
 )
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.mechanism import relink_real_driver
@@ -159,6 +165,7 @@ class GeneratorProperties(PropertyGroup):
         if len(self.action_setups) > 0:
             return self.action_setups[self.active_action_index]
 
+
 class CloudGeneratorError(Exception):
     """Exception raised for errors."""
 
@@ -169,6 +176,7 @@ class CloudGeneratorError(Exception):
 
     def __str__(self):
         return repr(self.message)
+
 
 class CloudRig_Generator(TestAnimationGeneratorMixin):
     """
@@ -797,6 +805,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_actions()
         self.logger.report_metarig_children(self.metarig)
 
+
 def parent_orphans(rig: Object, root_name: str):
     def is_orphan(bone):
         pbone = rig.pose.bones[bone.name]
@@ -816,6 +825,7 @@ def parent_orphans(rig: Object, root_name: str):
         orphan_ebone = rig.data.edit_bones[orphan_bone.name]
         orphan_ebone.parent = root_ebone
     bpy.ops.object.mode_set(mode='OBJECT')
+
 
 def ensure_cloudrig_ui(rig):
     """Load and execute cloudrig.py rig UI script."""
@@ -983,6 +993,16 @@ class CLOUDRIG_OT_generate(Operator):
         default=True,
         description="When re-generating a rig and Focus Generated is enabled, preserve the state of its bone and collection visibility, and bone selection",
     )
+    rigify_convert_mode: EnumProperty(
+        name="Convert Mode",
+        items=[
+            ('YES', 'Yes', "Convert from Rigify to CloudRig before generating."),
+            ('NO', 'Not Now', "Do not convert from Rigify to CloudRig, but ask again next time."),
+            ('NEVER', 'Never', "Do not convert from Rigify to CloudRig, and stop asking for this metarig."),
+        ],
+        default='NO',
+        options={'SKIP_SAVE'}
+    )
 
     @staticmethod
     def get_metarig_to_generate(context) -> Object | None:
@@ -1018,14 +1038,33 @@ class CLOUDRIG_OT_generate(Operator):
             return False
         return True
 
+    def invoke(self, context, _event):
+        metarig = self.get_metarig_to_generate(context)
+        if is_rigify_metarig(metarig):
+            return context.window_manager.invoke_props_dialog(self)
+        return self.execute(context)
+
     def draw(self, context):
         # XXX: Re-doing the generation process crashes Blender,
         # so, just don't draw the operator properties, and therefore don't support re-do for now.
-        return
+
+        metarig = context.active_object
+        if is_rigify_metarig(metarig):
+            layout = self.layout
+            layout.label(text="Metarig contains Rigify data.")
+            layout.label(text="Convert it to CloudRig (to the extent possible)?")
+            layout.prop(self, 'rigify_convert_mode', expand=True)
+            if self.rigify_convert_mode == 'YES' and any_cloudrig_data(metarig):
+                row = layout.row()
+                row.alert = True
+                row.label(text="Existing CloudRig data will be overwritten!!!", icon='ERROR')
 
     def execute(self, context):
         start_time = time()
         metarig = self.get_metarig_to_generate(context)
+        if self.rigify_convert_mode == 'YES':
+            convert_rigify_to_cloudrig(metarig)
+
         prev_generated_rig = metarig.cloudrig.generator.target_rig
 
         if len(metarig.data.bones) == 0:
@@ -1271,6 +1310,7 @@ class CLOUDRIG_OT_generate(Operator):
                 continue
             coll.is_visible = is_visible
 
+
 def get_exception_module(exc: Exception):
     tb = exc.__traceback__
     while tb.tb_next:
@@ -1278,6 +1318,7 @@ def get_exception_module(exc: Exception):
     frame = tb.tb_frame
     module_name = frame.f_globals.get("__name__")
     return sys.modules.get(module_name)
+
 
 registry = [
     GeneratorProperties,

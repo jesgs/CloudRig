@@ -1,6 +1,7 @@
 from . import (
     apply_bone_color_preset,
     better_bone_extrude,
+    convert_rigify,
     copy_mirror_components,
     flatten_chain,
     pie_bone_parenting,
@@ -34,4 +35,5 @@ modules = [
     scale_custom_shape,
     rename_with_symmetry,
     post_gen_template_create,
+    convert_rigify,
 ]
