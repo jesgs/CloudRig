@@ -31,6 +31,11 @@ class CLOUDRIG_OT_convert_rigify_metarig(Operator):
 def convert_rigify_to_cloudrig(metarig_ob: Object):
     convert_actions(metarig_ob)
     convert_components(metarig_ob)
+    for pb in metarig_ob.pose.bones:
+        if not pb.custom_shape:
+            pb.custom_shape_scale_xyz = [1, 1, 1]
+            pb.custom_shape_translation = [0, 0, 0]
+            pb.custom_shape_rotation_euler = [0, 0, 0]
 
 
 def convert_components(metarig_ob: Object):

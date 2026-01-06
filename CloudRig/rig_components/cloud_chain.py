@@ -432,15 +432,19 @@ class Component_ToonChain(Component_Base):
             else:
                 tail = str_bone.next.head
 
+            head = str_bone.head
+            bbone_width = (head-tail).length/10
             def_name = str_bone.name.replace("STR", "DEF")
             def_bone = self.bones_def.new(
                 name=def_name,
                 source=org_bone,
                 parent=parent,
-                head=str_bone.head,
+                head=head,
                 tail=tail,
                 use_deform=True,
                 inherit_scale='NONE',
+                bbone_x=bbone_width,
+                bbone_z=bbone_width,
             )
             parent = def_bone
             if i == 0:

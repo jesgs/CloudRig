@@ -398,6 +398,13 @@ class Component_Base(
                 return self.custom_shape.name
             return self.name
 
+        @shape_name.setter
+        def shape_name(self, value: str):
+            if self.use_pointer:
+                self.custom_shape = bpy.data.objects.get("WGT-"+value)
+            else:
+                self.name = value
+
         @property
         def shape_object(self) -> Object | None:
             """Return local object of a custom shape, if it exists in the scene."""
