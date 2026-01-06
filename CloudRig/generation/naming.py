@@ -316,6 +316,20 @@ def strip_blender_zeroes(thing: Any) -> str:
     return name
 
 
+def get_blender_zeroes(thing: Any) -> str:
+    name = get_name(thing)
+    if len(name) < 5:
+        return ""
+
+    if name[-4] == ".":
+        try:
+            int(name[-3:])
+        except ValueError:
+            return ""
+        return name[-5:]
+    return name
+
+
 def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
     if not collprop:
         if isinstance(thing, PoseBone):

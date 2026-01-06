@@ -20,7 +20,7 @@ from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
-from ..rig_component_features.overlay_painter import OverlayPainter, no_overlay
+from ..rig_component_features.overlay_painter import no_overlay
 from ..rig_component_features.params_ui_utils import CloudUIMixin
 from ..rig_component_features.parenting import CloudParentingMixin
 from ..rig_component_features.widgets.widgets import (
@@ -105,6 +105,10 @@ class Component_Base(
         elif is_left is False:
             self.side_suffix = "R"
             self.side_prefix = "Right"
+        self.suffixes = [self.side_suffix]
+        blender_zeroes = self.naming.get_blender_zeroes(self.base_bone_name)
+        if blender_zeroes:
+            self.suffixes.append(blender_zeroes)
 
         self.bone_count = len(self.get_component_pbone_chain())
 

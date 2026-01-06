@@ -271,7 +271,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     def __make_pole_control(self):
         # Create IK Pole Control
         pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
-            name=self.naming.make_name(["POLE"], self.limb_name, [self.side_suffix]),
+            name=self.naming.make_name(["POLE"], self.limb_name, self.suffixes),
             bbone_width=0.1,
             head=self.pole_location,
             tail=self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2,
@@ -285,7 +285,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.lock_transforms(pole_ctrl, loc=False)
 
         pole_line = self.bone_sets["IK Controls"].new(
-            name=self.naming.make_name(["LINE"], self.limb_name, [self.side_suffix]),
+            name=self.naming.make_name(["LINE"], self.limb_name, self.suffixes),
             source=pole_ctrl,
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,
