@@ -225,13 +225,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == "GENERATED":
             self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms.
-        self.lock_transforms(roll_ctrl, rot=[False, True, False])
+        self.lock_transforms(roll_ctrl, rot=False)
         roll_ctrl.add_constraint(
             'LIMIT_ROTATION',
             use_limit_x=True,
             min_x=rad(-HEEL_LIMIT),
             max_x=rad(TOE_THRESHOLD),
-            use_limit_y=True,
+            use_limit_y=False,
             use_limit_z=True,
             min_z=rad(-TWIST_RANGE),
             max_z=rad(TWIST_RANGE),
@@ -257,27 +257,58 @@ class Component_Limb_BipedLeg(Component_Limb):
             self.ik_mstr.parent._bbone_x = heel_pivot_bone.bone.bbone_x
             self.ik_mstr.parent._bbone_z = heel_pivot_bone.bone.bbone_z
 
-        heel_pivot = self.bone_sets['IK Mechanism'].new(
-            name="IK-RollBack"
-            + base_name
-            + self.naming.SUFFIX_SEPARATOR
-            + self.side_suffix,
+        heel_pvt_back = self.bone_sets['IK Mechanism'].new(
+            self.naming.make_name(['Roll', 'Back'], base_name, self.side_suffix),
             bbone_width=org_toe.bbone_width,
             head=heel_pivot_bone.head,
             tail=heel_pivot_bone.tail,
             parent=roll_master,
         )
-        heel_pivot.roll_align_vector(org_knee.head, axis='-Z')
+        heel_pvt_back.roll_align_vector(org_toe.tail, axis='+Z')
 
-        heel_pivot.add_constraint(
+        heel_pvt_outer = self.bone_sets['IK Mechanism'].new(
+            self.naming.make_name(['Roll', 'Outer'], base_name, self.side_suffix),
+            bbone_width=org_toe.bbone_width,
+            head=heel_pvt_back.tail,
+            tail=heel_pvt_back.tail + heel_pvt_back.z_axis * heel_pvt_back.length,
+            parent=roll_master,
+        )
+        outer_con = heel_pvt_outer.add_constraint(
+            'TRANSFORM',
+            name="Transform (Heel Outer Roll)",
+            subtarget=roll_ctrl.name,
+            map_from='ROTATION',
+            map_to='ROTATION',
+        )
+        heel_pvt_back.parent = heel_pvt_outer
+
+        back_con = heel_pvt_back.add_constraint(
             'TRANSFORM',
             name="Transform (Heel Roll)",
             subtarget=roll_ctrl.name,
             map_from='ROTATION',
             map_to='ROTATION',
-            from_min_x_rot=rad(-HEEL_LIMIT),
-            to_min_x_rot=rad(-HEEL_LIMIT),
+            map_to_z_from='Y',
+            map_to_y_from='X',
         )
+        # The right side needs some inversion...
+        # print("Dot: ", heel_pvt_back.y_axis.dot(roll_ctrl.x_axis), heel_pvt_back.name, roll_ctrl.name)
+        if heel_pvt_back.y_axis.dot(roll_ctrl.x_axis) < 0:
+            # RIGHT SIDE
+            back_con.from_min_x_rot=rad(-HEEL_LIMIT)
+            back_con.to_min_y_rot=rad(HEEL_LIMIT)
+            back_con.from_min_y_rot=rad(-HEEL_LIMIT)
+            back_con.to_min_z_rot=rad(-HEEL_LIMIT)
+            outer_con.from_max_y_rot=rad(HEEL_LIMIT)
+            outer_con.to_max_y_rot=rad(HEEL_LIMIT)
+        else:
+            # LEFT SIDE
+            back_con.from_min_x_rot=rad(-HEEL_LIMIT)
+            back_con.to_min_y_rot=rad(-HEEL_LIMIT)
+            back_con.from_max_y_rot=rad(HEEL_LIMIT)
+            back_con.to_max_z_rot=rad(HEEL_LIMIT)
+            outer_con.from_min_y_rot=rad(-HEEL_LIMIT)
+            outer_con.to_min_y_rot=rad(-HEEL_LIMIT)
 
         # Create reverse IK bones.
         rik_chain = []
@@ -287,7 +318,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 source=org_bone,
                 head=org_bone.tail.copy(),
                 tail=org_bone.head.copy(),
-                parent=heel_pivot,
+                parent=heel_pvt_back,
                 custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             )
             rik_bone.roll_align_other(org_bone)
@@ -441,7 +472,7 @@ class Params(PropertyGroup):
 
     shape_footroll: Component_Limb.make_custom_shape_params(
         identifier="Foot Roll",
-        default="Roll 2"
+        default="Heel"
     )
 
 

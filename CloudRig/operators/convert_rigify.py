@@ -40,12 +40,20 @@ def convert_rigify_to_cloudrig(metarig_ob: Object):
 
 def convert_components(metarig_ob: Object):
     for pbone in metarig_ob.pose.bones:
+        comp = pbone.cloudrig_component
+        params = comp.params
         rigify_type = get_rigify_type(pbone)
         if not rigify_type:
             continue
         # Do some quick and dirty conversions for proof of concept...
         if rigify_type == 'limbs.leg':
-            pbone.cloudrig_component.component_type = 'Limb: Biped Leg'
+            comp.component_type = 'Limb: Biped Leg'
+            params.leg.shape_footroll.shape_name = 'Heel'
+            for pb in pbone.children_recursive:
+                bone = pb.bone
+                if not bone.use_connect and not bone.children and not is_rigify_base_bone(pb):
+                    params.leg.heel_bone = bone.name
+                    break
         if rigify_type == 'limbs.arm':
             pbone.cloudrig_component.component_type = 'Limb: Generic'
         if rigify_type == 'spines.basic_spine':
@@ -64,8 +72,6 @@ def convert_components(metarig_ob: Object):
             # I think this rigify type affects its siblings...
             for pbone in pbone.parent.children:
                 pbone.cloudrig_component.component_type = 'Chain: FK'
-
-
 
 
 def convert_actions(metarig_ob: Object):
@@ -105,5 +111,13 @@ def is_rigify_metarig(metarig_ob: Object) -> bool:
 
 
 def get_rigify_type(pbone: PoseBone) -> str:
+    if hasattr(pbone, 'rigify_type'):
+        return pbone.rigify_type
     props = pbone.bl_system_properties_get()
+    if not props:
+        return ""
     return props.get('rigify_type', "")
+
+
+def is_rigify_base_bone(pbone: PoseBone):
+    return bool(get_rigify_type(pbone))
