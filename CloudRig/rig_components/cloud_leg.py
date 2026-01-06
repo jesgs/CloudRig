@@ -187,9 +187,10 @@ class Component_Limb_BipedLeg(Component_Limb):
         tail = head + -intersect_to_toe * foot.length
         return head, tail
 
-    def __make_footroll(self, ik_chain, org_chain):
+    def __make_footroll(self, ik_chain: list[BoneInfo], org_chain: list[BoneInfo]):
         ik_foot_chain = ik_chain[-2:]
         org_thigh, org_knee, org_foot, org_toe = org_chain
+        org_toe.roll_align_other(org_foot)
 
         rolly_stretchy = self.bone_sets['IK Mechanism'].new(
             name=self.naming.add_prefix(org_thigh, "IK-STR-ROLL"),
