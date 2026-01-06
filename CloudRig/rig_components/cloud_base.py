@@ -135,23 +135,22 @@ class Component_Base(
                     trouble_bone=pbone.name,
                     description="Trailing zeroes in the metarig can cause bone name clashes and should be avoided.",
                     operator='object.cloudrig_rename_bone',
-                    op_kwargs={'old_name': pbone.name},
+                    op_kwargs={
+                        'old_name': pbone.name,
+                        'new_name': self.naming.uniqify(pbone)
+                    },
                 )
             if self.naming.has_wrong_separator(pbone):
-                self.raise_generation_error(
-                    description=f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be separated by a period(`.`).",
+                fixed_name = self.naming.make_name(*self.naming.slice_name(pbone))
+                self.add_log(
+                    description=f"{pbone.name}: CloudRig will replace the side suffix separator with a period: {pbone.name} -> {fixed_name}",
                     description_short="Wrong separator",
-                    note=pbone.name,
+                    trouble_bone=pbone.name,
                     operator='object.cloudrig_rename_bone',
-                    op_kwargs={'old_name': pbone.name},
-                )
-            if not self.naming.side_is_suffix(pbone):
-                self.raise_generation_error(
-                    description=f"{pbone.name}: CloudRig requires the side indicator in the bone's name to be at the end of the bone name.",
-                    description_short="Side indicator must be suffix",
-                    note=pbone.name,
-                    operator='object.cloudrig_rename_bone',
-                    op_kwargs={'old_name': pbone.name},
+                    op_kwargs={
+                        'old_name': pbone.name,
+                        'new_name': fixed_name,
+                    },
                 )
 
             bone_info = self.bones_org.new(
