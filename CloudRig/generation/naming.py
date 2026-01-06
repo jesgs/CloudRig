@@ -3,6 +3,8 @@
 import re
 from typing import Any
 
+import bpy
+from bpy.types import Bone, EditBone, Object, PoseBone
 from bpy.utils import flip_name as bpy_flip_name
 
 SEPARATORS = "._-"
@@ -314,7 +316,18 @@ def strip_blender_zeroes(thing: Any) -> str:
     return name
 
 
-def uniqify(thing: Any, collprop: list, strip_first=True, id=None) -> str:
+def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
+    if not collprop:
+        if isinstance(thing, PoseBone):
+            collprop = thing.id_data.pose.bones
+        elif isinstance(thing, Bone):
+            collprop = thing.id_data.bones
+        elif isinstance(thing, EditBone):
+            collprop = thing.id_data.edit_bones
+        elif isinstance(thing, Object):
+            collprop = bpy.data.objects
+        else:
+            raise ValueError(f"Collprop must be passed for {thing}")
     name = get_name(thing)
     if strip_first:
         name = strip_blender_zeroes(name)

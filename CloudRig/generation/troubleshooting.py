@@ -268,8 +268,14 @@ class CloudLogManager:
         entry.description_short = description_short
         entry.description = description
         entry.display_stack_trace = display_stack_trace
+
+        if not note and trouble_bone:
+            note = trouble_bone
+            if not note_icon or note_icon == 'NONE':
+                note_icon = 'BONE_DATA'
         entry.note = note
         entry.note_icon = note_icon
+
         entry.icon = icon
         entry.operator = operator
         entry.op_kwargs = json.dumps(op_kwargs)
@@ -885,20 +891,24 @@ class CLOUDRIG_OT_Rename_Bone(Operator):
     bl_label = "Rename Bone"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    old_name: (
-        StringProperty()
-    )  # Should be provided to the operator by the UI, and not changed!
-    new_name: StringProperty(name="Name")  # Exposed to user
+    old_name: StringProperty()
+    new_name: StringProperty(
+        name="Name",
+        default="",
+        options={'SKIP_SAVE'},
+    )
 
     def invoke(self, context, event):
         wm = context.window_manager
-        self.new_name = self.old_name
+        if not self.new_name:
+            self.new_name = self.old_name
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
         layout = self.layout
         metarig = context.object
         if self.new_name in metarig.data.bones:
+            layout.alert = True
             layout.prop(self, 'new_name', icon='ERROR')
             layout.label(text="This bone name is taken!")
         else:
