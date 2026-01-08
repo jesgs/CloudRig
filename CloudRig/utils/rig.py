@@ -91,6 +91,7 @@ def bone_is_visible(bone: Bone | PoseBone | EditBone):
     # We can get here in absurd cases like caller is in Pose Mode but passed in a Bone.
     return True
 
+
 def get_selected_bone_tuples(
         context, exclude_active=False
     ) -> list[tuple[Object, Bone | EditBone]]:
@@ -137,6 +138,14 @@ def get_active_bone(context) -> EditBone | PoseBone | None:
         return context.active_bone
     else:
         return get_pbone_of_active(context)
+
+
+def is_rna_path_driven(obj, data_path: str, index=-1) -> bool:
+    anim_data = obj.animation_data
+    if not anim_data:
+        return False
+    fcurve = anim_data.drivers.find(data_path, index=index)
+    return bool(fcurve)
 
 
 ####################################

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 import bpy
 import gpu
-from bpy.types import EditBone, Object, PoseBone
+from bpy.types import BoneCollection, EditBone, Object, PoseBone
 from gpu_extras.batch import batch_for_shader
 from mathutils import Color, Euler, Matrix, Vector
 from rna_prop_ui import IDPropertyGroup
@@ -28,6 +28,7 @@ from ..utils.rig import (
     bone_is_visible,
     get_pbone_of_active,
     get_pbones_of_selected,
+    is_rna_path_driven,
 )
 
 # Thing to help with unregistration of the main overlay drawing function.
@@ -398,13 +399,25 @@ def get_components_to_draw(context) -> set[RigComponent]:
 
 def generated_comp_to_geos(generated_component, context, painter: OverlayPainter) -> dict[str, Geo]:
     geos = {}
+
+    def should_collection_draw(collection: BoneCollection) -> bool:
+        assert collection
+        arm_data = collection.id_data
+        # If the collection visibility is driven, always draw the preview.
+        if is_rna_path_driven(arm_data, f'collections_all["{collection.name}"].is_visible'):
+            if collection.parent:
+                return should_collection_draw(collection.parent)
+            else:
+                return True
+        return collection.is_visible_effectively
+
     for bone_info in generated_component.all_bone_infos:
         if not bone_info.custom_shape_name:
             continue
 
         metarig = generated_component.generator.metarig
         colls = (metarig.data.collections_all.get(coll_name) for coll_name in bone_info.collections)
-        if not any((coll.is_visible_effectively for coll in colls if coll)):
+        if not any((should_collection_draw(coll) for coll in colls if coll)):
             continue
 
         geo = painter.bone_info_to_geo(context, metarig, bone_info)
