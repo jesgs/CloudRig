@@ -331,7 +331,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 ik_bone.parent = self.root_bone
                 ik_bone.custom_shape_name = self.params.ik_chain.shape_ik_first.shape_name
                 ik_bone.custom_shape_translation = Vector((0, 0, 0))
-                ik_bone.custom_shape_scale_xyz = Vector((1, 1, 1))
+                ik_bone.custom_shape_scale_xyz = Vector((0.66, 1, org_bone.custom_shape_scale*0.66))
                 ik_bone.custom_shape_rotation_euler = Vector((0, 0, 0))
                 self.ik_controls.append(ik_bone)
             else:
