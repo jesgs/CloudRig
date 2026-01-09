@@ -79,7 +79,7 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
                     else:
                         pb.custom_shape_scale_xyz *= scale_factor
                 else:
-                    if event.alt and pb.bone.display_type == 'BBONE' or (pb.id_data.data.display_type == 'BBONE' and pb.bone.display_type=='ARMATURE_DEFINED'):
+                    if event.alt and (pb.bone.display_type == 'BBONE' or (pb.id_data.data.display_type == 'BBONE' and pb.bone.display_type=='ARMATURE_DEFINED')):
                         if self.constraint_axis == 0:
                             pb.bone.bbone_x *= scale_factor
                         if self.constraint_axis == 2:
@@ -121,7 +121,7 @@ def register():
     for keymap_name in ('Pose', 'Armature'):
         register_hotkey(
             POSE_OT_scale_custom_shape.bl_idname,
-            hotkey_kwargs={'type': "S", 'value': "PRESS", 'ctrl': True, 'alt' : True, 'shift': True},
+            hotkey_kwargs={'type': "S", 'value': "PRESS", 'alt' : True, 'shift': True},
             keymap_name=keymap_name,
         )
 
