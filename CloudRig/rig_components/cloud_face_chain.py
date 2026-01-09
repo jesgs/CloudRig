@@ -126,7 +126,7 @@ class Component_FaceChain(Component_ToonChain):
                 source=cluster[0].parent_helper,
                 parent=cluster[0].source,
                 custom_shape_name=self.params.face_chain.shape_intersection.shape_name,
-                custom_shape_scale=0.5,
+                custom_shape_scale_xyz=(1, 1, 1)
             )
             intersection_control.roll_align_other(cluster[0])
 
