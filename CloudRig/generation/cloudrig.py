@@ -229,13 +229,13 @@ class SnappingOpMixin:
         self.initial_prop_value = self.prop_value
         self._target_prop_value = 1.0 if self.prop_value < 1.0 else 0.0
 
-    def set_target_prop_value(self, key=False):
+    def set_target_prop_value(self, key=False, options={'INSERTKEY_AVAILABLE'}):
         self.prop_pbone[self.prop_id] = self._target_prop_value
         if key:
-            self.key_target_prop_value()
+            self.key_target_prop_value(options)
 
-    def key_target_prop_value(self):
-        self.prop_pbone.keyframe_insert(f'["{self.prop_id}"]', group=self.prop_pbone.name, keytype='GENERATED')
+    def key_target_prop_value(self, options={'INSERTKEY_AVAILABLE'}):
+        self.prop_pbone.keyframe_insert(f'["{self.prop_id}"]', group=self.prop_pbone.name, keytype='GENERATED', options=options)
 
     @property
     def prop_pbone(self) -> PoseBone:
@@ -264,15 +264,15 @@ class SnappingOpMixin:
                 raise ValueError(f"Bone `{bone_name}` not found.")
         return affected_pbones
 
-    def set_and_key_bone_matrices(
-        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix]
+    def key_bones_single_frame(
+        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix], options=set()
     ):
         for pbone, mat in pbone_matrix_map.items():
             pbone.matrix = mat.copy()
             context.view_layer.update()
             pbone.matrix = mat.copy()
 
-            key_transforms(pbone)
+            key_transforms(pbone, options)
 
 def get_pbone_matrix_map(
     bones_to_snap: list[PoseBone], snap_to_bones: list[PoseBone] = []
@@ -300,7 +300,7 @@ def set_bone_selection(rig, select=False, pbones: list[PoseBone] = None, extend=
     if last and select:
         rig.data.bones.active = last.bone
 
-def key_transforms(pb: PoseBone):
+def key_transforms(pb: PoseBone, options={'INSERTKEY_AVAILABLE'}):
     if pb.rotation_mode == 'QUATERNION':
         props = ['rotation_quaternion']
     elif pb.rotation_mode == 'AXIS_ANGLE':
@@ -311,7 +311,7 @@ def key_transforms(pb: PoseBone):
     props += ['location', 'scale']
 
     for prop in props:
-        pb.keyframe_insert(prop, keytype='GENERATED')
+        pb.keyframe_insert(prop, keytype='GENERATED', options=options)
 
 def reveal_bones(bones: list[Bone | EditBone | PoseBone]):
     for bone in bones:
@@ -442,7 +442,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
         return frame_matrix_map
 
-    def keyframe_bones(
+    def key_bones_across_frames(
         self,
         context,
         rig: Object,
@@ -460,7 +460,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
             context.scene.frame_set(frame)
             self.key_target_prop_value()
             for pb in affected_pbones:
-                key_transforms(pb)
+                key_transforms(pb, options=set())
         if self.key_before_start:
             # Key original value and transforms one frame before the selected bake range.
             key_all_on_frame(frame_numbers[0] - 1)
@@ -473,7 +473,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
             # Change & key property value.
             self.set_target_prop_value(key=True)
             # Pose & key the bones.
-            self.set_and_key_bone_matrices(context, pbone_matrix_map)
+            self.key_bones_single_frame(context, pbone_matrix_map, options=set())
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
     "Invert a custom property's value while preserving the world-matrix " \
@@ -503,7 +503,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         frame_matrix_map = self.map_frames_to_bone_matrices(context, affected_pbones)
 
         if self.do_bake:
-            self.keyframe_bones(context, rig, frame_matrix_map)
+            self.key_bones_across_frames(context, rig, frame_matrix_map)
             context.scene.frame_set(active_frame_bkp)
             self.report({'INFO'}, "Finished baking.")
             return {'FINISHED'}
@@ -518,7 +518,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         self.set_target_prop_value(key=True)
 
         # Restore (and key if needed) world matrices.
-        self.set_and_key_bone_matrices(context, pbone_matrix_map)
+        self.key_bones_single_frame(context, pbone_matrix_map)
 
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
@@ -607,7 +607,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         return self._bone_map
 
     ####################################
-    ### Inherited functions (All of them atm)
+    ### Inherited functions
 
     def invoke(self, context, _event):
         self.init(context)
@@ -636,7 +636,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
 
         self.ik_last = bones_to_snap[0]
         if self.do_bake:
-            self.keyframe_bones(context, rig, frame_matrix_map)
+            self.key_bones_across_frames(context, rig, frame_matrix_map)
             context.scene.frame_set(active_frame_bkp)
             self.report({'INFO'}, "Finished baking.")
             return {'FINISHED'}
@@ -649,7 +649,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
 
         pbone_matrix_map = list(frame_matrix_map.values())[0]
         # Restore world matrices.
-        self.set_and_key_bone_matrices(context, pbone_matrix_map)
+        self.key_bones_single_frame(context, pbone_matrix_map)
 
         # Reveal & select affected bones.
         affected_pbones = self.get_affected_pbones()
@@ -665,14 +665,15 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
             affected_pbones.add(self.pole_pbone)
         return affected_pbones
 
-    def set_and_key_bone_matrices(
-        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix]
+    def key_bones_single_frame(
+        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix], options={'INSERTKEY_AVAILABLE'}
     ):
-        super().set_and_key_bone_matrices(context, pbone_matrix_map)
+        super().key_bones_single_frame(context, pbone_matrix_map, options=options)
         if self._target_prop_value == 1 and self.ik_pole:
-            self.snap_pole_target(key=True)
+            self.snap_pole_target()
+            key_transforms(self.pole_pbone)
 
-    def snap_pole_target(self, key=True):
+    def snap_pole_target(self):
         """Snap the pole target based on the first IK bone.
         This needs to run after the IK wrist control had already been snapped.
         This can have perfect results as long as you ensure:
@@ -686,9 +687,6 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         _pole_angle_deg, _elbow_dir, pole_loc = calculate_ik_pole_vector(fk_first, fk_second)
 
         self.pole_pbone.matrix.translation = pole_loc
-
-        if key:
-            key_transforms(self.pole_pbone)
 
     def draw_affected_bones(self, layout):
         bone_map = self.bone_map.copy()
