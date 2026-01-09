@@ -176,6 +176,7 @@ class Component_ToonChain(Component_Base):
             str_name = self.naming.make_name(*sliced)
         while self.generator.find_bone_info(str_name):
             str_name = self.naming.increment_name(str_name)
+        size = sum(org_bone.custom_shape_scale_xyz[:])/3 * org_bone.length * self.params.chain.shape_size
         main_str = self.bone_sets['Stretch Controls'].new(
             name=str_name,
             source=org_bone,
@@ -184,7 +185,7 @@ class Component_ToonChain(Component_Base):
             use_custom_shape_bone_size = False,
             custom_shape_translation=Vector((0, 0, 0)),
             custom_shape_rotation_euler=Vector((0, 0, 0)),
-            custom_shape_scale_xyz=Vector([org_bone.length * self.params.chain.shape_size]*3),
+            custom_shape_scale_xyz=Vector([size]*3),
             parent=org_bone,
         )
         if at_tip:
