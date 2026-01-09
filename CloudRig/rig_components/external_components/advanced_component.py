@@ -25,7 +25,7 @@ class AdvancedComponent(Component_Base):
 
     # If you want to force some inherited parameters to specific values and hide
     # them from the UI. Check Component_Base implementation for more inherited
-    # functionalities like constraint base__relinking, parent switching, logging, etc.
+    # functionalities like constraint relinking, parent switching, logging, etc.
     forced_params = {"advanced_component.always_false": False}
 
     @classmethod

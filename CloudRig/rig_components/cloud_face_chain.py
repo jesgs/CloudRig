@@ -13,121 +13,6 @@ MERGE_THRESHOLD = 0.000001
 # TODO: Center merging probably doesn't work without an anchor, or when Smooth Spline is on. Need tests!
 
 
-def has_tangent_helpers(rig) -> bool:
-    return rig.params.chain.smooth_spline and rig.params.chain.bbone_density > 0
-
-
-def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneInfo):
-    for str_bone in cluster:
-        component = str_bone.owner_component
-        str_bone.intersection_ctrl = intersection
-
-        arm_con = next((con for con in str_bone.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
-        if arm_con:
-            arm_con.targets = [intersection.name]
-
-        if str_bone.custom_shape_transform:
-            str_bone.custom_shape_transform.add_constraint(
-                'COPY_TRANSFORMS',
-                name="Copy Anchor Transforms (Smooth Intersection)",
-                index=3,
-                subtarget=intersection,
-                target_space='LOCAL_OWNER_ORIENT',
-                mix_mode='BEFORE',
-            )
-            # This is horrendous, but I can't argue with the results.
-            # The tangent helper must inherit rotation, otherwise it doesn't get affected by the root (very bad).
-            # However, the current stack of constraints results in a double inheritance of just Y rotation,
-            # because the Damped Track constraints are fully locking the X and Z rotations.
-            str_bone.custom_shape_transform.add_constraint(
-                'COPY_ROTATION',
-                name="Counter Anchor Y Rot (Smooth Intersection)",
-                index=4,
-                subtarget=intersection,
-                use_xyz=[False, True, False],
-                invert_xyz=[False, True, False],
-                target_space='LOCAL_OWNER_ORIENT',
-                euler_order='YZX',
-                mix_mode='BEFORE',
-            )
-
-        str_bone.collections = component.bone_sets['Sub Controls'].collections
-        str_bone.color_palette_base = component.bone_sets['Sub Controls'].color_palette
-
-
-def get_bone_clusters(chain_components) -> list[list[BoneInfo]]:
-    """Gather a list of lists of more than one STR bones that are in the same
-    location as another STR bone from another face_chain rig with
-    params.face_chain.merge==True.
-    """
-
-    clusters = []
-    bones_in_a_cluster = []
-
-    all_str_bones = []
-    for component in chain_components:
-        if not component.params.face_chain.merge:
-            continue
-        all_str_bones.extend(component.main_str_bones)
-
-    for str_bone in all_str_bones:
-        if str_bone in bones_in_a_cluster:
-            continue
-        cluster = [str_bone]
-        for other_str in all_str_bones:
-            if other_str in bones_in_a_cluster:
-                continue
-            if str_bone == other_str:
-                continue
-            if (str_bone.head - other_str.head).length < MERGE_THRESHOLD:
-                cluster.append(other_str)
-        if len(cluster) > 1:
-            clusters.append(cluster)
-        bones_in_a_cluster.extend(cluster)
-
-    return clusters
-
-
-def do_centered_cluster(
-    cluster: list[BoneInfo], intersection: BoneInfo, is_anchor=False
-):
-    # If bones are in the center, flatten them along the X axis to make sure
-    # they produce a clean curvature. This is important for things like the
-    # teeth or the lips, which are one rig component on each side that meet in
-    # the center, and are expected to make a smooth curve.
-    component = cluster[0].owner_component
-
-    pos_sum = cluster[0].head.copy()
-    for c in cluster[1:]:
-        pos_sum += c.head
-    avg_pos = pos_sum / len(cluster)
-
-    if not is_anchor:
-        intersection.vector = Vector((0, 0, intersection.length))
-        intersection.roll_align_vector(avg_pos)
-
-    for bone in cluster:
-        flipped_name = component.naming.flip_name(bone)
-        if flipped_name == bone.name:
-            continue
-        opposite_bone = bone.owner_component.generator.find_bone_info(flipped_name)
-        if not opposite_bone:
-            continue
-
-        bone.flatten(axis='X')
-        if has_tangent_helpers(bone.owner_component):
-            bone.tangent_helper.flatten(axis='X')
-        if bone.owner_component.params.chain.smooth_spline:
-            if has_tangent_helpers(opposite_bone.owner_component):
-                # Make the Damped Track constraint of the opposite TAN- bone aim
-                # at this STR bone's Damped Track target.
-                # This gets us a smooth curve across the two chains.
-                # (This is also what would happen if it was just one longer smooth chain)
-                bone.tangent_helper.constraint_infos[1].subtarget = (
-                    opposite_bone.tangent_helper.constraint_infos[0].subtarget
-                )
-
-
 class Component_FaceChain(Component_ToonChain):
     """Chain with cartoony squash and stretch controls, which supports intersecting bone chains."""
 
@@ -140,13 +25,9 @@ class Component_FaceChain(Component_ToonChain):
         # Check the generator component list to see if we are the last chain component that will be generated.
         self.chain_components = []
         for component in self.generator.all_components:
-            if any(
-                [
-                    class_name == type(component).__name__
-                    for class_name in ["Component_FaceChain", "Component_Eyelid"]
-                ]
-            ):
-                # NOTE: I don't know why isinstance() doesn't work here. It works when cloud_eyelid is testing itself, but not when cloud_face_chain is testing cloud_eyelid.
+            if type(component).__name__ in ["Component_FaceChain", "Component_Eyelid"]:
+                # NOTE: I don't know why isinstance() doesn't work here.
+                # It works when cloud_eyelid is testing itself, but not when cloud_face_chain is testing cloud_eyelid.
                 self.chain_components.append(component)
 
         self.is_last_chain_comp = self == self.chain_components[-1]
@@ -156,21 +37,7 @@ class Component_FaceChain(Component_ToonChain):
 
         ### Following code is only run ONCE by the LAST face chain component.
         if self.is_last_chain_comp and not last_chain_done:
-            self.create_and_setup_intersections(context)
-
-    def create_and_setup_intersections(self, context):
-            # Create and set up intersection controls.
-
-            str_bone_clusters = get_bone_clusters(self.chain_components)
-            self.intersection_bones = []
-            for cluster in str_bone_clusters:
-                self.intersection_bones.append(
-                    self.__create_intersection_for_cluster(cluster)
-                )
-            self.__setup_all_intersections()
-
-            for comp in self.chain_components:
-                comp.create_component_interactions(context, last_chain_done=True)
+            self.fchain__create_and_setup_intersections(context)
 
     @no_overlay
     def base__relink(self, last_chain_done=False):
@@ -209,20 +76,19 @@ class Component_FaceChain(Component_ToonChain):
     ##############################
     # Face grid functions.
 
-    def __setup_all_intersections(self):
-        for intersection in self.intersection_bones:
-            # Parenting must be done with an Armature constraint so that
-            # transforms propagate to TAN bones.
-            continue
-            if intersection.parent and len(intersection.constraint_infos) == 0:
-                intersection.add_constraint(
-                    'ARMATURE', targets=[{'subtarget': intersection.parent}]
+    def fchain__create_and_setup_intersections(self, context):
+            # Create and set up intersection controls.
+
+            str_bone_clusters = get_bone_clusters(self.chain_components)
+            self.intersection_bones = []
+            for cluster in str_bone_clusters:
+                self.intersection_bones.append(
+                    self.__create_intersection_for_cluster(cluster)
                 )
-        # HACK: We can't ensure that the last chain component to be executed is a cloud_eyelid,
-        # so we have to make sure the eyelid set-up function runs even when that's not the case...
-        for chain_comp in self.chain_components:
-            if hasattr(chain_comp, 'eyelid__make_sticky_setup'):
-                chain_comp.eyelid__make_sticky_setup()
+            self.__setup_all_intersections()
+
+            for comp in self.chain_components:
+                comp.create_component_interactions(context, last_chain_done=True)
 
     def __create_intersection_for_cluster(self, cluster: list[BoneInfo]) -> BoneInfo:
         """Try to find a Component_FaceChainAnchor to parent the cluster to.
@@ -273,6 +139,21 @@ class Component_FaceChain(Component_ToonChain):
         intersection_control.str_bones = cluster
         return intersection_control
 
+    def __setup_all_intersections(self):
+        for intersection in self.intersection_bones:
+            # Parenting must be done with an Armature constraint so that
+            # transforms propagate to TAN bones.
+            continue
+            if intersection.parent and len(intersection.constraint_infos) == 0:
+                intersection.add_constraint(
+                    'ARMATURE', targets=[{'subtarget': intersection.parent}]
+                )
+        # HACK: We can't ensure that the last chain component to be executed is a cloud_eyelid,
+        # so we have to make sure the eyelid set-up function runs even when that's not the case...
+        for chain_comp in self.chain_components:
+            if hasattr(chain_comp, 'eyelid__make_sticky_setup'):
+                chain_comp.eyelid__make_sticky_setup()
+
     ##############################
     # Parameters
     @classmethod
@@ -307,6 +188,124 @@ class Component_FaceChain(Component_ToonChain):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.face_chain, 'shape_intersection')
+
+
+def has_tangent_helpers(component) -> bool:
+    return component.params.chain.smooth_spline and component.params.chain.bbone_density > 0
+
+
+def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneInfo):
+    for str_bone in cluster:
+        component = str_bone.owner_component
+        str_bone.intersection_ctrl = intersection
+
+        arm_con = next((con for con in str_bone.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
+        if arm_con:
+            arm_con.targets = [intersection.name]
+
+        if str_bone.custom_shape_transform:
+            str_bone.custom_shape_transform.add_constraint(
+                'COPY_TRANSFORMS',
+                name="Copy Anchor Transforms (Smooth Intersection)",
+                index=3,
+                subtarget=intersection,
+                target_space='LOCAL_OWNER_ORIENT',
+                mix_mode='BEFORE',
+            )
+            # This is horrendous, but I can't argue with the results.
+            # The tangent helper must inherit rotation, otherwise it doesn't get affected by the root (very bad).
+            # However, the current stack of constraints results in a double inheritance of just Y rotation,
+            # because the Damped Track constraints are fully locking the X and Z rotations.
+            str_bone.custom_shape_transform.add_constraint(
+                'COPY_ROTATION',
+                name="Counter Anchor Y Rot (Smooth Intersection)",
+                index=4,
+                subtarget=intersection,
+                use_xyz=[False, True, False],
+                invert_xyz=[False, True, False],
+                target_space='LOCAL_OWNER_ORIENT',
+                euler_order='YZX',
+                mix_mode='BEFORE',
+            )
+
+        str_bone.collections = component.bone_sets['Sub Controls'].collections
+        str_bone.color_palette_base = component.bone_sets['Sub Controls'].color_palette
+
+
+def get_bone_clusters(chain_components: list[Component_ToonChain]) -> list[list[BoneInfo]]:
+    """Gather a list of lists of more than one STR bones that are in the same
+    location as another STR bone from another face_chain rig with
+    params.face_chain.merge==True.
+    """
+
+    clusters = []
+    bones_in_a_cluster = []
+
+    all_str_bones = []
+    for component in chain_components:
+        if not component.params.face_chain.merge:
+            continue
+        all_str_bones.extend(component.main_str_bones)
+
+    for str_bone in all_str_bones:
+        if str_bone in bones_in_a_cluster:
+            continue
+        cluster = [str_bone]
+        for other_str in all_str_bones:
+            if other_str in bones_in_a_cluster:
+                continue
+            if str_bone == other_str:
+                continue
+            if (str_bone.head - other_str.head).length < MERGE_THRESHOLD:
+                cluster.append(other_str)
+        if len(cluster) > 1:
+            clusters.append(cluster)
+        bones_in_a_cluster.extend(cluster)
+
+    return clusters
+
+
+def do_centered_cluster(
+    cluster: list[BoneInfo],
+    intersection: BoneInfo,
+    is_anchor=False
+):
+    # If bones are in the center, flatten them along the X axis to make sure
+    # they produce a clean curvature. This is important for things like the
+    # teeth or the lips, which are one rig component on each side that meet in
+    # the center, and are expected to make a smooth curve.
+    component = cluster[0].owner_component
+
+    pos_sum = cluster[0].head.copy()
+    for c in cluster[1:]:
+        pos_sum += c.head
+    avg_pos = pos_sum / len(cluster)
+
+    if not is_anchor:
+        intersection.vector = Vector((0, 0, intersection.length))
+        intersection.roll_align_vector(avg_pos)
+
+    for bone in cluster:
+        flipped_name = component.naming.flip_name(bone)
+        if flipped_name == bone.name:
+            continue
+        opposite_bone = bone.owner_component.generator.find_bone_info(flipped_name)
+        if not opposite_bone:
+            continue
+
+        bone.flatten(axis='X')
+        if has_tangent_helpers(bone.owner_component):
+            bone.tangent_helper.flatten(axis='X')
+        if bone.owner_component.params.chain.smooth_spline:
+            if has_tangent_helpers(opposite_bone.owner_component):
+                # Make the Damped Track constraint of the opposite TAN- bone aim
+                # at this STR bone's Damped Track target.
+                # This gets us a smooth curve across the two chains.
+                # (This is also what would happen if it was just one longer smooth chain)
+                bone.tangent_helper.constraint_infos[1].subtarget = (
+                    opposite_bone.tangent_helper.constraint_infos[0].subtarget
+                )
+
 
 class Params(PropertyGroup):
     merge: BoolProperty(

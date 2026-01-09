@@ -125,8 +125,6 @@ class Component_Base(
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
         which will be turned into real bones by the CloudRig generator.
-
-        This function requires the metarig in edit mode.
         """
 
         bone_infos = {}

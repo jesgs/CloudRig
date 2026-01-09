@@ -13,14 +13,14 @@ class Component_Eyelid(Component_FaceChain):
     ##############################
     # Inherited functions.
 
-    def create_and_setup_intersections(self, context):
+    def fchain__create_and_setup_intersections(self, context):
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
         # parent it to the parent of the eyeball.
         # This is also important for custom root parenting functionality to work.
         self.bones_org[0].parent = self.parent_component.bones_org[0].parent
         self.eyelid__make_sticky_setup()
-        super().create_and_setup_intersections(context)
+        super().fchain__create_and_setup_intersections(context)
 
     ##############################
     # Eyelid functions.
