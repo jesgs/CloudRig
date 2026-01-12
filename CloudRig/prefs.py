@@ -127,7 +127,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         ],
         default='SELECTED',
     )
-    is_dashed: BoolProperty(
+    overlay_use_dashed: BoolProperty(
         name="Dashed",
         default=True,
         description="Dashed lines for the rig preview. Bit more expensive to draw"
@@ -138,6 +138,14 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=0.9,
         min=0.0,
         max=1.0,
+        subtype='FACTOR',
+    )
+    overlay_dash_length: FloatProperty(
+        name="Dash Length",
+        description="Length of the dashes.",
+        default=1.0,
+        min=0.1,
+        max=2.0,
         subtype='FACTOR',
     )
 

@@ -41,9 +41,6 @@ DEBUG_IGNORE_CACHES = False
 DEBUG_USE_LAG = False
 DEBUG_LAG_ITER = 1000000
 
-### Constants.
-DASH_LENGTH = 0.03
-
 ### Hashes & Caches.
 MODE_CACHE = ""
 SELECTION_CACHE = set()
@@ -124,11 +121,11 @@ class OverlayPainter:
         # (This is to avoid the dash length being dependent on shape orientation)
         edge_lines = [(verts[e.vertices[0]].co, verts[e.vertices[1]].co) for e in mesh.edges]
         prefs = get_addon_prefs(context)
-        if prefs.is_dashed:
+        if prefs.overlay_use_dashed:
             scale = transform.to_scale()
             points = [p*scale for line in edge_lines for p in line]
             size = bounding_box_diagonal_size(points)
-            dash_length = DASH_LENGTH * size
+            dash_length = prefs.overlay_dash_length*0.1 * size
         else:
             dash_length = 0
 
@@ -514,8 +511,9 @@ def no_overlay(_func=None, *, return_value=None):
 def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
     return [str(thing) for thing in [
         prefs.overlay_mode,
-        prefs.is_dashed,
+        prefs.overlay_use_dashed,
         prefs.overlay_opacity,
+        prefs.overlay_dash_length,
         metarig.name,
         metarig.matrix_world,
         boneinfo.head,
@@ -536,8 +534,9 @@ def hash_component(prefs, component) -> str:
     return [str(thing) for thing in [
         bpy.data.filepath,
         prefs.overlay_mode,
-        prefs.is_dashed,
+        prefs.overlay_use_dashed,
         prefs.overlay_opacity,
+        prefs.overlay_dash_length,
         rig.name,
         rig.matrix_world,
         [hash_bone(prefs, rig, pbone) for pbone in pbone_chain],
@@ -614,15 +613,18 @@ def draw_overlay_toggle(self, context):
     prefs = get_addon_prefs(context)
     layout = self.layout.column(align=True)
 
-    view3d = context.area.spaces.active
 
     row = label_split(layout, text="CloudRig Preview")
     row.prop(prefs, 'overlay_mode', text="")
     if prefs.overlay_mode != 'NONE':
         label_split(layout, text="Opacity").prop(prefs, 'overlay_opacity', text="")
         if prefs.overlay_opacity > 0:
-            label_split(layout, text="Dashed").prop(prefs, 'is_dashed', text="")
-            label_split(layout, text="Time:").label(text=f"{view3d.shading.cloudrig_eval_time * 1000:.2f}ms")
+            label_split(layout, text="Dashed").prop(prefs, 'overlay_use_dashed', text="")
+            if prefs.overlay_use_dashed:
+                label_split(layout, text="Dash Length").prop(prefs, 'overlay_dash_length', text="")
+
+            # view3d = context.area.spaces.active
+            # label_split(layout, text="Time:").label(text=f"{view3d.shading.cloudrig_eval_time * 1000:.2f}ms")
 
 
 ### Registration.
