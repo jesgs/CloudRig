@@ -2,10 +2,10 @@
 
 from itertools import pairwise
 
-from bpy.types import Curve, Spline, Object
+from bpy.types import Curve, Object, Spline
 from mathutils import Vector
-from mathutils.kdtree import KDTree
 from mathutils.geometry import interpolate_bezier, intersect_point_line
+from mathutils.kdtree import KDTree
 
 from .maths import bounding_box_center
 
@@ -94,6 +94,8 @@ def evaluate_bezier_spline(spline: Spline, segment_resolution=64) -> list[list[V
 
 
 def evaluate_point_tangents(curve_ob: Object) -> list[list[Vector]] | None:
+    if not curve_ob:
+        return
     def calc_tangent_3_points(a: Vector, b: Vector, p: Vector) -> Vector:
         center = intersect_point_line(p, a, b)[0]
         tangent = p - center

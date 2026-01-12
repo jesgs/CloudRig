@@ -362,6 +362,7 @@ def is_modal_navi_running(context) -> bool:
 def get_components_to_draw(context) -> set[RigComponent]:
     """Whether rig preview should be drawn for a given component."""
     prefs = get_addon_prefs(context)
+    metarig = context.active_object # (We don't care about WP mode, so this is fine!)
 
     potential_components = set()
 
@@ -375,6 +376,7 @@ def get_components_to_draw(context) -> set[RigComponent]:
         potential_components.add(component)
     elif prefs.overlay_mode in ('SELECTED', 'CHILDREN'):
         pbones = get_pbones_of_selected(context, whole_ebone=False)
+        pbones = [pb for pb in pbones if pb in set(metarig.pose.bones)]
         if prefs.overlay_mode == 'CHILDREN':
             for pbone in pbones:
                 for child in pbone.children:
@@ -383,11 +385,10 @@ def get_components_to_draw(context) -> set[RigComponent]:
             if pbone.cloudrig_component.inherited_component:
                 potential_components.add(pbone.cloudrig_component.inherited_component)
     elif prefs.overlay_mode == 'VISIBLE':
-        metarig = context.active_object # (We don't care about WP mode, so this is fine!)
         potential_components = [
             pb.cloudrig_component
             for pb in metarig.pose.bones
-            if pb.cloudrig_component.component_type
+            if pb in set(metarig.pose.bones) and pb.cloudrig_component.component_type
         ]
     else:
         raise ValueError("Overlay mode not implemented: ", prefs.overlay_mode)

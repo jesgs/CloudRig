@@ -63,12 +63,14 @@ class CloudObjectUtilitiesMixin:
             # Nobody should store widget objects at the scene root.
             context.scene.collection.objects.unlink(widget_ob)
 
-    def check_object_in_scene(self, context, object, create_log=True) -> bool:
+    def check_object_in_scene(self, context, object: Object | None, create_log=True) -> bool:
         """Check if an object is in the current Scene.
         If not, raise a warning with a Quick Fix operator.
         """
+        if not object:
+            return True
         def complain():
-            if create_log:
+            if create_log and not self.painter:
                 self.add_log(
                     f"{object.name} not in Scene",
                     description="This helper object should be linked to the current Scene.",
