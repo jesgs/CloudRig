@@ -187,8 +187,16 @@ class RigComponent(PropertyGroup):
     If a Component Type is assigned by the user via the UI, parameters will appear,
     and this bone (and usually its connected children) will contribute to the generated rig.
     """
+    last_bone_name: StringProperty() #TODO: Reset this as an early generation step.
+    bone_name: StringProperty(description="INTERNAL: Stores a cache of the start of this component.")
 
     def update_caches(self, _context=None):
+        # Update pbone chain stuff for the overlay and generation.
+        self.last_bone_name = ""
+        self.bone_name = ""
+        self.component_pbone_chain
+
+        # Update parent UI stuff for the Rig Component List
         if not self.parent:
             self.should_draw = True
             self.enabled_with_parents = True
@@ -218,17 +226,27 @@ class RigComponent(PropertyGroup):
     def is_enabled_component(self):
         return self.enabled_toggle and self.enabled_with_parents
 
+
     @property
-    def base_bone_name(self):
+    def base_bone_name(self) -> str:
         if not self.component_type:
-            return
+            return ""
         return self.owner_pose_bone.name
 
     @property
     def owner_pose_bone(self) -> PoseBone:
         metarig = self.id_data
-        # XXX: May cause poor performance in the component list UI. Would be nice to have a proper mapping from component type to the PoseBone that's storing them.
-        return next((pb for pb in metarig.pose.bones if pb.cloudrig_component == self))
+        if self.bone_name:
+            pb = metarig.pose.bones.get(self.bone_name)
+            if pb and pb.cloudrig_component == self:
+                return pb
+        pb = next((pb for pb in metarig.pose.bones if pb.cloudrig_component == self))
+        try:
+            self.bone_name = pb.name
+        except AttributeError:
+            # If we are in UI drawing code, just don't do this.
+            pass
+        return pb
 
     @property
     def active_bone_set(self):
@@ -383,6 +401,16 @@ class RigComponent(PropertyGroup):
 
     @property
     def component_pbone_chain(self) -> list[PoseBone]:
+        metarig = self.id_data
+        if self.last_bone_name:
+            last_bone = metarig.pose.bones.get(self.last_bone_name)
+            if last_bone and (metarig.mode != 'EDIT' or self.last_bone_name in metarig.data.edit_bones):
+                chain = [last_bone]
+                while chain[0].parent:
+                    chain.insert(0, chain[0].parent)
+                    if chain[0].cloudrig_component == self:
+                        return chain
+
         component_pbone = self.component_pbone
         if not component_pbone:
             return []
@@ -392,7 +420,7 @@ class RigComponent(PropertyGroup):
         max_length = comp_class.max_bones_in_chain
         only_connected = comp_class.only_connected_children
 
-        # Go down in the hierarchy from the last bone, appending connected bones to the list.
+        # Go down in the hierarchy from the component pbone, appending connected bones to the list.
         # NOTE: If one bone has multiple connected children and neither of them have
         # a component type, the chain becomes ambiguous. This case is not supported!
         cur_pb = component_pbone
@@ -417,7 +445,7 @@ class RigComponent(PropertyGroup):
                                 next_pb = child_pb
                         else:
                             next_pb = child_pb
-                if next_pb:
+                if next_pb and (metarig.mode != 'EDIT' or next_pb.name in metarig.data.edit_bones):
                     chain.append(next_pb)
                 cur_pb = next_pb
         except KeyError:
@@ -428,7 +456,9 @@ class RigComponent(PropertyGroup):
             return []
 
         if max_length != -1:
-            return chain[:max_length]
+            chain = chain[:max_length]
+
+        self.last_bone_name = chain[-1].name
         return chain
 
     def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
