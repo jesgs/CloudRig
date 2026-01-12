@@ -97,7 +97,7 @@ class OverlayPainter:
         color = getattr(color_set, color_type)
         if color_type == 'normal':
             # For some reason Blender darkens the normal color by an arbitrary amount...
-            n = 0.2
+            n = 50/255
             color = Color((color.r - n, color.g - n, color.b - n))
 
         return color
@@ -219,7 +219,7 @@ class OverlayPainter:
         geo = Geo(
             'LINES',
             positions = self.object_wireframe_3d(context, wgt_ob, transform),
-            color = self.theme_bone_color(context, theme_color=bone_info.color_palette_base),
+            color = (*self.theme_bone_color(context, theme_color=bone_info.color_palette_base)[:3], prefs.overlay_opacity),
             line_width = bone_info.custom_shape_wire_width,
         )
 
@@ -340,7 +340,7 @@ def overlay_poll(context) -> bool:
     we shouldn't be drawing or generating ANY rig preview.
     """
     prefs = get_addon_prefs(context)
-    if not prefs or prefs.overlay_mode=='NONE':
+    if not prefs or prefs.overlay_mode=='NONE' or prefs.overlay_opacity == 0:
         return False
     view3d = context.area.spaces.active
     if not view3d.overlay.show_overlays:
@@ -441,6 +441,7 @@ def get_shader():
     shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
     return shader
 
+
 def components_to_batches(component_geos) -> dict[str, dict[float, GPUBatch]]:
     shader = get_shader()
     batch_cache = {}
@@ -514,6 +515,7 @@ def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
     return [str(thing) for thing in [
         prefs.overlay_mode,
         prefs.is_dashed,
+        prefs.overlay_opacity,
         metarig.name,
         metarig.matrix_world,
         boneinfo.head,
@@ -535,6 +537,7 @@ def hash_component(prefs, component) -> str:
         bpy.data.filepath,
         prefs.overlay_mode,
         prefs.is_dashed,
+        prefs.overlay_opacity,
         rig.name,
         rig.matrix_world,
         [hash_bone(prefs, rig, pbone) for pbone in pbone_chain],
@@ -616,8 +619,10 @@ def draw_overlay_toggle(self, context):
     row = label_split(layout, text="CloudRig Preview")
     row.prop(prefs, 'overlay_mode', text="")
     if prefs.overlay_mode != 'NONE':
-        label_split(layout, text="Dashed").prop(prefs, 'is_dashed')
-        label_split(layout, text="Time:").label(text=f"{view3d.shading.cloudrig_eval_time * 1000:.2f}ms")
+        label_split(layout, text="Opacity").prop(prefs, 'overlay_opacity', text="")
+        if prefs.overlay_opacity > 0:
+            label_split(layout, text="Dashed").prop(prefs, 'is_dashed', text="")
+            label_split(layout, text="Time:").label(text=f"{view3d.shading.cloudrig_eval_time * 1000:.2f}ms")
 
 
 ### Registration.

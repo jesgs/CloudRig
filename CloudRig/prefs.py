@@ -132,6 +132,14 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=True,
         description="Dashed lines for the rig preview. Bit more expensive to draw"
     )
+    overlay_opacity: FloatProperty(
+        name="Opacity",
+        description="Opacity of the overlay.",
+        default=0.9,
+        min=0.0,
+        max=1.0,
+        subtype='FACTOR',
+    )
 
     component_overview_mode: EnumProperty(
         name="Overview Mode",
