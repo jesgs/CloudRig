@@ -3,7 +3,6 @@ from . import (
     cloudrig_main_panel,
     component_list,
     component_param_panels,
-    header_popover,
     menu_3dview,
 )
 
@@ -13,5 +12,4 @@ modules = [
     component_list,
     component_param_panels,
     actions_ui,
-    header_popover,
 ]
