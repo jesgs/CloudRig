@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.props import BoolProperty, EnumProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
 
 from ..utils.rig import ik_chain_flatten_single_iter, is_ideal_ik_chain
@@ -31,6 +31,11 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
             ("-X", "-X", "-X"),
         ]
     )
+    limit_count: IntProperty(
+        name="Limit To First",
+        default=2,
+        description="If >0, only flatten the first X bones rather than the whole connected chain",
+    )
 
     @classmethod
     def poll(cls, context):
@@ -53,6 +58,8 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         org_mode = rig.mode
         comp = start_pb.cloudrig_component.inherited_component
         pb_chain = comp.component_pbone_chain
+        if self.limit_count > 0:
+            pb_chain = pb_chain[:self.limit_count]
 
         bpy.ops.object.mode_set(mode='EDIT')
 

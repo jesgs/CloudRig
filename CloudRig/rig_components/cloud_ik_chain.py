@@ -142,6 +142,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 op_kwargs={
                     "remove_active_log": True,
                     "start_bone": self.metarig_base_pbone.name,
+                    "limit_count": self.required_chain_length
                 },
             )
 
