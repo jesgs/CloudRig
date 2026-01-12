@@ -258,13 +258,23 @@ def draw_rig_preview():
     metarig = context.active_object
     animdata = metarig.animation_data
     metarig_is_animated = animdata and (animdata.action or animdata.drivers)
-    animating = context.screen.is_animation_playing and metarig_is_animated
+    is_playback = context.screen.is_animation_playing and metarig_is_animated
     selection = set([pb.name for pb in get_pbones_of_selected(context, whole_ebone=False)])
-    selection_unchanged = SELECTION_CACHE == selection
-    mode_unchanged = context.mode == MODE_CACHE
+    selection_changed = SELECTION_CACHE != selection
+    mode_changed = context.mode != MODE_CACHE
     SELECTION_CACHE = selection
     MODE_CACHE = context.mode
-    if is_modal_navi_running(context) and not animating and selection_unchanged and mode_unchanged:
+    view_moved = False
+
+    view_3d = context.area.spaces.active
+
+    view_matrix_str = str(view_3d.region_3d.view_matrix)
+    if view_3d.shading.cloudrig_prev_view:
+        if view_3d.shading.cloudrig_prev_view != view_matrix_str:
+            view_moved = True
+    view_3d.shading.cloudrig_prev_view = view_matrix_str
+
+    if view_moved or is_modal_navi_running(context) or is_playback or selection_changed or mode_changed:
         # During viewport navigation, if the metarig isn't animating,
         # re-draw entirely from cache. (This takes <0.1ms.)
         draw_component_geos(only_from_cache=True)
@@ -625,6 +635,14 @@ def register():
     )
     bpy.types.VIEW3D_PT_overlay.append(draw_overlay_toggle)
 
+    # NOTE: This would make more sense to store on View3DOverlay,
+    # but that one does NOT support python-defined properties.
+    # View3DShading does, for no reason:
+    # https://blenderartists.org/t/custom-property-for-area/1208269/19?u=mets
+    bpy.types.View3DShading.cloudrig_prev_view = StringProperty(
+        name="Previous View Matrix",
+        description="String representation of the previous view matrix. If this changes, we know we shouldn't re-generate anything, to avoid lag."
+    )
     bpy.types.View3DShading.cloudrig_eval_time = FloatProperty(
         name="Eval Time",
         description="Duration of previous evaluation time."
@@ -635,4 +653,5 @@ def unregister():
     global HANDLER
     bpy.types.SpaceView3D.draw_handler_remove(HANDLER, 'WINDOW')
     bpy.types.VIEW3D_PT_overlay.remove(draw_overlay_toggle)
+    del bpy.types.View3DShading.cloudrig_prev_view
     del bpy.types.View3DShading.cloudrig_eval_time
