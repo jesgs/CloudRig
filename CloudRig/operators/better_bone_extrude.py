@@ -91,6 +91,8 @@ class BoneDuplicateOpMixin:
         try:
             bpy.ops.object.mode_set(False, mode='POSE')
             bpy.ops.object.mode_set(False, mode='EDIT')
+            for rig in rigs:
+                rig.cloudrig.refresh_generation_order()
             for fc in new_drivers:
                 fc.driver.expression = fc.driver.expression
         except RuntimeError:
@@ -100,7 +102,11 @@ class BoneDuplicateOpMixin:
             return {'FINISHED'}
 
         for bone_name in new_bones_names:
-            rig.data.edit_bones[bone_name].select_tail = True
+            new_eb = rig.data.edit_bones[bone_name]
+            new_eb.select_head = False
+            new_eb.select = False
+            if new_eb.parent and new_eb.use_connect:
+                new_eb.parent.select_tail = False
 
         return {'FINISHED'}
 
