@@ -795,6 +795,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
         self.logger.report_sus_constraints(self.target_rig)
         self.logger.report_actions()
+        self.logger.report_metarig_children(self.metarig)
 
 def parent_orphans(rig: Object, root_name: str):
     def is_orphan(bone):

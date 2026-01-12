@@ -580,6 +580,26 @@ class CloudLogManager:
                             description='This bone has multiple Armature constraints, which is unlikely to be intentional.'
                         )
 
+    def report_metarig_children(self, metarig):
+        count = 0
+        for dependent in bpy.data.user_map()[metarig]:
+            if not isinstance(dependent, Object):
+                continue
+            # One exception I could think of: Other metarigs...
+            if is_cloud_metarig(dependent):
+                continue
+            count += 1
+        if count > 0:
+            self.log(
+                "Metarig Hates Children",
+                description=(
+                    f"Metarig has {count} dependent objects.\n"
+                    "Click the button below to parent any children or deformed mesh objects to the generated rig instead.\n"
+                    "If this warning persists, you may have objects which reference the metarig via drivers,\n"
+                    "or you are parenting objects to the metarig in the post-generation script."
+                ),
+                operator='object.cloudrig_reparent_metarig_children',
+            )
 
 class CloudRigLogEntry(PropertyGroup):
     """Container for storing information about a single metarig warning/error.
@@ -1225,7 +1245,6 @@ class CLOUDRIG_OT_link_obj_to_scene(Operator):
         return {'FINISHED'}
 
 
-
 class CLOUDRIG_OT_dismiss_version_warning(Operator):
     """Dismiss warning"""
 
@@ -1241,6 +1260,39 @@ class CLOUDRIG_OT_dismiss_version_warning(Operator):
             generator.remove_active_log()
 
         return {'FINISHED'}
+
+
+class CLOUDRIG_OT_reparent_metarig_children(Operator):
+    """Re-Parent all children of the metarig to the generated rig, including any Armature modifiers."""
+
+    bl_idname = "object.cloudrig_reparent_metarig_children"
+    bl_label = "Re-Parent All Children"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def execute(self, context):
+        metarig = context.object
+        target_rig = metarig.cloudrig.generator.target_rig
+        if not target_rig:
+            self.report({'ERROR'}, "Target rig has been removed. Generate the rig again.")
+            return {'CANCELLED'}
+        count = 0
+        for dependent in bpy.data.user_map()[metarig]:
+            if not isinstance(dependent, Object):
+                continue
+            if is_cloud_metarig(dependent):
+                continue
+            count += 1
+            if dependent.parent == metarig:
+                dependent.parent = target_rig
+            for mod in dependent.modifiers:
+                if mod.type == 'ARMATURE' and mod.object == metarig:
+                    mod.object = target_rig
+
+        metarig.cloudrig.generator.remove_active_log()
+
+        self.report({'INFO'}, f"Parented {count} objects to generated rig.")
+        return {'FINISHED'}
+
 
 registry = [
     CLOUDRIG_UL_log_entry_slots,
@@ -1260,4 +1312,5 @@ registry = [
     CLOUDRIG_OT_edit_bone_transform,
     CLOUDRIG_OT_link_obj_to_scene,
     CLOUDRIG_OT_dismiss_version_warning,
+    CLOUDRIG_OT_reparent_metarig_children,
 ]
