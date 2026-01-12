@@ -19,9 +19,10 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Object, Operator, Panel, PropertyGroup, UIList
+from bpy.types import Object, Operator, PropertyGroup, UIList
 from mathutils import Vector
 
+from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
 from ..rig_component_features.overlay_painter import no_overlay
@@ -1224,6 +1225,23 @@ class CLOUDRIG_OT_link_obj_to_scene(Operator):
         return {'FINISHED'}
 
 
+
+class CLOUDRIG_OT_dismiss_version_warning(Operator):
+    """Dismiss warning"""
+
+    bl_idname = "object.cloudrig_dismiss_warning"
+    bl_label = "Dismiss"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    def execute(self, context):
+        current = get_addon_prefs(context).cloud_metarig_version
+        generator = context.object.cloudrig.generator
+        generator.metarig_version = current
+        if generator.active_log.operator == 'object.cloudrig_dismiss_warning':
+            generator.remove_active_log()
+
+        return {'FINISHED'}
+
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
@@ -1241,4 +1259,5 @@ registry = [
     CLOUDRIG_OT_delete_collection,
     CLOUDRIG_OT_edit_bone_transform,
     CLOUDRIG_OT_link_obj_to_scene,
+    CLOUDRIG_OT_dismiss_version_warning,
 ]

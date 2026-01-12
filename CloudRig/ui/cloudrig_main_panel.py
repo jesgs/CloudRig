@@ -38,6 +38,14 @@ class CloudRig_MainPanel:
             text = "Re-Generate CloudRig"
         layout.operator("pose.cloudrig_generate", text=text)
 
+        prefs = get_addon_prefs(context)
+        if metarig.cloudrig.generator.metarig_version > prefs.cloud_metarig_version:
+            warning_col = layout.column(align=True)
+            warning_col.alert = True
+            warning_col.label(text="Metarig authored with a newer version of CloudRig.", icon='ERROR')
+            warning_col.label(text="You should update CloudRig.")
+            warning_col.operator('object.cloudrig_dismiss_warning')
+
         if not context.object.cloudrig.enabled:
             return
         draw_general_panel(context, layout)

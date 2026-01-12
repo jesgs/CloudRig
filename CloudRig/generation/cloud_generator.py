@@ -290,7 +290,16 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.clear()
 
         metarig.data.name = self.metarig.name
-        self.params.metarig_version = get_addon_prefs(context).cloud_metarig_version
+        current_metarig_version = get_addon_prefs(context).cloud_metarig_version
+        if self.params.metarig_version > current_metarig_version:
+            self.logger.log(
+                "Outdated CloudRig",
+                description="This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions.",
+                operator='object.cloudrig_dismiss_warning',
+                op_text='Dismiss Warning',
+            )
+        else:
+            self.params.metarig_version = current_metarig_version
         self.driver_map = map_pbones_to_drivers(self.metarig)
 
         # If the previous generation failed, delete the failed rig.
