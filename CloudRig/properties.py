@@ -46,7 +46,7 @@ def inject_update_callback(annotations):
         def set_transform_wrapper(self, new_value, curr_value, is_set):
             if new_value != curr_value:
                 mark_overlay_dirty(self)
-                print(f"Marked overlay as dirty. {prop_name} changed from `{curr_value}` to `{new_value}`.")
+                # print(f"Marked overlay as dirty. {prop_name} changed from `{curr_value}` to `{new_value}`.")
 
             if set_transform:
                 # Call the original call-back function.
@@ -58,7 +58,7 @@ def inject_update_callback(annotations):
     def wrap_update(prop_name: str, update: Callable | None):
         def update_wrapper(self, context):
             mark_overlay_dirty(self)
-            print(f"Marked overlay as dirty. {prop_name} changed to `{getattr(self, prop_name)}`.")
+            # print(f"Marked overlay as dirty. {prop_name} changed to `{getattr(self, prop_name)}`.")
             if update:
                 update(self, context)
         return update_wrapper

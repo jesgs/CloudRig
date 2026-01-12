@@ -46,7 +46,10 @@ def get_component_in_ui(context) -> RigComponent | None:
     else:
         comp = context.active_object.cloudrig.active_component
 
-    if context.mode == 'EDIT_ARMATURE' and comp.component_pbone.name not in context.active_object.data.edit_bones:
+    if not comp:
+        return
+    pbone = comp.component_pbone
+    if pbone and context.mode == 'EDIT_ARMATURE' and pbone.name not in context.active_object.data.edit_bones:
         # This could happen after deleting bones in Edit Mode.
         return
 

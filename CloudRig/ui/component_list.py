@@ -48,14 +48,11 @@ class CLOUDRIG_UL_rig_components(UIList):
         main_row = main_split.row()
         row = main_row.row()
         row.enabled = rig_component.enabled_with_parents
-        row.prop_search(
-            rig_component,
-            'component_type',
-            addon_prefs,
-            'component_types',
-            text="",
-            icon=icon,
-        )
+        icon = 'ARMATURE_DATA'
+        if not rig_component.component_class:
+            icon = 'ERROR'
+            row.alert = True
+        row.label(text=rig_component.component_type, icon=icon)
         row = main_row.row()
         icon = 'CHECKBOX_HLT' if rig_component.enabled_toggle else 'CHECKBOX_DEHLT'
         row.prop(rig_component, 'enabled_toggle', text="", emboss=False, icon=icon)
@@ -162,15 +159,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
         selected_pb = rig.pose.bones.get(self.bone_name)
         if not selected_pb:
             return
-        prefs = get_addon_prefs(context)
-        row.prop_search(
-            self,
-            'component_type',
-            prefs,
-            'component_types',
-            text="",
-            icon='ARMATURE_DATA',
-        )
+        draw_component_type_selector(context, row, self)
 
     def execute(self, context):
         rig = context.object
@@ -296,9 +285,21 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
         return {'FINISHED'}
 
 
+def draw_component_type_selector(context, layout, prop_owner, icon='ARMATURE_DATA'):
+    prefs = get_addon_prefs(context)
+    layout.prop_search(
+        prop_owner,
+        'component_type',
+        prefs,
+        'component_types',
+        text="",
+        icon=icon,
+    )
+
+
 def draw_rig_component_list(context, layout, default_closed=True):
     header, panel = layout.panel("CloudRig Rig Components", default_closed=default_closed)
-    header.label(text="Component Parameters")
+    header.label(text="Components")
     if not panel:
         return
 
@@ -334,7 +335,12 @@ def draw_rig_component_list(context, layout, default_closed=True):
 
     header, panel = layout.panel("CloudRig Component In List", default_closed=False)
     row = header.row()
-    row.label(text=f"{active_component.component_pbone.name} ({active_component.component_type})", icon='BONE_DATA')
+    row.label(text=f"{active_component.component_pbone.name}", icon='BONE_DATA')
+    icon = 'ARMATURE_DATA'
+    if not active_component.component_class:
+        icon = 'ERROR'
+    draw_component_type_selector(context, row, active_component, icon=icon)
+    row.label(text="", icon='BLANK1')
     if panel:
         box = panel.box()
         box.use_property_split = True
