@@ -48,15 +48,13 @@ DASH_LENGTH = 0.03
 MODE_CACHE = ""
 SELECTION_CACHE = set()
 # GPUBatches of the last frame.
-# Re-used if nothing about the metarig has changed, to eliminate viewport lag while navigating.
+# Rig Component GPUBatches.
+# Re-used if nothing about a given rig component has changed.
 # Sorted by line width.
-BATCH_CACHE: dict[float, GPUBatch] = {}
+BATCH_CACHE: dict[str, dict[float, GPUBatch]] = {}
 # Component bone name to hash. If unchanged from one frame to the next, no need to re-generate the component.
 
 COMPONENT_HASHES: dict[str, str] = {}
-# Component bone name to list of Geo instances.
-# If the component hash is unchanged, re-use all Geos from here.
-COMPONENT_GEOS: dict[str, Geo] = {}
 
 # BoneInfo name to hash. If unchanged from one frame to the next, no need to re-create its Geo instance.
 BONEINFO_HASHES: dict[str, str] = {}
@@ -243,10 +241,6 @@ class Geo:
         self.line_width = line_width
         self.color = color
 
-    @classmethod
-    def draw_all(cls):
-        pass
-
 
 def draw_rig_preview():
     start = time()
@@ -277,7 +271,7 @@ def draw_rig_preview():
     if view_moved or is_modal_navi_running(context) or is_playback or selection_changed or mode_changed:
         # During viewport navigation, if the metarig isn't animating,
         # re-draw entirely from cache. (This takes <0.1ms.)
-        draw_component_geos(only_from_cache=True)
+        draw_batch_cache()
         return
 
     prefs = get_addon_prefs(context)
@@ -285,28 +279,32 @@ def draw_rig_preview():
     components_to_draw = set(get_components_to_draw(context))
 
     global COMPONENT_HASHES
-    global COMPONENT_GEOS
+    global BATCH_CACHE
 
     # Start a new cache.
     COMPONENT_GEOS_NEW = {}
 
-    components_to_regenerate = set()
+    new_batch_cache: dict[str, dict[float, GPUBatch]] = {}
+    components_to_regenerate: set[RigComponent] = set()
 
     for component in components_to_draw:
         comp_pbone = component.component_pbone
         component_hash = hash_component(prefs, comp_pbone.cloudrig_component)
         old_comp_hash = COMPONENT_HASHES.get(comp_pbone.name, "")
-        if component_hash == old_comp_hash and not DEBUG_IGNORE_CACHES:
-            geos = COMPONENT_GEOS.get(comp_pbone.name)
-            if not geos:
+        if component_hash == old_comp_hash and not component.overlay_is_dirty and not DEBUG_IGNORE_CACHES:
+            batches = BATCH_CACHE.get(comp_pbone.name)
+            if batches is None:
+                # NOTE: An empty batches dict should not be caught here.
+                # That just means a component doesn't want to draw anything, which is fine.
                 components_to_regenerate.add(component)
                 continue
-            COMPONENT_GEOS_NEW[comp_pbone.name] = geos
+            new_batch_cache[comp_pbone.name] = batches
             continue
         COMPONENT_HASHES[comp_pbone.name] = component_hash
         components_to_regenerate.add(component)
 
     if components_to_regenerate:
+        # TODO: This could be optimized by not regenerating on transformations of parent components, and storing bone transforms relative to the original bones. So eg. the fingers wouldn't need to be re-generated while transforming the arms.
         painter = OverlayPainter()
         painter.space = metarig.matrix_world
 
@@ -327,6 +325,13 @@ def draw_rig_preview():
                 continue
             geos = generated_comp_to_geos(generated_component, context, painter)
             COMPONENT_GEOS_NEW[comp_pbone.name] = geos
+            component.overlay_is_dirty = False
+
+    new_batch_cache.update(components_to_batches(COMPONENT_GEOS_NEW))
+    BATCH_CACHE = new_batch_cache
+
+    draw_batch_cache()
+
     view_3d.shading.cloudrig_eval_time = (time() - start)
 
 
@@ -358,7 +363,7 @@ def is_modal_navi_running(context) -> bool:
 
 
 def get_components_to_draw(context) -> set[RigComponent]:
-    """Whether rig preview should be drawn for a a given component."""
+    """Whether rig preview should be drawn for a given component."""
     prefs = get_addon_prefs(context)
 
     potential_components = set()
@@ -430,39 +435,50 @@ def generated_comp_to_geos(generated_component, context, painter: OverlayPainter
             geos[bone_info.name] = geo
     return geos
 
-
-def draw_component_geos(only_from_cache=False):
-    global BATCH_CACHE
-    gpu.state.blend_set('ALPHA')
-    gpu.state.depth_test_set('LESS_EQUAL')
+def get_shader():
     shader = gpu.shader.from_builtin('POLYLINE_FLAT_COLOR')
     shader.bind()
     shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
+    return shader
 
-    if only_from_cache and BATCH_CACHE and not DEBUG_IGNORE_CACHES:
-        for line_width, batch in BATCH_CACHE.items():
-            shader.uniform_float("lineWidth", line_width)
-            batch.draw(shader)
-        return
-
-    BATCH_CACHE = {}
-    geos_by_line_width = {}
-    for _comp_bone_name, geos in COMPONENT_GEOS.items():
+def components_to_batches(component_geos) -> dict[str, dict[float, GPUBatch]]:
+    shader = get_shader()
+    batch_cache = {}
+    for comp_name, geos in component_geos.items():
+        geos_by_line_width = {}
         for _bone_name, geo in geos.items():
             if geo.line_width not in geos_by_line_width:
                 geos_by_line_width[geo.line_width] = []
             geos_by_line_width[geo.line_width].append(geo)
 
-    for line_width, geos in geos_by_line_width.items():
-        shader.uniform_float("lineWidth", line_width)
-        geo_data = {"pos": [], "color": []}
-        for geo in geos:
-            geo_data["pos"].extend(geo.positions)
-            geo_data["color"].extend([geo.color]*len(geo.positions))
+        comp_batches: dict[float, GPUBatch] = {}
+        for line_width, geos in geos_by_line_width.items():
+            shader.uniform_float("lineWidth", line_width)
+            geo_data = {"pos": [], "color": []}
+            for geo in geos:
+                geo_data["pos"].extend(geo.positions)
+                geo_data["color"].extend([geo.color]*len(geo.positions))
 
-        batch = batch_for_shader(shader, 'LINES', geo_data)
-        batch.draw(shader)
-        BATCH_CACHE[line_width] = batch
+            batch = batch_for_shader(shader, 'LINES', geo_data)
+            comp_batches[line_width] = batch
+
+        batch_cache[comp_name] = comp_batches
+
+    return batch_cache
+
+
+def draw_batch_cache():
+    global BATCH_CACHE
+
+    gpu.state.blend_set('ALPHA')
+    gpu.state.depth_test_set('LESS_EQUAL')
+
+    shader = get_shader()
+    if BATCH_CACHE and not DEBUG_IGNORE_CACHES:
+        for comp_name, batches_by_line_width in BATCH_CACHE.items():
+            for line_width, batch in batches_by_line_width.items():
+                shader.uniform_float("lineWidth", line_width)
+                batch.draw(shader)
 
     gpu.state.blend_set('NONE')
     gpu.state.depth_test_set('LESS_EQUAL')
@@ -495,7 +511,7 @@ def no_overlay(_func=None, *, return_value=None):
 
 ### Hashing functions.
 def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
-    return any_to_hash(
+    return [str(thing) for thing in [
         prefs.overlay_mode,
         prefs.is_dashed,
         metarig.name,
@@ -509,41 +525,24 @@ def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
         boneinfo.color_palette_base,
         boneinfo.color_palette_pose,
         boneinfo.collections,
-    )
+    ]]
 
 
 def hash_component(prefs, component) -> str:
     rig = component.id_data
     pbone_chain = component.component_pbone_chain
-    return any_to_hash(
+    return [str(thing) for thing in [
         bpy.data.filepath,
         prefs.overlay_mode,
         prefs.is_dashed,
         rig.name,
         rig.matrix_world,
-        [pb.select for pb in pbone_chain],
-        [bone_is_visible(pb) for pb in pbone_chain],
-        [hash_bone(rig, pbone) for pbone in pbone_chain],
+        [hash_bone(prefs, rig, pbone) for pbone in pbone_chain],
         [coll.is_visible for coll in rig.data.collections_all],
-    )
+    ]]
 
 
-def any_to_hash(*args) -> str:
-    """Hash whatever."""
-    try:
-        stringified = json.dumps(
-            args,
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        )
-    except (TypeError, ValueError):
-        stringified = ";".join(map(str, args))
-
-    return hashlib.sha256(stringified.encode("utf-8")).hexdigest()
-
-
-def hash_bone(rig: Object, bone: PoseBone | EditBone) -> str:
+def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> str:
     pbone = rig.pose.bones.get(bone.name)
     if not pbone:
         return ""
@@ -554,17 +553,15 @@ def hash_bone(rig: Object, bone: PoseBone | EditBone) -> str:
         transforms = [ebone.head, ebone.tail, ebone.roll]
     else:
         transforms = pbone.matrix
-    return any_to_hash(
+    return [str(thing) for thing in [
         pbone.name,
         transforms,
-        pbone.hide,
-        pbone.select,
+        pbone.select if prefs.overlay_mode != 'VISIBLE' else "",
         pbone.custom_shape_translation,
         pbone.custom_shape_rotation_euler,
         pbone.custom_shape_scale_xyz,
         pbone.custom_shape_wire_width,
-        pgroup_to_dict(pbone.cloudrig_component),
-    )
+    ]]
 
 
 def pgroup_to_dict(pgroup: IDPropertyGroup) -> dict:

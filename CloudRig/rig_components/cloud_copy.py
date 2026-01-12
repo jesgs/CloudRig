@@ -22,7 +22,6 @@ class Component_CopyBone(Component_Base):
 
     forced_params = {
         'custom_props.props_storage': 'CUSTOM',
-        'custom_props.props_storage_bone': "",
     }
 
     keep_original_bones_collections = True

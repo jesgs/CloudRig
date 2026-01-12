@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import ModuleType
+from typing import Callable
 
 from bpy.props import (
     BoolProperty,
@@ -18,7 +19,6 @@ from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
 from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
 from .generation.cloud_generator import GeneratorProperties
-from .utils.rig import get_parentless_pbones
 
 
 def get_param_classes() -> dict:
@@ -31,9 +31,56 @@ def get_param_classes() -> dict:
     for module_dict in module_dicts:
         for module_name, module in module_dict.items():
             if hasattr(module, 'Params'):
+                module.Params.__annotations__ = inject_update_callback(dict(module.Params.__annotations__))
                 param_classes[module_name.replace("cloud_", "").split(".")[-1]] = module.Params
     return param_classes
 
+def mark_overlay_dirty(self):
+    for ancestor in self.rna_ancestors():
+        if ancestor.__class__.__name__ == 'RigComponent':
+            component = ancestor
+            component.overlay_is_dirty = True
+
+def inject_update_callback(annotations):
+    def wrap_setter(prop_name: str, set_transform: Callable | None):
+        def set_transform_wrapper(self, new_value, curr_value, is_set):
+            if new_value != curr_value:
+                mark_overlay_dirty(self)
+                print(f"Marked overlay as dirty. {prop_name} changed from `{curr_value}` to `{new_value}`.")
+
+            if set_transform:
+                # Call the original call-back function.
+                return set_transform(self, new_value, curr_value, is_set)
+            return new_value
+
+        return set_transform_wrapper
+
+    def wrap_update(prop_name: str, update: Callable | None):
+        def update_wrapper(self, context):
+            mark_overlay_dirty(self)
+            print(f"Marked overlay as dirty. {prop_name} changed to `{getattr(self, prop_name)}`.")
+            if update:
+                update(self, context)
+        return update_wrapper
+
+    for key, value in annotations.items():
+        if 'CollectionProperty' in str(value):
+            continue
+        # Inject generic component parameter update callback...
+        if isinstance(value, dict):
+            for key, value in value.items():
+                value.__annotations__ = inject_update_callback(value.__annotations__)
+            continue
+        elif isinstance(value, str):
+            # TODO: This happens for some reason to the parameters of Cloud Copy and Component_Base! I have no clue why!
+            # print("String?", key, "-->", value)
+            continue
+        if 'PointerProperty' not in str(value):
+            value.keywords['set_transform'] = wrap_setter(key, value.keywords.get('set_transform'))
+        else:
+            value.keywords['update'] = wrap_update(key, value.keywords.get('update'))
+
+    return annotations
 
 class NameProperty(PropertyGroup):
     name: StringProperty()
@@ -143,7 +190,7 @@ class BoneSets(PropertyGroup):
 
         class_name = "BoneSet_" + rna_name
         base_classes = (PropertyGroup,)
-        class_attributes = {'__annotations__': annotations}
+        class_attributes = {'__annotations__': inject_update_callback(annotations)}
 
         bone_set_class = type(class_name, base_classes, class_attributes)
 
@@ -189,6 +236,7 @@ class RigComponent(PropertyGroup):
     """
     last_bone_name: StringProperty() #TODO: Reset this as an early generation step.
     bone_name: StringProperty(description="INTERNAL: Stores a cache of the start of this component.")
+    overlay_is_dirty: BoolProperty(description="INTERNAL: Flag that gets set to True when a component parameter is changed, and gets set to False when the virtual component is re-generated.")
 
     def update_caches(self, _context=None):
         # Update pbone chain stuff for the overlay and generation.
