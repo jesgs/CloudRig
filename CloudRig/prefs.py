@@ -69,7 +69,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     cloud_metarig_version = 8
 
     # List of property names to not write to disk.
-    omit_from_disk: list[str] = ["component_types", "widget_names", "overlay_eval_time"]
+    omit_from_disk: list[str] = ["component_types", "widget_names"]
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
@@ -131,10 +131,6 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         name="Dashed",
         default=True,
         description="Dashed lines for the rig preview. Bit more expensive to draw"
-    )
-    overlay_eval_time: FloatProperty(
-        name="Overlay Evaluation Time",
-        description="The overlay drawing time can be a bit slow. This value shows how long it took last time, in miliseconds"
     )
 
     component_overview_mode: EnumProperty(

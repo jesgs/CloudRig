@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 import bpy
 import gpu
+from bpy.props import FloatProperty, StringProperty
 from bpy.types import BoneCollection, EditBone, Object, PoseBone
 from gpu_extras.batch import batch_for_shader
 from mathutils import Color, Euler, Matrix, Vector
@@ -316,13 +317,7 @@ def draw_rig_preview():
                 continue
             geos = generated_comp_to_geos(generated_component, context, painter)
             COMPONENT_GEOS_NEW[comp_pbone.name] = geos
-
-    # Overwrite the old cache.
-    COMPONENT_GEOS = COMPONENT_GEOS_NEW
-
-    draw_component_geos()
-
-    prefs.overlay_eval_time = (time() - start) * 1000
+    view_3d.shading.cloudrig_eval_time = (time() - start)
 
 
 def overlay_poll(context) -> bool:
@@ -609,11 +604,13 @@ def draw_overlay_toggle(self, context):
     prefs = get_addon_prefs(context)
     layout = self.layout.column(align=True)
 
+    view3d = context.area.spaces.active
+
     row = label_split(layout, text="CloudRig Preview")
     row.prop(prefs, 'overlay_mode', text="")
     if prefs.overlay_mode != 'NONE':
         label_split(layout, text="Dashed").prop(prefs, 'is_dashed')
-        # label_split(layout, text="Time:").label(text=f"{prefs.overlay_eval_time:.2f}ms")
+        label_split(layout, text="Time:").label(text=f"{view3d.shading.cloudrig_eval_time * 1000:.2f}ms")
 
 
 ### Registration.
@@ -628,8 +625,14 @@ def register():
     )
     bpy.types.VIEW3D_PT_overlay.append(draw_overlay_toggle)
 
+    bpy.types.View3DShading.cloudrig_eval_time = FloatProperty(
+        name="Eval Time",
+        description="Duration of previous evaluation time."
+    )
+
 
 def unregister():
     global HANDLER
     bpy.types.SpaceView3D.draw_handler_remove(HANDLER, 'WINDOW')
     bpy.types.VIEW3D_PT_overlay.remove(draw_overlay_toggle)
+    del bpy.types.View3DShading.cloudrig_eval_time
