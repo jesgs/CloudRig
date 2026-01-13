@@ -486,7 +486,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         pose_bone = metarig.pose.bones[name]
         pose_bone.rotation_mode = 'XYZ'
-        pose_bone.cloudrig_component.component_type = 'Bone Copy'
+        pose_bone.cloudrig_component.component_type = 'Single Control'
         pose_bone.custom_shape = self.ensure_widget(context, "Root")
         pose_bone.custom_shape_wire_width = 2.0
         return pose_bone

@@ -63,7 +63,7 @@ def convert_components(metarig_ob: Object):
             if any_arm_child:
                 pbone.cloudrig_component.component_type = 'Shoulder Bone'
             else:
-                pbone.cloudrig_component.component_type = 'Bone Copy'
+                pbone.cloudrig_component.component_type = 'Single Control'
         if rigify_type == 'spines.super_head':
             pbone.cloudrig_component.component_type = 'Chain: FK'
         if rigify_type == 'limbs.super_finger':

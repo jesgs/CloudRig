@@ -17,7 +17,7 @@ from .cloud_base import Component_Base
 class Component_CopyBone(Component_Base):
     """Copy this bone to the generated rig."""
 
-    ui_name = "Bone Copy"
+    ui_name = "Single Control"
     always_use_custom_props = True
 
     forced_params = {
@@ -91,7 +91,7 @@ class Component_CopyBone(Component_Base):
             self.root_bone = self.create_parent_constraint_holder(first_bone, bone_set=self.bone_sets['Mechanism Bones'])
 
     ##############################
-    # Bone Copy functions.
+    # Single Control functions.
 
     def copy__make_custom_pivot(self, boneinfo, bone_set=None):
         if not bone_set:
