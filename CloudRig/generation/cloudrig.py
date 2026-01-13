@@ -997,9 +997,17 @@ def auto_override_rig_data(_=None):
 #######################################
 
 
+def should_ui_be_disabled(context) -> bool:
+    """Used for disabling UI drawing for performance optimization."""
+    rig = find_cloudrig(context)
+    return (
+        rig.cloudrig_prefs.hide_during_transform and
+        is_modal_transform_running(context)
+    )
+
+
 def is_modal_transform_running(context) -> bool:
-    """Returns whether the transform operator is running.
-    Used for disabling UI drawing for performance optimization."""
+    """Returns whether any transform operator is running."""
     for m in context.window.modal_operators:
         if m.bl_idname.startswith('TRANSFORM_OT_'):
             return True
@@ -1027,13 +1035,16 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
 
     def draw(self, context):
         layout = self.layout
-        if is_modal_transform_running(context):
+
+        rig = find_cloudrig(context)
+        if not rig:
+            return
+
+        if should_ui_be_disabled(context):
             layout.label(text="UI disabled for posing performance.", icon='INFO')
             return
 
         rig, ui_data = get_rig_and_ui(context)
-        if not rig:
-            return
 
         layout.operator(
             POSE_OT_cloudrig_keyframe_all_settings.bl_idname,
@@ -1041,6 +1052,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
             icon='KEYFRAME_HLT',
         )
         layout.operator(POSE_OT_armature_reset.bl_idname, icon='LOOP_BACK')
+        layout.prop(rig.cloudrig_prefs, 'hide_during_transform')
         if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
             # If CloudRig add-on is enabled, and this is a metarig.
             layout.separator()
@@ -1569,6 +1581,11 @@ def unquote_custom_prop_name(prop_name: str) -> str:
 
 
 class CloudRig_RigPreferences(PropertyGroup):
+    hide_during_transform: BoolProperty(
+        name="Hide UI During Transformations",
+        description="Drawing this UI can be expensive depending on rig complexity. This option can alleviate that by disabling drawing during transformations. However, this can cause the scrollbar to reset to the top due to transformations.",
+        default=True,
+    )
     collection_ui_type: EnumProperty(
         name="Collections UI Type",
         description="Whether to use Blender's built-in Collections UI or CloudRig's",
@@ -2190,7 +2207,7 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        if is_modal_transform_running(context):
+        if should_ui_be_disabled(context):
             return False
         return find_cloudrig(context)
 
@@ -2965,7 +2982,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        if is_modal_transform_running(context):
+        if should_ui_be_disabled(context):
             return False
         return True
 
