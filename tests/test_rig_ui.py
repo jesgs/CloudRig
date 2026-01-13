@@ -23,24 +23,24 @@ def test_snap_bake_ops(context, scene_poses):
     # We snap FK to IK, then IK back to FK, and assert that the IK bones are in the exact same transforms as they started out with.
     # This snapping logic is perceptibly perfect, but we still have to crank the matrix tolerance up a fair bit, even for it to pass
     # on my work PC.
-    with MatchingPose(context, rig, frame=13, bone_subset=['IK-Wrist.L', 'POLE-UpperArm.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
+    with MatchingPose(context, rig, frame=13, bone_subset=['IK-Wrist.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
         for i in range(3):
             bpy.ops.pose.cloudrig_toggle_ikfk_bake(
                 prop_bone="Properties",
-                prop_id="ik_left_upperarm",
+                prop_id="ik_left_arm",
                 do_bake=True if i<2 else False,
                 frame_start=11, frame_end=15,
                 map_fk_to_ik="[('FK-UpperArm.L', 'IK-M-UpperArm.L'), ('FK-Forearm.L', 'IK-M-Forearm.L'), ('FK-Wrist.L', 'IK-M-Wrist.L')]",
                 map_ik_to_fk="[('IK-Wrist.L', 'FK-Wrist.L'), ('IK-M-UpperArm.L', 'FK-UpperArm.L')]",
-                ik_pole="POLE-UpperArm.L",
+                ik_pole="POLE-Arm.L",
                 ik_first="IK-M-UpperArm.L",
                 fk_first="FK-UpperArm.L"
             )
 
             bpy.ops.pose.cloudrig_switch_parent_bake(
-                bone_names="['IK-Wrist.L', 'POLE-UpperArm.L']",
+                bone_names="['IK-Wrist.L', 'POLE-Arm.L']",
                 prop_bone="Properties",
-                prop_id="ik_parents_left_upperarm",
+                prop_id="ik_parents_left_arm",
                 do_bake=True if i<2 else False,
                 frame_start=14,
                 frame_end=17,

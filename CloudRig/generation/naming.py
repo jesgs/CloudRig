@@ -327,7 +327,7 @@ def get_blender_zeroes(thing: Any) -> str:
         except ValueError:
             return ""
         return name[-5:]
-    return name
+    return ""
 
 
 def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:

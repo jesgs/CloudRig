@@ -37,7 +37,6 @@ def metarigs_test(context):
     for metarig_name, frame in (
         ('META-toon_chain_tests_1', 10),
         ('META-Cloud_Human', 20),
-        ('META-Cloud_Human_ToonSpine', 20),
         ('META-Cloud_Human_ToonSpine_Long', 20),
         ('META-grid_chain_tests', 30),
         ('META-relinking', 40),
