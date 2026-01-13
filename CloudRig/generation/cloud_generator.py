@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..rig_components.cloud_base import Component_Base
+from math import pi
+
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -489,6 +491,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         pose_bone.cloudrig_component.component_type = 'Single Control'
         pose_bone.custom_shape = self.ensure_widget(context, "Root")
         pose_bone.custom_shape_wire_width = 2.0
+        pose_bone.custom_shape_rotation_euler.x += pi/2
         return pose_bone
 
     ### Main generation steps.
