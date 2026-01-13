@@ -36,10 +36,6 @@ class Component_CopyBone(Component_Base):
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
 
-        self.bones_org.collections = [
-            coll.name for coll in self.metarig_base_pbone.bone.collections
-        ]
-
     def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
         for con in self.metarig_base_pbone.constraints:
             if con.type in ('CHILD_OF', 'ARMATURE'):

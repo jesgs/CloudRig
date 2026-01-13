@@ -20,6 +20,7 @@ from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
 from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
 from .generation.cloud_generator import GeneratorProperties
+from .rig_components.cloud_raw_copy import Component_RawCopy
 
 
 def get_param_classes() -> dict:
@@ -34,6 +35,7 @@ def get_param_classes() -> dict:
             if hasattr(module, 'Params'):
                 param_classes[module_name.replace("cloud_", "").split(".")[-1]] = inject_update_callback(module.Params)
     return param_classes
+
 
 def mark_overlay_dirty(self):
     for ancestor in self.rna_ancestors():
@@ -275,14 +277,14 @@ class RigComponent(PropertyGroup):
     )
 
     @property
-    def is_enabled_component(self):
+    def is_enabled_component(self) -> bool:
+        if not self.component_type:
+            return True
         return self.enabled_toggle and self.enabled_with_parents
 
 
     @property
     def base_bone_name(self) -> str:
-        if not self.component_type:
-            return ""
         return self.owner_pose_bone.name
 
     @property
@@ -426,9 +428,9 @@ class RigComponent(PropertyGroup):
         return rig_components.ALL_COMPONENT_MODULES.get(comp_info.module_name)
 
     @property
-    def component_class(self) -> type | None:
+    def component_class(self) -> type:
         if not self.component_module:
-            return
+            return Component_RawCopy
         return getattr(self.component_module, 'RIG_COMPONENT_CLASS')
 
     @property
@@ -463,11 +465,17 @@ class RigComponent(PropertyGroup):
                     if chain[0].cloudrig_component == self:
                         return chain
 
-        component_pbone = self.component_pbone
-        if not component_pbone:
-            return []
+        if not self.inherited_component:
+            # The Raw Copy case.
+            self.last_bone_name = self.base_bone_name
+            return [self.owner_pose_bone]
+
         comp_class = self.inherited_component.component_class
         if not comp_class:
+            # Class implementation is missing - Maybe it was installed externally and it isn't anymore.
+            return []
+        component_pbone = self.component_pbone
+        if not component_pbone:
             return []
         max_length = comp_class.max_bones_in_chain
         only_connected = comp_class.only_connected_children
@@ -514,9 +522,6 @@ class RigComponent(PropertyGroup):
         return chain
 
     def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
-        if not self.component_class:
-            return
-
         return self.component_class(
             generator=generator,
             bone_name=self.base_bone_name,
@@ -688,8 +693,6 @@ class Properties_CloudRig(PropertyGroup):
         # Number them hierarchically
         order_idx = 0
         for i, pbone in enumerate(orphan_comp_pbones):
-            if not pbone.cloudrig_component.component_type:
-                continue
             pbone.cloudrig_component.update_caches()
             pbone.cloudrig_component.sibling_order = i
             order_idx = self.order_components_recursive(
@@ -697,7 +700,7 @@ class Properties_CloudRig(PropertyGroup):
             )
             order_idx += 1
 
-    def order_components_recursive(self, pbone, order_idx=0, depth=0) -> int:
+    def order_components_recursive(self, pbone: PoseBone, order_idx=0, depth=0) -> int:
         component = pbone.cloudrig_component
         component.order = order_idx
         component.depth = depth
@@ -726,11 +729,14 @@ class Properties_CloudRig(PropertyGroup):
     )
 
 
-def get_direct_child_component_pbones(root_pb) -> list[PoseBone]:
+def get_direct_child_component_pbones(root_pb: PoseBone) -> list[PoseBone]:
     component_pbs = []
     try:
         for child_pb in root_pb.children:
             if child_pb.cloudrig_component.component_type:
+                component_pbs.append(child_pb)
+            elif child_pb.cloudrig_component.inherited_component is None:
+                # We treat bones with no component as an implicit "Raw Copy" component.
                 component_pbs.append(child_pb)
             else:
                 component_pbs.extend(get_direct_child_component_pbones(child_pb))
@@ -756,6 +762,7 @@ def get_param_classes_ordered():
         new_order.append(param_class)
 
     return new_order
+
 
 registry = (
     [NameProperty]

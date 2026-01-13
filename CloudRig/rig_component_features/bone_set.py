@@ -75,7 +75,13 @@ class BoneSet(LinkedList):
     def __repr__(self):
         return f"{self.ui_name}: {super().__repr__()}"
 
-    def new(self, name="Bone", source: BoneInfo | PoseBone | None=None, **kwargs) -> BoneInfo:
+    def new(
+            self,
+            name="Bone",
+            source: BoneInfo | PoseBone | None=None,
+            keep_collections=False,
+            keep_colors=False,
+            **kwargs) -> BoneInfo:
         """Create and add a new BoneInfo to self."""
 
         # Prevent name collision.
@@ -92,6 +98,16 @@ class BoneSet(LinkedList):
             "color_palette_base": self.color_palette,
             "custom_shape_wire_width": self.wire_width + (source.custom_shape_wire_width-1 if source else 0),
         }
+        if keep_collections:
+            if isinstance(source, BoneInfo):
+                inferred['collections'] = [coll for coll in source.collections]
+            else:
+                inferred['collections'] = [coll.name for coll in source.bone.collections]
+        if keep_colors:
+            if isinstance(source, BoneInfo):
+                inferred['color_palette_base'] = source.color_palette_base
+            else:
+                inferred['color_palette_base'] = source.bone.color.palette
         effective_kwargs = dict(self.defaults)
         effective_kwargs.update(inferred)
         effective_kwargs.update(kwargs)
@@ -102,6 +118,8 @@ class BoneSet(LinkedList):
             name,
             source,
             owner_component=self.rig_component,
+            keep_collections=keep_collections,
+            keep_colors=keep_colors,
             **effective_kwargs,
         )
         self.append(bone_info)

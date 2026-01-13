@@ -161,8 +161,8 @@ class Component_Base(
                 name=pbone.name,
                 source=pbone,
                 allow_pose_transforms=bool(self.painter),
-                keep_collections=self.keep_original_bones_collections,
-                keep_colors=self.keep_original_bones_colors,
+                keep_collections=type(self).keep_original_bones_collections,
+                keep_colors=type(self).keep_original_bones_colors,
             )
             if not bone_info:
                 self.raise_generation_error(
@@ -295,7 +295,7 @@ class Component_Base(
         super().define_bone_sets()
         cls.define_bone_set('Deform Bones', is_advanced=True, defaults={'display_type': 'BBONE'})
         cls.define_bone_set('Mechanism Bones', is_advanced=True, defaults={'display_type': 'STICK'})
-        cls.define_bone_set('Original Bones', is_advanced=True)
+        cls.define_bone_set('Original Bones', is_advanced=True, wire_width=1.0)
 
 
     @classmethod

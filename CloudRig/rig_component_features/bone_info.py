@@ -168,8 +168,6 @@ class BoneInfo:
         # This supports keyframes and curve modifiers.
         self.drivers_to_copy: list[tuple[str, int]] = []
 
-        self.color_palette_base = 'DEFAULT'
-        self.color_palette_pose = 'DEFAULT'
         self.constraint_infos: list[ConstraintInfo] = []
 
         self.name = name
@@ -180,6 +178,10 @@ class BoneInfo:
         self.init_variables(edit_bone_properties)
         self.init_variables(bone_properties)
         self.init_variables(pose_bone_properties)
+
+        self.color_palette_base = kwargs.get('color_palette_base', 'DEFAULT')
+        self.color_palette_pose = kwargs.get('color_palette_pose', 'DEFAULT')
+
 
         self.custom_shape_name = ""
         self._source = self
@@ -198,10 +200,21 @@ class BoneInfo:
                 self.custom_shape_translation = source.custom_shape_translation.copy()
                 self.custom_shape_rotation_euler = source.custom_shape_rotation_euler.copy()
                 self.custom_shape_scale_xyz = source.custom_shape_scale_xyz.copy()
+
+                if keep_colors:
+                    self.color_palette_base = source.color_palette_base
+                    self.color_palette_pose = source.color_palette_pose
+                if keep_collections:
+                    self.collections = source.collections.copy()
             else:
                 # Copy data from PoseBone and Bone.
                 assert isinstance(source, PoseBone), "BoneInfo can only use a PoseBone or another BoneInfo as source."
-                self.__load_data_from_real_pbone(source, allow_pose_transforms=allow_pose_transforms, keep_collections=keep_collections, keep_colors=keep_colors)
+                self.__load_data_from_real_pbone(
+                    source,
+                    allow_pose_transforms=allow_pose_transforms,
+                    keep_collections=keep_collections,
+                    keep_colors=keep_colors
+                )
 
         # Apply property values from arbitrary keyword arguments if any were passed.
         for key, value in kwargs.items():
