@@ -20,6 +20,8 @@ class CLOUDRIG_PT_rig_component(Panel):
     @classmethod
     def poll(cls, context):
         prefs = get_addon_prefs(context)
+        if not prefs:
+            return False
         if prefs.ui_mode == 'HEADER':
             return False
         if not context.object or context.object.type != 'ARMATURE':
