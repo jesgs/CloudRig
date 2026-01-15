@@ -322,6 +322,7 @@ def draw_rig_preview():
                 continue
             geos = generated_comp_to_geos(generated_component, context, painter)
             COMPONENT_GEOS_NEW[comp_pbone.name] = geos
+            # Reset the dirty flag.
             component.overlay_is_dirty = False
 
     new_batch_cache.update(components_to_batches(COMPONENT_GEOS_NEW))
@@ -424,20 +425,15 @@ def generated_comp_to_geos(generated_component, context, painter: OverlayPainter
             continue
 
         metarig = generated_component.generator.metarig
-        colls = (metarig.data.collections_all.get(coll_name) for coll_name in bone_info.collections)
-        if not any((should_collection_draw(coll) for coll in colls if coll)):
+        colls = [metarig.data.collections_all.get(coll_name) for coll_name in bone_info.collections]
+        colls = [c for c in colls if c]
+        if colls and not any((should_collection_draw(coll) for coll in colls if coll)):
             continue
 
         geo = painter.bone_info_to_geo(context, metarig, bone_info)
         if geo:
             geos[bone_info.name] = geo
     return geos
-
-def get_shader():
-    shader = gpu.shader.from_builtin('POLYLINE_FLAT_COLOR')
-    shader.bind()
-    shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
-    return shader
 
 
 def components_to_batches(component_geos) -> dict[str, dict[float, GPUBatch]]:
@@ -481,6 +477,13 @@ def draw_batch_cache():
 
     gpu.state.blend_set('NONE')
     gpu.state.depth_test_set('LESS_EQUAL')
+
+
+def get_shader():
+    shader = gpu.shader.from_builtin('POLYLINE_FLAT_COLOR')
+    shader.bind()
+    shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
+    return shader
 
 
 ### Decorator for rig components and generator functions to skip unnecessary functions when generating for the overlay.
@@ -565,16 +568,6 @@ def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> str:
         pbone.custom_shape_scale_xyz,
         pbone.custom_shape_wire_width,
     ]]
-
-
-def pgroup_to_dict(pgroup: IDPropertyGroup) -> dict:
-    pg_dict = dict(pgroup)
-    for key, value in pg_dict.items():
-        if isinstance(value, IDPropertyGroup):
-            pg_dict[key] = pgroup_to_dict(value)
-        if type(value) is list:
-            pg_dict[key] = [pgroup_to_dict(v) for v in value]
-    return pg_dict
 
 
 def get_bone_display_matrix(bone: BoneInfo | PoseBone) -> Matrix:
