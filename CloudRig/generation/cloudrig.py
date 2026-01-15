@@ -997,10 +997,12 @@ def auto_override_rig_data(_=None):
 #######################################
 
 
-def should_ui_be_disabled(context) -> bool:
+def should_ui_be_enabled(context) -> bool:
     """Used for disabling UI drawing for performance optimization."""
     rig = find_cloudrig(context)
-    return (
+    if not rig:
+        return False
+    return not (
         rig.cloudrig_prefs.hide_during_transform and
         is_modal_transform_running(context)
     )
@@ -1040,7 +1042,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         if not rig:
             return
 
-        if should_ui_be_disabled(context):
+        if not should_ui_be_enabled(context):
             layout.label(text="UI disabled for posing performance.", icon='INFO')
             return
 
@@ -2207,7 +2209,7 @@ class CLOUDRIG_PT_collections_sidebar(CLOUDRIG_PT_base):
 
     @classmethod
     def poll(cls, context):
-        if should_ui_be_disabled(context):
+        if not should_ui_be_enabled(context):
             return False
         return find_cloudrig(context)
 
@@ -2982,7 +2984,7 @@ class CLOUDRIG_PT_hotkeys_panel(CLOUDRIG_PT_base):
     def poll(cls, context):
         if not super().poll(context):
             return False
-        if should_ui_be_disabled(context):
+        if not should_ui_be_enabled(context):
             return False
         return True
 
