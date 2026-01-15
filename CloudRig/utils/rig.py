@@ -77,7 +77,7 @@ def bone_is_visible(bone: Bone | PoseBone | EditBone):
         pbone = bone
         bone = bone.bone
 
-    if not any([coll.is_visible_effectively for coll in bone.collections]):
+    if bone.collections and not any([coll.is_visible_effectively for coll in bone.collections]):
         return False
 
     if pbone and pbone.id_data.mode != 'EDIT':
