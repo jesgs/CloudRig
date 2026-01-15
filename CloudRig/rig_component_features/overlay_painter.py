@@ -611,9 +611,11 @@ def get_bone_display_matrix(bone: BoneInfo | PoseBone) -> Matrix:
 def draw_overlay_toggle(self, context):
     if context.mode not in ('POSE', 'EDIT_ARMATURE'):
         return
+    rig = is_active_cloud_metarig(context)
+    if not rig:
+        return
     prefs = get_addon_prefs(context)
     layout = self.layout.column(align=True)
-
 
     row = label_split(layout, text="CloudRig Preview")
     row.prop(prefs, 'overlay_mode', text="")
