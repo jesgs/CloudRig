@@ -310,7 +310,7 @@ class Component_ToonChain(Component_Base):
     ) -> BoneInfo:
         """Create STR-H bones that keep STR controls between two main STR controls."""
         str_h_bone = self.bone_sets['Stretch Helpers'].new(
-            name=self.naming.add_prefix(sub_str.name, "H"),
+            name=sub_str.name.replace("STR-", "STR-H-"),
             source=sub_str,
             bbone_width=sub_str.bbone_width,
             # We want no parent for scale inheritance reasons: The driver on the bendy bone
@@ -356,7 +356,7 @@ class Component_ToonChain(Component_Base):
         """Create a child bone for an STR bone with Damped Track constraints
         to aim at the previous and next STR bones if Smooth Curve is enabled."""
         handle_bone = self.bone_sets['Stretch Helpers'].new(
-            name=self.naming.add_prefix(str_bone, "TAN"),
+            name=str_bone.name.replace("STR-", "STR-TAN-"),
             source=str_bone,
             parent=str_bone.parent,  # For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
             length=str_bone.length * 0.2,
