@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Callable, get_type_hints
 
+from _bpy_types import _RNAMetaPropGroup
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
@@ -31,8 +32,7 @@ def get_param_classes() -> dict:
     for module_dict in module_dicts:
         for module_name, module in module_dict.items():
             if hasattr(module, 'Params'):
-                module.Params.__annotations__ = inject_update_callback(dict(module.Params.__annotations__))
-                param_classes[module_name.replace("cloud_", "").split(".")[-1]] = module.Params
+                param_classes[module_name.replace("cloud_", "").split(".")[-1]] = inject_update_callback(module.Params)
     return param_classes
 
 def mark_overlay_dirty(self):
@@ -41,7 +41,8 @@ def mark_overlay_dirty(self):
             component = ancestor
             component.overlay_is_dirty = True
 
-def inject_update_callback(annotations):
+
+def inject_update_callback(pg_class) -> dict:
     def wrap_setter(prop_name: str, set_transform: Callable | None):
         def set_transform_wrapper(self, new_value, curr_value, is_set):
             if new_value != curr_value:
@@ -63,24 +64,28 @@ def inject_update_callback(annotations):
                 update(self, context)
         return update_wrapper
 
+    annotations = get_type_hints(pg_class)
     for key, value in annotations.items():
         if 'CollectionProperty' in str(value):
             continue
         # Inject generic component parameter update callback...
-        if isinstance(value, dict):
-            for key, value in value.items():
-                value.__annotations__ = inject_update_callback(value.__annotations__)
+        if isinstance(value, _RNAMetaPropGroup):
+            inject_update_callback(value)
             continue
         elif isinstance(value, str):
-            # TODO: This happens for some reason to the parameters of Cloud Copy and Component_Base! I have no clue why!
-            # print("String?", key, "-->", value)
+            print("CloudRig Registration Warning: This shouldn't be a String:", value)
+            continue
+        if not hasattr(value, 'keywords'):
+            print("CloudRig Registration Warning: This should have a `keywords` attribute:", value, type(value))
             continue
         if 'PointerProperty' not in str(value):
             value.keywords['set_transform'] = wrap_setter(key, value.keywords.get('set_transform'))
         else:
             value.keywords['update'] = wrap_update(key, value.keywords.get('update'))
 
-    return annotations
+    pg_class.__annotations__ = annotations
+
+    return pg_class
 
 class NameProperty(PropertyGroup):
     name: StringProperty()
@@ -190,11 +195,10 @@ class BoneSets(PropertyGroup):
 
         class_name = "BoneSet_" + rna_name
         base_classes = (PropertyGroup,)
-        class_attributes = {'__annotations__': inject_update_callback(annotations)}
+        class_attributes = {'__annotations__': annotations}
 
         bone_set_class = type(class_name, base_classes, class_attributes)
-
-        return bone_set_class
+        return inject_update_callback(bone_set_class)
 
     @staticmethod
     def make_bone_set_property_groups() -> dict[str, type]:
@@ -737,7 +741,6 @@ def get_direct_child_component_pbones(root_pb) -> list[PoseBone]:
 
 
 def get_param_classes_ordered():
-    # TODO: Make this less ugly (don't inject a random dict, just detect PointerProperties)
     param_classes = list(get_param_classes().values())
     new_order = []
     for param_class in param_classes:
@@ -745,11 +748,11 @@ def get_param_classes_ordered():
             # NOTE: We must use get_type_hints(), otherwise any class inside a module
             # which has `from __future__ import annotations` will have the annotation
             # values as strings of Python code rather than evaluated Python values.
-            if type(anno_value) is dict:
-                name, cl = list(anno_value.items())[0]
-                if name.startswith('POINTER_'):
-                    new_order.append(cl)
-                    param_class.__annotations__[anno_name] = PointerProperty(type=cl)
+            if isinstance(anno_value, _RNAMetaPropGroup):
+                # We do this for dynamically defined nested PropertyGroups,
+                # see make_custom_shape_params().
+                new_order.append(anno_value)
+                param_class.__annotations__[anno_name] = PointerProperty(type=anno_value)
         new_order.append(param_class)
 
     return new_order

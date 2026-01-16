@@ -449,7 +449,12 @@ class Component_Base(
         }
         class_name="CloudRig_CustomShape_"+ identifier.replace(" ", "_").lower()
         group_class = type(class_name, (PropertyGroup,), class_props)
-        return {"POINTER_"+class_name: group_class}
+        # NOTE: This should become a PointerProperty(type=group_class)
+        # But doing that here is too early, because the group_class would have to
+        # already be registered, which we don't want to do until inject_update_callback()
+        # has a chance to run on it.
+        # See get_param_classes_ordered() for when this gets converted to a PointerProperty.
+        return group_class
 
 
 class Params(PropertyGroup):
