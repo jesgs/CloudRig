@@ -1063,9 +1063,6 @@ class CLOUDRIG_OT_generate(Operator):
         if len(metarig.data.bones) == 0:
             self.report({'ERROR'}, "The metarig has no bones.")
             return {'CANCELLED'}
-        if len([pb for pb in metarig.pose.bones if pb.cloudrig_component.component_module]) == 0:
-            self.report({'ERROR'}, "The metarig has no bones with valid components assigned.")
-            return {'CANCELLED'}
 
         # If the old rig isn't part of the scene, it needs to be.
         # The generation process works fine without this,
