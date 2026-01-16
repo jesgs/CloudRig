@@ -740,8 +740,8 @@ def get_direct_child_component_pbones(root_pb: PoseBone) -> list[PoseBone]:
                 component_pbs.append(child_pb)
             else:
                 component_pbs.extend(get_direct_child_component_pbones(child_pb))
-    except KeyError:
-        # Can happen after bone deletion.
+    except (KeyError, AttributeError):
+        # Can happen after bone deletion/creation.
         return []
     return component_pbs
 
