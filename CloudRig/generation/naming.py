@@ -7,7 +7,7 @@ import bpy
 from bpy.types import Bone, EditBone, Object, PoseBone
 from bpy.utils import flip_name as bpy_flip_name
 
-SEPARATORS = "._-"
+SEPARATORS = " ._-"
 PREFIX_SEPARATOR = "-"
 SUFFIX_SEPARATOR = "."
 SIDE_INDICATORS = [
@@ -326,8 +326,52 @@ def get_blender_zeroes(thing: Any) -> str:
             int(name[-3:])
         except ValueError:
             return ""
-        return name[-5:]
+        return name[-4:]
     return ""
+
+
+def prepend_base_name(thing: Any, addition) -> str:
+    """Prepend a prefix to the name of a thing.
+    Preserving any left/right side indicator in case the name starts with that.
+
+    Eg. prepend_base_name("Left Leg.001", "Knee ") == "Left Knee Leg.001"
+    """
+    name = get_name(thing)
+    blender_zeroes = get_blender_zeroes(name)
+    if blender_zeroes:
+        name = name[:-len(blender_zeroes)]
+    prefix = ""
+    suffix = ""
+    for separator in SEPARATORS:
+        for letter in "LR":
+            if name.lower().startswith(letter+separator):
+                prefix = name[0]+separator
+                name = name[2:]
+                break
+            elif name.lower().endswith(separator+letter):
+                suffix = separator+name[-1]
+                name = name[:-1]
+                break
+        if prefix or suffix:
+            break
+    if not (prefix or suffix):
+        for word in ("left", "right"):
+            if name.lower().startswith(word):
+                prefix = name[:len(word)]
+                name = name[len(word):]
+                if name[0] in SEPARATORS:
+                    prefix += name[0]
+                    name = name[1:]
+                break
+            elif name.lower().endswith(word):
+                suffix = name[-len(word):]
+                name = name[:-len(word)]
+                if name[-1] in SEPARATORS:
+                    suffix = name[-1]+suffix
+                    name = name[:-1]
+                break
+
+    return prefix + addition + name + suffix + blender_zeroes
 
 
 def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
