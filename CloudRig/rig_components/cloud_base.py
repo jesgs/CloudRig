@@ -375,7 +375,7 @@ class Component_Base(
         identifier: str,
         default: str,
         description="",
-    ):
+    ) -> dict[str, type]:
         def update_widgets(self, context):
             refresh_widget_list()
 

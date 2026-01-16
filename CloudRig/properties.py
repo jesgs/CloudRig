@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import ModuleType
-from typing import Callable
+from typing import Callable, get_type_hints
 
 from bpy.props import (
     BoolProperty,
@@ -741,7 +741,10 @@ def get_param_classes_ordered():
     param_classes = list(get_param_classes().values())
     new_order = []
     for param_class in param_classes:
-        for anno_name, anno_value in param_class.__annotations__.items():
+        for anno_name, anno_value in get_type_hints(param_class).items():
+            # NOTE: We must use get_type_hints(), otherwise any class inside a module
+            # which has `from __future__ import annotations` will have the annotation
+            # values as strings of Python code rather than evaluated Python values.
             if type(anno_value) is dict:
                 name, cl = list(anno_value.items())[0]
                 if name.startswith('POINTER_'):
