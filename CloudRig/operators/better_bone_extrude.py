@@ -71,9 +71,7 @@ class BoneDuplicateOpMixin:
             for new_ebone in sorted(new_ebones, key=lambda b: b.name):
                 new_name = new_ebone.name
                 if self.increment_names:
-                    new_name = uniqify(
-                        new_ebone.name, rig.data.edit_bones, strip_first=True
-                    )
+                    new_name = uniqify(new_ebone, strip_first=True)
                 if new_ebone.name.endswith(".001"):
                     # Driver duplication is only unambiguous when this is the first duplicate of a bone.
                     # Otherwise we can't tell which bone is the original that got duplicated.

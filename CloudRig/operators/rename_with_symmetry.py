@@ -58,6 +58,9 @@ class OBJECT_OT_rename_with_symmetry(Operator):
         self.rename_map = {}
         item = get_active_item(context)
         self.new_name = item.name
+        opposite_item = get_opposite_item(item)
+        if not opposite_item:
+            self.use_symmetry = False
 
         return context.window_manager.invoke_props_dialog(self, width=320)
 
@@ -142,7 +145,7 @@ def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
     rename_dict[item] = (
         'name_display',
         self.new_name,
-        uniqify(self.new_name, collprop, id=item)
+        uniqify(self.new_name, collprop, id=item, strip_first=False)
     )
 
     if not self.use_symmetry:
