@@ -1736,6 +1736,7 @@ class CloudRigBoneCollection(PropertyGroup):
         """Runs when trying to change the name of this instance, which should stay in sync
         with the collection it's masking."""
 
+        rig = context.object
         coll = self.collection
 
         # If the name didn't change, don't do anything.
@@ -1786,6 +1787,12 @@ class CloudRigBoneCollection(PropertyGroup):
                         if bone_set_coll.name == coll.name:
                             bone_set_coll.name = self.name
                             break
+
+        # Fix any references to this collection in the UI data.
+        if cloudrig_installed:
+            post_gen = importlib.import_module(cr_module_name + ".utils.post_gen")
+            post_gen.replace_in_ui_data(rig, f'collections_all["{coll.name}"]', f'collections_all["{self.name}"]')
+
 
         # Set the actual collection's name to be in sync.
         coll.name = self.name
