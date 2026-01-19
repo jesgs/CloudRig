@@ -10,7 +10,7 @@ from ..bs_utils.properties import (
     get_custom_prop_names,
     rename_custom_prop,
 )
-from ..generation.cloudrig import active_rig
+from ..generation.cloudrig import active_rig, object_mode
 from ..rig_component_features.mechanism import find_or_create_constraint
 
 
@@ -40,7 +40,7 @@ class POSE_OT_symmetrize_rigging(Operator):
         cls.poll_message_set("No selected flippable bones.")
         return False
 
-    def get_symmetrize_bone_mapping(self, context) -> dict[PoseBone, PoseBone]:
+    def get_symmetrize_bone_mapping(self, context) -> dict[PoseBone, PoseBone] | set:
         bone_map = {}
         rig = active_rig(context)
         selected_pose_bones = context.selected_pose_bones[:]
@@ -54,7 +54,7 @@ class POSE_OT_symmetrize_rigging(Operator):
                     {'ERROR'},
                     f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction.',
                 )
-                return {}
+                return {'CANCELLED'}
             if opp_pb == pb:
                 self.report(
                     {'WARNING'},
@@ -71,29 +71,26 @@ class POSE_OT_symmetrize_rigging(Operator):
     def execute(self, context):
         rig = active_rig(context)
 
-        org_mode = rig.mode
-        if rig.mode != 'POSE':
-            bpy.ops.object.mode_set(mode='POSE')
+        with object_mode(rig, mode='POSE'):
+            bone_map = self.get_symmetrize_bone_mapping(context)
+            if bone_map == {'CANCELLED'}:
+                return {'CANCELLED'}
 
-        bone_map = self.get_symmetrize_bone_mapping(context)
-        if not bone_map:
-            return {'CANCELLED'}
+            for to_pb in bone_map.values():
+                for to_con in to_pb.constraints:
+                    remove_constraint_with_drivers(to_pb, to_con)
 
-        for to_pb in bone_map.values():
-            for to_con in to_pb.constraints:
-                remove_constraint_with_drivers(to_pb, to_con)
+        with object_mode(rig, mode='EDIT'):
+            for pb in bone_map.keys():
+                eb = rig.data.edit_bones[pb.name]
+                eb.hide = False
+                eb.select = True
+            bpy.ops.armature.symmetrize()
 
-        bpy.ops.object.mode_set(mode='EDIT')
-        for pb in bone_map.keys():
-            eb = rig.data.edit_bones[pb.name]
-            eb.hide = False
-            eb.select = True
-        bpy.ops.armature.symmetrize()
-        bpy.ops.object.mode_set(mode='POSE')
-        bpy.ops.pose.select_mirror(extend=False)
-        bone_map = self.get_symmetrize_bone_mapping(context)
-        bpy.ops.pose.select_mirror(extend=False)
-        bpy.ops.object.mode_set(mode=org_mode)
+        with object_mode(rig, mode='POSE'):
+            bpy.ops.pose.select_mirror(extend=False)
+            bone_map = self.get_symmetrize_bone_mapping(context)
+            bpy.ops.pose.select_mirror(extend=False)
 
         for from_pb, to_pb in bone_map.items():
             # Copy bone color preset.

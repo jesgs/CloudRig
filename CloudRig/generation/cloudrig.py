@@ -2342,13 +2342,13 @@ class POSE_OT_cloudrig_collections_reveal_all(Operator):
 
 
 @contextlib.contextmanager
-def pose_mode(rig):
-    if rig.mode == 'POSE':
+def object_mode(rig, mode='OBJECT'):
+    if rig.mode == mode:
         yield
 
     else:
         mode_bkp = rig.mode
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode=mode)
         yield
         bpy.ops.object.mode_set(mode=mode_bkp)
 
@@ -2427,7 +2427,7 @@ class POSE_OT_cloudrig_collection_select(Operator):
         for reveal_coll in reveal_colls:
             reveal_coll.is_visible = True
 
-        with pose_mode(rig):
+        with object_mode(rig, mode='POSE'):
             if not self.extend_selection and self.select:
                 for pbone in rig.pose.bones:
                     pbone.select = False
@@ -2789,7 +2789,7 @@ class POSE_OT_cloudrig_collection_assign(Operator):
         if self.all_collections:
             colls = rig.data.collections_all
 
-        with pose_mode(rig):
+        with object_mode(rig, mode='POSE'):
             if context.selected_bones:
                 pbs = [rig.pose.bones.get(eb.name) for eb in context.selected_bones]
             else:
