@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from math import pi
+
 import bpy
 from bpy.app.handlers import persistent
 from bpy.types import Object
-from mathutils import Vector
+from mathutils import Euler, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.actions_component import ActionConstraintSetup
@@ -159,6 +161,25 @@ def version_cloud_metarig(metarig):
             if comp.component_type == 'Lattice':
                 pbone.custom_shape_scale_xyz = Vector((1, 1, 1))
                 pbone.use_custom_shape_bone_size = True
+
+    if cloudrig.metarig_version < 9:
+        # We changed some bone shapes.
+        rotated_shapes = {
+            'WGT-Root': Euler((-pi/2, 0, 0)),
+            'WGT-Root 2': Euler((-pi/2, 0, 0)),
+            'WGT-Root 3': Euler((-pi/2, 0, 0)),
+            'WGT-Root 4': Euler((-pi/2, 0, 0)),
+            'WGT-Root 5': Euler((-pi/2, 0, 0)),
+            'WGT-Root 6': Euler((-pi/2, 0, 0)),
+            'WGT-Mouth': Euler((-pi/2, 0, 0)),
+            'WGT-Diamond': Euler((0, 0, -pi/2)),
+            'WGT-Heel': Euler((-pi, 0, 0)),
+        }
+        for pbone in metarig.pose.bones:
+            if pbone.custom_shape and pbone.custom_shape.name in rotated_shapes:
+                pbone.custom_shape_rotation_euler.rotate(rotated_shapes[pbone.custom_shape.name])
+
+
 
 @persistent
 def update_all_metarigs(dummy=None):
