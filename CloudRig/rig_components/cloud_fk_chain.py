@@ -32,10 +32,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.limb_name = (
-            self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
-        )
-        self.limb_ui_name = self.limb_name
+        self.limb_ui_name = self.base_name
         if self.side_prefix != "":
             self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
 
@@ -166,7 +163,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             self.__make_hinge_setup(
                 bone=hng_child,
                 bone_set=self.bone_sets["Mechanism Bones"],
-                category=self.limb_name,
+                category=self.base_name,
                 parent_bone=self.root_bone,
                 hng_name=self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
                 prop_bone=self.properties_bone,

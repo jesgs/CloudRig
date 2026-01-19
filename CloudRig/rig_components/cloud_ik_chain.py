@@ -70,7 +70,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             prop_bone=prop_bone or self.properties_bone,
             prop_name=prop_name or ik_parents_prop_name,
             panel_name=panel_name,
-            row_name=row_name or self.limb_name,
+            row_name=row_name or self.base_name,
             label_name=label_name,
             entry_name=entry_name or self.limb_ui_name,
         )
@@ -271,7 +271,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     def __make_pole_control(self):
         # Create IK Pole Control
         pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
-            name=self.naming.make_name(["POLE"], self.params.base.base_name, self.suffixes),
+            name=self.naming.make_name(["POLE"], self.base_name, self.suffixes),
             bbone_width=0.1,
             head=self.pole_location,
             tail=self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2,
@@ -285,7 +285,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.lock_transforms(pole_ctrl, loc=False)
 
         pole_line = self.bone_sets["IK Controls"].new(
-            name=self.naming.make_name(["LINE"], self.limb_name, self.suffixes),
+            name=self.naming.make_name(["LINE"], self.base_name, self.suffixes),
             source=pole_ctrl,
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,
@@ -413,7 +413,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             prop_id=self.ik_stretch_name,
             panel_name="IK",
             label_name="IK Stretch",
-            row_name=self.limb_name,
+            row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 "default": 1.0,
@@ -548,7 +548,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             prop_id=ik_pole_follow_name,
             panel_name="IK",
             label_name="IK Pole Follow",
-            row_name=self.limb_name,
+            row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 "default": default,
@@ -604,11 +604,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "prop_bone": self.properties_bone,
             "prop_id": self.ikfk_name,
             "panel_name": "FK/IK Switch",
-            "row_name": self.limb_name,
+            "row_name": self.base_name,
             "slider_name": self.limb_ui_name,
             "custom_prop_settings": {
                 "default": 1.0,
-                "description": f"Switch {self.limb_name} to Inverse Kinematics posing mode",
+                "description": f"Switch {self.base_name} to Inverse Kinematics posing mode",
             },
             "operator": "pose.cloudrig_toggle_ikfk_bake",
             "op_icon": "FILE_REFRESH",

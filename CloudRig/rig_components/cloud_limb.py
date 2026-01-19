@@ -242,7 +242,7 @@ class Component_Limb(Component_Chain_IKFK):
                     'default': 0.0,
                     'description': 'Automatically smoothen the curvature of the limb and avoid sharp angles, for a cartoony effect',
                 },
-                row_name=self.limb_name,
+                row_name=self.base_name,
                 slider_name=self.limb_ui_name,
             )
 

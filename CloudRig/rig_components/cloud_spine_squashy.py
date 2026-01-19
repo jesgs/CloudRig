@@ -31,7 +31,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
                 "Component must consist of a chain of at least 2 connected bones!"
             )
 
-        self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
+        self.spine_name = self.base_name
         self.squashy_name = "squashy_spine_" + self.spine_name.lower()
         self.squashy_volume_name = "squashy_spine_volume_" + self.spine_name.lower()
 
@@ -198,7 +198,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             prop_bone=self.properties_bone,
             prop_id=self.squashy_name,
             panel_name="FK/IK Switch",
-            row_name=self.limb_name,
+            row_name=self.base_name,
             slider_name=self.spine_name,
             custom_prop_settings={
                 'default': 1.0,
@@ -210,7 +210,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             prop_bone=self.properties_bone,
             prop_id=self.squashy_volume_name,
             panel_name="IK",
-            row_name=self.limb_name,
+            row_name=self.base_name,
             slider_name=self.spine_name + " Squash & Stretch",
             custom_prop_settings={
                 'default': 0.0,

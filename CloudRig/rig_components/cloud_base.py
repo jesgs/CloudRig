@@ -126,6 +126,11 @@ class Component_Base(
         self.bones_def = self.bone_sets['Deform Bones']
         self.bones_mch = self.bone_sets['Mechanism Bones']
 
+    @property
+    def base_name(self):
+        # NOTE: self.params.base.base_name shouldn't be accessed directly outside of here.
+        return self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
+
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
         which will be turned into real bones by the CloudRig generator.
@@ -468,6 +473,8 @@ class Component_Base(
 
 
 class Params(PropertyGroup):
+    # NOTE: This param shouldn't be accessed directly (self.params.base.base_name)!
+    # Use self.base_name instead, which falls back when this is empty.
     base_name: StringProperty(
         name="Base Name",
         description='Optional. If provided, use this as the base name for some generated bones and properties, '

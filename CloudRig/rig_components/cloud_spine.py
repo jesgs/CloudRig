@@ -40,10 +40,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 "Spine component must consist of a chain of at least 2 connected bones!"
             )
 
-        self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
-
-        self.ik_prop_name = "ik_" + self.spine_name.lower()
-        self.ik_stretch_name = "ik_stretch_" + self.spine_name.lower()
+        self.ik_prop_name = "ik_" + self.base_name.lower()
+        self.ik_stretch_name = "ik_stretch_" + self.base_name.lower()
 
         self.root_torso = None
 
@@ -62,7 +60,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
     def fk_chain__make_root_bone(self):
         # Create Torso Master control
         self.torso_ctr = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.add_prefix(self.spine_name, 'TORSO'),
+            name=self.naming.add_prefix(self.base_name, 'TORSO'),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
@@ -78,7 +76,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
+            name=self.naming.make_name(["HIP"], self.base_name, [self.side_suffix]),
             source=org_chain[0],
             head=org_chain[0].tail,
             tail=org_chain[0].head,
@@ -135,7 +133,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         ### Create master chest control.
         chest_org = self.bones_org[-1]
         chest = self.bone_sets['Spine IK Controls'].new(
-            name=self.naming.add_prefix(self.spine_name, "CHST"),
+            name=self.naming.add_prefix(self.base_name, "CHST"),
             source=chest_org,
             head=self.bones_org[-2].center,
             length=chest_org.length,
@@ -308,8 +306,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
             prop_id=self.ik_stretch_name,
             panel_name="IK",
             label_name="IK Stretch",
-            row_name=self.limb_name,
-            slider_name=self.spine_name,
+            row_name=self.base_name,
+            slider_name=self.base_name,
             custom_prop_settings={
                 'default': 1.0,
                 'description': "Allow the spine to stretch beyond its normal length while in IK mode, for a cartoony effect",
@@ -320,8 +318,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
             prop_bone=self.properties_bone,
             prop_id=self.ik_prop_name,
             panel_name="FK/IK Switch",
-            row_name=self.limb_name,
-            slider_name=self.spine_name,
+            row_name=self.base_name,
+            slider_name=self.base_name,
             custom_prop_settings={
                 'default': 0.0,
                 'description': "Switch to an IK-like posing mode. Instead of posing the spine from bottom to top, this lets you control the two end points in an intuitive way"

@@ -166,7 +166,7 @@ class Component_Finger(Component_Chain_IKFK):
             prop_id=self.full_length_ik_name,
             panel_name="IK",
             label_name="Full IK",
-            row_name=self.limb_name,
+            row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 'default': 1.0,

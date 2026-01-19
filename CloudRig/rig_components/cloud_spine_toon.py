@@ -31,14 +31,10 @@ class Component_Spine_Toon(Component_Chain_FK):
     ################################
     # Inherited functions.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.spine_name = self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
-
     def fk_chain__make_root_bone(self):
         # Create Torso Master control.
         self.torso_ctr = self.bone_sets['FK Controls'].new(
-            name=self.naming.add_prefix(self.spine_name, 'TORSO'),
+            name=self.naming.add_prefix(self.base_name, 'TORSO'),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
@@ -83,7 +79,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         super().create_bone_infos(context)
 
         chest = self.bone_sets['Toon Spine IK'].new(
-            name=self.naming.add_prefix(self.spine_name, 'CHST'),
+            name=self.naming.add_prefix(self.base_name, 'CHST'),
             source=self.fk_chain[-2],
             tail=self.bones_org[-1].tail,
             parent=self.torso_ctr,
@@ -96,7 +92,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         chest.custom_shape_translation += self.bones_org[-1].custom_shape_translation
 
         hips = self.bone_sets['Toon Spine IK'].new(
-            name=self.naming.add_prefix(self.spine_name, 'HIP'),
+            name=self.naming.add_prefix(self.base_name, 'HIP'),
             source=self.bones_org[0],
             head=self.fk_chain[1].head,
             tail=self.bones_org[0].head,
@@ -107,7 +103,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         )
         hips.roll_align_other(self.bones_org[0], axis='-Z')
         hips_fwd = self.bone_sets['Mechanism Bones'].new(
-            name=self.naming.add_prefix(self.spine_name, "HIP-FWD"),
+            name=self.naming.add_prefix(self.base_name, "HIP-FWD"),
             source=self.bones_org[0],
             tail=self.fk_chain[1].head,
             parent=hips,
@@ -117,7 +113,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         hips.custom_shape_translation = self.bones_org[1].custom_shape_translation * Vector((-1, -1, 1))
         hips.collections += self.bone_sets['FK Controls'].collections
         hips_lower = self.bone_sets['Toon Spine IK'].new(
-            name=self.naming.add_prefix(self.spine_name, 'HipsLower'),
+            name=self.naming.add_prefix(self.base_name, 'HipsLower'),
             source=self.bones_org[0],
             head=self.bones_org[0].tail,
             tail=self.bones_org[0].head,
@@ -159,7 +155,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         chest: BoneInfo,
         hips: BoneInfo,
     ):
-        ikfk_prop_name = f'{self.spine_name}_ik'
+        ikfk_prop_name = f'{self.base_name}_ik'
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=ikfk_prop_name,
@@ -228,12 +224,12 @@ class Component_Spine_Toon(Component_Chain_FK):
 
     @no_overlay
     def __make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
-        squash_prop_name = f"squash_{self.spine_name}"
+        squash_prop_name = f"squash_{self.base_name}"
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=squash_prop_name,
             panel_name='IK',
-            slider_name=f'{self.spine_name} Squash',
+            slider_name=f'{self.base_name} Squash',
             custom_prop_settings={
                 'default' : 0.7,
                 'soft_max' : 1.0,
