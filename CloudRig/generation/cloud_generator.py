@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..rig_components.cloud_base import Component_Base
+from math import pi
+
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -400,9 +402,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             for pb in sorted(
                 metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
             )
-            if pb.cloudrig_component.component_type
-            and pb.cloudrig_component.is_enabled_component
-            and pb in pbone_subset
+            if (
+                pb in pbone_subset
+                and (
+                    (pb.cloudrig_component.component_type and pb.cloudrig_component.is_enabled_component)
+                    or not pb.cloudrig_component.inherited_component
+                )
+            )
         ]
 
     def generate_abstraction_layer(self, context, comp_pbone_subset: list[PoseBone]=[]):
@@ -474,15 +480,15 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         pose_bone = metarig.pose.bones[name]
         pose_bone.rotation_mode = 'XYZ'
-        pose_bone.cloudrig_component.component_type = 'Bone Copy'
+        pose_bone.cloudrig_component.component_type = 'Raw Copy'
         pose_bone.custom_shape = self.ensure_widget(context, "Root")
         pose_bone.custom_shape_wire_width = 2.0
+        pose_bone.custom_shape_rotation_euler.x += pi/2
         return pose_bone
 
     ### Main generation steps.
     def components_load_bone_infos(self, component_map: dict[str, "Component_Base"], metarig):
-        """While in edit mode (so we can access as much data as possible)
-        let all rig components populate their initial BoneInfo instances.
+        """Let all rig components populate their initial BoneInfo instances.
         """
 
         bone_infos = {}
@@ -497,19 +503,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 parent_bone_info = bone_infos.get(bone.parent.name)
                 if parent_bone_info:
                     bone_info.parent = parent_bone_info
-                else:
-                    # Parent as a string is not supported.
-                    # Set it to None for overlay drawing.
-                    bone_info.parent = None
-                    if self.painter:
-                        return
-                    # If this happens during real generation, raise error.
-                    self.raise_generation_error(
-                        f"{bone_info.name} lacks parent component!",
-                        description=f'Parent of "{bone_info.name}" is "{bone.parent.name}", '
-                        'which is not part of any rig component. '
-                        'Assign it at least a "Bone Copy" component type.',
-                    )
 
     def components_create_bone_infos(self, context):
         """Create BoneInfos that will get turned into real bones later."""
@@ -1030,9 +1023,6 @@ class CLOUDRIG_OT_generate(Operator):
 
         if len(metarig.data.bones) == 0:
             self.report({'ERROR'}, "The metarig has no bones.")
-            return {'CANCELLED'}
-        if len([pb for pb in metarig.pose.bones if pb.cloudrig_component.component_module]) == 0:
-            self.report({'ERROR'}, "The metarig has no bones with valid components assigned.")
             return {'CANCELLED'}
 
         # If the old rig isn't part of the scene, it needs to be.
