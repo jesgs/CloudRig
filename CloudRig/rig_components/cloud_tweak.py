@@ -23,7 +23,7 @@ class Component_TweakBone(Component_Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tweak_bone = None
+        self.bone_to_tweak = None
 
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         bone_infos = super().base__load_metarig_bones()
@@ -39,10 +39,11 @@ class Component_TweakBone(Component_Base):
         return bone_infos
 
     def create_component_interactions(self, context):
-        org_bi = self.bones_org[0]
-        self.tweak_bone = tweak_bone = self.generator.find_bone_info(self.original_name)
+        meta_pbone = self.metarig_base_pbone
+        org_boneinfo = self.bones_org[0]
+        self.bone_to_tweak = bone_to_tweak = self.generator.find_bone_info(self.original_name)
 
-        if not self.tweak_bone:
+        if not self.bone_to_tweak:
             self.add_log(
                 "No bone to tweak",
                 description=f'Could not find a bone called "{self.original_name}" on the generated rig. If it exists, ensure this Tweak component is generated AFTER the component you want to tweak.',
@@ -51,77 +52,79 @@ class Component_TweakBone(Component_Base):
             )
             return
 
-        self.root_bone = self.tweak_bone  # Allow parenting parameters to work
+        self.root_bone = self.bone_to_tweak  # Allow parenting parameters to work
 
         if self.params.tweak.transforms:
-            tweak_bone.head = org_bi.head.copy()
-            tweak_bone.tail = org_bi.tail.copy()
-            tweak_bone.roll = org_bi.roll
-            tweak_bone.bbone_x = org_bi.bbone_x
-            tweak_bone.bbone_z = org_bi.bbone_z
+            bone_to_tweak.head = org_boneinfo.head.copy()
+            bone_to_tweak.tail = org_boneinfo.tail.copy()
+            bone_to_tweak.roll = org_boneinfo.roll
+            bone_to_tweak.bbone_x = org_boneinfo.bbone_x
+            bone_to_tweak.bbone_z = org_boneinfo.bbone_z
 
         if self.params.tweak.locks:
-            tweak_bone.lock_location = org_bi.lock_location[:]
-            tweak_bone.lock_rotation = org_bi.lock_rotation[:]
-            tweak_bone.lock_rotation_w = org_bi.lock_rotation_w
-            tweak_bone.lock_scale = org_bi.lock_scale[:]
+            bone_to_tweak.lock_location = meta_pbone.lock_location[:]
+            bone_to_tweak.lock_rotation = meta_pbone.lock_rotation[:]
+            bone_to_tweak.lock_rotation_w = meta_pbone.lock_rotation_w
+            bone_to_tweak.lock_scale = meta_pbone.lock_scale[:]
 
         if self.params.tweak.rot_mode:
-            tweak_bone.rotation_mode = org_bi.rotation_mode
+            print("Tweak rotation mode plz: ", meta_pbone.rotation_mode)
+            bone_to_tweak.rotation_mode = meta_pbone.rotation_mode
 
         if self.params.tweak.shape:
-            tweak_bone.custom_shape = org_bi.custom_shape
-            tweak_bone.custom_shape_wire_width = org_bi.custom_shape_wire_width
-            tweak_bone.custom_shape_name = org_bi.custom_shape_name
-            tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz
-            if tweak_bone.use_custom_shape_bone_size:
-                scale_diff = tweak_bone.length / org_bi.length
-                tweak_bone.custom_shape_scale_xyz = org_bi.custom_shape_scale_xyz * scale_diff
-            tweak_bone.custom_shape_transform = org_bi.custom_shape_transform
-            tweak_bone.use_custom_shape_bone_size = org_bi.use_custom_shape_bone_size
-            tweak_bone.show_wire = org_bi.show_wire
-            tweak_bone.custom_shape_translation = org_bi.custom_shape_translation
-            tweak_bone.custom_shape_rotation_euler = org_bi.custom_shape_rotation_euler
-            if org_bi.custom_shape:
-                self.add_to_widget_collection(context, org_bi.custom_shape)
+            bone_to_tweak.custom_shape = meta_pbone.custom_shape
+            bone_to_tweak.custom_shape_wire_width = meta_pbone.custom_shape_wire_width
+            bone_to_tweak.custom_shape_name = org_boneinfo.custom_shape_name
+            bone_to_tweak.custom_shape_scale_xyz = meta_pbone.custom_shape_scale_xyz
+            if bone_to_tweak.use_custom_shape_bone_size:
+                scale_diff = bone_to_tweak.length / meta_pbone.length
+                bone_to_tweak.custom_shape_scale_xyz = meta_pbone.custom_shape_scale_xyz * scale_diff
+            bone_to_tweak.custom_shape_transform = meta_pbone.custom_shape_transform
+            bone_to_tweak.use_custom_shape_bone_size = meta_pbone.use_custom_shape_bone_size
+            bone_to_tweak.show_wire = org_boneinfo.show_wire
+            bone_to_tweak.custom_shape_translation = meta_pbone.custom_shape_translation
+            bone_to_tweak.custom_shape_rotation_euler = meta_pbone.custom_shape_rotation_euler
+            if meta_pbone.custom_shape:
+                self.add_to_widget_collection(context, meta_pbone.custom_shape)
 
         if self.params.tweak.collections:
-            tweak_bone.collections = org_bi.collections
+            bone_to_tweak.collections = [coll.name for coll in meta_pbone.bone.collections]
         if self.params.tweak.color_palette:
-            tweak_bone.color_palette_base = org_bi.color_palette_base
-            tweak_bone.color_palette_pose = org_bi.color_palette_pose
+            print(f"Tweak {bone_to_tweak} to color: {meta_pbone.bone.color.palette}")
+            bone_to_tweak.color_palette_base = meta_pbone.bone.color.palette
+            bone_to_tweak.color_palette_pose = meta_pbone.color.palette
 
         if self.params.tweak.ik_settings:
-            tweak_bone.ik_stretch = org_bi.ik_stretch
-            tweak_bone.lock_ik_x = org_bi.lock_ik_x
-            tweak_bone.lock_ik_y = org_bi.lock_ik_y
-            tweak_bone.lock_ik_z = org_bi.lock_ik_z
-            tweak_bone.ik_stiffness_x = org_bi.ik_stiffness_x
-            tweak_bone.ik_stiffness_y = org_bi.ik_stiffness_y
-            tweak_bone.ik_stiffness_z = org_bi.ik_stiffness_z
-            tweak_bone.use_ik_limit_x = org_bi.use_ik_limit_x
-            tweak_bone.use_ik_limit_y = org_bi.use_ik_limit_y
-            tweak_bone.use_ik_limit_z = org_bi.use_ik_limit_z
-            tweak_bone.ik_min_x = org_bi.ik_min_x
-            tweak_bone.ik_max_x = org_bi.ik_max_x
-            tweak_bone.ik_min_y = org_bi.ik_min_y
-            tweak_bone.ik_max_y = org_bi.ik_max_y
-            tweak_bone.ik_min_z = org_bi.ik_min_z
-            tweak_bone.ik_max_z = org_bi.ik_max_z
+            bone_to_tweak.ik_stretch = meta_pbone.ik_stretch
+            bone_to_tweak.lock_ik_x = meta_pbone.lock_ik_x
+            bone_to_tweak.lock_ik_y = meta_pbone.lock_ik_y
+            bone_to_tweak.lock_ik_z = meta_pbone.lock_ik_z
+            bone_to_tweak.ik_stiffness_x = meta_pbone.ik_stiffness_x
+            bone_to_tweak.ik_stiffness_y = meta_pbone.ik_stiffness_y
+            bone_to_tweak.ik_stiffness_z = meta_pbone.ik_stiffness_z
+            bone_to_tweak.use_ik_limit_x = meta_pbone.use_ik_limit_x
+            bone_to_tweak.use_ik_limit_y = meta_pbone.use_ik_limit_y
+            bone_to_tweak.use_ik_limit_z = meta_pbone.use_ik_limit_z
+            bone_to_tweak.ik_min_x = meta_pbone.ik_min_x
+            bone_to_tweak.ik_max_x = meta_pbone.ik_max_x
+            bone_to_tweak.ik_min_y = meta_pbone.ik_min_y
+            bone_to_tweak.ik_max_y = meta_pbone.ik_max_y
+            bone_to_tweak.ik_min_z = meta_pbone.ik_min_z
+            bone_to_tweak.ik_max_z = meta_pbone.ik_max_z
 
         if self.params.tweak.bbone_props:
-            tweak_bone.bbone_segments = org_bi.bbone_segments
-            tweak_bone.bbone_x = org_bi.bbone_x
-            tweak_bone.bbone_z = org_bi.bbone_z
+            bone_to_tweak.bbone_segments = meta_pbone.bbone_segments
+            bone_to_tweak.bbone_x = meta_pbone.bbone_x
+            bone_to_tweak.bbone_z = meta_pbone.bbone_z
 
         if self.params.tweak.custom_props:
-            for prop_name in org_bi.custom_props:
-                tweak_bone.custom_props[prop_name] = org_bi.custom_props[prop_name]
+            for prop_name in meta_pbone.custom_props:
+                bone_to_tweak.custom_props[prop_name] = meta_pbone.custom_props[prop_name]
 
         super().create_component_interactions(context)
 
-        if self.params.tweak.ensure_free and len(tweak_bone.constraint_infos) > 0:
-            self.root_bone = self.create_parent_constraint_holder(tweak_bone, bone_set=self.bone_sets['Mechanism Bones'])
+        if self.params.tweak.ensure_free and len(bone_to_tweak.constraint_infos) > 0:
+            self.root_bone = self.create_parent_constraint_holder(bone_to_tweak, bone_set=self.bone_sets['Mechanism Bones'])
 
     ################################
     # Bone Tweak functions.
@@ -129,14 +132,14 @@ class Component_TweakBone(Component_Base):
     @no_overlay
     def base__relink(self):
         # Transfer and relink constraints and their drivers
-        assert self.tweak_bone
+        assert self.bone_to_tweak
 
-        org_bi = self.bones_org[0]
+        meta_pbone = self.bones_org[0]
         if not self.params.tweak.constraints_additive:
-            self.tweak_bone.clear_constraints()
-        for con_info in org_bi.constraint_infos[:]:
-            self.tweak_bone.constraint_infos.append(con_info)
-            org_bi.constraint_infos.remove(con_info)
+            self.bone_to_tweak.clear_constraints()
+        for con_info in meta_pbone.constraint_infos[:]:
+            self.bone_to_tweak.constraint_infos.append(con_info)
+            meta_pbone.constraint_infos.remove(con_info)
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):

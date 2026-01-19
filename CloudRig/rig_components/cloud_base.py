@@ -158,8 +158,8 @@ class Component_Base(
                 name=pbone.name,
                 source=pbone,
                 allow_pose_transforms=bool(self.painter),
-                keep_collections=self.keep_original_bones_collections,
-                keep_colors=self.keep_original_bones_colors,
+                keep_collections=type(self).keep_original_bones_collections,
+                keep_colors=type(self).keep_original_bones_colors,
             )
             if not bone_info:
                 self.raise_generation_error(
