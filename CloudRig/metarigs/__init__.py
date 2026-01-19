@@ -4,9 +4,11 @@ import os
 
 import bpy
 from bpy.props import StringProperty
-from bpy.types import Menu, Object, Operator, ID
+from bpy.types import ID, Menu, Object, Operator
 from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
 
+from ..generation.cloudrig import is_cloud_metarig
+from ..generation.naming import get_blender_zeroes, strip_blender_zeroes
 from . import versioning
 
 # Global storage of available metarigs. List of UI name and object name tuples.
@@ -86,6 +88,7 @@ def get_available_object_name(obj_name: str) -> str:
 
     Library objects are ignored, since they are in a separate name space.
     """
+    # TODO: This could probably be removed in favor of uniqify().
     number = 1
     numbered_name = obj_name
     while bpy.data.objects.get((numbered_name, None)):
@@ -126,18 +129,41 @@ def append_obj_from_file(
 
 
 def append_metarig(context, metarig_name) -> Object | None:
-    """Append a metarig from MetaRigs.blend."""
+    """Append a full metarig preset."""
     bpy.ops.object.select_all(action='DESELECT')
-    new_metarig = append_obj_from_file(context, get_metarig_blend_path(), metarig_name)
+    new_metarig = append_metarig_or_sample(context, metarig_name)
 
     return new_metarig
 
 
-def append_sample(context, sample_name):
-    """Append a sample from rig_samples.blend"""
+def append_sample(context, sample_name) -> Object | None:
+    """Append a rig sample."""
     if "Sample_" not in sample_name:
         sample_name = "Sample_" + sample_name
-    return append_obj_from_file(context, get_metarig_blend_path(), sample_name)
+    return append_metarig_or_sample(context, sample_name)
+
+
+def append_metarig_or_sample(context, full_name: str) -> Object | None:
+    obj = append_obj_from_file(context, get_metarig_blend_path(), full_name)
+    if not obj:
+        return
+    if not is_cloud_metarig(obj):
+        return obj
+
+    # Link widgets collection to the scene.
+    wgt_coll = obj.cloudrig.generator.widget_collection
+    if wgt_coll:
+        if wgt_coll not in set(context.scene.collection.children):
+            context.scene.collection.children.link(wgt_coll)
+        for wgt_ob in wgt_coll.all_objects:
+            if not get_blender_zeroes(wgt_ob):
+                continue
+            other_wgt_ob = bpy.data.objects.get(strip_blender_zeroes(wgt_ob))
+            if not other_wgt_ob:
+                continue
+            wgt_ob.user_remap(other_wgt_ob)
+
+    return obj
 
 
 def add_sample_to_current_rig(context, sample_name: str) -> Object:
