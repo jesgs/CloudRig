@@ -17,7 +17,7 @@ from .cloud_base import Component_Base
 class Component_CopyBone(Component_Base):
     """Copy this bone to the generated rig."""
 
-    ui_name = "Bone Copy"
+    ui_name = "Single Control"
     always_use_custom_props = True
 
     forced_params = {
@@ -26,7 +26,6 @@ class Component_CopyBone(Component_Base):
 
     keep_original_bones_collections = True
     keep_original_bones_colors = False
-    only_connected_children = False
 
     ##############################
     # Inherited functions.
@@ -35,10 +34,6 @@ class Component_CopyBone(Component_Base):
         super().__init__(*args, **kwargs)
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
-
-        self.bones_org.collections = [
-            coll.name for coll in self.metarig_base_pbone.bone.collections
-        ]
 
     def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
         for con in self.metarig_base_pbone.constraints:
@@ -50,52 +45,53 @@ class Component_CopyBone(Component_Base):
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
 
-        for pbone, bone_info in zip(self.get_component_pbone_chain(), self.bones_org):
-            # NOTE: Custom colors are deliberately not supported here.
-            for color, prop_name in zip([pbone.bone.color, pbone.color], ["color_palette_base", "color_palette_pose"]):
-                if color.palette == 'DEFAULT':
-                    continue
-                if color.palette == 'CUSTOM':
-                    self.add_log("Custom Colors are forbidden!", icon='COLORSET_01_VEC', trouble_bone=bone_info.name, description="Custom Colors are not supported in Metarigs. Please choose one of the preset colors. If you hate them, try applying the CloudRig presets in the Preferences.")
-                    continue
-                setattr(bone_info, prop_name, color.palette)
+        pbone = self.metarig_base_pbone
+        bone_info = self.root_bone = self.bones_org[0]
 
-            if bone_info.custom_shape:
-                self.add_to_widget_collection(context, bone_info.custom_shape)
+        # NOTE: Custom colors are deliberately not supported here.
+        for color, prop_name in zip([pbone.bone.color, pbone.color], ["color_palette_base", "color_palette_pose"]):
+            if color.palette == 'DEFAULT':
+                continue
+            if color.palette == 'CUSTOM':
+                self.add_log("Custom Colors are forbidden!", icon='COLORSET_01_VEC', trouble_bone=bone_info.name, description="Custom Colors are not supported in Metarigs. Please choose one of the preset colors. If you hate them, try applying the CloudRig presets in the Preferences.")
+                continue
+            setattr(bone_info, prop_name, color.palette)
 
-            if bone_info.rotation_mode == 'QUATERNION':
-                self.add_log(
-                    "Quaternion rotation",
-                    trouble_bone=self.base_bone_name,
-                    description=f'"{bone_info.name}" is on Quaternion rotation mode. This is unfriendly for animators who use the Graph Editor!',
-                    icon='GIZMO',
-                    operator='pose.cloudrig_troubleshoot_rotationmode',
-                    op_kwargs={'bone_name': self.base_bone_name},
-                    op_text=f"Set {bone_info.name} to Euler",
-                )
-                bone_info.rotation_mode = 'XYZ'
+        if bone_info.custom_shape:
+            self.add_to_widget_collection(context, bone_info.custom_shape)
 
-            if self.params.copy.create_deform:
-                # Make a copy with DEF- prefix, as our deform bone.
-                def_bone = self.make_def_bone(bone_info, self.bones_def)
-                def_bone.parent = bone_info
+        if bone_info.rotation_mode == 'QUATERNION':
+            self.add_log(
+                "Quaternion rotation",
+                trouble_bone=self.base_bone_name,
+                description=f'"{bone_info.name}" is on Quaternion rotation mode. This is unfriendly for animators who use the Graph Editor!',
+                icon='GIZMO',
+                operator='pose.cloudrig_troubleshoot_rotationmode',
+                op_kwargs={'bone_name': self.base_bone_name},
+                op_text=f"Set {bone_info.name} to Euler",
+            )
+            bone_info.rotation_mode = 'XYZ'
 
-            if self.params.copy.property_ui_subpanel:
-                self.copy__add_ui_data_of_bone(
-                    bone_info,
-                    self.params.copy.property_ui_subpanel,
-                    self.params.copy.property_ui_label,
-                )
+        if self.params.copy.create_deform:
+            # Make a copy with DEF- prefix, as our deform bone.
+            def_bone = self.make_def_bone(bone_info, self.bones_def)
+            def_bone.parent = bone_info
 
-        first_bone = self.root_bone = self.bones_org[0]
+        if self.params.copy.property_ui_subpanel:
+            self.copy__add_ui_data_of_bone(
+                bone_info,
+                self.params.copy.property_ui_subpanel,
+                self.params.copy.property_ui_label,
+            )
+
         if self.params.copy.custom_pivot:
-            self.root_bone = self.copy__make_custom_pivot(first_bone, bone_set=self.bone_sets['Pivot Control'])
+            self.root_bone = self.copy__make_custom_pivot(bone_info, bone_set=self.bone_sets['Pivot Control'])
 
-        if self.params.copy.ensure_free and len(first_bone.constraint_infos) > 0:
-            self.root_bone = self.create_parent_constraint_holder(first_bone, bone_set=self.bone_sets['Mechanism Bones'])
+        if self.params.copy.ensure_free and len(bone_info.constraint_infos) > 0:
+            self.root_bone = self.create_parent_constraint_holder(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
 
     ##############################
-    # Bone Copy functions.
+    # Single Control functions.
 
     def copy__make_custom_pivot(self, boneinfo, bone_set=None):
         if not bone_set:
