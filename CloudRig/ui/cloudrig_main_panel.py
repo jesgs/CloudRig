@@ -70,6 +70,8 @@ class POSE_PT_CloudRig_Popover(CloudRig_MainPanel, Panel):
     @classmethod
     def poll(cls, context):
         prefs = get_addon_prefs(context)
+        if not prefs:
+            return False
         if prefs.ui_mode == 'HEADER':
             arm_ob = context.active_object
             return arm_ob and arm_ob.type == 'ARMATURE' and not is_generated_cloudrig(arm_ob)
@@ -90,6 +92,8 @@ class POST_PT_CloudRig_Properties(CloudRig_MainPanel, Panel):
     @classmethod
     def poll(cls, context):
         prefs = get_addon_prefs(context)
+        if not prefs:
+            return False
         if prefs.ui_mode == 'HEADER':
             return False
         return super().poll(context)
@@ -184,6 +188,8 @@ def draw_custom_shapes_panel(context, layout):
 
 def draw_cloudrig_popover(self, context):
     prefs = get_addon_prefs(context)
+    if not prefs:
+        return
     if prefs.ui_mode == 'PROPERTIES':
         return
     if not is_cloud_metarig(context.active_object) and prefs.ui_mode != 'HEADER':

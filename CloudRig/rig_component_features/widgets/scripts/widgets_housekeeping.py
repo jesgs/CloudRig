@@ -11,6 +11,7 @@ from bpy.types import MeshVertex
 def pre_save(scene, context):
     widgets = [o for o in bpy.data.objects if o.name.startswith("WGT-")]
     row_max = int(math.sqrt(len(widgets)))
+    spacing = 3
     for i, obj in enumerate(widgets):
         # Nuke custom properties
         for key in list(obj.keys()):
@@ -21,8 +22,8 @@ def pre_save(scene, context):
         # Sort into a grid
         col = i % row_max
         row = int(i / row_max)
-        obj.location.x = row * 2
-        obj.location.y = col * 2
+        obj.location.x = row * spacing
+        obj.location.y = col * spacing
         obj.location.z = 0
         obj.rotation_euler = (0, 0, 0)
         obj.scale = (1, 1, 1)

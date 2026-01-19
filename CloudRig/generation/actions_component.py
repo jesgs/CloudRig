@@ -128,7 +128,9 @@ class ActionConstraintSide(LoggerMixin):
 
         if not self.action_setup.is_corrective and self.control_name not in self.generator.target_rig.pose.bones:
             self.add_log(
-                "Missing action control",
+                "Missing Action Control",
+                note=self.control_name,
+                note_icon='BONE_DATA',
                 description=f"Control bone '{self.control_name}' for action '{self.action_setup.action.name}' not found"
             )
             return

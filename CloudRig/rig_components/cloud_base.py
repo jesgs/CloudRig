@@ -20,7 +20,7 @@ from ..rig_component_features.bone_set import BoneSetMixin
 from ..rig_component_features.custom_props import CloudCustomPropertiesMixin
 from ..rig_component_features.mechanism import CloudMechanismMixin
 from ..rig_component_features.object import CloudObjectUtilitiesMixin
-from ..rig_component_features.overlay_painter import OverlayPainter, no_overlay
+from ..rig_component_features.overlay_painter import no_overlay
 from ..rig_component_features.params_ui_utils import CloudUIMixin
 from ..rig_component_features.parenting import CloudParentingMixin
 from ..rig_component_features.widgets.widgets import (
@@ -292,7 +292,7 @@ class Component_Base(
         super().define_bone_sets()
         cls.define_bone_set('Deform Bones', is_advanced=True, defaults={'display_type': 'BBONE'})
         cls.define_bone_set('Mechanism Bones', is_advanced=True, defaults={'display_type': 'STICK'})
-        cls.define_bone_set('Original Bones', is_advanced=True)
+        cls.define_bone_set('Original Bones', is_advanced=True, wire_width=1.0)
 
 
     @classmethod
@@ -398,6 +398,13 @@ class Component_Base(
             if self.use_pointer and self.custom_shape:
                 return self.custom_shape.name
             return self.name
+
+        @shape_name.setter
+        def shape_name(self, value: str):
+            if self.use_pointer:
+                self.custom_shape = bpy.data.objects.get("WGT-"+value)
+            else:
+                self.name = value
 
         @property
         def shape_object(self) -> Object | None:

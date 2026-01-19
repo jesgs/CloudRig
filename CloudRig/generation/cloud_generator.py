@@ -161,6 +161,7 @@ class GeneratorProperties(PropertyGroup):
         if len(self.action_setups) > 0:
             return self.action_setups[self.active_action_index]
 
+
 class CloudGeneratorError(Exception):
     """Exception raised for errors."""
 
@@ -171,6 +172,7 @@ class CloudGeneratorError(Exception):
 
     def __str__(self):
         return repr(self.message)
+
 
 class CloudRig_Generator(TestAnimationGeneratorMixin):
     """
@@ -790,6 +792,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_actions()
         self.logger.report_metarig_children(self.metarig)
 
+
 def parent_orphans(rig: Object, root_name: str):
     def is_orphan(bone):
         pbone = rig.pose.bones[bone.name]
@@ -809,6 +812,7 @@ def parent_orphans(rig: Object, root_name: str):
         orphan_ebone = rig.data.edit_bones[orphan_bone.name]
         orphan_ebone.parent = root_ebone
     bpy.ops.object.mode_set(mode='OBJECT')
+
 
 def ensure_cloudrig_ui(rig):
     """Load and execute cloudrig.py rig UI script."""
@@ -1261,6 +1265,7 @@ class CLOUDRIG_OT_generate(Operator):
                 continue
             coll.is_visible = is_visible
 
+
 def get_exception_module(exc: Exception):
     tb = exc.__traceback__
     while tb.tb_next:
@@ -1268,6 +1273,7 @@ def get_exception_module(exc: Exception):
     frame = tb.tb_frame
     module_name = frame.f_globals.get("__name__")
     return sys.modules.get(module_name)
+
 
 registry = [
     GeneratorProperties,

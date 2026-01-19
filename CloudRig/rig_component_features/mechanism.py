@@ -18,6 +18,9 @@ class CloudMechanismMixin:
     """Mixin class for rigging functions, using mostly the BoneInfo class."""
 
     max_bones_in_chain = -1
+
+    # Whether only connected bone children should be considered part of
+    # this component, (and loaded into self.bones_org), or simply ALL children.
     only_connected_children = True
 
     def find_bone_info(self, name):
