@@ -434,7 +434,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         return self.params.widget_collection
 
-    def instantiate_rig_components(self, comp_pbone_subset: list[PoseBone]=[]) -> dict[str, "Component_Base"]:
+    def instantiate_rig_components(self, comp_pbone_subset: list[PoseBone]=[]) -> OrderedDict[str, "Component_Base"]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
         pbones_ordered = self.build_component_pbone_order(self.metarig, comp_pbone_subset)

@@ -9,6 +9,7 @@ from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
 
 from ..generation.cloudrig import is_cloud_metarig
 from ..generation.naming import get_blender_zeroes, strip_blender_zeroes
+from ..utils.external.collections import find_layer_collection_by_collection
 from . import versioning
 
 # Global storage of available metarigs. List of UI name and object name tuples.
@@ -150,12 +151,16 @@ def append_metarig_or_sample(context, full_name: str) -> Object | None:
     if not is_cloud_metarig(obj):
         return obj
 
-    # Link widgets collection to the scene.
+    # Link widgets collection to the scene, but not the widget objects directly.
     wgt_coll = obj.cloudrig.generator.widget_collection
     if wgt_coll:
         if wgt_coll not in set(context.scene.collection.children):
             context.scene.collection.children.link(wgt_coll)
+            layer_coll = find_layer_collection_by_collection(context.view_layer.layer_collection, wgt_coll)
+            layer_coll.exclude = True
         for wgt_ob in wgt_coll.all_objects:
+            if wgt_ob in set(context.scene.collection.objects):
+                context.scene.collection.objects.unlink(wgt_ob)
             if not get_blender_zeroes(wgt_ob):
                 continue
             other_wgt_ob = bpy.data.objects.get(strip_blender_zeroes(wgt_ob))
