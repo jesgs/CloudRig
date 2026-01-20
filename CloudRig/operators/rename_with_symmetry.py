@@ -152,7 +152,7 @@ def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
         return rename_dict
 
     opposite_item = collprop.get(flip_name(item.name))
-    if opposite_item:
+    if opposite_item and opposite_item != item:
         rename_dict[opposite_item] = (
             'name_display_flipped',
             flip_name(self.new_name),
