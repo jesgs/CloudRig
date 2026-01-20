@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.props import BoolProperty, FloatProperty, StringProperty
-from bpy.types import EditBone, PoseBone, PropertyGroup
+from bpy.types import PropertyGroup
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -36,12 +38,12 @@ class Component_Aim(Component_Base):
         if self.params.aim.root:
             self.root_bone = self.__make_root_bone(aim_org)
 
+        self.ctr_bone = self.__make_aim_control(aim_org, aim_bone)
+        self.target_bone = self.__make_target_control(aim_bone)
+
         self.group_master = None
         if self.params.aim.group != "":
             self.group_master = self.__ensure_group_master()
-
-        self.ctr_bone = self.__make_aim_control(aim_org, aim_bone)
-        self.target_bone = self.__make_target_control(aim_bone, self.group_master)
 
         aim_bone.add_constraint('DAMPED_TRACK', subtarget=self.target_bone.name)
 
@@ -93,39 +95,45 @@ class Component_Aim(Component_Base):
 
     def __find_target_pos(self, bone: BoneInfo) -> Vector:
         """Find location of where the target bone should be for an aim bone."""
-        if self.params.aim.flatten:
-            direction = bone.vector.normalized()
-            # Ignore X axis
-            direction[0] = 0.0
-            return bone.head + direction * self.params.aim.target_distance * self.scale
-        else:
-            return (
-                bone.tail
-                + bone.vector.normalized()
-                * self.params.aim.target_distance
-                * self.scale
-            )
+        direction = bone.vector.normalized()
 
-    def __make_target_control(self, bone: BoneInfo, parent: BoneInfo = None) -> BoneInfo:
+        not_flattened = (
+            bone.tail
+            + direction
+            * self.params.aim.target_distance * self.scale
+        )
+
+        # Discard X axis.
+        direction[0] = 0.0
+        flattened = (
+            bone.head
+            + direction
+            * self.params.aim.target_distance * self.scale
+        )
+
+        lerped = not_flattened.lerp(flattened, self.params.aim.flatten)
+
+        return lerped
+
+    def __make_target_control(self, aim_bone: BoneInfo) -> BoneInfo:
         """Set up target control for a bone."""
-        if not parent:
-            parent = bone.parent
-
-        head = self.__find_target_pos(bone)
-        tail = head + bone.vector
+        head = self.__find_target_pos(aim_bone)
+        tail = head + (head-aim_bone.head).normalized() * aim_bone.length
 
         target_bone = self.bone_sets['Aim Target Control'].new(
-            name=self.naming.add_prefix(self.bones_org[0].name, 'TGT'),
-            source=self.bones_org[0],
+            name=aim_bone.name.replace("AIM", "TGT"),
+            source=aim_bone,
             head=head,
             tail=tail,
             custom_shape_name=self.params.aim.shape_target.shape_name,
-            parent=parent,
+            custom_shape_scale_xyz=Vector([max(1, self.params.aim.target_distance) * self.scale*self.params.aim.target_size*0.1]*3),
+            use_custom_shape_bone_size=False,
+            parent=aim_bone.parent,
         )
-        target_bone.custom_shape_scale *= self.params.aim.target_size
+        target_bone.roll_align_other(self.bones_org[0])
         dsp_bone = self.create_dsp_bone(target_bone)
         dsp_bone.add_constraint(
-            'DAMPED_TRACK', subtarget=bone.name, track_axis='TRACK_NEGATIVE_Y'
+            'DAMPED_TRACK', subtarget=aim_bone.name, track_axis='TRACK_NEGATIVE_Y'
         )
 
         return target_bone
@@ -232,17 +240,18 @@ class Component_Aim(Component_Base):
         if self.params.aim.deform:
             self.make_def_bone(highlight_ctr, self.bones_def)
 
-    def __find_aim_bones_in_group(self, group_name) -> list[PoseBone|EditBone]:
-        """Return a list of all cloud_aim components with a matching Aim Group."""
-        aim_bones = []
-        for component in self.generator.all_components:
-            if (
-                isinstance(component, Component_Aim)
-                and component.params.aim.group == group_name
-            ):
-                aim_bone = self.metarig.pose.bones[component.base_bone_name] if self.metarig.mode != 'EDIT' else self.metarig.data.edit_bones[component.base_bone_name]
-                aim_bones.append(aim_bone)
-        return aim_bones
+    def __group_get_components(self) -> list[Component_Aim]:
+        return [comp for comp in self.generator.all_components
+                if isinstance(comp, Component_Aim) and comp.params.aim.group == self.params.aim.group]
+
+    def __is_last_of_group(self) -> bool:
+        return self is self.__group_get_components()[-1]
+
+    def __group_get_tgt_ctrls(self) -> list[BoneInfo]:
+        return [comp.target_bone for comp in self.__group_get_components()]
+
+    def __group_get_org_bones(self) -> list[BoneInfo]:
+        return [comp.bones_org[0] for comp in self.__group_get_components()]
 
     def __ensure_group_master(self) -> BoneInfo | None:
         """This function will be called by each aim rig, but we want to make sure
@@ -250,52 +259,53 @@ class Component_Aim(Component_Base):
         """
 
         # Check if a bone with the right name already exists and if it does, just return it.
+        if not self.__is_last_of_group():
+            return
+
         group_name = self.params.aim.group
         group_master_name = self.naming.add_prefix(group_name, "TGT")
-        existing = self.generator.find_bone_info(group_master_name)
-        if existing:
-            return existing
-
-        aim_bones = self.__find_aim_bones_in_group(group_name)
+        tgt_bones = self.__group_get_tgt_ctrls()
+        org_bones = self.__group_get_org_bones()
 
         # Find a parent to fall back to, although ideally the rigger specifies
         # parents using params.parenting.parent_switching.
         first_parent = ""
-        for aim_bone in aim_bones:
-            if aim_bone.parent and first_parent == "":
-                first_parent = aim_bone.parent.name
+        for tgt_bone in tgt_bones:
+            if tgt_bone.parent and first_parent == "":
+                first_parent = tgt_bone.parent.name
                 break
 
-        if len(aim_bones) < 2:
+        if len(tgt_bones) < 2:
             return None
 
-        # Find center of all aim bones
-        aims_center = bounding_box_center([b.head for b in aim_bones])
+        # Find center of all org bones
+        orgs_center = bounding_box_center([b.head for b in org_bones])
 
         # Find center of all targets
-        target_positions = [self.__find_target_pos(b) for b in aim_bones]
+        target_positions = [b.head for b in tgt_bones]
         target_center = bounding_box_center(target_positions)
         z_axis = Vector((0, 0, 0))
         lgt = 0
-        for b in aim_bones:
+        for b in tgt_bones:
             z_axis += b.z_axis
             lgt += b.length
-        lgt /= len(aim_bones)
+        lgt /= len(tgt_bones)
 
-        lowest, highest = bounding_box(target_positions)
-        targets_size = (highest - lowest).length
+        bbox_low, bbox_high = bounding_box(target_positions)
+        shape_size = max(sorted(tgt_bones, key=lambda b: b.custom_shape_scale_xyz.x)[0].custom_shape_scale_xyz)
+        targets_size = (bbox_high - bbox_low).length + shape_size * 1.2
 
         # Create a helper bone in the center.
-        group_vec = target_center - aims_center
+        group_vec = target_center - orgs_center
         center_bone = self.bone_sets['Mechanism Bones'].new(
             name="CEN-" + group_name,
             source=self.bones_org[0],
-            head=aims_center,
-            tail=aims_center + group_vec.normalized() * lgt,
+            head=orgs_center,
+            tail=orgs_center + group_vec.normalized() * lgt,
             parent=self.generator.find_bone_info(first_parent),
         )
         center_bone.roll_align_vector(center_bone.head + z_axis)
-        center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in aim_bones])
+        center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in tgt_bones])
 
         max_dist = 0
         for i, target_pos in enumerate(target_positions[1:]):
@@ -312,7 +322,7 @@ class Component_Aim(Component_Base):
             tail=target_center + group_vec.normalized() * lgt,
             custom_shape_name=self.params.aim.shape_master.shape_name,
             use_custom_shape_bone_size=False,
-            custom_shape_scale=targets_size * 1.5,
+            custom_shape_scale_xyz=Vector((targets_size, 1, shape_size*2.2)),
         )
         group_master.roll_align_other(center_bone)
         group_master.add_constraint(
@@ -356,11 +366,12 @@ class Component_Aim(Component_Base):
     def draw_appearance_params(cls, layout, context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
-        if params.aim.create_sub_control:
-            cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_highlight')
-        cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_root')
         cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_eye')
         cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_target')
+        if params.aim.root:
+            cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_root')
+        if params.aim.create_sub_control:
+            cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_highlight')
         cls.draw_prop(context, layout, params.aim, 'target_size')
 
     @classmethod
@@ -385,7 +396,7 @@ class Params(PropertyGroup):
         name="Target Distance",
         default=5.0,
         description="Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig",
-        min=0,
+        min=0.1,
     )
     target_size: FloatProperty(
         name="Target Size",
@@ -394,10 +405,13 @@ class Params(PropertyGroup):
         min=0.1,
         soft_max=10.0,
     )
-    flatten: BoolProperty(
+    flatten: FloatProperty(
         name="Flatten X",
         description="Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other",
-        default=False,
+        default=0.0,
+        min=0.0,
+        max=1.0,
+        subtype='FACTOR',
     )
     deform: BoolProperty(
         name="Create Deform",
@@ -408,8 +422,8 @@ class Params(PropertyGroup):
         name="Create Root", default=False, description="Create a root bone for this rig"
     )
     create_sub_control: BoolProperty(
-        name="Create Sub-Control",
-        description="Create a secondary control and deform bone attached to the aim control. Useful for eye highlights",
+        name="Create Highlight",
+        description="Create a secondary control and deform bone attached to the aim control. Useful for eye highlights. The extent to which it follows the eye's rotation can be controlled in the Rig UI under the Face panel",
         default=False,
     )
 
