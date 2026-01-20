@@ -69,7 +69,7 @@ class Component_Shoulder(Component_Chain_FK):
         super().draw_appearance_params(layout, context, component)
         params = component.params
 
-        cls.draw_prop(context, layout, params.shoulder, 'up_axis')
+        cls.draw_prop(context, layout, params.shoulder, 'up_axis', enabled=component.appearance_enabled)
 
 
 class Params(PropertyGroup):

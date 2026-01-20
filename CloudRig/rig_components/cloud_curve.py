@@ -699,7 +699,7 @@ class Component_Curve_Hooked(Component_Base):
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_spline_root')
         if any([spline.type == 'BEZIER' for spline in curve_ob.data.splines]) and params.curve.controls_for_handles and params.curve.separate_radius:
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_radius')
-        cls.draw_prop(context, layout, params.curve, 'shape_size', text="Size")
+        cls.draw_prop(context, layout, params.curve, 'shape_size', text="Size", enabled=component.appearance_enabled)
         return layout
 
 class Params(PropertyGroup):

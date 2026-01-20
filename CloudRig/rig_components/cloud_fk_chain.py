@@ -427,7 +427,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop_custom_shape(context, layout, params.fk_chain, 'shape_fk')
         if params.fk_chain.root:
             cls.draw_prop_custom_shape(context, layout, params.fk_chain, 'shape_fk_root')
-        cls.draw_prop(context, layout, params.fk_chain, "display_center")
+        cls.draw_prop(context, layout, params.fk_chain, "display_center", enabled=component.appearance_enabled)
         return layout
 
     @classmethod

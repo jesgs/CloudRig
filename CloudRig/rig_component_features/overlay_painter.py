@@ -206,9 +206,11 @@ class OverlayPainter:
             return geo
 
         BONEINFO_HASHES[bone_info.name] = bi_hash
-        # XXX: Appending objects in overlay drawing code is pretty crazy ngl.
-        # But on the other hand... it's also kinda bulletproof.
-        wgt_ob = ensure_widget(bone_info.custom_shape_name, overwrite=False)
+        wgt_ob = bone_info.custom_shape
+        if not wgt_ob and bone_info.custom_shape_name:
+            # XXX: Appending objects in overlay drawing code is pretty crazy ngl.
+            # But on the other hand... it's also kinda bulletproof.
+            wgt_ob = ensure_widget(bone_info.custom_shape_name, overwrite=False)
         if not wgt_ob:
             return
 
@@ -309,7 +311,10 @@ def draw_rig_preview():
         generator = CloudRig_Generator(context, metarig, painter)
         # Generate the abstraction layer (ie. BoneInfos) of ONLY the changed/missing components.
         try:
-            generator.generate_abstraction_layer(context, [comp.component_pbone for comp in components_to_regenerate])
+            generator.generate_abstraction_layer(
+                context,
+                comp_pbone_subset=[comp.component_pbone for comp in components_to_regenerate]
+            )
         except CloudGeneratorError as exc:
             # If generation of the abstraction layer raises an error, then we can't draw the overlay.
             return
@@ -524,6 +529,7 @@ def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
         boneinfo.tail,
         boneinfo.roll,
         boneinfo.custom_shape_name,
+        boneinfo.custom_shape.name if boneinfo.custom_shape else "",
         get_bone_display_matrix(boneinfo),
         boneinfo.custom_shape_wire_width,
         boneinfo.color_palette_base,

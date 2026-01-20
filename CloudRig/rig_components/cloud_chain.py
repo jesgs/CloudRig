@@ -744,7 +744,7 @@ class Component_ToonChain(Component_Base):
 
         last_str = parent_component.str_chain[-1]
         last_str.next = self.str_chain[0]
-        last_str.custom_shape = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
+        last_str.custom_shape_name = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
 
         if self.painter:
             return
@@ -802,7 +802,7 @@ class Component_ToonChain(Component_Base):
             cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_def_control')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch_ends')
-        cls.draw_prop(context, layout, params.chain, 'shape_size', text="Size")
+        cls.draw_prop(context, layout, params.chain, 'shape_size', text="Size", enabled=component.appearance_enabled)
         return layout
 
     @classmethod

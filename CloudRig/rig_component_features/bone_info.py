@@ -386,6 +386,10 @@ class BoneInfo:
             setattr(self, key, value)
 
     @property
+    def bone(self) -> BoneInfo:
+        return self
+
+    @property
     def source(self) -> BoneInfo:
         """Returns the BoneInfo that this BoneInfo was copied from, or
         this BoneInfo itself.
@@ -593,10 +597,11 @@ class BoneInfo:
         reference = self.custom_shape_transform or self
         self.custom_shape_translation.y = reference.length * value
 
-    def copy_custom_shape(self, other):
+    def copy_custom_shape(self, other: BoneInfo | PoseBone):
         if not other.custom_shape:
             return
-        self.custom_shape_name = other.custom_shape_name
+        if hasattr(other, 'custom_shape_name'):
+            self.custom_shape_name = other.custom_shape_name
         self.custom_shape = other.custom_shape
         self.custom_shape_translation = other.custom_shape_translation
         self.custom_shape_rotation_euler = other.custom_shape_rotation_euler
@@ -716,7 +721,9 @@ class BoneInfo:
             arm_ob.mode != 'EDIT'
         ), "Armature cannot be in Edit Mode when writing pose data"
 
-        if self.custom_shape_name:
+        generator = self.owner_component.generator
+        preserve_shapes = (generator.params.preserve_shapes_properties and generator.params.preserve_custom_shapes)
+        if self.custom_shape_name and not preserve_shapes:
             self.custom_shape = self.owner_component.generator.ensure_widget(
                 context, self.custom_shape_name
             )

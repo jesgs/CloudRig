@@ -44,9 +44,9 @@ from ..rig_component_features.mechanism import relink_real_driver
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.overlay_painter import no_overlay
 from ..rig_component_features.widgets.widgets import (
-    apply_custom_shape_rig_data,
     ensure_widget,
     get_custom_shape_rig_data,
+    set_pbone_custom_shape_data,
 )
 from ..ui.actions_ui import ActionConstraintSetup
 from ..utils.external.collections import ensure_collection
@@ -71,25 +71,35 @@ from .troubleshooting import CloudLogManager, CloudRigLogEntry
 
 class GeneratorProperties(PropertyGroup):
     # RNA data used by the CloudRig Generator.
-    preserve_shapes_properties: BoolProperty(
-        name="Preserve Shape Properties",
-        description="Preserve custom shape properties on the generated rig, if available",
-        default=False,
-    )
-    preserve_custom_shapes: BoolProperty(
-        name="Preserve Custom Shapes",
-        description="Preserve custom shapes on the generated rig, if available. If this is disabled, only other properties will be preserved, but not the shape object",
-        default=True,
-    )
     metarig_version: IntProperty(
         name="Metarig Version",
         description="Used for automatic versioning of metarigs",
         default=0,
     )
+
+    ########################################
+    ### General params #####################
+    ########################################
+
     target_rig: PointerProperty(
         name="Target Rig",
         description="Rig to re-genreate based on this metarig when the Generate button is used",
         type=Object,
+    )
+    custom_script: PointerProperty(
+        name="Post-Generation Script",
+        type=Text,
+        description="Execute a python script after the rig is generated",
+    )
+    generate_test_action: BoolProperty(
+        name="Generate Test Action",
+        description="Whether to create/update the deform test action or not. Enabling this enables the Animation parameter category on FK chain components",
+        default=False,
+    )
+    test_action: PointerProperty(
+        name="Test Action",
+        type=Action,
+        description="Action which will be generated with the keyframes neccessary to test the rig's deformations",
     )
     ensure_root: StringProperty(
         name="Root Bone",
@@ -101,39 +111,15 @@ class GeneratorProperties(PropertyGroup):
         description="Bone to use as the default custom property storage. Can be the same as the root bone. If it doesn't exist and is required, a bone named 'Properties' will be created on the metarig",
         default='Properties',
     )
-
-    custom_script: PointerProperty(
-        name="Post-Generation Script",
-        type=Text,
-        description="Execute a python script after the rig is generated",
-    )
-    widget_collection: PointerProperty(
-        name="Custom Shape Collection",
-        type=Collection,
-        description="Collection dedicated to storing nothing but the custom shapes used by this rig. Additional objects will result in warnings, and missing custom shapes will be re-linked during generation",
-    )
-    reload_widgets: BoolProperty(
-        name="Overwrite Custom Shapes",
-        description="Reload custom shapes, discarding any local modifications to them",
-        default=True,
-    )
-
-    generate_test_action: BoolProperty(
-        name="Generate Test Action",
-        description="Whether to create/update the deform test action or not. Enabling this enables the Animation parameter category on FK chain components",
-        default=False,
-    )
-    test_action: PointerProperty(
-        name="Test Action",
-        type=Action,
-        description="Action which will be generated with the keyframes neccessary to test the rig's deformations",
-    )
-
     auto_setup_gizmos: BoolProperty(
         name="Auto Setup Gizmos (EXPERIMENTAL)",
         description="Experiment with the initial BoneGizmo addon integration",
         default=False,
     )
+
+    ########################################
+    ### Log params #########################
+    ########################################
 
     logs: CollectionProperty(type=CloudRigLogEntry)
     active_log_index: IntProperty(min=0)
@@ -154,6 +140,36 @@ class GeneratorProperties(PropertyGroup):
     def active_log(self):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
+    ########################################
+    ### Custom Shape params ################
+    ########################################
+
+    widget_collection: PointerProperty(
+        name="Custom Shape Collection",
+        type=Collection,
+        description="Collection dedicated to storing nothing but the custom shapes used by this rig. Additional objects will result in warnings, and missing custom shapes will be re-linked during generation",
+    )
+    reload_widgets: BoolProperty(
+        name="Overwrite Custom Shapes",
+        description="Reload custom shapes, discarding any local modifications to them",
+        default=True,
+    )
+    def mark_all_dirty(self, context):
+        for pb in self.id_data.pose.bones:
+            if pb.cloudrig_component.component_class:
+                pb.cloudrig_component.overlay_is_dirty = True
+    preserve_shapes_properties: BoolProperty(
+        name="Preserve Shape Properties",
+        description="Preserve custom shape properties on the generated rig, if available",
+        default=False,
+        update=mark_all_dirty,
+    )
+    preserve_custom_shapes: BoolProperty(
+        name="Preserve Custom Shapes",
+        description="Preserve custom shapes on the generated rig, if available. If this is disabled, only other properties will be preserved, but not the shape object",
+        default=True,
+        update=mark_all_dirty,
+    )
     base_wire_width: FloatProperty(
         name="Base Wire Width",
         description="Additional wire width to apply to all generated bones",
@@ -427,7 +443,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         ]
 
-    def generate_abstraction_layer(self, context, comp_pbone_subset: list[PoseBone]=[]):
+    def generate_abstraction_layer(self, context, *, comp_pbone_subset: list[PoseBone]=[]):
         """Generate the virtual bones by instantiating the rig components of passed Pose Bones,
         and calling their create_bone_infos() function.
         Note: This function can be called from pretty much any context!!
@@ -436,6 +452,24 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.component_map = self.instantiate_rig_components(comp_pbone_subset)
         self.components_load_bone_infos(self.component_map, self.metarig)
         self.components_create_bone_infos(context)
+        self.preserve_custom_shape_props()
+
+    def preserve_custom_shape_props(self):
+        old_rig = self.params.target_rig
+        if not (self.params.preserve_shapes_properties and old_rig):
+            return
+        custom_shape_data = get_custom_shape_rig_data(old_rig)
+        if not self.params.preserve_custom_shapes:
+            for key, value in custom_shape_data.items():
+                del value['custom_shape']
+
+        for comp in self.all_components:
+            for bi in comp.all_bone_infos:
+                if bi.name in custom_shape_data:
+                    set_pbone_custom_shape_data(
+                        bi,
+                        **custom_shape_data[bi.name],
+                    )
 
     ### Early generation steps.
     def ensure_widget_collection(self, context) -> Collection:
@@ -762,14 +796,6 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         for coll in old_rig.users_collection:
             coll.objects.unlink(old_rig)
             coll.objects.link(new_rig)
-
-        # Preserve custom shapes.
-        if self.params.preserve_shapes_properties:
-            custom_shape_data = get_custom_shape_rig_data(old_rig)
-            if not self.params.preserve_custom_shapes:
-                for key, value in custom_shape_data.items():
-                    del value['custom_shape']
-            apply_custom_shape_rig_data(new_rig, custom_shape_data)
 
         # Swap all references pointing at the old rig to the new rig.
         old_rig.id_data.user_remap(new_rig)

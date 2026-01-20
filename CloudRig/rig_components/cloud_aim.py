@@ -372,7 +372,7 @@ class Component_Aim(Component_Base):
             cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_root')
         if params.aim.create_sub_control:
             cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_highlight')
-        cls.draw_prop(context, layout, params.aim, 'target_size')
+        cls.draw_prop(context, layout, params.aim, 'target_size', enabled=component.appearance_enabled)
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

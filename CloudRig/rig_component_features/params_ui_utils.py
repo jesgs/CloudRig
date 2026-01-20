@@ -119,6 +119,12 @@ class CloudUIMixin:
         prefs = get_addon_prefs(context)
         pgroup = getattr(prop_owner, prop_name)
         row = layout.row(align=True)
+
+        metarig = context.object
+        generator = metarig.cloudrig.generator
+        if generator.preserve_shapes_properties and generator.preserve_custom_shapes:
+            row.enabled = False
+
         if pgroup.use_pointer:
             cls.draw_prop(context, row, pgroup, 'custom_shape')
         else:
