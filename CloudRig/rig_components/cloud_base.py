@@ -129,7 +129,13 @@ class Component_Base(
     @property
     def base_name(self):
         # NOTE: self.params.base.base_name shouldn't be accessed directly outside of here.
-        return self.params.base.base_name or self.naming.slice_name(self.base_bone_name)[1]
+        return self.params.base.base_name or self.naming.get_name_parts(self.base_bone_name)[1]
+
+    def make_name(self, prefixes: list[str], base=""):
+        orig_prefixes, base_bone_base, suffixes, blender_zeroes = self.naming.get_name_parts(self.base_bone_name)
+        if not base:
+            base = base_bone_base
+        return orig_prefixes + "-".join(prefixes) + "-" + base + suffixes + blender_zeroes
 
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
@@ -147,18 +153,6 @@ class Component_Base(
                     op_kwargs={
                         'old_name': pbone.name,
                         'new_name': self.naming.uniqify(pbone)
-                    },
-                )
-            if self.naming.has_wrong_separator(pbone):
-                fixed_name = self.naming.make_name(*self.naming.slice_name(pbone))
-                self.add_log(
-                    description=f"{pbone.name}: CloudRig will replace the side suffix separator with a period: {pbone.name} -> {fixed_name}",
-                    description_short="Wrong separator",
-                    trouble_bone=pbone.name,
-                    operator='object.cloudrig_rename_bone',
-                    op_kwargs={
-                        'old_name': pbone.name,
-                        'new_name': fixed_name,
                     },
                 )
 

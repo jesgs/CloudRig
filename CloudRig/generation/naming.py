@@ -29,10 +29,7 @@ def flip_name(thing: Any) -> str:
 
 
 def add_prefix(thing: Any, new_prefix: str) -> str:
-    name = get_name(thing)
-    sliced_name = slice_name(name)
-    sliced_name[0].append(new_prefix)
-    return make_name(*sliced_name)
+    return prepend_base_name(thing, new_prefix+PREFIX_SEPARATOR)
 
 
 def get_name(thing: Any) -> str:
@@ -330,12 +327,8 @@ def get_blender_zeroes(thing: Any) -> str:
     return ""
 
 
-def prepend_base_name(thing: Any, addition) -> str:
-    """Prepend a prefix to the name of a thing.
-    Preserving any left/right side indicator in case the name starts with that.
-
-    Eg. prepend_base_name("Left Leg.001", "Knee ") == "Left Knee Leg.001"
-    """
+def get_name_parts(thing: Any) -> tuple[str, str, str, str]:
+    """Return side_prefix, base, side_suffix, blender_zeroes"""
     name = get_name(thing)
     blender_zeroes = get_blender_zeroes(name)
     if blender_zeroes:
@@ -371,7 +364,18 @@ def prepend_base_name(thing: Any, addition) -> str:
                     name = name[:-1]
                 break
 
-    return prefix + addition + name + suffix + blender_zeroes
+    return prefix, name, suffix, blender_zeroes
+
+
+def prepend_base_name(thing: Any, addition) -> str:
+    """Prepend a prefix to the name of a thing.
+    Preserving any left/right side indicator in case the name starts with that.
+
+    Eg. prepend_base_name("Left Leg.001", "Knee ") == "Left Knee Leg.001"
+    """
+
+    prefix, base, suffix, blender_zeroes = get_name_parts(thing)
+    return prefix + addition + base + suffix + blender_zeroes
 
 
 def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
