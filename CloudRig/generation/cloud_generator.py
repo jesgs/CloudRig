@@ -16,6 +16,7 @@ import bpy
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
+    FloatProperty,
     IntProperty,
     PointerProperty,
     StringProperty,
@@ -152,6 +153,19 @@ class GeneratorProperties(PropertyGroup):
     @property
     def active_log(self):
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
+
+    base_wire_width: FloatProperty(
+        name="Base Wire Width",
+        description="Additional wire width to apply to all generated bones",
+        default=0.5,
+        min=0.0,
+        max=3.0,
+        update=mark_all_dirty,
+    )
+
+    ########################################
+    ### Actions params #####################
+    ########################################
 
     action_setups: CollectionProperty(type=ActionConstraintSetup)
     active_action_index: IntProperty(min=0)

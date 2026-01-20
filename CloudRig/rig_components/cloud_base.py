@@ -300,7 +300,7 @@ class Component_Base(
         super().define_bone_sets()
         cls.define_bone_set('Deform Bones', is_advanced=True, defaults={'display_type': 'BBONE'})
         cls.define_bone_set('Mechanism Bones', is_advanced=True, defaults={'display_type': 'STICK'})
-        cls.define_bone_set('Original Bones', is_advanced=True, wire_width=1.0)
+        cls.define_bone_set('Original Bones', is_advanced=True, wire_width=0.5)
 
 
     @classmethod

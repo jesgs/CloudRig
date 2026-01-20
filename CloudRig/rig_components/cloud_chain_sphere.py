@@ -76,7 +76,7 @@ class Component_SphereChain(Component_ToonChain):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Sphere Controls', color_palette='THEME09', wire_width=1.5)
+        cls.define_bone_set('Sphere Controls', color_palette='THEME09')
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

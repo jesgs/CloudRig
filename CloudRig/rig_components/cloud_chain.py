@@ -809,8 +809,8 @@ class Component_ToonChain(Component_Base):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Stretch Controls', color_palette='THEME09', wire_width=1.5)
-        cls.define_bone_set('Deform Controls', color_palette='THEME09', wire_width=1.5)
+        cls.define_bone_set('Stretch Controls', color_palette='THEME09')
+        cls.define_bone_set('Deform Controls', color_palette='THEME09')
         cls.define_bone_set(
             'Deform Helpers', collections=['Mechanism Bones'], is_advanced=True
         )

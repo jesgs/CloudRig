@@ -30,7 +30,6 @@ class MinimalComponentExample(Component_Base):
             "My Bone Set",
             color_palette="THEME02",
             collections=["My Controls"],
-            wire_width=1.5,
         )
 
     @classmethod

@@ -119,7 +119,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             tail=self.bones_org[0].head,
             parent=hips,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
-            custom_shape_wire_width=max(1.5, hips.custom_shape_wire_width/2),
+            custom_shape_wire_width=hips.custom_shape_wire_width/2,
             use_custom_shape_bone_size=False,
             custom_shape_rotation_euler=Vector((0, pi/2, 0)),
         )
@@ -277,13 +277,13 @@ class Component_Spine_Toon(Component_Chain_FK):
             "Toon Spine IK",
             color_palette="THEME13",
             collections=["IK Controls"],
-            wire_width=2.5,
+            wire_width=2.0,
         )
         cls.define_bone_set(
             "Toon Spine IK Secondary",
             color_palette="THEME12",
             collections=["IK Secondary"],
-            wire_width=1.5,
+            wire_width=1.0,
         )
         cls.define_bone_set(
             "Toon Spine Mechanism",

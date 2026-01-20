@@ -596,6 +596,10 @@ class RigComponent(PropertyGroup):
         default=False,
     )
 
+    @property
+    def appearance_enabled(self) -> bool:
+        return not self.id_data.cloudrig.generator.preserve_shapes_properties
+
     def __repr__(self) -> str:
         return f"{self.base_bone_name}: {self.component_type}"
 

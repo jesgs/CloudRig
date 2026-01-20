@@ -45,7 +45,6 @@ class AdvancedComponent(Component_Base):
             "My Bone Set",
             color_palette="THEME02",
             collections=["IK Controls"],
-            wire_width=1.5,
         )
 
     @classmethod

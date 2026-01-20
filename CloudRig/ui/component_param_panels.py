@@ -174,7 +174,7 @@ def draw_params_subpanel_single(context, rig_component, layout, panel_name: str)
     panel_data.draw_header(context, header)
     header.label(text=panel_data.ui_name)
     if panel:
-        draw_component_params(context, layout, rig_component, panel_data.func_name)
+        draw_component_params(context, panel.column(), rig_component, panel_data.func_name)
 
 def draw_component_params(context, layout, rig_component, func_name: str):
     component_class = rig_component.component_class

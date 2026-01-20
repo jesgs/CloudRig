@@ -174,7 +174,7 @@ class Component_FaceChain(Component_ToonChain):
             'Intersection Controls',
             color_palette='THEME09',
             collections=['Stretch Controls'],
-            wire_width=2.0,
+            wire_width=1.5,
         )
 
     @classmethod

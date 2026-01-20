@@ -96,7 +96,7 @@ class BoneSet(LinkedList):
         inferred = {
             "collections": self.collections.copy(),
             "color_palette_base": self.color_palette,
-            "custom_shape_wire_width": self.wire_width + (source.custom_shape_wire_width-1 if source else 0),
+            "custom_shape_wire_width": self.wire_width+self.rig_component.generator.params.base_wire_width,
         }
         if keep_collections:
             if isinstance(source, BoneInfo):
@@ -222,7 +222,10 @@ class BoneSetMixin:
             # If the active item is not visible
             return
 
-        layout.prop(active_bone_set, 'wire_width')
+        metarig = context.object
+        generator = metarig.cloudrig.generator
+        if not generator.preserve_shapes_properties:
+            layout.prop(active_bone_set, 'wire_width')
 
         if only_colors:
             return
@@ -262,7 +265,7 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_set(
-        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.5, is_advanced=False, defaults={}
+        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.0, is_advanced=False, defaults={}
     ):
         """
         A Bone Set contains properties for assigning bone collections, color, and wire width.

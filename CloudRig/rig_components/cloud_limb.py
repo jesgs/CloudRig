@@ -472,7 +472,7 @@ class Component_Limb(Component_Chain_IKFK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'IK Child Controls', color_palette='THEME09', collections=['IK Secondary'], wire_width=2,
+            'IK Child Controls', color_palette='THEME09', collections=['IK Secondary'], wire_width=1.5,
         )
 
     @classmethod

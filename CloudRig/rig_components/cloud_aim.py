@@ -353,7 +353,7 @@ class Component_Aim(Component_Base):
             wire_width=3,
         )
         cls.define_bone_set(
-            "Aim Target Control", collections=['Face Main'], color_palette='THEME12', wire_width=2
+            "Aim Target Control", collections=['Face Main'], color_palette='THEME12', wire_width=1.5
         )
         cls.define_bone_set(
             "Aim Root Control", collections=['Face Secondary'], color_palette='THEME12'

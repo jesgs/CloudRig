@@ -699,13 +699,13 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "IK Controls",
             color_palette="THEME13",
             collections=["IK Controls"],
-            wire_width=2.5,
+            wire_width=2.0,
         )
         cls.define_bone_set(
             "IK Controls Secondary",
             color_palette="THEME13",
             collections=["IK Secondary"],
-            wire_width=1.5,
+            wire_width=1.0,
         )
         cls.define_bone_set(
             "IK Mechanism",

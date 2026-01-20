@@ -397,7 +397,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             'Foot Reverse IK Controls',
             color_palette='THEME12',
             collections=['IK Secondary'],
-            wire_width=2,
+            wire_width=1.5,
         )
 
     @classmethod
