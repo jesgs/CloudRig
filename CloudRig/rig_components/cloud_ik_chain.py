@@ -149,12 +149,13 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.last_org = self.bones_org[-1]
 
         if self.params.ik_chain.at_tip:
-            # TODO: This feels very criminal, do we really need it?
+            # TODO: We insert an extra (temp) ORG- bone here, which feels quite hacky.
             self.bones_org.new(
-                name="TIP-" + self.last_org.name,
+                name=self.naming.add_prefix(self.last_org, "TIP"),
                 source=self.last_org,
                 head=self.last_org.tail.copy(),
                 vector=self.last_org.vector,
+                preserve=False
             )
         self.ik_chain__make_ik_setup()
 
@@ -239,15 +240,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
             )
 
     def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
-        if bone_name == "":
-            bone_name = self.naming.add_prefix(source_bone, "IK")
-        if not shape_name:
-            shape_name = self.params.ik_chain.shape_ik_master.shape_name
-
         ik_master = bone_set.new(
-            name=bone_name,
+            name=bone_name or self.naming.add_prefix(source_bone, "IK"),
             source=source_bone,
-            custom_shape_name=shape_name,
+            custom_shape_name=shape_name or self.params.ik_chain.shape_ik_master.shape_name,
             parent=None,
         )
 
@@ -275,8 +271,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     def __make_pole_control(self):
         # Create IK Pole Control
+        prefix, base_name, suffix, blender_zeroes = self.naming.get_name_parts(self.bones_org[0])
+        base_name = prefix+self.base_name+suffix+blender_zeroes
         pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
-            name=self.make_name(["IK", "POLE"], self.base_name),
+            name=self.naming.add_prefix(base_name, "POLE"),
             bbone_width=0.1,
             head=self.pole_location,
             tail=self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2,
@@ -290,7 +288,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.lock_transforms(pole_ctrl, loc=False)
 
         pole_line = self.bone_sets["IK Controls"].new(
-            name=self.naming.make_name(["LINE"], self.base_name, self.suffixes),
+            name=self.naming.add_prefix(pole_ctrl, "LINE"),
             source=pole_ctrl,
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,

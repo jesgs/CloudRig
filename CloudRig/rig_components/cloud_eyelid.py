@@ -49,8 +49,7 @@ class Component_Eyelid(Component_FaceChain):
 
         for str_ctr in main_controls:
             eye_bone = parent_component.ctr_bone
-            prefixes, base, suffixes = self.naming.slice_name(str_ctr)
-            rot_name = self.naming.make_name(prefixes + ["ROT"], base, suffixes)
+            rot_name = self.naming.prepend_base_name(str_ctr.source, "STR-ROT-")
             rot_ctr = self.generator.find_bone_info(rot_name)
             if rot_ctr:
                 continue

@@ -24,178 +24,12 @@ SIDE_INDICATORS = [
 ]
 
 
+#################################
+### Symmetry ###################
+#################################
+
 def flip_name(thing: Any) -> str:
     return bpy_flip_name(get_name(thing))
-
-
-def add_prefix(thing: Any, new_prefix: str) -> str:
-    return prepend_base_name(thing, new_prefix+PREFIX_SEPARATOR)
-
-
-def get_name(thing: Any) -> str:
-    """Return any PyObject's "name" attribute if it has one, else cast it to a string."""
-    if type(thing) is str:
-        return thing
-    elif hasattr(thing, "name"):
-        return thing.name
-    elif "name" in thing:
-        return thing["name"]
-    else:
-        return str(thing)
-
-
-def make_name(prefixes: list[str] = [], base="", suffixes: list[str] = []) -> str:
-    """Make a name from a list of prefixes, a base, and a list of suffixes."""
-    name = ""
-    if type(prefixes) is str:
-        prefixes = [prefixes]
-    if type(suffixes) is str:
-        suffixes = [suffixes]
-
-    for pre in prefixes:
-        if pre == "":
-            continue
-        name += pre + PREFIX_SEPARATOR
-    name += base
-    for suf in suffixes:
-        if suf == "":
-            continue
-        name += SUFFIX_SEPARATOR + suf
-
-    return name
-
-
-def slice_name(thing: Any):
-    """Break up a name into its prefix, base, suffix components."""
-    name = get_name(thing)
-    prefixes = name.split(PREFIX_SEPARATOR)[:-1]
-    suffixes = name.split(SUFFIX_SEPARATOR)[1:]
-    base = name.split(PREFIX_SEPARATOR)[-1].split(SUFFIX_SEPARATOR)[0]
-    if not suffixes and "_" in base:
-        # Support underscore as a suffix separator, only for side indicators.
-        suffix = name.split("_")[-1]
-        if suffix in SIDE_INDICATORS:
-            suffixes = [suffix]
-            base = base.replace("_" + suffix, "")
-    return [prefixes, base, suffixes]
-
-
-def has_trailing_zeroes(thing: Any) -> bool:
-    """Use regex to test if an object or string has .001 ending."""
-    name = get_name(thing)
-    regex = r"\.[0-9]*$"
-    search = re.search(regex, name)
-    return search is not None
-
-
-def has_wrong_separator(thing: Any) -> bool:
-    name = get_name(thing)
-
-    for separator in ".-_":
-        if separator not in name:
-            continue
-        split = name.split(separator)
-        for s in split:
-            if s in SIDE_INDICATORS:
-                if separator != ".":
-                    return True
-    return False
-
-
-def side_is_suffix(thing: Any) -> bool:
-    """Return True when the name of a thing either does not contain a side indicator,
-    or the side indicator is at the end of the name."""
-    name = get_name(thing)
-
-    for separator in SEPARATORS:
-        if separator not in name:
-            continue
-        split = name.split(separator)
-        for s in split:
-            if s in SIDE_INDICATORS and s != split[-1]:
-                return False
-
-    return True
-
-
-def strip_trailing_numbers(thing: Any) -> tuple[str, str]:
-    name = get_name(thing)
-    if "." in name:
-        # Check if there are only digits after the last period
-        slices = name.split(".")
-        after_last_period = slices[-1]
-        before_last_period = ".".join(slices[:-1])
-
-        # If there are only digits after the last period, discard them
-        if all([c in "0123456789" for c in after_last_period]):
-            return before_last_period, "." + after_last_period
-
-    return name, ""
-
-
-def combine_names(things: list[Any]) -> str:
-    """Combine multiple bone names into one by:
-    - Removing duplicate pre and suffixes
-    - Cancelling out left/right suffixes
-    - Combining name bases separated by "+" while ignoring duplicate matching characters
-    - Limiting to a max of 59 characters
-    Eg., "Lip_Upper.L" + "Lip_Lower.R" -> "Lip_Upper+Lower")
-    """
-
-    names = [get_name(thing) for thing in things]
-
-    slices = [slice_name(n) for n in names]
-
-    prefixes = []
-    for slice in slices:
-        for prefix in slice[0]:
-            if prefix not in prefixes:
-                prefixes.append(prefix)
-
-    suffixes = []
-    for slice in slices:
-        for suffix in slice[2]:
-            if suffix not in suffixes:
-                suffixes.append(suffix)
-
-    bases = list(set([s[1] for s in slices]))
-
-    # If matching pairs of side suffixes are in the suffix list, remove both.
-    # For example, if L and R are both present, remove them.
-    for suf in suffixes:
-        flip_suf = flip_name("A."+suf)[2:]
-        if flip_suf != suf and flip_suf in suffixes:
-            suffixes.remove(suf)
-            suffixes.remove(flip_suf)
-
-    ### Combine bases
-    shortest_base = sorted(bases, key=lambda b: len(b))[
-        0
-    ]  # Sort by length and pick the first one.
-
-    base_start = ""
-    # Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
-    for i, char in enumerate(shortest_base):
-        matching = all([base[i] == char for base in bases])
-        if matching:
-            base_start += char
-            continue
-        else:
-            break
-
-    # Make sure total name length doesn't exceed 59 characters.
-    bases = [base[len(base_start) :] for base in bases]
-
-    bases.sort(reverse=True)
-
-    combined_name = make_name(prefixes, base_start + "+".join(bases), suffixes)
-
-    if len(combined_name) > 59:
-        raise ValueError(
-            f'Intersection control bone name "{combined_name}" would be too long. Try using shorter bone names for face chain bones'
-        )
-
-    return combined_name
 
 
 def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[str]]:
@@ -277,6 +111,11 @@ def side_is_left(thing: Any) -> bool | None:
     return None
 
 
+#################################
+### Numbering ###################
+#################################
+# TODO: These functions are all over the place and should be unified.
+
 def increment_name(thing: Any, increment=1, default_zfill=1) -> str:
     # Increment LAST number in the name.
     # Negative numbers will be clamped to 0.
@@ -299,6 +138,21 @@ def increment_name(thing: Any, increment=1, default_zfill=1) -> str:
     return incremented.join(split)
 
 
+def strip_trailing_numbers(thing: Any) -> tuple[str, str]:
+    name = get_name(thing)
+    if "." in name:
+        # Check if there are only digits after the last period
+        slices = name.split(".")
+        after_last_period = slices[-1]
+        before_last_period = ".".join(slices[:-1])
+
+        # If there are only digits after the last period, discard them
+        if all([c in "0123456789" for c in after_last_period]):
+            return before_last_period, "." + after_last_period
+
+    return name, ""
+
+
 def strip_blender_zeroes(thing: Any) -> str:
     name = get_name(thing)
     if len(name) < 5:
@@ -313,7 +167,16 @@ def strip_blender_zeroes(thing: Any) -> str:
     return name
 
 
+def has_trailing_numbers(thing: Any) -> bool:
+    """Use regex to test if an object or string has .001 ending."""
+    name = get_name(thing)
+    regex = r"\.[0-9]*$"
+    search = re.search(regex, name)
+    return search is not None
+
+
 def get_blender_zeroes(thing: Any) -> str:
+    # TODO: This currently assumes number is <1000.
     name = get_name(thing)
     if len(name) < 5:
         return ""
@@ -327,47 +190,48 @@ def get_blender_zeroes(thing: Any) -> str:
     return ""
 
 
+#################################
+### New Bones ###################
+#################################
+
 def get_name_parts(thing: Any) -> tuple[str, str, str, str]:
-    """Return side_prefix, base, side_suffix, blender_zeroes"""
+    """Return side_prefix, base, side_suffix, blender_zeroes.
+
+    This tries to synergize with Blender's built-in name flipping logic, which
+    means only ONE side indicator will be acknowledged, prioritizing prefixes.
+    So, a bone name like "L-hand_right.R.001" is expected to return ("L-", "hand_right.R", "", ".001").
+    """
     name = get_name(thing)
     blender_zeroes = get_blender_zeroes(name)
     if blender_zeroes:
         name = name[:-len(blender_zeroes)]
     prefix = ""
     suffix = ""
-    for separator in SEPARATORS:
-        for letter in "LR":
-            if name.lower().startswith(letter+separator):
-                prefix = name[0]+separator
-                name = name[2:]
-                break
-            elif name.lower().endswith(separator+letter):
-                suffix = separator+name[-1]
-                name = name[:-1]
-                break
-        if prefix or suffix:
+    possible_prefixes = ["l"+sep for sep in SEPARATORS] + ["r"+sep for sep in SEPARATORS] + ["left", "right"]
+    for possible_prefix in possible_prefixes:
+        if name.lower().startswith(possible_prefix):
+            prefix = name[:len(possible_prefix)]
+            name = name[len(possible_prefix):]
             break
-    if not (prefix or suffix):
-        for word in ("left", "right"):
-            if name.lower().startswith(word):
-                prefix = name[:len(word)]
-                name = name[len(word):]
-                if name[0] in SEPARATORS:
-                    prefix += name[0]
-                    name = name[1:]
+
+    if not prefix:
+        possible_suffixes = [sep+"l" for sep in SEPARATORS] + [sep+"r" for sep in SEPARATORS] + ["left", "right"]
+        for possible_suffix in possible_suffixes:
+            if name.lower().endswith(possible_suffix):
+                suffix = name[-len(possible_suffix):]
+                name = name[:-len(possible_suffix)]
                 break
-            elif name.lower().endswith(word):
-                suffix = name[-len(word):]
-                name = name[:-len(word)]
-                if name[-1] in SEPARATORS:
-                    suffix = name[-1]+suffix
-                    name = name[:-1]
-                break
+
+    if prefix.lower() in ("left", "right") and name[0] in SEPARATORS:
+        # If a full-word side prefix is followed by a separator character,
+        # include that in the prefix part.
+        prefix += name[0]
+        name = name[1:]
 
     return prefix, name, suffix, blender_zeroes
 
 
-def prepend_base_name(thing: Any, addition) -> str:
+def prepend_base_name(thing: Any, addition: str) -> str:
     """Prepend a prefix to the name of a thing.
     Preserving any left/right side indicator in case the name starts with that.
 
@@ -377,6 +241,25 @@ def prepend_base_name(thing: Any, addition) -> str:
     prefix, base, suffix, blender_zeroes = get_name_parts(thing)
     return prefix + addition + base + suffix + blender_zeroes
 
+
+def suffix_base_name(thing: Any, addition: str) -> str:
+    """Append a suffix to the name of a thing.
+    Preserving any left/right side indicator and blender zeroes in case the name
+    ends with those.
+
+    Eg. suffix_base_name("Knee-left.001", "_01") == "Knee_01-left.001"
+    """
+    prefix, base, suffix, blender_zeroes = get_name_parts(thing)
+    return prefix + base + addition + suffix + blender_zeroes
+
+
+def add_prefix(thing: Any, new_prefix: str) -> str:
+    return prepend_base_name(thing, new_prefix+PREFIX_SEPARATOR)
+
+
+#################################
+### Uniqueness ##################
+#################################
 
 def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
     if not collprop:
@@ -398,3 +281,158 @@ def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
             return name
         name = increment_name(name)
     return name
+
+
+#################################
+### Misc ########################
+#################################
+
+
+def get_name(thing: Any) -> str:
+    """Return any PyObject's "name" attribute if it has one, else cast it to a string."""
+    if type(thing) is str:
+        return thing
+    elif hasattr(thing, "name"):
+        return thing.name
+    elif "name" in thing:
+        return thing["name"]
+    else:
+        return str(thing)
+
+
+def combine_names(things: list[Any]) -> str:
+    """Combine multiple bone names into one by:
+    - Removing duplicate pre and suffixes
+    - Cancelling out left/right suffixes
+    - Combining name bases separated by "+" while ignoring duplicate matching characters
+    - Limiting to a max of 59 characters
+    Eg., "Lip_Upper.L" + "Lip_Lower.R" -> "Lip_Upper+Lower")
+    """
+
+    names = [get_name(thing) for thing in things]
+
+    slices = [slice_name(n) for n in names]
+
+    prefixes = []
+    for slice in slices:
+        for prefix in slice[0]:
+            if prefix not in prefixes:
+                prefixes.append(prefix)
+
+    suffixes = []
+    for slice in slices:
+        for suffix in slice[2]:
+            if suffix not in suffixes:
+                suffixes.append(suffix)
+
+    bases = list(set([s[1] for s in slices]))
+
+    # If matching pairs of side suffixes are in the suffix list, remove both.
+    # For example, if L and R are both present, remove them.
+    for suf in suffixes:
+        flip_suf = flip_name("A."+suf)[2:]
+        if flip_suf != suf and flip_suf in suffixes:
+            suffixes.remove(suf)
+            suffixes.remove(flip_suf)
+
+    ### Combine bases
+    shortest_base = sorted(bases, key=lambda b: len(b))[
+        0
+    ]  # Sort by length and pick the first one.
+
+    base_start = ""
+    # Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
+    for i, char in enumerate(shortest_base):
+        matching = all([base[i] == char for base in bases])
+        if matching:
+            base_start += char
+            continue
+        else:
+            break
+
+    # Make sure total name length doesn't exceed 59 characters.
+    bases = [base[len(base_start) :] for base in bases]
+
+    bases.sort(reverse=True)
+
+    combined_name = make_name(prefixes, base_start + "+".join(bases), suffixes)
+
+    if len(combined_name) > 59:
+        raise ValueError(
+            f'Intersection control bone name "{combined_name}" would be too long. Try using shorter bone names for face chain bones'
+        )
+
+    return combined_name
+
+
+#################################
+### DEPRECATED FUNCTIONS ########
+#################################
+# TODO: These functions should no longer be used and should be removed,
+# because it relies on too many assumptions, leading to a strict
+# bone naming convention requirement.
+
+def make_name(prefixes: list[str] = [], base="", suffixes: list[str] = []) -> str:
+    """Make a name from a list of prefixes, a base, and a list of suffixes."""
+    name = ""
+    if type(prefixes) is str:
+        prefixes = [prefixes]
+    if type(suffixes) is str:
+        suffixes = [suffixes]
+
+    for pre in prefixes:
+        if pre == "":
+            continue
+        name += pre + PREFIX_SEPARATOR
+    name += base
+    for suf in suffixes:
+        if suf == "":
+            continue
+        name += SUFFIX_SEPARATOR + suf
+
+    return name
+
+
+def slice_name(thing: Any):
+    """Break up a name into its prefix, base, suffix components."""
+    name = get_name(thing)
+    prefixes = name.split(PREFIX_SEPARATOR)[:-1]
+    suffixes = name.split(SUFFIX_SEPARATOR)[1:]
+    base = name.split(PREFIX_SEPARATOR)[-1].split(SUFFIX_SEPARATOR)[0]
+    if not suffixes and "_" in base:
+        # Support underscore as a suffix separator, only for side indicators.
+        suffix = name.split("_")[-1]
+        if suffix in SIDE_INDICATORS:
+            suffixes = [suffix]
+            base = base.replace("_" + suffix, "")
+    return [prefixes, base, suffixes]
+
+
+def has_wrong_separator(thing: Any) -> bool:
+    name = get_name(thing)
+
+    for separator in ".-_":
+        if separator not in name:
+            continue
+        split = name.split(separator)
+        for s in split:
+            if s in SIDE_INDICATORS:
+                if separator != ".":
+                    return True
+    return False
+
+
+def side_is_suffix(thing: Any) -> bool:
+    """Return True when the name of a thing either does not contain a side indicator,
+    or the side indicator is at the end of the name."""
+    name = get_name(thing)
+
+    for separator in SEPARATORS:
+        if separator not in name:
+            continue
+        split = name.split(separator)
+        for s in split:
+            if s in SIDE_INDICATORS and s != split[-1]:
+                return False
+
+    return True

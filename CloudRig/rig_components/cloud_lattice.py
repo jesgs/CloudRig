@@ -136,7 +136,6 @@ class Component_Lattice(Component_Base):
         scale = sum(root_bone.custom_shape_scale_xyz[:])/3
         if root_bone.use_custom_shape_bone_size:
             scale *= root_bone.length
-        print("SCALE: ", scale)
         lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(scale, 4)
         # Leave a custom property for the Generator, so it doesn't reset the
         # lattice's matrix to what it was before generation.

@@ -68,7 +68,6 @@ class Component_TweakBone(Component_Base):
             bone_to_tweak.lock_scale = meta_pbone.lock_scale[:]
 
         if self.params.tweak.rot_mode:
-            print("Tweak rotation mode plz: ", meta_pbone.rotation_mode)
             bone_to_tweak.rotation_mode = meta_pbone.rotation_mode
 
         if self.params.tweak.shape:
@@ -90,7 +89,6 @@ class Component_TweakBone(Component_Base):
         if self.params.tweak.collections:
             bone_to_tweak.collections = [coll.name for coll in meta_pbone.bone.collections]
         if self.params.tweak.color_palette:
-            print(f"Tweak {bone_to_tweak} to color: {meta_pbone.bone.color.palette}")
             bone_to_tweak.color_palette_base = meta_pbone.bone.color.palette
             bone_to_tweak.color_palette_pose = meta_pbone.color.palette
 

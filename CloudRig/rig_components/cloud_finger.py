@@ -84,7 +84,7 @@ class Component_Finger(Component_Chain_IKFK):
         snap_helper = self.bone_sets['Mechanism Bones'].new(
             source=tip_str,
             parent=tip_str,
-            name="SNAP-" + ik_mstr.name,
+            name=self.naming.add_prefix(ik_mstr, "SNAP"),
             use_inherit_rotation=False,
         )
 
@@ -123,7 +123,7 @@ class Component_Finger(Component_Chain_IKFK):
         ik2_chain = []
         for org_bone in org_chain:
             ik2_bone = self.bone_sets['IK Mechanism'].new(
-                name=self.naming.add_prefix(org_bone.name, "IK2"),
+                name=self.naming.add_prefix(org_bone, "IK2"),
                 source=org_bone,
                 parent=ik2_chain[-1] if ik2_chain else self.root_bone,
             )
@@ -141,7 +141,7 @@ class Component_Finger(Component_Chain_IKFK):
         )
 
         ik2_rot = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(org_bone.name, "IK2-ROT"),
+            name=self.naming.add_prefix(org_bone, "IK2-ROT"),
             source=self.ik_mstr,
             parent=ik2_dt,
         )

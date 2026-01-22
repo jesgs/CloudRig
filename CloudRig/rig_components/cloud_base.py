@@ -144,7 +144,7 @@ class Component_Base(
 
         bone_infos = {}
         for pbone in self.get_component_pbone_chain():
-            if self.naming.has_trailing_zeroes(pbone):
+            if self.naming.has_trailing_numbers(pbone):
                 self.add_log(
                     "Trailing zeroes",
                     trouble_bone=pbone.name,

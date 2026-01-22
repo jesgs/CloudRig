@@ -171,9 +171,7 @@ class Component_ToonChain(Component_Base):
         if at_tip:
             str_name = self.naming.increment_name(str_name)
         if num_segments > 1:
-            sliced = self.naming.slice_name(str_name)
-            sliced[1] += "_1"
-            str_name = self.naming.make_name(*sliced)
+            str_name = self.naming.suffix_base_name(str_name, "_1")
         while self.generator.find_bone_info(str_name):
             str_name = self.naming.increment_name(str_name)
         size = sum(org_bone.custom_shape_scale_xyz[:])/3 * org_bone.length * self.params.chain.shape_size

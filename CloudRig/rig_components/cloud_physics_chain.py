@@ -57,9 +57,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
 
-        cloth_mesh = bpy.data.meshes.new(
-            name=self.phys_name
-        )
+        cloth_mesh = bpy.data.meshes.new(name=self.phys_name)
         if not phys_obj:
             # Create physics object.
             phys_obj = bpy.data.objects.new(cloth_mesh.name, cloth_mesh)
@@ -179,7 +177,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             next_parent = phys_ctrl
 
         self.bone_sets['Physics Bones'].new(
-            name="PIN-" + self.phys_name,
+            name=self.naming.add_prefix(self.phys_name, "PIN"),
             source=self.bone_sets['Physics Bones'][0],
             parent=self.bone_sets['Physics Bones'][0],
             use_deform=True,

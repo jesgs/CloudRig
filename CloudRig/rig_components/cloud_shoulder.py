@@ -26,14 +26,6 @@ class Component_Shoulder(Component_Chain_FK):
     ##############################
     # Inherited functions.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.bone_count > 1:
-            print(
-                f"""Shoulder rig on {self.base_bone_name} has a chain of more than a single bone.
-                   The rig only requires one bone, the rest will be unaffected!"""
-            )
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         self.__make_shoulder()

@@ -200,9 +200,6 @@ class Component_Limb_BipedLeg(Component_Limb):
         rolly_stretchy.scale_width(0.4)
         rolly_stretchy.add_constraint('STRETCH_TO', subtarget=ik_chain[-2].name)
 
-        _prefixes, base_name, suffixes = self.naming.slice_name(org_foot.name)
-        master_name = self.naming.make_name(["ROLL"], base_name, suffixes)
-
         # Create ROLL control behind the foot.
         head, tail = self.__calc_footroll_headtail()
 
@@ -212,7 +209,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         TOE_THRESHOLD = 135
 
         roll_ctrl = self.bone_sets['IK Controls'].new(
-            name=self.naming.make_name(["ROLL-M"], base_name, suffixes),
+            name=self.naming.add_prefix(org_foot, "ROLL-M"), # TODO: Swap the name of this with roll_master
             bbone_width=1 / 18,
             head=head,
             tail=tail,
@@ -236,12 +233,14 @@ class Component_Limb_BipedLeg(Component_Limb):
             max_z=rad(TWIST_RANGE),
         )
 
-        roll_master = None
-        roll_master = self.bone_sets['IK Mechanism'].new(
-            name=master_name, source=self.ik_mstr, parent=self.ik_mstr
+        roll_mch = None
+        roll_mch = self.bone_sets['IK Mechanism'].new(
+            name=self.naming.add_prefix(org_foot, "ROLL"),
+            source=self.ik_mstr,
+            parent=self.ik_mstr,
         )
         if not self.painter:
-            roll_master.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
+            roll_mch.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
             self.ik_tgt_bone.clear_constraints()
 
         # Create bone to use as pivot point when rolling back.
@@ -257,14 +256,11 @@ class Component_Limb_BipedLeg(Component_Limb):
             self.ik_mstr.parent._bbone_z = heel_pivot_bone.bone.bbone_z
 
         heel_pivot = self.bone_sets['IK Mechanism'].new(
-            name="IK-RollBack"
-            + base_name
-            + self.naming.SUFFIX_SEPARATOR
-            + self.side_suffix,
+            name=self.naming.add_prefix(org_foot, "ROLL-BACK"),
             bbone_width=org_toe.bbone_width,
             head=heel_pivot_bone.head,
             tail=heel_pivot_bone.tail,
-            parent=roll_master,
+            parent=roll_mch,
         )
         heel_pivot.roll_align_vector(org_knee.head, axis='-Z')
 

@@ -30,7 +30,7 @@ class Component_Aim(Component_Base):
 
         aim_org = self.bones_org[0]
         aim_bone = self.bone_sets['Mechanism Bones'].new(
-            name=self.naming.add_prefix(self.bones_org[0].name, 'AIM'),
+            name=self.naming.add_prefix(self.bones_org[0], 'AIM'),
             source=aim_org,
             parent=aim_org,
         )
@@ -121,7 +121,7 @@ class Component_Aim(Component_Base):
         tail = head + (head-aim_bone.head).normalized() * aim_bone.length
 
         target_bone = self.bone_sets['Aim Target Control'].new(
-            name=aim_bone.name.replace("AIM", "TGT"),
+            name=self.naming.add_prefix(aim_bone.source, "TGT"),
             source=aim_bone,
             head=head,
             tail=tail,
@@ -141,9 +141,7 @@ class Component_Aim(Component_Base):
     def __make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
         """Create direct control, with a display bone at the tip of it."""
         ctr_bone = self.bone_sets['Aim Target Control'].new(
-            name=self.naming.make_name(
-                ["CTR"], *self.naming.slice_name(org_bone.name)[1:]
-            ),
+            name=self.naming.add_prefix(org_bone, 'CTR'),
             source=org_bone,
             parent=org_bone.parent if self.params.aim.root else org_bone,
             custom_shape_name=self.params.aim.shape_eye.shape_name,
@@ -187,7 +185,7 @@ class Component_Aim(Component_Base):
 
     def __make_root_bone(self, org_bone) -> BoneInfo:
         root_bone = self.bone_sets['Aim Root Control'].new(
-            name=self.naming.add_prefix(org_bone.name, 'ROOT'),
+            name=self.naming.add_prefix(org_bone, 'ROOT'),
             source=org_bone,
             parent=org_bone.parent,
             custom_shape_name=self.params.aim.shape_root.shape_name,
@@ -200,10 +198,8 @@ class Component_Aim(Component_Base):
         return root_bone
 
     def __create_eye_highlight(self, ctr_bone):
-        name_slices = self.naming.slice_name(ctr_bone)
-        name_slices[1] += "_Highlight"
         highlight_ctr = self.bone_sets['Aim Target Control'].new(
-            name=self.naming.make_name(*name_slices),
+            name=self.naming.suffix_base_name(ctr_bone, "_Highlight"),
             source=ctr_bone,
             parent=ctr_bone,
             custom_shape_name=self.params.aim.shape_highlight.shape_name,
@@ -263,7 +259,6 @@ class Component_Aim(Component_Base):
             return
 
         group_name = self.params.aim.group
-        group_master_name = self.naming.add_prefix(group_name, "TGT")
         tgt_bones = self.__group_get_tgt_ctrls()
         org_bones = self.__group_get_org_bones()
 
@@ -298,7 +293,7 @@ class Component_Aim(Component_Base):
         # Create a helper bone in the center.
         group_vec = target_center - orgs_center
         center_bone = self.bone_sets['Mechanism Bones'].new(
-            name="CEN-" + group_name,
+            name=self.naming.add_prefix(group_name, "CEN"),
             source=self.bones_org[0],
             head=orgs_center,
             tail=orgs_center + group_vec.normalized() * lgt,
@@ -316,7 +311,7 @@ class Component_Aim(Component_Base):
 
         # Create the master bone.
         group_master = self.bone_sets['Aim Group Target Control'].new(
-            name=group_master_name,
+            name=self.naming.add_prefix(group_name, "TGT"),
             source=self.bones_org[0],
             head=target_center,
             tail=target_center + group_vec.normalized() * lgt,

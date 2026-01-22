@@ -127,10 +127,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     def fk_chain__make_root_bone(self):
         # Socket/Root bone to parent IK and FK to.
-        root_name = self.naming.add_prefix(self.base_bone_name, "ROOT")
         org_bone = self.bones_org[0]
         root_bone = self.bone_sets["FK Controls Extra"].new(
-            name=root_name,
+            name=self.naming.add_prefix(self.base_bone_name, "ROOT"),
             source=org_bone,
             parent=org_bone.parent,
             custom_shape_name=self.params.fk_chain.shape_fk_root.shape_name,
@@ -174,14 +173,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return fk_chain
 
     def __make_fk_bone(self, org_bone: BoneInfo) -> BoneInfo:
-        fk_name = self.naming.add_prefix(org_bone, "FK")
-
         rot_mode = self.params.fk_chain.rot_mode
         if rot_mode == "PROPAGATE":
             rot_mode = org_bone.rotation_mode
 
         fk_bone = self.bone_sets["FK Controls"].new(
-            name=fk_name,
+            name=self.naming.add_prefix(org_bone, "FK"),
             source=org_bone,
             custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             inherit_scale=self.params.fk_chain.inherit_scale,
@@ -212,7 +209,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         prop_name,
         default_value=0.0,
         parent_bone=None,
-        root_bone="",
+        root_bone_name="",
         hng_name=None,
         limb_name=None,
         bone_set=None,
@@ -226,27 +223,19 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         """
 
         # Defaults for optional parameters
-        if root_bone == "":
-            root_bone = self.generator.params.ensure_root
-        if not hng_name:
-            sliced = self.naming.slice_name(bone.name)
-            sliced[0].insert(0, "HNG")
-            hng_name = self.naming.make_name(*sliced)
-        if not parent_bone:
+        if root_bone_name == "":
+            root_bone_name = self.generator.params.ensure_root
+        if parent_bone is None:
             parent_bone = bone.parent
-        if not limb_name:
-            limb_name = (
-                "Hinge: "
-                + self.side_suffix
-                + " "
-                + self.naming.slice_name(bone.name)[1]
-            )
         if bone_set is None:
             bone_set = bone.bone_set
 
         # Create Hinge helper bone
         hng_bone = bone_set.new(
-            name=hng_name, source=bone, head=bone.source.head, tail=bone.source.tail
+            name=hng_name or self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
+            source=bone,
+            head=bone.source.head,
+            tail=bone.source.tail,
         )
 
         # Store UI info
@@ -256,7 +245,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             panel_name=panel_name,
             label_name=label_name,
             row_name=category,
-            slider_name=limb_name,
+            slider_name=limb_name or self.limb_ui_name,
             custom_prop_settings={
                 "default": default_value,
                 "description": "When enabled, rotation is not inherited, except from the armature's root",
@@ -270,7 +259,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         self.create_driven_armature_constraint(
             hng_bone,
-            target_bones=[parent_bone, root_bone],
+            target_bones=[parent_bone, root_bone_name],
             prop_bone=prop_bone,
             prop_name=prop_name,
             name="Armature (FK Hinge)",
@@ -288,7 +277,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     def __make_curl_control(self, fk_chain):
         curl_control = self.bone_sets["FK Curl Control"].new(
-            name="CURL-" + self.bones_org[0].name,
+            name=self.naming.add_prefix(self.base_bone_name, 'CURL'),
             source=fk_chain[0],
             custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             inherit_scale=self.params.fk_chain.inherit_scale,

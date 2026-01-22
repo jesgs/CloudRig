@@ -64,7 +64,7 @@ def update_expected_data(context, metarig: Object, frame: int):
     context.scene.frame_current = frame
     metarig['expected_data'] = pose_to_dict(metarig.cloudrig.generator.target_rig)
 
-def pose_to_dict(rig: Object, *, bone_subset: list[str] = [], visible_only=True) -> dict[str, dict[str, str]]:
+def pose_to_dict(rig: Object, *, bone_subset: list[str] = [], visible_only=True, selectable_only=True) -> dict[str, dict[str, str]]:
     """Crunch the pose of a rig into a data structure that can be stored in a custom property
     for later comparison.
     NOTE: We use list of list instead of list of tuples because tuples auto-convert
@@ -73,6 +73,8 @@ def pose_to_dict(rig: Object, *, bone_subset: list[str] = [], visible_only=True)
         pbones = [pb for pb in rig.pose.bones if is_pbone_visible(pb)]
     else:
         pbones = rig.pose.bones
+    if selectable_only:
+        pbones = [pb for pb in pbones if not pb.bone.hide_select]
 
     transforms = {}
     for pb in sorted(pbones, key=lambda pb: pb.name):
