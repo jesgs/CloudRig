@@ -8,9 +8,7 @@ def ensure_collection(
     """Check if a collection with a certain name exists.
     If yes, return it, if not, create it in the active collection.
     """
-    view_layer = context.view_layer
-    active_layer_coll = context.layer_collection
-    active_collection = active_layer_coll.collection
+    parent_collection = context.scene.collection
 
     collection = bpy.data.collections.get(collection_name)
     if not collection or collection.library:
@@ -19,23 +17,15 @@ def ensure_collection(
         collection.hide_viewport = hidden
         collection.hide_render = hidden
 
-        layer_collection = None
-    else:
-        layer_collection = find_layer_collection_by_collection(
-            view_layer.layer_collection, collection
-        )
+    parent_collection.children.link(collection)
 
-    if not layer_collection:
-        # Let the new collection be a child of the active one.
-        active_collection.children.link(collection)
-        layer_collection = [
-            c for c in active_layer_coll.children if c.collection == collection
-        ][0]
-
+    view_layer = context.view_layer
+    layer_collection = find_layer_collection_by_collection(
+        view_layer.layer_collection, collection
+    )
+    if layer_collection:
         layer_collection.exclude = exclude
 
-    # Make the new collection active.
-    view_layer.active_layer_collection = layer_collection
     return collection
 
 
