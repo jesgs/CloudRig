@@ -432,17 +432,20 @@ class Component_ToonChain(Component_Base):
 
             head = str_bone.head
             bbone_width = (head-tail).length/10
-            def_name = str_bone.name.replace("STR", "DEF")
+            bbone_x, bbone_z = bbone_width, bbone_width
+            if org_bone.display_type == 'BBONE' or (org_bone.display_type=='ARMATURE_DEFINED' and self.metarig.data.display_type == 'BBONE'):
+                bbone_x, bbone_z = org_bone.bbone_x, org_bone.bbone_z
+
             def_bone = self.bones_def.new(
-                name=def_name,
+                name=str_bone.name.replace("STR", "DEF"),
                 source=org_bone,
                 parent=parent,
                 head=head,
                 tail=tail,
                 use_deform=True,
                 inherit_scale='NONE',
-                bbone_x=bbone_width,
-                bbone_z=bbone_width,
+                bbone_x=bbone_x,
+                bbone_z=bbone_z,
             )
             parent = def_bone
             if i == 0:
