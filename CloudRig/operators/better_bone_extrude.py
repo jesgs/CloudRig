@@ -99,15 +99,13 @@ class BoneDuplicateOpMixin:
             # I'm just gonna ignore it, this is a silly edge case, and it's only the driver copying that fails.
             return {'FINISHED'}
 
-        for bone_name in new_bones_names:
-            new_eb = rig.data.edit_bones[bone_name]
-            new_eb.select_head = False
-            new_eb.select = False
-            if new_eb.parent and new_eb.use_connect:
-                new_eb.parent.select_tail = False
+        new_ebones = [rig.data.edit_bones[bone_name] for bone_name in new_bones_names]
+        self.post_execute(new_ebones)
 
         return {'FINISHED'}
 
+    def post_execute(self, new_ebones):
+        pass
 
 def copy_drivers_of_bone(
         rig: Object,
@@ -157,6 +155,13 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
         # Extrude it!
         bpy.ops.armature.extrude_move()
 
+    def post_execute(self, new_ebones):
+        for new_eb in new_ebones:
+            new_eb.select_head = False
+            new_eb.select = False
+            if new_eb.parent and new_eb.use_connect:
+                new_eb.parent.select_tail = False
+
 
 class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
     bl_idname = "armature.better_bone_duplicate"
@@ -176,6 +181,8 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
         # Duplicate it!
         bpy.ops.armature.duplicate_move()
 
+    def post_execute(self, new_ebones):
+        pass
 
 registry = [ARMATURE_OT_better_bone_extrude, ARMATURE_OT_better_bone_duplicate]
 
