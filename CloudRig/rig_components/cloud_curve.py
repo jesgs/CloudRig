@@ -235,31 +235,27 @@ class Component_Curve_Hooked(Component_Base):
         return opp_spline, opp_point_idx
 
     def __get_hook_name(self, spline_idx: int, point_idx: int, prefix="") -> str:
-        spline_name = self.__get_spline_name(spline_idx, prefix).replace(
-            "Spline", "Hook"
-        )
-        prefixes, base, suffixes = self.naming.slice_name(spline_name)
+        spline_name = self.__get_spline_name(spline_idx, prefix)
+        hook_name = spline_name.replace("Spline", "Hook")
+        prefixes, base, suffixes = self.naming.slice_name(hook_name)
 
         suffixes = list(set(suffixes))
         suffix = suffixes[0] if suffixes else ""
 
-        assert len(suffixes) < 2, (
-            "Hook control name should have max one suffix: " + spline_name
-        )
+        assert len(suffixes) < 2, f"Hook name should have max 1 suffix: {hook_name}"
 
-        point_name = point_idx
+        idx_str = point_idx
         if self.params.curve.x_axis_symmetry:
             curve = self.params.curve.target.data
-            opp_spline, opp_point_idx = self.__get_mirror_point(
-                curve, spline_idx, point_idx
-            )
+            spline = curve.splines[spline_idx]
+            point = get_spline_points(spline)[point_idx]
+
+            opp_spline, opp_point_idx = self.__get_mirror_point(curve, spline_idx, point_idx)
             opp_point = get_spline_points(opp_spline)[opp_point_idx]
-            point = get_spline_points(curve.splines[spline_idx])[point_idx]
 
             if opp_point != point:
-                point_name = min([point_idx, opp_point_idx])
-                spline = curve.splines[spline_idx]
-                x_co = get_spline_points(spline)[point_idx].co.x
+                idx_str = min([point_idx, opp_point_idx])
+                x_co = point.co.x
                 if x_co > 0:
                     suffix = "L"
                 elif x_co < 0:
@@ -267,7 +263,7 @@ class Component_Curve_Hooked(Component_Base):
             else:
                 suffix = ""
 
-        base += f"_{str(point_name).zfill(2)}"
+        base += f"_{str(idx_str).zfill(2)}"
 
         return self.naming.make_name(prefixes, base, [suffix])
 
@@ -331,24 +327,31 @@ class Component_Curve_Hooked(Component_Base):
         hook_ctr.roll_align_vector(point_loc + self.point_tangents[spline_idx][point_idx])
 
         hook_ctr.invert_tilt = False
-        hook_ctr.is_bezier = is_bezier
         if self.params.curve.x_axis_symmetry:
             opp_hook_ctr = self.generator.find_bone_info(
                 self.naming.flip_name(hook_ctr)
             )
-            if opp_hook_ctr:
+            if opp_hook_ctr and opp_hook_ctr != hook_ctr:
                 hook_ctr.tail = opp_hook_ctr.tail * Vector((-1, 1, 1))
+                hook_ctr.roll_flip()
                 hook_ctr.invert_tilt = True
+        hook_ctr.is_bezier = is_bezier
 
         hook_ctr.spline_idx = spline_idx
         hook_ctr.left_handle_control = None
         hook_ctr.right_handle_control = None
+        swap_em = False
 
         if is_bezier and self.params.curve.controls_for_handles:
             shape = self.params.curve.shape_bezier_center.shape_name
+            if self.params.curve.x_axis_symmetry and point_loc.x > 0:
+                left_handle_loc, right_handle_loc = right_handle_loc, left_handle_loc
+                swap_em = True
             self.__make_ctrls_for_handles(
                 hook_ctr, spline_idx, point_idx, point_loc, left_handle_loc, right_handle_loc, cyclic
             )
+            if swap_em:
+                hook_ctr.left_handle_control, hook_ctr.right_handle_control = hook_ctr.right_handle_control, hook_ctr.left_handle_control
 
         hook_ctr.custom_shape_name = shape
 
@@ -363,7 +366,6 @@ class Component_Curve_Hooked(Component_Base):
             radius_control = self.bone_sets['Curve Handles'].new(
                 name=self.__get_hook_name(spline_idx, point_idx, "Radius"),
                 source=hook_ctr,
-                tail=loc_left,
                 parent=hook_ctr,
                 custom_shape_name=self.params.curve.shape_radius.shape_name,
                 use_custom_shape_bone_size=True,
@@ -380,14 +382,22 @@ class Component_Curve_Hooked(Component_Base):
 
         LEFT = "L"
         RIGHT = "R"
-        if self.params.curve.x_axis_symmetry and loc.x > 0:
-            LEFT, RIGHT = RIGHT, LEFT
+        left_handle_name = self.__get_hook_name(spline_idx, point_idx, LEFT)
+        right_handle_name = self.__get_hook_name(spline_idx, point_idx, RIGHT)
+        if self.params.curve.x_axis_symmetry and self.naming.side_is_left(hook_ctr) is None:
+            # We're setting up the handles for the center-bone of a symmetrical spline.
+            if loc_left.x < 0:
+                LEFT, RIGHT = RIGHT, LEFT
+            left_handle_name = self.__get_hook_name(spline_idx, point_idx) + "."+LEFT
+            right_handle_name = self.__get_hook_name(spline_idx, point_idx) + "."+RIGHT
 
         if (point_idx != 0) or cyclic:
             # Skip for first hook unless cyclic.
             handle_left_ctr = self.bone_sets['Curve Handles'].new(
-                name=self.__get_hook_name(spline_idx, point_idx, LEFT),
+                name=left_handle_name,
                 source=hook_ctr,
+                head=loc,
+                tail=loc_left,
                 parent=hook_ctr,
                 custom_shape_name=self.params.curve.shape_handle.shape_name,
                 use_custom_shape_bone_size=True,
@@ -405,7 +415,7 @@ class Component_Curve_Hooked(Component_Base):
         if (point_idx != last_point_idx) or cyclic:
             # Skip for last hook unless cyclic.
             handle_right_ctr = self.bone_sets['Curve Handles'].new(
-                name=self.__get_hook_name(spline_idx, point_idx, RIGHT),
+                name=right_handle_name,
                 source=hook_ctr,
                 head=loc_right,
                 tail=loc,
@@ -713,6 +723,7 @@ class Params(PropertyGroup):
     hook_name: StringProperty(
         name="Custom Name",
         description="Used in the naming of created bones and objects. If empty, use the base bone's name",
+        # TODO: This should be removed in favor of `base.base_name`.
         default="",
     )
     controls_for_handles: BoolProperty(
