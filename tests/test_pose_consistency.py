@@ -21,7 +21,6 @@ def test_curves(context_curves):
         'META-curves_symmetry': 20,
     }
     metarigs_test(context_curves, obj_frame_map)
-    bpy.ops.wm.save_mainfile()
 
 #########################################
 

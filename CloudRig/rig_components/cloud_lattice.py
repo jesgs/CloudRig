@@ -65,10 +65,8 @@ class Component_Lattice(Component_Base):
                     )
 
     def __make_lattice_root(self, org_bi):
-        name_parts = self.naming.slice_name(org_bi)
-        root_name = self.naming.make_name(['ROOT', 'LTC'], name_parts[1], name_parts[2])
         root_bone = self.bone_sets['Lattice Controls'].new(
-            name=root_name,
+            name=self.naming.add_prefix(org_bi, "ROOT-LTC"),
             source=org_bi,
             parent=org_bi.parent,
         )
@@ -80,9 +78,8 @@ class Component_Lattice(Component_Base):
         return root_bone
 
     def __make_hook_ctrl(self, root_bone):
-        hook_name = root_bone.name.replace("ROOT-LTC", "LTC")
         hook_bone = self.bone_sets['Lattice Controls'].new(
-            name=hook_name,
+            name=self.naming.add_prefix(root_bone.source, "LTC"),
             source=root_bone,
             parent=root_bone,
             custom_shape_name=self.params.lattice.shape_lattice.shape_name,

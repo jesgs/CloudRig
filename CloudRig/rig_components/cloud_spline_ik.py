@@ -192,15 +192,13 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             for i in range(0, segments):
                 ## Create Deform bones
                 if self.params.curve.hook_name != "":
-                    def_name = self.params.curve.hook_name
+                    name_base = self.params.curve.hook_name
                     counter = count_def_bone
                 else:
-                    def_name = org_bone.name.replace("ORG-", "")
+                    name_base = org_bone.name
                     counter = i
-                prefixes, base, suffixes = self.naming.slice_name(def_name)
-                base += "_" + str(counter).zfill(len(str(segments)))
-                prefixes.insert(0, "DEF")
-                def_name = self.naming.make_name(prefixes, base, suffixes)
+                name_base = self.naming.add_prefix(name_base, "DEF")
+                def_name = self.naming.suffix_base_name(name_base, str(counter).zfill(len(str(segments))))
                 count_def_bone += 1
 
                 unit = org_bone.vector / segments

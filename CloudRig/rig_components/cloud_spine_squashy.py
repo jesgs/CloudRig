@@ -31,9 +31,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
                 "Component must consist of a chain of at least 2 connected bones!"
             )
 
-        self.spine_name = self.base_name
-        self.squashy_name = "squashy_spine_" + self.spine_name.lower()
-        self.squashy_volume_name = "squashy_spine_volume_" + self.spine_name.lower()
+        self.squashy_name = "squashy_spine_" + self.base_name.lower()
+        self.squashy_volume_name = "squashy_spine_volume_" + self.base_name.lower()
 
         self.root_torso = None
 
@@ -55,7 +54,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
     def fk_chain__make_root_bone(self):
         # Create Torso Master control
         root_bone = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["TORSO"], self.spine_name, [self.side_suffix]),
+            name=self.naming.add_prefix(self.base_name, 'TORSO'),
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
@@ -69,7 +68,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         # Create master hip control
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["HIP"], self.spine_name, [self.side_suffix]),
+            name=self.naming.add_prefix(self.base_name, 'HIP'),
             source=org_chain[0],
             head=org_chain[0].tail,
             tail=org_chain[0].head,
@@ -97,7 +96,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         ### Create master chest control
         chest_org = self.bones_org[-1]
         self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.add_prefix(self.spine_name, "CHST"),
+            name=self.naming.add_prefix(self.base_name, "CHST"),
             source=chest_org,
             head=chest_org.prev.center,
             custom_shape_name="Saddle",
@@ -116,7 +115,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         # Create squash helper
         self.squash_helper = self.bone_sets['Spine Mechanism'].new(
-            name=f"SQS-{self.spine_name}",
+            name=self.naming.add_prefix(self.base_name, "SQS"),
             source=self.bones_org[0],
             head=self.fk_chain[0].head,
             tail=self.mstr_chest.head,
@@ -199,7 +198,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             prop_id=self.squashy_name,
             panel_name="FK/IK Switch",
             row_name=self.base_name,
-            slider_name=self.spine_name,
+            slider_name=self.base_name,
             custom_prop_settings={
                 'default': 1.0,
                 'description': "Switch to an IK-like posing mode. Instead of posing the spine from bottom to top, this lets you control the two end points in an intuitive way",
@@ -211,7 +210,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             prop_id=self.squashy_volume_name,
             panel_name="IK",
             row_name=self.base_name,
-            slider_name=self.spine_name + " Squash & Stretch",
+            slider_name=self.base_name + " Squash & Stretch",
             custom_prop_settings={
                 'default': 0.0,
                 'description': "Allow the spine to stretch beyond its normal length while in IK mode, for a cartoony effect",

@@ -58,7 +58,7 @@ class CloudMechanismMixin:
     def make_def_bone(self, bone, bone_set):
         """Make a DEF- bone parented to bone."""
         def_bone = bone_set.new(
-            name=self.naming.make_name(["DEF"], *self.naming.slice_name(bone.name)[1:]),
+            name=self.naming.add_prefix(bone.source, "DEF"),
             source=bone,
             use_deform=True,
             parent=bone,

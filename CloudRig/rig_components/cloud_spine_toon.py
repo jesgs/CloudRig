@@ -172,9 +172,9 @@ class Component_Spine_Toon(Component_Chain_FK):
     @no_overlay
     def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
         ik_chain = []
-        def make_ik_bone(name: str, parent: BoneInfo) -> BoneInfo:
+        def make_ik_bone(bone_name: str, parent: BoneInfo) -> BoneInfo:
             ik_hlp = self.bone_sets['Toon Spine IK Secondary'].new(
-                name=name,
+                name=bone_name,
                 source=fk_bone,
                 parent=parent,
                 custom_shape_name=self.params.spine_toon.shape_ik_secondary.shape_name,
@@ -199,7 +199,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         # Make the IK chain.
         next_parent = hips if len(self.fk_chain) > 3 else chest
         for i, fk_bone in enumerate(fk_chain[1:]):
-            ik_hlp = make_ik_bone(fk_bone.name.replace("FK", "IK"), next_parent)
+            ik_name = self.naming.add_prefix(fk_bone.source, "IK")
+            ik_hlp = make_ik_bone(ik_name, next_parent)
             if 0 < i < len(fk_chain)-3:
                 unit = 1 / (len(fk_chain)-3)
                 chest_influence = unit*i
@@ -241,7 +242,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         next_parent = hips
         for i, fk_bone in enumerate(fk_chain):
             ik_str = self.bone_sets['Toon Spine Mechanism'].new(
-                name=fk_bone.name.replace("FK", "IK-STR"),
+                name=self.naming.add_prefix(fk_bone.source, "IK-STR"),
                 source=fk_bone,
                 head=fk_bone.head,
                 tail=ik_chain[i].head,

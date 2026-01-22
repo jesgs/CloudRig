@@ -268,9 +268,9 @@ class Component_ToonChain(Component_Base):
         index: int,
     ) -> BoneInfo:
         # Add the index after the base name
-        sliced = self.naming.slice_name(main_start.name)
-        base_name = sliced[1][:-1] + str(index + 1)
-        sub_str_name = self.naming.make_name(sliced[0], base_name, sliced[2])
+        prefix, base, suffix, zeroes = self.naming.get_name_parts(main_start.name)
+        base = base[:-1] + str(index + 1)
+        sub_str_name = prefix+base+suffix+zeroes
 
         vector = main_end.head - main_start.head
         unit = vector / num_segments

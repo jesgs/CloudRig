@@ -131,12 +131,6 @@ class Component_Base(
         # NOTE: self.params.base.base_name shouldn't be accessed directly outside of here.
         return self.params.base.base_name or self.naming.get_name_parts(self.base_bone_name)[1]
 
-    def make_name(self, prefixes: list[str], base=""):
-        orig_prefixes, base_bone_base, suffixes, blender_zeroes = self.naming.get_name_parts(self.base_bone_name)
-        if not base:
-            base = base_bone_base
-        return orig_prefixes + "-".join(prefixes) + "-" + base + suffixes + blender_zeroes
-
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
         which will be turned into real bones by the CloudRig generator.

@@ -76,7 +76,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         # Create master hip control.
         self.mstr_hips = self.bone_sets['Spine Main Controls'].new(
-            name=self.naming.make_name(["HIP"], self.base_name, [self.side_suffix]),
+            name=self.naming.add_prefix(self.base_name, "HIP"),
             source=org_chain[0],
             head=org_chain[0].tail,
             tail=org_chain[0].head,
@@ -155,7 +155,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         ### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
         for i, org_bone in enumerate(self.bones_org):
             ik_ctr_bone = self.bone_sets['Spine IK Secondary'].new(
-                name="IK-CTR-" + org_bone.name,
+                name=self.naming.add_prefix(org_bone, "IK-CTR"),
                 source=org_bone,
                 custom_shape_name=self.params.spine.shape_ik.shape_name,
                 rotation_mode='YZX',
@@ -204,9 +204,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
         # We iterate in reverse to make the parenting easier.
         next_parent = self.mstr_chest
         for i, ik_ctr_bone in enumerate(reversed(self.ik_ctr_chain)):
-            ik_r_name = ik_ctr_bone.name.replace("IK-CTR", "IK-R")
             ik_r_bone = self.bone_sets['Spine Mechanism'].new(
-                name=ik_r_name,
+                name=self.naming.add_prefix(ik_ctr_bone.source, "IK-R"),
                 head=ik_ctr_bone.tail,
                 tail=ik_ctr_bone.head,
                 parent=next_parent,
@@ -234,9 +233,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
         for i, (org_bone, ik_r_bone, ik_ctr_bone) in enumerate(
             zip(self.bones_org, self.ik_r_chain, self.ik_ctr_chain)
         ):
-            ik_name = ik_r_bone.name.replace("IK-R", "IK-M")
             ik_bone = self.bone_sets['Spine Mechanism'].new(
-                name=ik_name,
+                name=self.naming.add_prefix(ik_r_bone.source, "IK-M"),
                 source=org_bone,
                 parent=next_parent,
                 custom_shape_name='Arrow',
