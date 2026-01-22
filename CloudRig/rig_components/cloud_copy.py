@@ -74,7 +74,7 @@ class Component_CopyBone(Component_Base):
 
         if self.params.copy.create_deform:
             # Make a copy with DEF- prefix, as our deform bone.
-            def_bone = self.make_def_bone(bone_info, self.bones_def)
+            def_bone = self.make_def_bone(bone_info, self.naming.add_prefix(bone_info, "DEF"), self.bones_def)
             def_bone.parent = bone_info
 
         if self.params.copy.property_ui_subpanel:

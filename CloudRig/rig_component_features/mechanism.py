@@ -55,13 +55,13 @@ class CloudMechanismMixin:
         )
         child.add_constraint('DAMPED_TRACK', subtarget=end)
 
-    def make_def_bone(self, bone, bone_set):
+    def make_def_bone(self, parent_bone: BoneInfo, bone_name: str, bone_set):
         """Make a DEF- bone parented to bone."""
         def_bone = bone_set.new(
-            name=self.naming.add_prefix(bone.source, "DEF"),
-            source=bone,
+            name=bone_name,
+            source=parent_bone,
             use_deform=True,
-            parent=bone,
+            parent=parent_bone,
         )
         return def_bone
 

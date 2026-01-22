@@ -48,7 +48,7 @@ class Component_Aim(Component_Base):
         aim_bone.add_constraint('DAMPED_TRACK', subtarget=self.target_bone.name)
 
         if self.params.aim.deform:
-            def_bone = self.make_def_bone(self.ctr_bone, self.bones_def)
+            def_bone = self.make_def_bone(self.ctr_bone, self.ctr_bone.name.replace("CTR-", "DEF-"), self.bones_def)
             def_bone.parent = aim_org
             def_bone.add_constraint('COPY_TRANSFORMS', subtarget=self.ctr_bone.name)
 
@@ -97,19 +97,12 @@ class Component_Aim(Component_Base):
         """Find location of where the target bone should be for an aim bone."""
         direction = bone.vector.normalized()
 
-        not_flattened = (
-            bone.tail
-            + direction
-            * self.params.aim.target_distance * self.scale
-        )
+        not_flattened = bone.tail + (direction * self.params.aim.target_distance * self.scale)
 
         # Discard X axis.
         direction[0] = 0.0
-        flattened = (
-            bone.head
-            + direction
-            * self.params.aim.target_distance * self.scale
-        )
+        direction.normalize()
+        flattened = bone.head + (direction * self.params.aim.target_distance * self.scale)
 
         lerped = not_flattened.lerp(flattened, self.params.aim.flatten)
 
@@ -234,7 +227,7 @@ class Component_Aim(Component_Base):
         self.lock_transforms(highlight_ctr, loc=False, rot=False, scale=[False, True, False])
 
         if self.params.aim.deform:
-            self.make_def_bone(highlight_ctr, self.bones_def)
+            self.make_def_bone(highlight_ctr, highlight_ctr.name.replace("CTR-", "DEF-"), self.bones_def)
 
     def __group_get_components(self) -> list[Component_Aim]:
         return [comp for comp in self.generator.all_components
@@ -300,7 +293,7 @@ class Component_Aim(Component_Base):
             parent=self.generator.find_bone_info(first_parent),
         )
         center_bone.roll_align_vector(center_bone.head + z_axis)
-        center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in tgt_bones])
+        center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in org_bones])
 
         max_dist = 0
         for i, target_pos in enumerate(target_positions[1:]):
@@ -319,6 +312,8 @@ class Component_Aim(Component_Base):
             use_custom_shape_bone_size=False,
             custom_shape_scale_xyz=Vector((targets_size, 1, shape_size*2.2)),
         )
+        for tgt_bone in tgt_bones:
+            tgt_bone.parent = group_master
         group_master.roll_align_other(center_bone)
         group_master.add_constraint(
             'DAMPED_TRACK', subtarget=center_bone.name, track_axis='TRACK_NEGATIVE_Y'
