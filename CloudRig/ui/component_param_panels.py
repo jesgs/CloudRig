@@ -68,7 +68,7 @@ class CLOUDRIG_PT_rig_component(Panel):
             prefs,
             'component_types',
             icon='ARMATURE_DATA' if not row.alert else 'ERROR',
-            text=text
+            text=text,
         )
         if rig_component.component_type == 'Spine: Squashy':
             # TODO 5.1: Remove Spine: Cartoon.

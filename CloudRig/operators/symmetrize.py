@@ -170,14 +170,7 @@ def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         return
 
     symmetrized_con = find_or_create_constraint(opp_pb, con.type, con.name)
-    if not symmetrized_con:
-        # Looks like this constraint didn't get copied by the Symmetrize operator. This shouldn't happen.
-        print(
-            "ERROR: Constraint not created by Symmetrize operator: ",
-            pbone.name,
-            con.name,
-        )
-        return
+    assert symmetrized_con, "Constraint should exist! This is a bug!"
     if con.type == 'ARMATURE':
         # The built-in Symmetrize operator only flips Armature Constraint subtargets,
         # if there is also a target ID. Otherwise, the subtarget gets ignored...
@@ -281,7 +274,7 @@ def symmetrize_drivers(
                 if src_var.type == 'TRANSFORMS' and src_tgt.transform_space != 'LOCAL_SPACE':
                     # NOTE: Non-euler rotation modes might also be off when mirroring drivers.
                     print(
-                        "WARNING: Only local space is supported for mirroring driver variables. Result may be unexpected for ",
+                        "CloudRig Warning: Only local space is supported for mirroring driver variables. Result may be unexpected for ",
                         src_fc.data_path,
                     )
 

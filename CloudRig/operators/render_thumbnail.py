@@ -41,7 +41,7 @@ def temporary_setattr(obj, **kwargs):
             try:
                 setattr(obj, name, value)
             except TypeError:
-                print(f"Can't set {name} to {value}")
+                print(f"CloudRig: Failed to set {name} to {value}")
                 raise
         yield
     finally:

@@ -28,7 +28,7 @@ def pre_save(scene, context):
         obj.rotation_euler = (0, 0, 0)
         obj.scale = (1, 1, 1)
         if max(obj.dimensions) - 1.0 > 0.01:
-            print("Warning: Widget object's longest dimension should be 1m: ", obj.name, obj.dimensions)
+            print("CloudRig Widgets Warning: Widget object's longest dimension should be 1m: ", obj.name, obj.dimensions)
 
         # Nuke attributes
         if obj.data and hasattr(obj.data, 'attributes'):
