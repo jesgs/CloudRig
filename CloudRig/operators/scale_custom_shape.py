@@ -1,4 +1,5 @@
 import bpy
+from bpy.utils import flip_name
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.cloudrig import find_cloudrig, is_cloud_metarig
@@ -35,6 +36,11 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
             pb for pb in get_pbones_of_selected(context, whole_ebone=True)
             if (pb.custom_shape or is_cloud_metarig(rig))
         ]
+        if rig.pose.use_mirror_x:
+            for pb in self.pbones[:]:
+                opp_pb = rig.pose.bones.get(flip_name(pb.name))
+                if opp_pb:
+                    self.pbones.append(opp_pb)
 
         if not self.pbones:
             self.report({'WARNING'}, "No pose bones with custom shapes selected")
