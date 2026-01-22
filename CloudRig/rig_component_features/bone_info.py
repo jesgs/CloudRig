@@ -208,7 +208,7 @@ class BoneInfo:
                     self.collections = source.collections.copy()
             else:
                 # Copy data from PoseBone and Bone.
-                assert isinstance(source, PoseBone), "BoneInfo can only use a PoseBone or another BoneInfo as source."
+                assert isinstance(source, PoseBone), f"BoneInfo can only use a PoseBone or another BoneInfo as source, not {type(source)}."
                 self.__load_data_from_real_pbone(
                     source,
                     allow_pose_transforms=allow_pose_transforms,

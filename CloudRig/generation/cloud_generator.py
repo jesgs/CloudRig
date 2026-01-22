@@ -553,6 +553,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 parent_bone_info = bone_infos.get(bone.parent.name)
                 if parent_bone_info:
                     bone_info.parent = parent_bone_info
+                else:
+                    # This can happen during overlay drawing, when only generating
+                    # a sub-set of the whole armature.
+                    bone_info.parent = None
 
     def components_create_bone_infos(self, context):
         """Create BoneInfos that will get turned into real bones later."""
