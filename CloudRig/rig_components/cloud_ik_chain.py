@@ -172,7 +172,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     ##############################
     # IK Chain functions.
 
-    def ik_chain__prevent_straight_chain(self, y_offset=0.001):
+    def ik_chain__prevent_straight_chain(self, invert_offset=False):
         """An IK chain is not allowed to be perfectly straight.
         Forcing a successful generation would result in an IK constraint which simply does nothing.
         Instead of doing that, and instead of throwing a hard error, let's throw a warning, and offset
@@ -180,24 +180,29 @@ class Component_Chain_IKFK(Component_Chain_FK):
         """
 
         points = (self.bones_org[0].head, self.bones_org[0].tail, self.bones_org[1].tail)
-        if not points_define_plane(*points):
-            self.bones_org[0].tail.y += y_offset
-            self.bones_org[1].head.y += y_offset
-            self.add_log(
-                "Ambiguous IK Pole Direction",
-                description=(
-                    "This IK chain is a perfectly straight line.\n"
-                    "This would normally prevent the IK constraint from choosing a direction to bend in.\n"
-                    "To avoid this, the elbow joint was slightly offset in an arbitrarily chosen direction.\n"
-                    "It would be better if you introduced a kink into the chain yourself."
-                ),
-                operator='object.cloudrig_tweak_bone_rest_pose',
-                op_kwargs={
-                    'bone_name': self.bones_org[0].name,
-                    'selection': 'TAIL',
-                    'offset': (0, y_offset, 0),
-                },
-            )
+        eps = self.bones_org[0].length * 0.01
+        if points_define_plane(*points, eps=eps):
+            return
+
+        y_offset = eps
+        if invert_offset:
+            y_offset *= -1
+        self.bones_org[0].tail.y += y_offset
+        self.bones_org[1].head.y += y_offset
+        self.add_log(
+            "Ambiguous IK Pole Direction",
+            description=(
+                "This IK chain is a perfectly straight line.\n"
+                "This would normally prevent the IK constraint from choosing a direction to bend in.\n"
+                "To avoid this, the elbow joint was slightly offset in an arbitrarily chosen direction.\n"
+                "It would be better if you introduced a kink into the chain yourself."
+            ),
+            operator='object.cloudrig_tweak_bone_rest_pose',
+            op_kwargs={
+                'bone_name': self.bones_org[0].name,
+                'selection': 'TAIL',
+            },
+        )
 
 
     def ik_chain__make_ik_setup(self):

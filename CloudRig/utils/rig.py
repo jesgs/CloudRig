@@ -287,9 +287,9 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
 
 
 def points_define_plane(p1, p2, p3, eps=1e-8) -> bool:
-    v1 = p2 - p1
-    v2 = p3 - p1
-    return v1.cross(v2).length > eps
+    v1 = (p2 - p1).normalized()
+    v2 = (p3 - p2).normalized()
+    return (v2-v1).length > eps
 
 
 def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]]:

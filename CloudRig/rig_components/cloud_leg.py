@@ -52,9 +52,9 @@ class Component_Limb_BipedLeg(Component_Limb):
             if d['prop'] == 'bbone_easein':
                 foot_def.drivers.remove(d)
 
-    def ik_chain__prevent_straight_chain(self, y_offset=0.001):
+    def ik_chain__prevent_straight_chain(self, invert_offset=False):
         # Since legs face the opposite direction, let's flip the offset here.
-        super().ik_chain__prevent_straight_chain(y_offset=-y_offset)
+        super().ik_chain__prevent_straight_chain(invert_offset=True)
 
     def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
         """Place the properties bone near where the foot IK will be,
