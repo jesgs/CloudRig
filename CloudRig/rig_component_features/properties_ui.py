@@ -332,13 +332,12 @@ class CloudRigUIEditOpMixin:
             prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(
                 self, rig
             )
-            if prop_owner and type(prop_owner) in (PoseBone, BoneCollection):
+            if prop_owner:
                 owner_path = prop_owner.name
-
-        if owner_path == "" or owner_path in rig.pose.bones:
-            self.use_bone_selector = True
-        elif owner_path in rig.data.collections_all:
-            self.use_coll_selector = True
+                if isinstance(prop_owner, PoseBone):
+                    self.use_bone_selector = True
+                elif isinstance(prop_owner, BoneCollection):
+                    self.use_coll_selector = True
 
         self.use_parenting = self.parent_ui_path != "[]"
         self.update_property_parent_selector(context)
