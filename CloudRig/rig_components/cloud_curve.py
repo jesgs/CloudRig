@@ -103,8 +103,8 @@ class Component_Curve_Hooked(Component_Base):
             parent_bone = self.root_bone
             if self.params.curve.root_per_spline:
                 loc = get_spline_bounding_box_center(spline)
-                loc_delta = self.params.curve.target.matrix_world.to_translation()
-                dir = get_spline_points(spline)[0].co.xyz - loc  # .normalized()
+                object_offset = self.params.curve.target.matrix_world.to_translation()
+                dir = (get_spline_points(spline)[0].co.xyz - loc).normalized()
                 spline_name = self.__get_spline_name(spline_idx)
                 if (
                     self.params.curve.x_axis_symmetry
@@ -114,10 +114,11 @@ class Component_Curve_Hooked(Component_Base):
                 spline_root = self.bone_sets['Spline Roots'].new(
                     name=spline_name,
                     source=self.root_bone,
-                    head=loc + loc_delta,
-                    tail=loc + loc_delta + dir,
+                    head=loc + object_offset,
+                    tail=loc + object_offset + dir*self.bones_org[0].length,
                     parent=self.root_bone,
                     custom_shape_name=self.params.curve.shape_spline_root.shape_name,
+                    custom_shape_scale_xyz=Vector((1, 1, 1)) * self.bones_org[0].custom_shape_scale_xyz,
                     inherit_scale=self.params.curve.inherit_scale,
                 )
                 spline_root.flatten()
@@ -317,7 +318,7 @@ class Component_Curve_Hooked(Component_Base):
             name=self.__get_hook_name(spline_idx, point_idx),
             source=source_bone,
             use_custom_shape_bone_size=True,
-            custom_shape_scale_xyz=Vector((self.params.curve.shape_size, 2, self.params.curve.shape_size)),
+            custom_shape_scale_xyz=Vector((self.params.curve.shape_size, 1, self.params.curve.shape_size)),
             head=point_loc,
             tail=tail,
             parent=parent_bone,
@@ -390,6 +391,7 @@ class Component_Curve_Hooked(Component_Base):
                 parent=hook_ctr,
                 custom_shape_name=self.params.curve.shape_handle.shape_name,
                 use_custom_shape_bone_size=True,
+                inherit_scale='ALIGNED',
             )
             handle_left_ctr.reverse()
             handle_left_ctr.roll_align_other(hook_ctr)
@@ -409,8 +411,8 @@ class Component_Curve_Hooked(Component_Base):
                 tail=loc,
                 parent=hook_ctr,
                 custom_shape_name=self.params.curve.shape_handle.shape_name,
-                custom_shape_scale_xyz=Vector((1, 1, 1)),
                 use_custom_shape_bone_size=True,
+                inherit_scale='ALIGNED',
             )
             hook_ctr.right_handle_control = handle_right_ctr
             handles.append(handle_right_ctr)
@@ -536,7 +538,7 @@ class Component_Curve_Hooked(Component_Base):
             var_tgt.transform_type = 'SCALE_X'
             var_tgt.bone_target = hooks[point_i].name
 
-            if self.params.curve.separate_radius:
+            if self.params.curve.separate_radius and hasattr(hooks[point_i], 'radius_control'):
                 var_tgt.bone_target = hooks[point_i].radius_control.name
 
             # Add Tilt driver
