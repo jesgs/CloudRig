@@ -760,6 +760,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         new_rig.data.display_type = old_rig.data.display_type
         new_rig.data.show_axes = old_rig.data.show_axes
 
+        # Preserve Pose Mode x-mirror
+        new_rig.pose.use_mirror_x = old_rig.pose.use_mirror_x
+
         # Preserve bone collections which are marked with preserve_on_regenerate.
         for old_idx, old_coll in enumerate(old_rig.data.collections_all):
             if not old_coll.cloudrig_info.preserve_on_regenerate:
