@@ -4,6 +4,8 @@ import bpy
 from bpy.props import BoolProperty
 from bpy.types import Object, Operator, PoseBone
 
+from ..rig_component_features.properties_ui import add_property_to_ui
+
 
 class CLOUDRIG_OT_convert_rigify_metarig(Operator):
     """Convert a Rigify metarig to a CloudRig metarig. The Rigify data is preserved, but existing CloudRig data may get overwritten."""
@@ -41,6 +43,7 @@ class CLOUDRIG_OT_convert_rigify_metarig(Operator):
 def convert_rigify_to_cloudrig(metarig_ob: Object):
     convert_actions(metarig_ob)
     convert_components(metarig_ob)
+    convert_bone_collections_ui(metarig_ob)
     for pb in metarig_ob.pose.bones:
         if not pb.custom_shape:
             pb.custom_shape_scale_xyz = [1, 1, 1]
@@ -102,6 +105,20 @@ def convert_actions(metarig_ob: Object):
         cr_action.is_corrective = rigify_action.is_corrective
         cr_action.trigger_select_a = rigify_action.trigger_select_a
         cr_action.trigger_select_b = rigify_action.trigger_select_b
+
+
+def convert_bone_collections_ui(metarig_ob: Object):
+    for coll in metarig_ob.data.collections_all:
+        add_property_to_ui(
+            obj=metarig_ob,
+            owner_path=f'data.collections_all["{coll.name}"]',
+            prop_name="is_visible",
+            panel_name="Bone Collections",
+            row_name=f"Rigify Row {coll.rigify_ui_row}",
+            slider_name=coll.name,
+            icon_true="HIDE_OFF",
+            icon_false="HIDE_ON",
+        )
 
 
 def any_cloudrig_data(metarig_ob: Object) -> bool:
