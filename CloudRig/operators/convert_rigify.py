@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+import rigify
 from bpy.props import BoolProperty
 from bpy.types import Object, Operator, PoseBone
 
@@ -8,10 +9,10 @@ from ..rig_component_features.properties_ui import add_property_to_ui
 
 
 class CLOUDRIG_OT_convert_rigify_metarig(Operator):
-    """Convert a Rigify metarig to a CloudRig metarig. The Rigify data is preserved, but existing CloudRig data may get overwritten."""
+    """Convert Rigify's Rig Types to the closest equivalent in CloudRig's Component Types. The Rigify data is preserved, but existing CloudRig data may get overwritten."""
 
     bl_idname = "armature.convert_rigify_to_cloudrig"
-    bl_label = "Convert Rigify to CloudRig"
+    bl_label = "Rigify Types -> CloudRig Components"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod
@@ -40,6 +41,41 @@ class CLOUDRIG_OT_convert_rigify_metarig(Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_replace_rigify_rig(Operator):
+    """Replace the generated Rigify rig with the generated CloudRig rig. This will destroy the Rigify rig."""
+
+    bl_idname = "armature.replace_rigify_with_cloudrig_rig"
+    bl_label = "Replace Generated Rig & Rename Vertex Groups"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    rename_vertex_groups: BoolProperty(
+        name="Rename Vertex Groups",
+        description="Rename vertex groups associated with deforming bones, to the names of the closest deforming bone in the CloudRig rig",
+        default=True
+    )
+    remove_rigify_data: BoolProperty(
+        name="Remove Rigify Data",
+        description="Remove all Rigify data from the metarig",
+        default=False,
+    )
+
+    def execute(self, context):
+        metarig = context.object
+        rigify_target_rig = metarig.data.rigify_target_rig
+        cloudrig_target_rig = metarig.cloudrig.generator.target_rig
+
+        rigify_dependent_ids = bpy.data.user_map()[rigify_target_rig]
+        rigify_dependent_objects = [id for id in rigify_dependent_ids if isinstance(id, Object)]
+        rigify_deformed_meshobs = [obj for obj in rigify_dependent_objects if any([hasattr(m, 'object') and m.object == rigify_target_rig for m in obj.modifiers])]
+        for mesh_ob in rigify_deformed_meshobs:
+            print("Mesh obj: ", mesh_ob)
+            # TODO: Rename deform bones based on proximity. But also maybe this should be done on a per component basis, rather than overall across the whole thing.
+
+        rigify_target_rig.user_remap(cloudrig_target_rig)
+        bpy.data.objects.remove(rigify_target_rig)
+
+        return {'FINISHED'}
+
 def convert_rigify_to_cloudrig(metarig_ob: Object):
     convert_actions(metarig_ob)
     convert_components(metarig_ob)
@@ -52,6 +88,8 @@ def convert_rigify_to_cloudrig(metarig_ob: Object):
 
 
 def convert_components(metarig_ob: Object):
+    skipped = 0
+    converted = 0
     for pbone in metarig_ob.pose.bones:
         comp = pbone.cloudrig_component
         params = comp.params
@@ -67,24 +105,31 @@ def convert_components(metarig_ob: Object):
                 if not bone.use_connect and not bone.children and not is_rigify_base_bone(pb):
                     params.leg.heel_bone = bone.name
                     break
-        if rigify_type == 'limbs.arm':
+        elif rigify_type == 'limbs.arm':
             pbone.cloudrig_component.component_type = 'Limb: Generic'
-        if rigify_type == 'spines.basic_spine':
+        elif rigify_type == 'spines.basic_spine':
             pbone.cloudrig_component.component_type = 'Spine: Cartoon'
-        if rigify_type == 'basic.super_copy':
+        elif rigify_type == 'basic.super_copy':
             any_arm_child = any(get_rigify_type(child)=='limbs.arm' for child in pbone.children)
             if any_arm_child:
                 pbone.cloudrig_component.component_type = 'Shoulder Bone'
             else:
                 pbone.cloudrig_component.component_type = 'Single Control'
-        if rigify_type == 'spines.super_head':
+        elif rigify_type == 'spines.super_head':
             pbone.cloudrig_component.component_type = 'Chain: FK'
-        if rigify_type == 'limbs.super_finger':
+        elif rigify_type == 'limbs.super_finger':
             pbone.cloudrig_component.component_type = 'Chain: FK'
-        if rigify_type == 'limbs.super_palm':
+        elif rigify_type == 'limbs.super_palm':
             # I think this rigify type affects its siblings...
             for pbone in pbone.parent.children:
                 pbone.cloudrig_component.component_type = 'Chain: FK'
+        else:
+            skipped += 1
+            continue
+        converted += 1
+
+    print("Converted Rigify Types: ", converted)
+    print("Skipped Rigify Types: ", skipped)
 
 
 def convert_actions(metarig_ob: Object):
@@ -149,6 +194,8 @@ def get_rigify_type(pbone: PoseBone) -> str:
 def is_rigify_base_bone(pbone: PoseBone):
     return bool(get_rigify_type(pbone))
 
+
 registry = [
     CLOUDRIG_OT_convert_rigify_metarig,
+    CLOUDRIG_OT_replace_rigify_rig,
 ]
