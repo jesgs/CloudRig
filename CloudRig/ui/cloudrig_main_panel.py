@@ -6,6 +6,7 @@ from bpy.types import Object, Panel
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
 from ..generation.troubleshooting import draw_log_panel
+from ..operators.convert_rigify import is_rigify_metarig
 from ..utils.misc import check_addon
 from .actions_ui import draw_action_setup_list
 from .component_list import draw_rig_component_list
@@ -37,6 +38,9 @@ class CloudRig_MainPanel:
         text = "Generate CloudRig"
         if metarig.cloudrig.generator.target_rig:
             text = "Re-Generate CloudRig"
+        if is_rigify_metarig(metarig):
+            layout.operator("armature.convert_rigify_to_cloudrig")
+
         layout.operator("pose.cloudrig_generate", text=text)
 
         prefs = get_addon_prefs(context)
