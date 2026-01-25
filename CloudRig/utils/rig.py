@@ -262,7 +262,12 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
     one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical)
     pole target position.
     """
-    coords = get_flattened_coords(chain)
+    try:
+        coords = get_flattened_coords(chain)
+    except ValueError:
+        # NOTE: This shouldn't really happen anymore, because we're trying to auto-correct
+        # IK chains in ik_chain__prevent_straight_chain().
+        return False
 
     THRESHOLD = 0.01
     for (head, tail), ebone in zip(coords, chain):
@@ -287,9 +292,9 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
 
 
 def points_define_plane(p1, p2, p3, eps=1e-8) -> bool:
-    v1 = (p2 - p1).normalized()
-    v2 = (p3 - p2).normalized()
-    return (v2-v1).length > eps
+    v1 = p2 - p1
+    v2 = p3 - p1
+    return v1.cross(v2).length > eps
 
 
 def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
@@ -307,32 +312,37 @@ def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]
         plane_points.append(eb_chain[0].tail)
     else:
         plane_points.append(eb_chain[-1].head)
-    if not points_define_plane(*plane_points):
-        for ebone in eb_chain:
-            for joint in (ebone.head, ebone.tail):
-                plane_points = [eb_chain[0].head, eb_chain[-1].tail, joint]
-                if points_define_plane(*plane_points):
-                    break
+
+    idx = 1
+    while not points_define_plane(*plane_points):
+        # If all 3 points are on a line (they fail to define a plane),
+        # just go down the chain until finding a bone that isn't on the plane.
+        plane_points[2] = eb_chain[idx].head
+        idx += 1
+        if idx > len(eb_chain):
+            break
+
     if not points_define_plane(*plane_points):
         raise ValueError(f"This bone chain is perfectly straight, and cannot define a plane: {[eb.name for eb in eb_chain]}")
 
     # Find the normal of this plane by finding two non-parallel vectors that lie on the plane.
     # and taking their cross product.
-    vec1 = plane_points[0] - plane_points[1]
-    vec2 = plane_points[1] - plane_points[2]
-    plane_normal = vec1.cross(vec2)
+    vec1 = plane_points[1] - plane_points[0]
+    vec2 = plane_points[2] - plane_points[0]
+    plane_normal = vec1.cross(vec2).normalized()
     assert isinstance(plane_normal, Vector)
 
     # Now let's project each head/tail in the bone chain onto the chosen plane.
     ret = []
     for edit_bone in eb_chain:
         pair = []
-        for point in [edit_bone.head, edit_bone.tail]:
+        for head_or_tail in [edit_bone.head, edit_bone.tail]:
             # Find the line that connects this vector to its closest point on the plane
+            # XXX Not sure how to use an infinite line for the intersection test but this is infinite enough for me.
             line = [
-                point - plane_normal * 20000,
-                point + plane_normal * 20000,
-            ]    # XXX Not sure how to use an infinite line for the intersection test... but, this is infinite enough for me.
+                head_or_tail - plane_normal * 20000,
+                head_or_tail + plane_normal * 20000,
+            ]
             # Blender gives us a nice function for intersecting a line with a plane
             intersect = intersect_line_plane(line[0], line[1], plane_points[0], plane_normal)
             # Set the vector to the resulting point

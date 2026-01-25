@@ -134,18 +134,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         super().create_bone_infos(context)
 
-        if not is_ideal_ik_chain(self.bones_org):
-            self.add_log(
-                "IK affects rest pose",
-                description="For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls should align towards the pole vector. Simply use the button below.",
-                operator="armature.flatten_ik_chain",
-                op_kwargs={
-                    "remove_active_log": True,
-                    "start_bone": self.metarig_base_pbone.name,
-                    "limit_count": self.required_chain_length
-                },
-            )
-
         self.last_org = self.bones_org[-1]
 
         if self.params.ik_chain.at_tip:
@@ -183,6 +171,17 @@ class Component_Chain_IKFK(Component_Chain_FK):
         points = (self.bones_org[0].head, self.bones_org[0].tail, self.bones_org[1].tail)
         eps = self.bones_org[0].length * 0.01
         if points_define_plane(*points, eps=eps):
+            if not is_ideal_ik_chain(self.bones_org):
+                self.add_log(
+                    "IK affects rest pose",
+                    description="For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be perfectly flat along a plane, and its bone rolls should align towards the pole vector. Simply use the button below.",
+                    operator="armature.flatten_ik_chain",
+                    op_kwargs={
+                        "remove_active_log": True,
+                        "start_bone": self.metarig_base_pbone.name,
+                        "limit_count": self.required_chain_length
+                    },
+                )
             return
 
         y_offset = eps
@@ -202,9 +201,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             op_kwargs={
                 'bone_name': self.bones_org[0].name,
                 'selection': 'TAIL',
+                'offset': [0, y_offset*1.1, 0],
             },
         )
-
 
     def ik_chain__make_ik_setup(self):
         # Create IK Master control

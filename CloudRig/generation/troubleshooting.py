@@ -1225,7 +1225,7 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
         if self.selection == 'TAIL':
             vectors = [ebone.tail]
         if self.selection == 'BOTH':
-            vectors.append(ebone.head)
+            vectors.append(ebone.tail)
 
         for vec in vectors:
             vec += Vector((self.offset))
