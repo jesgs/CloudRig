@@ -156,7 +156,7 @@ def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
         rename_dict[opposite_item] = (
             'name_display_flipped',
             flip_name(self.new_name),
-            uniqify(flip_name(self.new_name), collprop, id=opposite_item)
+            uniqify(flip_name(self.new_name), collprop, id=opposite_item, strip_first=False)
         )
 
     return rename_dict

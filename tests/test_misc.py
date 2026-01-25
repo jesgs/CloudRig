@@ -21,6 +21,14 @@ def test_bone_colors(context):
     assert bpy.ops.preferences.set_bone_color_presets(preset='BLENDER') == {'FINISHED'}
     assert bpy.ops.preferences.set_bone_color_presets(preset='CLOUDRIG') == {'FINISHED'}
 
+def test_naming_functions():
+    from CloudRig.generation.naming import get_name_parts
+    assert get_name_parts("Left Left Bone Left Left.001") == ("Left ", "Left Bone Left Left", "", ".001")
+    assert get_name_parts("Left Bone.L.001") == ("", "Left Bone", ".L", ".001")
+    assert get_name_parts("L_Bone.Left.001") == ("L_", "Bone.Left", "", ".001")
+    assert get_name_parts("Bone.Left.001") == ("", "Bone", ".Left", ".001")
+    assert get_name_parts("LeftBone.Left.001") == ("Left", "Bone.Left", "", ".001")
+
 def run_file_in_blender(filepath: Path):
     text = load_in_blender(filepath)
     text.as_module()

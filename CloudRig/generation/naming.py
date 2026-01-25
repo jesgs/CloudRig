@@ -201,34 +201,51 @@ def get_name_parts(thing: Any) -> tuple[str, str, str, str]:
     means only ONE side indicator will be acknowledged, prioritizing prefixes.
     So, a bone name like "L-hand_right.R.001" is expected to return ("L-", "hand_right.R", "", ".001").
     """
-    name = get_name(thing)
-    blender_zeroes = get_blender_zeroes(name)
+    base = get_name(thing)
+    blender_zeroes = get_blender_zeroes(base)
     if blender_zeroes:
-        name = name[:-len(blender_zeroes)]
+        base = base[:-len(blender_zeroes)]
     prefix = ""
     suffix = ""
-    possible_prefixes = ["l"+sep for sep in SEPARATORS] + ["r"+sep for sep in SEPARATORS] + ["left", "right"]
-    for possible_prefix in possible_prefixes:
-        if name.lower().startswith(possible_prefix):
-            prefix = name[:len(possible_prefix)]
-            name = name[len(possible_prefix):]
-            break
 
-    if not prefix:
-        possible_suffixes = [sep+"l" for sep in SEPARATORS] + [sep+"r" for sep in SEPARATORS] + ["left", "right"]
+    def get_prefix(name: str, possible_prefixes: list[str]) -> tuple[str, str]:
+        for possible_prefix in possible_prefixes:
+            if name.lower().startswith(possible_prefix.lower()):
+                prefix = name[:len(possible_prefix)]
+                base_name = name[len(possible_prefix):]
+                return base_name, prefix
+        return name, ""
+
+    def get_suffix(name: str, possible_suffixes: list[str]) -> tuple[str, str]:
         for possible_suffix in possible_suffixes:
-            if name.lower().endswith(possible_suffix):
+            if name.lower().endswith(possible_suffix.lower()):
                 suffix = name[-len(possible_suffix):]
-                name = name[:-len(possible_suffix)]
-                break
+                base_name = name[:-len(possible_suffix)]
+                return base_name, suffix
+        return name, ""
 
-    if prefix.lower() in ("left", "right") and name[0] in SEPARATORS:
+    # Prio #1: Short suffix (.L/.R)
+    base, suffix = get_suffix(base, [sep+"l" for sep in SEPARATORS] + [sep+"r" for sep in SEPARATORS])
+
+    # Prio #2: Short prefix (L_, R_)
+    if not suffix:
+        base, prefix = get_prefix(base, ["l"+sep for sep in SEPARATORS] + ["r"+sep for sep in SEPARATORS])
+
+    # Prio #3: Long prefix (Left_, Right_)
+    if not (suffix or prefix):
+        base, prefix = get_prefix(base, [word+sep for word in ["left", "right"] for sep in list(SEPARATORS)+[""]])
+
+    # Prio #4: Long suffix (_Left, _Right)
+    if not (suffix or prefix):
+        base, suffix = get_suffix(base, [sep+word for word in ["left", "right"] for sep in list(SEPARATORS)+[""]])
+
+    if prefix.lower() in ("left", "right") and base[0] in SEPARATORS:
         # If a full-word side prefix is followed by a separator character,
         # include that in the prefix part.
-        prefix += name[0]
-        name = name[1:]
+        prefix += base[0]
+        base = base[1:]
 
-    return prefix, name, suffix, blender_zeroes
+    return prefix, base, suffix, blender_zeroes
 
 
 def prepend_base_name(thing: Any, addition: str) -> str:
