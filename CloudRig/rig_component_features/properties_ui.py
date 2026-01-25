@@ -780,18 +780,23 @@ class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
         if parents:
             parent, parent_name, child_name = parents.pop()
             ui_elem = parent[child_name]
-            count = len(list(ui_elem.keys()))
+        else:
+            ui_elem = self.panels
+        count = len(list(ui_elem.keys()))
 
         super().execute_add_property(context)
 
         if parents:
             ui_elem = parent[child_name]
-            new_count = len(list(ui_elem.keys()))
+        else:
+            ui_elem = self.panels
 
-            if new_count == count + 1:
-                # When the UI element was added to the same parent element that it was in before,
-                # let's preserve its vertical position.
-                ordereddict_move_to_index(ui_elem, new_count - 1, index)
+        new_count = len(list(ui_elem.keys()))
+
+        if new_count == count + 1:
+            # When the UI element was added to the same parent element that it was in before,
+            # let's preserve its vertical position.
+            ordereddict_move_to_index(ui_elem, new_count - 1, index)
 
         write_rig_panels(rig, self.panels)
         redraw_viewport()
