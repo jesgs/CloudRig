@@ -9,7 +9,7 @@ from mathutils import Euler, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.actions_component import ActionConstraintSetup
-from ..generation.cloudrig import is_cloud_metarig
+from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
 from ..rig_components import ALL_COMPONENT_MODULES
 
 RIG_TYPE_MAP = {
@@ -192,7 +192,7 @@ def update_all_metarigs(dummy=None):
     metarig_version = get_addon_prefs().cloud_metarig_version
 
     cloud_metarigs = [
-        o for o in bpy.data.objects if o.type == 'ARMATURE' and is_cloud_metarig(o)
+        o for o in bpy.data.objects if o.type == 'ARMATURE' and is_cloud_metarig(o) and not is_generated_cloudrig(o)
     ]
 
     for metarig in cloud_metarigs:
