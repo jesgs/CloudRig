@@ -15,13 +15,15 @@ def test_generate_samples(context):
 
 def generate_sample_without_errors(context, sample_name: str):
     assert bpy.ops.object.cloudrig_sample_add(sample_name=sample_name) == {'FINISHED'}
-    context.active_object.cloudrig.generator.generate_test_action = True
-    assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
-    num_logs = len(context.active_object.cloudrig.generator.logs)
-    assert num_logs == 0, f"Sample '{sample_name}' has {len(num_logs)} generator warnings."
+    generate_without_errors(context, context.active_object)
 
 def generate_metarig_without_errors(context, metarig_name: str):
     assert bpy.ops.object.cloudrig_metarig_add(metarig_name=metarig_name) == {'FINISHED'}
-    context.active_object.cloudrig.generator.generate_test_action = True
+    generate_without_errors(context, context.active_object)
+
+def generate_without_errors(context, metarig):
+    metarig = context.active_object
+    metarig.cloudrig.generator.generate_test_action = True
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
-    assert len(context.active_object.cloudrig.generator.logs) == 0
+    num_logs = len(metarig.cloudrig.generator.logs)
+    assert num_logs == 0, f"Metarig '{metarig.name}' has {num_logs} generator warnings."

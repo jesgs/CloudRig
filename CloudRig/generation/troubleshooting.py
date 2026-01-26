@@ -23,6 +23,7 @@ from bpy.types import Object, Operator, PropertyGroup, UIList
 from mathutils import Vector
 
 from ..bs_utils.prefs import get_addon_prefs
+from ..generation import naming
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
 from ..rig_component_features.overlay_painter import no_overlay
@@ -312,7 +313,7 @@ class CloudLogManager:
     # Functions for finding various issues at the end of rig generation.
     # For these, self.rig is expected to be set.
 
-    def report_unused_bone_collections(self, metarig, target_rig):
+    def report_sus_bone_collections(self, metarig, target_rig):
         for coll in metarig.data.collections_all:
             target_coll = target_rig.data.collections_all.get(coll.name)
             if not target_coll or len(target_coll.bones_recursive) == 0:
@@ -322,8 +323,22 @@ class CloudLogManager:
                     note_icon='OUTLINER_COLLECTION',
                     icon='COLLECTION_COLOR_01',
                     description=f'Collection "{coll.name}" is not used by any bones.',
-                    operator=CLOUDRIG_OT_delete_collection.bl_idname,
+                    operator=CLOUDRIG_OT_delete_bone_collection.bl_idname,
                     op_kwargs={'coll_name': coll.name},
+                )
+                continue
+            if naming.has_trailing_numbers(coll):
+                self.log(
+                    "Trailing Numbers",
+                    note=coll.name,
+                    note_icon='OUTLINER_COLLECTION',
+                    icon='COLLECTION_COLOR_01',
+                    description=f'Collection "{coll.name}" has trailing numbers.',
+                    operator=CLOUDRIG_OT_rename_bone_collection.bl_idname,
+                    op_kwargs={
+                        'old_name': coll.name,
+                        'new_name': naming.strip_blender_zeroes(coll)
+                    },
                 )
 
     def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
@@ -884,53 +899,100 @@ class CLOUDRIG_OT_Report_Bug(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Rename_Bone(Operator):
-    """Rename a bone"""
-
-    bl_idname = "object.cloudrig_rename_bone"
-    bl_label = "Rename Bone"
+class RenameThingOp:
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
+    # Should be provided to the operator by the UI, and not changed!
     old_name: StringProperty()
-    new_name: StringProperty(
-        name="Name",
-        default="",
-        options={'SKIP_SAVE'},
-    )
+    new_name: StringProperty(name="Name")  # Exposed to user
+    bl_property = "new_name"
+
+    def get_container(self, context):
+        raise NotImplementedError
+
+    def get_thing(self, context):
+        return self.get_container(context).get(self.old_name)
+
+    def set_name(self, thing, name):
+        thing.name = name
 
     def invoke(self, context, event):
         wm = context.window_manager
-        if not self.new_name:
+        if self.new_name == '':
             self.new_name = self.old_name
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
         layout = self.layout
-        metarig = context.object
-        if self.new_name in metarig.data.bones:
-            layout.alert = True
+        if self.new_name in self.get_container(context):
             layout.prop(self, 'new_name', icon='ERROR')
-            layout.label(text="This bone name is taken!")
+            layout.label(text="This name is taken!")
+        elif self.new_name == '':
+            layout.label(text="Name must be specified.")
         else:
             layout.prop(self, 'new_name')
-            layout.label(text="Bone name available!")
+            layout.label(text="Name available!")
 
     def execute(self, context):
-        metarig = context.object
-        bone = metarig.data.bones.get(self.old_name)
-        if self.new_name in metarig.data.bones:
-            self.report({'ERROR'}, "That bone name is already taken.")
-            return {'CANCELLED'}
-        if not bone:
-            self.report(
-                {'ERROR'}, f'Old bone "{self.old_name}" not found or not provided.'
-            )
+        if self.new_name == '':
+            self.report({'ERROR'}, "Name must be specified!")
             return {'CANCELLED'}
 
-        bone.name = self.new_name
-        if bone.name == self.new_name:
+        container = self.get_container(context)
+        thing = self.get_thing(context)
+
+        if self.new_name in container:
+            self.report({'ERROR'}, "That name is already taken.")
+            return {'CANCELLED'}
+
+        if not thing:
+            self.report({'ERROR'}, f'Error: Old name "{self.old_name}" not found or not provided.')
+            return {'CANCELLED'}
+
+        self.set_name(thing, self.new_name)
+        if thing.name == self.new_name:
+            metarig = context.object
             metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
+
+
+class CLOUDRIG_OT_Rename_Bone(RenameThingOp, Operator):
+    """Rename a bone"""
+
+    bl_idname = "object.cloudrig_rename_bone"
+    bl_label = "Rename Bone"
+    bl_property = "new_name"
+
+    def get_container(self, context):
+        return context.object.data.bones
+
+
+class CLOUDRIG_OT_Rename_Object(RenameThingOp, Operator):
+    """Rename an object"""
+
+    bl_idname = "object.cloudrig_rename_object"
+    bl_label = "Rename Object"
+    bl_property = "new_name"
+
+    def get_container(self, context):
+        return bpy.data.objects
+
+    def get_thing(self, context):
+        return self.get_container(context).get((self.old_name, None))
+
+class CLOUDRIG_OT_rename_bone_collection(RenameThingOp, Operator):
+    """Rename a bone collection"""
+
+    bl_idname = "object.cloudrig_rename_bone_coll"
+    bl_label = "Rename Bone Collection"
+    bl_property = "new_name"
+
+    def get_container(self, context):
+        return context.object.data.collections_all
+
+    def set_name(self, thing, name):
+        super().set_name(thing, name)
+        thing.cloudrig_info.name = name
 
 
 class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
@@ -977,54 +1039,6 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
             {'INFO'},
             f'Replaced all references of "{self.old_name}" to "{self.new_name}".',
         )
-        return {'FINISHED'}
-
-
-class CLOUDRIG_OT_Rename_Object(Operator):
-    """Rename an object"""
-
-    bl_idname = "object.cloudrig_rename_object"
-    bl_label = "Rename Object"
-    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-    old_name: (
-        StringProperty()
-    )  # Should be provided to the operator by the UI, and not changed!
-    new_name: StringProperty(name="Name")  # Exposed to user
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        if self.new_name == '':
-            self.new_name = self.old_name
-        return wm.invoke_props_dialog(self)
-
-    def draw(self, context):
-        layout = self.layout
-        if self.new_name in bpy.data.objects:
-            layout.prop(self, 'new_name', icon='ERROR')
-            layout.label(text="This object name is taken!")
-        else:
-            layout.prop(self, 'new_name')
-            layout.label(text="Object name available!")
-
-    def execute(self, context):
-        metarig = context.object
-        obj = bpy.data.objects.get((self.old_name, None))
-
-        if self.new_name in bpy.data.objects:
-            self.report({'ERROR'}, "That object name is already taken.")
-            return {'CANCELLED'}
-
-        if not obj:
-            self.report(
-                {'ERROR'},
-                f'Error: Old object "{self.old_name}" not found or not provided.',
-            )
-            return {'CANCELLED'}
-
-        obj.name = self.new_name
-        if obj.name == self.new_name:
-            metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
@@ -1172,7 +1186,7 @@ class CLOUDRIG_OT_Edit_Action_Setup(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_delete_collection(Operator):
+class CLOUDRIG_OT_delete_bone_collection(Operator):
     """Remove a bone collection"""
 
     bl_idname = "object.cloudrig_delete_bone_collection"
@@ -1315,14 +1329,15 @@ registry = [
     CLOUDRIG_OT_Change_Rotation_Mode,
     CLOUDRIG_OT_Report_Bug,
     CLOUDRIG_OT_Rename_Bone,
-    CLOUDRIG_OT_Swap_Bone_Shape,
     CLOUDRIG_OT_Rename_Object,
+    CLOUDRIG_OT_rename_bone_collection,
+    CLOUDRIG_OT_Swap_Bone_Shape,
     CLOUDRIG_OT_Delete_Object,
     CLOUDRIG_OT_Unlink_Widget,
     CLOUDRIG_OT_Clear_Pointer,
     CLOUDRIG_OT_Clear_Single_Keyframes,
     CLOUDRIG_OT_Edit_Action_Setup,
-    CLOUDRIG_OT_delete_collection,
+    CLOUDRIG_OT_delete_bone_collection,
     CLOUDRIG_OT_edit_bone_transform,
     CLOUDRIG_OT_link_obj_to_scene,
     CLOUDRIG_OT_dismiss_version_warning,
