@@ -59,6 +59,8 @@ class Component_CopyBone(Component_Base):
 
         if bone_info.custom_shape:
             self.add_to_widget_collection(context, bone_info.custom_shape)
+        else:
+            bone_info.custom_shape_name = self.params.copy.shape_control.shape_name
 
         if bone_info.rotation_mode == 'QUATERNION':
             self.add_log(
@@ -192,13 +194,13 @@ class Component_CopyBone(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def poll_draw_appearance_params(cls, context, params) -> bool:
-        return params.copy.custom_pivot
-
-    @classmethod
     def draw_appearance_params(cls, layout, context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
+        row = layout.row()
+        if component.component_pbone.custom_shape:
+            row.enabled = False
+        cls.draw_prop_custom_shape(context, row, params.copy, 'shape_control')
         if params.copy.custom_pivot:
             cls.draw_prop_custom_shape(context, layout, params.copy, 'shape_pivot')
 
@@ -233,6 +235,10 @@ class Params(PropertyGroup):
         description="Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel",
     )
 
+    shape_control: Component_Base.make_custom_shape_params(
+        identifier="Control",
+        default="Cube"
+    )
     shape_pivot: Component_Base.make_custom_shape_params(
         identifier="Pivot",
         default="Axes 6"

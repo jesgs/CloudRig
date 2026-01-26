@@ -573,6 +573,9 @@ def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> str:
         pbone.custom_shape_rotation_euler,
         pbone.custom_shape_scale_xyz,
         pbone.custom_shape_wire_width,
+        pbone.use_custom_shape_bone_size,
+        pbone.bone.color.palette,
+        pbone.color.palette,
     ]]
 
 
